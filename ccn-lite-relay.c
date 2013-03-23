@@ -1,0 +1,568 @@
+/*
+ * @f ccn-lite-relay.c
+ * @b user space CCN relay
+ *
+ * Copyright (C) 2011, Christian Tschudin, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2011-11-22 created
+ */
+
+#define CCNL_UNIX
+#include "ccnl-platform.h"
+
+#include <dirent.h>
+#include <fnmatch.h>
+#include <regex.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#define CCNL_DEBUG
+#define CCNL_DEBUG_MALLOC
+#include "ccnl-debug.h"
+
+#define USE_ENCAPS
+#define USE_SCHEDULER
+#include "ccnx.h"
+#include "ccnl.h"
+#include "ccnl-core.h"
+
+#define ccnl_print_stats(x,y)		do{}while(0)
+#define ccnl_app_RX(x,y)		do{}while(0)
+#define CCNL_NOW()			current_time()
+
+#ifdef CCNL_DEBUG_MALLOC
+# include "ccnl-debug-mem.c"
+#endif
+
+// void ccnl_get_timeval(struct timeval *tv);
+
+#include "ccnl-debug.c"
+#include "ccnl-platform.c"
+
+struct ccnl_encaps_s* ccnl_encaps_new(int protocol, int mtu);
+void ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
+		       int ifndx, sockunion *su);
+int ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen);
+struct ccnl_buf_s* ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e,
+					       int *ifndx, sockunion *su);
+int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+
+void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
+void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
+		sockunion *dest, struct ccnl_buf_s *buf);
+
+#ifdef USE_ETHERNET
+int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+#endif
+
+
+#include "ccnl-core.c"
+#include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-sched.c"
+
+/*
+static void ccnl_ll_TX(struct ccnl_relay_s *r, int ifndx,
+		       sockunion *dest,
+		       struct ccnl_buf_s *buf);
+*/
+#include "ccnl-ext-encaps.c"
+
+// #define CCNL_DEFAULT_CONFIG_FILE "relay.conf"
+
+// ----------------------------------------------------------------------
+
+struct ccnl_relay_s theRelay;
+
+struct timeval*
+ccnl_run_events()
+{
+    static struct timeval now;
+    long usec;
+
+    gettimeofday(&now, 0);
+    while (eventqueue) {
+	struct ccnl_timer_s *t = eventqueue;
+	usec = timevaldelta(&(t->timeout), &now);
+	if (usec >= 0) {
+	    now.tv_sec = usec / 1000000;
+	    now.tv_usec = usec % 1000000;
+	    return &now;
+	}
+	if (t->fct)
+	    (t->fct)(t->node, t->intarg);
+	else if (t->fct2)
+	    (t->fct2)(t->aux1, t->aux2);
+	eventqueue = t->next;
+	ccnl_free(t);
+    }
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_ETHERNET
+int
+ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
+{
+//    unsigned char my_hw_addr[6];
+    struct ifreq ifr;
+    int s;
+
+    //    fprintf(stderr, "ccnl_open_ethdev %s\n", devname);
+
+    //    ccnl.sock[ccnl.ifcount] = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+//    s = socket(AF_PACKET, SOCK_RAW, sll->sll_protocol);
+    sll->sll_family = AF_PACKET;
+    sll->sll_protocol = htons(CCNL_ETH_TYPE);
+    s = socket(AF_PACKET, SOCK_RAW, sll->sll_protocol);
+    if (s < 0) {
+	perror("eth socket");
+	return -1;
+    }
+    //    fprintf(stderr, "eth socket is %d\n", ccnl.sock[ccnl.ifcount]);
+
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
+        perror("ethsock ioctl get hw addr");
+	return -1;
+    }
+/*
+    memset(sll, 0, sizeof(*sll));
+    sll->sll_family = AF_PACKET;
+*/
+    memcpy(sll->sll_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+//    memcpy(my_hw_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+    if(ioctl(s, SIOCGIFINDEX, (void *) &ifr) < 0 ) {
+        perror("ethsock ioctl get index");
+	return -1;
+    }
+/*
+    printf("addr is %s\n", ccnl_ll_addr2ascii((sockunion*)sll));
+    fprintf(stderr, "interface index is %d (%d)\n", ifr.ifr_ifindex,
+    	    if_nametoindex(devname));
+*/
+
+//    memcpy(sll->sll_addr, my_hw_addr, ETH_ALEN);
+    sll->sll_ifindex = ifr.ifr_ifindex;
+    sll->sll_protocol = htons(CCNL_ETH_TYPE);
+    if (bind(s, (struct sockaddr*) sll, sizeof(*sll)) < 0) {
+        perror("ethsock bind");
+	return -1;
+    }
+
+//    printf("addr is %s\n", ccnl_ll_addr2ascii((sockunion*)sll));
+//    printf("addr is %s\n", eth2ascii(my_hw_addr));
+
+    return s;
+}
+#endif // USE_ETHERNET
+
+int
+ccnl_open_udpdev(int port, struct sockaddr_in *si)
+{
+    int s;
+    unsigned int len;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0) {
+	perror("udp socket");
+	return -1;
+    }
+
+    si->sin_addr.s_addr = INADDR_ANY;
+    si->sin_port = htons(port);
+    si->sin_family = PF_INET;
+//  setsockopt(s, SOL_SOCKET, SO_BROADCAST, &port, 4);
+    if(bind(s, (struct sockaddr *)si, sizeof(*si)) < 0) {
+        perror("udp sock bind");
+	return -1;
+    }
+    len = sizeof(*si);
+    getsockname(s, (struct sockaddr*) si, &len);
+    return s;
+}
+
+#ifdef USE_ETHERNET
+int
+ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
+	       unsigned char *data, int datalen)
+{
+    short type = htons(CCNL_ETH_TYPE);
+    unsigned char buf[2000];
+    int hdrlen;
+
+    strcpy((char*)buf, eth2ascii(dst));
+    DEBUGMSG(99, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
+	     datalen, eth2ascii(src), buf);
+
+    hdrlen = 14;
+    if ((datalen+hdrlen) > sizeof(buf))
+            datalen = sizeof(buf) - hdrlen;
+    memcpy(buf, dst, 6);
+    memcpy(buf+6, src, 6);
+    memcpy(buf+12, &type, sizeof(type));
+    memcpy(buf+hdrlen, data, datalen);
+
+    return sendto(sock, buf, hdrlen + datalen, 0, 0, 0);
+}
+#endif // USE_ETHERNET
+
+#ifdef XXX
+// function called by the CCNL's encaps module:
+void
+ccnl_ll_TX(struct ccnl_relay_s *ccnl, int ifndx,
+	   sockunion *dest,
+	   struct ccnl_buf_s *buf)
+{
+/*
+    if (ccnl->ifs[ifndx].frag) {
+	fprintf(stderr, "** OUCH, overwriting a fragment buffer!\n");
+	ccnl_free(ccnl->ifs[ifndx].frag);
+    }
+    ccnl->ifs[ifndx].frag = buf;
+    if (dest)
+	memcpy(&ccnl->ifs[ifndx].senddst, dest, sizeof(*dest));
+
+    // when done with sending (in the io_loop), we
+    // call ccnl_relay_encaps_TX_done()
+*/
+}
+#endif
+
+void
+ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
+	   sockunion *dest, struct ccnl_buf_s *buf)
+{
+    int rc;
+
+    switch(dest->sa.sa_family) {
+    case AF_INET:
+	rc = sendto(ifc->sock,
+		    buf->data, buf->datalen, 0,
+		    (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
+	DEBUGMSG(99, "udp sendto %s returned %d\n",
+		 inet_ntoa(dest->ip4.sin_addr), rc);
+	break;
+#ifdef USE_ETHERNET
+    case AF_PACKET:
+ 	rc = ccnl_eth_sendto(ifc->sock,
+			     dest->eth.sll_addr,
+			     ifc->addr.eth.sll_addr,
+			     buf->data, buf->datalen);
+	DEBUGMSG(99, "eth_sendto %s returned %d\n",
+		 eth2ascii(dest->eth.sll_addr), rc);
+	break;
+#endif
+    default:
+	break;
+    }
+}
+
+// ----------------------------------------------------------------------
+
+static int inter_ccn_gap = 0; // in usec
+
+struct ccnl_sched_s*
+ccnl_relay_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
+				    void(*cb)(void*,void*))
+{
+    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_gap);
+}
+
+void ccnl_ageing(void *relay, void *aux)
+{
+    ccnl_do_ageing(relay, aux);
+    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+}
+
+// ----------------------------------------------------------------------
+
+void
+ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
+		  int max_cache_entries, int inter_packet_gap)
+{
+    struct ccnl_if_s *i;
+
+    DEBUGMSG(99, "ccnl_node_init\n");
+
+    relay->max_cache_entries = max_cache_entries;
+
+    //    ccnl_relay_encaps_init(relay);
+    //    ccnl_sched_init(relay, inter_packet_gap);
+
+    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+
+#ifdef USE_ETHERNET
+    // add (real) eth0 interface with index 0:
+    if (ethdev) {
+	i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth);
+	i->mtu = 1500;
+	i->reflect = 1;
+	i->fwdalli = 1;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "new ETH interface (%s %s) configured\n",
+		     ethdev, ccnl_addr2ascii(&i->addr));
+	} else
+	    fprintf(stderr, "sorry, could not open eth device\n");
+    }
+#endif // USE_ETHERNET
+
+    if (udpport > 0) {
+	i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
+//	i->encaps = CCNL_DGRAM_ENCAPS_NONE;
+	i->mtu = CCN_DEFAULT_MTU;
+	i->fwdalli = 1;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "new UDP interface (ip4 %s) configured\n", ccnl_addr2ascii(&i->addr));
+	} else
+	    fprintf(stderr, "sorry, could not open udp device\n");
+    }
+
+    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+}
+
+// ----------------------------------------------------------------------
+
+
+int
+ccnl_io_loop(struct ccnl_relay_s *ccnl)
+{
+    int i, maxfd = -1, rc;
+    fd_set readfs, writefs;
+    
+    if (ccnl->ifcount == 0) {
+	fprintf(stderr, "no socket to work with, not good, quitting\n");
+	exit(EXIT_FAILURE);
+    }
+    for (i = 0; i < ccnl->ifcount; i++)
+	if (ccnl->ifs[i].sock > maxfd)
+	    maxfd = ccnl->ifs[i].sock;
+    maxfd++;
+
+    FD_ZERO(&readfs);
+    FD_ZERO(&writefs);
+    DEBUGMSG(1, "starting main event and IO loop\n");
+    while(!ccnl->halt_flag) {
+	struct timeval *timeout;
+
+	for (i = 0; i < ccnl->ifcount; i++) {
+	    FD_SET(ccnl->ifs[i].sock, &readfs);
+	    if (ccnl->ifs[i].qlen > 0)
+		FD_SET(ccnl->ifs[i].sock, &writefs);
+	    else
+		FD_CLR(ccnl->ifs[i].sock, &writefs);
+	}
+
+	timeout = ccnl_run_events();
+	rc = select(maxfd, &readfs, &writefs, NULL, timeout);
+
+	if (rc < 0) {
+	    perror("select(): ");
+	    exit(EXIT_FAILURE);
+	}
+
+	for (i = 0; i < ccnl->ifcount; i++) {
+	    if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
+		sockunion src_addr;
+		socklen_t addrlen = sizeof(sockunion);
+		unsigned char buf[CCNL_MAX_PACKET_SIZE];
+		int len;
+		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
+				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
+		    if (src_addr.sa.sa_family == AF_INET) {
+			ccnl_core_RX(ccnl, i, buf, len, &src_addr.sa, sizeof(src_addr.ip4));
+		    }
+#ifdef USE_ETHERNET
+		    else if (src_addr.sa.sa_family == AF_PACKET) {
+			if (len > 14)
+			    ccnl_core_RX(ccnl, i, buf+14, len-14,
+					  &src_addr.sa, sizeof(src_addr.eth));
+		    }
+#endif
+		}
+	    }
+
+	    if (FD_ISSET(ccnl->ifs[i].sock, &writefs)) {
+	      ccnl_interface_CTS(ccnl, ccnl->ifs + i);
+		/*
+		struct ccnl_face_s *f = ccnl->ifs[i].sendface;
+		struct ccnl_buf_s *buf = ccnl_encaps_getnextfragment(f->encaps,
+								     );
+		ccnl_ll_send(ccnl, i, &f->peer, buf);
+		ccnl_relay_encaps_TX_done(ccnl, i);
+		*/
+	    }
+	}
+    }
+
+    return 0;
+}
+
+
+/*
+void
+ccnl_relay_cleanup(struct ccnl_relay_s *relay, int aux)
+{
+    ccnl_relay_cleanup(relay);
+
+    while (eventqueue)
+	ccnl_rem_timer(eventqueue);
+
+#ifdef CCNL_DEBUG_MALLOC
+    debug_memdump();
+#endif
+}
+*/
+
+void
+ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
+{
+    DIR *dir;
+    struct dirent *de;
+
+    DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
+
+    dir = opendir(path);
+    if (!dir)
+	return;
+    while ((de = readdir(dir))) {
+	if (!fnmatch("*.ccnb", de->d_name, FNM_NOESCAPE)) {
+	    char fname[1000];
+	    struct stat s;
+	    strcpy(fname, path);
+	    strcat(fname, "/");
+	    strcat(fname, de->d_name);
+	    if (stat(fname, &s)) {
+		perror("stat");
+	    } else {
+		struct ccnl_buf_s *buf = 0;
+		int fd;
+		DEBUGMSG(6, "loading file %s, %d bytes\n",
+			 de->d_name, (int) s.st_size);
+
+		fd = open(fname, O_RDONLY);
+		if (!fd) {
+		    perror("open");
+		    continue;
+		}
+		buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) + s.st_size);
+		buf->datalen = s.st_size;
+		read(fd, buf->data, s.st_size);
+		close(fd);
+		if (ccnl_is_content(buf)) {
+		        struct ccnl_prefix_s *prefix = 0;
+			struct ccnl_content_s *c = 0;
+			struct ccnl_buf_s *nonce=0, *ppkd=0;
+			unsigned char *content;
+			int contlen;
+			if (ccnl_extract_prefix_nonce_ppkd(buf, &prefix,
+				&nonce, &ppkd, &content, &contlen) || !prefix) {
+			    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
+			}
+			c = ccnl_content_new(ccnl, &buf, &prefix, &ppkd,
+					     content, contlen);
+			if (!c)
+			    goto Done;
+			ccnl_content_add2cache(ccnl, c);
+			c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+Done:
+			free_prefix(prefix);
+			ccnl_free(buf);
+			ccnl_free(nonce);
+			ccnl_free(ppkd);
+		} else {
+		    DEBUGMSG(6, "  not a content object\n");
+		    ccnl_free(buf);
+		}
+	    }
+	}
+    }
+}
+
+int
+main(int argc, char **argv)
+{
+    int opt;
+    int max_cache_entries = -1;
+    int inter_packet_gap = 0;
+    int udpport = CCN_UDP_PORT;
+    char *datadir = NULL;
+    char *ethdev = NULL;
+
+    // srand(time(NULL));
+    srandom(time(NULL));
+
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:u:v:")) != -1) {
+        switch (opt) {
+        case 'c':
+            max_cache_entries = atoi(optarg);
+            break;
+        case 'd':
+            datadir = optarg;
+            break;
+        case 'e':
+            ethdev = optarg;
+            break;
+        case 'g':
+            inter_packet_gap = atoi(optarg);
+            break;
+        case 'i':
+            inter_ccn_gap = atoi(optarg);
+            break;
+        case 'u':
+            udpport = atoi(optarg);
+            break;
+        case 'v':
+            debug_level = atoi(optarg);
+            break;
+        case 'h':
+        default:
+            fprintf(stderr,
+		    "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
+		    " [-d databasedir]"
+		    " [-e ethdev]"
+		    " [-g MIN_INTER_PACKET_GAP]"
+		    " [-i MIN_INTER_CCNMSG_GAP]"
+		    " [-u udpport]"
+		    " [-v DEBUG_LEVEL]\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    ccnl_relay_config(&theRelay, ethdev, udpport,
+		      max_cache_entries, inter_packet_gap);
+    if (datadir)
+	ccnl_populate_cache(&theRelay, datadir);
+
+    ccnl_io_loop(&theRelay);
+
+    while (eventqueue)
+	ccnl_rem_timer(eventqueue);
+    ccnl_core_cleanup(&theRelay);
+#ifdef CCNL_DEBUG_MALLOC
+    debug_memdump();
+#endif
+
+    return 0;
+}
+
+
+// eof
