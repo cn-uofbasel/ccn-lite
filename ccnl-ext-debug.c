@@ -1,6 +1,6 @@
 /*
- * @f ccnl__debug.c
- * @b basel bare bones ccn relay, data structure dumping routines
+ * @f ccnl-ext-debug.c
+ * @b CCNL debugging support, dumping routines, memory tracking, stats
  *
  * Copyright (C) 2011, Christian Tschudin, University of Basel
  *
@@ -18,27 +18,53 @@
  *
  * File history:
  * 2011-04-19 created
+ * 2013-03-18 updated (ms): removed omnet related code
+ * 2013-03-31 merged with ccnl-debug.h and ccnl-debug-mem.c
  */
 
-
-enum { // numbers for each data type
-    CCNL_BUF = 1,
-    CCNL_PREFIX,
-    CCNL_RELAY,
-    CCNL_FACE,
-    CCNL_FWD,
-    CCNL_INTEREST,
-    CCNL_PENDINT,
-    CCNL_CONTENT
-};
-
-static int debug_level;
-
-// ----------------------------------------------------------------------
+#ifdef USE_DEBUG
 
 #ifndef CCNL_KERNEL
+struct ccnl_stats_s {
+    void* log_handler;
+    FILE *ofp;
+    int log_sent;
+    int log_recv;
+    int log_recv_old;
+    int log_sent_old;
+    int log_need_rt_seqn;
+    int log_content_delivery_rate_per_s;
+    double log_start_t;
+    double log_cdr_t;
+    //
+    FILE *ofp_r, *ofp_s, *ofp_q;
+    double log_recv_t_i;
+    double log_recv_t_c;
+    double log_sent_t_i;
+    double log_sent_t_c;
+};
+#endif
 
-#endif // !CCNL_KERNEL
+#define DEBUGSTMT(LVL, ...) do { \
+	if ((LVL)>debug_level) break; \
+	__VA_ARGS__; \
+} while (0)
+
+#ifndef CCNL_KERNEL
+#  define DEBUGMSG(LVL, ...) do {	\
+	if ((LVL)>debug_level) break;   \
+	fprintf(stderr, "%s: ", timestamp());	\
+	fprintf(stderr, __VA_ARGS__);	\
+    } while (0)
+
+#else // CCNL_KERNEL
+#  define DEBUGMSG(LVL, ...) do {	\
+	if ((LVL)>debug_level) break;   \
+	printk("%s: ", THIS_MODULE->name);	\
+	printk(__VA_ARGS__);		\
+    } while (0)
+#  define printf(...)	printk(__VA_ARGS__)
+#endif // CCNL_KERNEL
 
 
 // ----------------------------------------------------------------------
@@ -131,6 +157,16 @@ encaps(int e)
 	printf(" encaps=%d", e);
 }
 
+enum { // numbers for each data type
+    CCNL_BUF = 1,
+    CCNL_PREFIX,
+    CCNL_RELAY,
+    CCNL_FACE,
+    CCNL_FWD,
+    CCNL_INTEREST,
+    CCNL_PENDINT,
+    CCNL_CONTENT
+};
 
 void
 ccnl_dump(int lev, int typ, void *p)
@@ -276,6 +312,173 @@ ccnl_dump(int lev, int typ, void *p)
 	printf("unknown data type %d at %p\n", typ, p);
     }
 }
+
+#else // !USE_DEBUG
+#  define DEBUGSTMT(LVL, ...)			do {} while(0)
+#  define DEBUGMSG(LVL, ...)			do {} while(0)
+#endif // !USE_DEBUG
+
+// -----------------------------------------------------------------
+
+#ifdef USE_DEBUG_MALLOC
+
+#  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())
+#  define ccnl_calloc(n,s)	debug_calloc(n, s, __FILE__, __LINE__,timestamp())
+#  define ccnl_realloc(p,s)	debug_realloc(p, s, __FILE__, __LINE__)
+#  define ccnl_free(p)		debug_free(p, __FILE__, __LINE__)
+#  define ccnl_buf_new(p,s)	debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
+
+char* timestamp(void);
+
+struct mhdr {
+    struct mhdr *next;
+    char *fname;
+    int lineno, size;
+    char *tstamp;
+} *mem;
+
+void*
+debug_malloc(int s, const char *fn, int lno, char *tstamp)
+{
+    struct mhdr *h = (struct mhdr *) malloc(s + sizeof(struct mhdr));
+    if (!h) return NULL;
+    h->next = mem;
+    mem = h;
+    h->fname = (char *) fn;
+    h->lineno = lno;
+    h->size = s;
+    h->tstamp = strdup(tstamp);
+    return ((unsigned char *)h) + sizeof(struct mhdr);
+}
+
+void*
+debug_calloc(int n, int s, const char *fn, int lno, char *tstamp)
+{
+    void *p = debug_malloc(n * s, fn, lno, tstamp);
+    if (p)
+	memset(p, 0, n*s);
+    return p;
+}
+
+
+int
+debug_unlink(struct mhdr *hdr)
+{
+    struct mhdr **pp = &mem;
+
+    for (pp = &mem; pp; pp = &((*pp)->next)) {
+	if (*pp == hdr) {
+	    *pp = hdr->next;
+	    return 0;
+	}
+	if (!(*pp)->next)
+	    break;
+    }
+    return 1;
+}
+
+/*
+void*
+debug_realloc(void *p, int s, const char *fn, int lno)
+{
+    struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
+
+    if (p) {
+	if (debug_unlink(h)) {
+	    fprintf(stderr,
+		    "%s: @@@ memerror - realloc(%s:%d) at %s:%d does not find memory block\n",
+		    timestamp(), h->fname, h->lineno, fn, lno);
+	    return NULL;
+	}
+	h = (struct mhdr *) realloc(h, s+sizeof(struct mhdr));
+	if (!h)
+	    return NULL;
+    } else
+      h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
+    h->fname = (char *) fn;
+    h->lineno = lno;
+    h->size = s;
+    h->next = mem;
+    mem = h;
+    return ((unsigned char *)h) + sizeof(struct mhdr);
+}
+*/
+
+void
+debug_free(void *p, const char *fn, int lno)
+{
+    struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
+
+    if (!p) {
+//	fprintf(stderr, "%s: @@@ memerror - free() of NULL ptr at %s:%d\n",
+//	   timestamp(), fn, lno);
+	return;
+    }
+    if (debug_unlink(h)) {
+	fprintf(stderr,
+	   "%s: @@@ memerror - free() at %s:%d does not find memory block %p\n",
+		timestamp(), fn, lno, p);
+	return;
+    }
+    if (h->tstamp)
+	free(h->tstamp);
+    free(h);
+}
+
+struct ccnl_buf_s*
+debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
+{
+  struct ccnl_buf_s *b = (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn,
+							    lno, tstamp);
+
+    if (!b)
+	return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+	memcpy(b->data, data, len);
+    return b;
+}
+
+void
+debug_memdump()
+{
+    struct mhdr *h;
+
+    fprintf(stderr, "%s: @@@ memory dump starts\n", timestamp());
+    for (h = mem; h; h = h->next) {
+	fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
+		timestamp(),
+		(unsigned char *)h + sizeof(struct mhdr),
+		h->size, h->fname, h->lineno, h->tstamp);
+    }
+    fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
+}
+
+
+#else // !USE_DEBUG_MALLOC
+
+# ifndef CCNL_KERNEL
+#  define ccnl_malloc(s)	malloc(s)
+#  define ccnl_calloc(n,s) 	calloc(n,s)
+#  define ccnl_realloc(p,s)	realloc(p,s)
+#  define ccnl_free(p)		free(p)
+# endif
+
+#endif // !USE_DEBUG_MALLOC
+
+
+#define free_2ptr_list(a,b)	ccnl_free(a), ccnl_free(b)
+#define free_3ptr_list(a,b,c)	ccnl_free(a), ccnl_free(b), ccnl_free(c)
+#define free_4ptr_list(a,b,c,d)	ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
+
+#define free_prefix(p)	do{ if(p) \
+			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
+#define free_content(c) do{ free_prefix(c->prefix); \
+			free_2ptr_list(c->data, c); } while(0)
+
+// -----------------------------------------------------------------
+static int debug_level;
 
 
 // eof

@@ -19,26 +19,42 @@
  * File history:
  * 2011-11-22 created
  * 2011-12 simulation scenario and logging support s.braun@stud.unibas.ch
- * 2013-03-19 updated (ms): replacement code after renaming ccnl_relay_s.client
- *   to ccnl_relay_s.aux
+ * 2013-03-19 updated (ms): replacement code after renaming the field
+ * 		ccnl_relay_s.client to ccnl_relay_s.aux
  */
 
 
 #define CCNL_SIMULATION
-#include "ccnl-platform.h"
 
-#define CCNL_DEBUG
-#define CCNL_DEBUG_MALLOC
-#include "ccnl-debug.h"
-
+#define USE_DEBUG
+#define USE_DEBUG_MALLOC
 #define USE_ENCAPS
 #define USE_SCHEDULER
 #define USE_ETHERNET
+
+#include "ccnl-platform.h"
+
 #include "ccnx.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
+#include "ccnl-ext-debug.c"
+#include "ccnl-ext.h"
+
 # define CCNL_NOW()			current_time()
+#include "ccnl-platform.c"
+
+int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+
+void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
+enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
+
+#include "ccnl-core.c"
+
+#include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-sched.c"
+#include "ccnl-pdu.c"
+#include "ccnl-ext-encaps.c"
 
 // ----------------------------------------------------------------------
 
@@ -51,40 +67,8 @@ static struct ccnl_relay_s* char2relay(char node);
 static char relay2char(struct ccnl_relay_s *relay);
 void ccnl_simu_fini(void *ptr, int aux);
 
-
-void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
-enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
-
 void ccnl_simu_phase_two(void *ptr, void *dummy);
 
-#ifdef CCNL_DEBUG_MALLOC
-# include "ccnl-debug-mem.c"
-#endif
-
-#include "ccnl-debug.c"
-#include "ccnl-platform.c"
-
-struct ccnl_encaps_s* ccnl_encaps_new(int protocol, int mtu);
-void ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
-		       int ifndx, sockunion *su);
-// int ccnl_encaps_nomorefragments(struct ccnl_encaps_s *e);
-struct ccnl_buf_s* ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e,
-					       int *ifndx, sockunion *su);
-int ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen);
-int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-	      struct ccnl_face_s *from);
-// void ccnl_ll_TX(struct ccnl_relay_s *relay, int ifndx, unsigned char *dst, unsigned char *src, unsigned char *data, int len);
-void ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
-		sockunion *dst, struct ccnl_buf_s *buf);
-int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
-void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
-
-#include "ccnl-core.c"
-#include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-sched.c"
-#include "ccnl-ext-encaps.c"
-
-#include "ccnl-pdu.c"
 
 extern void ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name, int seqn,
 				 char *data, int len);
@@ -123,7 +107,7 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 }
 */
 
-#ifdef XX-20130322
+#ifdef XX_20130322
 int
 mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 {
@@ -634,6 +618,7 @@ void ccnl_simu_cleanup(void *dummy, void *dummy2);
 // ----------------------------------------------------------------------
 
 static int inter_ccn_gap = 0; // in usec
+static int inter_packet_gap = 0; // in usec
 
 struct ccnl_sched_s*
 ccnl_simu_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
@@ -650,8 +635,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 void
 ccnl_simu_init_node(char node, const char *addr,
-		   int max_cache_entries,
-		    int inter_packet_gap)
+		    int max_cache_entries)
 {
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_if_s *i;
@@ -681,14 +665,6 @@ ccnl_simu_init_node(char node, const char *addr,
 // #ifndef CCNL_SIMU_NET_H
     if (node == 'A' || node == 'B') {
 
-    /* (ms) replacement after renaming ccnl_relay_s.client to ccnl_relay_s.aux
-     *
-    relay->client = ccnl_calloc(1, sizeof(struct ccnl_client_s));
-    relay->client->lastseq = SIMU_NUMBER_OF_CHUNKS-1;
-    relay->client->last_received = -1;
-    relay->client->name = node == 'A' ?
-        "/ccnl/simu/movie1" : "/ccnl/simu/movie2";
-    */
 	struct ccnl_client_s *client = ccnl_calloc(1, sizeof(struct ccnl_client_s));
 	client->lastseq = SIMU_NUMBER_OF_CHUNKS-1;
 	client->last_received = -1;
@@ -729,7 +705,7 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
 
 
 int
-ccnl_simu_init(int max_cache_entries, int inter_packet_gap)
+ccnl_simu_init(int max_cache_entries)
 {
     static char dat[SIMU_CHUNK_SIZE];
     static char init_was_visited;
@@ -746,15 +722,15 @@ ccnl_simu_init(int max_cache_entries, int inter_packet_gap)
 
     // define each node's eth address:
     ccnl_simu_init_node('A', "\x00\x00\x00\x00\x00\x0a",
-		       max_cache_entries, inter_packet_gap);
+		       max_cache_entries);
     ccnl_simu_init_node('B', "\x00\x00\x00\x00\x00\x0b",
-		       max_cache_entries, inter_packet_gap);
+		       max_cache_entries);
     ccnl_simu_init_node('C', "\x00\x00\x00\x00\x00\x0c",
-		       max_cache_entries, inter_packet_gap);
+		       max_cache_entries);
     ccnl_simu_init_node('1', "\x00\x00\x00\x00\x00\x01",
-		       max_cache_entries, inter_packet_gap);
+		       max_cache_entries);
     ccnl_simu_init_node('2', "\x00\x00\x00\x00\x00\x02",
-		       max_cache_entries, inter_packet_gap);
+		       max_cache_entries);
 
     // install the system's forwarding pointers:
     ccnl_simu_add_fwd('A', "/ccnl/simu", '2');
@@ -854,13 +830,6 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
     for (i = 0; i < 5; i++) {
 	struct ccnl_relay_s *relay = relays + i;
 
-	/* (ms) replacement after renaming ccnl_relay_s.client to ccnl_relay_s.aux
-	 *
-	if (relay->client) {
-	    ccnl_free(relay->client);
-	    relay->client = NULL;
-	}
-	 */
     if (relay->aux) {
         ccnl_free(relay->aux);
         relay->aux = NULL;
@@ -887,7 +856,7 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
 
     ccnl_sched_cleanup();
 
-#ifdef CCNL_DEBUG_MALLOC
+#ifdef USE_DEBUG_MALLOC
     debug_memdump();
 #endif
 }
@@ -899,7 +868,6 @@ main(int argc, char **argv)
 {
     int opt;
     int max_cache_entries = CCNL_DEFAULT_MAX_CACHE_ENTRIES;
-    int inter_packet_gap = 0;
 
     //    srand(time(NULL));
     srandom(time(NULL));
@@ -925,7 +893,7 @@ main(int argc, char **argv)
         }
     }
 
-    ccnl_simu_init(max_cache_entries, inter_packet_gap);
+    ccnl_simu_init(max_cache_entries);
 
     DEBUGMSG(1, "simulation starts\n");
     simu_eventloop();

@@ -37,6 +37,21 @@
   does not include the ccnl-platform.c functionality or definitions,
   hence the DEFINE does not matter for that platform.
 
+
+  Moreover, the CCN lite code has several extension that can
+  be switched on or off via #defines. These activations are
+  made in the platform specific main files (listed above in
+  parentheses):
+
+  USE_CHEMFLOW
+  USE_DEBUG
+  USE_DEBUG_MALLOC
+  USE_ENCAPS
+  USE_ETHERNET
+  USE_MGMT
+  USE_SCHEDULER
+  USE_UNIXSOCKET  // unix IPC via named sockets
+
  */
 
 #ifndef CCNL_KERNEL
@@ -71,6 +86,7 @@
 #  include <linux/if_ether.h>  // ETH_ALEN
 #  include <linux/if_packet.h> // sockaddr_ll
 #  define USE_ETHERNET
+#  define USE_UNIXSOCKET
 #endif
 
 #else // else we are compiling for the Linux kernel
@@ -106,27 +122,5 @@
 #define USE_ETHERNET
 
 #endif // !CCNL_KERNEL
-
-
-#ifdef USE_SCHEDULER
-
-struct ccnl_scheduler_s* ccnl_scheduler_new();
-int ccnl_scheduler_register(struct ccnl_scheduler_s *s,
-			    struct ccnl_buf_s* (*getPacket)(void *aux1, void *aux2),
-			    void *aux1, void *aux2);
-  ;
-int ccnl_scheduler_unregister(struct ccnl_scheduler_s *s);
-int ccnl_scheduler_rts(struct ccnl_face_s *f, struct ccnl_scheduler_s *s, int pktcnt, int size);
-void ccnl_scheduler_destroy(struct ccnl_scheduler_s *s);
-
-#else
-
-#define ccnl_scheduler_new()			NULL
-#define ccnl_scheduler_register(S,CB,A1,A2)	do{}while(-1)
-#define ccnl_scheduler_unregister(S)		do{}while(-1)
-#define ccnl_scheduler_rts(S,C,L)		do{}while(-1)
-#define ccnl_scheduler_destroy(S)		do{}while(-1)
-
-#endif
 
 // eof

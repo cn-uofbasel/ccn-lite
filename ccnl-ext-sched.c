@@ -26,6 +26,8 @@
 #include <pthread.h>
 #endif
 
+#ifdef USE_SCHEDULER
+
 // currently, this file mostly has stubs,
 // and for now a simple rate controller (dec 2011)
 
@@ -366,6 +368,11 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
     long since;
 #endif
 
+    if (!s) {
+	DEBUGMSG(15, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
+	     (void*)s, len, (void*)aux1, (void*)aux2);
+	return;
+    }
     DEBUGMSG(15, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
 	     (void*)s, s->mode, len, (void*)aux1, (void*)aux2);
 
@@ -416,6 +423,11 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
     long since;
 #endif
 
+    if (!s) {
+	DEBUGMSG(15, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
+	     (void*)s, cnt, len);
+	return;
+    }
     DEBUGMSG(15, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
 	     (void*)s, s->mode, cnt, len, s->cnt);
 
@@ -566,65 +578,6 @@ ccnl_sched_packetratelimiter_new(int inter_packet_gap,
     return s;
 }
 
-#ifdef XXX
-void
-ccnl_sched_init(struct ccnl_relay_s *ccnl, int inter_packet_gap)
-{
-    DEBUGMSG(99, "ccnl_sched_init()\n");
-
-    ccnl->ifs[0].sched = (struct ccnl_sched_s*) ccnl_calloc(1,
-						sizeof(struct ccnl_sched_s));
-    ccnl_get_timeval(&(ccnl->ifs[0].sched->nextTX));
-    ccnl->ifs[0].sched->ipg = inter_packet_gap;
-}
-#endif
-
-/*
-// void signal_cts(char node, int ifndx)
-// struct ccnl_relay_s *relay = char2relay(node);
-void
-signal_cts(struct ccnl_relay_s *relay, int ifndx)
-{
-    DEBUGMSG(10, "signal_cts(relay=%p), cnt=%d\n",
-	     relay, relay->ifs[ifndx].outcnt);
-
-    ccnl_relay_encaps_CTS(relay, ifndx);
-}
-*/
-
-#ifdef XXX
-void
-ccnl_scheduler_RTS(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
-{
-    struct ccnl_sched_s *s = ccnl->ifs[ifndx].sched;
-    DEBUGMSG(10, "ccnl_scheduler_RTS()\n");
-
-    if (!s) {
-//	while (cnt-- > 0)
-	    ccnl_relay_encaps_CTS(ccnl, ifndx);
-    } else {
-	struct timeval now;
-	long since;
-
-	//	gettimeofday(&now, NULL);
-	ccnl_get_timeval(&now);
-
-	if (s != ccnl->ifs[ifndx].sched)
-	    printf("?? %p %p\n", s, ccnl->ifs[ifndx].sched);
-	since = timevaldelta(&(s->nextTX), &now);
-	if (since <= 0) {
-	    now.tv_sec += s->ipg / 1000000;
-	    now.tv_usec += s->ipg % 1000000;
-	    memcpy(&(s->nextTX), &now, sizeof(now));
-	    ccnl_relay_encaps_CTS(ccnl, ifndx);
-	    return;
-	}
-	DEBUGMSG(15, "since=%ld\n", since);
-	ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
-	s->nextTX.tv_sec += s->ipg / 1000000;;
-	s->nextTX.tv_usec += s->ipg % 1000000;;
-    }
-}
-#endif
+#endif // USE_SCHEDULER
 
 // eof

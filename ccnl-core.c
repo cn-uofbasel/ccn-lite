@@ -26,7 +26,7 @@ static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 // ----------------------------------------------------------------------
 // datastructure support functions
 
-#ifndef CCNL_DEBUG_MALLOC
+#ifndef USE_DEBUG_MALLOC
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
 {
@@ -465,11 +465,13 @@ ccnl_face_dequeue(struct ccnl_face_s *f)
 void
 ccnl_face_CTS_done(void *ptr, int cnt, int len)
 {
-  struct ccnl_face_s *f = (struct ccnl_face_s*) ptr;
-    DEBUGMSG(2, "ccnl_face_CTS_done face=%p cnt=%d len=%d\n", (void*)f,cnt,len);
+    DEBUGMSG(2, "ccnl_face_CTS_done face=%p cnt=%d len=%d\n", ptr, cnt, len);
 
 #ifdef USE_SCHEDULER
-    ccnl_sched_CTS_done(f->sched, cnt, len);
+    {
+	struct ccnl_face_s *f = (struct ccnl_face_s*) ptr;
+	ccnl_sched_CTS_done(f->sched, cnt, len);
+    }
 #endif
 }
 
@@ -754,12 +756,12 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
     if (ccnl->max_cache_entries > 0 &&
 	ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
-	struct ccnl_content_s *old = NULL, *c2;
+	struct ccnl_content_s /* *old = NULL,*/ *c2;
 	int age = 0;
 	for (c2 = ccnl->contents; c2; c2 = c2->next)
 	    if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC) &&
 					((age == 0) || c2->last_used < age))
-		old = c2, age = c2->last_used;
+		/* old = c2, */ age = c2->last_used;
 	if (c2)
 	    ccnl_content_remove(ccnl, c2);
     }

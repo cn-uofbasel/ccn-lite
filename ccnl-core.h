@@ -97,20 +97,8 @@ struct ccnl_relay_s {
     char halt_flag;
     struct ccnl_sched_s* (*defaultFaceScheduler)(struct ccnl_relay_s*,
 						 void(*cts_done)(void*,void*));
-
-    // (ms) Replaced the commented part with the two fields below. The rationale
-    // is that
-    // (a) 'stats' can be there even if not used (in fact they re used in most
-    // containers, and they could be optionaly activated from the mgmt interface)
-    // (b) 'aux' can be casted to ccnl_client_s for use witht the simu container,
-    // but may also be used in a number of other contexts (state struct for named
-    // func, control block for omnet, etc)
-/*
-#ifdef CCNL_SIMULATION
-    struct ccnl_stats_s *stats;
-    struct ccnl_client_s *client; // simulation mode: client state
-#endif
-*/
+    struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
+						 void(*cts_done)(void*,void*));
     struct ccnl_stats_s *stats;
     void *aux;
 };
@@ -199,32 +187,6 @@ struct ccnl_content_s {
 };
 
 // ----------------------------------------------------------------------
-// referenced by ccnl-relay.c:
-
-#ifdef USE_ENCAPS
-
-int ccnl_is_encaps(struct ccnl_buf_s *buf);
-struct ccnl_buf_s* ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
-					       struct ccnl_face_s *f, unsigned char *data, int datalen);
-void ccnl_encaps_destroy(struct ccnl_encaps_s *e);
-
-// referenced by ccnl_relay_sched.c:
-struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
-					struct ccnl_encaps_s *encaps,
-					struct ccnl_buf_s *buf);
-#endif
-
-#ifdef USE_SCHEDULER
-struct ccnl_sched_s* ccnl_sched_new(void (cts)(void *aux1, void *aux2),
-				    int inter_packet_gap);
-void ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
-		    void *aux1, void *aux2);
-void ccnl_sched_destroy(struct ccnl_sched_s *s);
-#endif
-
-int ccnl_is_local_addr(sockunion *su);
-
-// ----------------------------------------------------------------------
 // macros for double linked lists (these double linked lists are not rings)
 
 #define DBL_LINKED_LIST_ADD(l,e) \
@@ -239,11 +201,12 @@ int ccnl_is_local_addr(sockunion *su);
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
 
+/*
 // #define LINKED_LIST_DROPNFREE_HEAD(l)		\
 //  do { void *p = (l)->next;				\
 //       ccnl_free(l);					\
 //       (l) = p;					\
 //  } while(0)
-
+*/
 
 // eof

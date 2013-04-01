@@ -361,7 +361,7 @@ main(int argc, char **argv)
     i = &theRelay.ifs[0];
     i->mtu = CCN_DEFAULT_MTU;
     i->fwdalli = 1;
-    i->sock = ccnl_open_udpdev(CCN_UDP_PORT);
+    i->sock = ccnl_open_udpdev(udpport);
     if (i->sock < 0)
 	exit(-1);
     theRelay.ifcount++;

@@ -3,6 +3,7 @@
  * @b OmNet++ adaption functions
  *
  * Copyright (C) 2011, Christian Tschudin, University of Basel
+ *               2013, Manolis Sifalakis, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,16 +32,23 @@
 
 #define CCNL_OMNET
 
-#define CCNL_DEBUG              // enable debug code for logging messages in stderr
-#define CCNL_DEBUG_MALLOC       // enable recording of memory allocations for crash dumps
+
+#define USE_DEBUG              // enable debug code for logging messages in stderr
+#define USE_DEBUG_MALLOC       // enable recording of memory allocations for crash dumps
 #define LOG_LEVEL_4_OMNET 50    // set the log level for debug info piped to Omnet's EV.
                                 // (this is independent of 'log_level' in b3c-relay-debug.c
                                 // which controls what is reported in stderr)
+#define USE_ENCAPS      // ? TODO - Ask Christian, is this needed only for the fragmentation ?
+#define USE_ETHERNET
 
+//#define USE_SCHEDULER   // ? TODO - Ask Christian, is this needed for the pacing?
+#define CCNL_STATS              // enable statistics logging of relay actions to ext file
 
-// TODO -- Use the following to set ccnl->ifs[ifndx].fwdalli = 1 in node init
 #define PROPAGATE_INTERESTS_SEEN_BEFORE     // if a received interest already exists in the PIT,
                                             // it is not forwarded. Use this option to override this
+
+// TODO -- What happens if the cache memory is full ? (Cache replacemnet strategy)
+#define CONTENT_NEVER_EXPIRES   // content never deleted from the cache memory unless full
 
 
 
@@ -60,24 +68,6 @@
  *
  */
 
-// TODO - YES - Manolis: Ask Christian if there is a distintion in the code between
-// routers and application hosts, and weather this option makes sense
-#define RUN_AS_APP_HOST     // configures special Face for communication with the application layer
-
-
-// TODO - Default yes and controlled through the mgmt interface - Manolis: Ask Christian if we should set this as a compile time option or
-// a per-relay init time option (e.g. to distinguish content sources from routers)
-//
-// Currently in file ccn-lite-relay.c:479/ccnl_populate_cache() it is hardcoded as an
-// always-ON flag.
-//
-// What happens if the cache memory is full ? (Cache replacemnet strategy)
-//
-#define CONTENT_NEVER_EXPIRES   // content never deleted from the cache memory unless full
-
-
-
-
 
 
 /*****************************************************************************
@@ -90,27 +80,7 @@
  *****************************************************************************/
 
 
-/**
- * per relay control block and globals to keep track of the relay list in the
- * simulation
- */
-struct relay_ctrl_b {
-    struct relay_ctrl_b *   next;
-    struct ccnl_relay_s *   state;
-    void *                  opp_module;
-    int                     cache_bytesize; // TODO: max memory allocated in cache for content storage (currently not used, must go in struct bbc_s)
-    int                     node_id;
-    char *                  node_name;
-};
-
-struct relay_ctrl_b   *all_relays=0, *last_relay=0, *active_relay;
-
-
-
-
-//TODO -- check consistency of signatures with new versions (probably has changed)
-
-void    ccnl_destroy_relay (void *ctrl_b);  /* mgmt */
+void    ccnl_destroy_relay (void *relay);   /* mgmt */
 
 void *  ccnl_create_relay (                 /* mgmt */
             void *opp_module,
@@ -126,7 +96,7 @@ void *  ccnl_create_relay (                 /* mgmt */
             );
 
 void    ccnl_add_content (                  /* mgmt */
-            void *ctrl_blk,
+            void *relay,
             const char *name,
             int seqn,
             void *data,
@@ -134,20 +104,20 @@ void    ccnl_add_content (                  /* mgmt */
             );
 
 void    ccnl_add_fwdrule(                   /* mgmt */
-            void *ctrl_blk,
+            void *relay,
             const char *name,
             const char *dst,
             int netif_idx
             );
 
 void    ccnl_app2relay(                     /* data */
-            void *ctrl_blk,
+            void *relay,
             const char *name,
             int seqn
             );
 
 void    ccnl_lnk2relay(                     /* data */
-            void *ctrl_blk,
+            void *relay,
             const char *dst,
             const char *src,
             int rx_netif_idx,
@@ -158,11 +128,9 @@ void    ccnl_lnk2relay(                     /* data */
 
 
 
-
-
 /*****************************************************************************
  *
- * Platform-related functions (using Omnet API) required by CCN Lite
+ * Platform functions -OMNet container- required by CCN Lite
  *
  * (macros and forward declarations)
  *
@@ -178,18 +146,29 @@ void    ccnl_lnk2relay(                     /* data */
  *
  *****************************************************************************/
 
-// TODO -- Should the following go to the params and options section ?
-#define USE_ENCAPS      // ?
-#define USE_SCHEDULER   // ?
-#define USE_ETHERNET    // ?
-
 #include "ccnl-platform.h"  // generic platform defs
-#include "ccnl-debug.h"     // debug macros and funcs
-#include "ccnl-relay.h"     // main ccnl structs
 
+#include "ccnx.h"
+#include "ccnl.h"
+#include "ccnl-core.h"      // core ccnl structs
 
-#undef CCNL_NOW
+#include "ccnl-ext-debug.c"     // debug macros and funcs
+#include "ccnl-ext.h"     // dorward declarations
+
+// #undef CCNL_NOW
 #define CCNL_NOW() (opp_time())
+
+struct ccnl_omnet_s {               // extension of ccnl_relay_s (aux field) for omnet state
+    struct ccnl_relay_s *   next;
+    struct ccnl_relay_s *   state;
+    void *                  opp_module;
+    int                     cache_bytesize; // TODO: max memory allocated in cache for content storage (currently not used, must go in struct bbc_s)
+    int                     node_id;
+    char *                  node_name;
+};
+struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
+
+
 
 #undef DEBUGMSG
 #define DEBUGMSG(LVL, ...) do {   \
@@ -202,12 +181,26 @@ void    ccnl_lnk2relay(                     /* data */
    { \
        char pbuf[200]; \
        sprintf(pbuf, __VA_ARGS__);  \
-       opp_log(active_relay->node_id, pbuf); \
+       opp_log(((struct ccnl_omnet_s *)active_relay->aux)->node_name, pbuf); \
    } \
    break; \
 } while (0)
 
 
+
+#ifdef CCNL_STATS
+#  define END_LOG(CHANNEL) do { if (CHANNEL){ \
+     fprintf(CHANNEL, "#end\n"); \
+     fclose(CHANNEL); \
+     CHANNEL = NULL; \
+} } while(0)
+#else
+#  define END_LOG(CHANNEL) do {} while(0)
+#endif
+
+
+
+void    ccnl_get_timeval (struct timeval *tv);
 
 void*   ccnl_set_timer (
             int usec,
@@ -218,7 +211,6 @@ void*   ccnl_set_timer (
 
 void    ccnl_rem_timer (void *hdl);
 
-
 void*   ccnl_set_absolute_timer (
             struct timeval abstime,
             void (*fct)(void *aux1, void *aux2),
@@ -226,21 +218,15 @@ void*   ccnl_set_absolute_timer (
             void *aux2
             );
 
+void    ccnl_ll_TX (
+            struct ccnl_relay_s *relay,
+            struct ccnl_if_s *ifc,
+            sockunion *dst,
+            struct ccnl_buf_s *buf);
 
-void    ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc, sockunion *dst, struct ccnl_buf_s *buf); // TODO -- this replaces network_delivery() from v0, implement it
-int     ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);   // TODO: replaces client_delivery(...) from v0, import implem
-
-void    ccnl_get_timeval (struct timeval *tv);                  // TODO: import implem of bbc_get_timeval(...) from v0
-void    ccnl_print_stats(struct ccnl_relay_s *relay, int code); // TODO: implement this as in ccn-lite-simu.c (instead of node_log_handler)
-
-
-// TOOD -- remove those, unless I need them locally they are not used elsewhere
-//int                     relay_id(struct bbc_s *bbc);
-//struct bbc_s *          relay_state(int id);
-
-
-
-
+void    ccnl_app_RX(
+            struct ccnl_relay_s *ccnl,
+            struct ccnl_content_s *c);
 
 
 /*****************************************************************************
@@ -251,87 +237,36 @@ void    ccnl_print_stats(struct ccnl_relay_s *relay, int code); // TODO: impleme
  *
  *****************************************************************************/
 
-#include "ccnx.h"
-#include "ccnl.h"
-
-#ifdef CCNL_DEBUG_MALLOC
-# include "ccnl-debug-mem.c"
-#endif
-
-#include "ccnl-debug.c"
 #include "ccnl-platform.c"
 
-/*
-struct ccnl_encaps_s*   ccnl_encaps_new(int protocol, int mtu);
-void                    ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf, int ifndx, sockunion *su);
-struct ccnl_buf_s*      ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e, int *ifndx, sockunion *su);
-int                     ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen);
-int                     ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
-void                    ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
-*/
+#include "ccnl-core.c"
 
-//#include "ccnl-relay.c"
-#include "ccnl-relay-mgmt.c"
-#include "ccnl-relay-sched.c"
-#include "ccnl-relay-encaps.c"
-#include "ccnl-relay.c"         // TODO -- check if this here obsoletes the commented out block of fwd decls above
-#include "ccnl-packet.c"
-
-
-
-
+#include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-sched.c"
+#include "ccnl-pdu.c"
+#include "ccnl-ext-encaps.c"
 
 
 
 /*****************************************************************************
  *
- * Platfrom and API function defs
+ * Platform code for OMNet container - required by CCN Lite
+ *
+ * (definitions)
  *
  *****************************************************************************/
 
-// TODO - Probably only used in the kernel space / move to platform.c - (check and remove) -- Manolis: is there a particular reason for using these 2 instead of the string.h ones ?
 
-static char*
-mystrchr(char *list, char c)
-{
-    while (*list) {
-    if (c == *list)
-        return list;
-    list++;
-    }
-    return NULL;
-}
-
-static char*
-mystrtok(char **cp, char *delim)
-{
-    char *start = *cp;
-
-    if (!cp || !*cp || !**cp)
-    return NULL;
-    while (*start && mystrchr(delim, *start))
-    start++;
-    *cp = start;
-    while (**cp) {
-    if (mystrchr(delim, **cp)) {
-        **cp = '\0';
-        (*cp)++;
-        break;
-    }
-    (*cp)++;
-    }
-    return start;
-}
 
 /*****************************************************************************
  * given a content prefix as char string, gen a ccnl_prefix_s struct
  */
+// TODO -- (ms 2) un-static and move to platform.c ?
 static struct ccnl_prefix_s*
 ccnl_path_to_prefix(const char *path)
 {
     char *cp;
     struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(*pr));
-    DEBUGMSG(99, "ccnl_path_to_prefix <%s>\n", path);
 
     if (!pr)
         return NULL;
@@ -349,9 +284,10 @@ ccnl_path_to_prefix(const char *path)
 
     strcpy((char*) pr->path, path);
     cp = (char*) pr->path;
-    for (path = mystrtok(&cp, "/");
+
+    for (path = strtok(cp, "/");
          path && pr->compcnt < CCNL_MAX_NAME_COMP;
-         path = mystrtok(&cp, "/")) {
+         path = strtok(NULL, "/")) {
         pr->comp[pr->compcnt] = (unsigned char*) path;
         pr->complen[pr->compcnt] = strlen(path);
         pr->compcnt++;
@@ -372,37 +308,21 @@ ccnl_get_timeval(struct timeval *tv)
 }
 
 
-// TODO - Yes - Manolis: Ask Christian
-// 1. why the signature for set/rem timer is different in omnet in platform.c.
-// 2. Also about the need to make the definition of struct ccnl_timer_s visible to all but kernel ver in ccnl-platform.c
-// 3. should set/rem_timer always return a ptr to such a struct ?
-// 4. adopt this in v0
-
-struct ccnl_timer_s {
-    struct ccnl_timer_s *next;
-    struct timeval timeout;
-    void (*fct)(char,int);
-    void (*fct2)(void*,void*);
-    char node;
-    int intarg;
-    void *aux1;
-    void *aux2;
-    int handler;
-};
-
 
 /*****************************************************************************
- * generic timer callback for CCN Lite (uses information from a struct
- * ccnl_timer_s to invoke the right event function
+ * generic timer callback for CCN Lite (uses information in a
+ * ccnl_timer_s struct to invoke the right event function
  */
-// TODO -- Adopt the following wrapper in v0 too
 void
-ccnl_gen_callback(void * relay, void * timer_info){
+ccnl_gen_callback(void * relay, void * timer_info)
+{
     struct ccnl_timer_s     *ti;
 
-    active_relay = (struct relay_ctrl_b *) relay;
+    if (!relay) return;
+    active_relay = (struct ccnl_relay_s *) relay;
 
     ti = (struct ccnl_timer_s *) timer_info;
+    if (!ti) return;
 
     ti->fct2(ti->aux1, ti->aux2);
 
@@ -414,7 +334,6 @@ ccnl_gen_callback(void * relay, void * timer_info){
 /*****************************************************************************
  * set a timer and register a callback event with omnet
  */
-// TODO -- adapt like this the respective code in v0
 void*
 ccnl_set_timer (
             int usec,
@@ -424,6 +343,8 @@ ccnl_set_timer (
             )
 {
     struct ccnl_timer_s *timer_info;
+    void * opp_mdl = ((struct ccnl_omnet_s *) active_relay->aux)->opp_module;
+
 
     /* event info for timer
      */
@@ -440,7 +361,7 @@ ccnl_set_timer (
     /* pass to omnet to schedule event
      */
     timer_info->handler = opp_timer (
-            active_relay->opp_module,
+            opp_mdl,
             1,
             usec,
             ccnl_gen_callback,
@@ -452,7 +373,6 @@ ccnl_set_timer (
         return timer_info;
 
     ccnl_free (timer_info);
-
     return NULL;
 };
 
@@ -460,14 +380,14 @@ ccnl_set_timer (
 /*****************************************************************************
  * delete timer in omnet and dispose timer info
  */
-// TODO -- adapt like this the respective code in v0
 void
 ccnl_rem_timer (void *timer_info)
 {
     struct ccnl_timer_s *ti = (struct ccnl_timer_s *) timer_info;
+    void * opp_mdl = ((struct ccnl_omnet_s *) active_relay->aux)->opp_module;
 
     if (ti) {
-        opp_timer (active_relay->opp_module, 0, ti->handler, 0, 0, 0);
+        opp_timer (opp_mdl, 0, ti->handler, 0, 0, 0);
         ccnl_free(ti);
     }
 
@@ -518,39 +438,104 @@ ccnl_set_absolute_timer (
 void
 ccnl_ageing(void *relay, void *aux) // TODO -- this replaces the do_ageing callback in v0, adapt the v0 to this
 {
-    DEBUGMSG(99, "do_ageing for node %s(%c)\n", active_relay->node_name, active_relay->node_id);
+    if (!relay) return;
+
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+
+    DEBUGMSG(99, "do_ageing for node %s(%c)\n", opp_info->node_name, opp_info->node_id);
 
     ccnl_do_ageing(relay, aux);
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 };
 
 
-// HERE
+/*****************************************************************************
+ * open FPs for logging and init stats recording
+ */
+void
+ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
+{
+#ifdef CCNL_STATS
+    char name[100];
+    struct ccnl_stats_s *st = relay->stats;
+
+    if (!st)
+    return;
+
+    sprintf(name, "node-%s-sent.log", node);
+    st->ofp_s = fopen(name, "w");
+    if (st->ofp_s) {
+        fprintf(st->ofp_s,"#####################\n");
+        fprintf(st->ofp_s,"# sent_log Node %s\n", node);
+        fprintf(st->ofp_s,"#####################\n");
+        fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
+    fflush(st->ofp_s);
+    }
+    sprintf(name, "node-%s-rcvd.log", node);
+    st->ofp_r = fopen(name, "w");
+    if (st->ofp_r) {
+        fprintf(st->ofp_r,"#####################\n");
+        fprintf(st->ofp_r,"# rcvd_log Node %s\n", node);
+        fprintf(st->ofp_r,"#####################\n");
+        fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
+    fflush(st->ofp_r);
+    }
+    sprintf(name, "node-%s-qlen.log", node);
+    st->ofp_q = fopen(name, "w");
+    if (st->ofp_q) {
+        fprintf(st->ofp_q,"#####################\n");
+        fprintf(st->ofp_q,"# qlen_log Node %s (relay->ifs[0].qlen)\n", node);
+        fprintf(st->ofp_q,"#####################\n");
+        fprintf(st->ofp_q,"# time\t qlen\n");
+    fflush(st->ofp_q);
+    }
+#endif // CCNL_STATS
+
+    return;
+}
+
+
 
 /*****************************************************************************
- * shutd relay node
+ * shutd relay
  */
 void
 ccnl_destroy_relay (void *relay)
 {
-    active_relay = (struct relay_ctrl_b *) relay;
-    struct ccnl_relay_s *relay_stat = active_relay->state;
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
 
-    DEBUGMSG(99, "ccnl_destroy_relay %s (%d) \n", active_relay->node_name, active_relay->node_id);
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
 
-    if (relay_st->stats) {
-        end_log(relay_stat->stats->ofp_s);
-        end_log(relay_stat->stats->ofp_r);
-        end_log(relay_stat->stats->ofp_q);
-        ccnl_free(relay_stat->stats);
-        relay_stat->stats = NULL;
+    DEBUGMSG(99, "ccnl_destroy_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
+
+    if (active_relay->stats) {
+        END_LOG(active_relay->stats->ofp_s);
+        END_LOG(active_relay->stats->ofp_r);
+        END_LOG(active_relay->stats->ofp_q);
+
+        ccnl_free(active_relay->stats);
+        active_relay->stats = NULL;
     }
 
-    ccnl_relay_cleanup(relay_stat);
+    ccnl_free(opp_info->node_name);
+    ccnl_core_cleanup(active_relay);
 
-    // TODO - no chemflow for now - Manolis: Ask Christian, is chemflow controlling the one global system queue only ?
-    // in that case it does not make sense to use it in the omnet.... (chemflow sched is not part
-    // of the per node state block.
+    struct ccnl_relay_s *r = all_relays;
+    while (r)
+    {
+        if ( ((struct ccnl_omnet_s *) r->aux)->next == active_relay) {
+            ((struct ccnl_omnet_s *) r->aux)->next = opp_info->next;
+
+            if (last_relay == active_relay) last_relay = r;
+            break;
+        }
+        r = ((struct ccnl_omnet_s *) r->aux)->next;
+    }
+    ccnl_free(active_relay);
+
+
+    // TODO - no chemflow for now, is there anything else to clean up for the scheduler ?
     //ccnl_sched_cleanup();
 
 #ifdef CCNL_DEBUG_MALLOC
@@ -561,13 +546,12 @@ ccnl_destroy_relay (void *relay)
 };
 
 
-
 /*****************************************************************************
- * create new relay node
+ * create new relay
  */
-// TODO -- signature changed update according to this the v0 code, and the omnet code
 // TODO -- replace the params with a ptr to a relay_config struct
-void *  ccnl_create_relay (
+void *
+ccnl_create_relay (
             void *opp_module,
             const char mac_ifs[][6],
             int num_mac_ifs,
@@ -580,22 +564,34 @@ void *  ccnl_create_relay (
             int tx_pace
             )
 {
-    struct relay_ctrl_b     *new_relay;
+    struct ccnl_relay_s     *new_relay;
+    struct ccnl_omnet_s     *opp_info;
     struct ccnl_if_s        *i;
 
-    active_relay = new_relay = (struct relay_ctrl_b *) ccnl_calloc (1, sizeof(struct relay_ctrl_b));
+    active_relay = new_relay = (struct ccnl_relay_s *) ccnl_calloc (1, sizeof(struct ccnl_relay_s));
+    if (!active_relay) return NULL;
+
+    opp_info = (struct ccnl_omnet_s *) ccnl_calloc (1, sizeof(struct ccnl_omnet_s));
+    if (!opp_info) {
+        ccnl_free (new_relay);
+        return NULL;
+    } else
+        new_relay->aux = (void *) opp_info;
+
+    DEBUGMSG(99, "ccnl_create_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
 
 
-    /* init control block
+    /* init relay control block
      */
-    new_relay->next = 0;
-    new_relay->state = (struct ccnl_relay_s *) ccnl_calloc (1, sizeof(struct ccnl_relay_s));
-    new_relay->node_id = node_id;
-    new_relay->opp_module = opp_module;
-    new_relay->cache_bytesize = cache_bytesize;
-    new_relay->node_name = (char *) ccnl_calloc (1, strlen (node_name) + 1);
-    strcpy (new_relay->node_name, node_name);
-    new_relay->state->max_cache_entries = cache_inodes;
+    opp_info->next = 0;
+    opp_info->state = new_relay;
+    opp_info->node_id = node_id;
+    opp_info->opp_module = opp_module;
+    opp_info->cache_bytesize = cache_bytesize;
+    opp_info->node_name = (char *) ccnl_calloc (1, strlen (node_name) + 1);
+    strcpy (opp_info->node_name, node_name);
+
+    new_relay->max_cache_entries = cache_inodes;
 
 
     /* append to the end of all_relays list
@@ -603,7 +599,7 @@ void *  ccnl_create_relay (
     if (!all_relays)
         all_relays = last_relay = new_relay;
     else {
-        last_relay->next = new_relay;
+        ((struct ccnl_omnet_s *) last_relay->aux)->next = new_relay;
         last_relay = new_relay;
     }
 
@@ -612,20 +608,21 @@ void *  ccnl_create_relay (
      */
     for (int k=0 ; k < num_mac_ifs ; k++ )
     {
-        i = &new_relay->state->ifs[k];
+        i = &new_relay->ifs[k];
         i->addr.eth.sll_family = AF_PACKET;
         memcpy(i->addr.eth.sll_addr, mac_ifs[k], ETH_ALEN);
         i->mtu = 1400;
         i->reflect = 1;
         i->fwdalli = 0;
-        i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, new_relay->state, tx_pace);
+        i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, new_relay, tx_pace);
 
-        i->encaps = CCNL_ENCAPS_SEQUENCED2012;  // TODO -- Check what this does !
+        //i->encaps = CCNL_ENCAPS_SEQUENCED2012;  // TODO -- Check what this does !
 
 #ifdef PROPAGATE_INTERESTS_SEEN_BEFORE
         i->fwdalli = 1;
 #endif
-        new_relay->state->ifcount++;
+
+        new_relay->ifcount++;
     };
 
 
@@ -634,397 +631,314 @@ void *  ccnl_create_relay (
     // ...
 
 
-#ifdef USE_SCHEDULER
-    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
-#endif
-
-    // TODO -- think if i need this, since omnet already keeps stat logs ?
-    //relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
-    //ccnl_simu_node_log_start(relay, node);
-
-    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+    // (ms 2) Ask Christian if I need this
+//#ifdef USE_SCHEDULER
+//    new_relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+//#endif // USE_SCHEDULER
 
 
-    DEBUGMSG(99, "ccnl_create_relay\n");
+    /* init stats logging
+     */
+#ifdef CCNL_STATS
+    new_relay->stats = (struct ccnl_stats_s *) ccnl_calloc(1, sizeof(struct ccnl_stats_s));
+    if (!new_relay->stats)
+        DEBUGMSG(99, "ccnl_create_relay on node %s (%d) -- stats logging not activated \n", opp_info->node_name, opp_info->node_id);
+    else
+        ccnl_node_log_start(new_relay, (char *) node_name);
+#else  // CCNL_STATS
+    new_relay->stats = NULL;
+#endif // CCNL_STATS
+
+    ccnl_set_timer(1000000, ccnl_ageing, new_relay, 0);
 
     return (void *) new_relay;
 };
 
 
 
-
-
-// HERE: Do changes according to discussion with CT on Fri for the parts that
-// I ve marked and adopt his updated code ver
-
-
-
-
-void    ccnl_add_content (
-            void *ctrl_blk,
+/*****************************************************************************
+ * store a content chunk to relay's CS
+ */
+void
+ccnl_add_content (
+            void *relay,
             const char *name,
             int seqn,
             void *data,
             int len
-            ) {};
+            )
+{
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
 
-void    ccnl_add_fwdrule(
-            void *ctrl_blk,
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
+
+    struct ccnl_buf_s *bp;
+    struct ccnl_prefix_s *pp;
+    char *name2, tmp[10], *n;
+    char *namecomp[20];
+    unsigned char tmp2[8192];
+    int cnt, len2;
+    struct ccnl_content_s *c;
+
+    cnt = 0;
+    n = name2 = strdup(name);
+    name2 = strtok(name2, "/");
+    while (name2) {
+        namecomp[cnt++] = name2;
+        name2 = strtok(NULL, "/");
+    }
+    sprintf(tmp, ".%d", seqn);
+    namecomp[cnt++] = tmp;
+    namecomp[cnt] = 0;
+
+    len2 = mkContent(namecomp, (char *) data, len, tmp2);
+    free(n);
+
+    bp = ccnl_buf_new(tmp2, len2);
+
+    strcpy((char*) tmp2, name);
+    sprintf(tmp, "/.%d", seqn);
+    strcat((char*) tmp2, tmp);
+
+    pp = ccnl_path_to_prefix((const char*)tmp2);
+
+    c = ccnl_content_new((struct ccnl_relay_s *) relay, &bp, &pp, NULL, 0, 0);
+
+    if (c) {
+#ifdef CONTENT_NEVER_EXPIRES
+        c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+#endif
+        ccnl_content_add2cache((struct ccnl_relay_s *) relay, c);
+    }
+
+    DEBUGMSG(99, "ccnl_add_content %s in relay of node %s (%d) \n", tmp2, opp_info->node_name, opp_info->node_id);
+
+    return;
+};
+
+
+/*****************************************************************************
+ * add a forwarding rule in relay's FIB
+ */
+void
+ccnl_add_fwdrule(
+            void *relay,
             const char *name,
-            const char *dst,
+            const char *dstaddr,
             int netif_idx
-            ) {};
+            )
+{
 
-void    ccnl_app2relay(
-            void *ctrl_blk,
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
+
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
+
+    struct ccnl_forward_s *fwd;
+    sockunion sun;
+
+    DEBUGMSG(99, "ccnl_add_fwdrule <%s --> %s> in relay of node %s (%d) \n", name, dstaddr, opp_info->node_name, opp_info->node_id);
+
+
+    // TODO - currently assuming only fwd rules with MAC addresses. Fix to
+    // consider also socket addresses
+
+    sun.eth.sll_family = AF_PACKET;
+    memcpy(sun.eth.sll_addr, dstaddr, ETH_ALEN);
+    fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+    fwd->prefix = ccnl_path_to_prefix(name);
+    fwd->face = ccnl_get_face_or_create(
+                        (struct ccnl_relay_s *) relay,
+                        netif_idx,
+                        &sun.sa,
+                        sizeof(sun.eth),
+                        CCNL_ENCAPS_SEQUENCED2012);
+    fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;     // TODO -- Check what is this ?
+    fwd->next = ((struct ccnl_relay_s *) relay)->fib;
+    ((struct ccnl_relay_s *) relay)->fib = fwd;
+
+    return;
+};
+
+
+/*****************************************************************************
+ * higher layer (omnet) passes to relay
+ */
+void
+ccnl_app2relay(
+            void *relay,
             const char *name,
             int seqn
-            ) {};
+            )
+{
 
-void    ccnl_lnk2relay(
-            void *ctrl_blk,
+    char *namecomp[20], *n, *cname;
+    char tmp[512], tmp2[10];
+    int len, cnt;
+    int nonce = rand();     // is this ok ? Is the application only checking that or the protocol too ?
+
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
+
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
+
+    DEBUGMSG(10, "ccnl_app2relay on node %s (%d) requests content %s (chunk %d)\n", opp_info->node_name, opp_info->node_id, name, seqn);
+
+
+    /* prepare content prefix
+     */
+    cnt = 0;
+    n = cname = strdup(name);
+    cname = strtok(cname, "/");
+    while (cname) {
+        namecomp[cnt++] = cname;
+        cname = strtok(NULL, "/");
+    }
+    sprintf(tmp2, ".%d", seqn);
+    namecomp[cnt++] = tmp2;
+    namecomp[cnt] = 0;
+
+
+    /* ccnb for Interest pkt
+     */
+    len = mkInterest(namecomp, (unsigned int *) &nonce, (unsigned char*) tmp);
+    ccnl_free(n);
+
+    /* pass it to relay
+     */
+    ccnl_core_RX((struct ccnl_relay_s *) relay, -1, (unsigned char*)tmp, len, 0, 0);
+
+    return;
+};
+
+
+
+/*****************************************************************************
+ * lower layer (omnet) passes data to relay
+ */
+void
+ccnl_lnk2relay(
+            void *relay,
             const char *dst,
             const char *src,
             int rx_netif_idx,
             void *data,
             int len
-            ) {};
-
-
-
-void    ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc, sockunion *dst, struct ccnl_buf_s *buf) {}; // TODO -- this replaces network_delivery() from v0, implement it
-int     ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c) {};   // TODO: replaces client_delivery(...) from v0, import implem
-
-void    ccnl_print_stats(struct ccnl_relay_s *relay, int code) {}; // TODO: implement this as in ccn-lite-simu.c (instead of node_log_handler)
-
-
-// -----------------------------------------------------------------
-
-
-
-#define WOWMOM
-#define B3C_DEBUG
-#define B3C_DEBUG_MALLOC
-
-#include "b3c.h"
-#include "b3c-debug.h"
-#include "b3c-relay-ccn.h"
-#include "wowmom.h"
-
-// #define b3c_print_stats(x,y)		do{}while(0)
-void wowmom_phase_two(char a, int b);
-
-#ifdef CCNB3CNET_H
-# define B3C_NOW()			omnet_current_time()
-# define wowmom_set_timer(T,F,N,A)	omnet_set_timer(T,F,N,A)
-# define wowmom_rem_timer(H)		omnet_rem_timer(H)
-#else
-# define B3C_NOW()			current_time()
-# include "omnet-replace.h"
-#endif
-
-#ifdef B3C_DEBUG_MALLOC
-# include "wowmom-memdebug.c"
-#endif
-
-#include "b3c-relay-debug.c"
-#include "b3c-relay-ccn.c"
-#include "b3c-relay-support.c"
-#include "b3c-relay-encaps.c"
-#include "b3c-relay-sched.c"
-
-struct bbc_s relays[5];
-
-#ifndef CCNB3CNET_H
-extern double omnet_current_time();
-extern void b3c_wowmom_client_RX(char node, char *name, int seqn,
-				 char *data, int len);
-extern void b3c_wowmom_ll_TX(char node, unsigned char *dst, unsigned char *src,
-			     unsigned char *data, int len);
-extern void b3c_wowmom_LOG(char node, char *s);
-
-// The WOWMOM clients also sit in OmNet's side, here we have a dummy version:
-void b3c_wowmom_client(char node); // sending side
-void b3c_wowmom_client_RX(char node, char *name,
-			  int seqn, char *data, int len); // receiving side
-
-// exists on OmNet's side already, here we reimplement the functionlity:
-void omnet_eventloop(void); // juggles all events
-void wowmom_ethernet(char dummy, int dummy2); // implements the media
-
-// # include "omnet-replace.c"
-# include "wowmom-client.c"
-#endif
-
-#include "wowmom-common.c"
-
-// ----------------------------------------------------------------------
-
-#define relayChars "ABC12"
-
-static struct bbc_s*
-char2relay(char node)
+            )
 {
-    unsigned int i;
+    sockunion sun;
 
-    for (i = 0; i < strlen(relayChars); i++) {
-	if (node == relayChars[i])
-	    return relays + i;
-    }
-    fprintf(stderr, "unknown node %c\n", node);
-    return 0;
-}
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
 
-static char
-relay2char(struct bbc_s *relay)
-{
-    unsigned int i;
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
 
-    for (i = 0; i < strlen(relayChars); i++) {
-	if (relay == (relays + i))
-	    return relayChars[i];
-    }
-    fprintf(stderr, "unknown node %p\n", (void *) relay);
-    return '?';
-}
+    DEBUGMSG(10, "ccnl_lnk2relay on node %s (%d) received %d bytes of data on netif %d from %s destined to %s \n",
+            opp_info->node_name,
+            opp_info->node_id,
+            len, rx_netif_idx,
+            eth2ascii((unsigned char*)src),
+            eth2ascii((unsigned char*)dst));
 
+    /* TODO -- at the moment we assume only data coming from an ethernet face.
+     * Extend for socket faces too..
+     */
+    sun.sa.sa_family = AF_PACKET;
+    memcpy(sun.eth.sll_addr, src, ETH_ALEN);
+
+    ccnl_core_RX(
+            (struct ccnl_relay_s *) relay,
+            rx_netif_idx,
+            (unsigned char*) data,
+            len,
+            &sun.sa,
+            sizeof(sun.eth));
+
+    return;
+};
+
+
+/*****************************************************************************
+ * relay passes data to lower layer (omnet)
+ */
 void
-b3c_wowmom_add2cache(char node, const char *name, int seqn, void *data, int len)
+ccnl_ll_TX(
+            struct ccnl_relay_s *relay,
+            struct ccnl_if_s *ifc,
+            sockunion *dst,
+            struct ccnl_buf_s *buf)
 {
-    b3c_wowmom_add2cache_(char2relay(node), name, seqn, data, len);
-}
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
+
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
+
+    DEBUGMSG(2, "ccnl_ll_TX on node %s (%d) sending %d bytes of data from %s destined to %s \n",
+            opp_info->node_name,
+            opp_info->node_id,
+            buf->datalen,
+            ccnl_addr2ascii(&ifc->addr),
+            ccnl_addr2ascii(dst));
+
+    opp_relay2lnk(
+            opp_info->opp_module,
+            (char *) dst->eth.sll_addr,
+            (char *) ifc->addr.eth.sll_addr,
+            buf->data,
+            buf->datalen);
+
+    return;
+};
 
 
+/*****************************************************************************
+ * relay passes data to upper layer (omnet)
+ */
+//int
 void
-b3c_wowmom_init_node(char node, const char *addr,
-		     int max_cache_entries,
-		     int inter_packet_gap)
-{
-    struct bbc_if_s *i;
-    struct bbc_s *relay = char2relay(node);
-    if (!relay)	return;
-
-    DEBUGMSG(99, "b3c_wowmom_init_node\n");
-
-    relay->max_cache_entries = node == 'C' ? -1 : max_cache_entries;
-
-    bbc_relay_encaps_init(relay);
-    bbc_sched_init(relay, inter_packet_gap);
-
-    // add (fake) eth0 interface with index 0:
-    i = &relay->ifs[0];
-    i->addr.eth.sll_family = AF_PACKET;
-    memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
-    i->encaps = B3C_DGRAM_ENCAPS_ETH2011;
-    i->mtu = 1400;
-    i->reflect = 1;
-    i->fwdalli = 1;
-    relay->ifcount++;
-
-#ifndef CCNB3CNET_H
-    if (node == 'A' || node == 'B') {
-	relay->wowmom = bbc_calloc(1, sizeof(struct wowmom_client_s));
-	relay->wowmom->lastseq = WOWMOM_NUMBER_OF_CHUNKS-1;
-	relay->wowmom->last_received = -1;
-	relay->wowmom->name = node == 'A' ?
-	    "/b3c/wowmom/movie1" : "/b3c/wowmom/movie2";
-	relay->stats = bbc_calloc(1, sizeof(struct bbc_stats_s));
-    }
-#endif
-
-    wowmom_set_timer(1000000, wowmom_do_ageing, node, 0);
-    wowmom_node_log_start(relay, node);
-}
-
-
-void
-b3c_wowmom_add_fwd_(char node, const char *name, char dstnode)
-{
-    struct bbc_s *dst;
-
-    dst = char2relay(dstnode);
-    b3c_wowmom_add_fwd(node, name, (char*) (dst->ifs[0].addr.eth.sll_addr));
-}
-
-// ----------------------------------------------------------------------
-// function called by the B3C's encaps module:
-
-void
-b3c_ll_TX(struct bbc_s *bbc, unsigned char *dst, unsigned char *src,
-		 unsigned char *data, int len)
-{
-    b3c_wowmom_ll_TX(relay2char(bbc), dst, src, data, len);
-}
-
-// ----------------------------------------------------------------------
-// exported functions (called by OmNet):
-
-int
-wowmom_init(int max_cache_entries, int inter_packet_gap)
-{
-    static char dat[WOWMOM_CHUNK_SIZE];
-    static char init_was_visited;
-    int i;
-
-    if (init_was_visited)
-	return 0;
-    init_was_visited = 1;
-
-    DEBUGMSG(99, "b3c_wowmom_wowmom_init\n");
-
-    // define each node's eth address:
-    b3c_wowmom_init_node('A', "\x00\x00\x00\x00\x00\x0a",
-			 max_cache_entries, inter_packet_gap);
-    b3c_wowmom_init_node('B', "\x00\x00\x00\x00\x00\x0b",
-			 max_cache_entries, inter_packet_gap);
-    b3c_wowmom_init_node('C', "\x00\x00\x00\x00\x00\x0c",
-			 max_cache_entries, inter_packet_gap);
-    b3c_wowmom_init_node('1', "\x00\x00\x00\x00\x00\x01",
-			 max_cache_entries, inter_packet_gap);
-    b3c_wowmom_init_node('2', "\x00\x00\x00\x00\x00\x02",
-			 max_cache_entries, inter_packet_gap);
-
-    // install the system's forwarding pointers:
-    b3c_wowmom_add_fwd_('A', "/b3c/wowmom", '2');
-    b3c_wowmom_add_fwd_('B', "/b3c/wowmom", '2');
-    b3c_wowmom_add_fwd_('2', "/b3c/wowmom", '1');
-    b3c_wowmom_add_fwd_('1', "/b3c/wowmom", 'C');
-
-    // turn node 'C' into a repository for three movies
-    for (i = 0; i < WOWMOM_NUMBER_OF_CHUNKS; i++) {
-	b3c_wowmom_add2cache('C', "/b3c/wowmom/movie1", i, dat, sizeof(dat));
-	b3c_wowmom_add2cache('C', "/b3c/wowmom/movie2", i, dat, sizeof(dat));
-	b3c_wowmom_add2cache('C', "/b3c/wowmom/movie3", i, dat, sizeof(dat));
-    }
-
-#ifndef CCNB3CNET_H
-    wowmom_set_timer(5000, wowmom_ethernet, 'e', 0);
-
-    // start clients:
-    wowmom_set_timer( 500000, wowmom_client_start, 'A', 0);
-    wowmom_set_timer(1000000, wowmom_client_start, 'B', 0);
-    phaseOne = 1;
-    //    pending_client_tasks = 2;
-#endif
-
-//    OMNETDEBUGMSG(5, '*', "simulation starts %s", "now");
-
-    return 0;
-}
-
-void
-wowmom_phase_two(char a, int b)
-{
-    phaseOne = 0;
-    wowmom_set_timer(0, wowmom_client_start, 'A', 0);
-    wowmom_set_timer(500000, wowmom_client_start, 'B', 0);
-}
-
-
-// ----------------------------------------------------------------------
-
-#ifndef CCNB3CNET_H
-
-void
-wowmom_eventloop()
-{ 
-    static struct timeval now;
-    long usec;
-
-    //    printf("starting omnet eventloop now %g\n", B3C_NOW());
-
-    while (events) {
-	struct wowmom_timer_s *t = events;
-	//    printf("  looping now %g\n", B3C_NOW());
-	gettimeofday(&now, 0);
-	usec = timevaldelta(&(t->timeout), &now);
-	if (usec >= 0) {
-	    // usleep(usec);
-	    struct timespec ts;
-	    ts.tv_sec = usec / 1000000;
-	    ts.tv_nsec = 1000 * (usec % 1000000);
-	    nanosleep(&ts, NULL);
-	}
-	t = events;
-	events = t->next;
-	if (t->fct) {
-	    void (*fct)(char,int) = t->fct;
-	    char c = t->node;
-	    int i = t->aux;
-	    bbc_free(t);
-	    (fct)(c, i);
-	} else if (t->fct2) {
-	    void (*fct2)(void*,int) = t->fct2;
-	    void *ptr = t->ptr;
-	    int i = t->aux;
-	    bbc_free(t);
-	    (fct2)(ptr, i);
-	}
-    }
-    DEBUGMSG(0, "wowmom event loop: no more events to handle\n");
-}
-
-
-void
-wowmom_fini(char node, int aux)
+ccnl_app_RX(
+        struct ccnl_relay_s *relay,
+        struct ccnl_content_s *c)
 {
     int i;
-    for (i = 0; i < 5; i++)
-	wowmom_fini_relay(relays+i);
+    char tmp[200], tmp2[10];
+    struct ccnl_prefix_s *p = c->prefix;
 
-    while(events)
-	wowmom_rem_timer(events->handler);
+    active_relay = (struct ccnl_relay_s *) relay;
+    if (!active_relay) return;
 
-    while(etherbuf) {
-	struct bbc_ethernet_s *e = etherbuf->next;
-	bbc_free(etherbuf);
-	etherbuf = e;
+    struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
+    if (!opp_info) return;
+
+
+    tmp[0] = '\0';
+
+    for (i = 0; i < p->compcnt-1; i++) {
+        strcat((char*)tmp, "/");
+        tmp[strlen(tmp) + p->complen[i]] = '\0';
+        memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
     }
 
-#ifdef B3C_DEBUG_MALLOC
-    debug_memdump();
-#endif
-}
+    memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+    tmp2[p->complen[p->compcnt-1]] = '\0';
 
+    opp_relay2app(opp_info->opp_module, tmp, atoi(tmp2+1), (char*) c->content, c->contentlen);
 
-int
-main(int argc, char **argv)
-{
-    int opt;
-    int max_cache_entries = B3C_DEFAULT_MAX_CACHE_ENTRIES;
-    int inter_packet_gap = 0;
+    DEBUGMSG(2, "ccnl_app_RX on node %s (%d) delivering %d bytes of content %s/%s \n",
+            opp_info->node_name,
+            opp_info->node_id,
+            c->contentlen,
+            tmp,
+            tmp2);
 
-    //    srand(time(NULL));
-    srandom(time(NULL));
-
-    while ((opt = getopt(argc, argv, "hc:g:v:")) != -1) {
-        switch (opt) {
-        case 'c':
-            max_cache_entries = atoi(optarg);
-            break;
-        case 'g':
-            inter_packet_gap = atoi(optarg);
-            break;
-        case 'v':
-            debug_level = atoi(optarg);
-            break;
-        case 'h':
-        default:
-            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] [-g MIN_INTER_PACKET_GAP] [-v DEBUG_LEVEL]\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    wowmom_init(max_cache_entries, inter_packet_gap);
-
-    DEBUGMSG(1, "simulation starts\n");
-    wowmom_eventloop();
-    DEBUGMSG(1, "simulation ends\n");
-
-    return -1;
-}
-
-#endif
+    return;
+};
 
 
 // eof

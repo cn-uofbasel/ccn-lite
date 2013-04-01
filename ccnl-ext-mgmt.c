@@ -20,6 +20,8 @@
  * 2012-05-06 created
  */
 
+#ifdef USE_MGMT
+
 // ----------------------------------------------------------------------
 
 int
@@ -49,15 +51,25 @@ ccnl_is_local_addr(sockunion *su)
 	    } do {} while(0)
 
 
+void
+ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl,
+		     struct ccnl_face_s *from, char *msg)
+{
+    struct ccnl_buf_s *buf;
+
+    buf = ccnl_buf_new(msg, strlen(msg));
+    ccnl_face_enqueue(ccnl, from, buf);
+}
+
+
 int
 ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 		  struct ccnl_face_s *from)
 {
-    unsigned char *buf;
+    unsigned char *buf, *action, *debugaction;
     int buflen, num, typ;
-    unsigned char *action, *debugaction;
+    char *cp = "debug cmd failed";
     int rc = -1;
-    struct ccnl_buf_s *msg;
 
     DEBUGMSG(99, "ccnl_mgmt_debug from=%s\n", ccnl_addr2ascii(&from->peer));
     action = debugaction = NULL;
@@ -86,26 +98,28 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     // should (re)verify that action=="debug"
 
     if (debugaction) {
+	cp = "debug cmd worked";
 	DEBUGMSG(99, "  debugaction is %s\n",
 	       debugaction);
 	if (!strcmp((const char*)debugaction, "dump"))
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
-	if (!strcmp((const char*)debugaction, "halt"))
+	else if (!strcmp((const char*)debugaction, "halt"))
 	    ccnl->halt_flag = 1;
-	if (!strcmp((const char*)debugaction, "dump+halt")) {
+	else if (!strcmp((const char*)debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
 	    ccnl->halt_flag = 1;
-	}
-    }
-
-    msg = ccnl_buf_new("ok, worked\n", 11);
-    ccnl_face_enqueue(ccnl, from, msg);
+	} else
+	    cp = "unknown debug action, ignored";
+    } else
+	cp = "no debug action given, ignored";
 
     rc = 0;
 
 Bail:
     ccnl_free(action);
     ccnl_free(debugaction);
+
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return rc;
 }
 
@@ -118,6 +132,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     int buflen, num, typ;
     unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
 	*encaps, *flags;
+    char *cp = "newface cmd failed";
     int rc = -1;
     struct ccnl_face_s *f;
 
@@ -192,11 +207,11 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 	DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
 	f->flags = flagval &
 	    (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
+	cp = "newface cmd worked";
     } else {
 	DEBUGMSG(99, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s encaps=%s flags=%s) failed or was ignored\n",
 		 macsrc, ip4src, proto, host, port, encaps, flags);
     }
-
     rc = 0;
 
 Bail:
@@ -208,6 +223,8 @@ Bail:
     ccnl_free(port);
     ccnl_free(encaps);
     ccnl_free(flags);
+
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return rc;
 }
 
@@ -218,6 +235,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     unsigned char *buf;
     int buflen, num, typ;
     unsigned char *action, *faceid;
+    char *cp = "destroyface cmd failed";
     int rc = -1;
 
     DEBUGMSG(99, "ccnl_mgmt_destroyface\n");
@@ -256,6 +274,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 	}
 	ccnl_face_remove(ccnl, f);
 	DEBUGMSG(99, "  face %s destroyed\n", faceid);
+	cp = "facedestroy cmd worked";
     } else {
 	DEBUGMSG(99, "  missing faceid\n");
     }
@@ -264,6 +283,8 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 Bail:
     ccnl_free(action);
     ccnl_free(faceid);
+
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return rc;
 }
 
@@ -274,6 +295,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     unsigned char *buf;
     int buflen, num, typ;
     unsigned char *action, *devname, *ip4src, *port, *encaps, *flags;
+    char *cp = "newdevice cmd worked";
     int rc = -1;
 
     DEBUGMSG(99, "ccnl_mgmt_newdev\n");
@@ -358,6 +380,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 // should also analyse and copy flags
 	i->reflect = 1;
 	i->fwdalli = 1;
+	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 
 	ccnl->ifcount++;
 	rc = 0;
@@ -408,10 +431,12 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 //	i->encaps = encaps ? atoi(encaps) : 0;
 	i->mtu = CCN_DEFAULT_MTU;
 // should also analyse and copy flags
-	i->reflect = 1;
+	i->reflect = 0;
 	i->fwdalli = 1;
+	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 
 	ccnl->ifcount++;
+	cp = "newdevice cmd workd";
 	rc = 0;
 	goto Bail;
     }
@@ -425,6 +450,8 @@ Bail:
     ccnl_free(devname);
     ccnl_free(port);
     ccnl_free(encaps);
+
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return rc;
 }
 
@@ -433,8 +460,11 @@ int
 ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 		     struct ccnl_face_s *from)
 {
+    char *cp = "destroydevice cmd failed";
+
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
 
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return -1;
 }
 
@@ -447,6 +477,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     int buflen, num, typ;
     struct ccnl_prefix_s *p = NULL;
     unsigned char *action, *faceid;
+    char *cp = "prefixreg cmd failed";
     int rc = -1;
 
     DEBUGMSG(99, "ccnl_mgmt_prefixreg\n");
@@ -511,7 +542,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
 	if (!f) goto Bail;
 
-	printf("Face %s found\n", faceid);
+//	printf("Face %s found\n", faceid);
 	fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
 	if (!fwd) goto Bail;
 	fwd->prefix = ccnl_prefix_clone(p);
@@ -520,6 +551,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 	while (*fwd2)
 	    fwd2 = &((*fwd2)->next);
 	*fwd2 = fwd;
+	cp = "prefixreg cmd worked";
     } else {
 	DEBUGMSG(99, "mgmt: ignored prefixreg faceid=%s\n", faceid);
     }
@@ -530,6 +562,8 @@ Bail:
     ccnl_free(action);
     ccnl_free(faceid);
     free_prefix(p);
+
+    ccnl_mgmt_return_msg(ccnl, from, cp);
     return rc;
 }
 
@@ -550,6 +584,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     if (!ccnl_is_local_addr(&from->peer)) {
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
 		 ccnl_addr2ascii(&from->peer));
+	ccnl_mgmt_return_msg(ccnl, from, "refused: origin of mgmt cmd is not local");
 	return -1;
     }
 	
@@ -570,10 +605,14 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 #endif
     else {
 	DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
+
+	ccnl_mgmt_return_msg(ccnl, from, "unknown mgmt command");
 	return -1;
     }
 
     return 0;
 }
+
+#endif // USE_MGMT
 
 // eof

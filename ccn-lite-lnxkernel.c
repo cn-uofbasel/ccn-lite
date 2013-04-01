@@ -1,5 +1,5 @@
 /*
- * @f ccnl-lnxkernel.c
+ * @f ccn-lite-lnxkernel.c
  * @b Linux kernel version of the CCN lite relay
  *
  * Copyright (C) 2012, Christian Tschudin, University of Basel
@@ -21,44 +21,31 @@
  */
 
 #define CCNL_KERNEL
-#include "ccnl-platform.h"
 
-#define CCNL_DEBUG
-// #define CCNL_DEBUG_MALLOC
-
+#define USE_DEBUG
+// #define USE_DEBUG_MALLOC
 // #define USE_ENCAPS
 // #define USE_SCHEDULER
+// #define USE_MGMT
+
+#include "ccnl-platform.h"
 #include "ccnl.h"
 #include "ccnx.h"
-#include "ccnl-debug.h"
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 
 #define ccnl_print_stats(x,y)		do{}while(0)
-#define ccnl_app_RX(x,y)			do{}while(0)
+#define ccnl_app_RX(x,y)		do{}while(0)
 #define CCNL_NOW()			current_time()
 
 static struct ccnl_relay_s theRelay;
 
-struct ccnl_encaps_s* ccnl_encaps_new(int protocol, int mtu);
-void ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
-		       int ifndx, sockunion *su);
-int ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen,
-			     int *totallen);
-struct ccnl_buf_s* ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e,
-					       int *ifndx, sockunion *su);
-
-int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-	      struct ccnl_face_s *from);
-
-void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
-int ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
-		  int datalen, struct sockaddr *sa, int addrlen);
-
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
 		       struct packet_type *pt, struct net_device *outdev);
+
 struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+
 struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
 
 void ccnl_udp_data_ready(struct sock *sk, int len);
@@ -230,12 +217,14 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
 // ----------------------------------------------------------------------
 
-#include "ccnl-debug.c"
+#include "ccnl-ext-debug.c"
 #include "ccnl-platform.c"
+#include "ccnl-ext.h"
 
 #include "ccnl-core.c"
 
 #ifdef USE_ENCAPS
+#  include "ccnl-pdu.c"
 #  include "ccnl-ext-encaps.c"
 #endif
 
@@ -452,262 +441,6 @@ Bail:
     sock_release(s);
     return NULL;
 }
-
-// ----------------------------------------------------------------------
-
-/*
-static char*
-mystrchr(char *list, char c)
-{
-    while (*list) {
-	if (c == *list)
-	    return list;
-	list++;
-    }
-    return NULL;
-}
-
-static char*
-mystrtok(char **cp, char *delim)
-{
-    char *start = *cp;
-
-    if (!cp || !*cp || !**cp)
-	return NULL;
-    while (*start && mystrchr(delim, *start))
-	start++;
-    *cp = start;
-    while (**cp) {
-	if (mystrchr(delim, **cp)) {
-	    **cp = '\0';
-	    (*cp)++;
-	    break;
-	}
-	(*cp)++;
-    }
-    return start;
-}
-
-static char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
-{
-    static char prefix_buf[256];
-    int len, i, j;
-
-    if (!pr)
-	return NULL;
-    prefix_buf[0] = '/';
-    for (len = 1, i = 0; i < pr->compcnt; i++) {
-	j = pr->complen[i];
-	if ((len+1+j) >= sizeof(prefix_buf))
-	    return "(...prefix...)";
-	strncpy(prefix_buf+len, (char*) pr->comp[i], j);
-	len += j;
-	if ((i+1) == pr->compcnt)
-	    prefix_buf[len] = '\0';
-	else
-	    prefix_buf[len] = '/';
-	len++;
-    }
-    return prefix_buf;
-}
-
-static struct ccnl_prefix_s*
-ccnl_path_to_prefix(const char *path)
-{
-    char *cp;
-    struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(*pr));
-    DEBUGMSG(99, "ccnl_path_to_prefix <%s>\n", path);
-
-    if (!pr)
-        return NULL;
-    pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-                                           sizeof(unsigned char**));
-    pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    pr->path = (char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->path) {
-        ccnl_free(pr->comp);
-        ccnl_free(pr->complen);
-        ccnl_free(pr->path);
-        ccnl_free(pr);
-        return NULL;
-    }
-
-    strcpy(pr->path, path);
-    cp = (char*) pr->path;
-    for (path = mystrtok(&cp, "/");
-		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
-		 path = mystrtok(&cp, "/")) {
-        pr->comp[pr->compcnt] = (unsigned char*) path;
-        pr->complen[pr->compcnt] = strlen(path);
-        pr->compcnt++;
-    }
-    return pr;
-}
-*/
-
-// ----------------------------------------------------------------------
-
-/*
-
-#define PROCFS_NAME "ccnl-relay"
-#define PROCFS_MAXLEN 4096
-
-static struct proc_dir_entry *ccnl_proc;
-static char ccnl_proc_buf[PROCFS_MAXLEN];
-static unsigned long ccnl_proc_buflen;
-
-
-static int
-ccnl_proc_read(char *buffer,
-	      char **buffer_location,
-	      off_t offset, int buffer_length, int *eof, void *data)
-{
-    int i;
-    struct ccnl_forward_s *fwd;
-    struct ccnl_face_s *face;
-
-    printk("%s: procfs read (offs=%d, len=%d bytes)\n",
-	   THIS_MODULE->name, (int) offset, buffer_length);
-    if (!ccnl_proc || offset > 0)
-	return 0;
-    ccnl_proc_buflen = 0;
-
-    for (i = 0; i < theRelay.ifcount; i++) {
-	if (theRelay.ifs[i].netdev) {
-	  ccnl_proc_buflen += sprintf(ccnl_proc_buf + ccnl_proc_buflen,
-			"interface %d dev=%s   # %s\n",
-			i, theRelay.ifs[i].netdev->name,
-			eth2ascii(theRelay.ifs[i].addr.eth.sll_addr));
-	}
-    }
-
-    // printf("faces=%p\n", theRelay.faces);
-
-    for (face = theRelay.faces; face; face = face->next) {
-	printf("* %p\n", face);
-	ccnl_proc_buflen += sprintf(ccnl_proc_buf + ccnl_proc_buflen,
-				   "face %p if=%d dst=%s\n",
-				   face, face->ifndx,
-				   eth2ascii(face->peer.eth.sll_addr));
-    }
-
-    for (fwd = theRelay.fib; fwd; fwd = fwd->next) {
-	ccnl_proc_buflen += sprintf(ccnl_proc_buf + ccnl_proc_buflen,
-				   "forward %s face=%p\n",
-				   ccnl_prefix_to_path(fwd->prefix),
-				   fwd->face);
-    }
-
-    memcpy(buffer, ccnl_proc_buf, ccnl_proc_buflen);
-    return ccnl_proc_buflen;
-}
-
-
-static int
-ccnl_proc_write(struct file *file, const char *buffer,
-	       unsigned long count, void *data)
-{
-    char *cp, *cp2, *cp3, *line, *nextline;
-
-    ccnl_proc_buflen = count;
-    if (ccnl_proc_buflen >= PROCFS_MAXLEN)
-	ccnl_proc_buflen = PROCFS_MAXLEN-1;
-    if (copy_from_user(ccnl_proc_buf, buffer, ccnl_proc_buflen))
-	return -EFAULT;
-    ccnl_proc_buf[ccnl_proc_buflen] = '\0';
-
-    printk("%s: procfs write <%s> (%d bytes)\n", THIS_MODULE->name,
-	   ccnl_proc_buf, (int) ccnl_proc_buflen);
-
-    line = nextline = ccnl_proc_buf;
-    while (*nextline) {
-	line = nextline;
-	while (*nextline) {
-	  if (*nextline == '\n') {
-	    *nextline = '\0';
-	    nextline++;
-	    break;
-	  }
-	  nextline++;
-	}
-	printk("%s: procfs write line is <%s> (%d bytes)\n",
-	       THIS_MODULE->name, line, strlen(line));
-
-	cp = mystrtok(&line, " \t\n");
-	if (!cp || *cp == '#')
-	    continue;
-	if (!strcmp(cp, "if.add.eth")) {
-	    cp = mystrtok(&line, " \t\n");
-	    if (cp) {
-		struct ccnl_if_s *i;
-		i = &theRelay.ifs[0];
-		i->netdev = ccnl_open_ethdev(cp, &i->addr.eth);
-		if (i->netdev) {
-		    i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
-		    i->mtu = 1500;
-		    i->reflect = 1;
-		    i->fwdalli = 1;
-		    i->ccnl_packet.type = htons(CCNL_ETH_TYPE);
-		    i->ccnl_packet.dev = i->netdev;
-		    i->ccnl_packet.func = ccnl_ll_RX;
-		    dev_add_pack(&i->ccnl_packet);
-		    theRelay.ifcount++;
-		} else
-		    printk("%s: sorry, could not access %s device\n",
-			   THIS_MODULE->name, cp);
-	    }
-	} else if (!strcmp(cp, "if.add.udp")) {
-	    printk("%s: if.add.udp not implemented yet\n", THIS_MODULE->name);
-	} else if (!strcmp(cp, "fwd.add.eth")) {
-	    sockunion sun;
-	    int ifndx;
-
-	    cp = mystrtok(&line, " \t\n");
-	    cp2 = mystrtok(&line, " \t\n");
-	    cp3 = mystrtok(&line, " \t\n");
-	    if (sscanf(cp, "%d", &ifndx) != 1 || ifndx < 0 || ifndx >= theRelay.ifcount) {
-		printk("%s: interface ndx %s not an integer or not in range\n",
-		       THIS_MODULE->name, cp);
-	    } else if (sscanf(cp3, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-		       sun.eth.sll_addr,   sun.eth.sll_addr+1,
-		       sun.eth.sll_addr+2, sun.eth.sll_addr+3,
-		       sun.eth.sll_addr+4, sun.eth.sll_addr+5) != 6) {
-		printk("%s: could not parse eth %s\n", THIS_MODULE->name, cp3);
-	    } else {
-		struct ccnl_forward_s *fwd, **fwd2;
-//		printk("%s: params are <%s> <%s> <%s>\n", THIS_MODULE->name,
-//		       cp, cp2, cp3);
-		sun.eth.sll_family = AF_PACKET;
-		fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
-		if (fwd) {
-		    fwd->prefix = ccnl_path_to_prefix(cp2);
-		    fwd->face = ccnl_get_face_or_create(&theRelay, ifndx,
-		       &sun.sa, sizeof(sun.eth), CCNL_DGRAM_ENCAPS_ETH2011);
-		    if (fwd->prefix && fwd->face) {
-			fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
-			fwd2 = &theRelay.fib;
-			while (*fwd2)
-			    fwd2 = &((*fwd2)->next);
-			*fwd2 = fwd;
-			printk("%s: fwd.add.eth added one forwarding entry\n",
-			       THIS_MODULE->name);
-		    } else {
-			printk("%s: fwd.add.eth could not create prefix or face\n",
-			       THIS_MODULE->name);
-			ccnl_prefix_free(fwd->prefix);
-			ccnl_free(fwd);
-		    }
-		}
-	    }
-	} else if (!strcmp(cp, "fwd.add.udp")) {
-	    printk("%s: fwd.add.udp not implemented yet\n", THIS_MODULE->name);
-	} else
-	    printk("%s: unknown config cmd %s\n", THIS_MODULE->name, line);
-    }
-    return ccnl_proc_buflen;
-}
-*/
 
 // ----------------------------------------------------------------------
 

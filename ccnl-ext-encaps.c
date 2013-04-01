@@ -20,75 +20,9 @@
  * 2011-10-05 created
  */
 
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
-
-int
-mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
-	    unsigned int val, int bytes)
-{
-    int len = mkHeader(out, num, tt);
-
-    if (!bytes) {
-	for (bytes = sizeof(val) - 1; bytes > 0; bytes--)
-	    if (val >> (8*bytes))
-		break;
-	bytes++;
-    }
-    len += mkHeader(out+len, bytes, CCN_TT_BLOB);
-
-    while (bytes > 0) { // big endian
-	bytes--;
-	out[len++] = 0x0ff & (val >> (8*bytes));
-    }
-
-    out[len++] = 0; // end-of-interest
-    return len;
-}
-
-int
-unmkBinaryInt(unsigned char **data, int *datalen,
-	      unsigned int *result, unsigned char *bytes)
-{
-    unsigned char *cp = *data;
-    int len = *datalen, typ, num;
-    unsigned int val = 0;
-
-    if (dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
-	return -1;
-    if (bytes)
-	*bytes = num;
-
-    DEBUGMSG(8, "  unmkBinaryInt len=%d\n", num);
-    while (num-- > 0 && len > 0) {
-	val = (val << 8) | *cp++;
-	len--;
-    }
-    *result = val;
-    *data = cp;
-    *datalen = len;
-    return 0;
-}
-
-
-
 // ----------------------------------------------------------------------
+
+#ifdef USE_ENCAPS
 
 struct ccnl_buf_s*
 ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
@@ -426,7 +360,10 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
     int hdrlen, blobtaglen, datalen;
     int offs = 0;
 
-    while (offs < origlen) {
+    if (!e)
+      cnt = 1;
+    else
+      while (offs < origlen) {
 	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
 	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
 			      0, e->flagbytes);
@@ -735,5 +672,7 @@ ccnl_relay_encaps_RX(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 */
 
 #endif
+
+#endif // USE_ENCAPS
 
 // eof

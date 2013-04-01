@@ -19,8 +19,8 @@
  * File history:
  * 2011-12-04 created
  * 2011-12 simulation scenario and logging support s.braun@stud.unibas.ch
- * 2013-03-19 updated (ms): replacement code after renaming ccnl_relay_s.client
- *   to ccnl_relay_s.aux
+ * 2013-03-19 updated (ms): replacement code after renaming the field
+ *		ccnl_relay_s.client to ccnl_relay_s.aux
  */
 
 
@@ -49,8 +49,7 @@ void
 ccnl_simu_client_timeout(void *ptr, void *aux)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    //struct ccnl_client_s *cl = relay->client;
-    struct ccnl_client_s *cl = relay->aux;       //(ms) after renaming ccnl_relay_s.client to ccnl_relay_s.aux
+    struct ccnl_client_s *cl = relay->aux;
     char node = relay2char(relay);
     void **vpp = (void**) aux;
     int ndx;
@@ -60,7 +59,7 @@ ccnl_simu_client_timeout(void *ptr, void *aux)
 	relay->stats->log_need_rt_seqn++;
     ndx = vpp - cl->to_handlers;
     DEBUGMSG(99, "*** node %c timeout: new timeout for ndx%d, seqno=%d\n",
-	     node, vpp - cl->to_handlers, cl->onthefly[ndx]);
+	     node, ndx, cl->onthefly[ndx]);
     *vpp = ccnl_set_timer(TIMEOUT, ccnl_simu_client_timeout, ptr, aux);
     cl->nonces[ndx] = random();
     ccnl_client_TX(node, cl->name, cl->onthefly[ndx], cl->nonces[ndx]);
@@ -71,10 +70,8 @@ void
 ccnl_simu_client_logger(void *ptr, void *dummy)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    //struct ccnl_client_s *cl = relay->client;
-    struct ccnl_client_s *cl = relay->aux;          //(ms) after renaming ccnl_relay_s.client to ccnl_relay_s.aux
+    struct ccnl_client_s *cl = relay->aux;
     struct ccnl_stats_s *st = relay->stats;
-    //    char node = relay2char(relay);
 
     if (st->ofp) {
         // calc content delivery rate
@@ -126,8 +123,7 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
 		   int seqn, char *data, int len) // receiving side
 {
     char node = relay2char(relay);
-    //struct ccnl_client_s *cl = relay->client;
-    struct ccnl_client_s *cl = relay->aux;          //(ms) after renaming ccnl_relay_s.client to ccnl_relay_s.aux
+    struct ccnl_client_s *cl = relay->aux;
     int i;
 
     DEBUGMSG(1, "*** node %c received %d content bytes for name %s, seq=%d\n",
@@ -207,8 +203,7 @@ void
 ccnl_simu_client_kick(char node, int ndx)
 {
     struct ccnl_relay_s *relay = char2relay(node);
-    //struct ccnl_client_s *cl = relay->client;
-    struct ccnl_client_s *cl = relay->aux;       //(ms) after renaming ccnl_relay_s.client to ccnl_relay_s.aux
+    struct ccnl_client_s *cl = relay->aux;
 
     if (cl->nextseq > cl->lastseq)
 	return;
@@ -253,8 +248,7 @@ ccnl_simu_client_start(void *ptr, void *dummy)
 	}
 	ccnl_simu_client_logger(relay, 0);
     } else {
-        //struct ccnl_client_s *cl = relay->client;
-	struct ccnl_client_s *cl = relay->aux;    //(ms) after renaming ccnl_relay_s.client to ccnl_relay_s.aux
+	struct ccnl_client_s *cl = relay->aux;
 	cl->nextseq = 0;
 	cl->name = node == 'A' ? "/ccnl/simu/movie2" : "/ccnl/simu/movie3";
     }
