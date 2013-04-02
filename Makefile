@@ -26,6 +26,7 @@ obj-m += ccn-lite-lnxkernel.o
 # ----------------------------------------------------------------------
 
 all: ${PROGS}
+	make -C util
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	Makefile ccnl-core.c ccnx.h ccnl.h ccnl-core.h
