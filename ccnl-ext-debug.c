@@ -24,7 +24,7 @@
 
 #ifdef USE_DEBUG
 
-#ifndef CCNL_KERNEL
+#ifndef CCNL_LINUXKERNEL
 struct ccnl_stats_s {
     void* log_handler;
     FILE *ofp;
@@ -50,21 +50,21 @@ struct ccnl_stats_s {
 	__VA_ARGS__; \
 } while (0)
 
-#ifndef CCNL_KERNEL
+#ifndef CCNL_LINUXKERNEL
 #  define DEBUGMSG(LVL, ...) do {	\
 	if ((LVL)>debug_level) break;   \
 	fprintf(stderr, "%s: ", timestamp());	\
 	fprintf(stderr, __VA_ARGS__);	\
     } while (0)
 
-#else // CCNL_KERNEL
+#else // CCNL_LINUXKERNEL
 #  define DEBUGMSG(LVL, ...) do {	\
 	if ((LVL)>debug_level) break;   \
 	printk("%s: ", THIS_MODULE->name);	\
 	printk(__VA_ARGS__);		\
     } while (0)
 #  define printf(...)	printk(__VA_ARGS__)
-#endif // CCNL_KERNEL
+#endif // CCNL_LINUXKERNEL
 
 
 // ----------------------------------------------------------------------
@@ -202,7 +202,7 @@ ccnl_dump(int lev, int typ, void *p)
 	INDENT(lev); printf("interfaces:\n");
 	for (k = 0; k < top->ifcount; k++) {
 	    INDENT(lev+1);
-#ifdef CCNL_KERNEL
+#ifdef CCNL_LINUXKERNEL
 	    printf("ifndx=%d sockstruct=%p", k, top->ifs[k].sock);
 #else
 	    printf("ifndx=%d sock=%d", k, top->ifs[k].sock);
@@ -458,7 +458,7 @@ debug_memdump()
 
 #else // !USE_DEBUG_MALLOC
 
-# ifndef CCNL_KERNEL
+# ifndef CCNL_LINUXKERNEL
 #  define ccnl_malloc(s)	malloc(s)
 #  define ccnl_calloc(n,s) 	calloc(n,s)
 #  define ccnl_realloc(p,s)	realloc(p,s)

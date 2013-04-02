@@ -1,6 +1,6 @@
 /*
  * @f ccnl-platform.c
- * @b support functions for providing a uniform environment on each platform
+ * @b routines for uniform time handling
  *
  * Copyright (C) 2011, Christian Tschudin, University of Basel
  *
@@ -17,22 +17,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2011-12 created
+ * 2012-11 created
  * 2013-03-18 updated (ms): removed omnet related code, and moved struct
- *   ccnl_timer_s to the '#ifndef CCNL_KERNEL' section
+ *   ccnl_timer_s to the '#ifndef CCNL_LINUXKERNEL' section
  */
-
-void ccnl_get_timeval(struct timeval *tv);
-
 
 long
 timevaldelta(struct timeval *a, struct timeval *b) {
     return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
 }
 
+#ifndef CCNL_OMNET
+#  define CCNL_NOW()			current_time()
+#endif
 // ----------------------------------------------------------------------
 
-#ifdef CCNL_KERNEL
+#ifdef CCNL_LINUXKERNEL
 
 struct ccnl_timerlist_s {
     struct timer_list tl;
@@ -41,7 +41,6 @@ struct ccnl_timerlist_s {
 };
 
 static struct ccnl_timerlist_s *spare_timer;
-
 
 inline void
 ccnl_get_timeval(struct timeval *tv)
@@ -110,7 +109,9 @@ ccnl_rem_timer(void *p)
 	kfree(t);
 }
 
-#else // !CCNL_KERNEL
+// ----------------------------------------------------------------------
+#else // !CCNL_LINUXKERNEL
+// ----------------------------------------------------------------------
 
 // (ms) I moved the following struct def here because it is used by all
 // containers apart from the kernel (this way I don't need to redefine it
@@ -128,44 +129,6 @@ struct ccnl_timer_s {
     int handler;
 };
 
-
-double
-current_time()
-{
-    struct timeval tv;
-    static time_t start;
-    static time_t start_usec;
-
-    ccnl_get_timeval(&tv);
-
-    if (!start) {
-	start = tv.tv_sec;
-	start_usec = tv.tv_usec;
-    }
-
-    return (double)(tv.tv_sec) - start +
-		((double)(tv.tv_usec) - start_usec) / 1000000;
-}
-
-char*
-timestamp(void)
-{
-    static char ts[30], *cp;
-
-    sprintf(ts, "%.4g", CCNL_NOW());
-    cp = strchr(ts, '.');
-    if (!cp)
-	strcat(ts, ".0000");
-    else if (strlen(cp) > 5)
-	cp[5] = '\0';
-    else while (strlen(cp) < 5)
-	strcat(cp, "0");
-    return ts;
-}
-
-#endif 
-
-// ----------------------------------------------------------------------
 
 #if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
 
@@ -254,5 +217,45 @@ ccnl_rem_timer(void *h)
 }
 
 #endif
+
+
+double
+current_time()
+{
+    struct timeval tv;
+    static time_t start;
+    static time_t start_usec;
+
+    ccnl_get_timeval(&tv);
+
+    if (!start) {
+	start = tv.tv_sec;
+	start_usec = tv.tv_usec;
+    }
+
+    return (double)(tv.tv_sec) - start +
+		((double)(tv.tv_usec) - start_usec) / 1000000;
+}
+
+char*
+timestamp(void)
+{
+    static char ts[30], *cp;
+
+    sprintf(ts, "%.4g", CCNL_NOW());
+    cp = strchr(ts, '.');
+    if (!cp)
+	strcat(ts, ".0000");
+    else if (strlen(cp) > 5)
+	cp[5] = '\0';
+    else while (strlen(cp) < 5)
+	strcat(cp, "0");
+    return ts;
+}
+
+#endif 
+
+// void ccnl_get_timeval(struct timeval *tv);
+
 
 // eof

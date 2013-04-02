@@ -32,10 +32,12 @@
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 #define USE_ENCAPS
+#define USE_ETHERNET
 #define USE_MGMT
 #define USE_SCHEDULER
+#define USE_UNIXSOCKET
 
-#include "ccnl-platform.h"
+#include "ccnl-includes.h"
 
 #include "ccnx.h"
 #include "ccnl.h"
@@ -43,13 +45,12 @@
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
-
-#define CCNL_NOW()			current_time()
 #include "ccnl-platform.c"
 
 #define ccnl_app_RX(x,y)		do{}while(0)
 #define ccnl_print_stats(x,y)		do{}while(0)
 
+/*
 #ifdef USE_ETHERNET
 int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
 #endif
@@ -57,6 +58,9 @@ int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
 #ifdef USE_UNXISOCKET
 int ccnl_open_unixpath(char *path, struct sockaddr_un *ux);
 #endif
+
+int ccnl_open_udpdev(int port, struct sockaddr_in *si);
+*/
 
 #include "ccnl-core.c"
 
@@ -282,22 +286,22 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
 // ----------------------------------------------------------------------
 
-static int inter_ccn_gap = 0; // in usec
-static int inter_pkt_gap = 0; // in usec
+static int inter_ccn_interval = 0; // in usec
+static int inter_pkt_interval = 0; // in usec
 
 #ifdef USE_SCHEDULER
 struct ccnl_sched_s*
 ccnl_relay_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
 				void(*cb)(void*,void*))
 {
-    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_gap);
+    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
 
 struct ccnl_sched_s*
 ccnl_relay_defaultInterfaceScheduler(struct ccnl_relay_s *ccnl,
 				     void(*cb)(void*,void*))
 {
-    return ccnl_sched_pktrate_new(cb, ccnl, inter_pkt_gap);
+    return ccnl_sched_pktrate_new(cb, ccnl, inter_pkt_interval);
 }
 #else
 # define ccnl_relay_defaultFaceScheduler       NULL
@@ -565,10 +569,10 @@ main(int argc, char **argv)
             ethdev = optarg;
             break;
         case 'g':
-            inter_pkt_gap = atoi(optarg);
+            inter_pkt_interval = atoi(optarg);
             break;
         case 'i':
-            inter_ccn_gap = atoi(optarg);
+            inter_ccn_interval = atoi(optarg);
             break;
         case 'u':
             udpport = atoi(optarg);
@@ -585,8 +589,8 @@ main(int argc, char **argv)
 		    "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
 		    " [-d databasedir]"
 		    " [-e ethdev]"
-		    " [-g MIN_INTER_PACKET_GAP]"
-		    " [-i MIN_INTER_CCNMSG_GAP]"
+		    " [-g MIN_INTER_PACKET_INTERVAL]"
+		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
 		    " [-x unixpath]\n", argv[0]);

@@ -20,15 +20,16 @@
  * 2012-01-06 created
  */
 
-#define CCNL_KERNEL
+#define CCNL_LINUXKERNEL
 
 #define USE_DEBUG
 // #define USE_DEBUG_MALLOC
 // #define USE_ENCAPS
+#define USE_ETHERNET
 // #define USE_SCHEDULER
 // #define USE_MGMT
 
-#include "ccnl-platform.h"
+#include "ccnl-includes.h"
 #include "ccnl.h"
 #include "ccnx.h"
 #include "ccnl-core.h"
@@ -37,14 +38,11 @@
 
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)
-#define CCNL_NOW()			current_time()
 
 static struct ccnl_relay_s theRelay;
 
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
 		       struct packet_type *pt, struct net_device *outdev);
-
-struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
 
 struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
 
@@ -233,13 +231,13 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 #ifdef USE_SCHEDULER
 #  include "ccnl-ext-sched.c"
 
-int inter_ccn_gap = 100;
+int inter_ccn_interval = 100;
 
 struct ccnl_sched_s*
 ccnl_lnx_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
 				    void(*cb)(void*,void*))
 {
-    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_gap);
+    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
 
 #endif

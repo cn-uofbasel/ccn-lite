@@ -32,13 +32,13 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${CC} -o $@ ${MYCFLAGS} $<
 
 ccn-lite-relay: ccn-lite-relay.c \
-	Makefile ccnx.h ccnl.h ccnl-core.h \
+	Makefile ccnl-includes.h ccnx.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-platform.c ccnl-core.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-encaps.c ccnl-ext-mgmt.c
 	${CC} -o $@ ${MYCFLAGS} $<
 
 ccn-lite-simu: ccn-lite-simu.c \
-	Makefile ccnl.h ccnl-core.h \
+	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-platform.c ccnl-core.c \
 	ccnl-ext-encaps.c ccnl-pdu.c ccnl-ext-sched.c ccnl-simu-client.c
 	${EXTMAKE}

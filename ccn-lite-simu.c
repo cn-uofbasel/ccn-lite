@@ -32,7 +32,7 @@
 #define USE_SCHEDULER
 #define USE_ETHERNET
 
-#include "ccnl-platform.h"
+#include "ccnl-includes.h"
 
 #include "ccnx.h"
 #include "ccnl.h"
@@ -40,8 +40,6 @@
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
-
-# define CCNL_NOW()			current_time()
 #include "ccnl-platform.c"
 
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
@@ -86,121 +84,6 @@ void ccnl_simu_client_endlog(struct ccnl_relay_s *relay);
 
 // ----------------------------------------------------------------------
 
-/*
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
-*/
-
-#ifdef XX_20130322
-int
-mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
-{
-    int len = 0, k;
-
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-    if (nonce) {
-	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
-	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
-	len += sizeof(unsigned int);
-    }
-    out[len++] = 0; // end-of-interest
-
-    return len;
-}
-
-static int
-mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
-{
-    int len = 0, k;
-
-    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    len += mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
-    len += mkHeader(out+len, datalen, CCN_TT_BLOB);
-    memcpy(out+len, data, datalen);
-    len += datalen;
-    out[len++] = 0; // end-of-content obj
-
-    out[len++] = 0; // end-of-content
-
-    return len;
-}
-#endif
-
-
-// ----------------------------------------------------------------------
-
-static char*
-mystrchr(char *list, char c)
-{
-    while (*list) {
-	if (c == *list)
-	    return list;
-	list++;
-    }
-    return NULL;
-}
-
-static char*
-mystrtok(char **cp, char *delim)
-{
-    char *start = *cp;
-
-    if (!cp || !*cp || !**cp)
-	return NULL;
-    while (*start && mystrchr(delim, *start))
-	start++;
-    *cp = start;
-    while (**cp) {
-	if (mystrchr(delim, **cp)) {
-	    **cp = '\0';
-	    (*cp)++;
-	    break;
-	}
-	(*cp)++;
-    }
-    return start;
-}
-
 static struct ccnl_prefix_s*
 ccnl_path_to_prefix(const char *path)
 {
@@ -224,9 +107,10 @@ ccnl_path_to_prefix(const char *path)
 
     strcpy((char*) pr->path, path);
     cp = (char*) pr->path;
-    for (path = mystrtok(&cp, "/");
+
+    for (path = strtok(cp, "/");
 		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
-		 path = mystrtok(&cp, "/")) {
+		 path = strtok(NULL, "/")) {
         pr->comp[pr->compcnt] = (unsigned char*) path;
         pr->complen[pr->compcnt] = strlen(path);
         pr->compcnt++;
@@ -617,14 +501,14 @@ void ccnl_simu_cleanup(void *dummy, void *dummy2);
 
 // ----------------------------------------------------------------------
 
-static int inter_ccn_gap = 0; // in usec
-static int inter_packet_gap = 0; // in usec
+static int inter_ccn_interval = 0; // in usec
+static int inter_packet_interval = 0; // in usec
 
 struct ccnl_sched_s*
 ccnl_simu_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
 				    void(*cb)(void*,void*))
 {
-    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_gap);
+    return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
 
 void ccnl_ageing(void *relay, void *aux)
@@ -644,25 +528,21 @@ ccnl_simu_init_node(char node, const char *addr,
 
     relay->max_cache_entries = node == 'C' ? -1 : max_cache_entries;
 
-    //    ccnl_relay_encaps_init(relay);
-    //     ccnl_sched_init(relay, inter_packet_gap);
-
     // add (fake) eth0 interface with index 0:
     i = &relay->ifs[0];
     i->addr.eth.sll_family = AF_PACKET;
     memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
     //    i->encaps = CCNL_ENCAPS_SEQUENCED2012;
     i->mtu = 1400;
-    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay, inter_packet_gap);
-    //    i->sched = ccnl_sched_dummy_new(ccnl_interface_CTS, relay);
+    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay, inter_packet_interval);
     i->reflect = 1;
     i->fwdalli = 1;
     relay->ifcount++;
+
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_simu_defaultFaceScheduler;
 #endif
 
-// #ifndef CCNL_SIMU_NET_H
     if (node == 'A' || node == 'B') {
 
 	struct ccnl_client_s *client = ccnl_calloc(1, sizeof(struct ccnl_client_s));
@@ -674,12 +554,9 @@ ccnl_simu_init_node(char node, const char *addr,
 
 	relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     }
-// #endif
 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
     ccnl_simu_node_log_start(relay, node);
-
-//    ccnl_dump(0, CCNL_RELAY, relay);
 }
 
 
@@ -878,17 +755,17 @@ main(int argc, char **argv)
             max_cache_entries = atoi(optarg);
             break;
         case 'g':
-            inter_packet_gap = atoi(optarg);
+            inter_packet_interval = atoi(optarg);
             break;
         case 'i':
-            inter_ccn_gap = atoi(optarg);
+            inter_ccn_interval = atoi(optarg);
             break;
         case 'v':
             debug_level = atoi(optarg);
             break;
         case 'h':
         default:
-            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] [-g MIN_INTER_PACKET_GAP] [-i MIN_INTER_CCNMSG_GAP] [-v DEBUG_LEVEL]\n", argv[0]);
+            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] [-g MIN_INTER_PACKET_INTERVAL] [-i MIN_INTER_CCNMSG_INTERVAL] [-v DEBUG_LEVEL]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }

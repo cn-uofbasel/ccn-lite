@@ -31,6 +31,40 @@
 // currently, this file mostly has stubs,
 // and for now a simple rate controller (dec 2011)
 
+/* scheduler protocol:
+
+  All transmission events must first get approval by the scheduler.
+  First, you announce new packets with "request-to-send",
+  For each TX permission, the scheduler calls "clear-to-send"
+  which has to be acknowledged (after tranmission) with
+  a "clear-to-send-done" event.
+
+  Example for three enqueued packets:
+
+  device          scheduler
+ (face or             |
+interface)            |
+    |                 |
+    |                 |
+   3x enqueue()
+      --RTS(3)---->
+     <---CTS------
+   dequeue()
+   TX()
+      --CTS_done-->
+     <---CTS------
+   dequeue()
+   TX()
+      --CTS_done-->
+     <---CTS------
+   dequeue()
+   TX()
+      --CTS_done-->
+
+      --RTS(..)--->
+*/
+
+
 struct ccnl_sched_s {
     char mode; // 0=dummy, 1=pktrate
     void (*rts)(struct ccnl_sched_s* s, int cnt, int len, void *aux1, void *aux2);
@@ -46,24 +80,9 @@ struct ccnl_sched_s {
     void *pendingTimer;
     struct timeval nextTX;
     // simple packet rate limiter:
-    int ipg; // inter_packet_gap, in usec
+    int ipi; // inter_packet_interval, minimum time between send() in usec
 #endif
 };
-
-/* scheduler protocol:
-
-  device     scheduler
-
-      --RTS(3)---->
-     <---CTS------
-      --CTS_done-->
-     <---CTS------
-      --CTS_done-->
-     <---CTS------
-      --CTS_done-->
-
-      --RTS(..)--->
-*/
 
 // ----------------------------------------------------------------------
 
@@ -136,7 +155,8 @@ static struct cf_queue_op_cb qcb = {
     .drop = NULL,
     .reset = NULL
 };
-#endif
+
+#endif // USE_CHEMFLOW
 
 // ----------------------------------------------------------------------
 
@@ -192,7 +212,7 @@ void ccnl_sched_cleanup()
 }
 
 #ifdef USE_CHEMFLOW
-int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_gap)
+int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_interval)
 {
     char name[32];
     int law, k1, k2, e0;
@@ -202,11 +222,11 @@ int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_
 
     DEBUGMSG(99, "%s()\n", __FUNCTION__);
 
-    if (inter_packet_gap) {
+    if (inter_packet_interval) {
         law = CF_LAW_MASS_ACTION;
         k1 = 100;
         k2 = 10;
-        e0 = 1000000 / (k2 * inter_packet_gap);
+        e0 = 1000000 / (k2 * inter_packet_interval);
     } else {
         law = CF_LAW_IMMEDIATE;
         k1 = 0;
@@ -306,7 +326,7 @@ ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2),
 
 struct ccnl_sched_s*
 ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2),
-		       struct ccnl_relay_s *ccnl, int inter_packet_gap)
+		       struct ccnl_relay_s *ccnl, int inter_packet_interval)
 {
     struct ccnl_sched_s *s;
 
@@ -319,13 +339,13 @@ ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2),
     s->cts = cts;
     s->ccnl = ccnl;
 #ifdef USE_CHEMFLOW
-    if (cfnl_sched_create_default_rnet(s, inter_packet_gap)) {
+    if (cfnl_sched_create_default_rnet(s, inter_packet_interval)) {
         ccnl_free(s);
         return NULL;
     }
 #else
     ccnl_get_timeval(&(s->nextTX));
-    s->ipg = inter_packet_gap;
+    s->ipi = inter_packet_interval;
 #endif
 
     return s;
@@ -350,12 +370,6 @@ ccnl_sched_destroy(struct ccnl_sched_s *s)
     }
 }
 
-/*
-inline long
-timevaldelta(struct timeval *a, struct timeval *b) {
-    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
-}
-*/
 
 void
 ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
@@ -394,22 +408,20 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
         }
     }
 #else
-    //	gettimeofday(&now, NULL);
     ccnl_get_timeval(&now);
     since = timevaldelta(&(s->nextTX), &now);
     if (since <= 0) {
-	now.tv_sec += s->ipg / 1000000;
-	now.tv_usec += s->ipg % 1000000;
+	now.tv_sec += s->ipi / 1000000;
+	now.tv_usec += s->ipi % 1000000;
 	memcpy(&(s->nextTX), &now, sizeof(now));
-//	ccnl_relay_encaps_CTS(ccnl, ifndx);
 	s->cts(aux1, aux2);
 	return;
     }
     DEBUGMSG(15, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, aux1, aux2);
-    s->nextTX.tv_sec += s->ipg / 1000000;;
-    s->nextTX.tv_usec += s->ipg % 1000000;;
+    s->nextTX.tv_sec += s->ipi / 1000000;;
+    s->nextTX.tv_usec += s->ipi % 1000000;;
 #endif
 }
 
@@ -448,23 +460,21 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
         s->cts(s->aux1, s->aux2);
     }
 #else
-	//	gettimeofday(&now, NULL);
     ccnl_get_timeval(&now);
 
     since = timevaldelta(&(s->nextTX), &now);
     if (since <= 0) {
-	now.tv_sec += s->ipg / 1000000;
-	now.tv_usec += s->ipg % 1000000;
+	now.tv_sec += s->ipi / 1000000;
+	now.tv_usec += s->ipi % 1000000;
 	memcpy(&(s->nextTX), &now, sizeof(now));
-//	ccnl_relay_encaps_CTS(ccnl, ifndx);
 	s->cts(s->aux1, s->aux2);
 	return;
     }
     DEBUGMSG(15, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, s->aux1, s->aux2);
-    s->nextTX.tv_sec += s->ipg / 1000000;;
-    s->nextTX.tv_usec += s->ipg % 1000000;;
+    s->nextTX.tv_sec += s->ipi / 1000000;;
+    s->nextTX.tv_usec += s->ipi % 1000000;;
 
 //    s->cts();
 #endif
@@ -474,6 +484,7 @@ void
 ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
     DEBUGMSG(99, "ccnl_sched_X_ok()\n");
+    // here a chemflow reaction NW could act on pkt reception events
 }
 
 
@@ -481,83 +492,13 @@ void
 ccnl_sched_RX_loss(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
     DEBUGMSG(99, "ccnl_sched_RX_loss()\n");
+    // here a chemflow reaction NW could act on pkt loss events
 }
-
-// ----------------------------------------------------------------------
-
-#ifdef XXX
-void
-ccnl_packet_scheduler(struct ccnl_relay_s *ccnl)
-{
-    int j, k;
-
-    DEBUGMSG(99, "ccnl_packet_scheduler\n");
-
-    for (j = 0; j < ccnl->ifcount; j++) {
-	struct ccnl_if_s *ifc = &ccnl->ifs[j];
-	struct ccnl_face_s *f;
-	if (ifc->sendface || !ifc->facecnt)
-	    continue;
-	ifc->faceoffs = (ifc->faceoffs + 1) % ifc->facecnt;
-	// round robin: skip i->faceoffs entries
-	for (f = ccnl->faces, k = ifc->faceoffs; k > 0;
-				f = f->next ? f->next : ccnl->faces) {
-	    if (f->ifndx == j) k--;
-	}
-	// for the given interface j, find and activate eligible faces
-	for (k = ifc->facecnt; k > 0;
-				f = f->next ? f->next : ccnl->faces) {
-	    if (f->ifndx == j) {
-		k--;
-		if (f->outq) {
-		    // and schedule time has been reached, then
-		    ccnl_encaps_startfragments(f->encaps);
-		    ifc->sendface = f;
-		    break;
-		}
-	    }
-	}
-    }
-}
-#endif
-
-/*
-void
-ccnl_relay_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
-{
-    struct ccnl_buf_s *buf;
-
-    DEBUGMSG(10, "ccnl_relay_CTS face=%p, peer=%s\n", (void *) f,
-	     ccnl_addr2ascii(&f->peer));
-
-    buf = ccnl_face_dequeue(f);
-    printf("dequeue in relay_CTS\n");
-    ccnl_relay_encaps_TX(ccnl, f, buf); // , &f->peer);
-    ccnl_free(buf);
-}
-*/
-
-#ifdef XXX
-void
-ccnl_schedule_face_TX(struct ccnl_relay_s *r,
-		      struct ccnl_face_s *f,
-		      int len)
-{
-    // just inform the scheduler (do not shift buffers aroud)
-
-    // for a work conserving scheduler, nothing else needs to be done here
-    // because the io_loop will poll the face queues and send out things
-    // as fast as possible
-
-    // otherwise, do a RTS and wait for an CTS upcall,
-    // e.g. ccnl_relay_encaps_RTS()
-}
-#endif
 
 // ----------------------------------------------------------------------
 
 struct ccnl_sched_s*
-ccnl_sched_packetratelimiter_new(int inter_packet_gap,
+ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 		      void (*cts)(void *aux1, void *aux2),
 		      void *aux1, void *aux2)
 {
@@ -566,13 +507,12 @@ ccnl_sched_packetratelimiter_new(int inter_packet_gap,
 
     s = (struct ccnl_sched_s*) ccnl_calloc(1, sizeof(struct ccnl_sched_s));
     if (s) {
-//	s->rts = ;
         s->cts = cts;
         s->aux1 = aux1;
         s->aux2 = aux2;
 #ifndef USE_CHEMFLOW
 	ccnl_get_timeval(&s->nextTX);
-	s->ipg = inter_packet_gap;
+	s->ipi = inter_packet_interval;
 #endif
     }
     return s;

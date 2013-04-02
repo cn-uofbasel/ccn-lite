@@ -40,15 +40,15 @@ ccnl_is_local_addr(sockunion *su)
 // management protocols
 
 #define extractStr(VAR,DTAG) \
-	    if (typ == CCN_TT_DTAG && num == DTAG) { \
-		char *s; unsigned char *valptr; int vallen; \
-		if (consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
-		s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
-		memcpy(s, valptr, vallen); s[vallen] = '\0'; \
-		ccnl_free(VAR); \
-		VAR = (unsigned char*) s; \
-		continue; \
-	    } do {} while(0)
+    if (typ == CCN_TT_DTAG && num == DTAG) { \
+	char *s; unsigned char *valptr; int vallen; \
+	if (consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
+	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+	ccnl_free(VAR); \
+	VAR = (unsigned char*) s; \
+	continue; \
+    } do {} while(0)
 
 
 void
@@ -333,18 +333,17 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
       goto Bail;
     }
 
-#if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_KERNEL))
+#if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
 	struct ccnl_if_s *i;
-//	sockunion su;
 	DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
 		 devname, port);
 
-	// check if it already exists, bail or open device
-	// create a new ifs-entry
+	// check if it already exists, bail
 
+	// create a new ifs-entry
 	i = &ccnl->ifs[ccnl->ifcount];
-#ifdef CCNL_KERNEL
+#ifdef CCNL_LINUXKERNEL
 	{
 	    struct net_device *nd;
 	    int j;
@@ -377,36 +376,35 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 #endif
 //	i->encaps = encaps ? atoi(encaps) : 0;
 	i->mtu = 1500;
-// should also analyse and copy flags
+//	we should analyse and copy flags, here we hardcode some defaults:
 	i->reflect = 1;
 	i->fwdalli = 1;
-	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 
+	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 	ccnl->ifcount++;
+
 	rc = 0;
 	goto Bail;
     }
 #endif
 
-#ifdef USE_UDP
+// #ifdef USE_UDP
     if (ip4src && port) {
 	struct ccnl_if_s *i;
-//	in_addt_t addr;
 	DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
 		 ip4src, port);
 
-	// check if it already exists, bail or open device
-	// create a new ifs-entry
+	// check if it already exists, bail
 
-//	addr = !strcmp(ip4src, "any") ? INADDR_ANY : inet_aton(ip4src);
+	// create a new ifs-entry
 	i = &ccnl->ifs[ccnl->ifcount];
-	i->sock = ccnl_open_udpdev(strtol(port, NULL, 0), &i->addr.ip4);
+	i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip4);
 	if (!i->sock) {
 	    DEBUGMSG(99, "  could not open UDP device %s/%s\n", ip4src, port);
 	    goto Bail;
 	}
 
-#ifdef CCNL_KERNEL
+#ifdef CCNL_LINUXKERNEL
 	for (j = 0; j < ccnl->ifcount; j++) {
 	    if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
 		sock_release(i->sock);
@@ -430,12 +428,13 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 
 //	i->encaps = encaps ? atoi(encaps) : 0;
 	i->mtu = CCN_DEFAULT_MTU;
-// should also analyse and copy flags
+//	we should analyse and copy flags, here we hardcode some defaults:
 	i->reflect = 0;
 	i->fwdalli = 1;
-	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 
+	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 	ccnl->ifcount++;
+
 	cp = "newdevice cmd workd";
 	rc = 0;
 	goto Bail;
@@ -443,7 +442,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 
     DEBUGMSG(99, "  newdevice request for (namedev=%s ip4src=%s port=%s encaps=%s) failed or was ignored\n",
 	     devname, ip4src, port, encaps);
-#endif
+// #endif // USE_UDP
 
 Bail:
     ccnl_free(action);

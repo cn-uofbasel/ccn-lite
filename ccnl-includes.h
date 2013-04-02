@@ -1,6 +1,6 @@
 /*
- * @f ccnl-platform.h
- * @b header file for CCN lite (CCNL), uniform platform
+ * @f ccnl-includes.h
+ * @b does the #include of all (system) header file
  *
  * Copyright (C) 2011, Christian Tschudin, University of Basel
  *
@@ -20,41 +20,7 @@
  * 2011-03-30 created
  */
 
-/*
-  The CCNL code currently supports four platforms, defined in the
-  corresponding main source files.
-
-  Choose there one of the following DEFINES for your platform,
-  do not mix them:
-
-  CCNL_UNIX       UNIX user space relay (ccn-lite-relay.c), or
-  CCNL_SIMULATION UNIX user space simulator (ccn-lite-simu.c), or
-  CCNL_KERNEL     Linux kernel module (ccn-lite-lnxkernel.c), or
-  CCNL_OMNET      OmNet++ integration (ccn-lite-omnet.c)
-
-  Note that "ccn-lite-minimalrelay.c" is also a CCNL_UNIX version
-  (UDP only), but that it contains all support code by itself and
-  does not include the ccnl-platform.c functionality or definitions,
-  hence the DEFINE does not matter for that platform.
-
-
-  Moreover, the CCN lite code has several extension that can
-  be switched on or off via #defines. These activations are
-  made in the platform specific main files (listed above in
-  parentheses):
-
-  USE_CHEMFLOW
-  USE_DEBUG
-  USE_DEBUG_MALLOC
-  USE_ENCAPS
-  USE_ETHERNET
-  USE_MGMT
-  USE_SCHEDULER
-  USE_UNIXSOCKET  // unix IPC via named sockets
-
- */
-
-#ifndef CCNL_KERNEL
+#ifndef CCNL_LINUXKERNEL
 
 #include <ctype.h>
 #include <errno.h>
@@ -85,8 +51,6 @@
 #  include <endian.h>
 #  include <linux/if_ether.h>  // ETH_ALEN
 #  include <linux/if_packet.h> // sockaddr_ll
-#  define USE_ETHERNET
-#  define USE_UNIXSOCKET
 #endif
 
 #else // else we are compiling for the Linux kernel
@@ -121,6 +85,6 @@
 #define inet_aton(s,p)	(p)->s_addr = in_aton(s)
 #define USE_ETHERNET
 
-#endif // !CCNL_KERNEL
+#endif // CCNL_LINUXKERNEL
 
 // eof

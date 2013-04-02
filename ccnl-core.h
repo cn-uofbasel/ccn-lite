@@ -56,7 +56,7 @@ struct ccnl_txrequest_s {
 
 struct ccnl_if_s { // interface for packet IO
     sockunion addr;
-#ifdef CCNL_KERNEL
+#ifdef CCNL_LINUXKERNEL
     struct socket *sock;
     struct workqueue_struct *wq;
     void (*old_data_ready)(struct sock *, int);

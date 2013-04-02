@@ -885,7 +885,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #define testbuf(P,X,Y)	(P->datalen>1 && P->data[0] == X && P->data[1] == Y)
 #define ccnl_is_interest(BUF)	testbuf(BUF, 0x01, 0xd2)
 #define ccnl_is_content(BUF)	testbuf(BUF, 0x04, 0x82)
-// #define ccnl_is_encaps(BUF)	testbuf(BUF, 0x10, 0x80)
 
 int
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,

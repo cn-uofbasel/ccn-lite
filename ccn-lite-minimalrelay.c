@@ -218,11 +218,6 @@ ccnl_path_to_prefix(const char *path)
 
     strcpy((char*) pr->path, path);
     cp = (char*) pr->path;
-/*
-    for (path = mystrtok(&cp, "/");
-		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
-		 path = mystrtok(&cp, "/")) {
-*/
     for (path = strtok(cp, "/");
 		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
 		 path = strtok(NULL, "/")) {

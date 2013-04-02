@@ -21,7 +21,6 @@
  */
 
 // ----------------------------------------------------------------------
-// referenced by ccn-lite-relay.c:
 
 #ifdef USE_ENCAPS
 
@@ -36,8 +35,6 @@ int ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen,
 struct ccnl_buf_s* ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e,
 					       int *ifndx, sockunion *su);
 
-int ccnl_is_encaps(struct ccnl_buf_s *buf);
-
 struct ccnl_buf_s* ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
 		struct ccnl_face_s *f, unsigned char *data, int datalen);
 
@@ -48,52 +45,67 @@ struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 					struct ccnl_buf_s *buf);
 #endif // USE_ENCAPS
 
+// ----------------------------------------------------------------------
+
+#ifdef USE_ETHERNET
+
+#if defined(CCNL_UNIX)
+  int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+#elif defined(CCNL_LINUXKERNEL)
+  struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+#endif
+
+int ccnl_open_udpdev(int port, struct sockaddr_in *si);
+
+#endif // USE_ETHERNET
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_MGMT
+
+int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+	      struct ccnl_face_s *from);
+
+#else
+
+# define ccnl_mgmt(r,p,f)  0
+
+#endif
+
+// ----------------------------------------------------------------------
 
 #ifdef USE_SCHEDULER
 
-struct ccnl_sched_s* ccnl_sched_new(void (cts)(void *aux1, void *aux2),
-				    int inter_packet_gap);
-
 void ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 		    void *aux1, void *aux2);
-
+void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
 void ccnl_sched_destroy(struct ccnl_sched_s *s);
-
-/*
-int ccnl_scheduler_register(struct ccnl_scheduler_s *s,
-			    struct ccnl_buf_s* (*getPacket)(void *aux1, void *aux2),
-			    void *aux1, void *aux2);
-  ;
-int ccnl_scheduler_unregister(struct ccnl_scheduler_s *s);
-int ccnl_scheduler_rts(struct ccnl_face_s *f, struct ccnl_scheduler_s *s, int pktcnt, int size);
-void ccnl_scheduler_destroy(struct ccnl_scheduler_s *s);
-*/
 
 #else
 
-/*
-#define ccnl_scheduler_new()			NULL
-#define ccnl_scheduler_register(S,CB,A1,A2)	do{}while(-1)
-#define ccnl_scheduler_unregister(S)		do{}while(-1)
-#define ccnl_scheduler_rts(S,C,L)		do{}while(-1)
-#define ccnl_scheduler_destroy(S)		do{}while(-1)
-*/
+# define ccnl_sched_CTS_done(S,C,L)		do{}while(-1)
+# define ccnl_scheduler_destroy(S)		do{}while(-1)
 
 #endif
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_UNIXSOCKET
+
+#if defined (CCNL_UNIX)
+  int ccnl_open_unixpath(char *path, struct sockaddr_un *ux);
+#elif defined(CCNL_LINUXKERNEL)
+
+#endif
+
+#endif // USE_UNIXSOCKET
+
+// ----------------------------------------------------------------------
+// prototypes for platform and extention independend routines:
 
 int ccnl_is_local_addr(sockunion *su);
 
-
 void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 		sockunion *dest, struct ccnl_buf_s *buf);
-
-#ifdef USE_MGMT
-int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
-#else
-# define ccnl_mgmt(r,p,f)  0
-#endif
-
-void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
-
 
 // eof
