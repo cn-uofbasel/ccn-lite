@@ -44,8 +44,6 @@ static struct ccnl_relay_s theRelay;
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
 		       struct packet_type *pt, struct net_device *outdev);
 
-struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
-
 void ccnl_udp_data_ready(struct sock *sk, int len);
 
 // ----------------------------------------------------------------------

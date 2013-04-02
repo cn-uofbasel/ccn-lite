@@ -51,11 +51,11 @@ struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 
 #if defined(CCNL_UNIX)
   int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+  int ccnl_open_udpdev(int port, struct sockaddr_in *si);
 #elif defined(CCNL_LINUXKERNEL)
   struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+  struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
 #endif
-
-int ccnl_open_udpdev(int port, struct sockaddr_in *si);
 
 #endif // USE_ETHERNET
 
