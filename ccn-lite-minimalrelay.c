@@ -69,7 +69,7 @@
 // #define ccnl_face_CTS_done		NULL
 #define ccnl_sched_destroy(s)		do {} while(0)
 
-#define ccnl_mgmt(r,p,f)		-1
+#define ccnl_mgmt(r,b,p,f)		-1
 
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)

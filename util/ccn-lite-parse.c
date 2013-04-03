@@ -65,6 +65,12 @@ dehead(int lev, unsigned char *base, unsigned char **buf,
     return -1;
 }
 
+static int
+test_recursive_parsing(/* work in progress */)
+{
+    return 0;
+}
+
 
 static int
 parse_lev(int lev, unsigned char *base, unsigned char **buf,
@@ -88,7 +94,12 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 		    *buf += 1; *len -= 1;
 		}
 		printf("\")>\n");
-	    } else {
+	    } else if (test_recursive_parsing(/* work in progress */)) {
+		printf(")>, decoding:\n");
+		// ...
+		*buf += num;
+		*len -= num;
+ 	    } else {
 		printf(")>");
 		for (i = 0; i < num; i++) {
 		    if ((i%8) == 0) {

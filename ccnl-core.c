@@ -922,7 +922,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
     }
     if (ccnl_is_interest(buf)) {
 	if (prefix->compcnt == 4 && !memcmp(prefix->comp[0], "ccnx", 4)) {
-	    rc = ccnl_mgmt(relay, prefix, from);
+	    rc = ccnl_mgmt(relay, buf, prefix, from);
 	    goto Done;
 	}
 	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest

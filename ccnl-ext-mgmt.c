@@ -52,10 +52,13 @@ ccnl_is_local_addr(sockunion *su)
 
 
 void
-ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl,
+ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		     struct ccnl_face_s *from, char *msg)
 {
     struct ccnl_buf_s *buf;
+
+    // this is a temporary non-solution: a CCN-content reply should
+    // be returned instead of a string message
 
     buf = ccnl_buf_new(msg, strlen(msg));
     ccnl_face_enqueue(ccnl, from, buf);
@@ -63,8 +66,8 @@ ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl,
 
 
 int
-ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		  struct ccnl_face_s *from)
+ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf, *action, *debugaction;
     int buflen, num, typ;
@@ -119,14 +122,14 @@ Bail:
     ccnl_free(action);
     ccnl_free(debugaction);
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
 
 int
-ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		  struct ccnl_face_s *from)
+ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -224,13 +227,13 @@ Bail:
     ccnl_free(encaps);
     ccnl_free(flags);
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
 int
-ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		  struct ccnl_face_s *from)
+ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -284,13 +287,13 @@ Bail:
     ccnl_free(action);
     ccnl_free(faceid);
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
 int
-ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		  struct ccnl_face_s *from)
+ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -450,27 +453,27 @@ Bail:
     ccnl_free(port);
     ccnl_free(encaps);
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
 
 int
-ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		     struct ccnl_face_s *from)
+ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char *cp = "destroydevice cmd failed";
 
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return -1;
 }
 
 
 int
-ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		    struct ccnl_face_s *from)
+ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -562,13 +565,13 @@ Bail:
     ccnl_free(faceid);
     free_prefix(p);
 
-    ccnl_mgmt_return_msg(ccnl, from, cp);
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
 int
-ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-	       struct ccnl_face_s *from)
+ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
 
@@ -583,29 +586,30 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     if (!ccnl_is_local_addr(&from->peer)) {
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
 		 ccnl_addr2ascii(&from->peer));
-	ccnl_mgmt_return_msg(ccnl, from, "refused: origin of mgmt cmd is not local");
+	ccnl_mgmt_return_msg(ccnl, orig, from,
+			     "refused: origin of mgmt cmd is not local");
 	return -1;
     }
 	
     if (!strcmp(cmd, "newdev"))
-	ccnl_mgmt_newdev(ccnl, prefix, from);
+	ccnl_mgmt_newdev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
-	ccnl_mgmt_destroydev(ccnl, prefix, from);
+	ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "newface"))
-	ccnl_mgmt_newface(ccnl, prefix, from);
+	ccnl_mgmt_newface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroyface"))
-	ccnl_mgmt_destroyface(ccnl, prefix, from);
+	ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "prefixreg"))
-	ccnl_mgmt_prefixreg(ccnl, prefix, from);
+	ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
 #ifdef CCNL_DEBUG
     else if (!strcmp(cmd, "debug")) {
-      ccnl_mgmt_debug(ccnl, prefix, from);
+      ccnl_mgmt_debug(ccnl, buf, prefix, from);
     }
 #endif
     else {
 	DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
 
-	ccnl_mgmt_return_msg(ccnl, from, "unknown mgmt command");
+	ccnl_mgmt_return_msg(ccnl, orig, from, "unknown mgmt command");
 	return -1;
     }
 

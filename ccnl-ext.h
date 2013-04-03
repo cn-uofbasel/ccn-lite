@@ -63,12 +63,12 @@ struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 
 #ifdef USE_MGMT
 
-int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-	      struct ccnl_face_s *from);
+int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
+	      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 #else
 
-# define ccnl_mgmt(r,p,f)  0
+# define ccnl_mgmt(r,b, p,f)  0
 
 #endif
 

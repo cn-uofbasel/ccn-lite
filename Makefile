@@ -61,3 +61,4 @@ datastruct.pdf: datastruct.dot
 clean:
 	${EXTMAKECLEAN}
 	rm -rf *~ *.o ${PROGS} node-*.log .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
+	make -C util clean
