@@ -19,6 +19,7 @@
  *
  * File history:
  * 2011-11-22 created
+ * 2013-04-03 updated (ms)
  */
 
 
@@ -33,15 +34,15 @@
 #define CCNL_OMNET
 
 
-#define USE_DEBUG              // enable debug code for logging messages in stderr
-#define USE_DEBUG_MALLOC       // enable recording of memory allocations for crash dumps
+#define USE_DEBUG               // enable debug code for logging messages in stderr
+#define USE_DEBUG_MALLOC        // enable recording of memory allocations for crash dumps
 #define LOG_LEVEL_4_OMNET 50    // set the log level for debug info piped to Omnet's EV.
                                 // (this is independent of 'log_level' in b3c-relay-debug.c
                                 // which controls what is reported in stderr)
 #define USE_ENCAPS      // ? TODO - Ask Christian, is this needed only for the fragmentation ?
 #define USE_ETHERNET
 
-//#define USE_SCHEDULER   // ? TODO - Ask Christian, is this needed for the pacing?
+#define USE_SCHEDULER           // enable relay scheduling capabilities (e.g. for inter-packet pacing)
 #define CCNL_STATS              // enable statistics logging of relay actions to ext file
 
 #define PROPAGATE_INTERESTS_SEEN_BEFORE     // if a received interest already exists in the PIT,
@@ -146,19 +147,16 @@ void    ccnl_lnk2relay(                     /* data */
  *
  *****************************************************************************/
 
-#include "ccnl-platform.h"  // generic platform defs
+//#include "ccnl-includes.h"  // generic platform includes - included in CcnCore.cc
 
 #include "ccnx.h"
 #include "ccnl.h"
 #include "ccnl-core.h"      // core ccnl structs
+#include "ccnl-ext.h"       // dorward declarations
+#include "ccnl-ext-debug.c" // debug funcs and some macros that I redeclare below
 
-#include "ccnl-ext-debug.c"     // debug macros and funcs
-#include "ccnl-ext.h"     // dorward declarations
 
-// #undef CCNL_NOW
-#define CCNL_NOW() (opp_time())
-
-struct ccnl_omnet_s {               // extension of ccnl_relay_s (aux field) for omnet state
+struct ccnl_omnet_s {       // extension of ccnl_relay_s (aux field) for omnet state
     struct ccnl_relay_s *   next;
     struct ccnl_relay_s *   state;
     void *                  opp_module;
@@ -169,6 +167,8 @@ struct ccnl_omnet_s {               // extension of ccnl_relay_s (aux field) for
 struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 
 
+// #undef CCNL_NOW
+#define CCNL_NOW() (opp_time())
 
 #undef DEBUGMSG
 #define DEBUGMSG(LVL, ...) do {   \
@@ -187,7 +187,6 @@ struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 } while (0)
 
 
-
 #ifdef CCNL_STATS
 #  define END_LOG(CHANNEL) do { if (CHANNEL){ \
      fprintf(CHANNEL, "#end\n"); \
@@ -198,7 +197,11 @@ struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 #  define END_LOG(CHANNEL) do {} while(0)
 #endif
 
-
+// TODO -- (ms 3) stats recording (enum and func) should better be moved to debug.c,
+// however for the moment it creates a conflict with other code and Christian does
+// not like the code, so I temporarily just leave it here.
+enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
+void    ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 
 void    ccnl_get_timeval (struct timeval *tv);
 
@@ -238,9 +241,7 @@ void    ccnl_app_RX(
  *****************************************************************************/
 
 #include "ccnl-platform.c"
-
 #include "ccnl-core.c"
-
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
@@ -255,8 +256,135 @@ void    ccnl_app_RX(
  * (definitions)
  *
  *****************************************************************************/
+/*****************************************************************************
+ * record stats
+ */
+// TODO -- (ms 2) It should better be moved to debug.c ?
+void
+ccnl_print_stats(struct ccnl_relay_s *relay, int code)
+{
+    //code 1 = recv interest
+    //code 2 = recv content
+    //code 3 = sent interest
+    //code 4 = sent content
+    //code 5 = queue length
+    //code 6 = end phaseOne
 
+    struct ccnl_stats_s *st = relay->stats;
+    double t = CCNL_NOW();
+    double tmp;
 
+    if (!st || !st->ofp_r || !st->ofp_s || !st->ofp_q)
+        return;
+
+    switch (code) {
+    case STAT_RCV_I:
+    if (st->log_recv_t_i < st->log_recv_t_c) {
+        tmp = st->log_recv_t_c;
+    } else {
+        tmp = st->log_recv_t_i;
+    }
+    fprintf(st->ofp_r, "%.4g\t %f\t %c\t %f\n",
+        t, 1/(t - st->log_recv_t_i), '?', 1/(t-tmp));
+    fflush(st->ofp_r);
+    st->log_recv_t_i = t;
+    break;
+
+    case STAT_RCV_C:
+    if (st->log_recv_t_i < st->log_recv_t_c) {
+        tmp = st->log_recv_t_c;
+    } else {
+        tmp = st->log_recv_t_i;
+    }
+    fprintf(st->ofp_r, "%.4g\t %c\t %f\t %f\n",
+        t, '?', 1/(t - st->log_recv_t_c), 1/(t-tmp));
+    fflush(st->ofp_r);
+    st->log_recv_t_c = t;
+    break;
+
+    case STAT_SND_I:
+    if (st->log_sent_t_i < st->log_sent_t_c) {
+        tmp = st->log_sent_t_c;
+    } else {
+        tmp = st->log_sent_t_i;
+    }
+    fprintf(st->ofp_s, "%.4g\t %f\t %c\t %f\n",
+        t, 1/(t - st->log_sent_t_i), '?', 1/(t-tmp));
+    fflush(st->ofp_s);
+    st->log_sent_t_i = t;
+    break;
+
+    case STAT_SND_C:
+    if (st->log_sent_t_i < st->log_sent_t_c) {
+        tmp = st->log_sent_t_c;
+    } else {
+        tmp = st->log_sent_t_i;
+    }
+    fprintf(st->ofp_s, "%.4g\t %c\t %f\t %f\n",
+        t, '?', 1/(t - st->log_sent_t_c), 1/(t-tmp));
+    fflush(st->ofp_s);
+    st->log_sent_t_c = t;
+    break;
+
+    case STAT_QLEN:
+    fprintf(st->ofp_q, "%.4g\t %i\n", t, relay->ifs[0].qlen);
+    fflush(st->ofp_q);
+    break;
+
+    case STAT_EOP1: // end of phase 1
+    fprintf(st->ofp_r, "%.4g\t %f\t %f\t %f\n", t, 0.0, 0.0, 0.0);
+    fflush(st->ofp_r);
+    break;
+
+    default:
+    break;
+    }
+}
+
+/*****************************************************************************
+ * open FPs for logging and init stats recording
+ */
+void
+ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
+{
+#ifdef CCNL_STATS
+    char name[100];
+    struct ccnl_stats_s *st = relay->stats;
+
+    if (!st)
+    return;
+
+    sprintf(name, "node-%s-sent.log", node);
+    st->ofp_s = fopen(name, "w");
+    if (st->ofp_s) {
+        fprintf(st->ofp_s,"#####################\n");
+        fprintf(st->ofp_s,"# sent_log Node %s\n", node);
+        fprintf(st->ofp_s,"#####################\n");
+        fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
+    fflush(st->ofp_s);
+    }
+    sprintf(name, "node-%s-rcvd.log", node);
+    st->ofp_r = fopen(name, "w");
+    if (st->ofp_r) {
+        fprintf(st->ofp_r,"#####################\n");
+        fprintf(st->ofp_r,"# rcvd_log Node %s\n", node);
+        fprintf(st->ofp_r,"#####################\n");
+        fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
+    fflush(st->ofp_r);
+    }
+    sprintf(name, "node-%s-qlen.log", node);
+    st->ofp_q = fopen(name, "w");
+    if (st->ofp_q) {
+        fprintf(st->ofp_q,"#####################\n");
+        fprintf(st->ofp_q,"# qlen_log Node %s (relay->ifs[0].qlen)\n", node);
+        fprintf(st->ofp_q,"#####################\n");
+        fprintf(st->ofp_q,"# time\t qlen\n");
+    fflush(st->ofp_q);
+    }
+#endif // CCNL_STATS
+
+    return;
+}
 
 /*****************************************************************************
  * given a content prefix as char string, gen a ccnl_prefix_s struct
@@ -295,7 +423,6 @@ ccnl_path_to_prefix(const char *path)
     return pr;
 }
 
-
 /*****************************************************************************
  * system local time to struct timeval
  */
@@ -306,8 +433,6 @@ ccnl_get_timeval(struct timeval *tv)
     tv->tv_sec = now;
     tv->tv_usec = 1000000 * (now - tv->tv_sec);
 }
-
-
 
 /*****************************************************************************
  * generic timer callback for CCN Lite (uses information in a
@@ -433,7 +558,7 @@ ccnl_set_absolute_timer (
 
 
 /*****************************************************************************
- * recursive callback for time progression
+ * callback for time progression
  */
 void
 ccnl_ageing(void *relay, void *aux) // TODO -- this replaces the do_ageing callback in v0, adapt the v0 to this
@@ -447,53 +572,6 @@ ccnl_ageing(void *relay, void *aux) // TODO -- this replaces the do_ageing callb
     ccnl_do_ageing(relay, aux);
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 };
-
-
-/*****************************************************************************
- * open FPs for logging and init stats recording
- */
-void
-ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
-{
-#ifdef CCNL_STATS
-    char name[100];
-    struct ccnl_stats_s *st = relay->stats;
-
-    if (!st)
-    return;
-
-    sprintf(name, "node-%s-sent.log", node);
-    st->ofp_s = fopen(name, "w");
-    if (st->ofp_s) {
-        fprintf(st->ofp_s,"#####################\n");
-        fprintf(st->ofp_s,"# sent_log Node %s\n", node);
-        fprintf(st->ofp_s,"#####################\n");
-        fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
-    fflush(st->ofp_s);
-    }
-    sprintf(name, "node-%s-rcvd.log", node);
-    st->ofp_r = fopen(name, "w");
-    if (st->ofp_r) {
-        fprintf(st->ofp_r,"#####################\n");
-        fprintf(st->ofp_r,"# rcvd_log Node %s\n", node);
-        fprintf(st->ofp_r,"#####################\n");
-        fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
-    fflush(st->ofp_r);
-    }
-    sprintf(name, "node-%s-qlen.log", node);
-    st->ofp_q = fopen(name, "w");
-    if (st->ofp_q) {
-        fprintf(st->ofp_q,"#####################\n");
-        fprintf(st->ofp_q,"# qlen_log Node %s (relay->ifs[0].qlen)\n", node);
-        fprintf(st->ofp_q,"#####################\n");
-        fprintf(st->ofp_q,"# time\t qlen\n");
-    fflush(st->ofp_q);
-    }
-#endif // CCNL_STATS
-
-    return;
-}
-
 
 
 /*****************************************************************************
@@ -614,13 +692,16 @@ ccnl_create_relay (
         i->mtu = 1400;
         i->reflect = 1;
         i->fwdalli = 0;
-        i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, new_relay, tx_pace);
 
-        //i->encaps = CCNL_ENCAPS_SEQUENCED2012;  // TODO -- Check what this does !
+#ifdef  USE_SCHEDULER
+        i->sched = ccnl_sched_pktrate_new (ccnl_interface_CTS, new_relay, tx_pace);
+#endif  // USE_SCHEDULER
 
-#ifdef PROPAGATE_INTERESTS_SEEN_BEFORE
+        //i->encaps = CCNL_ENCAPS_SEQUENCED2012;  // TODO -- Ask cft what this does !
+
+#ifdef  PROPAGATE_INTERESTS_SEEN_BEFORE
         i->fwdalli = 1;
-#endif
+#endif  // PROPAGATE_INTERESTS_SEEN_BEFORE
 
         new_relay->ifcount++;
     };
@@ -631,10 +712,10 @@ ccnl_create_relay (
     // ...
 
 
-    // (ms 2) Ask Christian if I need this
-//#ifdef USE_SCHEDULER
-//    new_relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
-//#endif // USE_SCHEDULER
+    /* no scheduling at the face level (only at the interface level for tx pacing)
+     * TODO: think if I need to enable such a possibility for simu testing
+     */
+    new_relay->defaultFaceScheduler = NULL;
 
 
     /* init stats logging
@@ -645,7 +726,8 @@ ccnl_create_relay (
         DEBUGMSG(99, "ccnl_create_relay on node %s (%d) -- stats logging not activated \n", opp_info->node_name, opp_info->node_id);
     else
         ccnl_node_log_start(new_relay, (char *) node_name);
-#else  // CCNL_STATS
+
+#else // CCNL_STATS
     new_relay->stats = NULL;
 #endif // CCNL_STATS
 

@@ -18,6 +18,7 @@
  *
  * File history:
  * 2011-03-13 created (cft): orig name ccnl-parse-ccnb.c
+ * 2013-04-04 modified (ms): #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
  */
 
 #include <ctype.h>
@@ -125,7 +126,7 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 }
 
 
-#ifdef CCNL_SIMULATION
+#if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
 
 static int
 mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
@@ -156,6 +157,6 @@ mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
     return len;
 }
 
-#endif // CCNL_SIMULATION
+#endif // CCNL_SIMULATION || CCNL_OMNET
 
 // eof
