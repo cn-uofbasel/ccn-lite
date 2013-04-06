@@ -1,0 +1,92 @@
+strict digraph ccnl_datastruct {
+  fontsize=16;
+  fontname=Helvetica;
+  label="\nCCN lite data structures, version 2013-04-05";
+  orientation=landscape;
+  rankdir="LR";
+  node [fontsize=10,fontname=Helvetica,shape=record,ordering=out];
+  edge [dir=forward,color=red];
+
+    ccnl [label="<t>ccnl_relay_s|<f0>faces |ifs[] |<f2>pit |<f1>fib |<f3>contents |nonces (buf list)|defFaceSched |defIfSched |stats | <f4>aux"];
+
+    face1 [label="<t>ccnl_face_s|<f0>next/prev |faceid |<f1>ifndx |<f2>peer |<f3>flags |<f4>outq (buf list) |<f5>outqend (buf) |encaps |sched |<f99> last_used"];
+    face2 [label="<t>ccnl_face_s|<f0>next/prev |faceid |<f1>ifndx |<f2>peer |<f3>flags |<f4>outq (buf list) |<f5>outqend (buf) |encaps |sched |<f99> last_used"];
+    face3 [label="<t>ccnl_face_s|<f0>next/prev |faceid |<f1>ifndx |<f2>peer |<f3>flags |<f4>outq (buf list) |<f5>outqend (buf) |encaps |sched |<f99> last_used"];
+    face4 [label="<t>ccnl_face_s|<f0>next/prev |faceid |<f1>ifndx |<f2>peer |<f3>flags |<f4>outq (buf list) |<f5>outqend (buf) |encaps |sched |<f99> last_used",style=invis];
+
+    fib1 [label="<t>ccnl_forward_s|<f0>next |<f1>prefix |<f2>face"];
+    fib2 [label="<t>ccnl_forward_s|<f0>next |<f1>prefix |<f2>face"];
+    fib3 [label="<t>ccnl_forward_s|<f0>next |<f1>prefix |<f2>face"];
+    fib4 [label="<t>ccnl_forward_s|<f0>next |<f1>prefix |<f99>face",style=invis];
+
+    int1 [label="<t>ccnl_interest_s|<f0>next/prev |fromface |<f1>pending |<f2>prefix |ppkd |<f3>data (buf) |<f4>last_used |<f5>retries"];
+    int2 [label="<t>ccnl_interest_s|<f0>next/prev |fromface |<f1>pending |<f2>prefix |ppkd |<f3>data (buf) |<f4>last_used |<f5>retries"];
+    int3 [label="<t>ccnl_interest_s|<f0>next/prev |fromface |<f1>pending |<f2>prefix |ppkd |<f3>data (buf) |<f4>last_used |<f5>retries"];
+    int4 [label="<t>ccnl_interest_s|<f0>next/prev |fromface |<f1>pending |<f2>prefix |ppkd |<f3>data (buf) |<f4>last_used |<f5>retries",style=invis];
+
+    pendint1 [label="<t>ccnl_pendint_s|<f1>face |<f0>next/prev |<f99>last_used"];
+    pendint2 [label="<t>ccnl_pendint_s|<f1>face |<f0>next/prev |<f99>last_used"];
+    pendint3 [label="<t>ccnl_pendint_s|<f1>face |<f0>next/prev |<f99>last_used"];
+    pendint4 [label="<t>ccnl_pendint_s|<f1>face |<f0>next/prev |<f99>last_used",style=invis];
+
+    cont1 [label="<t>ccnl_content_s|<f0>next/prev |<f1>prefix |ppkd |<f2>data (buf) |<f3>last_used |<f4>served_cnt"];
+    cont2 [label="<t>ccnl_content_s|<f0>next/prev |<f1>prefix |ppkd |<f2>data (buf) |<f3>last_used |<f4>served_cnt"];
+    cont3 [label="<t>ccnl_content_s|<f0>next/prev |<f1>prefix |ppkd |<f2>data (buf) |<f3>last_used |<f4>served_cnt"];
+    cont4 [label="<t>ccnl_content_s|<f0>next/prev |<f1>prefix |ppkd |<f2>data (buf) |<f3>last_used |<f99>served_cnt",style=invis];
+
+    buf [label="<t>ccnl_buf_s |<f0>next |<f1>datalen |<f99> data[]"];
+    prefix [label="<t>ccnl_prefix_s |<f0>comp[] |<f1>complen[] |compcnt |<f99>path"];
+    ifs [label="<t>ccnl_if_s |sock |flags |queue[] (txreq)| sched"];
+    txreq [label="<t>ccnl_txrequest_s |buf |dst |txdone() | face"];
+    sockunion [label="<t>sockunion |sa | eth | ip4 | ux"];
+
+    ccnl:f0 -> face1:f0 [weight=0.9];
+    ccnl:f1 -> fib1:f0  [weight=0.1];
+    ccnl:f2 -> int1:f0  [weight=1];
+    ccnl:f3 -> cont1:f0 [weight=0.1];
+
+    face1:f0 -> face2:f0;
+    face2:f0 -> face1:f0;
+    face3:f0 -> face2:f0;
+    face2:f0 -> face3:f0;
+    face3:f0 -> face4:f0;
+    face4:f0 -> face3:f0;
+
+    fib1:f0 -> fib2:f0;
+    fib2:f0 -> fib3:f0;
+    fib3:f0 -> fib4:f0;
+
+    int1:f0 -> int2:f0;
+    int2:f0 -> int1:f0;
+    int2:f0 -> int3:f0;
+    int3:f0 -> int2:f0;
+    int3:f0 -> int4:f0;
+    int4:f0 -> int3:f0;
+
+    cont1:f0 -> cont2:f0;
+    cont2:f0 -> cont1:f0;
+    cont2:f0 -> cont3:f0;
+    cont3:f0 -> cont2:f0;
+    cont3:f0 -> cont4:f0;
+    cont4:f0 -> cont3:f0;
+
+    int3:f1 -> pendint1:f0 [weight=0.1];
+
+    pendint1:f0 -> pendint2:f0;
+    pendint2:f0 -> pendint1:f0;
+    pendint2:f0 -> pendint3:f0;
+    pendint3:f0 -> pendint2:f0;
+    pendint3:f0 -> pendint4:f0;
+    pendint4:f0 -> pendint3:f0;
+
+    pendint1:f1 -> face1:f99 [color=blue,style=dashed];
+    pendint2:f1 -> face2:f99 [color=blue,style=dashed];
+    pendint3:f1 -> face3:f99 [color=blue,style=dashed];
+
+    fib4:f99 -> buf:t [style=invis, weight=0.1];
+    buf:t -> ifs:t [style=invis];
+    ifs:t -> sockunion:t [style=invis];
+
+    cont4:f0 -> prefix:t [style=invis];
+    prefix:t -> txreq:t [style=invis];
+}
