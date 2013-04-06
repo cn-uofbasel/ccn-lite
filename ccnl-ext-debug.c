@@ -2,7 +2,7 @@
  * @f ccnl-ext-debug.c
  * @b CCNL debugging support, dumping routines, memory tracking, stats
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -267,12 +267,6 @@ ccnl_dump(int lev, int typ, void *p)
 		   itr->last_used, itr->retries);
 	    ccnl_dump(lev+1, CCNL_BUF, itr->data);
 	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
-	    if (itr->nonce) {
-		INDENT(lev+1);
-		printf("%p NONCE=", (void *) itr->nonce);
-		blob(itr->nonce->data, itr->nonce->datalen);
-		printf("\n");
-	    }
 	    if (itr->ppkd) {
 		INDENT(lev+1);
 		printf("%p PUBLISHER=", (void *) itr->ppkd);

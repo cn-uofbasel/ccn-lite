@@ -36,6 +36,16 @@
  *
  */
 
+int
+ccnl_is_fragment(unsigned char *data, int datalen)
+{
+    int num, typ;
+
+    return dehead(&data, &datalen, &num, &typ) >= 0 &&
+	typ == CCN_TT_DTAG &&
+	num == CCNL_DTAG_FRAGMENT;
+}
+
 struct ccnl_buf_s*
 ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
 			    struct ccnl_face_s *f,

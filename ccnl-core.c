@@ -2,7 +2,7 @@
  * @f ccnl-core.c
  * @b CCN lite, core CCNx protocol logic
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -571,7 +571,7 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		 struct ccnl_buf_s **data, struct ccnl_prefix_s **prefix,
-		 struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkd)
+		 struct ccnl_buf_s **ppkd)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
 					    sizeof(struct ccnl_interest_s));
@@ -582,7 +582,6 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->from = from;
     i->prefix = *prefix;        *prefix = 0;
     i->data = *data;            *data = 0;
-    i->nonce = *nonce;          *nonce = 0;
     i->ppkd = *ppkd;		*ppkd = 0;
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
@@ -688,7 +687,8 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     free_prefix(i->prefix);
-    free_4ptr_list(i->nonce, i->ppkd, i->data, i);
+    //    free_4ptr_list(i->nonce, i->ppkd, i->data, i);
+    free_3ptr_list(i->ppkd, i->data, i);
     return i2;
 }
 
@@ -903,8 +903,8 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
     DEBUGMSG(99, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen,
-			   data[0] == 0x10 && data[1] == 0x80 ?
-			   CCNL_ENCAPS_SEQUENCED2012 : CCNL_ENCAPS_NONE);
+			ccnl_is_fragment(data, datalen) ?
+			CCNL_ENCAPS_SEQUENCED2012 : CCNL_ENCAPS_NONE);
     if (!from) goto Done;
 
     DEBUGMSG(5, "  %d bytes, if=%d, face=%p [0x%02x 0x%02x]\n",
@@ -947,7 +947,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	i = ccnl_interest_find_exact(relay, prefix, ppkd);
 	DEBUGMSG(5, "  matching interest is %p\n", (void *) i);
 	if (!i) { // this is a new I request: create and propagate
-	    i = ccnl_interest_new(relay, from, &buf, &prefix, &nonce, &ppkd);
+	    i = ccnl_interest_new(relay, from, &buf, &prefix, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(5, "  created new interest entry %p\n", (void *) i);
 		ccnl_interest_propagate(relay, i);

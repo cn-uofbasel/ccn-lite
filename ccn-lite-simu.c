@@ -2,7 +2,7 @@
  * @f ccn-lite-simu.c
  * @b prog with multiple CCNL relays, running a standalone simulation
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -68,15 +68,13 @@ void ccnl_simu_fini(void *ptr, int aux);
 void ccnl_simu_phase_two(void *ptr, void *dummy);
 
 
-extern void ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name, int seqn,
-				 char *data, int len);
+extern void ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
+				int seqn, char *data, int len);
 extern void ccnl_simu_ll_TX(struct ccnl_relay_s *relay, unsigned char *dst,
 			   unsigned char *src, unsigned char *data, int len);
 extern void ccnl_simu_LOG(struct ccnl_relay_s *relay, char *s);
 
 void ccnl_simu_client(char node); // sending side
-//void ccnl_simu_client_RX(char node, char *name,
-//			  int seqn, char *data, int len); // receiving side
 
 void ccnl_simu_ethernet(void *dummy, void *dummy2); // implements the media
 
@@ -88,7 +86,8 @@ static struct ccnl_prefix_s*
 ccnl_path_to_prefix(const char *path)
 {
     char *cp;
-    struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(*pr));
+    struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1,
+							   sizeof(*pr));
     DEBUGMSG(99, "ccnl_path_to_prefix <%s>\n", path);
 
     if (!pr)
@@ -154,7 +153,6 @@ relay2char(struct ccnl_relay_s *relay)
 void
 ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 {
-//    ccnl_simu_add2cache_(char2relay(node), name, seqn, data, len);
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_buf_s *bp;
     struct ccnl_prefix_s *pp;
@@ -194,32 +192,6 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 
 // ----------------------------------------------------------------------
 
-#ifdef XXX
-void
-activate_ethernet()
-{
-    int i, j;
-
-    for (i = 0; i < 5; i++) {
-	for (j = 0; j < relays[i].ifcount; j++) {
-	    struct ccnl_face_s *f = relays[i].ifs[j].sendface;
-	    if (f) {
-		struct ccnl_buf_s *buf = ccnl_encaps_getnextfragment(f->encaps);
-//                  ccnl_ll_send(ccnl, i, &f->peer, buf);
-/*
-		ccnl_ll_TX(relays+i, j,
-			   f->peer.eth.sll_addr,
-			   relays[i].ifs[j].addr.eth.sll_addr,
-			   buf->data, buf->datalen);
-*/
-		ccnl_free(buf);
-		ccnl_relay_encaps_TX_done(relays+i, j);
-            }
-	}
-    }
-}
-#endif
-
 void
 ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
 {
@@ -248,10 +220,7 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
 
     // inject it into the relay:
     ccnl_core_RX(relay, -1, (unsigned char*)tmp, len, 0, 0);
-    //    ccnl_packet_scheduler(relay);
-    //    activate_ethernet();
 }
-
 
 // ----------------------------------------------------------------------
 // simulated ethernet segment
@@ -294,22 +263,12 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
 
 	    ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
 			p->len, &sun.sa, sizeof(sun.eth));
-
-//	    ccnl_packet_scheduler(relays + i);
-
-/*
-	    ccnl_simu_ll_RX(relays + i, (char*) p->dst,
-			     (char*) p->src, p->data, p->len);
-*/
-
 	} else {
-	    DEBUGMSG(10, "simu_ethernet: dest %s not found\n", eth2ascii(etherqueue->dst));
+	    DEBUGMSG(10, "simu_ethernet: dest %s not found\n",
+		     eth2ascii(etherqueue->dst));
 	}
 	ccnl_free(p);
     }
-
-    //    activate_ethernet();
-
     ccnl_set_timer(2000, ccnl_simu_ethernet, dummy, dummy2);
 }
 
@@ -342,19 +301,17 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 
 void
-// ccnl_ll_TX(struct ccnl_relay_s *relay, int ifndx, unsigned char *dst, unsigned char *src, unsigned char *data, int len)
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
-//	   sockunion *dst, unsigned char *data, int len)
 	   sockunion *dst, struct ccnl_buf_s *buf)
 {
-  //    ccnl_simu_ll_TX(ccnl, dst, src, data, len);
     struct ccnl_ethernet_s *p;
     int cnt;
 
     for (cnt = 0, p = etherqueue; p; p = p->next, cnt++);
 
     DEBUGMSG(2, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
-	     ccnl_addr2ascii(dst), buf->datalen, cnt, buf->data[0], buf->data[1]);
+	     ccnl_addr2ascii(dst), buf->datalen, cnt,
+	     buf->data[0], buf->data[1]);
     DEBUGMSG(2, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
 
     p = ccnl_calloc(1, sizeof(*p) + 2*ETH_ALEN + buf->datalen);
@@ -367,15 +324,6 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     memcpy(p->src, ifc->addr.eth.sll_addr, ETH_ALEN);
     memcpy(p->data, buf->data, buf->datalen);
 
-/*
-    if (!etherbuf)
-	etherbuf = p;
-    else {
-	struct ccnl_ethernet_s *p2;
-	for(p2 = etherbuf; p2->next; p2 = p2->next);
-	p2->next = p;
-    }
-*/
     // prepend
     p->next = etherqueue;
     etherqueue = p;
@@ -534,7 +482,8 @@ ccnl_simu_init_node(char node, const char *addr,
     memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
     //    i->encaps = CCNL_ENCAPS_SEQUENCED2012;
     i->mtu = 1400;
-    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay, inter_packet_interval);
+    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay,
+				      inter_packet_interval);
     i->reflect = 1;
     i->fwdalli = 1;
     relay->ifcount++;
@@ -545,7 +494,8 @@ ccnl_simu_init_node(char node, const char *addr,
 
     if (node == 'A' || node == 'B') {
 
-	struct ccnl_client_s *client = ccnl_calloc(1, sizeof(struct ccnl_client_s));
+	struct ccnl_client_s *client = ccnl_calloc(1,
+					   sizeof(struct ccnl_client_s));
 	client->lastseq = SIMU_NUMBER_OF_CHUNKS-1;
 	client->last_received = -1;
 	client->name = node == 'A' ?
@@ -627,15 +577,12 @@ ccnl_simu_init(int max_cache_entries)
 	ccnl_simu_add2cache('C', "/ccnl/simu/movie3", i, dat, sizeof(dat));
     }
 
-// #ifndef CCNL_SIMU_NET_H
-//    ccnl_set_timer(5000, ccnl_simu_ethernet, char2relay('e'), 0);
     ccnl_set_timer(5000, ccnl_simu_ethernet, 0, 0);
 
     // start clients:
     ccnl_set_timer( 500000, ccnl_simu_client_start, char2relay('A'), 0);
     ccnl_set_timer(1000000, ccnl_simu_client_start, char2relay('B'), 0);
     phaseOne = 1;
-// #endif
 
     printf("Press ENTER to start the simulation\n");
     while (getchar() != '\n');
@@ -765,7 +712,11 @@ main(int argc, char **argv)
             break;
         case 'h':
         default:
-            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] [-g MIN_INTER_PACKET_INTERVAL] [-i MIN_INTER_CCNMSG_INTERVAL] [-v DEBUG_LEVEL]\n", argv[0]);
+            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
+		    "[-g MIN_INTER_PACKET_INTERVAL] "
+		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
+		    "[-v DEBUG_LEVEL]\n",
+		    argv[0]);
             exit(EXIT_FAILURE);
         }
     }

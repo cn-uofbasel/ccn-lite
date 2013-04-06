@@ -2,7 +2,7 @@
  * @f ccnl-ext.h
  * @b header file for CCN lite extentions (forward declarations)
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -43,6 +43,10 @@ void ccnl_encaps_destroy(struct ccnl_encaps_s *e);
 struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 					struct ccnl_encaps_s *encaps,
 					struct ccnl_buf_s *buf);
+
+int ccnl_is_fragment(unsigned char *data, int datalen);
+#else
+# define ccnl_is_fragment(d,l) 0
 #endif // USE_ENCAPS
 
 // ----------------------------------------------------------------------

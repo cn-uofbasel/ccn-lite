@@ -49,8 +49,7 @@ typedef union {
 struct ccnl_txrequest_s {
     struct ccnl_buf_s *buf;
     sockunion dst;
-//    void (*txdone)(struct ccnl_sched_s*, int, int);
-    void (*txdone)(void*,int,int);
+    void (*txdone)(void*, int, int);
     struct ccnl_face_s* txdone_face;
 };
 
@@ -72,16 +71,7 @@ struct ccnl_if_s { // interface for packet IO
     int qlen;  // number of pending sends
     int qfront; // index of next packet to send
     struct ccnl_txrequest_s queue[CCNL_MAX_IF_QLEN];
-/*
-    struct ccnl_buf_s* queue[CCNL_MAX_IF_QLEN];
-    sockunion dest[CCNL_MAX_IF_QLEN];
-*/
-
     struct ccnl_sched_s *sched;
-//    struct ccnl_face_s **sendface; // which face wants to send
-//    int facecnt, faceoffs;
-//    struct ccnl_face_s *sendface;
-    void (*tx_done)(struct ccnl_sched_s*, int, int);
 };
 
 struct ccnl_relay_s {
@@ -159,7 +149,6 @@ struct ccnl_interest_s {
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     struct ccnl_prefix_s *prefix;
-    struct ccnl_buf_s *nonce;
     struct ccnl_buf_s *ppkd;	   // publisher public key digest
     struct ccnl_buf_s *data;	   // full datagram
     int last_used;
@@ -178,7 +167,7 @@ struct ccnl_content_s {
     struct ccnl_buf_s *ppkd; // publisher public key digest
     struct ccnl_buf_s *data; // full datagram
     int flags;
-    unsigned char *content;
+    unsigned char *content; // pointer into the data buffer
     int contentlen;
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
@@ -200,13 +189,5 @@ struct ccnl_content_s {
        if ((e)->prev) (e)->prev->next = (e)->next; \
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
-
-/*
-// #define LINKED_LIST_DROPNFREE_HEAD(l)		\
-//  do { void *p = (l)->next;				\
-//       ccnl_free(l);					\
-//       (l) = p;					\
-//  } while(0)
-*/
 
 // eof

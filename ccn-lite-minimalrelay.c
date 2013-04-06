@@ -2,7 +2,7 @@
  * @f ccn-lite-minimalrelay.c
  * @b user space CCN relay, minimalist version
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -65,6 +65,7 @@
 #define ccnl_encaps_new(a,b)			NULL
 #define ccnl_encaps_handle_fragment(r,f,d,l)	ccnl_buf_new(d,l)
 #define ccnl_encaps_destroy(e)			do {} while(0)
+#define ccnl_is_fragment(d,l)			0
 
 // #define ccnl_face_CTS_done		NULL
 #define ccnl_sched_destroy(s)		do {} while(0)
