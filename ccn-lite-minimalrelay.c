@@ -22,12 +22,13 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <getopt.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <getopt.h>
+#include <unistd.h>
 
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -45,7 +46,7 @@
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)		do {} while(0)
-#define ccnl_prefix_to_path(p) 		((char*)NULL)
+#define ccnl_prefix_to_path(p) 		"null"
 
 
 #define ccnl_malloc(s)			malloc(s)
@@ -78,6 +79,8 @@
 #define ccnl_app_RX(x,y)		do{}while(0)
 
 #define ccnl_ll_TX(r,i,a,b)		sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
+#define ccnl_close_socket(s)		close(s)
+
 
 #include "ccnx.h"
 #include "ccnl.h"

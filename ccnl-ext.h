@@ -112,4 +112,8 @@ int ccnl_is_local_addr(sockunion *su);
 void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 		sockunion *dest, struct ccnl_buf_s *buf);
 
+#ifndef CCNL_LINUXKERNEL
+void ccnl_close_socket(int s);
+#endif
+
 // eof

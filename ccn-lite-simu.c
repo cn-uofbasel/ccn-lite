@@ -329,6 +329,12 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     etherqueue = p;
 }
 
+void
+ccnl_close_socket(int s)
+{
+    close(s);
+}
+
 // ----------------------------------------------------------------------
 
 

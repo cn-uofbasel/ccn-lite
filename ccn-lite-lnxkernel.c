@@ -211,6 +211,12 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     }
 }
 
+void
+ccnl_close_socket(struct socket *s)
+{
+    // socket will be released in the cleanup routine
+}
+
 // ----------------------------------------------------------------------
 
 #include "ccnl-ext-debug.c"

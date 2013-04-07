@@ -63,7 +63,7 @@ struct ccnl_stats_s {
 	printk("%s: ", THIS_MODULE->name);	\
 	printk(__VA_ARGS__);		\
     } while (0)
-#  define printf(...)	printk(__VA_ARGS__)
+#  define fprintf(fd, ...)	printk(__VA_ARGS__)
 #endif // CCNL_LINUXKERNEL
 
 
@@ -142,7 +142,7 @@ blob(unsigned char *cp, int len)
 {
     int i;
     for (i = 0; i < len; i++, cp++)
-	printf("%02x", *cp);
+	fprintf(stderr, "%02x", *cp);
 }
 
 
@@ -152,9 +152,9 @@ encaps(int e)
     if (e == CCNL_ENCAPS_NONE)
 	return;
     if (e == CCNL_ENCAPS_SEQUENCED2012)
-	printf(" encaps=sequenced2012");
+	fprintf(stderr, " encaps=sequenced2012");
     else
-	printf(" encaps=%d", e);
+	fprintf(stderr, " encaps=%d", e);
 }
 
 enum { // numbers for each data type
@@ -181,70 +181,70 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
     int i, k;
 
-#define INDENT(lev) for (i = 0; i < lev; i++) printf("  ")
+#define INDENT(lev) for (i = 0; i < lev; i++) fprintf(stderr, "  ")
     switch(typ) {
     case CCNL_BUF:
 	while (buf) {
 	    INDENT(lev);
-	    printf("%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
+	    fprintf(stderr, "%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
 		(void *) buf->next);
 	    buf = buf->next;
 	}
 	break;
     case CCNL_PREFIX:
 	INDENT(lev);
-	printf("%p PREFIX len=%d val=%s\n",
+	fprintf(stderr, "%p PREFIX len=%d val=%s\n",
 	       (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
 	break;
     case CCNL_RELAY:
 	INDENT(lev);
-	printf("%p RELAY\n", (void *) top); lev++;
-	INDENT(lev); printf("interfaces:\n");
+	fprintf(stderr, "%p RELAY\n", (void *) top); lev++;
+	INDENT(lev); fprintf(stderr, "interfaces:\n");
 	for (k = 0; k < top->ifcount; k++) {
 	    INDENT(lev+1);
 #ifdef CCNL_LINUXKERNEL
-	    printf("ifndx=%d sockstruct=%p", k, top->ifs[k].sock);
+	    fprintf(stderr, "ifndx=%d sockstruct=%p", k, top->ifs[k].sock);
 #else
-	    printf("ifndx=%d sock=%d", k, top->ifs[k].sock);
+	    fprintf(stderr, "ifndx=%d sock=%d", k, top->ifs[k].sock);
 #endif
-	    printf(" addr=%s", ccnl_addr2ascii(&top->ifs[k].addr));
-//	    printf(" facecnt=%d", top->ifs[k].facecnt);
+	    fprintf(stderr, " addr=%s", ccnl_addr2ascii(&top->ifs[k].addr));
+//	    fprintf(stderr, " facecnt=%d", top->ifs[k].facecnt);
 	    if (top->ifs[k].reflect)
-		printf(" reflect=%d", top->ifs[k].reflect);
-	    printf("\n");
+		fprintf(stderr, " reflect=%d", top->ifs[k].reflect);
+	    fprintf(stderr, "\n");
 	}
 	if (top->faces) {
-	    INDENT(lev); printf("faces:\n");    ccnl_dump(lev+1, CCNL_FACE, top->faces);
+	    INDENT(lev); fprintf(stderr, "faces:\n");    ccnl_dump(lev+1, CCNL_FACE, top->faces);
 	}
 	if (top->fib) {
-	    INDENT(lev); printf("fib:\n");      ccnl_dump(lev+1, CCNL_FWD, top->fib);
+	    INDENT(lev); fprintf(stderr, "fib:\n");      ccnl_dump(lev+1, CCNL_FWD, top->fib);
 	}
 	if (top->pit) {
-	    INDENT(lev); printf("pit:\n");      ccnl_dump(lev+1, CCNL_INTEREST, top->pit);
+	    INDENT(lev); fprintf(stderr, "pit:\n");      ccnl_dump(lev+1, CCNL_INTEREST, top->pit);
 	}
 	if (top->contents) {
-	    INDENT(lev); printf("contents:\n"); ccnl_dump(lev+1, CCNL_CONTENT, top->contents);
+	    INDENT(lev); fprintf(stderr, "contents:\n"); ccnl_dump(lev+1, CCNL_CONTENT, top->contents);
 	}
 	break;
     case CCNL_FACE:
 	while (fac) {
 	    INDENT(lev);
-	    printf("%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
+	    fprintf(stderr, "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
 		   (void*) fac, fac->faceid, (void *) fac->next,
 		   (void *) fac->prev, fac->ifndx, fac->flags);
 	    if (fac->peer.sa.sa_family == AF_INET)
-		printf(" ip=%s", ccnl_addr2ascii(&fac->peer));
+		fprintf(stderr, " ip=%s", ccnl_addr2ascii(&fac->peer));
 	    else if (fac->peer.sa.sa_family == AF_PACKET)
-		printf(" eth=%s", ccnl_addr2ascii(&fac->peer));
+		fprintf(stderr, " eth=%s", ccnl_addr2ascii(&fac->peer));
 	    else if (fac->peer.sa.sa_family == AF_UNIX)
-		printf(" ux=%s", ccnl_addr2ascii(&fac->peer));
+		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
 	    else
-		printf(" peer=?");
+		fprintf(stderr, " peer=?");
 	    if (fac->encaps)
 		encaps(fac->encaps->protocol);
-	    printf("\n");
+	    fprintf(stderr, "\n");
 	    if (fac->outq) {
-		INDENT(lev+1); printf("outq:\n");
+		INDENT(lev+1); fprintf(stderr, "outq:\n");
 		ccnl_dump(lev+2, CCNL_BUF, fac->outq);
 	    }
 	    fac = fac->next;
@@ -253,7 +253,7 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_FWD:
 	while (fwd) {
 	    INDENT(lev);
-	    printf("%p FWD next=%p face=%p\n", (void *) fwd, (void *) fwd->next,
+	    fprintf(stderr, "%p FWD next=%p face=%p\n", (void *) fwd, (void *) fwd->next,
 		(void *) fwd->face);
 	    ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
 	    fwd = fwd->next;
@@ -262,19 +262,19 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_INTEREST:
 	while (itr) {
 	    INDENT(lev);
-	    printf("%p INTEREST next=%p prev=%p last=%d retries=%d\n",
+	    fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d retries=%d\n",
 		   (void *) itr, (void *) itr->next, (void *) itr->prev,
 		   itr->last_used, itr->retries);
 	    ccnl_dump(lev+1, CCNL_BUF, itr->data);
 	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
 	    if (itr->ppkd) {
 		INDENT(lev+1);
-		printf("%p PUBLISHER=", (void *) itr->ppkd);
+		fprintf(stderr, "%p PUBLISHER=", (void *) itr->ppkd);
 		blob(itr->ppkd->data, itr->ppkd->datalen);
-		printf("\n");
+		fprintf(stderr, "\n");
 	    }
 	    if (itr->pending) {
-		INDENT(lev+1); printf("pending:\n");
+		INDENT(lev+1); fprintf(stderr, "pending:\n");
 		ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
 	    }
 	    itr = itr->next;
@@ -284,7 +284,7 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_PENDINT:
 	while (pir) {
 	    INDENT(lev);
-	    printf("%p PENDINT next=%p face=%p last=%d\n",
+	    fprintf(stderr, "%p PENDINT next=%p face=%p last=%d\n",
 		   (void *) pir, (void *) pir->next,
 		   (void *) pir->face, pir->last_used);
 	    pir = pir->next;
@@ -293,7 +293,7 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_CONTENT:
 	while (con) {
 	    INDENT(lev);
-	    printf("%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+	    fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
 		   (void *) con, (void *) con->next, (void *) con->prev,
 		   con->last_used, con->served_cnt);
 	    ccnl_dump(lev+1, CCNL_PREFIX, con->prefix);
@@ -303,7 +303,7 @@ ccnl_dump(int lev, int typ, void *p)
 	break;
     default:
 	INDENT(lev);
-	printf("unknown data type %d at %p\n", typ, p);
+	fprintf(stderr, "unknown data type %d at %p\n", typ, p);
     }
 }
 

@@ -284,6 +284,19 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     rc = rc; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
+void
+ccnl_close_socket(int s)
+{
+    struct sockaddr_un su;
+    socklen_t len = sizeof(su);
+
+    if (!getsockname(s, (struct sockaddr*) &su, &len) &&
+					su.sun_family == AF_UNIX) {
+	unlink(su.sun_path);
+    }
+    close(s);
+}
+
 // ----------------------------------------------------------------------
 
 static int inter_ccn_interval = 0; // in usec
