@@ -1,0 +1,113 @@
+Date: Thu, 2 Aug 2012 22:22:22 +0200
+From: Thomas Meyer
+To: Christian Tschudin
+Subject: Re: RTS/CTS call sequence
+
+Hallo Christian, 
+
+sieht gut aus und scheint so für die Fragmentierung am besten zu sein
+- da gebe ich Dir recht. Übrigens: love ASCII art!
+
+Ich denke, dass Dein Ansatz immer noch gut in das ChemFlow Framework
+passt. Wie erwähnt, bietet ChemFlow eine Queue Abstraktion an
+(cf_queue), welche über die Anzahl enqueueter Pakete Buch führt. Ich
+habe versucht, dieses cf_queue Objekt und die davon ins Reaktionsnetz
+führenden Funktionsaufrufe in Deinem Sequenzdiagramm unten zu
+ergänzen.
+
+Mit unterstehendem Diagramm habe ich versucht, beide Fälle abzudecken:
+1) LoMA gibt das CTS bevor das CTS_done empfangen wurde
+2) CTS_done wird empfangen, bevor LoMA das nächste Fragment frei gibt.
+
+                                 von Dir zu verwendendes Interface
+                                                |
+i-scheduler   interface    face    f-scheduler  |  cf_queue     input molecule    output molecule
+    |            |          |          |        v      |               |                 |
+                            v
+
+                        enqueue()
+                        getfragcount()
+                             --RTS(3)-->
+                                        --enqueue(bytes)-->
+                                                       --add_conc(1)-->
+                                        --enqueue(bytes)-->
+                                                       --add_conc(1)-->
+                                        --enqueue(bytes)-->
+                                                       --add_conc(1)-->
+
+                                                                                 t1: according to LoMA
+                                                       <-----conc_changed(1)-------------
+                                        <--serve_cb----
+                                        --dequeue(1)-->
+                                                       ----------add_conc(-1)----------->
+                                        (returns CF_OK)                                  
+                               <--CTS--
+                        dequeue()
+                        getfragment()                  
+           enqueue(frag1,&ok) <---                                               t1: according to LoMA
+    <--RTS(1)-----                                     <-----conc_changed(1)-------------
+...                                     <--serve_cb----
+     --CTS-->                    (no CTS_done received yet;
+           dequeue()              do nothing)
+           tx()
+    <--CTS_done---
+                  --ok()-->
+                            ----CTS_done-->
+                                         --dequeue(1)-->
+                                                        ---------add_conc(-1)----------->
+                                         (returns CF_OK)
+                               <--CTS-----
+                        getfragment()
+           enqueue(frag2,&ok) <---
+    <--RTS(1)-----
+...
+     --CTS-->
+           dequeue()
+           tx()
+    <--CTS_done---
+                  --ok()-->
+                            ----CTS_done-->
+                                          --dequeue(1)-->
+                                          (returns CF_INVAL, because output molecule conc == 0)
+                                     don't send CTS yet                                                                                                 
+                                                                                 ...
+                                                                                 t2: according to LoMA
+                                                       <-----conc_changed(1)-------------
+                                        <--serve_cb----
+                                        --dequeue(q)-->
+                                        (return CF_OK)
+                               <--CTS--
+                        getfragment()
+           enqueue(frag3,&ok) <---
+    <--RTS(1)-----
+...
+     --CTS-->
+           dequeue()
+           tx()
+    <--CTS_done---
+                  --ok()-->
+                            ----CTS_done-->
+                                          --dequeue(1)-->
+                                          (returns CF_INVAL, because output molecule conc == 0,
+                                           no ChemFlow timer is running, because system inert;
+                                           will never call serve_cb again unless new enqueue call)
+
+
+> Ich vermute, dass ich für die Face selbst einen Zähler verwalten
+> muss: er wird bei jedem ChemFlow-Callback für ein Out-Molekül um
+> eins erhöht. Wenn der Zäher nach einem ok()-Callback des Interfaces
+> grösser Null ist, kann ich gleich das nächste Fragment an das
+> Interface geben. Sonst muss ich auf den nächsten Callback des
+> ChemFlow-Schedulers warten.
+
+Meiner Meinung nach brauchst Du Dir in Deinem Scheduler
+(f/i-scheduler) nicht zu merken, wie viele RTS Du empfangen hast,
+sondern nur ein Flag, das sich merkt, ob schon ein CTS_done empfangen
+wurde. Du leitest die RTS einfach mit einem cf_queue_enqueue_packet()
+Call weiter an die cf_queue und wirst - wenn das Reaktionsnetz richtig
+gebaut ist - genau soviel mal notifiziert.  Die
+cf_queue_dequeue_packet() Funktion kannst Du immer und so oft Du
+willst aufrufen.  Sie ueberprueft, ob im Output Molekül mind. eine
+Instanz vorhanden ist und gibt nur dann CF_OK zurück.
+
+// eof
