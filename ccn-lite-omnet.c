@@ -43,7 +43,7 @@
 #define USE_ETHERNET
 
 #define USE_SCHEDULER           // enable relay scheduling capabilities (e.g. for inter-packet pacing)
-#define CCNL_STATS              // enable statistics logging of relay actions to ext file
+#define USE_STATS               // enable statistics logging of relay actions to ext file
 
 #define PROPAGATE_INTERESTS_SEEN_BEFORE     // if a received interest already exists in the PIT,
                                             // it is not forwarded. Use this option to override this
@@ -187,7 +187,7 @@ struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 } while (0)
 
 
-#ifdef CCNL_STATS
+#ifdef USE_STATS
 #  define END_LOG(CHANNEL) do { if (CHANNEL){ \
      fprintf(CHANNEL, "#end\n"); \
      fclose(CHANNEL); \
@@ -347,7 +347,7 @@ ccnl_print_stats(struct ccnl_relay_s *relay, int code)
 void
 ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
 {
-#ifdef CCNL_STATS
+#ifdef USE_STATS
     char name[100];
     struct ccnl_stats_s *st = relay->stats;
 
@@ -381,7 +381,7 @@ ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
         fprintf(st->ofp_q,"# time\t qlen\n");
     fflush(st->ofp_q);
     }
-#endif // CCNL_STATS
+#endif // USE_STATS
 
     return;
 }
@@ -720,16 +720,16 @@ ccnl_create_relay (
 
     /* init stats logging
      */
-#ifdef CCNL_STATS
+#ifdef USE_STATS
     new_relay->stats = (struct ccnl_stats_s *) ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     if (!new_relay->stats)
         DEBUGMSG(99, "ccnl_create_relay on node %s (%d) -- stats logging not activated \n", opp_info->node_name, opp_info->node_id);
     else
         ccnl_node_log_start(new_relay, (char *) node_name);
 
-#else // CCNL_STATS
+#else // USE_STATS
     new_relay->stats = NULL;
-#endif // CCNL_STATS
+#endif // USE_STATS
 
     ccnl_set_timer(1000000, ccnl_ageing, new_relay, 0);
 
