@@ -273,6 +273,48 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *host, cha
 
 
 int
+mkNewUNIXFaceRequest(unsigned char *out, char *path, char *encaps, char *flags)
+{
+    int len = 0, len2, len3;
+    unsigned char contentobj[2000];
+    unsigned char faceinst[2000];
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+
+    // prepare FACEINSTANCE
+    len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newface");
+    if (path)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path);
+    if (encaps)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (flags)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
+    faceinst[len3++] = 0; // end-of-faceinst
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) faceinst, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+    // add CONTENTOBJ as the final name component
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+    return len;
+}
+
+
+int
 mkDestroyFaceRequest(unsigned char *out, char *faceid)
 {
     int len = 0, len2, len3;
@@ -460,6 +502,11 @@ main(int argc, char *argv[])
 			       argv[3], argv[4],
 			       argc > 5 ? argv[5] : "0",
 			       argc > 6 ? argv[6] : "0x0001");
+    } else if (!strcmp(argv[1], "newUNIXface")) {
+	if (argc < 3)  goto Usage;
+	len = mkNewUNIXFaceRequest(out, argv[2],
+				   argc > 3 ? argv[3] : "0",
+				   argc > 4 ? argv[4] : "0x0001");
     } else if (!strcmp(argv[1], "destroyface")) {
 	if (argc < 3) goto Usage;
 	len = mkDestroyFaceRequest(out, argv[2]);
@@ -497,6 +544,7 @@ Usage:
 	   "  destroydev   DEVNDX\n"
 	   "  newETHface   MACSRC|any MACDST PROTO [ENCAPS [FACEFLAGS]]\n"
 	   "  newUDPface   IP4SRC|any IP4DST PORT [ENCAPS [FACEFLAGS]]\n"
+	   "  newUNIXface  PATH [ENCAPS [FACEFLAGS]]\n"
 	   "  destroyface  FACEID\n"
 	   "  prefixreg    PREFIX FACEID\n"
 	   "  prefixunreg  PREFIX FACEID\n"

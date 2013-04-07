@@ -54,6 +54,8 @@
 #define CCNL_DTAG_DEBUGREQUEST  99008 //
 #define CCNL_DTAG_DEBUGACTION   99009 // dump, halt, dump+halt      
 
+#define CCNL_DTAG_UNIXSRC	99010 // newface: which UNIX path
+
 // fragmentation protocol: (ccnl-ext-encaps.c)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803
 #define CCNL_DTAG_FRAG_FLAGS	(CCNL_DTAG_FRAGMENT+1)

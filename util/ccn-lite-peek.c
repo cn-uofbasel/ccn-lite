@@ -145,7 +145,7 @@ static char mysockname[200];
     int sock;
     struct sockaddr_un name;
 
-    sprintf(mysockname, "/tmp/ccnl-%d.sock", getpid());
+    sprintf(mysockname, "/tmp/ccn-lite-peek-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);

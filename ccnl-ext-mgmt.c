@@ -134,7 +134,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *buf;
     int buflen, num, typ;
     unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
-	*encaps, *flags;
+	*path, *encaps, *flags;
     char *cp = "newface cmd failed";
     int rc = -1;
     struct ccnl_face_s *f;
@@ -160,6 +160,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	extractStr(action, CCN_DTAG_ACTION);
 	extractStr(macsrc, CCNL_DTAG_MACSRC);
 	extractStr(ip4src, CCNL_DTAG_IP4SRC);
+	extractStr(path, CCNL_DTAG_UNIXSRC);
 	extractStr(proto, CCN_DTAG_IPPROTO);
 	extractStr(host, CCN_DTAG_HOST);
 	extractStr(port, CCN_DTAG_PORT);
@@ -202,6 +203,18 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 				    &su.sa, sizeof(struct sockaddr_in),
 				    encaps ? strtol((const char*)encaps, NULL, 0):CCNL_ENCAPS_NONE);
     }
+#ifdef USE_UNIXSOCKET
+    if (path) {
+	sockunion su;
+	DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", path);
+	su.sa.sa_family = AF_UNIX;
+	strcpy(su.ux.sun_path, (char*) path);
+	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+				    &su.sa, sizeof(struct sockaddr_un),
+				    encaps ? strtol((const char*)encaps,
+						    NULL, 0):CCNL_ENCAPS_NONE);
+    }
+#endif
 
     if (f) {
 	int flagval = flags ?
