@@ -2,7 +2,7 @@
  * @f ccnl-pdu.c
  * @b CCN lite - create and manipulate CCN protocol data units
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -106,19 +106,19 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = strlen(*namecomp);
-    len += mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
+	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	k = strlen(*namecomp);
+	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	memcpy(out+len, *namecomp++, k);
+	len += k;
+	out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
     if (nonce) {
-    len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-    len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
-    memcpy(out+len, (void*)nonce, sizeof(unsigned int));
-    len += sizeof(unsigned int);
+	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
+	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
+	len += sizeof(unsigned int);
     }
     out[len++] = 0; // end-of-interest
 
@@ -137,12 +137,12 @@ mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = strlen(*namecomp);
-    len += mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
+	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	k = strlen(*namecomp);
+	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	memcpy(out+len, *namecomp++, k);
+	len += k;
+	out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
 

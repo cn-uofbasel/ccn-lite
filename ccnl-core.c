@@ -717,7 +717,8 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_buf_s **data,
 		unsigned char *content, int contlen)
 {
     struct ccnl_content_s *c;
-    DEBUGMSG(99, "ccnl_content_new\n");
+    DEBUGMSG(99, "ccnl_content_new <%s>\n",
+	     prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix));
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c) return NULL;
@@ -925,6 +926,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	    rc = ccnl_mgmt(relay, buf, prefix, from);
 	    goto Done;
 	}
+	DEBUGMSG(6, "  interest for <%s>\n", ccnl_prefix_to_path(prefix));
 	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
 	if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
 	    DEBUGMSG(1, "  dropped because of duplicate nonce\n"); goto Done;

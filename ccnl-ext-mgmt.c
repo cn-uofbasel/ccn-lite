@@ -601,9 +601,9 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "prefixreg"))
 	ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
-#ifdef CCNL_DEBUG
+#ifdef USE_DEBUG
     else if (!strcmp(cmd, "debug")) {
-      ccnl_mgmt_debug(ccnl, buf, prefix, from);
+      ccnl_mgmt_debug(ccnl, orig, prefix, from);
     }
 #endif
     else {

@@ -45,6 +45,8 @@
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)		do {} while(0)
+#define ccnl_prefix_to_path(p) 		((char*)NULL)
+
 
 #define ccnl_malloc(s)			malloc(s)
 #define ccnl_calloc(n,s) 		calloc(n,s)
