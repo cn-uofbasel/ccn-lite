@@ -412,15 +412,22 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 int
 main(int argc, char *argv[])
 {
-    char mysockname[200];
+  char mysockname[200], *progname=argv[0];
+    char *ux = "/tmp/ccnl.sock";
     unsigned char out[2000];
     int len;
     int sock = 0;
 
+    if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
+	ux = argv[2];
+	argv += 2;
+	argc -= 2;
+    }
+
     if (argc < 2) goto Usage;
 
     // socket for receiving
-    sprintf(mysockname, "/tmp/ccnl-%d.sock", getpid());
+    sprintf(mysockname, "/tmp/ccn-light-ctrl-%d.sock", getpid());
     sock = ux_open(mysockname);
     if (!sock) {
 	fprintf(stderr, "cannot open UNIX receive socket\n");
@@ -446,7 +453,6 @@ main(int argc, char *argv[])
 	if (argc < 3) goto Usage;
 	len = mkDestroyDevRequest(out, argv[2]);
     } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1], "newUDPface")) {
-      printf("**\n");
 	if (argc < 5)  goto Usage;
 	len = mkNewFaceRequest(out,
 			       !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
@@ -469,7 +475,7 @@ main(int argc, char *argv[])
     }
 
     if (len > 0) {
-	ux_sendto(sock, "/tmp/ccnl.sock", out, len);
+	ux_sendto(sock, ux, out, len);
 
 //	sleep(1);
 	len = recv(sock, out, sizeof(out), 0);
@@ -485,7 +491,7 @@ main(int argc, char *argv[])
     return 0;
 
 Usage:
-    fprintf(stderr, "usage: %s PARAMS, where PARAMS either of\n"
+    fprintf(stderr, "usage: %s [-x ux_path] CMD, where CMD either of\n"
 	   "  newETHdev    DEVNAME [PROTO [ENCAPS [DEVFLAGS]]]\n"
 	   "  newUDPdev    IP4SRC|any [PORT [ENCAPS] [DEVFLAGS]]\n"
 	   "  destroydev   DEVNDX\n"
@@ -497,7 +503,7 @@ Usage:
 	   "  debug        dump\n"
 	   "  debug        halt\n"
 	   "  debug        dump+halt\n",
-	argv[0]);
+	progname);
 
     if (sock) {
 	close(sock);
