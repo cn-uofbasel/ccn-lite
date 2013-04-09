@@ -253,8 +253,9 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_FWD:
 	while (fwd) {
 	    INDENT(lev);
-	    fprintf(stderr, "%p FWD next=%p face=%p\n", (void *) fwd, (void *) fwd->next,
-		(void *) fwd->face);
+	    fprintf(stderr, "%p FWD next=%p face=%p (id=%d)\n",
+		    (void *) fwd, (void *) fwd->next,
+		    (void *) fwd->face, fwd->face->faceid);
 	    ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
 	    fwd = fwd->next;
 	}
