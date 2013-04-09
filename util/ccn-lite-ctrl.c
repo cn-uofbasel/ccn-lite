@@ -454,8 +454,8 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 int
 main(int argc, char *argv[])
 {
-  char mysockname[200], *progname=argv[0];
-    char *ux = "/tmp/ccnl.sock";
+    char mysockname[200], *progname=argv[0];
+    char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
     unsigned char out[2000];
     int len;
     int sock = 0;
@@ -469,7 +469,7 @@ main(int argc, char *argv[])
     if (argc < 2) goto Usage;
 
     // socket for receiving
-    sprintf(mysockname, "/tmp/ccn-light-ctrl-%d.sock", getpid());
+    sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
     sock = ux_open(mysockname);
     if (!sock) {
 	fprintf(stderr, "cannot open UNIX receive socket\n");

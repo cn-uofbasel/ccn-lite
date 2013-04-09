@@ -22,6 +22,8 @@
 
 #define CCNL_ETH_TYPE			0x88b5
 
+#define CCNL_DEFAULT_UNIXSOCKNAME	"/tmp/.ccnl.sock"
+
 #define CCNL_MAX_INTERFACES		10
 #define CCNL_MAX_PACKET_SIZE		8096
 

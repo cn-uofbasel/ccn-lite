@@ -145,7 +145,7 @@ static char mysockname[200];
     int sock;
     struct sockaddr_un name;
 
-    sprintf(mysockname, "/tmp/ccn-lite-peek-%d.sock", getpid());
+    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -251,11 +251,13 @@ Usage:
 	myexit(1);
     }
 
-    if (!block_on_read(sock, wait)) {
+    /*
+    for(; !block_on_read(sock, wait);) {
+    */
 	len = recv(sock, out, sizeof(out), 0);
 	if (len > 0)
 	    write(1, out, len);
-    }
+	//    }
 
     close(sock);
     myexit(0);

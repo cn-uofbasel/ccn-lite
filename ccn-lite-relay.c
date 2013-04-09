@@ -379,7 +379,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
 	i->mtu = 4096;
-//	i->fwdalli = 1;
 	if (i->sock >= 0) {
 	    relay->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
@@ -462,13 +461,6 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 	    if (FD_ISSET(ccnl->ifs[i].sock, &writefs)) {
 	      ccnl_interface_CTS(ccnl, ccnl->ifs + i);
-		/*
-		struct ccnl_face_s *f = ccnl->ifs[i].sendface;
-		struct ccnl_buf_s *buf = ccnl_encaps_getnextfragment(f->encaps,
-								     );
-		ccnl_ll_send(ccnl, i, &f->peer, buf);
-		ccnl_relay_encaps_TX_done(ccnl, i);
-		*/
 	    }
 	}
     }
@@ -565,9 +557,12 @@ main(int argc, char **argv)
     int udpport = CCN_UDP_PORT;
     char *datadir = NULL;
     char *ethdev = NULL;
+#ifdef USE_UNIXSOCKET
+    char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
+#else
     char *uxpath = NULL;
+#endif
 
-    // srand(time(NULL));
     srandom(time(NULL));
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:u:v:x:")) != -1) {
@@ -606,7 +601,10 @@ main(int argc, char **argv)
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
-		    " [-x unixpath]\n", argv[0]);
+#ifdef USE_UNIXSOCKET
+		    " [-x unixpath]"
+#endif
+		    "\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
