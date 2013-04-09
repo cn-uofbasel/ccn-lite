@@ -177,11 +177,11 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_ETHERNET
     if (macsrc && host && port) {
 	sockunion su;
-	DEBUGMSG(99, "  adding ETH face macsrc=%s, host=%s, port=%s\n",
+	DEBUGMSG(99, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
 		 macsrc, host, port);
 	memset(&su, 0, sizeof(su));
 	su.eth.sll_family = AF_PACKET;
-	su.eth.sll_protocol = strtol((const char*)port, NULL, 0);
+	su.eth.sll_protocol = htons(strtol((const char*)port, NULL, 0));
 	if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
 		   su.eth.sll_addr,   su.eth.sll_addr+1,
 		   su.eth.sll_addr+2, su.eth.sll_addr+3,
