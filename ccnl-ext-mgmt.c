@@ -140,7 +140,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_face_s *f;
 
     DEBUGMSG(99, "ccnl_mgmt_newface from=%p, ifndx=%d\n", from, from->ifndx);
-    action = macsrc = ip4src = proto = host = port = encaps = flags = NULL;
+    action = macsrc = ip4src = proto = host = port = NULL;
+    path = encaps = flags = NULL;
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
