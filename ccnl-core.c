@@ -923,12 +923,13 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
     if (ccnl_is_interest(buf)) {
+	DEBUGMSG(6, "  interest for <%s>\n", ccnl_prefix_to_path(prefix));
+	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
+	if (prefix->compcnt >= 1 && prefix->comp[0][0] == '\xC1') goto Done;
 	if (prefix->compcnt == 4 && !memcmp(prefix->comp[0], "ccnx", 4)) {
 	    rc = ccnl_mgmt(relay, buf, prefix, from);
 	    goto Done;
 	}
-	DEBUGMSG(6, "  interest for <%s>\n", ccnl_prefix_to_path(prefix));
-	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
 	if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
 	    DEBUGMSG(1, "  dropped because of duplicate nonce\n"); goto Done;
 	}
