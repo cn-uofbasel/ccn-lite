@@ -1,13 +1,15 @@
 #!/bin/bash
-# ccn-lite/test/scripts/interop-peering-LDDL.sh
+# ccn-lite/test/scripts/interop-peering-LXXL.sh
 
 cat <<EOF >/dev/null
 
-This is a script to start a local interop test where two CCN-lite and
-two ccnd relays are peered via UDP in a string topology.
+This is a script to start a local interop test
+where two CCN-lite (L) and two ccnd relays (X)
+are peered via UDP in a string topology.
 
-The following diagram shows this "LDDL" configuration and also
-documents the chosen UDP ports and UNIX IPC socket names:
+The following diagram shows this "LXXL" configuration
+and also documents the chosen UDP ports and UNIX IPC
+socket names:
 
 
                                                 ccn-lite-peek
@@ -28,16 +30,16 @@ CCND_PORTA=9002
 CCND_PORTB=9003
 CCND_UXA=/tmp/.2.sock
 CCND_UXB=/tmp/.3.sock
-CCND_LOGA=/tmp/LDDL-2.log
-CCND_LOGB=/tmp/LDDL-3.log
+CCND_LOGA=/tmp/LXXL-2.log
+CCND_LOGB=/tmp/LXXL-3.log
 
 CCNL_HOME=~/ccn-lite/ccn-lite
 CCNL_PORTA=9001
 CCNL_PORTB=9004
 CCNL_UXA=/tmp/.1.sock
 CCNL_UXB=/tmp/.4.sock
-CCNL_LOGA=/tmp/LDDL-1.log
-CCNL_LOGB=/tmp/LDDL-4.log
+CCNL_LOGA=/tmp/LXXL-1.log
+CCNL_LOGB=/tmp/LXXL-4.log
 
 
 # cleanup the machine:
