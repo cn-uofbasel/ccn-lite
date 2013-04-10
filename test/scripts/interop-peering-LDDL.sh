@@ -48,6 +48,7 @@ export CCN_LOCAL_SOCKNAME=$CCND_UXA
 $CCND_HOME/bin/ccndstop
 export CCN_LOCAL_SOCKNAME=$CCND_UXB
 $CCND_HOME/bin/ccndstop
+killall ccnd
 rm -rf /tmp/.[14].sock
 rm -rf /tmp/.[23].sock.*
 
@@ -109,6 +110,22 @@ $CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump+halt
 
 echo "**"
 echo "** END_OF_TEST"
-echo "** See the logs in: $CCNL_LOGA $CCND_LOGA $CCND_LOGB $CCNL_LOGB"
+
+echo
+echo "** how the 1st node saw things:"
+egrep '(interest for|content_new).*/doc/' $CCNL_LOGB
+echo
+echo "** how the 2nd node saw things:"
+egrep '(interest_from|content_from).*/doc/' $CCND_LOGB
+echo
+echo "** how the 3rd node saw things:"
+egrep '(interest_from|content_from).*/doc/' $CCND_LOGA
+echo
+echo "** how the 4th node saw things (content was injected at start):"
+egrep '(interest for|content_new).*/doc.*URI' $CCNL_LOGA
+
+echo
+echo "** Find more in the logs:"
+echo "** $CCNL_LOGA $CCND_LOGA $CCND_LOGB $CCNL_LOGB"
 
 # eof
