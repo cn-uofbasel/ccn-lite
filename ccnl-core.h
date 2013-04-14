@@ -89,6 +89,7 @@ struct ccnl_relay_s {
 						 void(*cts_done)(void*,void*));
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
 						 void(*cts_done)(void*,void*));
+    struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
 };

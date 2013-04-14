@@ -38,6 +38,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

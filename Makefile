@@ -35,6 +35,7 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 ccn-lite-relay: ccn-lite-relay.c \
 	Makefile ccnl-includes.h ccnx.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-platform.c ccnl-core.c \
+	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-encaps.c ccnl-ext-mgmt.c
 	${CC} -o $@ ${MYCFLAGS} $<
 

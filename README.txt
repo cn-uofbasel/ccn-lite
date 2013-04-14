@@ -157,6 +157,7 @@ CCN-lite main logic and extensions:
    ccnl-core.h
    ccnl-ext-debug.c
    ccnl-ext-encaps.c
+   ccnl-ext-http.c
    ccnl-ext-mgmt.c
    ccnl-ext-sched.c
    ccnl-ext.h

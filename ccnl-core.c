@@ -20,6 +20,8 @@
  * 2011-04-09 created
  */
 
+#define CCNL_VERSION "2013-04-14"
+
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
 
