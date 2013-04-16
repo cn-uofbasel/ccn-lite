@@ -167,7 +167,7 @@ ccnl_cmpfib(const void *a, const void *b)
 	len = p1->complen[i];
 	if (len > p2->complen[i])
 	    len = p2->complen[i];
-	r = memcmp(p1->comp[i], p2->comp[2], len);
+	r = memcmp(p1->comp[i], p2->comp[i], len);
 	if (r)
 	    return r;
 	if (p1->complen[i] > len)
