@@ -202,13 +202,16 @@ ccnl_dump(int lev, int typ, void *p)
 	INDENT(lev); fprintf(stderr, "interfaces:\n");
 	for (k = 0; k < top->ifcount; k++) {
 	    INDENT(lev+1);
+	    fprintf(stderr, "ifndx=%d addr=%s", k,
+		    ccnl_addr2ascii(&top->ifs[k].addr));
 #ifdef CCNL_LINUXKERNEL
-	    fprintf(stderr, "ifndx=%d sockstruct=%p", k, top->ifs[k].sock);
+	    if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
+		fprintf(stderr, " netdev=%p", top->ifs[k].netdev);
+	    else
+		fprintf(stderr, " sockstruct=%p", top->ifs[k].sock);
 #else
-	    fprintf(stderr, "ifndx=%d sock=%d", k, top->ifs[k].sock);
+	    fprintf(stderr, " sock=%d", top->ifs[k].sock);
 #endif
-	    fprintf(stderr, " addr=%s", ccnl_addr2ascii(&top->ifs[k].addr));
-//	    fprintf(stderr, " facecnt=%d", top->ifs[k].facecnt);
 	    if (top->ifs[k].reflect)
 		fprintf(stderr, " reflect=%d", top->ifs[k].reflect);
 	    fprintf(stderr, "\n");

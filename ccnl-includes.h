@@ -56,6 +56,8 @@
 
 #else // else we are compiling for the Linux kernel
 
+#include <stddef.h>
+
 #include <linux/ctype.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>

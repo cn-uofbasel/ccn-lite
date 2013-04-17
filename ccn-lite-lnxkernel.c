@@ -30,6 +30,7 @@
 #define USE_ETHERNET
 // #define USE_SCHEDULER
 #define USE_MGMT
+#define USE_UNIXSOCKET
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
@@ -95,7 +96,6 @@ char* ccnl_addr2ascii(sockunion *su);
 struct udp_send_s {
     struct work_struct w;
     struct ccnl_if_s *iface;
-//    struct socket *sock;
     struct sockaddr_in ip4;
     void *data;
     unsigned int datalen;
@@ -122,13 +122,14 @@ void do_udpsend(struct work_struct *work)
     oldfs = get_fs();
     set_fs(KERNEL_DS);
 
+/*
     printk("before sock_sendmsg: sock %p, dest <%s>, buf %p %d\n",
 	   u->iface->sock, ccnl_addr2ascii((sockunion*)&u->ip4), u->data, u->datalen);
-
+*/
     rc = sock_sendmsg(u->iface->sock, &msg, u->datalen);
     set_fs(oldfs);
 
-    printk("UDP sendmsg returned %d\n", rc);
+//    printk("UDP sendmsg returned %d\n", rc);
     ccnl_free(u->data);
     ccnl_free(u);
 }
@@ -141,7 +142,7 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     if (!dest)
 	return;
 
-    printk("in_interrupt=%ld\n", in_interrupt());
+//    printk("in_interrupt=%ld\n", in_interrupt());
 
     switch (dest->sa.sa_family) {
     case AF_INET:
@@ -195,7 +196,8 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
 	memset(&msg, 0, sizeof(msg));
 	msg.msg_name = dest; //->ux.sun_path;
-	msg.msg_namelen = sizeof(sa_family_t) + strlen(dest->ux.sun_path) + 1;
+	msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
+	    strlen(dest->ux.sun_path) + 1;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 	msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
@@ -304,26 +306,6 @@ Bail:
 void
 ccnl_ux_data_ready(struct sock *sk, int len)
 {
-/*
-    struct ccnl_relay_s *ccnl = sk->sk_user_data;
-    struct kvec vec[1];
-    struct msghdr msg;
-    struct ccnl_buf_s *buf;
-    sockunion from;
-
-    memset(&msg, 0, sizeof(msg));
-    msg.msg_name = from.ux.sun_path;
-    msg-msg_namelen = sizeof(from);
-    buf = ccnl_buf_new(NULL, len);
-    if (!buf)
-	len = 0;
-    else
-	vec. = buf->data;
-    vec. = len;
-    len = kernel_recvmsg(sk, &msg, vec, 1, len);
-    if (len > 0) {
-    }
-*/
     struct sk_buff *skb;
     int i, err;
     DEBUGMSG(99, "ccnl_ux_data_ready %d bytes\n", len);
@@ -371,6 +353,8 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
 {
     struct net_device *dev;
 
+    DEBUGMSG(99, "ccnl_open_ethdev %s\n", devname);
+
     dev = dev_get_by_name(&init_net, devname);
     if (!dev)
 	return NULL;
@@ -380,8 +364,8 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
     memcpy(sll->sll_addr, dev->dev_addr, ETH_ALEN);
     sll->sll_ifindex = dev->ifindex;
 
-    printk("%s: access to %s with MAC=%s\n", THIS_MODULE->name,
-	   devname, eth2ascii(sll->sll_addr));
+    DEBUGMSG(99, "access to %s with MAC=%s installed\n",
+	     devname, eth2ascii(sll->sll_addr));
     //    dev_put(dev);
     return dev;
 }
@@ -399,7 +383,7 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
 	return NULL;
     }
 
-    DEBUGMSG(1, "UDP socket is %p\n", s);
+    DEBUGMSG(99, "UDP socket is %p\n", s);
 
     sin->sin_family = AF_INET;
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -423,17 +407,19 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     struct socket *s;
     int rc;
 
+    DEBUGMSG(99, "ccnl_open_unixpath %s\n", path);
+
     rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
     if (rc < 0) {
 	DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
 	return NULL;
     }
-    DEBUGMSG(1, "UNIX socket is %p\n", s);
+    DEBUGMSG(9, "UNIX socket is %p\n", (void*)s);
 
     ux->sun_family = AF_UNIX;
     strcpy(ux->sun_path, path);
     rc = s->ops->bind(s, (struct sockaddr*) ux,
-		      sizeof(ux->sun_family) + strlen(path) + 1); // sizeof(ux));
+		offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {
 	DEBUGMSG(1, "Error %d binding UNIX socket to %s "
 		    "(remove first, check access rights)\n", rc, path);
@@ -441,6 +427,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
 
     return s;
+
 Bail:
     sock_release(s);
     return NULL;
@@ -448,24 +435,28 @@ Bail:
 
 // ----------------------------------------------------------------------
 
-// static char *ethdevname = 0;
-static char *ux_sock_path = 0;
+static char *e = NULL;
+static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
+static int u = CCN_UDP_PORT;
 static int v = 0;
 static void *ageing_handler = NULL;
 
-/*
-module_param(ethdevname, charp, 0);
+
+module_param(e, charp, 0);
 MODULE_PARM_DESC(ethdevname, "name of ethernet device to serve");
- */
+
 module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
+
+module_param(u, int, 0);
+MODULE_PARM_DESC(u, "UDP port (default: 9695)");
 
 module_param(v, int, 0);
 MODULE_PARM_DESC(v, "verbosity level");
 
-module_param(ux_sock_path, charp, 0);
-MODULE_PARM_DESC(uk_sock_path, "name (path) of mgmt unix socket");
+module_param(x, charp, 0);
+MODULE_PARM_DESC(ux_sock_path, "name (path) of mgmt unix socket");
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("christian.tschudin@unibas.ch");
@@ -475,7 +466,8 @@ ccnl_init(void)
 {
     struct ccnl_if_s *i;
 
-    printk("%s: init u=%s c=%d, v=%d\n", THIS_MODULE->name, ux_sock_path, c, v);
+    printk("%s: init e=%s, x=%s, c=%d, u=%d, v=%d\n",
+	   THIS_MODULE->name, e, x, c, u, v);
     if (v >= 0)
 	debug_level = v;
     theRelay.max_cache_entries = c;
@@ -485,47 +477,52 @@ ccnl_init(void)
 
     ageing_handler = ccnl_set_timer(1000000, ccnl_ageing, &theRelay, 0);
 
-    i = &theRelay.ifs[0];
-    i->sock = ccnl_open_unixpath(ux_sock_path, &i->addr.ux);
-    if (i->sock) {
-	DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+#ifdef USE_UNIXSOCKET
+    if (x) {
+	i = &theRelay.ifs[theRelay.ifcount];
+	i->sock = ccnl_open_unixpath(x, &i->addr.ux);
+	if (i->sock) {
+	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
 //	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
-	i->mtu = 4048;
-	i->reflect = 0;
-	i->fwdalli = 0;
-	write_lock_bh(&i->sock->sk->sk_callback_lock);
-	i->old_data_ready = i->sock->sk->sk_data_ready;
-	i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+	    i->mtu = 4048;
+	    i->reflect = 0;
+	    i->fwdalli = 0;
+	    write_lock_bh(&i->sock->sk->sk_callback_lock);
+	    i->old_data_ready = i->sock->sk->sk_data_ready;
+	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
 //	i->sock->sk->sk_user_data = &theRelay;
-	write_unlock_bh(&i->sock->sk->sk_callback_lock);
+	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
+	    theRelay.ifcount++;
+	}
+    }
+#endif
 
-	theRelay.ifcount++;
+    if (u > 0) {
+	i = &theRelay.ifs[theRelay.ifcount];
+	i->sock = ccnl_open_udpdev(u, &i->addr.ip4);
+	if (i->sock != NULL) {
+	    theRelay.ifcount++;
+	}
     }
 
-/*
-    i = &theRelay.ifs[0];
-    i->netdev = ccnl_open_ethdev(ethdevname, &i->addr.eth);
-    if (i->netdev) {
+#ifdef USE_ETHERNET
+    if (e) {
+	i = &theRelay.ifs[theRelay.ifcount];
+	i->netdev = ccnl_open_ethdev(e, &i->addr.eth);
+	if (i->netdev) {
 //	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
-	i->mtu = 1500;
-	i->reflect = 1;
-	i->fwdalli = 1;
-	i->ccnl_packet.type = htons(CCNL_ETH_TYPE);
-	i->ccnl_packet.dev = i->netdev;
-	i->ccnl_packet.func = ccnl_eth_RX;
-	dev_add_pack(&i->ccnl_packet);
-	theRelay.ifcount++;
+	    i->mtu = 1500;
+	    i->reflect = 1;
+	    i->fwdalli = 1;
+	    i->ccnl_packet.type = htons(CCNL_ETH_TYPE);
+	    i->ccnl_packet.dev = i->netdev;
+	    i->ccnl_packet.func = ccnl_eth_RX;
+	    dev_add_pack(&i->ccnl_packet);
+	    theRelay.ifcount++;
+	}
     }
-*/
+#endif
 
-    /*
-    ccnl_proc = create_proc_entry(PROCFS_NAME, 0644, NULL);
-    if (ccnl_proc) {
-	ccnl_proc->read_proc = ccnl_proc_read;
-	ccnl_proc->write_proc = ccnl_proc_write;
-	ccnl_proc_buflen = 0;
-    }
-    */
     return 0;
 }
 
@@ -564,11 +561,11 @@ ccnl_lnxkernel_cleanup(void)
     }
     theRelay.ifcount = 0;
 
-    if (ux_sock_path) { // also remove the path
+    if (x) { // also remove the UNIX socket path
 	struct path p;
 	int rc;
 
-	rc = kern_path(ux_sock_path, 0, &p);
+	rc = kern_path(x, 0, &p);
 	if (!rc) {
 	    struct dentry *dir = dget_parent(p.dentry);
 
@@ -579,7 +576,7 @@ ccnl_lnxkernel_cleanup(void)
 	    path_put(&p);
 	}
     }
-    ux_sock_path = NULL;
+    x = NULL;
 }
 
 static void __exit
@@ -587,15 +584,10 @@ ccnl_exit( void )
 {
     int j;
 
-    printk("%s: exit\n", THIS_MODULE->name);
+    DEBUGMSG(1, "%s: exit\n", THIS_MODULE->name);
 
     if (ageing_handler)
 	ccnl_rem_timer(ageing_handler);
-
-    /*
-    if (ccnl_proc)
-	remove_proc_entry(PROCFS_NAME, NULL);
-    */
 
     ccnl_lnxkernel_cleanup();
 
@@ -610,7 +602,7 @@ ccnl_exit( void )
     }
     theRelay.ifcount = 0;
 
-    printk("%s: exit done\n", THIS_MODULE->name);
+    DEBUGMSG(1, "%s: exit done\n", THIS_MODULE->name);
 }
 
 module_init(ccnl_init);
