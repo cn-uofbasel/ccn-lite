@@ -19,7 +19,7 @@
  *
  * File history:
  * 2011-11-22 created
- * 2013-04-03 updated (ms)
+ * 2013-04-03 updated for new ver of ccn-lite code (ms)
  */
 
 
@@ -148,11 +148,10 @@ void    ccnl_lnk2relay(                     /* data */
  *****************************************************************************/
 
 //#include "ccnl-includes.h"  // generic platform includes - included in CcnCore.cc
-
 #include "ccnx.h"
 #include "ccnl.h"
 #include "ccnl-core.h"      // core ccnl structs
-#include "ccnl-ext.h"       // dorward declarations
+#include "ccnl-ext.h"       // forward declarations
 #include "ccnl-ext-debug.c" // debug funcs and some macros that I redeclare below
 
 
@@ -167,8 +166,10 @@ struct ccnl_omnet_s {       // extension of ccnl_relay_s (aux field) for omnet s
 struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 
 
+
 // #undef CCNL_NOW
 #define CCNL_NOW() (opp_time())
+
 
 #undef DEBUGMSG
 #define DEBUGMSG(LVL, ...) do {   \
@@ -187,6 +188,7 @@ struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 } while (0)
 
 
+
 #ifdef USE_STATS
 #  define END_LOG(CHANNEL) do { if (CHANNEL){ \
      fprintf(CHANNEL, "#end\n"); \
@@ -197,11 +199,12 @@ struct ccnl_relay_s     *all_relays=0, *last_relay=0, *active_relay;
 #  define END_LOG(CHANNEL) do {} while(0)
 #endif
 
+
 // TODO -- (ms 3) stats recording (enum and func) should better be moved to debug.c,
-// however for the moment it creates a conflict with other code and Christian does
-// not like the code, so I temporarily just leave it here.
-enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
+// however for the moment it clashes with other code, so I temporarily just leave it here.
+enum    {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 void    ccnl_print_stats(struct ccnl_relay_s *relay, int code);
+
 
 void    ccnl_get_timeval (struct timeval *tv);
 
@@ -231,6 +234,9 @@ void    ccnl_app_RX(
             struct ccnl_relay_s *ccnl,
             struct ccnl_content_s *c);
 
+void    ccnl_close_socket (int s);
+
+
 
 /*****************************************************************************
  *
@@ -242,7 +248,7 @@ void    ccnl_app_RX(
 
 #include "ccnl-platform.c"
 #include "ccnl-core.c"
-#include "ccnl-ext-mgmt.c"
+//#include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
 #include "ccnl-ext-encaps.c"
@@ -256,6 +262,17 @@ void    ccnl_app_RX(
  * (definitions)
  *
  *****************************************************************************/
+
+/*****************************************************************************
+ * if ccn-lite wants to shutd a socket descriptor
+ */
+void
+ccnl_close_socket(int s)
+{
+    // TODO: activate when UDP sockets are enabled in omnet, just a dummy for now
+    return;
+}
+
 /*****************************************************************************
  * record stats
  */
@@ -354,7 +371,7 @@ ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
     if (!st)
     return;
 
-    sprintf(name, "node-%s-sent.log", node);
+    sprintf(name, "relay_logs/%s-sent.log", node);
     st->ofp_s = fopen(name, "w");
     if (st->ofp_s) {
         fprintf(st->ofp_s,"#####################\n");
@@ -363,7 +380,7 @@ ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
         fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
     fflush(st->ofp_s);
     }
-    sprintf(name, "node-%s-rcvd.log", node);
+    sprintf(name, "relay_logs/%s-rcvd.log", node);
     st->ofp_r = fopen(name, "w");
     if (st->ofp_r) {
         fprintf(st->ofp_r,"#####################\n");
@@ -372,7 +389,7 @@ ccnl_node_log_start(struct ccnl_relay_s *relay, char *node)
         fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
     fflush(st->ofp_r);
     }
-    sprintf(name, "node-%s-qlen.log", node);
+    sprintf(name, "relay_logs/%s-qlen.log", node);
     st->ofp_q = fopen(name, "w");
     if (st->ofp_q) {
         fprintf(st->ofp_q,"#####################\n");

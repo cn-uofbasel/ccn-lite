@@ -46,6 +46,17 @@ ccn-lite-simu: ccn-lite-simu.c \
 	${EXTMAKE}
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
+ccn-lite-omnet: ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
+	ccnl-ext-encaps.c ccnl-ext.h ccnl-ext-sched.c ccnl.h \
+	ccnl-includes.h ccn-lite-omnet.c ccnl-pdu.c ccnl-platform.c \
+	ccnx.h
+	rm -rf omnet/src/ccn-lite/*
+	rm -rf ccn-lite-omnet.tgz
+	cp -a $^ omnet/src/ccn-lite/
+	mv omnet ccn-lite-omnet
+	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
+	mv ccn-lite-omnet omnet
+
 ccn-lite-lnxkernel:
 	make modules
 #	rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
@@ -64,4 +75,7 @@ datastruct.pdf: datastruct.dot
 clean:
 	${EXTMAKECLEAN}
 	rm -rf *~ *.o ${PROGS} node-*.log .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
+	rm -rf omnet/src/ccn-lite/*
+	rm -rf ccn-lite-omnet.tgz
 	make -C util clean
+

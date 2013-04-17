@@ -1,0 +1,12 @@
+*.o
+*.ko
+*~
+*.mod.c
+*.mod.o
+.*o.cmd
+.tmp_versions
+Module.symvers
+modules.order
+ccn-lite-minimalrelay
+ccn-lite-relay
+ccn-lite-simu
