@@ -2,7 +2,7 @@
  * @f ccnl-ext-mgmt.c
  * @b CCN lite extension, management logic (face mgmt and registration)
  *
- * Copyright (C) 2012, Christian Tschudin, University of Basel
+ * Copyright (C) 2012-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -353,6 +353,8 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
 	struct ccnl_if_s *i;
+	int portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
+
 	DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
 		 devname, port);
 
@@ -364,7 +366,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	{
 	    struct net_device *nd;
 	    int j;
-	    nd = ccnl_open_ethdev((char*)devname, &i->addr.eth);
+	    nd = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
 	    if (!nd) {
 		DEBUGMSG(99, "  could not open device %s\n", devname);
 		goto Bail;
@@ -377,15 +379,13 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		}
 	    }
 	    i->netdev = nd;
-	    i->ccnl_packet.type = htons(port ?
-					strtol((const char*)port, NULL, 0) :
-					CCNL_ETH_TYPE);
+	    i->ccnl_packet.type = htons(portnum);
 	    i->ccnl_packet.dev = i->netdev;
 	    i->ccnl_packet.func = ccnl_eth_RX;
 	    dev_add_pack(&i->ccnl_packet);
 	}
 #else
-	i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth);
+	i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
 	if (!i->sock) {
 	    DEBUGMSG(99, "  could not open device %s\n", devname);
 	    goto Bail;

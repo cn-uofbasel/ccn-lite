@@ -2,7 +2,7 @@
  * @f ccnl-core.h
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -75,6 +75,7 @@ struct ccnl_if_s { // interface for packet IO
 };
 
 struct ccnl_relay_s {
+    time_t startup_time;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
     struct ccnl_interest_s *pit;

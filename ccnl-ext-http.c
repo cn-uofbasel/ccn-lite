@@ -2,7 +2,7 @@
  * @f ccnl-ext-http.c
  * @b CCN lite extension: web server to display the relay's status
  *
- * Copyright (C) 2012, Christian Tschudin, University of Basel
+ * Copyright (C) 2013, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -203,16 +203,21 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 		   "body {font-family: sans-serif;}\n"
 		   "</style>\n"
 		   "</head><body>\n");
-    len += sprintf(txt+len, "<a href=\"\">[refresh]</a>&nbsp;&nbsp; "
+    len += sprintf(txt+len, "\n<table borders=0>\n<tr><td>"
+		   "<a href=\"\">[refresh]</a>&nbsp;&nbsp;<td>"
 		   "ccn-lite-relay Status Page &nbsp;&nbsp;");
     uname(&uts);
+    len += sprintf(txt+len, "node <strong>%s (%d)</strong>\n",
+		   uts.nodename, getpid());
     t = time(NULL);
     cp = ctime(&t);
     cp[strlen(cp)-1] = 0;
-    len += sprintf(txt+len, "<font size=-1>node <strong>%s (%d)</strong>"
-		   "&mdash;%s</font>\n", uts.nodename, getuid(), cp);
+    len += sprintf(txt+len, "<tr><td><td><font size=-1>%s &nbsp;&nbsp;", cp);
+    cp = ctime(&ccnl->startup_time);
+    cp[strlen(cp)-1] = 0;
+    len += sprintf(txt+len, " (started %s)</font>\n</table>\n", cp);
 
-    len += sprintf(txt+len, "<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
 		   "<tr><td><em>Forwarding Table</em></table><ul>\n");
     for (fwd = ccnl->fib, cnt = 0; fwd; fwd = fwd->next, cnt++);
     if (cnt > 0) {
@@ -232,7 +237,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     }
     len += sprintf(txt+len, "</ul>\n");
 
-    len += sprintf(txt+len, "<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
 		   "<tr><td><em>Faces</em></table><ul>\n");
     for (f = ccnl->faces, cnt = 0; f; f = f->next, cnt++);
     if (cnt > 0) {
@@ -259,7 +264,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     }
     len += sprintf(txt+len, "</ul>\n");
 
-    len += sprintf(txt+len, "<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
 		   "<tr><td><em>Interfaces</em></table><ul>\n");
     for (i = 0; i < ccnl->ifcount; i++) {
 	len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
@@ -270,7 +275,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     }
     len += sprintf(txt+len, "</ul>\n");
 
-    len += sprintf(txt+len, "<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
 		   "<tr><td><em>Misc stats</em></table><ul>\n");
     for (cnt = 0, bpt = ccnl->nonces; bpt; bpt = bpt->next, cnt++);
     len += sprintf(txt+len, "<li>Nonces: %d\n", cnt);
@@ -280,7 +285,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 		   ccnl->contentcnt, ccnl->max_cache_entries);
     len += sprintf(txt+len, "</ul>\n");
 
-    len += sprintf(txt+len, "<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+    len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
 		   "<tr><td><em>Config</em></table><table borders=0>\n");
     len += sprintf(txt+len, "<tr><td>content.timeout:"
 		   "<td align=right> %d<td>\n", CCNL_CONTENT_TIMEOUT);
@@ -325,7 +330,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 		   "<td><td>%s\n", CCNL_VERSION);
     len += sprintf(txt+len, "</table>\n");
 
-    len += sprintf(txt+len, "<p><hr></body></html>\n");
+    len += sprintf(txt+len, "\n<p><hr></body></html>\n");
 
     http->out = (unsigned char*) txt;
     http->outoffs = 0;

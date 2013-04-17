@@ -92,14 +92,14 @@ ccnl_run_events()
 
 #ifdef USE_ETHERNET
 int
-ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
+ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
     struct ifreq ifr;
     int s;
 
-    sll->sll_family = AF_PACKET;
-    sll->sll_protocol = htons(CCNL_ETH_TYPE);
-    s = socket(AF_PACKET, SOCK_RAW, sll->sll_protocol);
+    DEBUGMSG(99, "ccnl_open_ethdev %s 0x%04x\n", devname, ethtype);
+
+    s = socket(AF_PACKET, SOCK_RAW, htons(ethtype));
     if (s < 0) {
 	perror("eth socket");
 	return -1;
@@ -111,13 +111,15 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
         perror("ethsock ioctl get hw addr");
 	return -1;
     }
+
+    sll->sll_family = AF_PACKET;
     memcpy(sll->sll_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
     if(ioctl(s, SIOCGIFINDEX, (void *) &ifr) < 0 ) {
         perror("ethsock ioctl get index");
 	return -1;
     }
     sll->sll_ifindex = ifr.ifr_ifindex;
-    sll->sll_protocol = htons(CCNL_ETH_TYPE);
+    sll->sll_protocol = htons(ethtype);
     if (bind(s, (struct sockaddr*) sll, sizeof(*sll)) < 0) {
         perror("ethsock bind");
 	return -1;
@@ -307,7 +309,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     // add (real) eth0 interface with index 0:
     if (ethdev) {
 	i = &relay->ifs[relay->ifcount];
-	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth);
+	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
 	i->mtu = 1500;
 	i->reflect = 1;
 	i->fwdalli = 1;
@@ -530,6 +532,7 @@ main(int argc, char **argv)
     char *uxpath = NULL;
 #endif
 
+    time(&theRelay.startup_time);
     srandom(time(NULL));
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:u:v:x:")) != -1) {

@@ -482,7 +482,7 @@ main(int argc, char *argv[])
     } else if (!strcmp(argv[1], "newETHdev")) {
 	if (argc < 3)  goto Usage;
 	len = mkNewEthDevRequest(out, argv[2],
-				 argc > 3 ? argv[3] : "0x1234",
+				 argc > 3 ? argv[3] : "0x88b5",
 				 argc > 4 ? argv[4] : "0",
 				 argc > 5 ? argv[5] : "0");
     } else if (!strcmp(argv[1], "newUDPdev")) {

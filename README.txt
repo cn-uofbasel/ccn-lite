@@ -21,7 +21,8 @@ Table of Contents:
     2) Extensions to CCNx
     3) CCN-lite supported platforms and how to compile
     4) List of files
-    5) Useful links
+    5) How to start
+    6) Useful links
 
 ---
 
@@ -57,7 +58,7 @@ fully fledged CCNx daemons so that one can successfully run
 applications such as PARC's chat and the SYNC protocol over a
 heterogeneous CCNx network:
 
- ccnchat or sync                                    ccnchat or sync
+ ccnchat or sync (ccnr)                            ccnchat or sync (ccnr)
          |                                                  |
         ccnd <--> ccn-lite-relay <--> ccn-lite-relay <--> ccnd
 
@@ -103,8 +104,10 @@ So what you get with CCN-lite is:
 
     USE_DEBUG             // enable log messages
     USE_DEBUG_MALLOC      // compile with memory armoring
+    USE_ENCAPS            // see above
     USE_ETHERNET          // talk to eth/wlan devices, raw frames
     USE_MGMT              // react to CCNx mgmt protocol messages
+    USE_SCHEDULER         // see above
     USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
     USE_CHEMFLOW          // experimental scheduler, src not included
 
@@ -136,6 +139,7 @@ So what you get with CCN-lite is:
 
      66 ccnx.h
      73 ccnl.h
+    194 ccnl-core.h
     998 ccnl-core.c
     385 ccn-lite-minimalrelay.c
 
@@ -204,7 +208,64 @@ Misc:
 
 ---
 
-5) Links:
+5) How to start
+
+5.a) A simple hello-world config (user space relay)
+
+  % cd the_ccn-lite_directory
+
+  #-- start a CCNx relay in the background, preload the content store:
+  % ./ccn-lite-relay -d test/ccnb &
+
+  #-- have a look at the internal state
+  % firefox 127.0.0.1:9695 &
+
+  #-- retrieve content, in raw CCNx format:
+  % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt
+
+  #-- retrieve content, parse the fields
+  % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt | ./util/ccn-lite-parse
+
+
+5.b) Advanced configurations via the mgmt protocol
+
+  #-- start the relay with sudo (if you want to access eth devices)
+  % sudo ./ccn-lite-relay
+
+  #-- bring up a wifi interface, listen for ethtype value 0x3456
+  # sudo ./util/ccn-lite-ctrl newETHdev wlan0 0x3456
+
+  #-- define a peer reachable via wifi at 11:22:33:44:55:66, ethtype 0x9876
+  % sudo ./util/ccn-lite-ctrl newETHface any 11:22:33:44:55:66 0x9876
+
+  #-- define a peer reachable at 10.0.0.1 and UDP port 9000, picking
+  #   any of the machines IP interfaces
+  % sudo ./util/ccn-lite-ctrl newUDPface any 10.0.0.1 9000
+
+  #-- add a routing entry (pick face 3 in this example)
+  % sudo ./util/ccn-lite-ctrl prefixreg /acme.com/frontpage 3
+
+  #-- have a look at the internal state, repeatedly during the previous steps
+  % firefox 127.0.0.1:9695
+
+
+5.c) Starting (and controlling) the Linux kernel module
+
+  #-- insert the module, enabeling eth0, debug msgs
+  % sudo insmod ./ccn-lite-lnxkernel.ko e=eth0 v=99
+
+  #-- talk to the module via the default UNIX socket, trigger a dump
+  % ./util/ccn-lite-ctrl debug dump
+
+  #-- have a look at the output
+  % tail -f /var/log/syslog
+
+  #-- remove the module
+  % sudo rmmod ccn-lite-lnxkernel
+
+---
+
+6) Links:
 
    Repository of our CCN-lite software:
    https://github.com/cn-uofbasel/ccn-lite

@@ -57,10 +57,11 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 #ifdef USE_ETHERNET
 
 #if defined(CCNL_UNIX)
-  int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+  int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
   int ccnl_open_udpdev(int port, struct sockaddr_in *si);
 #elif defined(CCNL_LINUXKERNEL)
-  struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll);
+  struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll,
+				      int ethtype);
   struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
 #endif
 

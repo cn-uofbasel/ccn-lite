@@ -2,7 +2,7 @@
  * @f ccn-lite-lnxkernel.c
  * @b Linux kernel version of the CCN lite relay
  *
- * Copyright (C) 2012, Christian Tschudin, University of Basel
+ * Copyright (C) 2012-13, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -349,7 +349,7 @@ ccnl_ageing(void *ptr, void *dummy)
 // ----------------------------------------------------------------------
 
 struct net_device*
-ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
+ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
     struct net_device *dev;
 
@@ -360,7 +360,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll)
 	return NULL;
 
     sll->sll_family = AF_PACKET;
-    sll->sll_protocol = htons(CCNL_ETH_TYPE);
+    sll->sll_protocol = htons(ethtype);
     memcpy(sll->sll_addr, dev->dev_addr, ETH_ALEN);
     sll->sll_ifindex = dev->ifindex;
 
@@ -508,7 +508,7 @@ ccnl_init(void)
 #ifdef USE_ETHERNET
     if (e) {
 	i = &theRelay.ifs[theRelay.ifcount];
-	i->netdev = ccnl_open_ethdev(e, &i->addr.eth);
+	i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
 	if (i->netdev) {
 //	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
 	    i->mtu = 1500;
