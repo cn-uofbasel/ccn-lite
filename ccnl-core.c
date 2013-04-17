@@ -305,9 +305,7 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
 	return NULL;
     f->faceid = ++seqno;
     f->ifndx = ifndx;
-#ifdef USE_ENCAPS
     f->encaps = ccnl_encaps_new(encaps, ccnl->ifs[ifndx].mtu);
-#endif
 
 #ifdef USE_SCHEDULER
     if (ifndx >= 0 && ccnl->defaultFaceScheduler)
@@ -333,12 +331,9 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     struct ccnl_forward_s **ppfwd;
     DEBUGMSG(1, "ccnl_face_remove relay=%p face=%p\n", (void*)ccnl, (void*)f);
 
-#ifdef USE_SCHEDULER
     ccnl_sched_destroy(f->sched);
-#endif
-#ifdef USE_ENCAPS
     ccnl_encaps_destroy(f->encaps);
-#endif
+
     for (pit = ccnl->pit; pit; ) {
 	struct ccnl_pendint_s **ppend, *pend;
 	if (pit->from == f)
@@ -382,9 +377,7 @@ ccnl_interface_cleanup(struct ccnl_if_s *i)
     int j;
     DEBUGMSG(99, "ccnl_interface_cleanup\n");
 
-#ifdef USE_SCHEDULER
     ccnl_sched_destroy(i->sched);
-#endif
     for (j = 0; j < i->qlen; j++) {
 	struct ccnl_txrequest_s *r = i->queue + (i->qfront+j)%CCNL_MAX_IF_QLEN;
 	ccnl_free(r->buf);
@@ -411,7 +404,6 @@ ccnl_interface_CTS(void *aux1, void *aux2)
     ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
     ifc->qlen--;
 
-//    ccnl_ll_TX(ccnl, ifc, &req.dst, req.buf->data, req.buf->datalen);
     ccnl_ll_TX(ccnl, ifc, &req.dst, req.buf);
 #ifdef USE_SCHEDULER
     ccnl_sched_CTS_done(ifc->sched, 1, req.buf->datalen);
@@ -690,7 +682,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     free_prefix(i->prefix);
-    //    free_4ptr_list(i->nonce, i->ppkd, i->data, i);
     free_3ptr_list(i->ppkd, i->data, i);
     return i2;
 }
@@ -760,12 +751,12 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
     if (ccnl->max_cache_entries > 0 &&
 	ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
-	struct ccnl_content_s /* *old = NULL,*/ *c2;
+	struct ccnl_content_s *c2;
 	int age = 0;
 	for (c2 = ccnl->contents; c2; c2 = c2->next)
 	    if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC) &&
 					((age == 0) || c2->last_used < age))
-		/* old = c2, */ age = c2->last_used;
+		age = c2->last_used;
 	if (c2)
 	    ccnl_content_remove(ccnl, c2);
     }
@@ -914,11 +905,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
     DEBUGMSG(5, "  %d bytes, if=%d, face=%p [0x%02x 0x%02x]\n",
 	     datalen, from->ifndx, (void*) from, data[0], data[1]);
 
-#ifdef USE_ENCAPS
     buf = ccnl_encaps_handle_fragment(relay, from, data, datalen);
-#else
-    buf = ccnl_buf_new(data, datalen);
-#endif
     if (!buf) goto Done;
     if (ccnl_extract_prefix_nonce_ppkd(buf, &prefix, &nonce, &ppkd,
 				      &content, &contlen) || !prefix) {

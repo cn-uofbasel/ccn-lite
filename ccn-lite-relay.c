@@ -31,7 +31,7 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+// #define USE_ENCAPS
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT

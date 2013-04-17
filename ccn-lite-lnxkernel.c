@@ -16,6 +16,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
+ * add GPL text here
+ *
  * File history:
  * 2012-01-06 created
  */
@@ -27,7 +29,7 @@
 // #define USE_ENCAPS
 #define USE_ETHERNET
 // #define USE_SCHEDULER
-// #define USE_MGMT
+#define USE_MGMT
 
 #include "ccnl-includes.h"
 #include "ccnl.h"

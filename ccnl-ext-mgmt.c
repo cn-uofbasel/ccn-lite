@@ -422,11 +422,15 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	}
 
 #ifdef CCNL_LINUXKERNEL
-	for (j = 0; j < ccnl->ifcount; j++) {
-	    if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
-		sock_release(i->sock);
-		DEBUGMSG(99, "  UDP device %s/%s already open\n", ip4src, port);
-		goto Bail;
+	{
+	    int j;
+	    for (j = 0; j < ccnl->ifcount; j++) {
+		if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
+		    sock_release(i->sock);
+		    DEBUGMSG(99, "  UDP device %s/%s already open\n",
+			     ip4src, port);
+		    goto Bail;
+		}
 	    }
 	}
 

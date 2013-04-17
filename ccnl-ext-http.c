@@ -28,6 +28,8 @@ struct ccnl_http_s {
     int inoffs, outoffs, inlen, outlen;
 };
 
+int ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http);
+
 // ----------------------------------------------------------------------
 
 struct ccnl_http_s*

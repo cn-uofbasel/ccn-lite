@@ -46,7 +46,10 @@ struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 
 int ccnl_is_fragment(unsigned char *data, int datalen);
 #else
-# define ccnl_is_fragment(d,l) 0
+# define ccnl_encaps_new(e,u)   NULL
+# define ccnl_encaps_destroy(e) do{}while(0)
+# define ccnl_encaps_handle_fragment(r,f,data,len)    ccnl_buf_new(data,len)
+# define ccnl_is_fragment(d,l)  0
 #endif // USE_ENCAPS
 
 // ----------------------------------------------------------------------
@@ -87,8 +90,8 @@ void ccnl_sched_destroy(struct ccnl_sched_s *s);
 
 #else
 
-# define ccnl_sched_CTS_done(S,C,L)		do{}while(-1)
-# define ccnl_scheduler_destroy(S)		do{}while(-1)
+# define ccnl_sched_CTS_done(S,C,L)	do{}while(0)
+# define ccnl_sched_destroy(S)		do{}while(0)
 
 #endif
 
