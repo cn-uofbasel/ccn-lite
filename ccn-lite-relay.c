@@ -490,7 +490,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 			struct ccnl_buf_s *nonce=0, *ppkd=0;
 			unsigned char *content;
 			int contlen;
-			if (ccnl_extract_prefix_nonce_ppkd(buf, &prefix,
+			if (ccnl_extract_prefix_nonce_ppkd(buf, NULL, &prefix,
 				&nonce, &ppkd, &content, &contlen) || !prefix) {
 			    DEBUGMSG(6, "  parsing error or no prefix\n");
 			    goto Done;

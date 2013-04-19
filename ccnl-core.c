@@ -136,11 +136,12 @@ consume(int typ, int num, unsigned char **buf, int *len,
 
 int
 ccnl_extract_prefix_nonce_ppkd(struct ccnl_buf_s *pkt,
-			      struct ccnl_prefix_s **prefix,
-			      struct ccnl_buf_s **nonce,
-			      struct ccnl_buf_s **ppkd,
-			      unsigned char **content,
-    			      int *contlen)
+			       int *scope,
+			       struct ccnl_prefix_s **prefix,
+			       struct ccnl_buf_s **nonce,
+			       struct ccnl_buf_s **ppkd,
+			       unsigned char **content,
+			       int *contlen)
 {
     unsigned char *data = pkt->data, *cp;
     int num, typ, len, datalen = pkt->datalen;
@@ -177,6 +178,11 @@ ccnl_extract_prefix_nonce_ppkd(struct ccnl_buf_s *pkt,
 		    if (consume(typ, num, &data, &datalen, 0, 0) < 0) goto Bail;
 		}
 	    }
+	    continue;
+	}
+	if (typ == CCN_TT_DTAG && num == CCN_DTAG_SCOPE && scope) {
+	    if (consume(typ, num, &data, &datalen, &cp, &len) < 0) goto Bail;
+	    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
 	    continue;
 	}
 	if (typ == CCN_TT_DTAG && num == CCN_DTAG_NONCE && !n) {
@@ -886,7 +892,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	      unsigned char *data, int datalen,
 	      struct sockaddr *sa, int addrlen)
 {
-    int rc = -1;
+    int rc = -1, scope = 3;
     struct ccnl_buf_s *buf = 0;
     struct ccnl_prefix_s *prefix = 0;
     struct ccnl_interest_s *i = 0;
@@ -907,7 +913,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 
     buf = ccnl_encaps_handle_fragment(relay, from, data, datalen);
     if (!buf) goto Done;
-    if (ccnl_extract_prefix_nonce_ppkd(buf, &prefix, &nonce, &ppkd,
+    if (ccnl_extract_prefix_nonce_ppkd(buf, &scope, &prefix, &nonce, &ppkd,
 				      &content, &contlen) || !prefix) {
 	DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
@@ -943,9 +949,10 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	    i = ccnl_interest_new(relay, from, &buf, &prefix, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(5, "  created new interest entry %p\n", (void *) i);
-		ccnl_interest_propagate(relay, i);
+		if (scope > 2)
+		    ccnl_interest_propagate(relay, i);
 	    }
-	} else if (from->flags & CCNL_FACE_FLAGS_FWDALLI) {
+	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(5, "  old interest, nevertheless propagated %p\n", (void *) i);
 	    ccnl_interest_propagate(relay, i);
 	}
