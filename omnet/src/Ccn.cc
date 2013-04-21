@@ -46,7 +46,7 @@ TimerList::TimerList (unsigned long size)
         tList[i].isFree = 1;
     }
 
-    tList[0].isFree = 0;   // do not use 0th record
+    tList[0].isFree = 0;   // we do not use 0th record or easier indexing
 };
 
 
@@ -241,17 +241,16 @@ void Ccn::initialize(int stage)
         cModule *mdlNetIf, *mdlNet, *mdlNode;
 
 
-        /* Look for the CcnAdmin and StatsLogger modules at the network level
+        /* Look for the CcnAdmin module at the network level
          */
         mdlNet = this->getParentModule()->getParentModule();
         for (cModule::SubmoduleIterator iter(mdlNet); !iter.end(); iter++)
         {
             mdlNode = iter();
 
-            //if ( !statsLogger ) statsLogger = dynamic_cast<CcnAdmin *>(mdlNode);
-            if ( !scenarioAdmin ) scenarioAdmin = dynamic_cast<CcnAdmin *>(mdlNode);
+            if ( !scenarioAdmin )
+                scenarioAdmin = dynamic_cast<CcnAdmin *>(mdlNode);
 
-            //if ( scenarioAdmin && statsLogger)
             if ( scenarioAdmin )
                 break;
         }
@@ -264,17 +263,6 @@ void Ccn::initialize(int stage)
             opp_error("Cannot find a CCN Scenario Administrator module! Aborting simulation");
         }
 
-        /*
-        if ( statsLogger == 0 ) {
-            DBG(Err) << this->getFullName()
-                    << "No statistics logging module (StatsLog) found for this network"
-                    << std::endl;
-
-            EV << "Cannot find a statistics module! Simulation will not log ext statistics"
-                    << std::endl;
-        }
-        */
-
 
         /* Initialise timer accounting
          */
@@ -286,7 +274,6 @@ void Ccn::initialize(int stage)
                     << std::endl;
             opp_error(" Timer list for module %s could not be initialized! ", this->getFullName());
         }
-
 
 
         /* Find my MAC address(es)
@@ -312,12 +299,6 @@ void Ccn::initialize(int stage)
         }
 
 
-
-        /* Find my IP address(es)
-         */
-        // TODO: ... find now or leave to discover a runtime
-
-
         EV << this->getFullPath()
                 << "(Init 1) Internal node state:"
                 << "\n  Timer list set to hold max " << timerList->size() << " timers"
@@ -334,9 +315,8 @@ void Ccn::initialize(int stage)
          * Stage 2 - network state and scenario configuration
          *
          * The following tasks CANNOT be completed in an earlier stage
-         * because not all modules need to be fully instantiated
+         * because all modules need to be fully instantiated
          */
-
 
         bool isRegistered=false, configuredScenario=false, startedLogger=false;
 
@@ -364,22 +344,13 @@ void Ccn::initialize(int stage)
             EV << getFullPath()
                     << "Parsing of scenario configuration for CCN node failed, this can be critical"
                     << "\n  Simulation will proceed with vanilla state for node" << std::endl;
-            // TODO: decide if I should raise and exception here
 
+            // TODO: raise exception here ?
         }
         else {
             configuredScenario=true;
             scenarioAdmin->scheduleConfigEvents(this);
         }
-
-
-        /* Initialise ext statistic logging
-         *
-        logger(INIT_HOST_LOGGING, NUM_OF_LOGS);
-        logger(ADD_HOST_LOGS, NUM_OF_LOGS);
-        logger(RESET_LOGGER, NUM_OF_LOGS);
-        startedLogger = true;
-         */
 
 
         EV << this->getFullPath()
@@ -393,7 +364,7 @@ void Ccn::initialize(int stage)
     else if(stage == 3)
     {
         /**
-         * Stage 3 - CCN Core init
+         * Stage 3 - CCN-lite relay init
          */
 
         cModule *mdlNode = this->getParentModule();
@@ -403,7 +374,6 @@ void Ccn::initialize(int stage)
                 << "(Init 3) CCN Core init"
                 << "\n   Spawned a new CcnCore " << ccnCore->info()
                 << std::endl;
-
     }
 
     return;
@@ -413,7 +383,7 @@ void Ccn::initialize(int stage)
 
 
 /*****************************************************************************
- *
+ * Destroy
  */
 Ccn::~Ccn()
 {
@@ -504,9 +474,9 @@ Ccn::handleSelfMsg(cMessage* msg)
 
 /*****************************************************************************
  * Handle CcnAppMessage received from layer above. Can be a strategy layer or
- * and application layer. Currently implements the minimum possible set of
- * functions. To expend there is need to also extend the actions definitions
- * at CcnAppMessage.msg
+ * an application layer. Currently implements the minimum possible set of
+ * functions. To extend the functions supported, one will also need to
+ * extend the action definitions at CcnAppMessage.msg
  */
 void
 Ccn::fromUpperLayer(cMessage* msg) {
@@ -577,8 +547,10 @@ Ccn::fromUpperLayer(cMessage* msg) {
         }
         case CONTENT_UNREGISTER:
 
-            // TODO: implement...
+            /* TODO: The app can remove content content from the CS
+             */
             DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: Action not implemented!" << std::endl;
+
             break;
 
         default:
@@ -645,12 +617,12 @@ Ccn::fromLowerLayer(cMessage* msg) {
      */
     if ( ccnCtx->isAddressFamily(AF_PACKET) ) {
 
-        /* look for match to one of the local node addresses
+        /* look for match to one of the node-local addresses
          */
         for (int i = 0 ; i < numMacIds; i++) {
             if (macIds[i].compareTo( ccnCtx->getDstAddress802() ) == 0) {
 
-                /* unpack data and pass them to CCN relay
+                /* unpack data and pass them to CCN-lite relay
                  */
                 int     buffSize    = ccnPkt->getByteArray().getDataArraySize();
                 char    *dataBuff   = new char [buffSize];
@@ -674,20 +646,10 @@ Ccn::fromLowerLayer(cMessage* msg) {
                 << " - CcnPacket with endpoint information (CcnContext) that does not match local node configuration. Ignore it"
                 << std::endl;
     }
-    else if ( ccnCtx->isAddressFamily(AF_INET) ) {
-        DBG(Warn) << getFullName()
-                << " - UNDER CONSTRUCTION: Part not implemented!"
-                << std::endl;
-    }
-    else if ( ccnCtx->isAddressFamily(AF_INET6) ) {
-        DBG(Warn) << getFullName()
-                << " - UNDER CONSTRUCTION: Part not implemented!"
-                << std::endl;
-    }
     else {
         DBG(Detail) << getFullName()
-                << " - Received CcnPacket with CcnContext type neither AF_PACKET, AF_INET, AF_INET6"
-                << "\n   Currently we only support CCN Faces with one of these endpoint types"
+                << " - Received CcnPacket with CcnContext type other than neither AF_PACKET"
+                << "\n   Currently we only support CCN Faces at the MAC level"
                 << std::endl;
         opp_error("Received CcnPacket with unknown CcnContext type attached to it");
     };
@@ -782,7 +744,7 @@ Ccn::setTimerEvent (long usec, void(*callback)(void *, void *), void * par1, voi
             << "\n  Try re-compiling after setting CCNL_MAX_TIMERS > " << CCNL_MAX_TIMERS
             << std::endl;
 
-    opp_error ("Timer list full !!!");
+    opp_error ("Run out of timer objects !!!");
     //EV << getFullName () << "Timer list full !!!" << std::endl;
 
     delete cb;
@@ -812,58 +774,28 @@ Ccn::clearTimerEvent (long handle)
 
 
 /*****************************************************************************
- * Dump the active FIB of a relay
- */
-void
-Ccn::dumpFIB()
-{
-    /* the CcnAdmin module accesses this method
-     */
-    Enter_Method("Ccn::dumpFIB()");
-
-
-    // TODO:
-    DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return;
-};
-
-
-/*****************************************************************************
- * Dump the active contents in the CS of a relay
- */
-void
-Ccn::dumpCS()
-{
-    /* the CcnAdmin module accesses this method
-     */
-    Enter_Method("Ccn::dumpCacheStore()");
-
-
-    // TODO:
-    DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return;
-};
-
-
-/*****************************************************************************
  * Create and add a range of dummy chunks representing a named content to the
  * CS of the relay
  */
 int
-Ccn::addToCache (const char *contentName, const int seqNumStart, const int numChunks)
+Ccn::addToCacheDummy (const char *contentName, const int seqNumStart, const int numChunks)
 {
     /* the CcnAdmin module accesses this method
      */
-    Enter_Method("Ccn::addToCache()");
+    Enter_Method("Ccn::addToCacheDummy()");
+
+    char *oneChunkBuffer = new char[CCNL_DUMMY_CONTENT_CHUNK_SIZE];
+    char **chunkPtrs = new char*[numChunks];
+
+    for (int i = 0 ; i < numChunks ; i++)
+        chunkPtrs[i] = oneChunkBuffer;
 
     DBG(Info) << getFullPath()
-            << " - Adding content to CS: "
-            << contentName << "/" << seqNumStart << "-" << seqNumStart + numChunks
+            << " - Adding dummy content to CS: "
+            << contentName << " [" << seqNumStart << "-" << seqNumStart + numChunks << "]"
             << std::endl;
 
-    return ccnCore->addToCacheDummyContent (contentName, seqNumStart, numChunks, CCNL_DUMMY_CONTENT_CHUNK_SIZE);
+    return ccnCore->addToCacheFixedSizeChunks (contentName, seqNumStart, numChunks, (const char **) chunkPtrs, CCNL_DUMMY_CONTENT_CHUNK_SIZE);
 };
 
 
@@ -895,17 +827,15 @@ Ccn::addFwdRule(const char *contentName, FaceType faceTp, const char *dst, int a
                 << " - Adding CCN FIB rule: "
                 << contentName
                 << " at " << dst
-                << " via eth[" << netifIndex << "] (eth[-1]= send from all netifs - NOT IMPLEMENTED YET!!! )"
+                << " via eth[" << netifIndex
                 << std::endl;
 
         return ccnCore->addL2FwdRule (contentName, addrBytes, netifIndex);
     }
-    else if (faceTp == FaceT_SOCKET)  // Layer 4: Socket endpoint
+    else // currently only MAC-based faces are supported
     {
-        DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: Part for L4 FIB rules not implemented!" << std::endl;
-        EV << "Functionality not implemented!" << std::endl;
-
-        //return ccnCore->addL4FwdRule (contentName, dst);
+        DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: currently only MAC-based faces are supported" << std::endl;
+        EV << "FIB rule that involves a non-MAC based FACE. Ingoring it!" << std::endl;
     }
 
     return false;
@@ -913,31 +843,24 @@ Ccn::addFwdRule(const char *contentName, FaceType faceTp, const char *dst, int a
 
 
 /*****************************************************************************
- * Send Interest request for a named content. One needs to start implementing
- * from here a content request transport strategy for finding the total number
- * of chunks and for pacing the Interest transmissions for individual chunks
+ * Send Interests in batch, for a range of chunks of a named content. This is
+ * only a convinience method that is currently used by the CcnAdmin module
  */
 bool
-Ccn::sendInterest(const char *contentName)
+Ccn::sendBatchInterests(const char *contentName, int startChunk, int numChunks)
 {
-    /* the CcnAdmin module accesses this method
+    /* the CcnAdmin module accesses this method atomically
      */
-    Enter_Method("Ccn::sendInterest()");
+    Enter_Method("Ccn::sendBatchInterests()");
+
 
     DBG(Info) << getFullPath()
-            << " - Sending Interest for " << contentName
+            << " - Sending batch Interests for " << contentName
+            << " [" << startChunk << "-" << startChunk + numChunks << "]"
             << std::endl;
 
-    /*
-     * Here implement a policy/strategy for requesting the complete content
-     */
-
-    EV << " ***You need to implement a content request strategy. Requesting only first content chunk for "
-            << contentName
-            << " *** "
-            << std::endl;
-
-    ccnCore->requestContent (contentName, 0);
+    for (int i=0 ; i< numChunks ; i++)
+        ccnCore->requestContent (contentName, startChunk + i);
 
     return true;
 };

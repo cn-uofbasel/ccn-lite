@@ -276,7 +276,7 @@ CcnAdmin::handleMessage (cMessage *msg)
                 << ", getKind()=" << msg->getKind()
                 << std::endl;
 
-        check_and_cast<Ccn *>(ni->nodePtr)->sendInterest(config->namedData.c_str());
+        check_and_cast<Ccn *>(ni->nodePtr)->sendBatchInterests(config->namedData.c_str(), 0, 1);  // TODO: Fix this for batch xfer
         break;
 
     case PRE_CACHE:
@@ -288,7 +288,7 @@ CcnAdmin::handleMessage (cMessage *msg)
                 << ", getKind()=" << msg->getKind()
                 << std::endl;
 
-        check_and_cast<Ccn *>(ni->nodePtr)->addToCache(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
+        check_and_cast<Ccn *>(ni->nodePtr)->addToCacheDummy(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
         break;
 
     case FWD_RULES:

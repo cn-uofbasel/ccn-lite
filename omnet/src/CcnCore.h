@@ -97,9 +97,6 @@ public:
     /** Add to cache a buffer of content chunks of equal size. Return the number of chunks successfully added to CS */
     int addToCacheFixedSizeChunks (const char *contentName, const int seqNumStart, const int numChunks, const char *chunkPtrs[], const int chunkSize);
 
-    /** Add to cache dummy content (a range of chunks of null content). Return the number of chunks added to CS */
-    int addToCacheDummyContent (const char *contentName, const int seqNumStart, const int numChunks, const int chunkSize);
-
     /** Add a FIB rule using L2 ID (MAC address). Return success/fail */
     bool addL2FwdRule (const char *contentName, const char *dstAddr, int localNetifIndex);
 

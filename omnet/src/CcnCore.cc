@@ -246,26 +246,6 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int seqNumStar
 
 
 /*****************************************************************************
- * add a range of chunks from the same content to the cache
- */
-int
-CcnCore::addToCacheDummyContent (const char *contentName, const int seqNumStart, const int numChunks, const int chunkSize)
-{
-    char *oneChunkBuffer = new char[chunkSize];
-    char **chunkPtrs = new char*[numChunks];
-
-    for (int i = 0 ; i < numChunks ; i++)
-        chunkPtrs[i] = oneChunkBuffer;
-
-    this->addToCacheFixedSizeChunks (contentName, seqNumStart, numChunks, (const char **) chunkPtrs, chunkSize);
-
-    //TODO: fix this to return the truth
-    DBG(Warn) << "UNDER CONSTRUCTION: Correct return value!" << std::endl;
-    return numChunks;
-};
-
-
-/*****************************************************************************
  * add a forwarding rule based on a L2 ID (MAC) to relay's FIB
  */
 bool

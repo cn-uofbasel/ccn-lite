@@ -18,7 +18,6 @@
 #include "CcnAdmin.h"
 #include "CcnCore.h"
 #include "CcnInet.h"
-//#include "StatsLog.h"
 
 
 
@@ -92,21 +91,8 @@ private:
     /**
      * Actors we use
      */
-    //StatsLog        *statsLogger;         /* statistics */
     CcnCore         *ccnCore;               /* ccn core stub */
     CcnAdmin        *scenarioAdmin;         /* ccn administrator module*/
-
-    /**
-     * Logger operations
-     */
-    //enum LoggerOp {
-    //    RESET_LOGGER = 1,
-    //    ADD_HOST_LOGS = 2,
-    //    REM_HOST_LOGS,
-    //    INIT_HOST_LOGGING,
-    //    LOG_DATA
-    //};
-
 
     /**
      * Callback object definitions (executed when timers expire)
@@ -189,19 +175,16 @@ protected:
 
 
     /**
-     *  used the CcnAdmin module
+     *  used by the CcnAdmin module
      */
-    void    dumpFIB ();
-    void    dumpCS ();
-    int     addToCache (const char *contentName, const int seqNumStart, const int numChunks);
-    bool    sendInterest (const char *contentName);
+    int     addToCacheDummy (const char *contentName, const int startChunk, const int numChunks);
+    bool    sendBatchInterests (const char *contentName, int startChunk, int numChunks);
     bool    addFwdRule (const char *contentName, FaceType faceTp, const char *dst, int aux);
 
 
 public:
 
     Ccn ():
-        //statsLogger(NULL),
         timerList(NULL),
         numMacIds(0),
         ccnCore(NULL),
