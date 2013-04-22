@@ -65,8 +65,8 @@ private:
             };
 
             struct {
-                int     startChunk;     // starting chunk in PRE_CACHE
-                int     numChunks;      // number of chunks in PRE_CACHE
+                int     startChunk;     // starting chunk in PRE_CACHE request
+                int     numChunks;      // number of chunks in PRE_CACHE request
             };
         };
     } ConfigRequest;
@@ -82,7 +82,7 @@ private:
         struct _NodeInfo    *next;
         struct _NodeInfo    *prev;
         int                 nodeId;         // getId() of Ccn module (NOT the node compound module); can also be arbitrary
-        cModule             *nodePtr;       // address of Ccn module (NOT the node compound module)
+        cModule             *nodePtr;       // ptr of Ccn module (NOT the node compound module)
         ConfigRequest       *configStart;
         ConfigRequest       *configEnd;
         int                 numConfigEvents;
@@ -115,7 +115,6 @@ public:
         registrySize(0),
         debugLevel(0)
     {return;};
-    //CcnAdmin () {return;};
 
     ~CcnAdmin ();
 
@@ -134,9 +133,6 @@ public:
     bool unRegisterCcnNode (cModule *node, int nodeId);
     bool parseNodeConfig (cModule *node, const std::string &file);
     void scheduleConfigEvents (cModule *node);
-
-    void dumpRegistry () {Enter_Method("CcnAdmin::dumpRegistry()"); return;};                 // TODO
-    void dumpNodeConfig (int nodeId) {Enter_Method("CcnAdmin::dumpNodeConfig()"); return;};     // TODO
 
 };
 

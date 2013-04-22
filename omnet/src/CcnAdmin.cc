@@ -28,7 +28,7 @@ Define_Module(CcnAdmin);
 
 
 /*****************************************************************************
- *
+ * Init omnet state
  */
 void
 CcnAdmin::initialize() {
@@ -83,7 +83,8 @@ CcnAdmin::~CcnAdmin()
 
 
 /*****************************************************************************
- *
+ * look up NodeInfo struct containing the configuration events, by the omnet
+ * assigned id of the Ccn Module
  */
 CcnAdmin::NodeInfo *
 CcnAdmin::getNodeInfo(int id)
@@ -91,7 +92,9 @@ CcnAdmin::getNodeInfo(int id)
     NodeInfo *ni;
 
     if (!id) {
-        DBG(Info) << getFullName() << " - getNodeInfo(int ID) called with ID=0" << std::endl;
+        DBG(Info) << getFullName()
+                << " - getNodeInfo(int ID) called with ID=0"
+                << std::endl;
         return 0;
     }
 
@@ -106,7 +109,8 @@ CcnAdmin::getNodeInfo(int id)
 
 
 /*****************************************************************************
- *
+ * look up NodeInfo struct containing the configuration events, by the
+ * Ccn object ptr
  */
 CcnAdmin::NodeInfo *
 CcnAdmin::getNodeInfo(cModule *module)
@@ -114,7 +118,9 @@ CcnAdmin::getNodeInfo(cModule *module)
     NodeInfo *ni;
 
     if (!module) {
-        DBG(Info) << getFullName() << " - getNodeInfo(cModule *module) called with module=0" << std::endl;
+        DBG(Info) << getFullName()
+                << " - getNodeInfo(cModule *module) called with module=0"
+                << std::endl;
         return 0;
     }
 
@@ -129,7 +135,7 @@ CcnAdmin::getNodeInfo(cModule *module)
 
 
 /*****************************************************************************
- *
+ * free configuration events for a node
  */
 void
 CcnAdmin::deleteNodeConfig(NodeInfo *node)
@@ -167,7 +173,8 @@ CcnAdmin::deleteNodeConfig(NodeInfo *node)
 
 
 /*****************************************************************************
- *
+ * parse events for the CcnAdmin module (typically exp timers for config
+ * operations)
  */
 void
 CcnAdmin::handleMessage (cMessage *msg)
@@ -294,8 +301,7 @@ CcnAdmin::handleMessage (cMessage *msg)
     case FWD_RULES:
     {
 
-        /* For now ether rules only
-         * TODO: extend for socket rules as well as for ppp too
+        /* For now we process MAC addr based FIB rules only
          */
         if (! config->nextHop->getSubmodule("mac") )
             opp_error("Node module '%s' has no 'mac' submodule (not IEtherMAC compatible)", config->nextHop->getFullPath().c_str());
@@ -357,7 +363,7 @@ CcnAdmin::handleMessage (cMessage *msg)
 
 
 /*****************************************************************************
- *
+ * add registry record for the configuration of a new CCN node
  */
 bool
 CcnAdmin::registerCcnNode (cModule *node, int nodeId)
@@ -407,11 +413,11 @@ CcnAdmin::registerCcnNode (cModule *node, int nodeId)
 
     /**
      * NOTE!! We do not check if the information provided is consistent
-     * in the context of the simulation environment.
+     * in the context of the current simulation environment.
      * (Eg. that the module ID corresponds to the module pointer).
      *
-     * We are thus free to use the module ID as a node ID, or an arbitrary
-     * ID
+     * We are thus free to use the module ID as a node ID, or else
+     * an arbitrary ID
      */
 
     return false;
@@ -420,7 +426,7 @@ CcnAdmin::registerCcnNode (cModule *node, int nodeId)
 
 
 /*****************************************************************************
- *
+ * remove the registry record for a CCN node (we dispose its config info)
  */
 bool
 CcnAdmin::unRegisterCcnNode (cModule *node, int nodeId)
@@ -469,7 +475,8 @@ CcnAdmin::unRegisterCcnNode (cModule *node, int nodeId)
 
 
 /*****************************************************************************
- *
+ * go through the configuration record of a node in the registry and schedule
+ * timers for configuration events in the course of the simulation
  */
 bool
 CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
@@ -516,11 +523,6 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
     }
 
 
-
-
-    enum { eInterestMode, ePreCacheMode, eFwdRulesMode, eCommentsMode } mode = eInterestMode;
-
-
     /* Open config file for reading.
      */
     if (!file.is_open()) {
@@ -536,6 +538,8 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
     /* Start line-by-line parsing
      */
+    enum { eInterestMode, ePreCacheMode, eFwdRulesMode, eCommentsMode } mode = eInterestMode;
+
     while(file.good())  {
 
         getline(file,line);
@@ -613,7 +617,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
              * section (i.e. time an Interest should be expressed).
              *
              * C style, C++ style and shell file style comments allowed (thanks
-             * to Thomas !!)
+             * to Thomas' cool function !!)
              */
 
             std::string  contentName;
@@ -797,7 +801,6 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                     prefixSet = 1;
                 }
                 else if (qualifyerName == "NextHop")  {
-                    //TEST_DO( iter.parseConstCharacters("123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", nextHop), errMsg = "EXPECTING ALPHANUMERIC AFTER 'NextHopId ='"; );
                     TEST_DO( iter.parseIdentifierWithIndex(nextHop), errMsg = "EXPECTING A STRING (e.g. 'client1.eth[2]') AFTER 'NextHop =' "; );
                     nextHopSet = 1;
                 }
@@ -920,7 +923,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
 
 /*****************************************************************************
- * Set timers for scheduling the scenario configuration updates of a node
+ * set timers for scheduling the scenario configuration updates of a node
  */
 void
 CcnAdmin::scheduleConfigEvents (cModule *node)

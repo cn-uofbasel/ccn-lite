@@ -1007,7 +1007,7 @@ ccnl_app_RX(
 {
     int i;
     char tmp[200], tmp2[10];
-    struct ccnl_prefix_s *p = c->prefix;
+    struct ccnl_prefix_s *p = c->name;
 
     active_relay = (struct ccnl_relay_s *) relay;
     if (!active_relay) return;

@@ -42,14 +42,10 @@ are therefore tailored to OMNeT++ ver 4.2.2.
 To use CCN-lite with OMNeT++ in any meaningful experiments
 you will need at least a version of the INET framework to
 provide MAC level and socket level support. This version of
-CCN-lite has been tested to work with inet-1.99.4 (March 21,
-2012), which can be acquired at
+CCN-lite has been tested to work with inet-2.1.0 (latest 
+stable ver by April 22, 2013), which can be acquired at
 
 http://inet.omnetpp.org/index.php?n=Main.Download
-
-The latest stable version of INET (2.1.0 for OMNeT++ 4.2)
-should also work, possibly with some minor modifications.
-More on this soon.
 
 Last, if you wish to experiment with wireless topologies,
 although you can stick to the basic support of INET, we

@@ -63,7 +63,7 @@ module CcnMacNode
 
         for i=0..sizeof(ethg)-1 {
             ethg[i] <--> eth[i].phys;
-            eth[i].netwOut --> net.ifIn++;		// NOTE: in the latest version of INET the gates netwIn/Out at IWiredNic have been renamed to upperLayerIn/Out
-            eth[i].netwIn <-- net.ifOut++;
+            eth[i].upperLayerOut --> net.ifIn++;	// NOTE: in older versions of INET the gates upperLayerIn/Out at IWiredNic were named netwIn/Out
+            eth[i].upperLayerIn <-- net.ifOut++;
         }
 }
