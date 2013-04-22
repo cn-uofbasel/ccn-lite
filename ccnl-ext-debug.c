@@ -300,7 +300,7 @@ ccnl_dump(int lev, int typ, void *p)
 	    fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
 		   (void *) con, (void *) con->next, (void *) con->prev,
 		   con->last_used, con->served_cnt);
-	    ccnl_dump(lev+1, CCNL_PREFIX, con->prefix);
+	    ccnl_dump(lev+1, CCNL_PREFIX, con->name);
 	    ccnl_dump(lev+1, CCNL_BUF, con->data);
 	    con = con->next;
 	}
@@ -472,7 +472,7 @@ debug_memdump()
 
 #define free_prefix(p)	do{ if(p) \
 			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
-#define free_content(c) do{ free_prefix(c->prefix); \
+#define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->data, c); } while(0)
 
 // -----------------------------------------------------------------

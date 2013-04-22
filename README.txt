@@ -48,7 +48,8 @@ should cover:
 
 - ccnb encoding of messages (PDU level compatibility)
 - PIT and FIB (CCN basic data structures)
-- longest prefix matching (for basic CCN operations)
+- longest prefix matching (for basic CCN operations),
+  including minsuffixcomp und maxsuffixcomp handling
 - matching of publisher's public key (to fight cache poisoning)
 - nonce tracking (to avoid loops as a minimal safeguard)
 
@@ -66,8 +67,9 @@ What we do NOT cover in our CCN-lite code is:
 
 - sophisticated data structures for performance optimisations (it's up to
   you to exchange the linked lists with whatever fits your needs)
-- negative content selection (the cumbersome to use Bloom filters etc),
-  and scoping
+- exclusion filtering in interests i.e., negative content selection
+  like the cumbersome to use Bloom filters
+- matching the implicit SHA256 component of content objects
 - all TCP connectivity and CCNx cmd line utilities that have TCP
   hardwired into them (we are datagram purists)
 - crypto functionality, which here is not our prime concern

@@ -22,7 +22,7 @@
  */
 
 #define EXACT_MATCH 1
-#define LOOSE_MATCH 0
+#define PREFIX_MATCH 0
 
 #define CCNL_FACE_FLAGS_STATIC	1
 #define CCNL_FACE_FLAGS_REFLECT	2
@@ -151,6 +151,7 @@ struct ccnl_interest_s {
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     struct ccnl_prefix_s *prefix;
+    int minsuffix, maxsuffix;
     struct ccnl_buf_s *ppkd;	   // publisher public key digest
     struct ccnl_buf_s *data;	   // full datagram
     int last_used;
@@ -165,7 +166,7 @@ struct ccnl_pendint_s { // pending interest
 
 struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
-    struct ccnl_prefix_s *prefix;
+    struct ccnl_prefix_s *name;
     struct ccnl_buf_s *ppkd; // publisher public key digest
     struct ccnl_buf_s *data; // full datagram
     int flags;

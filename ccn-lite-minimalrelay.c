@@ -60,7 +60,7 @@
 
 #define free_prefix(p)	do{ if(p) \
 			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
-#define free_content(c) do{ free_prefix(c->prefix); \
+#define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->data, c); } while(0)
 
 #define ccnl_addr2ascii(sup)		inet_ntoa((sup)->ip4.sin_addr)

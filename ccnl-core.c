@@ -20,7 +20,7 @@
  * 2011-04-09 created
  */
 
-#define CCNL_VERSION "2013-04-14"
+#define CCNL_VERSION "2013-04-20"
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
@@ -47,27 +47,22 @@ ccnl_buf_new(void *data, int len)
 			 !memcmp(X->data,Y->data,X->datalen))
 
 int
-ccnl_prefix_cmp(struct ccnl_prefix_s *p1, struct ccnl_prefix_s *p2, char exact)
+ccnl_prefix_cmp(struct ccnl_prefix_s *nm, struct ccnl_prefix_s *p, char exact)
 /* returns -1 if no match at all, or exact match failed
    returns  0 if full match
-   returns n>0 for matched components */
+   returns n>0 for matched components+1 */
 {
-    int i, maxc;
+    int i;
     DEBUGMSG(99, "ccnl_prefix_cmp\n");
 
-    if (exact && p1->compcnt != p2->compcnt)
+    if (nm->compcnt < p->compcnt)
 	return -1;
-    maxc = p1->compcnt;
-    if (maxc > p2->compcnt)
-	maxc = p2->compcnt;
-    if (maxc <= 0)
-	return -1;
-    for (i = 0; i < maxc; i++) {
-	if (p1->complen[i] != p2->complen[i] ||
-			memcmp(p1->comp[i], p2->comp[i], p1->complen[i]))
-	    return (i == 0 || exact) ? -1 : i;
+    for (i = 0; i < p->compcnt; i++) {
+	if (nm->complen[i] != p->complen[i] ||
+	    memcmp(nm->comp[i], p->comp[i], p->complen[i]))
+	    return -1;
     }
-    if (p1->compcnt == p2->compcnt)
+    if (i > nm->compcnt)
 	return 0;
     return exact ? -1 : i;
 }
@@ -135,8 +130,20 @@ consume(int typ, int num, unsigned char **buf, int *len,
 }
 
 int
+data2uint(unsigned char *cp, int len)
+{
+    int i, val = 0;
+    for (i = 0; i < len; i++)
+	if (isdigit(cp[i]))
+	    val = 10*val + cp[i] - '0';
+	else
+	    return -1;
+    return val;
+}
+
+int
 ccnl_extract_prefix_nonce_ppkd(struct ccnl_buf_s *pkt,
-			       int *scope,
+			       int *scope, int *min, int *max,
 			       struct ccnl_prefix_s **prefix,
 			       struct ccnl_buf_s **nonce,
 			       struct ccnl_buf_s **ppkd,
@@ -161,47 +168,47 @@ ccnl_extract_prefix_nonce_ppkd(struct ccnl_buf_s *pkt,
     if (num != CCN_DTAG_INTEREST && num != CCN_DTAG_CONTENTOBJ) goto Bail;
 
     while (dehead(&data, &datalen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
-	    for (;;) {
-		if (dehead(&data, &datalen, &num, &typ) != 0) goto Bail;
-		if (num==0 && typ==0)
-		    break;
-		if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
-		    p->compcnt < CCNL_MAX_NAME_COMP) {
-		    if (consume(typ, num, &data, &datalen,
-				p->comp + p->compcnt,
+	if (num==0 && typ==0) break; // end
+	if (typ == CCN_TT_DTAG) {
+	    if (num == CCN_DTAG_NAME) {
+		for (;;) {
+		    if (dehead(&data, &datalen, &num, &typ) != 0) goto Bail;
+		    if (num==0 && typ==0)
+			break;
+		    if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
+			p->compcnt < CCNL_MAX_NAME_COMP) {
+			if (hunt_for_end(&data, &datalen, p->comp + p->compcnt,
 				p->complen + p->compcnt) < 0) goto Bail;
-		    p->compcnt++;
-		} else {
-		    if (consume(typ, num, &data, &datalen, 0, 0) < 0) goto Bail;
+			p->compcnt++;
+		    } else {
+			if (consume(typ, num, &data, &datalen, 0, 0) < 0)
+			    goto Bail;
+		    }
 		}
+		continue;
 	    }
-	    continue;
-	}
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_SCOPE && scope) {
-	    if (consume(typ, num, &data, &datalen, &cp, &len) < 0) goto Bail;
-	    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
-	    continue;
-	}
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_NONCE && !n) {
-	    if (consume(typ, num, &data, &datalen, &cp, &len) < 0) goto Bail;
-	    n = ccnl_buf_new(cp, len);
-	    continue;
-	}
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_PUBPUBKDIGEST && !pub) {
-	    if (consume(typ, num, &data, &datalen, &cp, &len) < 0) goto Bail;
-	    pub = ccnl_buf_new(cp, len);
-	    continue;
-	}
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_CONTENT) {
-	    if (dehead(&data, &datalen, &num, &typ) != 0) goto Bail;
-	    if (typ != CCN_TT_BLOB) goto Bail;
-	    if (content) *content = data;
-	    if (contlen) *contlen = num;
-	    if (consume(typ, num, &data, &datalen, 0, 0) < 0) goto Bail;
-	    continue;
+	    if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
+		num == CCN_DTAG_MINSUFFCOMP || num == CCN_DTAG_MAXSUFFCOMP ||
+					 num == CCN_DTAG_PUBPUBKDIGEST) {
+		if (hunt_for_end(&data, &datalen, &cp, &len) < 0) goto Bail;
+		if (num == CCN_DTAG_SCOPE && len == 1 && scope)
+		    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
+		if (num == CCN_DTAG_MINSUFFCOMP && min)
+		    *min = data2uint(cp, len);
+		if (num == CCN_DTAG_MAXSUFFCOMP && max)
+		    *max = data2uint(cp, len);
+		if (num == CCN_DTAG_NONCE && !n)
+		    n = ccnl_buf_new(cp, len);
+		if (num == CCN_DTAG_PUBPUBKDIGEST && !pub)
+		    pub = ccnl_buf_new(cp, len);
+		continue;
+	    }
+	    if (num == CCN_DTAG_CONTENT) {
+		if (dehead(&data, &datalen, &num, &typ) != 0) goto Bail;
+		if (typ != CCN_TT_BLOB) goto Bail;
+		if (content) *content = data;
+		if (contlen) *contlen = num;
+	    }
 	}
 	if (consume(typ, num, &data, &datalen, 0, 0) < 0) goto Bail;
     }
@@ -274,7 +281,7 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
 // sa!=NULL && ifndx==-1: search suitable interface for given sa_family
 // sa!=NULL && ifndx!=-1: use this (incoming) interface for outgoing
 {
-    static int seqno;
+    static int seqno, i;
     struct ccnl_face_s *f;
     DEBUGMSG(10, "ccnl_get_face_or_create src=%s\n",
 	     sa ? ccnl_addr2ascii((sockunion*)sa) : "(local)");
@@ -292,7 +299,6 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
     }
 
     if (sa && ifndx == -1) {
-	int i;
 	for (i = 0; i < ccnl->ifcount; i++) {
 	    if (sa->sa_family != ccnl->ifs[i].addr.sa.sa_family)
 		continue;
@@ -302,7 +308,6 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
 	if (ifndx == -1) // no suitable interface found
 	    return NULL;
     }
-
     DEBUGMSG(99, "  found suitable interface %d for %s\n", ifndx,
 	     sa ? ccnl_addr2ascii((sockunion*)sa) : "(local)");
 
@@ -571,8 +576,8 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-		 struct ccnl_buf_s **data, struct ccnl_prefix_s **prefix,
-		 struct ccnl_buf_s **ppkd)
+		  struct ccnl_buf_s **data, struct ccnl_prefix_s **prefix,
+		  int minsuffix, int maxsuffix, struct ccnl_buf_s **ppkd)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
 					    sizeof(struct ccnl_interest_s));
@@ -584,28 +589,11 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->prefix = *prefix;        *prefix = 0;
     i->data = *data;            *data = 0;
     i->ppkd = *ppkd;		*ppkd = 0;
+    i->minsuffix = minsuffix;
+    i->maxsuffix = maxsuffix;
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
     return i;
-}
-
-struct ccnl_interest_s*
-ccnl_interest_find_exact(struct ccnl_relay_s *ccnl,
-			 struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd)
-{
-    struct ccnl_interest_s *i; // , *besti = NULL;
-    int rc; // , bestmatch = -1;
-    DEBUGMSG(99, "ccnl_interest_find_exact\n");
-
-    for (i = ccnl->pit; i; i = i->next) {
-	rc = ccnl_prefix_cmp(prefix, i->prefix, EXACT_MATCH);
-	if (rc == 0) {
-	    if (!ppkd || !i->ppkd || buf_equal(ppkd, i->ppkd))
-		return i;
-	    continue;
-	}
-    }
-    return NULL;
 }
 
 int
@@ -649,7 +637,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // transmit an Interest Message on all listed dest faces in sequence."
     // CCNL strategy: we forward on the face(s) with the longest prefix match
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(fwd->prefix, i->prefix, LOOSE_MATCH);
+	int rc = ccnl_prefix_cmp(i->prefix, fwd->prefix, PREFIX_MATCH);
 	if (rc == 0) {
 	    best = fwd;
 	    break;
@@ -663,7 +651,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     if (!best)
 	return;
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(fwd->prefix, i->prefix, LOOSE_MATCH);
+	int rc = ccnl_prefix_cmp(i->prefix, fwd->prefix, PREFIX_MATCH);
 	if (rc == maxmatch) {
 	    // suppress forwarding to origin of interest, except wireless
 	    if (!i->from || fwd->face != i->from ||
@@ -695,20 +683,26 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 // ----------------------------------------------------------------------
 // handling of content messages
 
-struct ccnl_content_s*
-ccnl_content_find_exact(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		       struct ccnl_buf_s *ppkd)
+int
+ccnl_i_matches_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
+		 int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
-    struct ccnl_content_s *c;
-    int rc;
-    DEBUGMSG(99, "ccnl_content_find_exact\n");
+    DEBUGMSG(99, "ccnl_i_matches_c %s %d %d\n",
+	     ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
 
-    for (c = ccnl->contents; c; c = c->next) {
-	rc = ccnl_prefix_cmp(prefix, c->prefix, EXACT_MATCH);
-	if (rc == 0 && (!ppkd || !c->ppkd || buf_equal(ppkd, c->ppkd)))
-	    return c;
-    }
-    return NULL;
+    // CONFORM: we do longest prefix match, honour min. and maxsuffix,
+    // and check the PublisherPublicKeyDigest if present
+
+    // NON-CONFORM: we do not compare the content's implicit SHA256 component
+
+    // NON-CONFORM: "Note that to match a ContentObject must satisfy
+    // all of the specifications given in the Interest Message."
+    // >> CCNL does not honour the exclusion filtering
+
+    return (ccnl_prefix_cmp(c->name, prefix, PREFIX_MATCH) >= 0 &&
+	    (prefix->compcnt + minsuffix) <= c->name->compcnt &&
+	    (prefix->compcnt + maxsuffix) >= c->name->compcnt &&
+	    ((!ppkd && !(c->ppkd))|| buf_equal(ppkd, c->ppkd)) );
 }
 
 struct ccnl_content_s*
@@ -727,7 +721,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_buf_s **data,
     *data = NULL;
     c->content = content;
     c->contentlen = contlen;
-    c->prefix = *prefix;
+    c->name = *prefix;
     *prefix = NULL;
     if (ppkd) {
 	c->ppkd = *ppkd;
@@ -785,36 +779,27 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     for (f = ccnl->faces; f; f = f->next)
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
     for (i = ccnl->pit; i;) {
-	int rc = ccnl_prefix_cmp(c->prefix, i->prefix, LOOSE_MATCH);
-	DEBUGMSG(40, "  serve_pending, prefix match returned %d\n", rc);
-	if (rc != -1 && (rc == 0 || c->prefix->compcnt > i->prefix->compcnt)) {
-	    struct ccnl_pendint_s *pi;
-	    // CONFORM: "If the PublisherPublicKeyDigest element is present
-	    // in the Interest, the associated value (a SHA-256 digest) must
-	    // be equal to the value of the PublisherPublicKeyDigest of the
-	    // ContentObject for there to be a match."
-	    if (i->ppkd && !buf_equal(i->ppkd, c->ppkd)) {
-		i = i->next;
-		continue;
-	    }
-	    // CONFORM: "Data MUST only be transmitted in response to
-	    // an Interest that matches the Data."
-	    for (pi = i->pending; pi; pi = pi->next) {
-		if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
-		    continue;
-		pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
-		if (pi->face->ifndx >= 0) {
-		    ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
-		    ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->data));
-		}
-		else // upcall to deliver content to local client
-		    ccnl_app_RX(ccnl, c);
-		c->served_cnt++;
-		cnt++;
-	    }
-	    i = ccnl_interest_remove(ccnl, i);
-	} else
+	struct ccnl_pendint_s *pi;
+	if (!ccnl_i_matches_c(i->prefix, i->ppkd,
+			      i->minsuffix, i->maxsuffix, c)) {
 	    i = i->next;
+	    continue;
+	}
+	// CONFORM: "Data MUST only be transmitted in response to
+	// an Interest that matches the Data."
+	for (pi = i->pending; pi; pi = pi->next) {
+	    if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
+		continue;
+	    pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
+	    if (pi->face->ifndx >= 0) {
+		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
+		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->data));
+	    } else // upcall to deliver content to local client
+		ccnl_app_RX(ccnl, c);
+	    c->served_cnt++;
+	    cnt++;
+	}
+	i = ccnl_interest_remove(ccnl, i);
     }
     return cnt;
 }
@@ -892,15 +877,13 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	      unsigned char *data, int datalen,
 	      struct sockaddr *sa, int addrlen)
 {
-    int rc = -1, scope = 3;
-    struct ccnl_buf_s *buf = 0;
+    int rc=-1, scope=3, minsuffix=0, maxsuffix=CCNL_MAX_NAME_COMP, contlen;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *prefix = 0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
     struct ccnl_face_s *from = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0;
     unsigned char *content;
-    int contlen;
     DEBUGMSG(99, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen,
@@ -913,8 +896,8 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 
     buf = ccnl_encaps_handle_fragment(relay, from, data, datalen);
     if (!buf) goto Done;
-    if (ccnl_extract_prefix_nonce_ppkd(buf, &scope, &prefix, &nonce, &ppkd,
-				      &content, &contlen) || !prefix) {
+    if (ccnl_extract_prefix_nonce_ppkd(buf, &scope, &minsuffix, &maxsuffix,
+		    &prefix, &nonce, &ppkd,  &content, &contlen) || !prefix) {
 	DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
     if (ccnl_is_interest(buf)) {
@@ -929,11 +912,10 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	    DEBUGMSG(1, "  dropped because of duplicate nonce\n"); goto Done;
 	}
 	// CONFORM: Step 1:
-	c = ccnl_content_find_exact(relay, prefix, ppkd);
-	// NON-CONFORM: "Note that to match a ContentObject must satisfy
-	// all of the specifications given in the Interest Message."
-	// >> CCNL only considers prefix and PublisherPubKDigest <<
-	if (c) { // we have the content, return to interest sending face
+	for (c = relay->contents; c; c = c->next)
+	    if (ccnl_i_matches_c(prefix, ppkd, minsuffix, maxsuffix, c))
+		break;
+	if (c) { // we have matching content, return to interest sending face
 	    DEBUGMSG(5, "  matching content for interest, content %p\n", (void *) c);
 	    ccnl_print_stats(relay, STAT_SND_C); //log sent_c
 	    if (from->ifndx >= 0)
@@ -942,11 +924,16 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 		ccnl_app_RX(relay, c);
 	    rc = 0; goto Done;
 	}
-	// CONFORM: Step 2:
-	i = ccnl_interest_find_exact(relay, prefix, ppkd);
-	DEBUGMSG(5, "  matching interest is %p\n", (void *) i);
-	if (!i) { // this is a new I request: create and propagate
-	    i = ccnl_interest_new(relay, from, &buf, &prefix, &ppkd);
+	// CONFORM: Step 2: check whether interest is already known
+	for (i = relay->pit; i; i = i->next) {
+	    if (ccnl_prefix_cmp(i->prefix, prefix, EXACT_MATCH) == 0 &&
+		i->minsuffix == minsuffix && i->maxsuffix == maxsuffix && 
+		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
+		break;
+	}
+	if (!i) { // this is a new/unknown I request: create and propagate
+	    i = ccnl_interest_new(relay, from, &buf, &prefix,
+				  minsuffix, maxsuffix, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(5, "  created new interest entry %p\n", (void *) i);
 		if (scope > 2)
@@ -962,10 +949,11 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx,
 	}
 	rc = 0; goto Done;
     } else if (ccnl_is_content(buf)) {
+	DEBUGMSG(6, "  content for <%s>\n", ccnl_prefix_to_path(prefix));
 	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 	// CONFORM: Step 1:
-	c = ccnl_content_find_exact(relay, prefix, ppkd);
-	if (c) goto Done; // content is dup
+	for (c = relay->contents; c; c = c->next)
+	    if (buf_equal(c->data, buf)) goto Done; // content is dup
 	c = ccnl_content_new(relay, &buf, &prefix, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
