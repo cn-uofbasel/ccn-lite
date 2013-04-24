@@ -223,12 +223,12 @@ void Ccn::initialize(int stage)
         }
 
         EV << this->getFullPath()
-                << "(Init 0) Set node configuration:"
-                << "\n  minTxPace=" << this->minInterTxTime << "ms"
-                << "\n  maxCacheSlots=" << this->maxCacheSlots
-                << "\n  maxCacheBytes=" << this->maxCacheBytes << "bytes"
-                << "\n  ccnScenarioFile=" << this->nodeScenarioFile
-                << "\n  version of CCN core=" << this->verCore
+                << "\n   (Init 0) Set node configuration:"
+                << "\t  minTxPace=" << this->minInterTxTime << "ms"
+                << "\t  maxCacheSlots=" << this->maxCacheSlots
+                << "\t  maxCacheBytes=" << this->maxCacheBytes << "bytes"
+                << "\t  ccnScenarioFile=" << this->nodeScenarioFile
+                << "\t  version of CCN core=" << this->verCore
                 << std::endl;
     }
     else if(stage == 1)
@@ -257,7 +257,7 @@ void Ccn::initialize(int stage)
 
         if ( scenarioAdmin == 0 ) {
             DBG(Err) << this->getFullPath()
-                    << "No scenario administrator module (CcnAdmin) found in this network"
+                    << " - No scenario administrator module (CcnAdmin) found in this network"
                     << std::endl;
 
             opp_error("Cannot find a CCN Scenario Administrator module! Aborting simulation");
@@ -269,7 +269,7 @@ void Ccn::initialize(int stage)
         timerList = new TimerList(CCNL_MAX_TIMERS);
         if (!timerList) {
             DBG(Err) << this->getFullPath()
-                    << "Failed to allocate a TimersList object, for holding a default of"
+                    << " - Failed to allocate a TimersList object, for holding a default of"
                     << CCNL_MAX_TIMERS << " timers"
                     << std::endl;
             opp_error(" Timer list for module %s could not be initialized! ", this->getFullName());
@@ -300,9 +300,9 @@ void Ccn::initialize(int stage)
 
 
         EV << this->getFullPath()
-                << "(Init 1) Internal node state:"
-                << "\n  Timer list set to hold max " << timerList->size() << " timers"
-                << "\n  Node configured with " << numMacIds << " MAC ids:"
+                << "\n   (Init 1) Internal node state:"
+                << "\t  Timer list set to hold max " << timerList->size() << " timers"
+                << "\t  Node configured with " << numMacIds << " MAC ids:"
                 << std::endl;
         for (int i = 0 ; i < numMacIds; i++) {
             EV << "\t " << macIds[i].str() << std::endl;
@@ -326,7 +326,7 @@ void Ccn::initialize(int stage)
         if (! scenarioAdmin->registerCcnNode (this, this->getId()))
         {
             DBG(Detail) << getFullPath()
-                    << "Ccn module failed to register itself -registerCcnNode()- with the CcnAdmin module!"
+                    << " - Ccn module failed to register itself -registerCcnNode()- with the CcnAdmin module!"
                     << std::endl;
 
             opp_error("Registration of CCN node for the scenario failed. Abort");  //TODO
@@ -342,8 +342,8 @@ void Ccn::initialize(int stage)
         if ( !scenarioAdmin->parseNodeConfig (this, nodeScenarioFile) )
         {
             EV << getFullPath()
-                    << "Parsing of scenario configuration for CCN node failed, this can be critical"
-                    << "\n  Simulation will proceed with vanilla state for node" << std::endl;
+                    << "\n Parsing of scenario configuration for CCN node failed, this can be critical"
+                    << "\t  Simulation will proceed with vanilla state for node" << std::endl;
 
             // TODO: raise exception here ?
         }
@@ -354,10 +354,10 @@ void Ccn::initialize(int stage)
 
 
         EV << this->getFullPath()
-                << "(Init 2) Net state, and scenario config:"
-                << "\n  Registered node with the CCN admin module - " << isRegistered
-                << "\n  Processed scenario configuration - " << configuredScenario
-                << "\n  Started Ext Logger - " << startedLogger
+                << "\n   (Init 2) Net state, and scenario config:"
+                << "\t  Registered node with the CCN admin module - " << isRegistered
+                << "\t  Processed scenario configuration - " << configuredScenario
+                << "\t  Started Ext Logger - " << startedLogger
                 << std::endl;
 
     }
@@ -371,8 +371,8 @@ void Ccn::initialize(int stage)
         this->ccnCore = new CcnCore (this, mdlNode->getName(), this->verCore.c_str());
 
         EV << this->getFullPath()
-                << "(Init 3) CCN Core init"
-                << "\n   Spawned a new CcnCore " << ccnCore->info()
+                << "\n   (Init 3) CCN Core init"
+                << "\t   Spawned a new CcnCore " << ccnCore->info()
                 << std::endl;
     }
 

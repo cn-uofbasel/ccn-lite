@@ -34,13 +34,20 @@ private:
 
     /**
      * Various possible scenario configuration options
-     */
+     *
     enum ConfigType {
         eI_MODE = 0, SHOW_INTEREST = 0,
         ePC_MODE = 1, PRE_CACHE=1,
         eFR_MODE = 2, FWD_RULES=2
     };
+     */
 
+    enum ConfigType {   // left is the section name in the config file, right is resp. config cmd
+        eCommentsMode = 0, NOOP=0,
+        eInterestMode = 1, SEND_INTEREST = 1,
+        ePreCacheMode = 2, PRE_CACHE=2,
+        eFwdRulesMode = 3, ADD_FWD_RULES=3
+    };
 
 
     /**
@@ -55,18 +62,18 @@ private:
         cMessage        *event;         // ptr to event that will trigger the config action
 
         ConfigType      type;           // ConfigType enum value
-        std::string     namedData;      // Named content prefix
+        std::string     namedData;      // Named content (prefix)
         double          execTime;       // time of execution
 
         union {
-            struct {
+            struct {  // FIB rule (ADD_FWD_RULE)
                 cModule *nextHop;
                 cModule *accessFrom;
             };
 
-            struct {
-                int     startChunk;     // starting chunk in PRE_CACHE request
-                int     numChunks;      // number of chunks in PRE_CACHE request
+            struct {  // Add to cache content (PRE_CACHE) and Interest request (SEND_INTEREST)
+                int     startChunk;     // starting chunk in PRE_CACHE request or I-request
+                int     numChunks;      // number of chunks in PRE_CACHE request or I-request
             };
         };
     } ConfigRequest;

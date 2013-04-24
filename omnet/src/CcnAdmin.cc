@@ -275,7 +275,7 @@ CcnAdmin::handleMessage (cMessage *msg)
      */
     switch ( msg->getKind() )
     {
-    case SHOW_INTEREST:
+    case SEND_INTEREST:
         DBG(Detail) << getFullName()
                 << " - Initiate Interest (time= "<< simTime() << "):"
                 << "\n   " << ni->nodePtr->getFullPath() << " --ccn[I]--> " <<  config->namedData
@@ -283,7 +283,7 @@ CcnAdmin::handleMessage (cMessage *msg)
                 << ", getKind()=" << msg->getKind()
                 << std::endl;
 
-        check_and_cast<Ccn *>(ni->nodePtr)->sendBatchInterests(config->namedData.c_str(), 0, 1);  // TODO: Fix this for batch xfer
+        check_and_cast<Ccn *>(ni->nodePtr)->sendBatchInterests(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
         break;
 
     case PRE_CACHE:
@@ -298,7 +298,7 @@ CcnAdmin::handleMessage (cMessage *msg)
         check_and_cast<Ccn *>(ni->nodePtr)->addToCacheDummy(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
         break;
 
-    case FWD_RULES:
+    case ADD_FWD_RULES:
     {
 
         /* For now we process MAC addr based FIB rules only
@@ -538,7 +538,8 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
     /* Start line-by-line parsing
      */
-    enum { eInterestMode, ePreCacheMode, eFwdRulesMode, eCommentsMode } mode = eInterestMode;
+    //enum { eInterestMode, ePreCacheMode, eFwdRulesMode, eCommentsMode } mode = eInterestMode;
+    ConfigType mode = NOOP;
 
     while(file.good())  {
 
@@ -621,8 +622,10 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
              */
 
             std::string  contentName;
+            int     startChunk = 0;
+            int     noChunks = 0;
             double  contentReqTime;
-            char    nameSet =0, timeSet=0;
+            char    nameSet =0, startChunkSet=0, noChunksSet=0, timeSet=0;
 
 
             while ( !iter.peekEnd() )  {
@@ -645,6 +648,14 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                     TEST_DO( iter.parseIdentifier(contentName), errMsg = "EXPECTING A STRING AFTER 'ContentName =' "; );
                     nameSet = 1;
                 }
+                else if (qualifyerName == "StartChunk")  {
+                    TEST_DO( iter.parseNumber(startChunk), errMsg = "EXPECTING NUMERIC AFTER 'StartChunk ='"; );
+                    startChunkSet = 1;
+                }
+                else if (qualifyerName == "ChunksCount") {
+                    TEST_DO( iter.parseNumber(noChunks), errMsg = "EXPECTING NUMERIC AFTER 'ChunksCount ='"; );
+                    noChunksSet = 1;
+                }
                 else if (qualifyerName == "RequestTime")  {
                     TEST_DO( iter.parseNumber(contentReqTime), errMsg = "EXPECTING NUMERIC AFTER 'RequestTime ='"; );
                     timeSet = 1;
@@ -659,8 +670,8 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
             /* Check that we have in one line named object and timed interest
              */
-            if (!nameSet || !timeSet)
-                TEST_DO( false, errMsg = "NOT BOTH 'ContentName =<str>' AND 'RequestTime =<num>' WERE SPECIFIED"; );
+            if (!nameSet || !startChunkSet || !noChunksSet || !timeSet)
+                TEST_DO( false, errMsg = "NOT ALL 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'RequestTime =<num>' WERE SPECIFIED"; );
 
 
             /* .. almost done, create and chain up event record (ConfigRequest)
@@ -674,14 +685,17 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                 req_list_end = req_list_end->next;
             }
 
-            req_list_end->type = eI_MODE;
+            req_list_end->type = SEND_INTEREST;
             req_list_end->namedData = contentName;
             req_list_end->execTime = contentReqTime;
+            req_list_end->startChunk = startChunk;
+            req_list_end->numChunks = noChunks;
             req_list_end->next = (ConfigRequest *) NULL;
             req_list_end->isScheduled = false;
             req_list_end->isExecuted = false;
             req_list_end->nodeId = ni->nodeId;
             req_list_end->event = 0;
+
         }
         else if (mode == ePreCacheMode)
         {
@@ -740,7 +754,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             /* Check we have everything we need in one line (content name and chunk range)
              */
             if (!nameSet || !startChunkSet || !noChunksSet || !updateTimeSet)
-                TEST_DO( false, errMsg = "NOT ALL 'ContentName =<str>' AND 'ContentStartChunk =<num>' AND 'ChunksCount =<num>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
+                TEST_DO( false, errMsg = "NOT ALL 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
 
 
             /* .. almost done, create and chain up ConfigRequest
@@ -754,7 +768,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                 req_list_end = req_list_end->next;
             }
 
-            req_list_end->type = ePC_MODE;
+            req_list_end->type = PRE_CACHE;
             req_list_end->namedData = contentName;
             req_list_end->execTime = updateTime;
             req_list_end->startChunk = startChunk;
@@ -827,7 +841,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             if (!accessFromSet) {
                 DBG(Warn) << getFullName()
                         << " - 'AccessFrom = ' qualifier has not been set in line " << lineno << " in " << configFile
-                        << "\n  I will try to setup fwd rule on all node interfaces to activate broadcasting"
+                        << "\n  I might try to setup fwd rule on all node interfaces to activate broadcasting"
                         << std::endl;
             }
 
@@ -837,7 +851,6 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             cModule * topologyLevel = getParentModule();      // climb up to the network level of the hierarchy
             cModule * localNetif = (accessFromSet) ? topologyLevel->getModuleByRelativePath(accessFrom.c_str()) : NULL;
             cModule * nextHopNetif = topologyLevel->getModuleByRelativePath(nextHop.c_str());
-
 
 
             if (    (nextHopNetif == NULL) ||
@@ -882,7 +895,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                 req_list_end = req_list_end->next;
             }
 
-            req_list_end->type = eFR_MODE;
+            req_list_end->type = ADD_FWD_RULES;
             req_list_end->namedData = contentPrefix;
             req_list_end->execTime = updateTime;
             req_list_end->nextHop = nextHopNetif;
@@ -915,7 +928,6 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
     DBG(Err) << getFullName() << " - LINE " << lineno << " in " << configFile << ": "
             << errMsg
             << std::endl;
-
     return false;
 };
 
@@ -969,7 +981,7 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
                     << " - Not Scheduled!"
                     << "\n   Previous status: isScheduled=" << config->isScheduled
                     << ", isExecuted=" << config->isExecuted
-                    << "\n   Config Request Type " << config->type << " (SHOW_INTEREST = 0, PRE_CACHE=1, FWD_RULES=2)"
+                    << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
                     << std::endl;
 
             continue;
@@ -982,7 +994,7 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
             DBG(Info) << getFullName()
                     << desc
                     << " - Is planned in the past .. Not Scheduled!"
-                    << "\n   Config Request Type " << config->type << " (SHOW_INTEREST = 0, PRE_CACHE=1, FWD_RULES=2)"
+                    << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
                     << std::endl;
 
             continue;
@@ -1007,7 +1019,7 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
         DBG(Info) << getFullName()
                 << desc
                 << " - Scheduled for execution at " << when <<"!"
-                << "\n   Config Request Type " << config->type << " (SHOW_INTEREST = 0, PRE_CACHE=1, FWD_RULES=2)"
+                << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
                 << std::endl;
     }
 
