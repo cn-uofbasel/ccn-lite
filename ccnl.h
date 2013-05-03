@@ -58,12 +58,12 @@
 
 #define CCNL_DTAG_UNIXSRC	99010 // newface: which UNIX path
 
-// fragmentation protocol: (ccnl-ext-encaps.c)
+// fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803
 #define CCNL_DTAG_FRAG_FLAGS	(CCNL_DTAG_FRAGMENT+1)
 #define CCNL_DTAG_FRAG_OSEQN	(CCNL_DTAG_FRAGMENT+2)  // our seq number
 #define CCNL_DTAG_FRAG_OLOSS	(CCNL_DTAG_FRAGMENT+3)  // our loss count
-#define CCNL_DTAG_FRAG_YSEQN	(CCNL_DTAG_FRAGMENT+4)  // your (last) seq no
+#define CCNL_DTAG_FRAG_YSEQN	(CCNL_DTAG_FRAGMENT+4)  // your (highest) seq no
 /*
 #define CCNL_DTAG_FRAG_YSEQN16	(CCNL_DTAG_FRAGMENT+4)
 #define CCNL_DTAG_FRAG_YSEQN32	(CCNL_DTAG_FRAGMENT+5)
@@ -71,5 +71,16 @@
 #define CCNL_DTAG_FRAG_FLAG_FIRST	0x01
 #define CCNL_DTAG_FRAG_FLAG_LAST	0x02
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
+
+
+// fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_WIRE2013)
+#define CCNL_DTAG_WIRE		333333
+#define CCNL_DTAG_WFRAG_FLAGS	(CCNL_DTAG_WIRE+1)
+#define CCNL_DTAG_WFRAG_OSEQN	(CCNL_DTAG_WIRE+2)  // our seq number
+#define CCNL_DTAG_WFRAG_OLOSS	(CCNL_DTAG_WIRE+3)  // our loss count
+#define CCNL_DTAG_WFRAG_YSEQN	(CCNL_DTAG_WIRE+4)  // your (highest) seq no
+#define CCNL_DTAG_WFRAG_FLAG_FIRST	0x01
+#define CCNL_DTAG_WFRAG_FLAG_LAST	0x02
+
 
 // eof

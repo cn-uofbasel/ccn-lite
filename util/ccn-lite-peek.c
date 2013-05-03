@@ -87,12 +87,20 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 	out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
+
+    len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
+    len += mkHeader(out+len, 1, CCN_TT_UDATA);
+    out[len++] = '1';
+    out[len++] = 0; // end-of-maxsuffcomp
+
     if (nonce) {
 	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
 	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
 	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
 	len += sizeof(unsigned int);
+	out[len++] = 0; // end-of-nonce
     }
+
     out[len++] = 0; // end-of-interest
 
     return len;

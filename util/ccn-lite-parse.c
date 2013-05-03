@@ -143,6 +143,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCN_DTAG_FACEINSTANCE:	 n = "faceInstance"; break;
 	    case CCN_DTAG_FWDINGENTRY:	 n = "forwardingEntry"; break;
 	    case CCN_DTAG_MINSUFFCOMP:	 n = "minSuffixComponents"; break;
+	    case CCN_DTAG_MAXSUFFCOMP:	 n = "maxSuffixComponents"; break;
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
 	    case CCNL_DTAG_IP4SRC:	 n = "IP4src"; break;
@@ -156,6 +157,12 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCNL_DTAG_FRAG_OLOSS:   n = "fragmentOurLoss"; break;
 	    case CCNL_DTAG_FRAG_YSEQN:   n = "fragmentYourSeqNo"; break;
 	    case CCNL_DTAG_FRAG_FLAGS:   n = "fragmentFlags"; break;
+
+	    case CCNL_DTAG_WIRE:         n = "wire"; break;
+	    case CCNL_DTAG_WFRAG_OSEQN:  n = "wireFragOurSeqNo"; break;
+	    case CCNL_DTAG_WFRAG_OLOSS:  n = "wireFragOurLoss"; break;
+	    case CCNL_DTAG_WFRAG_YSEQN:  n = "wireFragYourSeqNo"; break;
+	    case CCNL_DTAG_WFRAG_FLAGS:  n = "wireFragFlags"; break;
 
 	    default:
 		n=0;

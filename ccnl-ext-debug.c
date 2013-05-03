@@ -237,8 +237,10 @@ ccnl_dump(int lev, int typ, void *p)
 		   (void *) fac->prev, fac->ifndx, fac->flags);
 	    if (fac->peer.sa.sa_family == AF_INET)
 		fprintf(stderr, " ip=%s", ccnl_addr2ascii(&fac->peer));
+#ifdef USE_ETHERNET
 	    else if (fac->peer.sa.sa_family == AF_PACKET)
 		fprintf(stderr, " eth=%s", ccnl_addr2ascii(&fac->peer));
+#endif
 	    else if (fac->peer.sa.sa_family == AF_UNIX)
 		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
 	    else
@@ -266,9 +268,10 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_INTEREST:
 	while (itr) {
 	    INDENT(lev);
-	    fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d retries=%d\n",
+	    fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
 		   (void *) itr, (void *) itr->next, (void *) itr->prev,
-		   itr->last_used, itr->retries);
+		    itr->last_used, itr->minsuffix, itr->maxsuffix,
+		    itr->retries);
 	    ccnl_dump(lev+1, CCNL_BUF, itr->data);
 	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
 	    if (itr->ppkd) {
