@@ -21,6 +21,9 @@
  * 2013-03-19 updated (ms): modified struct ccnl_relay_s for 'aux' field
  */
 
+#define EXACT_MATCH 1
+#define PREFIX_MATCH 0
+
 #define CMP_EXACT   0 // used to compare interests among themselves
 #define CMP_MATCH   1 // used to match interest and content
 #define CMP_LONGEST 2 // used to lookup the FIB
