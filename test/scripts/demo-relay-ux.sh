@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # demo-relay-ux.sh -- test/demo for ccn-lite: CCNx relaying via UNIX sockets
 

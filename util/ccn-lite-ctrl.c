@@ -410,7 +410,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid)
 int
 ux_open(char *frompath)
 {
-    int sock;
+  int sock, bufsize;
     struct sockaddr_un name;
 
     /* Create socket for sending */
@@ -428,6 +428,10 @@ ux_open(char *frompath)
 	exit(1);
     }
 //    printf("socket -->%s\n", NAME);
+
+    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     return sock;
 }

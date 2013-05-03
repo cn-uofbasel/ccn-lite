@@ -150,7 +150,7 @@ int
 ux_open()
 {
 static char mysockname[200];
-    int sock;
+ int sock, bufsize;
     struct sockaddr_un name;
 
     sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
@@ -168,6 +168,10 @@ static char mysockname[200];
 	perror("binding path name to datagram socket");
 	exit(1);
     }
+
+    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     unix_path = mysockname;
     return sock;
