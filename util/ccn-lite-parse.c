@@ -115,6 +115,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    break;
 	case CCN_TT_DTAG:
 	    switch (num) {
+	    case CCN_DTAG_ANY:		 n = "any"; break;
 	    case CCN_DTAG_NAME:		 n = "name"; break;
 	    case CCN_DTAG_COMPONENT:	 n = "component"; break;
 	    case CCN_DTAG_CONTENT:	 n = "content"; break;
@@ -125,6 +126,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCN_DTAG_KEYNAME:	 n = "keyname"; break;
 	    case CCN_DTAG_SIGNATURE:	 n = "signature"; break;
 	    case CCN_DTAG_TIMESTAMP:	 n = "timestamp"; break;
+	    case CCN_DTAG_TYPE:		 n = "type"; break;
 	    case CCN_DTAG_NONCE:	 n = "nonce"; break;
 	    case CCN_DTAG_SCOPE:	 n = "scope"; break;
 	    case CCN_DTAG_WITNESS:	 n = "witness"; break;
@@ -144,6 +146,8 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCN_DTAG_FWDINGENTRY:	 n = "forwardingEntry"; break;
 	    case CCN_DTAG_MINSUFFCOMP:	 n = "minSuffixComponents"; break;
 	    case CCN_DTAG_MAXSUFFCOMP:	 n = "maxSuffixComponents"; break;
+	    case CCN_DTAG_SEQNO:	 n = "sequenceNumber"; break;
+	    case CCN_DTAG_CCNPDU:	 n = "ccnProtocolDataUnit"; break;
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
 	    case CCNL_DTAG_IP4SRC:	 n = "IP4src"; break;
@@ -173,6 +177,11 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 		printf(" -- <unknown tt=%d num=%d>\n", typ, num);
 	    if (parse_lev(lev+1, base, buf, len, n) < 0)
 		return -1;
+	    if (lev == 0) {
+		// base = *buf;
+		if (*len > 0)
+		    printf("\n");
+	    }
 	    break;
 	case 0:
 	    if (num == 0) { // end tag
@@ -189,18 +198,9 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 
 int
-ccnb_parse(unsigned char *buf, int len)
-{
-    unsigned char *base = buf;
-
-    return parse_lev(0, base, &buf, &len, "top");
-}
-
-
-int
 main(int argc, char *argv[])
 {
-    unsigned char data[64*1024];
+    unsigned char data[64*1024], *buf = data;
     int len;
 
     if (argc > 1) {
@@ -213,7 +213,7 @@ main(int argc, char *argv[])
 	return 1;
     }
     printf("Parsing %d byte%s:\n\n", len, len!=1 ? "s":"");
-    ccnb_parse(data, len);
+    parse_lev(0, data, &buf, &len, "top");
 
     return 0;
 }
