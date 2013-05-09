@@ -478,10 +478,17 @@ ccnl_init(void)
 {
     struct ccnl_if_s *i;
 
-    printk("%s: init e=%s, x=%s, c=%d, u=%d, v=%d\n",
-	   THIS_MODULE->name, e, x, c, u, v);
     if (v >= 0)
 	debug_level = v;
+
+    DEBUGMSG(1, "This is %s\n", THIS_MODULE->name);
+    DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(1, "  compile options: %s\n", compile_string());
+
+    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d\n",
+	     e, x, c, u, v);
+
     theRelay.max_cache_entries = c;
 #ifdef USE_SCHEDULER
     theRelay.defaultFaceScheduler = ccnl_lnx_defaultFaceScheduler;

@@ -199,4 +199,39 @@ struct ccnl_content_s {
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
 
+// ----------------------------------------------------------------------
+// collect the USE_* macros in a string
+
+inline char*
+compile_string(void)
+{
+    static char *cp = ""
+#ifdef USE_DEBUG
+	"USE_DEBUG "
+#endif
+#ifdef USE_DEBUG_MALLOC
+	"USE_DEBUG_MALLOC "
+#endif
+#ifdef USE_ENCAPS
+	"USE_ENCAPS "
+#endif
+#ifdef USE_ETHERNET
+	"USE_ETHERNET "
+#endif
+#ifdef USE_HTTP_STATUS
+	"USE_HTTP_STATUS "
+#endif
+#ifdef USE_MGMT
+	"USE_MGMT "
+#endif
+#ifdef USE_SCHEDULER
+	"USE_SCHEDULER "
+#endif
+#ifdef USE_UNIXSOCKET
+	"USE_UNIXSOCKET "
+#endif
+	;
+  return cp;
+}
+
 // eof

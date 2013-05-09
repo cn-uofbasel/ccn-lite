@@ -736,6 +736,13 @@ main(int argc, char **argv)
         }
     }
 
+    time(&relays[0].startup_time);
+    DEBUGMSG(1, "This is ccn-lite-simu, starting at %s",
+	     ctime(&relays[0].startup_time) + 4);
+    DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(1, "  compile options: %s\n", compile_string());
+
     ccnl_simu_init(max_cache_entries);
 
     DEBUGMSG(1, "simulation starts\n");

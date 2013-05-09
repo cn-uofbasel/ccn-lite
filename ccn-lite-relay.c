@@ -600,6 +600,11 @@ main(int argc, char **argv)
         }
     }
 
+    DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
+    DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(1, "  compile options: %s\n", compile_string());
+
     ccnl_relay_config(&theRelay, ethdev, udpport, tcpport,
 		      uxpath, max_cache_entries);
     if (datadir)
