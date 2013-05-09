@@ -201,7 +201,7 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
     struct ccnl_relay_s *relay = char2relay(node);
     if (!relay)	return;
 
-    DEBUGMSG(10, "ccnl_client_tx node=%c %s %d\n", node, name, seqn);
+    DEBUGMSG(10, "ccnl_client_tx node=%c: request %s #%d\n", node, name, seqn);
 
     cnt = 0;
     n = name = strdup(name);
@@ -309,10 +309,10 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
     for (cnt = 0, p = etherqueue; p; p = p->next, cnt++);
 
-    DEBUGMSG(2, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
+    DEBUGMSG(29, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
 	     ccnl_addr2ascii(dst), buf->datalen, cnt,
 	     buf->data[0], buf->data[1]);
-    DEBUGMSG(2, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
+    DEBUGMSG(29, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
 
     p = ccnl_calloc(1, sizeof(*p) + 2*ETH_ALEN + buf->datalen);
     p->dst = (unsigned char*)p + sizeof(*p);
@@ -458,12 +458,14 @@ void ccnl_simu_cleanup(void *dummy, void *dummy2);
 static int inter_ccn_interval = 0; // in usec
 static int inter_packet_interval = 0; // in usec
 
+#ifdef USE_SCHEDULER
 struct ccnl_sched_s*
 ccnl_simu_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
 				    void(*cb)(void*,void*))
 {
     return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
+#endif
 
 void ccnl_ageing(void *relay, void *aux)
 {
@@ -480,21 +482,22 @@ ccnl_simu_init_node(char node, const char *addr,
 
     DEBUGMSG(99, "ccnl_simu_init_node\n");
 
+    relay->id = relay - relays;
     relay->max_cache_entries = node == 'C' ? -1 : max_cache_entries;
 
     // add (fake) eth0 interface with index 0:
     i = &relay->ifs[0];
     i->addr.eth.sll_family = AF_PACKET;
     memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
-    //    i->encaps = CCNL_ENCAPS_SEQUENCED2012;
-    i->mtu = 1400;
-    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay,
-				      inter_packet_interval);
+    //    i->mtu = 1400;
+    i->mtu = 1200;
     i->reflect = 1;
     i->fwdalli = 1;
     relay->ifcount++;
 
 #ifdef USE_SCHEDULER
+    i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay,
+				      inter_packet_interval);
     relay->defaultFaceScheduler = ccnl_simu_defaultFaceScheduler;
 #endif
 
@@ -529,8 +532,11 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     memcpy(sun.eth.sll_addr, dst->ifs[0].addr.eth.sll_addr, ETH_ALEN);
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
     fwd->prefix = ccnl_path_to_prefix(name);
-    fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth),
-				       CCNL_ENCAPS_SEQUENCED2012);
+    fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
+#ifdef USE_ENCAPS
+    //    fwd->face->encaps = ccnl_encaps_new(CCNL_ENCAPS_SEQUENCED2012, 1500);
+    fwd->face->encaps = ccnl_encaps_new(CCNL_ENCAPS_CCNPDU2013, 1200);
+#endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;
     relay->fib = fwd;
@@ -550,8 +556,10 @@ ccnl_simu_init(int max_cache_entries)
 
     DEBUGMSG(99, "ccnl_simu_init\n");
 
+ #ifdef USE_SCHEDULER
     // initialize the scheduling subsystem
     ccnl_sched_init();
+#endif
 
     // define each node's eth address:
     ccnl_simu_init_node('A', "\x00\x00\x00\x00\x00\x0a",
@@ -684,8 +692,9 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
 	etherqueue = e;
     }
 
+#ifdef USE_SCHEDULER
     ccnl_sched_cleanup();
-
+#endif
 #ifdef USE_DEBUG_MALLOC
     debug_memdump();
 #endif

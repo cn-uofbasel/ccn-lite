@@ -26,7 +26,7 @@
 
 #define USE_DEBUG
 // #define USE_DEBUG_MALLOC
-// #define USE_ENCAPS
+#define USE_ENCAPS
 #define USE_ETHERNET
 // #define USE_SCHEDULER
 #define USE_MGMT
@@ -72,6 +72,10 @@ inet_ntoa(struct in_addr in)
     return buf;
 }
 
+#include "ccnl-ext-debug.c"
+
+// ----------------------------------------------------------------------
+
 static inline void*
 ccnl_malloc(int s)
 {
@@ -97,6 +101,8 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 	    sockunion *dest, struct ccnl_buf_s *buf)
 {
+    DEBUGMSG(1, "ccnl_ll_TX for %d bytes\n", buf ? buf->datalen : -1);
+
     if (!dest)
 	return;
 
@@ -191,7 +197,6 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
-#include "ccnl-ext-debug.c"
 #include "ccnl-platform.c"
 #include "ccnl-ext.h"
 
@@ -234,7 +239,7 @@ ccnl_upcall_RX(struct work_struct *work)
 {
     struct ccnl_upcall_s *uc = (struct ccnl_upcall_s*) work;
 
-    DEBUGMSG(1, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
+    DEBUGMSG(6, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
 
     ccnl_core_RX(&theRelay, uc->ifndx, uc->data, uc->datalen,
 		 &uc->su.sa, sizeof(uc->su));
@@ -597,8 +602,6 @@ ccnl_lnxkernel_cleanup(void)
 static void __exit
 ccnl_exit( void )
 {
-    int j;
-
     DEBUGMSG(1, "%s: exit\n", THIS_MODULE->name);
 
     if (ageing_handler)

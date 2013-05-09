@@ -272,7 +272,7 @@ ccnl_dump(int lev, int typ, void *p)
 		   (void *) itr, (void *) itr->next, (void *) itr->prev,
 		    itr->last_used, itr->minsuffix, itr->maxsuffix,
 		    itr->retries);
-	    ccnl_dump(lev+1, CCNL_BUF, itr->data);
+	    ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
 	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
 	    if (itr->ppkd) {
 		INDENT(lev+1);
@@ -304,7 +304,7 @@ ccnl_dump(int lev, int typ, void *p)
 		   (void *) con, (void *) con->next, (void *) con->prev,
 		   con->last_used, con->served_cnt);
 	    ccnl_dump(lev+1, CCNL_PREFIX, con->name);
-	    ccnl_dump(lev+1, CCNL_BUF, con->data);
+	    ccnl_dump(lev+1, CCNL_BUF, con->pkt);
 	    con = con->next;
 	}
 	break;
@@ -476,7 +476,7 @@ debug_memdump()
 #define free_prefix(p)	do{ if(p) \
 			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
-			free_2ptr_list(c->data, c); } while(0)
+			free_2ptr_list(c->pkt, c); } while(0)
 
 // -----------------------------------------------------------------
 static int debug_level;

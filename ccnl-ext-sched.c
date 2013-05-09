@@ -143,7 +143,7 @@ static void ccnl_sched_cf_queue_serve_cb(struct cf_queue *q, void *userptr, cf_t
     DEBUGMSG(99, "%s()\n", __FUNCTION__);
 
     if (CF_OK == cf_queue_dequeue_packet(q, 1)) {
-        DEBUGMSG(15, "  cf_dequeue successful; CTS\n");
+        DEBUGMSG(30, "  cf_dequeue successful; CTS\n");
         cf_queue_update_concentrations(q, now);
         cf_engine_reschedule_and_set_timer(engine, now);
         s->cts(s->aux1, s->aux2);
@@ -383,11 +383,11 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 #endif
 
     if (!s) {
-	DEBUGMSG(15, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
+	DEBUGMSG(30, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
 	     (void*)s, len, (void*)aux1, (void*)aux2);
 	return;
     }
-    DEBUGMSG(15, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
+    DEBUGMSG(30, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
 	     (void*)s, s->mode, len, (void*)aux1, (void*)aux2);
 
     s->cnt += cnt;
@@ -401,7 +401,7 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 
 #ifdef USE_CHEMFLOW
     for (; cnt; --cnt) {
-        DEBUGMSG(15, "  cf_enqueuen");
+        DEBUGMSG(30, "  cf_enqueuen");
         if (CF_OK == cf_queue_enqueue_packet(s->q, 1)) {
             cf_queue_update_concentrations(s->q, now);
             cf_engine_reschedule_and_set_timer(engine, now);
@@ -417,7 +417,7 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 	s->cts(aux1, aux2);
 	return;
     }
-    DEBUGMSG(15, "since=%ld\n", since);
+    DEBUGMSG(30, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, aux1, aux2);
     s->nextTX.tv_sec += s->ipi / 1000000;;
@@ -436,11 +436,11 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 #endif
 
     if (!s) {
-	DEBUGMSG(15, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
+	DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
 	     (void*)s, cnt, len);
 	return;
     }
-    DEBUGMSG(15, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
+    DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
 	     (void*)s, s->mode, cnt, len, s->cnt);
 
     s->cnt -= cnt;
@@ -454,7 +454,7 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 
 #ifdef USE_CHEMFLOW
     if (CF_OK == cf_queue_dequeue_packet(s->q, 1)) {
-        DEBUGMSG(15, "  cf_dequeue successful; CTS\n");
+        DEBUGMSG(30, "  cf_dequeue successful; CTS\n");
         cf_queue_update_concentrations(s->q, now);
         cf_engine_reschedule_and_set_timer(engine, now);
         s->cts(s->aux1, s->aux2);
@@ -470,7 +470,7 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 	s->cts(s->aux1, s->aux2);
 	return;
     }
-    DEBUGMSG(15, "since=%ld\n", since);
+    DEBUGMSG(30, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, s->aux1, s->aux2);
     s->nextTX.tv_sec += s->ipi / 1000000;;

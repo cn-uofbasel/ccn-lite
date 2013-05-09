@@ -126,7 +126,7 @@ mkDebugRequest(unsigned char *out, char *dbg)
 }
 
 int
-mkNewEthDevRequest(unsigned char *out, char *devname, char *port,
+mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 		   char *encaps, char *flags)
 {
     int len = 0, len2, len3;
@@ -146,8 +146,8 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *port,
     if (devname)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
 			  devname);
-    if (port)
-	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+    if (ethtype)
+	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, ethtype);
     if (encaps)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
     if (flags)
@@ -223,7 +223,8 @@ mkDestroyDevRequest(unsigned char *out, char *faceid)
 
 
 int
-mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *host, char *port, char *encaps, char *flags)
+mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
+		 char *host, char *port, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -249,8 +250,10 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *host, cha
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_HOST, CCN_TT_DTAG, host);
     if (port)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+    /*
     if (encaps)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -273,7 +276,7 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *host, cha
 
 
 int
-mkNewUNIXFaceRequest(unsigned char *out, char *path, char *encaps, char *flags)
+mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -291,8 +294,10 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *encaps, char *flags)
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newface");
     if (path)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path);
+    /*
     if (encaps)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -335,6 +340,48 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid)
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "destroyface");
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    faceinst[len3++] = 0; // end-of-faceinst
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) faceinst, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+    // add CONTENTOBJ as the final name component
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+    return len;
+}
+
+
+int
+mkSetencapsRequest(unsigned char *out, char *faceid, char *encaps, char *mtu)
+{
+    int len = 0, len2, len3;
+    unsigned char contentobj[2000];
+    unsigned char faceinst[2000];
+//    char num[20];
+
+//    sprintf(num, "%d", faceID);
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setencaps");
+
+    // prepare FACEINSTANCE
+    len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setencaps");
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, mtu);
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
@@ -504,13 +551,14 @@ main(int argc, char *argv[])
 			       !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
 			       !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
 			       argv[3], argv[4],
-			       argc > 5 ? argv[5] : "0",
-			       argc > 6 ? argv[6] : "0x0001");
+			       argc > 5 ? argv[5] : "0x0001");
     } else if (!strcmp(argv[1], "newUNIXface")) {
 	if (argc < 3)  goto Usage;
 	len = mkNewUNIXFaceRequest(out, argv[2],
-				   argc > 3 ? argv[3] : "0",
-				   argc > 4 ? argv[4] : "0x0001");
+				   argc > 3 ? argv[3] : "0x0001");
+    } else if (!strcmp(argv[1], "setencaps")) {
+	if (argc < 5)  goto Usage;
+	len = mkSetencapsRequest(out, argv[2], argv[3], argv[4]);
     } else if (!strcmp(argv[1], "destroyface")) {
 	if (argc < 3) goto Usage;
 	len = mkDestroyFaceRequest(out, argv[2]);
@@ -543,18 +591,20 @@ main(int argc, char *argv[])
 
 Usage:
     fprintf(stderr, "usage: %s [-x ux_path] CMD, where CMD either of\n"
-	   "  newETHdev    DEVNAME [PROTO [ENCAPS [DEVFLAGS]]]\n"
-	   "  newUDPdev    IP4SRC|any [PORT [ENCAPS] [DEVFLAGS]]\n"
-	   "  destroydev   DEVNDX\n"
-	   "  newETHface   MACSRC|any MACDST PROTO [ENCAPS [FACEFLAGS]]\n"
-	   "  newUDPface   IP4SRC|any IP4DST PORT [ENCAPS [FACEFLAGS]]\n"
-	   "  newUNIXface  PATH [ENCAPS [FACEFLAGS]]\n"
-	   "  destroyface  FACEID\n"
-	   "  prefixreg    PREFIX FACEID\n"
-	   "  prefixunreg  PREFIX FACEID\n"
-	   "  debug        dump\n"
-	   "  debug        halt\n"
-	   "  debug        dump+halt\n",
+	   "  newETHdev     DEVNAME [ETHTYPE [ENCAPS [DEVFLAGS]]]\n"
+	   "  newUDPdev     IP4SRC|any [PORT [ENCAPS [DEVFLAGS]]]\n"
+	   "  destroydev    DEVNDX\n"
+	   "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
+	   "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
+	   "  newUNIXface   PATH [FACEFLAGS]\n"
+           "  setencaps     FACEID ENCAPS MTU\n"
+	   "  destroyface   FACEID\n"
+	   "  prefixreg     PREFIX FACEID\n"
+	   "  prefixunreg   PREFIX FACEID\n"
+	   "  debug         dump\n"
+	   "  debug         halt\n"
+	   "  debug         dump+halt\n"
+	   "where ENCAPS in none, seqd2012, ccnp2013\n",
 	progname);
 
     if (sock) {

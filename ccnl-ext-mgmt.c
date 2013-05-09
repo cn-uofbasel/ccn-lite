@@ -36,6 +36,31 @@ ccnl_is_local_addr(sockunion *su)
     return 0;
 }
 
+struct ccnl_prefix_s*
+ccnl_prefix_clone(struct ccnl_prefix_s *p)
+{
+    int i, len;
+    struct ccnl_prefix_s *p2;
+
+    p2 = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    if (!p2) return NULL;
+    for (i = 0, len = 0; i < p->compcnt; len += p->complen[i++]);
+    p2->path = (unsigned char*) ccnl_malloc(len);
+    p2->comp = (unsigned char**) ccnl_malloc(p->compcnt*sizeof(char *));
+    p2->complen = (int*) ccnl_malloc(p->compcnt*sizeof(int));
+    if (!p2->comp || !p2->complen || !p2->path) goto Bail;
+    p2->compcnt = p->compcnt;
+    for (i = 0, len = 0; i < p->compcnt; len += p2->complen[i++]) {
+	p2->complen[i] = p->complen[i];
+	p2->comp[i] = p2->path + len;
+	memcpy(p2->comp[i], p->comp[i], p2->complen[i]);
+    }
+    return p2;
+Bail:
+    free_prefix(p2);
+    return NULL;
+}
+
 // ----------------------------------------------------------------------
 // management protocols
 
@@ -165,7 +190,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	extractStr(proto, CCN_DTAG_IPPROTO);
 	extractStr(host, CCN_DTAG_HOST);
 	extractStr(port, CCN_DTAG_PORT);
-	extractStr(encaps, CCNL_DTAG_ENCAPS);
+//	extractStr(encaps, CCNL_DTAG_ENCAPS);
 	extractStr(flags, CCNL_DTAG_FACEFLAGS);
 
 	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
@@ -185,11 +210,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
 		   su.eth.sll_addr,   su.eth.sll_addr+1,
 		   su.eth.sll_addr+2, su.eth.sll_addr+3,
-		   su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) 
+		   su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
 	// if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-	f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth),
-	      encaps ? strtol((const char*)encaps, NULL, 0):CCNL_ENCAPS_NONE);
-
+	    f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
+	}
     } else
 #endif
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
@@ -201,8 +225,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
 	// not implmented yet: honor the requested ip4src parameter
 	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-				    &su.sa, sizeof(struct sockaddr_in),
-				    encaps ? strtol((const char*)encaps, NULL, 0):CCNL_ENCAPS_NONE);
+				    &su.sa, sizeof(struct sockaddr_in));
     }
 #ifdef USE_UNIXSOCKET
     if (path) {
@@ -211,9 +234,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	su.sa.sa_family = AF_UNIX;
 	strcpy(su.ux.sun_path, (char*) path);
 	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-				    &su.sa, sizeof(struct sockaddr_un),
-				    encaps ? strtol((const char*)encaps,
-						    NULL, 0):CCNL_ENCAPS_NONE);
+				    &su.sa, sizeof(struct sockaddr_un));
     }
 #endif
 
@@ -224,6 +245,16 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
 	f->flags = flagval &
 	    (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
+
+#ifdef USE_ENCAPS
+	if (encaps) {
+	    int mtu = 1500;
+	    if (f->ifndx >= 0 && ccnl->ifs[f->ifndx].mtu > 0)
+		mtu = ccnl->ifs[f->ifndx].mtu;
+	    f->encaps = ccnl_encaps_new(strtol((const char*)encaps, NULL, 0),
+					mtu); 
+	}
+#endif
 	cp = "newface cmd worked";
     } else {
 	DEBUGMSG(99, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s encaps=%s flags=%s) failed or was ignored\n",
@@ -240,6 +271,88 @@ Bail:
     ccnl_free(port);
     ccnl_free(encaps);
     ccnl_free(flags);
+
+    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
+    return rc;
+}
+
+int
+ccnl_mgmt_setencaps(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    unsigned char *buf;
+    int buflen, num, typ;
+    unsigned char *action, *faceid, *encaps, *mtu;
+    char *cp = "setencaps cmd failed";
+    int rc = -1;
+    struct ccnl_face_s *f;
+
+    DEBUGMSG(99, "ccnl_mgmt_setencaps from=%p, ifndx=%d\n", from, from->ifndx);
+    action = faceid = encaps = mtu = NULL;
+
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    buflen = num;
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
+
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+	if (num==0 && typ==0)
+	    break; // end
+	extractStr(action, CCN_DTAG_ACTION);
+	extractStr(faceid, CCN_DTAG_FACEID);
+	extractStr(encaps, CCNL_DTAG_ENCAPS);
+	extractStr(mtu, CCNL_DTAG_MTU);
+
+	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+
+    // should (re)verify that action=="newface"
+
+    if (faceid && encaps && mtu) {
+	int e = -1, mtuval, fi = strtol((const char*)faceid, NULL, 0);
+
+	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
+	if (!f) goto Error;
+	mtuval = strtol((const char*)mtu, NULL, 0);
+
+#ifdef USE_ENCAPS
+	if (f->encaps) {
+	    ccnl_encaps_destroy(f->encaps);
+	    f->encaps = 0;
+	}
+	if (!strcmp((const char*)encaps, "none"))
+	    e = CCNL_ENCAPS_NONE;
+	else if (!strcmp((const char*)encaps, "seqd2012")) {
+	    e = CCNL_ENCAPS_SEQUENCED2012;
+	} else if (!strcmp((const char*)encaps, "ccnp2013")) {
+	    e = CCNL_ENCAPS_CCNPDU2013;
+	}
+	if (e < 0)
+	    goto Error;
+	f->encaps = ccnl_encaps_new(e, mtuval);
+	cp = "setencaps cmd worked";
+#else
+	cp = "no encapsulation support" + 0*e; // use e to silence compiler
+#endif
+    } else {
+Error:
+	DEBUGMSG(99, "  setencaps request for (faceid=%s encaps=%s mtu=%s) failed or was ignored\n",
+		 faceid, encaps, mtu);
+    }
+    rc = 0;
+
+Bail:
+    ccnl_free(action);
+    ccnl_free(faceid);
+    ccnl_free(encaps);
+    ccnl_free(mtu);
 
     ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -397,7 +510,8 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	i->reflect = 1;
 	i->fwdalli = 1;
 
-	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
+	if (ccnl->defaultInterfaceScheduler)
+	    i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 	ccnl->ifcount++;
 
 	rc = 0;
@@ -453,7 +567,8 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	i->reflect = 0;
 	i->fwdalli = 1;
 
-	i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
+	if (ccnl->defaultInterfaceScheduler)
+	    i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 	ccnl->ifcount++;
 
 	cp = "newdevice cmd workd";
@@ -611,6 +726,8 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	
     if (!strcmp(cmd, "newdev"))
 	ccnl_mgmt_newdev(ccnl, orig, prefix, from);
+    if (!strcmp(cmd, "setencaps"))
+	ccnl_mgmt_setencaps(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
 	ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "newface"))

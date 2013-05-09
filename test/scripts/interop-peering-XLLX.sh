@@ -61,7 +61,8 @@ echo "** Starting up the four relays - this takes 5 seconds or so ..."
 export CCN_LOCAL_PORT=$CCND_PORTA
 export CCN_LOCAL_SOCKNAME=$CCND_UXA
 export CCND_LOG=$CCND_LOGA
-export CCND_DEBUG=31
+#export CCND_DEBUG=31
+export CCND_DEBUG=1023
 $CCND_HOME/bin/ccndstart
 sleep 1
 $CCND_HOME/bin/ccndsmoketest send $CCNL_HOME/test/ccnb/URI.txt.ccnb
@@ -120,13 +121,13 @@ echo "** how the 1st node saw things:"
 egrep '(interest_from|content_from).*/doc/' $CCND_LOGB
 echo
 echo "** how the 2nd node saw things:"
-egrep '(interest for|content_new).*/doc/' $CCNL_LOGB
+egrep '(interest=|content=).*/doc/' $CCNL_LOGB
 echo
 echo "** how the 3rd node saw things:"
-egrep '(interest for|content_new).*/doc/' $CCNL_LOGA
+egrep '(interest=|content=).*/doc/' $CCNL_LOGA
 echo
 echo "** how the 4th node saw things (content was injected at start):"
-egrep '(interest_from|content_from).*/doc/' $CCND_LOGA
+egrep '(interest_from|content_from|content_to).*/doc/' $CCND_LOGA
 
 echo
 echo "** Find more in the logs:"

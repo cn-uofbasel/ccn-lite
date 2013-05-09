@@ -26,23 +26,37 @@
 
 struct ccnl_encaps_s* ccnl_encaps_new(int protocol, int mtu);
 
-void ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
+void ccnl_encaps_reset(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
 		       int ifndx, sockunion *su);
 
 int ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen,
 			     int *totallen);
 
-struct ccnl_buf_s* ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e,
-					       int *ifndx, sockunion *su);
+struct ccnl_buf_s* ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e,
+					      int *ifndx, sockunion *su);
 
+/*
 struct ccnl_buf_s* ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
 		struct ccnl_face_s *f, unsigned char *data, int datalen);
+*/
 
 void ccnl_encaps_destroy(struct ccnl_encaps_s *e);
 
+/*
 struct ccnl_buf_s* ccnl_encaps_fragment(struct ccnl_relay_s *ccnl,
 					struct ccnl_encaps_s *encaps,
 					struct ccnl_buf_s *buf);
+*/
+
+typedef int (RX_datagram)(struct ccnl_relay_s*, struct ccnl_face_s*,
+			  unsigned char**, int*);
+
+int ccnl_encaps_RX_frag2012(RX_datagram callback, struct ccnl_relay_s *relay,
+			    struct ccnl_face_s *from,
+			    unsigned char **data, int *datalen);
+int ccnl_encaps_RX_pdu2013(RX_datagram callback, struct ccnl_relay_s *relay,
+			   struct ccnl_face_s *from,
+			   unsigned char **data, int *datalen);
 
 int ccnl_is_fragment(unsigned char *data, int datalen);
 #else

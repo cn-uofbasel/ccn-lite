@@ -61,14 +61,12 @@
 #define free_prefix(p)	do{ if(p) \
 			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
-			free_2ptr_list(c->data, c); } while(0)
+			free_2ptr_list(c->pkt, c); } while(0)
 
 #define ccnl_addr2ascii(sup)		inet_ntoa((sup)->ip4.sin_addr)
 
 #define ccnl_encaps_new(a,b)			NULL
-#define ccnl_encaps_handle_fragment(r,f,d,l)	ccnl_buf_new(d,l)
 #define ccnl_encaps_destroy(e)			do {} while(0)
-#define ccnl_is_fragment(d,l)			0
 
 // #define ccnl_face_CTS_done		NULL
 #define ccnl_sched_destroy(s)		do {} while(0)
@@ -371,7 +369,7 @@ main(int argc, char **argv)
     sun.ip4.sin_port = atoi(strtok(NULL, ""));
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
     fwd->prefix = ccnl_path_to_prefix(prefix);
-    fwd->face = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.ip4), 0);
+    fwd->face = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.ip4));
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     theRelay.fib = fwd;
 

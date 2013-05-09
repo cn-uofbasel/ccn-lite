@@ -18,6 +18,7 @@
  *
  * File history:
  * 2011-10-05 created
+ * 2013-05-02 prototyped a new wire format CCNL_ENCAPS_CCNCPU2013
  */
 
 // ----------------------------------------------------------------------
@@ -34,170 +35,13 @@
  *  - the driver is configurable for arbitrary MTU
  *  - packets have sequence numbers (can detect lost packets)
  *
+ * CCNL_ENCAPS_CCNPDU2013
+ *  - a ccnb encoded wire format as currently discussed with PARC.
+ *    It serves as a container for various wire format types,
+ *    including carrying fragments of bigger CCNX objects
+ *  - all attributes from SEQUENCED2012 are retained
+ *
  */
-
-int
-ccnl_is_fragment(unsigned char *data, int datalen)
-{
-    int num, typ;
-
-    return dehead(&data, &datalen, &num, &typ) >= 0 &&
-	typ == CCN_TT_DTAG &&
-	num == CCNL_DTAG_FRAGMENT;
-}
-
-struct ccnl_buf_s*
-ccnl_encaps_handle_fragment(struct ccnl_relay_s *r,
-			    struct ccnl_face_s *f,
-			    unsigned char *data, int datalen)
-{
-    struct ccnl_encaps_s *e;
-    struct ccnl_buf_s *buf = NULL;
-    int datalen2, num, typ, contlen = -1;
-    unsigned char *data2, *content = 0;
-    unsigned int flags, ourseq, ourloss, yourseq, HAS = 0;
-    unsigned char flagbytes, ourseqbytes, ourlossbytes, yourseqbytes;
-#define HAS_FLAGS  0x01
-#define HAS_OSEQ   0x02
-#define HAS_OLOS   0x04
-#define HAS_YSEQ   0x08
-
-    DEBUGMSG(8, "ccnl_encaps_handle_fragment face=%p len=%d encaps=%p\n",
-	     (void*)f, datalen, f->encaps);
-
-    data2 = data;
-    datalen2 = datalen;
-    if (dehead(&data2, &datalen2, &num, &typ) < 0 ||
-				typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT)
-	return ccnl_buf_new(data, datalen);
-    if (!f->encaps && f->ifndx >= 0)
-	f->encaps = ccnl_encaps_new(CCNL_ENCAPS_SEQUENCED2012,
-				    r->ifs[f->ifndx].mtu);
-    if (!f->encaps)
-	return ccnl_buf_new(data, datalen);
-    data = data2;
-    datalen = datalen2;
-
-    while (dehead(&data, &datalen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	if (typ == CCN_TT_DTAG) {
-	    switch(num) {
-	    case CCN_DTAG_CONTENT:
-		DEBUGMSG(8, "  encaps content\n");
-		if (dehead(&data, &datalen, &num, &typ) != 0) return NULL;
-		if (typ != CCN_TT_BLOB) return NULL;
-		content = data;
-		contlen = num;
-		if (consume(typ, num, &data, &datalen, 0, 0) < 0) return NULL;
-		break;
-	    case CCNL_DTAG_FRAG_FLAGS:
-		DEBUGMSG(8, "  encaps flags\n");
-		if (unmkBinaryInt(&data, &datalen, &flags, &flagbytes) != 0)
-		    return NULL;
-		HAS |= HAS_FLAGS;
-		break;
-	    case CCNL_DTAG_FRAG_OSEQN:
-		DEBUGMSG(8, "  encaps ourseq\n");
-		if (unmkBinaryInt(&data, &datalen, &ourseq, &ourseqbytes) != 0)
-		    return NULL;
-		HAS |= HAS_OSEQ;
-		break;
-	    case CCNL_DTAG_FRAG_OLOSS:
-		DEBUGMSG(8, "  encaps outloss\n");
-		if (unmkBinaryInt(&data, &datalen, &ourloss, &ourlossbytes) != 0)
-		    return NULL;
-		HAS |= HAS_OLOS;
-		break;
-	    case CCNL_DTAG_FRAG_YSEQN:
-		DEBUGMSG(8, "  encaps yourseq\n");
-		if (unmkBinaryInt(&data, &datalen, &yourseq, &yourseqbytes) != 0)
-		    return NULL;
-		HAS |= HAS_YSEQ;
-		break;
-	    default:
-		break;
-	    }
-	}
-	if (consume(typ, num, &data, &datalen, 0, 0) < 0) return NULL;
-    }
-
-    if (!content || contlen <= 0 || !(HAS & HAS_FLAGS) || !(HAS & HAS_OSEQ)) {
-	DEBUGMSG(8, "  encaps problem: %p, %d, 0x%04x\n",
-		 (void*)content, contlen, HAS);
-	return NULL;
-    }
-
-    e = f->encaps;
-    DEBUGMSG(8, "  encaps %p protocol=%d, flags=%04x, seq=%d (%d)\n",
-	     (void*)e, e->protocol, flags, ourseq, e->recvseq);
-    if (e->recvseq != ourseq) {
-	// should increase error counter here
-	if (e->defrag) {
-	    DEBUGMSG(8, ">> %p seqnum mismatch (%d/%d), dropped old defrag buf\n",
-		     (void*)e, ourseq, e->recvseq);
-	    ccnl_free(e->defrag);
-	    e->defrag = NULL;
-	}
-    }
-    switch(flags & (CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST)) {
-    case CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST: // single packet
-	DEBUGMSG(8, ">> %p single\n", (void*)e);
-	if (e->defrag) {
-	    DEBUGMSG(8, ">> %p single drop\n", (void*)e);
-	    ccnl_free(e->defrag);
-	    e->defrag = NULL;
-	}
-	buf = ccnl_buf_new(content, contlen);
-	break;
-    case CCNL_DTAG_FRAG_FLAG_FIRST: // start of fragment sequence
-	DEBUGMSG(8, ">> %p start\n", (void*)e);
-	if (e->defrag) {
-	    DEBUGMSG(8, ">> %p start drop\n", (void*)e);
-	    ccnl_free(e->defrag);
-	}
-	e->defrag = ccnl_buf_new(content, contlen);
-	break;
-    case CCNL_DTAG_FRAG_FLAG_LAST: // end of fragment sequence
-	DEBUGMSG(8, ">> %p end\n", (void*)e);
-	if (!e->defrag) break;
-	buf = ccnl_buf_new(NULL, e->defrag->datalen + contlen);
-	if (buf) {
-	    memcpy(buf->data, e->defrag->data, e->defrag->datalen);
-	    memcpy(buf->data + e->defrag->datalen, content, contlen);
-	}
-	ccnl_free(e->defrag);
-	e->defrag = NULL;
-	break;
-    case 0x00:  // fragment in the middle of a squence
-    default:
-	DEBUGMSG(8, ">> %p middle\n", (void*)e);
-	if (!e->defrag) break;
-	buf = ccnl_buf_new(NULL, e->defrag->datalen + contlen);
-	if (buf) {
-	    memcpy(buf->data, e->defrag->data, e->defrag->datalen);
-	    memcpy(buf->data + e->defrag->datalen, content, contlen);
-	    ccnl_free(e->defrag);
-	    e->defrag = buf;
-	    buf = NULL;
-	} else {
-	    ccnl_free(e->defrag);
-	    e->defrag = NULL;
-	}
-	break;
-    }
-    if (ourseqbytes <= sizeof(int) && ourseqbytes > 1)
-	e->recvseqbytes = ourseqbytes;
-    // next expected seq number:
-    e->recvseq = (ourseq + 1) & ((1<<(8*ourseqbytes)) - 1);
-
-    if (buf) {
-	DEBUGMSG(8, ">> %p defrag buffer len is %d bytes\n",
-		 (void*)e, buf->datalen);
-    }
-
-    return buf;
-}
 
 // ----------------------------------------------------------------------
 
@@ -210,6 +54,7 @@ ccnl_encaps_new(int protocol, int mtu)
 
     switch(protocol) {
     case CCNL_ENCAPS_SEQUENCED2012:
+    case CCNL_ENCAPS_CCNPDU2013:
       e = (struct ccnl_encaps_s*) ccnl_calloc(1, sizeof(struct ccnl_encaps_s));
 	if (e) {
 	    e->protocol = protocol;
@@ -228,14 +73,15 @@ ccnl_encaps_new(int protocol, int mtu)
 }
 
 void
-ccnl_encaps_start(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
+ccnl_encaps_reset(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
 		  int ifndx, sockunion *dst)
 {
-    if (!e) return;
+    DEBUGMSG(99, "ccnl_encaps_reset (%d bytes)\n", buf ? buf->datalen : -1);
+    if (!e)
+	return;
     e->ifndx = ifndx;
     memcpy(&e->dest, dst, sizeof(*dst));
-    if (e->bigpkt)
-	ccnl_free(e->bigpkt);
+    ccnl_free(e->bigpkt);
     e->bigpkt = buf;
     e->sendoffs = 0;
 }
@@ -250,8 +96,8 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
 
     if (!e)
       cnt = 1;
-    else
-      while (offs < origlen) {
+    else if (e && e->protocol == CCNL_ENCAPS_SEQUENCED2012) {
+      while (offs < origlen) { // we could do better than to simulate this:
 	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
 	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
 			      0, e->flagbytes);
@@ -271,42 +117,90 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
 	len += hdrlen + datalen + 1;
 	offs += datalen;
 	cnt++;
+      }
+    } else if (e && e->protocol == CCNL_ENCAPS_CCNPDU2013) {
+      while (offs < origlen) { // we could do better than to simulate this:
+	hdrlen = mkHeader(dummy, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
+	hdrlen += mkHeader(dummy, CCN_DTAG_TYPE, CCN_TT_DTAG);
+	hdrlen += 4; // three BLOB bytes plus end-of-entry
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
+			      0, e->flagbytes);
+	hdrlen += mkBinaryInt(dummy, CCN_DTAG_SEQNO, CCN_TT_DTAG,
+			      0, e->sendseqbytes);
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
+			      0, e->losscountbytes);
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_YSEQN, CCN_TT_DTAG,
+			      0, e->recvseqbytes);
+
+	hdrlen += mkHeader(dummy, CCN_DTAG_ANY, CCN_TT_DTAG);
+	blobtaglen = mkHeader(dummy, e->mtu - hdrlen - 1, CCN_TT_BLOB);
+	datalen = e->mtu - hdrlen - blobtaglen - 1;
+	if (datalen > (origlen - offs))
+	    datalen = origlen - offs;
+	hdrlen += mkHeader(dummy, datalen, CCN_TT_BLOB);
+	len += hdrlen + datalen + 1;
+	offs += datalen;
+	cnt++;
+      }
     }
+
     if (totallen)
 	*totallen = len;
     return cnt;
 }
 
 struct ccnl_buf_s*
-ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e, int *ifndx,
-			    sockunion *su)
+ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
+			   sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
-    int hdrlen, blobtaglen, datalen, flagoffs;
-
-    DEBUGMSG(2, "ccnl_encaps_getnextfragment e=%p\n", (void*)e);
+    int hdrlen = 0, blobtaglen, datalen, flagoffs;
+    DEBUGMSG(16, "ccnl_encaps_mknextfragment e=%p, mtu=%d\n", (void*)e, e->mtu);
 
     if (!e->bigpkt) {
-	DEBUGMSG(2, "  no packet to fragment yet\n");
+//	DEBUGMSG(17, "  no packet to fragment yet\n");
 	return NULL;
     }
-    DEBUGMSG(2, "  %d bytes to fragment, offset=%d\n",
+    DEBUGMSG(17, "  %d bytes to fragment, offset=%d\n",
 	     e->bigpkt->datalen, e->sendoffs);
 
-    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);   // fragment
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
-			  0, e->flagbytes);
+    if (e->protocol == CCNL_ENCAPS_SEQUENCED2012)
+	hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
+    else if (e->protocol == CCNL_ENCAPS_CCNPDU2013) {
+	hdrlen = mkHeader(header, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
+	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_TYPE, CCN_TT_DTAG);
+	hdrlen += mkHeader(header+hdrlen, 3, CCN_TT_BLOB);
+	/*
+	 * echo "FRGS" | base64 -d | hexdump -e '/1 "@x%02x"'| tr @ '\\'; echo
+	 */
+	memcpy(header+hdrlen, "\x15\x11\x92\x00", 4); // including trailing 0
+	hdrlen += 4;
+    }
+    else {// no other protocol implemented yet
+	DEBUGMSG(17, "  NO FRAG PROTOCOL\n");
+	return NULL;
+    }
+    // common fields of SEQUENCED2012 and CCNPDU2013 encapsulation:
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS,
+			  CCN_TT_DTAG, 0, e->flagbytes);
     flagoffs = hdrlen - 2;
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_OSEQN, CCN_TT_DTAG,
-			  e->sendseq, e->sendseqbytes);
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_YSEQN, CCN_TT_DTAG,
-			  e->recvseq, e->recvseqbytes);
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_YSEQN,
+			  CCN_TT_DTAG, e->recvseq, e->recvseqbytes);
     hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
 			  e->losscount, e->losscountbytes);
-    hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
 
-    blobtaglen = mkHeader(header + hdrlen, e->mtu - hdrlen - 2, CCN_TT_BLOB);
+    if (e->protocol == CCNL_ENCAPS_SEQUENCED2012) {
+	hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_OSEQN,
+			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
+	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    } else {
+	hdrlen += mkBinaryInt(header + hdrlen, CCN_DTAG_SEQNO,
+			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
+	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_ANY, CCN_TT_DTAG);
+    }
+    blobtaglen = mkHeader(header+hdrlen, e->mtu - hdrlen - 2, CCN_TT_BLOB);
+
     datalen = e->mtu - hdrlen - blobtaglen - 2;
     if (datalen > (e->bigpkt->datalen - e->sendoffs))
 	datalen = e->bigpkt->datalen - e->sendoffs;
@@ -317,25 +211,38 @@ ccnl_encaps_getnextfragment(struct ccnl_encaps_s *e, int *ifndx,
 	return NULL;
     memcpy(buf->data, header, hdrlen);
     memcpy(buf->data + hdrlen, e->bigpkt->data + e->sendoffs, datalen);
-    buf->data[hdrlen + datalen] = '\0'; // end of content
-    buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment
+    buf->data[hdrlen + datalen] = '\0'; // end of content/any field
+    buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment/pdu
 
-    if (datalen >= e->bigpkt->datalen) { // single
+/*
+	{ int f = open("t.ccnb", O_WRONLY|O_CREAT);
+	    if (f < 0)
+		perror("open");
+	    if (write(f, buf->data, buf->datalen) < 0)
+		perror("write");
+	    close(f);
+	}
+	exit(-1);
+*/
+
+    if (datalen >= e->bigpkt->datalen) { // fits in a single fragment
 	buf->data[flagoffs + e->flagbytes - 1] =
-			CCNL_DTAG_FRAG_FLAG_FIRST | CCNL_DTAG_FRAG_FLAG_LAST;
+	    CCNL_DTAG_FRAG_FLAG_FIRST | CCNL_DTAG_FRAG_FLAG_LAST;
 	ccnl_free(e->bigpkt);
 	e->bigpkt = NULL;
-    } else if (e->sendoffs == 0) // start
+    } else if (e->sendoffs == 0) // this is the start fragment
 	buf->data[flagoffs + e->flagbytes - 1] = CCNL_DTAG_FRAG_FLAG_FIRST;
-    else if(datalen >= (e->bigpkt->datalen - e->sendoffs)) { // end
+    else if(datalen >= (e->bigpkt->datalen - e->sendoffs)) { // the end
 	buf->data[flagoffs + e->flagbytes - 1] = CCNL_DTAG_FRAG_FLAG_LAST;
 	ccnl_free(e->bigpkt);
 	e->bigpkt = NULL;
-    } else
-	buf->data[flagoffs + e->flagbytes - 1] = 0x00; // middle
+    } else // in the middle
+	buf->data[flagoffs + e->flagbytes - 1] = 0x00;
 
     e->sendoffs += datalen;
     e->sendseq++;
+
+    DEBUGMSG(17, "  e->offset now %d\n", e->sendoffs);
 
     if (ifndx)
 	*ifndx = e->ifndx;
@@ -356,13 +263,261 @@ void
 ccnl_encaps_destroy(struct ccnl_encaps_s *e)
 {
     if (e) {
-	if (e->bigpkt)
-	    ccnl_free(e->bigpkt);
-	if (e->defrag)
-	    ccnl_free(e->defrag);
+	ccnl_free(e->bigpkt);
+	ccnl_free(e->defrag);
 	ccnl_free(e);
     }
 }
+
+// ----------------------------------------------------------------------
+
+struct serialFragPDU_s { // collect all fields of a (sequential) fragment
+    int contlen;
+    unsigned char *content;
+    unsigned int flags, ourseq, ourloss, yourseq, HAS;
+    unsigned char flagbytes, ourseqbytes, ourlossbytes, yourseqbytes;
+};
+
+void
+serialFragPDU_init(struct serialFragPDU_s *s)
+{
+    memset(s, 0, sizeof(*s));
+    s->contlen = -1;
+    s->flagbytes = 1;
+    s->ourseqbytes = s->ourlossbytes = s->yourseqbytes = sizeof(int);
+}
+
+void
+ccnl_encaps_RX_serialfragment(RX_datagram callback,
+			      struct ccnl_relay_s *relay,
+			      struct ccnl_face_s *from,
+			      struct serialFragPDU_s *s)
+{
+    struct ccnl_buf_s *buf = NULL;
+    struct ccnl_encaps_s *e = from->encaps;
+    DEBUGMSG(8, "  encaps %p protocol=%d, flags=%04x, seq=%d (%d)\n",
+	     (void*)e, e->protocol, s->flags, s->ourseq, e->recvseq);
+
+    if (e->recvseq != s->ourseq) {
+	// should increase error counter here
+	if (e->defrag) {
+	    DEBUGMSG(17, "  >> seqnum mismatch (%d/%d), dropped defrag buf\n",
+		     s->ourseq, e->recvseq);
+	    ccnl_free(e->defrag);
+	    e->defrag = NULL;
+	}
+    }
+    switch(s->flags & (CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST)) {
+    case CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST: // single packet
+	DEBUGMSG(17, "  >> single fragment\n");
+	if (e->defrag) {
+	    DEBUGMSG(18, "    had to drop defrag buf\n");
+	    ccnl_free(e->defrag);
+	    e->defrag = NULL;
+	}
+	// no need to copy the buffer:
+	callback(relay, from, &s->content, &s->contlen);
+	return;
+    case CCNL_DTAG_FRAG_FLAG_FIRST: // start of fragment sequence
+	DEBUGMSG(17, "  >> start of fragment series\n");
+	if (e->defrag) {
+	    DEBUGMSG(18, "    had to drop defrag buf\n");
+	    ccnl_free(e->defrag);
+	}
+	e->defrag = ccnl_buf_new(s->content, s->contlen);
+	break;
+    case CCNL_DTAG_FRAG_FLAG_LAST: // end of fragment sequence
+	DEBUGMSG(17, "  >> last fragment of a series\n");
+	if (!e->defrag) break;
+	buf = ccnl_buf_new(NULL, e->defrag->datalen + s->contlen);
+	if (buf) {
+	    memcpy(buf->data, e->defrag->data, e->defrag->datalen);
+	    memcpy(buf->data + e->defrag->datalen, s->content, s->contlen);
+	}
+	ccnl_free(e->defrag);
+	e->defrag = NULL;
+	break;
+    case 0x00:  // fragment in the middle of a squence
+    default:
+	DEBUGMSG(17, "  >> fragment in the middle of a series\n");
+	if (!e->defrag) break;
+	buf = ccnl_buf_new(NULL, e->defrag->datalen + s->contlen);
+	if (buf) {
+	    memcpy(buf->data, e->defrag->data, e->defrag->datalen);
+	    memcpy(buf->data + e->defrag->datalen, s->content, s->contlen);
+	    ccnl_free(e->defrag);
+	    e->defrag = buf;
+	    buf = NULL;
+	} else {
+	    ccnl_free(e->defrag);
+	    e->defrag = NULL;
+	}
+	break;
+    }
+    if (s->ourseqbytes <= sizeof(int) && s->ourseqbytes > 1)
+	e->recvseqbytes = s->ourseqbytes;
+    // next expected seq number:
+    e->recvseq = (s->ourseq + 1) & ((1<<(8*s->ourseqbytes)) - 1);
+
+    if (buf) {
+	unsigned char *frag = buf->data;
+	int fraglen = buf->datalen;
+	DEBUGMSG(17, "  >> reassembled fragment is %d bytes\n", buf->datalen);
+	callback(relay, from, &frag, &fraglen);
+	ccnl_free(buf);
+    }
+}
+
+// ----------------------------------------------------------------------
+
+#define getNumField(var,len,flag,rem) \
+	DEBUGMSG(19, "  parsing " rem "\n"); \
+	if (unmkBinaryInt(data, datalen, &var, &len) != 0) \
+	    goto Bail; \
+	s.HAS |= flag
+#define HAS_FLAGS  0x01
+#define HAS_OSEQ   0x02
+#define HAS_OLOS   0x04
+#define HAS_YSEQ   0x08
+
+int
+ccnl_encaps_RX_frag2012(RX_datagram callback,
+			struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+			unsigned char **data, int *datalen)
+{
+    int num, typ;
+    struct serialFragPDU_s s;
+    DEBUGMSG(99, "ccnl_encaps_RX_frag2012 (%d bytes)\n", *datalen);
+
+    serialFragPDU_init(&s);
+    while (dehead(data, datalen, &num, &typ) == 0) {
+	if (num==0 && typ==0)
+	    break; // end
+	if (typ == CCN_TT_DTAG) {
+	    switch(num) {
+	    case CCN_DTAG_CONTENT:
+		DEBUGMSG(18, "  encaps content\n");
+//		if (s.content) // error: more than one content entry
+		if (consume(typ, num, data, datalen, &s.content,&s.contlen) < 0)
+		    goto Bail;
+		continue;
+	    case CCNL_DTAG_FRAG_FLAGS:
+		getNumField(s.flags, s.flagbytes, HAS_FLAGS, "flags");
+		continue;
+	    case CCNL_DTAG_FRAG_OSEQN:
+		getNumField(s.ourseq, s.ourseqbytes, HAS_OSEQ, "ourseq");
+		continue;
+	    case CCNL_DTAG_FRAG_OLOSS:
+		getNumField(s.ourloss, s.ourlossbytes, HAS_OLOS, "ourloss");
+		continue;
+	    case CCNL_DTAG_FRAG_YSEQN:
+		getNumField(s.yourseq, s.yourseqbytes, HAS_YSEQ, "yourseq");
+		continue;
+	    default:
+		break;
+	    }
+	}
+	if (consume(typ, num, data, datalen, 0, 0) < 0)
+	    goto Bail;
+    }
+    if (!s.content || s.HAS != 15) {
+	DEBUGMSG(1, "* incomplete frag\n");
+	return 0;
+    }
+
+    if (!from->encaps)
+	from->encaps = ccnl_encaps_new(CCNL_ENCAPS_SEQUENCED2012,
+				       relay->ifs[from->ifndx].mtu);
+    if (from->encaps && from->encaps->protocol == CCNL_ENCAPS_SEQUENCED2012)
+	ccnl_encaps_RX_serialfragment(callback, relay, from, &s);
+   else
+	DEBUGMSG(1, "WRONG ENCAPS PROTOCOL\n");
+    return 0;
+Bail:
+    DEBUGMSG(1, "* frag bailing\n");
+    return -1;
+}
+
+int
+ccnl_encaps_RX_pdu2013(RX_datagram callback,
+		       struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+		       unsigned char **data, int *datalen)
+{
+    int rc, num, typ, pdutypelen;
+    unsigned char *pdutype = 0;
+    struct serialFragPDU_s s;
+    DEBUGMSG(99, "ccnl_encaps_RX_pdu2013 (%d bytes)\n", *datalen);
+
+    serialFragPDU_init(&s);
+    while (dehead(data, datalen, &num, &typ) == 0) {
+	if (num==0 && typ==0) break; // end
+	if (typ == CCN_TT_DTAG) {
+	    switch (num) {
+	    case CCN_DTAG_INTEREST:
+	    case CCN_DTAG_CONTENTOBJ:
+		rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
+		if (rc < 0)
+		    return rc;
+		continue;
+	    case CCN_DTAG_ANY:
+//		if (frag) // error: more than one ANY entry
+		if (consume(typ, num, data, datalen, &s.content,&s.contlen) < 0)
+		    goto Bail;
+		continue;
+	    case CCN_DTAG_TYPE:
+		if (hunt_for_end(data, datalen, &pdutype, &pdutypelen) ||
+		    pdutypelen != 3) goto Bail;
+		continue;
+	    case CCNL_DTAG_FRAG_FLAGS:
+		getNumField(s.flags, s.flagbytes, HAS_FLAGS, "flags");
+		continue;
+	    case CCN_DTAG_SEQNO:
+		getNumField(s.ourseq, s.ourseqbytes, HAS_OSEQ, "ourseq");
+		continue;
+	    case CCNL_DTAG_FRAG_OLOSS:
+		getNumField(s.ourloss, s.ourlossbytes, HAS_OLOS, "ourloss");
+		continue;
+	    case CCNL_DTAG_FRAG_YSEQN:
+		getNumField(s.yourseq, s.yourseqbytes, HAS_YSEQ, "yourseq");
+		continue;
+	    default:
+		break;
+	    }
+	}
+	if (consume(typ, num, data, datalen, 0, 0) < 0)
+	    goto Bail;
+    }
+    if (!pdutype || !s.content || s.HAS != 15) {
+	DEBUGMSG(1, "* incomplete frag\n");
+	return 0;
+    }
+
+    /*
+     * echo "FRGS" | base64 -d | hexdump -e '/1 "@x%02x"'| tr @ '\\'; echo
+     */
+    if (memcmp(pdutype, "\x15\x11\x92", 3) == 0) { // sequential
+	if (!from->encaps)
+	    from->encaps = ccnl_encaps_new(CCNL_ENCAPS_CCNPDU2013,
+					   relay->ifs[from->ifndx].mtu);
+	if (from->encaps && from->encaps->protocol == CCNL_ENCAPS_CCNPDU2013)
+	    ccnl_encaps_RX_serialfragment(callback, relay, from, &s);
+	else
+	    DEBUGMSG(1, "WRONG ENCAPS PROTOCOL\n");
+    }
+
+    /*
+     * echo "FRGA" | base64 -d | hexdump -e '/1 "@x%02x"'| tr @ '\\'; echo
+     */
+    if (memcmp(pdutype, "\x15\x11\x80", 3) == 0) { // absolute
+	// not implemented yet
+    }
+
+    return 0;
+Bail:
+    DEBUGMSG(1, "* frag bailing\n");
+    return -1;
+}
+
 
 #endif // USE_ENCAPS
 

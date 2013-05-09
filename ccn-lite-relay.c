@@ -31,7 +31,7 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-// #define USE_ENCAPS
+#define USE_ENCAPS
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
@@ -283,9 +283,11 @@ ccnl_relay_defaultInterfaceScheduler(struct ccnl_relay_s *ccnl,
 {
     return ccnl_sched_pktrate_new(cb, ccnl, inter_pkt_interval);
 }
+/*
 #else
 # define ccnl_relay_defaultFaceScheduler       NULL
 # define ccnl_relay_defaultInterfaceScheduler  NULL
+*/
 #endif // USE_SCHEDULER
 
 
@@ -306,8 +308,10 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     DEBUGMSG(99, "ccnl_relay_config\n");
 
     relay->max_cache_entries = max_cache_entries;
+#ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
+#endif
 
 #ifdef USE_ETHERNET
     // add (real) eth0 interface with index 0:
@@ -321,7 +325,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    relay->ifcount++;
 	    DEBUGMSG(99, "new ETH interface (%s %s) configured\n",
 		     ethdev, ccnl_addr2ascii(&i->addr));
-	    i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open eth device\n");
@@ -338,7 +343,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    relay->ifcount++;
 	    DEBUGMSG(99, "new UDP interface (ip4 %s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open udp device\n");
@@ -359,7 +365,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    relay->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
@@ -488,29 +495,34 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 		buf->datalen = s.st_size;
 		read(fd, buf->data, s.st_size);
 		close(fd);
-		if (ccnl_is_content(buf)) {
-		        struct ccnl_prefix_s *prefix = 0;
-			struct ccnl_content_s *c = 0;
-			struct ccnl_buf_s *nonce=0, *ppkd=0;
-			unsigned char *content;
-			int contlen;
-			if (ccnl_extract_prefix_nonce_ppkd(buf, NULL, NULL,
-			      NULL, &prefix, &nonce, &ppkd, &content, &contlen)
-			    || !prefix) {
-			    DEBUGMSG(6, "  parsing error or no prefix\n");
-			    goto Done;
-			}
-			c = ccnl_content_new(ccnl, &buf, &prefix, &ppkd,
-					     content, contlen);
-			if (!c)
-			    goto Done;
-			ccnl_content_add2cache(ccnl, c);
-			c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+		if (buf->datalen > 1 &&
+			    buf->data[0] == 0x04 && buf->data[1] == 0x82) {
+		    struct ccnl_prefix_s *prefix = 0;
+		    struct ccnl_content_s *c = 0;
+		    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+		    unsigned char *content, *data = buf->data + 2;
+		    int contlen, datalen = buf->datalen - 2;
+
+		    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
+				0, &prefix, &nonce, &ppkd, &content, &contlen);
+		    if (!pkt) {
+			DEBUGMSG(6, "  parsing error\n"); goto Done;
+		    }
+		    if (!prefix) {
+			DEBUGMSG(6, "  no prefix error\n"); goto Done;
+		    }
+		    c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
+					 content, contlen);
+		    if (!c)
+			goto Done;
+		    ccnl_content_add2cache(ccnl, c);
+		    c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 Done:
-			free_prefix(prefix);
-			ccnl_free(buf);
-			ccnl_free(nonce);
-			ccnl_free(ppkd);
+		    free_prefix(prefix);
+		    ccnl_free(buf);
+		    ccnl_free(pkt);
+		    ccnl_free(nonce);
+		    ccnl_free(ppkd);
 		} else {
 		    DEBUGMSG(6, "  not a content object\n");
 		    ccnl_free(buf);

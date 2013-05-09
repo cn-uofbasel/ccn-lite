@@ -21,10 +21,6 @@
  * 2013-04-04 modified (ms): #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
  */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <unistd.h>
-
 
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
@@ -64,7 +60,7 @@ mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 	out[len++] = 0x0ff & (val >> (8*bytes));
     }
 
-    out[len++] = 0; // end-of-interest
+    out[len++] = 0; // end-of-entry
     return len;
 }
 
@@ -78,17 +74,23 @@ unmkBinaryInt(unsigned char **data, int *datalen,
 
     if (dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
 	return -1;
-    if (bytes)
-	*bytes = num;
+    if (bytes) {
+      if (*bytes < num)
+	  num = *bytes;
+      else
+	  *bytes = num;
+    }
 
-    DEBUGMSG(8, "  unmkBinaryInt len=%d\n", num);
     while (num-- > 0 && len > 0) {
 	val = (val << 8) | *cp++;
 	len--;
     }
     *result = val;
-    *data = cp;
-    *datalen = len;
+
+    if (len < 1 || *cp != '\0') // no end-of-entry
+	return -1;
+    *data = cp+1;
+    *datalen = len-1;
     return 0;
 }
 

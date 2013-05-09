@@ -35,7 +35,7 @@
 
 #define CCNL_ENCAPS_NONE		0
 #define CCNL_ENCAPS_SEQUENCED2012	1
-#define CCNL_ENCAPS_WIRE2013		2
+#define CCNL_ENCAPS_CCNPDU2013		2
 
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
@@ -81,6 +81,7 @@ struct ccnl_if_s { // interface for packet IO
 
 struct ccnl_relay_s {
     time_t startup_time;
+    int id;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
     struct ccnl_interest_s *pit;
@@ -158,7 +159,7 @@ struct ccnl_interest_s {
     struct ccnl_prefix_s *prefix;
     int minsuffix, maxsuffix;
     struct ccnl_buf_s *ppkd;	   // publisher public key digest
-    struct ccnl_buf_s *data;	   // full datagram
+    struct ccnl_buf_s *pkt;	   // full datagram
     int last_used;
     int retries;
 };
@@ -173,7 +174,7 @@ struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
     struct ccnl_prefix_s *name;
     struct ccnl_buf_s *ppkd; // publisher public key digest
-    struct ccnl_buf_s *data; // full datagram
+    struct ccnl_buf_s *pkt; // full datagram
     int flags;
     unsigned char *content; // pointer into the data buffer
     int contentlen;

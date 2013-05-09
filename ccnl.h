@@ -47,16 +47,16 @@
 // management protocol: (ccnl-ext-mgmt.c)
 #define CCNL_DTAG_MACSRC	99001 // newface: which L2 interface
 #define CCNL_DTAG_IP4SRC	99002 // newface: which L3 interface
-#define CCNL_DTAG_ENCAPS	99003 // fragmentation protocol, see core.h
-#define CCNL_DTAG_FACEFLAGS	99004 //
-#define CCNL_DTAG_DEVINSTANCE	99005 // adding/removing a device/interface
-#define CCNL_DTAG_DEVNAME	99006 // name of interface (eth0, wlan0)
-#define CCNL_DTAG_DEVFLAGS	99007 //
+#define CCNL_DTAG_UNIXSRC	99003 // newface: which UNIX path
+#define CCNL_DTAG_ENCAPS	99004 // fragmentation protocol, see core.h
+#define CCNL_DTAG_FACEFLAGS	99005 //
+#define CCNL_DTAG_DEVINSTANCE	99006 // adding/removing a device/interface
+#define CCNL_DTAG_DEVNAME	99007 // name of interface (eth0, wlan0)
+#define CCNL_DTAG_DEVFLAGS	99008 //
+#define CCNL_DTAG_MTU		99009 //
 
-#define CCNL_DTAG_DEBUGREQUEST  99008 //
-#define CCNL_DTAG_DEBUGACTION   99009 // dump, halt, dump+halt      
-
-#define CCNL_DTAG_UNIXSRC	99010 // newface: which UNIX path
+#define CCNL_DTAG_DEBUGREQUEST  99100 //
+#define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt      
 
 // fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803

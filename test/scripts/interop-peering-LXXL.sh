@@ -115,7 +115,7 @@ echo "** END_OF_TEST"
 
 echo
 echo "** how the 1st node saw things:"
-egrep '(interest for|content_new).*/doc/' $CCNL_LOGB
+egrep '(interest=|content=).*/doc/' $CCNL_LOGB
 echo
 echo "** how the 2nd node saw things:"
 egrep '(interest_from|content_from).*/doc/' $CCND_LOGB
@@ -124,7 +124,7 @@ echo "** how the 3rd node saw things:"
 egrep '(interest_from|content_from).*/doc/' $CCND_LOGA
 echo
 echo "** how the 4th node saw things (content was injected at start):"
-egrep '(interest for|content_new).*/doc.*URI' $CCNL_LOGA
+egrep '(interest=|content_new).*/doc.*URI' $CCNL_LOGA
 
 echo
 echo "** Find more in the logs:"
