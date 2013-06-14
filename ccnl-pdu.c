@@ -21,6 +21,8 @@
  * 2013-04-04 modified (ms): #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
  */
 
+#ifndef CCNL_PDU
+#define CCNL_PDU
 
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
@@ -39,6 +41,38 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
     for (i = len-1; i >= 0; i--)
 	*buf++ = tmp[i];
     return len;
+}
+
+int
+addBlob(unsigned char *out, char *cp, int cnt)
+{
+    int len;
+
+    len = mkHeader(out, cnt, CCN_TT_BLOB);
+    memcpy(out+len, cp, cnt);
+    len += cnt;
+
+    return len;
+}
+
+int
+mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
+       char *cp, int cnt)
+{
+    int len;
+
+    len = mkHeader(out, num, tt);
+    len += addBlob(out+len, cp, cnt);
+    out[len++] = 0;
+
+    return len;
+}
+
+int
+mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
+	  char *str)
+{
+    return mkBlob(out, num, tt, str, strlen(str));
 }
 
 int
@@ -161,4 +195,5 @@ mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
 
 #endif // CCNL_SIMULATION || CCNL_OMNET
 
+#endif /*CCNL_PDU*/
 // eof

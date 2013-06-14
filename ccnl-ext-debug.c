@@ -314,6 +314,153 @@ ccnl_dump(int lev, int typ, void *p)
     }
 }
 
+int
+ccnl_dump_str(int lev, int typ, void *p, char *out, int pos)
+{
+    struct ccnl_buf_s      *buf = (struct ccnl_buf_s      *) p;
+    struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) p;
+    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
+    struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
+    struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
+    int i, k;
+
+#define INDENT(lev) for (i = 0; i < lev; i++) pos += sprintf(out + pos, "  ")
+    switch(typ) {
+    case CCNL_BUF:
+	while (buf) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
+		(void *) buf->next);
+	    buf = buf->next;
+	}
+	break;
+    case CCNL_PREFIX:
+	INDENT(lev);
+	pos += sprintf(out + pos, "%p PREFIX len=%d val=%s\n",
+	       (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+	break;
+    case CCNL_RELAY:
+	INDENT(lev);
+	pos += sprintf(out + pos, "%p RELAY\n", (void *) top); lev++;
+	INDENT(lev); pos += sprintf(out + pos, "interfaces:\n");
+	for (k = 0; k < top->ifcount; k++) {
+	    INDENT(lev+1);
+	    pos += sprintf(out + pos, "ifndx=%d addr=%s", k,
+		    ccnl_addr2ascii(&top->ifs[k].addr));
+#ifdef CCNL_LINUXKERNEL
+	    if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
+		pos += sprintf(out + pos, " netdev=%p", top->ifs[k].netdev);
+	    else
+		pos += sprintf(out + pos, " sockstruct=%p", top->ifs[k].sock);
+#else
+	    pos += sprintf(out + pos, " sock=%d", top->ifs[k].sock);
+#endif
+	    if (top->ifs[k].reflect)
+		pos += sprintf(out + pos, " reflect=%d", top->ifs[k].reflect);
+	    pos += sprintf(out + pos, "\n");
+	}
+	if (top->faces) {
+	    INDENT(lev); pos += sprintf(out + pos, "faces:\n");    ccnl_dump_str(lev+1, CCNL_FACE, top->faces, out, pos);
+	}
+	if (top->fib) {
+	    INDENT(lev); pos += sprintf(out + pos, "fib:\n");      ccnl_dump_str(lev+1, CCNL_FWD, top->fib, out, pos);
+	}
+	if (top->pit) {
+	    INDENT(lev); pos += sprintf(out + pos, "pit:\n");      ccnl_dump_str(lev+1, CCNL_INTEREST, top->pit, out, pos);
+	}
+	if (top->contents) {
+	    INDENT(lev); pos += sprintf(out + pos, "contents:\n"); ccnl_dump_str(lev+1, CCNL_CONTENT, top->contents, out, pos);
+	}
+	break;
+    case CCNL_FACE:
+	while (fac) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
+		   (void*) fac, fac->faceid, (void *) fac->next,
+		   (void *) fac->prev, fac->ifndx, fac->flags);
+	    if (fac->peer.sa.sa_family == AF_INET)
+		sprintf(out, " ip=%s", ccnl_addr2ascii(&fac->peer));
+#ifdef USE_ETHERNET
+	    else if (fac->peer.sa.sa_family == AF_PACKET)
+		pos += sprintf(out + pos, " eth=%s", ccnl_addr2ascii(&fac->peer));
+#endif
+	    else if (fac->peer.sa.sa_family == AF_UNIX)
+		pos += sprintf(out + pos, " ux=%s", ccnl_addr2ascii(&fac->peer));
+	    else
+		pos += sprintf(out + pos, " peer=?");
+	    if (fac->encaps)
+		encaps(fac->encaps->protocol);
+	    pos += sprintf(out + pos, "\n");
+	    if (fac->outq) {
+		INDENT(lev+1); pos += sprintf(out + pos, "outq:\n");
+		ccnl_dump(lev+2, CCNL_BUF, fac->outq);
+	    }
+	    fac = fac->next;
+	}
+	break;
+    case CCNL_FWD:
+	while (fwd) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p FWD next=%p face=%p (id=%d)\n",
+		    (void *) fwd, (void *) fwd->next,
+		    (void *) fwd->face, fwd->face->faceid);
+	    ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
+	    fwd = fwd->next;
+	}
+	break;
+    case CCNL_INTEREST:
+	while (itr) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
+		   (void *) itr, (void *) itr->next, (void *) itr->prev,
+		    itr->last_used, itr->minsuffix, itr->maxsuffix,
+		    itr->retries);
+	    ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
+	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
+	    if (itr->ppkd) {
+		INDENT(lev+1);
+		pos += sprintf(out + pos, "%p PUBLISHER=", (void *) itr->ppkd);
+		blob(itr->ppkd->data, itr->ppkd->datalen);
+		pos += sprintf(out + pos, "\n");
+	    }
+	    if (itr->pending) {
+		INDENT(lev+1); pos += sprintf(out + pos, "pending:\n");
+		ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
+	    }
+	    itr = itr->next;
+
+	}
+	break;
+    case CCNL_PENDINT:
+	while (pir) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p PENDINT next=%p face=%p last=%d\n",
+		   (void *) pir, (void *) pir->next,
+		   (void *) pir->face, pir->last_used);
+	    pir = pir->next;
+	}
+	break;
+    case CCNL_CONTENT:
+	while (con) {
+	    INDENT(lev);
+	    pos += sprintf(out + pos, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+		   (void *) con, (void *) con->next, (void *) con->prev,
+		   con->last_used, con->served_cnt);
+	    ccnl_dump(lev+1, CCNL_PREFIX, con->name);
+	    ccnl_dump(lev+1, CCNL_BUF, con->pkt);
+	    con = con->next;
+	}
+	break;
+    default:
+	INDENT(lev);
+	pos += sprintf(out + pos, "unknown data type %d at %p\n", typ, p);
+    }
+    return pos;
+}
+
 #else // !USE_DEBUG
 #  define DEBUGSTMT(LVL, ...)			do {} while(0)
 #  define DEBUGMSG(LVL, ...)			do {} while(0)

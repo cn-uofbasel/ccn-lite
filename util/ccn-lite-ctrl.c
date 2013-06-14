@@ -221,7 +221,6 @@ mkDestroyDevRequest(unsigned char *out, char *faceid)
     return 0;
 }
 
-
 int
 mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 		 char *host, char *port, char *flags)
@@ -502,6 +501,13 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     return rc;
 }
 
+int extract_ccn_reply(int len, char *buf){
+    int it;
+    for(it = 0; it < len; ++it)
+        printf("%c", buf[it]);
+    printf("\n");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -580,6 +586,9 @@ main(int argc, char *argv[])
 	len = recv(sock, out, sizeof(out), 0);
 	if (len > 0)
 	    out[len] = '\0';
+        
+        extract_ccn_reply(len, out);
+        
 	printf("received %d bytes:\n<%s>\n", len, out);
     } else
 	printf("nothing to send, program terminates\n");
