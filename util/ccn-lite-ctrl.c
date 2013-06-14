@@ -501,11 +501,104 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     return rc;
 }
 
-int extract_ccn_reply(int len, char *buf){
+const char *byte_to_binary(int x)
+{
+    static char b[9];
+    b[0] = '\0';
+
+    int z;
+    for (z = 128; z > 0; z >>= 1)
+    {
+        strcat(b, ((x & z) == z) ? "1" : "0");
+    }
+
+    return b;
+}
+
+int
+dehead(unsigned char **buf, int *len, int *num, int *typ)
+{
+    int i;
+    int val = 0;
+
+    if (*len > 0 && **buf == 0) { // end
+	*num = *typ = 0;
+	*buf += 1;
+	*len -= 1;
+	return 0;
+    }
+    for (i = 0; (unsigned int) i < sizeof(i) && i < *len; i++) {
+	unsigned char c = (*buf)[i];
+	if ( c & 0x80 ) {
+	    *num = (val << 4) | ((c >> 3) & 0xf);
+	    *typ = c & 0x7;
+	    *buf += i+1;
+	    *len -= i+1;
+	    return 0;
+	}
+	val = (val << 7) | c;
+    } 
+    return -1;
+}
+
+void
+print_offset(int offset){
     int it;
-    for(it = 0; it < len; ++it)
-        printf("%c", buf[it]);
-    printf("\n");
+    for(it = 0; it < offset; ++it)
+        printf(" ");
+}
+
+int  
+extract_ccn_reply(unsigned char *buf, int len, int offset){
+     
+    int num, typ;
+    if(len <= 0) return 1;
+    
+    if (dehead(&buf, &len, &num, &typ) || typ != CCN_TT_DTAG) return -1;
+    switch(num)
+    {
+
+        case CCN_DTAG_CONTENT:
+            print_offset(offset); printf("<CONTENT>\n");
+            extract_ccn_reply(buf, len, offset + 4);
+            print_offset(offset); printf("</CONTENT>\n");
+            break;
+        case CCN_DTAG_NAME:
+            print_offset(offset); printf("<NAME>\n");
+            extract_ccn_reply(buf, len, offset + 4);
+            print_offset(offset); printf("</NAME>\n");
+            break;
+        case CCN_DTAG_COMPONENT:
+            print_offset(offset); printf("<COMPONENT>\n");
+            print_offset(offset+2);
+            while(*buf != 0)
+            {
+                len++; buf++; 
+                printf("%c", *buf);
+            }
+            len++; buf++;
+            printf("\n");
+            extract_ccn_reply(buf, len, offset + 4);
+            print_offset(offset); printf("</COMPONENT>\n");
+            break;
+
+    }
+    
+    /*for(it = 1; it <len; ++it)
+    {
+        //printf("%hhu\n", get_ccn_tag_name(buf[it]));
+        unsigned int tag = get_ccn_tag_name(buf[it]);
+        unsigned int type = get_ccn_tag_type(buf[it]);
+        printf("%u ", type);
+        if(tag == CCN_TT_DTAG && type == CCN_DTAG_CONTENT){
+             printf("<CONTENT>");
+             ++offset;
+        }
+        else if(tag == CCN_TT_DTAG && type == CCN_DTAG_NAME) {
+             printf("<NAME>");
+             ++offset;
+        }
+    }*/
 }
 
 int
@@ -587,7 +680,9 @@ main(int argc, char *argv[])
 	if (len > 0)
 	    out[len] = '\0';
         
-        extract_ccn_reply(len, out);
+        printf("CCN-PACKET:\n");
+        extract_ccn_reply(out, len, 2);
+        printf("\n");
         
 	printf("received %d bytes:\n<%s>\n", len, out);
     } else

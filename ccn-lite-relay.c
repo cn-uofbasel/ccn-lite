@@ -429,6 +429,14 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 		socklen_t addrlen = sizeof(sockunion);
 		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
 				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
+                    /*REMOVE*/
+                    int it;
+                    for(it = 0; it <len; ++it)
+                    {
+                        printf("%hhX ", buf[it]);
+                    }
+                    printf("\n");
+                    /*END-REMOVE*/
 		    if (src_addr.sa.sa_family == AF_INET) {
 			ccnl_core_RX(ccnl, i, buf, len,
 				     &src_addr.sa, sizeof(src_addr.ip4));
