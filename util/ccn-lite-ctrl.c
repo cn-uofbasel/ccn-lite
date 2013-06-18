@@ -548,57 +548,192 @@ print_offset(int offset){
         printf(" ");
 }
 
+int
+extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components);
+
+void handleCompnent(unsigned char *buf, int len, int offset, char *tag, int isStrBlob, int num_of_components)
+{
+    int num, typ;
+    print_offset(offset); printf("<%s>", tag);
+    if(isStrBlob){
+        dehead(&buf, &len, &num, &typ);
+        while(*buf != 0)
+        {
+            //len++; buf++; 
+            //if((*buf >="a" && *buf <= "z") || (*buf >="A" && *buf <= "Z") || (*buf >="0" && *buf <= "9"))
+            printf("%c", *buf);
+            len++; buf++;
+        }
+        len++; buf++;
+        printf("</%s>\n", tag);
+        extract_ccn_reply(buf, len, offset, num_of_components);
+    }
+    else{
+        printf("\n");
+        extract_ccn_reply(buf, len, offset+4, num_of_components);
+        print_offset(offset); printf("</%s>\n", tag);
+    }
+}
+
 int  
-extract_ccn_reply(unsigned char *buf, int len, int offset){
-     
+extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components){
+    
     int num, typ;
     if(len <= 0) return 1;
+    if (dehead(&buf, &len, &num, &typ)) return -1;
     
-    if (dehead(&buf, &len, &num, &typ) || typ != CCN_TT_DTAG) return -1;
+    
     switch(num)
     {
-
-        case CCN_DTAG_CONTENT:
-            print_offset(offset); printf("<CONTENT>\n");
-            extract_ccn_reply(buf, len, offset + 4);
-            print_offset(offset); printf("</CONTENT>\n");
-            break;
+        case CCN_DTAG_ANY:
+            //extract_ccn_reply(buf, len, offset, num_of_components);
+            //break;
         case CCN_DTAG_NAME:
-            print_offset(offset); printf("<NAME>\n");
-            extract_ccn_reply(buf, len, offset + 4);
-            print_offset(offset); printf("</NAME>\n");
+            handleCompnent(buf, len, offset, "NAME", 0, num_of_components);
             break;
         case CCN_DTAG_COMPONENT:
-            print_offset(offset); printf("<COMPONENT>\n");
-            print_offset(offset+2);
-            while(*buf != 0)
-            {
-                len++; buf++; 
-                printf("%c", *buf);
-            }
-            len++; buf++;
-            printf("\n");
-            extract_ccn_reply(buf, len, offset + 4);
-            print_offset(offset); printf("</COMPONENT>\n");
+            ++num_of_components;
+            handleCompnent(buf, len, offset, "COMPONENT", num_of_components < 4, num_of_components);
             break;
-
+        case CCN_DTAG_CONTENT:
+            handleCompnent(buf, len, offset, "CONTENT", 0, num_of_components);
+            break;
+        case CCN_DTAG_SIGNEDINFO:
+            handleCompnent(buf, len, offset, "SIGNEDINFO", 1, num_of_components);
+            break;
+        case CCN_DTAG_INTEREST:
+            handleCompnent(buf, len, offset, "INTEREST", 0, num_of_components);
+            break;
+        case CCN_DTAG_KEY:
+            handleCompnent(buf, len, offset, "KEY", 1, num_of_components);
+            break;
+        case CCN_DTAG_KEYLOCATOR:
+            handleCompnent(buf, len, offset, "KEYLOCATOR", 1, num_of_components);
+            break; 
+        case CCN_DTAG_KEYNAME:
+            handleCompnent(buf, len, offset, "KEYNAME", 1, num_of_components);
+            break;
+        case CCN_DTAG_SIGNATURE:
+            handleCompnent(buf, len, offset, "SIGNATURE", 1, num_of_components);
+            break;
+        case CCN_DTAG_TIMESTAMP:
+            handleCompnent(buf, len, offset, "TIMESTAMP", 1, num_of_components);
+            break;
+        case CCN_DTAG_TYPE:
+            handleCompnent(buf, len, offset, "TYPE", 1, num_of_components);
+            break;
+        case CCN_DTAG_NONCE:
+            handleCompnent(buf, len, offset, "NONCE", 1, num_of_components);
+            break;
+        case CCN_DTAG_SCOPE:
+            handleCompnent(buf, len, offset, "SCOPE", 1, num_of_components);
+            break;
+        case CCN_DTAG_EXCLUDE:
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
+        case CCN_DTAG_WITNESS:
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
+        case CCN_DTAG_SIGNATUREBITS:
+            handleCompnent(buf, len, offset, "SIGNATUREBITS", 1, num_of_components);
+            break;
+        case CCN_DTAG_FRESHNESS:
+            handleCompnent(buf, len, offset, "FRESHNESS", 1, num_of_components);
+            break;
+        case CCN_DTAG_FINALBLOCKID:
+            handleCompnent(buf, len, offset, "FINALBLOCKID", 1, num_of_components);
+            break;
+        case CCN_DTAG_PUBPUBKDIGEST:
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
+        case CCN_DTAG_PUBCERTDIGEST:
+            handleCompnent(buf, len, offset, "PUBCERTDIGEST", 1, num_of_components);
+            break;
+        case CCN_DTAG_CONTENTOBJ:
+            handleCompnent(buf, len, offset, "CONTENTOBJ", 0, num_of_components);
+            break;
+        case CCN_DTAG_ACTION:
+            handleCompnent(buf, len, offset, "ACTION", 1, num_of_components);
+            break;
+        case CCN_DTAG_FACEID:
+            handleCompnent(buf, len, offset, "FACEID", 1, num_of_components);
+            break;
+        case CCN_DTAG_IPPROTO:
+            handleCompnent(buf, len, offset, "IPPROTO", 1, num_of_components);
+            break;
+        case CCN_DTAG_HOST:
+            handleCompnent(buf, len, offset, "HOST", 1, num_of_components);
+            break;
+        case CCN_DTAG_PORT:
+            handleCompnent(buf, len, offset, "PORT", 1, num_of_components);
+            break;
+        case CCN_DTAG_FWDINGFLAGS:
+            handleCompnent(buf, len, offset, "FWDINGFLAGS", 1, num_of_components);
+            break;
+        case CCN_DTAG_FACEINSTANCE:
+            dehead(&buf, &len, &num, &typ);
+            handleCompnent(buf, len, offset, "FACEINSTANCE", 1, num_of_components);
+            break;
+        case CCN_DTAG_FWDINGENTRY:
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
+        case CCN_DTAG_MINSUFFCOMP:
+            handleCompnent(buf, len, offset, "MINSUFFCOMP", 1, num_of_components);
+            break;
+        case CCN_DTAG_MAXSUFFCOMP:
+            handleCompnent(buf, len, offset, "MAXSUFFCOMP", 1, num_of_components);
+            break;
+        case CCN_DTAG_SEQNO:
+            handleCompnent(buf, len, offset, "SEQNO", 1, num_of_components);
+            break;
+        case CCN_DTAG_CCNPDU:
+            handleCompnent(buf, len, offset, "CCNPDU", 1, num_of_components);
+            break;
+        case CCNL_DTAG_MACSRC:
+            handleCompnent(buf, len, offset, "MACSRC", 1, num_of_components);
+            break;
+        case CCNL_DTAG_IP4SRC:
+            handleCompnent(buf, len, offset, "IP4SRC", 1, num_of_components);
+            break;
+        case CCNL_DTAG_UNIXSRC:
+            handleCompnent(buf, len, offset, "UNIXSRC", 1, num_of_components);
+            break;
+        case CCNL_DTAG_ENCAPS:
+            handleCompnent(buf, len, offset, "ENCAPS", 1, num_of_components);
+            break;
+        case CCNL_DTAG_FACEFLAGS:
+            handleCompnent(buf, len, offset, "FACEFLAGS", 1, num_of_components);
+            break;
+        case CCNL_DTAG_DEVINSTANCE:
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
+        case CCNL_DTAG_DEVNAME:
+            handleCompnent(buf, len, offset, "DEVNAME", 1, num_of_components);
+            break;
+        case CCNL_DTAG_DEVFLAGS:
+            handleCompnent(buf, len, offset, "DEVFLAGS", 1, num_of_components);
+            break;
+        case CCNL_DTAG_MTU:
+            handleCompnent(buf, len, offset, "MTU", 1, num_of_components);
+            break;
+        case CCNL_DTAG_DEBUGREQUEST:
+            dehead(&buf, &len, &num, &typ);
+            handleCompnent(buf, len, offset, "DEBUGREQUEST", 1, num_of_components);
+            break;
+        case CCNL_DTAG_DEBUGACTION:
+            handleCompnent(buf, len, offset, "DEBUGACTION", 1, num_of_components);
+            break;
+        case CCNL_DTAG_DEBUGREPLY:
+            handleCompnent(buf, len, offset, "DEBUGREPLY", 1, num_of_components);
+            break;
+        case 0:
+            extract_ccn_reply(buf, len, offset-4, num_of_components);
+            break;
+        default:
+            //print_offset(offset); printf("Unknown num: %i %i\n", num, typ);
+            extract_ccn_reply(buf, len, offset, num_of_components);
+            break;
     }
-    
-    /*for(it = 1; it <len; ++it)
-    {
-        //printf("%hhu\n", get_ccn_tag_name(buf[it]));
-        unsigned int tag = get_ccn_tag_name(buf[it]);
-        unsigned int type = get_ccn_tag_type(buf[it]);
-        printf("%u ", type);
-        if(tag == CCN_TT_DTAG && type == CCN_DTAG_CONTENT){
-             printf("<CONTENT>");
-             ++offset;
-        }
-        else if(tag == CCN_TT_DTAG && type == CCN_DTAG_NAME) {
-             printf("<NAME>");
-             ++offset;
-        }
-    }*/
 }
 
 int
@@ -680,8 +815,14 @@ main(int argc, char *argv[])
 	if (len > 0)
 	    out[len] = '\0';
         
+        int it;
+        for(it = 0; it < len; ++it){
+            printf("%c", out[it]);
+        }
+        printf("\n");
+        
         printf("CCN-PACKET:\n");
-        extract_ccn_reply(out, len, 2);
+        extract_ccn_reply(out, len, 2, 0);
         printf("\n");
         
 	printf("received %d bytes:\n<%s>\n", len, out);
