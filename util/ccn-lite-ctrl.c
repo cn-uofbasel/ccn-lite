@@ -638,7 +638,7 @@ extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components
             handleCompnent(buf, len, offset, "SIGNATUREBITS", 1, num_of_components);
             break;
         case CCN_DTAG_FRESHNESS:
-            handleCompnent(buf, len, offset, "FRESHNESS", 1, num_of_components);
+            extract_ccn_reply(buf, len, offset, num_of_components);
             break;
         case CCN_DTAG_FINALBLOCKID:
             handleCompnent(buf, len, offset, "FINALBLOCKID", 1, num_of_components);
@@ -814,18 +814,12 @@ main(int argc, char *argv[])
 	len = recv(sock, out, sizeof(out), 0);
 	if (len > 0)
 	    out[len] = '\0';
-        
-        int it;
-        for(it = 0; it < len; ++it){
-            printf("%c", out[it]);
-        }
-        printf("\n");
-        
+            
         printf("CCN-PACKET:\n");
         extract_ccn_reply(out, len, 2, 0);
         printf("\n");
         
-	printf("received %d bytes:\n<%s>\n", len, out);
+	printf("received %d bytes.", len);
     } else
 	printf("nothing to send, program terminates\n");
 
