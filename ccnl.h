@@ -58,6 +58,7 @@
 #define CCNL_DTAG_DEBUGREQUEST  99100 //
 #define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt
 #define CCNL_DTAG_DEBUGREPLY    99102 // dump reply
+#define CCNL_DTAG_INTERFACE     99103
 
 // fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803

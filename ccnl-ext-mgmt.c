@@ -25,6 +25,7 @@
 #include "ccnx.h"
 #include "ccnl-pdu.c"
 #include "ccnl.h"
+#include "ccnl-ext-debug.c"
 
 // ----------------------------------------------------------------------
 
@@ -99,8 +100,10 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf, *action, *debugaction;
-    unsigned char cdump[2000];
-    int buflen, num, typ;
+    unsigned char cfaces[100][100], cfwds[100][100], cinterfaces[100][100],
+        cinterests[100][100], ccontents[100][100], cprefix[100][100];
+    int num_faces, num_fwds, num_interfaces, num_interests, num_contents;
+    int buflen, num, typ, it;
     char *cp = "debug cmd failed";
     int rc = -1;
 
@@ -136,15 +139,26 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	       debugaction);
 	if (!strcmp((const char*)debugaction, "dump")){
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
-            ccnl_dump_str(0, CCNL_RELAY, ccnl, cdump, 0);
+
+            num_faces = get_faces_dump(0,ccnl, cfaces);
+            num_fwds = get_fwd_dump(0,ccnl, cfwds);
+            num_interfaces = get_interface_dump(0,ccnl, cinterfaces);
+            num_interests = get_interest_dump(0,ccnl, cinterests);
+            num_contents = get_content_dump(0,ccnl, ccontents);
+            //get_prefix_dump(0, ccnl, cprefix);
         }
 	else if (!strcmp((const char*)debugaction, "halt")){
-            sprintf(cdump, "%s", "halt");
 	    ccnl->halt_flag = 1;
         }
 	else if (!strcmp((const char*)debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
-            ccnl_dump_str(0, CCNL_RELAY, ccnl, cdump, 0);
+            
+            num_faces = get_faces_dump(0,ccnl, cfaces);
+            num_fwds = get_fwd_dump(0,ccnl, cfwds);
+            num_interfaces = get_interface_dump(0,ccnl, cinterfaces);
+            num_interests = get_interest_dump(0,ccnl, cinterests);
+            num_contents = get_content_dump(0,ccnl, ccontents);
+            
 	    ccnl->halt_flag = 1;
 	} else
 	    cp = "unknown debug action, ignored";
@@ -173,9 +187,26 @@ Bail:
 
     // prepare debug statement
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
-    len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "debug");
+    len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, debugaction);
     len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG, cdump);
+    if(!strcmp((const char*)debugaction, "dump") || !strcmp((const char*)debugaction, "dump+halt")) //halt returns no content
+    {
+        len3 += mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
+        //len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
+        for(it = 0; it < num_interfaces; ++it)
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG, cinterfaces[it]);
+        for(it = 0; it < num_faces; ++it)
+            len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, cfaces[it]);
+        for(it = 0; it < num_fwds; ++it)
+            len3 += mkStrBlob(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, cfwds[it]);
+        for(it = 0; it < num_interests; ++it)
+            len3 += mkStrBlob(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG, cinterests[it]);
+        for(it = 0; it < num_interests; ++it)
+            len3 += mkStrBlob(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG, ccontents[it]);
+    }
+    
+    
+    stmt[len3++] = 0; //end of debug reply
     stmt[len3++] = 0; // end-of-debugstmt
 
     // prepare CONTENTOBJ with CONTENT

@@ -21,6 +21,9 @@
  * 2013-03-19 updated (ms): modified struct ccnl_relay_s for 'aux' field
  */
 
+#ifndef CCNL_CORE
+#define CCNL_CORE
+
 #define EXACT_MATCH 1
 #define PREFIX_MATCH 0
 
@@ -234,4 +237,5 @@ compile_string(void)
   return cp;
 }
 
+#endif /*CCNL_CORE*/
 // eof

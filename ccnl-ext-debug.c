@@ -22,6 +22,12 @@
  * 2013-03-31 merged with ccnl-debug.h and ccnl-debug-mem.c
  */
 
+#ifndef CCNL_EXT_DEBUG
+#define CCNL_EXT_DEBUG
+
+#include "ccnl-core.h"
+
+
 #ifdef USE_DEBUG
 
 #ifndef CCNL_LINUXKERNEL
@@ -315,150 +321,176 @@ ccnl_dump(int lev, int typ, void *p)
 }
 
 int
-ccnl_dump_str(int lev, int typ, void *p, char *out, int pos)
+get_buf_dump(int lev, void *p, char out[100][100])
 {
     struct ccnl_buf_s      *buf = (struct ccnl_buf_s      *) p;
-    struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
-    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) p;
-    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
-    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
-    struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
-    struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
-    int i, k;
-
-#define INDENT(lev) for (i = 0; i < lev; i++) pos += sprintf(out + pos, "  ")
-    switch(typ) {
-    case CCNL_BUF:
-	while (buf) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
-		(void *) buf->next);
-	    buf = buf->next;
-	}
-	break;
-    case CCNL_PREFIX:
-	INDENT(lev);
-	pos += sprintf(out + pos, "%p PREFIX len=%d val=%s\n",
-	       (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
-	break;
-    case CCNL_RELAY:
-	INDENT(lev);
-	pos += sprintf(out + pos, "%p RELAY\n", (void *) top); lev++;
-	INDENT(lev); pos += sprintf(out + pos, "interfaces:\n");
-	for (k = 0; k < top->ifcount; k++) {
-	    INDENT(lev+1);
-	    pos += sprintf(out + pos, "ifndx=%d addr=%s", k,
-		    ccnl_addr2ascii(&top->ifs[k].addr));
-#ifdef CCNL_LINUXKERNEL
-	    if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
-		pos += sprintf(out + pos, " netdev=%p", top->ifs[k].netdev);
-	    else
-		pos += sprintf(out + pos, " sockstruct=%p", top->ifs[k].sock);
-#else
-	    pos += sprintf(out + pos, " sock=%d", top->ifs[k].sock);
-#endif
-	    if (top->ifs[k].reflect)
-		pos += sprintf(out + pos, " reflect=%d", top->ifs[k].reflect);
-	    pos += sprintf(out + pos, "\n");
-	}
-	if (top->faces) {
-	    INDENT(lev); pos += sprintf(out + pos, "faces:\n");    ccnl_dump_str(lev+1, CCNL_FACE, top->faces, out, pos);
-	}
-	if (top->fib) {
-	    INDENT(lev); pos += sprintf(out + pos, "fib:\n");      ccnl_dump_str(lev+1, CCNL_FWD, top->fib, out, pos);
-	}
-	if (top->pit) {
-	    INDENT(lev); pos += sprintf(out + pos, "pit:\n");      ccnl_dump_str(lev+1, CCNL_INTEREST, top->pit, out, pos);
-	}
-	if (top->contents) {
-	    INDENT(lev); pos += sprintf(out + pos, "contents:\n"); ccnl_dump_str(lev+1, CCNL_CONTENT, top->contents, out, pos);
-	}
-	break;
-    case CCNL_FACE:
-	while (fac) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
-		   (void*) fac, fac->faceid, (void *) fac->next,
-		   (void *) fac->prev, fac->ifndx, fac->flags);
-	    if (fac->peer.sa.sa_family == AF_INET)
-		sprintf(out, " ip=%s", ccnl_addr2ascii(&fac->peer));
-#ifdef USE_ETHERNET
-	    else if (fac->peer.sa.sa_family == AF_PACKET)
-		pos += sprintf(out + pos, " eth=%s", ccnl_addr2ascii(&fac->peer));
-#endif
-	    else if (fac->peer.sa.sa_family == AF_UNIX)
-		pos += sprintf(out + pos, " ux=%s", ccnl_addr2ascii(&fac->peer));
-	    else
-		pos += sprintf(out + pos, " peer=?");
-	    if (fac->encaps)
-		encaps(fac->encaps->protocol);
-	    pos += sprintf(out + pos, "\n");
-	    if (fac->outq) {
-		INDENT(lev+1); pos += sprintf(out + pos, "outq:\n");
-		ccnl_dump(lev+2, CCNL_BUF, fac->outq);
-	    }
-	    fac = fac->next;
-	}
-	break;
-    case CCNL_FWD:
-	while (fwd) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p FWD next=%p face=%p (id=%d)\n",
-		    (void *) fwd, (void *) fwd->next,
-		    (void *) fwd->face, fwd->face->faceid);
-	    ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
-	    fwd = fwd->next;
-	}
-	break;
-    case CCNL_INTEREST:
-	while (itr) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
-		   (void *) itr, (void *) itr->next, (void *) itr->prev,
-		    itr->last_used, itr->minsuffix, itr->maxsuffix,
-		    itr->retries);
-	    ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
-	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
-	    if (itr->ppkd) {
-		INDENT(lev+1);
-		pos += sprintf(out + pos, "%p PUBLISHER=", (void *) itr->ppkd);
-		blob(itr->ppkd->data, itr->ppkd->datalen);
-		pos += sprintf(out + pos, "\n");
-	    }
-	    if (itr->pending) {
-		INDENT(lev+1); pos += sprintf(out + pos, "pending:\n");
-		ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
-	    }
-	    itr = itr->next;
-
-	}
-	break;
-    case CCNL_PENDINT:
-	while (pir) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p PENDINT next=%p face=%p last=%d\n",
-		   (void *) pir, (void *) pir->next,
-		   (void *) pir->face, pir->last_used);
-	    pir = pir->next;
-	}
-	break;
-    case CCNL_CONTENT:
-	while (con) {
-	    INDENT(lev);
-	    pos += sprintf(out + pos, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
-		   (void *) con, (void *) con->next, (void *) con->prev,
-		   con->last_used, con->served_cnt);
-	    ccnl_dump(lev+1, CCNL_PREFIX, con->name);
-	    ccnl_dump(lev+1, CCNL_BUF, con->pkt);
-	    con = con->next;
-	}
-	break;
-    default:
-	INDENT(lev);
-	pos += sprintf(out + pos, "unknown data type %d at %p\n", typ, p);
+    int pos = 0, line = 0, i;
+    while (buf) {
+        INDENT(lev);
+        pos = 0;
+        pos += sprintf(out[line] + pos, "%p BUF len=%d next=%p", (void *) buf, buf->datalen,
+            (void *) buf->next);
+        buf = buf->next;
+        ++line;
     }
-    return pos;
+    return line;
+}
+
+int
+get_prefix_dump(int lev, void *p, char out[100][100])
+{
+    struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
+    int pos = 0, i;
+    INDENT(lev);
+    sprintf(out[0] + pos, "%p PREFIX len=%d val=%s",
+           (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+    return 1;
+}
+
+int
+get_faces_dump(int lev, void *p, char out[100][100])
+{
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
+    int pos = 0, line = 0, i;
+    
+    while (fac) {
+        INDENT(lev);
+         pos = 0;
+        pos += sprintf(out[line], "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
+               (void*) fac, fac->faceid, (void *) fac->next,
+               (void *) fac->prev, fac->ifndx, fac->flags);
+        if (fac->peer.sa.sa_family == AF_INET)
+            pos += sprintf(out[line] + pos, " ip=%s", ccnl_addr2ascii(&fac->peer));
+#ifdef USE_ETHERNET
+        else if (fac->peer.sa.sa_family == AF_PACKET)
+            pos += sprintf(out[line] + pos, " eth=%s", ccnl_addr2ascii(&fac->peer));
+#endif
+        else if (fac->peer.sa.sa_family == AF_UNIX)
+            pos += sprintf(out[line] + pos, " ux=%s", ccnl_addr2ascii(&fac->peer));
+        else
+            pos += sprintf(out[line] + pos, " peer=?");
+        if (fac->encaps)
+            encaps(fac->encaps->protocol);
+        fac = fac->next;
+        ++line;
+    }
+    return line;
+}
+
+int
+get_fwd_dump(int lev, void *p, char out[100][100])
+{
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
+    int pos = 0, line = 0, i;
+    while (fwd) {
+         pos = 0;
+        INDENT(lev);
+        pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
+                (void *) fwd, (void *) fwd->next,
+                (void *) fwd->face, fwd->face->faceid);
+        ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
+        fwd = fwd->next;
+        ++line; 
+    }
+    return line;
+}
+
+int
+get_interface_dump(int lev, void *p, char out[100][100])
+{
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    
+    int pos = 0, k, i;
+    for (k = 0; k < top->ifcount; k++) {
+        INDENT(lev+1);
+        pos = 0;
+        pos += sprintf(out[k] + pos, "ifndx=%d addr=%s", k,
+                ccnl_addr2ascii(&top->ifs[k].addr));
+#ifdef CCNL_LINUXKERNEL
+        if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
+            pos += sprintf(out[k] + pos, " netdev=%p", top->ifs[k].netdev);
+        else
+            pos += sprintf(out[k] + pos, " sockstruct=%p", top->ifs[k].sock);
+#else
+        pos += sprintf(out[k] + pos, " sock=%d", top->ifs[k].sock);
+#endif
+        if (top->ifs[k].reflect)
+            pos += sprintf(out[k] + pos, " reflect=%d", top->ifs[k].reflect);
+    }   
+    return top->ifcount;
+}
+
+int
+get_interest_dump(int lev, void *p, char out[100][100]){
+    
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
+    
+    int line = 0, pos = 0, i;
+    while (itr) {
+        INDENT(lev);
+        pos = 0;
+        pos += sprintf(out[line] + pos, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
+               (void *) itr, (void *) itr->next, (void *) itr->prev,
+                itr->last_used, itr->minsuffix, itr->maxsuffix,
+                itr->retries);
+        ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
+        ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
+        if (itr->ppkd) {
+            INDENT(lev+1);
+            pos += sprintf(out[line] + pos, "%p PUBLISHER=", (void *) itr->ppkd);
+            blob(itr->ppkd->data, itr->ppkd->datalen);
+            pos += sprintf(out[line] + pos, "\n");
+        }
+        if (itr->pending) {
+            INDENT(lev+1); pos += sprintf(out[line] + pos, "pending:\n");
+            ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
+        }
+        itr = itr->next;
+        ++line;
+    }   
+    return line;
+}
+
+int
+get_pendint_dump(int lev, void *p, char out[100][100]){
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
+    struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
+    
+    int pos = 0, line = 0, i;
+    while (pir) {
+        INDENT(lev);
+        pos = 0;
+        pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
+               (void *) pir, (void *) pir->next,
+               (void *) pir->face, pir->last_used);
+        pir = pir->next;
+        ++line;
+    }
+    return line;
+}
+
+int
+get_content_dump(int lev, void *p, char out[100][100]){
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
+    
+    int line = 0, pos = 0, i;
+    while (con) {
+        INDENT(lev);
+        pos = 0;
+        pos += sprintf(out[line] + pos, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+               (void *) con, (void *) con->next, (void *) con->prev,
+               con->last_used, con->served_cnt);
+        ccnl_dump(lev+1, CCNL_PREFIX, con->name);
+        ccnl_dump(lev+1, CCNL_BUF, con->pkt);
+        con = con->next;
+        ++line;
+    }
+    return line;
 }
 
 #else // !USE_DEBUG
@@ -628,5 +660,5 @@ debug_memdump()
 // -----------------------------------------------------------------
 static int debug_level;
 
-
+#endif /*CCNL_EXT_DEBUG*/
 // eof
