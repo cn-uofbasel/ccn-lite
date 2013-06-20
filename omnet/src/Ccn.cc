@@ -170,65 +170,23 @@ void Ccn::initialize(int stage)
          * Stage 0 - configuration params
          */
 
-
         /* Initialise base interface to INET
          */
        CcnInet::initialize();
 
+       this->minInterTxTime = (par("minTxPace").isSet()) ? par("minTxPace").doubleValue() : 0.0; // read in ms
+       this->maxCacheSlots = (par("maxCacheSlots").isSet()) ? par("maxCacheSlots").longValue() : 0;
+       this->maxCacheBytes = (par("maxCacheBytes").isSet()) ? par("maxCacheBytes").longValue() : CCNL_DEFAULT_CACHE_BYTESIZE;  // read in bytes
+       this->nodeScenarioFile = (par("ccnScenarioFile").isSet()) ? par("ccnScenarioFile").stdstringValue() : "";
+       this->verCore = (par("ccnCoreVersion").isSet()) ? par("ccnCoreVersion").stdstringValue() : CCNL_DEFAULT_CORE;
 
-        if (par("minTxPace").isSet()) {
-            this->minInterTxTime = par("minTxPace").doubleValue();  // read unit in ms
-        } else {
-            this->minInterTxTime = 0.0; // disable pacing
-            DBG(Info) << this->getFullPath()
-                    << " - configuration parameter minTxPace not set. Disabling pacing"
-                    << std::endl;
-        }
-
-        if (par("maxCacheSlots").isSet()) {
-            this->maxCacheSlots = par("maxCacheSlots").longValue();
-        } else {
-            this->maxCacheSlots = 0;   // disable caching
-            DBG(Info) << this->getFullPath()
-                    << " - configuration parameter maxCacheSlots not set. Disabling caching"
-                    << std::endl;
-        }
-
-        if ( par("maxCacheBytes").isSet() ) {
-            this->maxCacheBytes = par("maxCacheBytes").longValue();  // read unit in bytes
-        } else {
-            this->maxCacheBytes = CCNL_DEFAULT_CACHE_BYTESIZE;
-            DBG(Info) << this->getFullPath()
-                    << " - configuration parameter maxCacheBytes not found. Hard-coded default "
-                    << CCNL_DEFAULT_CACHE_BYTESIZE << " bytes will be used"
-                    << std::endl;
-        }
-
-        if ( par("ccnScenarioFile").isSet() )
-            this->nodeScenarioFile = par("ccnScenarioFile").stdstringValue();
-        else {
-            this->nodeScenarioFile = "";
-            DBG(Info) << this->getFullPath()
-                    << " - node does not have file specifying a scenario configuration"
-                    << std::endl;
-        }
-
-        if ( par("ccnCoreVersion").isSet() )
-            this->verCore = par("ccnCoreVersion").stdstringValue();
-        else {
-            this->verCore = CCNL_DEFAULT_CORE;
-            DBG(Info) << this->getFullPath()
-                    << " - CCN core version not set, will use the default " << CCNL_DEFAULT_CORE
-                    << std::endl;
-        }
-
-        EV << this->getFullPath()
-                << "\n   (Init 0) Set node configuration:"
-                << "\t  minTxPace=" << this->minInterTxTime << "ms"
-                << "\t  maxCacheSlots=" << this->maxCacheSlots
-                << "\t  maxCacheBytes=" << this->maxCacheBytes << "bytes"
-                << "\t  ccnScenarioFile=" << this->nodeScenarioFile
-                << "\t  version of CCN core=" << this->verCore
+       DBGPRT(EVAUX, Info, this->getFullPath())
+                << "\n (Init 0) Set node configuration, from ini file:"
+                << "\n\t  minTxPace=" << this->minInterTxTime << " ms"
+                << "\n\t  maxCacheSlots=" << this->maxCacheSlots << " (0=disable caching)"
+                << "\n\t  maxCacheBytes=" << this->maxCacheBytes << " bytes (default=" << CCNL_DEFAULT_CACHE_BYTESIZE << ")"
+                << "\n\t  ccnScenarioFile=" << this->nodeScenarioFile
+                << "\n\t  version of CCN core=" << this->verCore << " (default is " << CCNL_DEFAULT_CORE << ")"
                 << std::endl;
     }
     else if(stage == 1)
@@ -237,8 +195,8 @@ void Ccn::initialize(int stage)
          * Stage 1 - internal state
          */
 
-
         cModule *mdlNetIf, *mdlNet, *mdlNode;
+        std::string idstr(""), delim("\t");
 
 
         /* Look for the CcnAdmin module at the network level
@@ -256,10 +214,11 @@ void Ccn::initialize(int stage)
         }
 
         if ( scenarioAdmin == 0 ) {
-            DBG(Err) << this->getFullPath()
-                    << " - No scenario administrator module (CcnAdmin) found in this network"
+            DBGPRT(AUX, Err, this->getFullPath())
+                    << " Scenario administrator module (CcnAdmin) not found"
                     << std::endl;
 
+            // block simulation
             opp_error("Cannot find a CCN Scenario Administrator module! Aborting simulation");
         }
 
@@ -268,10 +227,11 @@ void Ccn::initialize(int stage)
          */
         timerList = new TimerList(CCNL_MAX_TIMERS);
         if (!timerList) {
-            DBG(Err) << this->getFullPath()
-                    << " - Failed to allocate a TimersList object, for holding a default of"
-                    << CCNL_MAX_TIMERS << " timers"
+            DBGPRT(AUX, Err, this->getFullPath())
+                    << " Allocation of a TimersList, for" << CCNL_MAX_TIMERS << " events failed."
                     << std::endl;
+
+            // block simulation
             opp_error(" Timer list for module %s could not be initialized! ", this->getFullName());
         }
 
@@ -288,26 +248,22 @@ void Ccn::initialize(int stage)
 
         macIds = new MACAddress[numMacIds];
 
-        DBG(Info) << getFullPath()
-                << " - " << numMacIds << " MAC addresses configured on node:" << std::endl;
-
         for (int i = 0 ; i < numMacIds; i++)
         {
             mdlNetIf = mdlNode->getSubmodule("eth",i);
             macIds[i].setAddress( mdlNetIf->getSubmodule("mac")->par("address") );
-            DBG(Info) << "  macId of eth[" << i << "] = " << macIds[i].str() << std::endl;
+            DBGPRT(AUX, Info, this->getFullPath())
+                << "MAC Addr eth[" << i << "] = " << macIds[i].str() << std::endl;
+
+            idstr += macIds[i].str();
+            idstr += delim;
         }
 
-
-        EV << this->getFullPath()
-                << "\n   (Init 1) Internal node state:"
-                << "\t  Timer list set to hold max " << timerList->size() << " timers"
-                << "\t  Node configured with " << numMacIds << " MAC ids:"
-                << std::endl;
-        for (int i = 0 ; i < numMacIds; i++) {
-            EV << "\t " << macIds[i].str() << std::endl;
-        }
-
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << "\n (Init 1) Internal node state:"
+                << "\n\t  Timer list set to hold max " << timerList->size() << " timers"
+                << "\n\t  Node configured with " << numMacIds << " MAC IDs: \n"
+                << idstr << std::endl;
     }
     else if(stage == 2)
     {
@@ -324,13 +280,7 @@ void Ccn::initialize(int stage)
         /* Register me with the CcnAdmin module
          */
         if (! scenarioAdmin->registerCcnNode (this, this->getId()))
-        {
-            DBG(Detail) << getFullPath()
-                    << " - Ccn module failed to register itself -registerCcnNode()- with the CcnAdmin module!"
-                    << std::endl;
-
-            opp_error("Registration of CCN node for the scenario failed. Abort");  //TODO
-        }
+            opp_error("Registration of CCN node for the scenario failed. Abort simulation");
         else isRegistered = true;
 
 
@@ -341,10 +291,6 @@ void Ccn::initialize(int stage)
          */
         if ( !scenarioAdmin->parseNodeConfig (this, nodeScenarioFile) )
         {
-            EV << getFullPath()
-                    << "\n Parsing of scenario configuration for CCN node failed, this can be critical"
-                    << "\t  Simulation will proceed with vanilla state for node" << std::endl;
-
             // TODO: raise exception here ?
         }
         else {
@@ -353,11 +299,11 @@ void Ccn::initialize(int stage)
         }
 
 
-        EV << this->getFullPath()
-                << "\n   (Init 2) Net state, and scenario config:"
-                << "\t  Registered node with the CCN admin module - " << isRegistered
-                << "\t  Processed scenario configuration - " << configuredScenario
-                << "\t  Started Ext Logger - " << startedLogger
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << "\n (Init 2) Topology state, and scenario config:"
+                << "\n\t  Node registration with the CCN admin module - " << ((isRegistered) ? "Done" : "Failed")
+                << "\n\t  Processing of scenario configuration - " << ((configuredScenario) ? "Done" : "Failed")
+                << "\n\t  Init Ext. Logger - " << ((startedLogger) ? "Yes" : "No")
                 << std::endl;
 
     }
@@ -370,9 +316,9 @@ void Ccn::initialize(int stage)
         cModule *mdlNode = this->getParentModule();
         this->ccnCore = new CcnCore (this, mdlNode->getName(), this->verCore.c_str());
 
-        EV << this->getFullPath()
-                << "\n   (Init 3) CCN Core init"
-                << "\t   Spawned a new CcnCore " << ccnCore->info()
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << "\n (Init 3) CCN Core init"
+                << "\n\t  Spawned a new CcnCore on " << ccnCore->info()
                 << std::endl;
     }
 
@@ -400,10 +346,11 @@ Ccn::~Ccn()
 
     scenarioAdmin->unRegisterCcnNode (this, getId());
 
-    DBG(Info) << getFullName() << " finishing..."
-            << "\n disposed " << count << " unserviced timers"
-            << "\n terminated CCN core"
-            << "\n unregistered myself at the CcnAdmin module"
+    DBGPRT(EVAUX, Info, this->getFullPath())
+            << " Finishing ..."
+            << "\n\t disposed " << count << " unserviced timers"
+            << "\n\t terminated CCN Core"
+            << "\n\t unregistered myself at the CcnAdmin module"
             << std::endl;
 
     CcnInet::callFinish ();
@@ -432,36 +379,33 @@ Ccn::handleSelfMsg(cMessage* msg)
 
         if (cb->pFunc)
         {
-            DBG(Info) << getFullName()
-                    << " - Timer for CCN Core callback will be executed"
-                    << "\n   arg1: " << cb->arg1
-                    << "\n   arg2: " << cb->arg2
-                    << "\n   .. at simu time (sec): " << simTime() << endl;
-
-            EV << getFullName() << " - CCN Core timer timed out executing callback" << std::endl;
+            DBGPRT(AUX, Info, this->getFullPath())
+                    << "CCN Relay timer expired for callback with"
+                    << "\n\t arg1: " << cb->arg1
+                    << "\n\t arg2: " << cb->arg2
+                    << "\n\t .. at simu time (sec): " << simTime() << endl;
 
             (*(cb->pFunc))(cb->arg1, cb->arg2);
         }
         else {
-            DBG(Warn) << getFullName()
-                << " - Timer for CCN Core expired but no callback object is attached"
-                << endl;
+            DBGPRT(AUX, Warn, this->getFullPath())
+                    << "Timer for CCN Core expired - no callback object attached" << endl;
         }
 
 
         /* remove timer record from my accounting list
          */
-        if (! timerList->remByObject(msg)) {
-            DBG(Err) << getFullName()
-                    << " - WARNING: Timer for CCN Core was not recorded in my timer list"
-                    << endl;
-        }
+        if (! timerList->remByObject(msg))
+            DBGPRT(AUX, Warn, this->getFullPath())
+            << "Timer for CCN Core expired - no record found in my timer list" << endl;
+
     }
     else
     {
-        DBG(Info) << getFullName()
-                << " - Unknown self-triggered event occured, "
-                << "getName()=" << msg->getName() << ". Ignoring it"
+        DBGPRT(AUX, Err, this->getFullPath())
+                << "A Self-event was captured other than CCN Core timer: getName()="
+                << msg->getName()
+                << ". Ignoring it"
                 << std::endl;
     }
 
@@ -491,8 +435,8 @@ Ccn::fromUpperLayer(cMessage* msg) {
 
         if (strlen (c->getContentName()) == 0)
         {
-            DBG(Info) << getFullName()
-                    << " - Received CcnAppMessage with type CCN_APP_INTEREST from layer above, but with unspecified content name. Ignore it"
+            DBGPRT(EVAUX, Warn, this->getFullPath())
+                    << "CcnAppMessage|CCN_APP_INTEREST with unspecified content name. Dropping it"
                     << std::endl;
             goto CLEANUP_AND_EXIT;
         }
@@ -512,10 +456,10 @@ Ccn::fromUpperLayer(cMessage* msg) {
             int chunkSize = c->getChunkSize();
 
             if (!numChunks) {
-                DBG(Info) << getFullName()
-                        << " - Received CcnAppMessage of type CCN_APP_CONTENT from layer above, with 0 num of chunks to be registered."
-                        << "\n   For named content " << c->getContentName()
-                        << endl;
+                DBGPRT(EVAUX, Warn, this->getFullPath())
+                        << "CcnAppMessage|CCN_APP_CONTENT declaring 0 num of chunks to register under name "
+                        << c->getContentName()
+                        << ". Dropping it" << endl;
                 goto CLEANUP_AND_EXIT;
             }
 
@@ -525,10 +469,10 @@ Ccn::fromUpperLayer(cMessage* msg) {
 
             if ( c->copyDataToBuffer(chunksBuffer, chunksBufferSize) != chunksBufferSize )
             {
-                DBG(Warn) << getFullName()
-                        << " - In CcnAppMessage of type CCN_APP_CONTENT."
-                        << "\n   Mispatch between the actual size of content data buffer and the estimated size by getNumChunks() x getChunkSize()"
-                        << std::endl;
+                DBGPRT(EVAUX, Err, this->getFullPath())
+                        << "CcnAppMessage|CCN_APP_CONTENT - "
+                        << "Mismatch between actual size of content data buffer and the estimated one by getNumChunks() x getChunkSize()"
+                        << ". Dropping it" << endl;
             }
 
 
@@ -549,23 +493,19 @@ Ccn::fromUpperLayer(cMessage* msg) {
 
             /* TODO: The app can remove content content from the CS
              */
-            DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: Action not implemented!" << std::endl;
-
+            DBGPRT(EVAUX, Err, this->getFullPath()) << "CcnAppMessage|CCN_APP_CONTENT requesting unknown action. Ignore it" << std::endl;
+            DBGPRT(AUX, Detail, this->getFullPath()) << "CcnAppMessage|CCN_APP_CONTENT - UNDER CONSTRUCTION!" << std::endl;
             break;
 
         default:
 
-            DBG(Warn) << getFullName()
-                << " - Received CcnAppMessage with type CCN_APP_CONTENT from layer above, but unknown action request. Ignore it"
-                << std::endl;
+            DBGPRT(EVAUX, Err, this->getFullPath()) << "CcnAppMessage|CCN_APP_CONTENT requesting unknown action. Ignore it" << std::endl;
             goto CLEANUP_AND_EXIT;
         }
 
     }
     else {
-        DBG(Warn) << getFullName()
-                << " - Received CcnAppMessage with unknown CcnAppMessageType (not CCN_APP_INTEREST not CCN_APP_CONTENT). Ignore it"
-                << std::endl;
+        DBGPRT(EVAUX, Err, this->getFullPath()) << "CcnAppMessage|??? (unknown type). Ignore it" << std::endl;
         goto CLEANUP_AND_EXIT;
     }
 
@@ -588,12 +528,14 @@ Ccn::fromLowerLayer(cMessage* msg) {
 
     if ( (!ccnPkt) || (ccnPkt->getKind() != PROT_CCN) )
     {
-        DBG(Detail) << getFullName()
-                << " - Received a non CcnPacket from the layer below"
-                << "\n   Dynamic cast to CcnPacket returned " << ccnPkt
-                << "\n   getKind()=" << ccnPkt->getKind() << "[PROT_CCN=" << PROT_CCN << "]"
+        DBGPRT(EVAUX, Err, this->getFullPath())
+                << "Dropping incoming pkt from net - Not a valid CcnPacket"
                 << std::endl;
-        EV << getFullName() << " - Invalid CcnPacket from layer below. Ignore it" << std::endl;
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "Recv non CcnPacket from the layer below"
+                << "\n\t with getKind()=" << ccnPkt->getKind()
+                << " (should have been PROT_CCN=" << PROT_CCN << ")"
+                << std::endl;
 
         goto CLEANUP_AND_EXIT;
     }
@@ -604,11 +546,12 @@ Ccn::fromLowerLayer(cMessage* msg) {
     ccnCtx = (CcnContext *) ccnPkt->getContextPointer();
 
     if (!ccnCtx ) {
-        DBG(Warn) << getFullName()
-                << " - Received CcnPacket without endpoint information (CcnContext) attached to it. Ignore it"
+        DBGPRT(EVAUX, Err, this->getFullPath())
+                << "Dropping incoming pkt from net - Not a valid CcnPacket"
                 << std::endl;
-        EV << getFullName() << " - Inconsistent CccPacket from layer below. Ignore it" << std::endl;
-
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "Recv CcnPacket without a CcnContext attached."
+                << std::endl;
         goto CLEANUP_AND_EXIT;
     }
 
@@ -642,16 +585,18 @@ Ccn::fromLowerLayer(cMessage* msg) {
             }
         }
 
-        DBG(Warn) << getFullName()
-                << " - CcnPacket with endpoint information (CcnContext) that does not match local node configuration. Ignore it"
+        DBGPRT(EVAUX, Warn, this->getFullPath())
+                << "Dropping incoming pkt from net - Not destined to us"
                 << std::endl;
+
     }
     else {
-        DBG(Detail) << getFullName()
-                << " - Received CcnPacket with CcnContext type other than neither AF_PACKET"
-                << "\n   Currently we only support CCN Faces at the MAC level"
+        DBGPRT(EVAUX, Warn, this->getFullPath())
+                << "Dropping incoming pkt from net - Not AF_PACKET CcnContext"
                 << std::endl;
-        opp_error("Received CcnPacket with unknown CcnContext type attached to it");
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "Currently we only support CCN Faces at the MAC level - saw CcnContext other than AF_PACKET"
+                << std::endl;
     };
 
 
@@ -694,22 +639,22 @@ long
 Ccn::setTimerEvent (long usec, void(*callback)(void *, void *), void * par1, void * par2)
 {
     if (!callback) {
-        DBG(Warn) << getFullName()
-                << " - Timer requested but no callback has been provided. Ignore request."
+        DBGPRT(AUX, Err, this->getFullPath())
+                << " Timer request but no callback has been provided. Ignoring."
                 << std::endl;
         return 0;
     }
 
     if (usec < 0 ) {
-        DBG(Err) << getFullName()
-                << " - Timer planned in the past. Nothing to be done. Ignore request"
+        DBGPRT(AUX, Warn, this->getFullPath())
+                << " Timer request planned in the past. Ignoring."
                 << std::endl;
         return 0;
     }
 
     if (usec == 0) {
-        EV << getFullName()
-                << " - Executing callback immediately without setting a timer"
+        DBGPRT(AUX, Info, this->getFullPath())
+                << " Timer request planned immediately. Executing callback without setting a timer"
                 << std::endl;
         (*callback) (par1, par2);
         return 0;
@@ -732,20 +677,19 @@ Ccn::setTimerEvent (long usec, void(*callback)(void *, void *), void * par1, voi
 
     if (handle) {
         scheduleAt(expirationTime, timer);
-        EV << getFullName()
-                << " - Successfully scheduled timer at position " << handle
+        DBGPRT(AUX, Info, this->getFullPath())
+                << " Successfully scheduled timer at index handle " << handle
                 << std::endl;
 
         return handle;
     }
 
-    DBG(Detail) << getFullName()
-            << " - Attempt to create timer record failed. List is full!"
-            << "\n  Try re-compiling after setting CCNL_MAX_TIMERS > " << CCNL_MAX_TIMERS
+    DBGPRT(AUX, Err, this->getFullPath())
+            << " Attempt to create timer record failed. Timer list is full!"
+            << "\n\t Try re-compiling after setting CCNL_MAX_TIMERS > " << CCNL_MAX_TIMERS
             << std::endl;
 
-    opp_error ("Run out of timer objects !!!");
-    //EV << getFullName () << "Timer list full !!!" << std::endl;
+    opp_error ("Run out of timer objects !!!"); // should we really block the simulation here ?
 
     delete cb;
     delete timer;
@@ -790,9 +734,9 @@ Ccn::addToCacheDummy (const char *contentName, const int seqNumStart, const int 
     for (int i = 0 ; i < numChunks ; i++)
         chunkPtrs[i] = oneChunkBuffer;
 
-    DBG(Info) << getFullPath()
-            << " - Adding dummy content to CS: "
-            << contentName << " [" << seqNumStart << "-" << seqNumStart + numChunks << "]"
+    DBGPRT(EVAUX, Info, this->getFullPath())
+            << " Adding dummy content in my cache: "
+            << contentName << "/[" << seqNumStart << "-" << seqNumStart + numChunks << "]"
             << std::endl;
 
     return ccnCore->addToCacheFixedSizeChunks (contentName, seqNumStart, numChunks, (const char **) chunkPtrs, CCNL_DUMMY_CONTENT_CHUNK_SIZE);
@@ -823,19 +767,19 @@ Ccn::addFwdRule(const char *contentName, FaceType faceTp, const char *dst, int a
 
         nextHop.getAddressBytes(addrBytes);
 
-        DBG(Info) << getFullPath()
-                << " - Adding CCN FIB rule: "
-                << contentName
-                << " at " << dst
-                << " via eth[" << netifIndex
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " Adding CCN FIB rule: "
+                << contentName << " from " << dst << " via eth[" << netifIndex << "]"
                 << std::endl;
 
         return ccnCore->addL2FwdRule (contentName, addrBytes, netifIndex);
     }
     else // currently only MAC-based faces are supported
     {
-        DBG(Warn) << getFullName() << "UNDER CONSTRUCTION: currently only MAC-based faces are supported" << std::endl;
-        EV << "FIB rule that involves a non-MAC based FACE. Ingoring it!" << std::endl;
+        DBGPRT(EVAUX, Err, this->getFullPath())
+                << " FIB rule does not involve a MAC based FACE. Ingoring it!" << std::endl;
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " UNDER CONSTRUCTION: currently we only support MAC-based faces" << std::endl;
     }
 
     return false;
@@ -853,10 +797,9 @@ Ccn::sendBatchInterests(const char *contentName, int startChunk, int numChunks)
      */
     Enter_Method("Ccn::sendBatchInterests()");
 
-
-    DBG(Info) << getFullPath()
-            << " - Sending batch Interests for " << contentName
-            << " [" << startChunk << "-" << startChunk + numChunks << "]"
+    DBGPRT(EVAUX, Info, this->getFullPath())
+            << "Sending Interests for "
+            << contentName << "/[" << startChunk << "-" << startChunk + numChunks << "]"
             << std::endl;
 
     for (int i=0 ; i< numChunks ; i++)
@@ -864,4 +807,3 @@ Ccn::sendBatchInterests(const char *contentName, int startChunk, int numChunks)
 
     return true;
 };
-

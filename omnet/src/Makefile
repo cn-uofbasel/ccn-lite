@@ -2,7 +2,7 @@
 # OMNeT++/OMNEST Makefile for ccn-lite-omnet
 #
 # This file was generated with the command:
-#  opp_makemake -f --deep -I../../inet/src/linklayer/ethernet -I../../inet/src/linklayer/ieee80211/radio -I../../inet/src/networklayer/common -I../../inet/src -I../../inet/src/networklayer/icmpv6 -I../../inet/src/world/obstacles -I../../inet/src/networklayer/queue -I../../inet/src/networklayer/contract -I../../inet/src/mobility -I../../inet/src/networklayer/manetrouting/base -I../../inet/src/networklayer/xmipv6 -I../../inet/src/linklayer/ieee80211/mgmt -I../../inet/src/util -I../../inet/src/transport/contract -I../../inet/src/linklayer/radio/propagation -I../../inet/src/linklayer/ieee80211/radio/errormodel -I../../inet/src/world/powercontrol -I../../inet/src/linklayer/radio -I../../inet/src/util/headerserializers/tcp -I../../inet/src/networklayer/ipv4 -I../../inet/src/util/headerserializers/ipv4 -I../../inet/src/base -I../../inet/src/util/headerserializers -I../../inet/src/world/radio -I../../inet/src/linklayer/ieee80211/mac -I../../inet/src/transport/sctp -I../../inet/src/networklayer/ipv6 -I../../inet/src/util/headerserializers/udp -I../../inet/src/networklayer/ipv6tunneling -I../../inet/src/battery/models -I../../inet/src/applications/pingapp -I../../inet/src/linklayer/contract -I../../inet/src/util/headerserializers/sctp -I../../inet/src/transport/tcp_common -I../../inet/src/networklayer/arp -I../../inet/src/transport/udp -L../../inet/out/$(CONFIGNAME)/src -linet -DINET_IMPORT -KINET_PROJ=../../inet
+#  opp_makemake -f --deep -I../../inet/src/linklayer/ethernet -I../../inet/src/linklayer/ieee80211/radio -I../../inet/src/networklayer/common -I../../inet/src -I../../inet/src/networklayer/icmpv6 -I../../inet/src/world/obstacles -I../../inet/src/networklayer/manetrouting/base -I../../inet/src/networklayer/contract -I../../inet/src/mobility -I../../inet/src/networklayer/xmipv6 -I../../inet/src/linklayer/ieee80211/mgmt -I../../inet/src/util -I../../inet/src/transport/contract -I../../inet/src/linklayer/radio/propagation -I../../inet/src/linklayer/ieee80211/radio/errormodel -I../../inet/src/world/powercontrol -I../../inet/src/linklayer/radio -I../../inet/src/util/headerserializers/tcp -I../../inet/src/networklayer/ipv4 -I../../inet/src/util/headerserializers/ipv4 -I../../inet/src/base -I../../inet/src/util/headerserializers -I../../inet/src/world/radio -I../../inet/src/linklayer/ieee80211/mac -I../../inet/src/networklayer/ipv6 -I../../inet/src/transport/sctp -I../../inet/src/util/headerserializers/udp -I../../inet/src/networklayer/ipv6tunneling -I../../inet/src/battery/models -I../../inet/src/applications/pingapp -I../../inet/src/linklayer/contract -I../../inet/src/util/headerserializers/sctp -I../../inet/src/networklayer/arp -I../../inet/src/transport/tcp_common -I../../inet/src/transport/udp -L../../inet/out/$(CONFIGNAME)/src -linet -DINET_IMPORT -KINET_PROJ=../../inet
 #
 
 # Name of target to be created (-o option)
@@ -21,10 +21,9 @@ INCLUDE_PATH = \
     -I../../inet/src \
     -I../../inet/src/networklayer/icmpv6 \
     -I../../inet/src/world/obstacles \
-    -I../../inet/src/networklayer/queue \
+    -I../../inet/src/networklayer/manetrouting/base \
     -I../../inet/src/networklayer/contract \
     -I../../inet/src/mobility \
-    -I../../inet/src/networklayer/manetrouting/base \
     -I../../inet/src/networklayer/xmipv6 \
     -I../../inet/src/linklayer/ieee80211/mgmt \
     -I../../inet/src/util \
@@ -40,16 +39,16 @@ INCLUDE_PATH = \
     -I../../inet/src/util/headerserializers \
     -I../../inet/src/world/radio \
     -I../../inet/src/linklayer/ieee80211/mac \
-    -I../../inet/src/transport/sctp \
     -I../../inet/src/networklayer/ipv6 \
+    -I../../inet/src/transport/sctp \
     -I../../inet/src/util/headerserializers/udp \
     -I../../inet/src/networklayer/ipv6tunneling \
     -I../../inet/src/battery/models \
     -I../../inet/src/applications/pingapp \
     -I../../inet/src/linklayer/contract \
     -I../../inet/src/util/headerserializers/sctp \
-    -I../../inet/src/transport/tcp_common \
     -I../../inet/src/networklayer/arp \
+    -I../../inet/src/transport/tcp_common \
     -I../../inet/src/transport/udp \
     -I. \
     -Iccn-lite
@@ -68,19 +67,19 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc and .msg files
 OBJS = \
-    $O/CcnAdmin.o \
-    $O/Ccn.o \
-    $O/CcnInet.o \
     $O/Parser.o \
-    $O/shared.o \
     $O/CcnCore.o \
-    $O/CcnAppMessage_m.o \
-    $O/CcnPacket_m.o
+    $O/Ccn.o \
+    $O/CcnAdmin.o \
+    $O/shared.o \
+    $O/CcnInet.o \
+    $O/CcnPacket_m.o \
+    $O/CcnAppMessage_m.o
 
 # Message files
 MSGFILES = \
-    CcnAppMessage.msg \
-    CcnPacket.msg
+    CcnPacket.msg \
+    CcnAppMessage.msg
 
 # Other makefile variables (-K)
 INET_PROJ=../../inet
@@ -185,8 +184,7 @@ $O/Ccn.o: Ccn.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPv6Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
-	$(INET_PROJ)/src/transport/contract/UDPSocket.h \
-	$(INET_PROJ)/src/util/uint128.h
+	$(INET_PROJ)/src/transport/contract/UDPSocket.h
 $O/CcnAdmin.o: CcnAdmin.cc \
 	Ccn.h \
 	CcnAdmin.h \
@@ -205,8 +203,7 @@ $O/CcnAdmin.o: CcnAdmin.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPv6Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
-	$(INET_PROJ)/src/transport/contract/UDPSocket.h \
-	$(INET_PROJ)/src/util/uint128.h
+	$(INET_PROJ)/src/transport/contract/UDPSocket.h
 $O/CcnAppMessage_m.o: CcnAppMessage_m.cc \
 	CcnAppMessage_m.h \
 	$(INET_PROJ)/src/base/ByteArray.h \
@@ -237,8 +234,7 @@ $O/CcnCore.o: CcnCore.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPv6Address.h \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
-	$(INET_PROJ)/src/transport/contract/UDPSocket.h \
-	$(INET_PROJ)/src/util/uint128.h
+	$(INET_PROJ)/src/transport/contract/UDPSocket.h
 $O/CcnInet.o: CcnInet.cc \
 	CcnAppMessage_m.h \
 	CcnInet.h \
@@ -269,8 +265,7 @@ $O/CcnInet.o: CcnInet.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
 	$(INET_PROJ)/src/transport/contract/UDPControlInfo.h \
 	$(INET_PROJ)/src/transport/contract/UDPControlInfo_m.h \
-	$(INET_PROJ)/src/transport/contract/UDPSocket.h \
-	$(INET_PROJ)/src/util/uint128.h
+	$(INET_PROJ)/src/transport/contract/UDPSocket.h
 $O/CcnPacket_m.o: CcnPacket_m.cc \
 	CcnPacket_m.h \
 	$(INET_PROJ)/src/base/ByteArray.h \

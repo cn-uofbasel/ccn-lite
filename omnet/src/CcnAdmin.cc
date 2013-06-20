@@ -36,22 +36,29 @@ CcnAdmin::initialize() {
     bool iSetGlobalDbgLvl = false;
 
     /* Immediately set my debug level (and the global default if not set)
-     * so that I can use the DBG() macro
+     * so that I can use the DBGPRT() macro
      */
+    cModule *netTopology = getParentModule();
+
     if (::defaultDebugLevel == 0) {
-        cModule *netTopology = getParentModule();
-        ::defaultDebugLevel = netTopology->par("defaultDebugLevel");
+        if (netTopology->par("defaultDebugLevel").isSet())
+            ::defaultDebugLevel = netTopology->par("defaultDebugLevel");
+        else
+            ::defaultDebugLevel = CCNL_DEFAULT_DBG_LVL;
         iSetGlobalDbgLvl = true;
     }
 
-    if (par("debugLevel").isSet())
-        debugLevel = par("debugLevel");
-    else
-        debugLevel = ::defaultDebugLevel;
+    debugLevel = (par("debugLevel").isSet()) ? par("debugLevel") : (::defaultDebugLevel) ;
 
-    if ( iSetGlobalDbgLvl )
-        DBG(Info) << "Global default debug level (for modules that do not have it set explicitly) is set to: " << ::defaultDebugLevel << std::endl;
-    DBG(Info) << this->getFullPath() << " - debug level set to " << debugLevel << std::endl;
+
+    if ( iSetGlobalDbgLvl ) {
+        DBGPRT(EVAUX, Info, this->getFullPath())
+            << "Global debug level (for modules that do not have it set explicitly) is set to: "
+            << ::defaultDebugLevel
+            << std::endl;
+    }
+
+    DBGPRT(EVAUX, Info, this->getFullPath()) << " debug level set to " << debugLevel << std::endl;
 
 
     /* Reset initial state
@@ -92,8 +99,8 @@ CcnAdmin::getNodeInfo(int id)
     NodeInfo *ni;
 
     if (!id) {
-        DBG(Info) << getFullName()
-                << " - getNodeInfo(int ID) called with ID=0"
+        DBGPRT(AUX, Warn, this->getFullPath())
+                << " getNodeInfo(int ID) wall called with ID=0"
                 << std::endl;
         return 0;
     }
@@ -118,8 +125,8 @@ CcnAdmin::getNodeInfo(cModule *module)
     NodeInfo *ni;
 
     if (!module) {
-        DBG(Info) << getFullName()
-                << " - getNodeInfo(cModule *module) called with module=0"
+        DBGPRT(AUX, Warn, this->getFullPath())
+                << " getNodeInfo(cModule *module) called with module=0"
                 << std::endl;
         return 0;
     }
@@ -158,10 +165,11 @@ CcnAdmin::deleteNodeConfig(NodeInfo *node)
 
         if (node->numConfigEvents < 0)
         {
-            DBG(Err) << this->getFullName()
-                    << " - Counter of scenario configuration events for Ccn module "
-                    << node->nodeId << " is zero but there are still ConfigRecords allocated"
+            DBGPRT(AUX, Detail, this->getFullPath())
+                    << " the counter of scenario configuration events for Ccn node " << node->nodeId
+                    << " is zero, but I see ConfigRecords allocated!"
                     << std::endl;
+
             opp_error("Consistency problem encountered when freeing Ccn node's scenario configuration");
         }
     }
@@ -182,30 +190,36 @@ CcnAdmin::handleMessage (cMessage *msg)
     ConfigRequest   *config = 0;
     NodeInfo        *ni = 0;
 
+
     /* is timer ?
      */
     if (!msg->isSelfMessage()) {
-        DBG(Warn) << getFullName() << " - Received message which is not a timer event! "
-                << "\n  CcnAdmin module cannot receive messages (access via method calls only)."
-                << "\n  Message info: getName()=" << msg->getName() << ", getKind()=" << msg->getKind()
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " Received message which is not a self-timer event! "
+                << "\n\t  CcnAdmin module cannot receive messages (access via method calls only)."
                 << std::endl;
 
         goto DISPOSE_AND_EXIT;
     }
 
 
+    DBGPRT(AUX, Detail, this->getFullPath())
+            << " Timed event for scenario configuration update "
+            << "\n\t Message info:"
+            << "\n\t   getName()=" << msg->getName()
+            << "\n\t   getKind()=" << msg->getKind()
+            << std::endl;
+
+
     /* is a scenario configuration event ?
      */
     if ( !(config = (ConfigRequest *) msg->getContextPointer()) )
     {
-        DBG(Warn) << getFullName()
-                << " - Received scenario configuration update event without struct ConfigRequest! "
-                << "\n  Message info: getName()=" << msg->getName() << ", getKind()=" << msg->getKind()
+        DBGPRT(EVAUX, Warn, this->getFullPath())
+                << " Scenario configuration update - no associated action! Ignore"
                 << std::endl;
-
-        EV << getFullName()
-                << " - " << msg->getName()
-                << "\n   Empty event! Ignore"
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "\n\t struct ConfigRequest is missing! "
                 << std::endl;
 
         goto DISPOSE_AND_EXIT;
@@ -216,13 +230,13 @@ CcnAdmin::handleMessage (cMessage *msg)
      */
     if ( ! (config->isScheduled && !config->isExecuted) )
     {
-        DBG(Detail) << getFullName()
-                << " - Received scenario configuration update event with erroneous state! "
-                << "\n   Message state: isExecuted=" << config->isExecuted
-                << ", isScheduled=" << config->isScheduled
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " Scenario configuration update - bogus state!"
+                << "\n\t Message state: isExecuted=" << config->isExecuted
+                << "\n\t isScheduled=" << config->isScheduled
                 << std::endl;
 
-        opp_error("%s has inconsistent state!", msg->getFullName() );
+        opp_error("Bogus scenario configuration update request! %s has inconsistent state!", msg->getFullName() );   // should we really block ?
     }
 
 
@@ -230,29 +244,23 @@ CcnAdmin::handleMessage (cMessage *msg)
      */
     if ( simTime() != config->execTime )
     {
-        DBG(Warn) << getFullName()
-                << " - Received scenario configuration update event out of time! "
-                << "\n   " << msg->getName()
-                << "\n   Event schedule is for" << config->execTime
-                << ", Current time is " << simTime()
-                << "" << std::endl;
+        DBGPRT(EVAUX, Warn, this->getFullPath())
+                << " Scenario configuration update - out of time!"
+                << std::endl;
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "\n\t Event schedule is for" << config->execTime
+                << "\n\t Current time is " << simTime()
+                << std::endl;
 
-
-        if (simTime() < config->execTime) {
+        if (simTime() < config->execTime)
+        {
             scheduleAt(config->execTime, msg);
-            EV << getFullName()
-                    << " - " << msg->getName()
-                    << "\n   Event too early! Rescheduling"
+            DBGPRT(EVAUX, Info, this->getFullPath())
+                    << "\n\t .. was too early! Rescheduled it"
                     << std::endl;
             return;
-        } else {
-            EV << getFullName()
-                    << " - " << msg->getName()
-                    << "\n   Event in the past! Ignore"
-                    << std::endl;
-
+        } else
             goto DISPOSE_AND_EXIT;
-        }
     }
 
 
@@ -261,12 +269,12 @@ CcnAdmin::handleMessage (cMessage *msg)
     ni = getNodeInfo(config->nodeId);
     if ( !ni || !(check_and_cast<Ccn *>(ni->nodePtr)) )
     {
-        DBG(Detail) << getFullName()
-                << " - Received configuration update event but cannot verify the owner!"
-                << "\n   " << msg->getName()
-                << "\n   In registry getNodeInfo(" << config->nodeId << ")=" << ni
-                << "\n   (NodeInfo)->nodePtr cannot be casted to a valid Ccn class"
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " Scenario configuration update - cannot verify the refereed!"
+                << "\n\t In registry getNodeInfo(" << config->nodeId << ")=" << ni
+                << "\n\t (NodeInfo)->nodePtr does not match a valid Ccn module"
                 << std::endl;
+
         opp_error("Received configuration update event but cannot verify its owner!");
     }
 
@@ -276,23 +284,24 @@ CcnAdmin::handleMessage (cMessage *msg)
     switch ( msg->getKind() )
     {
     case SEND_INTEREST:
-        DBG(Detail) << getFullName()
-                << " - Initiate Interest (time= "<< simTime() << "):"
-                << "\n   " << ni->nodePtr->getFullPath() << " --ccn[I]--> " <<  config->namedData
-                << "\n   Request Info: getName()=" << msg->getName()
-                << ", getKind()=" << msg->getKind()
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " Start request for content (@time= "<< simTime() << "):"
+                << "\n\t " << ni->nodePtr->getFullPath() << " --[ccn(I)]--> " <<  config->namedData
+                << "\n\t Info:"
+                << "\n\t   startChunk=" << config->startChunk
+                << "\n\t   numChunks=" << config->numChunks
                 << std::endl;
 
         check_and_cast<Ccn *>(ni->nodePtr)->sendBatchInterests(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
         break;
 
     case PRE_CACHE:
-        DBG(Detail) << getFullName()
-                << " - Load in CS (time= "<< simTime() << "):"
-                << "\n   " << ni->nodePtr->getFullPath() << " (@CS)<-- "
-                <<  config->namedData << "/" << config->startChunk << "-" << config->startChunk + config->numChunks
-                << "\n   Request Info: getName()=" << msg->getName()
-                << ", getKind()=" << msg->getKind()
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " Load content in cache (@time= "<< simTime() << "):"
+                << "\n\t " << ni->nodePtr->getFullPath() << " [@CS]<-- " <<  config->namedData
+                << "\n\t Info:"
+                << "\n\t   startChunk=" << config->startChunk
+                << "\n\t   numChunks=" << config->numChunks
                 << std::endl;
 
         check_and_cast<Ccn *>(ni->nodePtr)->addToCacheDummy(config->namedData.c_str(), (const int) config->startChunk, config->numChunks);
@@ -303,20 +312,24 @@ CcnAdmin::handleMessage (cMessage *msg)
 
         /* For now we process MAC addr based FIB rules only
          */
-        if (! config->nextHop->getSubmodule("mac") )
+        if (! config->nextHop->getSubmodule("mac") ) {
+            DBGPRT(AUX, Detail, this->getFullPath())
+                    << " Trying to add a FIB rule but node " << config->nextHop->getFullPath() << " has no 'mac' submodule (not IEtherMAC compatible)"
+                    << "\n\t UNDER CONSTRUCTION: currently we only support MAC-based faces"
+                    << std::endl;
+
             opp_error("Node module '%s' has no 'mac' submodule (not IEtherMAC compatible)", config->nextHop->getFullPath().c_str());
+        }
 
         const char * dst = config->nextHop->getSubmodule("mac")->par("address").stringValue();
         int fromNetif = (config->accessFrom) ? config->accessFrom->getIndex() : -1;
 
-        DBG(Detail) << getFullName()
-                << " - Install FIB rule (time= "<< simTime() << "):"
-                << "\n   @ " << ni->nodePtr->getFullPath() << " (@FIB)<-- "
-                <<  config->namedData
-                << " at " << dst
-                << " via local eth[" << fromNetif << "] (-1=BCAST)"
-                << "\n   Config request info: getName()=" << msg->getName()
-                << ", getKind()=" << msg->getKind()
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " Install FIB rule (@time= "<< simTime() << "):"
+                << "\n\t " << ni->nodePtr->getFullPath() << " [@FIB]<-- " <<  config->namedData
+                << "\n\t Info:"
+                << "\n\t   peer at " << dst
+                << "\n\t   seen via local eth[" << fromNetif << "] (-1=BCAST)"
                 << std::endl;
 
         check_and_cast<Ccn *>(ni->nodePtr)->addFwdRule(
@@ -329,14 +342,9 @@ CcnAdmin::handleMessage (cMessage *msg)
     }
 
     default:
-        DBG(Warn) << getFullName()
-                << " - Received scenario configuration update event (@ "<< simTime() << "). How to handle it ?? "
-                << "\n   Request info: getName()=" << msg->getName()
-                << ", getKind()=" << msg->getKind()
-                << std::endl;
 
-        EV << getFullName()
-                << " - Event handler not found! Ignore"
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " Event handler not found! Ignore"
                 << std::endl;
 
         goto DISPOSE_AND_EXIT;
@@ -348,7 +356,6 @@ CcnAdmin::handleMessage (cMessage *msg)
      */
     config->isExecuted = true;
     config->event = 0;
-    EV << getFullName() << " - " << msg->getName() << " - Executed" << std::endl;
 
 
     DISPOSE_AND_EXIT:
@@ -375,17 +382,17 @@ CcnAdmin::registerCcnNode (cModule *node, int nodeId)
     if ( (ni = getNodeInfo(node)) || (ni = getNodeInfo(nodeId)) ) {
 
         if ( (ni->nodeId == nodeId) && (ni->nodePtr == node) ){
-            DBG (Info) << getFullName()
-                    << " - Duplicate registration for Ccn node module "
-                    << nodeId << std::endl;
-            return false;
+            DBGPRT(AUX, Warn, this->getFullPath())
+                    << " Duplicate registration for Ccn node module " << nodeId << std::endl;
+            return true;
         }
 
-        DBG (Detail) << getFullName()
-                << " - Conflicting re-registration of Ccn node module \n"
-                << "  New registration (node:" << node << ", Id:" << nodeId << ")\n"
-                << "  Old registration (node:" << ni->nodePtr << ", Id:" << ni->nodeId << ")"
+        DBGPRT(AUX, Err, this->getFullPath())
+                << " Conflicting registration of Ccn node module with existing one"
+                << "\n\t New registration (node:" << node << ", Id:" << nodeId << ")"
+                << "\n\t Old registration (node:" << ni->nodePtr << ", Id:" << ni->nodeId << ")"
                 << std::endl;
+
         opp_error("Already an entry in registry with different node ID or module address");
     }
     else {
@@ -425,6 +432,9 @@ CcnAdmin::registerCcnNode (cModule *node, int nodeId)
 
 
 
+
+
+
 /*****************************************************************************
  * remove the registry record for a CCN node (we dispose its config info)
  */
@@ -436,14 +446,14 @@ CcnAdmin::unRegisterCcnNode (cModule *node, int nodeId)
     NodeInfo *ni = getNodeInfo(nodeId);
 
     if (!ni) {
-        EV << getFullName()
-                << " - Node " << nodeId << " not in CcnAdmin registry!"
+        DBGPRT(AUX, Warn, this->getFullPath())
+                << " Node " << nodeId << " not in CcnAdmin registry!"
                 << std::endl;
 
         if ( (ni = getNodeInfo(node)) ) {
-            DBG(Err) << getFullName()
-                    << " - Consistency Problem ???"
-                    << "\n   Node " << nodeId << " could not be found in the CcnAdmin registry by ID but a lookup by module address was successful!!"
+            DBGPRT(AUX, Err, this->getFullPath())
+                    << " Consistency Problem ???"
+                    << "\n\t Node " << nodeId << " could not be found in the CcnAdmin registry by ID but a lookup by module address was successful!!"
                     << std::endl;
         }
     }
@@ -497,10 +507,10 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
     /* Check that we have a node registered to associate with configuration
      */
     if (!ni) {
-        DBG(Warn) << getFullName()
-                << " - Ccn Node " << node << " is not registered \n"
-                << " scenario configuration file " << file
-                << " is not parsed"
+        DBGPRT(AUX, Err, this->getFullPath())
+                << " Ccn Node " << node << " is not registered."
+                << " Its scenario configuration file " << file
+                << " is not parsed."
                 << std::endl;
         return false;
     }
@@ -511,10 +521,10 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
     if (ni->numConfigEvents != 0)
     {
-        DBG(Warn) << getFullName()
-                << " - Ccn Node " << node
-                << " already has "<< ni->numConfigEvents << " configuration events"
-                << "\n   Proceeding to append to them the scenario configuration file "
+        DBGPRT(AUX, Warn, this->getFullPath())
+                << " Ccn Node " << node
+                << " already has "<< ni->numConfigEvents << " configuration events allocated."
+                << "\n\t Will append also those from the scenario configuration file "
                 << file << std::endl;
 
         while ( *newConfig ) {
@@ -526,14 +536,13 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
     /* Open config file for reading.
      */
     if (!file.is_open()) {
-        EV << getFullName()
-                << " - Cannot open scenario configuration file: " << configFile << std::endl;
+        DBGPRT(AUX, Err, this->getFullPath())
+                << " Cannot open scenario configuration file: " << configFile << std::endl;
         return false;
     } else {
-        EV << getFullName()
-                << " - Reading scenario configuration file: " << configFile << std::endl;
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " Reading scenario configuration file: " << configFile << std::endl;
     }
-
 
 
     /* Start line-by-line parsing
@@ -568,32 +577,32 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
 
             if (sectionName == "eInterestMode")  {
                 mode = eInterestMode;
-                DBG(Info) << getFullName()
-                        << " - Parsing scenario file "
+                DBGPRT(AUX, Info, this->getFullPath())
+                        << " Parsing scenario file "
                         << configFile
                         << ": eInterestMode section"
                         << std::endl;
             }
             else if (sectionName == "ePreCacheMode")  {
                 mode = ePreCacheMode;
-                DBG(Info) << getFullName()
-                        << " - Parsing scenario file "
+                DBGPRT(AUX, Info, this->getFullPath())
+                        << " Parsing scenario file "
                         << configFile
                         << ": ePreCacheMode section"
                         << std::endl;
             }
             else if (sectionName == "eFwdRulesMode")  {
                 mode = eFwdRulesMode;
-                DBG(Info) << getFullName()
-                        << " - Parsing scenario file "
+                DBGPRT(AUX, Info, this->getFullPath())
+                        << " Parsing scenario file "
                         << configFile
                         << ": eFwdRulesMode section"
                         << std::endl;
             }
             else if (sectionName == "eCommentsMode")  {
                 mode = eCommentsMode;
-                DBG(Info) << getFullName()
-                        << " - Parsing scenario file "
+                DBGPRT(AUX, Info, this->getFullPath())
+                        << " Parsing scenario file "
                         << configFile
                         << ": eCommentsMode section (Nothing to process)"
                         << std::endl;
@@ -671,7 +680,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             /* Check that we have in one line named object and timed interest
              */
             if (!nameSet || !startChunkSet || !noChunksSet || !timeSet)
-                TEST_DO( false, errMsg = "NOT ALL 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'RequestTime =<num>' WERE SPECIFIED"; );
+                TEST_DO( false, errMsg = "NOT ALL OF 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'RequestTime =<num>' WERE SPECIFIED"; );
 
 
             /* .. almost done, create and chain up event record (ConfigRequest)
@@ -754,7 +763,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             /* Check we have everything we need in one line (content name and chunk range)
              */
             if (!nameSet || !startChunkSet || !noChunksSet || !updateTimeSet)
-                TEST_DO( false, errMsg = "NOT ALL 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
+                TEST_DO( false, errMsg = "NOT ALL OF 'ContentName =<str>' AND 'StartChunk =<num>' AND 'ChunksCount =<num>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
 
 
             /* .. almost done, create and chain up ConfigRequest
@@ -836,12 +845,13 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             /* Check we have everything we need in one line (prefix and next hop)
              */
             if (!prefixSet || !nextHopSet || !updateTimeSet)
-                TEST_DO( false, errMsg = "NOT ALL 'contentPrefix =<str>' AND 'NextHopId =<name>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
+                TEST_DO( false, errMsg = "NOT ALL OF 'ContentPrefix =<str>' AND 'NextHopId =<name>' AND 'UpdateTime =<num>' WERE SPECIFIED"; );
 
             if (!accessFromSet) {
-                DBG(Warn) << getFullName()
-                        << " - 'AccessFrom = ' qualifier has not been set in line " << lineno << " in " << configFile
-                        << "\n  I might try to setup fwd rule on all node interfaces to activate broadcasting"
+                DBGPRT(AUX, Info, this->getFullPath())
+                        << " AT LINE: " << lineno << " IN " << configFile
+                        << " 'AccessFrom = ' NOT SET"
+                        << "\n\t I MIGHT try to setup fwd rule for all node interfaces (activate broadcasting)"
                         << std::endl;
             }
 
@@ -856,28 +866,24 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             if (    (nextHopNetif == NULL) ||
                     ((accessFromSet) && (localNetif == NULL))  )
             {
-                DBG(Err) << this->getFullName()
-                        << " - Invalid forwarding rule in file " << configFile
-                        << "\n   Node.Iface: " << ((nextHopNetif) ? accessFrom : nextHop ) << " does not exist in topology. Ignoring rule"
+                DBGPRT(EVAUX, Err, this->getFullPath())
+                        << " AT LINE: " << lineno << " IN " << configFile
+                        << ". Forgetting an invalid forwarding rule"
                         << std::endl;
-                EV << this->getFullName()
-                        << " - Invalid forwarding rule in file " << configFile
-                        << "\n   Line: " << line
-                        << "\n   Ignoring rule"
+                DBGPRT(AUX, Detail, this->getFullPath())
+                        << "\n\t Node interface: " << ((nextHopNetif) ? accessFrom : nextHop ) << " does not exist in current topology."
                         << std::endl;
 
                 continue;   // parse next line
             }
             else if ( ! (nextHopNetif->getSubmodule("mac")) )
             {
-                DBG(Err) << this->getFullName()
-                        << " - Invalid forwarding rule in file " << configFile
-                        << "\n   Node.Iface: " << nextHop << " does not have a MAC submodule. Ignoring rule"
+                DBGPRT(EVAUX, Err, this->getFullPath())
+                        << " AT LINE: " << lineno << " IN " << configFile
+                        << ". Forgetting an invalid forwarding rule"
                         << std::endl;
-                EV << this->getFullName()
-                        << " - Invalid forwarding rule in file " << configFile
-                        << "\n   Line: " << line
-                        << "\n   Ignoring rule"
+                DBGPRT(AUX, Detail, this->getFullPath())
+                        << "\n\t Node " << nextHop << " does not have a MAC submodule."
                         << std::endl;
 
                 continue;   // parse next line
@@ -917,16 +923,16 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
     ni->configEnd = req_list_end;
     ni->numConfigEvents += countI;
 
-    EV << getFullName()
-            << " - Extracted " << countI
-            << " configuration events from scenario configuration file: "
+    DBGPRT(EVAUX, Info, this->getFullPath())
+            << " Created " << countI  << " configuration events from scenario configuration file: "
             << configFile << std::endl;
     return true;
 
 
     FAILED:
-    DBG(Err) << getFullName() << " - LINE " << lineno << " in " << configFile << ": "
-            << errMsg
+    DBGPRT(EVAUX, Err, this->getFullPath())
+            << " AT LINE: " << lineno << " IN " << configFile
+            << "\n\t " << errMsg
             << std::endl;
     return false;
 };
@@ -949,20 +955,21 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
     /* Sanity checks
      */
     if (!ni) {
-        EV << getFullName() << " - Scheduling of node configuration events failed!" << std::endl;
-        DBG(Warn) << getFullName()
-                << " - Cannot schedule node configuration"
-                << "\n   Ccn node ("<< node << ") not found in the registry"
+        DBGPRT(EVAUX, Err, this->getFullPath())
+                << " Failed to schedule scenario configuration events!" << std::endl;
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << "\n\t Ccn node ("<< node << ") not found in the registry"
                 << std::endl;
         return;
     }
 
     if ( ! (config = ni->configStart) ) {
-        DBG(Info) << getFullName()
-                << " - No configuration events to be scheduled for node " << ni->nodePtr->getFullName()
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << " No configuration events to be scheduled for node " << ni->nodePtr->getFullName()
                 << std::endl;
         return;
     }
+
 
 
     /* Start planing ..
@@ -971,18 +978,21 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
 
     for ( int i=0 ; config ; i++, config = config->next) {
 
-        sprintf(desc, "Configuration event %d for %s ", i, ni->nodePtr->getFullPath().c_str());
+        sprintf(desc, " Scenario configuration event %d for %s ", i, ni->nodePtr->getFullPath().c_str());
+
+        DBGPRT(AUX, Detail, this->getFullPath())
+                << " Preparing to schedule" << desc
+                << "\n\t Info:"
+                << "\n\t   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
+                << "\n\t   Status: isScheduled=" << config->isScheduled << ", isExecuted=" << config->isExecuted
+                << std::endl;
+
 
         /* Already scheduled or executed ?
          */
         if (config->isExecuted || config->isScheduled) {
-            DBG(Info) << getFullName()
-                    << desc
-                    << " - Not Scheduled!"
-                    << "\n   Previous status: isScheduled=" << config->isScheduled
-                    << ", isExecuted=" << config->isExecuted
-                    << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
-                    << std::endl;
+            DBGPRT(EVAUX, Warn, this->getFullPath())
+                    << desc << " - Marked already as scheduled or executed ..Not Re-scheduled!" << std::endl;
 
             continue;
         }
@@ -991,10 +1001,8 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
         /* Request timed in the past ?
          */
         if ( config->execTime < simTime().dbl() ) {
-            DBG(Info) << getFullName()
-                    << desc
-                    << " - Is planned in the past .. Not Scheduled!"
-                    << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
+            DBGPRT(EVAUX, Warn, this->getFullPath())
+                    << desc << " - Is in the past .. Not Scheduled!"
                     << std::endl;
 
             continue;
@@ -1016,15 +1024,13 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
 
         config->isScheduled = true;
 
-        DBG(Info) << getFullName()
-                << desc
-                << " - Scheduled for execution at " << when <<"!"
-                << "\n   Config Request Type " << config->type << " (SEND_INTEREST = 0, PRE_CACHE=1, ADD_FWD_RULES=2)"
+        DBGPRT(EVAUX, Info, this->getFullPath())
+                << desc << " - Scheduled at " << when <<"!"
                 << std::endl;
     }
 
-    EV << getFullName()
-            << " - Scheduled " << eventsCnt
+    DBGPRT(EVAUX, Info, this->getFullPath())
+            << " Scheduled in total " << eventsCnt
             << "configuration events for node "
             << ni->nodePtr->getFullName()
             << std::endl;

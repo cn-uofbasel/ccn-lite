@@ -15,7 +15,6 @@
 #include "CcnAppMessage_m.h"
 
 
-
 /*****************************************************************************
  * The CCN Lite code base is writen in C. The following platform functions are
  * needed to provide access for that code to the C++ based omnet environment
@@ -31,7 +30,9 @@ void opp_log (
     IN char *node,
     IN char *log )
 {
-    EV << "--- ccn-lite kernel log [" << node << "]: " << log; // << std::endl;
+    int debugLevel = defaultDebugLevel;
+    DBGPRT(AUX, Detail, std::string(node) )
+        << "-- ccn-lite kernel --: " << log; // << std::endl;
 };
 
 
@@ -82,34 +83,14 @@ long opp_timer (
 
 
 /*****************************************************************************
- * Encapsulate the various versions of the CCN Lite C code base in different
- * namespaces. Multi-version support could be used for compatibility testing
- * across CCN Lite versions and regression tests. The macro
- * #define MULTIPLE_CCNL_VERSIONS is in shared.h
+ * Encapsulate the CCN Lite C code base in a separate namespace.
  *****************************************************************************/
 
+#include "./ccn-lite/ccnl-includes.h"  // platform includes common for ccn lite
+namespace CcnLiteRelay {
+#  include "./ccn-lite/ccn-lite-omnet.c"
+};
 
-#ifdef MULTIPLE_CCNL_VERSIONS
-# include "./ccn-lite-v1/ccnl-includes.h"  // platform includes common for all vers of ccn lite
-
-  /* codebase of CCN Lite v0 (this is the initial ver we used with omnet 4.1)
-   */
-  namespace CcnLite_v0 {
-        #include "./ccn-lite-v0/omnetglue.c"
-  };
-
-  /* codebase of CCN Lite v1 (this is the latest version by Christian)
-   */
-  namespace CcnLite_v1 {
-        #include "./ccn-lite-v1/ccn-lite-omnet.c"
-  };
-#else // !MULTIPLE_CCNL_VERSIONS
-# include "./ccn-lite/ccnl-includes.h"  // platform includes common for all vers of ccn lite
-
-  namespace CcnLiteRelay {
-        #include "./ccn-lite/ccn-lite-omnet.c"   // v0
-  };
-#endif // MULTIPLE_CCNL_VERSIONS
 
 
 
@@ -122,8 +103,9 @@ long opp_timer (
 /*****************************************************************************
  * Ctor
  */
-CcnCore::CcnCore (Ccn *owner, const char *nodeName, const char *coreName):
+CcnCore::CcnCore (Ccn *owner, const char *nodeName, const char *coreVer):
     relayName(nodeName),
+    coreVersion(coreVer),
     ccnModule(owner),
     ctrlBlock(0)
 {
@@ -131,50 +113,12 @@ CcnCore::CcnCore (Ccn *owner, const char *nodeName, const char *coreName):
      */
     this->debugLevel = ::defaultDebugLevel;
 
-#ifdef MULTIPLE_CCNL_VERSIONS
-
-    DBG(Info) << "Featuring multiple versions of CCN Lite code" << std::endl;
-
-    /* decide which version of CCN Lite we are using
-     */
-    // TODO: re-implement this nicer
-    if ( strcmp (coreName, "CcnLite.v0") == 0 )
-    {
-        createRelay = &(CcnLite_v0::ccnl_create_relay);
-        destroyRelay = &(CcnLite_v0::ccnl_destroy_relay);
-        addContent = &(CcnLite_v0::ccnl_add_content);
-        addFwdRule = &(CcnLite_v0::ccnl_add_fwdrule);
-        app2Relay = &(CcnLite_v0::ccnl_app2relay);
-        lnk2Relay = &(CcnLite_v0::ccnl_lnk2relay);
-    }
-    else if ( strcmp (coreName, "CcnLite.v1") == 0 )
-    {
-        createRelay = &(CcnLite_v1::ccnl_create_relay);
-        destroyRelay = &(CcnLite_v1::ccnl_destroy_relay);
-        addContent = &(CcnLite_v1::ccnl_add_content);
-        addFwdRule = &(CcnLite_v1::ccnl_add_fwdrule);
-        app2Relay = &(CcnLite_v1::ccnl_app2relay);
-        lnk2Relay = &(CcnLite_v1::ccnl_lnk2relay);
-
-    };
-
-    DBG(Info) << "Node " << nodeName << " uses CCN core: " << coreName << std::endl;
-    EV << "Node " << nodeName << " uses CCN core: " << coreName << std::endl;
-
-#else // !MULTIPLE_CCNL_VERSIONS
-
     createRelay = &(CcnLiteRelay::ccnl_create_relay);
     destroyRelay = &(CcnLiteRelay::ccnl_destroy_relay);
     addContent = &(CcnLiteRelay::ccnl_add_content);
     addFwdRule = &(CcnLiteRelay::ccnl_add_fwdrule);
     app2Relay = &(CcnLiteRelay::ccnl_app2relay);
     lnk2Relay = &(CcnLiteRelay::ccnl_lnk2relay);
-#endif // MULTIPLE_CCNL_VERSIONS
-
-
-
-
-    coreVersion = coreName;
 
     int numMacIds = ccnModule->numMacIds;
     char macAddrArray[numMacIds][6];
@@ -215,14 +159,14 @@ CcnCore::~CcnCore ()
 /*****************************************************************************
  * text description of the object
  */
-const char *
+std::string
 CcnCore::info ()
 {
     std::string  text(relayName);
 
-    text = relayName + " (" + coreVersion + ")";
+    text += " (" + coreVersion + ")";
 
-    return text.c_str();
+    return text;
 }
 
 
@@ -233,15 +177,20 @@ int
 CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int seqNumStart, const int numChunks, const char *chunkPtrs[], const int chunkSize)
 {
     int i = 0;
+    int negcnt = 0;
 
     for (i = 0 ; i < numChunks ; i++)
     {
-        this->addContent (ctrlBlock, contentName, i+seqNumStart, (void *) chunkPtrs[i], chunkSize);
+        // count failures (-1 returns)
+        negcnt += this->addContent (ctrlBlock, contentName, i+seqNumStart, (void *) chunkPtrs[i], chunkSize);
     }
 
-    //TODO: fix this to return the truth
-    DBG(Warn) << "UNDER CONSTRUCTION: Correct return value!" << std::endl;
-    return i;
+    if ((numChunks + negcnt) != 0)
+        DBGPRT(EVAUX, Warn, this->ccnModule->getFullPath())
+            << numChunks + negcnt << " only of " << numChunks << " were added to relay cache!"
+            << std::endl;
+
+    return numChunks + negcnt; // = numChunks - failures
 };
 
 
@@ -251,71 +200,61 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int seqNumStar
 bool
 CcnCore::addL2FwdRule (const char *contentName, const char *dstAddr, int localNetifIndex)
 {
-    this->addFwdRule (ctrlBlock, contentName, dstAddr, localNetifIndex);
+    int res = this->addFwdRule (ctrlBlock, contentName, dstAddr, localNetifIndex);
 
-    //TODO: fix this
-    DBG(Warn) << "UNDER CONSTRUCTION: Correct return value!" << std::endl;
+    if ( res == -1) {
+        DBGPRT(EVAUX, Warn, this->ccnModule->getFullPath())
+            << "Installation of fwd rule " << contentName << "-->" << dstAddr
+            << " at relay FIB, failed!"
+            << std::endl;
+
+        return false;
+    }
+
     return true;
 }
 
 
-/*****************************************************************************
- * add a forwarding rule based on a L3 ID (IP or socket) to relay's FIB
- */
-bool
-CcnCore::addL4FwdRule (const char *contentName, const char *dstAddr)
-{
-    // TODO:
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return true;
-}
 
 /*****************************************************************************
- * pass to relay request for content to create an Interest
+ * pass request for content to relay
  */
 bool
 CcnCore::requestContent(const char *contentName, const int seqNum)
 {
-    this->app2Relay(ctrlBlock, contentName, seqNum);
+    if ( this->app2Relay(ctrlBlock, contentName, seqNum) ==0 )
+        return true;
+    else {
+        DBGPRT(EVAUX, Warn, this->ccnModule->getFullPath())
+            << "Execution of content request " << contentName << "/" << seqNum
+            << " failed!"
+            << std::endl;
 
-    //TODO: fix this
-    DBG(Warn) << "UNDER CONSTRUCTION: Correct return value!" << std::endl;
-    return true;
+        return false;
+    }
 };
 
 
 /*****************************************************************************
- * pass CCN packet from a UDP socket layer to the relay
+ * pass CCN packet received from the MAC layer to the relay
  */
 bool
 CcnCore::fromMACFace (const char *dstAddr, const char *srcAddr, int arrNetIf, void *data, int len)
 {
     if (!dstAddr || !srcAddr || !len || !data)
     {
-        DBG(Err) << ccnModule->getFullName()
-            << " - Consistency problem when attempting to pass data to the CCN core by the MAC layer. Ignore it "
+        DBGPRT(AUX, Err, this->ccnModule->getFullPath())
+            << "Incoming eth pkt was not delivered to CCN relay (endpoint information inconsistency)!"
             << std::endl;
         return false;
     }
 
-    this->lnk2Relay(ctrlBlock, dstAddr, srcAddr, arrNetIf, data, len);
+    if ( this->lnk2Relay(ctrlBlock, dstAddr, srcAddr, arrNetIf, data, len) ==0)
+        return true;
 
-    return true;
+    return false;
 };
 
-
-/*****************************************************************************
- * pass CCN packet from a UDP socket layer to the relay
- */
-bool
-CcnCore::fromUDPFace (void)
-{
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return true;
-};
 
 
 /*****************************************************************************
@@ -328,24 +267,21 @@ CcnCore::toMACFace (const char *dstAddr, const char *srcAddr, void *data, int le
     char dstAddrStr [18];
 
     if ( !dstAddr || !srcAddr) {
-        DBG(Warn) << ccnModule->getFullPath()
-                << " - Endpoints for packet transmission not correctly specified. Aborting transmission."
-                <<std::endl;
+        DBGPRT(AUX, Err, this->ccnModule->getFullPath())
+            << "Outgoing eth pkt dropped (endpoint information inconsistency)!"
+            << std::endl;
         return false;
     }
 
     if ( len && !data) {
-        DBG(Warn) << ccnModule->getFullPath()
-                << " - Packet buffer not provided for CCN packet transmission. Aborting transmission."
-                <<std::endl;
+        DBGPRT(AUX, Err, this->ccnModule->getFullPath())
+            << "Outgoing eth pkt dropped (no packet buffer provided)!"
+            <<std::endl;
         return false;
     }
 
     CcnContext *ctx = new CcnContext(AF_PACKET);
 
-    // TODO: IF I BROADCAST THROUGH ALL MY INTERFACES, WOULD THAT BE CORRECT ?
-    //const char bcastDst[] = "\xFF\xFF\xFF\xFF\xFF\xFF";
-    //ctx->set802Info(bcastDst, dstAddr);
     ctx->set802Info(srcAddr, dstAddr);
 
     memset (srcAddrStr+17, '\0', sizeof(char));
@@ -366,8 +302,8 @@ CcnCore::toMACFace (const char *dstAddr, const char *srcAddr, void *data, int le
     pkt->addByteLength(len);
     pkt->setContextPointer(ctx);
 
-    DBG(Info) << ccnModule->getFullPath()
-            << "\n  CCN Core send data : " << pktInfo
+    DBGPRT(EVAUX, Info, ccnModule->getFullPath())
+            << "\n  CCN Relay to-send data : " << pktInfo
             << "\n  CCN Preparing Transmission: " << txInfo
             << std::endl;
 
@@ -378,20 +314,7 @@ CcnCore::toMACFace (const char *dstAddr, const char *srcAddr, void *data, int le
 
 
 /*****************************************************************************
- * pass CCN packet from relay to MAC layer
- */
-bool
-CcnCore::toUDPFace (void) {
-
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return true;
-};
-
-
-/*****************************************************************************
- * register or delete a timer with our owner Ccn module
+ * register or delete a timer at owning Ccn module
  */
 long
 CcnCore::manageTimerEvent (char setOrReset, long usecOrHandle, void(*callback)(void *, void *), void * par1, void * par2)
@@ -405,8 +328,8 @@ CcnCore::manageTimerEvent (char setOrReset, long usecOrHandle, void(*callback)(v
         return ccnModule->clearTimerEvent(usecOrHandle);    // usecOrHandle ~ handle
 
     default:
-        DBG(Err) << ccnModule->getFullName()
-            << " - Invalid timer operation (neither timer event registration nor removal)"
+        DBGPRT(AUX, Err, ccnModule->getFullName())
+            << "Invalid timer operation (not a timer event registration or removal request)!"
             << std::endl;
         break;
     }
@@ -416,22 +339,22 @@ CcnCore::manageTimerEvent (char setOrReset, long usecOrHandle, void(*callback)(v
 
 
 /*****************************************************************************
- * deliver content from the relay to the layer above (app or strategy)
+ * deliver content from the relay to the layer above (app)
  */
 bool
 CcnCore::deliverContent (char *contentName, int seqNum, void *data, int len)
 {
     if ( !contentName ) {
-        DBG(Warn) << ccnModule->getFullPath()
-                << " - Content without associated content name/chunk identifier. Drop data."
+        DBGPRT(EVAUX, Warn, ccnModule->getFullPath())
+                << "Dropped content data, no associated content name/chunk identifier!"
                 <<std::endl;
         return false;
     }
 
     if ( len && !data) {
-        DBG(Warn) << ccnModule->getFullPath()
-                << " - Content chunk with inconsistent content data buffer. Drop data."
-                <<std::endl;
+        DBGPRT(AUX, Warn, ccnModule->getFullPath())
+                << "Dropped content chunk with inconsistent content data buffer!"
+                << std::endl;
         return false;
     }
 
@@ -451,44 +374,18 @@ CcnCore::deliverContent (char *contentName, int seqNum, void *data, int len)
 
 
 /*****************************************************************************
- * Setter/Getter for the max cache memory size
+ * Update relay configuration (e.g. cache store size, cache policy,
+ * tx pace etc)
  */
 bool
-CcnCore::setCacheSize(int)
+CcnCore::updateRelayConfig(void *)
 {
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
+    // TODO: Implement relay control block update/peek interface
+    DBGPRT(EVAUX, Warn, ccnModule->getFullPath())
+            << "UNDER CONSTRUCTION: function not implemented! \n"
+            << "Cache store size in i-nodes can currently be set only at relay instantiation \n"
+            << "Cache policy is fixed to FIFO \n"
+            << "Tx pace can currently be set only at relay instantiation"
+            << std::endl;
     return true;
-};
-
-int
-CcnCore::getCacheSize(void)
-{
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return 0;
-};
-
-
-/*****************************************************************************
- * Setter/Getter for the packet inter-transmission pace
- */
-bool
-CcnCore::setTxPace (long)
-{
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return true;
-};
-
-long
-CcnCore::getTxPace(void)
-{
-    // TODO: Implement ...
-    DBG(Warn) << "UNDER CONSTRUCTION: Method not implemented!" << std::endl;
-    EV << "Functionality not implemented!" << std::endl;
-    return 0;
 };

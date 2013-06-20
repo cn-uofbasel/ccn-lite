@@ -34,12 +34,6 @@ private:
 
     /**
      * Various possible scenario configuration options
-     *
-    enum ConfigType {
-        eI_MODE = 0, SHOW_INTEREST = 0,
-        ePC_MODE = 1, PRE_CACHE=1,
-        eFR_MODE = 2, FWD_RULES=2
-    };
      */
 
     enum ConfigType {   // left is the section name in the config file, right is resp. config cmd
