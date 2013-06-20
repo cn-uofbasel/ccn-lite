@@ -205,10 +205,10 @@ struct ccnl_content_s {
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-inline char*
+inline const char*
 compile_string(void)
 {
-    static char *cp = ""
+    static const char *cp = ""
 #ifdef USE_DEBUG
 	"USE_DEBUG "
 #endif

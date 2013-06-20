@@ -155,7 +155,8 @@ ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
-    int hdrlen = 0, blobtaglen, datalen, flagoffs;
+    int hdrlen = 0, blobtaglen, flagoffs;
+    unsigned int datalen;
     DEBUGMSG(16, "ccnl_encaps_mknextfragment e=%p, mtu=%d\n", (void*)e, e->mtu);
 
     if (!e->bigpkt) {

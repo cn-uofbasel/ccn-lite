@@ -36,19 +36,6 @@
  * (layer below addressing information)
  *****************************************************************************/
 
-// TODO: convert this to a class
-/*
-typedef struct {
-    char                senderId;
-    unsigned short      addrFamily;     // AF_INET | AF_PACKET
-    char                srcAddr[6];
-    char                dstAddr[6];
-    unsigned int        pktLen;
-    char                *ccnPkt;        // TODO: check is this is needed
-} CcnContext;
-*/
-
-
 class CcnContext
 {
 private:
@@ -189,9 +176,6 @@ protected:
 
     unsigned int     debugLevel;        // level for debugging information by this module
 
-    //virtual int numInitStages() const {return 4;}
-
-
 
     /**
      * Methods that override the API we inherit
@@ -224,18 +208,9 @@ protected:
      * Virtual methods to be implemented by the derived class for servicing
      * the incoming packets from the network or the layer above, as well as timers
      */
-#if defined(TEST1)
-    virtual void    fromUpperLayer(cMessage* msg);
-    virtual void    fromLowerLayer(cMessage* msg);
-    virtual void    handleSelfMessage(cMessage* msg);
-
-    void            runTest1();
-    void            sendPingPongMsg (const char *type);
-#else
     virtual void    fromUpperLayer(cMessage* msg) { return; }; //= 0;
     virtual void    fromLowerLayer(cMessage* msg) { return; }; //= 0;
     virtual void    handleSelfMessage(cMessage* msg) {return; }; //=0;
-#endif // TESTn
 
 public:
 

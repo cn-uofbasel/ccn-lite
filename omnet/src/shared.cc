@@ -9,13 +9,23 @@
 #include "shared.h"
 
 
-/**
- * A /dev/null stream for suppressing debug information
- */
-std::ostream Nullstream (0);
 
 
 /**
  * Debug level set for the entire simulation
  */
 unsigned int defaultDebugLevel = 0;
+
+std::ostream    NullStream (0); // a bufferless ostream for emulating /dev/null as a stream
+std::ostream *  DebugOutput::_auxLogger = &NullStream;
+std::ostream *  DebugOutput::_nullStream = &NullStream;
+RptChannel      DebugOutput::_currChannel= NONE;
+DebugOutput *   DebugOutput::_theSingleton = 0;
+
+const char rptLabel [][15] = {
+        "NONE: ",
+        "ERROR: ",
+        "WARN: ",
+        "INFO: ",
+        "DETAIL: ",
+};

@@ -26,6 +26,7 @@ network CCNoEther_Tau_2cli_2rtr_1svr
         @display("bgb=912,359");
 
         int defaultDebugLevel = default(3);		// 0=none, 1=Info, 2=Warning, 3=Error, 4=Detail
+        bool auxDebug = default(false);			// enable console output for debugging
 
     types:
         channel fastEthernet extends DatarateChannel
