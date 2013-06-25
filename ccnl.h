@@ -57,8 +57,32 @@
 
 #define CCNL_DTAG_DEBUGREQUEST  99100 //
 #define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt
-#define CCNL_DTAG_DEBUGREPLY    99102 // dump reply
-#define CCNL_DTAG_INTERFACE     99103
+
+//FOR THE DEBUG_REPLY MSG
+#define CCNL_DTAG_DEBUGREPLY    99201 // dump reply
+#define CCNL_DTAG_INTERFACE     99202 // interface list
+#define CCNL_DTAG_NEXT          99203 // next pointer e.g. for faceinstance
+#define CCNL_DTAG_PREV          99204 // prev pointer e.g. for faceinstance
+#define CCNL_DTAG_IFNDX         99205 
+#define CCNL_DTAG_IP            99206
+#define CCNL_DTAG_ETH           99207
+#define CCNL_DTAG_UNIX          99208
+#define CCNL_DTAG_PEER          99209
+#define CCNL_DTAG_FWD           99210
+#define CCNL_DTAG_FACE          99211
+#define CCNL_DTAG_ADDRESS       99212
+#define CCNL_DTAG_SOCK          99213
+#define CCNL_DTAG_REFLECT       99214
+#define CCNL_DTAG_PREFIX        99215
+#define CCNL_DTAG_INTERESTPTR   99216
+#define CCNL_DTAG_LAST          99217
+#define CCNL_DTAG_MIN           99218
+#define CCNL_DTAG_MAX           99219
+#define CCNL_DTAG_RETRIES       99220
+#define CCNL_DTAG_PUBLISHER     99221
+#define CCNL_DTAG_CONTENTPTR    99222
+#define CCNL_DTAG_LASTUSE       99223
+#define CCNL_DTAG_SERVEDCTN     99224
 
 // fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803

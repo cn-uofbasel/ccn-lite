@@ -100,8 +100,23 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf, *action, *debugaction;
-    unsigned char cfaces[100][100], cfwds[100][100], cinterfaces[100][100],
-        cinterests[100][100], ccontents[100][100], cprefix[100][100];
+    unsigned char str[100];
+    
+    int faceid[100], facenext[100], faceprev[100], faceifndx[100], faceflags[100], facetype[100]; //store face-info
+    unsigned char facepeer[100][50];
+    
+    int fwd[100], fwdnext[100], fwdface[100], fwdfaceid[100];
+    
+    int interfaceifndx[100], interfacedev[100], interfacedevtype[100], interfacereflect[100];
+    char interfaceaddr[100][50];
+    
+    int interest[100], interestnext[100], interestprev[100], interestlast[100], interestmin[100],
+        interestmax[100], interestretries[100], interestpublisher[100];
+    
+    int content[100], contentnext[100], contentprev[100], contentlast_use[100], contentserved_cnt[100];
+
+    unsigned char ccontents[100][100], cprefix[100][100];
+   
     int num_faces, num_fwds, num_interfaces, num_interests, num_contents;
     int buflen, num, typ, it;
     char *cp = "debug cmd failed";
@@ -140,12 +155,15 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	if (!strcmp((const char*)debugaction, "dump")){
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
 
-            num_faces = get_faces_dump(0,ccnl, cfaces);
-            num_fwds = get_fwd_dump(0,ccnl, cfwds);
-            num_interfaces = get_interface_dump(0,ccnl, cinterfaces);
-            num_interests = get_interest_dump(0,ccnl, cinterests);
-            num_contents = get_content_dump(0,ccnl, ccontents);
+            num_faces = get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, &facetype);
+            num_fwds = get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
+            num_interfaces = get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
+            num_interests = get_interest_dump(0,ccnl, interest, interestnext, 
+                    interestprev, interestlast, interestmin,
+                    interestmax, interestretries, interestpublisher);
+            num_contents = get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
             //get_prefix_dump(0, ccnl, cprefix);
+            
         }
 	else if (!strcmp((const char*)debugaction, "halt")){
 	    ccnl->halt_flag = 1;
@@ -153,11 +171,14 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	else if (!strcmp((const char*)debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
             
-            num_faces = get_faces_dump(0,ccnl, cfaces);
-            num_fwds = get_fwd_dump(0,ccnl, cfwds);
-            num_interfaces = get_interface_dump(0,ccnl, cinterfaces);
-            num_interests = get_interest_dump(0,ccnl, cinterests);
-            num_contents = get_content_dump(0,ccnl, ccontents);
+            num_faces = get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, &facetype);
+            num_fwds = get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
+            num_interfaces = get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
+            num_interests = get_interest_dump(0,ccnl, interest, interestnext, 
+                    interestprev, interestlast, interestmin,
+                    interestmax, interestretries, interestpublisher);
+            num_contents = get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
+            //get_prefix_dump(0, ccnl, cprefix);
             
 	    ccnl->halt_flag = 1;
 	} else
@@ -189,25 +210,180 @@ Bail:
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
     len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, debugaction);
     len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
+    
     if(!strcmp((const char*)debugaction, "dump") || !strcmp((const char*)debugaction, "dump+halt")) //halt returns no content
     {
         len3 += mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
         //len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
-        for(it = 0; it < num_interfaces; ++it)
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG, cinterfaces[it]);
-        for(it = 0; it < num_faces; ++it)
-            len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG, cfaces[it]);
-        for(it = 0; it < num_fwds; ++it)
-            len3 += mkStrBlob(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG, cfwds[it]);
-        for(it = 0; it < num_interests; ++it)
-            len3 += mkStrBlob(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG, cinterests[it]);
-        for(it = 0; it < num_interests; ++it)
-            len3 += mkStrBlob(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG, ccontents[it]);
+        
+        for(it = 0; it < num_interfaces; ++it) // interface content
+        {
+            len3 += mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
+             
+            memset(str, 0, 100);
+            sprintf(str, "%d", interfaceifndx[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%s", interfaceaddr[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            if(interfacedevtype == 1)
+            {
+                 sprintf(str, "%p", interfacedev[it]);
+                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
+            }
+            else if(interfacedevtype == 2)
+            {
+                 sprintf(str, "%p", interfacedev[it]);
+                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
+            }
+            else{
+                 sprintf(str, "%d", interfacedev[it]);
+                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
+            }
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", interfacereflect[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str);
+            
+            stmt[len3++] = 0; //end of fwd;
+        }
+        
+        for(it = 0; it < num_faces; ++it) //FACES CONTENT
+        {
+            len3 += mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", faceid[it]);
+            len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str,"%p", facenext[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str,"%p", faceprev[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str,"%d", faceifndx[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str,"%02x", faceflags[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            if(facetype[it] == AF_INET)
+                len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
+            if(facetype[it] == AF_PACKET)
+                len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
+            if(facetype[it] == AF_UNIX)
+                len3 += mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
+            else{
+                sprintf(str,"peer=?");
+                len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
+            }
+            
+            stmt[len3++] = 0; //end of faceinstance;    
+        }
+        
+        for(it = 0; it < num_fwds; ++it) //FWDS content
+        {
+             len3 += mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
+             
+             memset(str, 0, 100);
+             sprintf(str, "%p", fwd[it]);
+             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
+             
+             memset(str, 0, 100);
+             sprintf(str, "%p", fwdnext[it]);
+             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+             
+             memset(str, 0, 100);
+             sprintf(str, "%p", fwdface[it]);
+             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
+             
+             memset(str, 0, 100);
+             sprintf(str, "%d", fwdfaceid[it]);
+             len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
+             
+             stmt[len3++] = 0; //end of fwd;
+             
+        }
+        
+        for(it = 0; it < num_interests; ++it) // interest content
+        {
+            len3 += mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", interest[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", interestnext[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", interestprev[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", interestlast[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_LAST, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", interestmin[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_MIN, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", interestmax[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_MAX, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", interestretries[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", interestpublisher[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
+            
+            stmt[len3++] = 0; //end of interest;
+        }
+        
+        for(it = 0; it < num_contents; ++it)   // content content
+        {
+            len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", content[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", contentnext[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%p", contentprev[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", contentlast_use[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str);
+            
+            memset(str, 0, 100);
+            sprintf(str, "%d", contentserved_cnt[it]);
+            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
+            
+            stmt[len3++] = 0; //end of content;
+        }
     }
     
     
     stmt[len3++] = 0; //end of debug reply
-    stmt[len3++] = 0; // end-of-debugstmt
+    stmt[len3++] = 0; //end-of-debugstmt
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj

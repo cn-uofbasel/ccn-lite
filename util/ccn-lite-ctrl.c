@@ -552,7 +552,8 @@ int
 extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components, 
         int num_of_contents, FILE *stream);
 
-void handleCompnent(unsigned char *buf, int len, int offset, char *tag, int isStrBlob, 
+int 
+handleCompnent(unsigned char *buf, int len, int offset, char *tag, int isStrBlob, 
         int num_of_components, int num_of_contents, FILE *stream)
 {
     int num, typ;
@@ -561,14 +562,13 @@ void handleCompnent(unsigned char *buf, int len, int offset, char *tag, int isSt
         dehead(&buf, &len, &num, &typ);
         while(*buf != 0)
         {
-            //len++; buf++; 
-            //if((*buf >="a" && *buf <= "z") || (*buf >="A" && *buf <= "Z") || (*buf >="0" && *buf <= "9"))
             printf("%c", *buf);
             len++; buf++;
         }
         len++; buf++;
         printf("</%s>\n", tag);
         extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
+        return len;
     }
     else{
         printf("\n");
@@ -582,13 +582,9 @@ extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components
         int num_of_contents, FILE *stream){
     
     int num, typ;
-    
-    unsigned char *buf2 = buf;
-    int len2 = len, num2, typ2;
-    
     if(len <= 0) return 1;
-    if (dehead(&buf, &len, &num, &typ)) return -1;
-    //printf("%i %i\n", num, typ);
+    if(dehead(&buf, &len, &num, &typ)) return -1;
+ //   printf("%i %i\n", num, typ);
     
     switch(num)
     {
@@ -610,7 +606,7 @@ extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components
             handleCompnent(buf, len, offset, "SIGNEDINFO", 1, num_of_components, num_of_contents, stream);
             break;
         case CCN_DTAG_INTEREST:
-            handleCompnent(buf, len, offset, "INTEREST", num_of_components > 3, num_of_components, num_of_contents, stream);
+            handleCompnent(buf, len, offset, "INTEREST", /*num_of_components > 3*/ 0, num_of_components, num_of_contents, stream);
             break;
         case CCN_DTAG_KEY:
             handleCompnent(buf, len, offset, "KEY", 1, num_of_components, num_of_contents, stream);
@@ -679,13 +675,7 @@ extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components
             handleCompnent(buf, len, offset, "FWDINGFLAGS", 1, num_of_components, num_of_contents, stream);
             break;
         case CCN_DTAG_FACEINSTANCE:
-            buf2 = buf;
-            len2 = len;
-            dehead(&buf2, &len2, &num2, &typ2);
-            if(num2 == CCN_DTAG_ACTION)
-                handleCompnent(buf, len, offset, "FACEINSTANCE", 0, num_of_components, num_of_contents, stream);
-            else
-                handleCompnent(buf, len, offset, "FACEINSTANCE", 1, num_of_components, num_of_contents, stream);
+            handleCompnent(buf, len, offset, "FACEINSTANCE", 0, num_of_components, num_of_contents, stream);
             break;
         case CCN_DTAG_FWDINGENTRY:
             extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
@@ -739,8 +729,74 @@ extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components
             handleCompnent(buf, len, offset, "DEBUGREPLY", 0, num_of_components, num_of_contents, stream);
             break;
         case CCNL_DTAG_INTERFACE:
-            handleCompnent(buf, len, offset, "INTERFACE", 1, num_of_components, num_of_contents, stream);
+            handleCompnent(buf, len, offset, "INTERFACE", 0, num_of_components, num_of_contents, stream);
             break;
+        case CCNL_DTAG_NEXT:
+            handleCompnent(buf, len, offset, "NEXT", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_PREV:
+            handleCompnent(buf, len, offset, "PREV", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_IFNDX:
+            handleCompnent(buf, len, offset, "IFNDX", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_IP:
+            handleCompnent(buf, len, offset, "IP", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_ETH:
+            handleCompnent(buf, len, offset, "ETH", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_UNIX:
+            handleCompnent(buf, len, offset, "UNIX", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_PEER:
+            handleCompnent(buf, len, offset, "PEER", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_FWD:
+            handleCompnent(buf, len, offset, "FWD", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_FACE:
+            handleCompnent(buf, len, offset, "FACE", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_ADDRESS:
+            handleCompnent(buf, len, offset, "ADDRESS", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_SOCK:
+            handleCompnent(buf, len, offset, "SOCK", 1, num_of_components, num_of_contents, stream);
+            break;
+        case CCNL_DTAG_REFLECT:
+            handleCompnent(buf, len, offset, "REFLECT", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_PREFIX:
+            handleCompnent(buf, len, offset, "REFLECT", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_INTERESTPTR:
+            handleCompnent(buf, len, offset, "INTERESTPTR", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_LAST:
+            handleCompnent(buf, len, offset, "LAST", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_MIN:
+            handleCompnent(buf, len, offset, "MIN", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_MAX:
+            handleCompnent(buf, len, offset, "MAX", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_RETRIES:
+            handleCompnent(buf, len, offset, "RETRIES", 1, num_of_components, num_of_contents, stream);
+            break;    
+        case CCNL_DTAG_PUBLISHER: 
+            handleCompnent(buf, len, offset, "PUBLISHER", 1, num_of_components, num_of_contents, stream);
+            break;  
+        case CCNL_DTAG_CONTENTPTR: 
+            handleCompnent(buf, len, offset, "CONTENTPTR", 1, num_of_components, num_of_contents, stream);
+            break;  
+        case CCNL_DTAG_LASTUSE: 
+            handleCompnent(buf, len, offset, "LASTUSE", 1, num_of_components, num_of_contents, stream);
+            break;  
+        case CCNL_DTAG_SERVEDCTN: 
+            handleCompnent(buf, len, offset, "SERVEDCTN", 1, num_of_components, num_of_contents, stream);
+            break;  
         case 0:
             extract_ccn_reply(buf, len, offset-4, num_of_components, num_of_contents, stream);
             break;
