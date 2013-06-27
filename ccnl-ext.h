@@ -22,6 +22,12 @@
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_CCNxDIGEST
+#  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)
+#else
+#  define compute_ccnx_digest(b) NULL
+#endif
+
 #ifdef USE_ENCAPS
 
 struct ccnl_encaps_s* ccnl_encaps_new(int protocol, int mtu);

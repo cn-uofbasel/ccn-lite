@@ -29,6 +29,7 @@
 
 #define CCNL_UNIX
 
+#define USE_CCNxDIGEST
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 #define USE_ENCAPS

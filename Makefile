@@ -2,8 +2,8 @@
 
 CC=gcc
 #MYCFLAGS=-Wall -pedantic -std=c99 -g
-MYCFLAGS=-Wall -g -O0
-EXTLIBS=
+MYCFLAGS= -Wall -g -O0
+EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
 
@@ -37,7 +37,7 @@ ccn-lite-relay: ccn-lite-relay.c \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-encaps.c ccnl-ext-mgmt.c
-	${CC} -o $@ ${MYCFLAGS} $<
+	${CC} -o $@ ${MYCFLAGS} $<  ${EXTLIBS}
 
 ccn-lite-simu: ccn-lite-simu.c \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
