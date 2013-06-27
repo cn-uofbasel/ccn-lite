@@ -84,6 +84,8 @@
 #include "ccnl.h"
 #include "ccnl-core.h"
 
+#define compute_ccnx_digest(b) NULL
+
 // ----------------------------------------------------------------------
 
 int debug_level;

@@ -71,6 +71,34 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 }
 
 int
+hex2int(char c)
+{
+    if (c >= '0' && c <= '9')
+	return c - '0';
+    c = tolower(c);
+    if (c >= 'a' && c <= 'f')
+	return c - 'a' + 0x0a;
+    return 0;
+}
+
+int
+unescape_component(unsigned char *comp) // inplace, returns len after shrinking
+{
+    unsigned char *in = comp, *out = comp;
+    int len;
+
+    for (len = 0; *in; len++) {
+	if (in[0] != '%' || !in[1] || !in[2]) {
+	    *out++ = *in++;
+	    continue;
+	}
+	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
+	in += 3;
+    }
+    return len;
+}
+
+int
 mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 {
     int len = 0, k;
@@ -80,7 +108,7 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 
     while (*namecomp) {
 	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
+	k = unescape_component((unsigned char*) *namecomp);
 	len += mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
 	len += k;
@@ -195,16 +223,38 @@ block_on_read(int sock, float wait)
 {
     fd_set readfs;
     struct timeval timeout;
+    int rc;
 
     FD_ZERO(&readfs);
     FD_SET(sock, &readfs);
     timeout.tv_sec = wait;
     timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
-    if (select(sock+1, &readfs, NULL, NULL, &timeout) < 0) {
+    rc = select(sock+1, &readfs, NULL, NULL, &timeout);
+    if (rc < 0)
 	perror("select()");
-	return -1;
+    return rc;
+}
+
+void
+request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
+		char *dest, unsigned char *out, int len, float wait)
+{
+    unsigned char buf[8*1024];
+    int len2 = sendproc(sock, dest, out, len), rc;
+
+    if (len2 < 0) {
+	perror("sendto");
+	myexit(1);
     }
-    return 0;
+    
+    rc = block_on_read(sock, wait);
+    if (rc == 1) {
+	len2 = recv(sock, buf, sizeof(buf), 0);
+	if (len2 > 0) {
+	    write(1, buf, len2);
+	    myexit(0);
+	}
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -214,8 +264,10 @@ main(int argc, char *argv[])
 {
     unsigned char out[8*1024];
     int i = 0, len, opt, sock = 0;
-    char *prefix[32], *cp, *udp = "127.0.0.1/9695", *ux = NULL;
+    char *prefix[CCNL_MAX_NAME_COMP], *cp, *dest;
+    char *udp = "127.0.0.1/9695", *ux = NULL;
     float wait = 3.0;
+    int (*sendproc)(int,char*,unsigned char*,int);
 
     while ((opt = getopt(argc, argv, "hu:w:x:")) != -1) {
         switch (opt) {
@@ -244,7 +296,7 @@ Usage:
     if (!argv[optind]) 
 	goto Usage;
     cp = strtok(argv[optind], "/");
-    while (i < 31 && cp) {
+    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	prefix[i++] = cp;
 	cp = strtok(NULL, "/");
     }
@@ -252,27 +304,22 @@ Usage:
     len = mkInterest(prefix, NULL, out);
 
     if (ux) { // use UNIX socket
+	dest = ux;
 	sock = ux_open();
-	len = ux_sendto(sock, ux, out, len);
+	sendproc = ux_sendto;
     } else { // UDP
+	dest = udp;
 	sock = udp_open();
-	len = udp_sendto(sock, udp, out, len);
-    }
-    if (len < 0) {
-	perror("sendto");
-	myexit(1);
+	sendproc = udp_sendto;
     }
 
-    /*
-    for(; !block_on_read(sock, wait);) {
-    */
-	len = recv(sock, out, sizeof(out), 0);
-	if (len > 0)
-	    write(1, out, len);
-	//    }
-
+    for (i = 0; i < 3; i++) {
+	request_content(sock, sendproc, dest, out, len, wait);
+//	fprintf(stderr, "retry\n");
+    }
     close(sock);
-    myexit(0);
+
+    myexit(-1);
     return 0; // avoid a compiler warning
 }
 

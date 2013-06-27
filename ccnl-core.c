@@ -20,7 +20,7 @@
  * 2011-04-09 created
  */
 
-#define CCNL_VERSION "2013-05-06"
+#define CCNL_VERSION "2013-06-27"
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
@@ -47,28 +47,30 @@ ccnl_buf_new(void *data, int len)
 			 !memcmp(X->data,Y->data,X->datalen))
 
 int
-ccnl_prefix_cmp(struct ccnl_prefix_s *name, struct ccnl_prefix_s *p,
-		int plen, int mode)
+ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
+		struct ccnl_prefix_s *p, int plen, int mode)
 /* returns -1 if no match at all (all modes) or exact match failed
    returns  0 if full match (CMP_EXACT and CMP_MATCH)
    returns n>0 for matched components+1 (CMP_MATCH, CMP_LONGEST) */
 {
-    int i, rc = -1;
+    int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
+    unsigned char *comp;
 
-    if (mode == CMP_EXACT && name->compcnt != plen)
+    if (mode == CMP_EXACT && nlen != plen)
 	goto done;
-    for (i = 0; i < name->compcnt && i < plen; i++) {
-	if (name->complen[i] != p->complen[i] ||
-			memcmp(name->comp[i], p->comp[i], p->complen[i])) {
+    for (i = 0; i < nlen && i < plen; i++) {
+	comp = i < name->compcnt ? name->comp[i] : md;
+	clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
+	if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
 	    rc = mode == CMP_EXACT ? -1 : i;
 	    goto done;
 	}
     }
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
-    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, len=%d, %d/%d), name=%s: %d\n",
-	     mode, plen, name->compcnt, p->compcnt,
-	     ccnl_prefix_to_path(name), rc);
+    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d/%d), name=%s: %d (%p)\n",
+	     mode, nlen, plen, name->compcnt, p->compcnt,
+	     ccnl_prefix_to_path(name), rc, md);
     return rc;
 }
 
@@ -625,7 +627,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // transmit an Interest Message on all listed dest faces in sequence."
     // CCNL strategy: we forward on the face(s) with the longest prefix match
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(i->prefix, fwd->prefix,
+	int rc = ccnl_prefix_cmp(i->prefix, NULL, fwd->prefix,
 				 fwd->prefix->compcnt, CMP_LONGEST);
 	if (rc > maxmatch) {
 	    maxmatch = rc;
@@ -637,7 +639,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     if (!best)
 	return;
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(i->prefix, fwd->prefix,
+	int rc = ccnl_prefix_cmp(i->prefix, NULL, fwd->prefix,
 				 fwd->prefix->compcnt, CMP_LONGEST);
 	if (rc == maxmatch) {
 	    // suppress forwarding to origin of interest, except wireless
@@ -675,13 +677,12 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
 		  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
     int cmplen = prefix->compcnt;
+    unsigned char *md;
     DEBUGMSG(99, "ccnl_i_prefixof_c prefix=%s min=%d max=%d\n",
 	     ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
     // and check the PublisherPublicKeyDigest if present
-
-    // NON-CONFORM: we do not compare the content's implicit SHA256 component
 
     // NON-CONFORM: "Note that to match a ContentObject must satisfy
     // all of the specifications given in the Interest Message."
@@ -691,10 +692,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
 	 (cmplen + minsuffix) > (c->name->compcnt + 1) ||
 	 (cmplen + maxsuffix) < (c->name->compcnt + 1) )
 	return 0;
-    // how to "handle" (=cheat) the implicit checksum field?
-    if (prefix->compcnt - c->name->compcnt == 1)
-	cmplen = c->name->compcnt;
-    return ccnl_prefix_cmp(c->name, prefix, cmplen, CMP_MATCH) == cmplen;
+
+    md = prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
+    return ccnl_prefix_cmp(c->name, md, prefix, cmplen, CMP_MATCH) == cmplen;
 }
 
 struct ccnl_content_s*
@@ -900,7 +900,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	}
 	// CONFORM: Step 2: check whether interest is already known
 	for (i = relay->pit; i; i = i->next) {
-	    if (ccnl_prefix_cmp(i->prefix, p, p->compcnt, CMP_EXACT) == 0 &&
+	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, p->compcnt, CMP_EXACT) &&
 		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
 		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
 		break;
