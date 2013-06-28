@@ -548,263 +548,386 @@ print_offset(int offset){
         printf(" ");
 }
 
-int
-extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components, 
-        int num_of_contents, FILE *stream);
-
 int 
-handleCompnent(unsigned char *buf, int len, int offset, char *tag, int isStrBlob, 
-        int num_of_components, int num_of_contents, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset); printf("<%s>", tag);
-    if(isStrBlob){
-        dehead(&buf, &len, &num, &typ);
-        while(*buf != 0)
-        {
-            printf("%c", *buf);
-            len++; buf++;
-        }
-        len++; buf++;
-        printf("</%s>\n", tag);
-        extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-        return len;
+print_tag_content(unsigned char **buf, int *len, FILE *stream){
+    while((**buf) !=  0)
+    {
+        printf("%c", **buf);
+        ++(*buf); ++(*len);
     }
-    else{
-        printf("\n");
-        extract_ccn_reply(buf, len, offset+4, num_of_components, num_of_contents, stream);
-        print_offset(offset); printf("</%s>\n", tag);
-    }
+    ++(*buf); ++(*len);
+    return 0;
 }
 
-int  
-extract_ccn_reply(unsigned char *buf, int len, int offset, int num_of_components,
-        int num_of_contents, FILE *stream){
-    
+int print_tag_content_with_tag(unsigned char **buf, int *len, char *tag, FILE *stream)
+{
+    int num, typ; 
+    printf("<%s>", tag);
+    dehead(buf, len, &num, &typ);
+    print_tag_content(buf, len, stream);
+    printf("</%s>\n", tag);
+    return 0;
+}
+
+int 
+handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream);
+
+
+int
+handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* tag, FILE *stream)
+{
     int num, typ;
-    if(len <= 0) return 1;
-    if(dehead(&buf, &len, &num, &typ)) return -1;
- //   printf("%i %i\n", num, typ);
+    print_offset(offset); printf("<%s>\n", tag);
+    while(1)
+    {
+        if(dehead(buf, len, &num, &typ)) return -1;
+        switch(num)
+        {
+            case CCNL_DTAG_IFNDX:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "IFNDX", stream);
+               break;
+            case CCNL_DTAG_ADDRESS:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "ADDRESS", stream);
+               break;
+            case CCNL_DTAG_ETH:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "ETH", stream);
+               break;
+            case CCNL_DTAG_SOCK:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "SOCK", stream);
+               break;
+            case CCNL_DTAG_REFLECT:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "REFLECT", stream);
+               break;
+            case CCN_DTAG_FACEID:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "FACEID", stream);
+               break;   
+            case CCNL_DTAG_NEXT:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "NEXT", stream);
+               break;
+            case CCNL_DTAG_PREV:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "PREV", stream);
+               break;
+            case CCNL_DTAG_FWD:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "FWD", stream);
+               break;
+            case CCNL_DTAG_FACEFLAGS:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "FACEFLAGS", stream);
+               break;
+            case CCNL_DTAG_IP:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "IP", stream);
+               break;
+            case CCNL_DTAG_UNIX:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "UNIX", stream);
+               break;
+            case CCNL_DTAG_PEER:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "PEER", stream);
+               break;
+            case CCNL_DTAG_FACE:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "FACE", stream);
+               break;
+            case CCNL_DTAG_INTERESTPTR:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "INTERESTPTR", stream);
+               break;
+            case CCNL_DTAG_LAST:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "LAST", stream);
+               break;
+            case CCNL_DTAG_MIN:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "MIN", stream);
+               break;
+            case CCNL_DTAG_MAX:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "MAX", stream);
+               break;
+            case CCNL_DTAG_RETRIES:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "RETRIES", stream);
+               break;
+            case CCNL_DTAG_PUBLISHER:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "PUBLISHER", stream);
+               break;
+            case CCNL_DTAG_CONTENTPTR:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "CONTENTPTR", stream);
+               break;
+            case CCNL_DTAG_LASTUSE:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "LASTUSE", stream);
+               break;
+            case CCNL_DTAG_SERVEDCTN:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "SERVEDCTN", stream);
+               break;
+            case CCN_DTAG_ACTION:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "ACTION", stream);
+               break;
+            case CCNL_DTAG_MACSRC:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "MACSRC", stream);
+               break;
+            case CCNL_DTAG_IP4SRC:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "IP4SRC", stream);
+               break;
+            case CCN_DTAG_IPPROTO:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "IPPROTO", stream);
+               break;
+            case CCN_DTAG_HOST:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "HOST", stream);
+               break;
+            case CCN_DTAG_PORT:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "PORT", stream);
+               break;
+            case CCNL_DTAG_ENCAPS:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "ENCAPS", stream);
+               break;
+            case CCNL_DTAG_MTU:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "MTU", stream);
+               break;
+            case CCNL_DTAG_DEVFLAGS:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "DEVFLAGS", stream);
+               break;
+            default: 
+              goto Bail;
+        }
+    }
+    Bail:
+    print_offset(offset); printf("</%s>\n", tag);
+    return 0;
+}   
+
+int 
+handle_ccn_debugreply(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+   
+    print_offset(offset); printf("<DEBUGREPLY>\n");
     
+    while(1)
+    {
+        if(dehead(buf, len, &num, &typ)) return -1;
+        switch(num)
+        {
+            case CCNL_DTAG_INTERFACE:
+                handle_ccn_debugreply_content(buf, len, offset+4, "INTERFACE", stream);
+                break;
+            case CCN_DTAG_FACEINSTANCE:
+                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
+                break;
+            case CCN_DTAG_FWDINGENTRY:
+                handle_ccn_debugreply_content(buf, len, offset+4, "FWDINGENTRY", stream);
+                break;
+            case CCN_DTAG_INTEREST:
+                handle_ccn_debugreply_content(buf, len, offset+4, "INTEREST", stream);
+                break;
+            case CCN_DTAG_CONTENT:
+                handle_ccn_debugreply_content(buf, len, offset+4, "CONTENT", stream);
+                break;
+            default:
+                goto Bail;
+        }
+
+    }
+    Bail:
+    print_offset(offset); printf("</DEBUGREPLY>\n"); 
+    return 0;
+}
+
+int 
+handle_ccn_debugaction(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<DEBUGACTION>");
+    print_tag_content(buf,len,stream);
+    printf("</DEBUGACTION>\n");
+    return 0;
+}
+
+int 
+handle_ccn_action(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<ACTION>");
+    print_tag_content(buf,len,stream);
+    printf("</ACTION>\n");
+    return 0;
+}
+
+int
+handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    
+    print_offset(offset); printf("<DEBUGREQUEST>\n");
+    while(1)
+    {
+        if(dehead(buf, len, &num, &typ)) return -1;
+        switch(num)
+        {
+            case CCN_DTAG_ACTION:
+                handle_ccn_action(buf, len, offset+4, stream);
+                break;
+            case CCNL_DTAG_DEBUGACTION:
+                handle_ccn_debugaction(buf, len, offset+4, stream);
+                break;
+            default:
+                goto Bail;
+        }
+    }
+    Bail:
+    print_offset(offset); printf("</DEBUGREQUEST>\n");
+    return 0;
+}
+
+int
+handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<CONTENTOBJ>\n");
     switch(num)
     {
-        case CCN_DTAG_ANY:
-            //extract_ccn_reply(buf, len, offset, num_of_components);
-            //break;
-        case CCN_DTAG_NAME:
-            handleCompnent(buf, len, offset, "NAME", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_COMPONENT:
-            ++num_of_components;
-            handleCompnent(buf, len, offset, "COMPONENT", num_of_components < 4, num_of_components, num_of_contents, stream);
-            break;
         case CCN_DTAG_CONTENT:
-            ++num_of_contents;
-            handleCompnent(buf, len, offset, "CONTENT", num_of_contents > 2, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_SIGNEDINFO:
-            handleCompnent(buf, len, offset, "SIGNEDINFO", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_INTEREST:
-            handleCompnent(buf, len, offset, "INTEREST", /*num_of_components > 3*/ 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_KEY:
-            handleCompnent(buf, len, offset, "KEY", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_KEYLOCATOR:
-            handleCompnent(buf, len, offset, "KEYLOCATOR", 1, num_of_components, num_of_contents, stream);
-            break; 
-        case CCN_DTAG_KEYNAME:
-            handleCompnent(buf, len, offset, "KEYNAME", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_SIGNATURE:
-            handleCompnent(buf, len, offset, "SIGNATURE", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_TIMESTAMP:
-            handleCompnent(buf, len, offset, "TIMESTAMP", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_TYPE:
-            handleCompnent(buf, len, offset, "TYPE", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_NONCE:
-            handleCompnent(buf, len, offset, "NONCE", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_SCOPE:
-            handleCompnent(buf, len, offset, "SCOPE", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_EXCLUDE:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_WITNESS:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_SIGNATUREBITS:
-            handleCompnent(buf, len, offset, "SIGNATUREBITS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FRESHNESS:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FINALBLOCKID:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_PUBPUBKDIGEST:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_PUBCERTDIGEST:
-            handleCompnent(buf, len, offset, "PUBCERTDIGEST", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_CONTENTOBJ:
-            handleCompnent(buf, len, offset, "CONTENTOBJ", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_ACTION:
-            handleCompnent(buf, len, offset, "ACTION", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FACEID:
-            handleCompnent(buf, len, offset, "FACEID", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_IPPROTO:
-            handleCompnent(buf, len, offset, "IPPROTO", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_HOST:
-            handleCompnent(buf, len, offset, "HOST", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_PORT:
-            handleCompnent(buf, len, offset, "PORT", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FWDINGFLAGS:
-            handleCompnent(buf, len, offset, "FWDINGFLAGS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FACEINSTANCE:
-            handleCompnent(buf, len, offset, "FACEINSTANCE", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_FWDINGENTRY:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_MINSUFFCOMP:
-            handleCompnent(buf, len, offset, "MINSUFFCOMP", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_MAXSUFFCOMP:
-            handleCompnent(buf, len, offset, "MAXSUFFCOMP", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_SEQNO:
-            handleCompnent(buf, len, offset, "SEQNO", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCN_DTAG_CCNPDU:
-            handleCompnent(buf, len, offset, "CCNPDU", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_MACSRC:
-            handleCompnent(buf, len, offset, "MACSRC", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_IP4SRC:
-            handleCompnent(buf, len, offset, "IP4SRC", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_UNIXSRC:
-            handleCompnent(buf, len, offset, "UNIXSRC", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_ENCAPS:
-            handleCompnent(buf, len, offset, "ENCAPS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_FACEFLAGS:
-            handleCompnent(buf, len, offset, "FACEFLAGS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEVINSTANCE:
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEVNAME:
-            handleCompnent(buf, len, offset, "DEVNAME", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEVFLAGS:
-            handleCompnent(buf, len, offset, "DEVFLAGS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_MTU:
-            handleCompnent(buf, len, offset, "MTU", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEBUGREQUEST:
-            handleCompnent(buf, len, offset, "DEBUGREQUEST", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEBUGACTION:
-            handleCompnent(buf, len, offset, "DEBUGACTION", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_DEBUGREPLY:
-            handleCompnent(buf, len, offset, "DEBUGREPLY", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_INTERFACE:
-            handleCompnent(buf, len, offset, "INTERFACE", 0, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_NEXT:
-            handleCompnent(buf, len, offset, "NEXT", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_PREV:
-            handleCompnent(buf, len, offset, "PREV", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_IFNDX:
-            handleCompnent(buf, len, offset, "IFNDX", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_IP:
-            handleCompnent(buf, len, offset, "IP", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_ETH:
-            handleCompnent(buf, len, offset, "ETH", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_UNIX:
-            handleCompnent(buf, len, offset, "UNIX", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_PEER:
-            handleCompnent(buf, len, offset, "PEER", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_FWD:
-            handleCompnent(buf, len, offset, "FWD", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_FACE:
-            handleCompnent(buf, len, offset, "FACE", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_ADDRESS:
-            handleCompnent(buf, len, offset, "ADDRESS", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_SOCK:
-            handleCompnent(buf, len, offset, "SOCK", 1, num_of_components, num_of_contents, stream);
-            break;
-        case CCNL_DTAG_REFLECT:
-            handleCompnent(buf, len, offset, "REFLECT", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_PREFIX:
-            handleCompnent(buf, len, offset, "REFLECT", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_INTERESTPTR:
-            handleCompnent(buf, len, offset, "INTERESTPTR", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_LAST:
-            handleCompnent(buf, len, offset, "LAST", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_MIN:
-            handleCompnent(buf, len, offset, "MIN", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_MAX:
-            handleCompnent(buf, len, offset, "MAX", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_RETRIES:
-            handleCompnent(buf, len, offset, "RETRIES", 1, num_of_components, num_of_contents, stream);
-            break;    
-        case CCNL_DTAG_PUBLISHER: 
-            handleCompnent(buf, len, offset, "PUBLISHER", 1, num_of_components, num_of_contents, stream);
-            break;  
-        case CCNL_DTAG_CONTENTPTR: 
-            handleCompnent(buf, len, offset, "CONTENTPTR", 1, num_of_components, num_of_contents, stream);
-            break;  
-        case CCNL_DTAG_LASTUSE: 
-            handleCompnent(buf, len, offset, "LASTUSE", 1, num_of_components, num_of_contents, stream);
-            break;  
-        case CCNL_DTAG_SERVEDCTN: 
-            handleCompnent(buf, len, offset, "SERVEDCTN", 1, num_of_components, num_of_contents, stream);
-            break;  
-        case 0:
-            extract_ccn_reply(buf, len, offset-4, num_of_components, num_of_contents, stream);
-            break;
-        default:
-            //print_offset(offset); printf("Unknown num: %i %i\n", num, typ);
-            extract_ccn_reply(buf, len, offset, num_of_components, num_of_contents, stream);
+            handle_ccn_content(buf, len, offset+4, stream);
             break;
     }
+    print_offset(offset); printf("</CONTENTOBJ>\n");
+    return 0;
+}
+
+int 
+handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    print_offset(offset);
+    printf("<COMPONENT>");
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_tag_content(buf,len,stream);
+    printf("</COMPONENT>\n");
+    return 0;
+}
+
+int 
+handle_ccn_component_tag(unsigned char **buf, int *len, int offset, FILE *stream)
+{
+    int num, typ;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<COMPONENT>\n");
+    while(typ != 2){
+        dehead(buf, len, &num, &typ);
+    }
+    switch(num)
+    {
+        case CCN_DTAG_CONTENTOBJ:
+            handle_ccn_content_obj(buf, len, offset+4, stream);
+            break;
+    }
+    print_offset(offset); printf("</COMPONENT>\n");
+    return 0;
+}
+
+int 
+handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
+    int num, typ, i;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<NAME>\n");
+    for(i = 0; i < 3; ++i)
+    {
+        if(num != CCN_DTAG_COMPONENT) return -1;
+        handle_ccn_component_content(buf, len, offset+4, stream);
+        if(dehead(buf, len, &num, &typ)) return -1;
+        
+    }
+    handle_ccn_component_tag(buf, len, offset+4, stream);
+    print_offset(offset); printf("</NAME>\n");
+    return 0;
+}
+
+int 
+handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
+    int num, typ;
+    if(dehead(buf, len, &num, &typ)) return -1;
+    print_offset(offset); printf("<CONTENT>\n");
+    while(typ != 2){
+        dehead(buf, len, &num, &typ);
+    }
+    while(1)
+    {
+        switch(num)
+        {
+            case CCN_DTAG_NAME:
+                handle_ccn_name(buf, len, offset+4, stream);
+                break;
+            case CCN_DTAG_INTEREST:
+                break;
+            case CCNL_DTAG_DEBUGREQUEST:
+                handle_ccn_debugrequest(buf, len, offset+4, stream);
+                break;
+            case CCNL_DTAG_DEBUGREPLY:
+                handle_ccn_debugreply(buf, len, offset+4, stream);
+                break;
+            case CCN_DTAG_FACEINSTANCE:
+                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
+                break;
+            case CCNL_DTAG_DEVINSTANCE:
+                handle_ccn_debugreply_content(buf, len, offset+4, "DEVINSTANCE", stream);
+                break;
+            case CCNL_DTAG_PREFIX:
+                handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
+                break;
+            default:
+                printf("%i,%i\n", num, typ);
+                goto Bail;
+                break;
+        }
+        if(dehead(buf, len, &num, &typ)) break;
+    }
+    Bail:
+    print_offset(offset); printf("</CONTENT>\n");
+    return 0;
+}
+
+
+int  
+handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
+    
+    int num, typ;
+    if(dehead(&buf, &len, &num, &typ)) return -1;
+    switch(num)
+    {
+        case CCN_DTAG_CONTENT:
+            return handle_ccn_content(&buf, &len, offset, stream);
+            break;
+        case CCN_DTAG_INTEREST:
+            break;
+    }
+    return 0;
 }
 
 int
@@ -887,7 +1010,7 @@ main(int argc, char *argv[])
 	    out[len] = '\0';
             
         printf("CCN-PACKET:\n");
-        extract_ccn_reply(out, len, 2, 0, 0, stdout);
+        handle_ccn_packet(out, len, 2, stdout);
         printf("\n");
         
 	printf("received %d bytes.", len);

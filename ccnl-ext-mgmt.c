@@ -210,6 +210,7 @@ Bail:
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
     len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, debugaction);
     len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
+    stmt[len3++] = 0; //end-of-debugstmt
     
     if(!strcmp((const char*)debugaction, "dump") || !strcmp((const char*)debugaction, "dump+halt")) //halt returns no content
     {
@@ -381,9 +382,8 @@ Bail:
         }
     }
     
-    
     stmt[len3++] = 0; //end of debug reply
-    stmt[len3++] = 0; //end-of-debugstmt
+    
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
@@ -1170,7 +1170,7 @@ Bail:
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, action);
 
     // prepare FWDENTRY
-    len3 = mkHeader(fwdentry, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
+    len3 = mkHeader(fwdentry, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
     len3 += mkHeader(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG); // prefix
 
