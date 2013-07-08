@@ -321,7 +321,7 @@ ccnl_dump(int lev, int typ, void *p)
 }
 
 int
-get_buf_dump(int lev, void *p, int outbuf[100], int len[100], int next[100])
+get_buf_dump(int lev, void *p, int *outbuf, int *len, int *next)
 {
     struct ccnl_buf_s  *buf = (struct ccnl_buf_s      *) p;
     int line = 0, i;
@@ -349,9 +349,23 @@ get_prefix_dump(int lev, void *p, int *prefix, int *len, char* val)
     return 1;
 }
 
+int 
+get_num_faces(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
+    
+    while (fac) {
+        ++num;
+        fac = fac->next;
+    }
+    return num;
+}
+
 int
-get_faces_dump(int lev, void *p, int faceid[100], int next[100], int prev[100], 
-        int ifndx[100], int flags[100], char peer[100][50], int type[100])
+get_faces_dump(int lev, void *p, int *faceid, int *next, int *prev, 
+        int *ifndx, int *flags, char **peer, int *type)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -386,8 +400,22 @@ get_faces_dump(int lev, void *p, int faceid[100], int next[100], int prev[100],
     return line;
 }
 
+int 
+get_num_fwds(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
+    
+    while (fwd) {
+        ++num;
+        fwd = fwd->next;
+    }
+    return num;
+}
+
 int
-get_fwd_dump(int lev, void *p, int outfwd[100], int next[100], int face[100], int faceid[100])
+get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
@@ -409,8 +437,15 @@ get_fwd_dump(int lev, void *p, int outfwd[100], int next[100], int face[100], in
     return line;
 }
 
+int 
+get_num_interface(void *p)
+{
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    return top->ifcount;
+}
+
 int
-get_interface_dump(int lev, void *p, int ifndx[100], char addr[100][50], int dev[100], int devtype[100], int reflect[100])
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, int *dev, int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     
@@ -442,9 +477,24 @@ get_interface_dump(int lev, void *p, int ifndx[100], char addr[100][50], int dev
     return top->ifcount;
 }
 
+
+int 
+get_num_interests(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
+    
+    while (itr) {
+        ++num;
+        itr = itr->next;
+    }
+    return num;
+}
+
 int
-get_interest_dump(int lev, void *p, int interest[100], int next[100], int prev[100],
-        int last[100], int min[100], int max[100], int retries[100], int publisher[100]){
+get_interest_dump(int lev, void *p, int *interest, int *next, int *prev,
+        int *last, int *min, int *max, int *retries, int *publisher){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
@@ -470,7 +520,7 @@ get_interest_dump(int lev, void *p, int interest[100], int next[100], int prev[1
 }
 
 int
-get_pendint_dump(int lev, void *p, char out[100][100]){
+get_pendint_dump(int lev, void *p, char **out){
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
@@ -488,9 +538,23 @@ get_pendint_dump(int lev, void *p, char out[100][100]){
     return line;
 }
 
+int 
+get_num_contents(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
+    
+    while (con) {
+        ++num;
+        con = con->next;
+    }
+    return num;
+}
+
 int
-get_content_dump(int lev, void *p, int content[100], int next[100], int prev[100],
-        int last_use[100], int served_cnt[100]){
+get_content_dump(int lev, void *p, int *content, int *next, int *prev,
+        int *last_use, int *served_cnt){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;

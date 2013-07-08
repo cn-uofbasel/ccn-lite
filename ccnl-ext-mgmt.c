@@ -22,6 +22,13 @@
 
 #ifdef USE_MGMT
 
+#ifdef CCNL_LINUXKERNEL
+#include <linux/string.h>
+#else
+#include <stdlib.h>
+#include <string.h>
+#endif
+
 #include "ccnx.h"
 #include "ccnl-pdu.c"
 #include "ccnl.h"
@@ -66,6 +73,26 @@ Bail:
     return NULL;
 }
 
+void*
+ccnl_malloc1(int s)
+{
+#ifdef CCNL_LINUXKERNEL
+    return kmalloc(s, GFP_ATOMIC);
+#else
+    return malloc(s);
+#endif
+}
+
+void*
+ccnl_free1(int s)
+{
+#ifdef CCNL_LINUXKERNEL
+    kfree(s);
+#else
+    free(s);
+#endif
+}
+
 // ----------------------------------------------------------------------
 // management protocols
 
@@ -79,7 +106,6 @@ Bail:
 	VAR = (unsigned char*) s; \
 	continue; \
     } do {} while(0)
-
 
 void
 ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -101,27 +127,82 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     unsigned char *buf, *action, *debugaction;
     unsigned char str[100];
+    int it;
+    int *faceid, *facenext, *faceprev, *faceifndx, *faceflags, *facetype; //store face-info
+    unsigned char **facepeer;
     
-    int faceid[100], facenext[100], faceprev[100], faceifndx[100], faceflags[100], facetype[100]; //store face-info
-    unsigned char facepeer[100][50];
+    int *fwd, *fwdnext, *fwdface, *fwdfaceid;
     
-    int fwd[100], fwdnext[100], fwdface[100], fwdfaceid[100];
+    int *interfaceifndx, *interfacedev, *interfacedevtype, *interfacereflect;
+    char **interfaceaddr;
     
-    int interfaceifndx[100], interfacedev[100], interfacedevtype[100], interfacereflect[100];
-    char interfaceaddr[100][50];
+    int *interest, *interestnext, *interestprev, *interestlast, *interestmin,
+        *interestmax, *interestretries, *interestpublisher;
     
-    int interest[100], interestnext[100], interestprev[100], interestlast[100], interestmin[100],
-        interestmax[100], interestretries[100], interestpublisher[100];
-    
-    int content[100], contentnext[100], contentprev[100], contentlast_use[100], contentserved_cnt[100];
-
-    unsigned char ccontents[100][100], cprefix[100][100];
+    int *content, *contentnext, *contentprev, *contentlast_use, *contentserved_cnt;
+    unsigned char **ccontents, **cprefix;
    
     int num_faces, num_fwds, num_interfaces, num_interests, num_contents;
-    int buflen, num, typ, it;
+    int buflen, num, typ;
     char *cp = "debug cmd failed";
     int rc = -1;
 
+    //Alloc memory storage for face answer
+    num_faces = get_num_faces(ccnl);
+    facepeer = (char**)ccnl_malloc1(num_faces*sizeof(char*));
+    for(it = 0; it <num_faces; ++it)
+        facepeer[it] = (char*)ccnl_malloc1(50*sizeof(char));
+    faceid = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    facenext = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    faceprev = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    faceifndx = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    faceflags = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    facetype = (int*)ccnl_malloc1(num_faces*sizeof(int));
+    
+    //Alloc memory storage for fwd answer
+    num_fwds = get_num_fwds(ccnl);
+    fwd = (int*)ccnl_malloc1(num_fwds*sizeof(int));
+    fwdnext = (int*)ccnl_malloc1(num_fwds*sizeof(int));
+    fwdface = (int*)ccnl_malloc1(num_fwds*sizeof(int));
+    fwdfaceid = (int*)ccnl_malloc1(num_fwds*sizeof(int));
+    
+    //Alloc memory storage for interface answer
+    num_interfaces = get_num_interface(ccnl);
+    interfaceaddr = (char**)ccnl_malloc1(num_interfaces*sizeof(char*));
+    for(it = 0; it <num_interfaces; ++it) 
+        interfaceaddr[it] = (char*)ccnl_malloc1(50*sizeof(char));
+    interfaceifndx = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
+    interfacedev = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
+    interfacedevtype = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
+    interfacereflect = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
+    
+    //Alloc memory storage for interest answer
+    num_interests = get_num_interests(ccnl);
+    interest = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestnext = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestprev = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestlast = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestmin = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestmax = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestretries = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interestpublisher = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    
+    //Alloc memory storage for content answer
+    num_contents = get_num_contents(ccnl);
+    content = (int*)ccnl_malloc1(num_contents*sizeof(int));
+    contentnext = (int*)ccnl_malloc1(num_contents*sizeof(int));
+    contentprev = (int*)ccnl_malloc1(num_contents*sizeof(int));
+    contentlast_use = (int*)ccnl_malloc1(num_contents*sizeof(int));
+    contentserved_cnt = (int*)ccnl_malloc1(num_contents*sizeof(int));
+    ccontents = (char**)ccnl_malloc1(num_contents*sizeof(char*));
+    cprefix = (char**)ccnl_malloc1(num_contents*sizeof(char*));
+    for(it = 0; it < num_contents; ++it){
+        ccontents[it] = (char*) ccnl_malloc1(50*sizeof(char));
+        cprefix[it] = (char*) ccnl_malloc1(50*sizeof(char));
+    }
+    
+    //End Alloc
+    
     DEBUGMSG(99, "ccnl_mgmt_debug from=%s\n", ccnl_addr2ascii(&from->peer));
     action = debugaction = NULL;
 
@@ -155,13 +236,13 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	if (!strcmp((const char*)debugaction, "dump")){
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
 
-            num_faces = get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, &facetype);
-            num_fwds = get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
-            num_interfaces = get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
-            num_interests = get_interest_dump(0,ccnl, interest, interestnext, 
+            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype);
+            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
+            get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
                     interestmax, interestretries, interestpublisher);
-            num_contents = get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
+            get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
             //get_prefix_dump(0, ccnl, cprefix);
             
         }
@@ -171,13 +252,13 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	else if (!strcmp((const char*)debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
             
-            num_faces = get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, &facetype);
-            num_fwds = get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
-            num_interfaces = get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
-            num_interests = get_interest_dump(0,ccnl, interest, interestnext, 
+            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype);
+            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
+            get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
                     interestmax, interestretries, interestpublisher);
-            num_contents = get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
+            get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
             //get_prefix_dump(0, ccnl, cprefix);
             
 	    ccnl->halt_flag = 1;
@@ -194,10 +275,10 @@ Bail:
     
     /*ANSWER*/
     struct ccnl_buf_s *retbuf;
-    unsigned char out[2000];
+    unsigned char out[5000];
     int len = 0, len2, len3;
-    unsigned char contentobj[2000];
-    unsigned char stmt[1000];
+    unsigned char contentobj[5000];
+    unsigned char stmt[2000];
 
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -402,6 +483,30 @@ Bail:
     ccnl_face_enqueue(ccnl, from, retbuf);
     
     /*END ANWER*/
+
+    //FREE STORAGE
+    ccnl_free1(faceid); ccnl_free1(facenext); ccnl_free1(faceprev); ccnl_free1(faceifndx);
+    ccnl_free1(faceflags); ccnl_free1(facetype);
+    ccnl_free1(fwd); ccnl_free1(fwdnext); ccnl_free1(fwdface); ccnl_free1(fwdfaceid);
+    ccnl_free1(interfaceifndx); ccnl_free1(interfacedev); ccnl_free1(interfacedevtype); 
+    ccnl_free1(interfacereflect); ccnl_free1(interest); ccnl_free1(interestnext);
+    ccnl_free1(interestprev); ccnl_free1(interestlast); ccnl_free1(interestmin);
+    ccnl_free1(interestmax); ccnl_free1(interestretries); ccnl_free1(interestpublisher);
+    ccnl_free1(content); ccnl_free1(contentnext); ccnl_free1(contentprev);
+    ccnl_free1(contentlast_use); ccnl_free1(contentserved_cnt);
+    
+    for(it = 0; it < num_faces; ++it)
+        ccnl_free1(facepeer[it]);
+    ccnl_free1(facepeer);
+    for(it = 0; it < num_interfaces; ++it)
+        ccnl_free1(interfaceaddr[it]);
+    ccnl_free1(interfaceaddr);
+    for(it = 0; it < num_contents; ++it){
+        ccnl_free1(ccontents[it]);
+        ccnl_free1(cprefix[it]);
+    }
+    ccnl_free1(ccontents);
+    ccnl_free1(cprefix);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -1057,7 +1162,28 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
 
-    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
+    /*ANSWER*/
+    struct ccnl_buf_s *retbuf;
+    unsigned char out[2000];
+    int len = 0, len2, len3;
+    unsigned char contentobj[2000];
+    unsigned char fwdentry[2000];
+    char *cpath;
+    
+    len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt_destroydev");
+
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-o
+    
+    retbuf = ccnl_buf_new((char *)out, len);
+    ccnl_face_enqueue(ccnl, from, retbuf);
+    /*END ANSWER*/
     return -1;
 }
 

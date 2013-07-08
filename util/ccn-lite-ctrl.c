@@ -902,7 +902,7 @@ handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
                 handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
                 break;
             default:
-                printf("%i,%i\n", num, typ);
+                //printf("%i,%i\n", num, typ);
                 goto Bail;
                 break;
         }
