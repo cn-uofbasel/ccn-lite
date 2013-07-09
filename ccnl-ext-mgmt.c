@@ -87,9 +87,9 @@ void*
 ccnl_free1(int s)
 {
 #ifdef CCNL_LINUXKERNEL
-    kfree(s);
+    if(s) kfree(s);
 #else
-    free(s);
+    if(s) free(s);
 #endif
 }
 
