@@ -419,9 +419,8 @@ get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
-    int pos = 0, line = 0, i;
+    int line = 0, i;
     while (fwd) {
-         pos = 0;
         INDENT(lev);
         /*pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
                 (void *) fwd, (void *) fwd->next,
@@ -499,11 +498,10 @@ get_interest_dump(int lev, void *p, int *interest, int *next, int *prev,
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     
-    int line = 0, pos = 0, i;
+    int line = 0, i;
     while (itr) {
         INDENT(lev);
-        pos = 0;
-        
+
         interest[line] = (void *) itr;
         next[line] = (void *) itr->next;
         prev[line] = (void *) itr->prev;
@@ -559,10 +557,9 @@ get_content_dump(int lev, void *p, int *content, int *next, int *prev,
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
     
-    int line = 0, pos = 0, i;
+    int line = 0, i;
     while (con) {
         INDENT(lev);
-        pos = 0;
         content[line] = (void *) con;
         next[line] = ((void *) con->next);
         prev[line] = (void *) con->prev;
