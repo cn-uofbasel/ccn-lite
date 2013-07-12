@@ -1009,8 +1009,7 @@ main(int argc, char *argv[])
 	if (len > 0)
 	    out[len] = '\0';
             
-        printf("CCN-PACKET:\n");
-        handle_ccn_packet(out, len, 2, stdout);
+        handle_ccn_packet(out, len, 0, stdout);
         printf("\n");
         
 	printf("received %d bytes.", len);

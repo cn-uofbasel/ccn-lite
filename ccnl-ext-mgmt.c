@@ -481,16 +481,13 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     rc = 0;
 
 Bail:
-    ccnl_free(action);
-    ccnl_free(debugaction);
-    
     /*ANSWER*/
    
     
-    stmt_length = 500 * num_faces + 500 * num_interfaces + 500 * num_fwds //alloc stroage for answer dynamically.
-            + 500 * num_interests + 500 * num_contents;
-    contentobject_length = stmt_length *2;
-    object_length = contentobject_length *2;
+    stmt_length = 200 * num_faces + 200 * num_interfaces + 200 * num_fwds //alloc stroage for answer dynamically.
+            + 200 * num_interests + 200 * num_contents;
+    contentobject_length = stmt_length + 1000;
+    object_length = contentobject_length + 1000;
     
     out = ccnl_malloc1(object_length);
     contentobj = ccnl_malloc1(contentobject_length);
@@ -553,7 +550,7 @@ Bail:
     ccnl_face_enqueue(ccnl, from, retbuf);
     
     /*END ANWER*/
-
+    
     //FREE STORAGE
     ccnl_free1(faceid); ccnl_free1(facenext); ccnl_free1(faceprev); ccnl_free1(faceifndx);
     ccnl_free1(faceflags); ccnl_free1(facetype);
@@ -567,6 +564,8 @@ Bail:
     ccnl_free1(out);
     ccnl_free1(contentobj);
     ccnl_free1(stmt);
+    ccnl_free(action);
+    ccnl_free(debugaction);
     
     for(it = 0; it < num_faces; ++it)
         ccnl_free1(facepeer[it]);
@@ -705,9 +704,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     rc = 0;
 
 Bail:
-    ccnl_free(action);
-
-     /*ANSWER*/
+    /*ANSWER*/
 
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -955,9 +952,6 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     rc = 0;
 
 Bail:
-    ccnl_free(action);
-    ccnl_free(faceid);
-    
     /*ANSWER*/
     
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
@@ -990,7 +984,8 @@ Bail:
     ccnl_face_enqueue(ccnl, from, retbuf);
     
     /*END ANWER*/  
-    
+    ccnl_free(action);
+    ccnl_free(faceid);
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
@@ -1165,8 +1160,6 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 // #endif // USE_UDP
 
 Bail:
-    ccnl_free(action);
-    
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     
@@ -1220,6 +1213,7 @@ Bail:
     ccnl_free(devname);
     ccnl_free(port);
     ccnl_free(encaps);
+    ccnl_free(action);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -1355,8 +1349,6 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     rc = 0;
 
 Bail:
-    ccnl_free(action);
-
     /*ANSWER*/
        
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
@@ -1395,6 +1387,7 @@ Bail:
 
 
     ccnl_free(faceid);
+    ccnl_free(action);
     free_prefix(p);
 
     ccnl_mgmt_return_msg(ccnl, orig, from, cp);
