@@ -1044,6 +1044,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 #if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
+        cp = "newETHdev cmd worked";
 	struct ccnl_if_s *i;
 	int portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
 
@@ -1100,6 +1101,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 // #ifdef USE_UDP
     if (ip4src && port) {
+        cp = "newUDPdev cmd worked";
 	struct ccnl_if_s *i;
 	DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
 		 ip4src, port);
@@ -1150,7 +1152,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	    i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
 	ccnl->ifcount++;
 
-	cp = "newdevice cmd workd";
+	//cp = "newdevice cmd worked";
 	rc = 0;
 	goto Bail;
     }
