@@ -73,26 +73,6 @@ Bail:
     return NULL;
 }
 
-void*
-ccnl_malloc1(int s)
-{
-#ifdef CCNL_LINUXKERNEL
-    return kmalloc(s, GFP_ATOMIC);
-#else
-    return malloc(s);
-#endif
-}
-
-void
-ccnl_free1(int s)
-{
-#ifdef CCNL_LINUXKERNEL
-    if(s) kfree(s);
-#else
-    if(s) free(s);
-#endif
-}
-
 // ----------------------------------------------------------------------
 // management protocols
 
@@ -360,56 +340,56 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     //Alloc memory storage for face answer
     num_faces = get_num_faces(ccnl);
-    facepeer = (char**)ccnl_malloc1(num_faces*sizeof(char*));
+    facepeer = (char**)ccnl_malloc(num_faces*sizeof(char*));
     for(it = 0; it <num_faces; ++it)
-        facepeer[it] = (char*)ccnl_malloc1(50*sizeof(char));
-    faceid = (int*)ccnl_malloc1(num_faces*sizeof(int));
-    facenext = (int*)ccnl_malloc1(num_faces*sizeof(int));
-    faceprev = (int*)ccnl_malloc1(num_faces*sizeof(int));
-    faceifndx = (int*)ccnl_malloc1(num_faces*sizeof(int));
-    faceflags = (int*)ccnl_malloc1(num_faces*sizeof(int));
-    facetype = (int*)ccnl_malloc1(num_faces*sizeof(int));
+        facepeer[it] = (char*)ccnl_malloc(50*sizeof(char));
+    faceid = (int*)ccnl_malloc(num_faces*sizeof(int));
+    facenext = (int*)ccnl_malloc(num_faces*sizeof(int));
+    faceprev = (int*)ccnl_malloc(num_faces*sizeof(int));
+    faceifndx = (int*)ccnl_malloc(num_faces*sizeof(int));
+    faceflags = (int*)ccnl_malloc(num_faces*sizeof(int));
+    facetype = (int*)ccnl_malloc(num_faces*sizeof(int));
     
     //Alloc memory storage for fwd answer
     num_fwds = get_num_fwds(ccnl);
-    fwd = (int*)ccnl_malloc1(num_fwds*sizeof(int));
-    fwdnext = (int*)ccnl_malloc1(num_fwds*sizeof(int));
-    fwdface = (int*)ccnl_malloc1(num_fwds*sizeof(int));
-    fwdfaceid = (int*)ccnl_malloc1(num_fwds*sizeof(int));
+    fwd = (int*)ccnl_malloc(num_fwds*sizeof(int));
+    fwdnext = (int*)ccnl_malloc(num_fwds*sizeof(int));
+    fwdface = (int*)ccnl_malloc(num_fwds*sizeof(int));
+    fwdfaceid = (int*)ccnl_malloc(num_fwds*sizeof(int));
     
     //Alloc memory storage for interface answer
     num_interfaces = get_num_interface(ccnl);
-    interfaceaddr = (char**)ccnl_malloc1(num_interfaces*sizeof(char*));
+    interfaceaddr = (char**)ccnl_malloc(num_interfaces*sizeof(char*));
     for(it = 0; it <num_interfaces; ++it) 
-        interfaceaddr[it] = (char*)ccnl_malloc1(50*sizeof(char));
-    interfaceifndx = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
-    interfacedev = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
-    interfacedevtype = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
-    interfacereflect = (int*)ccnl_malloc1(num_interfaces*sizeof(int));
+        interfaceaddr[it] = (char*)ccnl_malloc(50*sizeof(char));
+    interfaceifndx = (int*)ccnl_malloc(num_interfaces*sizeof(int));
+    interfacedev = (int*)ccnl_malloc(num_interfaces*sizeof(int));
+    interfacedevtype = (int*)ccnl_malloc(num_interfaces*sizeof(int));
+    interfacereflect = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     
     //Alloc memory storage for interest answer
     num_interests = get_num_interests(ccnl);
-    interest = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestnext = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestprev = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestlast = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestmin = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestmax = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestretries = (int*)ccnl_malloc1(num_interests*sizeof(int));
-    interestpublisher = (int*)ccnl_malloc1(num_interests*sizeof(int));
+    interest = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestnext = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestprev = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestlast = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestmin = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestmax = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestretries = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestpublisher = (int*)ccnl_malloc(num_interests*sizeof(int));
     
     //Alloc memory storage for content answer
     num_contents = get_num_contents(ccnl);
-    content = (int*)ccnl_malloc1(num_contents*sizeof(int));
-    contentnext = (int*)ccnl_malloc1(num_contents*sizeof(int));
-    contentprev = (int*)ccnl_malloc1(num_contents*sizeof(int));
-    contentlast_use = (int*)ccnl_malloc1(num_contents*sizeof(int));
-    contentserved_cnt = (int*)ccnl_malloc1(num_contents*sizeof(int));
-    ccontents = (char**)ccnl_malloc1(num_contents*sizeof(char*));
-    cprefix = (char**)ccnl_malloc1(num_contents*sizeof(char*));
+    content = (int*)ccnl_malloc(num_contents*sizeof(int));
+    contentnext = (int*)ccnl_malloc(num_contents*sizeof(int));
+    contentprev = (int*)ccnl_malloc(num_contents*sizeof(int));
+    contentlast_use = (int*)ccnl_malloc(num_contents*sizeof(int));
+    contentserved_cnt = (int*)ccnl_malloc(num_contents*sizeof(int));
+    ccontents = (char**)ccnl_malloc(num_contents*sizeof(char*));
+    cprefix = (char**)ccnl_malloc(num_contents*sizeof(char*));
     for(it = 0; it < num_contents; ++it){
-        ccontents[it] = (char*) ccnl_malloc1(50*sizeof(char));
-        cprefix[it] = (char*) ccnl_malloc1(50*sizeof(char));
+        ccontents[it] = (char*) ccnl_malloc(50*sizeof(char));
+        cprefix[it] = (char*) ccnl_malloc(50*sizeof(char));
     }
     
     //End Alloc
@@ -489,9 +469,9 @@ Bail:
     contentobject_length = stmt_length + 1000;
     object_length = contentobject_length + 1000;
     
-    out = ccnl_malloc1(object_length);
-    contentobj = ccnl_malloc1(contentobject_length);
-    stmt = ccnl_malloc1(stmt_length);
+    out = ccnl_malloc(object_length);
+    contentobj = ccnl_malloc(contentobject_length);
+    stmt = ccnl_malloc(stmt_length);
     
 
     len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
@@ -552,33 +532,33 @@ Bail:
     /*END ANWER*/
     
     //FREE STORAGE
-    ccnl_free1(faceid); ccnl_free1(facenext); ccnl_free1(faceprev); ccnl_free1(faceifndx);
-    ccnl_free1(faceflags); ccnl_free1(facetype);
-    ccnl_free1(fwd); ccnl_free1(fwdnext); ccnl_free1(fwdface); ccnl_free1(fwdfaceid);
-    ccnl_free1(interfaceifndx); ccnl_free1(interfacedev); ccnl_free1(interfacedevtype); 
-    ccnl_free1(interfacereflect); ccnl_free1(interest); ccnl_free1(interestnext);
-    ccnl_free1(interestprev); ccnl_free1(interestlast); ccnl_free1(interestmin);
-    ccnl_free1(interestmax); ccnl_free1(interestretries); ccnl_free1(interestpublisher);
-    ccnl_free1(content); ccnl_free1(contentnext); ccnl_free1(contentprev);
-    ccnl_free1(contentlast_use); ccnl_free1(contentserved_cnt);
-    ccnl_free1(out);
-    ccnl_free1(contentobj);
-    ccnl_free1(stmt);
+    ccnl_free(faceid); ccnl_free(facenext); ccnl_free(faceprev); ccnl_free(faceifndx);
+    ccnl_free(faceflags); ccnl_free(facetype);
+    ccnl_free(fwd); ccnl_free(fwdnext); ccnl_free(fwdface); ccnl_free(fwdfaceid);
+    ccnl_free(interfaceifndx); ccnl_free(interfacedev); ccnl_free(interfacedevtype); 
+    ccnl_free(interfacereflect); ccnl_free(interest); ccnl_free(interestnext);
+    ccnl_free(interestprev); ccnl_free(interestlast); ccnl_free(interestmin);
+    ccnl_free(interestmax); ccnl_free(interestretries); ccnl_free(interestpublisher);
+    ccnl_free(content); ccnl_free(contentnext); ccnl_free(contentprev);
+    ccnl_free(contentlast_use); ccnl_free(contentserved_cnt);
+    ccnl_free(out);
+    ccnl_free(contentobj);
+    ccnl_free(stmt);
     ccnl_free(action);
     ccnl_free(debugaction);
     
     for(it = 0; it < num_faces; ++it)
-        ccnl_free1(facepeer[it]);
-    ccnl_free1(facepeer);
+        ccnl_free(facepeer[it]);
+    ccnl_free(facepeer);
     for(it = 0; it < num_interfaces; ++it)
-        ccnl_free1(interfaceaddr[it]);
-    ccnl_free1(interfaceaddr);
+        ccnl_free(interfaceaddr[it]);
+    ccnl_free(interfaceaddr);
     for(it = 0; it < num_contents; ++it){
-        ccnl_free1(ccontents[it]);
-        ccnl_free1(cprefix[it]);
+        ccnl_free(ccontents[it]);
+        ccnl_free(cprefix[it]);
     }
-    ccnl_free1(ccontents);
-    ccnl_free1(cprefix);
+    ccnl_free(ccontents);
+    ccnl_free(cprefix);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
