@@ -173,7 +173,6 @@ int create_faces_stmt(int num_faces, int *faceid, int *facenext, int *faceprev, 
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        DEBUGMSG(99, "\n%d %d %d %d\n", facetype[it], AF_INET, AF_PACKET, AF_UNIX);
         if(facetype[it] == AF_INET)
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
         else if(facetype[it] == AF_PACKET)
@@ -1344,9 +1343,8 @@ Bail:
     // prepare FWDENTRY
     len3 = mkHeader(fwdentry, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkHeader(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG); // prefix
+    len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
 
-    fwdentry[len3++] = 0; // end-of-prefix
     len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
     fwdentry[len3++] = 0; // end-of-fwdentry
 
