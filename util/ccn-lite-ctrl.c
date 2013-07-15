@@ -754,7 +754,6 @@ handle_ccn_debugreply(unsigned char **buf, int *len, int offset, FILE *stream)
             default:
                 goto Bail;
         }
-
     }
     Bail:
     print_offset(offset); printf("</DEBUGREPLY>\n"); 
