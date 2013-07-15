@@ -711,6 +711,10 @@ handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* t
                print_offset(offset+4); 
                print_tag_content_with_tag(buf, len, "DEVFLAGS", stream);
                break;
+            case CCNL_DTAG_DEVNAME:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "DEVNAME", stream);
+               break;
             default: 
               goto Bail;
         }
