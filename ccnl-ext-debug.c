@@ -337,15 +337,14 @@ get_buf_dump(int lev, void *p, int *outbuf, int *len, int *next)
 }
 
 int
-get_prefix_dump(int lev, void *p, int *prefix, int *len, char* val)
+get_prefix_dump(int lev, void *p, int *len, char** val)
 {
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
     int i;
     INDENT(lev);
-    *prefix =  (void *) pre;
+    //*prefix =  (void *) pre;
     *len = pre->compcnt;
-    val = ccnl_prefix_to_path(pre);
-   
+    *val = ccnl_prefix_to_path(pre);
     return 1;
 }
 
@@ -415,7 +414,8 @@ get_num_fwds(void *p)
 }
 
 int
-get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid)
+get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid, 
+        int *prefixlen, char **prefix)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
@@ -430,6 +430,7 @@ get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid)
         face[line] = (void *) fwd->face;
         faceid[line] = (void *) fwd->face->faceid;
         
+        get_prefix_dump(lev, fwd->prefix, prefixlen, &prefix[line]);
         fwd = fwd->next;
         ++line; 
     }
