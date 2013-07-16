@@ -321,15 +321,15 @@ ccnl_dump(int lev, int typ, void *p)
 }
 
 int
-get_buf_dump(int lev, void *p, int *outbuf, int *len, int *next)
+get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
 {
     struct ccnl_buf_s  *buf = (struct ccnl_buf_s      *) p;
     int line = 0, i;
     while (buf) {
         INDENT(lev);
-        outbuf[line] = (void *) buf;
+        outbuf[line] = (long) (void *) buf;
         len[line] = buf->datalen;
-        next[line] = buf->next;
+        next[line] = (long) buf->next;
         buf = buf->next;
         ++line;
     }
@@ -363,7 +363,7 @@ get_num_faces(void *p)
 }
 
 int
-get_faces_dump(int lev, void *p, int *faceid, int *next, int *prev, 
+get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
         int *ifndx, int *flags, char **peer, int *type)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
@@ -374,8 +374,8 @@ get_faces_dump(int lev, void *p, int *faceid, int *next, int *prev,
         INDENT(lev);
          
         faceid[line] = fac->faceid;
-        next[line] = fac->next;
-        prev[line] = fac->prev;
+        next[line] = (long)(void *) fac->next;
+        prev[line] = (long)(void *) fac->prev;
         ifndx[line] = fac->ifndx;
         flags[line] = fac->flags;
         sprintf(peer[line], "%s", ccnl_addr2ascii(&fac->peer));
@@ -414,7 +414,7 @@ get_num_fwds(void *p)
 }
 
 int
-get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid, 
+get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, 
         int *prefixlen, char **prefix)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
@@ -425,10 +425,10 @@ get_fwd_dump(int lev, void *p, int *outfwd, int *next, int *face, int *faceid,
         /*pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
                 (void *) fwd, (void *) fwd->next,
                 (void *) fwd->face, fwd->face->faceid);*/
-        outfwd[line] = (void *) fwd;
-        next[line] = (void *) fwd->next;
-        face[line] = (void *) fwd->face;
-        faceid[line] = (void *) fwd->face->faceid;
+        outfwd[line] = (long)(void *) fwd;
+        next[line] = (long)(void *) fwd->next;
+        face[line] = (long)(void *) fwd->face;
+        faceid[line] = fwd->face->faceid;
         
         get_prefix_dump(lev, fwd->prefix, prefixlen, &prefix[line]);
         fwd = fwd->next;
@@ -445,11 +445,11 @@ get_num_interface(void *p)
 }
 
 int
-get_interface_dump(int lev, void *p, int *ifndx, char **addr, int *dev, int *devtype, int *reflect)
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     
-    int pos = 0, k, i;
+    int k, i;
     for (k = 0; k < top->ifcount; k++) {
         INDENT(lev+1);
         
@@ -459,16 +459,16 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, int *dev, int *dev
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
         {
-            dev[k] = top->ifs[k].netdev; //%p   
+            dev[k] = (long) (void *) top->ifs[k].netdev; //%p   
             devtype[k] = 1;
         }
         else
         {
-            dev[k] = top->ifs[k].sock; //%p
+            dev[k] = (long) (void *) top->ifs[k].sock; //%p
             devtype[k] = 2;
         }
 #else
-        dev[k] = top->ifs[k].sock;
+        dev[k] = (long) top->ifs[k].sock;
         devtype[k] = 3;
 #endif
         if (top->ifs[k].reflect)
@@ -493,8 +493,8 @@ get_num_interests(void *p)
 }
 
 int
-get_interest_dump(int lev, void *p, int *interest, int *next, int *prev,
-        int *last, int *min, int *max, int *retries, int *publisher){
+get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
+        int *last, int *min, int *max, int *retries, long *publisher){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
@@ -503,14 +503,14 @@ get_interest_dump(int lev, void *p, int *interest, int *next, int *prev,
     while (itr) {
         INDENT(lev);
 
-        interest[line] = (void *) itr;
-        next[line] = (void *) itr->next;
-        prev[line] = (void *) itr->prev;
+        interest[line] = (long)(void *) itr;
+        next[line] = (long)(void *) itr->next;
+        prev[line] = (long)(void *) itr->prev;
         last[line] = itr->last_used;
         min[line] = itr->minsuffix;
         max[line] = itr->maxsuffix;
         retries[line] = itr->retries;
-        publisher[line] = (void *) itr->ppkd;
+        publisher[line] = (long)(void *) itr->ppkd;
         
         itr = itr->next;
         ++line;
@@ -552,7 +552,7 @@ get_num_contents(void *p)
 }
 
 int
-get_content_dump(int lev, void *p, int *content, int *next, int *prev,
+get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         int *last_use, int *served_cnt){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
@@ -561,9 +561,9 @@ get_content_dump(int lev, void *p, int *content, int *next, int *prev,
     int line = 0, i;
     while (con) {
         INDENT(lev);
-        content[line] = (void *) con;
-        next[line] = ((void *) con->next);
-        prev[line] = (void *) con->prev;
+        content[line] = (long)(void *) con;
+        next[line] = (long)(void *) con->next;
+        prev[line] = (long)(void *) con->prev;
         last_use[line] = con->last_used;
         served_cnt[line] = con->served_cnt;
         

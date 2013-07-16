@@ -101,11 +101,11 @@ ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 }
 
 int
-create_interface_stmt(int num_interfaces, int *interfaceifndx, int *interfacedev,
-        int *interfacedevtype, int *interfacereflect, char **interfaceaddr, char *stmt, int len3)
+create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacedev,
+        int *interfacedevtype, int *interfacereflect, char **interfaceaddr, unsigned char *stmt, int len3)
 {
     int it; 
-    unsigned char str[100];
+    char str[100];
     for(it = 0; it < num_interfaces; ++it) // interface content
         {
             len3 += mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
@@ -119,18 +119,18 @@ create_interface_stmt(int num_interfaces, int *interfaceifndx, int *interfacedev
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
             
             memset(str, 0, 100);
-            if(interfacedevtype == 1)
+            if(interfacedevtype[it] == 1)
             {
-                 sprintf(str, "%p", interfacedev[it]);
+                 sprintf(str, "%p", (void *) interfacedev[it]);
                  len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
             }
-            else if(interfacedevtype == 2)
+            else if(interfacedevtype[it] == 2)
             {
-                 sprintf(str, "%p", interfacedev[it]);
+                 sprintf(str, "%p", (void *) interfacedev[it]);
                  len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             else{
-                 sprintf(str, "%d", interfacedev[it]);
+                 sprintf(str, "%p", (void *) interfacedev[it]);
                  len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             
@@ -143,11 +143,11 @@ create_interface_stmt(int num_interfaces, int *interfaceifndx, int *interfacedev
     return len3;
 }
 
-int create_faces_stmt(int num_faces, int *faceid, int *facenext, int *faceprev, int *faceifndx,
-        int *faceflags, int *facetype, unsigned char **facepeer, char *stmt, int len3)
+int create_faces_stmt(int num_faces, int *faceid, long *facenext, long *faceprev, int *faceifndx,
+        int *faceflags, int *facetype, char **facepeer, unsigned char *stmt, int len3)
 {
     int it;
-    unsigned char str[100];
+    char str[100];
     for(it = 0; it < num_faces; ++it) //FACES CONTENT
     {
         len3 += mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -157,11 +157,11 @@ int create_faces_stmt(int num_faces, int *faceid, int *facenext, int *faceprev, 
         len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", facenext[it]);
+        sprintf(str,"%p", (void *)facenext[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", faceprev[it]);
+        sprintf(str,"%p", (void *)faceprev[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
@@ -190,25 +190,25 @@ int create_faces_stmt(int num_faces, int *faceid, int *facenext, int *faceprev, 
 }
 
 int
-create_fwds_stmt(int num_fwds, int *fwd, int *fwdnext, int *fwdface, int *fwdfaceid,
-        int *fwdprefixlen, char **fwdprefix, char *stmt, int len3)
+create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid,
+        int *fwdprefixlen, char **fwdprefix, unsigned char *stmt, int len3)
 {
     int it;
-    unsigned char str[100];
+    char str[100];
     for(it = 0; it < num_fwds; ++it) //FWDS content
     {
          len3 += mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", fwd[it]);
+         sprintf(str, "%p", (void *)fwd[it]);
          len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", fwdnext[it]);
+         sprintf(str, "%p", (void *)fwdnext[it]);
          len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", fwdface[it]);
+         sprintf(str, "%p", (void *)fwdface[it]);
          len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
@@ -224,26 +224,26 @@ create_fwds_stmt(int num_fwds, int *fwd, int *fwdnext, int *fwdface, int *fwdfac
 }
 
 int
-create_interest_stmt(int num_interests, int *interest, int *interestnext, int *interestprev,
+create_interest_stmt(int num_interests, long *interest, long *interestnext, long *interestprev,
         int *interestlast, int *interestmin, int *interestmax, int *interestretries,
-        int *interestpublisher, char *stmt, int len3)
+        long *interestpublisher, unsigned char *stmt, int len3)
 {
     int it;
-    unsigned char str[100];
+    char str[100];
     for(it = 0; it < num_interests; ++it) // interest content
     {
         len3 += mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", interest[it]);
+        sprintf(str, "%p", (void *) interest[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", interestnext[it]);
+        sprintf(str, "%p", (void *) interestnext[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", interestprev[it]);
+        sprintf(str, "%p", (void *) interestprev[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
@@ -263,7 +263,7 @@ create_interest_stmt(int num_interests, int *interest, int *interestnext, int *i
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", interestpublisher[it]);
+        sprintf(str, "%p", (void *) interestpublisher[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
 
         stmt[len3++] = 0; //end of interest;
@@ -271,26 +271,26 @@ create_interest_stmt(int num_interests, int *interest, int *interestnext, int *i
     return len3;
 }
 
-int create_content_stmt(int num_contents, int *content, int *contentnext, 
-        int *contentprev, int *contentlast_use, int *contentserved_cnt, 
-        unsigned char **ccontents, unsigned char **cprefix, char *stmt, int len3)
+int create_content_stmt(int num_contents, long *content, long *contentnext, 
+        long *contentprev, int *contentlast_use, int *contentserved_cnt, 
+        char **ccontents, char **cprefix, unsigned char *stmt, int len3)
 {
     int it;
-    unsigned char str[100];
+    char str[100];
     for(it = 0; it < num_contents; ++it)   // content content
     {
         len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", content[it]);
+        sprintf(str, "%p", (void *) content[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", contentnext[it]);
+        sprintf(str, "%p", (void *) contentnext[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", contentprev[it]);
+        sprintf(str, "%p", (void *) contentprev[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
@@ -311,22 +311,25 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf, *action, *debugaction;
-    unsigned char str[100];
     int it;
-    int *faceid, *facenext, *faceprev, *faceifndx, *faceflags, *facetype; //store face-info
-    unsigned char **facepeer;
+    int *faceid, *faceifndx, *faceflags, *facetype; //store face-info
+    long *facenext, *faceprev;
+    char **facepeer;
     
-    int *fwd, *fwdnext, *fwdface, *fwdfaceid ,*fwdprefixlen; 
+    int *fwdfaceid ,*fwdprefixlen; 
+    long *fwd, *fwdnext, *fwdface;
     char **fwdprefix;
     
-    int *interfaceifndx, *interfacedev, *interfacedevtype, *interfacereflect;
+    int *interfaceifndx, *interfacedevtype, *interfacereflect;
+    long *interfacedev;
     char **interfaceaddr;
     
-    int *interest, *interestnext, *interestprev, *interestlast, *interestmin,
-        *interestmax, *interestretries, *interestpublisher;
+    int *interestlast, *interestmin, *interestmax, *interestretries;
+    long *interest, *interestnext, *interestprev, *interestpublisher;
     
-    int *content, *contentnext, *contentprev, *contentlast_use, *contentserved_cnt;
-    unsigned char **ccontents, **cprefix;
+    int *contentlast_use, *contentserved_cnt;
+    long *content, *contentnext, *contentprev;
+    char **ccontents, **cprefix;
    
     int num_faces, num_fwds, num_interfaces, num_interests, num_contents;
     int buflen, num, typ;
@@ -347,17 +350,17 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     for(it = 0; it <num_faces; ++it)
         facepeer[it] = (char*)ccnl_malloc(50*sizeof(char));
     faceid = (int*)ccnl_malloc(num_faces*sizeof(int));
-    facenext = (int*)ccnl_malloc(num_faces*sizeof(int));
-    faceprev = (int*)ccnl_malloc(num_faces*sizeof(int));
+    facenext = (long*)ccnl_malloc(num_faces*sizeof(long));
+    faceprev = (long*)ccnl_malloc(num_faces*sizeof(long));
     faceifndx = (int*)ccnl_malloc(num_faces*sizeof(int));
     faceflags = (int*)ccnl_malloc(num_faces*sizeof(int));
     facetype = (int*)ccnl_malloc(num_faces*sizeof(int));
     
     //Alloc memory storage for fwd answer
     num_fwds = get_num_fwds(ccnl);
-    fwd = (int*)ccnl_malloc(num_fwds*sizeof(int));
-    fwdnext = (int*)ccnl_malloc(num_fwds*sizeof(int));
-    fwdface = (int*)ccnl_malloc(num_fwds*sizeof(int));
+    fwd = (long*)ccnl_malloc(num_fwds*sizeof(long));
+    fwdnext = (long*)ccnl_malloc(num_fwds*sizeof(long));
+    fwdface = (long*)ccnl_malloc(num_fwds*sizeof(long));
     fwdfaceid = (int*)ccnl_malloc(num_fwds*sizeof(int));
     fwdprefixlen = (int*)ccnl_malloc(num_fwds*sizeof(int));
     fwdprefix = (char**)ccnl_malloc(num_faces*sizeof(char*));
@@ -373,26 +376,26 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     for(it = 0; it <num_interfaces; ++it) 
         interfaceaddr[it] = (char*)ccnl_malloc(50*sizeof(char));
     interfaceifndx = (int*)ccnl_malloc(num_interfaces*sizeof(int));
-    interfacedev = (int*)ccnl_malloc(num_interfaces*sizeof(int));
+    interfacedev = (long*)ccnl_malloc(num_interfaces*sizeof(long));
     interfacedevtype = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     interfacereflect = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     
     //Alloc memory storage for interest answer
     num_interests = get_num_interests(ccnl);
-    interest = (int*)ccnl_malloc(num_interests*sizeof(int));
-    interestnext = (int*)ccnl_malloc(num_interests*sizeof(int));
-    interestprev = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interest = (long*)ccnl_malloc(num_interests*sizeof(long));
+    interestnext = (long*)ccnl_malloc(num_interests*sizeof(long));
+    interestprev = (long*)ccnl_malloc(num_interests*sizeof(long));
     interestlast = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestmin = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestmax = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestretries = (int*)ccnl_malloc(num_interests*sizeof(int));
-    interestpublisher = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestpublisher = (long*)ccnl_malloc(num_interests*sizeof(long));
     
     //Alloc memory storage for content answer
     num_contents = get_num_contents(ccnl);
-    content = (int*)ccnl_malloc(num_contents*sizeof(int));
-    contentnext = (int*)ccnl_malloc(num_contents*sizeof(int));
-    contentprev = (int*)ccnl_malloc(num_contents*sizeof(int));
+    content = (long*)ccnl_malloc(num_contents*sizeof(long));
+    contentnext = (long*)ccnl_malloc(num_contents*sizeof(long));
+    contentprev = (long*)ccnl_malloc(num_contents*sizeof(long));
     contentlast_use = (int*)ccnl_malloc(num_contents*sizeof(int));
     contentserved_cnt = (int*)ccnl_malloc(num_contents*sizeof(int));
     ccontents = (char**)ccnl_malloc(num_contents*sizeof(char*));
@@ -493,7 +496,7 @@ Bail:
 
     // prepare debug statement
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
-    len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, debugaction);
+    len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) debugaction);
     len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
     stmt[len3++] = 0; //end-of-debugstmt
     
@@ -543,15 +546,33 @@ Bail:
     /*END ANWER*/
     
     //FREE STORAGE
-    ccnl_free(faceid); ccnl_free(facenext); ccnl_free(faceprev); ccnl_free(faceifndx);
-    ccnl_free(faceflags); ccnl_free(facetype);
-    ccnl_free(fwd); ccnl_free(fwdnext); ccnl_free(fwdface); ccnl_free(fwdfaceid);
-    ccnl_free(interfaceifndx); ccnl_free(interfacedev); ccnl_free(interfacedevtype); 
-    ccnl_free(interfacereflect); ccnl_free(interest); ccnl_free(interestnext);
-    ccnl_free(interestprev); ccnl_free(interestlast); ccnl_free(interestmin);
-    ccnl_free(interestmax); ccnl_free(interestretries); ccnl_free(interestpublisher);
-    ccnl_free(content); ccnl_free(contentnext); ccnl_free(contentprev);
-    ccnl_free(contentlast_use); ccnl_free(contentserved_cnt);
+    ccnl_free(faceid);
+    ccnl_free(facenext);
+    ccnl_free(faceprev);
+    ccnl_free(faceifndx);
+    ccnl_free(faceflags);
+    ccnl_free(facetype);
+    ccnl_free(fwd);
+    ccnl_free(fwdnext);
+    ccnl_free(fwdface);
+    ccnl_free(fwdfaceid);
+    ccnl_free(interfaceifndx);
+    ccnl_free(interfacedev);
+    ccnl_free(interfacedevtype);
+    ccnl_free(interfacereflect);
+    ccnl_free(interest);
+    ccnl_free(interestnext);
+    ccnl_free(interestprev);
+    ccnl_free(interestlast);
+    ccnl_free(interestmin);
+    ccnl_free(interestmax);
+    ccnl_free(interestretries);
+    ccnl_free(interestpublisher);
+    ccnl_free(content); 
+    ccnl_free(contentnext); 
+    ccnl_free(contentprev);
+    ccnl_free(contentlast_use); 
+    ccnl_free(contentserved_cnt);
     ccnl_free(out);
     ccnl_free(contentobj);
     ccnl_free(stmt);
@@ -570,7 +591,7 @@ Bail:
     }
     ccnl_free(ccontents);
     ccnl_free(cprefix);
-    for(it = 0; it <num_fwds; ++it)
+    for(it = 0; it < num_fwds; ++it)
         ccnl_free(fwdprefix[it]);
     ccnl_free(fwdprefix);
 
@@ -710,27 +731,27 @@ Bail:
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    sprintf(retstr,"newface:  %s", cp);
-    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, retstr);
+    sprintf((char *)retstr,"newface:  %s", cp);
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
     if (macsrc)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, macsrc);
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
     if (ip4src) {
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
         len3 += mkStrBlob(faceinst+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
     }
     if (host)
-	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_HOST, CCN_TT_DTAG, host);
+	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_HOST, CCN_TT_DTAG, (char*) host);
     if (port)
-	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
     /*
     if (encaps)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
     */
     if (flags)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
     if(f->faceid){
-        sprintf(faceidstr,"%i",f->faceid);
-        len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceidstr);
+        sprintf((char *)faceidstr,"%i",f->faceid);
+        len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
     }
     
     faceinst[len3++] = 0; // end-of-faceinst
@@ -858,9 +879,9 @@ Bail:
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
-    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
-    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, mtu);
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, (char*) encaps);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu);
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
@@ -958,7 +979,7 @@ Bail:
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
@@ -997,9 +1018,11 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //variables for answer
     struct ccnl_buf_s *retbuf;
     unsigned char out[2000];
-    int len = 0, len2, len3;
+    int len = 0, len2, len3, portnum;
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    struct ccnl_if_s *i;
+    
 
     DEBUGMSG(99, "ccnl_mgmt_newdev\n");
     action = devname = ip4src = port = encaps = flags = NULL;
@@ -1039,8 +1062,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
         cp = "newETHdev cmd worked";
-	struct ccnl_if_s *i;
-	int portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
+	portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
 
 	DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
 		 devname, port);
@@ -1096,7 +1118,6 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 // #ifdef USE_UDP
     if (ip4src && port) {
         cp = "newUDPdev cmd worked";
-	struct ccnl_if_s *i;
 	DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
 		 ip4src, port);
 
@@ -1168,26 +1189,26 @@ Bail:
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
     if (devname)
     len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
-                      devname);
+                      (char *) devname);
     
     if (devname && port) {
         if (port)
-            len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+            len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
         if (encaps)
-            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, (char*) encaps);
         if (flags)
-            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
+            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
         faceinst[len3++] = 0; // end-of-faceinst 
     }
     else if (ip4src && port) {
         if (ip4src)
-            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
+            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
         if (port)
-            len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
+            len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
         if (encaps)
-            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, (char*) encaps);
         if (flags)
-            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
+            len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
         faceinst[len3++] = 0; // end-of-faceinst
     }
     // prepare CONTENTOBJ with CONTENT
@@ -1264,7 +1285,6 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
     unsigned char fwdentry[2000];
-    char *cpath;
 
     DEBUGMSG(99, "ccnl_mgmt_prefixreg\n");
     action = faceid = NULL;
@@ -1352,14 +1372,14 @@ Bail:
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, action);
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action);
 
     // prepare FWDENTRY
     len3 = mkHeader(fwdentry, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
     len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
 
-    len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+    len3 += mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     fwdentry[len3++] = 0; // end-of-fwdentry
 
     // prepare CONTENTOBJ with CONTENT
