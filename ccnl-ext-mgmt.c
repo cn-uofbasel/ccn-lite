@@ -374,7 +374,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     num_interfaces = get_num_interface(ccnl);
     interfaceaddr = (char**)ccnl_malloc(num_interfaces*sizeof(char*));
     for(it = 0; it <num_interfaces; ++it) 
-        interfaceaddr[it] = (char*)ccnl_malloc(50*sizeof(char));
+        interfaceaddr[it] = (char*)ccnl_malloc(130*sizeof(char));
     interfaceifndx = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     interfacedev = (long*)ccnl_malloc(num_interfaces*sizeof(long));
     interfacedevtype = (int*)ccnl_malloc(num_interfaces*sizeof(int));
