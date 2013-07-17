@@ -1023,7 +1023,7 @@ main(int argc, char *argv[])
         handle_ccn_packet(out, len, 0, stdout);
         printf("\n");
         
-	printf("received %d bytes.", len);
+	printf("received %d bytes.\n", len);
     } else
 	printf("nothing to send, program terminates\n");
 

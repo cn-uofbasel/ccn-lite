@@ -300,7 +300,9 @@ int create_content_stmt(int num_contents, long *content, long *contentnext,
         memset(str, 0, 100);
         sprintf(str, "%d", contentserved_cnt[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
-
+        
+        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it]);
+        
         stmt[len3++] = 0; //end of content;
     }
     return len3;
@@ -327,7 +329,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int *interestlast, *interestmin, *interestmax, *interestretries;
     long *interest, *interestnext, *interestprev, *interestpublisher;
     
-    int *contentlast_use, *contentserved_cnt;
+    int *contentlast_use, *contentserved_cnt, *cprefixlen;
     long *content, *contentnext, *contentprev;
     char **ccontents, **cprefix;
    
@@ -398,11 +400,12 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     contentprev = (long*)ccnl_malloc(num_contents*sizeof(long));
     contentlast_use = (int*)ccnl_malloc(num_contents*sizeof(int));
     contentserved_cnt = (int*)ccnl_malloc(num_contents*sizeof(int));
+    cprefixlen = (int*)ccnl_malloc(num_contents*sizeof(int));
     ccontents = (char**)ccnl_malloc(num_contents*sizeof(char*));
     cprefix = (char**)ccnl_malloc(num_contents*sizeof(char*));
     for(it = 0; it < num_contents; ++it){
         ccontents[it] = (char*) ccnl_malloc(50*sizeof(char));
-        cprefix[it] = (char*) ccnl_malloc(50*sizeof(char));
+        cprefix[it] = (char*) ccnl_malloc(256*sizeof(char));
     }
     
     //End Alloc
@@ -446,8 +449,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
                     interestmax, interestretries, interestpublisher);
-            get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
-            //get_prefix_dump(0, ccnl, cprefix);
+            get_content_dump(0, ccnl, content, contentnext, contentprev, 
+                    contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
         }
 	else if (!strcmp((const char*)debugaction, "halt")){
@@ -462,8 +465,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
                     interestmax, interestretries, interestpublisher);
-            get_content_dump(0, ccnl, content, contentnext, contentprev, contentlast_use, contentserved_cnt);
-            //get_prefix_dump(0, ccnl, cprefix);
+            get_content_dump(0, ccnl, content, contentnext, contentprev, 
+                    contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
 	    ccnl->halt_flag = 1;
 	} else
@@ -571,6 +574,7 @@ Bail:
     ccnl_free(content); 
     ccnl_free(contentnext); 
     ccnl_free(contentprev);
+    ccnl_free(cprefixlen);
     ccnl_free(contentlast_use); 
     ccnl_free(contentserved_cnt);
     ccnl_free(out);

@@ -344,7 +344,8 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
     INDENT(lev);
     //*prefix =  (void *) pre;
     *len = pre->compcnt;
-    *val = ccnl_prefix_to_path(pre);
+    //*val = ccnl_prefix_to_path(pre);
+    sprintf(*val, "%s", ccnl_prefix_to_path(pre));
     return 1;
 }
 
@@ -430,7 +431,7 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
         face[line] = (long)(void *) fwd->face;
         faceid[line] = fwd->face->faceid;
         
-        get_prefix_dump(lev, fwd->prefix, prefixlen, &prefix[line]);
+        get_prefix_dump(lev, fwd->prefix, &prefixlen[line], &prefix[line]);
         fwd = fwd->next;
         ++line; 
     }
@@ -553,7 +554,7 @@ get_num_contents(void *p)
 
 int
 get_content_dump(int lev, void *p, long *content, long *next, long *prev,
-        int *last_use, int *served_cnt){
+        int *last_use, int *served_cnt, int *prefixlen, char **prefix){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
@@ -567,6 +568,8 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         last_use[line] = con->last_used;
         served_cnt[line] = con->served_cnt;
         
+        get_prefix_dump(lev, con->name, &prefixlen[line], &prefix[line]);
+      
         con = con->next;
         ++line;
     }
