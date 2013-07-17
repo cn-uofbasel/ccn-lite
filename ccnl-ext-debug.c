@@ -446,7 +446,8 @@ get_num_interface(void *p)
 }
 
 int
-get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, int *devtype, int *reflect)
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, 
+        int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     
@@ -495,7 +496,8 @@ get_num_interests(void *p)
 
 int
 get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
-        int *last, int *min, int *max, int *retries, long *publisher){
+        int *last, int *min, int *max, int *retries, long *publisher,
+        int *prefixlen, char **prefix){
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
@@ -512,6 +514,7 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         max[line] = itr->maxsuffix;
         retries[line] = itr->retries;
         publisher[line] = (long)(void *) itr->ppkd;
+        get_prefix_dump(lev, p, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
         ++line;

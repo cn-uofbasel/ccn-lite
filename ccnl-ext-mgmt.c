@@ -226,7 +226,8 @@ create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwd
 int
 create_interest_stmt(int num_interests, long *interest, long *interestnext, long *interestprev,
         int *interestlast, int *interestmin, int *interestmax, int *interestretries,
-        long *interestpublisher, unsigned char *stmt, int len3)
+        long *interestpublisher, int* interestprefixlen, char **interestprefix,
+        unsigned char *stmt, int len3)
 {
     int it;
     char str[100];
@@ -265,6 +266,8 @@ create_interest_stmt(int num_interests, long *interest, long *interestnext, long
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) interestpublisher[it]);
         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
+        
+        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it]);
 
         stmt[len3++] = 0; //end of interest;
     }
@@ -326,8 +329,9 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     long *interfacedev;
     char **interfaceaddr;
     
-    int *interestlast, *interestmin, *interestmax, *interestretries;
+    int *interestlast, *interestmin, *interestmax, *interestretries, *interestprefixlen;
     long *interest, *interestnext, *interestprev, *interestpublisher;
+    char **interestprefix;
     
     int *contentlast_use, *contentserved_cnt, *cprefixlen;
     long *content, *contentnext, *contentprev;
@@ -391,7 +395,11 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     interestmin = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestmax = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestretries = (int*)ccnl_malloc(num_interests*sizeof(int));
+    interestprefixlen = (int*)ccnl_malloc(num_interests*sizeof(int));
     interestpublisher = (long*)ccnl_malloc(num_interests*sizeof(long));
+    interestprefix = (char**)ccnl_malloc(num_interests*sizeof(char*));
+    for(it = 0; it < num_interests; ++it)
+        interestprefix[it] = (char*)ccnl_malloc(256*sizeof(char));
     
     //Alloc memory storage for content answer
     num_contents = get_num_contents(ccnl);
@@ -448,7 +456,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
-                    interestmax, interestretries, interestpublisher);
+                    interestmax, interestretries, interestpublisher, interestprefixlen, interestprefix);
             get_content_dump(0, ccnl, content, contentnext, contentprev, 
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
@@ -464,7 +472,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
-                    interestmax, interestretries, interestpublisher);
+                    interestmax, interestretries, interestpublisher, interestprefixlen, interestprefix);
             get_content_dump(0, ccnl, content, contentnext, contentprev, 
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
@@ -519,7 +527,7 @@ Bail:
         
         len3 = create_interest_stmt(num_interests, interest, interestnext, interestprev,
                 interestlast, interestmin, interestmax, interestretries,
-                interestpublisher, stmt, len3);
+                interestpublisher, interestprefixlen, interestprefix, stmt, len3);
         
         len3 = create_content_stmt(num_contents, content, contentnext, contentprev,
                 contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, len3);
@@ -571,6 +579,7 @@ Bail:
     ccnl_free(interestmax);
     ccnl_free(interestretries);
     ccnl_free(interestpublisher);
+    ccnl_free(interestprefixlen);
     ccnl_free(content); 
     ccnl_free(contentnext); 
     ccnl_free(contentprev);
@@ -589,6 +598,9 @@ Bail:
     for(it = 0; it < num_interfaces; ++it)
         ccnl_free(interfaceaddr[it]);
     ccnl_free(interfaceaddr);
+    for(it = 0; it < num_interests; ++it)
+        ccnl_free(interestprefix[it]);
+    ccnl_free(interestprefix);
     for(it = 0; it < num_contents; ++it){
         ccnl_free(ccontents[it]);
         ccnl_free(cprefix[it]);
