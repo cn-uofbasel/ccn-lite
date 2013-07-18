@@ -946,7 +946,7 @@ main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
-    unsigned char out[2000];
+    unsigned char out[10000];
     int len;
     int sock = 0;
 
