@@ -90,6 +90,43 @@ mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
 {
     return mkBlob(out, num, tt, str, strlen(str));
 }
+
+int
+split_string(char *in, char c, char *out)
+{
+    
+    int i = 0, j = 0;
+    if(!in[0]) return 0;
+    if(in[0] == c) ++i;
+    while(in[i] != c)
+    {
+        if(in[i] == 0) break;
+        out[j] = in[i];
+        ++i; ++j;
+        
+    }
+    out[j] = 0;
+    return i;  
+}
+
+int
+add_ccnl_name(unsigned char *out, char *ccn_path)
+{
+    char comp[256];
+    int len = 0, len2 = 0;
+    int h;
+    memset(comp, 0 , 256);
+    len += mkHeader(out + len, CCN_DTAG_NAME, CCN_TT_DTAG);
+    while( (h = split_string(ccn_path + len2, '/', comp)) )
+    {   
+        len2 += h;
+        len += mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, comp);
+        memset(comp, 0 , 256);
+    }
+    out[len++] = 0;
+    return len;
+}
+
 // ----------------------------------------------------------------------
 
 int
@@ -119,15 +156,17 @@ main(int argc, char *argv[])
     fclose(f);
     out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
     //header vor das file hängen
-    len = mkHeader(out, CCN_DTAG_COMPONENT, CCN_DTAG_CONTENTOBJ);
-    len += mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_DTAG_SIGNATURE, "1234");
-    len += mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_DTAG_NAME, ccn_path);
-    len += mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_DTAG_CONTENT, file);
+    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+    len += add_ccnl_name(out + len, ccn_path);
+    len += mkStrBlob(out + len, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, "1234");
+    
+    
+    len += mkStrBlob(out + len, CCN_DTAG_CONTENT, CCN_TT_DTAG, (char *) file);
     //null ans ende hängen
     out[len++] = 0;
     //write file
     new_file_uri = (char *) malloc(sizeof(char)*1000);
-    sprintf(new_file_uri, "%s .ccnb", file_uri);
+    sprintf(new_file_uri, "%s.ccnb", file_uri);
     FILE *f2 = fopen(new_file_uri, "w");
     if(!f2) goto Usage;
     fwrite(out, 1L, len, f2);

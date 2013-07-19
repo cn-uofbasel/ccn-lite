@@ -492,6 +492,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 		    perror("open");
 		    continue;
 		}
+               
 		buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) +
 							s.st_size);
 		buf->datalen = s.st_size;
