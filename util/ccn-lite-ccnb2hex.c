@@ -29,10 +29,12 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#include "ccnl-common.c"
+
 // ----------------------------------------------------------------------
 
-static int
-dehead(int lev, unsigned char *base, unsigned char **buf,
+int
+deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
        int *len, int *num, int *typ)
 {
      int i, val = 0;
@@ -79,7 +81,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
     int num, typ, i, j;
     char *n;
 
-    while (dehead(lev, base, buf, len, &num, &typ) == 0) {
+    while (deheadAndPrint(lev, base, buf, len, &num, &typ) == 0) {
 	switch (typ) {
 	case CCN_TT_BLOB:
 	case CCN_TT_UDATA:

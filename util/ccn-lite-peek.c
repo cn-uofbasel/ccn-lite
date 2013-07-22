@@ -37,6 +37,9 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#include "ccnl-common.c"
+#include "../ccnl-pdu.c"
+
 // ----------------------------------------------------------------------
 
 char *unix_path;
@@ -50,25 +53,6 @@ myexit(int rc)
 }
 
 // ----------------------------------------------------------------------
-
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
 
 int
 hex2int(char c)
@@ -95,42 +79,6 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
 	in += 3;
     }
-    return len;
-}
-
-int
-mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
-{
-    int len = 0, k;
-
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = unescape_component((unsigned char*) *namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
-    len += mkHeader(out+len, 1, CCN_TT_UDATA);
-    out[len++] = '1';
-    out[len++] = 0; // end-of-maxsuffcomp
-
-    if (nonce) {
-	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
-	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
-	len += sizeof(unsigned int);
-	out[len++] = 0; // end-of-nonce
-    }
-
-    out[len++] = 0; // end-of-interest
-
     return len;
 }
 

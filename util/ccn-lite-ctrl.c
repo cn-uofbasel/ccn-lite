@@ -34,59 +34,8 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
-
-int
-addBlob(unsigned char *out, char *cp, int cnt)
-{
-    int len;
-
-    len = mkHeader(out, cnt, CCN_TT_BLOB);
-    memcpy(out+len, cp, cnt);
-    len += cnt;
-
-    return len;
-}
-
-
-int
-mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-       char *cp, int cnt)
-{
-    int len;
-
-    len = mkHeader(out, num, tt);
-    len += addBlob(out+len, cp, cnt);
-    out[len++] = 0;
-
-    return len;
-}
-
-
-int
-mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-	  char *str)
-{
-    return mkBlob(out, num, tt, str, strlen(str));
-}
-
+#include "ccnl-common.c"
+#include "../ccnl-pdu.c"
 
 // ----------------------------------------------------------------------
 
@@ -508,7 +457,7 @@ main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
-    unsigned char out[2000];
+    unsigned char out[64000];
     int len;
     int sock = 0;
 

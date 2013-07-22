@@ -32,6 +32,8 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#include "ccnl-common.c"
+
 const char *byte_to_binary(int x)
 {
     static char b[9];
@@ -44,32 +46,6 @@ const char *byte_to_binary(int x)
     }
 
     return b;
-}
-
-int
-dehead(unsigned char **buf, int *len, int *num, int *typ)
-{
-    int i;
-    int val = 0;
-
-    if (*len > 0 && **buf == 0) { // end
-	*num = *typ = 0;
-	*buf += 1;
-	*len -= 1;
-	return 0;
-    }
-    for (i = 0; (unsigned int) i < sizeof(i) && i < *len; i++) {
-	unsigned char c = (*buf)[i];
-	if ( c & 0x80 ) {
-	    *num = (val << 4) | ((c >> 3) & 0xf);
-	    *typ = c & 0x7;
-	    *buf += i+1;
-	    *len -= i+1;
-	    return 0;
-	}
-	val = (val << 7) | c;
-    } 
-    return -1;
 }
 
 void
