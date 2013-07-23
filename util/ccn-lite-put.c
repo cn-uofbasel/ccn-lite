@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -109,6 +110,17 @@ split_string(char *in, char c, char *out)
     return i;  
 }
 
+time_t
+get_mtime(const char *path)
+{
+    struct stat statbuf;
+    if (stat(path, &statbuf) == -1) {
+        perror(path);
+        exit(1);
+    }
+    return statbuf.st_mtime;
+}
+
 int
 add_ccnl_name(unsigned char *out, char *ccn_path)
 {
@@ -127,6 +139,20 @@ add_ccnl_name(unsigned char *out, char *ccn_path)
     return len;
 }
 
+int add_signed_info(unsigned char *out, char *publickey, char *filename)
+{
+    int len;
+    char str[64];
+    memset(str, 0, 64);
+    len = mkHeader(out, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
+    len += mkStrBlob(out + len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG, publickey);
+    time_t last_mod = get_mtime(filename);
+    sprintf(str, "%ld", last_mod);
+    len += mkStrBlob(out + len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG, str);
+    out[len++] = 0;
+    return len;
+}
+
 // ----------------------------------------------------------------------
 
 int
@@ -138,7 +164,7 @@ main(int argc, char *argv[])
     char *ccn_path;
     char *new_file_uri;
     int fsize, len;
-    if(argc != 4) goto Usage;
+    if(argc < 4) goto Usage;
     ux_path = argv[1];
     file_uri = argv[2];
     ccn_path = argv[3];
@@ -157,8 +183,10 @@ main(int argc, char *argv[])
     out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
     //header vor das file hängen
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+    
     len += add_ccnl_name(out + len, ccn_path);
-    len += mkStrBlob(out + len, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, "1234");
+    
+    len += add_signed_info(out + len, "1234567890", file_uri);
     
     
     len += mkStrBlob(out + len, CCN_DTAG_CONTENT, CCN_TT_DTAG, (char *) file);
@@ -178,7 +206,7 @@ main(int argc, char *argv[])
     
 Usage:
     fprintf(stderr, "usage: %s " 
-    "ux_path_name URI CCN-PATH\n",
+    "UX_SOCK_PATH_NAME URI CCN-PATH PUBLICKEY\n",
     argv[0]);
     exit(1);
     return 0; // avoid a compiler warning
