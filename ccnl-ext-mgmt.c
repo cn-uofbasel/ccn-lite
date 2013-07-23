@@ -567,6 +567,7 @@ Bail:
     ccnl_free(facenext);
     ccnl_free(faceprev);
     ccnl_free(faceifndx);
+    ccnl_free(fwdprefixlen);
     ccnl_free(faceflags);
     ccnl_free(facetype);
     ccnl_free(fwd);
