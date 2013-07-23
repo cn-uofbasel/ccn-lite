@@ -153,14 +153,14 @@ blob(unsigned char *cp, int len)
 
 
 void
-encaps(int e)
+frag(int e)
 {
-    if (e == CCNL_ENCAPS_NONE)
+    if (e == CCNL_FRAG_NONE)
 	return;
-    if (e == CCNL_ENCAPS_SEQUENCED2012)
-	fprintf(stderr, " encaps=sequenced2012");
+    if (e == CCNL_FRAG_SEQUENCED2012)
+	fprintf(stderr, " frag=sequenced2012");
     else
-	fprintf(stderr, " encaps=%d", e);
+	fprintf(stderr, " frag=%d", e);
 }
 
 enum { // numbers for each data type
@@ -251,8 +251,8 @@ ccnl_dump(int lev, int typ, void *p)
 		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
 	    else
 		fprintf(stderr, " peer=?");
-	    if (fac->encaps)
-		encaps(fac->encaps->protocol);
+	    if (fac->frag)
+		frag(fac->frag->protocol);
 	    fprintf(stderr, "\n");
 	    if (fac->outq) {
 		INDENT(lev+1); fprintf(stderr, "outq:\n");
@@ -392,8 +392,8 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
             type[line] = AF_UNIX;
         else
             type[line] = 0;
-        if (fac->encaps)
-            encaps(fac->encaps->protocol);
+        if (fac->frag)
+            frag(fac->frag->protocol);
         fac = fac->next;
         ++line;
     }

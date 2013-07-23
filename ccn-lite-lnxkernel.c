@@ -26,7 +26,7 @@
 
 #define USE_DEBUG
 // #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+#define USE_FRAG
 #define USE_ETHERNET
 // #define USE_SCHEDULER
 #define USE_MGMT
@@ -203,9 +203,9 @@ ccnl_close_socket(struct socket *s)
 
 #include "ccnl-core.c"
 
-#ifdef USE_ENCAPS
+#ifdef USE_FRAG
 #  include "ccnl-pdu.c"
-#  include "ccnl-ext-encaps.c"
+#  include "ccnl-ext-frag.c"
 #endif
 
 #include "ccnl-ext-mgmt.c"
@@ -503,7 +503,7 @@ ccnl_init(void)
 	i->sock = ccnl_open_unixpath(x, &i->addr.ux);
 	if (i->sock) {
 	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
 	    i->mtu = 4048;
 	    i->reflect = 0;
 	    i->fwdalli = 0;
@@ -537,7 +537,7 @@ ccnl_init(void)
 	i = &theRelay.ifs[theRelay.ifcount];
 	i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
 	if (i->netdev) {
-//	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
 	    i->mtu = 1500;
 	    i->reflect = 1;
 	    i->fwdalli = 1;

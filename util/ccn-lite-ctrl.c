@@ -78,7 +78,7 @@ mkDebugRequest(unsigned char *out, char *dbg)
 
 int
 mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
-		   char *encaps, char *flags)
+		   char *frag, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -99,8 +99,8 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 			  devname);
     if (ethtype)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, ethtype);
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -124,7 +124,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 
 int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
-		   char *encaps, char *flags)
+		   char *frag, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -144,8 +144,8 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
     if (port)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -201,8 +201,8 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
     if (port)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
     /*
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
@@ -245,8 +245,8 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
     if (path)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path);
     /*
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
@@ -310,7 +310,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid)
 
 
 int
-mkSetencapsRequest(unsigned char *out, char *faceid, char *encaps, char *mtu)
+mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -324,13 +324,13 @@ mkSetencapsRequest(unsigned char *out, char *faceid, char *encaps, char *mtu)
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setencaps");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setencaps");
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setfrag");
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
-    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, mtu);
     faceinst[len3++] = 0; // end-of-faceinst
 
@@ -506,9 +506,9 @@ main(int argc, char *argv[])
 	if (argc < 3)  goto Usage;
 	len = mkNewUNIXFaceRequest(out, argv[2],
 				   argc > 3 ? argv[3] : "0x0001");
-    } else if (!strcmp(argv[1], "setencaps")) {
+    } else if (!strcmp(argv[1], "setfrag")) {
 	if (argc < 5)  goto Usage;
-	len = mkSetencapsRequest(out, argv[2], argv[3], argv[4]);
+	len = mkSetfragRequest(out, argv[2], argv[3], argv[4]);
     } else if (!strcmp(argv[1], "destroyface")) {
 	if (argc < 3) goto Usage;
 	len = mkDestroyFaceRequest(out, argv[2]);
@@ -545,20 +545,20 @@ main(int argc, char *argv[])
 
 Usage:
     fprintf(stderr, "usage: %s [-x ux_path] CMD, where CMD either of\n"
-	   "  newETHdev     DEVNAME [ETHTYPE [ENCAPS [DEVFLAGS]]]\n"
-	   "  newUDPdev     IP4SRC|any [PORT [ENCAPS [DEVFLAGS]]]\n"
+	   "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
+	   "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
 	   "  destroydev    DEVNDX\n"
 	   "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
 	   "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
 	   "  newUNIXface   PATH [FACEFLAGS]\n"
-           "  setencaps     FACEID ENCAPS MTU\n"
+           "  setfrag       FACEID FRAG MTU\n"
 	   "  destroyface   FACEID\n"
 	   "  prefixreg     PREFIX FACEID\n"
 	   "  prefixunreg   PREFIX FACEID\n"
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
-	   "where ENCAPS in none, seqd2012, ccnp2013\n",
+	   "where FRAG in none, seqd2012, ccnp2013\n",
 	progname);
 
     if (sock) {

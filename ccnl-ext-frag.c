@@ -1,6 +1,6 @@
 /*
- * @f ccnl-ext-encaps.c
- * @b CCN lite extension: encapsulation details (fragment, schedule interface)
+ * @f ccnl-ext-frag.c
+ * @b CCN lite extension: fragmentation support (including scheduling interface)
  *
  * Copyright (C) 2011-13, Christian Tschudin, University of Basel
  *
@@ -18,24 +18,24 @@
  *
  * File history:
  * 2011-10-05 created
- * 2013-05-02 prototyped a new wire format CCNL_ENCAPS_CCNCPU2013
+ * 2013-05-02 prototyped a new wire format CCNL_FRAG_CCNCPU2013
  */
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_ENCAPS
+#ifdef USE_FRAG
 
 /* see ccnl-core.h for available fragmentation protocols.
  *
- * CCNL_ENCAPS_NONE
+ * CCNL_FRAG_NONE
  *  passthrough, i.e. no header is added at all
  *
- * CCNL_ENCAPS_SEQUENCED2012
+ * CCNL_FRAG_SEQUENCED2012
  *  - a ccnb encoded header is prepended,
  *  - the driver is configurable for arbitrary MTU
  *  - packets have sequence numbers (can detect lost packets)
  *
- * CCNL_ENCAPS_CCNPDU2013
+ * CCNL_FRAG_CCNPDU2013
  *  - a ccnb encoded wire format as currently discussed with PARC.
  *    It serves as a container for various wire format types,
  *    including carrying fragments of bigger CCNX objects
@@ -45,17 +45,17 @@
 
 // ----------------------------------------------------------------------
 
-struct ccnl_encaps_s*
-ccnl_encaps_new(int protocol, int mtu)
+struct ccnl_frag_s*
+ccnl_frag_new(int protocol, int mtu)
 {
-    struct ccnl_encaps_s *e = NULL;
+    struct ccnl_frag_s *e = NULL;
 
-    DEBUGMSG(8, "ccnl_encaps_new proto=%d mtu=%d\n", protocol, mtu);
+    DEBUGMSG(8, "ccnl_frag_new proto=%d mtu=%d\n", protocol, mtu);
 
     switch(protocol) {
-    case CCNL_ENCAPS_SEQUENCED2012:
-    case CCNL_ENCAPS_CCNPDU2013:
-      e = (struct ccnl_encaps_s*) ccnl_calloc(1, sizeof(struct ccnl_encaps_s));
+    case CCNL_FRAG_SEQUENCED2012:
+    case CCNL_FRAG_CCNPDU2013:
+      e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
 	if (e) {
 	    e->protocol = protocol;
 	    e->mtu = mtu;
@@ -65,7 +65,7 @@ ccnl_encaps_new(int protocol, int mtu)
 	    e->recvseqbytes =   2;
 	}
 	break;
-    case CCNL_ENCAPS_NONE:
+    case CCNL_FRAG_NONE:
     default:
 	break;
     }
@@ -73,10 +73,10 @@ ccnl_encaps_new(int protocol, int mtu)
 }
 
 void
-ccnl_encaps_reset(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
+ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
 		  int ifndx, sockunion *dst)
 {
-    DEBUGMSG(99, "ccnl_encaps_reset (%d bytes)\n", buf ? buf->datalen : -1);
+    DEBUGMSG(99, "ccnl_frag_reset (%d bytes)\n", buf ? buf->datalen : -1);
     if (!e)
 	return;
     e->ifndx = ifndx;
@@ -87,7 +87,7 @@ ccnl_encaps_reset(struct ccnl_encaps_s *e, struct ccnl_buf_s *buf,
 }
 
 int
-ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
+ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
 {
     int cnt = 0, len = 0;
     unsigned char dummy[256];
@@ -96,7 +96,7 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
 
     if (!e)
       cnt = 1;
-    else if (e && e->protocol == CCNL_ENCAPS_SEQUENCED2012) {
+    else if (e && e->protocol == CCNL_FRAG_SEQUENCED2012) {
       while (offs < origlen) { // we could do better than to simulate this:
 	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
 	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
@@ -118,7 +118,7 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
 	offs += datalen;
 	cnt++;
       }
-    } else if (e && e->protocol == CCNL_ENCAPS_CCNPDU2013) {
+    } else if (e && e->protocol == CCNL_FRAG_CCNPDU2013) {
       while (offs < origlen) { // we could do better than to simulate this:
 	hdrlen = mkHeader(dummy, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
 	hdrlen += mkHeader(dummy, CCN_DTAG_TYPE, CCN_TT_DTAG);
@@ -150,14 +150,14 @@ ccnl_encaps_getfragcount(struct ccnl_encaps_s *e, int origlen, int *totallen)
 }
 
 struct ccnl_buf_s*
-ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
+ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
 			   sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
     int hdrlen = 0, blobtaglen, flagoffs;
     unsigned int datalen;
-    DEBUGMSG(16, "ccnl_encaps_mknextfragment e=%p, mtu=%d\n", (void*)e, e->mtu);
+    DEBUGMSG(16, "ccnl_frag_mknextfragment e=%p, mtu=%d\n", (void*)e, e->mtu);
 
     if (!e->bigpkt) {
 //	DEBUGMSG(17, "  no packet to fragment yet\n");
@@ -166,9 +166,9 @@ ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
     DEBUGMSG(17, "  %d bytes to fragment, offset=%d\n",
 	     e->bigpkt->datalen, e->sendoffs);
 
-    if (e->protocol == CCNL_ENCAPS_SEQUENCED2012)
+    if (e->protocol == CCNL_FRAG_SEQUENCED2012)
 	hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
-    else if (e->protocol == CCNL_ENCAPS_CCNPDU2013) {
+    else if (e->protocol == CCNL_FRAG_CCNPDU2013) {
 	hdrlen = mkHeader(header, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
 	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_TYPE, CCN_TT_DTAG);
 	hdrlen += mkHeader(header+hdrlen, 3, CCN_TT_BLOB);
@@ -182,7 +182,7 @@ ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
 	DEBUGMSG(17, "  NO FRAG PROTOCOL\n");
 	return NULL;
     }
-    // common fields of SEQUENCED2012 and CCNPDU2013 encapsulation:
+    // common fields of SEQUENCED2012 and CCNPDU2013 fragmentation:
     hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS,
 			  CCN_TT_DTAG, 0, e->flagbytes);
     flagoffs = hdrlen - 2;
@@ -191,7 +191,7 @@ ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
     hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
 			  e->losscount, e->losscountbytes);
 
-    if (e->protocol == CCNL_ENCAPS_SEQUENCED2012) {
+    if (e->protocol == CCNL_FRAG_SEQUENCED2012) {
 	hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_OSEQN,
 			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
 	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -253,7 +253,7 @@ ccnl_encaps_mknextfragment(struct ccnl_encaps_s *e, int *ifndx,
 }
 
 int
-ccnl_encaps_nomorefragments(struct ccnl_encaps_s *e)
+ccnl_frag_nomorefragments(struct ccnl_frag_s *e)
 {
     if (!e || !e->bigpkt)
 	return 1;
@@ -261,7 +261,7 @@ ccnl_encaps_nomorefragments(struct ccnl_encaps_s *e)
 }
 
 void
-ccnl_encaps_destroy(struct ccnl_encaps_s *e)
+ccnl_frag_destroy(struct ccnl_frag_s *e)
 {
     if (e) {
 	ccnl_free(e->bigpkt);
@@ -289,14 +289,14 @@ serialFragPDU_init(struct serialFragPDU_s *s)
 }
 
 void
-ccnl_encaps_RX_serialfragment(RX_datagram callback,
+ccnl_frag_RX_serialfragment(RX_datagram callback,
 			      struct ccnl_relay_s *relay,
 			      struct ccnl_face_s *from,
 			      struct serialFragPDU_s *s)
 {
     struct ccnl_buf_s *buf = NULL;
-    struct ccnl_encaps_s *e = from->encaps;
-    DEBUGMSG(8, "  encaps %p protocol=%d, flags=%04x, seq=%d (%d)\n",
+    struct ccnl_frag_s *e = from->frag;
+    DEBUGMSG(8, "  frag %p protocol=%d, flags=%04x, seq=%d (%d)\n",
 	     (void*)e, e->protocol, s->flags, s->ourseq, e->recvseq);
 
     if (e->recvseq != s->ourseq) {
@@ -382,13 +382,13 @@ ccnl_encaps_RX_serialfragment(RX_datagram callback,
 #define HAS_YSEQ   0x08
 
 int
-ccnl_encaps_RX_frag2012(RX_datagram callback,
+ccnl_frag_RX_frag2012(RX_datagram callback,
 			struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 			unsigned char **data, int *datalen)
 {
     int num, typ;
     struct serialFragPDU_s s;
-    DEBUGMSG(99, "ccnl_encaps_RX_frag2012 (%d bytes)\n", *datalen);
+    DEBUGMSG(99, "ccnl_frag_RX_frag2012 (%d bytes)\n", *datalen);
 
     serialFragPDU_init(&s);
     while (dehead(data, datalen, &num, &typ) == 0) {
@@ -397,7 +397,7 @@ ccnl_encaps_RX_frag2012(RX_datagram callback,
 	if (typ == CCN_TT_DTAG) {
 	    switch(num) {
 	    case CCN_DTAG_CONTENT:
-		DEBUGMSG(18, "  encaps content\n");
+		DEBUGMSG(18, "  frag content\n");
 //		if (s.content) // error: more than one content entry
 		if (consume(typ, num, data, datalen, &s.content,&s.contlen) < 0)
 		    goto Bail;
@@ -426,13 +426,13 @@ ccnl_encaps_RX_frag2012(RX_datagram callback,
 	return 0;
     }
 
-    if (!from->encaps)
-	from->encaps = ccnl_encaps_new(CCNL_ENCAPS_SEQUENCED2012,
+    if (!from->frag)
+	from->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012,
 				       relay->ifs[from->ifndx].mtu);
-    if (from->encaps && from->encaps->protocol == CCNL_ENCAPS_SEQUENCED2012)
-	ccnl_encaps_RX_serialfragment(callback, relay, from, &s);
+    if (from->frag && from->frag->protocol == CCNL_FRAG_SEQUENCED2012)
+	ccnl_frag_RX_serialfragment(callback, relay, from, &s);
    else
-	DEBUGMSG(1, "WRONG ENCAPS PROTOCOL\n");
+	DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
     return 0;
 Bail:
     DEBUGMSG(1, "* frag bailing\n");
@@ -440,14 +440,14 @@ Bail:
 }
 
 int
-ccnl_encaps_RX_pdu2013(RX_datagram callback,
+ccnl_frag_RX_pdu2013(RX_datagram callback,
 		       struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		       unsigned char **data, int *datalen)
 {
     int rc, num, typ, pdutypelen;
     unsigned char *pdutype = 0;
     struct serialFragPDU_s s;
-    DEBUGMSG(99, "ccnl_encaps_RX_pdu2013 (%d bytes)\n", *datalen);
+    DEBUGMSG(99, "ccnl_frag_RX_pdu2013 (%d bytes)\n", *datalen);
 
     serialFragPDU_init(&s);
     while (dehead(data, datalen, &num, &typ) == 0) {
@@ -497,13 +497,13 @@ ccnl_encaps_RX_pdu2013(RX_datagram callback,
      * echo "FRGS" | base64 -d | hexdump -e '/1 "@x%02x"'| tr @ '\\'; echo
      */
     if (memcmp(pdutype, "\x15\x11\x92", 3) == 0) { // sequential
-	if (!from->encaps)
-	    from->encaps = ccnl_encaps_new(CCNL_ENCAPS_CCNPDU2013,
+	if (!from->frag)
+	    from->frag = ccnl_frag_new(CCNL_FRAG_CCNPDU2013,
 					   relay->ifs[from->ifndx].mtu);
-	if (from->encaps && from->encaps->protocol == CCNL_ENCAPS_CCNPDU2013)
-	    ccnl_encaps_RX_serialfragment(callback, relay, from, &s);
+	if (from->frag && from->frag->protocol == CCNL_FRAG_CCNPDU2013)
+	    ccnl_frag_RX_serialfragment(callback, relay, from, &s);
 	else
-	    DEBUGMSG(1, "WRONG ENCAPS PROTOCOL\n");
+	    DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
     }
 
     /*
@@ -520,6 +520,6 @@ Bail:
 }
 
 
-#endif // USE_ENCAPS
+#endif // USE_FRAG
 
 // eof

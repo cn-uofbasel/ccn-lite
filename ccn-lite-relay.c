@@ -32,7 +32,7 @@
 #define USE_CCNxDIGEST
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+#define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
@@ -58,7 +58,7 @@
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
-#include "ccnl-ext-encaps.c"
+#include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
@@ -337,7 +337,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     if (udpport > 0) {
 	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
-//	i->encaps = CCNL_DGRAM_ENCAPS_NONE;
+//	i->frag = CCNL_DGRAM_FRAG_NONE;
 	i->mtu = CCN_DEFAULT_MTU;
 	i->fwdalli = 1;
 	if (i->sock >= 0) {

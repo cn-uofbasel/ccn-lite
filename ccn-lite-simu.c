@@ -28,7 +28,7 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+#define USE_FRAG
 #define USE_SCHEDULER
 #define USE_ETHERNET
 
@@ -52,7 +52,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
-#include "ccnl-ext-encaps.c"
+#include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
@@ -273,7 +273,7 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
 }
 
 // ----------------------------------------------------------------------
-// the two functions called by the CCNL's core and encaps code:
+// the two functions called by the CCNL's core and frag code:
 
 int
 ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
@@ -533,9 +533,9 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
     fwd->prefix = ccnl_path_to_prefix(name);
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
-#ifdef USE_ENCAPS
-    //    fwd->face->encaps = ccnl_encaps_new(CCNL_ENCAPS_SEQUENCED2012, 1500);
-    fwd->face->encaps = ccnl_encaps_new(CCNL_ENCAPS_CCNPDU2013, 1200);
+#ifdef USE_FRAG
+    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012, 1500);
+    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNPDU2013, 1200);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;

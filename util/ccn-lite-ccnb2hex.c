@@ -153,7 +153,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
 	    case CCNL_DTAG_IP4SRC:	 n = "IP4src"; break;
-	    case CCNL_DTAG_ENCAPS:	 n = "encapsulation"; break;
+	    case CCNL_DTAG_FRAG:	 n = "fragmentation"; break;
 	    case CCNL_DTAG_FACEFLAGS:	 n = "faceFlags"; break;
 	    case CCNL_DTAG_DEBUGREQUEST: n = "debugRequest"; break;
 	    case CCNL_DTAG_DEBUGACTION:	 n = "debugAction"; break;
