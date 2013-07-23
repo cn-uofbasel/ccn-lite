@@ -55,8 +55,9 @@
 #endif
 
 #ifdef USE_CCNxDIGEST
-#endif
 #  include <openssl/sha.h>
+#endif
+
 #else // else we are compiling for the Linux kernel
 
 #include <stddef.h>

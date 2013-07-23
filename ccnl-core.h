@@ -51,7 +51,9 @@ typedef union {
     struct sockaddr_ll eth;
 #endif
     struct sockaddr_in ip4;
+#ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;
+#endif
 } sockunion;
 
 struct ccnl_txrequest_s {
@@ -205,7 +207,7 @@ struct ccnl_content_s {
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-inline const char*
+const char*
 compile_string(void)
 {
     static const char *cp = ""

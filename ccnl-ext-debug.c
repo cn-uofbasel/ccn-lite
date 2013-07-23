@@ -108,9 +108,11 @@ ccnl_addr2ascii(sockunion *su)
 		    ntohs(su->ip4.sin_port));
 	    return result;
 //	    return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
+#ifdef USE_UNIXSOCKET
 	case AF_UNIX:
 	    strcpy(result, su->ux.sun_path);
 	    return result;
+#endif
 	default:
 	    break;
     }

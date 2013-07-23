@@ -101,7 +101,7 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
 	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
 	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
 			      0, e->flagbytes);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_OSEQN, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
 			      0, e->sendseqbytes);
 	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
 			      0, e->losscountbytes);
@@ -192,7 +192,7 @@ ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
 			  e->losscount, e->losscountbytes);
 
     if (e->protocol == CCNL_FRAG_SEQUENCED2012) {
-	hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_OSEQN,
+	hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR,
 			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
 	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     } else {
@@ -405,7 +405,7 @@ ccnl_frag_RX_frag2012(RX_datagram callback,
 	    case CCNL_DTAG_FRAG_FLAGS:
 		getNumField(s.flags, s.flagbytes, HAS_FLAGS, "flags");
 		continue;
-	    case CCNL_DTAG_FRAG_OSEQN:
+	    case CCNL_DTAG_FRAG_SEQNR:
 		getNumField(s.ourseq, s.ourseqbytes, HAS_OSEQ, "ourseq");
 		continue;
 	    case CCNL_DTAG_FRAG_OLOSS:
