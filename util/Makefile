@@ -26,5 +26,11 @@ demo: $(PROGS)
 	./ccnl-mkInterest ccn-lite says hello world äöü | ./ccn-lite-ccnb2hex
 	./ccnl-mkInterest ccn-lite says hello world äöü | ./ccn-lite-ccnb2xml
 
+install: all
+	install ${PROGS} ${INSTALL_PATH}/bin
+
+uninstall:
+	cd ${INSTALL_PATH}/bin && rm -f ${PROGS} && cd - > /dev/null
+
 clean:
 	rm -rf *~ $(PROGS)

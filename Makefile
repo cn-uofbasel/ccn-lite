@@ -7,10 +7,14 @@ EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
 
-PROGS=	ccn-lite-relay \
-	ccn-lite-minimalrelay \
-	ccn-lite-simu \
+INST_PROGS= ccn-lite-relay \
+            ccn-lite-minimalrelay \
+            ccn-lite-simu
+
+PROGS=	${INST_PROGS} \
 	ccn-lite-lnxkernel
+
+
 
 ifdef USE_CHEMFLOW
 CHEMFLOW_HOME=./chemflow/chemflow-20121006
@@ -71,6 +75,14 @@ datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
 	epstopdf datastruct.ps
 	rm -f datastruct.ps
+
+install: all
+	install ${INST_PROGS} ${INSTALL_PATH}/bin && cd util && make install && cd ..
+
+uninstall:
+	cd ${INSTALL_PATH}/bin && rm -f ${PROGS} && cd - > /dev/null \
+	&& cd util && make uninstall && cd ..
+
 
 clean:
 	${EXTMAKECLEAN}
