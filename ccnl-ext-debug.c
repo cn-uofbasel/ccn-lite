@@ -161,6 +161,8 @@ frag(int e)
 	return;
     if (e == CCNL_FRAG_SEQUENCED2012)
 	fprintf(stderr, " frag=sequenced2012");
+    else if (e == CCNL_FRAG_CCNx2013)
+	fprintf(stderr, " frag=ccnx2013");
     else
 	fprintf(stderr, " frag=%d", e);
 }

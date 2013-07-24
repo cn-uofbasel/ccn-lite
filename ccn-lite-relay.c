@@ -247,6 +247,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 	break;
 #endif
     default:
+	DEBUGMSG(99, "unknown transport\n");
 	break;
     }
     rc = rc; // just to silence a compiler warning (if USE_DEBUG is not set)

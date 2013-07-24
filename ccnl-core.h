@@ -129,16 +129,14 @@ struct ccnl_frag_s {
     int ifndx;
 
     struct ccnl_buf_s *defrag;
-    unsigned char flagbytes;
-    unsigned char flagswidth;
 
     unsigned int sendseq;
-    unsigned char sendseqwidth;
     unsigned int losscount;
     unsigned int recvseq;
-    unsigned char sendseqbytes;
-    unsigned char losscountbytes;
-    unsigned char recvseqbytes;
+    unsigned char flagwidth;
+    unsigned char sendseqwidth;
+    unsigned char losscountwidth;
+    unsigned char recvseqwidth;
 };
 
 struct ccnl_face_s {

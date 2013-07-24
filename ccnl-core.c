@@ -969,13 +969,11 @@ ccnl_core_RX_datagram(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
 	    continue;
 #ifdef USE_FRAG
-	case CCN_DTAG_CCNPDU:
-	    rc = ccnl_frag_RX_pdu2013(ccnl_core_RX_datagram,
-					relay, from, data, datalen);
+	case CCNL_DTAG_FRAGMENT2012:
+	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 	case CCNL_DTAG_FRAGMENT:
-	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram,
-					 relay, from, data, datalen);
+	    rc = ccnl_frag_RX_CCNx2013(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 #endif
 	default:

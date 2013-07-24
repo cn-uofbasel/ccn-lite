@@ -729,6 +729,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_FRAG
 	if (frag) {
 	    int mtu = 1500;
+	    if (f->frag) {
+		ccnl_frag_destroy(f->frag);
+		f->frag = NULL;
+	    }
 	    if (f->ifndx >= 0 && ccnl->ifs[f->ifndx].mtu > 0)
 		mtu = ccnl->ifs[f->ifndx].mtu;
 	    f->frag = ccnl_frag_new(strtol((const char*)frag, NULL, 0),

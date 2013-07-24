@@ -60,7 +60,8 @@ typedef int (RX_datagram)(struct ccnl_relay_s*, struct ccnl_face_s*,
 int ccnl_frag_RX_frag2012(RX_datagram callback, struct ccnl_relay_s *relay,
 			    struct ccnl_face_s *from,
 			    unsigned char **data, int *datalen);
-int ccnl_frag_RX_pdu2013(RX_datagram callback, struct ccnl_relay_s *relay,
+
+int ccnl_frag_RX_CCNx2013(RX_datagram callback, struct ccnl_relay_s *relay,
 			   struct ccnl_face_s *from,
 			   unsigned char **data, int *datalen);
 

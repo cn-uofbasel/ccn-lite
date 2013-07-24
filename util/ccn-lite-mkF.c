@@ -112,6 +112,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // ----------------------------------------------------------------------
 
+#ifdef XXX
+
 struct ccnl_buf_s*
 ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
@@ -133,7 +135,7 @@ ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 			  fr->sendseq, fr->sendseqwidth);
 
     hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
-			  0, fr->flagswidth);
+			  0, fr->flagwidth);
     flagoffs = hdrlen - 2; // most significant byte of flag element
 
     // other optional fields would go here
@@ -174,7 +176,6 @@ ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     return buf;
 }
 
-
 struct ccnl_buf_s*
 ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
@@ -189,7 +190,7 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 	return NULL;
     }
 }
-
+#endif
 void 
 file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
 	   unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
@@ -204,10 +205,10 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
     fr.mtu = bytelimit;
     fr.sendseq = *seqnr;
     fr.sendseqwidth = seqnrwidth;
-    fr.flagswidth = 1;
+    fr.flagwidth = 1;
 
     //    fragbuf = ccnl_frag_getnext(&fr);
-    fragbuf = ccnl_frag_mknext(&fr, NULL, NULL);
+    fragbuf = ccnl_frag_getnext(&fr, NULL, NULL);
     while (fragbuf) {
 	sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
 	if (noclobber && !access(fname, F_OK)) {
@@ -224,7 +225,7 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
 		close(f);
 	    }
 	    ccnl_free(fragbuf);
-	    fragbuf = ccnl_frag_mknext(&fr, NULL, NULL); //ccnl_frag_getnext(&fr);
+	    fragbuf = ccnl_frag_getnext(&fr, NULL, NULL); //ccnl_frag_getnext(&fr);
 	}
 	cnt++;
     }

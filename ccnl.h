@@ -85,7 +85,8 @@
 #define CCNL_DTAG_SERVEDCTN     99224
 
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_SEQUENCED2012)
-#define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803
+#define CCNL_DTAG_FRAGMENT2012	144144 // http://redmine.ccnx.org/issues/100803
+#define CCNL_DTAG_FRAGMENT	144199 // pending request (2013-07-24)
 
 #define CCNL_DTAG_FRAG_TYPE	(CCNL_DTAG_FRAGMENT+1)
 #define CCNL_DTAG_FRAG_FLAGS	(CCNL_DTAG_FRAGMENT+2)
@@ -105,6 +106,8 @@
 
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
 
+// echo "FHBH" | base64 -d | hexdump -v -e '/1 "@x%02x"'| tr @ '\\'; echo
+#define CCNL_FRAG_TYPE_CCNx2013_VAL     "\x14\x70\x47"
 
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_WIRE2013)
 #define CCNL_DTAG_WIRE		333333
