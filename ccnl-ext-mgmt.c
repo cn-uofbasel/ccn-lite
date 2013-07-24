@@ -181,8 +181,10 @@ int create_faces_stmt(int num_faces, int *faceid, long *facenext, long *faceprev
         memset(str, 0, 100);
         if(facetype[it] == AF_INET)
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
+#ifdef USE_ETHERNET
         else if(facetype[it] == AF_PACKET)
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
+#endif
         else if(facetype[it] == AF_UNIX)
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
         else{
@@ -1455,7 +1457,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	
     if (!strcmp(cmd, "newdev"))
 	ccnl_mgmt_newdev(ccnl, orig, prefix, from);
-    if (!strcmp(cmd, "setfrag"))
+    else if (!strcmp(cmd, "setfrag"))
 	ccnl_mgmt_setfrag(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
 	ccnl_mgmt_destroydev(ccnl, orig, prefix, from);

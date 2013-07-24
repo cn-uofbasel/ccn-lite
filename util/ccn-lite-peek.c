@@ -20,6 +20,7 @@
  * 2013-04-06  created
  */
 
+#include <ctype.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -32,7 +32,6 @@
 #include <unistd.h>
 
 #include <arpa/inet.h> // htonl()
-#include <linux/types.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
