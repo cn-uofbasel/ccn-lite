@@ -535,7 +535,7 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
 #ifdef USE_FRAG
     //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012, 1500);
-    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNPDU2013, 1200);
+    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;

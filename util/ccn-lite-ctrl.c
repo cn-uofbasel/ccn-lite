@@ -558,7 +558,7 @@ Usage:
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
-	   "where FRAG in none, seqd2012, ccnp2013\n",
+	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
     if (sock) {

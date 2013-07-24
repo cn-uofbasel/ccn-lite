@@ -38,7 +38,7 @@ void ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
 int ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen,
 			     int *totallen);
 
-struct ccnl_buf_s* ccnl_frag_mknextfragment(struct ccnl_frag_s *e,
+struct ccnl_buf_s* ccnl_frag_getnext(struct ccnl_frag_s *e,
 					      int *ifndx, sockunion *su);
 
 /*

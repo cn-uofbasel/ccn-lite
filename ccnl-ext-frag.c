@@ -35,7 +35,7 @@
  *  - the driver is configurable for arbitrary MTU
  *  - packets have sequence numbers (can detect lost packets)
  *
- * CCNL_FRAG_CCNPDU2013
+ * CCNL_FRAG_CCNx2013
  *  - a ccnb encoded wire format as currently discussed with PARC.
  *    It serves as a container for various wire format types,
  *    including carrying fragments of bigger CCNX objects
@@ -54,7 +54,7 @@ ccnl_frag_new(int protocol, int mtu)
 
     switch(protocol) {
     case CCNL_FRAG_SEQUENCED2012:
-    case CCNL_FRAG_CCNPDU2013:
+    case CCNL_FRAG_CCNx2013:
       e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
 	if (e) {
 	    e->protocol = protocol;
@@ -118,7 +118,7 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
 	offs += datalen;
 	cnt++;
       }
-    } else if (e && e->protocol == CCNL_FRAG_CCNPDU2013) {
+    } else if (e && e->protocol == CCNL_FRAG_CCNx2013) {
       while (offs < origlen) { // we could do better than to simulate this:
 	hdrlen = mkHeader(dummy, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
 	hdrlen += mkHeader(dummy, CCN_DTAG_TYPE, CCN_TT_DTAG);
@@ -150,39 +150,18 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
 }
 
 struct ccnl_buf_s*
-ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
-			   sockunion *su)
+ccnl_frag_getnextSEQD2012(struct ccnl_frag_s *e, int *ifndx, sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
     int hdrlen = 0, blobtaglen, flagoffs;
     unsigned int datalen;
-    DEBUGMSG(16, "ccnl_frag_mknextfragment e=%p, mtu=%d\n", (void*)e, e->mtu);
 
-    if (!e->bigpkt) {
-//	DEBUGMSG(17, "  no packet to fragment yet\n");
-	return NULL;
-    }
+    DEBUGMSG(16, "ccnl_frag_getnextSEQD2012 e=%p, mtu=%d\n", (void*)e, e->mtu);
     DEBUGMSG(17, "  %d bytes to fragment, offset=%d\n",
 	     e->bigpkt->datalen, e->sendoffs);
 
-    if (e->protocol == CCNL_FRAG_SEQUENCED2012)
-	hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
-    else if (e->protocol == CCNL_FRAG_CCNPDU2013) {
-	hdrlen = mkHeader(header, CCN_DTAG_CCNPDU, CCN_TT_DTAG);
-	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_TYPE, CCN_TT_DTAG);
-	hdrlen += mkHeader(header+hdrlen, 3, CCN_TT_BLOB);
-	/*
-	 * echo "FRGS" | base64 -d | hexdump -e '/1 "@x%02x"'| tr @ '\\'; echo
-	 */
-	memcpy(header+hdrlen, "\x15\x11\x92\x00", 4); // including trailing 0
-	hdrlen += 4;
-    }
-    else {// no other protocol implemented yet
-	DEBUGMSG(17, "  NO FRAG PROTOCOL\n");
-	return NULL;
-    }
-    // common fields of SEQUENCED2012 and CCNPDU2013 fragmentation:
+    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
     hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS,
 			  CCN_TT_DTAG, 0, e->flagbytes);
     flagoffs = hdrlen - 2;
@@ -191,15 +170,9 @@ ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
     hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
 			  e->losscount, e->losscountbytes);
 
-    if (e->protocol == CCNL_FRAG_SEQUENCED2012) {
-	hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR,
-			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
-	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    } else {
-	hdrlen += mkBinaryInt(header + hdrlen, CCN_DTAG_SEQNO,
-			      CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
-	hdrlen += mkHeader(header+hdrlen, CCN_DTAG_ANY, CCN_TT_DTAG);
-    }
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR,
+			  CCN_TT_DTAG, e->sendseq, e->sendseqbytes);
+    hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     blobtaglen = mkHeader(header+hdrlen, e->mtu - hdrlen - 2, CCN_TT_BLOB);
 
     datalen = e->mtu - hdrlen - blobtaglen - 2;
@@ -214,17 +187,6 @@ ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
     memcpy(buf->data + hdrlen, e->bigpkt->data + e->sendoffs, datalen);
     buf->data[hdrlen + datalen] = '\0'; // end of content/any field
     buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment/pdu
-
-/*
-	{ int f = open("t.ccnb", O_WRONLY|O_CREAT);
-	    if (f < 0)
-		perror("open");
-	    if (write(f, buf->data, buf->datalen) < 0)
-		perror("write");
-	    close(f);
-	}
-	exit(-1);
-*/
 
     if (datalen >= e->bigpkt->datalen) { // fits in a single fragment
 	buf->data[flagoffs + e->flagbytes - 1] =
@@ -250,6 +212,87 @@ ccnl_frag_mknextfragment(struct ccnl_frag_s *e, int *ifndx,
     if (su)
 	memcpy(su, &e->dest, sizeof(*su));
     return buf;
+}
+
+struct ccnl_buf_s*
+ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
+{
+    struct ccnl_buf_s *buf = 0;
+    unsigned char header[256];
+    int hdrlen, blobtaglen, datalen, flagoffs;
+
+    // switch among encodings of fragments here (ccnb, TLV, etc)
+
+    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);   // fragment
+
+    hdrlen += mkHeader(header + hdrlen, CCNL_DTAG_FRAG_TYPE, CCN_TT_DTAG);
+    hdrlen += mkHeader(header + hdrlen, 3, CCN_TT_BLOB);
+    memcpy(header + hdrlen, "\x14\x70\x47", 3); // "FHBH"
+    header[hdrlen + 3] = '\0';
+    hdrlen += 4;
+
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
+			  fr->sendseq, fr->sendseqwidth);
+
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
+			  0, fr->flagswidth);
+    flagoffs = hdrlen - 2; // most significant byte of flag element
+
+    // other optional fields would go here
+
+    hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+
+    blobtaglen = mkHeader(header + hdrlen, fr->mtu - hdrlen - 2, CCN_TT_BLOB);
+    datalen = fr->mtu - hdrlen - blobtaglen - 2;
+    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
+	datalen = fr->bigpkt->datalen - fr->sendoffs;
+    hdrlen += mkHeader(header + hdrlen, datalen, CCN_TT_BLOB);
+
+    buf = ccnl_buf_new(NULL, hdrlen + datalen + 2);
+    if (!buf)
+	return NULL;
+    memcpy(buf->data, header, hdrlen);
+    memcpy(buf->data + hdrlen, fr->bigpkt->data + fr->sendoffs, datalen);
+    buf->data[hdrlen + datalen] = '\0'; // end of content field
+    buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment
+
+    // patch flag field:
+    if (datalen >= fr->bigpkt->datalen) { // single
+	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_SINGLE;
+	ccnl_free(fr->bigpkt);
+	fr->bigpkt = NULL;
+    } else if (fr->sendoffs == 0) // start
+	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_FIRST;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_LAST;
+	ccnl_free(fr->bigpkt);
+	fr->bigpkt = NULL;
+    } else
+	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_MID;
+
+    fr->sendoffs += datalen;
+    fr->sendseq++;
+
+    return buf;
+}
+
+
+struct ccnl_buf_s*
+ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
+{
+    if (!fr->bigpkt) return NULL;
+
+    DEBUGMSG(99, "fragmenting %d bytes (@ %d)\n",
+	     			fr->bigpkt->datalen, fr->sendoffs);
+
+    switch (fr->protocol) {
+    case CCNL_FRAG_SEQUENCED2012:
+	return ccnl_frag_getnextSEQD2012(fr, ifndx, su);
+    case CCNL_FRAG_CCNx2013:
+	return ccnl_frag_getnextCCNx2013(fr, ifndx, su);
+    default:
+	return NULL;
+    }
 }
 
 int
@@ -498,9 +541,9 @@ ccnl_frag_RX_pdu2013(RX_datagram callback,
      */
     if (memcmp(pdutype, "\x15\x11\x92", 3) == 0) { // sequential
 	if (!from->frag)
-	    from->frag = ccnl_frag_new(CCNL_FRAG_CCNPDU2013,
+	    from->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013,
 					   relay->ifs[from->ifndx].mtu);
-	if (from->frag && from->frag->protocol == CCNL_FRAG_CCNPDU2013)
+	if (from->frag && from->frag->protocol == CCNL_FRAG_CCNx2013)
 	    ccnl_frag_RX_serialfragment(callback, relay, from, &s);
 	else
 	    DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");

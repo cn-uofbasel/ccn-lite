@@ -30,27 +30,94 @@
 
 #include <arpa/inet.h> // sockaddr
 
+#define USE_FRAG
+
 #include "../ccnx.h"
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #include "ccnl-common.c"
 #include "../ccnl-pdu.c"
-#include "ccnl-frag.h"
+//#include "ccnl-frag.h"
 
 // ----------------------------------------------------------------------
+
+#define DEBUGMSG(LVL, ...) do {       \
+        fprintf(stderr, __VA_ARGS__);   \
+    } while (0)
+#define ccnl_malloc(s)                  malloc(s)
+#define ccnl_calloc(n,s)                calloc(n,s)
+#define ccnl_realloc(p,s)               realloc(p,s)
+#define ccnl_free(p)                    free(p)
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b;
+
+    b = (struct ccnl_buf_s *) malloc(sizeof(*b) + len);
+    if (!b)
+	return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+	memcpy(b->data, data, len);
+    return b;
+}
+
+static int consume(int typ, int num, unsigned char **buf, int *len,
+		   unsigned char **valptr, int *vallen);
+
+static int
+hunt_for_end(unsigned char **buf, int *len,
+	     unsigned char **valptr, int *vallen)
+{
+    int typ, num;
+
+    while (dehead(buf, len, &num, &typ) == 0) {
+	if (num==0 && typ==0)					return 0;
+	if (consume(typ, num, buf, len, valptr, vallen) < 0)	return -1;
+    }
+    return -1;
+}
+
+static int
+consume(int typ, int num, unsigned char **buf, int *len,
+	unsigned char **valptr, int *vallen)
+{
+    if (typ == CCN_TT_BLOB || typ == CCN_TT_UDATA) {
+	if (valptr)  *valptr = *buf;
+	if (vallen)  *vallen = num;
+	*buf += num, *len -= num;
+	return 0;
+    }
+    if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR)
+	return hunt_for_end(buf, len, valptr, vallen);
+//  case CCN_TT_TAG, CCN_TT_ATTR:
+//  case DTAG, DATTR:
+    return -1;
+}
+
+int
+ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                    unsigned char **data, int *datalen)
+{
+    return 0;
+}
+
+// ----------------------------------------------------------------------
+
+#include "../ccnl-ext.h"
+#include "../ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
 struct ccnl_buf_s*
-ccnl_frag_getnext(struct ccnl_frag_s *fr)
+ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
     int hdrlen, blobtaglen, datalen, flagoffs;
-
-    if (!fr->bigpkt) return NULL;
-
-    printf("fragmenting %d bytes (@ %d)\n", fr->bigpkt->datalen, fr->sendoffs);
 
     // switch among encodings of fragments here (ccnb, TLV, etc)
 
@@ -107,6 +174,22 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr)
     return buf;
 }
 
+
+struct ccnl_buf_s*
+ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
+{
+    if (!fr->bigpkt) return NULL;
+
+    printf("fragmenting %d bytes (@ %d)\n", fr->bigpkt->datalen, fr->sendoffs);
+
+    switch (fr->protocol) {
+    case CCNL_FRAG_SEQUENCED2012:
+	return ccnl_frag_getnextCCNx2013(fr, ifndx, su);
+    default:
+	return NULL;
+    }
+}
+
 void 
 file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
 	   unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
@@ -123,7 +206,8 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
     fr.sendseqwidth = seqnrwidth;
     fr.flagswidth = 1;
 
-    fragbuf = ccnl_frag_getnext(&fr);
+    //    fragbuf = ccnl_frag_getnext(&fr);
+    fragbuf = ccnl_frag_mknext(&fr, NULL, NULL);
     while (fragbuf) {
 	sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
 	if (noclobber && !access(fname, F_OK)) {
@@ -140,7 +224,7 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
 		close(f);
 	    }
 	    ccnl_free(fragbuf);
-	    fragbuf = ccnl_frag_getnext(&fr);
+	    fragbuf = ccnl_frag_mknext(&fr, NULL, NULL); //ccnl_frag_getnext(&fr);
 	}
 	cnt++;
     }

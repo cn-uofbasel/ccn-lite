@@ -474,7 +474,7 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     struct ccnl_buf_s *buf;
     DEBUGMSG(99, "ccnl_face_CTS face=%p sched=%p\n", (void*)f, (void*)f->sched);
 
-    if (!f->frag) {
+    if (!f->frag || f->frag->protocol == CCNL_FRAG_NONE) {
 	buf = ccnl_face_dequeue(ccnl, f);
 	if (buf)
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,
@@ -484,11 +484,11 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     else {
 	sockunion dst;
 	int ifndx = f->ifndx;
-	buf = ccnl_frag_mknextfragment(f->frag, &ifndx, &dst);
+	buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	if (!buf) {
 	    buf = ccnl_face_dequeue(ccnl, f);
 	    ccnl_frag_reset(f->frag, buf, f->ifndx, &f->peer);
-	    buf = ccnl_frag_mknextfragment(f->frag, &ifndx, &dst);
+	    buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	}
 	if (buf) {
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,

@@ -38,7 +38,7 @@
 
 #define CCNL_FRAG_NONE		0
 #define CCNL_FRAG_SEQUENCED2012	1
-#define CCNL_FRAG_CCNPDU2013	2
+#define CCNL_FRAG_CCNx2013	2
 
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
@@ -130,8 +130,10 @@ struct ccnl_frag_s {
 
     struct ccnl_buf_s *defrag;
     unsigned char flagbytes;
+    unsigned char flagswidth;
 
     unsigned int sendseq;
+    unsigned char sendseqwidth;
     unsigned int losscount;
     unsigned int recvseq;
     unsigned char sendseqbytes;
