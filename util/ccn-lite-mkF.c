@@ -41,10 +41,13 @@
 //#include "ccnl-frag.h"
 
 // ----------------------------------------------------------------------
-
+/*
 #define DEBUGMSG(LVL, ...) do {       \
-        fprintf(stderr, __VA_ARGS__);   \
+    	fprintf(stderr, __VA_ARGS__);     \
     } while (0)
+*/
+#define DEBUGMSG(LVL, ...) do {} while (0)
+
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
 #define ccnl_realloc(p,s)               realloc(p,s)
@@ -112,85 +115,6 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // ----------------------------------------------------------------------
 
-#ifdef XXX
-
-struct ccnl_buf_s*
-ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
-{
-    struct ccnl_buf_s *buf = 0;
-    unsigned char header[256];
-    int hdrlen, blobtaglen, datalen, flagoffs;
-
-    // switch among encodings of fragments here (ccnb, TLV, etc)
-
-    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);   // fragment
-
-    hdrlen += mkHeader(header + hdrlen, CCNL_DTAG_FRAG_TYPE, CCN_TT_DTAG);
-    hdrlen += mkHeader(header + hdrlen, 3, CCN_TT_BLOB);
-    memcpy(header + hdrlen, "\x14\x70\x47", 3); // "FHBH"
-    header[hdrlen + 3] = '\0';
-    hdrlen += 4;
-
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
-			  fr->sendseq, fr->sendseqwidth);
-
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
-			  0, fr->flagwidth);
-    flagoffs = hdrlen - 2; // most significant byte of flag element
-
-    // other optional fields would go here
-
-    hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-
-    blobtaglen = mkHeader(header + hdrlen, fr->mtu - hdrlen - 2, CCN_TT_BLOB);
-    datalen = fr->mtu - hdrlen - blobtaglen - 2;
-    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
-	datalen = fr->bigpkt->datalen - fr->sendoffs;
-    hdrlen += mkHeader(header + hdrlen, datalen, CCN_TT_BLOB);
-
-    buf = ccnl_buf_new(NULL, hdrlen + datalen + 2);
-    if (!buf)
-	return NULL;
-    memcpy(buf->data, header, hdrlen);
-    memcpy(buf->data + hdrlen, fr->bigpkt->data + fr->sendoffs, datalen);
-    buf->data[hdrlen + datalen] = '\0'; // end of content field
-    buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment
-
-    // patch flag field:
-    if (datalen >= fr->bigpkt->datalen) { // single
-	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_SINGLE;
-	ccnl_free(fr->bigpkt);
-	fr->bigpkt = NULL;
-    } else if (fr->sendoffs == 0) // start
-	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_FIRST;
-    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
-	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_LAST;
-	ccnl_free(fr->bigpkt);
-	fr->bigpkt = NULL;
-    } else
-	buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_MID;
-
-    fr->sendoffs += datalen;
-    fr->sendseq++;
-
-    return buf;
-}
-
-struct ccnl_buf_s*
-ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
-{
-    if (!fr->bigpkt) return NULL;
-
-    printf("fragmenting %d bytes (@ %d)\n", fr->bigpkt->datalen, fr->sendoffs);
-
-    switch (fr->protocol) {
-    case CCNL_FRAG_SEQUENCED2012:
-	return ccnl_frag_getnextCCNx2013(fr, ifndx, su);
-    default:
-	return NULL;
-    }
-}
-#endif
 void 
 file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
 	   unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
@@ -201,6 +125,7 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
     int cnt = 0, f;
 
     memset(&fr, 0, sizeof(fr));
+    fr.protocol = CCNL_FRAG_CCNx2013;
     fr.bigpkt = ccnl_buf_new(data, datalen);
     fr.mtu = bytelimit;
     fr.sendseq = *seqnr;
@@ -261,7 +186,7 @@ main(int argc, char *argv[])
         case 'h':
 	default:
 	    fprintf(stderr, "usage: %s [options] FILE(S)\n"
-	    "  -b LIMIT    MTU limit\n"
+	    "  -b LIMIT    MTU limit (default is 1500)\n"
 	    "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
 	    "  -n          no-clobber\n"
 	    "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n",

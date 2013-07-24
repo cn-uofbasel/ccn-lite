@@ -474,13 +474,17 @@ ccnl_frag_RX_frag2012(RX_datagram callback,
 	return 0;
     }
 
-    if (!from->frag)
-	from->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012,
+    if (from) {
+      if (!from->frag)
+	  from->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012,
 				       relay->ifs[from->ifndx].mtu);
-    if (from->frag && from->frag->protocol == CCNL_FRAG_SEQUENCED2012)
+      if (from->frag && from->frag->protocol == CCNL_FRAG_SEQUENCED2012)
+	  ccnl_frag_RX_serialfragment(callback, relay, from, &s);
+      else
+	  DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
+    } else
 	ccnl_frag_RX_serialfragment(callback, relay, from, &s);
-   else
-	DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
+
     return 0;
 Bail:
     DEBUGMSG(1, "* frag bailing\n");
@@ -548,13 +552,16 @@ ccnl_frag_RX_CCNx2013(RX_datagram callback,
     }
 
     if (memcmp(pdutype, CCNL_FRAG_TYPE_CCNx2013_VAL, 3) == 0) { // hop-by-hop
-	if (!from->frag)
-	    from->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013,
+	if (from) {
+	    if (!from->frag)
+		from->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013,
 					   relay->ifs[from->ifndx].mtu);
-	if (from->frag && from->frag->protocol == CCNL_FRAG_CCNx2013)
+	    if (from->frag && from->frag->protocol == CCNL_FRAG_CCNx2013)
+		ccnl_frag_RX_serialfragment(callback, relay, from, &s);
+	    else
+		DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
+	} else 
 	    ccnl_frag_RX_serialfragment(callback, relay, from, &s);
-	else
-	    DEBUGMSG(1, "WRONG FRAG PROTOCOL\n");
     }
 
     /*

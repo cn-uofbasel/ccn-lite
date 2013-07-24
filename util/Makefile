@@ -17,7 +17,7 @@ all: $(PROGS)
 ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../ccnx.h ../ccnl.h ../ccnl-pdu.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ 
 
-ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../ccnx.h ../ccnl.h ccnl-common.c
+ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
 
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ../ccnx.h ../ccnl.h ccnl-common.c
