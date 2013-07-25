@@ -515,7 +515,7 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         max[line] = itr->maxsuffix;
         retries[line] = itr->retries;
         publisher[line] = (long)(void *) itr->ppkd;
-        get_prefix_dump(lev, p, &prefixlen[line], &prefix[line]);
+        get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
         ++line;
