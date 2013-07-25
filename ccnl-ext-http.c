@@ -305,8 +305,8 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 #ifdef USE_DEBUG_MALLOC
     len +=  sprintf(txt+len, " DEBUG_MALLOC");
 #endif
-#ifdef USE_ENCAPS
-    len +=  sprintf(txt+len, " ENCAPS");
+#ifdef USE_FRAG
+    len +=  sprintf(txt+len, " FRAGS");
 #endif
 #ifdef USE_ETHERNET
     len +=  sprintf(txt+len, " ETHERNET");

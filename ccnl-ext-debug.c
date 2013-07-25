@@ -108,9 +108,11 @@ ccnl_addr2ascii(sockunion *su)
 		    ntohs(su->ip4.sin_port));
 	    return result;
 //	    return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
+#ifdef USE_UNIXSOCKET
 	case AF_UNIX:
 	    strcpy(result, su->ux.sun_path);
 	    return result;
+#endif
 	default:
 	    break;
     }
@@ -153,14 +155,16 @@ blob(unsigned char *cp, int len)
 
 
 void
-encaps(int e)
+frag(int e)
 {
-    if (e == CCNL_ENCAPS_NONE)
+    if (e == CCNL_FRAG_NONE)
 	return;
-    if (e == CCNL_ENCAPS_SEQUENCED2012)
-	fprintf(stderr, " encaps=sequenced2012");
+    if (e == CCNL_FRAG_SEQUENCED2012)
+	fprintf(stderr, " frag=sequenced2012");
+    else if (e == CCNL_FRAG_CCNx2013)
+	fprintf(stderr, " frag=ccnx2013");
     else
-	fprintf(stderr, " encaps=%d", e);
+	fprintf(stderr, " frag=%d", e);
 }
 
 enum { // numbers for each data type
@@ -251,8 +255,8 @@ ccnl_dump(int lev, int typ, void *p)
 		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
 	    else
 		fprintf(stderr, " peer=?");
-	    if (fac->encaps)
-		encaps(fac->encaps->protocol);
+	    if (fac->frag)
+		frag(fac->frag->protocol);
 	    fprintf(stderr, "\n");
 	    if (fac->outq) {
 		INDENT(lev+1); fprintf(stderr, "outq:\n");
@@ -392,8 +396,8 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
             type[line] = AF_UNIX;
         else
             type[line] = 0;
-        if (fac->encaps)
-            encaps(fac->encaps->protocol);
+        if (fac->frag)
+            frag(fac->frag->protocol);
         fac = fac->next;
         ++line;
     }

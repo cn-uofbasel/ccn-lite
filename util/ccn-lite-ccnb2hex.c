@@ -29,7 +29,7 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
-#include "ccnl-common.c"
+// #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
 
@@ -153,13 +153,14 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
 	    case CCNL_DTAG_IP4SRC:	 n = "IP4src"; break;
-	    case CCNL_DTAG_ENCAPS:	 n = "encapsulation"; break;
+	    case CCNL_DTAG_FRAG:	 n = "fragmentation"; break;
 	    case CCNL_DTAG_FACEFLAGS:	 n = "faceFlags"; break;
 	    case CCNL_DTAG_DEBUGREQUEST: n = "debugRequest"; break;
 	    case CCNL_DTAG_DEBUGACTION:	 n = "debugAction"; break;
 
 	    case CCNL_DTAG_FRAGMENT:     n = "fragment"; break;
-	    case CCNL_DTAG_FRAG_OSEQN:   n = "fragmentOurSeqNo"; break;
+	    case CCNL_DTAG_FRAG_TYPE:    n = "fragmentType"; break;
+	    case CCNL_DTAG_FRAG_SEQNR:   n = "fragmentSeqNr"; break;
 	    case CCNL_DTAG_FRAG_OLOSS:   n = "fragmentOurLoss"; break;
 	    case CCNL_DTAG_FRAG_YSEQN:   n = "fragmentYourSeqNo"; break;
 	    case CCNL_DTAG_FRAG_FLAGS:   n = "fragmentFlags"; break;
@@ -214,7 +215,7 @@ main(int argc, char *argv[])
 	perror("read");
 	return 1;
     }
-    printf("Parsing %d byte%s:\n\n", len, len!=1 ? "s":"");
+    printf("# Parsing %d byte%s:\n#\n", len, len!=1 ? "s":"");
     parse_lev(0, data, &buf, &len, "top");
 
     return 0;

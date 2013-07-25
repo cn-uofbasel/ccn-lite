@@ -252,8 +252,10 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
 	case AF_INET:
 	    return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
 			s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
+#ifdef USE_UNIXSOCKET
 	case AF_UNIX:
 	    return strcmp(s1->ux.sun_path, s2->ux.sun_path);
+#endif
 	default:
 	    break;
     }
@@ -329,7 +331,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     DEBUGMSG(1, "ccnl_face_remove relay=%p face=%p\n", (void*)ccnl, (void*)f);
 
     ccnl_sched_destroy(f->sched);
-    ccnl_encaps_destroy(f->encaps);
+    ccnl_frag_destroy(f->frag);
 
     for (pit = ccnl->pit; pit; ) {
 	struct ccnl_pendint_s **ppend, *pend;
@@ -472,21 +474,21 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     struct ccnl_buf_s *buf;
     DEBUGMSG(99, "ccnl_face_CTS face=%p sched=%p\n", (void*)f, (void*)f->sched);
 
-    if (!f->encaps) {
+    if (!f->frag || f->frag->protocol == CCNL_FRAG_NONE) {
 	buf = ccnl_face_dequeue(ccnl, f);
 	if (buf)
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,
 				   ccnl, ccnl->ifs + f->ifndx, buf, &f->peer);
     }
-#ifdef USE_ENCAPS
+#ifdef USE_FRAG
     else {
 	sockunion dst;
 	int ifndx = f->ifndx;
-	buf = ccnl_encaps_mknextfragment(f->encaps, &ifndx, &dst);
+	buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	if (!buf) {
 	    buf = ccnl_face_dequeue(ccnl, f);
-	    ccnl_encaps_reset(f->encaps, buf, f->ifndx, &f->peer);
-	    buf = ccnl_encaps_mknextfragment(f->encaps, &ifndx, &dst);
+	    ccnl_frag_reset(f->frag, buf, f->ifndx, &f->peer);
+	    buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	}
 	if (buf) {
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,
@@ -521,8 +523,8 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
     to->outqend = buf;
 #ifdef USE_SCHEDULER
     if (to->sched) {
-#ifdef USE_ENCAPS
-	int len, cnt = ccnl_encaps_getfragcount(to->encaps, buf->datalen, &len);
+#ifdef USE_FRAG
+	int len, cnt = ccnl_frag_getfragcount(to->frag, buf->datalen, &len);
 #else
 	int len = buf->datalen, cnt = 1;
 #endif
@@ -966,14 +968,12 @@ ccnl_core_RX_datagram(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	case CCN_DTAG_CONTENTOBJ:
 	    rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
 	    continue;
-#ifdef USE_ENCAPS
-	case CCN_DTAG_CCNPDU:
-	    rc = ccnl_encaps_RX_pdu2013(ccnl_core_RX_datagram,
-					relay, from, data, datalen);
+#ifdef USE_FRAG
+	case CCNL_DTAG_FRAGMENT2012:
+	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 	case CCNL_DTAG_FRAGMENT:
-	    rc = ccnl_encaps_RX_frag2012(ccnl_core_RX_datagram,
-					 relay, from, data, datalen);
+	    rc = ccnl_frag_RX_CCNx2013(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 #endif
 	default:
