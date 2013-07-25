@@ -219,7 +219,8 @@ ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
     unsigned char header[256];
-    int hdrlen, blobtaglen, datalen, flagoffs;
+    int hdrlen, blobtaglen, flagoffs;
+    unsigned int datalen;
 
     // switch among encodings of fragments here (ccnb, TLV, etc)
 
