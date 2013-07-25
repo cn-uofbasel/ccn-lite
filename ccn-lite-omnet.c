@@ -842,7 +842,7 @@ ccnl_add_fwdrule(
                         sizeof(sun.eth));
 #ifdef USE_FRAG
     if ( !fwd->face->frag )	// if newly created face, no fragment policy is defined yet
-        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNPDU2013, 1200);
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
 #endif
 
     if (! (fwd->face))
