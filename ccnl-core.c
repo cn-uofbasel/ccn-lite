@@ -50,8 +50,8 @@ int
 ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
 		struct ccnl_prefix_s *p, int plen, int mode)
 /* returns -1 if no match at all (all modes) or exact match failed
-   returns  0 if full match (CMP_EXACT and CMP_MATCH)
-   returns n>0 for matched components+1 (CMP_MATCH, CMP_LONGEST) */
+   returns  0 if full match (CMP_EXACT)
+   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
 {
     int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;

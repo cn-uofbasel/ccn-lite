@@ -29,4 +29,7 @@ util/ccn-lite-mkI
 # scripts
 test/scripts/test-digest.sh
 
+# unit tests
+test/unit/prefix_cmp
+
 # eof
