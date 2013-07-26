@@ -507,7 +507,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 		    int contlen, datalen = buf->datalen - 2;
 
 		    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-				0, &prefix, &nonce, &ppkd, &content, &contlen);
+			      0, 0, &prefix, &nonce, &ppkd, &content, &contlen);
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }
