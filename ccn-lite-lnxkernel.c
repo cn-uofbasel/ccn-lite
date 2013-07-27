@@ -279,7 +279,8 @@ ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
 	    break;
     if (!theRelay.halt_flag &&  i < theRelay.ifcount) {
 	su.sa.sa_family = AF_PACKET;
-	memcpy(su.eth.sll_addr, skb->data, ETH_ALEN);
+	memcpy(su.eth.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
+	su.eth.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
 	ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
     } else
 	kfree_skb(skb);
