@@ -2,7 +2,7 @@
 
 # history:
 # 2012-10-12 created (christian.tschudin@unibas.ch)
-# 2013-07-25 this version
+# 2013-07-27 this version
 
 
 Abstract:
@@ -66,12 +66,14 @@ should cover:
 As an interoperability goal we set for ourselves the threshold that
 the CCN-lite software must be able to route at the CCN level between
 fully fledged CCNx daemons so that one can successfully run
-applications such as PARC's chat and the SYNC protocol over a
-heterogeneous CCNx network:
+applications such as PARC's SYNC protocol over a heterogeneous
+CCNx network:
 
- ccnchat or sync (ccnr)                            ccnchat or sync (ccnr)
-         |                                                  |
-        ccnd <--> ccn-lite-relay <--> ccn-lite-relay <--> ccnd
+  sync (ccnr)                                             sync (ccnr)
+     |                                                       |
+   ccnd <--> ccn-lite-relay <-- eth --> ccn-lite-relay <--> ccnd
+
+See the script test/script/interop-SYNCoEth-a.sh how this is done.
 
 What we do NOT cover in our CCN-lite code is:
 
