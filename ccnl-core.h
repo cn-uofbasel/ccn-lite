@@ -43,10 +43,6 @@
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
 
-#include <linux/if_packet.h>
-#include <linux/if_ether.h>
-#include <linux/if.h>
-
 // ----------------------------------------------------------------------
 
 typedef union {
