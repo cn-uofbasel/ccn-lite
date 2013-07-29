@@ -154,17 +154,15 @@ blob(unsigned char *cp, int len)
 }
 
 
-void
-frag(int e)
+char*
+frag_protocol(int e)
 {
-    if (e == CCNL_FRAG_NONE)
-	return;
-    if (e == CCNL_FRAG_SEQUENCED2012)
-	fprintf(stderr, " frag=sequenced2012");
-    else if (e == CCNL_FRAG_CCNx2013)
-	fprintf(stderr, " frag=ccnx2013");
-    else
-	fprintf(stderr, " frag=%d", e);
+    static char* names[] = { "none", "sequenced2012", "ccnx2013" };
+    static char buf[100];
+    if (e >= 0 && e <= 2)
+	return names[e];
+    sprintf(buf, "%d", e);
+    return buf;
 }
 
 enum { // numbers for each data type
@@ -172,6 +170,7 @@ enum { // numbers for each data type
     CCNL_PREFIX,
     CCNL_RELAY,
     CCNL_FACE,
+    CCNL_FRAG,
     CCNL_FWD,
     CCNL_INTEREST,
     CCNL_PENDINT,
@@ -185,6 +184,7 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) p;
+    struct ccnl_frag_s     *frg = (struct ccnl_frag_s     *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
@@ -256,7 +256,7 @@ ccnl_dump(int lev, int typ, void *p)
 	    else
 		fprintf(stderr, " peer=?");
 	    if (fac->frag)
-		frag(fac->frag->protocol);
+		ccnl_dump(lev+2, CCNL_FRAG, fac->frag);
 	    fprintf(stderr, "\n");
 	    if (fac->outq) {
 		INDENT(lev+1); fprintf(stderr, "outq:\n");
@@ -265,6 +265,12 @@ ccnl_dump(int lev, int typ, void *p)
 	    fac = fac->next;
 	}
 	break;
+#ifdef USE_FRAG
+    case CCNL_FRAG:
+	fprintf(stderr, " fragproto=%s mtu=%d",
+		frag_protocol(frg->protocol), frg->mtu);
+	break;
+#endif
     case CCNL_FWD:
 	while (fwd) {
 	    INDENT(lev);
@@ -369,7 +375,7 @@ get_num_faces(void *p)
 
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
-        int *ifndx, int *flags, char **peer, int *type)
+	       int *ifndx, int *flags, char **peer, int *type, char **frag)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -397,7 +403,11 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         else
             type[line] = 0;
         if (fac->frag)
-            frag(fac->frag->protocol);
+	    sprintf(frag[line], "frag(proto=%s, mtu=%d)",
+		    frag_protocol(fac->frag->protocol), fac->frag->mtu);
+	else
+	    frag[line][0] = '\0';
+
         fac = fac->next;
         ++line;
     }

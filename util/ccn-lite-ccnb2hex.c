@@ -204,16 +204,25 @@ int
 main(int argc, char *argv[])
 {
     unsigned char data[64*1024], *buf = data;
-    int len;
+    int rc, len, maxlen;
 
     if (argc > 1) {
 	fprintf(stderr, "usage: %s < ccn_encoded_data\n", argv[0]);
 	return 2;
     }
-    len = read(0, data, sizeof(data));
-    if (len < 0) {
-	perror("read");
-	return 1;
+
+    len = 0;
+    maxlen = sizeof(data);
+    while (maxlen > 0) {
+	rc = read(0, data+len, maxlen);
+	if (rc == 0)
+	    break;
+	if (rc < 0) {
+	    perror("read");
+	    return 1;
+	}
+	len += rc;
+	maxlen -= rc;
     }
     printf("# Parsing %d byte%s:\n#\n", len, len!=1 ? "s":"");
     parse_lev(0, data, &buf, &len, "top");

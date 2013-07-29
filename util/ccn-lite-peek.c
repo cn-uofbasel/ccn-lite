@@ -188,7 +188,7 @@ void
 request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
 		char *dest, unsigned char *out, int len, float wait)
 {
-    unsigned char buf[8*1024];
+    unsigned char buf[64*1024];
     int len2 = sendproc(sock, dest, out, len), rc;
 
     if (len2 < 0) {

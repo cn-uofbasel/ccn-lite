@@ -149,8 +149,10 @@ create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacede
     return len3;
 }
 
-int create_faces_stmt(int num_faces, int *faceid, long *facenext, long *faceprev, int *faceifndx,
-        int *faceflags, int *facetype, char **facepeer, unsigned char *stmt, int len3)
+int create_faces_stmt(int num_faces, int *faceid, long *facenext,
+		      long *faceprev, int *faceifndx, int *faceflags,
+		      int *facetype, char **facepeer, char **facefrag,
+		      unsigned char *stmt, int len3)
 {
     int it;
     char str[100];
@@ -191,6 +193,7 @@ int create_faces_stmt(int num_faces, int *faceid, long *facenext, long *faceprev
             sprintf(str,"peer=?");
             len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
         }
+	// FIXME: dump frag information if present
 
         stmt[len3++] = 0; //end of faceinstance;    
     }
@@ -327,7 +330,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int it;
     int *faceid, *faceifndx, *faceflags, *facetype; //store face-info
     long *facenext, *faceprev;
-    char **facepeer;
+    char **facepeer, **facefrag;
     
     int *fwdfaceid ,*fwdprefixlen; 
     long *fwd, *fwdnext, *fwdface;
@@ -361,8 +364,11 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //Alloc memory storage for face answer
     num_faces = get_num_faces(ccnl);
     facepeer = (char**)ccnl_malloc(num_faces*sizeof(char*));
-    for(it = 0; it <num_faces; ++it)
+    facefrag = (char**)ccnl_malloc(num_faces*sizeof(char*));
+    for(it = 0; it <num_faces; ++it) {
         facepeer[it] = (char*)ccnl_malloc(50*sizeof(char));
+        facefrag[it] = (char*)ccnl_malloc(50*sizeof(char));
+    }
     faceid = (int*)ccnl_malloc(num_faces*sizeof(int));
     facenext = (long*)ccnl_malloc(num_faces*sizeof(long));
     faceprev = (long*)ccnl_malloc(num_faces*sizeof(long));
@@ -459,7 +465,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	if (!strcmp((const char*)debugaction, "dump")){
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
 
-            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype);
+            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
             get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
@@ -475,7 +481,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	else if (!strcmp((const char*)debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
             
-            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype);
+            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
             get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
@@ -528,7 +534,7 @@ Bail:
                 interfacedevtype, interfacereflect, interfaceaddr, stmt, len3);
         
         len3 = create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
-                faceflags, facetype, facepeer, stmt, len3);
+			faceflags, facetype, facepeer, facefrag, stmt, len3);
         
         len3 = create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, 
                 fwdprefixlen, fwdprefix, stmt, len3);
@@ -601,9 +607,12 @@ Bail:
     ccnl_free(action);
     ccnl_free(debugaction);
     
-    for(it = 0; it < num_faces; ++it)
+    for(it = 0; it < num_faces; ++it) {
         ccnl_free(facepeer[it]);
+        ccnl_free(facefrag[it]);
+    }
     ccnl_free(facepeer);
+    ccnl_free(facefrag);
     for(it = 0; it < num_interfaces; ++it)
         ccnl_free(interfaceaddr[it]);
     ccnl_free(interfaceaddr);
