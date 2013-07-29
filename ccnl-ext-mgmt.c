@@ -645,7 +645,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char faceidstr[100];
     unsigned char retstr[200];
 
-    DEBUGMSG(99, "ccnl_mgmt_newface from=%p, ifndx=%d\n", from, from->ifndx);
+    DEBUGMSG(99, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
+	     (void*) from, from->ifndx);
     action = macsrc = ip4src = proto = host = port = NULL;
     path = frag = flags = NULL;
 
@@ -833,7 +834,8 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
 
-    DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n", from, from->ifndx);
+    DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
+	     (void*) from, from->ifndx);
     action = faceid = frag = mtu = NULL;
 
     buf = prefix->comp[3];

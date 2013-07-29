@@ -44,6 +44,10 @@
 #include <netinet/in.h>
 #include <net/if.h> // IFNAMSIZE, if_nametoindex
 
+#if !(defined(_BSD_SOURCE) && defined(SVID_SOURCE))
+  int inet_aton(const char *cp, struct in_addr *inp);
+#endif
+
 #if defined(__FreeBSD__)
 #  include <sys/types.h>
 #  undef USE_ETHERNET

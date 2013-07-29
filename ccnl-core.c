@@ -634,7 +634,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	DEBUGMSG(40, "  ccnl_interest_propagate, rc=%d/%d\n", rc, fwd->prefix->compcnt);
 	if (rc < fwd->prefix->compcnt)
 	    continue;
-	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", fwd);
+	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
 	// suppress forwarding to origin of interest, except wireless
 	if (!i->from || fwd->face != i->from ||
 	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT))
@@ -854,7 +854,7 @@ int
 ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		    unsigned char **data, int *datalen)
 {
-    int rc=-1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
