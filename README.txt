@@ -254,7 +254,7 @@ Misc:
 
   #-- retrieve content, parse the fields
   % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt \
-    | ./util/ccn-lite-parse
+    | ./util/ccn-lite-ccnb2hex
 
 
 5.b) Advanced configurations via the mgmt protocol
