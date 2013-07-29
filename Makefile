@@ -1,8 +1,8 @@
 # Makefile
 
 CC=gcc
-#MYCFLAGS=-Wall -pedantic -std=c99 -g
-MYCFLAGS= -Wall -g -O0
+MYCFLAGS=-O3 -Wall -pedantic -std=c99 -g -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED
+#MYCFLAGS= -Wall -g -O0
 EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=

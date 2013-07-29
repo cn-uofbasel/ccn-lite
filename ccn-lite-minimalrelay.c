@@ -39,6 +39,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#if !(defined(_BSD_SOURCE) && defined(SVID_SOURCE))
+int inet_aton(const char *cp, struct in_addr *inp);
+#endif
+
 // ----------------------------------------------------------------------
 
 #define DEBUGMSG(LVL, ...) do {       \
