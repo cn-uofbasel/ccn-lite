@@ -30,6 +30,6 @@ util/ccn-lite-mkI
 test/scripts/test-digest.sh
 
 # unit tests
-test/unit/prefix_cmp
+test/unit/prefix-cmp
 
 # eof
