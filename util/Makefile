@@ -2,6 +2,7 @@
 
 CC?=gcc
 CFLAGS=-Wall -g
+EXTLIBS=  -lcrypto
 
 PROGS=	ccn-lite-ctrl \
 	ccn-lite-parse \
@@ -16,7 +17,7 @@ ccn-lite-parse: ccn-lite-parse.c ../ccnx.h ../ccnl.h
 
 ccn-lite-peek: ccn-lite-peek.c ../ccnx.h ../ccnl.h
 
-ccn-lite-put: ccn-lite-put.c ../ccnx.h ../ccnl.h
+ccn-lite-put: ccn-lite-put.c ../ccnx.h ../ccnl.h ${EXTLIBS}
 
 demo: $(PROGS)
 	./ccnl-mkInterest ccn-lite says hello world äöü | ./ccn-lite-parse

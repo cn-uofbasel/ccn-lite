@@ -38,6 +38,11 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#include <openssl/sha.h>
+#include <openssl/rsa.h>
+#include <openssl/objects.h>
+#include <openssl/err.h>
+
 // ----------------------------------------------------------------------
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
@@ -139,17 +144,60 @@ add_ccnl_name(unsigned char *out, char *ccn_path)
     return len;
 }
 
-int add_signed_info(unsigned char *out, char *publickey, char *filename)
+int sha1(void* input, unsigned long length, unsigned char* md)
+{
+    SHA_CTX context;
+    if(!SHA1_Init(&context))
+        return 0;
+
+    if(!SHA1_Update(&context, (unsigned char*)input, length))
+        return 0;
+
+    if(!SHA1_Final(md, &context))
+        return 0;
+
+    return 1;
+}
+
+int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
+{
+
+    //Load private key
+    FILE *fp = fopen(private_key_path, "r");
+    if(!fp) {
+        printf("Could not find private key\n");
+        return 0;
+    }
+    RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
+    fclose(fp);
+    if(!rsa) return 0;
+    
+    unsigned char md[SHA_DIGEST_LENGTH];
+    sha1(msg, msg_len, md);
+    
+    //Compute signatur
+    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    if(!err){
+        printf("Error: %d\n", ERR_get_error());
+    }
+    RSA_free(rsa);
+    return err;
+}
+
+int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
 {
     int len;
-    char str[64];
-    memset(str, 0, 64);
-    len = mkHeader(out, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-    len += mkStrBlob(out + len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG, publickey);
-    time_t last_mod = get_mtime(filename);
-    sprintf(str, "%ld", last_mod);
-    len += mkStrBlob(out + len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG, str);
+    unsigned char sig[1024];
+    int sig_len;
+
+    len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
+    len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
+    len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
+    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
+    sig[sig_len]=0;
+    len += mkStrBlob(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG, sig);
     out[len++] = 0;
+    
     return len;
 }
 
@@ -163,11 +211,14 @@ main(int argc, char *argv[])
     char *file_uri;
     char *ccn_path;
     char *new_file_uri;
-    int fsize, len;
-    if(argc < 4) goto Usage;
+    char *private_key_path;
+    int fsize, len, siglen;
+    
+    if(argc < 5) goto Usage;
     ux_path = argv[1];
     file_uri = argv[2];
     ccn_path = argv[3];
+    private_key_path = argv[4];
     
     FILE *f = fopen(file_uri, "r");
     if(!f) goto Usage;
@@ -184,10 +235,14 @@ main(int argc, char *argv[])
     //header vor das file hängen
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
     
+    siglen = add_signature(out + len, private_key_path, file, fsize);
+    if(!siglen)
+    {
+        printf("Could sign message\n");
+    }
+    
+    len += siglen;
     len += add_ccnl_name(out + len, ccn_path);
-    
-    len += add_signed_info(out + len, "1234567890", file_uri);
-    
     
     len += mkStrBlob(out + len, CCN_DTAG_CONTENT, CCN_TT_DTAG, (char *) file);
     //null ans ende hängen
@@ -206,7 +261,7 @@ main(int argc, char *argv[])
     
 Usage:
     fprintf(stderr, "usage: %s " 
-    "UX_SOCK_PATH_NAME URI CCN-PATH PUBLICKEY\n",
+    "UX_SOCK_PATH_NAME URI CCN-PATH PRIVATE-KEY-PATH\n",
     argv[0]);
     exit(1);
     return 0; // avoid a compiler warning
