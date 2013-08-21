@@ -184,9 +184,35 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     return err;
 }
 
+int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
+{
+    //Load public key
+    FILE *fp = fopen(public_key_path, "r");
+    if(!fp) {
+        printf("Could not find public key\n");
+        return 0;
+    }
+    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
+    if(!rsa) return 0;
+    fclose(fp);
+    
+    //Compute Hash
+    unsigned char md[SHA_DIGEST_LENGTH];
+    sha1(msg, msg_len, md);
+    
+    //Verify signature
+    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    if(!verified){
+        printf("Error: %d\n", ERR_get_error());
+    }
+    RSA_free(rsa);
+    return verified;
+}
+
 int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
 {
     int len;
+    
     unsigned char sig[1024];
     int sig_len;
 
@@ -197,6 +223,10 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     sig[sig_len]=0;
     len += mkStrBlob(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG, sig);
     out[len++] = 0;
+    
+    char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
+    int verified = verify(publickey, file, fsize, sig, sig_len);
+    printf("Done: %d\n", verified);
     
     return len;
 }
