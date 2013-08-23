@@ -1426,6 +1426,13 @@ Bail:
 }
 
 int
+ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    DEBUGMSG(99,"add to cache not yet implemented");
+}
+
+int
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
@@ -1439,7 +1446,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (!ccnl_is_local_addr(&from->peer)) {
+    if (!ccnl_is_local_addr(&from->peer)) { //Here certification verification, where to place certification for that?
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
 		 ccnl_addr2ascii(&from->peer));
 	ccnl_mgmt_return_msg(ccnl, orig, from,
@@ -1460,6 +1467,8 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     else if (!strcmp(cmd, "prefixreg"))
 	ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
 #ifdef USE_DEBUG
+    else if (!strcmp(cmd, "addcacheobject"))
+	ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "debug")) {
       ccnl_mgmt_debug(ccnl, orig, prefix, from);
     }
