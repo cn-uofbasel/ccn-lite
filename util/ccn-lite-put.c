@@ -1,6 +1,6 @@
 /*
- * @f util/ccn-lite-peek.c
- * @b request content: send an interest, wait for reply, output to stdout
+ * @f util/ccn-lite-put.c
+ * @b request content: create an content object or add an existing to a relay's cache
  *
  * Copyright (C) 2013, Christian Tschudin, University of Basel
  *
@@ -279,30 +279,13 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     return rc;
 }
 
-// ----------------------------------------------------------------------
-
 int
-main(int argc, char *argv[])
+createCCNXFile(char *file_uri, char *ccn_path, char *private_key_path)
 {
-    unsigned char *out, *file;
-    char *ip_address;
-    int port;
-    char *file_uri;
-    char *ccn_path;
-    char *new_file_uri;
-    char *private_key_path;
-    int fsize, len, siglen;
-    int sock;
-    
-    if(argc < 5) goto Usage;
-    ip_address = argv[1];
-    port = atoi(argv[2]);
-    file_uri = argv[3];
-    ccn_path = argv[4];
-    private_key_path = argv[5];
-    
+    long fsize, len, siglen;
+    char *out, *file, *new_file_uri;
     FILE *f = fopen(file_uri, "r");
-    if(!f) goto Usage;
+    if(!f) return 0;
     
     //size vom file abmessen
     fseek(f, 0L, SEEK_END);
@@ -313,43 +296,103 @@ main(int argc, char *argv[])
     fread(file, fsize, 1, f);
     fclose(f);
     out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
-    //header vor das file hängen
+
     
-    
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
-    
-    len += mkHeader(out+len, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); //content component 
-    
-    len += mkHeader(out + len, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); //content object
-    
+    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); //content object
+  
     siglen = add_signature(out + len, private_key_path, file, fsize);
     if(!siglen)
     {
         printf("Could sign message\n");
     }
     len += siglen;
+    
+    //FIXME: Add sign info + publisher public key, what is this?
+    
     len += add_ccnl_name(out + len, ccn_path);
     
     len += mkStrBlob(out + len, CCN_DTAG_CONTENT, CCN_TT_DTAG, (char *) file);
 
     out[len++] = 0; //content object end
-    out[len++] = 0; //content component  end
-    
-    out[len++] = 0; //name end
-    out[len++] = 0; //interest end
     
     //write file
-    new_file_uri = (char *) malloc(sizeof(char)*1000);
+    new_file_uri = (char *) malloc(sizeof(char)*1024);
     sprintf(new_file_uri, "%s.ccnb", file_uri);
     FILE *f2 = fopen(new_file_uri, "w");
-    if(!f2) goto Usage;
+    if(!f2) return 0;
     fwrite(out, 1L, len, f2);
+    fclose(f2);
+    free(out);
+    free(file);
     
+    return 1;
+}
+
+int
+addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
+{
+    int sock;
+    char mysockname[200];
+    long len = 100, fsize;
+    char *ccnb_file, *out;
+    FILE *f = fopen(file_uri, "r");
+    if(!f) return 0;
+    
+    //determine size of the file
+    fseek(f, 0L, SEEK_END);
+    fsize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    
+    ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
+    fread(ccnb_file, fsize, 1, f);
+    fclose(f);
+   
+    //Create ccn-lite-ctrl object with signature to add content...
+    out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
+    
+    
+    sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
+    sock = ux_open(mysockname);
+    printf("%s\n", socket_path);
+    ux_sendto(sock, socket_path, ccnb_file, fsize);
+    //ux_sendto(sock, socket_path, out, len);
+    
+    free(ccnb_file);
+    free(out);
+    return 1;
+}
+
+// ----------------------------------------------------------------------
+
+int
+main(int argc, char *argv[])
+{
+    int create = 0;
+    
+    char *unix_socket_path;
+    char *file_uri;
+    char *ccn_path;
+    char *private_key_path;
+    
+    if(!strcmp(argv[1], "create"))
+    {
+        if(argc < 5) goto Usage;
+        create = 1;
+        file_uri = argv[2];
+        ccn_path = argv[3];
+        private_key_path = argv[4];
+        if(!createCCNXFile(file_uri, ccn_path, private_key_path)) goto Usage;
+    }
+    else if(!strcmp(argv[1], "add"))
+    {
+        if(argc < 5) goto Usage;
+        file_uri = argv[2];  
+        unix_socket_path = argv[3];
+        private_key_path = argv[4];
+        
+        if(!addToRelayCache(file_uri, unix_socket_path, private_key_path)) goto Usage;
+    }
+       
     /*//create socket    
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { perror("cannot create socket"); return 0; }
     struct sockaddr_in outaddr; 
@@ -365,21 +408,13 @@ main(int argc, char *argv[])
     relayaddr.sin_port = port;
     sendto(sock, out, len, 0, (struct sockaddr *)&relayaddr, sizeof(relayaddr));*/
     
-    printf("%s\n", ip_address);
-    char mysockname[200];
-    sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
-    sock = ux_open(mysockname);
-    ux_sendto(sock, ip_address, out, len);
-    
-    fclose(f2);
-    free(out);
-    free(file);
     return 0;
     
 Usage:
-    fprintf(stderr, "usage: %s " 
-    "IP-Address URI CCN-PATH PRIVATE-KEY-PATH\n",
-    argv[0]);
+    fprintf(stderr, "usage: \n" 
+    " %s create file_uri ccn_path private_key_path\n"
+    " %s add file_uri unix_socket_path private_key_path\n",
+    argv[0], argv[0]);
     exit(1);
     return 0; // avoid a compiler warning
 }
