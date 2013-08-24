@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ccn-lite/test/scripts/interop-peering-XLLX.sh
 
 cat <<EOF >/dev/null
@@ -24,7 +24,7 @@ created 2013-04-10 <christian.tschudin@unibas.ch>
 
 EOF
 
-source paths.sh
+. ./paths.sh
 
 CCND_PORTA=9001
 CCND_PORTB=9004
