@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # ccn-lite/test/scripts/interop-SYNoEth-XLLX-b.sh
 # with this script, the CCN-lite relay runs in kernel
@@ -18,16 +18,15 @@
 ##             LOCALMAC|_______eth_______|REMOTEMAC
 ##
 
+. ./paths.sh
 
-CCNX_PATH=../../../ccnx-0.7.1
-CCNL_PATH=../..
 CCN_REPO=./sample_repo
 
 ETHDEV=eth0
 LOCALMAC=`ifconfig eth0 | grep HWaddr | cut -c 39-`
 REMOTEMAC=ff:ff:ff:ff:ff:ff # better put the real MAC address of A for unicast
 CCNL_UX=/tmp/ccnl-SYNCoEth.sock
-ETHTYPE=0x88b5
+ETHTYPE=$CCNL_ETH_TYPE
 
 echo "$0: This host has MAC address $LOCALMAC"
 echo
@@ -45,23 +44,23 @@ echo
 export CCND_DEBUG=6
 export CCND_LISTEN_ON=0.0.0.0
 export CCND_LOCAL_PORT=9695
-$CCNX_PATH/bin/ccndstart > /tmp/log.ccnd 2>&1
+$CCND_HOME/bin/ccndstart > /tmp/log.ccnd 2>&1
 
 ## ccnx: faces and FIB entries
-$CCNX_PATH/bin/ccndc add ccnx:/unibas.ch udp 127.0.0.1 9000
+$CCND_HOME/bin/ccndc add ccnx:/unibas.ch udp 127.0.0.1 9000
 
 ## ccnl: lite-relay init 
-# $CCNL_PATH/ccn-lite-relay -v 99 -u 9000 -x $CCNL_UX 2> /tmp/log.ccnl &
-insmod $CCNL_PATH/ccn-lite-lnxkernel.ko v=99 u=9000 x=$CCNL_UX c=0
+# $CCNL_HOME/ccn-lite-relay -v 99 -u 9000 -x $CCNL_UX 2> /tmp/log.ccnl &
+insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 u=9000 x=$CCNL_UX c=0
 sleep 2
 
 ## ccnl: eth device faces and FIB entries
-$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX newETHdev $ETHDEV $ETHTYPE ccnx2013 | $CCNL_PATH/util/ccn-lite-ccnb2xml | grep ACTION
-FACEID1=`$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX newETHface any $REMOTEMAC $ETHTYPE | $CCNL_PATH/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
-FACEID2=`$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX newUDPface any 127.0.0.1 9695 | $CCNL_PATH/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
-$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX setfrag $FACEID1 ccnx2013 1400
-$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX prefixreg /unibas.ch $FACEID1
-$CCNL_PATH/util/ccn-lite-ctrl -x $CCNL_UX prefixreg /unibas.ch $FACEID2
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX newETHdev $ETHDEV $ETHTYPE ccnx2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
+FACEID1=`$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX newETHface any $REMOTEMAC $ETHTYPE | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID2=`$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX newUDPface any 127.0.0.1 9695 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX setfrag $FACEID1 ccnx2013 1400
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX prefixreg /unibas.ch $FACEID1
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UX prefixreg /unibas.ch $FACEID2
 sleep 2
 
 
@@ -78,22 +77,22 @@ export CCNS_SYNC_SCOPE=2
 if [ ! -d $CCN_REPO ]; then
   mkdir $CCN_REPO
 fi
-$CCNX_PATH/bin/ccnr &> log.ccnr &
+$CCND_HOME/bin/ccnr &> log.ccnr &
 
 ##  step 2. create slice
-$CCNX_PATH/bin/ccnsyncslice -v create ccnx:/unibas.ch ccnx:/unibas.ch/synctest
+$CCND_HOME/bin/ccnsyncslice -v create ccnx:/unibas.ch ccnx:/unibas.ch/synctest
 
 ## step 3 - add content and list directory
-$CCNX_PATH/bin/ccnputfile ccnx:/unibas.ch/synctest/`date | cut -c 12-19 | tr ':' '_'`.txt $0
+$CCND_HOME/bin/ccnputfile ccnx:/unibas.ch/synctest/`date | cut -c 12-19 | tr ':' '_'`.txt $0
 sleep 3
 echo
 echo Content of repository:
-$CCNX_PATH/bin/ccnls ccnx:/unibas.ch/synctest/
+$CCND_HOME/bin/ccnls ccnx:/unibas.ch/synctest/
 
 echo
 echo Add fresh content with
-echo "  " $CCNX_PATH/bin/ccnputfile ccnx:/unibas.ch/synctest/your_name.txt FILE
+echo "  " $CCND_HOME/bin/ccnputfile ccnx:/unibas.ch/synctest/your_name.txt FILE
 echo List files in the repo with
-echo "  " $CCNX_PATH/bin/ccnls ccnx:/unibas.ch/synctest/
+echo "  " $CCND_HOME/bin/ccnls ccnx:/unibas.ch/synctest/
 
 # eof
