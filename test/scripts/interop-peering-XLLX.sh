@@ -24,8 +24,8 @@ created 2013-04-10 <christian.tschudin@unibas.ch>
 
 EOF
 
+source paths.sh
 
-CCND_HOME=~/ccn-lite/ccnx-0.7.1
 CCND_PORTA=9001
 CCND_PORTB=9004
 CCND_UXA=/tmp/.1.sock
@@ -33,7 +33,6 @@ CCND_UXB=/tmp/.4.sock
 CCND_LOGA=/tmp/XLLX-1.log
 CCND_LOGB=/tmp/XLLX-4.log
 
-CCNL_HOME=~/ccn-lite/ccn-lite
 CCNL_PORTA=9002
 CCNL_PORTB=9003
 CCNL_UXA=/tmp/.2.sock

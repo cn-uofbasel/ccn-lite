@@ -2,7 +2,7 @@
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
 
-CCNL_HOME=../..
+. ./paths.sh
 
 PORTA=9998
 PORTB=9999

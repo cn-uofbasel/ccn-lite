@@ -2,7 +2,7 @@
 
 # demo-relay-ux.sh -- test/demo for ccn-lite: CCNx relaying via UNIX sockets
 
-CCNL_HOME=../..
+. ./paths.sh
 
 UXA=/tmp/ccn-lite-relay-$$-a.sock
 UXB=/tmp/ccn-lite-relay-$$-b.sock
