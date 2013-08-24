@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # demo-kernel-frag.sh -- test/demo for ccn-lite:
 #   CCNx relaying via UDP sockets, where a CCN relay sits in the Linux kernel

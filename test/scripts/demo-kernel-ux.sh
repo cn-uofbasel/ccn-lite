@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # demo-kernel-ux.sh -- test/demo for ccn-lite:
 # CCNx relaying via UNIX sockets, where the CCN relay sits in the Linux kernel
