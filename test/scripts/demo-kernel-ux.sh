@@ -5,7 +5,7 @@
 
 # execute with sudo!
 
-CCNL_HOME=../..
+. ./paths.sh
 
 UXA=/tmp/ccn-lite-lnxmodule-$$-a.sock
 UXB=/tmp/ccn-lite-relay-$$-b.sock

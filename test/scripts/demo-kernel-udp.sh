@@ -5,7 +5,7 @@
 
 # execute with sudo!
 
-CCNL_HOME=../..
+. ./paths.sh
 
 PORTA=9998
 PORTB=9999
