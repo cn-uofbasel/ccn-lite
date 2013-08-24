@@ -149,6 +149,11 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCN_DTAG_MINSUFFCOMP:	 n = "minSuffixComponents"; break;
 	    case CCN_DTAG_MAXSUFFCOMP:	 n = "maxSuffixComponents"; break;
 	    case CCN_DTAG_SEQNO:	 n = "sequenceNumber"; break;
+	    case CCN_DTAG_FragA:	 n = "FragA"; break;
+	    case CCN_DTAG_FragB:	 n = "FragB"; break;
+	    case CCN_DTAG_FragC:	 n = "FragC"; break;
+	    case CCN_DTAG_FragD:	 n = "FragD"; break;
+	    case CCN_DTAG_FragP:	 n = "FragP"; break;
 	    case CCN_DTAG_CCNPDU:	 n = "ccnProtocolDataUnit"; break;
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
