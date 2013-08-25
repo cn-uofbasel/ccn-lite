@@ -84,6 +84,8 @@
 #define CCNL_DTAG_LASTUSE       99223
 #define CCNL_DTAG_SERVEDCTN     99224
 
+#define CCNL_DTAG_ADDCONTENT    99300
+
 // fragmentation protocol: (ccnl-ext-encaps.c, ENCAPS_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT	144144 // http://redmine.ccnx.org/issues/100803
 #define CCNL_DTAG_FRAG_FLAGS	(CCNL_DTAG_FRAGMENT+1)

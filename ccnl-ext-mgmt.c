@@ -1425,11 +1425,48 @@ Bail:
     return rc;
 }
 
+int  //should not be necessary...
+get_tag_content(unsigned char **buf, int *len, unsigned char *content)
+{
+    int ix = 0;
+    while((**buf) !=  0)
+    {
+        content[ix++] = **buf;
+        ++(*buf); ++(*len);
+    }
+    ++(*buf); ++(*len);
+    return ix;
+}
+
+int  //should not be necessary...
+get_tag_content_len(unsigned char **buf, int *len, unsigned char *content, int num)
+{
+    int ix = 0;
+    for(ix = 0; ix < num; ++ix)
+    {
+        content[ix++] = **buf;
+        ++(*buf); ++(*len);
+    }
+    ++(*buf); ++(*len);
+    return ix;
+}
+
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
-    DEBUGMSG(99,"add to cache not yet implemented");
+    DEBUGMSG(99,"add to cache not yet implemented\n");
+    
+    unsigned char *buf;
+    int buflen, num, typ;
+    
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+    
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
+    }
+    
 }
 
 int

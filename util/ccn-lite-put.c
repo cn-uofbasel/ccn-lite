@@ -211,22 +211,29 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
 
 int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
 {
-    int len;
+    int len, i;
     
-    unsigned char sig[1024];
+    unsigned char sig[256];
     int sig_len;
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
-    len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
-    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
-    sig[sig_len]=0;
-    len += mkStrBlob(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG, sig);
-    out[len++] = 0;
+    //len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
+    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
+    printf("SIGLEN: %d\n",sig_len);
+    sig[sig_len]=0;
+    
+    //add signaturebits bits...
+    len += mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
+    len += addBlob(out + len, sig, sig_len);
+    out[len++] = 0; // end signaturebits
+    
+    out[len++] = 0; // end signature
+    
+    /*char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
     int verified = verify(publickey, file, fsize, sig, sig_len);
-    printf("Done: %d\n", verified);
+    printf("Verified: %d\n", verified);*/
     
     return len;
 }
@@ -331,10 +338,11 @@ createCCNXFile(char *file_uri, char *ccn_path, char *private_key_path)
 int
 addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
 {
-    int sock;
+    int sock, i;
     char mysockname[200];
-    long len = 100, fsize;
-    char *ccnb_file, *out;
+    long len = 0, len2 = 0, len3 = 0;
+    long fsize, siglen;
+    char *ccnb_file, *out, *contentobj, *stmt;
     FILE *f = fopen(file_uri, "r");
     if(!f) return 0;
     
@@ -347,18 +355,71 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     fread(ccnb_file, fsize, 1, f);
     fclose(f);
    
-    //Create ccn-lite-ctrl object with signature to add content...
+    //Create ccn-lite-ctrl interest object with signature to add content...
     out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
+    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 500);
+    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 400);
     
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+    
+    //add signature to interest...
+    siglen = add_signature(stmt + len3, private_key_path, ccnb_file, fsize);
+    if(!siglen)
+    {
+        printf("Could sign message\n");
+        free(ccnb_file);
+        free(out);
+        free(contentobj);
+        free(stmt);
+        return 0;
+    }
+    len3 += siglen;
+    
+    //add content to interest...
+    /*for(i = 0; i < fsize; ++i)
+    {
+        out[len++] = ccnb_file[i];
+    }*/
+    len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    len3 += addBlob(stmt+len3, ccnb_file, fsize);
+    stmt[len3++] = 0; // end content
+    
+    len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) stmt, len3);
+    
+    
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+    
+    out[len++] = 0; //name end
+    out[len++] = 0; //interest end
     
     sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
     sock = ux_open(mysockname);
     printf("%s\n", socket_path);
-    ux_sendto(sock, socket_path, ccnb_file, fsize);
-    //ux_sendto(sock, socket_path, out, len);
+    
+    ux_sendto(sock, socket_path, out, len);
+    
+    
+    char *new_file_uri = (char *) malloc(sizeof(char)*1024);
+    sprintf(new_file_uri, "%s2.ccnb", file_uri);
+    FILE *f2 = fopen(new_file_uri, "w");
+    if(!f2) return 0;
+    fwrite(out, 1L, len, f2);
+    free(new_file_uri);
+    fclose(f2);
+
     
     free(ccnb_file);
     free(out);
+    free(contentobj);
+    free(stmt);
     return 1;
 }
 
@@ -389,7 +450,6 @@ main(int argc, char *argv[])
         file_uri = argv[2];  
         unix_socket_path = argv[3];
         private_key_path = argv[4];
-        
         if(!addToRelayCache(file_uri, unix_socket_path, private_key_path)) goto Usage;
     }
        
