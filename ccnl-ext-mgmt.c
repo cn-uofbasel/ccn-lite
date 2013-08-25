@@ -27,6 +27,7 @@
 #else
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #endif
 
 #include "ccnx.h"
@@ -1458,14 +1459,69 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99,"add to cache not yet implemented\n");
     
     unsigned char *buf;
-    int buflen, num, typ;
+    unsigned char buf2[64000];
+    int buflen, buflen2;
+    int num, typ;
+    
+    unsigned char *sigtype = 0, *sig = 0, *content = 0;
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
+    DEBUGMSG(99, "Buflen: %d\n", buflen);  
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
     
     while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
         DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
+        extractStr(sigtype, CCN_DTAG_NAME);
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        
+        //extractStr(content, CCN_DTAG_CONTENT);
+        
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
+    DEBUGMSG(99, "SigType: %s \n", sigtype);
+    DEBUGMSG(99, "Sig: %s \n", sig);
+    
+    //if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    //DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
+    //if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);    
+    
+    DEBUGMSG(99, "Buflen: %d\n", buflen);    
+    
+    int i;
+    buflen2 = buflen - 2;
+    for(i = 0; i < buflen2; ++i)
+    {
+        buf2[i] = buf[i];
+    }
+    
+    FILE *f2 = fopen("file.ccnb", "w");
+    if(!f2) return 0;
+    fwrite(buf2, 1L, buflen2, f2);
+    fclose(f2);
+    
+    return 0;
+    Bail:
+        DEBUGMSG(99, "Error");
+    return -1;
     
 }
 
