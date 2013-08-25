@@ -2,7 +2,7 @@
 
 CC?=gcc
 CFLAGS=-Wall -g
-EXTLIBS=  -lcrypto
+EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
 	ccn-lite-parse \

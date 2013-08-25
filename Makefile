@@ -2,8 +2,8 @@
 
 CC=gcc
 #MYCFLAGS=-Wall -pedantic -std=c99 -g
-MYCFLAGS= -Wall -g -O0
-EXTLIBS=  -lcrypto
+MYCFLAGS=-Wall -g -O0
+EXTLIBS=-lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
 
@@ -14,7 +14,7 @@ PROGS=	ccn-lite-relay \
 
 ifdef USE_CHEMFLOW
 CHEMFLOW_HOME=./chemflow/chemflow-20121006
-EXTLIBS=-lcf -lcfserver
+EXTLIBS=-lcf -lcfserver -lcrypto
 EXTMAKE=cd ${CHEMFLOW_HOME}; make
 EXTMAKECLEAN=cd ${CHEMFLOW_HOME}; make clean
 MYCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
@@ -37,7 +37,7 @@ ccn-lite-relay: ccn-lite-relay.c \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-encaps.c ccnl-ext-mgmt.c
-	${CC} -o $@ ${MYCFLAGS} $<  ${EXTLIBS}
+	${CC} -o $@ ${MYCFLAGS} $<  ${EXTLIBS} 
 
 ccn-lite-simu: ccn-lite-simu.c \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \

@@ -27,8 +27,14 @@
 #else
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/sha.h>
+#include <openssl/rsa.h>
+#include <openssl/objects.h>
+#include <openssl/err.h>
 #include <stdio.h>
 #endif
+
+
 
 #include "ccnx.h"
 #include "ccnl-pdu.c"
@@ -1426,31 +1432,32 @@ Bail:
     return rc;
 }
 
-int  //should not be necessary...
-get_tag_content(unsigned char **buf, int *len, unsigned char *content)
+#ifndef CCNL_LINUXKERNEL
+int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
 {
-    int ix = 0;
-    while((**buf) !=  0)
-    {
-        content[ix++] = **buf;
-        ++(*buf); ++(*len);
+    //Load public key
+    FILE *fp = fopen(public_key_path, "r");
+    if(!fp) {
+        printf("Could not find public key\n");
+        return 0;
     }
-    ++(*buf); ++(*len);
-    return ix;
-}
-
-int  //should not be necessary...
-get_tag_content_len(unsigned char **buf, int *len, unsigned char *content, int num)
-{
-    int ix = 0;
-    for(ix = 0; ix < num; ++ix)
-    {
-        content[ix++] = **buf;
-        ++(*buf); ++(*len);
+    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
+    if(!rsa) return 0;
+    fclose(fp);
+    
+    //Compute Hash
+    unsigned char md[SHA_DIGEST_LENGTH];
+    sha1(msg, msg_len, md);
+    
+    //Verify signature
+    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    if(!verified){
+        printf("Error: %d\n", ERR_get_error());
     }
-    ++(*buf); ++(*len);
-    return ix;
+    RSA_free(rsa);
+    return verified;
 }
+#endif
 
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -1459,8 +1466,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99,"add to cache not yet implemented\n");
     
     unsigned char *buf;
-    unsigned char buf2[64000];
-    int buflen, buflen2;
+    unsigned char *buf2;
+    int buflen, buf2len;
     int num, typ;
     
     unsigned char *sigtype = 0, *sig = 0, *content = 0;
@@ -1507,16 +1514,25 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "Buflen: %d\n", buflen);    
     
     int i;
-    buflen2 = buflen - 2;
-    for(i = 0; i < buflen2; ++i)
+    buf2len = buflen - 2;
+    buf2 = (unsigned char *)ccnl_malloc(sizeof(char) * buf2len);
+    for(i = 0; i < buf2len; ++i)
     {
         buf2[i] = buf[i];
     }
     
-    FILE *f2 = fopen("file.ccnb", "w");
+#ifndef CCNL_LINUXKERNEL
+    int verified = verify("~/.ssh/publickey.pem", buf2, buf2len, sig, 256);
+    if(verified){
+         DEBUGMSG(99, "verified");
+         //add object to cache here...
+    }
+#endif
+    
+    /*FILE *f2 = fopen("file.ccnb", "w");
     if(!f2) return 0;
     fwrite(buf2, 1L, buflen2, f2);
-    fclose(f2);
+    fclose(f2);*/
     
     return 0;
     Bail:
