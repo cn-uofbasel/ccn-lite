@@ -1433,6 +1433,22 @@ Bail:
 }
 
 #ifndef CCNL_LINUXKERNEL
+
+int sha1(void* input, unsigned long length, unsigned char* md)
+{
+    SHA_CTX context;
+    if(!SHA1_Init(&context))
+        return 0;
+
+    if(!SHA1_Update(&context, (unsigned char*)input, length))
+        return 0;
+
+    if(!SHA1_Final(md, &context))
+        return 0;
+
+    return 1;
+}
+
 int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
 {
     //Load public key
@@ -1451,9 +1467,9 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     
     //Verify signature
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    if(!verified){
-        printf("Error: %d\n", ERR_get_error());
-    }
+    //if(!verified){
+    //    printf("Error: %ld\n", ERR_get_error());
+    //}
     RSA_free(rsa);
     return verified;
 }
@@ -1522,10 +1538,12 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
     
 #ifndef CCNL_LINUXKERNEL
-    int verified = verify("~/.ssh/publickey.pem", buf2, buf2len, sig, 256);
+    int verified = verify("/home/blacksheeep/.ssh/publickey.pem", buf2, buf2len, sig, 256);
     if(verified){
          DEBUGMSG(99, "verified");
          //add object to cache here...
+    }else{
+         DEBUGMSG(99, "Drop object, signature could not be verified");
     }
 #endif
     

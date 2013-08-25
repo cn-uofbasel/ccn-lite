@@ -37,7 +37,7 @@ ccn-lite-relay: ccn-lite-relay.c \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-encaps.c ccnl-ext-mgmt.c
-	${CC} -o $@ ${MYCFLAGS} $<  ${EXTLIBS} 
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} 
 
 ccn-lite-simu: ccn-lite-simu.c \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
