@@ -1466,9 +1466,6 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     
     //Verify signature
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    //if(!verified){
-    //    printf("Error: %ld\n", ERR_get_error());
-    //}
     RSA_free(rsa);
     return verified;
 }
@@ -1526,7 +1523,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifndef CCNL_LINUXKERNEL
     int verified = verify("/home/blacksheeep/.ssh/publickey.pem", data, datalen, sig, 256);
     if(verified){
-         DEBUGMSG(99, "Add content, signature verified\n");
+         DEBUGMSG(99, "Signature verified, add content\n");
          //add object to cache here...
         struct ccnl_prefix_s *prefix = 0;
         struct ccnl_content_s *c = 0;
@@ -1537,17 +1534,24 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
                     0, &prefix, &nonce, &ppkd, &content, &contlen);
         if (!pkt) {
-            DEBUGMSG(6, "  parsing error\n"); return -1;
+            DEBUGMSG(6, "  parsing error\n"); goto Done;
         }
         if (!prefix) {
-            DEBUGMSG(6, "  no prefix error\n"); return -1;
+            DEBUGMSG(6, "  no prefix error\n"); goto Done;
         }
         c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
                              content, contlen);
-        if (!c)
-            return -1;
+        if (!c) goto Done;
         ccnl_content_add2cache(ccnl, c);
-        c->flags |= CCNL_CONTENT_FLAGS_STATIC;     
+        c->flags |= CCNL_CONTENT_FLAGS_STATIC;  
+        
+    Done:
+        free_prefix(prefix);
+        ccnl_free(pkt);
+        ccnl_free(nonce);
+        ccnl_free(ppkd);
+        
+        
     }else{
          DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
     }

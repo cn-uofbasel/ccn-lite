@@ -218,7 +218,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
-    //len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
+    len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
     if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
     printf("SIGLEN: %d\n",sig_len);
@@ -381,10 +381,6 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     len3 += siglen;
     
     //add content to interest...
-    /*for(i = 0; i < fsize; ++i)
-    {
-        out[len++] = ccnb_file[i];
-    }*/
     len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len3 += addBlob(stmt+len3, ccnb_file, fsize);
     stmt[len3++] = 0; // end content
@@ -452,6 +448,7 @@ main(int argc, char *argv[])
         private_key_path = argv[4];
         if(!addToRelayCache(file_uri, unix_socket_path, private_key_path)) goto Usage;
     }
+    //else if(!strcmp(argv[1], ))
        
     /*//create socket    
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { perror("cannot create socket"); return 0; }
