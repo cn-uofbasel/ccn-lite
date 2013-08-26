@@ -39,7 +39,7 @@
 #define LOG_LEVEL_4_OMNET 50    // set the log level for debug info piped to Omnet's EV.
                                 // (this is independent of 'log_level' in b3c-relay-debug.c
                                 // which controls what is reported in stderr)
-#define USE_ENCAPS     		// for pkt fragmentation 
+#define USE_FRAG     		// for pkt fragmentation 
 #define USE_ETHERNET
 
 #define USE_SCHEDULER           // enable relay scheduling capabilities (e.g. for inter-packet pacing)
@@ -229,7 +229,7 @@ void    ccnl_close_socket (int s);
 //#include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
-#include "ccnl-ext-encaps.c"
+#include "ccnl-ext-frag.c"
 
 
 
@@ -840,9 +840,9 @@ ccnl_add_fwdrule(
                         netif_idx,
                         &sun.sa,
                         sizeof(sun.eth));
-#ifdef USE_ENCAPS
-    if ( !fwd->face->encaps )	// if newly created face, no fragment policy is defined yet
-        fwd->face->encaps = ccnl_encaps_new(CCNL_ENCAPS_CCNPDU2013, 1200);
+#ifdef USE_FRAG
+    if ( !fwd->face->frag )	// if newly created face, no fragment policy is defined yet
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
 #endif
 
     if (! (fwd->face))

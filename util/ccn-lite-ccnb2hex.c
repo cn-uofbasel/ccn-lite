@@ -29,10 +29,12 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+// #include "ccnl-common.c"
+
 // ----------------------------------------------------------------------
 
-static int
-dehead(int lev, unsigned char *base, unsigned char **buf,
+int
+deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
        int *len, int *num, int *typ)
 {
      int i, val = 0;
@@ -79,7 +81,7 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
     int num, typ, i, j;
     char *n;
 
-    while (dehead(lev, base, buf, len, &num, &typ) == 0) {
+    while (deheadAndPrint(lev, base, buf, len, &num, &typ) == 0) {
 	switch (typ) {
 	case CCN_TT_BLOB:
 	case CCN_TT_UDATA:
@@ -151,13 +153,14 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
 	    case CCNL_DTAG_IP4SRC:	 n = "IP4src"; break;
-	    case CCNL_DTAG_ENCAPS:	 n = "encapsulation"; break;
+	    case CCNL_DTAG_FRAG:	 n = "fragmentation"; break;
 	    case CCNL_DTAG_FACEFLAGS:	 n = "faceFlags"; break;
 	    case CCNL_DTAG_DEBUGREQUEST: n = "debugRequest"; break;
 	    case CCNL_DTAG_DEBUGACTION:	 n = "debugAction"; break;
 
 	    case CCNL_DTAG_FRAGMENT:     n = "fragment"; break;
-	    case CCNL_DTAG_FRAG_OSEQN:   n = "fragmentOurSeqNo"; break;
+	    case CCNL_DTAG_FRAG_TYPE:    n = "fragmentType"; break;
+	    case CCNL_DTAG_FRAG_SEQNR:   n = "fragmentSeqNr"; break;
 	    case CCNL_DTAG_FRAG_OLOSS:   n = "fragmentOurLoss"; break;
 	    case CCNL_DTAG_FRAG_YSEQN:   n = "fragmentYourSeqNo"; break;
 	    case CCNL_DTAG_FRAG_FLAGS:   n = "fragmentFlags"; break;
@@ -201,18 +204,27 @@ int
 main(int argc, char *argv[])
 {
     unsigned char data[64*1024], *buf = data;
-    int len;
+    int rc, len, maxlen;
 
     if (argc > 1) {
 	fprintf(stderr, "usage: %s < ccn_encoded_data\n", argv[0]);
 	return 2;
     }
-    len = read(0, data, sizeof(data));
-    if (len < 0) {
-	perror("read");
-	return 1;
+
+    len = 0;
+    maxlen = sizeof(data);
+    while (maxlen > 0) {
+	rc = read(0, data+len, maxlen);
+	if (rc == 0)
+	    break;
+	if (rc < 0) {
+	    perror("read");
+	    return 1;
+	}
+	len += rc;
+	maxlen -= rc;
     }
-    printf("Parsing %d byte%s:\n\n", len, len!=1 ? "s":"");
+    printf("# Parsing %d byte%s:\n#\n", len, len!=1 ? "s":"");
     parse_lev(0, data, &buf, &len, "top");
 
     return 0;

@@ -108,9 +108,11 @@ ccnl_addr2ascii(sockunion *su)
 		    ntohs(su->ip4.sin_port));
 	    return result;
 //	    return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
+#ifdef USE_UNIXSOCKET
 	case AF_UNIX:
 	    strcpy(result, su->ux.sun_path);
 	    return result;
+#endif
 	default:
 	    break;
     }
@@ -152,15 +154,15 @@ blob(unsigned char *cp, int len)
 }
 
 
-void
-encaps(int e)
+char*
+frag_protocol(int e)
 {
-    if (e == CCNL_ENCAPS_NONE)
-	return;
-    if (e == CCNL_ENCAPS_SEQUENCED2012)
-	fprintf(stderr, " encaps=sequenced2012");
-    else
-	fprintf(stderr, " encaps=%d", e);
+    static char* names[] = { "none", "sequenced2012", "ccnx2013" };
+    static char buf[100];
+    if (e >= 0 && e <= 2)
+	return names[e];
+    sprintf(buf, "%d", e);
+    return buf;
 }
 
 enum { // numbers for each data type
@@ -168,6 +170,7 @@ enum { // numbers for each data type
     CCNL_PREFIX,
     CCNL_RELAY,
     CCNL_FACE,
+    CCNL_FRAG,
     CCNL_FWD,
     CCNL_INTEREST,
     CCNL_PENDINT,
@@ -181,6 +184,7 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) p;
+    struct ccnl_frag_s     *frg = (struct ccnl_frag_s     *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
@@ -251,8 +255,8 @@ ccnl_dump(int lev, int typ, void *p)
 		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
 	    else
 		fprintf(stderr, " peer=?");
-	    if (fac->encaps)
-		encaps(fac->encaps->protocol);
+	    if (fac->frag)
+		ccnl_dump(lev+2, CCNL_FRAG, fac->frag);
 	    fprintf(stderr, "\n");
 	    if (fac->outq) {
 		INDENT(lev+1); fprintf(stderr, "outq:\n");
@@ -261,6 +265,12 @@ ccnl_dump(int lev, int typ, void *p)
 	    fac = fac->next;
 	}
 	break;
+#ifdef USE_FRAG
+    case CCNL_FRAG:
+	fprintf(stderr, " fragproto=%s mtu=%d",
+		frag_protocol(frg->protocol), frg->mtu);
+	break;
+#endif
     case CCNL_FWD:
 	while (fwd) {
 	    INDENT(lev);
@@ -365,7 +375,7 @@ get_num_faces(void *p)
 
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
-        int *ifndx, int *flags, char **peer, int *type)
+	       int *ifndx, int *flags, char **peer, int *type, char **frag)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -392,8 +402,12 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
             type[line] = AF_UNIX;
         else
             type[line] = 0;
-        if (fac->encaps)
-            encaps(fac->encaps->protocol);
+        if (fac->frag)
+	    sprintf(frag[line], "frag(proto=%s, mtu=%d)",
+		    frag_protocol(fac->frag->protocol), fac->frag->mtu);
+	else
+	    frag[line][0] = '\0';
+
         fac = fac->next;
         ++line;
     }
@@ -456,7 +470,8 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
         INDENT(lev+1);
         
         ifndx[k] = k;
-        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
+	//        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
+        strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
        
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
@@ -514,7 +529,7 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         max[line] = itr->maxsuffix;
         retries[line] = itr->retries;
         publisher[line] = (long)(void *) itr->ppkd;
-        get_prefix_dump(lev, p, &prefixlen[line], &prefix[line]);
+        get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
         ++line;

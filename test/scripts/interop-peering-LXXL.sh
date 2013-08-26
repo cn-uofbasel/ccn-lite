@@ -45,12 +45,13 @@ CCNL_LOGB=/tmp/LXXL-4.log
 # cleanup the machine:
 echo "** Cleaning the machine from old log files and sockets ..."
 
-killall ccn-lite-relay
+echo -n "killall ccn-lite-relay and ccnd... "
 export CCN_LOCAL_SOCKNAME=$CCND_UXA
 $CCND_HOME/bin/ccndstop
 export CCN_LOCAL_SOCKNAME=$CCND_UXB
 $CCND_HOME/bin/ccndstop
 killall ccnd
+killall ccn-lite-relay
 rm -rf /tmp/.[14].sock
 rm -rf /tmp/.[23].sock.*
 
@@ -79,11 +80,15 @@ $CCND_HOME/bin/ccndc add /ccnx/0.7.1/doc udp 127.0.0.1 $CCND_PORTA
 $CCNL_HOME/ccn-lite-relay -u $CCNL_PORTB -x $CCNL_UXB \
 		-v 99 >$CCNL_LOGB 2>&1 &
 sleep 1
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB newUDPface any 127.0.0.1 $CCND_PORTB
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB prefixreg /ccnx/0.7.1/doc 2
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump
+FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB newUDPface any 127.0.0.1 $CCND_PORTB | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB prefixreg /ccnx/0.7.1/doc $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
+
+echo
+echo "# Configuration of node B:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 
+echo
 echo "** Proceeding with the transfer test in 2 seconds, please stand by ..."
 sleep 2
 echo "** Received content:"
@@ -91,13 +96,15 @@ echo "** Received content:"
 
 # test access to content:
 
-$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$CCNL_PORTB /ccnx/0.7.1/doc/technical/URI.txt | $CCNL_HOME/util/ccn-lite-parse
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$CCNL_PORTB /ccnx/0.7.1/doc/technical/URI.txt | $CCNL_HOME/util/ccn-lite-ccnb2hex
 echo
 
 # shut down all relays:
 echo "** Shutting down all relays ..."
 
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump+halt
+echo
+echo "# Configuration of node A:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 export CCN_LOCAL_SOCKNAME=$CCND_UXA
 $CCND_HOME/bin/ccndstop
@@ -105,7 +112,9 @@ $CCND_HOME/bin/ccndstop
 export CCN_LOCAL_SOCKNAME=$CCND_UXB
 $CCND_HOME/bin/ccndstop
 
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump+halt
+echo
+echo "# Configuration of node B:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 
 #

@@ -36,9 +36,9 @@
 #define CCNL_FACE_FLAGS_SERVED	4
 #define CCNL_FACE_FLAGS_FWDALLI	8 // forward all interests, also known ones
 
-#define CCNL_ENCAPS_NONE		0
-#define CCNL_ENCAPS_SEQUENCED2012	1
-#define CCNL_ENCAPS_CCNPDU2013		2
+#define CCNL_FRAG_NONE		0
+#define CCNL_FRAG_SEQUENCED2012	1
+#define CCNL_FRAG_CCNx2013	2
 
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
@@ -51,7 +51,9 @@ typedef union {
     struct sockaddr_ll eth;
 #endif
     struct sockaddr_in ip4;
+#ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;
+#endif
 } sockunion;
 
 struct ccnl_txrequest_s {
@@ -117,7 +119,7 @@ struct ccnl_prefix_s {
     unsigned char *path; // memory for name component copies
 };
 
-struct ccnl_encaps_s {
+struct ccnl_frag_s {
     int protocol; // (0=plain CCNx)
     int mtu;
     sockunion dest;
@@ -127,14 +129,14 @@ struct ccnl_encaps_s {
     int ifndx;
 
     struct ccnl_buf_s *defrag;
-    unsigned char flagbytes;
 
     unsigned int sendseq;
     unsigned int losscount;
     unsigned int recvseq;
-    unsigned char sendseqbytes;
-    unsigned char losscountbytes;
-    unsigned char recvseqbytes;
+    unsigned char flagwidth;
+    unsigned char sendseqwidth;
+    unsigned char losscountwidth;
+    unsigned char recvseqwidth;
 };
 
 struct ccnl_face_s {
@@ -145,7 +147,7 @@ struct ccnl_face_s {
     int flags;
     int last_used; // updated when we receive a packet
     struct ccnl_buf_s *outq, *outqend; // queue of packets to send
-    struct ccnl_encaps_s *encaps;  // which special datagram armoring
+    struct ccnl_frag_s *frag;  // which special datagram armoring
     struct ccnl_sched_s *sched;
 };
 
@@ -205,7 +207,7 @@ struct ccnl_content_s {
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-inline const char*
+const char*
 compile_string(void)
 {
     static const char *cp = ""
@@ -215,8 +217,8 @@ compile_string(void)
 #ifdef USE_DEBUG_MALLOC
 	"USE_DEBUG_MALLOC "
 #endif
-#ifdef USE_ENCAPS
-	"USE_ENCAPS "
+#ifdef USE_FRAG
+	"USE_FRAG "
 #endif
 #ifdef USE_ETHERNET
 	"USE_ETHERNET "

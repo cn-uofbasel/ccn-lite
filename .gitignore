@@ -19,6 +19,17 @@ ccn-lite-simu
 # binaries in subdirectories
 util/ccn-lite-ctrl
 util/ccn-lite-peek
-util/ccn-lite-parse
+util/ccn-lite-ccnb2hex
+util/ccn-lite-ccnb2xml
+util/ccn-lite-deF
+util/ccn-lite-mkC
+util/ccn-lite-mkF
+util/ccn-lite-mkI
+
+# scripts
+test/scripts/test-digest.sh
+
+# unit tests
+test/unit/prefix-cmp
 
 # eof

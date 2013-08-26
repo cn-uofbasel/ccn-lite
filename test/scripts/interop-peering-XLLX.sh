@@ -43,7 +43,7 @@ CCNL_LOGB=/tmp/XLLX-3.log
 
 
 # cleanup the machine:
-echo "** Cleaning the machine from old log files and sockets ..."
+echo -n "** Cleaning the machine from old log files and sockets ..."
 
 killall ccn-lite-relay
 export CCN_LOCAL_SOCKNAME=$CCND_UXA
@@ -56,6 +56,7 @@ rm -rf /tmp/.[14].sock.*
 
 
 # start the four relays, create the FWD entries:
+echo
 echo "** Starting up the four relays - this takes 5 seconds or so ..."
 
 export CCN_LOCAL_PORT=$CCND_PORTA
@@ -69,15 +70,23 @@ $CCND_HOME/bin/ccndsmoketest send $CCNL_HOME/test/ccnb/URI.txt.ccnb
 
 $CCNL_HOME/ccn-lite-relay -u $CCNL_PORTA -x $CCNL_UXA -v 99 >$CCNL_LOGA 2>&1 &
 sleep 1
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA newUDPface any 127.0.0.1 $CCND_PORTA
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA prefixreg /ccnx/0.7.1/doc 2
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump
+
+FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA newUDPface any 127.0.0.1 $CCND_PORTA | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA prefixreg /ccnx/0.7.1/doc $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
+
+echo
+echo "# Configuration of node A:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+
 
 $CCNL_HOME/ccn-lite-relay -u $CCNL_PORTB -x $CCNL_UXB -v 99 >$CCNL_LOGB 2>&1 &
 sleep 1
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB newUDPface any 127.0.0.1 $CCNL_PORTA
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB prefixreg /ccnx/0.7.1/doc 2
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump
+FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB newUDPface any 127.0.0.1 $CCNL_PORTA | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB prefixreg /ccnx/0.7.1/doc $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
+
+echo
+echo "# Configuration of node A:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 export CCN_LOCAL_PORT=$CCND_PORTB
 export CCN_LOCAL_SOCKNAME=$CCND_UXB
@@ -95,7 +104,7 @@ echo "** Received content:"
 
 # test access to content:
 
-$CCND_HOME/bin/ccnpeek /ccnx/0.7.1/doc/technical/URI.txt | $CCNL_HOME/util/ccn-lite-parse
+$CCND_HOME/bin/ccnpeek /ccnx/0.7.1/doc/technical/URI.txt | $CCNL_HOME/util/ccn-lite-ccnb2hex
 echo
 
 # shut down all relays:
@@ -104,8 +113,12 @@ echo "** Shutting down all relays ..."
 export CCN_LOCAL_SOCKNAME=$CCND_UXA
 $CCND_HOME/bin/ccndstop
 
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump+halt
-$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump+halt
+echo
+echo "# Configuration of node A:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXA debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+echo
+echo "# Configuration of node B:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $CCNL_UXB debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 export CCN_LOCAL_SOCKNAME=$CCND_UXB
 $CCND_HOME/bin/ccndstop
