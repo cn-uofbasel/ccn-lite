@@ -20,17 +20,9 @@
  * 2013-07-06  created
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <arpa/inet.h> // sockaddr
-
 #define USE_FRAG
+
+#include "../ccnl-includes.h"
 
 #include "../ccnx.h"
 #include "../ccnl.h"
@@ -38,7 +30,6 @@
 
 #include "ccnl-common.c"
 #include "../ccnl-pdu.c"
-//#include "ccnl-frag.h"
 
 // ----------------------------------------------------------------------
 /*
