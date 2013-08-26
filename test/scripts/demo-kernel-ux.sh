@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 
 # demo-kernel-ux.sh -- test/demo for ccn-lite:
 # CCNx relaying via UNIX sockets, where the CCN relay sits in the Linux kernel
 
 # execute with sudo!
 
-CCNL_HOME=../..
+. ./paths.sh
 
 UXA=/tmp/ccn-lite-lnxmodule-$$-a.sock
 UXB=/tmp/ccn-lite-relay-$$-b.sock

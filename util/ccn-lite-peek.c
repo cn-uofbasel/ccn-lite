@@ -83,6 +83,41 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
     return len;
 }
 
+int
+peek_mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
+{
+    int len = 0, k;
+    unsigned char *cp;
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    while (*namecomp) {
+	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	cp = (unsigned char*) strdup(*namecomp);
+	k = unescape_component(cp);
+	//	k = strlen(*namecomp);
+	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	memcpy(out+len, cp, k);
+	len += k;
+	out[len++] = 0; // end-of-component
+	free(cp);
+	namecomp++;
+    }
+    out[len++] = 0; // end-of-name
+    if (nonce) {
+	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
+	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
+	len += sizeof(unsigned int);
+    }
+    out[len++] = 0; // end-of-interest
+
+    return len;
+}
+
+
+
 // ----------------------------------------------------------------------
 
 int
@@ -250,7 +285,7 @@ Usage:
 	cp = strtok(NULL, "/");
     }
     prefix[i] = NULL;
-    len = mkInterest(prefix, NULL, out);
+    len = peek_mkInterest(prefix, NULL, out);
 
     if (ux) { // use UNIX socket
 	dest = ux;
