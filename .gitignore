@@ -26,9 +26,6 @@ util/ccn-lite-mkC
 util/ccn-lite-mkF
 util/ccn-lite-mkI
 
-# scripts
-test/scripts/test-digest.sh
-
 # unit tests
 test/unit/prefix-cmp
 

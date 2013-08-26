@@ -150,27 +150,27 @@ main(int argc, char *argv[])
     printf("\nPrefix <%s> has #" S " matching components\n", \
 	   ccnl_prefix_to_path(thePrefix));			     \
     nm = ccnl_path_to_prefix("/a/b"); \
-    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, thePrefix->compcnt, M);	  \
+    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, M);	  \
     printf("%s%2d  %2d %s\n", rc == R1 ? " " : "*", R1, rc, \
            ccnl_prefix_to_path(nm)); \
     free_prefix(nm); \
     nm = ccnl_path_to_prefix("/a/b/c"); \
-    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, thePrefix->compcnt, M);	  \
+    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, M);	  \
     printf("%s%2d  %2d %s\n", rc == R2 ? " " : "*", R2, rc, \
            ccnl_prefix_to_path(nm)); \
     free_prefix(nm); \
     nm = ccnl_path_to_prefix("/a/b/c/d"); \
-    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, thePrefix->compcnt, M);	  \
+    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, M);	  \
     printf("%s%2d  %2d %s\n", rc == R3 ? " " : "*", R3, rc, \
            ccnl_prefix_to_path(nm)); \
     free_prefix(nm); \
     nm = ccnl_path_to_prefix("/a/b/x/d"); \
-    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, thePrefix->compcnt, M);	  \
+    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, M);	  \
     printf("%s%2d  %2d %s\n", rc == R4 ? " " : "*", R4, rc, \
            ccnl_prefix_to_path(nm)); \
     free_prefix(nm); \
     nm = ccnl_path_to_prefix("/a/b/c/x"); \
-    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, thePrefix->compcnt, M);	  \
+    rc = ccnl_prefix_cmp(nm, NULL, thePrefix, M);	  \
     printf("%s%2d  %2d %s\n", rc == R5 ? " " : "*", R5, rc, \
            ccnl_prefix_to_path(nm)); \
     free_prefix(nm)

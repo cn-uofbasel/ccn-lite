@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ccn-lite/test/scripts/interop-peering-LXXL.sh
 
 cat <<EOF >/dev/null
@@ -24,8 +24,8 @@ created 2013-04-10 <christian.tschudin@unibas.ch>
 
 EOF
 
+. ./paths.sh
 
-CCND_HOME=~/ccn-lite/ccnx-0.7.1
 CCND_PORTA=9002
 CCND_PORTB=9003
 CCND_UXA=/tmp/.2.sock
@@ -33,7 +33,6 @@ CCND_UXB=/tmp/.3.sock
 CCND_LOGA=/tmp/LXXL-2.log
 CCND_LOGB=/tmp/LXXL-3.log
 
-CCNL_HOME=~/ccn-lite/ccn-lite
 CCNL_PORTA=9001
 CCNL_PORTB=9004
 CCNL_UXA=/tmp/.1.sock

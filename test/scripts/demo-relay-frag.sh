@@ -3,7 +3,7 @@
 # demo-relay-frag.sh -- test/demo for ccn-lite:
 # CCNx relaying via UDP sockets, using fragments of length 600
 
-CCNL_HOME=../..
+. ./paths.sh
 
 PORTA=9998
 PORTB=9999
