@@ -402,21 +402,17 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     
     ux_sendto(sock, socket_path, out, len);
     
-    
-    /*char *new_file_uri = (char *) malloc(sizeof(char)*1024);
-    sprintf(new_file_uri, "%s2.ccnb", file_uri);
-    FILE *f2 = fopen(new_file_uri, "w");
-    if(!f2) return 0;
-    fwrite(out, 1L, len, f2);
-    free(new_file_uri);
-    fclose(f2);*/
-
-    
     free(ccnb_file);
     free(out);
     free(contentobj);
     free(stmt);
     return 1;
+}
+
+int
+removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path){
+    printf("not yet implemented");
+    return 0;
 }
 
 // ----------------------------------------------------------------------
@@ -448,7 +444,14 @@ main(int argc, char *argv[])
         private_key_path = argv[4];
         if(!addToRelayCache(file_uri, unix_socket_path, private_key_path)) goto Usage;
     }
-    //else if(!strcmp(argv[1], ))
+    else if(!strcmp(argv[1], "remove"))
+    {
+        if(argc < 5) goto Usage;
+        ccn_path = argv[2];  
+        unix_socket_path = argv[3];
+        private_key_path = argv[4];
+        if(!removeFormRelayCache(ccn_path, unix_socket_path, private_key_path)) goto Usage;
+    }
        
     /*//create socket    
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { perror("cannot create socket"); return 0; }
@@ -470,8 +473,9 @@ main(int argc, char *argv[])
 Usage:
     fprintf(stderr, "usage: \n" 
     " %s create file_uri ccn_path private_key_path\n"
-    " %s add file_uri unix_socket_path private_key_path\n",
-    argv[0], argv[0]);
+    " %s add file_uri unix_socket_path private_key_path\n"
+    " %s remove ccn_path unix_socket_path private_key_path\n",
+    argv[0], argv[0], argv[0]);
     exit(1);
     return 0; // avoid a compiler warning
 }
