@@ -27,11 +27,11 @@
 #else
 #include <stdlib.h>
 #include <string.h>
+
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
-#include <stdio.h>
 #endif
 
 
@@ -39,7 +39,6 @@
 #include "ccnx.h"
 #include "ccnl-pdu.c"
 #include "ccnl.h"
-#include "ccnl-ext-debug.c"
 
 // ----------------------------------------------------------------------
 
@@ -1482,8 +1481,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99,"add to cache not yet implemented\n");
     
     unsigned char *buf;
-    unsigned char *buf2;
-    int buflen, buf2len;
+    unsigned char *data;
+    int buflen, datalen;
     int num, typ;
     
     unsigned char *sigtype = 0, *sig = 0, *content = 0;
@@ -1507,50 +1506,52 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (num==0 && typ==0)
 	    break; // end
         
-        DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
         extractStr(sigtype, CCN_DTAG_NAME);
         extractStr(sig, CCN_DTAG_SIGNATUREBITS);
         
-        //extractStr(content, CCN_DTAG_CONTENT);
-        
         if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
-    DEBUGMSG(99, "SigType: %s \n", sigtype);
-    DEBUGMSG(99, "Sig: %s \n", sig);
-    
-    //if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    //DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
-    //if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
 
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    DEBUGMSG(99, "NUM: %d; TYPE: %d \n", num, typ);    
-    
-    DEBUGMSG(99, "Buflen: %d\n", buflen);    
     
     int i;
-    buf2len = buflen - 2;
-    buf2 = (unsigned char *)ccnl_malloc(sizeof(char) * buf2len);
+    datalen = buflen - 2;
+    /*data = (unsigned char *)ccnl_malloc(sizeof(char) * datalen);
     for(i = 0; i < buf2len; ++i)
     {
-        buf2[i] = buf[i];
-    }
-    
+        data[i] = buf[i];
+    }*/
+    data = buf;
 #ifndef CCNL_LINUXKERNEL
-    int verified = verify("/home/blacksheeep/.ssh/publickey.pem", buf2, buf2len, sig, 256);
+    int verified = verify("/home/blacksheeep/.ssh/publickey.pem", data, datalen, sig, 256);
     if(verified){
-         DEBUGMSG(99, "verified");
+         DEBUGMSG(99, "Add content, signature verified\n");
          //add object to cache here...
+        struct ccnl_prefix_s *prefix = 0;
+        struct ccnl_content_s *c = 0;
+        struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+        unsigned char *content, *data = buf + 2;
+        int contlen;
+
+        pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
+                    0, &prefix, &nonce, &ppkd, &content, &contlen);
+        if (!pkt) {
+            DEBUGMSG(6, "  parsing error\n"); return -1;
+        }
+        if (!prefix) {
+            DEBUGMSG(6, "  no prefix error\n"); return -1;
+        }
+        c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
+                             content, contlen);
+        if (!c)
+            return -1;
+        ccnl_content_add2cache(ccnl, c);
+        c->flags |= CCNL_CONTENT_FLAGS_STATIC;     
     }else{
-         DEBUGMSG(99, "Drop object, signature could not be verified");
+         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
     }
-#endif
-    
-    /*FILE *f2 = fopen("file.ccnb", "w");
-    if(!f2) return 0;
-    fwrite(buf2, 1L, buflen2, f2);
-    fclose(f2);*/
+#endif   
     
     return 0;
     Bail:

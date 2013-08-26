@@ -407,13 +407,13 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     ux_sendto(sock, socket_path, out, len);
     
     
-    char *new_file_uri = (char *) malloc(sizeof(char)*1024);
+    /*char *new_file_uri = (char *) malloc(sizeof(char)*1024);
     sprintf(new_file_uri, "%s2.ccnb", file_uri);
     FILE *f2 = fopen(new_file_uri, "w");
     if(!f2) return 0;
     fwrite(out, 1L, len, f2);
     free(new_file_uri);
-    fclose(f2);
+    fclose(f2);*/
 
     
     free(ccnb_file);
