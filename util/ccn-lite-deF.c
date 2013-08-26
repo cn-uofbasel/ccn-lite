@@ -161,7 +161,7 @@ parseFrag(char *fname, unsigned char *data, int datalen, struct ccnl_face_s *f)
     int num, typ;
 
     if (dehead(&data, &datalen, &num, &typ)
-			|| typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT) {
+		|| typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT2013) {
 	fprintf(stderr, "** file %s not a CCNx2013 fragment, ignored\n", fname);
 	return;
     }

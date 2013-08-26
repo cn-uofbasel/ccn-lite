@@ -149,11 +149,11 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCN_DTAG_MINSUFFCOMP:	 n = "minSuffixComponents"; break;
 	    case CCN_DTAG_MAXSUFFCOMP:	 n = "maxSuffixComponents"; break;
 	    case CCN_DTAG_SEQNO:	 n = "sequenceNumber"; break;
-	    case CCN_DTAG_FragA:	 n = "FragA"; break;
-	    case CCN_DTAG_FragB:	 n = "FragB"; break;
-	    case CCN_DTAG_FragC:	 n = "FragC"; break;
+	    case CCN_DTAG_FragA:	 n = "FragA (Type)"; break;  // frag Type
+	    case CCN_DTAG_FragB:	 n = "FragB (SeqNr)"; break; // frag SeqNr
+	    case CCN_DTAG_FragC:	 n = "FragC (Flag)"; break;  // frag h2h Flag
 	    case CCN_DTAG_FragD:	 n = "FragD"; break;
-	    case CCN_DTAG_FragP:	 n = "FragP"; break;
+	    case CCN_DTAG_FragP:	 n = "FragP (Fragment)"; break; // frag
 	    case CCN_DTAG_CCNPDU:	 n = "ccnProtocolDataUnit"; break;
 
 	    case CCNL_DTAG_MACSRC:	 n = "MACsrc"; break;
@@ -163,18 +163,8 @@ parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    case CCNL_DTAG_DEBUGREQUEST: n = "debugRequest"; break;
 	    case CCNL_DTAG_DEBUGACTION:	 n = "debugAction"; break;
 
-	    case CCNL_DTAG_FRAGMENT:     n = "fragment"; break;
-	    case CCNL_DTAG_FRAG_TYPE:    n = "fragmentType"; break;
-	    case CCNL_DTAG_FRAG_SEQNR:   n = "fragmentSeqNr"; break;
-	    case CCNL_DTAG_FRAG_OLOSS:   n = "fragmentOurLoss"; break;
-	    case CCNL_DTAG_FRAG_YSEQN:   n = "fragmentYourSeqNo"; break;
-	    case CCNL_DTAG_FRAG_FLAGS:   n = "fragmentFlags"; break;
-
-	    case CCNL_DTAG_WIRE:         n = "wire"; break;
-	    case CCNL_DTAG_WFRAG_OSEQN:  n = "wireFragOurSeqNo"; break;
-	    case CCNL_DTAG_WFRAG_OLOSS:  n = "wireFragOurLoss"; break;
-	    case CCNL_DTAG_WFRAG_YSEQN:  n = "wireFragYourSeqNo"; break;
-	    case CCNL_DTAG_WFRAG_FLAGS:  n = "wireFragFlags"; break;
+	    case CCNL_DTAG_FRAG2012_OLOSS:   n = "fragmentOurLoss"; break;
+	    case CCNL_DTAG_FRAG2012_YSEQN:   n = "fragmentYourSeqNo"; break;
 
 	    default:
 		n=0;

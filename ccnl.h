@@ -87,39 +87,41 @@
 #define CCNL_DTAG_LASTUSE       99223
 #define CCNL_DTAG_SERVEDCTN     99224
 
+
+// ----------------------------------------------------------------------
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT2012	144144 // http://redmine.ccnx.org/issues/100803
-#define CCNL_DTAG_FRAGMENT	144199 // pending request (2013-07-24)
 
-#define CCNL_DTAG_FRAG_TYPE	(CCNL_DTAG_FRAGMENT+1)
-#define CCNL_DTAG_FRAG_FLAGS	(CCNL_DTAG_FRAGMENT+2)
-#define CCNL_DTAG_FRAG_SEQNR	(CCNL_DTAG_FRAGMENT+3)  // our seq number
+#define CCNL_DTAG_FRAG2012_TYPE		(CCNL_DTAG_FRAGMENT2012+1)
+#define CCNL_DTAG_FRAG2012_FLAGS	(CCNL_DTAG_FRAGMENT2012+2)
+#define CCNL_DTAG_FRAG2012_SEQNR	(CCNL_DTAG_FRAGMENT2012+3)  // our seq number
 
-#define CCNL_DTAG_FRAG_OLOSS	(CCNL_DTAG_FRAGMENT+5)  // our loss count
-#define CCNL_DTAG_FRAG_YSEQN	(CCNL_DTAG_FRAGMENT+6)  // your (highest) seq no
-/*
-#define CCNL_DTAG_FRAG_YSEQN16	(CCNL_DTAG_FRAGMENT+4)
-#define CCNL_DTAG_FRAG_YSEQN32	(CCNL_DTAG_FRAGMENT+5)
-*/
+#define CCNL_DTAG_FRAG2012_OLOSS	(CCNL_DTAG_FRAGMENT2012+5)  // our loss count
+#define CCNL_DTAG_FRAG2012_YSEQN	(CCNL_DTAG_FRAGMENT2012+6)  // your (highest) seq no
+
+// fragmentation protocol: (ccnl-ext-frag.c, FRAG_CCNx2013)
+#define CCNL_DTAG_FRAGMENT2013		CCN_DTAG_FragP // requested 2013-07-24, assigned 2013-08-12
+
+#define CCNL_DTAG_FRAG2013_TYPE		CCN_DTAG_FragA
+#define CCNL_DTAG_FRAG2013_SEQNR	CCN_DTAG_FragB  // our seq number
+#define CCNL_DTAG_FRAG2013_FLAGS	CCN_DTAG_FragC
+
+#define CCNL_DTAG_FRAG2013_OLOSS	CCNL_DTAG_FRAG2012_OLOSS  // our loss count
+#define CCNL_DTAG_FRAG2013_YSEQN	CCNL_DTAG_FRAG2012_YSEQN  // your (highest) seq no
+
+
 #define CCNL_DTAG_FRAG_FLAG_MASK	0x03
 #define CCNL_DTAG_FRAG_FLAG_FIRST	0x01
 #define CCNL_DTAG_FRAG_FLAG_MID		0x00
 #define CCNL_DTAG_FRAG_FLAG_LAST	0x02
 #define CCNL_DTAG_FRAG_FLAG_SINGLE	0x03
 
-#define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
-
 // echo "FHBH" | base64 -d | hexdump -v -e '/1 "@x%02x"'| tr @ '\\'; echo
 #define CCNL_FRAG_TYPE_CCNx2013_VAL     "\x14\x70\x47"
 
-// fragmentation protocol: (ccnl-ext-frag.c, FRAG_WIRE2013)
-#define CCNL_DTAG_WIRE		333333
-#define CCNL_DTAG_WFRAG_FLAGS	(CCNL_DTAG_WIRE+1)
-#define CCNL_DTAG_WFRAG_OSEQN	(CCNL_DTAG_WIRE+2)  // our seq number
-#define CCNL_DTAG_WFRAG_OLOSS	(CCNL_DTAG_WIRE+3)  // our loss count
-#define CCNL_DTAG_WFRAG_YSEQN	(CCNL_DTAG_WIRE+4)  // your (highest) seq no
-#define CCNL_DTAG_WFRAG_FLAG_FIRST	0x01
-#define CCNL_DTAG_WFRAG_FLAG_LAST	0x02
+// ----------------------------------------------------------------------
+// face mgmt protocol:
+#define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
 
 
 // eof

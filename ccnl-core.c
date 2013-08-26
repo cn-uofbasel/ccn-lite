@@ -963,7 +963,7 @@ ccnl_core_RX_datagram(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	case CCNL_DTAG_FRAGMENT2012:
 	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
-	case CCNL_DTAG_FRAGMENT:
+	case CCNL_DTAG_FRAGMENT2013:
 	    rc = ccnl_frag_RX_CCNx2013(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 #endif

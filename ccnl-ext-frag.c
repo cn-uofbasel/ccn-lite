@@ -99,13 +99,13 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
     else if (e && e->protocol == CCNL_FRAG_SEQUENCED2012) {
       while (offs < origlen) { // we could do better than to simulate this:
 	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT2012, CCN_TT_DTAG);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2012_FLAGS, CCN_TT_DTAG,
 			      0, e->flagwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2012_SEQNR, CCN_TT_DTAG,
 			      0, e->sendseqwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2012_OLOSS, CCN_TT_DTAG,
 			      0, e->losscountwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_YSEQN, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2012_YSEQN, CCN_TT_DTAG,
 			      0, e->recvseqwidth);
 
 	hdrlen += mkHeader(dummy, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -120,16 +120,16 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
       }
     } else if (e && e->protocol == CCNL_FRAG_CCNx2013) {
       while (offs < origlen) { // we could do better than to simulate this:
-	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);
-	hdrlen += mkHeader(dummy, CCNL_DTAG_FRAG_TYPE, CCN_TT_DTAG);
+	hdrlen = mkHeader(dummy, CCNL_DTAG_FRAGMENT2013, CCN_TT_DTAG);
+	hdrlen += mkHeader(dummy, CCNL_DTAG_FRAG2013_TYPE, CCN_TT_DTAG);
 	hdrlen += 4; // three BLOB bytes plus end-of-entry
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2013_SEQNR, CCN_TT_DTAG,
 			      0, e->sendseqwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2013_FLAGS, CCN_TT_DTAG,
 			      0, e->flagwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2013_OLOSS, CCN_TT_DTAG,
 			      0, e->losscountwidth);
-	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG_YSEQN, CCN_TT_DTAG,
+	hdrlen += mkBinaryInt(dummy, CCNL_DTAG_FRAG2013_YSEQN, CCN_TT_DTAG,
 			      0, e->recvseqwidth);
 
 	hdrlen += mkHeader(dummy, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -162,15 +162,15 @@ ccnl_frag_getnextSEQD2012(struct ccnl_frag_s *e, int *ifndx, sockunion *su)
 	     e->bigpkt->datalen, e->sendoffs);
 
     hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT2012, CCN_TT_DTAG);
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS,
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG2012_FLAGS,
 			  CCN_TT_DTAG, 0, e->flagwidth);
     flagoffs = hdrlen - 2;
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_YSEQN,
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG2012_YSEQN,
 			  CCN_TT_DTAG, e->recvseq, e->recvseqwidth);
-    hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG_OLOSS, CCN_TT_DTAG,
+    hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG2012_OLOSS, CCN_TT_DTAG,
 			  e->losscount, e->losscountwidth);
 
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR,
+    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG2012_SEQNR,
 			  CCN_TT_DTAG, e->sendseq, e->sendseqwidth);
     hdrlen += mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     blobtaglen = mkHeader(header+hdrlen, e->mtu - hdrlen - 2, CCN_TT_BLOB);
@@ -224,18 +224,18 @@ ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 
     // switch among encodings of fragments here (ccnb, TLV, etc)
 
-    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT, CCN_TT_DTAG);   // fragment
+    hdrlen = mkHeader(header, CCNL_DTAG_FRAGMENT2013, CCN_TT_DTAG); // fragment
 
-    hdrlen += mkHeader(header + hdrlen, CCNL_DTAG_FRAG_TYPE, CCN_TT_DTAG);
+    hdrlen += mkHeader(header + hdrlen, CCNL_DTAG_FRAG2013_TYPE, CCN_TT_DTAG);
     hdrlen += mkHeader(header + hdrlen, 3, CCN_TT_BLOB);
     memcpy(header + hdrlen, CCNL_FRAG_TYPE_CCNx2013_VAL, 3); // "FHBH"
     header[hdrlen + 3] = '\0';
     hdrlen += 4;
 
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_SEQNR, CCN_TT_DTAG,
+    hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG2013_SEQNR, CCN_TT_DTAG,
 			  fr->sendseq, fr->sendseqwidth);
 
-    hdrlen += mkBinaryInt(header + hdrlen, CCNL_DTAG_FRAG_FLAGS, CCN_TT_DTAG,
+    hdrlen += mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG2013_FLAGS, CCN_TT_DTAG,
 			  0, fr->flagwidth);
     flagoffs = hdrlen - 2; // most significant byte of flag element
 
@@ -451,16 +451,16 @@ ccnl_frag_RX_frag2012(RX_datagram callback,
 		if (consume(typ, num, data, datalen, &s.content,&s.contlen) < 0)
 		    goto Bail;
 		continue;
-	    case CCNL_DTAG_FRAG_FLAGS:
+	    case CCNL_DTAG_FRAG2012_FLAGS:
 		getNumField(s.flags, s.flagwidth, HAS_FLAGS, "flags");
 		continue;
-	    case CCNL_DTAG_FRAG_SEQNR:
+	    case CCNL_DTAG_FRAG2012_SEQNR:
 		getNumField(s.ourseq, s.ourseqwidth, HAS_OSEQ, "ourseq");
 		continue;
-	    case CCNL_DTAG_FRAG_OLOSS:
+	    case CCNL_DTAG_FRAG2012_OLOSS:
 		getNumField(s.ourloss, s.ourlosswidth, HAS_OLOS, "ourloss");
 		continue;
-	    case CCNL_DTAG_FRAG_YSEQN:
+	    case CCNL_DTAG_FRAG2012_YSEQN:
 		getNumField(s.yourseq, s.yourseqwidth, HAS_YSEQ, "yourseq");
 		continue;
 	    default:
@@ -508,14 +508,14 @@ ccnl_frag_RX_CCNx2013(RX_datagram callback,
 	if (num==0 && typ==0) break; // end
 	if (typ == CCN_TT_DTAG) {
 	    switch (num) {
-	    case CCNL_DTAG_FRAG_TYPE:
+	    case CCNL_DTAG_FRAG2013_TYPE:
 		if (hunt_for_end(data, datalen, &pdutype, &pdutypelen) ||
 		    pdutypelen != 3) goto Bail;
 		continue;
-	    case CCNL_DTAG_FRAG_SEQNR:
+	    case CCNL_DTAG_FRAG2013_SEQNR:
 		getNumField(s.ourseq, s.ourseqwidth, HAS_OSEQ, "ourseq");
 		continue;
-	    case CCNL_DTAG_FRAG_FLAGS:
+	    case CCNL_DTAG_FRAG2013_FLAGS:
 		getNumField(s.flags, s.flagwidth, HAS_FLAGS, "flags");
 		continue;
 	    case CCN_DTAG_CONTENT:
@@ -531,10 +531,10 @@ ccnl_frag_RX_CCNx2013(RX_datagram callback,
 		if (rc < 0)
 		    return rc;
 		continue;
-	    case CCNL_DTAG_FRAG_OLOSS:
+	    case CCNL_DTAG_FRAG2013_OLOSS:
 		getNumField(s.ourloss, s.ourlosswidth, HAS_OLOS, "ourloss");
 		continue;
-	    case CCNL_DTAG_FRAG_YSEQN:
+	    case CCNL_DTAG_FRAG2013_YSEQN:
 		getNumField(s.yourseq, s.yourseqwidth, HAS_YSEQ, "yourseq");
 		continue;
 	    default:

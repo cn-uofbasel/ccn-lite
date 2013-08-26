@@ -184,7 +184,9 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) p;
+#ifdef USE_FRAG
     struct ccnl_frag_s     *frg = (struct ccnl_frag_s     *) p;
+#endif
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
@@ -403,7 +405,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         else
             type[line] = 0;
         if (fac->frag)
-	    sprintf(frag[line], "frag(proto=%s, mtu=%d)",
+	    sprintf(frag[line], "fragproto=%s mtu=%d",
 		    frag_protocol(fac->frag->protocol), fac->frag->mtu);
 	else
 	    frag[line][0] = '\0';
