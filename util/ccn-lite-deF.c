@@ -20,23 +20,9 @@
  * 2013-07-06  created
  */
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <arpa/inet.h> // htonl()
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #define USE_FRAG
+
+#include "../ccnl-includes.h"
 
 #include "../ccnx.h"
 #include "../ccnl.h"
@@ -44,7 +30,6 @@
 
 #include "ccnl-common.c"
 #include "../ccnl-pdu.c"
-// #include "ccnl-frag.h"
 
 // ----------------------------------------------------------------------
 
