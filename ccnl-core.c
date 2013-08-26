@@ -20,7 +20,7 @@
  * 2011-04-09 created
  */
 
-#define CCNL_VERSION "2013-06-27"
+#define CCNL_VERSION "2013-07-27"
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
@@ -48,17 +48,17 @@ ccnl_buf_new(void *data, int len)
 
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
-		struct ccnl_prefix_s *p, int plen, int mode)
+		struct ccnl_prefix_s *p, int mode)
 /* returns -1 if no match at all (all modes) or exact match failed
-   returns  0 if full match (CMP_EXACT and CMP_MATCH)
-   returns n>0 for matched components+1 (CMP_MATCH, CMP_LONGEST) */
+   returns  0 if full match (CMP_EXACT)
+   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
 {
     int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-    if (mode == CMP_EXACT && nlen != plen)
+    if (mode == CMP_EXACT && nlen != p->compcnt)
 	goto done;
-    for (i = 0; i < nlen && i < plen; i++) {
+    for (i = 0; i < nlen && i < p->compcnt; i++) {
 	comp = i < name->compcnt ? name->comp[i] : md;
 	clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
 	if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
@@ -68,8 +68,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
     }
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
-    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d/%d), name=%s: %d (%p)\n",
-	     mode, nlen, plen, name->compcnt, p->compcnt,
+    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s: %d (%p)\n",
+	     mode, nlen, p->compcnt, name->compcnt,
 	     ccnl_prefix_to_path(name), rc, md);
     return rc;
 }
@@ -151,7 +151,7 @@ data2uint(unsigned char *cp, int len)
 
 struct ccnl_buf_s*
 ccnl_extract_prefix_nonce_ppkd(unsigned char **data, int *datalen,
-			       int *scope, int *min, int *max,
+			       int *scope, int *aok, int *min, int *max,
 			       struct ccnl_prefix_s **prefix,
 			       struct ccnl_buf_s **nonce,
 			       struct ccnl_buf_s **ppkd,
@@ -196,6 +196,8 @@ ccnl_extract_prefix_nonce_ppkd(unsigned char **data, int *datalen,
 		if (hunt_for_end(data, datalen, &cp, &len) < 0) goto Bail;
 		if (num == CCN_DTAG_SCOPE && len == 1 && scope)
 		    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
+		if (num == CCN_DTAG_ANSWERORIGKIND && aok)
+		    *aok = data2uint(cp, len);
 		if (num == CCN_DTAG_MINSUFFCOMP && min)
 		    *min = data2uint(cp, len);
 		if (num == CCN_DTAG_MAXSUFFCOMP && max)
@@ -252,8 +254,10 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
 	case AF_INET:
 	    return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
 			s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
+#ifdef USE_UNIXSOCKET
 	case AF_UNIX:
 	    return strcmp(s1->ux.sun_path, s2->ux.sun_path);
+#endif
 	default:
 	    break;
     }
@@ -329,7 +333,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     DEBUGMSG(1, "ccnl_face_remove relay=%p face=%p\n", (void*)ccnl, (void*)f);
 
     ccnl_sched_destroy(f->sched);
-    ccnl_encaps_destroy(f->encaps);
+    ccnl_frag_destroy(f->frag);
 
     for (pit = ccnl->pit; pit; ) {
 	struct ccnl_pendint_s **ppend, *pend;
@@ -472,21 +476,21 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     struct ccnl_buf_s *buf;
     DEBUGMSG(99, "ccnl_face_CTS face=%p sched=%p\n", (void*)f, (void*)f->sched);
 
-    if (!f->encaps) {
+    if (!f->frag || f->frag->protocol == CCNL_FRAG_NONE) {
 	buf = ccnl_face_dequeue(ccnl, f);
 	if (buf)
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,
 				   ccnl, ccnl->ifs + f->ifndx, buf, &f->peer);
     }
-#ifdef USE_ENCAPS
+#ifdef USE_FRAG
     else {
 	sockunion dst;
 	int ifndx = f->ifndx;
-	buf = ccnl_encaps_mknextfragment(f->encaps, &ifndx, &dst);
+	buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	if (!buf) {
 	    buf = ccnl_face_dequeue(ccnl, f);
-	    ccnl_encaps_reset(f->encaps, buf, f->ifndx, &f->peer);
-	    buf = ccnl_encaps_mknextfragment(f->encaps, &ifndx, &dst);
+	    ccnl_frag_reset(f->frag, buf, f->ifndx, &f->peer);
+	    buf = ccnl_frag_getnext(f->frag, &ifndx, &dst);
 	}
 	if (buf) {
 	    ccnl_interface_enqueue(ccnl_face_CTS_done, f,
@@ -521,8 +525,8 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
     to->outqend = buf;
 #ifdef USE_SCHEDULER
     if (to->sched) {
-#ifdef USE_ENCAPS
-	int len, cnt = ccnl_encaps_getfragcount(to->encaps, buf->datalen, &len);
+#ifdef USE_FRAG
+	int len, cnt = ccnl_frag_getfragcount(to->frag, buf->datalen, &len);
 #else
 	int len = buf->datalen, cnt = 1;
 #endif
@@ -617,36 +621,24 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
 void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
-    struct ccnl_forward_s *fwd, *best = NULL;
-    int maxmatch = -1;
+    struct ccnl_forward_s *fwd;
     DEBUGMSG(99, "ccnl_interest_propagate\n");
 
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
 
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
     // transmit an Interest Message on all listed dest faces in sequence."
-    // CCNL strategy: we forward on the face(s) with the longest prefix match
+    // CCNL strategy: we forward on all FWD entries with a prefix match
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(i->prefix, NULL, fwd->prefix,
-				 fwd->prefix->compcnt, CMP_LONGEST);
-	if (rc > maxmatch) {
-	    maxmatch = rc;
-	    best = fwd;
-	}
-    }
-    DEBUGMSG(40, "  ccnl_interest_propagate, best=%p %d\n",
-	     (void *) best, maxmatch);
-    if (!best)
-	return;
-    for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-	int rc = ccnl_prefix_cmp(i->prefix, NULL, fwd->prefix,
-				 fwd->prefix->compcnt, CMP_LONGEST);
-	if (rc == maxmatch) {
-	    // suppress forwarding to origin of interest, except wireless
-	    if (!i->from || fwd->face != i->from ||
-				(i->from->flags & CCNL_FACE_FLAGS_REFLECT))
-		ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
-	}
+	int rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->prefix, CMP_LONGEST);
+	DEBUGMSG(40, "  ccnl_interest_propagate, rc=%d/%d\n", rc, fwd->prefix->compcnt);
+	if (rc < fwd->prefix->compcnt)
+	    continue;
+	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
+	// suppress forwarding to origin of interest, except wireless
+	if (!i->from || fwd->face != i->from ||
+	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT))
+	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
     }
     return;
 }
@@ -676,7 +668,6 @@ int
 ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
 		  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
-    int cmplen = prefix->compcnt;
     unsigned char *md;
     DEBUGMSG(99, "ccnl_i_prefixof_c prefix=%s min=%d max=%d\n",
 	     ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
@@ -689,12 +680,12 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
     // >> CCNL does not honour the exclusion filtering
 
     if ( (ppkd && !buf_equal(ppkd, c->ppkd)) ||
-	 (cmplen + minsuffix) > (c->name->compcnt + 1) ||
-	 (cmplen + maxsuffix) < (c->name->compcnt + 1) )
+	 (prefix->compcnt + minsuffix) > (c->name->compcnt + 1) ||
+	 (prefix->compcnt + maxsuffix) < (c->name->compcnt + 1) )
 	return 0;
 
     md = prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
-    return ccnl_prefix_cmp(c->name, md, prefix, cmplen, CMP_MATCH) == cmplen;
+    return ccnl_prefix_cmp(c->name, md, prefix, CMP_MATCH) == prefix->compcnt;
 }
 
 struct ccnl_content_s*
@@ -863,7 +854,7 @@ int
 ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		    unsigned char **data, int *datalen)
 {
-    int rc=-1, scope=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
@@ -871,7 +862,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *content = 0;
     DEBUGMSG(99, "ccnl_core_RX_i_or_c (%d bytes left)\n", *datalen);
 
-    buf = ccnl_extract_prefix_nonce_ppkd(data, datalen, &scope, &minsfx,
+    buf = ccnl_extract_prefix_nonce_ppkd(data, datalen, &scope, &aok, &minsfx,
 			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     if (!buf) {
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
@@ -887,20 +878,22 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    rc = ccnl_mgmt(relay, buf, p, from); goto Done;
 	}
 	// CONFORM: Step 1:
-	for (c = relay->contents; c; c = c->next)
-	    if (ccnl_i_prefixof_c(p, ppkd, minsfx, maxsfx, c)) break;
-	if (c) { // we have matching content, return to interest sending face
-	    DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-	    ccnl_print_stats(relay, STAT_SND_C); //log sent_c
-	    if (from->ifndx >= 0)
-		ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
-	    else
-		ccnl_app_RX(relay, c);
-	    goto Skip;
+	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
+	    for (c = relay->contents; c; c = c->next) {
+		if (!ccnl_i_prefixof_c(p, ppkd, minsfx, maxsfx, c)) continue;
+		// FIXME: should check stale bit in aok here
+		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
+		ccnl_print_stats(relay, STAT_SND_C); //log sent_c
+		if (from->ifndx >= 0)
+		    ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+		else
+		    ccnl_app_RX(relay, c);
+		goto Skip;
+	    }
 	}
 	// CONFORM: Step 2: check whether interest is already known
 	for (i = relay->pit; i; i = i->next) {
-	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, p->compcnt, CMP_EXACT) &&
+	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
 		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
 		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
 		break;
@@ -966,14 +959,12 @@ ccnl_core_RX_datagram(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	case CCN_DTAG_CONTENTOBJ:
 	    rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
 	    continue;
-#ifdef USE_ENCAPS
-	case CCN_DTAG_CCNPDU:
-	    rc = ccnl_encaps_RX_pdu2013(ccnl_core_RX_datagram,
-					relay, from, data, datalen);
+#ifdef USE_FRAG
+	case CCNL_DTAG_FRAGMENT2012:
+	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 	case CCNL_DTAG_FRAGMENT:
-	    rc = ccnl_encaps_RX_frag2012(ccnl_core_RX_datagram,
-					 relay, from, data, datalen);
+	    rc = ccnl_frag_RX_CCNx2013(ccnl_core_RX_datagram, relay, from, data, datalen);
 	    continue;
 #endif
 	default:

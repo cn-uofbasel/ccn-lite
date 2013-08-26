@@ -100,7 +100,7 @@ mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 
 int
 unmkBinaryInt(unsigned char **data, int *datalen,
-	      unsigned int *result, unsigned char *bytes)
+	      unsigned int *result, unsigned char *width)
 {
     unsigned char *cp = *data;
     int len = *datalen, typ, num;
@@ -108,13 +108,14 @@ unmkBinaryInt(unsigned char **data, int *datalen,
 
     if (dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
 	return -1;
-    if (bytes) {
-      if (*bytes < num)
-	  num = *bytes;
+    if (width) {
+      if (*width < num)
+	  num = *width;
       else
-	  *bytes = num;
+	  *width = num;
     }
 
+    // big endian (network order):
     while (num-- > 0 && len > 0) {
 	val = (val << 8) | *cp++;
 	len--;

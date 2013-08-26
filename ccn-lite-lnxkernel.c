@@ -26,7 +26,7 @@
 
 #define USE_DEBUG
 // #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+#define USE_FRAG
 #define USE_ETHERNET
 // #define USE_SCHEDULER
 #define USE_MGMT
@@ -101,7 +101,8 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 	    sockunion *dest, struct ccnl_buf_s *buf)
 {
-    DEBUGMSG(1, "ccnl_ll_TX for %d bytes\n", buf ? buf->datalen : -1);
+    DEBUGMSG(1, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
+	     ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
 	return;
@@ -202,9 +203,9 @@ ccnl_close_socket(struct socket *s)
 
 #include "ccnl-core.c"
 
-#ifdef USE_ENCAPS
+#ifdef USE_FRAG
 #  include "ccnl-pdu.c"
-#  include "ccnl-ext-encaps.c"
+#  include "ccnl-ext-frag.c"
 #endif
 
 #include "ccnl-ext-mgmt.c"
@@ -278,7 +279,8 @@ ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
 	    break;
     if (!theRelay.halt_flag &&  i < theRelay.ifcount) {
 	su.sa.sa_family = AF_PACKET;
-	memcpy(su.eth.sll_addr, skb->data, ETH_ALEN);
+	memcpy(su.eth.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
+	su.eth.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
 	ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
     } else
 	kfree_skb(skb);
@@ -502,7 +504,7 @@ ccnl_init(void)
 	i->sock = ccnl_open_unixpath(x, &i->addr.ux);
 	if (i->sock) {
 	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
 	    i->mtu = 4048;
 	    i->reflect = 0;
 	    i->fwdalli = 0;
@@ -536,7 +538,7 @@ ccnl_init(void)
 	i = &theRelay.ifs[theRelay.ifcount];
 	i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
 	if (i->netdev) {
-//	i->encaps = CCNL_DGRAM_ENCAPS_ETH2011;
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
 	    i->mtu = 1500;
 	    i->reflect = 1;
 	    i->fwdalli = 1;

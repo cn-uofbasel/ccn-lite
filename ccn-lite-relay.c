@@ -32,7 +32,7 @@
 #define USE_CCNxDIGEST
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_ENCAPS
+#define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
@@ -58,7 +58,7 @@
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
-#include "ccnl-ext-encaps.c"
+#include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
@@ -247,9 +247,10 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 	break;
 #endif
     default:
+	DEBUGMSG(99, "unknown transport\n");
 	break;
     }
-    rc = rc; // just to silence a compiler warning (if USE_DEBUG is not set)
+    rc = 0; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
 void
@@ -337,7 +338,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     if (udpport > 0) {
 	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
-//	i->encaps = CCNL_DGRAM_ENCAPS_NONE;
+//	i->frag = CCNL_DGRAM_FRAG_NONE;
 	i->mtu = CCN_DEFAULT_MTU;
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
@@ -466,6 +467,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 {
     DIR *dir;
     struct dirent *de;
+    int datalen;
 
     DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
 
@@ -495,19 +497,20 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
                
 		buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) +
 							s.st_size);
-		buf->datalen = s.st_size;
-		read(fd, buf->data, s.st_size);
+		datalen = read(fd, buf->data, s.st_size);
 		close(fd);
-		if (buf->datalen > 1 &&
+		if (datalen == s.st_size && datalen >= 2 &&
 			    buf->data[0] == 0x04 && buf->data[1] == 0x82) {
 		    struct ccnl_prefix_s *prefix = 0;
 		    struct ccnl_content_s *c = 0;
 		    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
 		    unsigned char *content, *data = buf->data + 2;
-		    int contlen, datalen = buf->datalen - 2;
+		    int contlen;
 
+		    buf->datalen = datalen;
+		    datalen -= 2;
 		    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-				0, &prefix, &nonce, &ppkd, &content, &contlen);
+			      0, 0, &prefix, &nonce, &ppkd, &content, &contlen);
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }

@@ -18,6 +18,8 @@
  *
  * File history:
  * 2012-06-01  created
+ * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
+ *             of return message
  */
 
 #include <stdio.h>
@@ -32,59 +34,8 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
-
-int
-addBlob(unsigned char *out, char *cp, int cnt)
-{
-    int len;
-
-    len = mkHeader(out, cnt, CCN_TT_BLOB);
-    memcpy(out+len, cp, cnt);
-    len += cnt;
-
-    return len;
-}
-
-
-int
-mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-       char *cp, int cnt)
-{
-    int len;
-
-    len = mkHeader(out, num, tt);
-    len += addBlob(out+len, cp, cnt);
-    out[len++] = 0;
-
-    return len;
-}
-
-
-int
-mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-	  char *str)
-{
-    return mkBlob(out, num, tt, str, strlen(str));
-}
-
+#include "ccnl-common.c"
+#include "../ccnl-pdu.c"
 
 // ----------------------------------------------------------------------
 
@@ -127,7 +78,7 @@ mkDebugRequest(unsigned char *out, char *dbg)
 
 int
 mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
-		   char *encaps, char *flags)
+		   char *frag, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -148,8 +99,8 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 			  devname);
     if (ethtype)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, ethtype);
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -173,7 +124,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 
 int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
-		   char *encaps, char *flags)
+		   char *frag, char *flags)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -193,8 +144,8 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
     if (port)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, flags);
     faceinst[len3++] = 0; // end-of-faceinst
@@ -250,8 +201,8 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
     if (port)
 	len3 += mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
     /*
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
@@ -294,8 +245,8 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
     if (path)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_UNIXSRC, CCN_TT_DTAG, path);
     /*
-    if (encaps)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    if (frag)
+	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
 	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, flags);
@@ -359,7 +310,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid)
 
 
 int
-mkSetencapsRequest(unsigned char *out, char *faceid, char *encaps, char *mtu)
+mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -373,13 +324,13 @@ mkSetencapsRequest(unsigned char *out, char *faceid, char *encaps, char *mtu)
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setencaps");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setencaps");
+    len3 += mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "setfrag");
     len3 += mkStrBlob(faceinst+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
-    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_ENCAPS, CCN_TT_DTAG, encaps);
+    len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, mtu);
     faceinst[len3++] = 0; // end-of-faceinst
 
@@ -501,452 +452,12 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     return rc;
 }
 
-const char *byte_to_binary(int x)
-{
-    static char b[9];
-    b[0] = '\0';
-
-    int z;
-    for (z = 128; z > 0; z >>= 1)
-    {
-        strcat(b, ((x & z) == z) ? "1" : "0");
-    }
-
-    return b;
-}
-
-int
-dehead(unsigned char **buf, int *len, int *num, int *typ)
-{
-    int i;
-    int val = 0;
-
-    if (*len > 0 && **buf == 0) { // end
-	*num = *typ = 0;
-	*buf += 1;
-	*len -= 1;
-	return 0;
-    }
-    for (i = 0; (unsigned int) i < sizeof(i) && i < *len; i++) {
-	unsigned char c = (*buf)[i];
-	if ( c & 0x80 ) {
-	    *num = (val << 4) | ((c >> 3) & 0xf);
-	    *typ = c & 0x7;
-	    *buf += i+1;
-	    *len -= i+1;
-	    return 0;
-	}
-	val = (val << 7) | c;
-    } 
-    return -1;
-}
-
-void
-print_offset(int offset){
-    int it;
-    for(it = 0; it < offset; ++it)
-        printf(" ");
-}
-
-int 
-print_tag_content(unsigned char **buf, int *len, FILE *stream){
-    while((**buf) !=  0)
-    {
-        printf("%c", **buf);
-        ++(*buf); ++(*len);
-    }
-    ++(*buf); ++(*len);
-    return 0;
-}
-
-int print_tag_content_with_tag(unsigned char **buf, int *len, char *tag, FILE *stream)
-{
-    int num, typ; 
-    printf("<%s>", tag);
-    dehead(buf, len, &num, &typ);
-    print_tag_content(buf, len, stream);
-    printf("</%s>\n", tag);
-    return 0;
-}
-
-int 
-handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream);
-
-
-int
-handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* tag, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset); printf("<%s>\n", tag);
-    while(1)
-    {
-        if(dehead(buf, len, &num, &typ)) return -1;
-        switch(num)
-        {
-            case CCNL_DTAG_IFNDX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IFNDX", stream);
-               break;
-            case CCNL_DTAG_ADDRESS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ADDRESS", stream);
-               break;
-            case CCNL_DTAG_ETH:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ETH", stream);
-               break;
-            case CCNL_DTAG_SOCK:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "SOCK", stream);
-               break;
-            case CCNL_DTAG_REFLECT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "REFLECT", stream);
-               break;
-            case CCN_DTAG_FACEID:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACEID", stream);
-               break;   
-            case CCNL_DTAG_NEXT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "NEXT", stream);
-               break;
-            case CCNL_DTAG_PREV:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PREV", stream);
-               break;
-            case CCNL_DTAG_FWD:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FWD", stream);
-               break;
-            case CCNL_DTAG_FACEFLAGS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACEFLAGS", stream);
-               break;
-            case CCNL_DTAG_IP:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IP", stream);
-               break;
-            case CCNL_DTAG_UNIX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "UNIX", stream);
-               break;
-            case CCNL_DTAG_PEER:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PEER", stream);
-               break;
-            case CCNL_DTAG_FACE:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACE", stream);
-               break;
-            case CCNL_DTAG_INTERESTPTR:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "INTERESTPTR", stream);
-               break;
-            case CCNL_DTAG_LAST:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "LAST", stream);
-               break;
-            case CCNL_DTAG_MIN:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MIN", stream);
-               break;
-            case CCNL_DTAG_MAX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MAX", stream);
-               break;
-            case CCNL_DTAG_RETRIES:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "RETRIES", stream);
-               break;
-            case CCNL_DTAG_PUBLISHER:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PUBLISHER", stream);
-               break;
-            case CCNL_DTAG_CONTENTPTR:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "CONTENTPTR", stream);
-               break;
-            case CCNL_DTAG_LASTUSE:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "LASTUSE", stream);
-               break;
-            case CCNL_DTAG_SERVEDCTN:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "SERVEDCTN", stream);
-               break;
-            case CCN_DTAG_ACTION:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ACTION", stream);
-               break;
-            case CCNL_DTAG_MACSRC:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MACSRC", stream);
-               break;
-            case CCNL_DTAG_IP4SRC:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IP4SRC", stream);
-               break;
-            case CCN_DTAG_IPPROTO:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IPPROTO", stream);
-               break;
-            case CCN_DTAG_HOST:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "HOST", stream);
-               break;
-            case CCN_DTAG_PORT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PORT", stream);
-               break;
-            case CCNL_DTAG_ENCAPS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ENCAPS", stream);
-               break;
-            case CCNL_DTAG_MTU:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MTU", stream);
-               break;
-            case CCNL_DTAG_DEVFLAGS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "DEVFLAGS", stream);
-               break;
-            case CCNL_DTAG_DEVNAME:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "DEVNAME", stream);
-               break;
-            case CCN_DTAG_NAME:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "NAME", stream);
-               break;
-            case CCNL_DTAG_PREFIX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PREFIX", stream);
-               break;
-            default: 
-              goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</%s>\n", tag);
-    return 0;
-}   
-
-int 
-handle_ccn_debugreply(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-   
-    print_offset(offset); printf("<DEBUGREPLY>\n");
-    
-    while(1)
-    {
-        if(dehead(buf, len, &num, &typ)) return -1;
-        switch(num)
-        {
-            case CCNL_DTAG_INTERFACE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "INTERFACE", stream);
-                break;
-            case CCN_DTAG_FACEINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
-                break;
-            case CCN_DTAG_FWDINGENTRY:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FWDINGENTRY", stream);
-                break;
-            case CCN_DTAG_INTEREST:
-                handle_ccn_debugreply_content(buf, len, offset+4, "INTEREST", stream);
-                break;
-            case CCN_DTAG_CONTENT:
-                handle_ccn_debugreply_content(buf, len, offset+4, "CONTENT", stream);
-                break;
-            default:
-                goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</DEBUGREPLY>\n"); 
-    return 0;
-}
-
-int 
-handle_ccn_debugaction(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<DEBUGACTION>");
-    print_tag_content(buf,len,stream);
-    printf("</DEBUGACTION>\n");
-    return 0;
-}
-
-int 
-handle_ccn_action(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<ACTION>");
-    print_tag_content(buf,len,stream);
-    printf("</ACTION>\n");
-    return 0;
-}
-
-int
-handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    
-    print_offset(offset); printf("<DEBUGREQUEST>\n");
-    while(1)
-    {
-        if(dehead(buf, len, &num, &typ)) return -1;
-        switch(num)
-        {
-            case CCN_DTAG_ACTION:
-                handle_ccn_action(buf, len, offset+4, stream);
-                break;
-            case CCNL_DTAG_DEBUGACTION:
-                handle_ccn_debugaction(buf, len, offset+4, stream);
-                break;
-            default:
-                goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</DEBUGREQUEST>\n");
-    return 0;
-}
-
-int
-handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<CONTENTOBJ>\n");
-    switch(num)
-    {
-        case CCN_DTAG_CONTENT:
-            handle_ccn_content(buf, len, offset+4, stream);
-            break;
-    }
-    print_offset(offset); printf("</CONTENTOBJ>\n");
-    return 0;
-}
-
-int 
-handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset);
-    printf("<COMPONENT>");
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_tag_content(buf,len,stream);
-    printf("</COMPONENT>\n");
-    return 0;
-}
-
-int 
-handle_ccn_component_tag(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<COMPONENT>\n");
-    while(typ != 2){
-        dehead(buf, len, &num, &typ);
-    }
-    switch(num)
-    {
-        case CCN_DTAG_CONTENTOBJ:
-            handle_ccn_content_obj(buf, len, offset+4, stream);
-            break;
-    }
-    print_offset(offset); printf("</COMPONENT>\n");
-    return 0;
-}
-
-int 
-handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ, i;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<NAME>\n");
-    for(i = 0; i < 3; ++i)
-    {
-        if(num != CCN_DTAG_COMPONENT) return -1;
-        handle_ccn_component_content(buf, len, offset+4, stream);
-        if(dehead(buf, len, &num, &typ)) return -1;
-        
-    }
-    handle_ccn_component_tag(buf, len, offset+4, stream);
-    print_offset(offset); printf("</NAME>\n");
-    return 0;
-}
-
-int 
-handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<CONTENT>\n");
-    while(typ != 2){
-        dehead(buf, len, &num, &typ);
-    }
-    while(1)
-    {
-        switch(num)
-        {
-            case CCN_DTAG_NAME:
-                handle_ccn_name(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_INTEREST:
-                break;
-            case CCNL_DTAG_DEBUGREQUEST:
-                handle_ccn_debugrequest(buf, len, offset+4, stream);
-                break;
-            case CCNL_DTAG_DEBUGREPLY:
-                handle_ccn_debugreply(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_FACEINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
-                break;
-            case CCNL_DTAG_DEVINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "DEVINSTANCE", stream);
-                break;
-            case CCNL_DTAG_PREFIX:
-                handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
-                break;
-            default:
-                //printf("%i,%i\n", num, typ);
-                goto Bail;
-                break;
-        }
-        if(dehead(buf, len, &num, &typ)) break;
-    }
-    Bail:
-    print_offset(offset); printf("</CONTENT>\n");
-    return 0;
-}
-
-
-int  
-handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
-    
-    int num, typ;
-    if(dehead(&buf, &len, &num, &typ)) return -1;
-    switch(num)
-    {
-        case CCN_DTAG_CONTENT:
-            return handle_ccn_content(&buf, &len, offset, stream);
-            break;
-        case CCN_DTAG_INTEREST:
-            break;
-    }
-    return 0;
-}
-
 int
 main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
-    unsigned char out[10000];
+    unsigned char out[64000];
     int len;
     int sock = 0;
 
@@ -995,9 +506,9 @@ main(int argc, char *argv[])
 	if (argc < 3)  goto Usage;
 	len = mkNewUNIXFaceRequest(out, argv[2],
 				   argc > 3 ? argv[3] : "0x0001");
-    } else if (!strcmp(argv[1], "setencaps")) {
+    } else if (!strcmp(argv[1], "setfrag")) {
 	if (argc < 5)  goto Usage;
-	len = mkSetencapsRequest(out, argv[2], argv[3], argv[4]);
+	len = mkSetfragRequest(out, argv[2], argv[3], argv[4]);
     } else if (!strcmp(argv[1], "destroyface")) {
 	if (argc < 3) goto Usage;
 	len = mkDestroyFaceRequest(out, argv[2]);
@@ -1019,8 +530,8 @@ main(int argc, char *argv[])
 	len = recv(sock, out, sizeof(out), 0);
 	if (len > 0)
 	    out[len] = '\0';
-            
-        handle_ccn_packet(out, len, 0, stdout);
+
+	write(1, out, len);
         printf("\n");
         
 	printf("received %d bytes.\n", len);
@@ -1034,20 +545,20 @@ main(int argc, char *argv[])
 
 Usage:
     fprintf(stderr, "usage: %s [-x ux_path] CMD, where CMD either of\n"
-	   "  newETHdev     DEVNAME [ETHTYPE [ENCAPS [DEVFLAGS]]]\n"
-	   "  newUDPdev     IP4SRC|any [PORT [ENCAPS [DEVFLAGS]]]\n"
+	   "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
+	   "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
 	   "  destroydev    DEVNDX\n"
 	   "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
 	   "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
 	   "  newUNIXface   PATH [FACEFLAGS]\n"
-           "  setencaps     FACEID ENCAPS MTU\n"
+           "  setfrag       FACEID FRAG MTU\n"
 	   "  destroyface   FACEID\n"
 	   "  prefixreg     PREFIX FACEID\n"
 	   "  prefixunreg   PREFIX FACEID\n"
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
-	   "where ENCAPS in none, seqd2012, ccnp2013\n",
+	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
     if (sock) {

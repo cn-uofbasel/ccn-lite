@@ -39,6 +39,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#if !(defined(_BSD_SOURCE) && defined(SVID_SOURCE))
+int inet_aton(const char *cp, struct in_addr *inp);
+#endif
+
 // ----------------------------------------------------------------------
 
 #define DEBUGMSG(LVL, ...) do {       \
@@ -65,8 +69,8 @@
 
 #define ccnl_addr2ascii(sup)		inet_ntoa((sup)->ip4.sin_addr)
 
-#define ccnl_encaps_new(a,b)			NULL
-#define ccnl_encaps_destroy(e)			do {} while(0)
+#define ccnl_frag_new(a,b)			NULL
+#define ccnl_frag_destroy(e)			do {} while(0)
 
 // #define ccnl_face_CTS_done		NULL
 #define ccnl_sched_destroy(s)		do {} while(0)
