@@ -406,13 +406,57 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     free(out);
     free(contentobj);
     free(stmt);
-    return 1;
+    return len;
 }
 
 int
 removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path){
-    printf("not yet implemented");
-    return 0;
+    
+    
+    int len = 0, len2, len3;
+    int sock, i;
+    char mysockname[200];
+    unsigned char contentobj[2000], out[2000];
+    unsigned char stmt[1000];
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
+
+    // prepare debug statement
+    //len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
+    len3 += add_ccnl_name(stmt+len3, ccn_path);
+    
+    //stmt[len3++] = 0; // end-of-debugstmt
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) stmt, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+    
+    
+    // add CONTENTOBJ as the final name component
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+//    ccnl_prefix_free(p);
+    sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
+    sock = ux_open(mysockname);
+    printf("%s\n", socket_path);
+    
+    ux_sendto(sock, socket_path, out, len);
+    
+    return len;
+ 
 }
 
 // ----------------------------------------------------------------------
