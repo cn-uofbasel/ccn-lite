@@ -367,8 +367,13 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
     
-    //add signature to interest...
-    siglen = add_signature(stmt + len3, private_key_path, ccnb_file, fsize);
+    //add content to interest...
+    len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    len3 += addBlob(stmt+len3, ccnb_file, fsize);
+    stmt[len3++] = 0; // end content
+    
+    len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    siglen = add_signature(contentobj+len2, private_key_path, stmt, len3);
     if(!siglen)
     {
         printf("Could sign message\n");
@@ -378,14 +383,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
         free(stmt);
         return 0;
     }
-    len3 += siglen;
-    
-    //add content to interest...
-    len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len3 += addBlob(stmt+len3, ccnb_file, fsize);
-    stmt[len3++] = 0; // end content
-    
-    len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += siglen;
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     
@@ -424,6 +422,7 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    //signatur nach hier, über den rest
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
 
     // prepare debug statement
