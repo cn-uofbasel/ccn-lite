@@ -1456,10 +1456,9 @@ Bail:
     return rc;
 }
 
-#ifndef CCNL_LINUXKERNEL
-
 int sha1(void* input, unsigned long length, unsigned char* md)
 {
+#ifndef CCNL_LINUXKERNEL
     SHA_CTX context;
     if(!SHA1_Init(&context))
         return 0;
@@ -1471,10 +1470,14 @@ int sha1(void* input, unsigned long length, unsigned char* md)
         return 0;
 
     return 1;
+#else
+    return 0;
+#endif
 }
 
 int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
 {
+#ifndef CCNL_LINUXKERNEL
     //Load public key
     FILE *fp = fopen(public_key_path, "r");
     if(!fp) {
@@ -1493,32 +1496,29 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
     RSA_free(rsa);
     return verified;
-}
+#else
+    return 0;
 #endif
+}
+
 
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
-{
-    DEBUGMSG(99,"add to cache not yet implemented\n");
-    
+{    
     unsigned char *buf;
     unsigned char *data;
     int buflen, datalen;
     int num, typ;
     
-    unsigned char *sigtype = 0, *sig = 0, *content = 0;
+    unsigned char *sigtype = 0, *sig = 0;
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
@@ -1533,50 +1533,54 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
         if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    datalen = buflen - 1;
+    data = buf;  
+
+    int verified = verify("/home/blacksheeep/.ssh/publickey.pem", data, datalen, sig, 256);
+    if(!verified) {
+        DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
+        goto Bail;
+    }
 
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
-    int i;
-    datalen = buflen - 2;
-    data = buf;
-#ifndef CCNL_LINUXKERNEL
-    int verified = verify("/home/blacksheeep/.ssh/publickey.pem", data, datalen, sig, 256);
-    if(verified){
-         DEBUGMSG(99, "Signature verified, add content\n");
-         //add object to cache here...
-        struct ccnl_prefix_s *prefix = 0;
-        struct ccnl_content_s *c = 0;
-        struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-        unsigned char *content, *data = buf + 2;
-        int contlen;
+    DEBUGMSG(99, "Signature verified, add content\n");
+    //add object to cache here...
+    struct ccnl_prefix_s *prefix_a = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content;
+    data = buf + 2;
+    int contlen;
 
-        pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-			      0, 0, &prefix, &nonce, &ppkd, &content, &contlen);
-        if (!pkt) {
-            DEBUGMSG(6, "  parsing error\n"); goto Done;
-        }
-        if (!prefix) {
-            DEBUGMSG(6, "  no prefix error\n"); goto Done;
-        }
-        c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
-                             content, contlen);
-        if (!c) goto Done;
-        ccnl_content_add2cache(ccnl, c);
-        c->flags |= CCNL_CONTENT_FLAGS_STATIC;  
+    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
+                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+    if (!pkt) {
+        DEBUGMSG(6, "  parsing error\n"); goto Done;
+    }
+    if (!prefix_a) {
+        DEBUGMSG(6, "  no prefix error\n"); goto Done;
+    }
+    c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+                        content, contlen);
+    if (!c) goto Done;
+    ccnl_content_add2cache(ccnl, c);
+    c->flags |= CCNL_CONTENT_FLAGS_STATIC;  
         
     Done:
-        free_prefix(prefix);
+        free_prefix(prefix_a);
         ccnl_free(pkt);
         ccnl_free(nonce);
         ccnl_free(ppkd);
-        
-        
-    }else{
-         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
-    }
-#endif   
-    
+
     return 0;
     Bail:
         DEBUGMSG(99, "Error\n");
@@ -1588,9 +1592,6 @@ int
 ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
-    DEBUGMSG(99, "Remove not yet implemented\n");
-     
-    
     unsigned char *buf;
     unsigned char *data;
     unsigned char **components = 0;
@@ -1628,11 +1629,10 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    
-    
+   
     datalen = buflen - 2;
     data = buf;
-#ifndef CCNL_LINUXKERNEL
+    
     int verified = verify("/home/blacksheeep/.ssh/publickey.pem", data, datalen, sig, 256);
     if(verified){
         DEBUGMSG(99, "Signature verified, remove content\n");
@@ -1640,7 +1640,6 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(99, "Signature not verified");
         goto Bail;
     }
-#endif
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
@@ -1672,11 +1671,11 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
     }
     if(i == num_of_components){
-        DEBUGMSG(99, "Content Found\n");
+        DEBUGMSG(99, "Content found\n");
         ccnl_content_remove(ccnl, c2);
     }else
     {
-       DEBUGMSG(99, "Ignore Request since content not found\n"); 
+       DEBUGMSG(99, "Ignore request since content not found\n"); 
     }
        
     return 0;
