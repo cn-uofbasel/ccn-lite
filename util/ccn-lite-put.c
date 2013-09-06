@@ -340,6 +340,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
 {
     int sock, i;
     char mysockname[200];
+    char reply[8192];
     long len = 0, len2 = 0, len3 = 0;
     long fsize, siglen;
     char *ccnb_file, *out, *contentobj, *stmt;
@@ -376,7 +377,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     siglen = add_signature(contentobj+len2, private_key_path, stmt, len3);
     if(!siglen)
     {
-        printf("Could sign message\n");
+        printf("Could  sign message\n");
         free(ccnb_file);
         free(out);
         free(contentobj);
@@ -400,6 +401,10 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     
     ux_sendto(sock, socket_path, out, len);
     
+    len = recv(sock, reply, sizeof(reply), 0);
+    
+    printf("%s\n", reply);
+    
     free(ccnb_file);
     free(out);
     free(contentobj);
@@ -414,6 +419,7 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
     int len = 0, len2, len3;
     int sock, i;
     char mysockname[200];
+    char reply[8192];
     unsigned char contentobj[2000], out[2000];
     unsigned char stmt[1000];
 
@@ -453,6 +459,10 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
     printf("%s\n", socket_path);
     
     ux_sendto(sock, socket_path, out, len);
+    
+    len = recv(sock, reply, sizeof(reply), 0);
+    
+    printf("%s\n", reply);
     
     return len;
  
