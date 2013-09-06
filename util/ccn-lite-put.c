@@ -340,7 +340,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
 {
     int sock, i;
     char mysockname[200];
-    char reply[8192];
+    char reply[64000];
     long len = 0, len2 = 0, len3 = 0;
     long fsize, siglen;
     char *ccnb_file, *out, *contentobj, *stmt;
@@ -403,13 +403,14 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     
     len = recv(sock, reply, sizeof(reply), 0);
     
-    printf("%s\n", reply);
+    write(1, reply, len);
+    printf("\n");
     
     free(ccnb_file);
     free(out);
     free(contentobj);
     free(stmt);
-    return len;
+    return 1;
 }
 
 int
@@ -462,7 +463,8 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
     
     len = recv(sock, reply, sizeof(reply), 0);
     
-    printf("%s\n", reply);
+    write(1, reply, len);
+    printf("\n");
     
     return len;
  
@@ -505,21 +507,6 @@ main(int argc, char *argv[])
         private_key_path = argv[4];
         if(!removeFormRelayCache(ccn_path, unix_socket_path, private_key_path)) goto Usage;
     }
-       
-    /*//create socket    
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { perror("cannot create socket"); return 0; }
-    struct sockaddr_in outaddr; 
-    outaddr.sin_family = AF_INET;
-    outaddr.sin_port = 9000;
-    if (bind(sock, (struct sockaddr *)&outaddr, sizeof(outaddr)) < 0) { perror("bind failed"); return 0; }
-    
-    //send packet
-    struct sockaddr_in relayaddr; 
-    memset((char *)&relayaddr, 0, sizeof(relayaddr));
-    relayaddr.sin_family = AF_INET;
-    relayaddr.sin_addr.s_addr = inet_addr(ip_address);
-    relayaddr.sin_port = port;
-    sendto(sock, out, len, 0, (struct sockaddr *)&relayaddr, sizeof(relayaddr));*/
     
     return 0;
     

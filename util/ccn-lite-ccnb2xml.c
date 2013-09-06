@@ -419,6 +419,9 @@ handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
             case CCNL_DTAG_PREFIX:
                 handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
                 break;
+            case CCN_DTAG_ACTION:
+                print_offset(offset + 4); print_tag_content_with_tag(buf, len, "ACTION", stream);
+                break;
             default:
                 //printf("%i,%i\n", num, typ);
                 goto Bail;
