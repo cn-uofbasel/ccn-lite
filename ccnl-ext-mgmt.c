@@ -1501,7 +1501,6 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
 #endif
 }
 
-
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
@@ -1512,7 +1511,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int num, typ;
     
     unsigned char *sigtype = 0, *sig = 0;
-    
+    char *answer = "Failed to add content";
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
@@ -1574,17 +1573,17 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (!c) goto Done;
     ccnl_content_add2cache(ccnl, c);
     c->flags |= CCNL_CONTENT_FLAGS_STATIC;  
-        
+     
+    answer = "Content successfully added";
     Done:
         free_prefix(prefix_a);
         ccnl_free(pkt);
         ccnl_free(nonce);
         ccnl_free(ppkd);
 
-    return 0;
     Bail:
-        DEBUGMSG(99, "Error\n");
-    return -1;
+        ccnl_mgmt_return_msg(ccnl, orig, from, answer); 
+    return 0;
     
 }
 
@@ -1598,6 +1597,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned int num_of_components = -1;
     int buflen, datalen, i;
     int num, typ;
+    char *answer = "Failed to remove content";
     
     unsigned char *sigtype = 0, *sig = 0, *content = 0;
     
@@ -1675,13 +1675,15 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_content_remove(ccnl, c2);
     }else
     {
-       DEBUGMSG(99, "Ignore request since content not found\n"); 
+       DEBUGMSG(99, "Ignore request since content not found\n");
+       goto Bail;
     }
-       
-    return 0;
+    answer = "Content successfully removed";
+    
     Bail:
-        DEBUGMSG(99, "Error\n");
-    return -1;
+    //send answer
+    ccnl_mgmt_return_msg(ccnl, orig, from, answer);       
+    return 0;
 }
 
 int
