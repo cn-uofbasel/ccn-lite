@@ -1452,7 +1452,7 @@ Bail:
     ccnl_free(action);
     free_prefix(p);
 
-    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
+    //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
 
@@ -1505,13 +1505,14 @@ int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
-    unsigned char *buf;
+    unsigned char *buf, out1[2000], out2[1000], out3[500];
     unsigned char *data;
     int buflen, datalen;
-    int num, typ;
+    int num, typ, len, len2, len3;
     
     unsigned char *sigtype = 0, *sig = 0;
     char *answer = "Failed to add content";
+    struct ccnl_buf_s *retbuf;
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
@@ -1582,21 +1583,45 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_free(ppkd);
 
     Bail:
-        ccnl_mgmt_return_msg(ccnl, orig, from, answer); 
-    return 0;
-    
+        len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+
+        // prepare FWDENTRY
+        len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
+
+        // prepare CONTENTOBJ with CONTENT
+        len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+        len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                       (char*) out3, len3);
+        contentobj_buf[len2++] = 0; // end-of-contentobj
+
+        // add CONTENTOBJ as the final name component
+        len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                      (char*) out2, len2);
+
+        out1[len++] = 0; // end-of-name
+        out1[len++] = 0; // end-of-interest
+
+        retbuf = ccnl_buf_new((char *)out1, len);
+        ccnl_face_enqueue(ccnl, from, retbuf);
+    return 0;   
 }
 
 int
 ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
-    unsigned char *buf;
+    unsigned char *buf, out1[2000], out2[1000], out3[500];
     unsigned char *data;
     unsigned char **components = 0;
     unsigned int num_of_components = -1;
-    int buflen, datalen, i;
+    int buflen, datalen, i, len, len2, len3;
     int num, typ;
+    struct ccnl_buf_s *retbuf;
     char *answer = "Failed to remove content";
     
     unsigned char *sigtype = 0, *sig = 0, *content = 0;
@@ -1682,7 +1707,31 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     Bail:
     //send answer
-    ccnl_mgmt_return_msg(ccnl, orig, from, answer);       
+        len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+        len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
+
+        // prepare FWDENTRY
+        len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
+
+        // prepare CONTENTOBJ with CONTENT
+        len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+        len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                       (char*) out3, len3);
+        contentobj_buf[len2++] = 0; // end-of-contentobj
+
+        // add CONTENTOBJ as the final name component
+        len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                      (char*) out2, len2);
+
+        out1[len++] = 0; // end-of-name
+        out1[len++] = 0; // end-of-interest
+
+        retbuf = ccnl_buf_new((char *)out1, len);
+        ccnl_face_enqueue(ccnl, from, retbuf);     
     return 0;
 }
 
