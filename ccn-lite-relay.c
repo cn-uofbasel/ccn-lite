@@ -549,6 +549,8 @@ main(int argc, char **argv)
     int tcpport = CCN_UDP_PORT;
     char *datadir = NULL;
     char *ethdev = NULL;
+    char *private_key;
+    char *ctrl_public_key;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -558,7 +560,7 @@ main(int argc, char **argv)
     time(&theRelay.startup_time);
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:u:v:x:p:k:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -587,6 +589,12 @@ main(int argc, char **argv)
         case 'x':
             uxpath = optarg;
             break;
+        case 'p':
+            private_key = optarg;
+            break;
+        case 'k':
+            ctrl_public_key = optarg;
+            break;
         case 'h':
         default:
             fprintf(stderr,
@@ -598,6 +606,8 @@ main(int argc, char **argv)
 		    " [-s tcpport]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
+                    " [-p private key path]"
+                    " [-k ctrl public key path]"
 #ifdef USE_UNIXSOCKET
 		    " [-x unixpath]"
 #endif
@@ -616,6 +626,9 @@ main(int argc, char **argv)
     if (datadir)
 	ccnl_populate_cache(&theRelay, datadir);
 
+    theRelay.private_key = private_key;
+    theRelay.ctrl_pulic_key = ctrl_public_key;
+    
     ccnl_io_loop(&theRelay);
 
     while (eventqueue)

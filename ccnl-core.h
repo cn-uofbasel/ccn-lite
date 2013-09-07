@@ -104,6 +104,8 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
+    char *private_key;
+    char *ctrl_pulic_key;
 };
 
 struct ccnl_buf_s {

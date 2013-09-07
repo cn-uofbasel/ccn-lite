@@ -230,6 +230,15 @@ handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* t
                print_offset(offset+4); 
                print_tag_content_with_tag(buf, len, "PREFIX", stream);
                break;
+            case CCN_DTAG_SIGNATUREBITS:
+               print_offset(offset+4); 
+               //verify instead of print?
+               print_tag_content_with_tag(buf, len, "SIGNATUREBITS", stream);
+               break;
+            case CCN_DTAG_WITNESS:
+               print_offset(offset+4); 
+               print_tag_content_with_tag(buf, len, "WITNESS", stream);
+               break;
             default: 
               goto Bail;
         }
@@ -305,7 +314,7 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     print_offset(offset); printf("<DEBUGREQUEST>\n");
     while(1)
     {
-        if(dehead(buf, len, &num, &typ)) return -1;
+        if(dehead(buf, len, &num, &typ)) goto Bail;
         switch(num)
         {
             case CCN_DTAG_ACTION:
@@ -327,14 +336,23 @@ int
 handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
 {
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<CONTENTOBJ>\n");
-    switch(num)
+    while(1)
     {
-        case CCN_DTAG_CONTENT:
-            handle_ccn_content(buf, len, offset+4, stream);
-            break;
+        if(dehead(buf, len, &num, &typ)) goto Bail;
+        switch(num)
+        {
+            case CCN_DTAG_CONTENT:
+                handle_ccn_content(buf, len, offset+4, stream);
+                break;
+            case CCN_DTAG_SIGNATURE: 
+                handle_ccn_debugreply_content(buf, len, offset+4, "SIGNATURE", stream);
+                break;
+            default:
+                goto Bail;
+        }
     }
+    Bail:
     print_offset(offset); printf("</CONTENTOBJ>\n");
     return 0;
 }
