@@ -39,7 +39,7 @@
 #include <openssl/objects.h>
 #include <openssl/err.h>
 
-char *ctrl_public_key = "/home/blacksheeep/.ssh/publickey.pem";
+char *ctrl_public_key = "~/.ssh/publickey.pem";
 
 int sha1(void* input, unsigned long length, unsigned char* md)
 {
@@ -425,10 +425,10 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
     print_offset(offset); 
     printf("<SIGNATURE>");
     if(!verified) {
-        printf("signature NOT verified");
+        printf("Signature NOT verified");
     }else
     {
-        printf("signature verified");
+        printf("Signature verified");
     }
     printf("</SIGNATURE>\n");
     Bail:
@@ -576,6 +576,12 @@ handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
 int
 main(int argc, char *argv[])
 {
+    
+    if(!strcmp(argv[1],"-k"))    {
+        ctrl_public_key = argv[2];
+    }else if(!strcmp(argv[1],"-h")){
+        goto usage;
+    }
     unsigned char out[64000];
     int len;
 
@@ -587,6 +593,14 @@ main(int argc, char *argv[])
 
     handle_ccn_packet(out, len, 0, stdout);
     printf("\n");
-
+    
+    return 0;
+    
+    usage:
+    fprintf(stderr, "usage: \n" 
+    " parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml\n"
+    " %s -k public_key_path to verify signatures\n"
+    " %s -h print this message\n",
+    argv[0], argv[0]);
     return 0;
 }
