@@ -23,7 +23,7 @@ ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
 
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ../ccnx.h ../ccnl.h ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
 ccn-lite-put: ccn-lite-put.c ../ccnx.h ../ccnl.h ${EXTLIBS}
 

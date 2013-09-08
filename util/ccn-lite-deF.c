@@ -76,39 +76,6 @@ ccnl_buf_new(void *data, int len)
     return b;
 }
 
-static int consume(int typ, int num, unsigned char **buf, int *len,
-		   unsigned char **valptr, int *vallen);
-
-static int
-hunt_for_end(unsigned char **buf, int *len,
-	     unsigned char **valptr, int *vallen)
-{
-    int typ, num;
-
-    while (dehead(buf, len, &num, &typ) == 0) {
-	if (num==0 && typ==0)					return 0;
-	if (consume(typ, num, buf, len, valptr, vallen) < 0)	return -1;
-    }
-    return -1;
-}
-
-static int
-consume(int typ, int num, unsigned char **buf, int *len,
-	unsigned char **valptr, int *vallen)
-{
-    if (typ == CCN_TT_BLOB || typ == CCN_TT_UDATA) {
-	if (valptr)  *valptr = *buf;
-	if (vallen)  *vallen = num;
-	*buf += num, *len -= num;
-	return 0;
-    }
-    if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR)
-	return hunt_for_end(buf, len, valptr, vallen);
-//  case CCN_TT_TAG, CCN_TT_ATTR:
-//  case DTAG, DATTR:
-    return -1;
-}
-
 int
 ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     unsigned char **data, int *datalen)
