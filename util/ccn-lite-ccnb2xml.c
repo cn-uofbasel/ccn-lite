@@ -39,7 +39,7 @@
 #include <openssl/objects.h>
 #include <openssl/err.h>
 
-char *ctrl_public_key = "~/.ssh/publickey.pem";
+char *ctrl_public_key = 0;
 
 int sha1(void* input, unsigned long length, unsigned char* md)
 {
@@ -411,26 +411,36 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
         if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
     
-    char *buf2 = *buf;
-    int buflen2 = *buflen;
-    
-    if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    
-    if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-   
-    verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, 256);
-        
-    print_offset(offset); 
-    printf("<SIGNATURE>");
-    if(!verified) {
-        printf("Signature NOT verified");
-    }else
+    if(ctrl_public_key)
     {
-        printf("Signature verified");
+        char *buf2 = *buf;
+        int buflen2 = *buflen;
+
+        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
+        if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+
+        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
+        if (typ != CCN_TT_BLOB) goto Bail;
+
+        verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, 256);
+
+        print_offset(offset); 
+        printf("<SIGNATURE>");
+        if(!verified) {
+            printf("Signature NOT verified");
+        }else
+        {
+            printf("Signature verified");
+        }
+        printf("</SIGNATURE>\n");
     }
-    printf("</SIGNATURE>\n");
+    else{
+        print_offset(offset); 
+        printf("<SIGNATURE>\n");
+        print_offset(offset+4); printf("<NAME>%s</NAME>\n", sigtype);
+        print_offset(offset+4); printf("<SIGNATUREBITS>%s</SIGNATUREBITS>\n", sig);
+        printf("</SIGNATURE>\n");
+    }
     Bail:
     
     return 0;
@@ -576,12 +586,13 @@ handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
 int
 main(int argc, char *argv[])
 {
-    
-    if(!strcmp(argv[1],"-k"))    {
+
+    if(argc > 2 && !strcmp(argv[1],"-k"))  {
         ctrl_public_key = argv[2];
-    }else if(!strcmp(argv[1],"-h")){
+    }else if(argc > 1 && !strcmp(argv[1],"-h")){
         goto usage;
     }
+
     unsigned char out[64000];
     int len;
 
