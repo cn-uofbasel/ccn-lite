@@ -1533,7 +1533,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
 {
     int len, i;
     
-    unsigned char sig[256];
+    unsigned char *sig = (unsigned char *)ccnl_malloc(sizeof(char)*4096);
     int sig_len;
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
@@ -1541,7 +1541,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
     if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
-    DEBUGMSG(99, "SIGLEN: %d\n",sig_len);
+    //DEBUGMSG(99, "SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
     
     //add signaturebits bits...
@@ -1554,7 +1554,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     /*char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
     int verified = verify(publickey, file, fsize, sig, sig_len);
     printf("Verified: %d\n", verified);*/
-    
+    ccnl_free(sig);
     return len;
 }
 
@@ -1563,7 +1563,7 @@ int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
-    unsigned char *buf, out1[2000], out2[1000], out3[500];
+    unsigned char *buf, *out1, *out2, *out3;
     unsigned char *data;
     int buflen, datalen;
     int num, typ, len, len2, len3;
@@ -1571,58 +1571,46 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *sigtype = 0, *sig = 0;
     char *answer = "Failed to add content";
     struct ccnl_buf_s *retbuf;
+    
+    struct ccnl_prefix_s *prefix_a = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content;
+    int contlen;
+    
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
-    
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
-    
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
-        
-        if (num==0 && typ==0)
-	    break; // end
-        
-        extractStr(sigtype, CCN_DTAG_NAME);
-        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        
-        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    /*SKIP SIGNATURE, ALREADY CHECKED*/
+    if (typ == CCN_TT_DTAG && num == CCN_DTAG_SIGNATURE) 
+    {
+        while (dehead(&buf, &buflen, &num, &typ) == 0) {
+
+            if (num==0 && typ==0)
+                break; // end
+
+            extractStr(sigtype, CCN_DTAG_NAME);
+            extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+            if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        }
+
+        if(dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     }
-    
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    
-    datalen = buflen - 1;
-    data = buf;  
-    
-    if(!ccnl->ctrl_pulic_key || !ccnl->private_key)
-    {
-        DEBUGMSG(99, "Keys not found %s %s\n", ccnl->ctrl_pulic_key, ccnl->private_key);
-        goto Bail;
-    }
-    int verified = verify(ccnl->ctrl_pulic_key, data, datalen, sig, 256);
-    if(!verified) {
-        DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
-        goto Bail;
-    }
 
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
-    DEBUGMSG(99, "Signature verified, add content\n");
     //add object to cache here...
-    struct ccnl_prefix_s *prefix_a = 0;
-    struct ccnl_content_s *c = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-    unsigned char *content;
     data = buf + 2;
-    int contlen;
 
     pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
                          0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -1646,6 +1634,11 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_free(ppkd);
 
     Bail:
+        out1 = (unsigned char *)ccnl_malloc(sizeof(char)*2000);
+        out2 = (unsigned char *)ccnl_malloc(sizeof(char)*1000);
+        out3 = (unsigned char *)ccnl_malloc(sizeof(char)*500);    
+            
+            
         len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
         len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
@@ -1658,7 +1651,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         // prepare CONTENTOBJ with CONTENT
         len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-        len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
+        if(ccnl->private_key)len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
         len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                        (char*) out3, len3);
         contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1672,6 +1665,11 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf);
+        
+        ccnl_free(out1);
+        ccnl_free(out2);
+        ccnl_free(out3);
+        ccnl_free(sig);
     return 0;   
 }
 
@@ -1695,13 +1693,13 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    DEBUGMSG(99, "Buflen: %d\n", buflen);  
+ 
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
      
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
-
+    /*SKIP SIGNATURE, ALREADY CHECKED*/
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
     while (dehead(&buf, &buflen, &num, &typ) == 0) {
         
         if (num==0 && typ==0)
@@ -1709,26 +1707,16 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
         extractStr(sigtype, CCN_DTAG_NAME);
         extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        
         if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
-      
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    NOSIG:
+    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
+          
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-   
-    datalen = buflen - 2;
-    data = buf;
-    if(!ccnl->ctrl_pulic_key || !ccnl->private_key) goto Bail;
-    int verified = verify(ccnl->ctrl_pulic_key, data, datalen, sig, 256);
-    if(verified){
-        DEBUGMSG(99, "Signature verified, remove content\n");
-    }else{
-        DEBUGMSG(99, "Signature not verified");
-        goto Bail;
-    }
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
@@ -1783,7 +1771,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         // prepare CONTENTOBJ with CONTENT
         len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-        len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
+        if(ccnl->private_key)len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
         len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                        (char*) out3, len3);
         contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1801,6 +1789,64 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 }
 
 int
+ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    unsigned char *buf;
+    unsigned char *data;
+    int buflen, datalen, siglen = 0;
+    int num, typ;
+    unsigned char *sigtype = 0, *sig = 0;
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+     
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
+    
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        siglen = buflen;
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    siglen = siglen-(buflen+4);
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    datalen = buflen - 2;
+    data = buf;  
+    
+    if(!ccnl->ctrl_pulic_key)
+    {
+        DEBUGMSG(99, "Keys not found %s %s\n", ccnl->ctrl_pulic_key);
+        goto Bail;
+    }
+    int verified = verify(ccnl->ctrl_pulic_key, data, datalen, sig, siglen);
+    if(!verified) {
+        DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
+        goto Bail;
+    }
+    DEBUGMSG(99, "Signature verified\n");
+    ccnl_free(sig);
+    return 1;
+    
+    Bail:
+    ccnl_free(sig);
+    return 0;
+}
+
+int
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
@@ -1814,11 +1860,11 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (!ccnl_is_local_addr(&from->peer)) { //Here certification verification, where to place certification for that?
-	DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
+    if (!ccnl_is_local_addr(&from->peer) && !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)) { //Here certification verification, where to place certification for that?
+	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",
 		 ccnl_addr2ascii(&from->peer));
 	ccnl_mgmt_return_msg(ccnl, orig, from,
-			     "refused: origin of mgmt cmd is not local");
+			     "refused: origin of mgmt cmd is not local or non valid signature");
 	return -1;
     }
 	

@@ -398,7 +398,7 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
 int 
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
-   int num, typ, verified;
+   int num, typ, verified, siglen;
    char *sigtype = 0, *sig = 0; 
    while (dehead(buf, buflen, &num, &typ) == 0) {
         
@@ -406,11 +406,12 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 	    break; // end
         
         extractStr2(sigtype, CCN_DTAG_NAME);
+        siglen = *buflen;
         extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
         
         if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
-    
+    siglen = siglen-((*buflen)+4);
     if(ctrl_public_key)
     {
         char *buf2 = *buf;
@@ -422,7 +423,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
         if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
         if (typ != CCN_TT_BLOB) goto Bail;
 
-        verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, 256);
+        verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, siglen);
 
         print_offset(offset); 
         printf("<SIGNATURE>");
