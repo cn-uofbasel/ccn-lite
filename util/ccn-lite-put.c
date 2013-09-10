@@ -375,7 +375,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     
     len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
     if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
-    
+ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
