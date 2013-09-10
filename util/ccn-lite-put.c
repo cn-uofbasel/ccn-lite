@@ -38,10 +38,12 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 // ----------------------------------------------------------------------
 int
@@ -144,6 +146,7 @@ add_ccnl_name(unsigned char *out, char *ccn_path)
     return len;
 }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 int sha1(void* input, unsigned long length, unsigned char* md)
 {
     SHA_CTX context;
@@ -237,6 +240,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     
     return len;
 }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 int
 ux_open(char *frompath)
@@ -306,15 +310,15 @@ createCCNXFile(char *file_uri, char *ccn_path, char *private_key_path)
 
     
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); //content object
-  
+    
+#ifdef CCNL_USE_MGMT_SIGNATUES
     siglen = add_signature(out + len, private_key_path, file, fsize);
     if(!siglen)
     {
         printf("Could sign message\n");
     }
     len += siglen;
-    
-    //FIXME: Add sign info + publisher public key, what is this?
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     
     len += add_ccnl_name(out + len, ccn_path);
     
@@ -374,7 +378,9 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     stmt[len3++] = 0; // end content
     
     len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
  
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
@@ -433,7 +439,10 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+#endif 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj

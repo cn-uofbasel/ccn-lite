@@ -28,10 +28,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #endif
 
 
@@ -47,7 +49,6 @@ unsigned char faceinst_buf[2000];
 unsigned char out_buf[2000];
 unsigned char fwdentry_buf[2000];
 
-#define CCNL_USE_MGMT_SIGNATUES
 // ----------------------------------------------------------------------
 
 int
@@ -1769,6 +1770,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return 0;
 }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 int
 ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
@@ -1826,6 +1828,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ccnl_free(sig);
     return 0;
 }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 int
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,

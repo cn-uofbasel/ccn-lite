@@ -34,11 +34,15 @@
 
 #include "ccnl-common.c"
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
 char *ctrl_public_key = 0;
 
 int sha1(void* input, unsigned long length, unsigned char* md)
@@ -105,6 +109,7 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     RSA_free(rsa);
     return verified;
 }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 const char *byte_to_binary(int x)
 {
@@ -395,10 +400,11 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     return 0;
 }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 int 
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
-   int num, typ, verified, siglen;
+   int num, typ, verified, siglen, i;
    char *sigtype = 0, *sig = 0; 
    while (dehead(buf, buflen, &num, &typ) == 0) {
         
@@ -439,13 +445,18 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
         print_offset(offset); 
         printf("<SIGNATURE>\n");
         print_offset(offset+4); printf("<NAME>%s</NAME>\n", sigtype);
-        print_offset(offset+4); printf("<SIGNATUREBITS>%s</SIGNATUREBITS>\n", sig);
+        print_offset(offset+4); printf("<SIGNATUREBITS>");
+        for(i = 0; i < siglen; ++i){
+            printf("0x%04zx ", sig[i]);
+        }
+        printf("</SIGNATUREBITS>\n");
         printf("</SIGNATURE>\n");
     }
     Bail:
     
     return 0;
 }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 int
 handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
@@ -460,9 +471,11 @@ handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
             case CCN_DTAG_CONTENT:
                 handle_ccn_content(buf, len, offset+4, stream);
                 break;
+#ifdef CCNL_USE_MGMT_SIGNATUES
             case CCN_DTAG_SIGNATURE: 
                 handle_ccn_signature(buf, len, offset+4, stream);
                 break;
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
             default:
                 goto Bail;
         }
@@ -588,9 +601,12 @@ int
 main(int argc, char *argv[])
 {
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(argc > 2 && !strcmp(argv[1],"-k"))  {
         ctrl_public_key = argv[2];
-    }else if(argc > 1 && !strcmp(argv[1],"-h")){
+    }else 
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+        if(argc > 1 && !strcmp(argv[1],"-h")){
         goto usage;
     }
 
@@ -602,7 +618,6 @@ main(int argc, char *argv[])
 	perror("read");
 	exit(-1);
     }
-
     handle_ccn_packet(out, len, 0, stdout);
     printf("\n");
     
