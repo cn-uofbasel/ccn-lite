@@ -549,8 +549,8 @@ main(int argc, char **argv)
     int tcpport = CCN_UDP_PORT;
     char *datadir = NULL;
     char *ethdev = NULL;
-    char *private_key;
-    char *ctrl_public_key;
+    char *private_key = 0;
+    char *ctrl_public_key = 0;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -625,7 +625,6 @@ main(int argc, char **argv)
 		      uxpath, max_cache_entries);
     if (datadir)
 	ccnl_populate_cache(&theRelay, datadir);
-
     theRelay.private_key = private_key;
     theRelay.ctrl_pulic_key = ctrl_public_key;
     

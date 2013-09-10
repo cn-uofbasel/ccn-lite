@@ -213,7 +213,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
 {
     int len, i;
     
-    unsigned char sig[256];
+    unsigned char sig[2048];
     int sig_len;
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
@@ -338,11 +338,11 @@ createCCNXFile(char *file_uri, char *ccn_path, char *private_key_path)
 int
 addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
 {
-    int sock, i;
+    int sock;
     char mysockname[200];
     char reply[64000];
     long len = 0, len2 = 0, len3 = 0;
-    long fsize, siglen;
+    long fsize;
     char *ccnb_file, *out, *contentobj, *stmt;
     FILE *f = fopen(file_uri, "r");
     if(!f) return 0;
@@ -357,9 +357,9 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     fclose(f);
    
     //Create ccn-lite-ctrl interest object with signature to add content...
-    out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
-    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 500);
-    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 400);
+    out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
+    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 4000);
+    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
     
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -374,19 +374,11 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     stmt[len3++] = 0; // end content
     
     len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    siglen = add_signature(contentobj+len2, private_key_path, stmt, len3);
-    if(!siglen)
-    {
-        printf("Could  sign message\n");
-        free(ccnb_file);
-        free(out);
-        free(contentobj);
-        free(stmt);
-        return 0;
-    }
-    len2 += siglen;
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+    
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
     
     
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
@@ -406,6 +398,7 @@ addToRelayCache(char *file_uri, char * socket_path, char *private_key_path)
     write(1, reply, len);
     printf("\n");
     
+    Bail:
     free(ccnb_file);
     free(out);
     free(contentobj);
@@ -417,8 +410,8 @@ int
 removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path){
     
     
-    int len = 0, len2, len3;
-    int sock, i;
+    int len = 0, len2 = 0, len3 = 0;
+    int sock = 0, i = 0;
     char mysockname[200];
     char reply[8192];
     unsigned char contentobj[2000], out[2000];
@@ -440,7 +433,7 @@ removeFormRelayCache(char *ccn_path, char * socket_path, char *private_key_path)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+    if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -480,7 +473,7 @@ main(int argc, char *argv[])
     char *unix_socket_path;
     char *file_uri;
     char *ccn_path;
-    char *private_key_path;
+    char *private_key_path = 0;
     
     if(!strcmp(argv[1], "create"))
     {
@@ -493,18 +486,18 @@ main(int argc, char *argv[])
     }
     else if(!strcmp(argv[1], "add"))
     {
-        if(argc < 5) goto Usage;
+        if(argc < 4) goto Usage;
         file_uri = argv[2];  
         unix_socket_path = argv[3];
-        private_key_path = argv[4];
+        if(argc > 4)private_key_path = argv[4];
         if(!addToRelayCache(file_uri, unix_socket_path, private_key_path)) goto Usage;
     }
     else if(!strcmp(argv[1], "remove"))
     {
-        if(argc < 5) goto Usage;
+        if(argc < 4) goto Usage;
         ccn_path = argv[2];  
         unix_socket_path = argv[3];
-        private_key_path = argv[4];
+        if(argc > 4)private_key_path = argv[4];
         if(!removeFormRelayCache(ccn_path, unix_socket_path, private_key_path)) goto Usage;
     }
     
