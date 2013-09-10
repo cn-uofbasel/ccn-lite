@@ -1563,7 +1563,7 @@ int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
-    unsigned char *buf, *out1, *out2, *out3;
+ unsigned char *buf, out1[2000], out2[1000], out3[500];
     unsigned char *data;
     int buflen, datalen;
     int num, typ, len, len2, len3;
@@ -1571,60 +1571,61 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *sigtype = 0, *sig = 0;
     char *answer = "Failed to add content";
     struct ccnl_buf_s *retbuf;
-    
-    struct ccnl_prefix_s *prefix_a = 0;
-    struct ccnl_content_s *c = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-    unsigned char *content;
-    int contlen;
-    
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
+    
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     /*SKIP SIGNATURE, ALREADY CHECKED*/
-    if (typ == CCN_TT_DTAG && num == CCN_DTAG_SIGNATURE) 
-    {
-        while (dehead(&buf, &buflen, &num, &typ) == 0) {
-
-            if (num==0 && typ==0)
-                break; // end
-
-            extractStr(sigtype, CCN_DTAG_NAME);
-            extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-            if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
-        }
-
-        if(dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    NOSIG:
     /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
+    
+    datalen = buflen - 2;
+    data = buf;
+    
 
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
     //add object to cache here...
+    struct ccnl_prefix_s *prefix_a = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content;
     data = buf + 2;
+    int contlen;
 
     pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
                          0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
     if (!pkt) {
-        DEBUGMSG(6, "  parsing error\n"); goto Done;
+        DEBUGMSG(6, " parsing error\n"); goto Done;
     }
     if (!prefix_a) {
-        DEBUGMSG(6, "  no prefix error\n"); goto Done;
+        DEBUGMSG(6, " no prefix error\n"); goto Done;
     }
     c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
                         content, contlen);
     if (!c) goto Done;
     ccnl_content_add2cache(ccnl, c);
-    c->flags |= CCNL_CONTENT_FLAGS_STATIC;  
+    c->flags |= CCNL_CONTENT_FLAGS_STATIC;
      
     answer = "Content successfully added";
     Done:
@@ -1634,13 +1635,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_free(ppkd);
 
     Bail:
-        out1 = (unsigned char *)ccnl_malloc(sizeof(char)*2000);
-        out2 = (unsigned char *)ccnl_malloc(sizeof(char)*1000);
-        out3 = (unsigned char *)ccnl_malloc(sizeof(char)*500);    
-            
-            
-        len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-        len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+        len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG); // interest
+        len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG); // name
 
         len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
         len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -1650,14 +1646,14 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
 
         // prepare CONTENTOBJ with CONTENT
-        len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-        if(ccnl->private_key)len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
-        len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+        len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); // contentobj
+        if(ccnl->private_key) len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
+        len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG, // content
                        (char*) out3, len3);
         contentobj_buf[len2++] = 0; // end-of-contentobj
 
         // add CONTENTOBJ as the final name component
-        len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+        len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, // comp
                       (char*) out2, len2);
 
         out1[len++] = 0; // end-of-name
@@ -1665,11 +1661,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf);
-        
-        ccnl_free(out1);
-        ccnl_free(out2);
-        ccnl_free(out3);
-        ccnl_free(sig);
     return 0;   
 }
 
@@ -1829,7 +1820,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if(!ccnl->ctrl_pulic_key)
     {
-        DEBUGMSG(99, "Keys not found %s %s\n", ccnl->ctrl_pulic_key);
+        DEBUGMSG(99, "Public key not found %s %s\n", ccnl->ctrl_pulic_key);
         goto Bail;
     }
     int verified = verify(ccnl->ctrl_pulic_key, data, datalen, sig, siglen);
