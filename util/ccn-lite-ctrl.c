@@ -887,6 +887,9 @@ Usage:
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
+           "  add           ccn-file [private-key]\n"
+           "  remove        ccn-path [private-key]\n"
+           "  create        file ccn-path private-key\n"
 	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
