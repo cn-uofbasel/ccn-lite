@@ -11,21 +11,18 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkC \
 	ccn-lite-mkF \
 	ccn-lite-mkI \
-	ccn-lite-peek \
-	ccn-lite-put
+	ccn-lite-peek
 
 all: $(PROGS)
 
 ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../ccnx.h ../ccnl.h ../ccnl-pdu.c ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
 
 ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
 
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ../ccnx.h ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
-
-ccn-lite-put: ccn-lite-put.c ../ccnx.h ../ccnl.h ${EXTLIBS}
 
 ccn-lite-peek: Makefile ccn-lite-peek.c ../ccnx.h ../ccnl.h ../ccnl-pdu.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
