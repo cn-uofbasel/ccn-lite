@@ -24,6 +24,14 @@
 
 #ifdef CCNL_LINUXKERNEL
 #include <linux/string.h>
+#ifdef CCNL_USE_MGMT_SIGNATUES
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/crypto.h>
+#include <linux/err.h>
+#include <linux/scatterlist.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #else
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +56,7 @@ unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
 unsigned char out_buf[2000];
 unsigned char fwdentry_buf[2000];
+unsigned char out1[2000], out2[1000], out3[500];
 
 // ----------------------------------------------------------------------
 
@@ -131,7 +140,30 @@ int sha1(void* input, unsigned long length, unsigned char* md)
 
     return 1;
 #else
-    return 0;
+    struct scatterlist sg[2];
+    char hash[256];
+    struct crypto_hash *tfm;
+    struct hash_desc desc;
+
+    tfm = crypto_alloc_hash("sha1", 0, CRYPTO_ALG_ASYNC);
+    //if (IS_ERR(tfm))
+            //fail();
+    
+    /* ... set up the scatterlists ... */
+     sg_init_one(&sg, (u8 *)input, length);
+     
+    desc.tfm = tfm;
+    desc.flags = 0;
+
+    crypto_hash_digest(&desc, sg, 2, hash);
+            //fail();
+    //crypto_digest_init(tfm);
+    //crypto_digest_update(tfm, &sg, 1);
+    //crypto_digest_final(tfm, hash);
+    //crypto_free_tfm(tfm);
+    
+    crypto_free_hash(tfm);
+
 #endif
 }
 
@@ -224,7 +256,6 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                     char *component_type, char* answer)
 {
-    unsigned char out1[2000], out2[1000], out3[500];
     int len, len2, len3;
     struct ccnl_buf_s *retbuf;
     len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest

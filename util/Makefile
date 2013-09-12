@@ -31,7 +31,7 @@ ccn-lite-deF: Makefile ccn-lite-deF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
 
 ccn-lite-mkC: Makefile ccn-lite-mkC.c ../ccnx.h ../ccnl.h
-	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
 
 ccn-lite-mkF: Makefile ccn-lite-mkF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
