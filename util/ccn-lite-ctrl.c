@@ -38,6 +38,8 @@
 #include "ccnl-common.c"
 #include "../ccnl-pdu.c"
 
+// ----------------------------------------------------------------------
+
 #ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
@@ -126,7 +128,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
     if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
-    printf("SIGLEN: %d\n",sig_len);
+    //printf("SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
     
     //add signaturebits bits...
@@ -555,60 +557,11 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid)
 }
 
 int
-createCCNXFile(char *file_uri, char *ccn_path, char *private_key_path)
-{
-    long fsize, len, siglen;
-    char *out, *file, *new_file_uri;
-    FILE *f = fopen(file_uri, "r");
-    if(!f) return 0;
-    
-    //size vom file abmessen
-    fseek(f, 0L, SEEK_END);
-    fsize = ftell(f);
-    fseek(f, 0L, SEEK_SET);
-    
-    file = (unsigned char * ) malloc(sizeof(unsigned char)*fsize);
-    fread(file, fsize, 1, f);
-    fclose(f);
-    out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
-
-    
-    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG); //content object
-    
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    siglen = add_signature(out + len, private_key_path, file, fsize);
-    if(!siglen)
-    {
-        printf("Could sign message\n");
-    }
-    len += siglen;
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
-    
-    len += add_ccnl_name(out + len, ccn_path);
-    
-    len += mkStrBlob(out + len, CCN_DTAG_CONTENT, CCN_TT_DTAG, (char *) file);
-
-    out[len++] = 0; //content object end
-    
-    //write file
-    new_file_uri = (char *) malloc(sizeof(char)*1024);
-    sprintf(new_file_uri, "%s.ccnb", file_uri);
-    FILE *f2 = fopen(new_file_uri, "w");
-    if(!f2) return 0;
-    fwrite(out, 1L, len, f2);
-    fclose(f2);
-    free(out);
-    free(file);
-    
-    return 1;
-}
-
-int
 mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_path)
 {
     long len = 0, len2 = 0, len3 = 0;
     long fsize;
-    char *ccnb_file, *contentobj, *stmt;
+    unsigned char *ccnb_file, *contentobj, *stmt;
     FILE *f = fopen(file_uri, "r");
     if(!f) return 0;
     
@@ -766,8 +719,7 @@ main(int argc, char *argv[])
     unsigned char out[64000];
     int len;
     int sock = 0;
-    
-    char *unix_socket_path;
+
     char *file_uri;
     char *ccn_path;
     char *private_key_path = 0;
@@ -839,14 +791,6 @@ main(int argc, char *argv[])
         ccn_path = argv[2];  
         if(argc > 3)private_key_path = argv[3];
         len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
-    } else if(!strcmp(argv[1], "create"))
-    {
-        if(argc < 5) goto Usage;
-        file_uri = argv[2];
-        ccn_path = argv[3];
-        private_key_path = argv[4];
-        if(!createCCNXFile(file_uri, ccn_path, private_key_path)) goto Usage;
-        return 0;
     } else{
 	printf("unknown command %s\n", argv[1]);
 	goto Usage;
@@ -889,7 +833,6 @@ Usage:
 	   "  debug         dump+halt\n"
            "  add           ccn-file [private-key]\n"
            "  remove        ccn-path [private-key]\n"
-           "  create        file ccn-path private-key\n"
 	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
