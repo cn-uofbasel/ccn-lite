@@ -208,20 +208,13 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     //Compute Hash
     
     sha1(msg, msg_len, md);
-    int i;
-    for(i = 0; i < 20; ++i){
-    DEBUGMSG(99, "SHA1: %hhx \n", md[i]);
-    }
     //Verify signature
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
     RSA_free(rsa);
     return verified;
 #else
-    char md[256]; int i;
+    char md[256];
     sha1(msg, msg_len, md);
-    for(i = 0; i < 20; ++i){
-    DEBUGMSG(99, "SHA1: %hhx \n", md[i]);
-    }
     return 0;
 #endif
 }
