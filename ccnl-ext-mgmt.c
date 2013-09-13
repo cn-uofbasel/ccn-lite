@@ -140,30 +140,25 @@ int sha1(void* input, unsigned long length, unsigned char* md)
 
     return 1;
 #else
-    struct scatterlist sg[2];
-    char hash[256];
+    struct scatterlist sg[1];
     struct crypto_hash *tfm;
     struct hash_desc desc;
-
+        
     tfm = crypto_alloc_hash("sha1", 0, CRYPTO_ALG_ASYNC);
-    //if (IS_ERR(tfm))
-            //fail();
-    
-    /* ... set up the scatterlists ... */
-     sg_init_one(&sg, (u8 *)input, length);
+  
+    //sg_init_one(sg, (u8 *)input, length);
      
     desc.tfm = tfm;
     desc.flags = 0;
 
-    crypto_hash_digest(&desc, sg, 2, hash);
-            //fail();
-    //crypto_digest_init(tfm);
-    //crypto_digest_update(tfm, &sg, 1);
-    //crypto_digest_final(tfm, hash);
-    //crypto_free_tfm(tfm);
+    crypto_hash_init(&desc);
+    sg_init_table(sg, ARRAY_SIZE(sg));
+    sg_set_buf(&sg[0], input, length);
+    
+    crypto_hash_digest(&desc, sg, length, md);
     
     crypto_free_hash(tfm);
-
+    return 1;
 #endif
 }
 
@@ -197,9 +192,11 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
 
 int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
 {
+    
 #ifndef CCNL_LINUXKERNEL
     //Load public key
     FILE *fp = fopen(public_key_path, "r");
+    unsigned char md[SHA_DIGEST_LENGTH];
     if(!fp) {
         printf("Could not find public key\n");
         return 0;
@@ -209,14 +206,22 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     fclose(fp);
     
     //Compute Hash
-    unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
     
+    sha1(msg, msg_len, md);
+    int i;
+    for(i = 0; i < 20; ++i){
+    DEBUGMSG(99, "SHA1: %hhx \n", md[i]);
+    }
     //Verify signature
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
     RSA_free(rsa);
     return verified;
 #else
+    char md[256]; int i;
+    sha1(msg, msg_len, md);
+    for(i = 0; i < 20; ++i){
+    DEBUGMSG(99, "SHA1: %hhx \n", md[i]);
+    }
     return 0;
 #endif
 }
@@ -224,7 +229,7 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
 
 int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
 {
-    int len, i;
+    int len;
     
     unsigned char *sig = (unsigned char *)ccnl_malloc(sizeof(char)*4096);
     int sig_len;
@@ -1635,14 +1640,19 @@ int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
-    unsigned char *buf, out1[2000], out2[1000], out3[500];
+    unsigned char *buf;
     unsigned char *data;
-    int buflen, datalen;
-    int num, typ, len, len2, len3;
+    int buflen, datalen, contlen;
+    int num, typ;
+    
+    struct ccnl_prefix_s *prefix_a = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content;
     
     unsigned char *sigtype = 0, *sig = 0;
     char *answer = "Failed to add content";
-    struct ccnl_buf_s *retbuf;
+    
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
@@ -1678,12 +1688,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
     //add object to cache here...
-    struct ccnl_prefix_s *prefix_a = 0;
-    struct ccnl_content_s *c = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-    unsigned char *content;
     data = buf + 2;
-    int contlen;
 
     pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
                          0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -1716,16 +1721,17 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     
-    unsigned char *data, *buf;
+    unsigned char *buf;
     unsigned char **components = 0;
     unsigned int num_of_components = -1;
     int buflen, i;
     int num, typ;
     char *answer = "Failed to remove content";
+    struct ccnl_content_s *c2;
     
-    unsigned char *sigtype = 0, *sig = 0, *content = 0;
+    unsigned char *sigtype = 0, *sig = 0;
     
-    components = (char**) ccnl_malloc(sizeof(char*)*1024);
+    components = (unsigned char**) ccnl_malloc(sizeof(unsigned char*)*1024);
     for(i = 0; i < 1024; ++i)components[i] = 0;
     
     buf = prefix->comp[3];
@@ -1768,7 +1774,6 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
     ++num_of_components;
     
-    struct ccnl_content_s *c2;
     for (c2 = ccnl->contents; c2; c2 = c2->next)
     {
         if(c2->name->compcnt != num_of_components) continue;
@@ -1809,7 +1814,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *buf;
     unsigned char *data;
     int buflen, datalen, siglen = 0;
-    int num, typ;
+    int num, typ, verified = 0;
     unsigned char *sigtype = 0, *sig = 0;
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1843,10 +1848,10 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if(!ccnl->ctrl_pulic_key)
     {
-        DEBUGMSG(99, "Public key not found %s %s\n", ccnl->ctrl_pulic_key);
+        DEBUGMSG(99, "Public key not found %s\n", ccnl->ctrl_pulic_key);
         goto Bail;
     }
-    int verified = verify(ccnl->ctrl_pulic_key, data, datalen, sig, siglen);
+    verified = verify(ccnl->ctrl_pulic_key, (char *)data, datalen, (char *)sig, siglen);
     if(!verified) {
         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
         goto Bail;
@@ -1875,9 +1880,10 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (!ccnl_is_local_addr(&from->peer)
+    if (//!ccnl_is_local_addr(&from->peer)
 #ifdef CCNL_USE_MGMT_SIGNATUES
-            && !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
+           //&& 
+            !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
             ) { //Here certification verification, where to place certification for that?
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",

@@ -454,6 +454,8 @@ static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int u = CCN_UDP_PORT;
 static int v = 0;
+static char *p = NULL;
+static char *k = NULL;
 static void *ageing_handler = NULL;
 
 
@@ -468,6 +470,12 @@ MODULE_PARM_DESC(u, "UDP port (default: 9695)");
 
 module_param(v, int, 0);
 MODULE_PARM_DESC(v, "verbosity level");
+
+module_param(k, charp, 0);
+MODULE_PARM_DESC(k, "ctrl public key path");
+
+module_param(p, charp, 0);
+MODULE_PARM_DESC(p, "private key path");
 
 module_param(x, charp, 0);
 MODULE_PARM_DESC(ux_sock_path, "name (path) of mgmt unix socket");
@@ -488,10 +496,12 @@ ccnl_init(void)
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
-    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d\n",
-	     e, x, c, u, v);
+    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d, k=%s, p=%s\n",
+	     e, x, c, u, v, k, p);
 
     theRelay.max_cache_entries = c;
+    theRelay.private_key = p;
+    theRelay.ctrl_pulic_key = k;
 #ifdef USE_SCHEDULER
     theRelay.defaultFaceScheduler = ccnl_lnx_defaultFaceScheduler;
 #endif
