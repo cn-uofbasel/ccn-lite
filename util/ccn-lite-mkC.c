@@ -179,7 +179,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
-    if(!witness)witness="";
+    if(!witness)witness = "";
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, witness);
     
     if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
