@@ -31,6 +31,7 @@
 #include <linux/crypto.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
+#include <linux/digsig.h>
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 #else
 #include <stdlib.h>
@@ -213,9 +214,15 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     RSA_free(rsa);
     return verified;
 #else
-    char md[256];
+    char md[256]; int err;
+    
+    struct key *keyring;
     sha1(msg, msg_len, md);
-    return 0;
+            
+    //TODO: init keyring
+    
+    err = digsig_verify(keyring, sig, *sig_len, md, 20);
+    return err;
 #endif
 }
 
