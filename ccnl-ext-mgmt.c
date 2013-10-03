@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2012-05-06 created
+ * 2012-05-06 created <christopher.scherb@unibas.ch>
  */
 
 #ifdef USE_MGMT
