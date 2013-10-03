@@ -39,14 +39,10 @@
 #include "../ccnl-pdu.c"
 
 // ----------------------------------------------------------------------
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
-
 // ----------------------------------------------------------------------
 
 

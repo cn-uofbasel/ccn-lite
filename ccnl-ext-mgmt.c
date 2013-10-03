@@ -53,6 +53,8 @@
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 
+#include "ccnl-ext-crypto.c"
+
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
 unsigned char out_buf[2000];
@@ -124,138 +126,6 @@ ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buf = ccnl_buf_new(msg, strlen(msg));
     ccnl_face_enqueue(ccnl, from, buf);
 }
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
-int sha1(void* input, unsigned long length, unsigned char* md)
-{
-#ifndef CCNL_LINUXKERNEL
-    SHA_CTX context;
-    if(!SHA1_Init(&context))
-        return 0;
-
-    if(!SHA1_Update(&context, (unsigned char*)input, length))
-        return 0;
-
-    if(!SHA1_Final(md, &context))
-        return 0;
-
-    return 1;
-#else
-    struct scatterlist sg[1];
-    struct crypto_hash *tfm;
-    struct hash_desc desc;
-        
-    tfm = crypto_alloc_hash("sha1", 0, CRYPTO_ALG_ASYNC);
-  
-    //sg_init_one(sg, (u8 *)input, length);
-     
-    desc.tfm = tfm;
-    desc.flags = 0;
-
-    crypto_hash_init(&desc);
-    sg_init_table(sg, ARRAY_SIZE(sg));
-    sg_set_buf(&sg[0], input, length);
-    
-    crypto_hash_digest(&desc, sg, length, md);
-    
-    crypto_free_hash(tfm);
-    return 1;
-#endif
-}
-
-int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
-{
-    #ifndef CCNL_LINUXKERNEL
-    //Load private key
-    FILE *fp = fopen(private_key_path, "r");
-    if(!fp) {
-        printf("Could not find private key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
-    fclose(fp);
-    if(!rsa) return 0;
-    
-    unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
-    
-    //Compute signatur
-    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    if(!err){
-        DEBUGMSG(99,"Error: %d\n", ERR_get_error());
-    }
-    RSA_free(rsa);
-    return err;
-#else
-    return 0;
-#endif
-}
-
-int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
-{
-    
-#ifndef CCNL_LINUXKERNEL
-    //Load public key
-    FILE *fp = fopen(public_key_path, "r");
-    unsigned char md[SHA_DIGEST_LENGTH];
-    if(!fp) {
-        printf("Could not find public key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
-    if(!rsa) return 0;
-    fclose(fp);
-    
-    //Compute Hash
-    
-    sha1(msg, msg_len, md);
-    //Verify signature
-    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    RSA_free(rsa);
-    return verified;
-#else
-    char md[256]; int err;
-    
-    struct key *keyring;
-    sha1(msg, msg_len, md);
-            
-    //TODO: init keyring
-    
-    err = digsig_verify(keyring, sig, *sig_len, md, 20);
-    return err;
-#endif
-}
-
-
-int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
-{
-    int len;
-    
-    unsigned char *sig = (unsigned char *)ccnl_malloc(sizeof(char)*4096);
-    int sig_len;
-
-    len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
-    len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
-    len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
-    
-    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
-    //DEBUGMSG(99, "SIGLEN: %d\n",sig_len);
-    sig[sig_len]=0;
-    
-    //add signaturebits bits...
-    len += mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
-    len += addBlob(out + len, sig, sig_len);
-    out[len++] = 0; // end signaturebits
-    
-    out[len++] = 0; // end signature
-    
-    /*char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
-    int verified = verify(publickey, file, fsize, sig, sig_len);
-    printf("Verified: %d\n", verified);*/
-    ccnl_free(sig);
-    return len;
-}
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
