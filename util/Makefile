@@ -11,7 +11,8 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkC \
 	ccn-lite-mkF \
 	ccn-lite-mkI \
-	ccn-lite-peek
+	ccn-lite-peek \
+	ccn-lite-cryptoserver
 
 all: $(PROGS)
 
@@ -38,6 +39,9 @@ ccn-lite-mkF: Makefile ccn-lite-mkF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
+
+ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
+	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-ccnb2hex
