@@ -104,6 +104,9 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
+    
+    struct ccnl_face_s *crypto_face;
+    unsigned int crypto_txid;
     char *private_key;
     char *ctrl_pulic_key;
 };

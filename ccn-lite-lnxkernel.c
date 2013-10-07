@@ -500,8 +500,6 @@ ccnl_init(void)
 	     e, x, c, u, v, k, p);
 
     theRelay.max_cache_entries = c;
-    theRelay.private_key = p;
-    theRelay.ctrl_pulic_key = k;
 #ifdef USE_SCHEDULER
     theRelay.defaultFaceScheduler = ccnl_lnx_defaultFaceScheduler;
 #endif
@@ -560,7 +558,8 @@ ccnl_init(void)
 	}
     }
 #endif
-
+    if(p)
+        create_ccnl_crypto_face(&theRelay, p);
     return 0;
 }
 

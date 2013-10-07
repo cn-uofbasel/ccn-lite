@@ -20,16 +20,30 @@
  * 2012-10-03 created
  */
 
+
 #ifdef CCNL_USE_MGMT_SIGNATUES
 #ifndef CCNL_LINUXKERNEL
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
+
+#include "ccnl-core.h"
 #endif
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
+
 #ifdef CCNL_USE_MGMT_SIGNATUES
+
+int create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
+{
+    sockunion su;
+    DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", ux_path);
+    su.sa.sa_family = AF_UNIX;
+    strcpy(su.ux.sun_path, (char*) ux_path);
+    relay->crypto_face = ccnl_get_face_or_create(relay, -1, &su.sa, sizeof(struct sockaddr_un));
+}
+
 int sha1(void* input, unsigned long length, unsigned char* md)
 {
 #ifndef CCNL_LINUXKERNEL
@@ -47,59 +61,36 @@ int sha1(void* input, unsigned long length, unsigned char* md)
 #endif
 }
 
-int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
+int sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
 {
-    #ifndef CCNL_LINUXKERNEL
-    //Load private key
-    FILE *fp = fopen(private_key_path, "r");
-    if(!fp) {
-        printf("Could not find private key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
-    fclose(fp);
-    if(!rsa) return 0;
+    char *msg;
+    if(!ccnl->crypto_face) return 0;
     
-    unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
+    //create ccn_msg
     
-    //Compute signatur
-    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    if(!err){
-        DEBUGMSG(99,"Error: %d\n", ERR_get_error());
-    }
-    RSA_free(rsa);
-    return err;
-#else
-    return 0;
-#endif
+    //send ccn_msg to crytoserver
+    ccnl_face_enqueue(ccnl, ccnl->crypto_face, msg);
+    
+    //receive and parse return msg
+    
+    return 1;
+    
 }
 
-int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
+int verify(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int sig_len)
 {
+    char *msg;
+    int verified = 0;
+    if(!ccnl->crypto_face) return 0;
     
-#ifndef CCNL_LINUXKERNEL
-    //Load public key
-    FILE *fp = fopen(public_key_path, "r");
-    unsigned char md[SHA_DIGEST_LENGTH];
-    if(!fp) {
-        printf("Could not find public key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
-    if(!rsa) return 0;
-    fclose(fp);
+    //create ccn_msg
     
-    //Compute Hash
+    //send ccn_msg to crytoserver
+    ccnl_face_enqueue(ccnl, ccnl->crypto_face, msg);
     
-    sha1(msg, msg_len, md);
-    //Verify signature
-    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
-    RSA_free(rsa);
+    //receive and parse return msg
+    
     return verified;
-#else
-    return 0;
-#endif
 }
 
 
