@@ -36,7 +36,7 @@
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
-#include "../ccnl-pdu.c"
+//#include "../ccnl-pdu.c"
 
 #include "ccnl-crypto.c"
 
