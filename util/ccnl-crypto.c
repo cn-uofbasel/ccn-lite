@@ -33,22 +33,22 @@
 
 
 
-int sha1(void* input, unsigned long length, unsigned char* md)
+int sha(void* input, unsigned long length, unsigned char* md)
 {
-    SHA_CTX context;
-    if(!SHA1_Init(&context))
+    SHA256_CTX context;
+    if(!SHA256_Init(&context))
         return 0;
 
-    if(!SHA1_Update(&context, (unsigned char*)input, length))
+    if(!SHA256_Update(&context, (unsigned char*)input, length))
         return 0;
 
-    if(!SHA1_Final(md, &context))
+    if(!SHA256_Final(md, &context))
         return 0;
 
     return 1;
 }
 
-int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
+int sign(char* private_key_path, unsigned char *msg, int msg_len, char *sig, int *sig_len)
 {
 
     //Load private key
@@ -61,11 +61,11 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     fclose(fp);
     if(!rsa) return 0;
     
-    unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    sha(msg, msg_len, md);
     
     //Compute signatur
-    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
     if(!err){
         printf("Error: %d\n", ERR_get_error());
     }
@@ -73,7 +73,7 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     return err;
 }
 
-int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
+int verify(char* public_key_path, unsigned char *msg, int msg_len, char *sig, int sig_len)
 {
     //Load public key
     FILE *fp = fopen(public_key_path, "r");
@@ -86,11 +86,11 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     fclose(fp);
     
     //Compute Hash
-    unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    sha(msg, msg_len, md);
     
     //Verify signature
-    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
     if(!verified){
         printf("Error: %d\n", ERR_get_error());
     }
@@ -106,7 +106,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     int sig_len;
 
     len = mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
-    len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA1");
+    len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
     if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;

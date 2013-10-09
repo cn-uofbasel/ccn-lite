@@ -21,6 +21,8 @@
  */
 
 // ----------------------------------------------------------------------
+#include <stdlib.h>
+#include <stdio.h>
 
 
 #  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())

@@ -45,7 +45,7 @@
 #ifdef CCNL_USE_MGMT_SIGNATUES
 char *ctrl_public_key = 0;
 
-int sha1(void* input, unsigned long length, unsigned char* md)
+int sha(void* input, unsigned long length, unsigned char* md)
 {
     SHA_CTX context;
     if(!SHA1_Init(&context))
@@ -74,7 +74,7 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     if(!rsa) return 0;
     
     unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
+    sha(msg, msg_len, md);
     
     //Compute signatur
     int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
@@ -99,7 +99,7 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
   
     //Compute Hash
     unsigned char md[SHA_DIGEST_LENGTH];
-    sha1(msg, msg_len, md);
+    sha(msg, msg_len, md);
     
     //Verify signature
     int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);

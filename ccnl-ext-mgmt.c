@@ -1716,12 +1716,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     datalen = buflen - 2;
     data = buf;  
     
-    if(!ccnl->ctrl_pulic_key)
-    {
-        DEBUGMSG(99, "Public key not found %s\n", ccnl->ctrl_pulic_key);
-        goto Bail;
-    }
-    verified = verify(ccnl->ctrl_pulic_key, (char *)data, datalen, (char *)sig, siglen);
+    verified = verify(ccnl, data, datalen, (char *)sig, siglen);
     if(!verified) {
         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
         goto Bail;
