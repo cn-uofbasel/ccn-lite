@@ -24,6 +24,7 @@
 #include "../ccnl.h"
 #include "../ccnx.h"
 #include "ccnl-common.c"
+#include "ccnl-crypto.c"
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -99,21 +100,19 @@ handle_verify(char **buf, int *buflen){
 
 	if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
-    
     contentlen = contentlen - (*buflen + 4);
     
     printf("Contentlen: %d\n", contentlen);
     printf("Siglen: %d\n", siglen);
     
+    
     printf("TXID:     %s\n", txid_s);
     printf("HASH:     %s\n", hash);
     printf("CONTENT:  %s\n", content);
     
-    //verified = verify(public_key, content)
-    
-    
-    
-    return 1;
+    verified = verify(ctrl_public_key, content, contentlen, hash, siglen);
+    printf("Verified: %d\n", verified);
+    return verified;
     Bail:
     printf("FOO!\n");
     return 0;
