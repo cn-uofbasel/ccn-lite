@@ -558,8 +558,26 @@ ccnl_init(void)
 	}
     }
 #endif
-    if(p)
+    if(p){
+        i = &theRelay.ifs[theRelay.ifcount];
+	i->sock = ccnl_open_unixpath(p, &i->addr.ux);
+	if (i->sock) {
+	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
+	    i->mtu = 4048;
+	    i->reflect = 0;
+	    i->fwdalli = 0;
+	    write_lock_bh(&i->sock->sk->sk_callback_lock);
+	    i->old_data_ready = i->sock->sk->sk_data_ready;
+	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+//	i->sock->sk->sk_user_data = &theRelay;
+	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
+	    theRelay.ifcount++;
+	}
         create_ccnl_crypto_face(&theRelay, p);
+    }
+        
+    
     return 0;
 }
 

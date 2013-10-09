@@ -376,7 +376,22 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     }
 #endif // USE_UNIXSOCKET
     if(crypto_face_path)
-        create_ccnl_crypto_face(relay, crypto_face_path);
+    {
+        i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
+	i->mtu = 4096;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
+		     ccnl_addr2ascii(&i->addr));
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
+							ccnl_interface_CTS);
+            create_ccnl_crypto_face(relay, crypto_face_path);
+	} else
+	    fprintf(stderr, "sorry, could not open unix datagram device\n");
+    }
+        
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
@@ -606,9 +621,9 @@ main(int argc, char **argv)
 		    " [-s tcpport]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
-                    " [-p crypto_face_ux_socket]"
 
 #ifdef USE_UNIXSOCKET
+                    " [-p crypto_face_ux_socket]"
 		    " [-x unixpath]"
 #endif
 		    "\n", argv[0]);

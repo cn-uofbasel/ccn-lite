@@ -41,7 +41,7 @@ ccn-lite-mkI: Makefile ccn-lite-mkI.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
 
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
-	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ ${EXTLIBS}
+	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-ccnb2hex
