@@ -1681,6 +1681,7 @@ int
 ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
+    
     unsigned char *buf;
     unsigned char *data;
     int buflen, datalen, siglen = 0;
@@ -1691,7 +1692,6 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
      
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
@@ -1717,8 +1717,12 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     data = buf;  
     
     verified = verify(ccnl, data, datalen, (char *)sig, siglen);
-    if(!verified) {
+    if(verified == 0) {
         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
+        goto Bail;
+    }
+    else if(verified < 0){
+        DEBUGMSG(99, "Waiting for crypto server\n");
         goto Bail;
     }
     DEBUGMSG(99, "Signature verified\n");
@@ -1727,7 +1731,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     Bail:
     ccnl_free(sig);
-    return 0;
+    return verified;
 }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
@@ -1746,10 +1750,10 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
     if (//!ccnl_is_local_addr(&from->peer)
-#ifdef CCNL_USE_MGMT_SIGNATUES
+//#ifdef CCNL_USE_MGMT_SIGNATUES
            //&& 
             !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+//#endif /*CCNL_USE_MGMT_SIGNATUES*/
             ) { //Here certification verification, where to place certification for that?
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",
 		 ccnl_addr2ascii(&from->peer));

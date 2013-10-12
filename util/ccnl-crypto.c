@@ -30,7 +30,7 @@
 #include <openssl/objects.h>
 #include <openssl/err.h>
 // ----------------------------------------------------------------------
-
+#endif
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 {
@@ -82,6 +82,7 @@ mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
     return mkBlob(out, num, tt, str, strlen(str));
 }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
 int sha(void* input, unsigned long length, unsigned char* md)
 {
     SHA256_CTX context;

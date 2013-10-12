@@ -21,6 +21,7 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
+#define CCNL_USE_MGMT_SIGNATUES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +175,7 @@ int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 		   char *frag, char *flags)
 {
-    int len = 0, len2, len3;
+    int  len = 0, len2, len3;
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
