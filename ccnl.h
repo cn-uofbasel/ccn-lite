@@ -86,6 +86,7 @@
 #define CCNL_DTAG_CONTENTPTR    99222
 #define CCNL_DTAG_LASTUSE       99223
 #define CCNL_DTAG_SERVEDCTN     99224
+#define CCNL_DTAG_VERIFIED    99225
 
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_SEQUENCED2012)
 #define CCNL_DTAG_FRAGMENT2012	144144 // http://redmine.ccnx.org/issues/100803
@@ -121,7 +122,7 @@
 #define CCNL_DTAG_WFRAG_FLAG_FIRST	0x01
 #define CCNL_DTAG_WFRAG_FLAG_LAST	0x02
 
-#define CCNL_USE_MGMT_SIGNATUES
+//#define CCNL_USE_MGMT_SIGNATUES
 
 
 // eof

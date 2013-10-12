@@ -759,7 +759,7 @@ debug_memdump()
 			free_2ptr_list(c->pkt, c); } while(0)
 
 // -----------------------------------------------------------------
-static int debug_level;
+int debug_level;
 
 #endif /*CCNL_EXT_DEBUG*/
 // eof

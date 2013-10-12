@@ -19,7 +19,8 @@
  * File history:
  * 2012-10-03 created
  */
-
+#ifndef CCNL_EXT_CRYPTO_C
+#define CCNL_EXT_CRYPTO_C
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
 #ifndef CCNL_LINUXKERNEL
@@ -35,7 +36,30 @@
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 
+
 #ifdef CCNL_USE_MGMT_SIGNATUES
+
+/*struct ccnl_pendcrypt_s { // pending interest
+    struct ccnl_pendcrypt_s *next, *prev;
+    int (*function)(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
+    struct ccnl_face_s *from;
+    unsigned char *data;
+    int *datalen;
+    int txid;
+};
+
+struct ccnl_pendcrypt_s 
+*create_ccnl_pendcrypt(int (*function)(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen),
+        struct ccnl_face_s *from, unsigned char *data, int datalen, int txid){
+    struct ccnl_pendcrypt_s *ret = ccnl_malloc(sizeof(struct ccnl_pendcrypt_s));
+    ret->txid = txid;
+    ret->datalen = datalen;
+    ret->function = function;
+    ret->from = (struct ccnl_face_s*) ccnl_malloc(sizeof(struct ccnl_face_s));
+    memcpy(ret->from, from, sizeof(struct ccnl_face_s));
+    ret->data = (unsigned char*) ccnl_malloc(sizeof(char)*datalen);
+    memcpy(ret->data, data, sizeof(sizeof(char)*datalen));
+}*/
 
 int create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
 {
@@ -106,11 +130,13 @@ int sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, i
     if(!ccnl->crypto_face) return 0;
     //create ccn_msg
     msg = (char *) ccnl_malloc(sizeof(char)*(content_len+*sig_len)+3000);
+    
     len = create_ccnl_sign_verify_msg("sign", ccnl->crypto_txid++, content, content_len, 
             NULL, 0, msg);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
+    
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
     //receive and parse return msg
@@ -142,6 +168,7 @@ int verify(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig,
     //receive and parse return msg
     if(msg) ccnl_free(msg);
     if (retbuf) ccnl_free(retbuf);
+    
     return verified;
 }
 
@@ -174,4 +201,13 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     ccnl_free(sig);
     return len;
 }
+
+int
+ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from){
+    
+    DEBUGMSG(99, "ccnl_crypto content\n");
+    return 0;
+}
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*CCNL_EXT_CRYPTO_C*/

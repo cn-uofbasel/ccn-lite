@@ -20,6 +20,8 @@
  * 2013-07-06  created
  */
 
+#define CCNL_USE_MGMT_SIGNATUES
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -86,9 +88,10 @@ mkContent(char **namecomp,
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
 
     // add signature
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(private_key_path)
         len += add_signature(out+len, private_key_path, body, blen);  
-
+#endif
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
 	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
