@@ -86,9 +86,10 @@ ux_open(char *frompath)
 }
 
 int 
-get_tag_content(unsigned char **buf, int *len, char *content){
+get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
     int num = 0;
-    while((**buf) !=  0)
+    memset(content,0,contentlen);
+    while((**buf) !=  0 && num < contentlen)
     {
         content[num] = **buf;
         ++(*buf); --(*len);
@@ -105,7 +106,7 @@ handle_verify(char **buf, int *buflen, int sock){
     int siglen = 0;
     char *txid_s = 0, *sig = 0, *content = 0;
     int len = 0, len2 = 0, len3 = 0;
-    char *component_buf, *contentobj_buf, *msg;
+    char *component_buf = 0, *contentobj_buf = 0, *msg = 0;
     char h[1024];
     
     //open content
@@ -124,15 +125,9 @@ handle_verify(char **buf, int *buflen, int sock){
 
 	if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
-    contentlen = contentlen - (*buflen + 4);
+    contentlen = contentlen - (*buflen + 4);    
     
-    printf("Contentlen: %d\n", contentlen);
-    printf("Siglen: %d\n", siglen);
-    
-    
-    printf("TXID:     %s\n", txid_s);
-    printf("HASH:     %s\n", sig);
-    printf("CONTENT:  %s\n", content);
+    printf("Handeling TXID: %s... Type: Verify\n", txid_s);
     
     verified = verify(ctrl_public_key, content, contentlen, sig, siglen);
     printf("Verified: %d\n", verified);
@@ -175,23 +170,22 @@ handle_verify(char **buf, int *buflen, int sock){
     ux_sendto(sock, h, msg, len);
     printf("answered to: %s len: %d\n", ux_path, len);
     Bail:
-    ccnl_free(contentobj_buf);
-    ccnl_free(component_buf);
-    ccnl_free(msg);
+    if(contentobj_buf) ccnl_free(contentobj_buf);
+    if(component_buf) ccnl_free(component_buf);
+    if(msg) ccnl_free(msg);
     return verified;
 }
 
 
 int
 handle_sign(char **buf, int *buflen, int sock){
-    int num, typ, verified;
+    int num, typ, ret = 0; int i;
     int contentlen = 0;
     int siglen = 0;
     char *txid_s = 0, *sig = 0, *content = 0;
     int len = 0, len2 = 0, len3 = 0;
-    char *component_buf, *contentobj_buf, *msg;
+    char *component_buf = 0, *contentobj_buf = 0, *msg = 0;
     char h[1024];
-    
     //open content
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
@@ -207,18 +201,18 @@ handle_sign(char **buf, int *buflen, int sock){
     }
     contentlen = contentlen - (*buflen + 4);
     
-    printf("Contentlen: %d\n", contentlen);
-    
-    
-    printf("TXID:     %s\n", txid_s);
-    printf("CONTENT:  %s\n", content);
+    printf("Handeling TXID: %s... Type: Sign\n", txid_s);
     
     sig = ccnl_malloc(sizeof(char)*4096);
-    verified = sign(ctrl_public_key, content, contentlen, sig, &siglen);
-    printf("Verified: %d\n", verified);
-    realloc(sig, siglen);
-    //return message object
     
+    sign(private_key, content, contentlen, sig, &siglen);
+    if(siglen <= 0){
+        ccnl_free(sig);
+        sig = "Error";
+        siglen = 6;
+    }
+
+    //return message object
     msg = ccnl_malloc(sizeof(char)*siglen + 1000);
     component_buf = ccnl_malloc(sizeof(char)*siglen + 666);
     contentobj_buf = ccnl_malloc(sizeof(char)*siglen + 333);
@@ -255,10 +249,11 @@ handle_sign(char **buf, int *buflen, int sock){
     ux_sendto(sock, h, msg, len);
     printf("answered to: %s len: %d\n", ux_path, len);
     Bail:
-    ccnl_free(contentobj_buf);
-    ccnl_free(component_buf);
-    ccnl_free(msg);
-    return verified;
+    if(contentobj_buf) ccnl_free(contentobj_buf);
+    if(component_buf) ccnl_free(component_buf);
+    if(msg) ccnl_free(msg);
+    ret = 1;
+    return ret;
 }
 
 int parse_crypto_packet(char *buf, int buflen, int sock){
@@ -279,7 +274,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(component, 0, sizeof(component));
-    get_tag_content(&buf, &buflen, component);
+    get_tag_content(&buf, &buflen, component, sizeof(component));
     if(strcmp(component, "ccnx")) goto Bail; 
     
     //check if component is crypto
@@ -288,7 +283,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(component, 0, sizeof(component));
-    get_tag_content(&buf, &buflen, component);
+    get_tag_content(&buf, &buflen, component, sizeof(component));
     if(strcmp(component, "crypto")) goto Bail;
    
     //open content object
@@ -305,7 +300,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(type, 0, sizeof(type));
-    get_tag_content(&buf, &buflen, type);
+    get_tag_content(&buf, &buflen, type, sizeof(type));
     
     if(!strcmp(type, "verify"))
         handle_verify(&buf, &buflen, sock);

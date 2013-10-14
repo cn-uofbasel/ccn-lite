@@ -146,7 +146,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 #ifdef CCNL_USE_MGMT_SIGNATUES
-    if(ccnl->private_key)len2 += add_signature(out2+len2, ccnl->private_key, out3, len3);
+    len2 += add_signature(out2+len2, ccnl, out3, len3);
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
@@ -1725,10 +1725,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(99, "Waiting for crypto server\n");
         goto Bail;
     }
-    DEBUGMSG(99, "Signature verified\n");
-    ccnl_free(sig);
-    return 1;
-    
+    DEBUGMSG(99, "Signature verified\n");    
     Bail:
     ccnl_free(sig);
     return verified;
@@ -1749,11 +1746,11 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (//!ccnl_is_local_addr(&from->peer)
-//#ifdef CCNL_USE_MGMT_SIGNATUES
-           //&& 
+    if (!ccnl_is_local_addr(&from->peer)
+#ifdef CCNL_USE_MGMT_SIGNATUES
+           && 
             !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
-//#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
             ) { //Here certification verification, where to place certification for that?
 	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",
 		 ccnl_addr2ascii(&from->peer));

@@ -917,14 +917,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     } else { // content
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
 	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
-        if(p->compcnt == 3 && !memcmp(p->comp[0], "ccnx", 4) 
-                && !memcmp(p->comp[1], "crypto", 6)) {//crypto 
-            rc = ccnl_crypto(relay, buf, p, from);
-            goto Done;
-        }
-#endif
+        
         // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
