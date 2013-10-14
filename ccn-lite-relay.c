@@ -376,7 +376,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
-#endif // USE_UNIXSOCKET
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(crypto_face_path)
     {
@@ -396,7 +395,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
-#endif 
+#endif //CCNL_USE_MGMT_SIGNATUES
+#endif // USE_UNIXSOCKET
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
