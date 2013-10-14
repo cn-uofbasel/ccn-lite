@@ -2,6 +2,7 @@
 
 CC?=gcc
 CFLAGS=-Wall -g
+EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
 	ccn-lite-ccnb2hex \
@@ -10,18 +11,19 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkC \
 	ccn-lite-mkF \
 	ccn-lite-mkI \
-	ccn-lite-peek
+	ccn-lite-peek \
+	ccn-lite-cryptoserver
 
 all: $(PROGS)
 
 ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../ccnx.h ../ccnl.h ../ccnl-pdu.c ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
 
 ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
 
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ../ccnx.h ../ccnl.h ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
 ccn-lite-peek: Makefile ccn-lite-peek.c ../ccnx.h ../ccnl.h ../ccnl-pdu.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
@@ -30,13 +32,16 @@ ccn-lite-deF: Makefile ccn-lite-deF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
 
 ccn-lite-mkC: Makefile ccn-lite-mkC.c ../ccnx.h ../ccnl.h
-	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
 
 ccn-lite-mkF: Makefile ccn-lite-mkF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
+
+ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
+	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-ccnb2hex

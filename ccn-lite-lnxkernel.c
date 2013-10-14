@@ -31,6 +31,7 @@
 // #define USE_SCHEDULER
 #define USE_MGMT
 #define USE_UNIXSOCKET
+#define CCNL_USE_MGMT_SIGNATUES
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
@@ -454,6 +455,8 @@ static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int u = CCN_UDP_PORT;
 static int v = 0;
+static char *p = NULL;
+static char *k = NULL;
 static void *ageing_handler = NULL;
 
 
@@ -469,6 +472,12 @@ MODULE_PARM_DESC(u, "UDP port (default: 9695)");
 module_param(v, int, 0);
 MODULE_PARM_DESC(v, "verbosity level");
 
+module_param(k, charp, 0);
+MODULE_PARM_DESC(k, "ctrl public key path");
+
+module_param(p, charp, 0);
+MODULE_PARM_DESC(p, "private key path");
+
 module_param(x, charp, 0);
 MODULE_PARM_DESC(ux_sock_path, "name (path) of mgmt unix socket");
 
@@ -479,7 +488,6 @@ static int __init
 ccnl_init(void)
 {
     struct ccnl_if_s *i;
-
     if (v >= 0)
 	debug_level = v;
 
@@ -488,8 +496,8 @@ ccnl_init(void)
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
-    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d\n",
-	     e, x, c, u, v);
+    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d, k=%s, p=%s\n",
+	     e, x, c, u, v, k, p);
 
     theRelay.max_cache_entries = c;
 #ifdef USE_SCHEDULER
@@ -550,7 +558,30 @@ ccnl_init(void)
 	}
     }
 #endif
-
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(p){
+        // Socket to Cryptoserver
+        i = &theRelay.ifs[theRelay.ifcount];
+	i->sock = ccnl_open_unixpath(p, &i->addr.ux);
+	if (i->sock) {
+	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
+	    i->mtu = 4048;
+	    i->reflect = 0;
+	    i->fwdalli = 0;
+	    write_lock_bh(&i->sock->sk->sk_callback_lock);
+	    i->old_data_ready = i->sock->sk->sk_data_ready;
+	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+//	i->sock->sk->sk_user_data = &theRelay;
+	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
+	    theRelay.ifcount++;
+	}
+        create_ccnl_crypto_face(&theRelay, p);
+        theRelay.crypto_path = p;        
+    }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+        
+    
     return 0;
 }
 

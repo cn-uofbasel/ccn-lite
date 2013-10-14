@@ -20,6 +20,8 @@
  * 2013-07-06  created
  */
 
+#define CCNL_USE_MGMT_SIGNATUES
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -38,26 +40,14 @@
 #include "../ccnx.h"
 #include "../ccnl.h"
 
+#include "ccnl-crypto.c"
+
 // ----------------------------------------------------------------------
 
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
+char *private_key_path; 
+char *witness;
 
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
-    return len;
-}
+// ----------------------------------------------------------------------
 
 int
 hex2int(char c)
@@ -97,8 +87,11 @@ mkContent(char **namecomp,
 
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
 
-    // we skip the signature
-
+    // add signature
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path)
+        len += add_signature(out+len, private_key_path, body, blen);  
+#endif
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
 	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
@@ -158,8 +151,11 @@ main(int argc, char *argv[])
     char *infname = 0, *outfname = 0;
     int i = 0, f, len, opt, plen;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
+    
+    private_key_path = 0;
+    witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:o:p:k:w:")) != -1) {
         switch (opt) {
         case 'i':
 	    infname = optarg;
@@ -167,6 +163,12 @@ main(int argc, char *argv[])
         case 'o':
 	    outfname = optarg;
 	    break;
+        case 'k':
+            private_key_path = optarg;
+            break;
+        case 'w':
+            witness = optarg;
+            break;
         case 'p':
 	    publisher = (unsigned char*)optarg;
 	    plen = unescape_component(publisher);
@@ -183,7 +185,9 @@ Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
 	    "  -i FNAME   input file (instead of stdin)\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
-	    "  -p DIGEST  publisher fingerprint\n",
+	    "  -p DIGEST  publisher fingerprint\n"
+            "  -k FNAME   publisher private key\n"  
+            "  -w STRING  witness\n"       ,
 	    argv[0]);
 	    exit(1);
         }

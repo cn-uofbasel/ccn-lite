@@ -18,6 +18,7 @@
  *
  * File history:
  * 2011-04-09 created
+ * 2013-10-12 add crypto support <christopher.scherb@unibas.ch>
  */
 
 #define CCNL_VERSION "2013-07-27"
@@ -916,7 +917,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     } else { // content
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
 	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
-	// CONFORM: Step 1:
+        
+        // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
 	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
@@ -986,5 +988,4 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     if (!from) return;
     ccnl_core_RX_datagram(relay, from, &data, &datalen);
 }
-
 // eof

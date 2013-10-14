@@ -17,28 +17,49 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2012-05-06 created
+ * 2012-05-06 created <christopher.scherb@unibas.ch>
  */
 
 #ifdef USE_MGMT
 
 #ifdef CCNL_LINUXKERNEL
 #include <linux/string.h>
+#ifdef CCNL_USE_MGMT_SIGNATUES
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/crypto.h>
+#include <linux/err.h>
+#include <linux/scatterlist.h>
+#include <linux/digsig.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #else
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
+#include <openssl/sha.h>
+#include <openssl/rsa.h>
+#include <openssl/objects.h>
+#include <openssl/err.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #endif
+
+
 
 #include "ccnx.h"
 #include "ccnl-pdu.c"
 #include "ccnl.h"
+#include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
+
+#include "ccnl-ext-crypto.c"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
 unsigned char out_buf[2000];
 unsigned char fwdentry_buf[2000];
-
+unsigned char out1[2000], out2[1000], out3[500];
 
 // ----------------------------------------------------------------------
 
@@ -105,6 +126,43 @@ ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buf = ccnl_buf_new(msg, strlen(msg));
     ccnl_face_enqueue(ccnl, from, buf);
 }
+
+void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+                    char *component_type, char* answer)
+{
+    int len, len2, len3;
+    struct ccnl_buf_s *retbuf;
+    len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+    len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type);
+
+    // prepare FWDENTRY
+    len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(out2+len2, ccnl, out3, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+    len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) out3, len3);
+    contentobj_buf[len2++] = 0; // end-of-contentobj
+
+    // add CONTENTOBJ as the final name component
+    len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) out2, len2);
+
+    out1[len++] = 0; // end-of-name
+    out1[len++] = 0; // end-of-interest
+    
+    retbuf = ccnl_buf_new((char *)out1, len);
+    ccnl_face_enqueue(ccnl, from, retbuf); 
+}
+
 
 int
 create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacedev,
@@ -1444,9 +1502,235 @@ Bail:
     ccnl_free(action);
     free_prefix(p);
 
-    ccnl_mgmt_return_msg(ccnl, orig, from, cp);
+    //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
+
+int
+ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{    
+    unsigned char *buf;
+    unsigned char *data;
+    int buflen, datalen, contlen;
+    int num, typ;
+    
+    struct ccnl_prefix_s *prefix_a = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content;
+    
+    unsigned char *sigtype = 0, *sig = 0;
+    char *answer = "Failed to add content";
+    
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    /*SKIP SIGNATURE, ALREADY CHECKED*/
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    NOSIG:
+    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    datalen = buflen - 2;
+    data = buf;
+    
+
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    
+    //add object to cache here...
+    data = buf + 2;
+
+    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
+                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+    if (!pkt) {
+        DEBUGMSG(6, " parsing error\n"); goto Done;
+    }
+    if (!prefix_a) {
+        DEBUGMSG(6, " no prefix error\n"); goto Done;
+    }
+    c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+                        content, contlen);
+    if (!c) goto Done;
+    ccnl_content_add2cache(ccnl, c);
+    c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+     
+    answer = "Content successfully added";
+    Done:
+        free_prefix(prefix_a);
+        ccnl_free(pkt);
+        ccnl_free(nonce);
+        ccnl_free(ppkd);
+
+    Bail:
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", answer);
+    return 0;   
+}
+
+int
+ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    
+    unsigned char *buf;
+    unsigned char **components = 0;
+    unsigned int num_of_components = -1;
+    int buflen, i;
+    int num, typ;
+    char *answer = "Failed to remove content";
+    struct ccnl_content_s *c2;
+    
+    unsigned char *sigtype = 0, *sig = 0;
+    
+    components = (unsigned char**) ccnl_malloc(sizeof(unsigned char*)*1024);
+    for(i = 0; i < 1024; ++i)components[i] = 0;
+    
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+ 
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+     
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    /*SKIP SIGNATURE, ALREADY CHECKED*/
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    NOSIG:
+    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
+          
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
+    
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        if (num==0 && typ==0)
+	    break; // end
+        ++num_of_components;
+        extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
+       
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    ++num_of_components;
+    
+    for (c2 = ccnl->contents; c2; c2 = c2->next)
+    {
+        if(c2->name->compcnt != num_of_components) continue;
+        for(i = 0; i < num_of_components; ++i)
+        {
+            if(strcmp(c2->name->comp[i], components[i]))
+            {
+                break;
+            }
+        }
+        if(i == num_of_components)
+        {
+            break;
+        }
+    }
+    if(i == num_of_components){
+        DEBUGMSG(99, "Content found\n");
+        ccnl_content_remove(ccnl, c2);
+    }else
+    {
+       DEBUGMSG(99, "Ignore request since content not found\n");
+       goto Bail;
+    }
+    answer = "Content successfully removed";
+    
+    Bail:
+    //send answer
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "removecacheobject", answer); 
+            
+    return 0;
+}
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
+int
+ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    
+    unsigned char *buf;
+    unsigned char *data;
+    int buflen, datalen, siglen = 0;
+    int num, typ, verified = 0;
+    unsigned char *sigtype = 0, *sig = 0;
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+     
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
+    
+    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        siglen = buflen;
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    siglen = siglen-(buflen+4);
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    datalen = buflen - 2;
+    data = buf;  
+    
+    verified = verify(ccnl, data, datalen, (char *)sig, siglen);
+    if(verified == 0) {
+        DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
+        goto Bail;
+    }
+    else if(verified < 0){
+        DEBUGMSG(99, "Waiting for crypto server\n");
+        goto Bail;
+    }
+    DEBUGMSG(99, "Signature verified\n");    
+    Bail:
+    ccnl_free(sig);
+    return verified;
+}
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 int
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -1462,11 +1746,16 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (!ccnl_is_local_addr(&from->peer)) {
-	DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
+    if (//!ccnl_is_local_addr(&from->peer)
+#ifdef CCNL_USE_MGMT_SIGNATUES
+           //&& 
+            !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+            ) { //Here certification verification, where to place certification for that?
+	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",
 		 ccnl_addr2ascii(&from->peer));
-	ccnl_mgmt_return_msg(ccnl, orig, from,
-			     "refused: origin of mgmt cmd is not local");
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
+                "refused: origin of mgmt cmd is not local and non valid signature"); 
 	return -1;
     }
 	
@@ -1483,6 +1772,10 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     else if (!strcmp(cmd, "prefixreg"))
 	ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
 #ifdef USE_DEBUG
+    else if (!strcmp(cmd, "addcacheobject"))
+	ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
+    else if (!strcmp(cmd, "removecacheobject"))
+	ccnl_mgmt_removecacheobject(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "debug")) {
       ccnl_mgmt_debug(ccnl, orig, prefix, from);
     }

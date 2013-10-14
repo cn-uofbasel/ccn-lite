@@ -21,6 +21,7 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
+#define CCNL_USE_MGMT_SIGNATUES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,14 +31,62 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 
 #include "../ccnx.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
-#include "../ccnl-pdu.c"
+//#include "../ccnl-pdu.c"
 
-// ----------------------------------------------------------------------
+#include "ccnl-crypto.c"
+
+int
+split_string(char *in, char c, char *out)
+{
+    
+    int i = 0, j = 0;
+    if(!in[0]) return 0;
+    if(in[0] == c) ++i;
+    while(in[i] != c)
+    {
+        if(in[i] == 0) break;
+        out[j] = in[i];
+        ++i; ++j;
+        
+    }
+    out[j] = 0;
+    return i;  
+}
+
+time_t
+get_mtime(const char *path)
+{
+    struct stat statbuf;
+    if (stat(path, &statbuf) == -1) {
+        perror(path);
+        exit(1);
+    }
+    return statbuf.st_mtime;
+}
+
+int
+add_ccnl_name(unsigned char *out, char *ccn_path)
+{
+    char comp[256];
+    int len = 0, len2 = 0;
+    int h;
+    memset(comp, 0 , 256);
+    len += mkHeader(out + len, CCN_DTAG_NAME, CCN_TT_DTAG);
+    while( (h = split_string(ccn_path + len2, '/', comp)) )
+    {   
+        len2 += h;
+        len += mkStrBlob(out + len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, comp);
+        memset(comp, 0 , 256);
+    }
+    out[len++] = 0;
+    return len;
+}
 
 int
 mkDebugRequest(unsigned char *out, char *dbg)
@@ -126,7 +175,7 @@ int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 		   char *frag, char *flags)
 {
-    int len = 0, len2, len3;
+    int  len = 0, len2, len3;
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
@@ -402,6 +451,111 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid)
     return len;
 }
 
+int
+mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_path)
+{
+    long len = 0, len2 = 0, len3 = 0;
+    long fsize;
+    unsigned char *ccnb_file, *contentobj, *stmt;
+    FILE *f = fopen(file_uri, "r");
+    if(!f) return 0;
+    
+    //determine size of the file
+    fseek(f, 0L, SEEK_END);
+    fsize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    
+    ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
+    fread(ccnb_file, fsize, 1, f);
+    fclose(f);
+   
+    //Create ccn-lite-ctrl interest object with signature to add content...
+    //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
+    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 4000);
+    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
+    
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+    
+    //add content to interest...
+    len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    len3 += addBlob(stmt+len3, ccnb_file, fsize);
+    stmt[len3++] = 0; // end content
+    
+    len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+ 
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) stmt, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+    
+    
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+    
+    out[len++] = 0; //name end
+    out[len++] = 0; //interest end
+    
+    Bail:
+    free(ccnb_file);
+    free(contentobj);
+    free(stmt);
+    return len;
+}
+
+int
+mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_key_path){
+    
+    int len = 0, len2 = 0, len3 = 0;
+    
+    unsigned char contentobj[2000];
+    unsigned char stmt[1000];
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    //signatur nach hier, über den rest
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
+
+    // prepare debug statement
+    //len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
+    len3 += add_ccnl_name(stmt+len3, ccn_path);
+    
+    //stmt[len3++] = 0; // end-of-debugstmt
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+#endif 
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+		   (char*) stmt, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+    
+    
+    // add CONTENTOBJ as the final name component
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+		  (char*) contentobj, len2);
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+//    ccnl_prefix_free(p);
+    
+    return len;
+ 
+}
+
 // ----------------------------------------------------------------------
 
 int
@@ -461,6 +615,10 @@ main(int argc, char *argv[])
     int len;
     int sock = 0;
 
+    char *file_uri;
+    char *ccn_path;
+    char *private_key_path = 0;
+    
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
 	ux = argv[2];
 	argv += 2;
@@ -518,7 +676,17 @@ main(int argc, char *argv[])
     } else if (!strcmp(argv[1], "prefixunreg")) {
 	if (argc < 4) goto Usage;
 	len = mkPrefixregRequest(out, 0, argv[2], argv[3]);
-    } else {
+    } else if (!strcmp(argv[1], "add")){
+        if(argc < 3) goto Usage;
+        file_uri = argv[2];  
+        if(argc > 3)private_key_path = argv[3];
+        len = mkAddToRelayCacheRequest(out, file_uri, private_key_path);
+    } else if(!strcmp(argv[1], "remove")){
+        if(argc < 3) goto Usage;
+        ccn_path = argv[2];  
+        if(argc > 3)private_key_path = argv[3];
+        len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
+    } else{
 	printf("unknown command %s\n", argv[1]);
 	goto Usage;
     }
@@ -558,6 +726,8 @@ Usage:
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
+           "  add           ccn-file [private-key]\n"
+           "  remove        ccn-path [private-key]\n"
 	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 

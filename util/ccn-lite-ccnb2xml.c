@@ -34,6 +34,83 @@
 
 #include "ccnl-common.c"
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+#include <openssl/sha.h>
+#include <openssl/rsa.h>
+#include <openssl/objects.h>
+#include <openssl/err.h>
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
+char *ctrl_public_key = 0;
+
+int sha(void* input, unsigned long length, unsigned char* md)
+{
+    SHA_CTX context;
+    if(!SHA1_Init(&context))
+        return 0;
+
+    if(!SHA1_Update(&context, (unsigned char*)input, length))
+        return 0;
+
+    if(!SHA1_Final(md, &context))
+        return 0;
+
+    return 1;
+}
+
+int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
+{
+
+    //Load private key
+    FILE *fp = fopen(private_key_path, "r");
+    if(!fp) {
+        printf("Could not find private key\n");
+        return 0;
+    }
+    RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
+    fclose(fp);
+    if(!rsa) return 0;
+    
+    unsigned char md[SHA_DIGEST_LENGTH];
+    sha(msg, msg_len, md);
+    
+    //Compute signatur
+    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    if(!err){
+        printf("Error: %d\n", ERR_get_error());
+    }
+    RSA_free(rsa);
+    return err;
+}
+
+int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
+{
+    //Load public key
+    FILE *fp = fopen(public_key_path, "r");
+    if(!fp) {
+        printf("Could not find public key\n");
+        return 0;
+    }
+    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
+    if(!rsa) return 0;
+    fclose(fp);
+  
+    //Compute Hash
+    unsigned char md[SHA_DIGEST_LENGTH];
+    sha(msg, msg_len, md);
+    
+    //Verify signature
+    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    if(!verified){
+        //printf("Error: %d\n", ERR_get_error());
+    }
+    RSA_free(rsa);
+    return verified;
+}
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+
 const char *byte_to_binary(int x)
 {
     static char b[9];
@@ -60,9 +137,9 @@ print_tag_content(unsigned char **buf, int *len, FILE *stream){
     while((**buf) !=  0)
     {
         printf("%c", **buf);
-        ++(*buf); ++(*len);
+        ++(*buf); --(*len);
     }
-    ++(*buf); ++(*len);
+    ++(*buf); --(*len);
     return 0;
 }
 
@@ -305,7 +382,7 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     print_offset(offset); printf("<DEBUGREQUEST>\n");
     while(1)
     {
-        if(dehead(buf, len, &num, &typ)) return -1;
+        if(dehead(buf, len, &num, &typ)) goto Bail;
         switch(num)
         {
             case CCN_DTAG_ACTION:
@@ -323,18 +400,87 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     return 0;
 }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+int 
+handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
+{
+   int num, typ, verified, siglen, i;
+   char *sigtype = 0, *sig = 0; 
+   while (dehead(buf, buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr2(sigtype, CCN_DTAG_NAME);
+        siglen = *buflen;
+        extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
+        
+        if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+    }
+    siglen = siglen-((*buflen)+4);
+    if(ctrl_public_key)
+    {
+        char *buf2 = *buf;
+        int buflen2 = *buflen;
+
+        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
+        if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+
+        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
+        if (typ != CCN_TT_BLOB) goto Bail;
+
+        verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, siglen);
+
+        print_offset(offset); 
+        printf("<SIGNATURE>");
+        if(!verified) {
+            printf("Signature NOT verified");
+        }else
+        {
+            printf("Signature verified");
+        }
+        printf("</SIGNATURE>\n");
+    }
+    else{
+        print_offset(offset); 
+        printf("<SIGNATURE>\n");
+        print_offset(offset+4); printf("<NAME>%s</NAME>\n", sigtype);
+        print_offset(offset+4); printf("<SIGNATUREBITS>");
+        for(i = 0; i < siglen; ++i){
+            printf("0x%04zx ", sig[i]);
+        }
+        printf("</SIGNATUREBITS>\n");
+        printf("</SIGNATURE>\n");
+    }
+    Bail:
+    
+    return 0;
+}
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+
 int
 handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
 {
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<CONTENTOBJ>\n");
-    switch(num)
+    while(1)
     {
-        case CCN_DTAG_CONTENT:
-            handle_ccn_content(buf, len, offset+4, stream);
-            break;
+        if(dehead(buf, len, &num, &typ)) goto Bail;
+        switch(num)
+        {
+            case CCN_DTAG_CONTENT:
+                handle_ccn_content(buf, len, offset+4, stream);
+                break;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+            case CCN_DTAG_SIGNATURE: 
+                handle_ccn_signature(buf, len, offset+4, stream);
+                break;
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+            default:
+                goto Bail;
+        }
     }
+    Bail:
     print_offset(offset); printf("</CONTENTOBJ>\n");
     return 0;
 }
@@ -419,6 +565,9 @@ handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
             case CCNL_DTAG_PREFIX:
                 handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
                 break;
+            case CCN_DTAG_ACTION:
+                print_offset(offset + 4); print_tag_content_with_tag(buf, len, "ACTION", stream);
+                break;
             default:
                 //printf("%i,%i\n", num, typ);
                 goto Bail;
@@ -451,6 +600,16 @@ handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
 int
 main(int argc, char *argv[])
 {
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(argc > 2 && !strcmp(argv[1],"-k"))  {
+        ctrl_public_key = argv[2];
+    }else 
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+        if(argc > 1 && !strcmp(argv[1],"-h")){
+        goto usage;
+    }
+
     unsigned char out[64000];
     int len;
 
@@ -459,9 +618,16 @@ main(int argc, char *argv[])
 	perror("read");
 	exit(-1);
     }
-
     handle_ccn_packet(out, len, 0, stdout);
     printf("\n");
-
+    
+    return 0;
+    
+    usage:
+    fprintf(stderr, "usage: \n" 
+    " parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml\n"
+    " %s -k public_key_path to verify signatures\n"
+    " %s -h print this message\n",
+    argv[0], argv[0]);
     return 0;
 }

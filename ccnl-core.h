@@ -104,6 +104,12 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
+    
+    struct ccnl_face_s *crypto_face;
+    unsigned int crypto_txid;
+    struct ccnl_pendcrypt_s *pendcrypt;
+    char *crypto_path;
+
 };
 
 struct ccnl_buf_s {
