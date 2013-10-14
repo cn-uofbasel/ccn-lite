@@ -107,8 +107,9 @@ struct ccnl_relay_s {
     
     struct ccnl_face_s *crypto_face;
     unsigned int crypto_txid;
-    char *private_key;
-    char *ctrl_pulic_key;
+    struct ccnl_pendcrypt_s *pendcrypt;
+    char *crypto_path;
+
 };
 
 struct ccnl_buf_s {

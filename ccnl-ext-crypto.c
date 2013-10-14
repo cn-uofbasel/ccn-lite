@@ -39,29 +39,62 @@
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
 
-/*struct ccnl_pendcrypt_s { // pending interest
-    struct ccnl_pendcrypt_s *next, *prev;
-    int (*function)(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-    struct ccnl_face_s *from;
-    unsigned char *data;
-    int *datalen;
-    int txid;
-};
+int
+ux_open(char *frompath)
+{
+  int sock, bufsize;
+    struct sockaddr_un name;
 
-struct ccnl_pendcrypt_s 
-*create_ccnl_pendcrypt(int (*function)(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen),
-        struct ccnl_face_s *from, unsigned char *data, int datalen, int txid){
-    struct ccnl_pendcrypt_s *ret = ccnl_malloc(sizeof(struct ccnl_pendcrypt_s));
-    ret->txid = txid;
-    ret->datalen = datalen;
-    ret->function = function;
-    ret->from = (struct ccnl_face_s*) ccnl_malloc(sizeof(struct ccnl_face_s));
-    memcpy(ret->from, from, sizeof(struct ccnl_face_s));
-    ret->data = (unsigned char*) ccnl_malloc(sizeof(char)*datalen);
-    memcpy(ret->data, data, sizeof(sizeof(char)*datalen));
-}*/
+    /* Create socket for sending */
+    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (sock < 0) {
+	perror("opening datagram socket");
+	exit(1);
+    }
+    unlink(frompath);
+    name.sun_family = AF_UNIX;
+    strcpy(name.sun_path, frompath);
+    if (bind(sock, (struct sockaddr *) &name,
+	     sizeof(struct sockaddr_un))) {
+	perror("binding name to datagram socket");
+	exit(1);
+    }
+//    printf("socket -->%s\n", NAME);
 
-int create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
+    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+
+    return sock;
+}
+
+int 
+get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
+    int num = 0;
+    memset(content,0,contentlen);
+    while((**buf) !=  0 && num < contentlen)
+    {
+        content[num] = **buf;
+        ++(*buf); --(*len);
+        ++num;
+    }
+    ++(*buf); --(*len);
+    return num;
+}
+
+#define extractStr2(VAR,DTAG) \
+    if (typ == CCN_TT_DTAG && num == DTAG) { \
+	char *s; unsigned char *valptr; int vallen; \
+	if (consume(typ, num, buf, buflen, &valptr, &vallen) < 0) goto Bail; \
+	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+	ccnl_free(VAR); \
+	VAR = (unsigned char*) s; \
+	continue; \
+    } do {} while(0)
+
+int 
+create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
 {
     sockunion su;
     DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", ux_path);
@@ -74,15 +107,16 @@ int create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
     return 1;
 }
 
-int create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_len,
+int 
+create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_len,
         char *sig, int sig_len, char *msg)
 {
     int len = 0, len2 = 0, len3 = 0;
     char *component_buf, *contentobj_buf;
     char h[100];
     
-    component_buf = ccnl_malloc(sizeof(char)*(content_len+sig_len)+2000);
-    contentobj_buf = ccnl_malloc(sizeof(char)*(content_len+sig_len)+1000);
+    component_buf = ccnl_malloc(sizeof(char)*(content_len)+2000);
+    contentobj_buf = ccnl_malloc(sizeof(char)*(content_len)+1000);
     
     len = mkHeader(msg, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(msg+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -95,10 +129,9 @@ int create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_
     memset(h, 0, 100);
     sprintf(h, "%d", txid);
     len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, h);
-    if(sig && sig_len)
+    if(!strcmp(typ, "verify"))
         len3 += mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // content
 		   (char*) sig, sig_len);
-    else if(strcmp(typ, "sign")) return 0;
     len3 += mkBlob(component_buf+len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG,  // content
 		   (char*) content, content_len);
     
@@ -122,17 +155,116 @@ int create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_
     return len;
 }
 
-int sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
+int extract_type(unsigned char **buf, int *buflen, char *type, int type_length)
+{
+    int typ, num;
+    char comp1[10];
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+    get_tag_content(buf,buflen, comp1, sizeof(comp1));
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+    get_tag_content(buf,buflen, comp1, sizeof(comp1));
+
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_TYPE) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(buf,buflen, type, type_length);
+    return 1;
+    Bail:
+    return 0;
+}
+
+int
+get_signature(unsigned char **buf, int *buflen, char *sig, int *sig_len)
+{
+    int num = 0;
+    while(*buflen > 6){
+        sig[num] = **buf;
+        ++num;
+        ++(*buf);
+        --(*buflen);
+    }
+    *sig_len = num;
+}
+
+int 
+extract_sign_reply(unsigned char *buf, int buflen, char *sig, int *sig_len)
+{
+    int ret = 0;
+    char type[100];
+    int num, typ;
+    char seqnumber_s[100];
+    int seqnubmer;
+    
+    if(!extract_type(&buf, &buflen, type, sizeof(type))) goto Bail;
+    if(strcmp(type, "sign")) goto Bail;
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SEQNO) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, seqnumber_s, sizeof(seqnumber_s));
+    seqnubmer = atoi(seqnumber_s);
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    get_signature(&buf, &buflen, sig, sig_len);
+   
+    ret = 1;
+    Bail:
+    return ret;
+}
+
+int 
+sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
 {
     
     char *msg = 0; int len;
     struct ccnl_buf_s *retbuf;
-    if(!ccnl->crypto_face) return 0;
+    int ret = 0;
+    int sock;
+    int plen;
+    unsigned char buf[64000];
+    char h[100];
+    struct sockaddr_un src_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_un);
+    struct timeval tv;
     //create ccn_msg
-    msg = (char *) ccnl_malloc(sizeof(char)*(content_len+*sig_len)+3000);
+    if(!ccnl->crypto_face) return 0;
+    msg = (char *) ccnl_malloc(sizeof(char)*(content_len)+3000);
     
     len = create_ccnl_sign_verify_msg("sign", ccnl->crypto_txid++, content, content_len, 
-            NULL, 0, msg);
+            *sig, *sig_len, msg);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
@@ -140,40 +272,115 @@ int sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, i
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
     //receive and parse return msg
+    memset(h,0,sizeof(h));
+    sprintf(h,"%s-2", ccnl->crypto_path);
+    sock = ux_open(h);
     
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        return 0;
+    }
+    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
+            &addrlen);
+    if(plen > 0)
+       extract_sign_reply(buf, plen, sig, sig_len);
+    if(*sig_len <= 0) goto Bail;
+    ret = 1;
+    Bail:
     if(msg) ccnl_free(msg);
-    if (retbuf) ccnl_free(retbuf);
-    return 1;
+    //if (retbuf) ccnl_free(retbuf);
+    return ret;
     
 }
 
-int verify(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int sig_len)
+
+
+int 
+extract_verify_reply(unsigned char *buf, int buflen)
+{
+    int verified = 0;
+    char type[100];
+    int num, typ;
+    char seqnumber_s[100], verified_s[100];
+    int seqnubmer, h;
+    
+    if(!extract_type(&buf, &buflen, type, sizeof(type))) goto Bail;
+    if(strcmp(type, "verify")) goto Bail;
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SEQNO) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, seqnumber_s, sizeof(seqnumber_s));
+    seqnubmer = atoi(seqnumber_s);
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_VERIFIED) goto Bail;
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, verified_s, sizeof(verified_s));
+    h = atoi(verified_s);
+    if(h == 1) verified = 1;
+    
+    Bail:
+    return verified;
+}
+
+int 
+verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
+        char **sig, int sig_len)
 {
     char *msg = 0;
-    int verified = 0, len = 0;
+    int len = 0, verified = 0;
     struct ccnl_buf_s *retbuf;
-    //if(!ccnl->crypto_face) return verified;
+    int sock;
+    char h[100];
+    int plen;
+    unsigned char buf[64000];
+    struct sockaddr_un src_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_un);
+    struct timeval tv;
+    if(!ccnl->crypto_face) return verified;
+    
     msg = (char *)ccnl_malloc(sizeof(char)*(content_len+sig_len)+3000);
-    //create ccn_msg
     
-    DEBUGMSG(99, "CONTENTLEN: %d; SIGLEN: %d\n", content_len, sig_len);
-    
-    len = create_ccnl_sign_verify_msg("verify", ccnl->crypto_txid++, content, content_len, 
-            sig, sig_len, msg);
+    len = create_ccnl_sign_verify_msg("verify", ccnl->crypto_txid++, content, 
+            content_len, sig, sig_len, msg);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
-    //receive and parse return msg
-    if(msg) ccnl_free(msg);
-    if (retbuf) ccnl_free(retbuf);
+    //receive answer
+    memset(h,0,sizeof(h));
+    sprintf(h,"%s-2", ccnl->crypto_path);
+    sock = ux_open(h);
     
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        return 0;
+    }
+    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
+            &addrlen);
+    if(plen > 0)
+        verified = extract_verify_reply(buf, plen);
+    
+    
+    //receive and parse return msg
+    if(msg) ccnl_free(msg);    
     return verified;
 }
 
 
-int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
+int 
+add_signature(unsigned char *out, struct ccnl_relay_s *ccnl, char *file, int fsize)
 {
     int len;
     
@@ -184,9 +391,7 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
-    //DEBUGMSG(99, "SIGLEN: %d\n",sig_len);
-    sig[sig_len]=0;
+    if(!sign(ccnl, file, fsize, sig, &sig_len)) return 0;
     
     //add signaturebits bits...
     len += mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
@@ -200,14 +405,6 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     printf("Verified: %d\n", verified);*/
     ccnl_free(sig);
     return len;
-}
-
-int
-ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from){
-    
-    DEBUGMSG(99, "ccnl_crypto content\n");
-    return 0;
 }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 #endif /*CCNL_EXT_CRYPTO_C*/

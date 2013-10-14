@@ -31,7 +31,7 @@
 // #define USE_SCHEDULER
 #define USE_MGMT
 #define USE_UNIXSOCKET
-#define CCNL_USE_MGMT_SIGNATUES
+//#define CCNL_USE_MGMT_SIGNATUES
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
@@ -488,7 +488,9 @@ static int __init
 ccnl_init(void)
 {
     struct ccnl_if_s *i;
+#ifdef CCNL_USE_MGMT_SIGNATUES
     char hv[100];
+#endif
     if (v >= 0)
 	debug_level = v;
 
@@ -559,7 +561,7 @@ ccnl_init(void)
 	}
     }
 #endif
-    
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(p){
         // Socket to Cryptoserver
         i = &theRelay.ifs[theRelay.ifcount];
@@ -578,25 +580,9 @@ ccnl_init(void)
 	    theRelay.ifcount++;
 	}
         create_ccnl_crypto_face(&theRelay, p);
-        //Answer socket
-        memset(hv,0,sizeof(h));
-        sprintf(hv,"%s-2", p);
-        i = &theRelay.ifs[theRelay.ifcount];
-	i->sock = ccnl_open_unixpath(hv, &i->addr.ux);
-	if (i->sock) {
-	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
-	    i->mtu = 4048;
-	    i->reflect = 0;
-	    i->fwdalli = 0;
-	    write_lock_bh(&i->sock->sk->sk_callback_lock);
-	    i->old_data_ready = i->sock->sk->sk_data_ready;
-	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
-//	i->sock->sk->sk_user_data = &theRelay;
-	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    theRelay.ifcount++;
-	}
+        //theRelay.crypto_path = p;        
     }
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
         
     
     return 0;

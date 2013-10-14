@@ -390,23 +390,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    if (relay->defaultInterfaceScheduler)
 		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
-            create_ccnl_crypto_face(relay, crypto_face_path);
-	} else
-	    fprintf(stderr, "sorry, could not open unix datagram device\n");
-        
-        //receiving interface
-        i = &relay->ifs[relay->ifcount];
-        memset(h,0,sizeof(h));
-        sprintf(h,"%s-2", crypto_face_path);
-	i->sock = ccnl_open_unixpath(h, &i->addr.ux);
-	i->mtu = 4096;
-	if (i->sock >= 0) {
-	    relay->ifcount++;
-	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
-		     ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
-							ccnl_interface_CTS);
+            create_ccnl_crypto_face(relay, crypto_face_path);       
+            relay->crypto_path = crypto_face_path;
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
@@ -585,8 +570,6 @@ main(int argc, char **argv)
     int tcpport = CCN_UDP_PORT;
     char *datadir = NULL;
     char *ethdev = NULL;
-    char *private_key = 0;
-    char *ctrl_public_key = 0;
     char *crypto_sock_path = 0;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
@@ -659,8 +642,6 @@ main(int argc, char **argv)
 		      uxpath, max_cache_entries, crypto_sock_path);
     if (datadir)
 	ccnl_populate_cache(&theRelay, datadir);
-    theRelay.private_key = private_key;
-    theRelay.ctrl_pulic_key = ctrl_public_key;
     
     ccnl_io_loop(&theRelay);
 
