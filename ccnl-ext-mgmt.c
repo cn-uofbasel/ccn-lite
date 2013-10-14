@@ -1746,9 +1746,9 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
-    if (!ccnl_is_local_addr(&from->peer)
+    if (//!ccnl_is_local_addr(&from->peer)
 #ifdef CCNL_USE_MGMT_SIGNATUES
-           && 
+           //&& 
             !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
             ) { //Here certification verification, where to place certification for that?
