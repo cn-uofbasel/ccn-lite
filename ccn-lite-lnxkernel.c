@@ -558,6 +558,7 @@ ccnl_init(void)
 	}
     }
 #endif
+#ifdef USE_UNIXSOCKET
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(p){
         // Socket to Cryptoserver
@@ -580,7 +581,7 @@ ccnl_init(void)
         theRelay.crypto_path = p;        
     }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
-        
+#endif //USE_UNIXSOCKET  
     
     return 0;
 }
@@ -634,6 +635,22 @@ ccnl_lnxkernel_cleanup(void)
 	    mutex_unlock(&dir->d_inode->i_mutex);
 	    dput(dir);
 	    path_put(&p);
+	}
+    }
+    
+    if (p) { // also remove the UNIX socket path
+	struct path px;
+	int rc;
+
+	rc = kern_path(x, 0, &px);
+	if (!rc) {
+	    struct dentry *dir = dget_parent(px.dentry);
+
+	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
+	    rc = vfs_unlink(dir->d_inode, px.dentry);
+	    mutex_unlock(&dir->d_inode->i_mutex);
+	    dput(dir);
+	    path_put(&px);
 	}
     }
     x = NULL;

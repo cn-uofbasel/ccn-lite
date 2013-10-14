@@ -168,7 +168,6 @@ receive(char *path){
     while(received != 1){
         msleep(10);
     }
-    
     //sys_recvfrom();      
     return plen;
     Bail:
