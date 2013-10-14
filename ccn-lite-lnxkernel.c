@@ -31,7 +31,7 @@
 // #define USE_SCHEDULER
 #define USE_MGMT
 #define USE_UNIXSOCKET
-//#define CCNL_USE_MGMT_SIGNATUES
+#define CCNL_USE_MGMT_SIGNATUES
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
@@ -488,9 +488,6 @@ static int __init
 ccnl_init(void)
 {
     struct ccnl_if_s *i;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    char hv[100];
-#endif
     if (v >= 0)
 	debug_level = v;
 
@@ -580,7 +577,7 @@ ccnl_init(void)
 	    theRelay.ifcount++;
 	}
         create_ccnl_crypto_face(&theRelay, p);
-        //theRelay.crypto_path = p;        
+        theRelay.crypto_path = p;        
     }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
         

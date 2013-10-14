@@ -23,26 +23,44 @@
 #define CCNL_EXT_CRYPTO_C
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
-#ifndef CCNL_LINUXKERNEL
-#include <openssl/sha.h>
-#include <openssl/rsa.h>
-#include <openssl/objects.h>
-#include <openssl/err.h>
-
+#ifdef CCNL_LINUXKERNEL
+#include <linux/kernel.h> 
+#include <linux/socket.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/netlink.h>
+#include <linux/delay.h>
+#include <net/sock.h>
+#endif
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 #include "ccnx.h"
-#endif
+#include "ccnl-includes.h"
+
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
 
+char buf[64000];
+int plen;
+int received;
+
+int 
+strtoint(char *str){
+#ifdef CCNL_LINUXKERNEL
+    return strtol(str,NULL,0);
+#else
+    return strtol(str,NULL,0);
+#endif
+}
+
+#ifndef CCNL_LINUXKERNEL
 int
 ux_open(char *frompath)
 {
-  int sock, bufsize;
+    int sock, bufsize;
     struct sockaddr_un name;
 
     /* Create socket for sending */
@@ -66,6 +84,115 @@ ux_open(char *frompath)
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     return sock;
+}
+#else
+
+struct socket*
+ux_open(char *path, struct sockaddr_un *ux)
+{
+    struct socket *s;
+    int rc;
+
+    DEBUGMSG(99, "ccnl_open_unixpath %s\n", path);
+    //unlink(path);
+    rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
+    if (rc < 0) {
+	DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
+	return NULL;
+    }
+    DEBUGMSG(9, "UNIX socket is %p\n", (void*)s);
+   
+    ux->sun_family = AF_UNIX;
+    strcpy(ux->sun_path, path);
+    rc = s->ops->bind(s, (struct sockaddr*) ux,
+		offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
+    if (rc < 0) {
+	DEBUGMSG(1, "Error %d binding UNIX socket to %s "
+		    "(remove first, check access rights)\n", rc, path);
+	goto Bail;
+    }
+
+    return s;
+
+Bail:
+    sock_release(s);
+    return NULL;
+}
+#endif
+
+#ifdef CCNL_LINUXKERNEL
+void
+receive_data_ready(struct sock *sock, int len){
+    struct sk_buff *skb = 0;
+    int err = 0;
+    if ((skb = skb_recv_datagram((struct sock *)sock, 0, 1, &err)) == NULL){
+            DEBUGMSG(99,"Error: %d\n; SKB: %p", err, skb);
+	goto Bail; 
+    }
+    plen = skb->len;
+    memcpy(buf, skb->data, plen);
+    received = 1;
+    Bail: 
+    kfree_skb(skb);
+    return;
+}
+
+#endif
+int
+receive(char *path){
+    char *h = ccnl_malloc(sizeof(char)*1024);
+#ifdef CCNL_LINUXKERNEL
+    
+    struct sockaddr_un ux; 
+    struct socket *sock = 0;
+    
+    struct path p;
+    int rc;
+    received = 0;
+    memset(h,0,sizeof(h));
+    sprintf(h,"%s-2", path);
+    
+    rc = kern_path(h, 0, &p);
+    if (!rc) {
+        struct dentry *dir = dget_parent(p.dentry);
+
+        mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
+        rc = vfs_unlink(dir->d_inode, p.dentry);
+        mutex_unlock(&dir->d_inode->i_mutex);
+        dput(dir);
+        path_put(&p);
+    }
+    sock = ux_open(h, &ux);
+    sock->sk->sk_data_ready = receive_data_ready;
+    
+    while(received != 1){
+        msleep(10);
+    }
+    
+    //sys_recvfrom();      
+    return plen;
+    Bail:
+    ccnl_free(h);
+    return plen;
+#else
+    int sock;
+    struct sockaddr_un src_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_un);
+    struct timeval tv;
+    memset(h,0,sizeof(h));
+    sprintf(h,"%s-2", path);
+    sock = ux_open(h);
+    
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        return 0;
+    }
+    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
+            &addrlen);
+    ccnl_free(h);
+    return plen;
+#endif
 }
 
 int 
@@ -207,6 +334,7 @@ get_signature(unsigned char **buf, int *buflen, char *sig, int *sig_len)
         --(*buflen);
     }
     *sig_len = num;
+    return 1;
 }
 
 int 
@@ -231,7 +359,7 @@ extract_sign_reply(unsigned char *buf, int buflen, char *sig, int *sig_len)
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     get_tag_content(&buf, &buflen, seqnumber_s, sizeof(seqnumber_s));
-    seqnubmer = atoi(seqnumber_s);
+    seqnubmer = strtoint(seqnumber_s);
     
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
@@ -244,57 +372,6 @@ extract_sign_reply(unsigned char *buf, int buflen, char *sig, int *sig_len)
     Bail:
     return ret;
 }
-
-int 
-sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
-{
-    
-    char *msg = 0; int len;
-    struct ccnl_buf_s *retbuf;
-    int ret = 0;
-    int sock;
-    int plen;
-    unsigned char buf[64000];
-    char h[100];
-    struct sockaddr_un src_addr;
-    socklen_t addrlen = sizeof(struct sockaddr_un);
-    struct timeval tv;
-    //create ccn_msg
-    if(!ccnl->crypto_face) return 0;
-    msg = (char *) ccnl_malloc(sizeof(char)*(content_len)+3000);
-    
-    len = create_ccnl_sign_verify_msg("sign", ccnl->crypto_txid++, content, content_len, 
-            *sig, *sig_len, msg);
-    
-    //send ccn_msg to crytoserver
-    retbuf = ccnl_buf_new((char *)msg, len);
-    
-    ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
-    
-    //receive and parse return msg
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", ccnl->crypto_path);
-    sock = ux_open(h);
-    
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        return 0;
-    }
-    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
-            &addrlen);
-    if(plen > 0)
-       extract_sign_reply(buf, plen, sig, sig_len);
-    if(*sig_len <= 0) goto Bail;
-    ret = 1;
-    Bail:
-    if(msg) ccnl_free(msg);
-    //if (retbuf) ccnl_free(retbuf);
-    return ret;
-    
-}
-
-
 
 int 
 extract_verify_reply(unsigned char *buf, int buflen)
@@ -318,14 +395,14 @@ extract_verify_reply(unsigned char *buf, int buflen)
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     get_tag_content(&buf, &buflen, seqnumber_s, sizeof(seqnumber_s));
-    seqnubmer = atoi(seqnumber_s);
+    seqnubmer = strtoint(seqnumber_s);
     
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_VERIFIED) goto Bail;
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     get_tag_content(&buf, &buflen, verified_s, sizeof(verified_s));
-    h = atoi(verified_s);
+    h = strtoint(verified_s);
     if(h == 1) verified = 1;
     
     Bail:
@@ -333,19 +410,53 @@ extract_verify_reply(unsigned char *buf, int buflen)
 }
 
 int 
+sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
+{
+    
+    //char *buf = 0;
+    char *msg = 0; int len;
+    struct ccnl_buf_s *retbuf;
+    int ret = 0; //, plen = 0;
+    plen = 0;
+    memset(buf,0,sizeof(buf));
+    //create ccn_msg
+    if(!ccnl->crypto_face) return 0;
+    msg = (char *) ccnl_malloc(sizeof(char)*(content_len)+3000);
+    
+    len = create_ccnl_sign_verify_msg("sign", ccnl->crypto_txid++, content, content_len, 
+            sig, *sig_len, msg);
+    
+    //send ccn_msg to crytoserver
+    retbuf = ccnl_buf_new((char *)msg, len);
+    
+    ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
+    
+    //receive and parse return msg
+    //buf = ccnl_malloc(sizeof(char)*64000);
+    plen = receive(ccnl->crypto_path);
+    if(plen > 0)
+       extract_sign_reply(buf, plen, sig, sig_len);
+    if(*sig_len <= 0) goto Bail;
+    ret = 1;
+    Bail:
+    if(msg) ccnl_free(msg);
+    //if(buf) ccnl_free(buf);
+    //if (retbuf) ccnl_free(retbuf);
+    return ret;
+    
+}
+
+int 
 verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
-        char **sig, int sig_len)
+        char *sig, int sig_len)
 {
     char *msg = 0;
     int len = 0, verified = 0;
     struct ccnl_buf_s *retbuf;
-    int sock;
-    char h[100];
-    int plen;
-    unsigned char buf[64000];
-    struct sockaddr_un src_addr;
-    socklen_t addrlen = sizeof(struct sockaddr_un);
-    struct timeval tv;
+    //int plen;
+    //unsigned char *buf;
+    plen = 0;
+    memset(buf,0,sizeof(buf));
     if(!ccnl->crypto_face) return verified;
     
     msg = (char *)ccnl_malloc(sizeof(char)*(content_len+sig_len)+3000);
@@ -358,23 +469,15 @@ verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
     //receive answer
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", ccnl->crypto_path);
-    sock = ux_open(h);
-    
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        return 0;
-    }
-    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
-            &addrlen);
+    //buf = ccnl_malloc(sizeof(char)*64000);
+    plen = receive(ccnl->crypto_path);
     if(plen > 0)
         verified = extract_verify_reply(buf, plen);
     
     
     //receive and parse return msg
-    if(msg) ccnl_free(msg);    
+    if(msg) ccnl_free(msg); 
+    //if(buf) ccnl_free(buf);
     return verified;
 }
 
