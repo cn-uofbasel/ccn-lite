@@ -38,7 +38,7 @@
 #define USE_MGMT
 #define USE_SCHEDULER
 #define USE_UNIXSOCKET
-#define CCNL_USE_MGMT_SIGNATUES
+//#define CCNL_USE_MGMT_SIGNATUES
 
 #include "ccnl-includes.h"
 
@@ -377,6 +377,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
 #endif // USE_UNIXSOCKET
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(crypto_face_path)
     {
         //sending interface + face
@@ -395,7 +396,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
-        
+#endif 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
