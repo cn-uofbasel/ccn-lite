@@ -91,7 +91,7 @@ add_ccnl_name(unsigned char *out, char *ccn_path)
 }
 
 int
-mkDebugRequest(unsigned char *out, char *dbg)
+mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -112,6 +112,9 @@ mkDebugRequest(unsigned char *out, char *dbg)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -129,7 +132,7 @@ mkDebugRequest(unsigned char *out, char *dbg)
 
 int
 mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
-		   char *frag, char *flags)
+		   char *frag, char *flags, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -158,6 +161,9 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -175,7 +181,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 
 int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
-		   char *frag, char *flags)
+		   char *frag, char *flags, char *private_key_path)
 {
     int  len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -203,6 +209,9 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -218,14 +227,14 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 }
 
 int
-mkDestroyDevRequest(unsigned char *out, char *faceid)
+mkDestroyDevRequest(unsigned char *out, char *faceid, char *private_key_path)
 {
     return 0;
 }
 
 int
 mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
-		 char *host, char *port, char *flags)
+		 char *host, char *port, char *flags, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -261,6 +270,9 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -277,7 +289,7 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 
 
 int
-mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
+mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -305,6 +317,9 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -321,7 +336,7 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags)
 
 
 int
-mkDestroyFaceRequest(unsigned char *out, char *faceid)
+mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -345,6 +360,9 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -361,7 +379,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid)
 
 
 int
-mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu)
+mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -387,6 +405,9 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -405,7 +426,7 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu)
 // ----------------------------------------------------------------------
 
 int
-mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid)
+mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char *private_key_path)
 {
     int len = 0, len2, len3;
     unsigned char contentobj[2000];
@@ -438,6 +459,9 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, fwdentry, len3);
+#endif 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -491,8 +515,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
- 
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -516,8 +539,8 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     
     int len = 0, len2 = 0, len3 = 0;
     
-    unsigned char contentobj[2000];
-    unsigned char stmt[1000];
+    unsigned char contentobj[10000];
+    unsigned char stmt[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -673,7 +696,13 @@ main(int argc, char *argv[])
 	argc -= 3;
         use_udp = 1;
     }
-
+    if(argv[1] && !strcmp(argv[1], "-p") && argc > 2)
+    {
+        private_key_path = argv[2];
+        argv += 2;
+	argc -= 2;
+    }
+    
     if (argc < 2) goto Usage;
 
     // socket for receiving
@@ -690,54 +719,53 @@ main(int argc, char *argv[])
 
     if (!strcmp(argv[1], "debug")) {
 	if (argc < 3)  goto Usage;
-	len = mkDebugRequest(out, argv[2]);
+	len = mkDebugRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "newETHdev")) {
 	if (argc < 3)  goto Usage;
 	len = mkNewEthDevRequest(out, argv[2],
 				 argc > 3 ? argv[3] : "0x88b5",
 				 argc > 4 ? argv[4] : "0",
-				 argc > 5 ? argv[5] : "0");
+				 argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "newUDPdev")) {
 	if (argc < 3)  goto Usage;
 	len = mkNewUDPDevRequest(out, argv[2],
 				 argc > 3 ? argv[3] : "9695",
 				 argc > 4 ? argv[4] : "0",
-				 argc > 5 ? argv[5] : "0");
+				 argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "destroydev")) {
 	if (argc < 3) goto Usage;
-	len = mkDestroyDevRequest(out, argv[2]);
+	len = mkDestroyDevRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1], "newUDPface")) {
 	if (argc < 5)  goto Usage;
 	len = mkNewFaceRequest(out,
 			       !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
 			       !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
 			       argv[3], argv[4],
-			       argc > 5 ? argv[5] : "0x0001");
+			       argc > 5 ? argv[5] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "newUNIXface")) {
 	if (argc < 3)  goto Usage;
 	len = mkNewUNIXFaceRequest(out, argv[2],
-				   argc > 3 ? argv[3] : "0x0001");
+				   argc > 3 ? argv[3] : "0x0001", 
+                                   private_key_path);
     } else if (!strcmp(argv[1], "setfrag")) {
 	if (argc < 5)  goto Usage;
-	len = mkSetfragRequest(out, argv[2], argv[3], argv[4]);
+	len = mkSetfragRequest(out, argv[2], argv[3], argv[4], private_key_path);
     } else if (!strcmp(argv[1], "destroyface")) {
 	if (argc < 3) goto Usage;
-	len = mkDestroyFaceRequest(out, argv[2]);
+	len = mkDestroyFaceRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "prefixreg")) {
 	if (argc < 4) goto Usage;
-	len = mkPrefixregRequest(out, 1, argv[2], argv[3]);
+	len = mkPrefixregRequest(out, 1, argv[2], argv[3], private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
 	if (argc < 4) goto Usage;
-	len = mkPrefixregRequest(out, 0, argv[2], argv[3]);
+	len = mkPrefixregRequest(out, 0, argv[2], argv[3], private_key_path);
     } else if (!strcmp(argv[1], "add")){
         if(argc < 3) goto Usage;
         file_uri = argv[2];  
-        if(argc > 3)private_key_path = argv[3];
         len = mkAddToRelayCacheRequest(out, file_uri, private_key_path);
     } else if(!strcmp(argv[1], "remove")){
         if(argc < 3) goto Usage;
         ccn_path = argv[2];  
-        if(argc > 3)private_key_path = argv[3];
         len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
     } else{
 	printf("unknown command %s\n", argv[1]);
@@ -750,7 +778,6 @@ main(int argc, char *argv[])
             ux_sendto(sock, ux, out, len);
         else
             udp_sendto(sock, udp, port, out, len);
-        
         
 //	sleep(1);
         if(!use_udp)
@@ -776,7 +803,7 @@ main(int argc, char *argv[])
     return 0;
 
 Usage:
-    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] CMD, where CMD either of\n"
+    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] [-p private-key] CMD, where CMD either of\n"
 	   "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
 	   "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
 	   "  destroydev    DEVNDX\n"
@@ -790,8 +817,8 @@ Usage:
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
-           "  add           ccn-file [private-key]\n"
-           "  remove        ccn-path [private-key]\n"
+           "  add           ccn-file\n"
+           "  remove        ccn-path\n"
 	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
