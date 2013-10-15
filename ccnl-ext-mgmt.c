@@ -70,8 +70,8 @@ ccnl_is_local_addr(sockunion *su)
 	return 0;
     if (su->sa.sa_family == AF_UNIX)
 	return -1;
-    if (su->sa.sa_family == AF_INET)
-	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+    /*if (su->sa.sa_family == AF_INET)
+	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);*/
     return 0;
 }
 
@@ -113,6 +113,29 @@ Bail:
 	VAR = (unsigned char*) s; \
 	continue; \
     } do {} while(0)
+
+int skip_signature(char **buf, int *buflen, int *num, int *typ){
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    /*SKIP SIGNATURE, ALREADY CHECKED*/
+    unsigned char *sigtype = 0, *sig = 0;
+    if (*typ != CCN_TT_DTAG || *num != CCN_DTAG_SIGNATURE) goto NOSIG;
+    while (dehead(buf, buflen, num, typ) == 0) {
+        
+        if (*num==0 && *typ==0)
+	    break; // end
+        
+        extractStr(sigtype, CCN_DTAG_NAME);
+        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
+        if (consume(*typ, *num, buf, buflen, 0, 0) < 0) goto Bail;
+    }
+    if (dehead(buf, buflen, num, typ) != 0) goto Bail;
+    NOSIG:
+    return 1;
+    Bail:
+    return 0;
+    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
+#endif
+}
 
 void
 ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -498,6 +521,9 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -557,9 +583,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     rc = 0;
 
 Bail:
-    /*ANSWER*/
-   
-    
+    /*ANSWER*/ 
+    if(!debugaction) debugaction = "Error for debug cmd";
     stmt_length = 200 * num_faces + 200 * num_interfaces + 200 * num_fwds //alloc stroage for answer dynamically.
             + 200 * num_interests + 200 * num_contents;
     contentobject_length = stmt_length + 1000;
@@ -612,6 +637,9 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj+len2, ccnl, stmt, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -722,6 +750,9 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -854,6 +885,9 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -879,6 +913,7 @@ Bail:
     ccnl_free(port);
     ccnl_free(frag);
     ccnl_free(flags);
+    ccnl_free(path);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
@@ -910,6 +945,9 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -983,6 +1021,9 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1029,6 +1070,9 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1081,6 +1125,9 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1129,6 +1176,9 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1310,6 +1360,9 @@ Bail:
     }
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1346,21 +1399,8 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
 
     /*ANSWER*/
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "mgmt_destroyde", "mgmt_destroydev not implemented yet");
     
-    
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt_destroydev");
-
-
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-o
-    
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
     /*END ANSWER*/
     return -1;
 }
@@ -1391,6 +1431,9 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif   
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1481,6 +1524,9 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    len2 += add_signature(contentobj_buf+len2, ccnl, fwdentry_buf, len3);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1520,7 +1566,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
     unsigned char *content;
     
-    unsigned char *sigtype = 0, *sig = 0;
+    //unsigned char *sigtype = 0, *sig = 0;
     char *answer = "Failed to add content";
     
     buf = prefix->comp[3];
@@ -1529,30 +1575,17 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
-    
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    /*SKIP SIGNATURE, ALREADY CHECKED*/
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
-        
-        if (num==0 && typ==0)
-	    break; // end
-        
-        extractStr(sigtype, CCN_DTAG_NAME);
-        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
-    }
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    NOSIG:
-    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     
     datalen = buflen - 2;
-    data = buf;
-    
+    data = buf;  
 
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
@@ -1611,21 +1644,9 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
      
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    /*SKIP SIGNATURE, ALREADY CHECKED*/
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto NOSIG;
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
-        
-        if (num==0 && typ==0)
-	    break; // end
-        
-        extractStr(sigtype, CCN_DTAG_NAME);
-        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
-    }
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    NOSIG:
-    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
-          
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
+#endif     
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
@@ -1728,6 +1749,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "Signature verified\n");    
     Bail:
     ccnl_free(sig);
+    ccnl_free(sigtype);
     return verified;
 }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
@@ -1782,8 +1804,8 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
     else {
 	DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
-
-	ccnl_mgmt_return_msg(ccnl, orig, from, "unknown mgmt command");
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, "unknown mgmt command");
+	//ccnl_mgmt_return_msg(ccnl, orig, from, "unknown mgmt command");
 	return -1;
     }
 
