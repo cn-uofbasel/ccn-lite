@@ -776,7 +776,7 @@ main(int argc, char *argv[])
     return 0;
 
 Usage:
-    fprintf(stderr, "usage: %s [-x ux_path] CMD, where CMD either of\n"
+    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] CMD, where CMD either of\n"
 	   "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
 	   "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
 	   "  destroydev    DEVNDX\n"
