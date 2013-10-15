@@ -32,6 +32,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "../ccnx.h"
 #include "../ccnl.h"
@@ -558,6 +560,29 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
 
 // ----------------------------------------------------------------------
 
+int udp_open(int port, struct sockaddr_in *si)
+{
+    int s;
+    unsigned int len;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0) {
+	perror("udp socket");
+	return -1;
+    }
+
+    si->sin_addr.s_addr = htonl(INADDR_ANY);
+    si->sin_port = htons(port);
+    si->sin_family = PF_INET;
+    if(bind(s, (struct sockaddr *)si, sizeof(*si)) < 0) {
+        perror("udp sock bind");
+	return -1;
+    }
+    len = sizeof(*si);
+    getsockname(s, (struct sockaddr*) si, &len);
+    return s;
+}
+
 int
 ux_open(char *frompath)
 {
@@ -587,6 +612,19 @@ ux_open(char *frompath)
     return sock;
 }
 
+int udp_sendto(int sock, char *address, int port, char *data, int len){
+    int rc;
+    struct sockaddr_in si_other;
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(port);
+    if (inet_aton(address, &si_other.sin_addr)==0) {
+          fprintf(stderr, "inet_aton() failed\n");
+          exit(1);
+    }
+    rc = sendto(sock, data, len, 0, &si_other, sizeof(si_other));
+    return rc;
+}
+
 int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 {
     struct sockaddr_un name;
@@ -611,6 +649,9 @@ main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
+    char *udp = "0.0.0.0";
+    int port = 0;
+    int use_udp = 0;
     unsigned char out[64000];
     int len;
     int sock = 0;
@@ -618,20 +659,32 @@ main(int argc, char *argv[])
     char *file_uri;
     char *ccn_path;
     char *private_key_path = 0;
+    struct sockaddr_in si;
     
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
 	ux = argv[2];
 	argv += 2;
 	argc -= 2;
     }
+    else if (argv[1] && !strcmp(argv[1], "-u") && argc > 3) {
+	udp = argv[2];
+        port = strtol(argv[3], NULL, 0);
+	argv += 3;
+	argc -= 3;
+        use_udp = 1;
+    }
 
     if (argc < 2) goto Usage;
 
     // socket for receiving
     sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
-    sock = ux_open(mysockname);
+   
+    if(!use_udp)
+        sock = ux_open(mysockname);
+    else
+        sock = udp_open(getpid()%65536+1025, &si);
     if (!sock) {
-	fprintf(stderr, "cannot open UNIX receive socket\n");
+	fprintf(stderr, "cannot open UNIX/UDP receive socket\n");
 	exit(-1);
     }
 
@@ -692,13 +745,24 @@ main(int argc, char *argv[])
     }
 
     if (len > 0) {
-	ux_sendto(sock, ux, out, len);
-
+        
+        if(!use_udp)
+            ux_sendto(sock, ux, out, len);
+        else
+            udp_sendto(sock, udp, port, out, len);
+        
+        
 //	sleep(1);
-	len = recv(sock, out, sizeof(out), 0);
+        if(!use_udp)
+            len = recv(sock, out, sizeof(out), 0);
+        else{
+            int slen = 0;
+            len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+                
+        }
 	if (len > 0)
 	    out[len] = '\0';
-
+        
 	write(1, out, len);
         printf("\n");
         
