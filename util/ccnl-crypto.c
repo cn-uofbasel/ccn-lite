@@ -131,6 +131,7 @@ int verify(char* public_key_path, unsigned char *msg, int msg_len, char *sig, in
         printf("Could not find public key\n");
         return 0;
     }
+    
     RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
     if(!rsa) return 0;
     fclose(fp);

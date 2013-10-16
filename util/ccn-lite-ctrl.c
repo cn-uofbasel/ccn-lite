@@ -551,11 +551,11 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
 
     // prepare debug statement
-    //len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
+    len3 = mkHeader(stmt, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len3 += add_ccnl_name(stmt+len3, ccn_path);
     
-    //stmt[len3++] = 0; // end-of-debugstmt
-
+    stmt[len3++] = 0; // end-of-debugstmt
+    
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
     

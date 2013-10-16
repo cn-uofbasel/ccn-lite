@@ -1653,6 +1653,9 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_BLOB) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
     while (dehead(&buf, &buflen, &num, &typ) == 0) {
@@ -1710,13 +1713,12 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *sigtype = 0, *sig = 0;
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-     
+    
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    
+   
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
-    
     while (dehead(&buf, &buflen, &num, &typ) == 0) {
         
         if (num==0 && typ==0)
@@ -1728,15 +1730,14 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     siglen = siglen-(buflen+4);
+    
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    
     datalen = buflen - 2;
     data = buf;  
-    
     verified = verify(ccnl, data, datalen, (char *)sig, siglen);
     if(verified == 0) {
         DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
