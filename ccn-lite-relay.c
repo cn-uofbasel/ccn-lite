@@ -38,7 +38,7 @@
 #define USE_MGMT
 #define USE_SCHEDULER
 #define USE_UNIXSOCKET
-//#define CCNL_USE_MGMT_SIGNATUES
+#define CCNL_USE_MGMT_SIGNATUES
 
 #include "ccnl-includes.h"
 
