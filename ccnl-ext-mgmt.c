@@ -1706,13 +1706,45 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     
-    unsigned char *buf;
+    unsigned char *buf, component[100];
     unsigned char *data;
     int buflen, datalen, siglen = 0;
     int num, typ, verified = 0;
     unsigned char *sigtype = 0, *sig = 0;
-    buf = prefix->comp[3];
-    buflen = prefix->complen[3];
+    
+    buf = orig->data;
+    buflen = orig->datalen;
+    
+    //SKIP HEADER FIELDS
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_INTEREST) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, component, sizeof(component));
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, component, sizeof(component));
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    get_tag_content(&buf, &buflen, component, sizeof(component));
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
+    
+    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
@@ -1736,7 +1768,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    datalen = buflen - 2;
+    datalen = buflen - 5;
     data = buf;  
     verified = verify(ccnl, data, datalen, (char *)sig, siglen);
     if(verified == 0) {
