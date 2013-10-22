@@ -522,6 +522,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
+    
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
 #endif /*CCNL_USE_MGMT_SIGNATUES*/ 
@@ -540,18 +541,19 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
 int
 mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_key_path){
     
-    int len = 0, len2 = 0, len3 = 0;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
     
+    unsigned char out1[12000];
     unsigned char contentobj[10000];
     unsigned char stmt[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 = mkStrBlob(out1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     //signatur nach hier, über den rest
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "removecacheobject");
 
     // prepare debug statement
     len3 = mkHeader(stmt, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -562,24 +564,24 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
     
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
-#endif 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
-    
-    
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
+    
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
 //    ccnl_prefix_free(p);
-    
     return len;
  
 }

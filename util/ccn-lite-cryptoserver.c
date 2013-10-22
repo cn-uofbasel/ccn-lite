@@ -50,8 +50,8 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
 		sizeof(struct sockaddr_un));
     if (rc < 0) {
-      fprintf(stderr, "named pipe \'%s\'\n", topath);
-      perror("sending datagram message");
+      fprintf(stderr, "\tnamed pipe \'%s\'\n", topath);
+      perror("\tsending datagram message");
     }
     return rc;
 }
@@ -65,7 +65,7 @@ ux_open(char *frompath)
     /* Create socket for sending */
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
-	perror("opening datagram socket");
+	perror("\topening datagram socket");
 	exit(1);
     }
     unlink(frompath);
@@ -73,7 +73,7 @@ ux_open(char *frompath)
     strcpy(name.sun_path, frompath);
     if (bind(sock, (struct sockaddr *) &name,
 	     sizeof(struct sockaddr_un))) {
-	perror("binding name to datagram socket");
+	perror("\tbinding name to datagram socket");
 	exit(1);
     }
 //    printf("socket -->%s\n", NAME);
@@ -128,16 +128,10 @@ handle_verify(char **buf, int *buflen, int sock, char *callback){
     contentlen = contentlen - (*buflen + 4);    
     
     
-    printf("Handeling TXID: %s... Type: Verify, Siglen: %d, Contentlen: %d\n", txid_s, siglen, contentlen);
-    /*printf("Sig: \n");
-    for(i = 0; i < siglen; ++i){
-        printf("%u ", sig[i]);
-    }
-    printf("\n");
-     * 
-     */
+    printf(" \tHandeling TXID: %s; Type: Verify; Siglen: %d; Contentlen: %d;\n", txid_s, siglen, contentlen);
+
     verified = verify(ctrl_public_key, content, contentlen, sig, siglen);
-    printf("Verified: %d\n", verified);
+    printf("\tResult: Verified: %d\n", verified);
     
     //return message object
     msg = ccnl_malloc(sizeof(char)*contentlen + 1000);
@@ -174,7 +168,7 @@ handle_verify(char **buf, int *buflen, int sock, char *callback){
     memset(h,0,sizeof(h));
     sprintf(h,"%s-2", ux_path);
     ux_sendto(sock, h, msg, len);
-    printf("answered to: %s len: %d\n", ux_path, len);
+    printf("\t complete, answered to: %s len: %d\n", ux_path, len);
     Bail:
     if(contentobj_buf) ccnl_free(contentobj_buf);
     if(component_buf) ccnl_free(component_buf);
@@ -207,7 +201,7 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     }
     contentlen = contentlen - (*buflen + 4);
     
-    printf("Handeling TXID: %s... Type: Sign\n", txid_s);
+    printf(" \tHandeling TXID: %s; Type: Sign; Contentlen: %d;\n", txid_s, contentlen);
     
     sig = ccnl_malloc(sizeof(char)*4096);
     
@@ -231,6 +225,9 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     len += mkStrBlob(msg+len, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     
     len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, txid_s);
+    memset(h,0,sizeof(h));
+    sprintf(h,"%d", siglen);
+    len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG, h);
     len3 += mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // signature
 		   (char*) sig, siglen);
     len3 += mkBlob(component_buf + len3, CCN_DTAG_CONTENT, CCN_TT_DTAG, content, contentlen);
@@ -252,7 +249,7 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     memset(h,0,sizeof(h));
     sprintf(h,"%s-2", ux_path);
     ux_sendto(sock, h, msg, len);
-    printf("answered to: %s len: %d\n", ux_path, len);
+    printf("\t complete, answered to: %s len: %d\n", ux_path, len);
     Bail:
     if(contentobj_buf) ccnl_free(contentobj_buf);
     if(component_buf) ccnl_free(component_buf);
@@ -268,6 +265,8 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     char content[64000];
     char callback[1024];
     
+    
+    printf("Crypto Request... parsing \n");
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_INTEREST) goto Bail; 
     
@@ -299,7 +298,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     memset(callback, 0, sizeof(callback));
     get_tag_content(&buf, &buflen, callback, sizeof(callback));
     
-    printf("CALLBACK: %s\n", callback);
+    printf("\tCallback function is: %s\n", callback);
    
     //open content object
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
@@ -324,7 +323,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
         handle_sign(&buf, &buflen, sock, callback);
     return 1;
     Bail:
-    printf("Error occured\n");
+    printf("\tError occured\n");
     return 0;
     
 }
