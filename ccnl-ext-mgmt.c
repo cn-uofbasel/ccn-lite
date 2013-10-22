@@ -59,6 +59,7 @@
 #include "ccnl-ext-debug.c"
 
 #include "ccnl-ext-crypto.c"
+#include "ccnl-ext.h"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -159,10 +160,13 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                     char *component_type, char* answer)
 {
-    int len, len2, len3;
+    int len = 0, len2 = 0, len3 = 0;
     struct ccnl_buf_s *retbuf;
-    len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(ccnl_is_local_addr(&from->peer))
+    {
+       len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content 
+       len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
 
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -173,9 +177,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(out2+len2, ccnl, out3, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+
     len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -184,11 +186,20 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
                   (char*) out2, len2);
 
-    out1[len++] = 0; // end-of-name
-    out1[len++] = 0; // end-of-interest
+    if(ccnl_is_local_addr(&from->peer))
+    {
+        out1[len++] = 0; // end-of-name
+        out1[len++] = 0; // end-of-content
+    }
     
-    retbuf = ccnl_buf_new((char *)out1, len);
-    ccnl_face_enqueue(ccnl, from, retbuf); 
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out1, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
+    return 0;
 }
 
 
@@ -639,9 +650,6 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj+len2, ccnl, stmt, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
@@ -885,9 +893,6 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1019,9 +1024,6 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1121,9 +1123,6 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1354,9 +1353,6 @@ Bail:
     }
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj_buf+len2, ccnl, faceinst_buf, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) faceinst_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -1516,9 +1512,6 @@ Bail:
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    len2 += add_signature(contentobj_buf+len2, ccnl, fwdentry_buf, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
