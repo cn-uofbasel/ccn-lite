@@ -36,6 +36,9 @@
 #include "ccnl-ext-debug.c"
 #include "ccnx.h"
 #include "ccnl-includes.h"
+#include "ccnl.h"
+#include "ccnl-ext-mgmt.c"
+#include "ccnl-pdu.c"
 
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
@@ -120,80 +123,6 @@ Bail:
 }
 #endif
 
-#ifdef CCNL_LINUXKERNEL
-void
-receive_data_ready(struct sock *sock, int len){
-    struct sk_buff *skb = 0;
-    int err = 0;
-    if ((skb = skb_recv_datagram((struct sock *)sock, 0, 1, &err)) == NULL){
-            DEBUGMSG(99,"Error: %d\n; SKB: %p", err, skb);
-	goto Bail; 
-    }
-    plen = skb->len;
-    memcpy(buf, skb->data, plen);
-    received = 1;
-    Bail: 
-    kfree_skb(skb);
-    return;
-}
-
-#endif
-int
-receive(char *path){
-    char *h = ccnl_malloc(sizeof(char)*1024);
-#ifdef CCNL_LINUXKERNEL
-    
-    struct sockaddr_un ux; 
-    struct socket *sock = 0;
-    
-    struct path p;
-    int rc;
-    received = 0;
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", path);
-    
-    rc = kern_path(h, 0, &p);
-    if (!rc) {
-        struct dentry *dir = dget_parent(p.dentry);
-
-        mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
-        rc = vfs_unlink(dir->d_inode, p.dentry);
-        mutex_unlock(&dir->d_inode->i_mutex);
-        dput(dir);
-        path_put(&p);
-    }
-    sock = ux_open(h, &ux);
-    sock->sk->sk_data_ready = receive_data_ready;
-    
-    while(received != 1){
-        msleep(10);
-    }
-    //sys_recvfrom();      
-    return plen;
-    Bail:
-    ccnl_free(h);
-    return plen;
-#else
-    int sock;
-    struct sockaddr_un src_addr;
-    socklen_t addrlen = sizeof(struct sockaddr_un);
-    struct timeval tv;
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", path);
-    sock = ux_open(h);
-    
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-        return 0;
-    }
-    plen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
-            &addrlen);
-    ccnl_free(h);
-    return plen;
-#endif
-}
-
 int 
 get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
     int num = 0;
@@ -235,7 +164,7 @@ create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
 
 int 
 create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_len,
-        char *sig, int sig_len, char *msg)
+        char *sig, int sig_len, char *msg, char *callback)
 {
     int len = 0, len2 = 0, len3 = 0;
     char *component_buf, *contentobj_buf;
@@ -249,6 +178,7 @@ create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_len,
 
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto");
+    len += mkStrBlob(msg+len, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     
     // prepare FACEINSTANCE
     
@@ -281,7 +211,8 @@ create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int content_len,
     return len;
 }
 
-int extract_type(unsigned char **buf, int *buflen, char *type, int type_length)
+int extract_type_callback(unsigned char **buf, int *buflen, char *type, 
+        int max_type_length, char* callback, int max_callback_length)
 {
     int typ, num;
     char comp1[10];
@@ -302,6 +233,12 @@ int extract_type(unsigned char **buf, int *buflen, char *type, int type_length)
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     get_tag_content(buf,buflen, comp1, sizeof(comp1));
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_CALLBACK) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+    get_tag_content(buf,buflen, callback, max_callback_length);
 
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
@@ -316,10 +253,31 @@ int extract_type(unsigned char **buf, int *buflen, char *type, int type_length)
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_TYPE) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(buf,buflen, type, type_length);
+    get_tag_content(buf,buflen, type, max_type_length);
     return 1;
     Bail:
     return 0;
+}
+
+int
+extract_msg(unsigned char **buf, int *buflen, char **msg){
+    int len = 0;
+    int num, typ;
+    
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    //msg=(char *) ccnl_malloc(sizeof(char)* (*buflen));
+    //memcpy(msg, *buf, (*buflen)-6);
+    *msg = *buf;
+    len = (*buflen) - 6;
+    
+    return len;
+    Bail:
+    DEBUGMSG(99, "FOO\n");
 }
 
 int
@@ -345,7 +303,7 @@ extract_sign_reply(unsigned char *buf, int buflen, char *sig, int *sig_len)
     char seqnumber_s[100];
     int seqnubmer;
     
-    if(!extract_type(&buf, &buflen, type, sizeof(type))) goto Bail;
+    //if(!extract_type(&buf, &buflen, type, sizeof(type))) goto Bail;
     if(strcmp(type, "sign")) goto Bail;
     
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
@@ -373,7 +331,7 @@ extract_sign_reply(unsigned char *buf, int buflen, char *sig, int *sig_len)
 }
 
 int 
-extract_verify_reply(unsigned char *buf, int buflen)
+extract_verify_reply(unsigned char **buf, int *buflen, int *seqnum)
 {
     int verified = 0;
     char type[100];
@@ -381,26 +339,24 @@ extract_verify_reply(unsigned char *buf, int buflen)
     char seqnumber_s[100], verified_s[100];
     int seqnubmer, h;
     
-    if(!extract_type(&buf, &buflen, type, sizeof(type))) goto Bail;
-    if(strcmp(type, "verify")) goto Bail;
-    
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SEQNO) goto Bail;
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(&buf, &buflen, seqnumber_s, sizeof(seqnumber_s));
+    get_tag_content(buf, buflen, seqnumber_s, sizeof(seqnumber_s));
     seqnubmer = strtoint(seqnumber_s);
+    *seqnum = seqnubmer;
     
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_VERIFIED) goto Bail;
-    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(&buf, &buflen, verified_s, sizeof(verified_s));
+    get_tag_content(buf, buflen, verified_s, sizeof(verified_s));
     h = strtoint(verified_s);
     if(h == 1) verified = 1;
     
@@ -408,8 +364,20 @@ extract_verify_reply(unsigned char *buf, int buflen)
     return verified;
 }
 
+/**
+ * 
+ * @param ccnl
+ * @param content
+ * @param content_len
+ * @param sig
+ * @param sig_len
+ * @param callback function which should be called when crypto system returns
+ *              for a new callback function you have to extend ccnl_crypto()!!!!
+ * @return 
+ */
 int 
-sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *sig_len)
+sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, 
+        int *sig_len, char *callback, int seqnum)
 {
     
     //char *buf = 0;
@@ -422,8 +390,8 @@ sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *
     if(!ccnl->crypto_face) return 0;
     msg = (char *) ccnl_malloc(sizeof(char)*(content_len)+3000);
     
-    len = create_ccnl_sign_verify_msg("sign", ccnl->crypto_txid++, content, content_len, 
-            sig, *sig_len, msg);
+    len = create_ccnl_sign_verify_msg("sign", seqnum, content, content_len, 
+            sig, *sig_len, msg, callback);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
@@ -432,11 +400,11 @@ sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *
     
     //receive and parse return msg
     //buf = ccnl_malloc(sizeof(char)*64000);
-    plen = receive(ccnl->crypto_path);
+    /*plen = receive(ccnl->crypto_path);
     if(plen > 0)
        extract_sign_reply(buf, plen, sig, sig_len);
     if(*sig_len <= 0) goto Bail;
-    ret = 1;
+    ret = 1;*/
     Bail:
     if(msg) ccnl_free(msg);
     //if(buf) ccnl_free(buf);
@@ -445,39 +413,44 @@ sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int *
     
 }
 
+
+/**
+ * 
+ * @param ccnl
+ * @param content
+ * @param content_len
+ * @param sig
+ * @param sig_len
+ * @param callback function which should be called when crypto system returns
+ *              for a new callback function you have to extend ccnl_crypto()!!!!
+ * @return 
+ */ 
 int 
 verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
-        char *sig, int sig_len)
+        char *sig, int sig_len, char* callback, int sequnum)
 {
     char *msg = 0;
-    int len = 0, verified = 0;
+    int len = 0, ret = 0;
     struct ccnl_buf_s *retbuf;
     //int plen;
     //unsigned char *buf;
     plen = 0;
     memset(buf,0,sizeof(buf));
-    if(!ccnl->crypto_face) return verified;
+    if(!ccnl->crypto_face) return ret;
     
     msg = (char *)ccnl_malloc(sizeof(char)*(content_len+sig_len)+3000);
     
-    len = create_ccnl_sign_verify_msg("verify", ccnl->crypto_txid++, content, 
-            content_len, sig, sig_len, msg);
+    len = create_ccnl_sign_verify_msg("verify", sequnum, content, 
+            content_len, sig, sig_len, msg, callback);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
-    //receive answer
-    //buf = ccnl_malloc(sizeof(char)*64000);
-    plen = receive(ccnl->crypto_path);
-    if(plen > 0)
-        verified = extract_verify_reply(buf, plen);
-    
-    
     //receive and parse return msg
     if(msg) ccnl_free(msg); 
     //if(buf) ccnl_free(buf);
-    return verified;
+    return ret;
 }
 
 
@@ -493,7 +466,7 @@ add_signature(unsigned char *out, struct ccnl_relay_s *ccnl, char *file, int fsi
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    if(!sign(ccnl, file, fsize, sig, &sig_len)) return 0;
+    //if(!sign(ccnl, file, fsize, sig, &sig_len, "ccnl_mgmt_crypto")) return 0;
     
     //add signaturebits bits...
     len += mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
@@ -508,5 +481,80 @@ add_signature(unsigned char *out, struct ccnl_relay_s *ccnl, char *file, int fsi
     ccnl_free(sig);
     return len;
 }
+
+int
+ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
+{
+  DEBUGMSG(99,"CCNL_CRYPTO\n");  
+  
+  if(!strcmp(type, "verify")){
+      int seqnum;
+      int verified = extract_verify_reply(&buf, &buflen, &seqnum);
+      char *msg, *msg2; 
+      char cmd[1000];
+      int len = extract_msg(&buf, &buflen, &msg), len2 = 0;
+      struct ccnl_face_s *from;
+      DEBUGMSG(99,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
+      
+      int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+      struct ccnl_buf_s *buf1 = 0, *nonce=0, *ppkd=0;
+      struct ccnl_interest_s *i = 0;
+      struct ccnl_content_s *c = 0;
+      struct ccnl_prefix_s *p = 0;
+      unsigned char *content = 0;
+      
+      msg2 = (char *) ccnl_malloc(sizeof(char) * len + 200);
+      len2 =mkHeader(msg2,CCN_DTAG_NAME, CCN_TT_DTAG);
+      memcpy(msg2+len2, msg, len);
+      len2 +=len;
+      msg2[len2++] = 0;
+      
+      from = ccnl->faces;
+      while(from){
+          if(from->faceid == seqnum) 
+              break;
+          DEBUGMSG(99, "List_FACEID: %d searched: %d\n", from->faceid, seqnum);
+          from = from->next;
+      }
+      
+      buf1 = ccnl_extract_prefix_nonce_ppkd(&msg2, &len2, &scope, &aok, &minsfx,
+			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+
+      if (p->complen[2] < sizeof(cmd)) {
+            memcpy(cmd, p->comp[2], p->complen[2]);
+            cmd[p->complen[2]] = '\0';
+      } else
+            strcpy(cmd, "cmd-is-too-long-to-display");
+      ccnl_mgmt_handle(ccnl, msg2, p, from, cmd, verified);
+      
+      
+  }else if(!strcmp(type, "sign")){
+      
+  }
+}
+
+int
+ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+      
+    char *buf = orig->data;
+    int buflen = orig->datalen;
+    char type[100];
+    char callback[100];
+    
+    
+    if(!extract_type_callback(&buf, &buflen, type, sizeof(type), callback, 
+    sizeof(callback))) goto Bail;
+    
+    DEBUGMSG(99,"Callback: %s Type: %s\n", callback, type); 
+    
+    if(!strcmp(callback, "ccnl_mgmt_crypto")) 
+        ccnl_mgmt_crypto(ccnl, type, buf, buflen);
+    
+    Bail: 
+    return -1;
+}
+
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 #endif /*CCNL_EXT_CRYPTO_C*/

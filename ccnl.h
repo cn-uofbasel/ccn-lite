@@ -86,7 +86,8 @@
 #define CCNL_DTAG_CONTENTPTR    99222
 #define CCNL_DTAG_LASTUSE       99223
 #define CCNL_DTAG_SERVEDCTN     99224
-#define CCNL_DTAG_VERIFIED    99225
+#define CCNL_DTAG_VERIFIED      99225
+#define CCNL_DTAG_CALLBACK      99226
 
 
 // ----------------------------------------------------------------------

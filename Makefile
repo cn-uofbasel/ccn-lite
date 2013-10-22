@@ -27,7 +27,7 @@ endif
 
 EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
 obj-m += ccn-lite-lnxkernel.o
-#ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
+ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
 # ----------------------------------------------------------------------
 

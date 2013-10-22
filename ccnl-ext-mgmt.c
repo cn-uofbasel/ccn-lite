@@ -17,8 +17,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2012-05-06 created <christopher.scherb@unibas.ch>
+ * 2012-05-06 created 
+ * 2013-10-21 extended for crypto <christopher.scherb@unibas.ch>
  */
+
+
+#ifndef CCNL_EXT_MGMT_C
+#define CCNL_EXT_MGMT_C
 
 #ifdef USE_MGMT
 
@@ -521,9 +526,6 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -750,9 +752,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif
+
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -945,9 +945,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif
+
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1070,9 +1068,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif
+
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1176,9 +1172,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif
+
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1431,9 +1425,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif   
+  
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
@@ -1576,9 +1568,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif
+
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
@@ -1644,9 +1634,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
      
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!skip_signature(&buf, &buflen, &num, &typ)) goto Bail;
-#endif     
+     
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
@@ -1703,13 +1691,13 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef CCNL_USE_MGMT_SIGNATUES
 int
 ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
 {
     
     unsigned char *buf, component[100];
     unsigned char *data;
     int buflen, datalen, siglen = 0;
-    int num, typ, verified = 0;
+    int num, typ;
     unsigned char *sigtype = 0, *sig = 0;
     
     buf = orig->data;
@@ -1722,33 +1710,6 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(&buf, &buflen, component, sizeof(component));
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(&buf, &buflen, component, sizeof(component));
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    get_tag_content(&buf, &buflen, component, sizeof(component));
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-   
     if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
     while (dehead(&buf, &buflen, &num, &typ) == 0) {
@@ -1763,57 +1724,31 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
     siglen = siglen-(buflen+4);
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    datalen = buflen - 5;
+    datalen = buflen - 2;
     data = buf;  
-    verified = verify(ccnl, data, datalen, (char *)sig, siglen);
-    if(verified == 0) {
-        DEBUGMSG(99, "Drop add-to-cache-request, signature could not be verified\n");
-        goto Bail;
-    }
-    else if(verified < 0){
-        DEBUGMSG(99, "Waiting for crypto server\n");
-        goto Bail;
-    }
-    DEBUGMSG(99, "Signature verified\n");    
+    
+    verify(ccnl, data, datalen, (char *)sig, siglen, "ccnl_mgmt_crypto", from->faceid);
+    
+    return 0;
+    
     Bail:
-    ccnl_free(sig);
-    ccnl_free(sigtype);
-    return verified;
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
+                "refused: signature could not be validated"); 
+    return -1;
 }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
 
-int
-ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+        char *cmd, int verified)
 {
-    char cmd[1000];
-
-    if (prefix->complen[2] < sizeof(cmd)) {
-	memcpy(cmd, prefix->comp[2], prefix->complen[2]);
-	cmd[prefix->complen[2]] = '\0';
-    } else
-	strcpy(cmd, "cmd-is-too-long-to-display");
-
-    DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
-
-    if (!ccnl_is_local_addr(&from->peer)
-#ifdef CCNL_USE_MGMT_SIGNATUES
-           && 
-            !ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from)
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
-            ) { //Here certification verification, where to place certification for that?
-	DEBUGMSG(99, "  rejecting because src=%s is not a local addr or non valid signature\n",
-		 ccnl_addr2ascii(&from->peer));
+    DEBUGMSG(99, "ccnl_mgmt_handle \"%s\"\n", cmd);
+    if(!verified){
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
-                "refused: origin of mgmt cmd is not local and non valid signature"); 
-	return -1;
+                "refused: error signature not verified");
+        return -1;
     }
-	
+    
     if (!strcmp(cmd, "newdev"))
 	ccnl_mgmt_newdev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "setfrag"))
@@ -1841,10 +1776,42 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	//ccnl_mgmt_return_msg(ccnl, orig, from, "unknown mgmt command");
 	return -1;
     }
+    return 0;
+}
+
+int
+ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    char cmd[1000];
+
+    if (prefix->complen[2] < sizeof(cmd)) {
+	memcpy(cmd, prefix->comp[2], prefix->complen[2]);
+	cmd[prefix->complen[2]] = '\0';
+    } else
+	strcpy(cmd, "cmd-is-too-long-to-display");
+
+    DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
+
+    if (ccnl_is_local_addr(&from->peer)) goto MGMT;
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    return ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from, cmd);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/
+                   
+    DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
+            ccnl_addr2ascii(&from->peer));
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
+                "refused: origin of mgmt cmd is not local"); 
+    return -1;
+    
+	
+    MGMT:
+    ccnl_mgmt_handle(ccnl, orig, prefix, from, cmd, 1);
 
     return 0;
 }
 
 #endif // USE_MGMT
-
+#endif /*CCNL_EXT_MGMT_C*/
 // eof
