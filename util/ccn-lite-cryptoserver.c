@@ -100,8 +100,8 @@ get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
 }
 
 int
-handle_verify(char **buf, int *buflen, int sock){
-    int num, typ, verified;
+handle_verify(char **buf, int *buflen, int sock, char *callback){
+    int num, typ, verified; int i;
     int contentlen = 0;
     int siglen = 0;
     char *txid_s = 0, *sig = 0, *content = 0;
@@ -127,29 +127,35 @@ handle_verify(char **buf, int *buflen, int sock){
     }
     contentlen = contentlen - (*buflen + 4);    
     
-    printf("Handeling TXID: %s... Type: Verify\n", txid_s);
     
+    printf("Handeling TXID: %s... Type: Verify, Siglen: %d, Contentlen: %d\n", txid_s, siglen, contentlen);
+    /*printf("Sig: \n");
+    for(i = 0; i < siglen; ++i){
+        printf("%u ", sig[i]);
+    }
+    printf("\n");
+     * 
+     */
     verified = verify(ctrl_public_key, content, contentlen, sig, siglen);
     printf("Verified: %d\n", verified);
     
     //return message object
-    msg = ccnl_malloc(sizeof(char)*1000);
-    component_buf = ccnl_malloc(sizeof(char)*666);
-    contentobj_buf = ccnl_malloc(sizeof(char)*333);
+    msg = ccnl_malloc(sizeof(char)*contentlen + 1000);
+    component_buf = ccnl_malloc(sizeof(char)*contentlen + 666);
+    contentobj_buf = ccnl_malloc(sizeof(char)*contentlen + 333);
     
     len = mkHeader(msg, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // ContentObj
     len += mkHeader(msg+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto");
-    
-    // prepare FACEINSTANCE
-    
-    
+    len += mkStrBlob(msg+len, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
+        
     len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, txid_s);
     memset(h,0,sizeof(h));
     sprintf(h,"%d", verified);
     len3 += mkStrBlob(component_buf+len3, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h);
+    len3 += mkBlob(component_buf + len3, CCN_DTAG_CONTENT, CCN_TT_DTAG, content, contentlen);
     
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
@@ -178,7 +184,7 @@ handle_verify(char **buf, int *buflen, int sock){
 
 
 int
-handle_sign(char **buf, int *buflen, int sock){
+handle_sign(char **buf, int *buflen, int sock, char *callback){
     int num, typ, ret = 0; int i;
     int contentlen = 0;
     int siglen = 0;
@@ -213,22 +219,21 @@ handle_sign(char **buf, int *buflen, int sock){
     }
 
     //return message object
-    msg = ccnl_malloc(sizeof(char)*siglen + 1000);
-    component_buf = ccnl_malloc(sizeof(char)*siglen + 666);
-    contentobj_buf = ccnl_malloc(sizeof(char)*siglen + 333);
+    msg = ccnl_malloc(sizeof(char)*siglen + sizeof(char)*contentlen  + 1000);
+    component_buf = ccnl_malloc(sizeof(char)*siglen + sizeof(char)*contentlen + 666);
+    contentobj_buf = ccnl_malloc(sizeof(char)*siglen + sizeof(char)*contentlen + 333);
     
     len = mkHeader(msg, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // ContentObj
     len += mkHeader(msg+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto");
-    
-    // prepare FACEINSTANCE
-    
+    len += mkStrBlob(msg+len, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     
     len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, txid_s);
     len3 += mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // signature
 		   (char*) sig, siglen);
+    len3 += mkBlob(component_buf + len3, CCN_DTAG_CONTENT, CCN_TT_DTAG, content, contentlen);
     
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
@@ -261,6 +266,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     char component[100];
     char type[100];
     char content[64000];
+    char callback[1024];
     
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_INTEREST) goto Bail; 
@@ -285,6 +291,15 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     memset(component, 0, sizeof(component));
     get_tag_content(&buf, &buflen, component, sizeof(component));
     if(strcmp(component, "crypto")) goto Bail;
+    
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_CALLBACK) goto Bail; 
+    if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+    memset(callback, 0, sizeof(callback));
+    get_tag_content(&buf, &buflen, callback, sizeof(callback));
+    
+    printf("CALLBACK: %s\n", callback);
    
     //open content object
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
@@ -303,13 +318,13 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     get_tag_content(&buf, &buflen, type, sizeof(type));
     
     if(!strcmp(type, "verify"))
-        handle_verify(&buf, &buflen, sock);
+        handle_verify(&buf, &buflen, sock, callback);
     
     if(!strcmp(type, "sign"))
-        handle_sign(&buf, &buflen, sock);
+        handle_sign(&buf, &buflen, sock, callback);
     return 1;
     Bail:
-    printf("foo\n");
+    printf("Error occured\n");
     return 0;
     
 }

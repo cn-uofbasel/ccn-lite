@@ -28,33 +28,33 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <openssl/obj_mac.h>
 
 #include "../ccnx.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
 
+#define CCNL_USE_MGMT_SIGNATUES
+
 #ifdef CCNL_USE_MGMT_SIGNATUES
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
 char *ctrl_public_key = 0;
 
 int sha(void* input, unsigned long length, unsigned char* md)
 {
-    SHA_CTX context;
-    if(!SHA1_Init(&context))
+    SHA256_CTX context;
+    if(!SHA256_Init(&context))
         return 0;
 
-    if(!SHA1_Update(&context, (unsigned char*)input, length))
+    if(!SHA256_Update(&context, (unsigned char*)input, length))
         return 0;
 
-    if(!SHA1_Final(md, &context))
+    if(!SHA256_Final(md, &context))
         return 0;
 
     return 1;
@@ -77,7 +77,7 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     sha(msg, msg_len, md);
     
     //Compute signatur
-    int err = RSA_sign(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    int err = RSA_sign(NID_sha256, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
     if(!err){
         printf("Error: %d\n", ERR_get_error());
     }
