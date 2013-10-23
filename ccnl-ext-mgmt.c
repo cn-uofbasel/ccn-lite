@@ -29,28 +29,10 @@
 
 #ifdef CCNL_LINUXKERNEL
 #include <linux/string.h>
-#ifdef CCNL_USE_MGMT_SIGNATUES
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/crypto.h>
-#include <linux/err.h>
-#include <linux/scatterlist.h>
-#include <linux/digsig.h>
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #else
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
-#include <openssl/sha.h>
-#include <openssl/rsa.h>
-#include <openssl/objects.h>
-#include <openssl/err.h>
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
 #endif
-
-
 
 #include "ccnx.h"
 #include "ccnl-pdu.c"
@@ -120,29 +102,6 @@ Bail:
 	continue; \
     } do {} while(0)
 
-int skip_signature(char **buf, int *buflen, int *num, int *typ){
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    /*SKIP SIGNATURE, ALREADY CHECKED*/
-    unsigned char *sigtype = 0, *sig = 0;
-    if (*typ != CCN_TT_DTAG || *num != CCN_DTAG_SIGNATURE) goto NOSIG;
-    while (dehead(buf, buflen, num, typ) == 0) {
-        
-        if (*num==0 && *typ==0)
-	    break; // end
-        
-        extractStr(sigtype, CCN_DTAG_NAME);
-        extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        if (consume(*typ, *num, buf, buflen, 0, 0) < 0) goto Bail;
-    }
-    if (dehead(buf, buflen, num, typ) != 0) goto Bail;
-    NOSIG:
-    return 1;
-    Bail:
-    return 0;
-    /*ENDSKIP SIGNATURE, ALREADY CHECKED*/
-#endif
-}
-
 void
 ccnl_mgmt_return_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		     struct ccnl_face_s *from, char *msg)
@@ -191,15 +150,19 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
         out1[len++] = 0; // end-of-name
         out1[len++] = 0; // end-of-content
     }
-    
+
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
         sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
+#endif
         retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
-    return 0;
+#endif
+    return;
 }
 
 
@@ -663,13 +626,17 @@ Bail:
         out[len++] = 0; // end-of-interest
     }
     
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
     
     
     /*END ANWER*/
@@ -915,13 +882,17 @@ Bail:
         out_buf[len++] = 0; // end-of-interest
     }
     
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out_buf, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
     
     /*END ANWER*/  
             
@@ -1055,13 +1026,17 @@ Bail:
         out_buf[len++] = 0; // end-of-interest
     }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out_buf, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
 
     ccnl_free(faceid);
     ccnl_free(frag);
@@ -1167,13 +1142,17 @@ Bail:
         out_buf[len++] = 0; // end-o
     }
     
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out_buf, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
 
     
     /*END ANWER*/  
@@ -1407,13 +1386,17 @@ Bail:
         out_buf[len++] = 0; // end-of-interest
     }
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out_buf, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
     
 
     ccnl_free(devname);
@@ -1430,15 +1413,10 @@ int
 ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
-    //variables for answer
-    struct ccnl_buf_s *retbuf;
-//    unsigned char out[2000];
-    int len = 0;
 
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
-
     /*ANSWER*/
-    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "mgmt_destroyde", "mgmt_destroydev not implemented yet");
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "mgmt_destroy", "mgmt_destroydev not implemented yet");
     
     /*END ANSWER*/
     return -1;
@@ -1579,13 +1557,17 @@ Bail:
         out_buf[len++] = 0; // end-of-interest
     }
     
+#ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
-        retbuf = ccnl_buf_new((char *)out_buf, len);
+#endif
+        retbuf = ccnl_buf_new((char *)out1, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
     }
+#endif
     
     /*END ANWER*/  
 
@@ -1675,8 +1657,6 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int num, typ;
     char *answer = "Failed to remove content";
     struct ccnl_content_s *c2;
-    
-    unsigned char *sigtype = 0, *sig = 0;
     
     components = (unsigned char**) ccnl_malloc(sizeof(unsigned char*)*1024);
     for(i = 0; i < 1024; ++i)components[i] = 0;

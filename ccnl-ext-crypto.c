@@ -23,15 +23,6 @@
 #define CCNL_EXT_CRYPTO_C
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
-#ifdef CCNL_LINUXKERNEL
-#include <linux/kernel.h> 
-#include <linux/socket.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/netlink.h>
-#include <linux/delay.h>
-#include <net/sock.h>
-#endif
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 #include "ccnx.h"
@@ -39,12 +30,6 @@
 #include "ccnl.h"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-pdu.c"
-
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
-
-
-
-#ifdef CCNL_USE_MGMT_SIGNATUES
 
 char buf[64000];
 int plen;
@@ -58,6 +43,11 @@ strtoint(char *str){
     return strtol(str,NULL,0);
 #endif
 }
+
+
+int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+        char *cmd, int verified);
 
 #ifndef CCNL_LINUXKERNEL
 int
