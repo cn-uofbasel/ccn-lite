@@ -568,6 +568,12 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if(!strcmp(callback, "ccnl_mgmt_crypto")) 
         ccnl_mgmt_crypto(ccnl, type, buf, buflen);
+    /**
+     * Add here further callback functions
+     * else if(!strcmp(callback, "")){
+     *   
+     *}
+     */
     
     Bail: 
     return -1;

@@ -607,9 +607,10 @@ Bail:
     contentobj = ccnl_malloc(contentobject_length);
     stmt = ccnl_malloc(stmt_length);
     
-
-    len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -657,12 +658,19 @@ Bail:
     // add CONTENTOBJ as the final name component
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
-
-    out[len++] = 0; // end-of-name
-    out[len++] = 0; // end-of-interest
+    if(ccnl_is_local_addr(&from->peer)){
+        out[len++] = 0; // end-of-name
+        out[len++] = 0; // end-of-interest
+    }
     
-    retbuf = ccnl_buf_new((char *)out, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
+    
     
     /*END ANWER*/
     
@@ -855,9 +863,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/
-
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content
+        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
 
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -901,11 +910,18 @@ Bail:
     len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj_buf, len2);
 
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-of-interest
+    if(ccnl_is_local_addr(&from->peer)){
+        out_buf[len++] = 0; // end-of-name
+        out_buf[len++] = 0; // end-of-interest
+    }
     
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out_buf, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
     
     /*END ANWER*/  
             
@@ -1007,8 +1023,10 @@ Error:
 Bail:
     ccnl_free(action);
 
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
 
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -1032,11 +1050,18 @@ Bail:
     len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj_buf, len2);
 
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-of-interest
+    if(ccnl_is_local_addr(&from->peer)){
+        out_buf[len++] = 0; // end-of-name
+        out_buf[len++] = 0; // end-of-interest
+    }
 
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out_buf, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
 
     ccnl_free(faceid);
     ccnl_free(frag);
@@ -1107,9 +1132,15 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/
+    if(!faceid) {
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "destroyface", cp);
+        return -1;
+    }
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
     
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -1130,12 +1161,20 @@ Bail:
     // add CONTENTOBJ as the final name component
     len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj_buf, len2);
-
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-o
     
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(ccnl_is_local_addr(&from->peer)){
+        out_buf[len++] = 0; // end-of-name
+        out_buf[len++] = 0; // end-o
+    }
+    
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out_buf, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
+
     
     /*END ANWER*/  
     ccnl_free(action);
@@ -1317,8 +1356,10 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 // #endif // USE_UDP
 
 Bail:
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
     
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -1360,12 +1401,20 @@ Bail:
     // add CONTENTOBJ as the final name component
     len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
                     (char*) contentobj_buf, len2);
+    
+    if(ccnl_is_local_addr(&from->peer)){
+        out_buf[len++] = 0; // end-of-name
+        out_buf[len++] = 0; // end-of-interest
+    }
 
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-of-interest
-
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out_buf, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
+    
 
     ccnl_free(devname);
     ccnl_free(port);
@@ -1494,9 +1543,14 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/
-       
-    len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    if(!action || !p || ! faceid) {
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "prefixreg", cp);
+        return -1;
+    }
+    if(ccnl_is_local_addr(&from->peer)){
+        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    }
 
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -1519,12 +1573,19 @@ Bail:
     // add CONTENTOBJ as the final name component
     len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj_buf, len2);
-
-    out_buf[len++] = 0; // end-of-name
-    out_buf[len++] = 0; // end-of-interest
     
-    retbuf = ccnl_buf_new((char *)out_buf, len);
-    ccnl_face_enqueue(ccnl, from, retbuf);
+    if(ccnl_is_local_addr(&from->peer)){
+        out_buf[len++] = 0; // end-of-name
+        out_buf[len++] = 0; // end-of-interest
+    }
+    
+    if(!ccnl_is_local_addr(&from->peer))
+        sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
+    else
+    {
+        retbuf = ccnl_buf_new((char *)out_buf, len);
+        ccnl_face_enqueue(ccnl, from, retbuf); 
+    }
     
     /*END ANWER*/  
 

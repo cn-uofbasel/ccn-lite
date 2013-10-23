@@ -93,16 +93,17 @@ add_ccnl_name(unsigned char *out, char *ccn_path)
 int
 mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[15000];
     unsigned char contentobj[2000];
     unsigned char stmt[1000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
 
     // prepare debug statement
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
@@ -112,17 +113,19 @@ mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, stmt, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -134,16 +137,17 @@ int
 mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 		   char *frag, char *flags, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[15000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
 
     // prepare DEVINSTANCE
     len3 = mkHeader(faceinst, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
@@ -160,18 +164,20 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -183,16 +189,17 @@ int
 mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 		   char *frag, char *flags, char *private_key_path)
 {
-    int  len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[15000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
 
     // prepare DEVINSTANCE
     len3 = mkHeader(faceinst, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
@@ -208,18 +215,20 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
     faceinst[len3++] = 0; // end-of-faceinst
 
     // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -236,16 +245,17 @@ int
 mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 		 char *host, char *port, char *flags, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[15000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -270,17 +280,19 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -291,16 +303,17 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 int
 mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[15000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    len1 = mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -317,17 +330,19 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -338,7 +353,8 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_
 int
 mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[10000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 //    char num[20];
@@ -348,9 +364,9 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -360,20 +376,22 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
-
+    
     return len;
 }
 
@@ -381,7 +399,8 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 int
 mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[10000];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 //    char num[20];
@@ -391,9 +410,9 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -405,17 +424,19 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path) len2 += add_signature(contentobj+len2, private_key_path, faceinst, len3);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
@@ -428,7 +449,8 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
 int
 mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char *private_key_path)
 {
-    int len = 0, len2, len3;
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[10000];
     unsigned char contentobj[2000];
     unsigned char fwdentry[2000];
     char *cp;
@@ -436,9 +458,9 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
 		     reg ? "prefixreg" : "prefixunreg");
 
     // prepare FWDENTRY
@@ -459,20 +481,23 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char 
 
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(private_key_path)len2 += add_signature(contentobj+len2, private_key_path, fwdentry, len3);
-#endif 
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+    memcpy(out+len, out1, len1);
+    len += len1;
+    
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
-
+    
 //    ccnl_prefix_free(p);
     return len;
 }
