@@ -468,7 +468,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       int seqnum;
       int verified = extract_verify_reply(&buf, &buflen, &seqnum);
       char *msg, *msg2; 
-      char cmd[1000];
+      char cmd[500];
       int len = extract_msg(&buf, &buflen, &msg), len2 = 0;
       struct ccnl_face_s *from;
       //DEBUGMSG(99,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
@@ -502,8 +502,6 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       } else
             strcpy(cmd, "cmd-is-too-long-to-display");
       ccnl_mgmt_handle(ccnl, msg2, p, from, cmd, verified);
-      
-      
    }else if(!strcmp(type, "sign")){
       char *sig = (char *) ccnl_malloc(sizeof(char)* 4096);
       char *out;
@@ -535,8 +533,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       retbuf = ccnl_buf_new((char *)out, len1);
       ccnl_face_enqueue(ccnl, from, retbuf); 
       
-      ccnl_free(out);
-      
+      ccnl_free(out);      
    }
 }
 
