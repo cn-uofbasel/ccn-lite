@@ -390,7 +390,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	    if (relay->defaultInterfaceScheduler)
 		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
-            create_ccnl_crypto_face(relay, crypto_face_path);       
+            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);       
             relay->crypto_path = crypto_face_path;
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");

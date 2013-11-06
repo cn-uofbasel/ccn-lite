@@ -637,7 +637,7 @@ int udp_open(int port, struct sockaddr_in *si)
 }
 
 int
-ux_open(char *frompath)
+ccnl_crypto_ux_open(char *frompath)
 {
   int sock, bufsize;
     struct sockaddr_un name;
@@ -739,7 +739,7 @@ main(int argc, char *argv[])
     sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
    
     if(!use_udp)
-        sock = ux_open(mysockname);
+        sock = ccnl_crypto_ux_open(mysockname);
     else
         sock = udp_open(getpid()%65536+1025, &si);
     if (!sock) {
