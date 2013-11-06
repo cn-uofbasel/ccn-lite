@@ -153,7 +153,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -166,8 +166,8 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 }
 
 
-int
-create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacedev,
+static int
+ccnl_mgmt_create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacedev,
         int *interfacedevtype, int *interfacereflect, char **interfaceaddr, unsigned char *stmt, int len3)
 {
     int it; 
@@ -209,7 +209,8 @@ create_interface_stmt(int num_interfaces, int *interfaceifndx, long *interfacede
     return len3;
 }
 
-int create_faces_stmt(int num_faces, int *faceid, long *facenext,
+static int
+ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
 		      long *faceprev, int *faceifndx, int *faceflags,
 		      int *facetype, char **facepeer, char **facefrag,
 		      unsigned char *stmt, int len3)
@@ -260,8 +261,8 @@ int create_faces_stmt(int num_faces, int *faceid, long *facenext,
      return len3;
 }
 
-int
-create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid,
+static int
+ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid,
         int *fwdprefixlen, char **fwdprefix, unsigned char *stmt, int len3)
 {
     int it;
@@ -294,8 +295,8 @@ create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwd
     return len3;
 }
 
-int
-create_interest_stmt(int num_interests, long *interest, long *interestnext, long *interestprev,
+static int
+ccnl_mgmt_create_interest_stmt(int num_interests, long *interest, long *interestnext, long *interestprev,
         int *interestlast, int *interestmin, int *interestmax, int *interestretries,
         long *interestpublisher, int* interestprefixlen, char **interestprefix,
         unsigned char *stmt, int len3)
@@ -345,7 +346,8 @@ create_interest_stmt(int num_interests, long *interest, long *interestnext, long
     return len3;
 }
 
-int create_content_stmt(int num_contents, long *content, long *contentnext, 
+static int
+ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext, 
         long *contentprev, int *contentlast_use, int *contentserved_cnt, 
         char **ccontents, char **cprefix, unsigned char *stmt, int len3)
 {
@@ -590,20 +592,20 @@ Bail:
         len3 += mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
         //len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
         
-        len3 = create_interface_stmt(num_interfaces, interfaceifndx, interfacedev, 
+        len3 = ccnl_mgmt_create_interface_stmt(num_interfaces, interfaceifndx, interfacedev, 
                 interfacedevtype, interfacereflect, interfaceaddr, stmt, len3);
         
-        len3 = create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
+        len3 = ccnl_mgmt_create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
 			faceflags, facetype, facepeer, facefrag, stmt, len3);
         
-        len3 = create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, 
+        len3 = ccnl_mgmt_create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, 
                 fwdprefixlen, fwdprefix, stmt, len3);
         
-        len3 = create_interest_stmt(num_interests, interest, interestnext, interestprev,
+        len3 = ccnl_mgmt_create_interest_stmt(num_interests, interest, interestnext, interestprev,
                 interestlast, interestmin, interestmax, interestretries,
                 interestpublisher, interestprefixlen, interestprefix, stmt, len3);
         
-        len3 = create_content_stmt(num_contents, content, contentnext, contentprev,
+        len3 = ccnl_mgmt_create_content_stmt(num_contents, content, contentnext, contentprev,
                 contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, len3);
         
         
@@ -628,7 +630,7 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -884,7 +886,7 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -1028,7 +1030,7 @@ Bail:
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -1144,7 +1146,7 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -1388,7 +1390,7 @@ Bail:
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -1559,7 +1561,7 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
@@ -1761,7 +1763,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     datalen = buflen - 2;
     data = buf;  
     
-    verify(ccnl, data, datalen, (char *)sig, siglen, "ccnl_mgmt_crypto", from->faceid);
+    ccnl_crypto_verify(ccnl, data, datalen, (char *)sig, siglen, "ccnl_mgmt_crypto", from->faceid);
     
     return 0;
     

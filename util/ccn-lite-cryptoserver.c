@@ -57,7 +57,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 }
 
 int
-ux_open(char *frompath)
+ccnl_crypto_ux_open(char *frompath)
 {
   int sock, bufsize;
     struct sockaddr_un name;
@@ -86,7 +86,7 @@ ux_open(char *frompath)
 }
 
 int 
-get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
+ccnl_crypto_get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
     int num = 0;
     memset(content,0,contentlen);
     while((**buf) !=  0 && num < contentlen)
@@ -279,7 +279,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(component, 0, sizeof(component));
-    get_tag_content(&buf, &buflen, component, sizeof(component));
+    ccnl_crypto_get_tag_content(&buf, &buflen, component, sizeof(component));
     if(strcmp(component, "ccnx")) goto Bail; 
     
     //check if component is crypto
@@ -288,7 +288,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(component, 0, sizeof(component));
-    get_tag_content(&buf, &buflen, component, sizeof(component));
+    ccnl_crypto_get_tag_content(&buf, &buflen, component, sizeof(component));
     if(strcmp(component, "crypto")) goto Bail;
     
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
@@ -296,7 +296,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(callback, 0, sizeof(callback));
-    get_tag_content(&buf, &buflen, callback, sizeof(callback));
+    ccnl_crypto_get_tag_content(&buf, &buflen, callback, sizeof(callback));
     
     printf("\tCallback function is: %s\n", callback);
    
@@ -314,7 +314,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     if(dehead(&buf, &buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
     memset(type, 0, sizeof(type));
-    get_tag_content(&buf, &buflen, type, sizeof(type));
+    ccnl_crypto_get_tag_content(&buf, &buflen, type, sizeof(type));
     
     if(!strcmp(type, "verify"))
         handle_verify(&buf, &buflen, sock, callback);
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
     if(argc >= 3)
         private_key = argv[3];
     
-    int sock = ux_open(ux_path);
+    int sock = ccnl_crypto_ux_open(ux_path);
     while(crypto_main_loop(sock));
     
     Bail:

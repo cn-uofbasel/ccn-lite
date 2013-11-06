@@ -578,7 +578,7 @@ ccnl_init(void)
 	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
 	    theRelay.ifcount++;
 	}
-        create_ccnl_crypto_face(&theRelay, p);
+        ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
         theRelay.crypto_path = p;    
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
@@ -597,7 +597,7 @@ ccnl_init(void)
 	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
 	    theRelay.ifcount++;
 	}
-        create_ccnl_crypto_face(&theRelay, p);
+        ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
         theRelay.crypto_path = p;
     }
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
