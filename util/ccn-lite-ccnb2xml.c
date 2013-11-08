@@ -36,80 +36,12 @@
 #include "ccnl-common.c"
 
 #define CCNL_USE_MGMT_SIGNATUES
+#include "ccnl-crypto.c"
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
-#include <openssl/sha.h>
-#include <openssl/rsa.h>
-#include <openssl/objects.h>
-#include <openssl/err.h>
 
 char *ctrl_public_key = 0;
 
-int sha(void* input, unsigned long length, unsigned char* md)
-{
-    SHA256_CTX context;
-    if(!SHA256_Init(&context))
-        return 0;
 
-    if(!SHA256_Update(&context, (unsigned char*)input, length))
-        return 0;
-
-    if(!SHA256_Final(md, &context))
-        return 0;
-
-    return 1;
-}
-
-int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len)
-{
-
-    //Load private key
-    FILE *fp = fopen(private_key_path, "r");
-    if(!fp) {
-        printf("Could not find private key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
-    fclose(fp);
-    if(!rsa) return 0;
-    
-    unsigned char md[SHA256_DIGEST_LENGTH];
-    sha(msg, msg_len, md);
-    
-    //Compute signatur
-    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
-    if(!err){
-        printf("Error: %d\n", ERR_get_error());
-    }
-    RSA_free(rsa);
-    return err;
-}
-
-int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len)
-{
-    //Load public key
-    FILE *fp = fopen(public_key_path, "r");
-    if(!fp) {
-        printf("Could not find public key\n");
-        return 0;
-    }
-    RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
-    if(!rsa) return 0;
-    fclose(fp);
-  
-    //Compute Hash
-    unsigned char md[SHA256_DIGEST_LENGTH];
-    sha(msg, msg_len, md);
-    
-    //Verify signature
-    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
-    if(!verified){
-        //printf("Error: %d\n", ERR_get_error());
-    }
-    RSA_free(rsa);
-    return verified;
-}
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
 
 const char *byte_to_binary(int x)
 {
@@ -423,12 +355,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
         char *buf2 = *buf;
         int buflen2 = *buflen - 2;
 
-        printf("CONTENT: %d\n", buflen2);
-        for(i = 0; i < buflen2; ++i){
-            printf("%c", buf2[i]);
-        }printf("\n");
-
-        verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, siglen);
+        verified = verify(ctrl_public_key, buf2, buflen2, sig, siglen);
 
         print_offset(offset); 
         printf("<SIGNATURE>");
@@ -518,9 +445,9 @@ handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
     
     if(num == CCN_DTAG_SIGNATURE)
     {
-        handle_ccn_signature(buf, len, offset+4, stream);        
+        handle_ccn_signature(buf, len, offset+4, stream);
+        if(dehead(buf, len, &num, &typ)) return -1;        
     }
-    if(dehead(buf, len, &num, &typ)) return -1;
     
     for(i = 0; i < 3; ++i)
     {
