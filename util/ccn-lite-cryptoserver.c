@@ -211,6 +211,11 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
         sig = "Error";
         siglen = 6;
     }
+    
+    printf("CONTENT: %d\n", contentlen);
+        for(i = 0; i < contentlen; ++i){
+            printf("%c", content[i]);
+    }printf("\n");
 
     //return message object
     msg = ccnl_malloc(sizeof(char)*siglen + sizeof(char)*contentlen  + 1000);
