@@ -94,7 +94,6 @@ int sha(void* input, unsigned long length, unsigned char* md)
 
     if(!SHA256_Final(md, &context))
         return 0;
-
     return 1;
 }
 
