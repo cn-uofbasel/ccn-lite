@@ -73,11 +73,11 @@ int sign(char* private_key_path, char *msg, int msg_len, char *sig, int *sig_len
     fclose(fp);
     if(!rsa) return 0;
     
-    unsigned char md[SHA_DIGEST_LENGTH];
+    unsigned char md[SHA256_DIGEST_LENGTH];
     sha(msg, msg_len, md);
     
     //Compute signatur
-    int err = RSA_sign(NID_sha256, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
     if(!err){
         printf("Error: %d\n", ERR_get_error());
     }
@@ -98,11 +98,11 @@ int verify(char* public_key_path, char *msg, int msg_len, char *sig, int sig_len
     fclose(fp);
   
     //Compute Hash
-    unsigned char md[SHA_DIGEST_LENGTH];
+    unsigned char md[SHA256_DIGEST_LENGTH];
     sha(msg, msg_len, md);
     
     //Verify signature
-    int verified = RSA_verify(NID_sha1, md, SHA_DIGEST_LENGTH, sig, sig_len, rsa);
+    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
     if(!verified){
         //printf("Error: %d\n", ERR_get_error());
     }
@@ -421,13 +421,12 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
     if(ctrl_public_key)
     {
         char *buf2 = *buf;
-        int buflen2 = *buflen;
+        int buflen2 = *buflen - 2;
 
-        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
-        if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-
-        if (dehead(&buf2, &buflen2, &num, &typ) != 0) goto Bail;
-        if (typ != CCN_TT_BLOB) goto Bail;
+        printf("CONTENT: %d\n", buflen2);
+        for(i = 0; i < buflen2; ++i){
+            printf("%c", buf2[i]);
+        }printf("\n");
 
         verified = verify(ctrl_public_key, buf2, buflen2 - 5, sig, siglen);
 
@@ -471,11 +470,6 @@ handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream)
             case CCN_DTAG_CONTENT:
                 handle_ccn_content(buf, len, offset+4, stream);
                 break;
-#ifdef CCNL_USE_MGMT_SIGNATUES
-            case CCN_DTAG_SIGNATURE: 
-                handle_ccn_signature(buf, len, offset+4, stream);
-                break;
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
             default:
                 goto Bail;
         }
@@ -521,10 +515,17 @@ handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
     int num, typ, i;
     if(dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<NAME>\n");
+    
+    if(num == CCN_DTAG_SIGNATURE)
+    {
+        handle_ccn_signature(buf, len, offset+4, stream);        
+    }
+    if(dehead(buf, len, &num, &typ)) return -1;
+    
     for(i = 0; i < 3; ++i)
     {
         if(num != CCN_DTAG_COMPONENT) return -1;
-        handle_ccn_component_content(buf, len, offset+4, stream);
+                handle_ccn_component_content(buf, len, offset+4, stream);
         if(dehead(buf, len, &num, &typ)) return -1;
         
     }

@@ -630,11 +630,11 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
@@ -886,11 +886,11 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out_buf, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
@@ -1030,11 +1030,11 @@ Bail:
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out_buf, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
@@ -1146,11 +1146,11 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out_buf, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
@@ -1390,11 +1390,11 @@ Bail:
 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out_buf, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
@@ -1561,11 +1561,11 @@ Bail:
     
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out1, len, "ccnl_mgmt_crypto", from->faceid); 
+        ccnl_crypto_sign(ccnl, out_buf, len, "ccnl_mgmt_crypto", from->faceid); 
     else
     {
 #endif
-        retbuf = ccnl_buf_new((char *)out1, len);
+        retbuf = ccnl_buf_new((char *)out_buf, len);
         ccnl_face_enqueue(ccnl, from, retbuf); 
 #ifdef CCNL_USE_MGMT_SIGNATUES
     }
