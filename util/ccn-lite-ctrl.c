@@ -94,7 +94,7 @@ int
 mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[15000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char stmt[1000];
 
@@ -138,7 +138,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 		   char *frag, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[15000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
@@ -190,7 +190,7 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 		   char *frag, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[15000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
@@ -246,7 +246,7 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 		 char *host, char *port, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[15000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
@@ -304,7 +304,7 @@ int
 mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[15000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 
@@ -354,7 +354,7 @@ int
 mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[10000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 //    char num[20];
@@ -400,7 +400,7 @@ int
 mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[10000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
 //    char num[20];
@@ -450,7 +450,7 @@ int
 mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
-    unsigned char out1[10000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char fwdentry[2000];
     char *cp;
@@ -568,7 +568,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
     
-    unsigned char out1[12000];
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[10000];
     unsigned char stmt[2000];
 
@@ -705,7 +705,7 @@ main(int argc, char *argv[])
     char *udp = "0.0.0.0";
     int port = 0;
     int use_udp = 0;
-    unsigned char out[64000];
+    unsigned char out[CCNL_MAX_PACKET_SIZE];
     int len;
     int sock = 0;
 

@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2013-07-22 created
+ * 2013-07-22 created <christopher.scherb@unibas.ch>
  */
 #define CCNL_USE_MGMT_SIGNATUES
 
@@ -262,7 +262,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     int num, typ;
     char component[100];
     char type[100];
-    char content[64000];
+    char content[CCNL_MAX_PACKET_SIZE];
     char callback[1024];
     
     
@@ -331,8 +331,8 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
 int crypto_main_loop(int sock)
 {
     //receive packet async and call parse/answer...
-    int len;
-    char buf[64000];
+    int len, pid; 
+    char buf[CCNL_MAX_PACKET_SIZE];
     struct sockaddr_un src_addr;
     socklen_t addrlen = sizeof(struct sockaddr_un);
     
@@ -340,7 +340,11 @@ int crypto_main_loop(int sock)
     len = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
             &addrlen);
     
-    parse_crypto_packet(buf, len, sock);
+    pid = fork();
+    if(pid == 0){
+        parse_crypto_packet(buf, len, sock);
+        _exit(0);
+    }
     
     return 1;
 }
