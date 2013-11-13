@@ -628,6 +628,11 @@ Bail:
         out[len++] = 0; // end-of-interest
     }
     
+    if(len > CCNL_MAX_PACKET_SIZE - 1024){
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "debug", "too much to display");
+        goto END;
+    }
+    
 #ifdef CCNL_USE_MGMT_SIGNATUES
     if(!ccnl_is_local_addr(&from->peer))
         ccnl_crypto_sign(ccnl, out, len, "ccnl_mgmt_crypto", from->faceid); 
@@ -640,7 +645,7 @@ Bail:
     }
 #endif
     
-    
+    END:
     /*END ANWER*/
     
     //FREE STORAGE
