@@ -513,7 +513,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       len = ccnl_crypto_extract_msg(&buf, &buflen, &msg);
       out = (char *) ccnl_malloc(sizeof(char)*len + sizeof(char)*siglen + 4096);
       
-      len1 = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content
+      len1 = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
       len1 += mkHeader(out+len1, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
       if(siglen > 0) len1 += ccnl_crypto_add_signature(out+len1, sig, siglen);
       

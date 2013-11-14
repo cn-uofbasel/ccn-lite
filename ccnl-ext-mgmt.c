@@ -123,7 +123,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     struct ccnl_buf_s *retbuf;
     if(ccnl_is_local_addr(&from->peer))
     {
-       len = mkHeader(out1, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content 
+       len = mkHeader(out1, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content 
        len += mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
 
@@ -573,7 +573,7 @@ Bail:
     stmt = ccnl_malloc(stmt_length);
     
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
 
@@ -838,7 +838,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 Bail:
     /*ANSWER*/
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // content
+        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
         len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
 
@@ -1002,7 +1002,7 @@ Bail:
     ccnl_free(action);
 
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
 
@@ -1119,7 +1119,7 @@ Bail:
         return -1;
     }
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
     
@@ -1343,7 +1343,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
     
@@ -1533,7 +1533,7 @@ Bail:
         return -1;
     }
     if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENT, CCN_TT_DTAG);   // interest
+        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     }
 
