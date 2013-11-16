@@ -27,7 +27,6 @@
 
 #include "ccnl-core.h"
 
-
 #ifdef USE_DEBUG
 
 #ifndef CCNL_LINUXKERNEL

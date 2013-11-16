@@ -42,6 +42,7 @@
 
 #include "ccnl-ext-crypto.c"
 #include "ccnl-ext.h"
+//#include "util/ccnl-common.c"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -61,6 +62,50 @@ ccnl_is_local_addr(sockunion *su)
     /*if (su->sa.sa_family == AF_INET)
 	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);*/
     return 0;
+}
+
+int 
+ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+                int len, char *buf)
+{
+    
+    int it;
+    int size = CCNL_MAX_PACKET_SIZE/2;
+    size = 300;
+    int numPackets = len/(size/2) + 1;
+    
+    //TODO: add packet marker if not last packet
+    DEBUGMSG(99,"Packets: %d, Len: %d, Size: %d\n", numPackets, len, size/2);
+    for(it = 0; it < numPackets; ++it){
+        int id = -it; 
+        
+        int packetsize = size/2;
+        char *packet = (char*) ccnl_malloc(sizeof(char)*packetsize * 2);
+        int len4 = 0;
+        if(it == numPackets - 1) {
+            len4 += mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
+        }
+        len4 += mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
+        
+        if(it == 0) id = from->faceid;
+    
+#ifdef CCNL_USE_MGMT_SIGNATUES
+        if(!ccnl_is_local_addr(&from->peer))
+                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+        else
+        {
+#endif
+            //send back the first part,
+            //store the other parts in cache, after checking the pit
+            //retbuf = ccnl_buf_new((char *)out, len);
+            //ccnl_face_enqueue(ccnl, from, retbuf); 
+#ifdef CCNL_USE_MGMT_SIGNATUES
+        }
+#endif
+        ccnl_free(packet);
+    }
+    return 1;
 }
 
 struct ccnl_prefix_s*
@@ -572,10 +617,11 @@ Bail:
     contentobj = ccnl_malloc(contentobject_length);
     stmt = ccnl_malloc(stmt_length);
     
-    if(ccnl_is_local_addr(&from->peer)){
+    
+    /*if(ccnl_is_local_addr(&from->peer)){
         len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
         len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
+    }*/
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -606,14 +652,11 @@ Bail:
                 interestpublisher, interestprefixlen, interestprefix, stmt, len3);
         
         len3 = ccnl_mgmt_create_content_stmt(num_contents, content, contentnext, contentprev,
-                contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, len3);
-        
-        
+                contentlast_use, contentserved_cnt, ccontents, cprefix, stmt, len3);     
     }
     
     stmt[len3++] = 0; //end of debug reply
-    
-
+   
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
     len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
@@ -623,29 +666,14 @@ Bail:
     // add CONTENTOBJ as the final name component
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
-    if(ccnl_is_local_addr(&from->peer)){
+    /*if(ccnl_is_local_addr(&from->peer)){
         out[len++] = 0; // end-of-name
         out[len++] = 0; // end-of-interest
-    }
+    } */   
     
-    if(len > CCNL_MAX_PACKET_SIZE - 1024){
-        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "debug", "too much to display");
-        goto END;
-    }
     
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(!ccnl_is_local_addr(&from->peer))
-        ccnl_crypto_sign(ccnl, out, len, "ccnl_mgmt_crypto", from->faceid); 
-    else
-    {
-#endif
-        retbuf = ccnl_buf_new((char *)out, len);
-        ccnl_face_enqueue(ccnl, from, retbuf); 
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    }
-#endif
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out);
     
-    END:
     /*END ANWER*/
     
     //FREE STORAGE
@@ -710,7 +738,6 @@ Bail:
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
-
 
 int
 ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,

@@ -18,9 +18,14 @@
  *
  * File history:
  * 2013-07-22 created
+ * 2013-10-17 extended <christopher.scherb@unibas.ch>
  */
 
 // ----------------------------------------------------------------------
+
+#ifndef CCNL_COMMON_C
+#define CCNL_COMMON_C
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -199,4 +204,5 @@ consume(int typ, int num, unsigned char **buf, int *len,
 	continue; \
     } do {} while(0)
 
+#endif //CCNL_COMMON_C
 // eof
