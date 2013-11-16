@@ -42,7 +42,6 @@
 
 #include "ccnl-ext-crypto.c"
 #include "ccnl-ext.h"
-//#include "util/ccnl-common.c"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -95,15 +94,53 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
             //send back the first part,
             //store the other parts in cache, after checking the pit
+            char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
+            int len5 = 0;
+            len5 += mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+            len5 += mkHeader(buf2+len5, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+            memcpy(buf2+len5, packet, len4);
+            len5 +=len4;
+            buf2[len5++] = 0; // end-of-name
+            buf2[len5++] = 0; // end-of-interest
+            
+            
             if(it == 0){
                 struct ccnl_buf_s *retbuf;
-                retbuf = ccnl_buf_new((char *)packet, len4);
+                retbuf = ccnl_buf_new((char *)buf2, len5);
                 ccnl_face_enqueue(ccnl, from, retbuf); 
                 ccnl_free(retbuf);
             }
             else
             {
-                
+                //put to cache
+                struct ccnl_prefix_s *prefix_a = 0;
+                struct ccnl_content_s *c = 0;
+                struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+                unsigned char *content = 0;
+                char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+                int contlen;
+                pkt = ccnl_extract_prefix_nonce_ppkd(&buf2, &len5, 0, 0,
+                               0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+
+                if (!pkt) {
+                     //DEBUGMSG(6, " parsing error\n"); goto Done;
+                }
+                prefix_a->compcnt = 2;
+                prefix_a->comp = (char **) ccnl_malloc(sizeof(char*)*2);
+                prefix_a->comp[0] = "debug";
+                sprintf(ht, "seqnum-%d", it);
+                prefix_a->comp[1] = ht;
+                *prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
+                prefix_a->complen[0] = strlen("debug");
+                prefix_a->complen[1] = strlen(ht);
+                c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+                                      content, contlen);
+                //if (!c) goto Done;
+
+                ccnl_content_serve_pending(ccnl, c);
+                ccnl_content_add2cache(ccnl, c);
+                //Done:
+                //continue;
             }
 #ifdef CCNL_USE_MGMT_SIGNATUES
         }
@@ -620,12 +657,6 @@ Bail:
     out = ccnl_malloc(object_length);
     contentobj = ccnl_malloc(contentobject_length);
     stmt = ccnl_malloc(stmt_length);
-    
-    
-    /*if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-        len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }*/
 
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
@@ -669,12 +700,7 @@ Bail:
 
     // add CONTENTOBJ as the final name component
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj, len2);
-    /*if(ccnl_is_local_addr(&from->peer)){
-        out[len++] = 0; // end-of-name
-        out[len++] = 0; // end-of-interest
-    } */   
-    
+		  (char*) contentobj, len2);    
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out);
     
