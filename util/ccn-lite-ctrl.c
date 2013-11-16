@@ -43,8 +43,6 @@
 
 #include "ccnl-crypto.c"
 
-char *ctrl_public_key = "/home/blacksheeep/.ssh/publickey.pem";
-
 int
 split_string(char *in, char c, char *out)
 {
@@ -721,7 +719,7 @@ make_next_seg_debug_interest(int num, char *out)
 }
 
 int
-handle_ccn_signature(unsigned char **buf, int *buflen)
+handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
 {
    int num, typ, verified = 0, siglen, i;
    char *sigtype = 0, *sig = 0; 
@@ -739,9 +737,9 @@ handle_ccn_signature(unsigned char **buf, int *buflen)
     siglen = siglen-((*buflen)+4);
     char *buf2 = *buf;
     int buflen2 = *buflen - 2;
-    if(ctrl_public_key)
+    if(relay_public_key)
     {
-        verified = verify(ctrl_public_key, buf2, buflen2, sig, siglen);
+        verified = verify(relay_public_key, buf2, buflen2, sig, siglen);
     }
     Bail:
     return verified;
@@ -754,7 +752,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen)
  * @return 
  */
 int
-check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, int *verified){
+check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
 
     int ret = 1;
     int contentlen = 0;
@@ -772,7 +770,7 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, int *v
     if(num == CCN_DTAG_SIGNATURE)
     {
         if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
-        *verified = handle_ccn_signature(&buf,&len);
+        *verified = handle_ccn_signature(&buf,&len, relay_public_key);
         if(dehead(&buf, &len, &num, &typ)) return 0;
     }
         
@@ -809,8 +807,8 @@ int
 main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
-    char *recvbuffer = malloc(sizeof(char)*10), *recvbuffer2 = 0;
-    int recvbufferlen = 0;
+    char *recvbuffer = 0, *recvbuffer2 = 0;
+    int recvbufferlen = 0, recvbufferlen2 = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
     char *udp = "0.0.0.0";
     int port = 0;
@@ -820,10 +818,11 @@ main(int argc, char *argv[])
     int sock = 0;
     int verified_i = 0;
     int verified = 1;
+    int numOfParts = 1;
 
     char *file_uri;
     char *ccn_path;
-    char *private_key_path = 0;
+    char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
     
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
@@ -841,6 +840,12 @@ main(int argc, char *argv[])
     if(argv[1] && !strcmp(argv[1], "-p") && argc > 2)
     {
         private_key_path = argv[2];
+        argv += 2;
+	argc -= 2;
+    }
+     if(argv[1] && !strcmp(argv[1], "-k") && argc > 2)
+    {
+        relay_public_key = argv[2];
         argv += 2;
 	argc -= 2;
     }
@@ -915,9 +920,6 @@ main(int argc, char *argv[])
     }
 
     if (len > 0) {
-
-        recvbufferlen += mkHeader(recvbuffer+recvbufferlen, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
-        recvbufferlen += mkHeader(recvbuffer+recvbufferlen, CCN_DTAG_NAME, CCN_TT_DTAG);
         
         if(!use_udp)
             ux_sendto(sock, ux, out, len);
@@ -935,7 +937,7 @@ main(int argc, char *argv[])
         else
             len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
        
-        hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, &verified_i);
+        hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
         if(!verified_i) verified = 0;
 
         while(hasNext){
@@ -951,17 +953,33 @@ main(int argc, char *argv[])
                 len = recv(sock, out, sizeof(out), 0);
            else
                 len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-           hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, &verified_i);
+           hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
            if(!verified_i) verified = 0;
+           ++numOfParts;
 
         }
-        if(verified) printf("All parts has been verified\n");
-        recvbuffer2 = realloc(recvbuffer, recvbufferlen+2);
-        recvbuffer = recvbuffer2;
-        recvbuffer[recvbufferlen++] = 0; //end of name
-        recvbuffer[recvbufferlen++] = 0; //end of content
+        recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
+        recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_NAME, CCN_TT_DTAG);
+        if(relay_public_key)
+        {
+            char sigoutput[200];
+            
+            if(verified){
+                sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
+                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+            }else{
+                sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
+                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+            }
+        }
+        memcpy(recvbuffer2+recvbufferlen2, recvbuffer, recvbufferlen);
+        recvbufferlen2+=recvbufferlen;
+
+        recvbuffer2[recvbufferlen2++] = 0; //end of name
+        recvbuffer2[recvbufferlen2++] = 0; //end of content
                 
-	write(1, recvbuffer, recvbufferlen);
+	write(1, recvbuffer2, recvbufferlen2);
         printf("\n");
         
 	printf("received %d bytes.\n", recvbufferlen);
@@ -974,7 +992,7 @@ main(int argc, char *argv[])
     return 0;
 
 Usage:
-    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] [-p private-key] CMD, where CMD either of\n"
+    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] [-p private-key] [-k relay-public-key] CMD, where CMD either of\n"
 	   "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
 	   "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
 	   "  destroydev    DEVNDX\n"
