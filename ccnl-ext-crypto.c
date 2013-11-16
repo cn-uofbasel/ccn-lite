@@ -562,6 +562,8 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
           c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
                                 content, contlen);
           if (!c) goto Done;
+          
+          ccnl_content_serve_pending(ccnl, c);
           ccnl_content_add2cache(ccnl, c);
       }
       Done:
