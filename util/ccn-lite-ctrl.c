@@ -763,17 +763,19 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, int *v
     
     if(dehead(&buf, &len, &num, &typ)) return 0; 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return 0;
-     
+    
     if(dehead(&buf, &len, &num, &typ)) return 0;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) return 0;
-     
     
     if(dehead(&buf, &len, &num, &typ)) return 0; 
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
     
-    *verified = handle_ccn_signature(&buf,&len);
-    if(dehead(&buf, &len, &num, &typ)) return 0; 
-    
+    if(num == CCN_DTAG_SIGNATURE)
+    {
+        if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
+        *verified = handle_ccn_signature(&buf,&len);
+        if(dehead(&buf, &len, &num, &typ)) return 0;
+    }
+        
     //check if there is a marker for the last segment
     if(num == CCN_DTAG_ANY){
         char buf2[5];
@@ -923,28 +925,35 @@ main(int argc, char *argv[])
             udp_sendto(sock, udp, port, out, len);
         
 //	sleep(1);
+       
+        int slen = 0; int num = 1; int len2 = 0;
+        int hasNext = 0;
+
+        memset(out, 0, sizeof(out));
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
-        else{
-            int slen = 0; int num = 1; int len2 = 0;
-            int hasNext = 0;
-            
-            memset(out, 0, sizeof(out));
+        else
             len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-            hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, &verified);
-            
-            while(hasNext){
-               //send an interest for debug packets... and store content in a array....
-               //sleep(3);
-               char interest2[100];
-               len2 = make_next_seg_debug_interest(num++, interest2);
-               udp_sendto(sock, udp, port, interest2, len2);
-               memset(out, 0, sizeof(out));
-               len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-               hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, &verified_i);
-               if(!verified_i) verified = 0;
-               
-            }
+       
+        hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, &verified_i);
+        if(!verified_i) verified = 0;
+
+        while(hasNext){
+           //send an interest for debug packets... and store content in a array...
+           char interest2[100];
+           len2 = make_next_seg_debug_interest(num++, interest2);
+           if(!use_udp)
+                ux_sendto(sock, ux, interest2, len2);
+           else
+                udp_sendto(sock, udp, port, interest2, len2);
+           memset(out, 0, sizeof(out));
+           if(!use_udp)
+                len = recv(sock, out, sizeof(out), 0);
+           else
+                len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+           hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, &verified_i);
+           if(!verified_i) verified = 0;
+
         }
         if(verified) printf("All parts has been verified\n");
         recvbuffer2 = realloc(recvbuffer, recvbufferlen+2);
@@ -955,7 +964,7 @@ main(int argc, char *argv[])
 	write(1, recvbuffer, recvbufferlen);
         printf("\n");
         
-	printf("received %d bytes.\n", len);
+	printf("received %d bytes.\n", recvbufferlen);
     } else
 	printf("nothing to send, program terminates\n");
 
