@@ -503,7 +503,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
             strcpy(cmd, "cmd-is-too-long-to-display");
       ccnl_mgmt_handle(ccnl, msg2, p, from, cmd, verified);
    }else if(!strcmp(type, "sign")){
-      char *sig = (char *) ccnl_malloc(sizeof(char)* 4096);
+      char *sig = (char *) ccnl_malloc(sizeof(char)* CCNL_MAX_PACKET_SIZE);
       char *out;
       char *msg;
       int siglen, seqnum, len, len1;
@@ -522,7 +522,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       
       out[len1++] = 0; // end-of-name
       out[len1++] = 0; // end-of-interest
-      
+      DEBUGMSG(99, "LEN1: %d", len1);
       from = ccnl->faces;
       while(from){
           if(from->faceid == seqnum) 
@@ -531,8 +531,40 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       }
       
       retbuf = ccnl_buf_new((char *)out, len1);
-      ccnl_face_enqueue(ccnl, from, retbuf); 
-      
+      if(seqnum >= 0){
+          ccnl_face_enqueue(ccnl, from, retbuf); 
+      }else{
+          struct ccnl_prefix_s *prefix_a = 0;
+          struct ccnl_content_s *c = 0;
+          struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+          unsigned char *content = 0;
+          char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+          int contlen;
+          pkt = ccnl_extract_prefix_nonce_ppkd(&out, &len1, 0, 0,
+                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+          
+          if (!pkt) {
+               DEBUGMSG(6, " parsing error\n"); goto Done;
+          }
+          if (prefix_a) {
+              //DEBUGMSG(99, "%s", prefix_a->comp);
+              //ccnl_free(prefix_a);
+          }
+          //prefix_a = (struct ccnl_prefix_s *)ccnl_malloc(sizeof(struct ccnl_prefix_s));
+          prefix_a->compcnt = 2;
+          prefix_a->comp = (char **) ccnl_malloc(sizeof(char*)*2);
+          prefix_a->comp[0] = "debug";
+          sprintf(ht, "seqnum-%d", -seqnum);
+          prefix_a->comp[1] = ht;
+          *prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
+          prefix_a->complen[0] = strlen("debug");
+          prefix_a->complen[1] = strlen(ht);
+          c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+                                content, contlen);
+          if (!c) goto Done;
+          ccnl_content_add2cache(ccnl, c);
+      }
+      Done:
       ccnl_free(out);      
    }
 }

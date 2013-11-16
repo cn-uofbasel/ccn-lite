@@ -43,6 +43,8 @@
 
 #include "ccnl-crypto.c"
 
+char *ctrl_public_key = "/home/blacksheeep/.ssh/publickey.pem";
+
 int
 split_string(char *in, char c, char *out)
 {
@@ -697,10 +699,116 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     return rc;
 }
 
+int 
+make_next_seg_debug_interest(int num, char *out)
+{
+    int len = 0, k;
+    unsigned char cp[100];
+    
+    sprintf(cp, "seqnum-%d", num);
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, cp);
+    
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+    
+    return len;
+    
+}
+
+int
+handle_ccn_signature(unsigned char **buf, int *buflen)
+{
+   int num, typ, verified = 0, siglen, i;
+   char *sigtype = 0, *sig = 0; 
+   while (dehead(buf, buflen, &num, &typ) == 0) {
+        
+        if (num==0 && typ==0)
+	    break; // end
+        
+        extractStr2(sigtype, CCN_DTAG_NAME);
+        siglen = *buflen;
+        extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
+        
+        if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+    }
+    siglen = siglen-((*buflen)+4);
+    char *buf2 = *buf;
+    int buflen2 = *buflen - 2;
+    if(ctrl_public_key)
+    {
+        verified = verify(ctrl_public_key, buf2, buflen2, sig, siglen);
+    }
+    Bail:
+    return verified;
+}
+
+/**
+ * Extract content, verify sig if public key is given as parameter
+ * @param len
+ * @param buf
+ * @return 
+ */
+int
+check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, int *verified){
+
+    int ret = 1;
+    int contentlen = 0;
+    int num, typ, i;
+    char *newbuffer;
+    
+    if(dehead(&buf, &len, &num, &typ)) return 0; 
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return 0;
+     
+    if(dehead(&buf, &len, &num, &typ)) return 0;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) return 0;
+     
+    
+    if(dehead(&buf, &len, &num, &typ)) return 0; 
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
+    
+    *verified = handle_ccn_signature(&buf,&len);
+    if(dehead(&buf, &len, &num, &typ)) return 0; 
+    
+    //check if there is a marker for the last segment
+    if(num == CCN_DTAG_ANY){
+        char buf2[5];
+        if(dehead(&buf, &len, &num, &typ)) return 0; 
+        memcpy(buf2, buf, num);
+        buf2[4] = 0;
+        if(!strcmp(buf2, "last")){
+            ret = 0;
+        }
+        buf+=num+1;
+        len-=(num+1);
+        if(dehead(&buf, &len, &num, &typ)) return 0; 
+    }
+    
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTDIGEST) return 0;
+    
+    if(dehead(&buf, &len, &num, &typ)) return 0; 
+    if(typ != CCN_TT_BLOB) return 0; 
+    contentlen = num;
+        
+    newbuffer = realloc(*recvbuffer, (*recvbufferlen+contentlen)*sizeof(char));
+    *recvbuffer = newbuffer;
+    memcpy(*recvbuffer+*recvbufferlen, buf, contentlen);
+    *recvbufferlen += contentlen;    
+    
+    Bail:
+    return ret;
+}
+
 int
 main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
+    char *recvbuffer = malloc(sizeof(char)*10), *recvbuffer2 = 0;
+    int recvbufferlen = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
     char *udp = "0.0.0.0";
     int port = 0;
@@ -708,6 +816,8 @@ main(int argc, char *argv[])
     unsigned char out[CCNL_MAX_PACKET_SIZE];
     int len;
     int sock = 0;
+    int verified_i = 0;
+    int verified = 1;
 
     char *file_uri;
     char *ccn_path;
@@ -803,6 +913,9 @@ main(int argc, char *argv[])
     }
 
     if (len > 0) {
+
+        recvbufferlen += mkHeader(recvbuffer+recvbufferlen, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        recvbufferlen += mkHeader(recvbuffer+recvbufferlen, CCN_DTAG_NAME, CCN_TT_DTAG);
         
         if(!use_udp)
             ux_sendto(sock, ux, out, len);
@@ -813,14 +926,33 @@ main(int argc, char *argv[])
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else{
-            int slen = 0;
+            int slen = 0; int num = 1; int len2 = 0;
+            int hasNext = 0;
+            
+            memset(out, 0, sizeof(out));
             len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-                
+            hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, &verified);
+            
+            while(hasNext){
+               //send an interest for debug packets... and store content in a array....
+               sleep(3);
+               char interest2[100];
+               len2 = make_next_seg_debug_interest(num++, interest2);
+               udp_sendto(sock, udp, port, interest2, len2);
+               memset(out, 0, sizeof(out));
+               len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+               hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, &verified_i);
+               if(!verified_i) verified = 0;
+               
+            }
         }
-	if (len > 0)
-	    out[len] = '\0';
-        
-	write(1, out, len);
+        if(verified) printf("All parts has been verified\n");
+        recvbuffer2 = realloc(recvbuffer, recvbufferlen+2);
+        recvbuffer = recvbuffer2;
+        recvbuffer[recvbufferlen++] = 0; //end of name
+        recvbuffer[recvbufferlen++] = 0; //end of content
+                
+	write(1, recvbuffer, recvbufferlen);
         printf("\n");
         
 	printf("received %d bytes.\n", len);

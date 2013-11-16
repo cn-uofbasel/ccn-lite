@@ -340,11 +340,11 @@ int crypto_main_loop(int sock)
     len = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr*) &src_addr,
             &addrlen);
     
-    pid = fork();
-    if(pid == 0){
+    //pid = fork();
+    //if(pid == 0){
         parse_crypto_packet(buf, len, sock);
-        _exit(0);
-    }
+    //    _exit(0);
+    //}
     
     return 1;
 }
