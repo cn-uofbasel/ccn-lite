@@ -336,51 +336,21 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
 int 
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
-   int num, typ, verified, siglen, i;
-   char *sigtype = 0, *sig = 0; 
-   while (dehead(buf, buflen, &num, &typ) == 0) {
-        
-        if (num==0 && typ==0)
-	    break; // end
-        
-        extractStr2(sigtype, CCN_DTAG_NAME);
-        siglen = *buflen;
-        extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
-        
-        if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
-    }
-    siglen = siglen-((*buflen)+4);
-    if(ctrl_public_key)
-    {
-        char *buf2 = *buf;
-        int buflen2 = *buflen - 2;
-
-        verified = verify(ctrl_public_key, buf2, buflen2, sig, siglen);
-
-        print_offset(offset); 
-        printf("<SIGNATURE>");
-        if(!verified) {
-            printf("Signature NOT verified");
-        }else
-        {
-            printf("Signature verified");
-        }
-        print_offset(offset); 
-        printf("</SIGNATURE>\n");
-    }
-    else{
-        print_offset(offset); 
-        printf("<SIGNATURE>\n");
-        print_offset(offset+4); printf("<NAME>%s</NAME>\n", sigtype);
-        print_offset(offset+4); printf("<SIGNATUREBITS>");
-        for(i = 0; i < siglen; ++i){
-            printf("0x%04zx ", sig[i]);
-        }
-        printf("</SIGNATUREBITS>\n");
-        print_offset(offset); 
-        printf("</SIGNATURE>\n");
-    }
-    Bail:
+   int num, typ, i;
+   if(dehead(buf, buflen, &num, &typ)) return -1; 
+   if (typ != CCN_TT_BLOB) return 0;
+   
+   print_offset(offset);
+   printf("<SIGNATURE>");
+   for(i = 0; i < num; ++i){
+       printf("%c",(*buf)[i]);
+   }
+       
+   printf("</SIGNATURE>\n");
+   
+   *buflen -= (num+1);
+   *buf += (num+1);
+   
     
     return 0;
 }
@@ -581,12 +551,7 @@ int
 main(int argc, char *argv[])
 {
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
-    if(argc > 2 && !strcmp(argv[1],"-k"))  {
-        ctrl_public_key = argv[2];
-    }else 
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
-        if(argc > 1 && !strcmp(argv[1],"-h")){
+    if(argc > 1 && !strcmp(argv[1],"-h")){
         goto usage;
     }
 
@@ -605,9 +570,9 @@ main(int argc, char *argv[])
     
     usage:
     fprintf(stderr, "usage: \n" 
-    " parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml\n"
-    " %s -k public_key_path to verify signatures\n"
-    " %s -h print this message\n",
+    " Parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml.\n"
+    " To check the status of the signatures, use the ccn-lite-ctrl with publickey.\n"
+    " %s -h print this message.\n",
     argv[0], argv[0]);
     return 0;
 }
