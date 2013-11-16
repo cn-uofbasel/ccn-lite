@@ -935,7 +935,7 @@ main(int argc, char *argv[])
             
             while(hasNext){
                //send an interest for debug packets... and store content in a array....
-               sleep(3);
+               //sleep(3);
                char interest2[100];
                len2 = make_next_seg_debug_interest(num++, interest2);
                udp_sendto(sock, udp, port, interest2, len2);

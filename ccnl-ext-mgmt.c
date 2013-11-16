@@ -72,11 +72,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     int it;
     int size = CCNL_MAX_PACKET_SIZE/2;
-    size = 300;
     int numPackets = len/(size/2) + 1;
     
-    //TODO: add packet marker if not last packet
-    DEBUGMSG(99,"Packets: %d, Len: %d, Size: %d\n", numPackets, len, size/2);
     for(it = 0; it < numPackets; ++it){
         int id = -it; 
         
@@ -98,8 +95,16 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
             //send back the first part,
             //store the other parts in cache, after checking the pit
-            //retbuf = ccnl_buf_new((char *)out, len);
-            //ccnl_face_enqueue(ccnl, from, retbuf); 
+            if(it == 0){
+                struct ccnl_buf_s *retbuf;
+                retbuf = ccnl_buf_new((char *)packet, len4);
+                ccnl_face_enqueue(ccnl, from, retbuf); 
+                ccnl_free(retbuf);
+            }
+            else
+            {
+                
+            }
 #ifdef CCNL_USE_MGMT_SIGNATUES
         }
 #endif
@@ -461,7 +466,6 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int rc = -1;
     
     //variables for answer
-    struct ccnl_buf_s *retbuf;
     int stmt_length, object_length, contentobject_length;
     unsigned char *out;
     unsigned char *contentobj;
