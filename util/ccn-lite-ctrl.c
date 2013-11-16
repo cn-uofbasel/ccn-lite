@@ -986,6 +986,8 @@ main(int argc, char *argv[])
     } else
 	printf("nothing to send, program terminates\n");
 
+    if(recvbuffer2)free(recvbuffer2);
+    if(recvbuffer2)free(recvbuffer);
     close(sock);
     unlink(mysockname);
 
