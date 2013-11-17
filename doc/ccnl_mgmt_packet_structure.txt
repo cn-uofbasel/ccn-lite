@@ -1,0 +1,174 @@
+/*
+ * @f doc/ccnl_mgmt_packet_structure.txt
+ * @b description of the mgmt packet structure
+ *
+ * Copyright (C) 2012-13, Christian Tschudin, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2013-11-16  created <christopher.scherb@unibas.ch>
+ */
+
+//----------------------------------------------------------------------------
+
+A mgmt-command is send as interest to the relay.
+If a interest has the prefix "/ccnx//<command>" the relay recognize it
+as a mgmt command.
+
+
+All CCN-Lite interests have a similar structure:
+
+<interest>
+	<name>
+		[<signature>...</signature>]
+		<component>ccnx</component>
+		<component></component>
+		<component>"COMMAND"</component>
+		<component>
+			<contentobj>
+				"COMMAND PARAMETER"
+			</contentobj>		
+		</component>
+	</name>
+</interest>
+
+where "COMMAND" is the mgmt command and 
+"COMMAND PARAMETER" contains the parameter for the command (delivered in ccn-style formate).
+The signature field is optional (only required if content is ship via udp). 
+The signature is computed over all 4 components.
+
+//----------------------------------------------------------------------------
+
+If the mgmt command is executed a reply msg will be sent as answer to the interest.
+This answer is ship as contentobject:
+
+<contentobj>
+	<name>
+		<component>ccnx</component>
+		<component></component>
+		<component>"COMMAND"</component>
+		<component>
+			<contentobj>
+				"EXECUTION DETAILS"
+			</contentobj>		
+		</component>
+	</name>
+</contentobj>
+
+where "COMMAND" is the mgmt commant and 
+"EXECUTION DETAILS" contains details about the mgmt command execution or 
+information about the relay (delivered in ccn-style formate).
+
+//----------------------------------------------------------------------------
+
+This content object may be larger than the CCNL_MAX_PACKET_SIZE.
+
+To prevent transmission problems, the packet is split into segments if it is too large.
+
+All packet parts (segments) are ship in a transport packet:
+
+<contentobj>
+	<name>
+		[<signature>...</signature>]
+		[<any>last<any>]
+		<contentdigest>
+			<blob>
+				"PART OF THE MGMT COMMAND REPLY"
+			</blob>			
+		</contentdigest>
+		
+	</name>
+</contentobj>
+
+where the signature is computed over the contentdigest.
+The signature field is optional (only required if content is ship via udp). 
+The mgmt client has to extract and combine the contentdigest.
+The <any>last<any> tag is used to mark the last segment of the mgmt reply.
+This tag is only available in the last segment.
+
+//----------------------------------------------------------------------------
+
+The keep the mgmt system consistent with the CCNx system the first segment of reply
+msg is send immediately as answer to the mgmt interest.
+
+In CCNx a user must interest in each segment. So for the mgmt system.
+If the first reply do not contain the "last segment" tag, the user has to
+send another interest to get the next segment. To serve the following interest 
+the relay puts the other segments into the cache. 
+The prefixes of the segments are: /mgmt/seqnum-1, /mgmt/seqnum-2....
+The user has to interest in the segments until a segment with the "last segment" tag 
+is received.
+
+	ccnl-relay					ccn-lite-ctrl
+				Interest				|
+		|	<------------------------------------"send a mgmt command"
+	"execute the command"						|
+		|							|
+	"create a reply msg"						|
+		|							|
+	"split the reply msg						|
+	 if it is too large"						|
+		|							|
+	"reply with the first 		Content				|
+	 segment, put other  ---------------------------------> "receive the reply msg"
+	 segments in the cache"						|
+								"verify signature"
+									|
+								"check if last segment "
+				Interest (/mgmt/seqnum-1)		|
+		|	<------------------------------------	"if not interest in next segment"
+	"serve interest from cache"	Content
+		|        ------------------------------------>  "receive the reply msg"
+									|
+								"verify signature"
+									|
+								"check if last segment"
+				Interest (/mgmt/seqnum-2)		|
+		|	<------------------------------------	"if not interest in next segment"
+	"serve interest from cache"	Content
+		|        ------------------------------------>  "receive the reply msg"
+				
+			...					...
+
+		Continue until "last segment is received.
+
+
+//----------------------------------------------------------------------------
+
+To create interests for a concrete mgmt command the functions in util/ccn-lite-ctrl.c can be used.
+The mgmt commants are:
+  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]
+  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]
+  destroydev    DEVNDX
+  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]
+  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]
+  newUNIXface   PATH [FACEFLAGS]
+  setfrag       FACEID FRAG MTU
+  destroyface   FACEID
+  prefixreg     PREFIX FACEID
+  prefixunreg   PREFIX FACEID
+  debug         dump
+  debug         halt
+  debug         dump+halt
+  add           ccn-file
+  remove        ccn-path
+
+
+
+
+
+
+
+
+

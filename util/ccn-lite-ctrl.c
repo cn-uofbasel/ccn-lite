@@ -708,7 +708,7 @@ make_next_seg_debug_interest(int num, char *out)
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, cp);
     
     out[len++] = 0; // end-of-name
