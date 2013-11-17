@@ -172,7 +172,7 @@ One has to compare the variable "callback" with the name of the callback
 function specified in the "sign" or "verify" call and call the right function
 to continue the pending operation.
 
-
+//eof
 
 
 
