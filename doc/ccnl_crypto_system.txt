@@ -1,0 +1,179 @@
+/*
+ * @f doc/ccnl_crypto_system.txt
+ * @b description of the ccnl crypto system
+ *
+ * Copyright (C) 2012-13, Christian Tschudin, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2013-11-16  created <christopher.scherb@unibas.ch>
+ */
+
+//----------------------------------------------------------------------------
+
+CCNL has a build-in system for verification and signatures. 
+This system is based on OpenSSL and runs in a seperate userspace tool.
+The relay communicates with a unix socket with the Crypto-Server.
+The entire communication between the relay and the Crypto-Server runs
+asynchronously, so that the relay can handle other packets while waiting on
+the reply msg of the Crypto server.
+
+//----------------------------------------------------------------------------
+
+You can imagine the communication between the relay and the Crypto-Server as following:
+(simplified)
+
+
+	ccnl-relay					crypto-server
+		|
+		|
+	"call sign"       send an sign interest
+		---------------------------------------> "compute the signature"
+		|
+	"handle other packets"					|
+		|	 reply msg contains a command		|
+		|	<--------------------------------- "send a reply msg"		
+	"receive the reply msg"
+		|
+	"execute the command
+ 	 in the reply msg"
+		|
+		
+
+The procedure is the same for verification.
+
+//----------------------------------------------------------------------------
+
+When the relay call sign or verify and returns from the current operation.
+It specify a function that should be called when the reply msg is received.
+This function will continue the pending operation.
+To handle multiple signature/verification operation at the same time, the 
+user can specify a sequence number when calling the sign/debug operation.
+
+//----------------------------------------------------------------------------
+
+Format of the sign request is the following:
+
+	<interest>
+		<name>
+			<component>ccnx</component>
+			<component>crypto</component>
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<component>
+				<contentobj>
+					<type>sign</type>
+					<content> 
+						<sequnumber>"sequence-number"</sequnumber>
+						<contentdigest> "content to sign" </contentdigest>
+					</content>
+				</contentobj>		
+			</component>
+		</name>
+	</interest>
+
+The sign reply msg is the following:
+
+	<contentobj>
+		<name>
+			<component>ccnx</component>
+			<component>crypto</component>
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<component>
+				<contentobj>
+					<type>sign</type>
+					<content> 
+						<sequnumber>"sequence-number"</sequnumber>
+						<siglen>"size of the signature"</siglen>
+						<signature>"the signature"</signature>
+						<contentdigest> "content to sign" </contentdigest>
+					</content>
+				</contentobj>		
+			</component>
+		</name>
+	</contentobj>
+
+//----------------------------------------------------------------------------
+
+Format of the verify request is the following:
+
+	<interest>
+		<name>
+			<component>ccnx</component>
+			<component>crypto</component>
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<component>
+				<contentobj>
+					<type>verify</type>
+					<content> 
+						<sequnumber>"sequence-number"</sequnumber>
+						<signature>"the signature"</signature>
+						<contentdigest> "content to verify" </contentdigest>
+					</content>
+				</contentobj>		
+			</component>
+		</name>
+	</interest>
+
+The verify reply msg is the following:
+
+	<contentobj>
+		<name>
+			<component>ccnx</component>
+			<component>crypto</component>
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<component>
+				<contentobj>
+					<type>sign</type>
+					<content> 
+						<sequnumber>"sequence-number"</sequnumber>
+						<verified>"1 if verified, else 0"</verified>
+						<contentdigest> "content to verify" </contentdigest>
+					</content>
+				</contentobj>		
+			</component>
+		</name>
+	</contentobj>
+
+//----------------------------------------------------------------------------
+
+The crypto functionality for the ccnl-mgmt system is already implemented.
+
+If one wants to add another operation which uses the verify or sign operation,
+he can just call one of the functions:
+
+int ccnl_crypto_sign(struct ccnl_relay_s *ccnl, char *content, int content_len, char *callback, int seqnum)
+int ccnl_crypto_verify(struct ccnl_relay_s *ccnl, char *content, int content_len, char *sig, int sig_len, char* callback, int sequnum)
+
+After the function call the system should return from the current operation.
+
+Next step is to create a callback function in the file "ccnl-ext-crypto.c" which continues the the pending operation.
+To allow the system to call the new callback function one has to extend the "ccnl_crypto" function:
+
+	if(!strcmp(callback, "ccnl_mgmt_crypto")) 
+        	ccnl_mgmt_crypto(ccnl, type, buf, buflen);
+	/**
+	* Add here further callback functions
+	* else if(!strcmp(callback, "")){
+	*   
+	*}
+
+One has to compare the variable "callback" with the name of the callback
+function specified in the "sign" or "verify" call and call the right function
+to continue the pending operation.
+
+
+
+
+
+

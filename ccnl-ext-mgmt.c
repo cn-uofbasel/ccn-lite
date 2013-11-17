@@ -127,11 +127,11 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 }
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (char **) ccnl_malloc(sizeof(char*)*2);
-                prefix_a->comp[0] = "debug";
+                prefix_a->comp[0] = "mgmt";
                 sprintf(ht, "seqnum-%d", it);
                 prefix_a->comp[1] = ht;
                 *prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
-                prefix_a->complen[0] = strlen("debug");
+                prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen(ht);
                 c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
                                       content, contlen);
