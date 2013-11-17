@@ -26,7 +26,7 @@ CCNL has a build-in system for verification and signatures.
 This system is based on OpenSSL and runs in a seperate userspace tool.
 The relay communicates with a unix socket with the Crypto-Server.
 The entire communication between the relay and the Crypto-Server runs
-asynchronously, so that the relay can handle other packets while waiting on
+asynchronously, so that the relay can handle other packets while waiting for
 the reply msg of the Crypto server.
 
 //----------------------------------------------------------------------------
@@ -51,19 +51,19 @@ You can imagine the communication between the relay and the Crypto-Server as fol
 		|
 		
 
-The procedure is the same for verification.
+The procedure is the same for the verification.
 
 //----------------------------------------------------------------------------
 
-When the relay call sign or verify and returns from the current operation.
-It specify a function that should be called when the reply msg is received.
+After the relay calls sign or verify it returns from the current operation.
+It specifies a function that should be called when the reply msg is received.
 This function will continue the pending operation.
 To handle multiple signature/verification operation at the same time, the 
 user can specify a sequence number when calling the sign/debug operation.
 
 //----------------------------------------------------------------------------
 
-Format of the sign request is the following:
+The format of the sign request is the following:
 
 	<interest>
 		<name>
@@ -157,7 +157,7 @@ int ccnl_crypto_verify(struct ccnl_relay_s *ccnl, char *content, int content_len
 
 After the function call the system should return from the current operation.
 
-Next step is to create a callback function in the file "ccnl-ext-crypto.c" which continues the the pending operation.
+Next step is to create a callback function in the file "ccnl-ext-crypto.c" which continues the pending operation.
 To allow the system to call the new callback function one has to extend the "ccnl_crypto" function:
 
 	if(!strcmp(callback, "ccnl_mgmt_crypto")) 

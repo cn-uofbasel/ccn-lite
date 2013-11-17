@@ -23,7 +23,7 @@
 //----------------------------------------------------------------------------
 
 A mgmt-command is send as interest to the relay.
-If a interest has the prefix "/ccnx//<command>" the relay recognize it
+If a interest has the prefix "/ccnx//<command>" the relay recognizes it
 as a mgmt command.
 
 
@@ -44,7 +44,7 @@ All CCN-Lite interests have a similar structure:
 </interest>
 
 where "COMMAND" is the mgmt command and 
-"COMMAND PARAMETER" contains the parameter for the command (delivered in ccn-style formate).
+"COMMAND PARAMETER" contains the parameters for the command (delivered in ccn-style formate).
 The signature field is optional (only required if content is ship via udp). 
 The signature is computed over all 4 components.
 
@@ -103,7 +103,7 @@ The keep the mgmt system consistent with the CCNx system the first segment of re
 msg is send immediately as answer to the mgmt interest.
 
 In CCNx a user must interest in each segment. So for the mgmt system.
-If the first reply do not contain the "last segment" tag, the user has to
+If the first reply does not contain the "last segment" tag, the user has to
 send another interest to get the next segment. To serve the following interest 
 the relay puts the other segments into the cache. 
 The prefixes of the segments are: /mgmt/seqnum-1, /mgmt/seqnum-2....
