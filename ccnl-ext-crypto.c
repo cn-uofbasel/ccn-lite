@@ -269,20 +269,6 @@ ccnl_crypto_extract_msg(unsigned char **buf, int *buflen, char **msg){
     return 0;
 }
 
-static int
-ccnl_crypto_get_signature(unsigned char **buf, int *buflen, char *sig, int sig_len)
-{
-    int num = 0;
-    while(sig_len > 0){
-        sig[num] = **buf;
-        ++num;
-        --sig_len;
-        ++(*buf);
-        --(*buflen);
-    }
-    return 1;
-}
-
 static int 
 ccnl_crypto_extract_sign_reply(unsigned char **buf, int *buflen, char *sig, int *sig_len, int *seqnum)
 {

@@ -54,16 +54,15 @@ If the mgmt command is executed a reply msg will be sent as answer to the intere
 This answer is ship as contentobject:
 
 <contentobj>
+	[<signature>...</signature>]
 	<name>
 		<component>ccnx</component>
 		<component></component>
 		<component>"COMMAND"</component>
-		<component>
-			<contentobj>
-				"EXECUTION DETAILS"
-			</contentobj>		
-		</component>
-	</name>
+	/name>
+	<content>
+		"EXECUTION DETAILS"
+	</content>		
 </contentobj>
 
 where "COMMAND" is the mgmt commant and 
@@ -140,7 +139,7 @@ is received.
 				
 			...					...
 
-		Continue until "last segment is received.
+			Continue until "last segment is received.
 
 
 //----------------------------------------------------------------------------
