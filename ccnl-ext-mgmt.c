@@ -198,23 +198,17 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     int len = 0, len2 = 0, len3 = 0;
     struct ccnl_buf_s *retbuf;
 
+    len = mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG); 
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type);
-
+    out1[len++] = 0;
+    
     // prepare FWDENTRY
     len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
 
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(out2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-
-    len2 += mkBlob(out2+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out1+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
-
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                  (char*) out2, len2);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out1);
     return;
@@ -475,7 +469,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *out;
     unsigned char *contentobj;
     unsigned char *stmt;
-    int len = 0, len2, len3;
+    int len = 0, len2 = 0, len3 = 0;
 
     //Alloc memory storage for face answer
     num_faces = get_num_faces(ccnl);
@@ -626,9 +620,11 @@ Bail:
     contentobj = ccnl_malloc(contentobject_length);
     stmt = ccnl_malloc(stmt_length);
 
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    out[len++] = 0;
 
     // prepare debug statement
     len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
@@ -660,15 +656,8 @@ Bail:
     
     stmt[len3++] = 0; //end of debug reply
    
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
-    contentobj[len2++] = 0; // end-of-contentobj
-
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj, len2);    
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out);
     
@@ -862,15 +851,12 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/
-    if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
 
+    len = mkHeader(out_buf, CCN_DTAG_NAME, CCN_TT_DTAG);
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -899,21 +885,9 @@ Bail:
     
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
 
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj_buf, len2);
-
-    if(ccnl_is_local_addr(&from->peer)){
-        out_buf[len++] = 0; // end-of-name
-        out_buf[len++] = 0; // end-of-interest
-    }
-    
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
 
     
@@ -946,10 +920,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_face_s *f;
     //variables for answer
     struct ccnl_buf_s *retbuf;
-//    unsigned char out[2000];
     int len = 0, len2, len3;
-//    unsigned char contentobj[2000];
-//    unsigned char faceinst[2000];
 
     DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
 	     (void*) from, from->ifndx);
@@ -1017,14 +988,11 @@ Error:
 Bail:
     ccnl_free(action);
 
-    if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
-
+    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
+    out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -1034,20 +1002,8 @@ Bail:
     len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu);
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
-
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj_buf, len2);
-
-    if(ccnl_is_local_addr(&from->peer)){
-        out_buf[len++] = 0; // end-of-name
-        out_buf[len++] = 0; // end-of-interest
-    }
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
 
@@ -1124,15 +1080,12 @@ Bail:
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "destroyface", cp);
         return -1;
     }
-    if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
-    
-
+   
+    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
+    out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
     len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -1140,20 +1093,8 @@ Bail:
     len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
-
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj_buf, len2);
-    
-    if(ccnl_is_local_addr(&from->peer)){
-        out_buf[len++] = 0; // end-of-name
-        out_buf[len++] = 0; // end-o
-    }
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
 
@@ -1338,14 +1279,12 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 // #endif // USE_UDP
 
 Bail:
-    if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
-    
+
+    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    out_buf[len++] = 0; // end-of-name
     
     // prepare DEVINSTANCE
     len3 = mkHeader(faceinst_buf, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
@@ -1374,24 +1313,12 @@ Bail:
             len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
         faceinst_buf[len3++] = 0; // end-of-faceinst
     }
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-                   (char*) faceinst_buf, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
 
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-                    (char*) contentobj_buf, len2);
-    
-    if(ccnl_is_local_addr(&from->peer)){
-        out_buf[len++] = 0; // end-of-name
-        out_buf[len++] = 0; // end-of-interest
-    }
+    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
     
-
     ccnl_free(devname);
     ccnl_free(port);
     ccnl_free(frag);
@@ -1518,14 +1445,11 @@ Bail:
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "prefixreg", cp);
         return -1;
     }
-    if(ccnl_is_local_addr(&from->peer)){
-        len = mkHeader(out_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-        len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    }
-
+    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action);
+    out_buf[len++] = 0; // end-of-name
 
     // prepare FWDENTRY
     len3 = mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
@@ -1535,21 +1459,9 @@ Bail:
     len3 += mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
-    // prepare CONTENTOBJ with CONTENT
-    len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
-    contentobj_buf[len2++] = 0; // end-of-contentobj
 
-    // add CONTENTOBJ as the final name component
-    len += mkBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj_buf, len2);
-    
-    if(ccnl_is_local_addr(&from->peer)){
-        out_buf[len++] = 0; // end-of-name
-        out_buf[len++] = 0; // end-of-interest
-    }
-    
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
     
     /*END ANWER*/  
@@ -1790,7 +1702,6 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     else {
 	DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, "unknown mgmt command");
-	//ccnl_mgmt_return_msg(ccnl, orig, from, "unknown mgmt command");
 	return -1;
     }
     return 0;
@@ -1821,7 +1732,6 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
                 "refused: origin of mgmt cmd is not local"); 
     return -1;
-    
 	
     MGMT:
     ccnl_mgmt_handle(ccnl, orig, prefix, from, cmd, 1);

@@ -957,8 +957,7 @@ main(int argc, char *argv[])
         }
         recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
         recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
-        recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_NAME, CCN_TT_DTAG);
-        if(relay_public_key)
+        if(relay_public_key && use_udp)
         {
             char sigoutput[200];
             
@@ -972,8 +971,6 @@ main(int argc, char *argv[])
         }
         memcpy(recvbuffer2+recvbufferlen2, recvbuffer, recvbufferlen);
         recvbufferlen2+=recvbufferlen;
-
-        recvbuffer2[recvbufferlen2++] = 0; //end of name
         recvbuffer2[recvbufferlen2++] = 0; //end of content
                 
 	write(1, recvbuffer2, recvbufferlen2);
