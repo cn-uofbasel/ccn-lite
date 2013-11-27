@@ -372,12 +372,6 @@ handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
     if(dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<NAME>\n");
     
-    if(num == CCN_DTAG_SIGNATURE)
-    {
-        handle_ccn_signature(buf, len, offset+4, stream);
-        if(dehead(buf, len, &num, &typ)) return -1;        
-    }
-    
     for(i = 0; i < 3; ++i)
     {
         if(num != CCN_DTAG_COMPONENT) return -1;
@@ -458,7 +452,6 @@ handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream){
                 handle_ccn_content(buf, len, offset+4, stream);
                 break;
             default:
-                //printf("%i,%i\n", num, typ);
                 goto Bail;
                 break;
         }
