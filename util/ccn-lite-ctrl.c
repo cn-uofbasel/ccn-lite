@@ -736,7 +736,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
     }
     siglen = siglen-((*buflen)+4);
     char *buf2 = *buf;
-    int buflen2 = *buflen - 2;
+    int buflen2 = *buflen - 1;
     if(relay_public_key)
     {
         verified = verify(relay_public_key, buf2, buflen2, sig, siglen);
@@ -762,19 +762,18 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *
     if(dehead(&buf, &len, &num, &typ)) return 0; 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return 0;
     
-    if(dehead(&buf, &len, &num, &typ)) return 0;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) return 0;
-    
     if(dehead(&buf, &len, &num, &typ)) return 0; 
-    
     if(num == CCN_DTAG_SIGNATURE)
     {
         if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) return 0;
         *verified = handle_ccn_signature(&buf,&len, relay_public_key);
         if(dehead(&buf, &len, &num, &typ)) return 0;
     }
-        
+   
+    if (typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAG) return 0;
+    
     //check if there is a marker for the last segment
+    if(dehead(&buf, &len, &num, &typ)) return 0;
     if(num == CCN_DTAG_ANY){
         char buf2[5];
         if(dehead(&buf, &len, &num, &typ)) return 0; 
@@ -789,7 +788,6 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *
     }
     
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTDIGEST) return 0;
-    
     if(dehead(&buf, &len, &num, &typ)) return 0; 
     if(typ != CCN_TT_BLOB) return 0; 
     contentlen = num;
@@ -936,7 +934,6 @@ main(int argc, char *argv[])
             len = recv(sock, out, sizeof(out), 0);
         else
             len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-       
         hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
         if(!verified_i) verified = 0;
 
