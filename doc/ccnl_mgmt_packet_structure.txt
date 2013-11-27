@@ -79,16 +79,15 @@ To prevent transmission problems, the packet is split into segments if it is too
 All packet parts (segments) are ship in a transport packet:
 
 <contentobj>
-	<name>
-		[<signature>...</signature>]
+	[<signature>...</signature>]
+	<frag>
 		[<any>last<any>]
 		<contentdigest>
 			<blob>
 				"PART OF THE MGMT COMMAND REPLY"
 			</blob>			
 		</contentdigest>
-		
-	</name>
+	</frag>
 </contentobj>
 
 where the signature is computed over the contentdigest.

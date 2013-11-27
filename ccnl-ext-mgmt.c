@@ -79,10 +79,12 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         int packetsize = size/2;
         char *packet = (char*) ccnl_malloc(sizeof(char)*packetsize * 2);
         int len4 = 0;
+        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
         if(it == numPackets - 1) {
             len4 += mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
         len4 += mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
+        packet[len4++] = 0;
         
         if(it == 0) id = from->faceid;
     
@@ -97,10 +99,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
             int len5 = 0;
             len5 += mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-            len5 += mkHeader(buf2+len5, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
             memcpy(buf2+len5, packet, len4);
             len5 +=len4;
-            buf2[len5++] = 0; // end-of-name
             buf2[len5++] = 0; // end-of-interest
             
             
