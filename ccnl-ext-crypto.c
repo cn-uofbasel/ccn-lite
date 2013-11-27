@@ -114,16 +114,17 @@ Bail:
 #endif
 
 static int 
-ccnl_crypto_get_tag_content(unsigned char **buf, int *len, char *content, int contentlen){
+ccnl_crypto_get_tag_content(unsigned char **buf, int *len, int numletters, char *content, int contentlen){
     int num = 0;
+    int end = numletters < contentlen ? numletters : contentlen;
     memset(content,0,contentlen);
-    while((**buf) !=  0 && num < contentlen)
+    for(num = 0; num < end; ++num)
     {
         content[num] = **buf;
         ++(*buf); --(*len);
-        ++num;
     }
     ++(*buf); --(*len);
+    ++num;
     return num;
 }
 
@@ -168,10 +169,10 @@ ccnl_crypto_create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int 
 
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len += mkStrBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "crypto");
-    len += mkStrBlob(msg+len, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     
     // prepare FACEINSTANCE
-    
+    len3 += mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
+    len3 += mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, typ);
     memset(h, 0, 100);
     sprintf(h, "%d", txid);
     len3 += mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, h);
@@ -183,7 +184,6 @@ ccnl_crypto_create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int 
     
     // prepare CONTENTOBJ with CONTENT
     len2 = mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
-    len2 += mkStrBlob(contentobj_buf+len2, CCN_DTAG_TYPE, CCN_TT_DTAG, typ);
     len2 += mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) component_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
@@ -217,34 +217,33 @@ ccnl_crypto_extract_type_callback(unsigned char **buf, int *buflen, char *type,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
-    ccnl_crypto_get_tag_content(buf,buflen, comp1, sizeof(comp1));
+    ccnl_crypto_get_tag_content(buf, buflen, num, comp1, sizeof(comp1));
     
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
-    ccnl_crypto_get_tag_content(buf,buflen, comp1, sizeof(comp1));
+    ccnl_crypto_get_tag_content(buf, buflen, num, comp1, sizeof(comp1));
     
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if(dehead(buf, buflen, &num, &typ)) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail; 
+            
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_CALLBACK) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail; 
-    ccnl_crypto_get_tag_content(buf,buflen, callback, max_callback_length);
+    ccnl_crypto_get_tag_content(buf, buflen, num, callback, max_callback_length);
 
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_COMPONENT) goto Bail;
-    
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail; 
-    
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_TYPE) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_tag_content(buf,buflen, type, max_type_length);
+    ccnl_crypto_get_tag_content(buf, buflen, num, type, max_type_length);
+    
     return 1;
     Bail:
     return 0;
@@ -256,13 +255,13 @@ ccnl_crypto_extract_msg(unsigned char **buf, int *buflen, char **msg){
     int len = 0;
     int num, typ;    
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTDIGEST) goto Bail;
     
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
 
     *msg = *buf;
-    len = (*buflen) - 6;
+    len = num;
     
     return len;
     Bail:
@@ -291,37 +290,25 @@ ccnl_crypto_extract_sign_reply(unsigned char **buf, int *buflen, char *sig, int 
     char type[100];
     int num, typ;
     char seqnumber_s[100];
-    char siglen_s[100];
     int seqnubmer;
     int siglen = 0;
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
     
+   
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SEQNO) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_tag_content(buf, buflen, seqnumber_s, sizeof(seqnumber_s));
+    ccnl_crypto_get_tag_content(buf, buflen, num, seqnumber_s, sizeof(seqnumber_s));
     seqnubmer = ccnl_crypto_strtoint(seqnumber_s);
     *seqnum = seqnubmer;
-    
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNEDINFO) goto Bail;
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_tag_content(buf, buflen, siglen_s, sizeof(siglen_s));
-    siglen = ccnl_crypto_strtoint(siglen_s);
-    *sig_len = siglen;
     
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_signature(buf, buflen, sig, siglen);
-    ++(*buf);
-    --(*buflen);
+    siglen = num;
+    ccnl_crypto_get_tag_content(buf, buflen, siglen, sig, CCNL_MAX_PACKET_SIZE);
+    //ccnl_crypto_get_signature(buf, buflen, sig, siglen);
       
     *sig_len = siglen;
     ret = 1;
@@ -339,15 +326,10 @@ ccnl_crypto_extract_verify_reply(unsigned char **buf, int *buflen, int *seqnum)
     int seqnubmer, h;
     
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
-    
-    if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SEQNO) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_tag_content(buf, buflen, seqnumber_s, sizeof(seqnumber_s));
+    ccnl_crypto_get_tag_content(buf, buflen, num, seqnumber_s, sizeof(seqnumber_s));
     seqnubmer = ccnl_crypto_strtoint(seqnumber_s);
     *seqnum = seqnubmer;
     
@@ -355,10 +337,12 @@ ccnl_crypto_extract_verify_reply(unsigned char **buf, int *buflen, int *seqnum)
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_VERIFIED) goto Bail;
     if(dehead(buf, buflen, &num, &typ)) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    ccnl_crypto_get_tag_content(buf, buflen, verified_s, sizeof(verified_s));
+    ccnl_crypto_get_tag_content(buf, buflen, num, verified_s, sizeof(verified_s));
     h = ccnl_crypto_strtoint(verified_s);
-    if(h == 1) verified = 1;
-    
+    if(h == 1) {
+        verified = 1;
+        DEBUGMSG(99,"VERIFIED\n");
+    }
     Bail:
     return verified;
 }
@@ -508,6 +492,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       char *msg;
       int siglen, seqnum, len, len1;
       struct ccnl_buf_s *retbuf;
+      
       ccnl_crypto_extract_sign_reply(&buf, &buflen, sig, &siglen, &seqnum);
       
       len = ccnl_crypto_extract_msg(&buf, &buflen, &msg);
@@ -522,7 +507,6 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       
       out[len1++] = 0; // end-of-name
       out[len1++] = 0; // end-of-interest
-      DEBUGMSG(99, "LEN1: %d", len1);
       from = ccnl->faces;
       while(from){
           if(from->faceid == seqnum) 
@@ -580,7 +564,6 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int buflen = orig->datalen;
     char type[100];
     char callback[100];
-    
     
     if(!ccnl_crypto_extract_type_callback(&buf, &buflen, type, sizeof(type), callback, 
     sizeof(callback))) goto Bail;
