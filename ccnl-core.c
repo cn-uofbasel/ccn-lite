@@ -924,8 +924,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
         
 #ifdef CCNL_USE_MGMT_SIGNATUES
-        if (p->compcnt == 3 && !memcmp(p->comp[0], "ccnx", 4)
-                /*&& !memcmp(p->comp[1], "crypto", 6)*/) {
+        if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
+                && !memcmp(p->comp[1], "crypto", 6)) {
 	    rc = ccnl_crypto(relay, buf, p, from); goto Done;
 	}
 #endif /*CCNL_USE_MGMT_SIGNATUES*/

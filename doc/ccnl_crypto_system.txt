@@ -69,11 +69,11 @@ The format of the sign request is the following:
 		<name>
 			<component>ccnx</component>
 			<component>crypto</component>
-			<callback>"name of the function called when the relay receives the answer"</callback>
 			<component>
 				<contentobj>
-					<type>sign</type>
-					<content> 
+					<content>
+						<callback>"name of the function called when the relay receives the answer"</callback>
+						<type>sign</type>
 						<sequnumber>"sequence-number"</sequnumber>
 						<contentdigest> "content to sign" </contentdigest>
 					</content>
@@ -88,19 +88,14 @@ The sign reply msg is the following:
 		<name>
 			<component>ccnx</component>
 			<component>crypto</component>
-			<callback>"name of the function called when the relay receives the answer"</callback>
-			<component>
-				<contentobj>
-					<type>sign</type>
-					<content> 
-						<sequnumber>"sequence-number"</sequnumber>
-						<siglen>"size of the signature"</siglen>
-						<signature>"the signature"</signature>
-						<contentdigest> "content to sign" </contentdigest>
-					</content>
-				</contentobj>		
-			</component>
 		</name>
+		<content> 
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<type>sign</type>		
+			<sequnumber>"sequence-number"</sequnumber>
+			<signature>"the signature"</signature>
+			<contentdigest> "content to sign" </contentdigest>
+		</content>
 	</contentobj>
 
 //----------------------------------------------------------------------------
@@ -111,11 +106,11 @@ Format of the verify request is the following:
 		<name>
 			<component>ccnx</component>
 			<component>crypto</component>
-			<callback>"name of the function called when the relay receives the answer"</callback>
 			<component>
 				<contentobj>
-					<type>verify</type>
 					<content> 
+						<callback>"name of the function called when the relay receives the answer"</callback>
+						<type>verify</type>
 						<sequnumber>"sequence-number"</sequnumber>
 						<signature>"the signature"</signature>
 						<contentdigest> "content to verify" </contentdigest>
@@ -131,18 +126,14 @@ The verify reply msg is the following:
 		<name>
 			<component>ccnx</component>
 			<component>crypto</component>
-			<callback>"name of the function called when the relay receives the answer"</callback>
-			<component>
-				<contentobj>
-					<type>sign</type>
-					<content> 
-						<sequnumber>"sequence-number"</sequnumber>
-						<verified>"1 if verified, else 0"</verified>
-						<contentdigest> "content to verify" </contentdigest>
-					</content>
-				</contentobj>		
-			</component>
 		</name>
+		<content>
+			<callback>"name of the function called when the relay receives the answer"</callback>
+			<type>sign</type>	 
+			<sequnumber>"sequence-number"</sequnumber>
+			<verified>"1 if verified, else 0"</verified>
+			<contentdigest> "content to verify" </contentdigest>
+		</content>						
 	</contentobj>
 
 //----------------------------------------------------------------------------
