@@ -159,14 +159,8 @@ The mgmt commants are:
   debug         dump
   debug         halt
   debug         dump+halt
-  add           ccn-file
-  remove        ccn-path
+  addContentToCache             ccn-file
+  removeContentFromCache        ccn-path
 
 
 //eof
-
-
-
-
-
-
