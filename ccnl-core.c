@@ -21,6 +21,9 @@
  * 2013-10-12 add crypto support <christopher.scherb@unibas.ch>
  */
 
+#include "ccnl-core.h"
+
+
 #define CCNL_VERSION "2013-07-27"
 
 
@@ -925,7 +928,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         
 #ifdef CCNL_USE_MGMT_SIGNATUES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
-                && !memcmp(p->comp[1], "crypto", 6)) {
+                && !memcmp(p->comp[1], "crypto", 6) &&
+                from == relay->crypto_face) {
 	    rc = ccnl_crypto(relay, buf, p, from); goto Done;
 	}
 #endif /*CCNL_USE_MGMT_SIGNATUES*/
