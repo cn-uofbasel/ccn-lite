@@ -904,11 +904,11 @@ main(int argc, char *argv[])
     } else if (!strcmp(argv[1], "prefixunreg")) {
 	if (argc < 4) goto Usage;
 	len = mkPrefixregRequest(out, 0, argv[2], argv[3], private_key_path);
-    } else if (!strcmp(argv[1], "add")){
+    } else if (!strcmp(argv[1], "addContentToCache")){
         if(argc < 3) goto Usage;
         file_uri = argv[2];  
         len = mkAddToRelayCacheRequest(out, file_uri, private_key_path);
-    } else if(!strcmp(argv[1], "remove")){
+    } else if(!strcmp(argv[1], "removeContentFromCache")){
         if(argc < 3) goto Usage;
         ccn_path = argv[2];  
         len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
@@ -1002,8 +1002,8 @@ Usage:
 	   "  debug         dump\n"
 	   "  debug         halt\n"
 	   "  debug         dump+halt\n"
-           "  add           ccn-file\n"
-           "  remove        ccn-path\n"
+           "  addContentToCache             ccn-file\n"
+           "  removeContentFromCache        ccn-path\n"
 	   "where FRAG in none, seqd2012, ccnx2013\n",
 	progname);
 
