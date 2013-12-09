@@ -47,10 +47,12 @@ $CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA /ccnx/0.7.1/doc/technical/Name
 
 # shutdown both relays
 echo "# Config of node A:"
-# $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 echo "# Config of node B:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null
 
 echo
 echo Sender side:
