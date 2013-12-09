@@ -40,6 +40,8 @@ $CCNL_HOME/util/ccn-lite-peek -x $UXA /ccnx/0.7.1/doc/technical/NameEnumerationP
 
 # shutdown both relays
 rmmod ccn-lite-lnxkernel
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB halt > /dev/null &
 
 # eof

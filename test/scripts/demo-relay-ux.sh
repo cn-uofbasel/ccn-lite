@@ -36,9 +36,13 @@ $CCNL_HOME/util/ccn-lite-peek -x $UXA /ccnx/0.7.1/doc/technical/NameEnumerationP
 # shutdown both relays
 echo ""
 echo "# Config of relay A:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 echo ""
 echo "# Config of relay B:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump+halt | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
+killall ccn-lite-ctrl
 
 # eof
