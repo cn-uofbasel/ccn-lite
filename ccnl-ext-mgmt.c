@@ -88,7 +88,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
         if(it == 0) id = from->faceid;
     
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
         if(!ccnl_is_local_addr(&from->peer))
                 ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
         else
@@ -143,7 +143,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 //continue;
             }
             ccnl_free(buf2);
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
         }
 #endif
         ccnl_free(packet);
@@ -1617,7 +1617,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return 0;
 }
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
 int
 ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
@@ -1665,7 +1665,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 "refused: signature could not be validated"); 
     return -1;
 }
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
 
 int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
@@ -1723,9 +1723,9 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     if (ccnl_is_local_addr(&from->peer)) goto MGMT;
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     return ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from, cmd);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
                    
     DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
             ccnl_addr2ascii(&from->peer));

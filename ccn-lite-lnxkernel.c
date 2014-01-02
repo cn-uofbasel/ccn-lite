@@ -31,7 +31,7 @@
 // #define USE_SCHEDULER
 #define USE_MGMT
 #define USE_UNIXSOCKET
-#define CCNL_USE_MGMT_SIGNATUES
+#define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
@@ -559,7 +559,7 @@ ccnl_init(void)
     }
 #endif
 #ifdef USE_UNIXSOCKET
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(p){
         char h[100];
         // Socket to Cryptoserver
@@ -600,7 +600,7 @@ ccnl_init(void)
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
         theRelay.crypto_path = p;
     }
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
 #endif //USE_UNIXSOCKET  
     
     return 0;

@@ -21,7 +21,7 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
-#define CCNL_USE_MGMT_SIGNATUES
+#define USE_SIGNATURES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,9 +121,9 @@ mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -173,9 +173,9 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -224,9 +224,9 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -288,9 +288,9 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -338,9 +338,9 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -384,9 +384,9 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -432,9 +432,9 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; // end-of-name
@@ -489,9 +489,9 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char 
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     
@@ -548,9 +548,9 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
     
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; //name end
@@ -597,9 +597,9 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
 		  (char*) contentobj, len2);
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
     if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
-#endif /*CCNL_USE_MGMT_SIGNATUES*/ 
+#endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     

@@ -19,7 +19,7 @@
  * File history:
  * 2013-07-22 created <christopher.scherb@unibas.ch>
  */
-#define CCNL_USE_MGMT_SIGNATUES
+#define USE_SIGNATURES
 
 #include "../ccnl.h"
 #include "../ccnx.h"
