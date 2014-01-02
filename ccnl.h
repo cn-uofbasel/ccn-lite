@@ -125,7 +125,7 @@
 // face mgmt protocol:
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
 
-//#define CCNL_USE_MGMT_SIGNATUES
+//#define USE_SIGNATURES
 
 
 // eof

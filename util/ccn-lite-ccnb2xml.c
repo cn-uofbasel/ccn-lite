@@ -35,7 +35,7 @@
 
 #include "ccnl-common.c"
 
-#define CCNL_USE_MGMT_SIGNATUES
+#define USE_SIGNATURES
 #include "ccnl-crypto.c"
 
 
@@ -330,7 +330,7 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     return 0;
 }
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
 int 
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
@@ -352,7 +352,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
     
     return 0;
 }
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
 
 int 
 handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *stream)

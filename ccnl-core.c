@@ -926,13 +926,13 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
 	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
         
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
                 && !memcmp(p->comp[1], "crypto", 6) &&
                 from == relay->crypto_face) {
 	    rc = ccnl_crypto(relay, buf, p, from); goto Done;
 	}
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
         
         // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)

@@ -23,7 +23,7 @@
 // ----------------------------------------------------------------------
 
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
 // ----------------------------------------------------------------------
 #include <openssl/sha.h>
 #include <openssl/rsa.h>
@@ -82,7 +82,7 @@ mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
     return mkBlob(out, num, tt, str, strlen(str));
 }
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
 int sha(void* input, unsigned long length, unsigned char* md)
 {
     SHA256_CTX context;
@@ -176,4 +176,4 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     
     return len;
 }
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/

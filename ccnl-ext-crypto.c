@@ -22,7 +22,7 @@
 #ifndef CCNL_EXT_CRYPTO_C
 #define CCNL_EXT_CRYPTO_C
 
-#ifdef CCNL_USE_MGMT_SIGNATUES
+#ifdef USE_SIGNATURES
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 #include "ccnx.h"
@@ -567,5 +567,5 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return -1;
 }
 
-#endif /*CCNL_USE_MGMT_SIGNATUES*/
+#endif /*USE_SIGNATURES*/
 #endif /*CCNL_EXT_CRYPTO_C*/
