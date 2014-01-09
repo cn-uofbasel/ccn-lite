@@ -101,7 +101,7 @@ ccnl_crypto_get_tag_content(unsigned char **buf, int *len, char *content, int co
 
 int
 handle_verify(char **buf, int *buflen, int sock, char *callback){
-    int num, typ, verified; int i;
+    int num, typ, verified = 0; int i;
     int contentlen = 0;
     int siglen = 0;
     char *txid_s = 0, *sig = 0, *content = 0;
