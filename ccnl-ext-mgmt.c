@@ -108,7 +108,6 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_buf_s *retbuf;
                 retbuf = ccnl_buf_new((char *)buf2, len5);
                 ccnl_face_enqueue(ccnl, from, retbuf); 
-                ccnl_free(retbuf);
             }
             else
             {
@@ -1613,7 +1612,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     Bail:
     //send answer
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "removecacheobject", answer); 
-            
+    ccnl_free(components);        
     return 0;
 }
 
