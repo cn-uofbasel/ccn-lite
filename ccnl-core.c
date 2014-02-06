@@ -27,8 +27,7 @@
 #define CCNL_VERSION "2013-07-27"
 
 
-int
-ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
@@ -886,6 +885,13 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
 	    rc = ccnl_mgmt(relay, buf, p, from); goto Done;
 	}
+        //NFN PLUGIN CALL
+#ifdef CCNL_NFN
+        if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
+            ccnl_nfn();
+            goto Done;
+        }
+#endif /*CCNL_NFN*/
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
 	    for (c = relay->contents; c; c = c->next) {

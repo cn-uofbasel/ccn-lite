@@ -25,6 +25,7 @@ util/ccn-lite-deF
 util/ccn-lite-mkC
 util/ccn-lite-mkF
 util/ccn-lite-mkI
+util/ccn-lite-cryptoserver
 
 # unit tests
 test/unit/prefix-cmp

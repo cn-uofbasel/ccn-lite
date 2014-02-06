@@ -28,6 +28,7 @@
 
 
 #define CCNL_UNIX
+#define CCNL_NFN
 
 #define USE_CCNxDIGEST
 #define USE_DEBUG
@@ -60,6 +61,12 @@
 #include "ccnl-ext-sched.c"
 #include "ccnl-pdu.c"
 #include "ccnl-ext-frag.c"
+#ifdef USE_SIGNATURES
+#include "ccnl-ext-crypto.c"
+#endif
+#ifdef CCNL_NFN
+#include "ccnl-ext-nfn.c"
+#endif
 
 // ----------------------------------------------------------------------
 
