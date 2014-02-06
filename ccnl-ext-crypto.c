@@ -315,10 +315,16 @@ ccnl_crypto_sign(struct ccnl_relay_s *ccnl, char *content, int content_len,
     len = ccnl_crypto_create_ccnl_sign_verify_msg("sign", seqnum, content, content_len, 
             NULL, 0, msg, callback);
     
+    if(len > CCNL_MAX_PACKET_SIZE){
+        DEBUGMSG(99,"Ignored, packet size too large");
+        return 0;
+    }
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
     
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
+    
+
     
     if(msg) ccnl_free(msg);
     return ret;   
@@ -353,6 +359,10 @@ ccnl_crypto_verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
     len = ccnl_crypto_create_ccnl_sign_verify_msg("verify", sequnum, content, 
             content_len, sig, sig_len, msg, callback);
 
+    if(len > CCNL_MAX_PACKET_SIZE){
+        DEBUGMSG(99,"Ignored, packet size too large");
+        return 0;
+    }
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);

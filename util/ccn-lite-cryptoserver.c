@@ -155,6 +155,7 @@ handle_verify(char **buf, int *buflen, int sock, char *callback){
     
     memset(h,0,sizeof(h));
     sprintf(h,"%s-2", ux_path);
+    if(len > CCNL_MAX_PACKET_SIZE) return 0;
     ux_sendto(sock, h, msg, len);
     printf("\t complete, answered to: %s len: %d\n", ux_path, len);
     Bail:
@@ -224,6 +225,7 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     
     memset(h,0,sizeof(h));
     sprintf(h,"%s-2", ux_path);
+    if(len > CCNL_MAX_PACKET_SIZE) return 0;
     ux_sendto(sock, h, msg, len);
     printf("\t complete, answered to: %s len: %d\n", ux_path, len);
     Bail:
