@@ -96,7 +96,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
             //send back the first part,
             //store the other parts in cache, after checking the pit
-            char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
+            unsigned char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
             int len5 = 0;
             len5 += mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
             memcpy(buf2+len5, packet, len4);
@@ -125,11 +125,11 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                      //DEBUGMSG(6, " parsing error\n"); goto Done;
                 }
                 prefix_a->compcnt = 2;
-                prefix_a->comp = (char **) ccnl_malloc(sizeof(char*)*2);
+                prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
                 prefix_a->comp[0] = "mgmt";
                 sprintf(ht, "seqnum-%d", it);
                 prefix_a->comp[1] = ht;
-                *prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
+                prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen(ht);
                 c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
@@ -194,8 +194,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                     char *component_type, char* answer)
 {
-    int len = 0, len2 = 0, len3 = 0;
-    struct ccnl_buf_s *retbuf;
+    int len = 0, len3 = 0;
 
     len = mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG); 
     len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
@@ -468,7 +467,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *out;
     unsigned char *contentobj;
     unsigned char *stmt;
-    int len = 0, len2 = 0, len3 = 0;
+    int len = 0, len3 = 0;
 
     //Alloc memory storage for face answer
     num_faces = get_num_faces(ccnl);
@@ -737,9 +736,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int rc = -1;
     struct ccnl_face_s *f = NULL;
     //varibales for answer
-    struct ccnl_buf_s *retbuf;
-    //    unsigned char out[2000];
-    int len = 0, len2, len3;
+    int len = 0, len3;
     //    unsigned char contentobj[2000];
     //    unsigned char faceinst[2000];
     unsigned char faceidstr[100];
@@ -917,9 +914,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     char *cp = "setfrag cmd failed";
     int rc = -1;
     struct ccnl_face_s *f;
-    //variables for answer
-    struct ccnl_buf_s *retbuf;
-    int len = 0, len2, len3;
+    int len = 0, len3;
 
     DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
 	     (void*) from, from->ifndx);
@@ -1023,10 +1018,8 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *faceid;
     char *cp = "destroyface cmd failed";
     int rc = -1;
-    //variables for answer
-    struct ccnl_buf_s *retbuf;
-//    unsigned char out[2000];
-    int len = 0, len2, len3;
+   
+    int len = 0, len3;
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
 
@@ -1116,9 +1109,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int rc = -1;
     
     //variables for answer
-    struct ccnl_buf_s *retbuf;
-//    unsigned char out[2000];
-    int len = 0, len2, len3, portnum;
+    int len = 0, len3, portnum;
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
     struct ccnl_if_s *i;
@@ -1352,10 +1343,8 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *faceid;
     char *cp = "prefixreg cmd failed";
     int rc = -1;
-    //variables for answer
-    struct ccnl_buf_s *retbuf;
-//    unsigned char out[2000];
-    int len = 0, len2, len3;
+
+    int len = 0, len3;
 //    unsigned char contentobj[2000];
 //    unsigned char fwdentry[2000];
 
@@ -1622,7 +1611,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
 {
     
-    unsigned char *buf, component[100];
+    unsigned char *buf;
     unsigned char *data;
     int buflen, datalen, siglen = 0;
     int num, typ;

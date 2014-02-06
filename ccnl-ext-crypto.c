@@ -50,69 +50,6 @@ ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         char *cmd, int verified);
 
-#ifndef CCNL_LINUXKERNEL
-static int
-ccnl_crypto_ux_open(char *frompath)
-{
-    int sock, bufsize;
-    struct sockaddr_un name;
-
-    /* Create socket for sending */
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sock < 0) {
-	perror("opening datagram socket");
-	exit(1);
-    }
-    unlink(frompath);
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
-    if (bind(sock, (struct sockaddr *) &name,
-	     sizeof(struct sockaddr_un))) {
-	perror("binding name to datagram socket");
-	exit(1);
-    }
-//    printf("socket -->%s\n", NAME);
-
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
-    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-
-    return sock;
-}
-#else
-static struct socket*
-ccnl_crypto_ux_open(char *path, struct sockaddr_un *ux)
-{
-    struct socket *s;
-    int rc;
-
-    DEBUGMSG(99, "ccnl_open_unixpath %s\n", path);
-    //unlink(path);
-    rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
-    if (rc < 0) {
-	DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
-	return NULL;
-    }
-    DEBUGMSG(9, "UNIX socket is %p\n", (void*)s);
-   
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
-    rc = s->ops->bind(s, (struct sockaddr*) ux,
-		offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
-    if (rc < 0) {
-	DEBUGMSG(1, "Error %d binding UNIX socket to %s "
-		    "(remove first, check access rights)\n", rc, path);
-	goto Bail;
-    }
-
-    return s;
-
-Bail:
-    sock_release(s);
-    return NULL;
-}
-#endif
-
 static int 
 ccnl_crypto_get_tag_content(unsigned char **buf, int *len, int numletters, char *content, int contentlen){
     int num = 0;
@@ -250,7 +187,7 @@ ccnl_crypto_extract_type_callback(unsigned char **buf, int *buflen, char *type,
 }
 
 static int
-ccnl_crypto_extract_msg(unsigned char **buf, int *buflen, char **msg){
+ccnl_crypto_extract_msg(unsigned char **buf, int *buflen, unsigned char **msg){
     
     int len = 0;
     int num, typ;    
@@ -273,7 +210,6 @@ static int
 ccnl_crypto_extract_sign_reply(unsigned char **buf, int *buflen, char *sig, int *sig_len, int *seqnum)
 {
     int ret = 0;
-    char type[100];
     int num, typ;
     char seqnumber_s[100];
     int seqnubmer;
@@ -306,7 +242,6 @@ static int
 ccnl_crypto_extract_verify_reply(unsigned char **buf, int *buflen, int *seqnum)
 {
     int verified = 0;
-    char type[100];
     int num, typ;
     char seqnumber_s[100], verified_s[100];
     int seqnubmer, h;
@@ -378,14 +313,13 @@ ccnl_crypto_sign(struct ccnl_relay_s *ccnl, char *content, int content_len,
     msg = (char *) ccnl_malloc(sizeof(char)*(content_len)+3000);
     
     len = ccnl_crypto_create_ccnl_sign_verify_msg("sign", seqnum, content, content_len, 
-            NULL, NULL, msg, callback);
+            NULL, 0, msg, callback);
     
     //send ccn_msg to crytoserver
     retbuf = ccnl_buf_new((char *)msg, len);
     
     ccnl_face_enqueue(ccnl, ccnl->crypto_face, retbuf);
     
-    Bail:
     if(msg) ccnl_free(msg);
     return ret;   
 }
@@ -428,26 +362,25 @@ ccnl_crypto_verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
 }
 
 int
-ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
+ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int buflen)
 {
     
    struct ccnl_face_s *from;
    DEBUGMSG(99,"ccnl_crypto type: %s\n", type);  
   
    if(!strcmp(type, "verify")){
-      int seqnum;
+      int seqnum = 0;
       int verified = ccnl_crypto_extract_verify_reply(&buf, &buflen, &seqnum);
-      char *msg, *msg2; 
+      unsigned char *msg, *msg2; 
       char cmd[500];
       int len = ccnl_crypto_extract_msg(&buf, &buflen, &msg), len2 = 0;
       struct ccnl_face_s *from;
       //DEBUGMSG(99,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
       
-      int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+      int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
       struct ccnl_buf_s *buf1 = 0, *nonce=0, *ppkd=0;
-      struct ccnl_interest_s *i = 0;
-      struct ccnl_content_s *c = 0;
       struct ccnl_prefix_s *p = 0;
+      struct ccnl_buf_s *msg2_buf;
       unsigned char *content = 0;
       
       msg2 = (char *) ccnl_malloc(sizeof(char) * len + 200);
@@ -471,18 +404,20 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
             cmd[p->complen[2]] = '\0';
       } else
             strcpy(cmd, "cmd-is-too-long-to-display");
-      ccnl_mgmt_handle(ccnl, msg2, p, from, cmd, verified);
+      msg2_buf = ccnl_buf_new((char *)msg2, len2);
+      ccnl_mgmt_handle(ccnl, msg2_buf, p, from, cmd, verified);
+      ccnl_free(msg2_buf);
    }else if(!strcmp(type, "sign")){
       char *sig = (char *) ccnl_malloc(sizeof(char)* CCNL_MAX_PACKET_SIZE);
-      char *out;
-      char *msg;
-      int siglen, seqnum, len, len1;
+      unsigned char *out;
+      unsigned char *msg;
+      int siglen = 0, seqnum = 0, len, len1;
       struct ccnl_buf_s *retbuf;
       
       ccnl_crypto_extract_sign_reply(&buf, &buflen, sig, &siglen, &seqnum);
       
       len = ccnl_crypto_extract_msg(&buf, &buflen, &msg);
-      out = (char *) ccnl_malloc(sizeof(char)*len + sizeof(char)*siglen + 4096);
+      out = (char *) ccnl_malloc(sizeof(unsigned char)*len + sizeof(unsigned char)*siglen + 4096);
       
       len1 = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
       if(siglen > 0) len1 += ccnl_crypto_add_signature(out+len1, sig, siglen);
@@ -520,11 +455,11 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
           }
           //prefix_a = (struct ccnl_prefix_s *)ccnl_malloc(sizeof(struct ccnl_prefix_s));
           prefix_a->compcnt = 2;
-          prefix_a->comp = (char **) ccnl_malloc(sizeof(char*)*2);
+          prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
           prefix_a->comp[0] = "mgmt";
           sprintf(ht, "seqnum-%d", -seqnum);
           prefix_a->comp[1] = ht;
-          *prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
+          prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
           prefix_a->complen[0] = strlen("mgmt");
           prefix_a->complen[1] = strlen(ht);
           c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
@@ -537,6 +472,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, char *buf, int buflen)
       Done:
       ccnl_free(out);      
    }
+   return 0;
 }
 
 int
@@ -544,7 +480,7 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
       
-    char *buf = orig->data;
+    unsigned char *buf = orig->data;
     int buflen = orig->datalen;
     char type[100];
     char callback[100];
