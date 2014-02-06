@@ -20,9 +20,17 @@
  * 2014-02-06 <christopher.scherb@unibas.ch>created 
  */
 
+#include "ccnl-core.h"
 
 int 
-ccnl_nfn(){
-    DEBUGMSG(49, "ccnl_nfn()\n");
+ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p)\n", ccnl, orig, prefix, from);
     DEBUGMSG(99, "NFN-engine\n"); 
+    if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
+    {
+        DEBUGMSG(99, "  Thunk-request\n"); 
+    }
+    
 }

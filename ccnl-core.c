@@ -888,7 +888,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         //NFN PLUGIN CALL
 #ifdef CCNL_NFN
         if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-            ccnl_nfn();
+            ccnl_nfn(relay, buf, p, from);
             goto Done;
         }
 #endif /*CCNL_NFN*/
