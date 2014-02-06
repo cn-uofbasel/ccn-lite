@@ -211,6 +211,10 @@ ccnl_close_socket(struct socket *s)
 
 #include "ccnl-ext-mgmt.c"
 
+#ifdef USE_SIGNATURES
+#include "ccnl-ext-crypto.c"
+#endif
+
 #ifdef USE_SCHEDULER
 #  include "ccnl-ext-sched.c"
 
