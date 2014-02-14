@@ -22,6 +22,8 @@
 
 #include "ccnl-core.h"
 
+#include "krivine.c"
+
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
@@ -30,7 +32,20 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "NFN-engine\n"); 
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
-        DEBUGMSG(99, "  Thunk-request\n"); 
+        DEBUGMSG(99, "  Thunk-request, currently not implementd\n"); 
     }
+    char str[1000];
+    int i, len = 0;
+    for(i = 0; i < prefix->compcnt-1; ++i){
+        //DEBUGMSG(99, "%s\n", prefix->comp[i]);
+        len += sprintf(str + len, " %s", prefix->comp[i]);
+    }
+    DEBUGMSG(99, "%s\n", str);
+    //search for result here... if found return...
+    char *res = Krivine_reduction(str);
+    //stores result if computed
+    DEBUGMSG(2,"Computation finshed: %s", res);
+    printf("Computation finshed: %s", res);
     
+    return 0;
 }
