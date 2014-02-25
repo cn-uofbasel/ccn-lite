@@ -10,7 +10,8 @@ EXTMAKECLEAN=
 
 INST_PROGS= ccn-lite-relay \
             ccn-lite-minimalrelay \
-            ccn-lite-simu
+            ccn-lite-simu \
+	    krivine	 
 
 PROGS=	${INST_PROGS} \
 	ccn-lite-lnxkernel
@@ -63,6 +64,9 @@ ccn-lite-omnet: ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
 	mv omnet ccn-lite-omnet
 	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
 	mv ccn-lite-omnet omnet
+	
+krivine: krivine.c
+	${CC} -o $@ $< -DABSTRACT_MACHINE
 
 ccn-lite-lnxkernel:
 	make modules
