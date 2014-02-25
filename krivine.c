@@ -19,19 +19,22 @@
 
 #include <arpa/inet.h>
 
-#include "ccnl-ext-debug.c"
 
+
+#define LAMBDA '/'
 #define CORRECT_PARENTHESES
 
+#ifdef ABSTRACT_MACHINE
 // #define USE_SPOOKY
 
-/*#  define DEBUGMSG(LVL, ...) do {       \
+#  define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
-*/
-//int debug_level;
 
+int debug_level;
+
+#endif
 struct term_s {
     char *v;
     struct term_s *m, *n;
@@ -39,6 +42,7 @@ struct term_s {
     // is both m and n are not 0, we have an application  (M N)
     // if n is 0, we have a lambda term  /v M
 };
+
 
 struct hash_s {
     int id;
@@ -51,15 +55,15 @@ struct hash_s {
 #define term_is_lambda(t)  (!(t)->n)
 
 // ----------------------------------------------------------------------
-
-/*struct mhdr {
+#ifdef ABSTRACT_MACHINE
+struct mhdr {
     struct mhdr *next;
     char *fname;
     int lineno, size;
 //    char *tstamp;
-} *mem;*/
+} *mem;
 
-/*void*
+void*
 debug_malloc(int s, const char *fn, int lno)
 {
     struct mhdr *h = (struct mhdr *) malloc(s + sizeof(struct mhdr));
@@ -80,8 +84,8 @@ debug_calloc(int n, int s, const char *fn, int lno)
         memset(p, 0, n*s);
     return p;
 }
-*/
-/*int
+
+int
 debug_unlink(struct mhdr *hdr)
 {
     struct mhdr **pp = &mem;
@@ -95,9 +99,9 @@ debug_unlink(struct mhdr *hdr)
             break;
     }
     return 1;
-}*/
+}
 
-/*void
+void
 debug_free(void *p, const char *fn, int lno)
 {
     struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
@@ -114,20 +118,32 @@ debug_free(void *p, const char *fn, int lno)
         return;
     }
     free(h);
-}*/
+}
+
+#endif /*ABSTRACT MACHINE*/
 
 char*
 debug_strdup(char *s, char *fn, int lno)
 {
-    char *p = debug_malloc(strlen(s)+1, fn, lno, timestamp());
+    
+#ifdef ABSTRACT_MACHINE
+    char *p = debug_malloc(strlen(s)+1, fn, lno);
+#else 
+    char *p = debug_malloc(strlen(s)+1, fn, lno , timestamp());
+#endif
     if (!p)
 	return 0;
     strcpy(p, s);
     return p;
 }
 
+#ifdef ABSTRACT_MACHINE
+#define malloc(s)   debug_malloc(s, __FILE__, __LINE__)
+#define calloc(n,s) debug_calloc(n, s, __FILE__, __LINE__)
+#else
 #define malloc(s)   debug_malloc(s, __FILE__, __LINE__, timestamp())
 #define calloc(n,s) debug_calloc(n, s, __FILE__, __LINE__, timestamp())
+#endif
 #define free(p)     debug_free(p, __FILE__, __LINE__)
 #define strdup(s)   debug_strdup(s, __FILE__, __LINE__)
 
@@ -289,7 +305,7 @@ parseKRIVINE(int lev, char **cp)
 		return 0;
 	    } else
 		*cp += 1;
-	} else if (**cp == '/') {
+	} else if (**cp == LAMBDA) {
 	    *cp += 1;
 	    s = calloc(1, sizeof(*s));
 	    s->v = parse_var(cp);
@@ -372,7 +388,7 @@ ccn_push(char *name, char *content)
     cs[cs_cnt].content = strdup(content);
     cs_cnt++;
 }
-
+*/
 char*
 ccn_pull(char *name)
 {
@@ -386,7 +402,7 @@ ccn_pull(char *name)
 	}
     printf("?\n");
     return 0;
-}*/
+}
 
 void
 ccn_dump()
@@ -451,6 +467,21 @@ ccn_store(char *name, char *content)  // synchronous add content to the CS
     cs_cnt++;
 }
 
+void
+ccn_store_update(char *name, char *content)  // synchronous add content to the CS
+{
+    int i;
+//    printf("ccn_store(%s, %s)\n", name, content);
+    for (i = 0; i < cs_cnt; i++) {
+	if (!strcmp(name, cs[i].name)) {
+	    if (strcmp(content, cs[i].content)){
+		free(cs[i].content);
+    		cs[i].content = strdup(content);
+	    }
+	    return;
+	}
+    }
+}
 
 void
 ccn_request(char *name)   // send an interest
@@ -826,6 +857,22 @@ env_find(char *env, char *v)
     return 0;
 }
 
+int pop1int(char **tail, char *stackname)
+{
+
+    char *a1, *cp;
+    cp = ccn_name2content(stackname); // should be split operation
+    a1 = strchr(cp, '|');
+
+    if (!a1) {
+	printf("not enough args on stack\n");
+	return 0;
+    }
+
+    *tail = cp;
+    return atoi(a1+1);
+}
+
 int
 pop2int(char **tail, char *stackname, int *i1, int *i2)
 {
@@ -864,91 +911,6 @@ log_ZAM(char *en, char *sn, struct term_s *t,
 // ----------------------------------------------------------------------
 
 char*
-builtin_op(struct term_s *t, char *en, char *sn, char *termstr)
-{
-    char *cp, *head, *tail, *cfg;
-
-    cp = strchr(termstr, ';');
-    printf("*** BUILT_IN_OP is %s (';' at +%d), termstr=%s\n",
-	   t->v, (int)(cp - termstr), termstr);
-
-    if (!strcmp(t->v, "ACCESS")) {
-    }
-    if (!strcmp(t->v, "CLOSURE")) {
-    }
-    if (!strcmp(t->v, "GRAB")) {
-    }
-    if (!strcmp(t->v, "TAILAPPLY")) {
-    }
-    if (!strcmp(t->v, "RESOLVE(")) {
-	if (!cp)
-	    cp = termstr + strlen(termstr);
-    }
-
-
-    if (!strcmp(t->v, "Stop")) {
-	cp = ccn_name2content(sn);
-	str2stack(cp, &head, &tail);
-	cp = ccn_name2content(head);
-	str2closure(cp, &en, &termstr);
-	printf("*** Stopping with term left to be executed: %s\n", termstr);
-	return 0;
-    }
-
-    if (!strcmp(t->v, "Fox")) {
-	cp = ccn_name2content(sn);
-	str2stack(cp, &head, &tail);
-	cp = ccn_name2content(head);
-	str2closure(cp, &en, &termstr);
-	cp = config2str(&cfg, en, tail, 0, termstr);
-//	ccn_push(cfg, cp);
-	ccn_listen_for(cfg);
-	ccn_announce(cfg, cp);
-	return cp;
-    }
-/*
-//	struct term_s *a, *b;
-	int a, b;
-	if (en)
-	    printf("error: closure for 'a' not empty\n");
-	a = atoi(termstr);
-	cp = ccn_name2content(tail); // tail of the stack, load it
-	str2stack(cp, &head, &tail);
-	cp = ccn_name2content(head);
-	str2closure(cp, &en, &termstr);
-	if (en)
-	    printf("error: closure for 'b' not empty\n");
-	b = atoi(termstr);
-	printf("a=%d b=%d\n", a, b);
-    }
-*/
-    if (!strcmp(t->v, "Add")) {
-//	struct term_s *a, *b;
-	int a, b;
-	cp = ccn_name2content(sn);
-	str2stack(cp, &head, &tail);
-	cp = ccn_name2content(head);
-	str2closure(cp, &en, &termstr);
-	if (en)
-	    printf("error: closure for 'a' not empty\n");
-	a = atoi(termstr);
-	cp = ccn_name2content(tail); // tail of the stack, load it
-	str2stack(cp, &head, &tail);
-	cp = ccn_name2content(head);
-	str2closure(cp, &en, &termstr);
-	if (en)
-	    printf("error: closure for 'b' not empty\n");
-	b = atoi(termstr);
-	printf("a=%d b=%d\n", a, b);
-    }
-
-    printf("*** unknown %s\n", t->v);
-    return 0;
-}
-
-// ----------------------------------------------------------------------
-
-char*
 ZAM_term(char *cfg) // written as forth approach
 {
     char *en, *astack, *rstack = 0, *prog, *cp, *pending, *p;
@@ -980,6 +942,9 @@ ZAM_term(char *cfg) // written as forth approach
     
     if (!strncmp(prog, "ACCESS(", 7)) {
 	char *env, *cname, *sname;
+	//TODO: handle thunks here, change CFG and prog, remove ACCESS(thunk1) from terms
+	//and add the thunk result to the (result) stack
+	
 	if (pending)
 	    cp = pending-1;
 	else
@@ -992,19 +957,17 @@ ZAM_term(char *cfg) // written as forth approach
 
 	env = ccn_name2content(en); // should be split operation
 //	printf("  >fox(env:%s) --> %s\n", en, env);
+
 	cname = env_find(env, cp);
-        
 	if (!cname) {
 	    env = ccn_name2content(global_dict);
 	    cname = env_find(env, cp);
 	    if (!cname) {
 		printf("?? could not lookup var %s\n", cp);
 		// NFN: do not publish stop, could be due to lack of ENV response
-                //TODO content object retrival request for the result?
 		return 0;
 	    }
 	}
-
 	cp = argstack2str(&sname, cname, astack);
 	if (cp) {
 	    ccn_store(sname, cp);
@@ -1143,28 +1106,33 @@ normal:
     }
 
     if (!strncmp(prog, "RESOLVENAME(", 12)) {
+
 	if (pending)
 	    cp = pending-1;
 	else
 	    cp = prog + strlen(prog) - 1;
+
 	len = cp - p;
 	cp = malloc(len);
 	memcpy(cp, p+1, len-1);
 	cp[len-1] = '\0';
 	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
-        
-        //TODO search for current expression in network give interest to ccn, ask for a thunk??
-        //TODO check if term can be made available, if yes enter it as a var
-        //Static analysis?
-	t = parseKRIVINE(0, &cp); 
-        
+
+	//check if term can be made available, if yes enter it as a var
+	//try with searching in global env for an added term!
+        t = parseKRIVINE(0, &cp);
+
 //	if (term_is_var(t) && islower(t->v[0])) {
 	if (term_is_var(t)) {
 	    char *end = 0;
 //	    int theInt;
 
 	    cp = t->v;
-	    if (isdigit(*cp)) {
+
+	    //TODO if ccn name receive content, push to resultstack, similar to ints
+	    //TODO if ccn name is name of a function //look for pattern
+
+	    /*else*/if (isdigit(*cp)) {
 //		theInt = strtol(cp, &end, 0);
 		strtol(cp, &end, 0);
 		if (end && *end)
@@ -1210,9 +1178,9 @@ normal:
 	    printKRIVINE(dummybuf, t->m, 0);
 	    cp = strdup(dummybuf);
 	    if (pending)
-		sprintf(dummybuf, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
+		sprintf(dummybuf, "GRAB(%s);FOX(%s)%s", var, cp, pending);
 	    else
-		sprintf(dummybuf, "GRAB(%s);RESOLVENAME(%s)", var, cp);
+		sprintf(dummybuf, "GRAB(%s);FOX(%s)", var, cp);
 	    free(cp);
 	    cp = config2str(&cfg, en, astack, rstack, dummybuf);
 //	ccn_push(cfg, cp);
@@ -1234,9 +1202,9 @@ normal:
 		sprintf(dummybuf, "CLOSURENAME(%s);RESOLVENAME(%s)", p, cp);
 */
 	    if (pending)
-		sprintf(dummybuf, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
+		sprintf(dummybuf, "CLOSURE(FOX(%s));FOX(%s)%s", p, cp, pending);
 	    else
-		sprintf(dummybuf, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
+		sprintf(dummybuf, "CLOSURE(FOX(%s));FOX(%s)", p, cp);
 	    cp = config2str(&cfg, en, astack, rstack, dummybuf);
 //	ccn_push(cfg, cp);
 	    ccn_listen_for(cfg);
@@ -1385,6 +1353,7 @@ normal:
 	    cp = config2str(&cfg, en, astack, rstack, "");
 	ccn_listen_for(cfg);
 	ccn_announce(cfg, cp);
+//	printf("cp %s; <--> cfg %s\n", cp, cfg);
 //	DEBUGMSG(2, "---new config is \"%s\"\n", cp);
 	return cp;
     }
@@ -1423,6 +1392,122 @@ normal:
 	ccn_announce(cfg, cp);
 //	DEBUGMSG(2, "---new config is \"%s\"\n", cp);
 	return cp;
+    }
+
+    if(!strncmp(prog, "OP_CALL", 5)){
+
+	int num_params = pop1int(&cp, rstack);
+        int i, offset;
+	char name[5];
+//	printf("numparams: %d", num_params);
+	
+	cp = resstack2str(&rstack, cp, "");
+	
+	free(cp);
+	cp = malloc(1000);
+	sprintf(cp, "CLOSURE(OP_EXE);RESOLVENAME(/op(");///x(/y y x 2 op)));TAILAPPLY";
+        offset = strlen(cp);	
+	for(i = 0; i < num_params; ++i){
+	    sprintf(name, "x%d", i);
+	    offset += sprintf(cp+offset, "/%s(", name);
+	}
+	for(i =  num_params - 1; i >= 0; --i){
+	    sprintf(name, "x%d", i);
+	    offset += sprintf(cp+offset, " %s", name);
+	}
+        offset += sprintf(cp + offset, " %d", num_params);
+	offset += sprintf(cp+offset, " op");
+	for(i = 0; i < num_params+2; ++i){
+            offset += sprintf(cp + offset, ")");
+	}
+        offset += sprintf(cp + offset, ";TAILAPPLY");
+	cp = config2str(&cfg, en, astack, rstack, cp);
+	
+
+	ccn_listen_for(cp);
+	return cp;
+    }
+
+    if(!strncmp(prog, "OP_EXE(", 4)){
+    	
+	printf("cp: %s \n", cp);
+	int num_params = pop1int(&cp, rstack), i;
+	cp = config2str(&cfg, en, astack, rstack, cp);
+	char **params = malloc(sizeof(char * ) * num_params); 
+
+	//TODO read function name and  parameters, call function 
+	char *cp;
+	cp = ccn_name2content(rstack); // should be split operation
+        char *a1 = strchr(cp, '|');
+        a1 = strchr(a1+1, '|');
+	for(i = 0; i < num_params; ++i){
+		char *end = strchr(a1+1, '|');
+		if(!end) end = a1+strlen(a1);
+		int num = end - a1;
+		params[i] = malloc (num * sizeof(char));
+		memcpy(params[i], a1+1, num-1);
+		params[i][num-1] = '\0';	
+		printf("EXE PARAMS: %s\n", params[i]);
+		a1 = end;
+	}
+
+	//TODO function call
+	
+	char *res = "42";
+
+	char rst[1000];
+	int len = sprintf(rst, "RST|%s", res);
+	if(a1) sprintf(rst+len, "|%s", a1);
+
+	char *name =  mkHash(rst);
+	ccn_store(name, rst);
+
+	
+	if (pending)
+	    cp = config2str(&cfg, en, astack, name, pending+1);
+	else
+	    cp = config2str(&cfg, en, astack, name, "");
+	printf("CP: %s \n" , cp);
+
+	name = mkHash(cp);
+	ccn_store(name, cp);
+	ccn_listen_for(cp);
+	return cp;
+
+        printf("OP_EXE: NOT IMPLEMENTED\n");	
+	dump_hashes();
+	ccn_dump();
+	exit(-1);
+    }
+
+    if(!strncmp(prog, "FOX(", 4)){
+    	prog = prog + 4;
+	char *expression = malloc(strlen(prog));
+	int expressionlen = 0;
+	while(prog[expressionlen] && prog[expressionlen] != ';'){
+		++expressionlen;
+	}
+	strncpy(expression, prog, expressionlen-1);
+	char *isavailable = ccn_pull(expression);
+	if(isavailable){
+		printf("FOUND:\n\n\n");
+		printf("t %s\n", isavailable + 4);
+		sprintf(cp, "RESOLVENAME(%s)%s", isavailable + 4, prog+expressionlen);
+	        cp = config2str(&cfg, en, astack, rstack, cp);
+	}
+	else{
+	    printf("FOX cp: %s\n", cp);
+	    sprintf(cp, "RESOLVENAME(%s", prog);
+	    //printf("FOX cfg: %s\n", cfg);
+	    cp = config2str(&cfg, en, astack, rstack, cp);
+	    //printf("FOX PROG: %s\n",prog);
+
+	}
+	cfg = mkHash(cp);
+	ccn_listen_for(cfg);
+	ccn_announce(cfg, cp);
+	return cp;
+    
     }
 
     //Handle if computation is finished
@@ -1474,6 +1559,7 @@ char *Krivine_reduction(char *expression){
 	"add", "CLOSURE(OP_ADD);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
 	"sub", "CLOSURE(OP_SUB);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
 	"mult", "CLOSURE(OP_MULT);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
+	"call", "CLOSURE(OP_CALL);RESOLVENAME(/op(/x x op));TAILAPPLY",
 
 	"factprime", "RESOLVENAME(/f/n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))",
 	"fact", "RESOLVENAME(factprime factprime)",
@@ -1485,7 +1571,7 @@ char *Krivine_reduction(char *expression){
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
     if(strlen(expression) == 0) return 0;
     prog = malloc(len*sizeof(char));
-    sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
+    sprintf(prog, "CLOSURE(halt);FOX(%s)", expression);
     //prog = "CLOSURE(halt);RESOLVENAME((/x ( add ((/x add x 1) 3) x)) 7)";
 
     config = strdup(prog);
@@ -1498,22 +1584,54 @@ char *Krivine_reduction(char *expression){
 
     ccn_listen_for(cp);
     ccn_store(cp, config);
-    
+   
     while (cs_trigger && steps < MAX_STEPS) {
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, cs_trigger);
 	cp = cs_trigger;
 	cs_trigger = 0;
+	char *hash_name = cp;
+	printf("CP BEFORE: %s\n", cp);
 	cp = ZAM_term(cp);
+	printf("CP AFTER:  %s\n", cp);
+	ccn_store_update(hash_name, cp);
+//	printf("post: %s\n", cp);
     }
+    ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
     return cp;
 }
 
-/*int
+
+//--------------------------------------------------------------------
+//Catch segfault and print state
+#define CATCH_SEGFAULT
+#ifdef CATCH_SEGFAULT
+#include <signal.h>
+void segfault_handler(int signal, siginfo_t *si, void *arg)
+{
+    dump_hashes();
+    ccn_dump();
+    printf("Caught segfault at address %p\n", si->si_addr);
+    exit(-9);
+}
+#endif
+
+//-------
+
+#ifdef ABSTRACT_MACHINE
+
+int
 main(int argc, char **argv)
 {
     int opt;
     char *prog, *res;
+#ifdef CATCH_SEGFAULT
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = segfault_handler;
+    sa.sa_flags   = SA_SIGINFO;
+    sigaction(SIGSEGV, &sa, NULL);
+#endif
 
     while ((opt = getopt(argc, argv, "v:e:")) != -1) {
 	switch (opt) {
@@ -1532,12 +1650,16 @@ main(int argc, char **argv)
 
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
+    
+    ccn_store("((/x((add x) 1)) 3)", "RST|4");
     res = Krivine_reduction(prog);
 
-    printf("RESULT WAS FOUND: %s\n",res);
-    //dump_hashes();
-    //ccn_dump();
+    printf("\n res; %s\n\n", res);
 
+    dump_hashes();
+    ccn_dump();
     //printf("\nEnd of execution\n");
     return 0;
-}*/
+}
+
+#endif /*ABSTRACT_MACHINE*/
