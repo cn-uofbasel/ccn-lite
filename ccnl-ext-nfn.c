@@ -44,8 +44,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //search for result here... if found return...
     char *res = Krivine_reduction(str);
     //stores result if computed
-    DEBUGMSG(2,"Computation finshed: %s", res);
-    printf("Computation finshed: %s", res);
+    DEBUGMSG(2,"Computation finshed: %s\n", res);
     
     return 0;
 }

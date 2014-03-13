@@ -66,7 +66,7 @@ ccn-lite-omnet: ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
 	mv ccn-lite-omnet omnet
 	
 krivine: krivine.c
-	${CC} -o $@ $< -DABSTRACT_MACHINE
+	${CC} -o $@ ${MYCFLAGS} $< -DABSTRACT_MACHINE
 
 ccn-lite-lnxkernel:
 	make modules

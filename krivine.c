@@ -8,7 +8,7 @@
  * 2013-05-15 spooky hash fct added. Encoding still uses "hashXXX"
  *            instead of the hash bits (for readability during devl)
  * 2013-06-09 recursion works, tail-recursion too, now we have
- "            a simple read-eval loop
+ *            a simple read-eval loop
  */
 
 #include <ctype.h>
@@ -19,10 +19,8 @@
 
 #include <arpa/inet.h>
 
-
-
-#define LAMBDA '/'
 #define CORRECT_PARENTHESES
+#define LAMBDA '@'
 
 #ifdef ABSTRACT_MACHINE
 // #define USE_SPOOKY
@@ -33,8 +31,8 @@
     } while (0)
 
 int debug_level;
+#endif /*ABSTRACT_MACHINE*/
 
-#endif
 struct term_s {
     char *v;
     struct term_s *m, *n;
@@ -42,7 +40,6 @@ struct term_s {
     // is both m and n are not 0, we have an application  (M N)
     // if n is 0, we have a lambda term  /v M
 };
-
 
 struct hash_s {
     int id;
@@ -55,6 +52,7 @@ struct hash_s {
 #define term_is_lambda(t)  (!(t)->n)
 
 // ----------------------------------------------------------------------
+
 #ifdef ABSTRACT_MACHINE
 struct mhdr {
     struct mhdr *next;
@@ -119,13 +117,11 @@ debug_free(void *p, const char *fn, int lno)
     }
     free(h);
 }
-
 #endif /*ABSTRACT MACHINE*/
 
 char*
 debug_strdup(char *s, char *fn, int lno)
 {
-    
 #ifdef ABSTRACT_MACHINE
     char *p = debug_malloc(strlen(s)+1, fn, lno);
 #else 
@@ -173,6 +169,12 @@ char *global_dict;
 
 // ----------------------------------------------------------------------
 
+int iscontent(char *cp){
+	if(cp[0] == '/')
+		return 1;
+	return 0;
+}
+
 char*
 parse_var(char **cpp)
 {
@@ -180,7 +182,7 @@ parse_var(char **cpp)
     int len;
 
     p = *cpp;
-    while (*p && (isalnum(*p) || *p == '_' || *p == '='))
+    while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
 	p++;
     len = p - *cpp;
     p = malloc(len+1);
@@ -205,7 +207,7 @@ parsePURE(int lev, char **cp)
 	t->v = parse_var(cp);
 	return t;
     }
-    if (**cp == '/') {
+    if (**cp == LAMBDA) {
 	*cp += 1;
 	t->v = parse_var(cp);
 	t->m = parsePURE(lev+1, cp);
@@ -263,7 +265,7 @@ sprint_term(char *cfg, struct term_s *t, char last)
     if (!t->m)
 	return sprintf(cfg, isalnum(last) ? " %s" : "%s", t->v);
     else if (!t->n) {
-	len = sprintf(cfg, "/%s", t->v);
+	len = sprintf(cfg, "%c%s", LAMBDA, t->v);
 //	len = sprintf(cfg, "\\%c", t->v);
 	return len + sprint_term(cfg + len, t->m, cfg[len-1]);
     }
@@ -341,7 +343,7 @@ printKRIVINE(char *cfg, struct term_s *t, char last)
     int len = 0;
 
     if (t->v && t->m) { // Lambda (sequence)
-	len += sprintf(cfg + len, "(/%s", t->v);
+	len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
 	len += printKRIVINE(cfg + len, t->m, 'a');
 	len += sprintf(cfg + len, ")");
 	return len;
@@ -868,8 +870,12 @@ int pop1int(char **tail, char *stackname)
 	printf("not enough args on stack\n");
 	return 0;
     }
-
-    *tail = cp;
+    //FIXME: if stack ends --> segfault...
+    cp = strchr(a1+1, '|');
+    if(cp)
+        *tail = cp+1;
+    else 
+        *tail = 0;
     return atoi(a1+1);
 }
 
@@ -930,8 +936,10 @@ ZAM_term(char *cfg) // written as forth approach
 	if (rstack)
 	    cp = ccn_name2content(rstack); // resolve the hash
 	printf("nothing left to do, ");
-	if (cp)
+	if (cp){
 	    printf("result is '%s'\n", cp+4);
+	    return cp;
+	}
 	else
 	    printf("no result returned\n");
 	return 0;
@@ -959,6 +967,7 @@ ZAM_term(char *cfg) // written as forth approach
 //	printf("  >fox(env:%s) --> %s\n", en, env);
 
 	cname = env_find(env, cp);
+        //TODO check here for var in content store
 	if (!cname) {
 	    env = ccn_name2content(global_dict);
 	    cname = env_find(env, cp);
@@ -1138,6 +1147,12 @@ normal:
 		if (end && *end)
 		    end = 0;
 	    }
+	    else if(iscontent(cp)){
+	   	// is content... 
+		DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
+		end = cp;
+
+	    }
 
 	    if (end) {
 //		printf("found a number! %d, %s\n", theInt, rstack);
@@ -1178,9 +1193,9 @@ normal:
 	    printKRIVINE(dummybuf, t->m, 0);
 	    cp = strdup(dummybuf);
 	    if (pending)
-		sprintf(dummybuf, "GRAB(%s);FOX(%s)%s", var, cp, pending);
+		sprintf(dummybuf, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
 	    else
-		sprintf(dummybuf, "GRAB(%s);FOX(%s)", var, cp);
+		sprintf(dummybuf, "GRAB(%s);RESOLVENAME(%s)", var, cp);
 	    free(cp);
 	    cp = config2str(&cfg, en, astack, rstack, dummybuf);
 //	ccn_push(cfg, cp);
@@ -1202,9 +1217,9 @@ normal:
 		sprintf(dummybuf, "CLOSURENAME(%s);RESOLVENAME(%s)", p, cp);
 */
 	    if (pending)
-		sprintf(dummybuf, "CLOSURE(FOX(%s));FOX(%s)%s", p, cp, pending);
+		sprintf(dummybuf, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
 	    else
-		sprintf(dummybuf, "CLOSURE(FOX(%s));FOX(%s)", p, cp);
+		sprintf(dummybuf, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
 	    cp = config2str(&cfg, en, astack, rstack, dummybuf);
 //	ccn_push(cfg, cp);
 	    ccn_listen_for(cfg);
@@ -1226,7 +1241,7 @@ normal:
 	    ccn_store(rstack, cp);
 
 //	cp =  acc ? "true" : "false";
-	cp =  acc ? "/x/y x" : "/x/y y";
+	cp =  acc ? "@x@y x" : "@x@y y";
 	if (pending)
 	    sprintf(dummybuf, "RESOLVENAME(%s)%s", cp, pending);
 	else
@@ -1250,7 +1265,7 @@ normal:
 	    ccn_store(rstack, cp);
 
 //	cp =  acc ? "true" : "false";
-	cp =  acc ? "/x/y x" : "/x/y y";
+	cp =  acc ? "@x@y x" : "@x@y y";
 	if (pending)
 	    sprintf(dummybuf, "RESOLVENAME(%s)%s", cp, pending);
 	else
@@ -1395,21 +1410,20 @@ normal:
     }
 
     if(!strncmp(prog, "OP_CALL", 5)){
-
+        
+        
 	int num_params = pop1int(&cp, rstack);
         int i, offset;
 	char name[5];
 //	printf("numparams: %d", num_params);
-	
 	cp = resstack2str(&rstack, cp, "");
-	
 	free(cp);
 	cp = malloc(1000);
-	sprintf(cp, "CLOSURE(OP_EXE);RESOLVENAME(/op(");///x(/y y x 2 op)));TAILAPPLY";
+	sprintf(cp, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
         offset = strlen(cp);	
 	for(i = 0; i < num_params; ++i){
 	    sprintf(name, "x%d", i);
-	    offset += sprintf(cp+offset, "/%s(", name);
+	    offset += sprintf(cp+offset, "@%s(", name);
 	}
 	for(i =  num_params - 1; i >= 0; --i){
 	    sprintf(name, "x%d", i);
@@ -1428,7 +1442,7 @@ normal:
 	return cp;
     }
 
-    if(!strncmp(prog, "OP_EXE(", 4)){
+    if(!strncmp(prog, "OP_FOX(", 4)){
     	
 	printf("cp: %s \n", cp);
 	int num_params = pop1int(&cp, rstack), i;
@@ -1447,18 +1461,21 @@ normal:
 		params[i] = malloc (num * sizeof(char));
 		memcpy(params[i], a1+1, num-1);
 		params[i][num-1] = '\0';	
-		printf("EXE PARAMS: %s\n", params[i]);
+		printf("FUNCTION PARAMS: %s\n", params[i]);
 		a1 = end;
 	}
 
-	//TODO function call
+	//TODO function call --> make an interest to compute the result...
+        
 	
 	char *res = "42";
 
 	char rst[1000];
 	int len = sprintf(rst, "RST|%s", res);
-	if(a1) sprintf(rst+len, "|%s", a1);
-
+        printf("A1: %s\n", a1);
+	if(a1) sprintf(rst+len, "%s", a1);
+        printf("rst: %s\n", rst);
+        
 	char *name =  mkHash(rst);
 	ccn_store(name, rst);
 
@@ -1478,36 +1495,6 @@ normal:
 	dump_hashes();
 	ccn_dump();
 	exit(-1);
-    }
-
-    if(!strncmp(prog, "FOX(", 4)){
-    	prog = prog + 4;
-	char *expression = malloc(strlen(prog));
-	int expressionlen = 0;
-	while(prog[expressionlen] && prog[expressionlen] != ';'){
-		++expressionlen;
-	}
-	strncpy(expression, prog, expressionlen-1);
-	char *isavailable = ccn_pull(expression);
-	if(isavailable){
-		printf("FOUND:\n\n\n");
-		printf("t %s\n", isavailable + 4);
-		sprintf(cp, "RESOLVENAME(%s)%s", isavailable + 4, prog+expressionlen);
-	        cp = config2str(&cfg, en, astack, rstack, cp);
-	}
-	else{
-	    printf("FOX cp: %s\n", cp);
-	    sprintf(cp, "RESOLVENAME(%s", prog);
-	    //printf("FOX cfg: %s\n", cfg);
-	    cp = config2str(&cfg, en, astack, rstack, cp);
-	    //printf("FOX PROG: %s\n",prog);
-
-	}
-	cfg = mkHash(cp);
-	ccn_listen_for(cfg);
-	ccn_announce(cfg, cp);
-	return cp;
-    
     }
 
     //Handle if computation is finished
@@ -1545,33 +1532,33 @@ char *Krivine_reduction(char *expression){
 
     char *prog, *cp, *config;
     char *setup_env[] = {
-	"true", "RESOLVENAME(/x/y x)",
-	"false", "RESOLVENAME(/x/y y)",
+	"true", "RESOLVENAME(@x@y x)",
+	"false", "RESOLVENAME(@x@y y)",
 
-	"eq", "CLOSURE(OP_CMPEQ);RESOLVENAME(/op(/x(/y x y op)))",
-	"leq", "CLOSURE(OP_CMPLEQ);RESOLVENAME(/op/x/y x y op)",
-	"ifelse", "RESOLVENAME(/expr/yes/no(expr yes no))",
+	"eq", "CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))",
+	"leq", "CLOSURE(OP_CMPLEQ);RESOLVENAME(@op@x@y x y op)",
+	"ifelse", "RESOLVENAME(@expr@yes@no(expr yes no))",
 	"nop", "OP_NOP;TAILAPPLY",
 	"nil", "OP_NIL;TAILAPPLY",
 	"pop", "OP_POP;TAILAPPLY",
 	"=", "OP_PRINTSTACK;TAILAPPLY",
 
-	"add", "CLOSURE(OP_ADD);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
-	"sub", "CLOSURE(OP_SUB);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
-	"mult", "CLOSURE(OP_MULT);RESOLVENAME(/op(/x(/y x y op)));TAILAPPLY",
-	"call", "CLOSURE(OP_CALL);RESOLVENAME(/op(/x x op));TAILAPPLY",
+	"add", "CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY",
+	"sub", "CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY",
+	"mult", "CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY",
+	"call", "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY",
 
-	"factprime", "RESOLVENAME(/f/n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))",
+	"factprime", "RESOLVENAME(@f@n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))",
 	"fact", "RESOLVENAME(factprime factprime)",
 
-	"sha256", "RESOLVENAME(/c 42)",
+	"sha256", "RESOLVENAME(@c 42)",
 
 	0
     };
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
     if(strlen(expression) == 0) return 0;
     prog = malloc(len*sizeof(char));
-    sprintf(prog, "CLOSURE(halt);FOX(%s)", expression);
+    sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     //prog = "CLOSURE(halt);RESOLVENAME((/x ( add ((/x add x 1) 3) x)) 7)";
 
     config = strdup(prog);
@@ -1585,7 +1572,7 @@ char *Krivine_reduction(char *expression){
     ccn_listen_for(cp);
     ccn_store(cp, config);
    
-    while (cs_trigger && steps < MAX_STEPS) {
+    while ( cp && cs_trigger && steps < MAX_STEPS) {
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, cs_trigger);
 	cp = cs_trigger;
@@ -1594,8 +1581,6 @@ char *Krivine_reduction(char *expression){
 	printf("CP BEFORE: %s\n", cp);
 	cp = ZAM_term(cp);
 	printf("CP AFTER:  %s\n", cp);
-	ccn_store_update(hash_name, cp);
-//	printf("post: %s\n", cp);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
     return cp;
@@ -1612,14 +1597,14 @@ void segfault_handler(int signal, siginfo_t *si, void *arg)
     dump_hashes();
     ccn_dump();
     printf("Caught segfault at address %p\n", si->si_addr);
+    printf("SEGMENTATION FAULT\n");
     exit(-9);
 }
 #endif
 
-//-------
+//-----------------------------------------------------------------------
 
 #ifdef ABSTRACT_MACHINE
-
 int
 main(int argc, char **argv)
 {
@@ -1651,7 +1636,6 @@ main(int argc, char **argv)
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
     
-    ccn_store("((/x((add x) 1)) 3)", "RST|4");
     res = Krivine_reduction(prog);
 
     printf("\n res; %s\n\n", res);
@@ -1661,5 +1645,5 @@ main(int argc, char **argv)
     //printf("\nEnd of execution\n");
     return 0;
 }
-
 #endif /*ABSTRACT_MACHINE*/
+//eof
