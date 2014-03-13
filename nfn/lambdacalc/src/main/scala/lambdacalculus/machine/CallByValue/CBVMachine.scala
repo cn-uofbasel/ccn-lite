@@ -218,7 +218,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
 
         val argsStrings = args map { valueToNFNStringRep }
 
-        val r: Value = executeCall(s"call ${3 + 1} $name ${argsStrings.mkString(" ")}")
+        val r: Value = executeCall(s"call ${nArgs + 1} $name ${argsStrings.mkString(" ")}")
 
         nextStack = r :: s
         nextEnv = e
