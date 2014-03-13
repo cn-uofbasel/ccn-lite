@@ -47,7 +47,7 @@ object NFNMasterFactory {
   def local(context: ActorRefFactory) = {
     context.actorOf(localProps, name = "NFNMasterLocal")
   }
-  def localProps = Props(classOf[NFNMasterLocal])
+  def localProps: Props = Props(classOf[NFNMasterLocal])
 }
 
 
@@ -189,7 +189,6 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
   }
 
   override def sendAddToCache(content: Content): Unit = {
-//    cs.add(content)
     nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
   }
 

@@ -12,14 +12,14 @@ import nfn.service.impl.{WordCountService, AddService}
 
 
 class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
-with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuiteExecution {
+with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with SequentialNestedSuiteExecution {
 
   println("INIT")
-  val nfnMasterLocalRef = TestActorRef(NFNMasterFactory.localProps)
+  val nfnMasterLocalRef: TestActorRef[NFNMasterLocal] = TestActorRef(NFNMasterFactory.localProps)
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
   val nodeConfig = NodeConfig("localhost",10000, 10001, "testnode")
-  val nfnMasterNetworkRef = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
+  val nfnMasterNetworkRef: TestActorRef[NFNMasterNetwork] = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
   val name = Seq("test", "data")
@@ -40,19 +40,19 @@ with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuit
   def this() = this(ActorSystem("NFNMasterSpec"))
 
   override def beforeAll() {
-
-    def initMaster(ref: ActorRef) = {
+    def initCaches(ref: ActorRef) = {
       ref ! CCNAddToCache(content)
       ref ! CCNAddToCache(doc1Content)
       ref ! CCNAddToCache(doc2Content)
       NFNServiceLibrary.nfnPublish(ref)
     }
-    initMaster(nfnMasterLocalRef)
-    initMaster(nfnMasterNetworkRef)
+
+    initCaches(nfnMasterLocalRef)
+    initCaches(nfnMasterNetworkRef)
     Thread.sleep(100)
   }
 
-  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
+//  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
   testNFNMaster(nfnMasterNetworkRef, "NFNMasterNetwork", nfnNetwork = true)
 
   override def afterAll() {
@@ -79,31 +79,30 @@ with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuit
     }
 
     s"An $nfnMasterName actor" should {
-//      "send interest and receive corresponding data" in {
-//        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
-//        nfnMasterRef ! CCNSendReceive(interest)
-//        val actualContent = expectMsgType[Content]
-//        actualContent.data shouldBe data
-//      }
-//
-//      "add content to cache" in {
-//        val contentName = Seq("name", "addtocache")
-//        val contentData = "added to cache!".getBytes
-//        val cacheContent = Content(contentName, contentData)
-//        nfnMasterRef ! CCNAddToCache(cacheContent)
-//        // TODO maybe make this nicer?
-//        Thread.sleep(200)
-//        nfnMasterRef ! CCNSendReceive(Interest(contentName))
-//        val actualContent = expectMsgType[Content]
-//        actualContent.data shouldBe contentData
-//      }
-//      testComputeRequest("1 ADD 2", "3")
-//      testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
-//      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
-//      testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
+      "send interest and receive corresponding data" in {
+        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
+        nfnMasterRef ! CCNSendReceive(interest)
+        val actualContent = expectMsgType[Content]
+        actualContent.data shouldBe data
+      }
 
+      "add content to cache" in {
+        val contentName = Seq("name", "addtocache")
+        val contentData = "added to cache!".getBytes
+        val cacheContent = Content(contentName, contentData)
+        nfnMasterRef ! CCNAddToCache(cacheContent)
+        // TODO maybe make this nicer?
+        Thread.sleep(200)
+        nfnMasterRef ! CCNSendReceive(Interest(contentName))
+        val actualContent = expectMsgType[Content]
+        actualContent.data shouldBe contentData
+      }
+      testComputeRequest("1 ADD 2", "3")
+      testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
+      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
+      testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
-      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
+//      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
     }
   }
 }

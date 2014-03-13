@@ -92,9 +92,6 @@ object NFNCommunication extends Logging {
         )
       } catch {
         case e:SAXParseException => {
-
-          if(xmlString.hashCode == -1007970307) println("AddContentAck")
-          else println(s"Ooops")
           None
         }
       }
