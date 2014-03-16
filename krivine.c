@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+=======
+/*
+ * krivine.c
+ * a "Krivine lambda expression resolver" for CCN
+ *
+ * (C) 2013 <christian.tschudin@unibas.ch>
+ *
+ * 2013-05-10 created
+ * 2013-05-15 spooky hash fct added. Encoding still uses "hashXXX"
+ *            instead of the hash bits (for readability during devl)
+ * 2013-06-09 recursion works, tail-recursion too, now we have
+ *            a simple read-eval loop
+ * 2016-03-14 integration for nfn <christopher.scherb@unibas.ch>
+ */
+
+>>>>>>> 77d83cd... Add utility to create compute requests
 #include <ctype.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -7,6 +24,14 @@
 #include <arpa/inet.h>
 #include "krivine-common.c"
 
+<<<<<<< HEAD
+=======
+#ifndef ABSTRACT_MACHINE
+#include "krivine-common.c"
+#endif
+
+#define CORRECT_PARENTHESES
+>>>>>>> 77d83cd... Add utility to create compute requests
 #define LAMBDA '@'
 
 #define term_is_var(t)     (!(t)->m)
@@ -657,6 +682,7 @@ normal:
 	for(i = 0; i < num_params+2; ++i){
             offset += sprintf(dummybuf + offset, ")");
 	}
+<<<<<<< HEAD
         offset += sprintf(dummybuf + offset, ";TAILAPPLY");
 	return strdup(dummybuf);
     }
@@ -686,6 +712,83 @@ normal:
         
         tail:
         return pending+1;
+=======
+        offset += sprintf(cp + offset, ";TAILAPPLY");
+	cp = config2str(&cfg, en, astack, rstack, cp);
+	
+
+	ccn_listen_for(cp);
+	return cp;
+    }
+
+    if(!strncmp(prog, "OP_FOX(", 4)){
+    	
+	int num_params = pop1int(&cp, rstack), i;
+	cp = config2str(&cfg, en, astack, rstack, cp);
+	char **params = malloc(sizeof(char * ) * num_params); 
+
+	//TODO read function name and  parameters, call function 
+	char *cp;
+	cp = ccn_name2content(rstack); // should be split operation
+        char *a1 = strchr(cp, '|');
+        a1 = strchr(a1+1, '|');
+        int routable = -1;
+	for(i = 0; i < num_params; ++i){
+		char *end = strchr(a1+1, '|');
+		if(!end) end = a1+strlen(a1);
+		int num = end - a1;
+		params[i] = malloc (num * sizeof(char));
+		memcpy(params[i], a1+1, num-1);
+		params[i][num-1] = '\0';	
+		printf("FUNCTION PARAMS: %s\n", params[i]);
+                if(iscontent(params[i])){
+                    routable = i;
+                }
+		a1 = end;
+	}
+
+	//TODO function call --> make an interest to compute the result...
+        //test for routable parameter (routable > 0)....start with last parameter
+        //create an interest... with /<routable parameter>/rest with extracted parameter.
+	
+        //solange routable parameter: try to find a result
+        for(i = num_params - 1; i >= 0; --i){
+            if(iscontent(params[i])){
+                //mkInterest
+                //send interest and place it in FIB
+                //wait for reply
+                //goto result;
+            }
+        }
+        //compute //mk interest for all components and initialize the computation
+        
+        
+        printf("OP_FOX: NOT IMPLEMENTED: content: %d\n", routable);
+        //place result
+	char *res = "42";
+	char rst[1000];
+	int len = sprintf(rst, "RST|%s", res);
+	if(a1) sprintf(rst+len, "%s", a1);
+        
+	char *name =  mkHash(rst);
+	ccn_store(name, rst);
+
+	
+	if (pending)
+	    cp = config2str(&cfg, en, astack, name, pending+1);
+	else
+	    cp = config2str(&cfg, en, astack, name, "");
+	printf("CP: %s \n" , cp);
+
+	name = mkHash(cp);
+	ccn_store(name, cp);
+	ccn_listen_for(cp);
+	return cp;
+	
+	dump_hashes();
+	ccn_dump();
+	exit(-1);
+>>>>>>> 77d83cd... Add utility to create compute requests
     }
     
     if(!strncmp(prog, "halt", 4)){
