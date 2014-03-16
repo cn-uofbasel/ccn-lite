@@ -57,6 +57,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(99, "  Thunk-request, currently not implementd\n"); 
         //TODO: search for num of required thunks???
     }
+<<<<<<< HEAD
     else{
         original_prefix = prefix;
     }
@@ -73,6 +74,22 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
     
+=======
+    char str[CCNL_MAX_PACKET_SIZE];
+    int i, len = 0;
+    
+    //put packet together
+    sprintf(str, "%s", prefix->comp[prefix->compcnt-2]);
+    for(i = 0; i < prefix->compcnt-2; ++i){
+        len += sprintf(str + len, "/%s", prefix->comp[i]);
+    }
+     
+    
+    /*for(i = 0; i < prefix->compcnt-1; ++i){
+        //DEBUGMSG(99, "%s\n", prefix->comp[i]);
+        len += sprintf(str + len, " %s", prefix->comp[i]);
+    }*/
+>>>>>>> 77d83cd... Add utility to create compute requests
     DEBUGMSG(99, "%s\n", str);
     //search for result here... if found return...
     if(thunk_request){

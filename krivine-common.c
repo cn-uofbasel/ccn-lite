@@ -1,21 +1,30 @@
 /*
+<<<<<<< HEAD
  * krivine-common.c
  * Tools for the "Krivine lambda expression resolver" for CCN
+=======
+ * krivine.c
+ * a "Krivine lambda expression resolver" for CCN
+>>>>>>> 77d83cd... Add utility to create compute requests
  *
  * (C) 2014 <christian.tschudin@unibas.ch>
  *
  * 2014-03-14 created <christopher.scherb@unibas.ch>
  */
 
+<<<<<<< HEAD
 #ifndef KRIVINE_COMMON_C
 #define KRIVINE_COMMON_C
 
+=======
+>>>>>>> 77d83cd... Add utility to create compute requests
 #include "ccnl.h"
 #include "ccnx.h"
 #include "ccnl-core.h"
 
 #include "ccnl-pdu.c"
 
+<<<<<<< HEAD
 #define NFN_FACE -1;
 
 struct thunk_s{
@@ -30,6 +39,8 @@ int thunkid = 0;
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
 
+=======
+>>>>>>> 77d83cd... Add utility to create compute requests
 int
 hex2int(char c)
 {
@@ -62,7 +73,11 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 int
 splitComponents(char* namecomp, char **prefix)
 { 
+<<<<<<< HEAD
     int i = 0;
+=======
+    int i;
+>>>>>>> 77d83cd... Add utility to create compute requests
     unsigned char *cp;
     cp = strtok(namecomp, "/");
     
@@ -77,9 +92,13 @@ splitComponents(char* namecomp, char **prefix)
 int
 mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
 {
+<<<<<<< HEAD
 #ifndef USE_UTIL 
     DEBUGMSG(2, "mkInterestCompute()\n");
 #endif
+=======
+    
+>>>>>>> 77d83cd... Add utility to create compute requests
     int len = 0, k, i;
     unsigned char *cp;
     
@@ -98,12 +117,17 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 	namecomp++;
     }
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, computation, computationlen);
+<<<<<<< HEAD
     if(thunk) len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
+=======
+    if(thunk) mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
+>>>>>>> 77d83cd... Add utility to create compute requests
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "NFN");
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
     return len;  
+<<<<<<< HEAD
 }
 
 
@@ -480,3 +504,6 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, char *thunk){
 }
 #endif USE_UTIL
 #endif //KRIVINE_COMMON_C
+=======
+}
+>>>>>>> 77d83cd... Add utility to create compute requests
