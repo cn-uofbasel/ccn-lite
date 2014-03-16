@@ -12,6 +12,7 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkF \
 	ccn-lite-mkI \
 	ccn-lite-peek \
+	ccn-lite-peekcomputation \
 	ccn-lite-cryptoserver
 
 all: $(PROGS)
@@ -36,6 +37,9 @@ ccn-lite-mkC: Makefile ccn-lite-mkC.c ../ccnx.h ../ccnl.h
 
 ccn-lite-mkF: Makefile ccn-lite-mkF.c ../ccnx.h ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
+
+ccn-lite-peekcomputation: Makefile ccn-lite-peekcomputation.c ../ccnx.h ../ccnl.h ccnl-frag.h
+	$(CC) $(CFLAGS) ccn-lite-peekcomputation.c -o $@ 
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ../ccnx.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
