@@ -15,6 +15,7 @@ Module.symvers
 ccn-lite-minimalrelay
 ccn-lite-relay
 ccn-lite-simu
+krivine
 
 # binaries in subdirectories
 util/ccn-lite-ctrl
@@ -26,7 +27,7 @@ util/ccn-lite-mkC
 util/ccn-lite-mkF
 util/ccn-lite-mkI
 util/ccn-lite-cryptoserver
-
+util/ccn-lite-peekcomputation
 # unit tests
 test/unit/prefix-cmp
 

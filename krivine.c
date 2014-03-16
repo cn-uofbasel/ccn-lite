@@ -9,6 +9,7 @@
  *            instead of the hash bits (for readability during devl)
  * 2013-06-09 recursion works, tail-recursion too, now we have
  *            a simple read-eval loop
+ * 2016-03-14 integration for nfn <christopher.scherb@unibas.ch>
  */
 
 #include <ctype.h>
@@ -18,6 +19,10 @@
 #include <string.h>
 
 #include <arpa/inet.h>
+
+#ifndef ABSTRACT_MACHINE
+#include "krivine-common.c"
+#endif
 
 #define CORRECT_PARENTHESES
 #define LAMBDA '@'
@@ -1444,7 +1449,6 @@ normal:
 
     if(!strncmp(prog, "OP_FOX(", 4)){
     	
-	printf("cp: %s \n", cp);
 	int num_params = pop1int(&cp, rstack), i;
 	cp = config2str(&cfg, en, astack, rstack, cp);
 	char **params = malloc(sizeof(char * ) * num_params); 
@@ -1454,6 +1458,7 @@ normal:
 	cp = ccn_name2content(rstack); // should be split operation
         char *a1 = strchr(cp, '|');
         a1 = strchr(a1+1, '|');
+        int routable = -1;
 	for(i = 0; i < num_params; ++i){
 		char *end = strchr(a1+1, '|');
 		if(!end) end = a1+strlen(a1);
@@ -1462,19 +1467,34 @@ normal:
 		memcpy(params[i], a1+1, num-1);
 		params[i][num-1] = '\0';	
 		printf("FUNCTION PARAMS: %s\n", params[i]);
+                if(iscontent(params[i])){
+                    routable = i;
+                }
 		a1 = end;
 	}
 
 	//TODO function call --> make an interest to compute the result...
-        
+        //test for routable parameter (routable > 0)....start with last parameter
+        //create an interest... with /<routable parameter>/rest with extracted parameter.
 	
+        //solange routable parameter: try to find a result
+        for(i = num_params - 1; i >= 0; --i){
+            if(iscontent(params[i])){
+                //mkInterest
+                //send interest and place it in FIB
+                //wait for reply
+                //goto result;
+            }
+        }
+        //compute //mk interest for all components and initialize the computation
+        
+        
+        printf("OP_FOX: NOT IMPLEMENTED: content: %d\n", routable);
+        //place result
 	char *res = "42";
-
 	char rst[1000];
 	int len = sprintf(rst, "RST|%s", res);
-        printf("A1: %s\n", a1);
 	if(a1) sprintf(rst+len, "%s", a1);
-        printf("rst: %s\n", rst);
         
 	char *name =  mkHash(rst);
 	ccn_store(name, rst);
@@ -1490,8 +1510,7 @@ normal:
 	ccn_store(name, cp);
 	ccn_listen_for(cp);
 	return cp;
-
-        printf("OP_EXE: NOT IMPLEMENTED\n");	
+	
 	dump_hashes();
 	ccn_dump();
 	exit(-1);
