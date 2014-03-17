@@ -1,8 +1,8 @@
 /*
- * @f ccnl-pdu.c
- * @b CCN lite - create and manipulate CCN protocol data units
+ * @f pkt-ccnb.c
+ * @b CCN lite - create and manipulate CCNb protocol data units
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,7 @@
  * File history:
  * 2011-03-13 created (cft): orig name ccnl-parse-ccnb.c
  * 2013-04-04 modified (ms): #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
+ * 2014-03-17 renamed to prepare for a world with many wire formats
  */
 
 #ifndef CCNL_PDU

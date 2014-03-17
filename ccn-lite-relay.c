@@ -42,7 +42,7 @@
 
 #include "ccnl-includes.h"
 
-#include "ccnx.h"
+#include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -58,7 +58,7 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "ccnl-pdu.c"
+#include "pkt-ccnb.c"
 #include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------

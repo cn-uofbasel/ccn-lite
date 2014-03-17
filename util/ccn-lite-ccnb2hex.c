@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "../ccnx.h"
+#include "../pkt-ccnb.h"
 #include "../ccnl.h"
 
 // #include "ccnl-common.c"

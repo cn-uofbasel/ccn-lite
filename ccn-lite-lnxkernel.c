@@ -35,7 +35,7 @@
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
-#include "ccnx.h"
+#include "pkt-ccnb.h"
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
@@ -205,7 +205,7 @@ ccnl_close_socket(struct socket *s)
 #include "ccnl-core.c"
 
 #ifdef USE_FRAG
-#  include "ccnl-pdu.c"
+#  include "pkt-ccnb.c"
 #  include "ccnl-ext-frag.c"
 #endif
 

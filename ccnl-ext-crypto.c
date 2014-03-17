@@ -25,11 +25,11 @@
 #ifdef USE_SIGNATURES
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
-#include "ccnx.h"
+#include "pkt-ccnb.h"
+#include "pkt-ccnb.c"
 #include "ccnl-includes.h"
 #include "ccnl.h"
 #include "ccnl-ext-mgmt.c"
-#include "ccnl-pdu.c"
 
 char buf[64000];
 int plen;

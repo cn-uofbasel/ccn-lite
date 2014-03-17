@@ -34,7 +34,7 @@
 
 #include "ccnl-includes.h"
 
-#include "ccnx.h"
+#include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -51,7 +51,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "ccnl-pdu.c"
+#include "pkt-ccnb.c"
 #include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------

@@ -24,12 +24,12 @@
 
 #include "../ccnl-includes.h"
 
-#include "../ccnx.h"
+#include "../pkt-ccnb.h"
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
 #include "ccnl-common.c"
-#include "../ccnl-pdu.c"
+#include "../pkt-ccnb.c"
 
 // ----------------------------------------------------------------------
 /*
