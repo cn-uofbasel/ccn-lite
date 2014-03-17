@@ -225,6 +225,9 @@ object LambdaMacros {
 
         case ValDef(mods: Modifiers, name: TermName, tptTree:Tree, rhs:Tree) => {
           matchInfo("ValDef")
+
+//          Clos(name.toString, toLambda(rhs))
+
           Let(name.toString, toLambda(rhs), None)
         }
         case DefDef(mods: Modifiers, name: Name, tparams: List[TypeDef], vparamss: List[List[ValDef]], tptTree: Tree, rhs: Tree) => {
@@ -273,7 +276,7 @@ object LambdaMacros {
 
           lambdaExprs.reverse.reduce((expr, let) =>
             let match {
-              case Let(name, body, _) => Let(name, body, Some(expr))
+              case Let(name, body, _) => Application(Clos(name, expr), body)// Let(name, body, Some(expr))
               case _ => throw new Exception("When merging let expressions, one expression was not of type LET")
             })
         }
@@ -307,8 +310,9 @@ object LambdaMacros {
         case Match(selector: Tree, cases: List[CaseDef]) => {
           notImplemented("Match")
         }
-        case Literal(value: Constant) => {
+        case Literal(value: Constant)=> {
           matchInfo(s"Literal($value)")
+
           value match {
             case Constant(n: Int) => LConstant(n)
             case Constant(()) => NopExpr()
@@ -328,6 +332,7 @@ object LambdaMacros {
           notImplemented("Return")
         }
         case Function(vparams: List[ValDef], body: Tree) => {
+
           notImplemented("Function")
         }
         case This(qual: TypeName) => {
@@ -429,7 +434,7 @@ object LambdaMacros {
     printRaw_impl(c)(param)
 
     val res: String =
-      LambdaPrettyPrinter(toLambda(q"$param"))
+      LambdaNFNPrinter(toLambda(q"$param"))
 //      q"$param" match {
 //        case _ => throw new Exception("Can only lambdafy blocks!")
 //      }

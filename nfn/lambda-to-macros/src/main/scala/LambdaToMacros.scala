@@ -2,6 +2,8 @@ import language.experimental.macros
 
 import LambdaMacros._
 import scala.collection.immutable
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.util.Try
 
 
@@ -52,6 +54,23 @@ case class NFNMapReduce(values: NFNNameList, map: NFNService, reduce: NFNService
 
 case class NFNNameList(names: List[NFNName])
 
+object ScalaToNFN extends App {
+
+  println("NFNCommunication - main")
+  val socket = UDPClient()
+  val ccnIf = new CCNLiteInterface()
+
+  val l = lambda{
+    val x = 41
+    x + 1
+  }+"/NFN"
+  println(s"lambda<$l>")
+  val interest = ccnIf.mkBinaryInterest(l)
+  val f = socket.sendReceive(interest)
+  val content = Await.result(f, 10 seconds)
+
+  println("Received: " + NFNCommunication.parseXml(ccnIf.ccnbToXml(content)))
+}
 
 object LambdaToMacro extends App {
 
@@ -62,33 +81,36 @@ object LambdaToMacro extends App {
   println(lambda(
     {
       val dollar = 100
+      dollar + 1
     }))
 
-  println(lambda( {
-      val dollar = 100
-      def suc(x: Int, y: Int): Int = x + 1
-      NFNServiceLibrary.convertChfToDollar(NFNServiceLibrary.convertDollarToChf(dollar))
-  }))
-
-  println(lambda({
-    NFNName("name/of/doc1")
-  }))
-  println(lambda({
-    val x = 1
-    if(x > 1) 2
-    else 0
-  }))
-
-
-
-  println(lambda({
-     val list = immutable.List(NFNName("name/of/doc1"), NFNName("name/of/doc2"), NFNName("name/of/doc3"))
-  }))
-  println(lambda({
-  //    val list = NFNName("name/of/doc1") :: NFNName("name/of/doc2") :: NFNName("name/of/doc3") :: Nil
-  }))
+//  println(lambda(
+//  {
+//    val succ = (x: Int) => 1 + x
+//    succ(2)
+//  }
+//  ))
+//
+//  println(lambda( {
+//      val dollar = 100
+//      def suc(x: Int, y: Int): Int = x + 1
+//      NFNServiceLibrary.convertChfToDollar(NFNServiceLibrary.convertDollarToChf(dollar))
+//  }))
+//
+//  println(lambda({
+//    NFNName("name/of/doc1")
+//  }))
+//  println(lambda({
+//    val x = 1
+//    if(x > 1) 2
+//    else 0
+//  }))
+//
+//  println(lambda({
+//     val list = immutable.List(NFNName("name/of/doc1"), NFNName("name/of/doc2"), NFNName("name/of/doc3"))
+//  }))
+//  println(lambda({
+//  //    val list = NFNName("name/of/doc1") :: NFNName("name/of/doc2") :: NFNName("name/of/doc3") :: Nil
+//  }))
 }
 
-object EnvTest extends App {
-  println(System.getenv("NFN_HOME"))
-}
