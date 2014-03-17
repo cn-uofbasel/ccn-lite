@@ -17,6 +17,7 @@ ccn-lite-relay
 ccn-lite-simu
 
 # binaries in subdirectories
+util/ccn-lite-cryptoserver
 util/ccn-lite-ctrl
 util/ccn-lite-peek
 util/ccn-lite-ccnb2hex
