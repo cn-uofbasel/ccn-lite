@@ -88,3 +88,7 @@ object LambdaToMacro extends App {
   //    val list = NFNName("name/of/doc1") :: NFNName("name/of/doc2") :: NFNName("name/of/doc3") :: Nil
   }))
 }
+
+object EnvTest extends App {
+  println(System.getenv("NFN_HOME"))
+}
