@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -DUSE_UTIL
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
