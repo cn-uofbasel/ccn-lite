@@ -28,6 +28,7 @@ util/ccn-lite-mkF
 util/ccn-lite-mkI
 util/ccn-lite-cryptoserver
 util/ccn-lite-peekcomputation
+*.dSYM
 # unit tests
 test/unit/prefix-cmp
 
