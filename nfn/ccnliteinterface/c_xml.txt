@@ -1,0 +1,31 @@
+<contentobj>
+  <name>
+    <component>
+      <data size="4">
+          name
+      </data>
+    </component>
+    <component>
+      <data size="7">
+          content
+      </data>
+    </component>
+  </name>
+  <timestamp>
+    <data size="6">
+        S!%ffffffc9%fffffffc%09%ffffffbc
+    </data>
+  </timestamp>
+  <signedinfo>
+    <publisherPubKeyDigest>
+      <data size="0">
+          
+      </data>
+    </publisherPubKeyDigest>
+  </signedinfo>
+  <content>
+    <data size="11">
+        testcontent
+    </data>
+  </content>
+</contentobj>
