@@ -51,10 +51,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "%s\n", str);
     //search for result here... if found return...
     char *res = Krivine_reduction(str);
-    //stores result if computed
-    DEBUGMSG(2,"Computation finshed: %s\n", res);
+    //stores result if computed   
     
-     if(res){
+    if(res){
         DEBUGMSG(2,"Computation finshed: %s\n", res);
         struct ccnl_content_s *c = add_computation_to_cache(ccnl, prefix, res, strlen(res));
             
