@@ -52,7 +52,7 @@ object LambdaPrettyPrinter {
     case UnaryExpr(op, v) => s"$op " + p"$v"
     case BinaryExpr(op, v1, v2) => p"$v1 " + op.toString + p" $v2"
     case Variable(name, _) => name
-//    case Constant(i) => i.toString
+    case Constant(i) => i.toString
     case Let(name, expr, maybeCodeExpr) =>
       s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
     case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
@@ -79,10 +79,10 @@ object LambdaNFNPrinter {
   def apply(expr: Expr): String =  expr match {
     case Clos(arg, body) => s"@$arg " + p"$body"
     case Application(fun, arg) => p"$fun $arg"
-    case UnaryExpr(op, v) => s"$op " + p"$v"
-    case BinaryExpr(op, v1, v2) => op.toString + p"$v1 $v2"
+    case UnaryExpr(op, v) =>  op.toString.toLowerCase + " " + p"$v"
+    case BinaryExpr(op, v1, v2) => op.toString.toLowerCase + " " + p"$v1" + " " + p"$v2"
     case Variable(name, _) => name
-    //    case Constant(i) => i.toString
+    case Constant(i) => i.toString
     case Let(name, expr, maybeCodeExpr) =>
       s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
     case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
