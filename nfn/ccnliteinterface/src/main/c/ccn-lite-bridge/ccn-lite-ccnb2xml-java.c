@@ -29,6 +29,21 @@
 #include "../../../../../../ccnx.h"
 #include "../../../../../../ccnl.h"
 
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+
+// BIO_METHOD *   BIO_f_base64(void);
+
+// BIO *bio;
+// BIO *b64;
+// char message[] = "Hello World \n";
+// b64 = BIO_new(BIO_f_base64());
+// bio = BIO_new_fp(stdout, BIO_NOCLOSE);
+// bio = BIO_push(b64, bio);
+// BIO_write(bio, message, strlen(message));
+// BIO_flush(bio);
+// BIO_free_all(bio);
+
 // ----------------------------------------------------------------------
 
 #define SPACING 2
@@ -84,12 +99,12 @@ print_level(int lev, FILE *out)
     return;
 }
 
-void
-print_tag_with_attr_size(char *tag_name, int attr_size, int lev, FILE *out)
-{
-	print_level(lev, out);
-	fprintf(out, "<%s size=\"%i\">\n", tag_name, attr_size);
-}
+// void
+// print_tag_with_attr_size(char *tag_name, int attr_size, int lev, FILE *out)
+// {
+// 	print_level(lev, out);
+// 	fprintf(out, "<%s size=\"%i\">\n", tag_name, attr_size);
+// }
 
 void
 print_tag_unkown(char *tt, int num, int lev, FILE *out)
@@ -122,12 +137,37 @@ is_readable(char c)
 	return isprint(c) && c != '%';
 }
 
+int
+base_64_encode(const char* message, FILE *out) { //Encodes a string to base64
+  BIO *bio, *b64;
+  FILE* stream;
+  int encodedSize = 4*ceil((double)strlen(message)/3);
+  // *buffer = (char *)malloc(encodedSize+1);
+
+  // stream = fmemopen(*buffer, encodedSize+1, "w");
+  b64 = BIO_new(BIO_f_base64());
+  bio = BIO_new_fp(out, BIO_NOCLOSE);
+  bio = BIO_push(b64, bio);
+  BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
+  BIO_write(bio, message, strlen(message));
+  BIO_flush(bio);
+  BIO_free_all(bio);
+  // fclose(stream);
+
+  return (0); //success
+}
+
 void
 print_data(char *data, int num, int lev, FILE *out, bool print_readable)
 {
 	int i;
 
-	print_tag_with_attr_size("data", num, lev, out);
+    print_level(lev, out);
+    if(print_readable)
+        fprintf(out, "<data size=\"%i\" dt=\"string\">\n", num);
+    else
+        fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", num);
+
 
 	print_level(lev + SPACING, out);
 	if(print_readable) {
@@ -138,7 +178,8 @@ print_data(char *data, int num, int lev, FILE *out, bool print_readable)
 				fprintf(out, "%%%02x", data[i]);
 		}
 	} else {
-		fwrite(data, 1, num, out);
+        base_64_encode(data, out);
+		// fwrite(data, 1, num, out);
 	}
 	fprintf(out, "\n");
 	print_closing_tag("data", lev + 1, out);
