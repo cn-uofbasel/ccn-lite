@@ -34,8 +34,8 @@
 #include <string.h>
 #endif
 
-#include "ccnx.h"
-#include "ccnl-pdu.c"
+#include "pkt-ccnb.h"
+#include "pkt-ccnb.c"
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"

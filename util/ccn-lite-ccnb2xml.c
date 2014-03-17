@@ -30,7 +30,7 @@
 #include <sys/un.h>
 #include <openssl/obj_mac.h>
 
-#include "../ccnx.h"
+#include "../pkt-ccnb.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"

@@ -22,7 +22,7 @@
 #define USE_SIGNATURES
 
 #include "../ccnl.h"
-#include "../ccnx.h"
+#include "../pkt-ccnb.h"
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
@@ -239,7 +239,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
     int num, typ;
     char component[100];
     char type[100];
-    char content[CCNL_MAX_PACKET_SIZE];
+    //    char content[CCNL_MAX_PACKET_SIZE];
     char callback[1024];
     
     
@@ -314,7 +314,7 @@ int parse_crypto_packet(char *buf, int buflen, int sock){
 int crypto_main_loop(int sock)
 {
     //receive packet async and call parse/answer...
-    int len, pid; 
+  int len; //, pid; 
     char buf[CCNL_MAX_PACKET_SIZE];
     struct sockaddr_un src_addr;
     socklen_t addrlen = sizeof(struct sockaddr_un);
@@ -334,7 +334,6 @@ int crypto_main_loop(int sock)
 
 int main(int argc, char **argv)
 {
-    struct sockaddr_un ux;
     if(argc < 3) goto Bail;
     ux_path = argv[1];
     ctrl_public_key = argv[2];
@@ -343,8 +342,10 @@ int main(int argc, char **argv)
     
     int sock = ccnl_crypto_ux_open(ux_path);
     while(crypto_main_loop(sock));
+    return 0;
     
     Bail:
     printf("Usage: %s crypto_ux_socket_path"
         " public_key [private_key]\n", argv[0]);
+    return -1;
 }

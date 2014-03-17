@@ -84,7 +84,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define ccnl_close_socket(s)		close(s)
 
 
-#include "ccnx.h"
+#include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
