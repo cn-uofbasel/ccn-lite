@@ -39,7 +39,7 @@ object MainBuild extends Build {
         "org.slf4j" % "slf4j-api" % "1.7.5"
       ),
       resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
-      mainClass in (Compile, run) := Some("secmachine.LambdaCalculus")
+      mainClass in (Compile, run) := Some("lambdacalculus.LambdaCalculus")
     )
 
   )
@@ -68,18 +68,6 @@ object MainBuild extends Build {
     )
   ).dependsOn(lambdaMacros, ccnliteinterface)
 
-  lazy val ccn: Project = Project(
-    "ccn",
-    file("ccn"),
-    settings = buildSettings ++ Seq(
-      mainClass := Some("Main"),
-      resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
-      libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor" % "2.2.1"
-      )
-    )
-  )
-
   lazy val testservice: Project = Project(
     "testservice",
     file("testservice"),
@@ -92,7 +80,7 @@ object MainBuild extends Build {
     settings = buildSettings ++ Seq(
       resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
       fork := true,
-      javaOptions ++= Seq("-Djava.library.path=/Users/basil/Dropbox/uni/master_thesis/code/ccnliteinterface/src/main/c/ccn-lite-bridge"),
+      javaOptions ++= Seq("-Djava.library.path=./ccnliteinterface/src/main/c/ccn-lite-bridge"),
       libraryDependencies ++= Seq(
         "com.typesafe.akka" %% "akka-actor" % "2.2.1",
         "org.scalatest" % "scalatest_2.10" % "2.0" % "test"

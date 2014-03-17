@@ -1,24 +1,31 @@
-<interest>
+<contentobj>
   <name>
     <component>
       <data size="4">
-          test
+          name
       </data>
     </component>
     <component>
-      <data size="8">
-          interest
+      <data size="7">
+          content
       </data>
     </component>
   </name>
-  <scope>
+  <timestamp>
     <data size="6">
-         W%01l%ffffffff%7f
+        S&%ffffffe4%0c%075
     </data>
-  </scope>
-  <nonce>
-    <data size="4">
-        -M%17S
+  </timestamp>
+  <signedinfo>
+    <publisherPubKeyDigest>
+      <data size="0">
+          
+      </data>
+    </publisherPubKeyDigest>
+  </signedinfo>
+  <content>
+    <data size="11">
+        testcontent
     </data>
-  </nonce>
-</interest>
+  </content>
+</contentobj>

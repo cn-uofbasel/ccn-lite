@@ -1,9 +1,9 @@
 import scala.reflect.macros.Context
 import scala.language.experimental.macros
 
-import secmachine.parser.ast._
-import secmachine.parser.ast.{Constant => LConstant}
-import secmachine.parser.ast.{Expr => LExpr}
+import lambdacalculus.parser.ast._
+import lambdacalculus.parser.ast.{Constant => LConstant}
+import lambdacalculus.parser.ast.{Expr => LExpr}
 
 object LambdaMacros {
   def hello(): Unit = macro hello_impl

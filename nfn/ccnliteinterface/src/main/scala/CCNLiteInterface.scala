@@ -1,6 +1,4 @@
 class CCNLiteInterface {
-//  System.setProperty("java.library.path", "/Users/basil/Dropbox/uni/master_thesis/code/ccnliteinterface/src/main/c/ccn-lite-bridge")
-
   System.loadLibrary("CCNLiteInterface")
 
   @native def mkBinaryInterest(name: String): Array[Byte]

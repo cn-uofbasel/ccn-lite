@@ -58,6 +58,7 @@ object NFNCommunication {
 
     val cleanedXmlString = xmlString.trim
 
+    println(cleanedXmlString)
     val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
     xml match {
       case interest @ <interest>{_*}</interest> => {
