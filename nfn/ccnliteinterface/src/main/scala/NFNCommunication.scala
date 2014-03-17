@@ -14,8 +14,12 @@ trait Packet {
   def name: Seq[String]
 }
 
-case class Interest(name: Seq[String]) extends Packet
-case class Content(name: Seq[String], data: Array[Byte]) extends Packet
+case class Interest(name: Seq[String]) extends Packet {
+  override def toString = s"Interest('${name.mkString("/")}"
+}
+case class Content(name: Seq[String], data: Array[Byte]) extends Packet {
+  override def toString = s"Content('${name.mkString("/")}' => ${new String(data)})"
+}
 
 object NFNCommunication {
   def parseXml(xmlString: String):Packet = {
@@ -87,8 +91,10 @@ object NFNCommunication {
     val socket = UDPClient()
     val ccnIf = new CCNLiteInterface()
 
-    val interestName = "add 1 1/NFN"
+    val interestName = "add 7 1/NFN"
     val interest: Array[Byte] = ccnIf.mkBinaryInterest(interestName)
+
+    println(s"Sending:\n" + new String(interest))
 
     val f = socket.sendReceive(interest)
     val respInterest = Await.result(f, 1 minute)
