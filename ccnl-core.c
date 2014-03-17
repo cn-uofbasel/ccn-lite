@@ -885,13 +885,6 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
 	    rc = ccnl_mgmt(relay, buf, p, from); goto Done;
 	}
-        //NFN PLUGIN CALL
-#ifdef CCNL_NFN
-        if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-            ccnl_nfn(relay, buf, p, from);
-            goto Done;
-        }
-#endif /*CCNL_NFN*/
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
 	    for (c = relay->contents; c; c = c->next) {
@@ -914,6 +907,17 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		break;
 	}
 	if (!i) { // this is a new/unknown I request: create and propagate
+//NFN PLUGIN CALL
+#ifdef CCNL_NFN
+            if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
+                struct ccnl_buf_s *buf2 = buf;
+                struct ccnl_prefix_s *p2 = p;
+                i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
+                ccnl_interest_append_pending(i, from);
+                ccnl_nfn(relay, buf2, p2, from, 0);
+                goto Done;
+            }
+#endif /*CCNL_NFN*/
 	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);

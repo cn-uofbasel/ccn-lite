@@ -20,6 +20,8 @@
 
 #include <arpa/inet.h>
 
+#include "ccnl.h"
+
 #ifndef ABSTRACT_MACHINE
 #include "krivine-common.c"
 #endif
@@ -1449,7 +1451,8 @@ normal:
 
     if(!strncmp(prog, "OP_FOX(", 4)){
     	
-	int num_params = pop1int(&cp, rstack), i;
+	int num_params = pop1int(&cp, rstack);
+        int i, j, complen;
 	cp = config2str(&cfg, en, astack, rstack, cp);
 	char **params = malloc(sizeof(char * ) * num_params); 
 
@@ -1477,10 +1480,41 @@ normal:
         //test for routable parameter (routable > 0)....start with last parameter
         //create an interest... with /<routable parameter>/rest with extracted parameter.
 	
+        //build computation string
+        
+       
+        
+        
         //solange routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
-                //mkInterest
+             
+                char *out =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+                
+                //make compute request
+                char comp[1024];
+                memset(comp, 0, sizeof(comp));
+                complen = sprintf(comp, "(@x call %d ", num_params);
+                for(j = 0; j < num_params; ++j){
+                    if(i == j){
+                        complen += sprintf(comp + complen, "x ");
+                        
+                    }
+                    else{
+                        complen += sprintf(comp + complen, "%s ", params[j]);
+                    }
+                }
+                complen += sprintf(comp + complen, ")");
+                printf("Computation request: %s %s\n", comp, params[i]);
+                
+#ifndef ABSTRACT_MACHINE
+                //make interest
+                char *namecomp[CCNL_MAX_NAME_COMP];
+                j= splitComponents(params[i], namecomp);
+                int len = mkInterestCompute(namecomp, comp, complen, 0, out);
+                printf("FOO: %s\n", out);
+#endif
+             
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
