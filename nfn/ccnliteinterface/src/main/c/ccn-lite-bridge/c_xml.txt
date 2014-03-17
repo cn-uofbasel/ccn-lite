@@ -1,8 +1,8 @@
 <contentobj>
   <name>
     <component>
-      <data size="4" dt="string">
-          name
+      <data size="11" dt="string">
+          contentname
       </data>
     </component>
     <component>
@@ -13,7 +13,7 @@
   </name>
   <timestamp>
     <data size="6" dt="string">
-        S&%fffffffcb%03%ffffff88
+        S&%fffffffc]%07%ffffffaf
     </data>
   </timestamp>
   <signedinfo>
@@ -24,8 +24,8 @@
     </publisherPubKeyDigest>
   </signedinfo>
   <content>
-    <data size="11" dt="string">
-        testcontent
+    <data size="8" dt="string">
+        testdata
     </data>
   </content>
 </contentobj>

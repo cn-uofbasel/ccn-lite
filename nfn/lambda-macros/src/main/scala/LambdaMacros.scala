@@ -269,7 +269,7 @@ object LambdaMacros {
         // =====
         case Block(stats: List[Tree], blockExpr: Tree) => {
           matchInfo("Block")
-          val lambdaExprs: List[LExpr] = stats.map(expr => toLambda(expr)) ++ List(toLambda(blockExpr))
+          val lambdaExprs: List[LExpr] = stats.map(expr => toLambda(expr)).toList ++ List(toLambda(blockExpr))
 
           lambdaExprs.reverse.reduce((expr, let) =>
             let match {
@@ -364,6 +364,7 @@ object LambdaMacros {
               val funValue = toLambda(arg)
               val body = Application(Variable(s"/$funName/$argTpe/r$retTpe"), Variable("v"))
               val clos = Clos("v", body)
+
               Application(clos, funValue)
             }
             case "NFNName" => {

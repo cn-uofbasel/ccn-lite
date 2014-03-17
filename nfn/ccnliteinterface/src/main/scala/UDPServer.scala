@@ -4,7 +4,7 @@ import java.net.{DatagramPacket, DatagramSocket}
 
 object UDPServer {
   def main(args: Array[String]) = {
-    val serverSocket = new DatagramSocket(9876)
+    val serverSocket = new DatagramSocket(9000)
 
     val rcvData = new Array[Byte](1024)
     while(true) {
@@ -35,7 +35,7 @@ import java.net.InetSocketAddress
  * For improved performance implement a bound UDP sender, which
  * does not need to perform certain security checks with each call
  */
-class SimpleUDPSender(port: Int = 9876, host: String = "localhost") extends Actor {
+class SimpleUDPSender(port: Int = 9000, host: String = "localhost") extends Actor {
   import context.system
 
   val remote = new InetSocketAddress(host, port)
@@ -61,7 +61,7 @@ class SimpleUDPSender(port: Int = 9876, host: String = "localhost") extends Acto
  * UDP server
 // * @param nextActor
  */
-class UDPListener(nextActor: ActorRef, port: Int = 9876, host: String = "localhost") extends Actor {
+class UDPListener(nextActor: ActorRef, port: Int = 9000, host: String = "localhost") extends Actor {
   import context.system
   // IO is the manager of the akka IO layer, send it a request
   // to listen on a certain host on a port
@@ -99,25 +99,20 @@ class NFNWorker extends Actor {
 
 import akka.actor._
 
-class TestClass() {
-  this.getClass
-  def bla = println(this.getClass.getProtectionDomain.getCodeSource.getLocation.getFile + this.getClass.getName + ".class")
-}
 
 object AkkaTest extends App {
-  new TestClass().bla
+  val system = ActorSystem("NFNActorSystem")
 
+  val worker = system.actorOf(Props[NFNWorker], name = "NFNWorker")
+  val udpListener = system.actorOf(Props(new UDPListener(worker)), name = "UDPListener")
 
+  val simpleSender = system.actorOf(Props(new SimpleUDPSender), name = "SimpleUDPSender")
 
-//  val system = ActorSystem("NFNActorSystem")
-//
-//  val worker = system.actorOf(Props[NFNWorker], name = "NFNWorker")
-//  val udpListener = system.actorOf(Props(new UDPListener(worker)), name = "UDPListener")
-//
-//  val simpleSender = system.actorOf(Props(new SimpleUDPSender), name = "SimpleUDPSender")
-//
-//  Thread.sleep(1000)
-//  simpleSender ! new CCNLiteInterface().mkBinaryInterest("/test/interest")
+  Thread.sleep(1000)
+
+  val interest = "add 1 1/NFN"
+  println(s"sending: $interest")
+  simpleSender ! new CCNLiteInterface().mkBinaryInterest(interest)
 }
 
 

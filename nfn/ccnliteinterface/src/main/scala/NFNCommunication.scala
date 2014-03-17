@@ -4,8 +4,11 @@ import ExecutionContext.Implicits.global
 
 import java.io.File
 import java.util.Date
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
-import scala.xml.Elem
+import scala.xml.{Node, NodeSeq, Elem}
+
+import javax.xml.bind.DatatypeConverter
 
 trait Packet {
   def name: Seq[String]
@@ -16,33 +19,34 @@ case class Content(name: Seq[String], data: Array[Byte]) extends Packet
 
 object NFNCommunication {
   def parseXml(xmlString: String):Packet = {
-    def parseComponents(elem: Elem):Seq[String] = {
-      val components = elem \ "name" \ "component"
 
-      components.map { component =>
-        val data = component \ "data"
+    def parseData(elem: Node): String = {
+      val data = elem \ "data"
 
-        val nameSize = (data \ "@size").text.toInt
-        val nameData = data.text.trim
+      val nameSize = (data \ "@size").text.toInt
+      val encoding = (data \ "@dt").text
+      val nameData = data.text.trim
 
-        assert(nameData.size == nameSize, s"Parsed name '$nameData' has not its actual size $nameSize")
-
-        nameData
+      encoding match {
+        case "string" =>
+          assert(nameData.size == nameSize, s"Parsed name '$nameData' has not its actual size $nameSize")
+          nameData
+        case "binary.base64" =>
+          new String(DatatypeConverter.parseBase64Binary(nameData))
+        case _ => throw new Exception(s"parseData() does not support data of type: '$encoding'")
       }
     }
 
+    def parseComponents(elem: Elem):Seq[String] = {
+      val components = elem \ "name" \ "component"
+
+      components.map { parseData }
+    }
+
     def parseContent(elem: Elem): Array[Byte] = {
-      val content = elem \ "content" \ "data"
-
-      val contentSize = (content \ "@size").text.toInt
-      val contentData = content.text.trim
-
-
-
-      println(s"Parsed data (size = $contentSize): '$contentData'")
-      assert(contentData.size == contentSize, s"Parsed data '${new String(contentData)}' has not its actual size $contentSize")
-
-      contentData.getBytes
+      val contents = elem \ "content"
+      assert(contents.size == 1, "content should only contain one node with content")
+      parseData(contents.head).getBytes
     }
 
 //    val xmlStringTrimmed = xmlString.trim
@@ -54,9 +58,10 @@ object NFNCommunication {
 //
 //    val cleanedXmlString = xmlStringTrimmed.substring(0, endOfLastTag)
 //
-//    println("CLEANED XML: \n" + cleanedXmlString)
+//    println("CLEANED XML: \n" + cleanedXmlString)jj
 
-    val cleanedXmlString = xmlString.trim
+    // TODO use base64 encoding for raw data in xml
+    val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
     println(cleanedXmlString)
     val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
@@ -82,32 +87,15 @@ object NFNCommunication {
     val socket = UDPClient()
     val ccnIf = new CCNLiteInterface()
 
-    val interestName = "/name/of/interest"
+    val interestName = "add 1 1/NFN"
     val interest: Array[Byte] = ccnIf.mkBinaryInterest(interestName)
-//    println("client will send:\n" + ccnIf.ccnbToXml(interest))
-    socket.sendReceive(interest) onComplete {
-      case Success(respInterest) => {
-        val xmlDataInterest = ccnIf.ccnbToXml(respInterest)
-        println(s"ccnb2XML interest:\n$xmlDataInterest")
-        //    println("client received response (to xml):\n" + xmlData)
-        parseXml(xmlDataInterest)
-      }
-      case Failure(t) => println("An error occured when sending an interest: " + t.getMessage)
-    }
 
-    val contentName = "/name/of/content"
-    val contentData = "testdata".getBytes
-    val content = ccnIf.mkBinaryContent(contentName, contentData)
-    val respContent = socket.sendReceive(content) onComplete  {
-      case Success(respContent) =>
-        val xmlDataContent = ccnIf.ccnbToXml(respContent)
-        println(s"ccnb2XML content:\n$xmlDataContent")
-        parseXml(xmlDataContent)
-      case Failure(t) => println("An error occured when sending an interest: " + t.getMessage)
-    }
+    val f = socket.sendReceive(interest)
+    val respInterest = Await.result(f, 1 minute)
 
-    Thread.sleep(1000)
-
+    val xmlDataInterest = ccnIf.ccnbToXml(respInterest)
+    println(s"Received answer:\n$xmlDataInterest")
+    parseXml(xmlDataInterest)
   }
 }
 
