@@ -54,5 +54,14 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //stores result if computed
     DEBUGMSG(2,"Computation finshed: %s\n", res);
     
+     if(res){
+        DEBUGMSG(2,"Computation finshed: %s\n", res);
+        struct ccnl_content_s *c = add_computation_to_cache(ccnl, prefix, res, strlen(res));
+            
+        c->flags = CCNL_CONTENT_FLAGS_STATIC;
+        ccnl_content_add2cache(ccnl, c);
+        ccnl_content_serve_pending(ccnl,c);
+    }
+    
     return 0;
 }
