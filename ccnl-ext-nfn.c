@@ -50,7 +50,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }*/
     DEBUGMSG(99, "%s\n", str);
     //search for result here... if found return...
-    char *res = Krivine_reduction(str);
+    char *res = Krivine_reduction(ccnl, str);
     //stores result if computed   
     
     if(res){

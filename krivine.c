@@ -924,7 +924,7 @@ log_ZAM(char *en, char *sn, struct term_s *t,
 // ----------------------------------------------------------------------
 
 char*
-ZAM_term(char *cfg) // written as forth approach
+ZAM_term(struct ccnl_relay_s *ccnl, char *cfg) // written as forth approach
 {
     char *en, *astack, *rstack = 0, *prog, *cp, *pending, *p;
     struct term_s *t;
@@ -1514,6 +1514,14 @@ normal:
                 
                 fwrite(out, sizeof(char), len, stdout);
                 printf("\n");
+                struct ccnl_interest_s *i = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+                struct ccnl_content_s *c;
+                if(ccnl_nfn_local_content_search(ccnl, i, c)){
+                    printf("found\n");
+                }
+                else{
+                    printf("not found\n");
+                }
 #endif
                 
                 //send interest and place it in FIB
@@ -1582,7 +1590,7 @@ createDict(char *pairs[])
     return ename;
 }
 
-char *Krivine_reduction(char *expression){
+char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
 
     char *prog, *cp, *config;
     char *setup_env[] = {
@@ -1633,7 +1641,7 @@ char *Krivine_reduction(char *expression){
 	cs_trigger = 0;
 	char *hash_name = cp;
 	printf("CP BEFORE: %s\n", cp);
-	cp = ZAM_term(cp);
+	cp = ZAM_term(ccnl, cp);
 	printf("CP AFTER:  %s\n", cp);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
@@ -1690,7 +1698,7 @@ main(int argc, char **argv)
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
     
-    res = Krivine_reduction(prog);
+    res = Krivine_reduction(NULL, prog);
 
     printf("\n res; %s\n\n", res);
 

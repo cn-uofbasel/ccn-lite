@@ -16,6 +16,8 @@
 
 #include "ccnl-pdu.c"
 
+#define NFN_FACE -1;
+
 int
 hex2int(char c)
 {
@@ -189,13 +191,41 @@ add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix
     return c;
 }
 
-
-#endif USE_UTIL
 int ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, struct ccnl_content_s *c){
+    DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
     struct ccnl_content_s *c_iter; 
-    for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
-       // if()
-    }
     
+    for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
+        unsigned char *md;
+        md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
+        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, CMP_MATCH)){
+            c = c_iter;
+            return 1;
+        }
+    }
+    return 0;
 }
+
+struct ccnl_interest_s *
+ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, char* name){
+    DEBUGMSG(2, "ccnl_nfn_create_interest_object()\n");
+    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *content = 0;
+    int num; int typ;
+    dehead(&out, &len, &num, &typ);
+    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
+			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+    
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
+    from->faceid = NFN_FACE;
+    from->last_used = CCNL_NOW();
+    from->outq = malloc(sizeof(struct ccnl_buf_s));
+    from->outq->data[0] = strdup(name);
+    from->outq->datalen = strlen(name);
+    return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+}
+#endif USE_UTIL
 #endif //KRIVINE_COMMON_C
