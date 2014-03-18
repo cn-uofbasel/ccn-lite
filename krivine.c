@@ -1475,17 +1475,8 @@ normal:
                 }
 		a1 = end;
 	}
-
-	//TODO function call --> make an interest to compute the result...
-        //test for routable parameter (routable > 0)....start with last parameter
-        //create an interest... with /<routable parameter>/rest with extracted parameter.
-	
-        //build computation string
         
-       
-        
-        
-        //solange routable parameter: try to find a result
+        //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
              
@@ -1495,10 +1486,10 @@ normal:
                 char comp[1024];
                 memset(comp, 0, sizeof(comp));
                 complen = sprintf(comp, "(@x call %d ", num_params);
+                //build computation string
                 for(j = 0; j < num_params; ++j){
                     if(i == j){
                         complen += sprintf(comp + complen, "x ");
-                        
                     }
                     else{
                         complen += sprintf(comp + complen, "%s ", params[j]);
@@ -1507,14 +1498,24 @@ normal:
                 complen += sprintf(comp + complen, ")");
                 printf("Computation request: %s %s\n", comp, params[i]);
                 
+                //TODO: check if params[i] is local available
+                //      if it is, check other and request them
+                //      if not send interest to others
+                //      if reply insert result
+                //      if timeout continue with next iteration
+                
 #ifndef ABSTRACT_MACHINE
                 //make interest
                 char *namecomp[CCNL_MAX_NAME_COMP];
-                j= splitComponents(params[i], namecomp);
+                char *param = strdup(params[i]);
+                j= splitComponents(param, namecomp);
                 int len = mkInterestCompute(namecomp, comp, complen, 0, out);
-                printf("FOO: %s\n", out);
+                free(param);
+                
+                fwrite(out, sizeof(char), len, stdout);
+                printf("\n");
 #endif
-             
+                
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
@@ -1523,7 +1524,7 @@ normal:
         //compute //mk interest for all components and initialize the computation
         
         
-        printf("OP_FOX: NOT IMPLEMENTED: content: %d\n", routable);
+        printf("OP_FOX: NOT IMPLEMENTED\n");
         //place result
 	char *res = "42";
 	char rst[1000];

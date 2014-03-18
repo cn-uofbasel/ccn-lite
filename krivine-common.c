@@ -48,7 +48,7 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 int
 splitComponents(char* namecomp, char **prefix)
 { 
-    int i;
+    int i = 0;
     unsigned char *cp;
     cp = strtok(namecomp, "/");
     
@@ -188,5 +188,14 @@ add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix
     c = ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);
     return c;
 }
+
+
 #endif USE_UTIL
+int ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, struct ccnl_content_s *c){
+    struct ccnl_content_s *c_iter; 
+    for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
+       // if()
+    }
+    
+}
 #endif //KRIVINE_COMMON_C
