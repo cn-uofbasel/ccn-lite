@@ -1453,6 +1453,7 @@ normal:
     	
 	int num_params = pop1int(&cp, rstack);
         int i, j, complen;
+        char *res = NULL;
 	cp = config2str(&cfg, en, astack, rstack, cp);
 	char **params = malloc(sizeof(char * ) * num_params); 
 
@@ -1516,25 +1517,41 @@ normal:
                 printf("\n");
                 struct ccnl_interest_s *i = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 struct ccnl_content_s *c;
-                if(ccnl_nfn_local_content_search(ccnl, i, c)){
-                    printf("found\n");
+                //search locally for content
+                if((c = ccnl_nfn_local_content_search(ccnl, i)) != NULL){
+                    printf("Content locally found: %s\n", c->content);
+                    res = c->content;
+                    
+                    goto tail;
                 }
-                else{
-                    printf("not found\n");
+                
+                else if((c = ccnl_nfn_global_content_search(ccnl, i)) != NULL){
+                    //printf("Content in the network found: %s\n", c->content);
+                    
+                    res = "42";
+                    goto tail;
                 }
-#endif
+
                 
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
-            }
-        }
-        //compute //mk interest for all components and initialize the computation
+                i = ccnl_interest_remove(ccnl, i);
+#endif // ABSTRACT_MACHINE
+            }//endif
+            
+        }//endfor
         
+        //TODO: Try to receive components and compute!?
+                
         
-        printf("OP_FOX: NOT IMPLEMENTED\n");
+        printf("OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
         //place result
-	char *res = "42";
+tail:
+        if(res == NULL) res = "0";
+        if(!strncmp(res, "RST|",4)){
+            res+=4;
+        }
 	char rst[1000];
 	int len = sprintf(rst, "RST|%s", res);
 	if(a1) sprintf(rst+len, "%s", a1);
