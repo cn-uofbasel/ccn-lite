@@ -4,6 +4,7 @@ import language.experimental.macros
 import LambdaMacros._
 
 import scala.reflect.runtime.{universe => ru}
+import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
 
 
@@ -51,17 +52,32 @@ case class NFNNameValue(name: NFNName) extends NFNServiceValue{
 case class NFNServiceException(msg: String) extends Exception(msg)
 
 case class DollarToChf() extends NFNService {
-  override def exec(values: NFNServiceValue*): Try[NFNIntValue] = {
-    values match {
-      case Seq(dollarValue:NFNIntValue) => Try(
-//        IntValue(dollarValue.amount - (dollarValue.amount.toFloat * 0.1f).toInt)
-        NFNIntValue(42)
-      )
-      case _ => throw new Exception(s"Service $toNFNName can only be executed with a single IntValue parameter and not with: $values")
-    }
-  }
 
   override def toNFNName:NFNName = NFNName("DollarToChf/Int/rInt")
+
+  override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+    val values = unparsedValues match {
+      case Seq(dollarValueString) => Seq(NFNIntValue(dollarValueString.toInt))
+      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
+    }
+    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    assert(name == this.toNFNName)
+
+    val function = { (values: Seq[NFNServiceValue]) =>
+      values match {
+        case Seq(dollar: NFNIntValue) => {
+          Try(NFNIntValue(dollar.amount/2))
+        }
+        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
+      }
+
+    }
+    CallableNFNService(name, values, function)
+  }
+}
+
+case class CallableNFNService(name: NFNName, values: Seq[NFNServiceValue], function: (Seq[NFNServiceValue]) => Try[NFNServiceValue]) {
+  def exec:Try[NFNServiceValue] = function(values)
 }
 
 case class NFNName(name: String)
@@ -88,11 +104,37 @@ trait NFNServiceValue {
 }
 
 
+
 trait NFNService {
-  def exec(values: NFNServiceValue*): Try[NFNServiceValue]
+
+  def parse(name: String, values: Seq[String]):CallableNFNService
 
   def toNFNName: NFNName
 }
+
+object NFNService {
+  def parseAndFindFromName(name: String): Try[CallableNFNService] = {
+    var pattern = new Regex("^call (\\d)+ ((/[\\w]+)+)*$")
+    pattern.findAllMatchIn(name).toList match {
+      case List(matchh) =>
+        matchh.groupNames match {
+        case Seq(countString, funString, argStrings@_*) => {
+          val count = countString.toInt - 1
+          assert(count == argStrings.size, s"matched name $name is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
+          assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
+          val fun = argStrings.head
+          val serv = NFNServiceLibrary.find(fun)
+
+          Try(serv.parse(name, argStrings))
+        }
+        case _ => throw new Exception(s"matched name $name is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
+      }
+      case Nil => throw new Exception(s"No name could be parsed from: $name")
+      case _ => throw new Exception(s"For some reason more than valid possible name was parsed from $name")
+    }
+  }
+}
+
 
 
 /*
@@ -100,78 +142,47 @@ trait NFNService {
  * The main functionality is sending an interest for a lambda expression, offering a local executable service to NFN
  * and a function which is called by the network to execute a certain service and return the result as a content object
  */
-trait NFNInterface {
+//trait NFNInterface {
+//
+//  def send(interest: Interest):Future[Content]
+//
+//  def receive(interest: Interest):
+//
+//  def exec(serviceCall: String) = {
+//    NFNService.parseAndFindFromName(serviceCall).map({serv => serv.exec}) match {
+//      case Success(retValue: Try[NFNServiceValue]) => send(Content(serviceCall, retValue)
+//      case Failure(e) => System.err.println(s"Error when executing service call: ${e.toString}")
+//    }
+//  }
+//}
 
-  def send(lambdaExpr: String):Unit
-  protected def send(serviceCall: String, result: String): Unit
-
-
-  def exec(serviceCall: String) = {
-    val sc = serviceCall.split(" ").toList
-    val (fun: String, args: List[String]) = sc.head -> sc.tail.toList
-
-    val splittedFun = fun.split("/").toList
-
-    println(s"splittetfun: $splittedFun")
-
-    val argNames = splittedFun.slice(1, splittedFun.size - 1)
-    val retName = splittedFun(splittedFun.size - 1)
-
-    println(s"argnames: $argNames, retname: $retName")
-
-
-    val argValues:List[NFNServiceValue] = argNames.zip(args).map { case (tpe, value) => tpe match {
-        case "Int" => NFNIntValue(0)
-        case _ => throw new Exception(s"Could not convert argument with type name $tpe to value $value")
-      }
-    }
-
-    val serv = NFNServiceLibrary.find(fun)
-
-    val res = serv.exec(argValues:_*)
-
-    val finalResult:Try[NFNServiceValue] =
-      res.map {retValue =>
-        if("r" + retValue.toNFNName != retName)
-          throw new Exception(s"Result value ${"r" + retValue.toNFNName} of service call to $serviceCall is not compatible with actual return value name ${retName}")
-        else
-          retValue
-      }
-
-    finalResult match {
-      case Success(retValue: NFNServiceValue) => send(serviceCall, retValue.toValueName.toString)
-      case Failure(e) => System.err.println(s"Error when executing service call: ${e.toString}")
-    }
-  }
-}
-
-case class SocketNFNInterface() extends NFNInterface {
-
-  val sock: UDPClient = UDPClient()
-  val ccnIf = CCNLiteInterface
-
-  override protected def send(serviceCall: String, result: String): Unit = ???
-
-  override def send(lambdaExpr: String): Unit = {
-
-    val interest = ccnIf.mkBinaryInterest(Interest(lambdaExpr))
-
-    val futureSend = sock.send(interest)
-
-    val p = promise[Unit]
-    p completeWith futureSend
-
-    p.future onComplete {
-      case Success(_) => println(s"SocketNFNInterface sent lambdaExpr: $lambdaExpr")
-      case Failure(_) => println(s"FAILURE: SocketNFNInterface sent lambdaExpr: $lambdaExpr")
-    }
-  }
-}
-
-case class PrintNFNInterface() extends NFNInterface {
-  override def send(lambdaExpr: String) = println(s"NFNSend: $lambdaExpr")
-  override protected def send(serviceCall: String, result: String): Unit =  println(s"NFNSend: result<$serviceCall, $result>")
-}
+//case class SocketNFNInterface() extends NFNInterface {
+//
+//  val sock: UDPClient = UDPClient()
+//  val ccnIf = CCNLiteInterface
+//
+//  override protected def send(serviceCall: String, result: String): Unit = ???
+//
+//  override def send(lambdaExpr: String): Unit = {
+//
+//    val interest = ccnIf.mkBinaryInterest(Interest(lambdaExpr))
+//
+//    val futureSend = sock.send(interest)
+//
+//    val p = promise[Unit]
+//    p completeWith futureSend
+//
+//    p.future onComplete {
+//      case Success(_) => println(s"SocketNFNInterface sent lambdaExpr: $lambdaExpr")
+//      case Failure(_) => println(s"FAILURE: SocketNFNInterface sent lambdaExpr: $lambdaExpr")
+//    }
+//  }
+//}
+//
+//case class PrintNFNInterface() extends NFNInterface {
+//  override def send(lambdaExpr: String) = println(s"NFNSend: $lambdaExpr")
+//  override protected def send(serviceCall: String, result: String): Unit =  println(s"NFNSend: result<$serviceCall, $result>")
+//}
 
 
 
