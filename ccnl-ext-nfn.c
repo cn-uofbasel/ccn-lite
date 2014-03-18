@@ -38,7 +38,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int i, len = 0;
     
     //put packet together
-    sprintf(str, "%s", prefix->comp[prefix->compcnt-2]);
+    len = sprintf(str, "%s ", prefix->comp[prefix->compcnt-2]);
     for(i = 0; i < prefix->compcnt-2; ++i){
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
