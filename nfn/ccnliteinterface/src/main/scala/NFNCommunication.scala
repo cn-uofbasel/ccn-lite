@@ -10,6 +10,8 @@ import scala.xml.{Node, NodeSeq, Elem}
 
 import javax.xml.bind.DatatypeConverter
 
+import com.typesafe.scalalogging.slf4j.Logging
+
 trait Packet {
   def name: Seq[String]
 }
@@ -21,7 +23,7 @@ case class Content(name: Seq[String], data: Array[Byte]) extends Packet {
   override def toString = s"Content('${name.mkString("/")}' => ${new String(data)})"
 }
 
-object NFNCommunication {
+object NFNCommunication extends Logging {
   def parseXml(xmlString: String):Packet = {
 
     def parseData(elem: Node): String = {
@@ -67,18 +69,15 @@ object NFNCommunication {
     // TODO use base64 encoding for raw data in xml
     val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
-    println(cleanedXmlString)
     val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
     xml match {
       case interest @ <interest>{_*}</interest> => {
         val nameComponents = parseComponents(interest)
-        println(s"Interest with name: ${nameComponents.mkString("/")}")
         Interest(nameComponents)
       }
       case content @ <contentobj>{_*}</contentobj> => {
         val nameComponents = parseComponents(content)
         val contentData = parseContent(content)
-        println(s"Content with name: ${nameComponents.mkString("/")} and data: ${new String(contentData)}")
         Content(nameComponents, contentData)
       }
       case _ => throw new Exception("XML parser cannot parse:\n" + xml)
@@ -87,21 +86,30 @@ object NFNCommunication {
 
   def main(args: Array[String]) = {
 
-    println("NFNCommunication - main")
     val socket = UDPClient()
     val ccnIf = new CCNLiteInterface()
 
     val interestName = "add 7 1/NFN"
     val interest: Array[Byte] = ccnIf.mkBinaryInterest(interestName)
 
-    println(s"Sending:\n" + new String(interest))
-
     val f = socket.sendReceive(interest)
     val respInterest = Await.result(f, 1 minute)
 
     val xmlDataInterest = ccnIf.ccnbToXml(respInterest)
-    println(s"Received answer:\n$xmlDataInterest")
-    parseXml(xmlDataInterest)
+
+    parseXml(xmlDataInterest) match {
+      case Content(name, data) =>
+        val dataString = new String(data)
+        val resultPrefix = "RST|"
+
+        val resultContentString = dataString.startsWith(resultPrefix) match {
+          case true => dataString.substring(resultPrefix.size)
+          case false => throw new Exception(s"NFN could not compute result for: $interest")
+        }
+        logger.info(s"NFN: '$interestName' => '$resultContentString'")
+
+      case Interest(name) => throw new Exception(s"Received a Interest from NFN. not implemented")
+    }
   }
 }
 

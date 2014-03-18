@@ -1,3 +1,4 @@
+import com.typesafe.scalalogging.slf4j.Logging
 import language.experimental.macros
 
 import LambdaMacros._
@@ -54,9 +55,8 @@ case class NFNMapReduce(values: NFNNameList, map: NFNService, reduce: NFNService
 
 case class NFNNameList(names: List[NFNName])
 
-object ScalaToNFN extends App {
+object ScalaToNFN extends App with Logging {
 
-  println("NFNCommunication - main")
   val socket = UDPClient()
   val ccnIf = new CCNLiteInterface()
 
@@ -67,9 +67,19 @@ object ScalaToNFN extends App {
   println(s"lambda<$l>")
   val interest = ccnIf.mkBinaryInterest(l)
   val f = socket.sendReceive(interest)
-  val content = Await.result(f, 10 seconds)
+  NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 10 seconds))) match {
+    case Content(name, data) =>
+      val dataString = new String(data)
+      val resultPrefix = "RST|"
 
-  println("Received: " + NFNCommunication.parseXml(ccnIf.ccnbToXml(content)))
+      val resultContentString = dataString.startsWith(resultPrefix) match {
+        case true => dataString.substring(resultPrefix.size)
+        case false => throw new Exception(s"NFN could not compute result for: $interest")
+      }
+      logger.info(s"NFN: '$l' => '$resultContentString'")
+
+    case Interest(name) => throw new Exception(s"Received a Interest from NFN. not implemented")
+  }
 }
 
 object LambdaToMacro extends App {
