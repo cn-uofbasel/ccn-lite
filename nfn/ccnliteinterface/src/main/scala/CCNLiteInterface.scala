@@ -1,23 +1,36 @@
 class CCNLiteInterface {
   System.loadLibrary("CCNLiteInterface")
 
-  @native def mkBinaryInterest(name: String): Array[Byte]
-  @native def mkBinaryContent(name: String, data: Array[Byte]): Array[Byte]
-  @native def ccnbToXml(binaryInterest: Array[Byte]): String
+  @native private def mkBinaryInterest(name: String): Array[Byte]
+  @native private def mkBinaryContent(name: String, data: Array[Byte]): Array[Byte]
+  @native private def ccnbToXml(binaryPacket: Array[Byte]): String
 }
 
-object CCNLiteInterface extends App {
+object CCNLiteInterface {
+  private val ccnIf = new CCNLiteInterface()
 
-  val ccnIf = new CCNLiteInterface()
+  def mkBinaryInterest(interest: Interest): Array[Byte] = {
+    ccnIf.mkBinaryInterest(interest.name)
+  }
+  def mkBinaryContent(content: Content): Array[Byte] = {
+    ccnIf.mkBinaryContent(content.name, content.data)
+  }
+  def ccnbToXml(binaryPacket: Array[Byte]): String = {
+    ccnIf.ccnbToXml(binaryPacket)
+  }
 
-  val ccnbInterest: Array[Byte] = ccnIf.mkBinaryInterest("/contentname/interest")
-  val xmlInterest:String = ccnIf.ccnbToXml(ccnbInterest)
-  println(s"Interest:\n$xmlInterest")
+  def main(args: Array[String]) = {
+    val ccnIf = new CCNLiteInterface()
 
-  val data = "testdata".getBytes()
-  val ccnbContent: Array[Byte] = ccnIf.mkBinaryContent("/contentname/content", data)
-  val xmlContent:String = ccnIf.ccnbToXml(ccnbContent)
-  println(s"Content:\n$xmlContent")
+    val ccnbInterest: Array[Byte] = ccnIf.mkBinaryInterest("/contentname/interest")
+    val xmlInterest:String = ccnIf.ccnbToXml(ccnbInterest)
+    println(s"Interest:\n$xmlInterest")
 
-//  println(s"Last: ${xmlContent.substring(xmlContent.size - 10, xmlContent.size)}")
+    val data = "testdata".getBytes()
+    val ccnbContent: Array[Byte] = ccnIf.mkBinaryContent("/contentname/content", data)
+    val xmlContent:String = ccnIf.ccnbToXml(ccnbContent)
+    println(s"Content:\n$xmlContent")
+
+  //  println(s"Last: ${xmlContent.substring(xmlContent.size - 10, xmlContent.size)}")
+  }
 }

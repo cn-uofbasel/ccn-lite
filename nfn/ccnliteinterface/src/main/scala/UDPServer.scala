@@ -123,7 +123,7 @@ class Connected(hostname: String, port: Int) extends Actor {
 }
 
 class NFNWorker extends Actor {
-  def ccnIf = new CCNLiteInterface()
+  def ccnIf = CCNLiteInterface
 
   override def receive: Actor.Receive = {
     case data: ByteString =>
