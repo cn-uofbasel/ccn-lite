@@ -19,6 +19,8 @@ object NFNServiceLibrary {
 
   def find(servName: String) = services(servName)
 
+  def find(servName: NFNName) = find(servName.name)
+
   def convertDollarToChf(dollar: Int): Int = ???
 //    val serv = DollarToChf()
 //    val servRes = serv.exec(IntValue(dollar)).get
@@ -63,6 +65,20 @@ case class DollarToChf() extends NFNService {
 }
 
 case class NFNName(name: String)
+
+object NFNName {
+
+  def parse(name: String): Option[NFNName] = {
+    parse(name.split("/"))
+  }
+
+  def parse(components: Seq[String]): Option[NFNName] = {
+    if(components.forall { cmp => !cmp.contains("/") && cmp != "" })
+      Some(NFNName(components.mkString("/")))
+    else
+      None
+  }
+}
 
 trait NFNServiceValue {
 
@@ -132,13 +148,13 @@ trait NFNInterface {
 case class SocketNFNInterface() extends NFNInterface {
 
   val sock: UDPClient = UDPClient()
-  val ccnIf = new CCNLiteInterface()
+  val ccnIf = CCNLiteInterface
 
   override protected def send(serviceCall: String, result: String): Unit = ???
 
   override def send(lambdaExpr: String): Unit = {
 
-    val interest = ccnIf.mkBinaryInterest(lambdaExpr)
+    val interest = ccnIf.mkBinaryInterest(Interest(lambdaExpr))
 
     val futureSend = sock.send(interest)
 
@@ -160,12 +176,6 @@ case class PrintNFNInterface() extends NFNInterface {
 
 
 object Main {
-  def main(args: Array[String]) = {
-    val nfnName = "/content/name"
-    val nfnSock = SocketNFNInterface()
-    println(s"sending $nfnName")
-    nfnSock.send(nfnName)
-  }
 //  ServiceLibrary.add(DollarToChf())
 //
 //  val nfn = PrintNFNInterface()

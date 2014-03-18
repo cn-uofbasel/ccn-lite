@@ -58,15 +58,23 @@ case class NFNNameList(names: List[NFNName])
 object ScalaToNFN extends App with Logging {
 
   val socket = UDPClient()
-  val ccnIf = new CCNLiteInterface()
+  val ccnIf = CCNLiteInterface
 
   val l = lambda{
     val x = 41
     x + 1
   }+"/NFN"
   println(s"lambda<$l>")
-  val interest = ccnIf.mkBinaryInterest(l)
-  val f = socket.sendReceive(interest)
+
+
+  val interest = Interest(
+    NFNName.parse(l).getOrElse(
+      throw new Exception(s"Lambda Expression '$l' is not a valid NFNName"))
+    .name
+  )
+
+  val binaryInterest = ccnIf.mkBinaryInterest(interest)
+  val f = socket.sendReceive(binaryInterest)
   NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 10 seconds))) match {
     case Content(name, data) =>
       val dataString = new String(data)
@@ -78,7 +86,13 @@ object ScalaToNFN extends App with Logging {
       }
       logger.info(s"NFN: '$l' => '$resultContentString'")
 
-    case Interest(name) => throw new Exception(s"Received a Interest from NFN. not implemented")
+    case Interest(name) =>
+      NFNName.parse(name) match {
+        case Some(nfnName) => val serv = NFNServiceLibrary.find(nfnName)
+        case None => throw new Exception(s"Not a valid nfn name: $interest")
+      }
+      // TODO
+      throw new Exception(s"Received a Interest from NFN. not implemented")
   }
 }
 

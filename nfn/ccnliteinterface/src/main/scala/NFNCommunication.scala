@@ -13,19 +13,19 @@ import javax.xml.bind.DatatypeConverter
 import com.typesafe.scalalogging.slf4j.Logging
 
 trait Packet {
-  def name: Seq[String]
+  def name: String
 }
 
-case class Interest(name: Seq[String]) extends Packet {
-  override def toString = s"Interest('${name.mkString("/")}"
+case class Interest(name: String) extends Packet {
+  override def toString = s"Interest('${name}')"
 }
-case class Content(name: Seq[String], data: Array[Byte]) extends Packet {
-  override def toString = s"Content('${name.mkString("/")}' => ${new String(data)})"
+case class Content(name: String, data: Array[Byte]) extends Packet {
+  override def toString = s"Content('$name' => ${new String(data)})"
 }
 
 object NFNCommunication extends Logging {
-  def parseXml(xmlString: String):Packet = {
 
+  def parseXml(xmlString: String):Packet = {
     def parseData(elem: Node): String = {
       val data = elem \ "data"
 
@@ -73,12 +73,12 @@ object NFNCommunication extends Logging {
     xml match {
       case interest @ <interest>{_*}</interest> => {
         val nameComponents = parseComponents(interest)
-        Interest(nameComponents)
+        Interest(nameComponents.mkString("/"))
       }
       case content @ <contentobj>{_*}</contentobj> => {
         val nameComponents = parseComponents(content)
         val contentData = parseContent(content)
-        Content(nameComponents, contentData)
+        Content(nameComponents.mkString("/"), contentData)
       }
       case _ => throw new Exception("XML parser cannot parse:\n" + xml)
     }
@@ -87,12 +87,12 @@ object NFNCommunication extends Logging {
   def main(args: Array[String]) = {
 
     val socket = UDPClient()
-    val ccnIf = new CCNLiteInterface()
+    val ccnIf = CCNLiteInterface
 
-    val interestName = "add 7 1/NFN"
-    val interest: Array[Byte] = ccnIf.mkBinaryInterest(interestName)
+    val interest = Interest("add 7 1/NFN")
+    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest)
 
-    val f = socket.sendReceive(interest)
+    val f = socket.sendReceive(binaryInterest)
     val respInterest = Await.result(f, 1 minute)
 
     val xmlDataInterest = ccnIf.ccnbToXml(respInterest)
@@ -106,7 +106,7 @@ object NFNCommunication extends Logging {
           case true => dataString.substring(resultPrefix.size)
           case false => throw new Exception(s"NFN could not compute result for: $interest")
         }
-        logger.info(s"NFN: '$interestName' => '$resultContentString'")
+        logger.info(s"NFN: '${interest.name}' => '$resultContentString'")
 
       case Interest(name) => throw new Exception(s"Received a Interest from NFN. not implemented")
     }
