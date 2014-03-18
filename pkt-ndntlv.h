@@ -1,5 +1,5 @@
 /*
- * @f pkt-ndn.h
+ * @f pkt-ndntlv.h
  * @b CCN lite - header file for NDN (TLV pkt format March 2014)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel

@@ -1,6 +1,6 @@
 /*
- * @f pkt-ndn.c
- * @b CCN lite - NDN pkt construction routines (TLV pkt format March 2014)
+ * @f pkt-ndntlv.c
+ * @b CCN lite - NDN pkt composing/parsing routines (TLV pkt format March 2014)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -20,10 +20,12 @@
  * 2014-03-05 created
  */
 
-#include "pkt-ndn.h"
+#include "pkt-ndntlv.h"
+
+// composing
 
 int
-ccnl_ndn_prependTLval(unsigned long val, int *offset, unsigned char *buf)
+ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 {
     int len, i, t;
 
@@ -47,19 +49,20 @@ ccnl_ndn_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 }
 
 int
-ccnl_ndn_prependTL(int type, unsigned int len, int *offset, unsigned char *buf)
+ccnl_ndntlv_prependTL(int type, unsigned int len,
+		      int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
-    if (ccnl_ndn_prependTLval(len, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTLval(len, offset, buf) < 0)
 	return -1;
-    if (ccnl_ndn_prependTLval(type, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTLval(type, offset, buf) < 0)
 	return -1;
     return oldoffset - *offset;
 }
 
 int
-ccnl_ndn_prependNonNegInt(int type, unsigned int val,
-		      int *offset, unsigned char *buf)
+ccnl_ndntlv_prependNonNegInt(int type, unsigned int val,
+			     int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, len = 0, i;
     static char fill[] = {1, 0, 0, 1, 0, 3, 2, 1, 0};
@@ -77,14 +80,14 @@ ccnl_ndn_prependNonNegInt(int type, unsigned int val,
 	buf[*offset] = 0;
 	len++;
     }
-    if (ccnl_ndn_prependTL(type, len, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
 	return -1;
     return *offset - oldoffset;
 }
 
 int
-ccnl_ndn_prependBlob(int type, unsigned char *blob, int len,
-		     int *offset, unsigned char *buf)
+ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
+			int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
@@ -92,9 +95,47 @@ ccnl_ndn_prependBlob(int type, unsigned char *blob, int len,
 	return -1;
     memcpy(buf + *offset - len, blob, len);
     *offset -= len;
-    if (ccnl_ndn_prependTL(type, len, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
 	return -1;
     return oldoffset - *offset;
 }
+
+
+// parsing
+
+int
+ccnl_ndntlv_varlenint(unsigned char **buf, unsigned int *len, unsigned int *val)
+{
+    if (**buf < 253 && *len >= 1) {
+	*val = **buf;
+	*buf += 1;
+	*len -= 1;
+    } else if (**buf == 253 && *len >= 3) { // 2 bytes
+	*val = ntohs(*(uint16_t*)(*buf + 1));
+	*buf += 3;
+	*len -= 3;
+    } else if (**buf == 254 && *len >= 5) { // 4 bytes
+	*val = ntohl(*(uint32_t*)(*buf + 1));
+	*buf += 5;
+	*len -= 5;
+    } else {
+	// not implemented yet (or too short)
+	return -1;
+    }
+    return 0;
+}
+
+int
+ccnl_ndntlv_dehead(int lev, unsigned char *base, unsigned char **buf,
+		   unsigned int *len, unsigned int *typ, unsigned int *vallen)
+{
+    if (ccnl_ndntlv_varlenint(buf, len, typ))
+	return -1;
+    if (ccnl_ndntlv_varlenint(buf, len, vallen))
+	return -1;
+    return 0;
+}
+
+
 
 // eof
