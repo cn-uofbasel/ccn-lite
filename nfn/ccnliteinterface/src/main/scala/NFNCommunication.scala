@@ -55,18 +55,6 @@ object NFNCommunication extends Logging {
       parseData(contents.head).getBytes
     }
 
-//    val xmlStringTrimmed = xmlString.trim
-//
-//    val endOfFirstTag = xmlStringTrimmed.indexOf(">")
-//    val firstTag = xmlStringTrimmed.substring(1, endOfFirstTag)
-//
-//    val endOfLastTag = xmlStringTrimmed.lastIndexOf(firstTag) + 1 + firstTag.size
-//
-//    val cleanedXmlString = xmlStringTrimmed.substring(0, endOfLastTag)
-//
-//    println("CLEANED XML: \n" + cleanedXmlString)jj
-
-    // TODO use base64 encoding for raw data in xml
     val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
     val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)

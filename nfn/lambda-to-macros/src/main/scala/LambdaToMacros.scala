@@ -12,13 +12,26 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  override def exec(values: NFNServiceValue*): Try[NFNServiceValue] = {
-    val wc = values match {
-      case (NFNNameValue(docName)) :: Nil => countWords(docName)
-      case _ => throw new NFNServiceException(s"WordCountService takes only one parameter of type NFNNameValue, which is the name of a document to count the words, and not: $values")
+  override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+    val values = unparsedValues match {
+      case Seq(docNameString) => Seq(
+        NFNNameValue(NFNName.parse(docNameString).getOrElse(throw new NFNServiceException(s"Could not create NFNName for docname: $docNameString")))
+      )
+      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
     }
+    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    assert(name == this.toNFNName)
 
-    Try(NFNIntValue(wc))
+    val function = { (values: Seq[NFNServiceValue]) =>
+      values match {
+        case Seq(docName: NFNNameValue) => { Try(
+          NFNIntValue(countWords(docName.name))
+        )}
+        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
+      }
+
+    }
+    CallableNFNService(name, values, function)
   }
 
   override def toNFNName: NFNName = NFNName("WordCountService/Int/rInt")
@@ -26,26 +39,47 @@ case class WordCountService() extends NFNService {
 
 
 case class AddService() extends  NFNService {
-  override def exec(values: NFNServiceValue*): Try[NFNServiceValue] = {
-    Try(NFNIntValue(
+  override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+    val values = unparsedValues match {
+      case Seq(lStr, rStr) => Seq(
+          NFNIntValue(lStr.toInt),
+          NFNIntValue(rStr.toInt)
+      )
+      case _ => throw new Exception(s"Service $toNFNName could not parse two int values from: '$unparsedValues'")
+    }
+    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    assert(name == this.toNFNName)
+
+    val function = { (values: Seq[NFNServiceValue]) =>
       values match {
-        case List(NFNIntValue(l), NFNIntValue(r)) => r + l
-        case _ => throw new NFNServiceException(s"AddService allows only two NFNIntValues as arguments and not $values")
+        case Seq(l: NFNIntValue, r: NFNIntValue) => { Try(
+          NFNIntValue(l.amount + r.amount)
+        )}
+        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
       }
-    ))
+
+    }
+    CallableNFNService(name, values, function)
   }
 
   override def toNFNName: NFNName = NFNName("SumService/Int/Int/rInt")
 }
 
 case class SumService() extends  NFNService {
-  override def exec(values: NFNServiceValue*): Try[NFNServiceValue] = {
-    Try(NFNIntValue(
-      values.map({
-          case NFNIntValue(n) => n
-          case _ => throw new NFNServiceException("SumService allows only NFNIntValues as arguments")
-      }).sum
-    ))
+  override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+    val values = unparsedValues.map( (unparsedValue: String) => NFNIntValue(unparsedValue.toInt))
+    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    assert(name == this.toNFNName)
+
+    val function = { (values: Seq[NFNServiceValue]) =>
+      Try(NFNIntValue(
+        values.map({
+          case NFNIntValue(i) => i
+          case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
+        }).sum
+      ))
+    }
+    CallableNFNService(name, values, function)
   }
 
   override def toNFNName: NFNName = NFNName("SumService/Int/Int/rInt")
