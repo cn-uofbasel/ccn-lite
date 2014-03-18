@@ -18,6 +18,9 @@
 
 #define NFN_FACE -1;
 
+static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
+						    struct ccnl_interest_s *i);
+
 int
 hex2int(char c)
 {
@@ -191,7 +194,8 @@ add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix
     return c;
 }
 
-int ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, struct ccnl_content_s *c){
+struct ccnl_content_s *
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
     struct ccnl_content_s *c_iter; 
     
@@ -199,11 +203,23 @@ int ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interes
         unsigned char *md;
         md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
         if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, CMP_MATCH)){
-            c = c_iter;
-            return 1;
+            return c_iter;
         }
     }
-    return 0;
+    return NULL;
+}
+
+struct ccnl_content_s *
+ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+    DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
+    
+    ccnl_interest_propagate(ccnl, i);
+    //TODO copy receive system to here from core
+    
+    //if result before timeout --> create struct ccnl_content_s and return it
+    
+    //else return 0;
+    return NULL;
 }
 
 struct ccnl_interest_s *
