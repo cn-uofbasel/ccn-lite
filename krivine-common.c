@@ -16,6 +16,11 @@
 
 #include "ccnl-pdu.c"
 
+#define NFN_FACE -1;
+
+static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
+						    struct ccnl_interest_s *i);
+
 int
 hex2int(char c)
 {
@@ -48,7 +53,7 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 int
 splitComponents(char* namecomp, char **prefix)
 { 
-    int i;
+    int i = 0;
     unsigned char *cp;
     cp = strtok(namecomp, "/");
     
@@ -187,6 +192,56 @@ add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix
     
     c = ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);
     return c;
+}
+
+struct ccnl_content_s *
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+    DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
+    struct ccnl_content_s *c_iter; 
+    
+    for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
+        unsigned char *md;
+        md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
+        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, CMP_MATCH)){
+            return c_iter;
+        }
+    }
+    return NULL;
+}
+
+struct ccnl_content_s *
+ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+    DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
+    
+    ccnl_interest_propagate(ccnl, i);
+    //TODO copy receive system to here from core
+    
+    //if result before timeout --> create struct ccnl_content_s and return it
+    
+    //else return 0;
+    return NULL;
+}
+
+struct ccnl_interest_s *
+ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, char* name){
+    DEBUGMSG(2, "ccnl_nfn_create_interest_object()\n");
+    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *content = 0;
+    int num; int typ;
+    dehead(&out, &len, &num, &typ);
+    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
+			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+    
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
+    from->faceid = NFN_FACE;
+    from->last_used = CCNL_NOW();
+    from->outq = malloc(sizeof(struct ccnl_buf_s));
+    from->outq->data[0] = strdup(name);
+    from->outq->datalen = strlen(name);
+    return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 }
 #endif USE_UTIL
 #endif //KRIVINE_COMMON_C

@@ -924,7 +924,7 @@ log_ZAM(char *en, char *sn, struct term_s *t,
 // ----------------------------------------------------------------------
 
 char*
-ZAM_term(char *cfg) // written as forth approach
+ZAM_term(struct ccnl_relay_s *ccnl, char *cfg) // written as forth approach
 {
     char *en, *astack, *rstack = 0, *prog, *cp, *pending, *p;
     struct term_s *t;
@@ -1453,6 +1453,7 @@ normal:
     	
 	int num_params = pop1int(&cp, rstack);
         int i, j, complen;
+        char *res = NULL;
 	cp = config2str(&cfg, en, astack, rstack, cp);
 	char **params = malloc(sizeof(char * ) * num_params); 
 
@@ -1475,17 +1476,8 @@ normal:
                 }
 		a1 = end;
 	}
-
-	//TODO function call --> make an interest to compute the result...
-        //test for routable parameter (routable > 0)....start with last parameter
-        //create an interest... with /<routable parameter>/rest with extracted parameter.
-	
-        //build computation string
         
-       
-        
-        
-        //solange routable parameter: try to find a result
+        //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
              
@@ -1495,10 +1487,10 @@ normal:
                 char comp[1024];
                 memset(comp, 0, sizeof(comp));
                 complen = sprintf(comp, "(@x call %d ", num_params);
+                //build computation string
                 for(j = 0; j < num_params; ++j){
                     if(i == j){
                         complen += sprintf(comp + complen, "x ");
-                        
                     }
                     else{
                         complen += sprintf(comp + complen, "%s ", params[j]);
@@ -1507,25 +1499,59 @@ normal:
                 complen += sprintf(comp + complen, ")");
                 printf("Computation request: %s %s\n", comp, params[i]);
                 
+                //TODO: check if params[i] is local available
+                //      if it is, check other and request them
+                //      if not send interest to others
+                //      if reply insert result
+                //      if timeout continue with next iteration
+                
 #ifndef ABSTRACT_MACHINE
                 //make interest
                 char *namecomp[CCNL_MAX_NAME_COMP];
-                j= splitComponents(params[i], namecomp);
+                char *param = strdup(params[i]);
+                j= splitComponents(param, namecomp);
                 int len = mkInterestCompute(namecomp, comp, complen, 0, out);
-                printf("FOO: %s\n", out);
-#endif
-             
+                free(param);
+                
+                fwrite(out, sizeof(char), len, stdout);
+                printf("\n");
+                struct ccnl_interest_s *i = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+                struct ccnl_content_s *c;
+                //search locally for content
+                if((c = ccnl_nfn_local_content_search(ccnl, i)) != NULL){
+                    printf("Content locally found: %s\n", c->content);
+                    res = c->content;
+                    
+                    goto tail;
+                }
+                
+                else if((c = ccnl_nfn_global_content_search(ccnl, i)) != NULL){
+                    //printf("Content in the network found: %s\n", c->content);
+                    
+                    res = "42";
+                    goto tail;
+                }
+
+                
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
-            }
-        }
-        //compute //mk interest for all components and initialize the computation
+                i = ccnl_interest_remove(ccnl, i);
+#endif // ABSTRACT_MACHINE
+            }//endif
+            
+        }//endfor
         
+        //TODO: Try to receive components and compute!?
+                
         
-        printf("OP_FOX: NOT IMPLEMENTED: content: %d\n", routable);
+        printf("OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
         //place result
-	char *res = "42";
+tail:
+        if(res == NULL) res = "0";
+        if(!strncmp(res, "RST|",4)){
+            res+=4;
+        }
 	char rst[1000];
 	int len = sprintf(rst, "RST|%s", res);
 	if(a1) sprintf(rst+len, "%s", a1);
@@ -1581,7 +1607,7 @@ createDict(char *pairs[])
     return ename;
 }
 
-char *Krivine_reduction(char *expression){
+char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
 
     char *prog, *cp, *config;
     char *setup_env[] = {
@@ -1632,7 +1658,7 @@ char *Krivine_reduction(char *expression){
 	cs_trigger = 0;
 	char *hash_name = cp;
 	printf("CP BEFORE: %s\n", cp);
-	cp = ZAM_term(cp);
+	cp = ZAM_term(ccnl, cp);
 	printf("CP AFTER:  %s\n", cp);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
@@ -1689,7 +1715,7 @@ main(int argc, char **argv)
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
     
-    res = Krivine_reduction(prog);
+    res = Krivine_reduction(NULL, prog);
 
     printf("\n res; %s\n\n", res);
 
