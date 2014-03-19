@@ -1527,8 +1527,8 @@ normal:
                 
                 else if((c = ccnl_nfn_global_content_search(ccnl, i)) != NULL){
                     //printf("Content in the network found: %s\n", c->content);
-                    
-                    res = "42";
+                    printf("Content found in the network: %s\n", c->content);
+                    res = c->content;
                     goto tail;
                 }
 
