@@ -92,42 +92,52 @@ case class NFNNameList(names: List[NFNName])
 object ScalaToNFN extends App with Logging {
 
   val socket = UDPClient()
-  val ccnIf = CCNLiteInterface
+  val ccnIf = new CCNLiteInterface()
 
-  val l = lambda{
-    val x = 41
-    x + 1
-  }+"/NFN"
-  println(s"lambda<$l>")
+  def nfnSend(lambda: String): String = {
 
+    val interest = Interest(lambda)
 
-  val interest = Interest(
-    NFNName.parse(l).getOrElse(
-      throw new Exception(s"Lambda Expression '$l' is not a valid NFNName"))
-    .name
-  )
+    val binaryInterest = ccnIf.mkBinaryInterest(interest.nameComponents)
 
-  val binaryInterest = ccnIf.mkBinaryInterest(interest)
-  val f = socket.sendReceive(binaryInterest)
-  NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 10 seconds))) match {
-    case Content(name, data) =>
-      val dataString = new String(data)
-      val resultPrefix = "RST|"
+    println(ccnIf.ccnbToXml(binaryInterest))
 
-      val resultContentString = dataString.startsWith(resultPrefix) match {
-        case true => dataString.substring(resultPrefix.size)
-        case false => throw new Exception(s"NFN could not compute result for: $interest")
+    val f = socket.sendReceive(binaryInterest)
+
+    NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 5 seconds))) match {
+      case Content(name, data) => {
+        val dataString = new String(data)
+        val resultPrefix = "RST|"
+
+        val resultContentString = dataString.startsWith(resultPrefix) match {
+          case true => dataString.substring(resultPrefix.size)
+          case false => throw new Exception(s"NFN could not compute result for: $interest")
+        }
+        logger.info(s"NFN: '$lambda' => '$resultContentString'")
+        resultContentString
       }
-      logger.info(s"NFN: '$l' => '$resultContentString'")
 
-    case Interest(name) =>
-      NFNName.parse(name) match {
-        case Some(nfnName) => val serv = NFNServiceLibrary.find(nfnName)
-        case None => throw new Exception(s"Not a valid nfn name: $interest")
-      }
-      // TODO
-      throw new Exception(s"Received a Interest from NFN. not implemented")
+      case Interest(name) =>
+        NFNName.parse(name) match {
+          case Some(nfnName) => val serv = NFNServiceLibrary.find(nfnName)
+          case None => throw new Exception(s"Not a valid nfn name: $interest")
+        }
+        // TODO
+        throw new Exception(s"Received a Interest from NFN. not implemented")
+    }
   }
+
+  println("Running ScalaToNFN...")
+
+  val res = nfnSend(lambda{
+//    val x = 41
+//    x + 1
+    val dollar = 100
+    NFNServiceLibrary.convertDollarToChf(100)
+  })
+  println(s"Result: $res")
+
+
 }
 
 object LambdaToMacro extends App {

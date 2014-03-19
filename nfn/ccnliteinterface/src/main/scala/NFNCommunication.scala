@@ -13,7 +13,10 @@ import javax.xml.bind.DatatypeConverter
 import com.typesafe.scalalogging.slf4j.Logging
 
 trait Packet {
+
   def name: String
+
+  def nameComponents:Array[String] = Array(name, "NFN")
 }
 
 case class Interest(name: String) extends Packet {
@@ -21,6 +24,7 @@ case class Interest(name: String) extends Packet {
 }
 case class Content(name: String, data: Array[Byte]) extends Packet {
   override def toString = s"Content('$name' => ${new String(data)})"
+
 }
 
 object NFNCommunication extends Logging {
@@ -75,10 +79,10 @@ object NFNCommunication extends Logging {
   def main(args: Array[String]) = {
 
     val socket = UDPClient()
-    val ccnIf = CCNLiteInterface
+    val ccnIf = new CCNLiteInterface()
 
     val interest = Interest("add 7 1/NFN")
-    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest)
+    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest.nameComponents)
 
     val f = socket.sendReceive(binaryInterest)
     val respInterest = Await.result(f, 1 minute)
