@@ -235,9 +235,20 @@ object LambdaMacros {
           val nParams = tparams.length
           val codeExpr = toLambda(rhs)
           val expr = tparams.foldLeft(codeExpr)((curExpr, param) => Clos(param.name.toString, curExpr))
+
+          val paramNames = vparamss.flatten.map({
+            case ValDef(_, paramName, _, _) => paramName.toString
+          })
           //          val typeNames = params.foldLeft("")((curName, param) => s"$curName/${param.tpe.typeSymbol.name}")
           val funName = s"$name"
-          Let(funName, expr, None)
+
+          // Start with the definition of the function and surround the definition with lambda abstractions for each parameter
+          val defExpr = paramNames.foldLeft[LExpr](expr)((curExpr, paramName) => Clos(paramName, curExpr))
+
+          // Rest of the the program
+          val rhsExpr = toLambda(rhs)
+
+          Let(funName, defExpr, Some(rhsExpr))
         }
         case TypeDef(mods: Modifiers, name: TypeName, tparams: List[TypeDef], rhs: Tree) => {
           notImplemented("TypeDef")
@@ -276,7 +287,7 @@ object LambdaMacros {
 
           lambdaExprs.reverse.reduce((expr, let) =>
             let match {
-              case Let(name, body, _) => Application(Clos(name, expr), body)// Let(name, body, Some(expr))
+              case Let(name, body, _) => /*Application(Clos(name, expr), body)*/ Let(name, body, Some(expr))
               case _ => throw new Exception("When merging let expressions, one expression was not of type LET")
             })
         }
@@ -398,12 +409,12 @@ object LambdaMacros {
         }
         //GenericApply
         case Apply(fun: Tree, args: List[Tree]) => {
-          notImplemented("Apply")
-          // TODO is this dead code?
           matchInfo(s"Apply (fun: <$fun> args: <$args>)")
-          val funExpr = toLambda(fun)
+          assert(args.size == 1, "Apply(...) is only implemented for functions with a single argument")
+          val funName = fun.symbol.name.toString
           val argExprs = args map {toLambda}
-          NopExpr()
+          Application(Variable(funName), argExprs.head)
+
         }
         case TypeApply(fun: Tree, args) => {
           notImplemented("TypeApply")
