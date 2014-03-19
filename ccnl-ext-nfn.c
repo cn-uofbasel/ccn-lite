@@ -38,11 +38,14 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int i, len = 0;
     
     //put packet together
-    len = sprintf(str, "%s ", prefix->comp[prefix->compcnt-2]);
+    len = sprintf(str, "%s", prefix->comp[prefix->compcnt-2]);
+    if(prefix->compcnt > 2){
+        len += sprintf(str + len, " ");
+    }
     for(i = 0; i < prefix->compcnt-2; ++i){
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
-     
+    
     
     /*for(i = 0; i < prefix->compcnt-1; ++i){
         //DEBUGMSG(99, "%s\n", prefix->comp[i]);
