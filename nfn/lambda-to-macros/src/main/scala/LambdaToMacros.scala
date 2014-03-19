@@ -99,9 +99,7 @@ object ScalaToNFN extends App with Logging {
     val interest = Interest(lambda)
 
     val binaryInterest = ccnIf.mkBinaryInterest(interest.nameComponents)
-
     println(ccnIf.ccnbToXml(binaryInterest))
-
     val f = socket.sendReceive(binaryInterest)
 
     NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 5 seconds))) match {
@@ -132,8 +130,12 @@ object ScalaToNFN extends App with Logging {
   val res = nfnSend(lambda{
 //    val x = 41
 //    x + 1
+//    val dollar = 100
+//    NFNServiceLibrary.convertDollarToChf(100)
+//    def fun(x: Int): Int = x + 1
+//    fun(2)
     val dollar = 100
-    NFNServiceLibrary.convertDollarToChf(100)
+    dollar + 1
   })
   println(s"Result: $res")
 
