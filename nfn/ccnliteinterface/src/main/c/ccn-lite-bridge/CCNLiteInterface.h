@@ -13,7 +13,7 @@ extern "C" {
  * Signature: (Ljava/lang/String;)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_CCNLiteInterface_mkBinaryInterest
-  (JNIEnv *, jobject, jstring);
+  (JNIEnv *, jobject, jobjectArray);
 
 /*
  * Class:     CCNLiteInterface
@@ -21,7 +21,7 @@ JNIEXPORT jbyteArray JNICALL Java_CCNLiteInterface_mkBinaryInterest
  * Signature: (Ljava/lang/String;[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_CCNLiteInterface_mkBinaryContent
-  (JNIEnv *, jobject, jstring, jbyteArray);
+  (JNIEnv *, jobject, jobjectArray, jbyteArray);
 
 /*
  * Class:     CCNLiteInterface

@@ -1,19 +1,19 @@
 <contentobj>
   <name>
     <component>
-      <data size="11" dt="string">
-          contentname
+      <data size="20" dt="string">
+          /contentname/content
       </data>
     </component>
     <component>
-      <data size="7" dt="string">
-          content
+      <data size="3" dt="string">
+          NFN
       </data>
     </component>
   </name>
   <timestamp>
     <data size="6" dt="string">
-        S&%fffffffc]%07%ffffffaf
+        S)%ffffff99%fffffff6%01%ffffffc3
     </data>
   </timestamp>
   <signedinfo>

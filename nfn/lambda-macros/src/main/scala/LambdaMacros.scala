@@ -367,7 +367,7 @@ object LambdaMacros {
               val retTpe = a.tpe.typeSymbol.name
               val funName: String = s"$fun"
               val funValue = toLambda(arg)
-              val body = Application(Variable(s"/$funName/$argTpe/r$retTpe"), Variable("v"))
+              val body = Application(Variable(s"call 2 /$funName/$argTpe/r$retTpe"), Variable("v"))
               val clos = Clos("v", body)
 
               Application(clos, funValue)

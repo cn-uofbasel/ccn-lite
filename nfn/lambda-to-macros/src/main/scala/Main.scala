@@ -18,9 +18,9 @@ object NFNServiceLibrary {
 
   def add(serv: NFNService) =  services += serv.toNFNName.toString -> serv
 
-  def find(servName: String) = services(servName)
+  def find(servName: String):NFNService = services(servName)
 
-  def find(servName: NFNName) = find(servName.name)
+  def find(servName: NFNName):NFNService = find(servName.name)
 
   def convertDollarToChf(dollar: Int): Int = ???
 //    val serv = DollarToChf()

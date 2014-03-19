@@ -2,15 +2,15 @@ import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 
 
 /**
- * Created by basil on 05/03/14.
- */
+* Created by basil on 05/03/14.
+*/
 class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
-  val ccnIf = CCNLiteInterface
+  val ccnIf = new CCNLiteInterface()
   val interest = Interest("/name/interest")
 
   s"Interest $interest" should "be converted to ccnb back to xml into interest object" in {
     Given("cnnb for name")
-    val ccnbInterest = ccnIf.mkBinaryInterest(interest)
+    val ccnbInterest = ccnIf.mkBinaryInterest(interest.nameComponents)
     When("parsed to xml string")
     val xmlUnparsed = ccnIf.ccnbToXml(ccnbInterest)
     Then("xml parsed to interest")
@@ -23,7 +23,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
 
   s"Content $content" should "be converted to ccnb back to xml into content object" in {
     Given("cnnb for name and content")
-    val ccnbContent = ccnIf.mkBinaryContent(content)
+    val ccnbContent = ccnIf.mkBinaryContent(content.nameComponents, content.data)
     When("parsed to xml string")
     val xmlUnparsed = ccnIf.ccnbToXml(ccnbContent)
     Then("xml parsed to content")

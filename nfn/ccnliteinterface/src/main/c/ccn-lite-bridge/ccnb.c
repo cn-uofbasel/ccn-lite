@@ -93,13 +93,14 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 
 int
 mkContent(char **namecomp,
+      int cmpCount,
       unsigned char *publisher,
       int plen,
       char *private_key_path,
       unsigned char *body, int blen,
       unsigned char *out)
 {
-    int len = 0, k;
+    int len = 0, k, i;
 
     len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
 
@@ -109,7 +110,7 @@ mkContent(char **namecomp,
 //         len += add_signature(out+len, private_key_path, body, blen);
 // #endif
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
+    for(i = 0; i < cmpCount; i++) {
         len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
         k = unescape_component((unsigned char*) *namecomp);
         len += mkHeader(out+len, k, CCN_TT_BLOB);
@@ -158,7 +159,7 @@ mkContent(char **namecomp,
 
 
 int
-mkInterest(char **namecomp,
+mkInterest(char **namecomp, int cmpCount,
        char *minSuffix, char *maxSuffix,
        unsigned char *digest, int dlen,
        unsigned char *publisher, int plen,
@@ -166,71 +167,71 @@ mkInterest(char **namecomp,
        uint32_t *nonce,
        unsigned char *out)
 {
-    int len = 0, k;
+    int len = 0, k, i;
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
 
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = unescape_component((unsigned char*) *namecomp);
-    len += mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
+    for(i = 0; i < cmpCount; i++) {
+        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+        k = unescape_component((unsigned char*) *namecomp);
+        len += mkHeader(out+len, k, CCN_TT_BLOB);
+        memcpy(out+len, *namecomp++, k);
+        len += k;
+        out[len++] = 0; // end-of-component
     }
     if (digest) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    len += mkHeader(out+len, dlen, CCN_TT_BLOB);
-    memcpy(out+len, digest, dlen);
-    len += dlen;
-    out[len++] = 0; // end-of-component
-    if (!maxSuffix)
-        maxSuffix = "0";
+        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+        len += mkHeader(out+len, dlen, CCN_TT_BLOB);
+        memcpy(out+len, digest, dlen);
+        len += dlen;
+        out[len++] = 0; // end-of-component
+        if (!maxSuffix)
+            maxSuffix = "0";
     }
     out[len++] = 0; // end-of-name
 
     if (minSuffix) {
-    k = strlen(minSuffix);
-    len += mkHeader(out+len, CCN_DTAG_MINSUFFCOMP, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, minSuffix, k);
-    len += k;
-    out[len++] = 0; // end-of-minsuffcomp
+        k = strlen(minSuffix);
+        len += mkHeader(out+len, CCN_DTAG_MINSUFFCOMP, CCN_TT_DTAG);
+        len += mkHeader(out+len, k, CCN_TT_UDATA);
+        memcpy(out + len, minSuffix, k);
+        len += k;
+        out[len++] = 0; // end-of-minsuffcomp
     }
 
     if (maxSuffix) {
-    k = strlen(maxSuffix);
-    len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, maxSuffix, k);
-    len += k;
-    out[len++] = 0; // end-of-maxsuffcomp
+        k = strlen(maxSuffix);
+        len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
+        len += mkHeader(out+len, k, CCN_TT_UDATA);
+        memcpy(out + len, maxSuffix, k);
+        len += k;
+        out[len++] = 0; // end-of-maxsuffcomp
     }
 
     if (publisher) {
-    len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-    len += mkHeader(out+len, plen, CCN_TT_BLOB);
-    memcpy(out+len, publisher, plen);
-    len += plen;
-    out[len++] = 0; // end-of-component
+        len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
+        len += mkHeader(out+len, plen, CCN_TT_BLOB);
+        memcpy(out+len, publisher, plen);
+        len += plen;
+        out[len++] = 0; // end-of-component
     }
 
     if (scope) {
-    k = strlen(scope);
-    len += mkHeader(out+len, CCN_DTAG_SCOPE, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, (unsigned char*)scope, k);
-    len += k;
-    out[len++] = 0; // end-of-maxsuffcomp
+        k = strlen(scope);
+        len += mkHeader(out+len, CCN_DTAG_SCOPE, CCN_TT_DTAG);
+        len += mkHeader(out+len, k, CCN_TT_UDATA);
+        memcpy(out + len, (unsigned char*)scope, k);
+        len += k;
+        out[len++] = 0; // end-of-maxsuffcomp
     }
 
     if (nonce) {
-    len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-    len += mkHeader(out+len, sizeof(*nonce), CCN_TT_BLOB);
-    memcpy(out+len, (void*)nonce, sizeof(*nonce));
-    len += sizeof(*nonce);
-    out[len++] = 0; // end-of-nonce
+        len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+        len += mkHeader(out+len, sizeof(*nonce), CCN_TT_BLOB);
+        memcpy(out+len, (void*)nonce, sizeof(*nonce));
+        len += sizeof(*nonce);
+        out[len++] = 0; // end-of-nonce
     }
 
     out[len++] = 0; // end-of-interest
