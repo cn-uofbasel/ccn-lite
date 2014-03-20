@@ -95,6 +95,7 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
     return len;  
 }
 
+
 #ifndef USE_UTIL 
 
 int
@@ -210,16 +211,90 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s 
 }
 
 struct ccnl_content_s *
+ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
+    
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *content = 0;
+    int num; int typ;
+    dehead(&out, &len, &num, &typ);
+    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
+			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);    
+    
+    return ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);   
+}
+
+struct ccnl_content_s *
+ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest){
+    int i, maxfd = -1, rc, content_received = 0;
+    fd_set readfs, writefs;
+    unsigned char buf[CCNL_MAX_PACKET_SIZE];
+    int len;
+    if (ccnl->ifcount == 0) {
+	fprintf(stderr, "no socket to work with, not good, quitting\n");
+	exit(EXIT_FAILURE);
+    }
+    for (i = 0; i < ccnl->ifcount; i++)
+	if (ccnl->ifs[i].sock > maxfd)
+	    maxfd = ccnl->ifs[i].sock;
+    maxfd++;
+    
+    //while(!content_received){
+        
+        //Initialize sockets
+        struct timeval timeout; //TODO change timeout system, not static
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+        FD_ZERO(&readfs);
+        FD_ZERO(&writefs);
+        for (i = 0; i < ccnl->ifcount; i++) {
+            FD_SET(ccnl->ifs[i].sock, &readfs);
+            if (ccnl->ifs[i].qlen > 0)
+                FD_SET(ccnl->ifs[i].sock, &writefs);
+        }
+        rc = select(maxfd, &readfs, &writefs, NULL, &timeout);
+        if (rc < 0) {
+            perror("select(): ");
+            exit(EXIT_FAILURE);
+        }
+        //receive content
+        for (i = 0; i < ccnl->ifcount; i++) {
+	    if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
+		sockunion src_addr;
+		socklen_t addrlen = sizeof(sockunion);
+		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
+				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
+                    struct ccnl_content_s *c = ccnl_extract_content_obj(ccnl, buf, len);
+                    return c;
+                }
+            }
+        }
+    //}
+    return NULL;
+}
+
+struct ccnl_content_s *
 ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
     
     ccnl_interest_propagate(ccnl, i);
-    //TODO copy receive system to here from core
+    //copy receive system to here from core
+    struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
     
-    //if result before timeout --> create struct ccnl_content_s and return it
+    return c;
+}
+
+//FIXME use global search or special face?
+struct ccnl_content_s *
+ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+    DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
     
-    //else return 0;
-    return NULL;
+    ccnl_interest_propagate(ccnl, i);
+    //copy receive system to here from core
+    struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
+    
+    return c;
 }
 
 struct ccnl_interest_s *
