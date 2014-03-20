@@ -5,6 +5,7 @@ import LambdaMacros._
 
 import scala.reflect.runtime.{universe => ru}
 import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
 import scala.util.{Failure, Success, Try}
 
 
@@ -15,12 +16,17 @@ import ExecutionContext.Implicits.global
 object NFNServiceLibrary {
 
   private var services:Map[String, NFNService] = Map()
+  add(SumService())
 
-  def add(serv: NFNService) =  services += serv.toNFNName.toString -> serv
+  def add(serv: NFNService) =  services += serv.toNFNName.name -> serv
 
-  def find(servName: String):NFNService = services(servName)
+  def find(servName: String):Option[NFNService] = {
+    println(s"Looking for: '$servName' in '$services'")
+    services.get(servName)
+  }
 
-  def find(servName: NFNName):NFNService = find(servName.name)
+
+  def find(servName: NFNName):Option[NFNService] = find(servName.name)
 
   def convertDollarToChf(dollar: Int): Int = ???
 //    val serv = DollarToChf()
@@ -114,23 +120,29 @@ trait NFNService {
 
 object NFNService {
   def parseAndFindFromName(name: String): Try[CallableNFNService] = {
-    var pattern = new Regex("^call (\\d)+ ((/[\\w]+)+)*$")
-    pattern.findAllMatchIn(name).toList match {
-      case List(matchh) =>
-        matchh.groupNames match {
-        case Seq(countString, funString, argStrings@_*) => {
-          val count = countString.toInt - 1
-          assert(count == argStrings.size, s"matched name $name is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
-          assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
-          val fun = argStrings.head
-          val serv = NFNServiceLibrary.find(fun)
 
-          Try(serv.parse(name, argStrings))
-        }
-        case _ => throw new Exception(s"matched name $name is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
+    println(s"Name: $name")
+//    val pattern = new Regex("""^call (\d)+ ([\S]+) ([\S]+) ([\S]+)$""")
+    val pattern = new Regex("""^call (\d)+ (.*)$""")
+
+    name match {
+      case pattern(countString, funArgs) => {
+        val l = funArgs.split(" ").toList
+        val (fun, args) = (l.head, l.tail)
+
+        println(s"fun: $fun")
+        println(s"args: $args")
+
+        val count = countString.toInt - 1
+        assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count + 1}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
+        assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
+//
+        val serv = NFNServiceLibrary.find(fun).getOrElse(throw new Exception(s"parseAndFindFromName: Service $fun not found in service library"))
+
+        Try(serv.parse(fun, args))
       }
-      case Nil => throw new Exception(s"No name could be parsed from: $name")
-      case _ => throw new Exception(s"For some reason more than valid possible name was parsed from $name")
+//      case Nil => throw new Exception(s"No name could be parsed from: $name")
+      case unvalidServ @ _ => throw new Exception(s"matched name $name (parsed to: $unvalidServ) is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
     }
   }
 }

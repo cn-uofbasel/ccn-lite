@@ -1,11 +1,13 @@
 import com.typesafe.scalalogging.slf4j.Logging
+import lambdacalculus.machine.{ConstValue, ValuePrettyPrinter, Value, CallExecutor}
+import lambdacalculus.{ExecutionOrder, LambdaCalculus}
 import language.experimental.macros
 
 import LambdaMacros._
 import scala.collection.immutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 case class WordCountService() extends NFNService {
@@ -89,12 +91,43 @@ case class NFNMapReduce(values: NFNNameList, map: NFNService, reduce: NFNService
 
 case class NFNNameList(names: List[NFNName])
 
-object ScalaToNFN extends App with Logging {
+case class LocalNFNCallExecutor() extends CallExecutor {
+  override def executeCall(call: String): Value = {
+    NFNService.parseAndFindFromName(call).flatMap({ serv => serv.exec}) match {
+      case Success(NFNIntValue(n)) => ConstValue(n)
+      case Success(res @ _) => throw new Exception(s"LocalNFNCallExecutor: Result of executeCall is not implemented for: $res")
+      case Failure(e) => throw new Exception(e)
+    }
+  }
+}
 
+case class ScalaToLocalMachine() extends NFNSender with Logging {
+  val lc = LambdaCalculus(ExecutionOrder.CallByValue, maybeExecutor = Some(LocalNFNCallExecutor()))
+
+  override def nfnSend(lambda: String): String = {
+    lc.substituteParseCompileExecute(lambda) match {
+      case Success(List(v: Value)) => ValuePrettyPrinter(v)
+      case Success(List(values @ _*)) => {
+        logger.warn("More than one execution result")
+        values.mkString("[", " | ", "]")
+      }
+      case Success(Nil) => throw new Exception("ScalaToLocalMachine: For some reason there was a successful execution without an result")
+      case Failure(e) => throw new Exception(e)
+    }
+
+  }
+}
+
+trait NFNSender {
+  def apply(lambda:String): String = nfnSend(lambda)
+  def nfnSend(lambda: String): String
+}
+
+case class ScalaToNFN() extends NFNSender with Logging {
   val socket = UDPClient()
   val ccnIf = new CCNLiteInterface()
 
-  def nfnSend(lambda: String): String = {
+  override def nfnSend(lambda: String): String = {
 
     val interest = Interest(lambda)
 
@@ -125,18 +158,27 @@ object ScalaToNFN extends App with Logging {
     }
   }
 
+}
+
+object ScalaToNFN extends App with Logging {
+
+//  val nfnSend = ScalaToNFN()
+  val nfnSend = ScalaToLocalMachine()
   println("Running ScalaToNFN...")
 
-  val res = nfnSend(lambda{
+  val res = nfnSend(
+    "call 3 SumService/Int/Int/rInt 11 1"
+//    lambda{
 //    val x = 41
 //    x + 1
 //    val dollar = 100
 //    NFNServiceLibrary.convertDollarToChf(100)
 //    def fun(x: Int): Int = x + 1
 //    fun(2)
-    val dollar = 100
-    dollar + 1
-  })
+//    val dollar = 100
+//    dollar + 1
+//  }
+)
   println(s"Result: $res")
 
 
