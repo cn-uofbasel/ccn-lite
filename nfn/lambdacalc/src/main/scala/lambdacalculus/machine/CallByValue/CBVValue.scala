@@ -4,8 +4,8 @@ import lambdacalculus.machine._
 
 
 sealed trait CBVValue extends Value
-case class ClosureValue(c: List[Instruction], e: List[Value]) extends CBVValue
-case class EnvValue(c: List[Value]) extends CBVValue
+case class ClosureValue(varName: String, c: List[Instruction], e: List[Value], maybeName: Option[String] = None) extends CBVValue
+case class EnvValue(c: List[Value], maybeName: Option[String] = None) extends CBVValue
 
-case class VariableValue(n: String) extends CBVValue
+case class VariableValue(n: String, maybeName: Option[String] = None) extends CBVValue
 

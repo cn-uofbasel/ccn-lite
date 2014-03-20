@@ -10,7 +10,7 @@ trait Instruction extends Tokens {
   def stringRepr: String
 }
 
-case class LET(clos: List[Instruction]) extends Instruction {
+case class LET(defName: String, clos: List[Instruction]) extends Instruction {
   def stringRepr: String = s"LET(${clos.mkString(",")}"
 }
 
@@ -42,7 +42,7 @@ case class BINARYOP(op: BinaryOp.BinaryOp) extends Instruction {
   def apply(v1: Value, v2: Value):Value = {
     import BinaryOp._
     (v1, v2) match {
-      case (ConstValue(c1), ConstValue(c2)) => ConstValue(
+      case (ConstValue(c1, _), ConstValue(c2, _)) => ConstValue(
         op match {
           case Add => c1 + c2
           case Sub => c1 - c2

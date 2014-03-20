@@ -31,7 +31,12 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
       case CONST(const) => {
         val s = stack
         val e = env
-        val n = ConstValue(const)
+
+        val n =
+          s match {
+            case List(ClosureValue(varName, _, _, _), _*) => ConstValue(const, Some(varName))
+            case _ => ConstValue(const)
+          }
         val c = code.tail
 
         nextStack = n :: s
@@ -42,16 +47,34 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
       case ACCESSBYVALUE(n, name) => {
         val s = stack
         val e = env
-        val accessedE:Value = if(e.size > n) {
-            e(n)
-          }else {
-            logger.debug(s"name $name cannot be found in the current environment, transforming into final configuration with current state as closure")
-            VariableValue(name)
-          }
+        val v =
+          e.find(
+            {  _.maybeName == Some(name) }
+          ).getOrElse(
+            if(n < e.size) {
+              e(n)
+            } else {
+              VariableValue(name)
+            }
 
-        accessedE match {
+          )
+
+//        accessedE match {
+//          case Some(CodeValue(c, maybeName)) =>
+//          case _ => accessedE
+//
+//        }
+
+//          if(e.size > n) {
+//            e(n)
+//          }else {
+//            logger.debug(s"name $name cannot be found in the current environment, transforming into final configuration with current state as closure")
+//            VariableValue(name)
+//          }
+
+        v match {
           // The accessed name is a list of code, add it to the current code to execute it
-          case CodeValue(cl) => {
+          case CodeValue(cl, maybeName) => {
             val c = code.tail
             nextStack = s
             nextEnv = e
@@ -62,18 +85,18 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
           case _ => {
             val c = code.tail
 
-            nextStack = accessedE :: s
+            nextStack = v :: s
             nextEnv = e
             nextCode = c
           }
         }
       }
       // [ v.s | e | LET.c ] -> [ s | v.e | c ]
-      case LET(cl) => {
+      case LET(defName, cl) => {
         val s = stack
         val e = env
         val c = code.tail
-        val v = CodeValue(cl)
+        val v = CodeValue(cl, Some(defName))
 
         nextStack = s
         nextEnv = v :: e
@@ -94,19 +117,24 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
 //        nextCode = c
 //      }
       // [ s | e | CLOSURE(c').c ] -> [ clo(c', e).s | e | c ]
-      case CLOSURE(_, ct) => {
+      case CLOSURE(varName, ct) => {
         val s = stack
         val e = env
         val c = code.tail
 
-        nextStack = ClosureValue(ct, e) :: s
+        nextStack = ClosureValue(varName, ct, e) :: s
         nextEnv = e
         nextCode = c
       }
       // [ v.clo(c', e').s | e | APPLY.c ] -> [ c.e.s | v.e' | c' ]
       case APPLY() => {
-        val v = stack.head
         val closure = stack.tail.head.asInstanceOf[ClosureValue]
+        
+        val v = stack.head match {
+          case ConstValue(n, maybeConstName) => ConstValue(n, closure.maybeName)
+          case CodeValue(c, maybeConstName) => CodeValue(c, closure.maybeName)
+          case _ => stack.head
+        }
         val ct = closure.c
         val et = closure.e
         val s = stack.tail.tail
@@ -130,8 +158,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
         nextEnv = et
         nextCode = ct
       }
-      // TODO: comments
-      // TODO: IF and THENELSE are duplicated in both machines
+      // TODO: IF and THENELSE is duplicated in both machines
       case IF(test) => {
         nextStack = stack
         nextEnv = env
@@ -139,7 +166,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
       }
       case THENELSE(thenn, otherwise) => {
         val thenElseCode = stack.head match {
-          case ConstValue(n) => if(n != 0) thenn else otherwise
+          case ConstValue(n, maybeName) => if(n != 0) thenn else otherwise
           case _ => throw new MachineException(s"CBNMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
         }
 

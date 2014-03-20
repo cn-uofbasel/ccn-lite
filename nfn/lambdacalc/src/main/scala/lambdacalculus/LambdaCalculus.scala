@@ -21,7 +21,7 @@ object ExecutionOrder extends Enumeration {
 
 case class ParseException(msg: String) extends Throwable(msg)
 
-object LambdaCalculus extends App {
+object LambdaCalculusDecompilation extends App {
 
 //  val l = "(\\x.x ADD 1) 2"
 //  val l = "1 ADD 2"
@@ -45,6 +45,22 @@ object LambdaCalculus extends App {
   println("====================================")
   println(decompiled)
 
+}
+
+object LambdaCalculus extends App {
+  val l =
+    """
+      | let countToTen =
+      |   \x.
+      |     if (x LT 10)
+      |     then countToTen (x ADD 1)
+      |     else x
+      |endlet
+      |
+      |countToTen 9
+    """.stripMargin
+  val lc = LambdaCalculus(ExecutionOrder.CallByValue)
+  lc.substituteParseCompileExecute(l)
 }
 
 case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder, debug: Boolean = false, storeIntermediateSteps: Boolean = false) extends Logging {

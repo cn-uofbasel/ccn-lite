@@ -37,10 +37,21 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
       (parsed.get, decompiled)
     }
     s"The expression: $expr" should s"evaluate with call-by-name to $result" in {
-      LambdaCalculus(CallByName).substituteParseCompileExecute(expr) should be (tryConst(result))
+      val r = LambdaCalculus(CallByName).substituteParseCompileExecute(expr)
+
+      r.isSuccess should be (true)
+      r.get.size should be (1)
+      r.get.head should be (a [ConstValue])
+      r.get.head.asInstanceOf[ConstValue].n should be (result)
+
     }
     it should s"evaluate with call-by-value to $result" in {
-      LambdaCalculus(CallByValue).substituteParseCompileExecute(expr) should be (tryConst(result))
+      val r = LambdaCalculus(CallByValue).substituteParseCompileExecute(expr)
+
+      r.isSuccess should be (true)
+      r.get.size should be (1)
+      r.get.head should be (a [ConstValue])
+      r.get.head.asInstanceOf[ConstValue].n should be (result)
     }
     ignore should "compile and decompile to the same AST with call-by-name" in {
       val (parsed, decompiled) = decompile(CallByName)
