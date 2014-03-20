@@ -8,20 +8,21 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-ccnb2hex \
 	ccn-lite-ccnb2xml \
 	ccn-lite-ccntlv2hex \
-	ccn-lite-ndntlv2hex \
-	ccn-lite-deF \
 	ccn-lite-mkC \
-	ccn-lite-mkF \
 	ccn-lite-mkI \
+	ccn-lite-ndntlv2hex \
 	ccn-lite-peek \
 	ccn-lite-cryptoserver
 
+#	ccn-lite-deF \
+#	ccn-lite-mkF \
 #	ccn-lite-mkndnD \
 #	ccn-lite-mkndnI \
 
 all: $(PROGS)
 
-ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../pkt-ccnb.h ../ccnl.h ../pkt-ccnb.c ccnl-common.c
+ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../pkt-ccnb.h ../ccnl.h \
+		../pkt-de-ccnb.c ../pkt-en-ccnb.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
 
 ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../pkt-ccnb.h ../ccnl.h
@@ -36,10 +37,10 @@ ccn-lite-ccntlv2hex: Makefile ccn-lite-ccntlv2hex.c ../pkt-ccntlv.c ../pkt-ccntl
 ccn-lite-ndntlv2hex: Makefile ccn-lite-ndntlv2hex.c ../pkt-ndntlv.c ../pkt-ndntlv.h
 	$(CC) $(CFLAGS) ccn-lite-ndntlv2hex.c -o $@ 
 
-ccn-lite-peek: Makefile ccn-lite-peek.c ../pkt-ccnb.h ../ccnl.h ../pkt-ccnb.c ccnl-common.c
+ccn-lite-peek: Makefile ccn-lite-peek.c ../pkt-ccnb.h ../ccnl.h ../pkt-de-ccnb.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
-ccn-lite-deF: Makefile ccn-lite-deF.c ../pkt-ccnb.h ../ccnl.h ccnl-frag.h
+ccn-lite-deF: Makefile ccn-lite-deF.c ../pkt-ccnb.h ../pkt-de-ccnb.c ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
 
 ccn-lite-mkC: Makefile ccn-lite-mkC.c ../pkt-ccnb.h ../ccnl.h

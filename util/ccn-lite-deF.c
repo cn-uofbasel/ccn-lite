@@ -29,7 +29,7 @@
 #include "../ccnl-core.h"
 
 #include "ccnl-common.c"
-#include "../pkt-ccnb.c"
+#include "../pkt-de-ccnb.c"
 
 // ----------------------------------------------------------------------
 

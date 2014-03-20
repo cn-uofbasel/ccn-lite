@@ -41,6 +41,7 @@
 #include "../ccnl.h"
 
 #include "ccnl-crypto.c"
+#include "../pkt-en-ccnb.c"
 
 // ----------------------------------------------------------------------
 

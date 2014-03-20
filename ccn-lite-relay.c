@@ -38,7 +38,7 @@
 #define USE_MGMT
 #define USE_SCHEDULER
 #define USE_UNIXSOCKET
-#define USE_SIGNATURES
+// #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 
@@ -58,7 +58,8 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "pkt-ccnb.c"
+//#include "pkt-de-ccnb.c"
+//#include "pkt-en-ccnb.c"
 #include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
@@ -308,7 +309,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
                   char *crypto_face_path)
 {
     struct ccnl_if_s *i;
-    char h[1024];
 
     DEBUGMSG(99, "ccnl_relay_config\n");
 
@@ -379,6 +379,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 #ifdef USE_SIGNATURES
     if(crypto_face_path)
     {
+	char h[1024];
         //sending interface + face
         i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
