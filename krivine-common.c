@@ -95,6 +95,7 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
     return len;  
 }
 
+
 #ifndef USE_UTIL 
 
 int
@@ -262,7 +263,6 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 	    if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
 		sockunion src_addr;
 		socklen_t addrlen = sizeof(sockunion);
-                printf("%d\n", i);
 		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
 				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
                     struct ccnl_content_s *c = ccnl_extract_content_obj(ccnl, buf, len);
@@ -282,9 +282,18 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s
     //copy receive system to here from core
     struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
     
-    //if result before timeout --> create struct ccnl_content_s and return it
+    return c;
+}
+
+//FIXME use global search or special face?
+struct ccnl_content_s *
+ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+    DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
     
-    //else return 0;
+    ccnl_interest_propagate(ccnl, i);
+    //copy receive system to here from core
+    struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
+    
     return c;
 }
 
