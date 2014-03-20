@@ -1456,7 +1456,13 @@ normal:
         char *res = NULL;
 	cp = config2str(&cfg, en, astack, rstack, cp);
 	char **params = malloc(sizeof(char * ) * num_params); 
-
+        char *out =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+        char *comp =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+        char *namecomp[CCNL_MAX_NAME_COMP];
+        char *param;
+        struct ccnl_interest_s * interest;
+        struct ccnl_content_s *c;
+        
 	//TODO read function name and  parameters, call function 
 	char *cp;
 	cp = ccn_name2content(rstack); // should be split operation
@@ -1481,11 +1487,11 @@ normal:
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
              
-                char *out =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+                
                 
                 //make compute request
-                char comp[1024];
-                memset(comp, 0, sizeof(comp));
+                memset(comp, 0, CCNL_MAX_PACKET_SIZE);
+                memset(out, 0, CCNL_MAX_PACKET_SIZE);
                 complen = sprintf(comp, "(@x call %d ", num_params);
                 //build computation string
                 for(j = 0; j < num_params; ++j){
@@ -1507,43 +1513,66 @@ normal:
                 
 #ifndef ABSTRACT_MACHINE
                 //make interest
-                char *namecomp[CCNL_MAX_NAME_COMP];
-                char *param = strdup(params[i]);
+                
+                param = strdup(params[i]);
                 j= splitComponents(param, namecomp);
                 int len = mkInterestCompute(namecomp, comp, complen, 0, out);
                 free(param);
                 
-                fwrite(out, sizeof(char), len, stdout);
+                //fwrite(out, sizeof(char), len, stdout);
                 printf("\n");
-                struct ccnl_interest_s *i = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-                struct ccnl_content_s *c;
+                interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+                
                 //search locally for content
-                if((c = ccnl_nfn_local_content_search(ccnl, i)) != NULL){
+                if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
                     printf("Content locally found: %s\n", c->content);
                     res = c->content;
                     
                     goto tail;
                 }
                 
-                else if((c = ccnl_nfn_global_content_search(ccnl, i)) != NULL){
+                else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
                     //printf("Content in the network found: %s\n", c->content);
-                    
-                    res = "42";
+                    printf("Content found in the network: %s\n", c->content);
+                    res = c->content;
                     goto tail;
                 }
-
-                
+                //TODO Async stuff!?
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
-                i = ccnl_interest_remove(ccnl, i);
+                interest = ccnl_interest_remove(ccnl, interest);
+                //free(interest);
 #endif // ABSTRACT_MACHINE
             }//endif
             
         }//endfor
         
-        //TODO: Try to receive components and compute!?
-                
+        //Try to receive components and compute here! systemcall?
+        printf("No result found: Try to compute locally\n");
+        //Make interest string:
+#ifndef ABSTRACT_MACHINE
+        complen = sprintf(comp, "(call %d ", num_params);
+        for(i = 0; i < num_params; ++i){
+            complen += sprintf(comp, "%s ", params[i]);
+        }
+        namecomp[0] = "COMPUTE";
+        namecomp[1] = strdup(comp);
+        namecomp[2] = "NFN";
+        namecomp[3] = NULL;
+        len = mkInterest(namecomp, 0, out);
+        interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+        if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
+            printf("Content could be computed: %s\n", c->content);
+            res = c->content;
+        }else
+        {
+            printf("COMPUTATION COULD NOT BE FINISHED");
+            res = NULL;
+        }
+        interest = ccnl_interest_remove(ccnl, interest);
+        
+#endif //BSTRACT_MACHINE
         
         printf("OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
         //place result
@@ -1569,6 +1598,8 @@ tail:
 	name = mkHash(cp);
 	ccn_store(name, cp);
 	ccn_listen_for(cp);
+        free(out);
+        free(comp);
 	return cp;
 	
 	dump_hashes();
