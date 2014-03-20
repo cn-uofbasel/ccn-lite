@@ -15,6 +15,7 @@ case class CBVCompiler(override val debug: Boolean = false) extends Compiler {
         println(s"Unbound variable $name")
         ACCESSBYVALUE(0, name)
       }
+
     case _ => throw new CompileException(s"CBVCompiler has no compilation for expression: $ast")
   }
 

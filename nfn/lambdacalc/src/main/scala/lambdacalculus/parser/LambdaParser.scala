@@ -15,7 +15,7 @@ class LambdaLexer extends StdLexical {
 class LambdaParser extends StdTokenParsers with PackratParsers with Logging {
   type Tokens = StdLexical
   val lexical =  new LambdaLexer
-  val keywords = Set("let", "endlet", "if", "then", "else")
+  val keywords = Set("let", "endlet", "if", "then", "else", "call")
   val unaryLiterals = UnaryOp.values.map(_.toString)
   val binaryLiterals: SortedSet[String] = BinaryOp.values.map(_.toString)
 
@@ -40,11 +40,10 @@ class LambdaParser extends StdTokenParsers with PackratParsers with Logging {
                                                     { case name ~ fun ~ code => Let(name, fun, Some(code))})
   lazy val ifthenelse:  P[IfElse]     = positioned(("if" ~> expr) ~ ("then" ~> expr) ~ ("else" ~> expr) ^^
                                                     { case test ~ thenn ~ otherwise => IfElse(test, thenn, otherwise) })
-  lazy val call:        P[Call]       = call1 | call2 | call3 | call4
-  lazy val call1:       P[Call]      = positioned("call 1" ~> ident ~ expr ^^ { case i ~ e => Call(i, List(e))})
-  lazy val call2:       P[Call]      = positioned("call 2" ~> ident ~ expr ~ expr ^^ { case i ~ e1 ~ e2 => Call(i, List(e1, e2))})
-  lazy val call3:       P[Call]      = positioned("call 3" ~> ident ~ expr ~ expr ~ expr ^^ { case i ~ e1 ~ e2 ~ e3 => Call(i, List(e1, e2, e3))})
-  lazy val call4:       P[Call]      = positioned("call 4" ~> ident ~ expr ~ expr ~ expr ~ expr^^ { case i ~ e1 ~ e2 ~ e3 ~ e4 => Call(i, List(e1, e2, e3, e4))})
+  lazy val call:       P[Call]      = positioned(("call" ~> numericLit) ~ ident ~ rep(notApp | let) ^^ { case n ~ i ~ exprs=> Call(i, exprs)})
+//  lazy val call2:       P[Call]      = positioned("call 2" ~> ident ~ expr ^^ { case i ~ e1 => Call(i, List(e1))})
+//  lazy val call3:       P[Call]      = positioned("call 3" ~> ident ~ expr ~ expr ^^ { case i ~ e1 ~ e2 => Call(i, List(e1, e2))})
+//  lazy val call4:       P[Call]      = positioned("call 4" ~> ident ~ expr ~ expr ~ expr ^^ { case i ~ e1 ~ e2 ~ e3 => Call(i, List(e1, e2, e3))})
 
   // TODO take care of left/right evaluation order
   lazy val unary :      P[UnaryExpr]  = positioned( unaryLiteralsToParse ~ notApp ^^ { case lit ~ v => UnaryExpr(UnaryOp.withName(lit), v)})

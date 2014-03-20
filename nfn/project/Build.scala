@@ -35,7 +35,7 @@ object MainBuild extends Build {
       run <<= run in Compile in ccnliteinterface
     )
 
-  ) aggregate(lambdaCalculus, lambdaMacros, lambdaCalculusToMacros, testservice, ccnliteinterface)
+  )// aggregate(lambdaCalculus, lambdaMacros, lambdaCalculusToMacros, testservice, ccnliteinterface)
 
 
 
@@ -53,7 +53,6 @@ object MainBuild extends Build {
       resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
       mainClass in (Compile, run) := Some("lambdacalculus.LambdaCalculus")
     )
-
   )
 
   lazy val lambdaMacros: Project = Project(

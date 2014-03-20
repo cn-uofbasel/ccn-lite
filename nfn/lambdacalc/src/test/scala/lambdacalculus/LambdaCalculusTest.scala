@@ -136,6 +136,12 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
       |countToTen 8
     """.stripMargin, 10)
 
+  testExpression(
+    """
+      |call SumService/Int/Int/rInt 3 11 1
+    """.stripMargin, 12
+  )
+
   // NEG
 
   "The expression: 1 ADD " should s" throw ParseException with call-by-value " in {

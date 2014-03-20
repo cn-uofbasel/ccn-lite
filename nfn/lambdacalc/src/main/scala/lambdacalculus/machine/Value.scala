@@ -13,7 +13,6 @@ trait Value {
 case class ConstValue(n: Int, maybeName: Option[String] = None) extends Value
 case class CodeValue(c: List[Instruction], maybeName:Option[String] = None) extends Value
 
-
 object ValuePrettyPrinter {
 
   def apply(value: Value, maybeCompiler: Option[Compiler] = None): String = {
