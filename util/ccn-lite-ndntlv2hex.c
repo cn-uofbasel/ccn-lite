@@ -29,7 +29,7 @@
 
 #include <arpa/inet.h>
 
-#include "../pkt-ndntlv.c"
+#include "../pkt-ndntlv-dec.c"
 
 #define NDN_TLV_MAX_TYPE 256
 static char ndn_tlv_recurse[NDN_TLV_MAX_TYPE];
@@ -84,7 +84,7 @@ parse_ndntlv_sequence(int lev, unsigned char *base, unsigned char **buf,
 
     while (*len > 0) {
 	cp = *buf;
-	if (ccnl_ndntlv_dehead(lev, base, buf, len, &typ, &vallen) < 0)
+	if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
 	    return -1;
 	if (vallen > *len) {
 	    fprintf(stderr, "\n%04zx ** NDN_TLV length problem:\n"

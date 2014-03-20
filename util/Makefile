@@ -19,43 +19,46 @@ PROGS=	ccn-lite-ctrl \
 #	ccn-lite-mkndnD \
 #	ccn-lite-mkndnI \
 
+CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c
+NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
+
 all: $(PROGS)
 
-ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ../pkt-ccnb.h ../ccnl.h \
-		../pkt-de-ccnb.c ../pkt-en-ccnb.c ccnl-common.c
+ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
+		../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
 
-ccn-lite-ccnb2hex: Makefile ccn-lite-ccnb2hex.c ../pkt-ccnb.h ../ccnl.h
+ccn-lite-ccnb2hex: ccn-lite-ccnb2hex.c ${CCNB_LIB} Makefile ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
 
-ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ../pkt-ccnb.h ../ccnl.h ccnl-common.c
+ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
 ccn-lite-ccntlv2hex: Makefile ccn-lite-ccntlv2hex.c ../pkt-ccntlv.c ../pkt-ccntlv.h
 	$(CC) $(CFLAGS) ccn-lite-ccntlv2hex.c -o $@ 
 
-ccn-lite-ndntlv2hex: Makefile ccn-lite-ndntlv2hex.c ../pkt-ndntlv.c ../pkt-ndntlv.h
+ccn-lite-ndntlv2hex: Makefile ccn-lite-ndntlv2hex.c ${NDNTLV_LIB}
 	$(CC) $(CFLAGS) ccn-lite-ndntlv2hex.c -o $@ 
 
-ccn-lite-peek: Makefile ccn-lite-peek.c ../pkt-ccnb.h ../ccnl.h ../pkt-de-ccnb.c ccnl-common.c
+ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
-ccn-lite-deF: Makefile ccn-lite-deF.c ../pkt-ccnb.h ../pkt-de-ccnb.c ../ccnl.h ccnl-frag.h
+ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
 
-ccn-lite-mkC: Makefile ccn-lite-mkC.c ../pkt-ccnb.h ../ccnl.h
+ccn-lite-mkC: Makefile ccn-lite-mkC.c ${CCNB_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
 
-ccn-lite-mkF: Makefile ccn-lite-mkF.c ../pkt-ccnb.h ../ccnl.h ccnl-frag.h
+ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ../pkt-ccnb.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
 
-ccn-lite-mkndnD: Makefile ccn-lite-mkndnD.c ../pkt-ndntlv.c ../pkt-ndntlv.h
+ccn-lite-mkndnD: Makefile ccn-lite-mkndnD.c ${NDNTLV_LIB}
 	$(CC) $(CFLAGS) ccn-lite-mkndnD.c -o $@
 
-ccn-lite-mkndnI: Makefile ccn-lite-mkndnI.c ../pkt-ndntlv.c ../pkt-ndntlv.h
+ccn-lite-mkndnI: Makefile ccn-lite-mkndnI.c ${NDNTLV_LIB}
 	$(CC) $(CFLAGS) ccn-lite-mkndnI.c -o $@
 
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c

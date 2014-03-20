@@ -37,11 +37,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "../pkt-ccnb.h"
 #include "../ccnl.h"
 
+#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-enc.c"
 #include "ccnl-crypto.c"
-#include "../pkt-en-ccnb.c"
 
 // ----------------------------------------------------------------------
 

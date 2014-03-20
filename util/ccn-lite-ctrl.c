@@ -35,12 +35,12 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "../pkt-ccnb.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
-#include "../pkt-de-ccnb.c"
-#include "../pkt-en-ccnb.c"
+#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-dec.c"
+#include "../pkt-ccnb-enc.c"
 
 #include "ccnl-crypto.c"
 

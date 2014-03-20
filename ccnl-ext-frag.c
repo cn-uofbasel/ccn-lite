@@ -25,7 +25,7 @@
 
 #ifdef USE_FRAG
 
-#include "pkt-en-ccnb.c"
+#include "pkt-ccnb-enc.c"
 
 /* see ccnl-core.h for available fragmentation protocols.
  *

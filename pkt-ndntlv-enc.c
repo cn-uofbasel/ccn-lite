@@ -1,6 +1,6 @@
 /*
- * @f pkt-ndntlv.c
- * @b CCN lite - NDN pkt composing/parsing routines (TLV pkt format March 2014)
+ * @f pkt-ndntlv-enc.c
+ * @b CCN lite - NDN pkt composing (TLV pkt format March 2014)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -22,7 +22,34 @@
 
 #include "pkt-ndntlv.h"
 
-// composing
+int
+hex2int(char c)
+{
+    if (c >= '0' && c <= '9')
+	return c - '0';
+    c = tolower(c);
+    if (c >= 'a' && c <= 'f')
+	return c - 'a' + 0x0a;
+    return 0;
+}
+
+int
+unescape_component(unsigned char *comp) // inplace, returns len after shrinking
+{
+    unsigned char *in = comp, *out = comp;
+    int len;
+
+    for (len = 0; *in; len++) {
+	if (in[0] != '%' || !in[1] || !in[2]) {
+	    *out++ = *in++;
+	    continue;
+	}
+	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
+	in += 3;
+    }
+    return len;
+}
+
 
 int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
@@ -100,42 +127,76 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
     return oldoffset - *offset;
 }
 
-
-// parsing
+// ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_varlenint(unsigned char **buf, unsigned int *len, unsigned int *val)
+ccnl_ndntlv_mkInterest(char **namecomp, int scope,
+		       int *offset, unsigned char *buf)
 {
-    if (**buf < 253 && *len >= 1) {
-	*val = **buf;
-	*buf += 1;
-	*len -= 1;
-    } else if (**buf == 253 && *len >= 3) { // 2 bytes
-	*val = ntohs(*(uint16_t*)(*buf + 1));
-	*buf += 3;
-	*len -= 3;
-    } else if (**buf == 254 && *len >= 5) { // 4 bytes
-	*val = ntohl(*(uint32_t*)(*buf + 1));
-	*buf += 5;
-	*len -= 5;
-    } else {
-	// not implemented yet (or too short)
-	return -1;
+    int oldoffset = *offset, oldoffset2, cnt;
+    long int nonce = random();
+
+    if (scope >= 0) {
+	if (scope > 2)
+	    return -1;
+	if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
+	    return -1;
     }
-    return 0;
+
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+				offset, buf) < 0)
+	return -1;
+
+    for (cnt = 0; namecomp[cnt]; cnt++);
+    oldoffset2 = *offset;
+    while (--cnt >= 0) {
+	int len = unescape_component((unsigned char*) namecomp[cnt]);
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				 (unsigned char*) namecomp[cnt], len,
+				 offset, buf) < 0)
+	    return -1;
+    }
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    return oldoffset - *offset;
 }
+
 
 int
-ccnl_ndntlv_dehead(int lev, unsigned char *base, unsigned char **buf,
-		   unsigned int *len, unsigned int *typ, unsigned int *vallen)
+ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
+		      int *offset, unsigned char *buf)
 {
-    if (ccnl_ndntlv_varlenint(buf, len, typ))
+    int oldoffset = *offset, oldoffset2, cnt;
+
+    // fill in backwards
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
+				offset, buf)< 0)
 	return -1;
-    if (ccnl_ndntlv_varlenint(buf, len, vallen))
+
+    for (cnt = 0; namecomp[cnt]; cnt++);
+    oldoffset2 = *offset;
+    while (--cnt >= 0) {
+	int len = unescape_component((unsigned char*) namecomp[cnt]);
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				    (unsigned char*) namecomp[cnt], len,
+				    offset, buf) < 0)
+	    return -1;
+    }
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
+			      offset, buf) < 0)
 	return -1;
-    return 0;
+
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    return oldoffset - *offset;
 }
-
-
 
 // eof

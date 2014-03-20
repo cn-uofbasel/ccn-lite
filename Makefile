@@ -16,7 +16,6 @@ PROGS=	${INST_PROGS} \
 	ccn-lite-lnxkernel
 
 
-
 ifdef USE_CHEMFLOW
 CHEMFLOW_HOME=./chemflow/chemflow-20121006
 EXTLIBS=-lcf -lcfserver -lcrypto
@@ -29,34 +28,39 @@ EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
+CCNB_LIB =   pkt-ccnb.h pkt-ccnb-dec.c pkt-ccnb-enc.c fwd-ccnb.c
+NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv-dec.c pkt-ndntlv-enc.c fwd-ndntlv.c
+
 # ----------------------------------------------------------------------
 
 all: ${PROGS}
 	make -C util
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
-	Makefile ccnl-core.c pkt-ccnb.h ccnl.h ccnl-core.h Makefile
+	 ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
+	ccnl-core.c ccnl.h ccnl-core.h
 	${CC} -o $@ ${MYCFLAGS} $<
 
-ccn-lite-relay: ccn-lite-relay.c \
-	Makefile ccnl-includes.h pkt-ccnb.h ccnl.h ccnl-core.h \
+ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
+	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
-	ccnl-ext-sched.c pkt-de-ccnb.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
-ccn-lite-simu: ccn-lite-simu.c \
-	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
+ccn-lite-simu: ccn-lite-simu.c  ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
+	ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
-	ccnl-ext-frag.c pkt-de-ccnb.c ccnl-ext-sched.c ccnl-simu-client.c Makefile
+	ccnl-ext-frag.c ccnl-ext-sched.c ccnl-simu-client.c
 	${EXTMAKE}
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
-ccn-lite-omnet: ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
+ccn-lite-omnet:  ${CCNB_LIB} ${NDNTLV_LIB} Makefile \
+	ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
 	ccnl-ext-frag.c ccnl-ext.h ccnl-ext-sched.c ccnl.h \
-	ccnl-includes.h ccn-lite-omnet.c pkt-de-ccnb.c ccnl-platform.c \
-	pkt-ccnb.h Makefile
+	ccnl-includes.h ccn-lite-omnet.c ccnl-platform.c \
+	Makefile
 	rm -rf omnet/src/ccn-lite/*
 	rm -rf ccn-lite-omnet.tgz
 	cp -a $^ omnet/src/ccn-lite/
@@ -68,10 +72,10 @@ ccn-lite-lnxkernel:
 	make modules
 #	rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
-modules: ccn-lite-lnxkernel.c \
-	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
+modules: ccn-lite-lnxkernel.c  ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
+	ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
-	ccnl-ext-frag.c pkt-de-ccnb.c ccnl-ext-sched.c ccnl-ext-crypto.c Makefile
+	ccnl-ext-frag.c ccnl-ext-sched.c ccnl-ext-crypto.c Makefile
 	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(shell pwd) modules
 
 datastruct.pdf: datastruct.dot

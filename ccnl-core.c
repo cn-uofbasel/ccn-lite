@@ -77,8 +77,6 @@ done:
     return rc;
 }
 
-#include "pkt-de-ccnb.c"
-
 // ----------------------------------------------------------------------
 // addresses, interfaces and faces
 
@@ -263,8 +261,8 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
 		       struct ccnl_buf_s *buf, sockunion *dest)
 {
     struct ccnl_txrequest_s *r;
-    DEBUGMSG(25, "ccnl_interface_enqueue interface=%p buf=%p (qlen=%d)\n",
-	     (void*)ifc, (void*)buf, ifc->qlen);
+    DEBUGMSG(9, "ccnl_interface_enqueue interface=%p buf=%p len=%d (qlen=%d)\n",
+	     (void*)ifc, (void*)buf, buf->datalen, ifc->qlen);
 
     if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
 	DEBUGMSG(2, "  DROPPING buf=%p\n", (void*)buf);
@@ -389,7 +387,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		  struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix,
-		  int minsuffix, int maxsuffix, struct ccnl_buf_s **ppkd)
+		  int minsuffix, int maxsuffix)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
 					    sizeof(struct ccnl_interest_s));
@@ -400,7 +398,6 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->from = from;
     i->prefix = *prefix;        *prefix = 0;
     i->pkt  = *pkt;             *pkt = 0;
-    i->ppkd = *ppkd;		*ppkd = 0;
     i->minsuffix = minsuffix;
     i->maxsuffix = maxsuffix;
     i->last_used = CCNL_NOW();
@@ -449,14 +446,16 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // CCNL strategy: we forward on all FWD entries with a prefix match
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
 	int rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->prefix, CMP_LONGEST);
+
 	DEBUGMSG(40, "  ccnl_interest_propagate, rc=%d/%d\n", rc, fwd->prefix->compcnt);
 	if (rc < fwd->prefix->compcnt)
 	    continue;
 	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
 	// suppress forwarding to origin of interest, except wireless
 	if (!i->from || fwd->face != i->from ||
-	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT))
+	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
 	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+	}
     }
     return;
 }
@@ -476,6 +475,9 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     free_prefix(i->prefix);
     free_3ptr_list(i->ppkd, i->pkt, i);
+#ifdef USE_NDNTLV
+    ccnl_free(i->ppkl);
+#endif
     return i2;
 }
 
@@ -483,7 +485,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 // handling of content messages
 
 int
-ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
+ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 		  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
     unsigned char *md;
@@ -491,14 +493,12 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, struct ccnl_buf_s *ppkd,
 	     ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
-    // and check the PublisherPublicKeyDigest if present
 
     // NON-CONFORM: "Note that to match a ContentObject must satisfy
     // all of the specifications given in the Interest Message."
     // >> CCNL does not honour the exclusion filtering
 
-    if ( (ppkd && !buf_equal(ppkd, c->ppkd)) ||
-	 (prefix->compcnt + minsuffix) > (c->name->compcnt + 1) ||
+    if ( (prefix->compcnt + minsuffix) > (c->name->compcnt + 1) ||
 	 (prefix->compcnt + maxsuffix) < (c->name->compcnt + 1) )
 	return 0;
 
@@ -578,8 +578,8 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
     for (i = ccnl->pit; i;) {
 	struct ccnl_pendint_s *pi;
-	if (!ccnl_i_prefixof_c(i->prefix, i->ppkd,
-			       i->minsuffix, i->maxsuffix, c)) {
+	if (!ccnl_i_prefixof_c(i->prefix, i->minsuffix, i->maxsuffix, c)) {
+	    // XX must also check i->ppkd/i->ppkl,
 	    i = i->next;
 	    continue;
 	}
@@ -644,6 +644,31 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
 }
 
+int
+ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
+{
+    struct ccnl_buf_s *n, *n2 = 0;
+    int i;
+    DEBUGMSG(99, "ccnl_nonce_find_or_append\n");
+
+    for (n = ccnl->nonces, i = 0; n; n = n->next, i++) {
+	if (buf_equal(n, nonce))
+	    return -1;
+	if (n->next)
+	    n2 = n;
+    }
+    n = ccnl_buf_new(nonce->data, nonce->datalen);
+    if (n) {
+	n->next = ccnl->nonces;
+	ccnl->nonces = n;
+	if (i >= CCNL_MAX_NONCES && n2) {
+	    ccnl_free(n2->next);
+	    n2->next = 0;
+	}
+    }
+    return 0;
+}
+
 void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 {
@@ -668,7 +693,12 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
+
 #include "fwd-ccnb.c"
+
+#ifdef USE_NDNTLV
+#  include "fwd-ndntlv.c"
+#endif
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
@@ -680,6 +710,14 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
     if (!from) return;
 
-    ccnl_RX_ccnb(relay, from, &data, &datalen);
+    if (*data == 0x05 || *data == 0x06) {
+#ifdef USE_NDNTLV
+	ccnl_RX_ndntlv(relay, from, &data, &datalen);
+#endif
+    } else if (*data == 0x01 || *data == 0x04) {
+	ccnl_RX_ccnb(relay, from, &data, &datalen);
+    } else
+	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
+		 ifndx, datalen, *data);
 }
 // eof

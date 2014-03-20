@@ -35,14 +35,15 @@
 #define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
-#define USE_MGMT
+// #define USE_MGMT
+#define USE_NDNTLV
 #define USE_SCHEDULER
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 
-#include "pkt-ccnb.h"
+// #include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -58,8 +59,6 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-//#include "pkt-de-ccnb.c"
-//#include "pkt-en-ccnb.c"
 #include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
@@ -549,8 +548,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
 		    buf->datalen = datalen;
 		    datalen -= 2;
-		    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-			      0, 0, &prefix, &nonce, &ppkd, &content, &contlen);
+		    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+				&prefix, &nonce, &ppkd, &content, &contlen);
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }

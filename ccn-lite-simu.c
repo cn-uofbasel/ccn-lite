@@ -28,13 +28,13 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_FRAG
+//#define USE_FRAG
+#define USE_NDNTLV
 #define USE_SCHEDULER
 #define USE_ETHERNET
 
 #include "ccnl-includes.h"
 
-#include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -51,8 +51,12 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "pkt-en-ccnb.c"
+#include "pkt-ccnb-enc.c"
+#include "pkt-ndntlv-enc.c"
 #include "ccnl-ext-frag.c"
+
+enum {SUITE_CCNB, SUITE_NDNTLV};
+char suite = SUITE_CCNB;
 
 // ----------------------------------------------------------------------
 
@@ -173,7 +177,16 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     namecomp[cnt++] = tmp;
     namecomp[cnt] = 0;
 
-    len2 = mkContent(namecomp, (char*) data, len, tmp2);
+#ifdef USE_NDNTLV
+    if (suite == SUITE_NDNTLV) {
+	len2 = sizeof(tmp2);
+	ccnl_ndntlv_mkContent(namecomp, data, len, &len2,
+			      (unsigned char*) tmp2);
+	memmove(tmp2, tmp2 + len2, sizeof(tmp2) - len2);
+	len2 = sizeof(tmp2) - len2;
+    } else
+#endif
+	len2 = mkContent(namecomp, (char*) data, len, tmp2);
     free(n);
 
     bp = ccnl_buf_new(tmp2, len2);
@@ -214,7 +227,15 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
     namecomp[cnt++] = tmp2;
     namecomp[cnt] = 0;
 
-    len = mkInterest(namecomp, &nonce, (unsigned char*) tmp);
+#ifdef USE_NDNTLV
+    if (suite == SUITE_NDNTLV) {
+	len = sizeof(tmp);
+	ccnl_ndntlv_mkInterest(namecomp, -1, &len, (unsigned char*) tmp);
+	memmove(tmp, tmp + len, sizeof(tmp) - len);
+	len = sizeof(tmp) - len;
+    } else
+#endif
+	len = mkInterest(namecomp, &nonce, (unsigned char*) tmp);
 
     free(n);
 
@@ -585,6 +606,7 @@ ccnl_simu_init(int max_cache_entries)
 */
 
     // turn node 'C' into a repository for three movies
+    sprintf(dat, "%d", (int) sizeof(dat));
     for (i = 0; i < SIMU_NUMBER_OF_CHUNKS; i++) {
 	ccnl_simu_add2cache('C', "/ccnl/simu/movie1", i, dat, sizeof(dat));
 	ccnl_simu_add2cache('C', "/ccnl/simu/movie2", i, dat, sizeof(dat));
@@ -711,7 +733,7 @@ main(int argc, char **argv)
     //    srand(time(NULL));
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:g:i:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:g:i:s:v:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -722,6 +744,9 @@ main(int argc, char **argv)
         case 'i':
             inter_ccn_interval = atoi(optarg);
             break;
+        case 's':
+            suite = atoi(optarg);
+            break;
         case 'v':
             debug_level = atoi(optarg);
             break;
@@ -730,6 +755,9 @@ main(int argc, char **argv)
             fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
 		    "[-g MIN_INTER_PACKET_INTERVAL] "
 		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
+#ifdef USE_NDNTLV
+		    "[-s SUITE (0=ccnb, 1=ndntlv)] "
+#endif
 		    "[-v DEBUG_LEVEL]\n",
 		    argv[0]);
             exit(EXIT_FAILURE);
