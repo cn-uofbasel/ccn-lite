@@ -166,8 +166,11 @@ struct ccnl_interest_s {
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     struct ccnl_prefix_s *prefix;
-    int minsuffix, maxsuffix;
+  int minsuffix, maxsuffix, mbf;
     struct ccnl_buf_s *ppkd;	   // publisher public key digest
+#ifdef USE_NDNTLV
+    struct ccnl_buf_s *ppkl;	   // publisher public key locator
+#endif
     struct ccnl_buf_s *pkt;	   // full datagram
     int last_used;
     int retries;
@@ -183,6 +186,9 @@ struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
     struct ccnl_prefix_s *name;
     struct ccnl_buf_s *ppkd; // publisher public key digest
+#ifdef USE_NDNTLV
+    struct ccnl_buf_s *ppkl; // publisher public key locator
+#endif
     struct ccnl_buf_s *pkt; // full datagram
     int flags;
     unsigned char *content; // pointer into the data buffer
@@ -232,6 +238,9 @@ compile_string(void)
 #endif
 #ifdef USE_MGMT
 	"USE_MGMT "
+#endif
+#ifdef USE_NDNTLV
+	"USE_NDNTLV "
 #endif
 #ifdef USE_SCHEDULER
 	"USE_SCHEDULER "

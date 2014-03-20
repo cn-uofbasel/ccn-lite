@@ -22,44 +22,23 @@
  * 2014-03-20 extracted forwarding code from ccnl-core.c
  */
 
-int
-ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
-{
-    struct ccnl_buf_s *n, *n2 = 0;
-    int i;
-    DEBUGMSG(99, "ccnl_nonce_find_or_append\n");
+#include "pkt-ccnb.h"
+#include "pkt-ccnb-dec.c"
 
-    for (n = ccnl->nonces, i = 0; n; n = n->next, i++) {
-	if (buf_equal(n, nonce))
-	    return -1;
-	if (n->next)
-	    n2 = n;
-    }
-    n = ccnl_buf_new(nonce->data, nonce->datalen);
-    if (n) {
-	n->next = ccnl->nonces;
-	ccnl->nonces = n;
-	if (i >= CCNL_MAX_NONCES && n2) {
-	    ccnl_free(n2->next);
-	    n2->next = 0;
-	}
-    }
-    return 0;
-}
 
 struct ccnl_buf_s*
-ccnl_extract_prefix_nonce_ppkd(unsigned char **data, int *datalen,
-			       int *scope, int *aok, int *min, int *max,
-			       struct ccnl_prefix_s **prefix,
-			       struct ccnl_buf_s **nonce,
-			       struct ccnl_buf_s **ppkd,
-			       unsigned char **content, int *contlen)
+ccnl_ccnb_extract(unsigned char **data, int *datalen,
+		  int *scope, int *aok, int *min, int *max,
+		  struct ccnl_prefix_s **prefix,
+		  struct ccnl_buf_s **nonce,
+		  struct ccnl_buf_s **ppkd,
+		  unsigned char **content, int *contlen)
 {
-    unsigned char *start = *data - 2, *cp;
+    unsigned char *start = *data - 2 /* account for outer TAG hdr */, *cp;
     int num, typ, len;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf, *n = 0, *pub = 0;
-    DEBUGMSG(99, "ccnl_extract_prefix\n");
+    DEBUGMSG(99, "ccnl_ccnb_extract\n");
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p) return NULL;
@@ -134,6 +113,7 @@ Bail:
     return NULL;
 }
 
+
 int
 ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		    unsigned char **data, int *datalen)
@@ -146,8 +126,8 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *content = 0;
     DEBUGMSG(99, "ccnl/ccnb forwarder (%d bytes left)\n", *datalen);
 
-    buf = ccnl_extract_prefix_nonce_ppkd(data, datalen, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+    buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
+			    &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     if (!buf) {
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
@@ -164,7 +144,8 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
 	    for (c = relay->contents; c; c = c->next) {
-		if (!ccnl_i_prefixof_c(p, ppkd, minsfx, maxsfx, c)) continue;
+		if (!ccnl_i_prefixof_c(p, minsfx, maxsfx, c)) continue;
+		if (ppkd && !buf_equal(ppkd, c->ppkd)) continue;
 		// FIXME: should check stale bit in aok here
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
 		ccnl_print_stats(relay, STAT_SND_C); //log sent_c
@@ -183,7 +164,9 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		break;
 	}
 	if (!i) { // this is a new/unknown I request: create and propagate
-	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
+	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx);
+	    if (ppkd)
+		i->ppkd = ppkd, ppkd = NULL;
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
 		if (scope > 2)
@@ -242,7 +225,7 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	      unsigned char **data, int *datalen)
 {
     int rc = 0, num, typ;
-    DEBUGMSG(6, "ccnl_do_ccnb: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG(6, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
 	     *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {

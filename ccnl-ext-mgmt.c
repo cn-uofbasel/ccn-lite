@@ -35,7 +35,7 @@
 #endif
 
 #include "pkt-ccnb.h"
-#include "pkt-en-ccnb.c"
+#include "pkt-ccnb-enc.c"
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
@@ -120,8 +120,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 unsigned char *content = 0;
                 char *ht = (char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
-                pkt = ccnl_extract_prefix_nonce_ppkd(&buf2, &len5, 0, 0,
-                               0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+                pkt = ccnl_ccnb_extract(&buf2, &len5, 0, 0, 0, 0,
+				&prefix_a, &nonce, &ppkd, &content, &contlen);
 
                 if (!pkt) {
                      //DEBUGMSG(6, " parsing error\n"); goto Done;
@@ -1504,8 +1504,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //add object to cache here...
     data = buf + 2;
 
-    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+			    &prefix_a, &nonce, &ppkd, &content, &contlen);
     if (!pkt) {
         DEBUGMSG(6, " parsing error\n"); goto Done;
     }

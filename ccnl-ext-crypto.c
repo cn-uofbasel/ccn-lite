@@ -406,7 +406,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           from = from->next;
       }
       
-      buf1 = ccnl_extract_prefix_nonce_ppkd(&msg2, &len2, &scope, &aok, &minsfx,
+      buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
 			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
       if (p->complen[2] < sizeof(cmd)) {
@@ -453,8 +453,8 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           unsigned char *content = 0;
           char *ht = (char *) ccnl_malloc(sizeof(char)*20);
           int contlen;
-          pkt = ccnl_extract_prefix_nonce_ppkd(&out, &len1, 0, 0,
-                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+          pkt = ccnl_ccnb_extract(&out, &len1, 0, 0, 0, 0,
+				  &prefix_a, &nonce, &ppkd, &content, &contlen);
           
           if (!pkt) {
                DEBUGMSG(6, " parsing error\n"); goto Done;
