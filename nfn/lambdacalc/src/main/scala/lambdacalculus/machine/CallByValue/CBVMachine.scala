@@ -215,7 +215,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
           case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented")
         }
 
-        val r: Value = executeCall(s"call ${nArgs + 1} ${argsStrings.mkString(" ")}")
+        val r: Value = executeCall(s"call ${nArgs + 1} $name ${argsStrings.mkString(" ")}")
 
         nextStack = r :: s
         nextEnv = e

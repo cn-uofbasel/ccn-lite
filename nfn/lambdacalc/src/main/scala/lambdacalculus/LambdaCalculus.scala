@@ -66,20 +66,23 @@ object LambdaCalculus extends App {
   lc.substituteParseCompileExecute(l)
 }
 
-case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder, debug: Boolean = false, storeIntermediateSteps: Boolean = false) extends Logging {
+case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder,
+                          debug: Boolean = false,
+                          storeIntermediateSteps: Boolean = false,
+                          maybeExecutor: Option[CallExecutor] = None) extends Logging {
 
   val parser = new LambdaParser()
   val compiler = compilerForExecOrder(debug, execOrder)
-  val machine = machineForExecOrder(storeIntermediateSteps, execOrder)
+  val machine = machineForExecOrder(storeIntermediateSteps, execOrder, maybeExecutor)
 
 
   private def compilerForExecOrder(debug: Boolean, execOrder: ExecutionOrder): Compiler = execOrder match {
     case ExecutionOrder.CallByName => CBNCompiler(debug)
     case ExecutionOrder.CallByValue => CBVCompiler(debug)
   }
-  private def machineForExecOrder(storeIntermediateSteps: Boolean, execOrder: ExecutionOrder): Machine = execOrder match {
+  private def machineForExecOrder(storeIntermediateSteps: Boolean, execOrder: ExecutionOrder, maybeExecutor: Option[CallExecutor]): Machine = execOrder match {
     case ExecutionOrder.CallByName => CBNMachine(storeIntermediateSteps)
-    case ExecutionOrder.CallByValue => CBVMachine(storeIntermediateSteps)
+    case ExecutionOrder.CallByValue => CBVMachine(storeIntermediateSteps, maybeExecutor)
   }
 
   def substituteParse(code: String): Try[Expr] = {

@@ -33,7 +33,7 @@ object ValuePrettyPrinter {
         case VariableValue(n, _) => s"$n"
       }
       case v: Value => v match {
-        case ConstValue(n, maybeVarName) => s"$n(${maybeVarName.getOrElse("-")}})"
+        case ConstValue(n, maybeVarName) => s"$n(${maybeVarName.getOrElse("-")})"
         case CodeValue(c, maybeVarName) => s"CodeVal(${c.mkString(",")}, ${maybeVarName.getOrElse("-")}))"
       }
       case _ => throw new NotImplementedError(s"ValuePrettyPrinter has no conversion for value $value")
