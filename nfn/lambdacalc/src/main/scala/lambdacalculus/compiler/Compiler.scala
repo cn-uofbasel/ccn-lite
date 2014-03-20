@@ -27,9 +27,9 @@ trait Compiler extends Logging{
     case Constant(n: Int) => CONST(n)
     case UnaryExpr(op, v) => v ++ Unary(op)
     case BinaryExpr(op, v1, v2) => v2 ++ v1 ++ BINARYOP(op)
-    case Let(_, fun, program) => program match {
-      case Some(prog) => LET(fun) ++ prog
-      case None => LET(fun)
+    case Let(defName, fun, program) => program match {
+      case Some(prog) => LET(defName, fun) ++ prog
+      case None => LET(defName, fun)
     }
     case IfElse(test, thenn, otherwise) => {
       IF(test) :: THENELSE(thenn, otherwise) :: Nil
@@ -81,11 +81,11 @@ trait Compiler extends Logging{
         ???
       }
       case CONST(n) :: tail =>  Constant(n) -> tail
-      case LET(fun) :: prog => {
+      case LET(defName, fun) :: prog => {
         val (decompiledFun, funTail) = decompileReverse(fun.reverse)
         val (decompiledProg, progTail) = decompileReverse(prog)
 
-        Let("???", decompiledFun, Some(decompiledProg)) -> progTail
+        Let(defName, decompiledFun, Some(decompiledProg)) -> progTail
       }
 //      case ENDLET() :: funTail => decompileReverse(funTail, exprList)
       case _ => decompileSpecific(instructions)

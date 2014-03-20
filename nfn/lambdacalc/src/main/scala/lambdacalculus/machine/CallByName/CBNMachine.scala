@@ -119,11 +119,11 @@ case class CBNMachine(override val storeIntermediateSteps:Boolean = false) exten
         nextEnv = e
         nextCode = c
       }
-      case LET(cl) => {
+      case LET(defName, cl) => {
         val s = stack
         val e = env
         val c = code.tail
-        val v = CodeValue(cl)
+        val v = CodeValue(cl, Some(defName))
 
         nextStack = s
         nextEnv = v :: e
@@ -147,7 +147,7 @@ case class CBNMachine(override val storeIntermediateSteps:Boolean = false) exten
       }
       case THENELSE(thenn, otherwise) => {
         val thenElseCode = stack.head match {
-          case ConstValue(n) => if(n != 0) thenn else otherwise
+          case ConstValue(n, _) => if(n != 0) thenn else otherwise
           case _ => throw new MachineException(s"CBNMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
         }
 
