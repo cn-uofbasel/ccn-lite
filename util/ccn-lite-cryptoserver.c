@@ -24,6 +24,8 @@
 #include "../ccnl.h"
 #include "../pkt-ccnb.h"
 #include "ccnl-common.c"
+#include "../pkt-de-ccnb.c"
+#include "../pkt-en-ccnb.c"
 #include "ccnl-crypto.c"
 
 #include <unistd.h>

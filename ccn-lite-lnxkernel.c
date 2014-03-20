@@ -205,7 +205,7 @@ ccnl_close_socket(struct socket *s)
 #include "ccnl-core.c"
 
 #ifdef USE_FRAG
-#  include "pkt-ccnb.c"
+#  include "pkt-en-ccnb.c"
 #  include "ccnl-ext-frag.c"
 #endif
 

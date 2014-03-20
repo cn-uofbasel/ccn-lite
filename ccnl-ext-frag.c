@@ -25,6 +25,8 @@
 
 #ifdef USE_FRAG
 
+#include "pkt-en-ccnb.c"
+
 /* see ccnl-core.h for available fragmentation protocols.
  *
  * CCNL_FRAG_NONE
@@ -527,7 +529,7 @@ ccnl_frag_RX_CCNx2013(RX_datagram callback,
 	    // CCNL extensions:
 	    case CCN_DTAG_INTEREST:
 	    case CCN_DTAG_CONTENTOBJ:
-		rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
+		rc = ccnl_ccnb_forwarder(relay, from, data, datalen);
 		if (rc < 0)
 		    return rc;
 		continue;

@@ -34,6 +34,8 @@
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
+#include "../pkt-de-ccnb.c"
+#include "../pkt-en-ccnb.c"
 
 #define USE_SIGNATURES
 #include "ccnl-crypto.c"

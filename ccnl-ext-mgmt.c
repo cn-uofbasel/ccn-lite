@@ -35,7 +35,7 @@
 #endif
 
 #include "pkt-ccnb.h"
-#include "pkt-ccnb.c"
+#include "pkt-en-ccnb.c"
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
@@ -74,10 +74,10 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int numPackets = len/(size/2) + 1;
     
     for(it = 0; it < numPackets; ++it){
-        int id = -it; 
+      //        int id = -it; 
         
         int packetsize = size/2;
-        char *packet = (char*) ccnl_malloc(sizeof(char)*packetsize * 2);
+        unsigned char *packet = (unsigned char*) ccnl_malloc(sizeof(char)*packetsize * 2);
         int len4 = 0;
         len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
         if(it == numPackets - 1) {
@@ -86,11 +86,13 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         len4 += mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
         packet[len4++] = 0;
         
-        if(it == 0) id = from->faceid;
-    
 #ifdef USE_SIGNATURES
+	//        if(it == 0) id = from->faceid;
+    
         if(!ccnl_is_local_addr(&from->peer))
-                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+	  //                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+	    ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto",
+			     it ? -it : from->faceid);     
         else
         {
 #endif

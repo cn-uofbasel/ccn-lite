@@ -42,20 +42,20 @@ ccn-lite-relay: ccn-lite-relay.c \
 	Makefile ccnl-includes.h pkt-ccnb.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
-	ccnl-ext-sched.c pkt-ccnb.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-sched.c pkt-de-ccnb.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
 ccn-lite-simu: ccn-lite-simu.c \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
-	ccnl-ext-frag.c pkt-ccnb.c ccnl-ext-sched.c ccnl-simu-client.c Makefile
+	ccnl-ext-frag.c pkt-de-ccnb.c ccnl-ext-sched.c ccnl-simu-client.c Makefile
 	${EXTMAKE}
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
 ccn-lite-omnet: ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
 	ccnl-ext-frag.c ccnl-ext.h ccnl-ext-sched.c ccnl.h \
-	ccnl-includes.h ccn-lite-omnet.c pkt-ccnb.c ccnl-platform.c \
+	ccnl-includes.h ccn-lite-omnet.c pkt-de-ccnb.c ccnl-platform.c \
 	pkt-ccnb.h Makefile
 	rm -rf omnet/src/ccn-lite/*
 	rm -rf ccn-lite-omnet.tgz
@@ -71,7 +71,7 @@ ccn-lite-lnxkernel:
 modules: ccn-lite-lnxkernel.c \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
-	ccnl-ext-frag.c pkt-ccnb.c ccnl-ext-sched.c ccnl-ext-crypto.c Makefile
+	ccnl-ext-frag.c pkt-de-ccnb.c ccnl-ext-sched.c ccnl-ext-crypto.c Makefile
 	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(shell pwd) modules
 
 datastruct.pdf: datastruct.dot

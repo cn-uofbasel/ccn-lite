@@ -18,18 +18,12 @@
  *
  * File history:
  * 2011-04-09 created
- * 2013-10-12 add crypto support <christopher.scherb@unibas.ch>
+ * 2014-03-20 started to move ccnx (pre 2014) specific routines to "fwd-ccnb.c"
  */
 
 #include "ccnl-core.h"
 
-
-#define CCNL_VERSION "2013-07-27"
-
-
-int
-ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+#define CCNL_VERSION "2014-03-20"
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
@@ -83,167 +77,7 @@ done:
     return rc;
 }
 
-// ----------------------------------------------------------------------
-// ccnb parsing support
-
-static int consume(int typ, int num, unsigned char **buf, int *len,
-		   unsigned char **valptr, int *vallen);
-
-static int
-dehead(unsigned char **buf, int *len, int *num, int *typ)
-{
-    int i;
-    int val = 0;
-
-    if (*len > 0 && **buf == 0) { // end
-	*num = *typ = 0;
-	*buf += 1;
-	*len -= 1;
-	return 0;
-    }
-    for (i = 0; (unsigned int) i < sizeof(i) && i < *len; i++) {
-	unsigned char c = (*buf)[i];
-	if ( c & 0x80 ) {
-	    *num = (val << 4) | ((c >> 3) & 0xf);
-	    *typ = c & 0x7;
-	    *buf += i+1;
-	    *len -= i+1;
-	    return 0;
-	}
-	val = (val << 7) | c;
-    } 
-    return -1;
-}
-
-static int
-hunt_for_end(unsigned char **buf, int *len,
-	     unsigned char **valptr, int *vallen)
-{
-    int typ, num;
-
-    while (dehead(buf, len, &num, &typ) == 0) {
-	if (num==0 && typ==0)					return 0;
-	if (consume(typ, num, buf, len, valptr, vallen) < 0)	return -1;
-    }
-    return -1;
-}
-
-static int
-consume(int typ, int num, unsigned char **buf, int *len,
-	unsigned char **valptr, int *vallen)
-{
-    if (typ == CCN_TT_BLOB || typ == CCN_TT_UDATA) {
-	if (valptr)  *valptr = *buf;
-	if (vallen)  *vallen = num;
-	*buf += num, *len -= num;
-	return 0;
-    }
-    if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR)
-	return hunt_for_end(buf, len, valptr, vallen);
-//  case CCN_TT_TAG, CCN_TT_ATTR:
-//  case DTAG, DATTR:
-    return -1;
-}
-
-int
-data2uint(unsigned char *cp, int len)
-{
-    int i, val;
-
-    for (i = 0, val = 0; i < len; i++)
-	if (isdigit(cp[i]))
-	    val = 10*val + cp[i] - '0';
-	else
-	    return -1;
-    return val;
-}
-
-struct ccnl_buf_s*
-ccnl_extract_prefix_nonce_ppkd(unsigned char **data, int *datalen,
-			       int *scope, int *aok, int *min, int *max,
-			       struct ccnl_prefix_s **prefix,
-			       struct ccnl_buf_s **nonce,
-			       struct ccnl_buf_s **ppkd,
-			       unsigned char **content, int *contlen)
-{
-    unsigned char *start = *data - 2, *cp;
-    int num, typ, len;
-    struct ccnl_prefix_s *p;
-    struct ccnl_buf_s *buf, *n = 0, *pub = 0;
-    DEBUGMSG(99, "ccnl_extract_prefix\n");
-
-    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    if (!p) return NULL;
-    p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-					   sizeof(unsigned char**));
-    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen) goto Bail;
-
-    while (dehead(data, datalen, &num, &typ) == 0) {
-	if (num==0 && typ==0) break; // end
-	if (typ == CCN_TT_DTAG) {
-	    if (num == CCN_DTAG_NAME) {
-		for (;;) {
-		    if (dehead(data, datalen, &num, &typ) != 0) goto Bail;
-		    if (num==0 && typ==0)
-			break;
-		    if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
-			p->compcnt < CCNL_MAX_NAME_COMP) {
-			if (hunt_for_end(data, datalen, p->comp + p->compcnt,
-				p->complen + p->compcnt) < 0) goto Bail;
-			p->compcnt++;
-		    } else {
-			if (consume(typ, num, data, datalen, 0, 0) < 0)
-			    goto Bail;
-		    }
-		}
-		continue;
-	    }
-	    if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
-		num == CCN_DTAG_MINSUFFCOMP || num == CCN_DTAG_MAXSUFFCOMP ||
-					 num == CCN_DTAG_PUBPUBKDIGEST) {
-		if (hunt_for_end(data, datalen, &cp, &len) < 0) goto Bail;
-		if (num == CCN_DTAG_SCOPE && len == 1 && scope)
-		    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
-		if (num == CCN_DTAG_ANSWERORIGKIND && aok)
-		    *aok = data2uint(cp, len);
-		if (num == CCN_DTAG_MINSUFFCOMP && min)
-		    *min = data2uint(cp, len);
-		if (num == CCN_DTAG_MAXSUFFCOMP && max)
-		    *max = data2uint(cp, len);
-		if (num == CCN_DTAG_NONCE && !n)
-		    n = ccnl_buf_new(cp, len);
-		if (num == CCN_DTAG_PUBPUBKDIGEST && !pub)
-		    pub = ccnl_buf_new(cp, len);
-		if (num == CCN_DTAG_EXCLUDE) {
-		    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
-		} else
-		    continue;
-	    }
-	    if (num == CCN_DTAG_CONTENT) {
-		if (consume(typ, num, data, datalen, content, contlen) < 0)
-		    goto Bail;
-		continue;
-	    }
-	}
-	if (consume(typ, num, data, datalen, 0, 0) < 0) goto Bail;
-    }
-    if (prefix)    *prefix = p;    else free_prefix(p);
-    if (nonce)     *nonce = n;     else ccnl_free(n);
-    if (ppkd)      *ppkd = pub;    else ccnl_free(pub);
-
-    buf = ccnl_buf_new(start, *data - start);
-    // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (content)
-	*content = buf->data + (*content - start);
-    for (num = 0; num < p->compcnt; num++)
-	    p->comp[num] = buf->data + (p->comp[num] - start);
-    return buf;
-Bail:
-    free_prefix(p);
-    free_2ptr_list(n, pub);
-    return NULL;
-}
+#include "pkt-de-ccnb.c"
 
 // ----------------------------------------------------------------------
 // addresses, interfaces and faces
@@ -552,31 +386,6 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 // ----------------------------------------------------------------------
 // handling of interest messages
 
-int
-ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
-{
-    struct ccnl_buf_s *n, *n2 = 0;
-    int i;
-    DEBUGMSG(99, "ccnl_nonce_find_or_append\n");
-
-    for (n = ccnl->nonces, i = 0; n; n = n->next, i++) {
-	if (buf_equal(n, nonce))
-	    return -1;
-	if (n->next)
-	    n2 = n;
-    }
-    n = ccnl_buf_new(nonce->data, nonce->datalen);
-    if (n) {
-	n->next = ccnl->nonces;
-	ccnl->nonces = n;
-	if (i >= CCNL_MAX_NONCES && n2) {
-	    ccnl_free(n2->next);
-	    n2->next = 0;
-	}
-    }
-    return 0;
-}
-
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		  struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix,
@@ -857,141 +666,9 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 }
 
 // ----------------------------------------------------------------------
-// the core logic of CCN:
+// dispatching the different formats (and respective forwarding semantics):
 
-int
-ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		    unsigned char **data, int *datalen)
-{
-    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
-    struct ccnl_interest_s *i = 0;
-    struct ccnl_content_s *c = 0;
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = 0;
-    DEBUGMSG(99, "ccnl_core_RX_i_or_c (%d bytes left)\n", *datalen);
-
-    buf = ccnl_extract_prefix_nonce_ppkd(data, datalen, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
-    if (!buf) {
-	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
-    }
-    if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
-	DEBUGMSG(6, "  dropped because of duplicate nonce\n"); goto Skip;
-    }
-    if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
-	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
-	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1) goto Skip;
-	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
-	    rc = ccnl_mgmt(relay, buf, p, from); goto Done;
-	}
-	// CONFORM: Step 1:
-	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
-	    for (c = relay->contents; c; c = c->next) {
-		if (!ccnl_i_prefixof_c(p, ppkd, minsfx, maxsfx, c)) continue;
-		// FIXME: should check stale bit in aok here
-		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-		ccnl_print_stats(relay, STAT_SND_C); //log sent_c
-		if (from->ifndx >= 0)
-		    ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
-		else
-		    ccnl_app_RX(relay, c);
-		goto Skip;
-	    }
-	}
-	// CONFORM: Step 2: check whether interest is already known
-	for (i = relay->pit; i; i = i->next) {
-	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
-		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
-		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
-		break;
-	}
-	if (!i) { // this is a new/unknown I request: create and propagate
-	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
-	    if (i) { // CONFORM: Step 3 (and 4)
-		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
-		if (scope > 2)
-		    ccnl_interest_propagate(relay, i);
-	    }
-	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
-	    ccnl_interest_propagate(relay, i);
-	}
-	if (i) { // store the I request, for the incoming face (Step 3)
-	    DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
-	    ccnl_interest_append_pending(i, from);
-	}
-    } else { // content
-	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
-	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
-        
-#ifdef USE_SIGNATURES
-        if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
-                && !memcmp(p->comp[1], "crypto", 6) &&
-                from == relay->crypto_face) {
-	    rc = ccnl_crypto(relay, buf, p, from); goto Done;
-	}
-#endif /*USE_SIGNATURES*/
-        
-        // CONFORM: Step 1:
-	for (c = relay->contents; c; c = c->next)
-	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
-	if (c) { // CONFORM: Step 2 (and 3)
-	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
-		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
-		DEBUGMSG(7, "  removed because no matching interest\n");
-		free_content(c);
-		goto Skip;
-	    }
-	    if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-		DEBUGMSG(7, "  adding content to cache\n");
-		ccnl_content_add2cache(relay, c);
-	    } else {
-		DEBUGMSG(7, "  content not added to cache\n");
-		free_content(c);
-	    }
-	}
-    }
-Skip:
-    rc = 0;
-Done:
-    free_prefix(p);
-    free_3ptr_list(buf, nonce, ppkd);
-    return rc;
-}
-
-int
-ccnl_core_RX_datagram(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		      unsigned char **data, int *datalen)
-{
-    int rc = 0, num, typ;
-    DEBUGMSG(6, "ccnl_core_RX_datagram: %d bytes from face=%p (id=%d.%d)\n",
-	     *datalen, (void*)from, relay->id, from ? from->faceid : -1);
-
-    while (rc >= 0 && *datalen > 0) {
-	if (dehead(data, datalen, &num, &typ) || typ != CCN_TT_DTAG) return -1;
-	switch (num) {
-	case CCN_DTAG_INTEREST:
-	case CCN_DTAG_CONTENTOBJ:
-	    rc = ccnl_core_RX_i_or_c(relay, from, data, datalen);
-	    continue;
-#ifdef USE_FRAG
-	case CCNL_DTAG_FRAGMENT2012:
-	    rc = ccnl_frag_RX_frag2012(ccnl_core_RX_datagram, relay, from, data, datalen);
-	    continue;
-	case CCNL_DTAG_FRAGMENT2013:
-	    rc = ccnl_frag_RX_CCNx2013(ccnl_core_RX_datagram, relay, from, data, datalen);
-	    continue;
-#endif
-	default:
-	    DEBUGMSG(15, "  unknown datagram type %d\n", num);
-	    return -1;
-	}
-    }
-    return rc;
-}
+#include "fwd-ccnb.c"
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
@@ -1002,6 +679,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
     if (!from) return;
-    ccnl_core_RX_datagram(relay, from, &data, &datalen);
+
+    ccnl_RX_ccnb(relay, from, &data, &datalen);
 }
 // eof

@@ -1,5 +1,5 @@
 /*
- * @f pkt-ccnb.c
+ * @f pkt-en-ccnb.c
  * @b CCN lite - create and manipulate CCNb protocol data units
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
@@ -22,8 +22,8 @@
  * 2014-03-17 renamed to prepare for a world with many wire formats
  */
 
-#ifndef CCNL_PDU
-#define CCNL_PDU
+#ifndef CCNL_EN_CCNB
+#define CCNL_EN_CCNB
 
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
@@ -99,36 +99,6 @@ mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
     return len;
 }
 
-int
-unmkBinaryInt(unsigned char **data, int *datalen,
-	      unsigned int *result, unsigned char *width)
-{
-    unsigned char *cp = *data;
-    int len = *datalen, typ, num;
-    unsigned int val = 0;
-
-    if (dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
-	return -1;
-    if (width) {
-      if (*width < num)
-	  num = *width;
-      else
-	  *width = num;
-    }
-
-    // big endian (network order):
-    while (num-- > 0 && len > 0) {
-	val = (val << 8) | *cp++;
-	len--;
-    }
-    *result = val;
-
-    if (len < 1 || *cp != '\0') // no end-of-entry
-	return -1;
-    *data = cp+1;
-    *datalen = len-1;
-    return 0;
-}
 
 // ----------------------------------------------------------------------
 // (ms): Brought here the following two. I noticed also that some
@@ -197,5 +167,5 @@ mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
 
 #endif // CCNL_SIMULATION || CCNL_OMNET
 
-#endif /*CCNL_PDU*/
+#endif /*CCNL_EN_CCNB*/
 // eof

@@ -26,7 +26,7 @@
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 #include "pkt-ccnb.h"
-#include "pkt-ccnb.c"
+//#include "pkt-ccnb.c"
 #include "ccnl-includes.h"
 #include "ccnl.h"
 #include "ccnl-ext-mgmt.c"

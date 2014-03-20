@@ -51,7 +51,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "pkt-ccnb.c"
+#include "pkt-en-ccnb.c"
 #include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
