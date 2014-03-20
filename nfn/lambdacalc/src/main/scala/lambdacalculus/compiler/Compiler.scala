@@ -34,6 +34,7 @@ trait Compiler extends Logging{
     case IfElse(test, thenn, otherwise) => {
       IF(test) :: THENELSE(thenn, otherwise) :: Nil
     }
+    case Call(name, args) => args.map({compile(_)}).flatten ++ List(CALL(name, args.size))
     case _ => compileSpecific(ast)
   }
   }

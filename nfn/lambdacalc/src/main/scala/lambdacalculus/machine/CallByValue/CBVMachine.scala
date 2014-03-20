@@ -3,7 +3,7 @@ package lambdacalculus.machine.CallByValue
 import lambdacalculus.machine._
 import com.typesafe.scalalogging.slf4j.Logging
 
-case class CBVMachine(override val storeIntermediateSteps:Boolean = false) extends Machine with Logging {
+case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends Machine with Logging {
 
   type AbstractConfiguration = CBVConfiguration
 
@@ -128,8 +128,12 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
       }
       // [ v.clo(c', e').s | e | APPLY.c ] -> [ c.e.s | v.e' | c' ]
       case APPLY() => {
-        val closure = stack.tail.head.asInstanceOf[ClosureValue]
-        
+
+        val closure = stack match {
+          case List(_, closure: ClosureValue, _*) => closure
+          case _ => throw new MachineException(s"APPLY requires the second element of the stack to be a closure value, stack: $stack")
+        }
+
         val v = stack.head match {
           case ConstValue(n, maybeConstName) => ConstValue(n, closure.maybeName)
           case CodeValue(c, maybeConstName) => CodeValue(c, closure.maybeName)
@@ -195,6 +199,25 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false) exten
         val c = code.tail
 
         nextStack = op(v1, v2) :: s
+        nextEnv = e
+        nextCode = c
+      }
+
+      case CALL(name, nArgs) => {
+        val args = stack.take(nArgs).reverse
+        val s = stack.drop(nArgs)
+        val e = env
+        val c = code.tail
+
+        // TODO: replace this with an actual decompilation of the arguments to an lambda ast and then creating a ast.Call object
+        val argsStrings = args map {
+          case ConstValue(n, _) => n
+          case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented")
+        }
+
+        val r: Value = executeCall(s"call ${nArgs + 1} ${argsStrings.mkString(" ")}")
+
+        nextStack = r :: s
         nextEnv = e
         nextCode = c
       }

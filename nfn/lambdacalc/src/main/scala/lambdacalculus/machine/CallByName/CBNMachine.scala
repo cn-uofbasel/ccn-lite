@@ -2,7 +2,7 @@ package lambdacalculus.machine.CallByName
 
 import lambdacalculus.machine._
 
-case class CBNMachine(override val storeIntermediateSteps:Boolean = false) extends Machine {
+case class CBNMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends Machine {
 
   type AbstractConfiguration = CBNConfiguration
 
@@ -174,6 +174,5 @@ case class CBNMachine(override val storeIntermediateSteps:Boolean = false) exten
     }
     CBNConfiguration(nextStack, nextEnv, nextCode)
   }
-
 }
 

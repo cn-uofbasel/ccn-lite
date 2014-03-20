@@ -1,6 +1,7 @@
 package lambdacalculus.machine
 
 import com.typesafe.scalalogging.slf4j.Logging
+import lambdacalculus.parser.ast.Call
 
 
 trait Configuration {
@@ -9,9 +10,16 @@ trait Configuration {
 
 case class MachineException(msg: String) extends Exception(msg)
 
+trait CallExecutor {
+  def apply(call: String): Value = executeCall(call)
+  def executeCall(call: String): Value
+}
+
 abstract class Machine(val storeIntermediateSteps:Boolean = false) extends Logging {
 
   type AbstractConfiguration <: Configuration
+
+  def maybeExecutor: Option[CallExecutor]
 
   var _intermediateConfigurations: List[AbstractConfiguration] = List()
 
@@ -52,5 +60,12 @@ abstract class Machine(val storeIntermediateSteps:Boolean = false) extends Loggi
 
   def intermediateConfigurations:Option[List[Configuration]] = if(storeIntermediateSteps) Some(_intermediateConfigurations) else None
 
+
+  protected def executeCall(call: String): Value = {
+    maybeExecutor match {
+      case Some(exec) => exec.executeCall(call)
+      case None => throw new MachineException("This Machine needs a CallExecutor if it should be able to execute call commands")
+    }
+  }
 }
 

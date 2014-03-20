@@ -40,6 +40,7 @@ object Binder {
         IfElse(bind(test, scope), bind(thenn, scope), bind(otherwise, scope))
       }
       case c: Constant => c
+      case Call(name, args) => Call(name, args map { bind(_, scope) })
       case _ => throw new Exception(s"Binder has no implementation for expression $expr")
     }
   }

@@ -50,15 +50,18 @@ object LambdaCalculusDecompilation extends App {
 object LambdaCalculus extends App {
   val l =
     """
-      | let countToTen =
-      |   \x.
-      |     if (x LT 10)
-      |     then countToTen (x ADD 1)
-      |     else x
-      |endlet
-      |
-      |countToTen 9
+      |call 3 SumService 11 1
     """.stripMargin
+//    """
+//      | let countToTen =
+//      |   \x.
+//      |     if (x LT 10)
+//      |     then countToTen (x ADD 1)
+//      |     else x
+//      |endlet
+//      |
+//      |countToTen 9
+//    """.stripMargin
   val lc = LambdaCalculus(ExecutionOrder.CallByValue)
   lc.substituteParseCompileExecute(l)
 }

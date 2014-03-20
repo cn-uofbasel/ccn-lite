@@ -61,6 +61,9 @@ case class BINARYOP(op: BinaryOp.BinaryOp) extends Instruction {
   }
 }
 
+case class CALL(name: String, nArgs: Int) extends Instruction {
+  override def stringRepr: String = s"CALL($name: $nArgs)"
+}
 
 //sealed abstract class UnaryOp(name: String) {
 //  override def toString = name
