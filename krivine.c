@@ -1516,13 +1516,16 @@ normal:
                 
                 param = strdup(params[i]);
                 j= splitComponents(param, namecomp);
+                if(isLocalAvailable(ccnl, namecomp)){ //if node has routable content local --> compute local
+                    printf("Routable content is local availabe --> start computation\n");
+                    goto compute;
+                }
                 int len = mkInterestCompute(namecomp, comp, complen, 0, out);
                 free(param);
                 
                 //fwrite(out, sizeof(char), len, stdout);
                 printf("\n");
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-                
                 //search locally for content
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
                     printf("Content locally found: %s\n", c->content);
@@ -1552,14 +1555,18 @@ normal:
         printf("No result found: Try to compute locally\n");
         //Make interest string:
 #ifndef ABSTRACT_MACHINE
-        complen = sprintf(comp, "(call %d ", num_params);
+compute:
+        complen = sprintf(comp, "call %d ", num_params);
         for(i = 0; i < num_params; ++i){
-            complen += sprintf(comp, "%s ", params[i]);
+            complen += sprintf(comp+complen, "%s ", params[i]);
         }
         namecomp[0] = "COMPUTE";
         namecomp[1] = strdup(comp);
         namecomp[2] = "NFN";
         namecomp[3] = NULL;
+        
+        printf("Interest name: %s %s %s %s\n", namecomp[0], namecomp[1], namecomp[2], namecomp[3]);
+        
         len = mkInterest(namecomp, 0, out);
         interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
         if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
@@ -1567,7 +1574,7 @@ normal:
             res = c->content;
         }else
         {
-            printf("COMPUTATION COULD NOT BE FINISHED");
+            printf("COMPUTATION COULD NOT BE FINISHED\n");
             res = NULL;
         }
         interest = ccnl_interest_remove(ccnl, interest);
