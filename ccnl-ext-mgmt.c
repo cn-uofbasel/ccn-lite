@@ -58,8 +58,8 @@ ccnl_is_local_addr(sockunion *su)
 	return 0;
     if (su->sa.sa_family == AF_UNIX)
 	return -1;
-    /*if (su->sa.sa_family == AF_INET)
-	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);*/
+    if (su->sa.sa_family == AF_INET)
+	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
     return 0;
 }
 
