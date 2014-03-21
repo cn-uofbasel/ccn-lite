@@ -199,7 +199,6 @@ struct ccnl_content_s *
 ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
     struct ccnl_content_s *c_iter; 
-    
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
         md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
@@ -227,6 +226,7 @@ ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
 
 struct ccnl_content_s *
 ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest){
+    DEBUGMSG(2, "ccnl_receive_content_synchronous()\n");
     int i, maxfd = -1, rc, content_received = 0;
     fd_set readfs, writefs;
     unsigned char buf[CCNL_MAX_PACKET_SIZE];
@@ -317,6 +317,21 @@ ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, c
     from->outq->data[0] = strdup(name);
     from->outq->datalen = strlen(name);
     return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+}
+
+int
+isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
+    DEBUGMSG(2, "isLocalAvailable()\n");
+    char out[CCNL_MAX_PACKET_SIZE];
+    int len = mkInterest(namecomp, 0, out);
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+    int found = 0;
+    struct ccnl_content_s *c;
+    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
+        found = 1;
+    }    
+    //ccnl_interest_remove(ccnl, interest);
+    return found;
 }
 #endif USE_UTIL
 #endif //KRIVINE_COMMON_C
