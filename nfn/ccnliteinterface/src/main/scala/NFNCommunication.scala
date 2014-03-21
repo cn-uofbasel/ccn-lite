@@ -14,18 +14,21 @@ import com.typesafe.scalalogging.slf4j.Logging
 
 trait Packet {
 
-  def name: String
+  def name: Seq[String]
 
-  def nameComponents:Array[String] = Array(name, "NFN")
+  def nameComponents:Seq[String] = name ++ Seq("NFN")
 }
 
-case class Interest(name: String) extends Packet {
+case class Interest(name: Seq[String]) extends Packet {
+
+
   override def toString = s"Interest('${name}')"
 }
-case class Content(name: String, data: Array[Byte]) extends Packet {
-  override def toString = s"Content('$name' => ${new String(data)})"
 
+case class Content(name: Seq[String], data: Array[Byte]) extends Packet {
+  override def toString = s"Content('$name' => ${new String(data)})"
 }
+
 
 object NFNCommunication extends Logging {
 
@@ -39,7 +42,6 @@ object NFNCommunication extends Logging {
 
       encoding match {
         case "string" =>
-          assert(nameData.size == nameSize, s"Parsed name '$nameData' has not its actual size $nameSize")
           nameData
         case "binary.base64" =>
           new String(DatatypeConverter.parseBase64Binary(nameData))
@@ -65,12 +67,12 @@ object NFNCommunication extends Logging {
     xml match {
       case interest @ <interest>{_*}</interest> => {
         val nameComponents = parseComponents(interest)
-        Interest(nameComponents.mkString("/"))
+        Interest(nameComponents)
       }
       case content @ <contentobj>{_*}</contentobj> => {
         val nameComponents = parseComponents(content)
         val contentData = parseContent(content)
-        Content(nameComponents.mkString("/"), contentData)
+        Content(nameComponents, contentData)
       }
       case _ => throw new Exception("XML parser cannot parse:\n" + xml)
     }
@@ -78,11 +80,11 @@ object NFNCommunication extends Logging {
 
   def main(args: Array[String]) = {
 
-    val socket = UDPClient()
+    val socket = UDPClient("NFNSocket", 9000)
     val ccnIf = new CCNLiteInterface()
 
-    val interest = Interest("add 7 1/NFN")
-    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest.nameComponents)
+    val interest = Interest(Seq("add 7 1"))
+    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest.nameComponents.toArray)
 
     val f = socket.sendReceive(binaryInterest)
     val respInterest = Await.result(f, 1 minute)

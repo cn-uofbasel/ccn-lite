@@ -1,3 +1,4 @@
+import akka.actor._
 import com.typesafe.scalalogging.slf4j.Logging
 import lambdacalculus.machine.{ConstValue, ValuePrettyPrinter, Value, CallExecutor}
 import lambdacalculus.{ExecutionOrder, LambdaCalculus}
@@ -5,9 +6,11 @@ import language.experimental.macros
 
 import LambdaMacros._
 import scala.collection.immutable
-import scala.concurrent.Await
+import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+
+import ExecutionContext.Implicits.global
 
 
 case class WordCountService() extends NFNService {
@@ -17,11 +20,11 @@ case class WordCountService() extends NFNService {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
     val values = unparsedValues match {
       case Seq(docNameString) => Seq(
-        NFNNameValue(NFNName.parse(docNameString).getOrElse(throw new NFNServiceException(s"Could not create NFNName for docname: $docNameString")))
+        NFNNameValue(NFNName(Seq(docNameString)))
       )
       case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
     }
-    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    val name = NFNName(Seq(unparsedName))
     assert(name == this.toNFNName)
 
     val function = { (values: Seq[NFNServiceValue]) =>
@@ -36,12 +39,13 @@ case class WordCountService() extends NFNService {
     CallableNFNService(name, values, function)
   }
 
-  override def toNFNName: NFNName = NFNName("WordCountService/Int/rInt")
+  override def toNFNName: NFNName = NFNName(Seq("WordCountService/Int/rInt"))
 }
 
 
-case class AddService() extends  NFNService {
+case class AddService() extends  NFNService with Logging {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+    logger.debug("parse")
     val values = unparsedValues match {
       case Seq(lStr, rStr) => Seq(
           NFNIntValue(lStr.toInt),
@@ -49,7 +53,7 @@ case class AddService() extends  NFNService {
       )
       case _ => throw new Exception(s"Service $toNFNName could not parse two int values from: '$unparsedValues'")
     }
-    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    val name = NFNName(Seq(unparsedName))
     assert(name == this.toNFNName)
 
     val function = { (values: Seq[NFNServiceValue]) =>
@@ -64,13 +68,13 @@ case class AddService() extends  NFNService {
     CallableNFNService(name, values, function)
   }
 
-  override def toNFNName: NFNName = NFNName("SumService/Int/Int/rInt")
+  override def toNFNName: NFNName = NFNName(Seq("/AddService/Int/Int/rInt"))
 }
 
 case class SumService() extends  NFNService {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
     val values = unparsedValues.map( (unparsedValue: String) => NFNIntValue(unparsedValue.toInt))
-    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    val name = NFNName(Seq(unparsedName))
     assert(name == this.toNFNName)
 
     val function = { (values: Seq[NFNServiceValue]) =>
@@ -84,7 +88,7 @@ case class SumService() extends  NFNService {
     CallableNFNService(name, values, function)
   }
 
-  override def toNFNName: NFNName = NFNName("SumService/Int/Int/rInt")
+  override def toNFNName: NFNName = NFNName(Seq("SumService/Int/Int/rInt"))
 }
 
 case class NFNMapReduce(values: NFNNameList, map: NFNService, reduce: NFNService)
@@ -124,18 +128,65 @@ trait NFNSender {
 }
 
 case class ScalaToNFN() extends NFNSender with Logging {
-  val socket = UDPClient()
+
+//  val system = ActorSystem("NFNActorSystem")
+
+//  val worker = system.actorOf(Props(new NFNWorker("NFNWroker")), name = "NFNWorker")
+//  val udpConnection = system.actorOf(Props(new UDPConnection(worker, port = 9001)), name = "UDPListener")
+//  Thread.sleep(2000)
+
+  //  val simpleSender = system.actorOf(Props(new SimpleUDPSender), name = "SimpleUDPSender")
+  //
+  //  val interest = "add 1 1/NFN"
+  //  udpConnection !  Send(new CCNLiteInterface().mkBinaryInterest(interest))
+
+  logger.debug("Started ScalaToNfn...")
+
+  val socket = UDPClient("NFNSocket", 9000)
   val ccnIf = new CCNLiteInterface()
+
+
+  new Thread(
+    UDPServer("ComputeServer", 9001, "localhost", { data =>
+    val maybeContent =
+      NFNCommunication.parseXml(ccnIf.ccnbToXml(data)) match {
+        case Interest(cmps) => {
+          val computeCmps = cmps.slice(1, cmps.size-1)
+          Some(
+            NFNService.parseAndFindFromName(computeCmps.mkString(" ")) flatMap { _.exec } match {
+              case Success(nfnServiceValue) => nfnServiceValue match {
+                case NFNIntValue(n) => Content(cmps, n.toString.getBytes)
+                case res @ _ => throw new Exception(s"Compute Server response is only implemented for results of type NFNIntValue and not: $res")
+              }
+              case Failure(e) => throw e
+            }
+          )
+        }
+        case c: Content => logger.warn(s"Compute socket received content packet $c, discarding it"); None
+      }
+//    maybeContent map { content =>
+//      ccnIf.mkBinaryContent(content.name.toArray, content.data)
+//    }
+    maybeContent map { content =>
+      val binaryContent = ccnIf.mkBinaryContent(content.name.toArray, content.data)
+      socket.send(binaryContent)
+    }
+    None
+  })
+  ).start
+
+
 
   override def nfnSend(lambda: String): String = {
 
-    val interest = Interest(lambda)
+    val interest = Interest(Seq(lambda))
 
-    val binaryInterest = ccnIf.mkBinaryInterest(interest.nameComponents)
+    println(ccnIf.mkBinaryInterest(interest.nameComponents.toArray))
+    val binaryInterest = ccnIf.mkBinaryInterest(interest.nameComponents.toArray)
     println(ccnIf.ccnbToXml(binaryInterest))
     val f = socket.sendReceive(binaryInterest)
 
-    NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 5 seconds))) match {
+    NFNCommunication.parseXml(ccnIf.ccnbToXml(Await.result(f, 60 seconds))) match {
       case Content(name, data) => {
         val dataString = new String(data)
         val resultPrefix = "RST|"
@@ -147,14 +198,8 @@ case class ScalaToNFN() extends NFNSender with Logging {
         logger.info(s"NFN: '$lambda' => '$resultContentString'")
         resultContentString
       }
-
-      case Interest(name) =>
-        NFNName.parse(name) match {
-          case Some(nfnName) => val serv = NFNServiceLibrary.find(nfnName)
-          case None => throw new Exception(s"Not a valid nfn name: $interest")
-        }
-        // TODO
-        throw new Exception(s"Received a Interest from NFN. not implemented")
+      case Interest(name) => logger.warn(s"NFNSocket received interest with name '$name', discarding it"); throw new Exception(s"NFNSocket received interest with name '$name', discarding it")
+      //val serv = NFNServiceLibrary.find(NFNName(name))
     }
   }
 
@@ -163,11 +208,10 @@ case class ScalaToNFN() extends NFNSender with Logging {
 object ScalaToNFN extends App with Logging {
 
 //  val nfnSend = ScalaToNFN()
-  val nfnSend = ScalaToLocalMachine()
-  println("Running ScalaToNFN...")
+  val nfnSend = ScalaToNFN()
 
   val res = nfnSend(
-    "call 3 SumService/Int/Int/rInt 11 1"
+    "add 7 (call 3 /AddService/Int/Int/rInt 11 24)"
 //    lambda{
 //    val x = 41
 //    x + 1
@@ -181,6 +225,7 @@ object ScalaToNFN extends App with Logging {
 )
   println(s"Result: $res")
 
+  Thread.sleep(10000)
 
 }
 
