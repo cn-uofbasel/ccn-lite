@@ -16,9 +16,10 @@ import ExecutionContext.Implicits.global
 object NFNServiceLibrary {
 
   private var services:Map[String, NFNService] = Map()
-  add(SumService())
 
-  def add(serv: NFNService) =  services += serv.toNFNName.name -> serv
+  add(AddService())
+
+  def add(serv: NFNService) =  services += serv.toNFNName.toString -> serv
 
   def find(servName: String):Option[NFNService] = {
     println(s"Looking for: '$servName' in '$services'")
@@ -26,7 +27,7 @@ object NFNServiceLibrary {
   }
 
 
-  def find(servName: NFNName):Option[NFNService] = find(servName.name)
+  def find(servName: NFNName):Option[NFNService] = find(servName.toString)
 
   def convertDollarToChf(dollar: Int): Int = ???
 //    val serv = DollarToChf()
@@ -44,9 +45,9 @@ object NFNServiceLibrary {
 case class NFNIntValue(amount: Int) extends NFNServiceValue {
   def apply = amount
 
-  override def toNFNName: NFNName = NFNName("Int")
+  override def toNFNName: NFNName = NFNName(Seq("Int"))
 
-  override def toValueName: NFNName = NFNName(amount.toString)
+  override def toValueName: NFNName = NFNName(Seq(amount.toString))
 }
 
 case class NFNNameValue(name: NFNName) extends NFNServiceValue{
@@ -59,14 +60,14 @@ case class NFNServiceException(msg: String) extends Exception(msg)
 
 case class DollarToChf() extends NFNService {
 
-  override def toNFNName:NFNName = NFNName("DollarToChf/Int/rInt")
+  override def toNFNName:NFNName = NFNName(Seq("DollarToChf/Int/rInt"))
 
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
     val values = unparsedValues match {
       case Seq(dollarValueString) => Seq(NFNIntValue(dollarValueString.toInt))
       case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
     }
-    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $toNFNName could not parse function name '$unparsedName'"))
+    val name = NFNName(Seq(unparsedName))
     assert(name == this.toNFNName)
 
     val function = { (values: Seq[NFNServiceValue]) =>
@@ -86,20 +87,8 @@ case class CallableNFNService(name: NFNName, values: Seq[NFNServiceValue], funct
   def exec:Try[NFNServiceValue] = function(values)
 }
 
-case class NFNName(name: String)
-
-object NFNName {
-
-  def parse(name: String): Option[NFNName] = {
-    parse(name.split("/"))
-  }
-
-  def parse(components: Seq[String]): Option[NFNName] = {
-    if(components.forall { cmp => !cmp.contains("/") && cmp != "" })
-      Some(NFNName(components.mkString("/")))
-    else
-      None
-  }
+case class NFNName(name: Seq[String]) {
+  override def toString = name.mkString("/")
 }
 
 trait NFNServiceValue {
@@ -146,56 +135,6 @@ object NFNService {
     }
   }
 }
-
-
-
-/*
- * The NFNInterface represents the interface between the NFN network layer and the application layer.
- * The main functionality is sending an interest for a lambda expression, offering a local executable service to NFN
- * and a function which is called by the network to execute a certain service and return the result as a content object
- */
-//trait NFNInterface {
-//
-//  def send(interest: Interest):Future[Content]
-//
-//  def receive(interest: Interest):
-//
-//  def exec(serviceCall: String) = {
-//    NFNService.parseAndFindFromName(serviceCall).map({serv => serv.exec}) match {
-//      case Success(retValue: Try[NFNServiceValue]) => send(Content(serviceCall, retValue)
-//      case Failure(e) => System.err.println(s"Error when executing service call: ${e.toString}")
-//    }
-//  }
-//}
-
-//case class SocketNFNInterface() extends NFNInterface {
-//
-//  val sock: UDPClient = UDPClient()
-//  val ccnIf = CCNLiteInterface
-//
-//  override protected def send(serviceCall: String, result: String): Unit = ???
-//
-//  override def send(lambdaExpr: String): Unit = {
-//
-//    val interest = ccnIf.mkBinaryInterest(Interest(lambdaExpr))
-//
-//    val futureSend = sock.send(interest)
-//
-//    val p = promise[Unit]
-//    p completeWith futureSend
-//
-//    p.future onComplete {
-//      case Success(_) => println(s"SocketNFNInterface sent lambdaExpr: $lambdaExpr")
-//      case Failure(_) => println(s"FAILURE: SocketNFNInterface sent lambdaExpr: $lambdaExpr")
-//    }
-//  }
-//}
-//
-//case class PrintNFNInterface() extends NFNInterface {
-//  override def send(lambdaExpr: String) = println(s"NFNSend: $lambdaExpr")
-//  override protected def send(serviceCall: String, result: String): Unit =  println(s"NFNSend: result<$serviceCall, $result>")
-//}
-
 
 
 object Main {
@@ -256,20 +195,5 @@ object Main {
 
     println(methods.mkString("\n"))
   }
-
-//  def scalaCodeToMacro = {
-//    val l: String = lambda(
-  //    val lc = LambdaCalculus(ExecutionOrder.CallByValue, debug = true, storeIntermediateSteps = false)
-  //    lc.substituteParseCompileExecute(l) match {
-  //      case Success(resultStack: List[Value]) => {
-  //        println(s"resultstack: $resultStack")
-  //        val strResult: List[String] = resultStack.map(ValuePrettyPrinter(_, Some(lc.compiler)))
-  //        println(strResult.mkString(",")) //resultStack.map(ValuePrettyPrinter(_, Some(lambdaCalculus.compiler))).mkString(","))
-  //      }
-  //      case Failure(error) => {
-  //        System.err.println(error)
-  //      }
-  //    }
-//  }
 }
 

@@ -4,7 +4,9 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import java.net.{DatagramPacket, InetAddress, DatagramSocket}
 
-case class UDPClient(port: Int = 9000, maybeAddr: Option[InetAddress] = None) extends Logging {
+case class UDPClient(name: String, port: Int, maybeAddr: Option[InetAddress] = None) extends Logging {
+
+  logger.debug(s"$name: opened socket at${maybeAddr.getOrElse("localhost")} $port")
 
   val addr = maybeAddr.getOrElse(InetAddress.getByName(null))
   val clientSocket = new DatagramSocket()
@@ -13,7 +15,7 @@ case class UDPClient(port: Int = 9000, maybeAddr: Option[InetAddress] = None) ex
     future {
       val packet = new DatagramPacket(data, data.length, addr, port)
       clientSocket.send(packet)
-      logger.debug(s"sent data: $data")
+      logger.debug(s"$name: sent data: $data")
     }
   }
 
@@ -21,9 +23,9 @@ case class UDPClient(port: Int = 9000, maybeAddr: Option[InetAddress] = None) ex
     future {
       val rcvBuf = new Array[Byte](1024)
       val rcvPacket = new DatagramPacket(rcvBuf, rcvBuf.length)
-      logger.debug("waiting for receive...")
+      logger.debug(s"$name: waiting for receive...")
       clientSocket.receive(rcvPacket)
-      logger.debug(s"received: $rcvBuf")
+      logger.debug(s"$name: received: ${new String(rcvBuf)}")
       rcvBuf
     }
   }
