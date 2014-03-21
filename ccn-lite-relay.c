@@ -36,8 +36,10 @@
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 // #define USE_MGMT
-#define USE_NDNTLV
 #define USE_SCHEDULER
+#define USE_SUITE_CCNB
+// #define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
 
@@ -556,8 +558,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 		    if (!prefix) {
 			DEBUGMSG(6, "  no prefix error\n"); goto Done;
 		    }
-		    c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
-					 content, contlen);
+		    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix,
+					 &ppkd, content, contlen);
 		    if (!c)
 			goto Done;
 		    ccnl_content_add2cache(ccnl, c);

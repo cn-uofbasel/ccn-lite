@@ -45,6 +45,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 // ----------------------------------------------------------------------
 
+#define USE_SUITE_CCNB
+
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \

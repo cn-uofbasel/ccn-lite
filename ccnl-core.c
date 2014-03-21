@@ -386,6 +386,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 
 struct ccnl_interest_s*
 ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+		  char suite,
 		  struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix,
 		  int minsuffix, int maxsuffix)
 {
@@ -395,11 +396,24 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
     if (!i)
 	return NULL;
+    i->suite = suite;
     i->from = from;
     i->prefix = *prefix;        *prefix = 0;
     i->pkt  = *pkt;             *pkt = 0;
-    i->minsuffix = minsuffix;
-    i->maxsuffix = maxsuffix;
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	i->details.ccnb.minsuffix = minsuffix;
+	i->details.ccnb.maxsuffix = maxsuffix;
+	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+	i->details.ndntlv.minsuffix = minsuffix;
+	i->details.ndntlv.maxsuffix = maxsuffix;
+	break;
+#endif
+    }
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
     return i;
@@ -474,10 +488,16 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     free_prefix(i->prefix);
-    free_3ptr_list(i->ppkd, i->pkt, i);
-#ifdef USE_NDNTLV
-    ccnl_free(i->ppkl);
+    switch (i->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB: ccnl_free(i->details.ccnb.ppkd); break;
 #endif
+//    case CCNL_SUITE_CCNTLV: ccnl_free(i->details.ccntlv.ppkd); break;
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV: ccnl_free(i->details.ndntlv.ppkl); break;
+#endif
+    }
+    free_2ptr_list(i->pkt, i);
     return i2;
 }
 
@@ -507,8 +527,8 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 }
 
 struct ccnl_content_s*
-ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_buf_s **pkt,
-		 struct ccnl_prefix_s **prefix, struct ccnl_buf_s **ppkd,
+ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
+		 struct ccnl_prefix_s **prefix, struct ccnl_buf_s **ppk,
 		 unsigned char *content, int contlen)
 {
     struct ccnl_content_s *c;
@@ -517,13 +537,22 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_buf_s **pkt,
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c) return NULL;
+    c->suite = suite;
     c->last_used = CCNL_NOW();
     c->content = content;
     c->contentlen = contlen;
     c->pkt = *pkt;        *pkt = NULL;
     c->name = *prefix;    *prefix = NULL;
-    if (ppkd) {
-	c->ppkd = *ppkd;  *ppkd = NULL;
+    if (ppk) {
+	switch (suite) {
+#ifdef USE_SUITE_CCNB
+	case CCNL_SUITE_CCNB: c->details.ccnb.ppkd = *ppk; break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	case CCNL_SUITE_NDNTLV: c->details.ndntlv.ppkl = *ppk; break;
+#endif
+	}
+	*ppk = NULL;
     }
     return c;
 }
@@ -578,8 +607,29 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
     for (i = ccnl->pit; i;) {
 	struct ccnl_pendint_s *pi;
-	if (!ccnl_i_prefixof_c(i->prefix, i->minsuffix, i->maxsuffix, c)) {
-	    // XX must also check i->ppkd/i->ppkl,
+
+	switch (i->suite) {
+#ifdef USE_SUITE_CCNB
+	case CCNL_SUITE_CCNB:
+	    if (!ccnl_i_prefixof_c(i->prefix, i->details.ccnb.minsuffix,
+				   i->details.ccnb.maxsuffix, c)) {
+	    // XX must also check i->ppkd
+		i = i->next;
+		continue;
+	    }
+	    break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	case CCNL_SUITE_NDNTLV:
+	    if (!ccnl_i_prefixof_c(i->prefix, i->details.ndntlv.minsuffix,
+				   i->details.ndntlv.maxsuffix, c)) {
+	    // XX must also check i->ppkl,
+		i = i->next;
+		continue;
+	    }
+	    break;
+#endif
+	default:
 	    i = i->next;
 	    continue;
 	}
@@ -694,11 +744,37 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 // dispatching the different formats (and respective forwarding semantics):
 
 
-#include "fwd-ccnb.c"
+#ifdef USE_SUITE_CCNB
+#  include "fwd-ccnb.c"
+#endif
 
-#ifdef USE_NDNTLV
+#ifdef USE_SUITE_NDNTLV
 #  include "fwd-ndntlv.c"
 #endif
+
+int
+ccnl_pkt2suite(unsigned char *data, int len)
+{
+#ifdef USE_SUITE_CCNB
+    if (*data == 0x01 || *data == 0x04)
+	return CCNL_SUITE_CCNB;
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+    if (data[0] == 0 && len > 1) {
+	if (data[1] == CCNX_TLV_TL_Interest ||
+	    data[1] == CCNX_TLV_TL_Object)
+	    return CCNL_SUITE_CCNTLV;
+    }
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+    if (*data == 0x05 || *data == 0x06)
+	return CCNL_SUITE_NDNTLV;
+#endif
+
+    return -1;
+}
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
@@ -710,14 +786,23 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
     if (!from) return;
 
-    if (*data == 0x05 || *data == 0x06) {
-#ifdef USE_NDNTLV
-	ccnl_RX_ndntlv(relay, from, &data, &datalen);
+    switch (ccnl_pkt2suite(data, datalen)) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	ccnl_RX_ccnb(relay, from, &data, &datalen); break;
 #endif
-    } else if (*data == 0x01 || *data == 0x04) {
-	ccnl_RX_ccnb(relay, from, &data, &datalen);
-    } else
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	ccnl_RX_ccntlv(relay, from, &data, &datalen); break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+	ccnl_RX_ndntlv(relay, from, &data, &datalen); break;
+#endif
+    default:
 	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
 		 ifndx, datalen, *data);
+	break;
+    }
 }
 // eof

@@ -29,7 +29,8 @@
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 //#define USE_FRAG
-#define USE_NDNTLV
+#define USE_SUITE_CCNB
+#define USE_SUITE_NDNTLV
 #define USE_SCHEDULER
 #define USE_ETHERNET
 
@@ -55,8 +56,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #include "pkt-ndntlv-enc.c"
 #include "ccnl-ext-frag.c"
 
-enum {SUITE_CCNB, SUITE_NDNTLV};
-char suite = SUITE_CCNB;
+char suite = CCNL_SUITE_CCNB;
 
 // ----------------------------------------------------------------------
 
@@ -177,29 +177,40 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     namecomp[cnt++] = tmp;
     namecomp[cnt] = 0;
 
-#ifdef USE_NDNTLV
-    if (suite == SUITE_NDNTLV) {
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	len2 = mkContent(namecomp, (char*) data, len, tmp2);
+	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
 	len2 = sizeof(tmp2);
 	ccnl_ndntlv_mkContent(namecomp, data, len, &len2,
 			      (unsigned char*) tmp2);
 	memmove(tmp2, tmp2 + len2, sizeof(tmp2) - len2);
 	len2 = sizeof(tmp2) - len2;
-    } else
+	break;
 #endif
-	len2 = mkContent(namecomp, (char*) data, len, tmp2);
+    default:
+	len2 = 0;
+	break;
+    }
     free(n);
 
-    bp = ccnl_buf_new(tmp2, len2);
+    if (len2) {
+	bp = ccnl_buf_new(tmp2, len2);
 
-    strcpy((char*) tmp2, name);
-    sprintf(tmp, "/.%d", seqn);
-    strcat((char*) tmp2, tmp);
+	strcpy((char*) tmp2, name);
+	sprintf(tmp, "/.%d", seqn);
+	strcat((char*) tmp2, tmp);
 
-    pp = ccnl_path_to_prefix((const char*)tmp2);
+	pp = ccnl_path_to_prefix((const char*)tmp2);
 
-    c = ccnl_content_new(relay, &bp, &pp, NULL, 0, 0);
-    if (c)
-	ccnl_content_add2cache(relay, c);
+	c = ccnl_content_new(relay, suite, &bp, &pp, NULL, 0, 0);
+	if (c)
+	    ccnl_content_add2cache(relay, c);
+    }
 
 }
 
@@ -227,20 +238,29 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
     namecomp[cnt++] = tmp2;
     namecomp[cnt] = 0;
 
-#ifdef USE_NDNTLV
-    if (suite == SUITE_NDNTLV) {
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	len = mkInterest(namecomp, &nonce, (unsigned char*) tmp);
+	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
 	len = sizeof(tmp);
 	ccnl_ndntlv_mkInterest(namecomp, -1, &len, (unsigned char*) tmp);
 	memmove(tmp, tmp + len, sizeof(tmp) - len);
 	len = sizeof(tmp) - len;
-    } else
+	break;
 #endif
-	len = mkInterest(namecomp, &nonce, (unsigned char*) tmp);
-
+    default:
+	len = 0;
+	break;
+    }
     free(n);
 
     // inject it into the relay:
-    ccnl_core_RX(relay, -1, (unsigned char*)tmp, len, 0, 0);
+    if (len)
+	ccnl_core_RX(relay, -1, (unsigned char*)tmp, len, 0, 0);
 }
 
 // ----------------------------------------------------------------------
@@ -755,8 +775,8 @@ main(int argc, char **argv)
             fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
 		    "[-g MIN_INTER_PACKET_INTERVAL] "
 		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
-#ifdef USE_NDNTLV
-		    "[-s SUITE (0=ccnb, 1=ndntlv)] "
+#ifdef USE_SUITE_NDNTLV
+		    "[-s SUITE (0=ccnb, 2=ndntlv)] "
 #endif
 		    "[-v DEBUG_LEVEL]\n",
 		    argv[0]);

@@ -28,8 +28,11 @@
 // #define USE_DEBUG_MALLOC
 #define USE_FRAG
 #define USE_ETHERNET
-// #define USE_SCHEDULER
 #define USE_MGMT
+// #define USE_SCHEDULER
+#define USE_SUITE_CCNB
+// #define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 #define USE_SIGNATURES
 

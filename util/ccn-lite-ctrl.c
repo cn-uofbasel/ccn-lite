@@ -21,7 +21,9 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
+
 #define USE_SIGNATURES
+#define USE_SUITE_CCNB
 
 #include <stdio.h>
 #include <stdlib.h>

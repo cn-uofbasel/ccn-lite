@@ -21,6 +21,8 @@
  * 2014-03-20 extracted from ccnl-core.c
  */
 
+#if defined(USE_SUITE_CCNB)
+
 // ----------------------------------------------------------------------
 // ccnb parsing support
 
@@ -126,5 +128,7 @@ unmkBinaryInt(unsigned char **data, int *datalen,
     *datalen = len-1;
     return 0;
 }
+
+#endif
 
 // eof

@@ -22,8 +22,8 @@
  * 2014-03-17 renamed to prepare for a world with many wire formats
  */
 
-#ifndef CCNL_EN_CCNB
-#define CCNL_EN_CCNB
+#if defined(USE_SUITE_CCNB) && !defined(PKT_CCNB_ENC_C)
+#define PKT_CCNB_ENC_C
 
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)

@@ -30,6 +30,10 @@
 #include <sys/un.h>
 #include <openssl/obj_mac.h>
 
+
+#define USE_SIGNATURES
+#define USE_SUITE_CCNB
+
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
@@ -37,7 +41,6 @@
 #include "../pkt-ccnb-dec.c"
 #include "../pkt-ccnb-enc.c"
 
-#define USE_SIGNATURES
 #include "ccnl-crypto.c"
 
 

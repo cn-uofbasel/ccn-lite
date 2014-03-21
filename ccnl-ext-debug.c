@@ -284,17 +284,34 @@ ccnl_dump(int lev, int typ, void *p)
 	break;
     case CCNL_INTEREST:
 	while (itr) {
+	    int mi, ma;
+	    struct ccnl_buf_s *ppk;
+	    switch (itr->suite) {
+	    case CCNL_SUITE_CCNB:
+		mi = itr->details.ccnb.minsuffix;
+		ma = itr->details.ccnb.maxsuffix;
+		ppk = itr->details.ccnb.ppkd;
+		break;
+	    case CCNL_SUITE_NDNTLV:
+		mi = itr->details.ndntlv.minsuffix;
+		ma = itr->details.ndntlv.maxsuffix;
+		ppk = itr->details.ndntlv.ppkl;
+		break;
+	    default:
+		mi = ma = -1;
+		ppk = NULL;
+		break;
+	    }
 	    INDENT(lev);
 	    fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
 		   (void *) itr, (void *) itr->next, (void *) itr->prev,
-		    itr->last_used, itr->minsuffix, itr->maxsuffix,
-		    itr->retries);
+		    itr->last_used, mi, ma, itr->retries);
 	    ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
 	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
-	    if (itr->ppkd) {
+	    if (ppk) {
 		INDENT(lev+1);
-		fprintf(stderr, "%p PUBLISHER=", (void *) itr->ppkd);
-		blob(itr->ppkd->data, itr->ppkd->datalen);
+		fprintf(stderr, "%p PUBLISHER=", (void *) ppk);
+		blob(ppk->data, ppk->datalen);
 		fprintf(stderr, "\n");
 	    }
 	    if (itr->pending) {
@@ -526,10 +543,23 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         next[line] = (long)(void *) itr->next;
         prev[line] = (long)(void *) itr->prev;
         last[line] = itr->last_used;
-        min[line] = itr->minsuffix;
-        max[line] = itr->maxsuffix;
         retries[line] = itr->retries;
-        publisher[line] = (long)(void *) itr->ppkd;
+	switch (itr->suite) {
+	case CCNL_SUITE_CCNB:
+	    min[line] = itr->details.ccnb.minsuffix;
+	    max[line] = itr->details.ccnb.maxsuffix;
+	    publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
+	    break;
+	case CCNL_SUITE_NDNTLV:
+	    min[line] = itr->details.ndntlv.minsuffix;
+	    max[line] = itr->details.ndntlv.maxsuffix;
+	    publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
+	    break;
+	default:
+	    min[line] = max[line] = -1;
+	    publisher[line] = 0L;
+	    break;
+	}
         get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
