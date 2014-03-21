@@ -134,8 +134,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen(ht);
-                c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
-                                      content, contlen);
+                c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a,
+				     &ppkd, content, contlen);
                 //if (!c) goto Done;
 
                 ccnl_content_serve_pending(ccnl, c);
@@ -1512,7 +1512,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (!prefix_a) {
         DEBUGMSG(6, " no prefix error\n"); goto Done;
     }
-    c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
                         content, contlen);
     if (!c) goto Done;
     ccnl_content_add2cache(ccnl, c);

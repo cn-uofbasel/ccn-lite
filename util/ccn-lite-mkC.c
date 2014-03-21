@@ -20,6 +20,7 @@
  * 2013-07-06  created
  */
 
+#define USE_SUITE_CCNB
 #define USE_SIGNATURES
 
 #include <ctype.h>

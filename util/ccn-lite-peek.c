@@ -35,6 +35,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
+#define USE_SUITE_CCNB
+
 #include "../ccnl.h"
 
 #include "ccnl-common.c"

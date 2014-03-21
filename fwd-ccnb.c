@@ -144,8 +144,9 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
 	    for (c = relay->contents; c; c = c->next) {
+		if (c->suite != CCNL_SUITE_CCNB) continue;
 		if (!ccnl_i_prefixof_c(p, minsfx, maxsfx, c)) continue;
-		if (ppkd && !buf_equal(ppkd, c->ppkd)) continue;
+		if (ppkd && !buf_equal(ppkd, c->details.ccnb.ppkd)) continue;
 		// FIXME: should check stale bit in aok here
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
 		ccnl_print_stats(relay, STAT_SND_C); //log sent_c
@@ -158,15 +159,19 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	}
 	// CONFORM: Step 2: check whether interest is already known
 	for (i = relay->pit; i; i = i->next) {
-	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
-		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
-		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
+	    if (i->suite == CCNL_SUITE_CCNB &&
+		!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
+		i->details.ccnb.minsuffix == minsfx &&
+		i->details.ccnb.maxsuffix == maxsfx && 
+		((!ppkd && !i->details.ccnb.ppkd) ||
+		   buf_equal(ppkd, i->details.ccnb.ppkd)) )
 		break;
 	}
 	if (!i) { // this is a new/unknown I request: create and propagate
-	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx);
+	    i = ccnl_interest_new(relay, from, CCNL_SUITE_CCNB,
+				  &buf, &p, minsfx, maxsfx);
 	    if (ppkd)
-		i->ppkd = ppkd, ppkd = NULL;
+		i->details.ccnb.ppkd = ppkd, ppkd = NULL;
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
 		if (scope > 2)
@@ -195,7 +200,8 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
+	c = ccnl_content_new(relay, CCNL_SUITE_CCNB,
+			     &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"

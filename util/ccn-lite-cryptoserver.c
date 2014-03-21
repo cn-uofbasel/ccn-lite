@@ -19,6 +19,9 @@
  * File history:
  * 2013-07-22 created <christopher.scherb@unibas.ch>
  */
+
+
+#define USE_SUITE_CCNB
 #define USE_SIGNATURES
 
 #include "../ccnl.h"
