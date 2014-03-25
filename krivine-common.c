@@ -295,7 +295,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s
 //FIXME use global search or special face?
 struct ccnl_content_s *
 ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
-    DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
+    DEBUGMSG(2, "ccnl_nfn_content_computation()\n");
     
     ccnl_interest_propagate(ccnl, i);
     //copy receive system to here from core

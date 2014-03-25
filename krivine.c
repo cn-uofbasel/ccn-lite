@@ -1533,11 +1533,14 @@ normal:
                     if(thunk_request){
                         --(*num_of_required_thunks);
                         if((*num_of_required_thunks) <= 0){
+                            res = "THUNK"; //TODO NUMBER
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
                     }
-                    printf("Content locally found: %s\n", c->content);
-                    res = c->content;
+                    else{
+                        printf("Content locally found: %s\n", c->content);
+                        res = c->content;
+                    }
                     goto tail;
                 }
                 
@@ -1546,11 +1549,14 @@ normal:
                     if(thunk_request){
                         --(*num_of_required_thunks);
                         if((*num_of_required_thunks) <= 0){
+                            res = "THUNK"; //TODO NUMBER
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
                     }
-                    printf("Content found in the network: %s\n", c->content);
-                    res = c->content;
+                    else{
+                        printf("Content locally found: %s\n", c->content);
+                        res = c->content;
+                    }
                     goto tail;
                 }
                 //TODO Async stuff!?
@@ -1590,22 +1596,28 @@ compute:
             if(thunk_request){
                 --(*num_of_required_thunks);
                 if((*num_of_required_thunks) <= 0){
+                    res = "THUNK"; //TODO NUMBER
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
             }
-            printf("Content could be computed: %s\n", c->content);
-            res = c->content;
+            else{
+                printf("Content locally found: %s\n", c->content);
+                res = c->content;
+            }
         }else
         {
-            printf("GOT NO THUNK\n");
+            printf("GOT NO THUNK, continue with null result just for debugging\n");
             if(thunk_request){
                 --(*num_of_required_thunks);
                 if((*num_of_required_thunks) <= 0){
+                    res = "THUNK"; //TODO NUMBER
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
             }
-            printf("COMPUTATION COULD NOT BE FINISHED\n");
-            res = NULL;
+            else{
+                //printf("Content locally found: %s\n", c->content);
+                res = NULL;
+            }  
         }
         interest = ccnl_interest_remove(ccnl, interest);
         
