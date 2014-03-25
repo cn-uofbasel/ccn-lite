@@ -12,7 +12,6 @@ import nfn.service.CallableNFNService
  */
 case class AddService() extends  NFNService with Logging {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
-    logger.debug("parse")
     val values = unparsedValues match {
       case Seq(lStr, rStr) => Seq(
           NFNIntValue(lStr.toInt),
