@@ -20,6 +20,8 @@
  * 2014-03-05 created
  */
 
+#define NDN_UDP_PORT			6363
+
 
 // Packet types:
 #define NDN_TLV_Interest 		0x05

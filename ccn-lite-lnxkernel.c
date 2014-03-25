@@ -31,7 +31,7 @@
 #define USE_MGMT
 // #define USE_SCHEDULER
 #define USE_SUITE_CCNB
-// #define USE_SUITE_CCNTLV
+//#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 #define USE_SIGNATURES
@@ -39,6 +39,8 @@
 #include "ccnl-includes.h"
 #include "ccnl.h"
 #include "pkt-ccnb.h"
+// #include "pkt-ccntlv.h"
+#include "pkt-ndntlv.h"
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
@@ -455,7 +457,8 @@ Bail:
 static char *e = NULL;
 static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
-static int u = CCN_UDP_PORT;
+static int s = CCNL_SUITE_CCNB; // or CCNL_SUITE_NDNTLV
+static int u = 0;
 static int v = 0;
 static char *p = NULL;
 static char *k = NULL;
@@ -468,8 +471,11 @@ MODULE_PARM_DESC(ethdevname, "name of ethernet device to serve");
 module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
 
+module_param(s, int, 0);
+MODULE_PARM_DESC(s, "suite (0=ccnb, 2=ndntlv)");
+
 module_param(u, int, 0);
-MODULE_PARM_DESC(u, "UDP port (default: 9695)");
+MODULE_PARM_DESC(u, "UDP port (default: 9695 for ccnb, 6363 for ndntlv)");
 
 module_param(v, int, 0);
 MODULE_PARM_DESC(v, "verbosity level");
@@ -498,8 +504,22 @@ ccnl_init(void)
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
-    DEBUGMSG(99, "modul parameters: e=%s, x=%s, c=%d, u=%d, v=%d, k=%s, p=%s\n",
-	     e, x, c, u, v, k, p);
+    DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%d,"
+	         "u=%d, v=%d, x=%s\n",
+	     c, e, k, p, s, u, v, x);
+
+#ifdef USE_SUITE_CCNB
+    if (s == CCNL_SUITE_CCNB) {
+	if (!u)
+	    u = CCN_UDP_PORT;
+    }
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (s == CCNL_SUITE_NDNTLV) {
+	if (!u)
+	    u = NDN_UDP_PORT;
+    }
+#endif
 
     theRelay.max_cache_entries = c;
 #ifdef USE_SCHEDULER
