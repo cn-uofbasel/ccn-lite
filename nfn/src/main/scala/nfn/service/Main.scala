@@ -13,9 +13,10 @@ import nfn.service.impl._
 import ccn.packet.Content
 import akka.actor.ActorRef
 import network.Send
+import com.typesafe.scalalogging.slf4j.Logging
 
 
-object NFNServiceLibrary {
+object NFNServiceLibrary extends Logging {
 
   private var services:Map[String, NFNService] = Map()
   private val ccnIf = CCNLite
@@ -36,7 +37,7 @@ object NFNServiceLibrary {
   }
 
   def find(servName: String):Option[NFNService] = {
-    println(s"Looking for: '$servName' in '$services'")
+    logger.debug(s"Looking for: '$servName' in '$services'")
     services.get(servName)
 //    TODO: if not found, ask NFN
   }
@@ -134,11 +135,10 @@ trait NFNService {
   def toNFNName: NFNName
 }
 
-object NFNService {
+object NFNService extends Logging {
   def parseAndFindFromName(name: String): Try[CallableNFNService] = {
 
-    println(s"Name: $name")
-//    val pattern = new Regex("""^call (\d)+ ([\S]+) ([\S]+) ([\S]+)$""")
+    logger.debug(s"Trying to find service for: $name")
     val pattern = new Regex("""^call (\d)+ (.*)$""")
 
     name match {
@@ -146,18 +146,17 @@ object NFNService {
         val l = funArgs.split(" ").toList
         val (fun, args) = (l.head, l.tail)
 
-        println(s"fun: $fun")
-        println(s"args: $args")
-
         val count = countString.toInt - 1
         assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count + 1}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
         assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
-//
+
         val serv = NFNServiceLibrary.find(fun).getOrElse(throw new Exception(s"parseAndFindFromName: Service $fun not found in service library"))
 
-        Try(serv.parse(fun, args))
+        val callableServ = serv.parse(fun, args)
+        logger.debug(s"Found service for request: $callableServ")
+
+        Try(callableServ)
       }
-//      case Nil => throw new Exception(s"No name could be parsed from: $name")
       case unvalidServ @ _ => throw new Exception(s"matched name $name (parsed to: $unvalidServ) is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
     }
   }
