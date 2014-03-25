@@ -266,7 +266,11 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
 				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
                     struct ccnl_content_s *c = ccnl_extract_content_obj(ccnl, buf, len);
-                    return c;
+                    unsigned char *md = interest->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
+                    if(ccnl_prefix_cmp(c->name, md, interest->prefix, CMP_MATCH)){
+                        return c;
+                    }
+                    //else --> normal packet handling???
                 }
             }
         }
