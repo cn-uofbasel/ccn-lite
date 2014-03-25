@@ -22,6 +22,7 @@
 
 #include "ccnl.h"
 
+
 #ifndef ABSTRACT_MACHINE
 #include "krivine-common.c"
 #endif
@@ -39,6 +40,8 @@
 
 int debug_level;
 #endif /*ABSTRACT_MACHINE*/
+
+
 
 struct term_s {
     char *v;
@@ -924,7 +927,8 @@ log_ZAM(char *en, char *sn, struct term_s *t,
 // ----------------------------------------------------------------------
 
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, char *cfg) // written as forth approach
+ZAM_term(struct ccnl_relay_s *ccnl, char *cfg, int thunk_request, 
+        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix) // written as forth approach
 {
     char *en, *astack, *rstack = 0, *prog, *cp, *pending, *p;
     struct term_s *t;
@@ -1486,9 +1490,7 @@ normal:
         //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
-             
-                
-                
+
                 //make compute request
                 memset(comp, 0, CCNL_MAX_PACKET_SIZE);
                 memset(out, 0, CCNL_MAX_PACKET_SIZE);
@@ -1520,7 +1522,7 @@ normal:
                     printf("Routable content is local availabe --> start computation\n");
                     goto compute;
                 }
-                int len = mkInterestCompute(namecomp, comp, complen, 0, out);
+                int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);
                 free(param);
                 
                 //fwrite(out, sizeof(char), len, stdout);
@@ -1528,14 +1530,25 @@ normal:
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
+                    if(thunk_request){
+                        --(*num_of_required_thunks);
+                        if((*num_of_required_thunks) <= 0){
+                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                        } 
+                    }
                     printf("Content locally found: %s\n", c->content);
                     res = c->content;
-                    
                     goto tail;
                 }
                 
                 else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
                     //printf("Content in the network found: %s\n", c->content);
+                    if(thunk_request){
+                        --(*num_of_required_thunks);
+                        if((*num_of_required_thunks) <= 0){
+                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                        } 
+                    }
                     printf("Content found in the network: %s\n", c->content);
                     res = c->content;
                     goto tail;
@@ -1544,7 +1557,7 @@ normal:
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
-                interest = ccnl_interest_remove(ccnl, interest);
+                //interest = ccnl_interest_remove(ccnl, interest);
                 //free(interest);
 #endif // ABSTRACT_MACHINE
             }//endif
@@ -1560,20 +1573,37 @@ compute:
         for(i = 0; i < num_params; ++i){
             complen += sprintf(comp+complen, "%s ", params[i]);
         }
-        namecomp[0] = "COMPUTE";
-        namecomp[1] = strdup(comp);
-        namecomp[2] = "NFN";
-        namecomp[3] = NULL;
+        i = 0;
+        namecomp[i++] = "COMPUTE";
+        namecomp[i++] = strdup(comp);
+        if(thunk_request) namecomp[i++] = "THUNK";
+        namecomp[i++] = "NFN";
+        namecomp[i++] = NULL;
+        
+        //if(thunk_request)  ask for other thunks to be available
         
         printf("Interest name: %s %s %s %s\n", namecomp[0], namecomp[1], namecomp[2], namecomp[3]);
         
         len = mkInterest(namecomp, 0, out);
         interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
         if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
+            if(thunk_request){
+                --(*num_of_required_thunks);
+                if((*num_of_required_thunks) <= 0){
+                    ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                } 
+            }
             printf("Content could be computed: %s\n", c->content);
             res = c->content;
         }else
         {
+            printf("GOT NO THUNK\n");
+            if(thunk_request){
+                --(*num_of_required_thunks);
+                if((*num_of_required_thunks) <= 0){
+                    ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                } 
+            }
             printf("COMPUTATION COULD NOT BE FINISHED\n");
             res = NULL;
         }
@@ -1594,7 +1624,6 @@ tail:
         
 	char *name =  mkHash(rst);
 	ccn_store(name, rst);
-
 	
 	if (pending)
 	    cp = config2str(&cfg, en, astack, name, pending+1);
@@ -1645,7 +1674,8 @@ createDict(char *pairs[])
     return ename;
 }
 
-char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
+char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
+        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix){
 
     char *prog, *cp, *config;
     char *setup_env[] = {
@@ -1696,7 +1726,7 @@ char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
 	cs_trigger = 0;
 	char *hash_name = cp;
 	printf("CP BEFORE: %s\n", cp);
-	cp = ZAM_term(ccnl, cp);
+	cp = ZAM_term(ccnl, cp, thunk_request, num_of_required_thunks, original_prefix);
 	printf("CP AFTER:  %s\n", cp);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
@@ -1753,7 +1783,7 @@ main(int argc, char **argv)
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
     
-    res = Krivine_reduction(NULL, prog);
+    res = Krivine_reduction(NULL, prog, 0, NULL, NULL);
 
     printf("\n res; %s\n\n", res);
 

@@ -68,7 +68,9 @@ splitComponents(char* namecomp, char **prefix)
 int
 mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
 {
-    
+#ifndef USE_UTIL 
+    DEBUGMSG(2, "mkIntersestCompute()");
+#endif
     int len = 0, k, i;
     unsigned char *cp;
     
@@ -87,7 +89,7 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 	namecomp++;
     }
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, computation, computationlen);
-    if(thunk) mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
+    if(thunk) len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "NFN");
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
@@ -212,6 +214,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s 
 struct ccnl_content_s *
 ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
     
+    DEBUGMSG(2, "ccnl_extract_content_obj()");
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
@@ -336,6 +339,15 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     }    
     //ccnl_interest_remove(ccnl, interest);
     return found;
+}
+
+int 
+ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_prefix){
+    DEBUGMSG(2, "ccnl_nfn_reply_thunk()\n");
+    struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, "THUNK", strlen("THUNK"));  
+    ccnl_content_add2cache(ccnl, c);
+    ccnl_content_serve_pending(ccnl,c);
+    return 0;
 }
 #endif USE_UTIL
 #endif //KRIVINE_COMMON_C
