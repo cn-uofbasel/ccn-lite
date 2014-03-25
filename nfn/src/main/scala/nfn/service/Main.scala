@@ -1,29 +1,44 @@
+package nfn.service
+
 import bytecode.BytecodeLoader
+import java.io.{FileOutputStream, File}
 import language.experimental.macros
 
-import LambdaMacros._
 
 import scala.reflect.runtime.{universe => ru}
 import scala.util.matching.Regex
-import scala.util.matching.Regex.Match
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
+import ccn.ccnlite.CCNLite
+import nfn.service.impl._
+import ccn.packet.Content
+import akka.actor.ActorRef
+import network.Send
 
-
-import scala.concurrent._
-import scala.concurrent.duration._
-import ExecutionContext.Implicits.global
 
 object NFNServiceLibrary {
 
   private var services:Map[String, NFNService] = Map()
+  private val ccnIf = CCNLite
 
   add(AddService())
 
-  def add(serv: NFNService) =  services += serv.toNFNName.toString -> serv
+  /**
+   * Adds the service both to the local map and to the underlying NFN engine by sending a request the store a content object to the local ccn cache.
+   * This content object must either contain "pinnedfunction" or java byte code of the service.
+   * This bytecode must be a subclass of NFNService and should not inherit from other classes which are not in the Scala or Java SDK.
+   *
+   * @param serv Service to be both added locally and to the nfn engine.
+   */
+  def add(serv: NFNService) =  {
+
+    val name = serv.toNFNName.toString
+    services += name -> serv
+  }
 
   def find(servName: String):Option[NFNService] = {
     println(s"Looking for: '$servName' in '$services'")
     services.get(servName)
+//    TODO: if not found, ask NFN
   }
 
 
@@ -37,6 +52,18 @@ object NFNServiceLibrary {
 //      case _ => throw new Exception(s"${serv.toName} did not return a IntValue but a $servRes")
 //    }
 //  }
+
+  def nfnPublish(nfnSocket: ActorRef) = {
+    for((name, serv) <- services) {
+      val content = Content(
+        Seq(name),
+        // TODO get serv binary
+        "pinnedfunction".getBytes
+      )
+      val binaryInterest = ccnIf.mkAddToCacheInterest(content)
+      nfnSocket ! Send(binaryInterest)
+    }
+  }
   def convertChfToDollar(chf: Int): Int = ???
   def toPdf(webpage: String): String = ???
   def derp(foo: Int) = ???

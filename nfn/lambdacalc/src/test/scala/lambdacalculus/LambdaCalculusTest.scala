@@ -4,9 +4,7 @@ import org.scalatest._
 import lambdacalculus.machine.{ConstValue, Value}
 import ExecutionOrder._
 
-import org.scalatest.TryValues._
 import scala.util.{Failure, Success, Try}
-import lambdacalculus.machine.CallByValue.ClosureValue
 import lambdacalculus.parser.ast.Expr
 
 /**

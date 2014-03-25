@@ -1,13 +1,11 @@
-//import java.io.FileNotFoundException;
-//import java.io.FileOutputStream;
-//import java.io.IOException;
+//package ccnliteinterface;
 //
 //class CCNLiteInterface {
 //
 //    public native byte[] mkBinaryInterest(String str);
 //    public native byte[] mkBinaryContent(String str, byte[] content);
-//    public native String binaryInterestToXml(byte[] binaryInterest);
-//    public native String binaryContentToXml(byte[] binaryContent);
+//    public native byte[] mkAddToCacheInterest(String absoluteFilename);
+//    public native String ccnbToXml(byte[] binaryInterest);
 //
 //    static {
 //        System.loadLibrary("CCNLiteInterface");
