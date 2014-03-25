@@ -66,6 +66,7 @@
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
+char suite; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
 
 struct timeval*
 ccnl_run_events()
@@ -600,7 +601,7 @@ main(int argc, char **argv)
     time(&theRelay.startup_time);
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:u:v:x:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -618,6 +619,23 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 's':
+            suite = atoi(optarg);
+	    switch (suite) {
+#ifdef USE_SUITE_CCNB
+	    case CCNL_SUITE_CCNB:
+		udpport = tcpport = CCN_UDP_PORT;
+		break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	    case CCNL_SUITE_NDNTLV:
+		udpport = tcpport = NDN_UDP_PORT;
+		break;
+	    default:
+		break;
+	    }
+	    break;
+#endif
+        case 't':
             tcpport = atoi(optarg);
             break;
         case 'u':
@@ -640,7 +658,8 @@ main(int argc, char **argv)
 		    " [-e ethdev]"
 		    " [-g MIN_INTER_PACKET_INTERVAL]"
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
-		    " [-s tcpport]"
+		    " [-s SUITE (0=ccnb, 2=ndntlv)"
+		    " [-t tcpport]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
 

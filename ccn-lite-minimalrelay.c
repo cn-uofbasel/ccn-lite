@@ -2,7 +2,7 @@
  * @f ccn-lite-minimalrelay.c
  * @b user space CCN relay, minimalist version
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,6 +46,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 // ----------------------------------------------------------------------
 
 #define USE_SUITE_CCNB
+#define USE_SUITE_NDNTLV
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
@@ -87,6 +88,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 
 #include "pkt-ccnb.h"
+#include "pkt-ndntlv.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -342,8 +344,13 @@ main(int argc, char **argv)
 
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hu:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:u:v:")) != -1) {
         switch (opt) {
+        case 's':
+	    opt = atoi(optarg);
+	    if (opt >= 0 && opt <= 2)
+		theRelay.suite = opt;
+            break;
         case 'u':
             udpport = atoi(optarg);
             break;
@@ -353,7 +360,7 @@ main(int argc, char **argv)
         case 'h':
         default:
             fprintf(stderr,
-		    "usage:\n%s [-h] [-u udpport] [-v debuglevel] PREFIX DGWIP/DGWPORT\n", argv[0]);
+		    "usage:\n%s [-h] [-s SUITE] [-u udpport] [-v debuglevel] PREFIX DGWIP/DGWPORT\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -364,6 +371,14 @@ main(int argc, char **argv)
     }
     prefix = argv[optind];
     defaultgw = argv[optind+1];
+#ifdef USE_SUITE_CCNB
+    if (theRelay.suite == CCNL_SUITE_CCNB && !udpport)
+	udpport = CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (theRelay.suite == CCNL_SUITE_NDNTLV && !udpport)
+	udpport = NDN_UDP_PORT;
+#endif
 
     i = &theRelay.ifs[0];
     i->mtu = CCN_DEFAULT_MTU;
