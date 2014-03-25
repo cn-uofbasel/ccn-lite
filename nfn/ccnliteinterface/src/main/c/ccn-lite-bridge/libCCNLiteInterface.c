@@ -1,7 +1,7 @@
 
 
 #include <stdio.h>
-#include "CCNLiteInterface.h"
+#include "ccnliteinterface_CCNLiteInterface.h"
 #include "ccnb.c"
 #include "ccn-lite-ccnb2xml-java.c"
 
@@ -10,7 +10,7 @@
 // #endif
 
 JNIEXPORT jstring JNICALL
-Java_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInterest)
+Java_ccnliteinterface_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInterest)
 {
     jbyte* jInterestData = (*env)->GetByteArrayElements(env, binaryInterest, NULL);
     jsize len = (*env)->GetArrayLength(env, binaryInterest);
@@ -44,14 +44,14 @@ Java_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInter
     file_size = ftell(file);
     rewind(file);
     buffer = malloc(file_size + 1);
-    jstring java_string;
+    jstring Java_ccnliteinterface_string;
     if (buffer != NULL )
     {
         fread(buffer, file_size, 1, file);
         buffer[file_size] = '\0';
         close(file);
 
-        java_string = (*env)->NewStringUTF(env, buffer);
+        Java_ccnliteinterface_string = (*env)->NewStringUTF(env, buffer);
 
         free(buffer);
         buffer = NULL;
@@ -65,11 +65,11 @@ Java_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInter
     // TODO remove temp file
     // remove("c_mxl.txt");
 
-    // fprintf("'%s'", java_string);
-    // printf("======\n%s======\n", (*env)->GetStringUTFChars(env, java_string, 0));
+    // fprintf("'%s'", Java_ccnliteinterface_string);
+    // printf("======\n%s======\n", (*env)->GetStringUTFChars(env, Java_ccnliteinterface_string, 0));
 
 
-    return java_string;
+    return Java_ccnliteinterface_string;
 }
 
 // void
@@ -79,7 +79,7 @@ Java_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInter
 // }
 
 JNIEXPORT jbyteArray JNICALL
-Java_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
+Java_ccnliteinterface_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
                                       jobject obj,
                                       jobjectArray nameComponentStringArray,
                                       jbyteArray j_content)
@@ -149,12 +149,10 @@ Java_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
+Java_ccnliteinterface_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
                                        jobject obj,
                                        jobjectArray nameComponentStringArray)
 {
-
-    printf("start\n");
 
     char *components[CCNL_MAX_NAME_COMP], *component;
     int componentCount;
@@ -198,6 +196,32 @@ Java_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
             components[i] = NULL;
         }
     }
+
+    return javaByteArray;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_ccnliteinterface_CCNLiteInterface_mkAddToCacheInterest(JNIEnv *env,
+                                           jobject obj,
+                                           jstring ccnbContentFilename)
+{
+    unsigned char interestData[8*1024];
+    bzero(interestData, 8*1024);
+
+    char * file_uri;
+    unsigned char *private_key_path;
+    int len;
+
+    file_uri = (*env)->GetStringUTFChars(env, ccnbContentFilename, NULL);
+    private_key_path = 0;
+
+    // mk the ccnb interest
+    len =  mkAddToRelayCacheRequest(interestData, file_uri, private_key_path);
+
+    jbyteArray javaByteArray = (*env)->NewByteArray(env, len);
+    jbyte *bytes = (*env)->GetByteArrayElements(env, javaByteArray, 0);
+    memcpy(bytes, interestData, len);
+    (*env)->SetByteArrayRegion(env, javaByteArray, 0, len, bytes );
 
     return javaByteArray;
 }

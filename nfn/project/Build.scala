@@ -28,23 +28,27 @@ object MainBuild extends Build {
     System.setProperty("java.library.path", "./ccnliteinterface/src/main/c/ccn-lite-bridge")
   }
 
-  lazy val root: Project = Project(
-    "root",
+  lazy val nfn: Project = Project(
+    "nfn",
     file("."),
     settings = buildSettings ++ Seq(
-      run <<= run in Compile in ccnliteinterface
+      mainClass := Some("Main"),
+      libraryDependencies ++= Seq(
+        "com.typesafe.akka" %% "akka-actor" % "2.2.1",
+        "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.0.3",
+        "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+        "org.slf4j" % "slf4j-api" % "1.7.5"
+      )
     )
-
-  )// aggregate(lambdaCalculus, lambdaMacros, lambdaCalculusToMacros, testservice, ccnliteinterface)
-
-
+  ).dependsOn(lambdaMacros, ccnliteinterface, lambdaCalculus)
+  //aggregate(nfn, lambdaCalculus, lambdaMacros , testservice, ccnliteinterface)
 
   lazy val lambdaCalculus: Project = Project(
     "lambdacalc",
     file("lambdacalc"),
     settings = buildSettings ++ Seq (
       libraryDependencies ++= Seq(
-//        "org.scala-lang" % "scala-compiler" % "2.10.3",
         "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
         "ch.qos.logback" % "logback-classic" % "1.0.3",
         "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
@@ -68,25 +72,11 @@ object MainBuild extends Build {
   ).dependsOn(lambdaCalculus)
 
 
-  lazy val lambdaCalculusToMacros: Project = Project(
-    "lambda-to-macros",
-    file("lambda-to-macros"),
-    settings = buildSettings ++ Seq(
-      mainClass := Some("Main"),
-      libraryDependencies ++= Seq(
-        "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
-        "ch.qos.logback" % "logback-classic" % "1.0.3",
-        "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-        "org.slf4j" % "slf4j-api" % "1.7.5"
-      )
-    )
-  ).dependsOn(lambdaMacros, ccnliteinterface)
-
   lazy val testservice: Project = Project(
     "testservice",
     file("testservice"),
     settings = buildSettings
-  ).dependsOn(lambdaCalculusToMacros)
+  ).dependsOn(nfn)
 
   lazy val ccnliteinterface: Project = Project(
     "ccnliteinterface",
@@ -96,7 +86,6 @@ object MainBuild extends Build {
       fork := true,
       javaOptions ++= Seq("-Djava.library.path=./ccnliteinterface/src/main/c/ccn-lite-bridge"),
       libraryDependencies ++= Seq(
-        "com.typesafe.akka" %% "akka-actor" % "2.2.1",
         "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
         "ch.qos.logback" % "logback-classic" % "1.0.3",
         "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",

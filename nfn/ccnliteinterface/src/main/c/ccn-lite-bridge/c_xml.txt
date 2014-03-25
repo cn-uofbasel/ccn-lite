@@ -13,7 +13,7 @@
   </name>
   <timestamp>
     <data size="6" dt="string">
-        S)%ffffff99%fffffff6%01%ffffffc3
+        S0%0d'%07/
     </data>
   </timestamp>
   <signedinfo>

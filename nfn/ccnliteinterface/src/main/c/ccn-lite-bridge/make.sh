@@ -7,7 +7,7 @@
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
 rm ./*.class libCCNLiteInterface.jnilib
 
-scalac ../../scala/CCNLiteInterface.scala
+scalac ../../scala/ccnliteinterface/CCNLiteInterface.scala
 
 if [ $? -eq 0 ]; then
     echo "compiled CCNLiteInterface"

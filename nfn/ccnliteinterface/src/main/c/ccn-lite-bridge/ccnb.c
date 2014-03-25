@@ -239,3 +239,64 @@ mkInterest(char **namecomp, int cmpCount,
     return len;
 }
 
+
+int
+mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_path)
+{
+    long len = 0, len1 = 0, len2 = 0, len3 = 0;
+    long fsize;
+    unsigned char *ccnb_file, *contentobj, *stmt, *out1;
+    FILE *f = fopen(file_uri, "r");
+    if(!f) return 0;
+
+    //determine size of the file
+    fseek(f, 0L, SEEK_END);
+    fsize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+
+    ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
+    fread(ccnb_file, fsize, 1, f);
+    fclose(f);
+
+    //Create ccn-lite-ctrl interest object with signature to add content...
+    //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
+    out1 = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
+    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 4000);
+    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
+
+    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+
+    //add content to interest...
+    len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    len3 += addBlob(stmt+len3, ccnb_file, fsize);
+    stmt[len3++] = 0; // end content
+
+    len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+
+    len2 += mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+           (char*) stmt, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+
+    len1 += mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+          (char*) contentobj, len2);
+
+#ifdef USE_SIGNATURES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*USE_SIGNATURES*/
+    memcpy(out+len, out1, len1);
+    len += len1;
+    out[len++] = 0; //name end
+    out[len++] = 0; //interest end
+    printf("Contentlen %d\n", len1);
+    Bail:
+    free(ccnb_file);
+    free(contentobj);
+    free(stmt);
+    return len;
+}

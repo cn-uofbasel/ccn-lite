@@ -1,4 +1,9 @@
 import scala.util.Try
+import nfn.service._
+import nfn.service.CallableNFNService
+import nfn.service.NFNIntValue
+import nfn.service.NFNName
+import nfn.service.NFNServiceException
 
 /**
  * Created by basil on 19/02/14.
