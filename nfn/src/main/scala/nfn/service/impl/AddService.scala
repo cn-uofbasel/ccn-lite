@@ -7,9 +7,7 @@ import nfn.service.NFNName
 import nfn.service.NFNIntValue
 import nfn.service.CallableNFNService
 
-/**
- * Created by basil on 24/03/14.
- */
+
 case class AddService() extends  NFNService with Logging {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
     val values = unparsedValues match {
@@ -35,4 +33,6 @@ case class AddService() extends  NFNService with Logging {
   }
 
   override def toNFNName: NFNName = NFNName(Seq("/AddService/Int/Int/rInt"))
+
+  override def pinned: Boolean = false
 }
