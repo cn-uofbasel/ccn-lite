@@ -14,6 +14,8 @@ import ccn.packet.Content
 import akka.actor.ActorRef
 import network.Send
 import com.typesafe.scalalogging.slf4j.Logging
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.global
 
 
 object NFNServiceLibrary extends Logging {
@@ -23,13 +25,6 @@ object NFNServiceLibrary extends Logging {
 
   add(AddService())
 
-  /**
-   * Adds the service both to the local map and to the underlying NFN engine by sending a request the store a content object to the local ccn cache.
-   * This content object must either contain "pinnedfunction" or java byte code of the service.
-   * This bytecode must be a subclass of NFNService and should not inherit from other classes which are not in the Scala or Java SDK.
-   *
-   * @param serv Service to be both added locally and to the nfn engine.
-   */
   def add(serv: NFNService) =  {
 
     val name = serv.toNFNName.toString
@@ -54,17 +49,38 @@ object NFNServiceLibrary extends Logging {
 //    }
 //  }
 
+  /**
+   * Advertises all locally available services to nfn by sending a 'addToCache' Interest,
+   * containing a content object with the name of the service (and optionally also the bytecode * of the service).
+   * @param nfnSocket
+   */
   def nfnPublish(nfnSocket: ActorRef) = {
+
+    def pinnedData = "pinnedfunction".getBytes
+    def maybeByteCodeData(serv: NFNService):Option[Array[Byte]] = {
+      val bc = BytecodeLoader.fromClass(serv)
+      bc match {
+        case Some(bc) => logger.info(s"nfnPublish: Found bytecode for service $serv")
+        case None => logger.warn(s"nfnPublush: No bytecode found for unpinned service $serv")
+      }
+      bc
+    }
+
     for((name, serv) <- services) {
       val content = Content(
         Seq(name),
-        // TODO get serv binary
-        "pinnedfunction".getBytes
+        if(serv.pinned) pinnedData
+        else maybeByteCodeData(serv).getOrElse(pinnedData)
       )
       val binaryInterest = ccnIf.mkAddToCacheInterest(content)
       nfnSocket ! Send(binaryInterest)
     }
   }
+
+  // TODO: Best would be to abstract a general send - receive mechanism
+//  def nfnRequest(nfnSocket: ActorRef, servName: NFNName): Future[Option[NFNService]] = {
+//  }
+
   def convertChfToDollar(chf: Int): Int = ???
   def toPdf(webpage: String): String = ???
   def derp(foo: Int) = ???
@@ -133,6 +149,8 @@ trait NFNService {
   def parse(name: String, values: Seq[String]):CallableNFNService
 
   def toNFNName: NFNName
+
+  def pinned: Boolean = true
 }
 
 object NFNService extends Logging {
