@@ -86,7 +86,7 @@ Java_ccnliteinterface_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
 {
 
     char *components[CCNL_MAX_NAME_COMP], *component;
-    int componentCount;
+    int componentCount = 0;
     unsigned char content_data[8*1024], *buf;
 
     unsigned char out[65*1024];
@@ -157,12 +157,12 @@ Java_ccnliteinterface_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
     char *components[CCNL_MAX_NAME_COMP], *component;
     int componentCount;
     unsigned char out[8*1024], *buf = out;
-    char *minSuffix = 0, *maxSuffix = 0, *scope;
+    char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     unsigned char *digest = 0, *publisher = 0;
     char *fname = 0;
     int str_length = 0, f, len, opt;
     int dlen = 0, plen = 0;
-    uint32_t nonce;
+    uint32_t nonce = 0;
 
     // get component strings from java string arrray
     componentCount = (*env)->GetArrayLength(env, nameComponentStringArray);
@@ -171,11 +171,16 @@ Java_ccnliteinterface_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
                                                                     nameComponentStringArray,
                                                                     i);
         component = (*env)->GetStringUTFChars(env, cmpString, 0);
-        components[i] = malloc(strlen(component) + 1);
-        strcpy(components[i], component);
+        int cmpStringLen = (*env)->GetStringLength(env, cmpString);
+        components[i] = malloc(cmpStringLen + 1);
+        memcpy(components[i], component, cmpStringLen);
+        components[i][cmpStringLen] = '\0';
     }
     // init the nonce
-    time((time_t*) &nonce);
+    if(time((time_t*) &nonce) == -1) {
+        sprintf(stderr, "<native> Could not create nonce\n");
+        nonce = 0;
+    }
 
     // mk the ccnb interest
     len = mkInterest(components, componentCount,
