@@ -2,76 +2,157 @@ package nfn
 
 import akka.actor._
 import akka.util.ByteString
-import com.typesafe.scalalogging.slf4j.Logging
-
-import network.{NFNCommunication, Send, UDPConnection}
-import scala.util.{Failure, Success}
-import ccn.packet._
 import akka.event.Logging
+
+import network._
+import network.NetworkConnection._
 import nfn.service._
 import ccn.ccnlite.CCNLite
+import ccn.packet._
+import nfn.CCNWorker._
+import scala.concurrent.ExecutionContext.Implicits.global
 
+trait CCNPacketHandler {
+  def receivedContent(content: Content): Unit
+
+  def receivedInterest(interest: Interest): Unit
+}
+
+object CCNWorker {
+  case class CCNSendReceive(interest: Interest)
+  case class CCNSend(interest: Interest)
+  case class CCNAddToCache(content: Content)
+  case class ComputeResult(content: Content)
+}
 /**
  * Worker Actor which responds to ccn interest and content packets
  */
-abstract class CCNWorker() extends Actor {
+case class CCNWorker() extends Actor {
+
+  val nfnSocket = context.actorOf(Props(new NetworkConnection()), name = "udpsocket")
 
   val logger = Logging(context.system, this)
   val name = self.path.name
 
   val ccnIf = CCNLite
 
-  def receivedContent(content: Content)
+  var pendingInterests: Map[Seq[String], ActorRef] = Map()
 
-  def receivedInterest(interest: Interest)
+  override def preStart() = {
+    nfnSocket ! Handler(self)
+  }
+
+  private def createComputeWorker(interest: Interest): ActorRef =
+    context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.name.mkString("/").hashCode}")
 
   override def receive: Actor.Receive = {
-    case data: ByteString =>
+
+    // received Data from network
+    // If it is an interest, start a compute request
+    case data: ByteString => {
       val byteArr = data.toByteBuffer.array.clone
       val packet = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
+
       logger.info(s"$name received $packet")
       packet match {
-        case c: Content => receivedContent(c)
-        case i: Interest => receivedInterest(i)
+        // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
+        case interest: Interest => {
+          val computeWorker = createComputeWorker(interest)
+          pendingInterests += (interest.name -> computeWorker)
+          computeWorker.tell(interest, self)
+        }
+        // Received content, check if there is an entry in the pit. If so, send it to the attached worker, otherwise discard it
+        case content: Content => {
+          pendingInterests.get(content.name) match {
+            case Some(interestSender) => interestSender ! content
+            case None => logger.error(s"Discarding content $content without pending interest")
+          }
+        }
       }
+    }
+
+    case CCNSendReceive(interest) => {
+      logger.info(s"$name received send-recv request for interest: $interest")
+      pendingInterests += (interest.name -> sender)
+      val binaryInterest = ccnIf.mkBinaryInterest(interest)
+      nfnSocket ! Send(binaryInterest)
+    }
+
+    // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
+    // convert the result to ccnb format and send it to the socket
+    case ComputeResult(content) => {
+      pendingInterests.get(content.name) match {
+        case Some(_) => {
+          logger.debug("sending compute result to socket")
+          val binaryContent = ccnIf.mkBinaryContent(content)
+          nfnSocket ! Send(binaryContent)
+        }
+        case None => logger.error(s"Received result from compute worker which timed out, discarding the result content: $content")
+      }
+    }
+
+    case CCNAddToCache(content) => {
+      val binaryInterest = ccnIf.mkAddToCacheInterest(content)
+      nfnSocket ! Send(binaryInterest)
+    }
   }
 }
+
 
 /**
  *
  */
-case class NFNWorker() extends CCNWorker() {
+case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
 
-  override def receivedContent(content: Content) = {
-    val contentName = content.name.mkString("/")
-    val data = content.data
+  val name = self.path.name
+  val logger = Logging(context.system, this)
+  val ccnIf = CCNLite
 
-    val dataString = new String(data)
-    val resultPrefix = "RST|"
+  private var result : Option[String] = None
 
-    val resultContentString = dataString.startsWith(resultPrefix) match {
-      case true => dataString.substring(resultPrefix.size)
-      case false => throw new Exception(s"NFN could not compute result for: $contentName")
-    }
-    logger.info(s"$name result: '$contentName' => '$resultContentString'")
-    resultContentString
+  def receivedContent(content: Content) = {
+    // Received content from request (sendrcv)
+    ???
+    logger.error(s"ComputeWorker received content, discarding it because it does not know what to do with it")
   }
 
-  override def receivedInterest(interest: Interest) = {
+  // Recievied compute request
+  // Make sure it actually is a compute request and forward to the handle method
+  def receivedInterest(interest: Interest, requestor: ActorRef) = {
+    logger.debug(s"received compute interest: $interest")
     val cmps = interest.name
-    val computeCmps = cmps.slice(1, cmps.size-1)
-    NFNService.parseAndFindFromName(computeCmps.mkString(" ")) flatMap { _.exec } match {
-      case Success(nfnServiceValue) => nfnServiceValue match {
-        case NFNIntValue(n) => {
-          val content = Content(cmps, n.toString.getBytes)
-          val binaryContent = ccnIf.mkBinaryContent(content)
-          sender ! Send(binaryContent)
-        }
-        case res @ _ => logger.error(s"Compute Server response is only implemented for results of type NFNIntValue and not: $res")
+    val computeCmps = cmps match {
+      case Seq("COMPUTE", reqNfnCmps @ _ *) => {
+        val computeCmps = reqNfnCmps.take(reqNfnCmps.size - 1)
+        handleComputeRequest(computeCmps, interest, requestor)
       }
-      case Failure(e) => logger.error(s"There was an error when looking for a service: \n${e.getStackTrace.mkString("/n")}\n")
+      case _ => logger.error(s"Dropping interest $interest because it is not a compute request")
     }
   }
 
-}
+  def handleComputeRequest(computeCmps: Seq[String], interest: Interest, requestor: ActorRef) = {
+    val futResultContent =
+      for{callableServ <-  NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
+        servResult <- callableServ.exec
+    } yield {
+      // TODO fix the issue of name components vs single names...
+      logger.warning(s"TODO: fix the issue of name components vs single names...")
+      Content(interest.name, servResult.toValueName.name.mkString(" ").getBytes)
+    }
+    futResultContent onSuccess {
+      case content => {
+        logger.debug(s"Finished computation, result: $content")
+        requestor ! ComputeResult(content)
+      }
+    }
+  }
 
+  override def receive: Actor.Receive = {
+    case content: Content => receivedContent(content)
+    case interest: Interest => {
+      // Just to make sure we are not closing over sender
+      val requestor = sender
+      receivedInterest(interest, requestor)
+    }
+  }
+}

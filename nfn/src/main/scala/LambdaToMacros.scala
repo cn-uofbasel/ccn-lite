@@ -7,7 +7,7 @@ import lambdacalculus.{ExecutionOrder, LambdaCalculus}
 import language.experimental.macros
 
 import LambdaMacros._
-import nfn.{LocalNFNCallExecutor, NFNWorker}
+import nfn.{LocalNFNCallExecutor, ComputeWorker}
 import nfn.service.impl.{WordCountService, SumService, AddService}
 import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.duration._
@@ -26,18 +26,19 @@ trait NFNSender {
 }
 
 case class ScalaToLocalMachine() extends NFNSender with Logging {
-  val lc = LambdaCalculus(ExecutionOrder.CallByValue, maybeExecutor = Some(LocalNFNCallExecutor()))
+//  val lc = LambdaCalculus(ExecutionOrder.CallByValue, maybeExecutor = Some(LocalNFNCallExecutor(ccnWorker)))
 
   override def nfnSend(lambda: String): String = {
-    lc.substituteParseCompileExecute(lambda) match {
-      case Success(List(v: Value)) => ValuePrettyPrinter(v)
-      case Success(List(values @ _*)) => {
-        logger.warn("More than one execution result")
-        values.mkString("[", " | ", "]")
-      }
-      case Success(Nil) => throw new Exception("ScalaToLocalMachine: For some reason there was a successful execution without an result")
-      case Failure(e) => throw new Exception(e)
-    }
+//    lc.substituteParseCompileExecute(lambda) match {
+//      case Success(List(v: Value)) => ValuePrettyPrinter(v)
+//      case Success(List(values @ _*)) => {
+//        logger.warn("More than one execution result")
+//        values.mkString("[", " | ", "]")
+//      }
+//      case Success(Nil) => throw new Exception("ScalaToLocalMachine: For some reason there was a successful execution without an result")
+//      case Failure(e) => throw new Exception(e)
+//    }
+    ???
 
   }
 }

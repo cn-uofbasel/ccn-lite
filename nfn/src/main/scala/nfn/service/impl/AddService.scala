@@ -6,10 +6,13 @@ import scala.util.Try
 import nfn.service.NFNName
 import nfn.service.NFNIntValue
 import nfn.service.CallableNFNService
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import akka.actor.ActorRef
 
 
 case class AddService() extends  NFNService with Logging {
-  override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
+  override def parse(unparsedName: String, unparsedValues: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService] = {
     val values = unparsedValues match {
       case Seq(lStr, rStr) => Seq(
           NFNIntValue(lStr.toInt),
@@ -22,14 +25,13 @@ case class AddService() extends  NFNService with Logging {
 
     val function = { (values: Seq[NFNServiceValue]) =>
       values match {
-        case Seq(l: NFNIntValue, r: NFNIntValue) => { Try(
+        case Seq(l: NFNIntValue, r: NFNIntValue) => { Future(
           NFNIntValue(l.amount + r.amount)
         )}
         case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
       }
-
     }
-    CallableNFNService(name, values, function)
+    Future(CallableNFNService(name, values, function))
   }
 
   override def toNFNName: NFNName = NFNName(Seq("/AddService/Int/Int/rInt"))
