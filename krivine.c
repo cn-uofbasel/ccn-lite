@@ -446,7 +446,7 @@ ccn_name2content(char *name)    // synchronous lookup of the (local?) CS
 {
     int i;
 
-//    printf("ccn_name2content(%s)\n", name);
+    //printf("ccn_name2content(%s)\n", name);
 
     if (!name)
 	return 0;
@@ -796,6 +796,7 @@ resstack2str(char **rsname, char *val, char *tail)
     }
     if (rsname)
 	*rsname = mkHash(tmp);
+    
     return strdup(tmp);
 /*    if (strlen(tmp) == 3)
 	strcpy(tmp, "RST|");
@@ -869,49 +870,74 @@ env_find(char *env, char *v)
     return 0;
 }
 
-int pop1int(char **tail, char *stackname)
+//Pops the next argument and resolves a thunk
+int pop(struct ccnl_relay_s * ccnl, char **tail, char *stackname, char *res)
 {
-
     char *a1, *cp;
+    int len;
+    struct ccnl_content_s *c;
     cp = ccn_name2content(stackname); // should be split operation
     a1 = strchr(cp, '|');
-
     if (!a1) {
 	printf("not enough args on stack\n");
 	return 0;
     }
-    //FIXME: if stack ends --> segfault...
     cp = strchr(a1+1, '|');
+    if(cp)
+        len = cp - a1;
+    else 
+        len = strlen(a1);
+    
+    
+    if(!strncmp(a1+1, "THUNK", 5)){
+        printf("!!!!!!THUNK!!!!!!\n");
+#ifndef ABSTRACT_MACHINE
+        if((c = ccnl_nfn_resolve_thunk(ccnl, a1+1)) != NULL){ //thunk can be resolved
+            char *h = a1+1;
+            memcpy(res, c->content, c->contentlen);
+            len = c->contentlen;
+        }
+        else{ //null as dummy if thunk could not be resolved
+            a1[1] = '0';
+            a1[2] = 0;
+            len = 2;
+            memcpy(res, a1+1, len-1);
+        }
+#endif
+    }
+    else{ //no thunk
+         memcpy(res, a1+1, len-1);
+    }
     if(cp)
         *tail = cp+1;
     else 
         *tail = 0;
-    return atoi(a1+1);
+    return len;
+    
+}
+
+int pop1int(struct ccnl_relay_s * ccnl, char **tail, char *stackname)
+{
+    char res[100];
+    memset(res, 0, sizeof(res));
+    int len = pop(ccnl, tail, stackname, res);
+    
+    return atoi(res);    
 }
 
 int
-pop2int(char **tail, char *stackname, int *i1, int *i2)
+pop2int(struct ccnl_relay_s * ccnl, char **tail, char *stackname, int *i1, int *i2)
 {
-    char *a1 = 0, *a2 = 0, *cp;
-
-    cp = ccn_name2content(stackname); // should be split operation
-    a1 = strchr(cp, '|');
-    if (a1)
-	a2 = strchr(a1+1, '|');
-    if (a2) {
-	cp = strchr(a2+1, '|');
-	if (cp)
-	    cp++;
-    }
-
-    if (!a1 || !a2) {
-	printf("not enough args on stack\n");
-	return 0;
-    }
-    *i1 = atoi(a1+1);
-    *i2 = atoi(a2+1);
-
-    *tail = cp;
+    char res1[100], res2[100];
+    memset(res1, 0, sizeof(res1));
+    memset(res2, 0, sizeof(res2));
+    int it1 = pop(ccnl, tail, stackname, res1);
+    *tail = resstack2str(&stackname, *tail, "");
+    int it2 = pop(ccnl, tail, stackname, res2);
+    *tail = resstack2str(&stackname, *tail, "");
+    
+    *i1 = atoi(res1);
+    *i2 = atoi(res2);
     return 2;
 }
 
@@ -979,6 +1005,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, char *cfg, int thunk_request,
 
 	cname = env_find(env, cp);
         //TODO check here for var in content store
+        printf("ACCESS: %s\n", cp);
 	if (!cname) {
 	    env = ccn_name2content(global_dict);
 	    cname = env_find(env, cp);
@@ -1244,7 +1271,7 @@ normal:
 	int i1, i2, acc;
 
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	acc = i1 == i2;
 
 	cp = resstack2str(&rstack, cp, "");
@@ -1268,7 +1295,7 @@ normal:
 	int i1, i2, acc;
 
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	acc = i1 <= i2;
 
 	cp = resstack2str(&rstack, cp, "");
@@ -1347,7 +1374,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+8);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 - i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1367,7 +1394,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 + i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1388,7 +1415,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 * i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1423,7 +1450,7 @@ normal:
     if(!strncmp(prog, "OP_CALL", 5)){
         
         
-	int num_params = pop1int(&cp, rstack);
+	int num_params = pop1int(ccnl, &cp, rstack);
         int i, offset;
 	char name[5];
 //	printf("numparams: %d", num_params);
@@ -1455,7 +1482,7 @@ normal:
 
     if(!strncmp(prog, "OP_FOX(", 4)){
     	
-	int num_params = pop1int(&cp, rstack);
+	int num_params = pop1int(ccnl, &cp, rstack);
         int i, j, complen;
         char *res = NULL;
 	cp = config2str(&cfg, en, astack, rstack, cp);
@@ -1467,7 +1494,7 @@ normal:
         struct ccnl_interest_s * interest;
         struct ccnl_content_s *c;
         
-	//TODO read function name and  parameters, call function 
+	//read function name and  parameters from stack
 	char *cp;
 	cp = ccn_name2content(rstack); // should be split operation
         char *a1 = strchr(cp, '|');
@@ -1507,7 +1534,7 @@ normal:
                 complen += sprintf(comp + complen, ")");
                 printf("Computation request: %s %s\n", comp, params[i]);
                 
-                //TODO: check if params[i] is local available
+                //      check if params[i] is local available
                 //      if it is, check other and request them
                 //      if not send interest to others
                 //      if reply insert result
@@ -1525,7 +1552,6 @@ normal:
                 int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);
                 free(param);
                 
-                //fwrite(out, sizeof(char), len, stdout);
                 printf("\n");
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
@@ -1617,6 +1643,7 @@ compute:
             else{
                 //printf("Content locally found: %s\n", c->content);
                 res = NULL;
+                res = "THUNK"; // FIXME: REMOVE THIS LINE
             }  
         }
         interest = ccnl_interest_remove(ccnl, interest);
@@ -1709,9 +1736,7 @@ char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_r
 
 	"factprime", "RESOLVENAME(@f@n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))",
 	"fact", "RESOLVENAME(factprime factprime)",
-
 	"sha256", "RESOLVENAME(@c 42)",
-
 	0
     };
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -1737,9 +1762,7 @@ char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_r
 	cp = cs_trigger;
 	cs_trigger = 0;
 	char *hash_name = cp;
-	printf("CP BEFORE: %s\n", cp);
 	cp = ZAM_term(ccnl, cp, thunk_request, num_of_required_thunks, original_prefix);
-	printf("CP AFTER:  %s\n", cp);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
     return cp;
