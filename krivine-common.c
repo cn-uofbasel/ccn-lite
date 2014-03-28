@@ -349,5 +349,10 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_pre
     ccnl_content_serve_pending(ccnl,c);
     return 0;
 }
+
+struct ccnl_content_s *
+ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, char *thunk){
+    return NULL;
+}
 #endif USE_UTIL
 #endif //KRIVINE_COMMON_C
