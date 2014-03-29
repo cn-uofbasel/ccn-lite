@@ -1558,8 +1558,8 @@ normal:
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
                     if(thunk_request){
                         --(*num_of_required_thunks);
+                        res = "THUNK"; //TODO NUMBER
                         if((*num_of_required_thunks) <= 0){
-                            res = "THUNK"; //TODO NUMBER
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
                     }
@@ -1574,13 +1574,13 @@ normal:
                     //printf("Content in the network found: %s\n", c->content);
                     if(thunk_request){
                         --(*num_of_required_thunks);
+                        res = "THUNK"; //TODO NUMBER
                         if((*num_of_required_thunks) <= 0){
-                            res = "THUNK"; //TODO NUMBER
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
                     }
                     else{
-                        printf("Content locally found: %s\n", c->content);
+                        printf("Content found in the network: %s\n", c->content);
                         res = c->content;
                     }
                     goto tail;
@@ -1621,8 +1621,8 @@ compute:
         if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
             if(thunk_request){
                 --(*num_of_required_thunks);
+                res = "THUNK"; //TODO NUMBER
                 if((*num_of_required_thunks) <= 0){
-                    res = "THUNK"; //TODO NUMBER
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
             }
@@ -1635,8 +1635,8 @@ compute:
             printf("GOT NO THUNK, continue with null result just for debugging\n");
             if(thunk_request){
                 --(*num_of_required_thunks);
+                res = "THUNK"; //TODO NUMBER
                 if((*num_of_required_thunks) <= 0){
-                    res = "THUNK"; //TODO NUMBER
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
             }

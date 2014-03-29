@@ -18,6 +18,15 @@
 
 #define NFN_FACE -1;
 
+struct thunk_s{
+    struct thunk_s *next, *prev;
+    char thunkid[10];
+    struct ccnl_interest_s *i;
+};
+
+struct thunk_s *thunk_list;
+int thunkid = 0;
+
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
 
@@ -339,6 +348,37 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     }    
     //ccnl_interest_remove(ccnl, interest);
     return found;
+}
+
+int 
+ccnl_nfn_add_thunk(char *thunkid, struct ccnl_interest_s *i){
+    struct thunk_s *thunk = malloc(sizeof(struct thunk_s *));
+    memcpy(thunk->thunkid, thunkid, sizeof(thunk->thunkid));
+    thunk->i = i;
+    DBL_LINKED_LIST_ADD(thunk_list,thunk);
+    return thunkid-1;
+}
+
+struct ccnl_interest_s *
+ccnl_nfn_get_interest_for_thunk(char *thunkid){
+    struct thunk_s *thunk;
+    for(thunk = thunk_list; thunk; thunk->next){
+        if(!strncmp(thunk->thunkid, thunkid, sizeof(thunk->thunkid))){
+            break;
+        }
+    }
+    return thunk->i;
+}
+
+void
+ccnl_nfn_remove_thunk(char* thunkid){
+    struct thunk_s *thunk;
+    for(thunk = thunk_list; thunk; thunk->next){
+        if(!strncmp(thunk->thunkid, thunkid, sizeof(thunk->thunkid))){
+            break;
+        }
+    }
+    DBL_LINKED_LIST_REMOVE(thunk_list, thunk);
 }
 
 int 
