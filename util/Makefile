@@ -5,13 +5,11 @@ CFLAGS=-Wall -g
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
-	ccn-lite-ccnb2hex \
 	ccn-lite-ccnb2xml \
-	ccn-lite-ccntlv2hex \
 	ccn-lite-mkC \
 	ccn-lite-mkI \
-	ccn-lite-ndntlv2hex \
 	ccn-lite-peek \
+	ccn-lite-pktdump \
 	ccn-lite-cryptoserver
 
 #	ccn-lite-deF \
@@ -20,6 +18,7 @@ PROGS=	ccn-lite-ctrl \
 #	ccn-lite-mkndnI \
 
 CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c
+CCNTLV_LIB = ../pkt-ccntlv.h ../pkt-ccntlv-dec.c ../pkt-ccntlv-enc.c
 NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
 
 all: $(PROGS)
@@ -28,20 +27,15 @@ ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
 		../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
 
-ccn-lite-ccnb2hex: ccn-lite-ccnb2hex.c ${CCNB_LIB} Makefile ../ccnl.h
-	$(CC) $(CFLAGS) ccn-lite-ccnb2hex.c -o $@ 
-
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
-ccn-lite-ccntlv2hex: Makefile ccn-lite-ccntlv2hex.c ../pkt-ccntlv.c ../pkt-ccntlv.h
-	$(CC) $(CFLAGS) ccn-lite-ccntlv2hex.c -o $@ 
-
-ccn-lite-ndntlv2hex: Makefile ccn-lite-ndntlv2hex.c ${NDNTLV_LIB}
-	$(CC) $(CFLAGS) ccn-lite-ndntlv2hex.c -o $@ 
 
 ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
+
+ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB}
+	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
 
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
@@ -65,7 +59,7 @@ ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
-	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-ccnb2hex
+	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-pktdump
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-ccnb2xml
 
 install: all

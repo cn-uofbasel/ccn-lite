@@ -23,6 +23,8 @@
 
 #if defined(USE_SUITE_CCNB)
 
+#include "pkt-ccnb.h"
+
 // ----------------------------------------------------------------------
 // ccnb parsing support
 

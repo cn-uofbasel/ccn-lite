@@ -1,6 +1,6 @@
 /*
- * @f pkt-ccntlv.c
- * @b CCN lite - CCNx pkt composing/parsing routines (TLV pkt format Nov 2013)
+ * @f pkt-ccntlv-enc.c
+ * @b CCN lite - CCNx pkt composing routines (TLV pkt format Nov 2013)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -68,26 +68,5 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char mtype,
 
     return 8 + hdrlen + payloadlen;
 }
-
-
-// parse
-
-int
-ccnl_ccntlv_dehead(int lev, unsigned char *base, unsigned char **buf,
-		   unsigned int *len, unsigned int *typ, unsigned int *vallen)
-{
-    unsigned short *ip;
-
-    if (*len < 4)
-	return -1;
-    ip = (unsigned short*) *buf;
-    *typ = ntohs(*ip);
-    ip++;
-    *vallen = ntohs(*ip);
-    *len -= 4;
-    *buf += 4;
-    return 0;
-}
-
 
 // eof
