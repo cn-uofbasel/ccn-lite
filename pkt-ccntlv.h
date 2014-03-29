@@ -40,6 +40,7 @@ struct ccnx_tlvhdr_ccnx201311_s {
 // per hop
 #define CCNX_TLV_PH_Nonce			0x0001
 #define CCNX_TLV_PH_Hoplimit			0x0002
+#define CCNX_TLV_PH_Fragment			0x0004
 
 // per name
 #define CCNX_TLV_N_UTF8 			0x0001
