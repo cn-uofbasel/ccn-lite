@@ -109,6 +109,32 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 
 #ifndef USE_UTIL 
 
+void
+ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
+    int i = 0;
+    (*copy) = malloc(sizeof(struct ccnl_prefix_s));
+    (*copy)->compcnt = prefix->compcnt;
+
+    (*copy)->complen = malloc(sizeof(int) * prefix->compcnt);
+    (*copy)->comp = malloc(sizeof(char *) * prefix->compcnt);
+
+    if(prefix->path)(*copy)->path = strdup(prefix->path);
+    for(i = 0; i < (*copy)->compcnt; ++i){
+        (*copy)->complen[i] = prefix->complen[i];
+        (*copy)->comp[i] = strdup(prefix->comp[i]);
+    }
+}
+
+void
+ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
+    int i;
+    prefix->compcnt = 0;
+    if(prefix->complen)free(prefix->complen);
+    for(i = 0; i < prefix->compcnt; ++i){
+        if(prefix->comp[i])free(prefix->comp[i]);
+    }
+}
+
 int
 mkContent(char **namecomp,
 	  unsigned char *publisher, int plen,
@@ -350,28 +376,52 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     return found;
 }
 
-int 
-ccnl_nfn_add_thunk(char *thunkid, struct ccnl_interest_s *i){
-    struct thunk_s *thunk = malloc(sizeof(struct thunk_s *));
-    memcpy(thunk->thunkid, thunkid, sizeof(thunk->thunkid));
-    thunk->i = i;
-    DBL_LINKED_LIST_ADD(thunk_list,thunk);
-    return thunkid-1;
+char * 
+ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
+    DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
+    struct ccnl_prefix_s *new_prefix;
+    ccnl_nfn_copy_prefix(prefix, &new_prefix);
+    
+    int i = 0;
+    if(!strncmp(new_prefix->comp[new_prefix->compcnt-2], "THUNK", 5)){
+        new_prefix->comp[new_prefix->compcnt-2] = "NFN";
+        new_prefix->comp[new_prefix->compcnt-1] = NULL;
+        --new_prefix->compcnt;
+    }    
+    char *out = malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    int len = mkInterest(new_prefix->comp, NULL, out);
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, new_prefix->comp[0]);
+    
+    if(!interest)
+        return NULL;
+    
+    struct thunk_s *thunk = malloc(sizeof(struct thunk_s));
+    thunk->i = interest;
+    sprintf(thunk->thunkid, "THUNK%d", thunkid++);
+    DBL_LINKED_LIST_ADD(thunk_list, thunk);
+    printf("NEWTHUNK: %s\n", thunk->thunkid);
+    return strdup(thunk->thunkid);
 }
 
 struct ccnl_interest_s *
 ccnl_nfn_get_interest_for_thunk(char *thunkid){
+    DEBUGMSG(2, "ccnl_nfn_get_interest_for_thunk()\n");
     struct thunk_s *thunk;
-    for(thunk = thunk_list; thunk; thunk->next){
-        if(!strncmp(thunk->thunkid, thunkid, sizeof(thunk->thunkid))){
+    for(thunk = thunk_list; thunk; thunk = thunk->next){
+        if(!strcmp(thunk->thunkid, thunkid)){
+            DEBUGMSG(49, "Thunk table entry found\n");
             break;
         }
     }
-    return thunk->i;
+    if(thunk){
+        return thunk->i;
+    }
+    return NULL;
 }
 
 void
 ccnl_nfn_remove_thunk(char* thunkid){
+    DEBUGMSG(2, "ccnl_nfn_remove_thunk()\n");
     struct thunk_s *thunk;
     for(thunk = thunk_list; thunk; thunk->next){
         if(!strncmp(thunk->thunkid, thunkid, sizeof(thunk->thunkid))){
@@ -392,6 +442,15 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_pre
 
 struct ccnl_content_s *
 ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, char *thunk){
+    DEBUGMSG(2, "ccnl_nfn_resolve_thunk()\n");
+    struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(thunk);
+    if(interest){
+        struct ccnl_content_s *c;
+        if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
+            DEBUGMSG(49, "Thunk was resolved\n");
+            return c;
+        }
+    }
     return NULL;
 }
 #endif USE_UTIL

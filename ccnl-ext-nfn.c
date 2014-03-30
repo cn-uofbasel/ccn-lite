@@ -25,32 +25,6 @@
 #include "krivine.c"
 #include "ccnl-includes.h"
 
-static void
-ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
-    int i = 0;
-    (*copy) = malloc(sizeof(struct ccnl_prefix_s));
-    (*copy)->compcnt = prefix->compcnt;
-
-    (*copy)->complen = malloc(sizeof(int) * prefix->compcnt);
-    (*copy)->comp = malloc(sizeof(char *) * prefix->compcnt);
-
-    if(prefix->path)(*copy)->path = strdup(prefix->path);
-    for(i = 0; i < (*copy)->compcnt; ++i){
-        (*copy)->complen[i] = prefix->complen[i];
-        (*copy)->comp[i] = strdup(prefix->comp[i]);
-    }
-}
-
-static void
-ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
-    int i;
-    prefix->compcnt = 0;
-    if(prefix->complen)free(prefix->complen);
-    for(i = 0; i < prefix->compcnt; ++i){
-        if(prefix->comp[i])free(prefix->comp[i]);
-    }
-}
-
 static int
 ccnl_nfn_count_required_thunks(char *str)
 {

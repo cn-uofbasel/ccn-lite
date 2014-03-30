@@ -874,6 +874,7 @@ env_find(char *env, char *v)
 int pop(struct ccnl_relay_s * ccnl, char **tail, char *stackname, char *res)
 {
     char *a1, *cp;
+    char thunkid[10];
     int len;
     struct ccnl_content_s *c;
     cp = ccn_name2content(stackname); // should be split operation
@@ -891,13 +892,16 @@ int pop(struct ccnl_relay_s * ccnl, char **tail, char *stackname, char *res)
     
     if(!strncmp(a1+1, "THUNK", 5)){
         printf("!!!!!!THUNK!!!!!!\n");
+        memset(thunkid, 0, sizeof(thunkid));
+        memcpy(thunkid, a1+1, len-1);
 #ifndef ABSTRACT_MACHINE
-        if((c = ccnl_nfn_resolve_thunk(ccnl, a1+1)) != NULL){ //thunk can be resolved
+        if((c = ccnl_nfn_resolve_thunk(ccnl, thunkid)) != NULL){ //thunk can be resolved
             char *h = a1+1;
             memcpy(res, c->content, c->contentlen);
             len = c->contentlen;
         }
         else{ //null as dummy if thunk could not be resolved
+            DEBUGMSG(49, "Thunk could not be resolved, use 0 as debug dummy\n");
             a1[1] = '0';
             a1[2] = 0;
             len = 2;
@@ -1549,16 +1553,17 @@ normal:
                     printf("Routable content is local availabe --> start computation\n");
                     goto compute;
                 }
-                int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);
+                
+                int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);    
                 free(param);
                 
                 printf("\n");
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
-                    if(thunk_request){
+                    if(thunk_request){ //TODO: no thunk for local search!
                         --(*num_of_required_thunks);
-                        res = "THUNK"; //TODO NUMBER
+                        res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
                         if((*num_of_required_thunks) <= 0){
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
@@ -1574,7 +1579,7 @@ normal:
                     //printf("Content in the network found: %s\n", c->content);
                     if(thunk_request){
                         --(*num_of_required_thunks);
-                        res = "THUNK"; //TODO NUMBER
+                        res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
                         if((*num_of_required_thunks) <= 0){
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         } 
@@ -1621,7 +1626,7 @@ compute:
         if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
             if(thunk_request){
                 --(*num_of_required_thunks);
-                res = "THUNK"; //TODO NUMBER
+                res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
                 if((*num_of_required_thunks) <= 0){
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
@@ -1635,7 +1640,7 @@ compute:
             printf("GOT NO THUNK, continue with null result just for debugging\n");
             if(thunk_request){
                 --(*num_of_required_thunks);
-                res = "THUNK"; //TODO NUMBER
+                res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
                 if((*num_of_required_thunks) <= 0){
                     ccnl_nfn_reply_thunk(ccnl, original_prefix);
                 } 
