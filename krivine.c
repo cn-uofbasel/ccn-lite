@@ -22,6 +22,7 @@
 
 #include "ccnl.h"
 
+
 #ifndef ABSTRACT_MACHINE
 #include "krivine-common.c"
 #endif
@@ -39,6 +40,8 @@
 
 int debug_level;
 #endif /*ABSTRACT_MACHINE*/
+
+
 
 struct term_s {
     char *v;
@@ -443,7 +446,7 @@ ccn_name2content(char *name)    // synchronous lookup of the (local?) CS
 {
     int i;
 
-//    printf("ccn_name2content(%s)\n", name);
+    //printf("ccn_name2content(%s)\n", name);
 
     if (!name)
 	return 0;
@@ -793,6 +796,7 @@ resstack2str(char **rsname, char *val, char *tail)
     }
     if (rsname)
 	*rsname = mkHash(tmp);
+    
     return strdup(tmp);
 /*    if (strlen(tmp) == 3)
 	strcpy(tmp, "RST|");
@@ -866,49 +870,78 @@ env_find(char *env, char *v)
     return 0;
 }
 
-int pop1int(char **tail, char *stackname)
+//Pops the next argument and resolves a thunk
+int pop(struct ccnl_relay_s * ccnl, char **tail, char *stackname, char *res)
 {
-
     char *a1, *cp;
+    char thunkid[10];
+    int len;
+    struct ccnl_content_s *c;
     cp = ccn_name2content(stackname); // should be split operation
     a1 = strchr(cp, '|');
-
     if (!a1) {
 	printf("not enough args on stack\n");
 	return 0;
     }
-    //FIXME: if stack ends --> segfault...
     cp = strchr(a1+1, '|');
+    if(cp)
+        len = cp - a1;
+    else 
+        len = strlen(a1);
+    
+    
+    if(!strncmp(a1+1, "THUNK", 5)){
+        printf("!!!!!!THUNK!!!!!!\n");
+        memset(thunkid, 0, sizeof(thunkid));
+        memcpy(thunkid, a1+1, len-1);
+#ifndef ABSTRACT_MACHINE
+        if((c = ccnl_nfn_resolve_thunk(ccnl, thunkid)) != NULL){ //thunk can be resolved
+            char *h = a1+1;
+            memcpy(res, c->content, c->contentlen);
+            len = c->contentlen;
+        }
+        else{ //null as dummy if thunk could not be resolved
+            DEBUGMSG(49, "Thunk could not be resolved, use 0 as debug dummy\n");
+            a1[1] = '0';
+            a1[2] = 0;
+            len = 2;
+            memcpy(res, a1+1, len-1);
+        }
+#endif
+    }
+    else{ //no thunk
+         memcpy(res, a1+1, len-1);
+    }
     if(cp)
         *tail = cp+1;
     else 
         *tail = 0;
-    return atoi(a1+1);
+    return len;
+    
+}
+
+int pop1int(struct ccnl_relay_s * ccnl, char **tail, char *stackname)
+{
+    char res[100];
+    memset(res, 0, sizeof(res));
+    int len = pop(ccnl, tail, stackname, res);
+    
+    return atoi(res);    
 }
 
 int
-pop2int(char **tail, char *stackname, int *i1, int *i2)
+pop2int(struct ccnl_relay_s * ccnl, char **tail, char *stackname, int *i1, int *i2)
 {
-    char *a1 = 0, *a2 = 0, *cp;
-
-    cp = ccn_name2content(stackname); // should be split operation
-    a1 = strchr(cp, '|');
-    if (a1)
-	a2 = strchr(a1+1, '|');
-    if (a2) {
-	cp = strchr(a2+1, '|');
-	if (cp)
-	    cp++;
-    }
-
-    if (!a1 || !a2) {
-	printf("not enough args on stack\n");
-	return 0;
-    }
-    *i1 = atoi(a1+1);
-    *i2 = atoi(a2+1);
-
-    *tail = cp;
+    char res1[100], res2[100];
+    memset(res1, 0, sizeof(res1));
+    memset(res2, 0, sizeof(res2));
+    int it1 = pop(ccnl, tail, stackname, res1);
+    *tail = resstack2str(&stackname, *tail, "");
+    int it2 = pop(ccnl, tail, stackname, res2);
+    *tail = resstack2str(&stackname, *tail, "");
+    
+    *i1 = atoi(res1);
+    *i2 = atoi(res2);
     return 2;
 }
 
@@ -924,7 +957,8 @@ log_ZAM(char *en, char *sn, struct term_s *t,
 // ----------------------------------------------------------------------
 
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, char *cfg) // written as forth approach
+ZAM_term(struct ccnl_relay_s *ccnl, char *cfg, int thunk_request, 
+        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix) // written as forth approach
 {
     char *en, *astack, *rstack = 0, *prog, *cp, *pending, *p;
     struct term_s *t;
@@ -975,6 +1009,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, char *cfg) // written as forth approach
 
 	cname = env_find(env, cp);
         //TODO check here for var in content store
+        printf("ACCESS: %s\n", cp);
 	if (!cname) {
 	    env = ccn_name2content(global_dict);
 	    cname = env_find(env, cp);
@@ -1240,7 +1275,7 @@ normal:
 	int i1, i2, acc;
 
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	acc = i1 == i2;
 
 	cp = resstack2str(&rstack, cp, "");
@@ -1264,7 +1299,7 @@ normal:
 	int i1, i2, acc;
 
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	acc = i1 <= i2;
 
 	cp = resstack2str(&rstack, cp, "");
@@ -1343,7 +1378,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+8);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 - i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1363,7 +1398,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 + i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1384,7 +1419,7 @@ normal:
 	int i1, i2;
 
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	pop2int(&cp, rstack, &i2, &i1);
+	pop2int(ccnl, &cp, rstack, &i2, &i1);
 	sprintf(dummybuf, "%d", i1 * i2);
 	cp = resstack2str(&rstack, dummybuf, cp);
 	if (cp)
@@ -1419,7 +1454,7 @@ normal:
     if(!strncmp(prog, "OP_CALL", 5)){
         
         
-	int num_params = pop1int(&cp, rstack);
+	int num_params = pop1int(ccnl, &cp, rstack);
         int i, offset;
 	char name[5];
 //	printf("numparams: %d", num_params);
@@ -1451,7 +1486,7 @@ normal:
 
     if(!strncmp(prog, "OP_FOX(", 4)){
     	
-	int num_params = pop1int(&cp, rstack);
+	int num_params = pop1int(ccnl, &cp, rstack);
         int i, j, complen;
         char *res = NULL;
 	cp = config2str(&cfg, en, astack, rstack, cp);
@@ -1463,7 +1498,7 @@ normal:
         struct ccnl_interest_s * interest;
         struct ccnl_content_s *c;
         
-	//TODO read function name and  parameters, call function 
+	//read function name and  parameters from stack
 	char *cp;
 	cp = ccn_name2content(rstack); // should be split operation
         char *a1 = strchr(cp, '|');
@@ -1486,9 +1521,7 @@ normal:
         //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
-             
-                
-                
+
                 //make compute request
                 memset(comp, 0, CCNL_MAX_PACKET_SIZE);
                 memset(out, 0, CCNL_MAX_PACKET_SIZE);
@@ -1505,7 +1538,7 @@ normal:
                 complen += sprintf(comp + complen, ")");
                 printf("Computation request: %s %s\n", comp, params[i]);
                 
-                //TODO: check if params[i] is local available
+                //      check if params[i] is local available
                 //      if it is, check other and request them
                 //      if not send interest to others
                 //      if reply insert result
@@ -1516,76 +1549,84 @@ normal:
                 
                 param = strdup(params[i]);
                 j= splitComponents(param, namecomp);
+                
                 if(isLocalAvailable(ccnl, namecomp)){ //if node has routable content local --> compute local
-                    printf("Routable content is local availabe --> start computation\n");
-                    goto compute;
+                    DEBUGMSG(49, "Routable content is local availabe --> start computation\n");
+                    complen = sprintf(comp, "call %d ", num_params);
+                    for(i = 0; i < num_params; ++i){
+                        complen += sprintf(comp+complen, "%s ", params[i]);
+                    }
+                    i = 0;
+                    namecomp[i++] = "COMPUTE";
+                    namecomp[i++] = strdup(comp);
+                    if(thunk_request) namecomp[i++] = "THUNK";
+                    namecomp[i++] = "NFN";
+                    namecomp[i++] = NULL;
+                    //if(thunk_request)  ask for other thunks to be available
+
+                    len = mkInterest(namecomp, 0, out);
+                    interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+                    if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
+                        DEBUGMSG(49, "Content can be computed");
+                        goto tail;
+                    }else{
+                        DEBUGMSG(49, "Got no thunk, continue with null result just for debugging\n");
+                        goto tail;
+                    }
                 }
-                int len = mkInterestCompute(namecomp, comp, complen, 0, out);
+                
+                int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);    
                 free(param);
                 
-                //fwrite(out, sizeof(char), len, stdout);
-                printf("\n");
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
-                    printf("Content locally found: %s\n", c->content);
-                    res = c->content;
-                    
+                    DEBUGMSG(49, "Content locally found\n");
                     goto tail;
                 }
                 
                 else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
-                    //printf("Content in the network found: %s\n", c->content);
-                    printf("Content found in the network: %s\n", c->content);
-                    res = c->content;
+                    DEBUGMSG(49, "Content found in the network\n");
                     goto tail;
                 }
                 //TODO Async stuff!?
                 //send interest and place it in FIB
                 //wait for reply
                 //goto result;
-                interest = ccnl_interest_remove(ccnl, interest);
+                //interest = ccnl_interest_remove(ccnl, interest);
                 //free(interest);
 #endif // ABSTRACT_MACHINE
             }//endif
             
         }//endfor
         
-        //Try to receive components and compute here! systemcall?
-        printf("No result found: Try to compute locally\n");
-        //Make interest string:
-#ifndef ABSTRACT_MACHINE
-compute:
-        complen = sprintf(comp, "call %d ", num_params);
-        for(i = 0; i < num_params; ++i){
-            complen += sprintf(comp+complen, "%s ", params[i]);
-        }
-        namecomp[0] = "COMPUTE";
-        namecomp[1] = strdup(comp);
-        namecomp[2] = "NFN";
-        namecomp[3] = NULL;
+        //TODO Try to receive components and compute here???
         
-        printf("Interest name: %s %s %s %s\n", namecomp[0], namecomp[1], namecomp[2], namecomp[3]);
         
-        len = mkInterest(namecomp, 0, out);
-        interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
-        if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
-            printf("Content could be computed: %s\n", c->content);
-            res = c->content;
-        }else
-        {
-            printf("COMPUTATION COULD NOT BE FINISHED\n");
-            res = NULL;
-        }
-        interest = ccnl_interest_remove(ccnl, interest);
-        
-#endif //BSTRACT_MACHINE
-        
-        printf("OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
-        //place result
 tail:
-        if(res == NULL) res = "0";
-        if(!strncmp(res, "RST|",4)){
+        DEBUGMSG(49, "OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
+#ifndef ABSTRACT_MACHINE
+        interest = ccnl_interest_remove(ccnl, interest);
+        //extract result from content object 
+        if(c == NULL){
+            DEBUGMSG(2, "No content object found\n");
+            res == NULL;
+        }
+        else if(thunk_request){ //TODO: no thunk for local search!
+            --(*num_of_required_thunks);
+            res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
+            if((*num_of_required_thunks) <= 0){
+                ccnl_nfn_reply_thunk(ccnl, original_prefix);
+            } 
+        }
+        else{
+            res = c->content;
+        }    
+#endif
+        if(res == NULL) {
+            res = "0";
+        }
+        else if(!strncmp(res, "RST|",4)){
             res+=4;
         }
 	char rst[1000];
@@ -1594,7 +1635,6 @@ tail:
         
 	char *name =  mkHash(rst);
 	ccn_store(name, rst);
-
 	
 	if (pending)
 	    cp = config2str(&cfg, en, astack, name, pending+1);
@@ -1645,7 +1685,8 @@ createDict(char *pairs[])
     return ename;
 }
 
-char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
+char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
+        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix){
 
     char *prog, *cp, *config;
     char *setup_env[] = {
@@ -1667,9 +1708,7 @@ char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
 
 	"factprime", "RESOLVENAME(@f@n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))",
 	"fact", "RESOLVENAME(factprime factprime)",
-
 	"sha256", "RESOLVENAME(@c 42)",
-
 	0
     };
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -1695,9 +1734,7 @@ char *Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression){
 	cp = cs_trigger;
 	cs_trigger = 0;
 	char *hash_name = cp;
-	printf("CP BEFORE: %s\n", cp);
-	cp = ZAM_term(ccnl, cp);
-	printf("CP AFTER:  %s\n", cp);
+	cp = ZAM_term(ccnl, cp, thunk_request, num_of_required_thunks, original_prefix);
     }
     ccn_store(expression, cp); //ersetze durch richtigen hash eintrag
     return cp;
@@ -1753,7 +1790,7 @@ main(int argc, char **argv)
     //printf("Demo: Call-by-name reduction of untyped lambda calculus over CCN\n");
     //printf("      christian.tschudin@unibas.ch, Jun 2013\n");
     
-    res = Krivine_reduction(NULL, prog);
+    res = Krivine_reduction(NULL, prog, 0, NULL, NULL);
 
     printf("\n res; %s\n\n", res);
 
