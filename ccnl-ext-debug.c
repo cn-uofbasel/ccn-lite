@@ -702,7 +702,7 @@ debug_free(void *p, const char *fn, int lno)
 		timestamp(), fn, lno, p);
 	return;
     }
-    if (h->tstamp)
+    if (h->tstamp && *h->tstamp)
 	free(h->tstamp);
     free(h);
 }

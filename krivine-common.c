@@ -112,11 +112,11 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 void
 ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
     int i = 0;
-    (*copy) = malloc(sizeof(struct ccnl_prefix_s));
+    (*copy) = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     (*copy)->compcnt = prefix->compcnt;
 
-    (*copy)->complen = malloc(sizeof(int) * prefix->compcnt);
-    (*copy)->comp = malloc(sizeof(char *) * prefix->compcnt);
+    (*copy)->complen = ccnl_malloc(sizeof(int) * prefix->compcnt);
+    (*copy)->comp = ccnl_malloc(sizeof(char *) * prefix->compcnt);
 
     if(prefix->path)(*copy)->path = strdup(prefix->path);
     for(i = 0; i < (*copy)->compcnt; ++i){
@@ -355,7 +355,7 @@ ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, c
     struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
     from->faceid = NFN_FACE;
     from->last_used = CCNL_NOW();
-    from->outq = malloc(sizeof(struct ccnl_buf_s));
+    from->outq = ccnl_malloc(sizeof(struct ccnl_buf_s));
     from->outq->data[0] = strdup(name);
     from->outq->datalen = strlen(name);
     return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
@@ -388,14 +388,14 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
         new_prefix->comp[new_prefix->compcnt-1] = NULL;
         --new_prefix->compcnt;
     }    
-    char *out = malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     int len = mkInterest(new_prefix->comp, NULL, out);
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, new_prefix->comp[0]);
     
     if(!interest)
         return NULL;
     
-    struct thunk_s *thunk = malloc(sizeof(struct thunk_s));
+    struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
     thunk->i = interest;
     sprintf(thunk->thunkid, "THUNK%d", thunkid++);
     DBL_LINKED_LIST_ADD(thunk_list, thunk);
