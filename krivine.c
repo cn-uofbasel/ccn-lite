@@ -1536,14 +1536,6 @@ normal:
                     }
                 }
                 complen += sprintf(comp + complen, ")");
-                printf("Computation request: %s %s\n", comp, params[i]);
-                
-                //      check if params[i] is local available
-                //      if it is, check other and request them
-                //      if not send interest to others
-                //      if reply insert result
-                //      if timeout continue with next iteration
-                
 #ifndef ABSTRACT_MACHINE
                 //make interest
                 
@@ -1551,7 +1543,7 @@ normal:
                 j= splitComponents(param, namecomp);
                 
                 if(isLocalAvailable(ccnl, namecomp)){ //if node has routable content local --> compute local
-                    DEBUGMSG(49, "Routable content is local availabe --> start computation\n");
+                    DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n", params[i]);
                     complen = sprintf(comp, "call %d ", num_params);
                     for(i = 0; i < num_params; ++i){
                         complen += sprintf(comp+complen, "%s ", params[i]);
@@ -1575,12 +1567,13 @@ normal:
                     }
                 }
                 
+                DEBUGMSG(49, "Computation request: %s %s\n", comp, params[i]);
                 int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);    
                 free(param);
                 
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
-                if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
+                if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
                     DEBUGMSG(49, "Content locally found\n");
                     goto tail;
                 }
@@ -1590,19 +1583,13 @@ normal:
                     goto tail;
                 }
                 //TODO Async stuff!?
-                //send interest and place it in FIB
-                //wait for reply
-                //goto result;
-                //interest = ccnl_interest_remove(ccnl, interest);
-                //free(interest);
 #endif // ABSTRACT_MACHINE
             }//endif
             
         }//endfor
         
         //TODO Try to receive components and compute here???
-        
-        
+             
 tail:
         DEBUGMSG(49, "OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
 #ifndef ABSTRACT_MACHINE
