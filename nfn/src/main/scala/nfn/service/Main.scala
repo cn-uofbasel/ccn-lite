@@ -19,6 +19,7 @@ import akka.pattern._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
 import scala.concurrent.duration._
+import scala.concurrent._
 
 object ContentStore extends Logging {
   private var cs: Map[Seq[String], Content] = Map()
@@ -32,7 +33,7 @@ object ContentStore extends Logging {
 
 
 object NFNServiceLibrary extends Logging {
-  private var services:Map[String, NFNService] = Map()
+  private var services:Map[Seq[String], NFNService] = Map()
   private val ccnIf = CCNLite
 
   add(AddService())
@@ -40,14 +41,22 @@ object NFNServiceLibrary extends Logging {
 
   def add(serv: NFNService) =  {
 
-    val name = serv.toNFNName.toString
+    val name = serv.toNFNName.name
     services += name -> serv
   }
 
   def find(servName: String):Option[NFNService] = {
-    logger.debug(s"Looking for: '$servName' in '$services'")
-    services.get(servName)
-//    TODO: if not found, ask NFN
+    servName.split("/") match {
+      case Array("", servNameCmps @ _*) =>
+        logger.debug(s"Looking for: '$servNameCmps' in '$services'")
+        val found = services.get(servNameCmps)
+        logger.debug(s"Found $found")
+        found
+      case _ => {
+        logger.error(s"Could not split name $servName with '/'")
+        None
+      }
+    }
   }
 
 
@@ -68,10 +77,11 @@ object NFNServiceLibrary extends Logging {
    * @param ccnWorker
    */
   def nfnPublish(ccnWorker: ActorRef) = {
+
     def pinnedData = "pinnedfunction".getBytes
+
     def byteCodeData(serv: NFNService):Array[Byte] = {
-      val bc = BytecodeLoader.fromClass(serv)
-      bc match {
+      BytecodeLoader.fromClass(serv) match {
         case Some(bc) => bc
         case None =>
           logger.error(s"nfnPublush: No bytecode found for unpinned service $serv")
@@ -79,14 +89,14 @@ object NFNServiceLibrary extends Logging {
       }
     }
 
-    for((name, serv) <- services) {
+    for((_, serv) <- services) {
 
       val serviceContent =
         if(serv.pinned) pinnedData
         else byteCodeData(serv)
 
       val content = Content(
-        Seq(name),
+        serv.toNFNName.name,
         serviceContent
       )
 
@@ -156,7 +166,7 @@ case class CallableNFNService(name: NFNName, values: Seq[NFNServiceValue], funct
 }
 
 case class NFNName(name: Seq[String]) {
-  override def toString = name.mkString("/")
+  override def toString = name.mkString("/", "/", "")
 }
 
 trait NFNServiceValue {
@@ -170,7 +180,8 @@ trait NFNServiceValue {
 
 trait NFNService {
 
-  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
+  def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): CallableNFNService
+//  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 
   def toNFNName: NFNName
 
@@ -196,7 +207,11 @@ object NFNService extends Logging {
 
         // find service
         val futServ: Future[NFNService] = NFNServiceLibrary.find(fun) match {
-          case Some(serv) => Future(serv)
+          case Some(serv) => {
+            future {
+              serv
+            }
+          }
           case None => {
             val interest = Interest(Seq(fun))
             val futServiceContent = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
@@ -209,27 +224,41 @@ object NFNService extends Logging {
         }
 
         // create or find values
-        val futArgs: List[Future[NFNServiceValue]] = args map { (arg: String) =>
-          arg.forall(_.isDigit) match {
-            case true => Future(NFNIntValue(arg.toInt))
-            case false => {
-              val interest = Interest(Seq(arg))
-
-
-              val futContent:Future[Content] = ContentStore.find(interest.name) match {
-                case Some(content) => Future(content)
-                case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+        val futArgs: Future[List[NFNServiceValue]] = Future.sequence(
+          args map { (arg: String) =>
+            arg.forall(_.isDigit) match {
+              case true => {
+                future{
+                  NFNIntValue(arg.toInt)
+                }
               }
-              futContent map { content =>
-                NFNBinaryDataValue(content.name, content.data)
+              case false => {
+                val interest = Interest(arg.split("/").tail)
+
+
+                val futContent:Future[Content] = ContentStore.find(interest.name) match {
+                  case Some(content) => Future(content)
+                  case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+                }
+                futContent map { content =>
+                  NFNBinaryDataValue(content.name, content.data)
+                }
               }
             }
           }
-        }
+        )
 
-        val futCallableServ:Future[CallableNFNService] = futServ flatMap { serv => serv.instantiateCallable(NFNName(Seq(fun)), futArgs, ccnWorker) }
+        val futCallableServ: Future[CallableNFNService] =
+          for {
+            args <- futArgs
+            serv <- futServ
+          } yield {
+            serv.instantiateCallable(serv.toNFNName, args)
+          }
+
+
         futCallableServ onSuccess {
-          case callableServ => logger.debug(s"Found service for request: $callableServ")
+          case callableServ => logger.info(s"Instantiated callable serv: '$name' -> $callableServ")
         }
         futCallableServ
       }

@@ -17,7 +17,7 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  override def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService] = {
+  override def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): CallableNFNService = {
     assert(name == this.toNFNName)
 
     val function: (Seq[NFNServiceValue]) => NFNIntValue = {
@@ -29,11 +29,9 @@ case class WordCountService() extends NFNService {
       case values @ _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNBinaryDataValue and not $values")
     }
 
-    Future.sequence(futValues) map { values =>
-      CallableNFNService(name, values, function)
-    }
+    CallableNFNService(name, values, function)
   }
 
-  override def toNFNName: NFNName = NFNName(Seq("/WordCountService/NFNName/rInt"))
+  override def toNFNName: NFNName = NFNName(Seq("WordCountService", "NFNName", "rInt"))
 
 }

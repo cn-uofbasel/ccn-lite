@@ -1,6 +1,6 @@
 package ccn.packet
 
-trait Packet {
+sealed trait Packet {
   def name: Seq[String]
   def nameComponents:Seq[String] = name ++ Seq("NFN")
 }

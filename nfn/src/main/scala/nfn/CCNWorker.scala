@@ -11,6 +11,9 @@ import ccn.ccnlite.CCNLite
 import ccn.packet._
 import nfn.CCNWorker._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
+import java.io.{PrintWriter, StringWriter}
 
 trait CCNPacketHandler {
   def receivedContent(content: Content): Unit
@@ -43,7 +46,7 @@ case class CCNWorker() extends Actor {
   }
 
   private def createComputeWorker(interest: Interest): ActorRef =
-    context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.name.mkString("/").hashCode}")
+    context.actorOf(Props(classOf[ComputeWorker], self))//, s"ComputeWorker-${interest.name.mkString("/").hashCode}")
 
   override def receive: Actor.Receive = {
 
@@ -51,23 +54,24 @@ case class CCNWorker() extends Actor {
     // If it is an interest, start a compute request
     case data: ByteString => {
       val byteArr = data.toByteBuffer.array.clone
-      val packet = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
+      val maybePacket: Option[Packet] = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
 
-      logger.info(s"$name received $packet")
-      packet match {
+      logger.info(s"$name received ${maybePacket.getOrElse("unparsable data")}")
+      maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
-        case interest: Interest => {
+        case Some(interest: Interest) => {
           val computeWorker = createComputeWorker(interest)
           pendingInterests += (interest.name -> computeWorker)
           computeWorker.tell(interest, self)
         }
         // Received content, check if there is an entry in the pit. If so, send it to the attached worker, otherwise discard it
-        case content: Content => {
+        case Some(content: Content) => {
           pendingInterests.get(content.name) match {
             case Some(interestSender) => interestSender ! content
             case None => logger.error(s"Discarding content $content without pending interest")
           }
         }
+        case None => logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
       }
     }
 
@@ -92,6 +96,7 @@ case class CCNWorker() extends Actor {
     }
 
     case CCNAddToCache(content) => {
+      logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
       val binaryInterest = ccnIf.mkAddToCacheInterest(content)
       nfnSocket ! Send(binaryInterest)
     }
@@ -131,18 +136,21 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
   }
 
   def handleComputeRequest(computeCmps: Seq[String], interest: Interest, requestor: ActorRef) = {
-    val futResultContent =
-      for{callableServ <-  NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
-    } yield {
-      // TODO fix the issue of name components vs single names...
-      logger.warning(s"TODO: fix the issue of name components vs single names...")
-      val servResult = callableServ.exec
-      Content(interest.name, servResult.toValueName.name.mkString(" ").getBytes)
-    }
-    futResultContent onSuccess {
-      case content => {
+    logger.debug(s"Handling compute request for cmps: $computeCmps")
+    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
+
+    callableServ onComplete {
+      case Success(callableServ) => {
+        val result = callableServ.exec
+        val content = Content(interest.name, result.toValueName.name.mkString(" ").getBytes)
         logger.debug(s"Finished computation, result: $content")
         requestor ! ComputeResult(content)
+      }
+      case Failure(e) => {
+        val sw = new StringWriter()
+        val pw = new PrintWriter(sw)
+        e.printStackTrace(pw)
+        logger.error(sw.toString)
       }
     }
   }
