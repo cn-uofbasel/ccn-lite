@@ -133,10 +133,10 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
   def handleComputeRequest(computeCmps: Seq[String], interest: Interest, requestor: ActorRef) = {
     val futResultContent =
       for{callableServ <-  NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
-        servResult <- callableServ.exec
     } yield {
       // TODO fix the issue of name components vs single names...
       logger.warning(s"TODO: fix the issue of name components vs single names...")
+      val servResult = callableServ.exec
       Content(interest.name, servResult.toValueName.name.mkString(" ").getBytes)
     }
     futResultContent onSuccess {

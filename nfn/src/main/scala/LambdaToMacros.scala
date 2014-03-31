@@ -8,7 +8,7 @@ import language.experimental.macros
 
 import LambdaMacros._
 import nfn.{LocalNFNCallExecutor, ComputeWorker}
-import nfn.service.impl.{WordCountService, SumService, AddService}
+import nfn.service.impl.{WordCountService, AddService}
 import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.duration._
 import scala.Some
