@@ -11,11 +11,12 @@ import javax.xml.bind.DatatypeConverter
 
 import com.typesafe.scalalogging.slf4j.Logging
 import ccn.packet.{Packet, Content, Interest}
+import org.xml.sax.SAXParseException
 
 
 object NFNCommunication extends Logging {
 
-  def parseXml(xmlString: String):Packet = {
+  def parseXml(xmlString: String):Option[Packet] = {
     def parseData(elem: Node): String = {
       val data = elem \ "data"
 
@@ -46,18 +47,24 @@ object NFNCommunication extends Logging {
 
     val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
-    val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
-    xml match {
-      case interest @ <interest>{_*}</interest> => {
-        val nameComponents = parseComponents(interest)
-        Interest(nameComponents)
-      }
-      case content @ <contentobj>{_*}</contentobj> => {
-        val nameComponents = parseComponents(content)
-        val contentData = parseContent(content)
-        Content(nameComponents, contentData)
-      }
-      case _ => throw new Exception("XML parser cannot parse:\n" + xml)
+    try {
+      val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
+      Some(
+        xml match {
+          case interest @ <interest>{_*}</interest> => {
+            val nameComponents = parseComponents(interest)
+            Interest(nameComponents)
+          }
+          case content @ <contentobj>{_*}</contentobj> => {
+            val nameComponents = parseComponents(content)
+            val contentData = parseContent(content)
+            Content(nameComponents, contentData)
+          }
+          case _ => throw new Exception("XML parser cannot parse:\n" + xml)
+        }
+      )
+    } catch {
+      case e:SAXParseException => None
     }
   }
 

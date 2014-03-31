@@ -20,8 +20,8 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
     val xmlUnparsed = ccnIf.ccnbToXml(ccnbInterest)
     Then("xml parsed to interest")
     val resultInterest = NFNCommunication.parseXml(xmlUnparsed)
-    resultInterest should be (a [Interest])
-    resultInterest.name should be (Seq("name", "interest"))
+    resultInterest.get should be (a [Interest])
+    resultInterest.get.name should be (Seq("name", "interest"))
   }
 
   val content:Content = Content(Seq("/name/content"), "testcontent".getBytes)
@@ -34,7 +34,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
     Then("xml parsed to content")
     val resultContent = NFNCommunication.parseXml(xmlUnparsed)
     resultContent should be (a [Content])
-    resultContent.name should be (Seq("name", "content"))
-    resultContent.asInstanceOf[Content].data should be ("testcontent".getBytes)
+    resultContent.get.name should be (Seq("name", "content"))
+    resultContent.get.asInstanceOf[Content].data should be ("testcontent".getBytes)
   }
 }
