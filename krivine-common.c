@@ -112,11 +112,11 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 void
 ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
     int i = 0;
-    (*copy) = malloc(sizeof(struct ccnl_prefix_s));
+    (*copy) = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     (*copy)->compcnt = prefix->compcnt;
 
-    (*copy)->complen = malloc(sizeof(int) * prefix->compcnt);
-    (*copy)->comp = malloc(sizeof(char *) * prefix->compcnt);
+    (*copy)->complen = ccnl_malloc(sizeof(int) * prefix->compcnt);
+    (*copy)->comp = ccnl_malloc(sizeof(char *) * prefix->compcnt);
 
     if(prefix->path)(*copy)->path = strdup(prefix->path);
     for(i = 0; i < (*copy)->compcnt; ++i){
@@ -233,13 +233,13 @@ add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix
 }
 
 struct ccnl_content_s *
-ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, int type){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
     struct ccnl_content_s *c_iter; 
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
         md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
-        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, CMP_MATCH)){
+        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, type)){
             return c_iter;
         }
     }
@@ -264,6 +264,7 @@ ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
 
 struct ccnl_content_s *
 ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest){
+    int retry = 3;
     DEBUGMSG(2, "ccnl_receive_content_synchronous()\n");
     int i, maxfd = -1, rc, content_received = 0;
     fd_set readfs, writefs;
@@ -278,11 +279,11 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 	    maxfd = ccnl->ifs[i].sock;
     maxfd++;
     
-    //while(!content_received){
+    while(retry){
         
         //Initialize sockets
         struct timeval timeout; //TODO change timeout system, not static
-        timeout.tv_sec = 5;
+        timeout.tv_sec = 1;
         timeout.tv_usec = 0;
         FD_ZERO(&readfs);
         FD_ZERO(&writefs);
@@ -308,11 +309,16 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
                     if(ccnl_prefix_cmp(c->name, md, interest->prefix, CMP_MATCH)){
                         return c;
                     }
+                    else{
+                        ccnl_core_RX(ccnl, i, buf+14, len-14, 
+                                &src_addr.sa, sizeof(src_addr.eth));
+                    }
                     //else --> normal packet handling???
                 }
             }
         }
-    //}
+        --retry;
+    }
     return NULL;
 }
 
@@ -369,7 +375,7 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
     int found = 0;
     struct ccnl_content_s *c;
-    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
     //ccnl_interest_remove(ccnl, interest);
@@ -388,14 +394,14 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
         new_prefix->comp[new_prefix->compcnt-1] = NULL;
         --new_prefix->compcnt;
     }    
-    char *out = malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     int len = mkInterest(new_prefix->comp, NULL, out);
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, new_prefix->comp[0]);
     
     if(!interest)
         return NULL;
     
-    struct thunk_s *thunk = malloc(sizeof(struct thunk_s));
+    struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
     thunk->i = interest;
     sprintf(thunk->thunkid, "THUNK%d", thunkid++);
     DBL_LINKED_LIST_ADD(thunk_list, thunk);
