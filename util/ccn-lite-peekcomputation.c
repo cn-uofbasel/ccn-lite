@@ -30,8 +30,9 @@ int main(int argc, char **argv){
     float wait = 3.0;
     int (*sendproc)(int,char*,unsigned char*,int);
     int print = 0;
+    int thunk_request = 0;
     
-    while ((opt = getopt(argc, argv, "hpu:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hptu:w:x:")) != -1) {
         switch (opt) {
         case 'u':
 	    udp = optarg;
@@ -44,6 +45,9 @@ int main(int argc, char **argv){
 	    break;
         case 'p':
             print = 1;
+            break;
+        case 't':
+            thunk_request = 1;
             break;
         case 'h':
         default:
@@ -65,7 +69,7 @@ Usage:
 	goto Usage;  
     
     int j= splitComponents(argv[optind], namecomp);   
-    len = mkInterestCompute(namecomp, comp, strlen(comp), 0, out);
+    len = mkInterestCompute(namecomp, comp, strlen(comp), thunk_request, out);
 
     if(print){
         fwrite(out, sizeof(char), len, stdout);
