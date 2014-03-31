@@ -78,7 +78,7 @@ int
 mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
 {
 #ifndef USE_UTIL 
-    DEBUGMSG(2, "mkIntersestCompute()");
+    DEBUGMSG(2, "mkInterestCompute()\n");
 #endif
     int len = 0, k, i;
     unsigned char *cp;
@@ -249,7 +249,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s 
 struct ccnl_content_s *
 ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
     
-    DEBUGMSG(2, "ccnl_extract_content_obj()");
+    DEBUGMSG(2, "ccnl_extract_content_obj()\n");
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
