@@ -42,34 +42,37 @@ object NFNMain extends App {
 
   val ccnWorker = system.actorOf(Props[CCNWorker], name = "ccnworker")
 
-
   Thread.sleep(2000)
+  val docname = "/doc/test"
+  val docdata = "This is a test document with 8 words! but 12 is better".getBytes
+  val docContent = Content(Seq(docname), docdata)
+  ccnWorker ! CCNWorker.CCNAddToCache(docContent)
+
   NFNServiceLibrary.nfnPublish(ccnWorker)
   Thread.sleep(2000)
 
-  val interest = Interest(Seq("call 3 /AddService/Int/Int/rInt 10 2", "NFN"))
-
+  val interest = Interest(Seq(s"call 2 /WordCountService/NFNName/rInt $docname", "NFN"))
   implicit val timeout = Timeout(20 seconds)
   val content = Await.result((ccnWorker ? CCNSendReceive(interest)).mapTo[Content], timeout.duration)
   println(s"RESULT: $content")
 
 
 
-  def repl(nfnSocket: ActorRef) = {
-    val parser = new LambdaParser()
-    step
-    def step: Unit = {
-      readLine("> ") match {
-        case "exit" | "quit" | "q" =>
-        case input @ _ => {
-          parser.parse(input)
-          val interest = Interest(Seq(input, "NFN"))
-          (ccnWorker ? CCNSendReceive(interest)).mapTo[Content] onSuccess {
-            case content => println(s"RESULT: ${interest.name.mkString("/")} -> '${new String(content.data)}")
-          }
-          step
-        }
-      }
-    }
-  }
+//  def repl(nfnSocket: ActorRef) = {
+//    val parser = new LambdaParser()
+//    step
+//    def step: Unit = {
+//      readLine("> ") match {
+//        case "exit" | "quit" | "q" =>
+//        case input @ _ => {
+//          parser.parse(input)
+//          val interest = Interest(Seq(input, "NFN"))
+//          (ccnWorker ? CCNSendReceive(interest)).mapTo[Content] onSuccess {
+//            case content => println(s"RESULT: ${interest.name.mkString("/")} -> '${new String(content.data)}")
+//          }
+//          step
+//        }
+//      }
+//    }
+//  }
 }

@@ -20,13 +20,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
 import scala.concurrent.duration._
 
+object ContentStore extends Logging {
+  private var cs: Map[Seq[String], Content] = Map()
+
+  def add(content: Content) = cs += content.name -> content
+
+  def find(name: Seq[String]):Option[Content] = cs.get(name)
+
+  def remote(name: Seq[String]): Unit = cs -= name
+}
+
 
 object NFNServiceLibrary extends Logging {
-
   private var services:Map[String, NFNService] = Map()
   private val ccnIf = CCNLite
 
   add(AddService())
+  add(WordCountService())
 
   def add(serv: NFNService) =  {
 
@@ -59,22 +69,28 @@ object NFNServiceLibrary extends Logging {
    */
   def nfnPublish(ccnWorker: ActorRef) = {
     def pinnedData = "pinnedfunction".getBytes
-    def maybeByteCodeData(serv: NFNService):Option[Array[Byte]] = {
+    def byteCodeData(serv: NFNService):Array[Byte] = {
       val bc = BytecodeLoader.fromClass(serv)
       bc match {
-        case Some(bc) => logger.info(s"nfnPublish: Added bytecode for service $serv")
-        case None => logger.warn(s"nfnPublush: No bytecode found for unpinned service $serv")
+        case Some(bc) => bc
+        case None =>
+          logger.error(s"nfnPublush: No bytecode found for unpinned service $serv")
+          pinnedData
       }
-      bc
     }
 
     for((name, serv) <- services) {
+
+      val serviceContent =
+        if(serv.pinned) pinnedData
+        else byteCodeData(serv)
+
       val content = Content(
         Seq(name),
-        if(serv.pinned) pinnedData
-        else maybeByteCodeData(serv).getOrElse(pinnedData)
+        serviceContent
       )
 
+      logger.debug(s"nfnPublish: Adding ${content.name.mkString(" ")} to cache")
       ccnWorker ! CCNAddToCache(content)
     }
   }
@@ -86,6 +102,12 @@ object NFNServiceLibrary extends Logging {
   def convertChfToDollar(chf: Int): Int = ???
   def toPdf(webpage: String): String = ???
   def derp(foo: Int) = ???
+}
+
+case class NFNBinaryDataValue(name: Seq[String], data: Array[Byte]) extends NFNServiceValue {
+  override def toValueName: NFNName = NFNName(Seq(new String(data)))
+
+  override def toNFNName: NFNName = NFNName(name)
 }
 
 case class NFNIntValue(amount: Int) extends NFNServiceValue {
@@ -104,33 +126,33 @@ case class NFNNameValue(name: NFNName) extends NFNServiceValue{
 
 case class NFNServiceException(msg: String) extends Exception(msg)
 
-case class DollarToChf() extends NFNService {
+//case class DollarToChf() extends NFNService {
+//
+//  override def toNFNName:NFNName = NFNName(Seq("DollarToChf/Int/rInt"))
+//
+//  override def parse(unparsedName: String, unparsedValues: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService] = {
+//    val values = unparsedValues match {
+//      case Seq(dollarValueString) => Seq(NFNIntValue(dollarValueString.toInt))
+//      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
+//    }
+//    val name = NFNName(Seq(unparsedName))
+//    assert(name == this.toNFNName)
+//
+//    val function = { (values: Seq[NFNServiceValue]) =>
+//      values match {
+//        case Seq(dollar: NFNIntValue) => {
+//          Future(NFNIntValue(dollar.amount/2))
+//        }
+//        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
+//      }
+//
+//    }
+//    Future(CallableNFNService(name, values, function))
+//  }
+//}
 
-  override def toNFNName:NFNName = NFNName(Seq("DollarToChf/Int/rInt"))
-
-  override def parse(unparsedName: String, unparsedValues: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService] = {
-    val values = unparsedValues match {
-      case Seq(dollarValueString) => Seq(NFNIntValue(dollarValueString.toInt))
-      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
-    }
-    val name = NFNName(Seq(unparsedName))
-    assert(name == this.toNFNName)
-
-    val function = { (values: Seq[NFNServiceValue]) =>
-      values match {
-        case Seq(dollar: NFNIntValue) => {
-          Future(NFNIntValue(dollar.amount/2))
-        }
-        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
-      }
-
-    }
-    Future(CallableNFNService(name, values, function))
-  }
-}
-
-case class CallableNFNService(name: NFNName, values: Seq[NFNServiceValue], function: (Seq[NFNServiceValue]) => Future[NFNServiceValue]) {
-  def exec:Future[NFNServiceValue] = function(values)
+case class CallableNFNService(name: NFNName, values: Seq[NFNServiceValue], function: (Seq[NFNServiceValue]) => NFNServiceValue) {
+  def exec:NFNServiceValue = function(values)
 }
 
 case class NFNName(name: Seq[String]) {
@@ -148,7 +170,7 @@ trait NFNServiceValue {
 
 trait NFNService {
 
-  def parse(name: String, values: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService]
+  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 
   def toNFNName: NFNName
 
@@ -156,6 +178,8 @@ trait NFNService {
 }
 
 object NFNService extends Logging {
+  implicit val timeout = Timeout(20 seconds)
+
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
     logger.debug(s"Trying to find service for: $name")
@@ -170,18 +194,40 @@ object NFNService extends Logging {
         assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count + 1}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
         assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
 
+        // find service
         val futServ: Future[NFNService] = NFNServiceLibrary.find(fun) match {
           case Some(serv) => Future(serv)
           case None => {
             val interest = Interest(Seq(fun))
-            implicit val timeout = Timeout(20 seconds)
-            (ccnWorker ? CCNSendReceive(interest)).mapTo[Content] map {
+            val futServiceContent = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+            futServiceContent map { content =>
+              // TODO parse service bytecode and create service
+              logger.error("TODO parse service bytecode and create service")
               ???
             }
           }
         }
 
-        val futCallableServ:Future[CallableNFNService] = futServ flatMap { serv => serv.parse(fun, args, ccnWorker) }
+        // create or find values
+        val futArgs: List[Future[NFNServiceValue]] = args map { (arg: String) =>
+          arg.forall(_.isDigit) match {
+            case true => Future(NFNIntValue(arg.toInt))
+            case false => {
+              val interest = Interest(Seq(arg))
+
+
+              val futContent:Future[Content] = ContentStore.find(interest.name) match {
+                case Some(content) => Future(content)
+                case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+              }
+              futContent map { content =>
+                NFNBinaryDataValue(content.name, content.data)
+              }
+            }
+          }
+        }
+
+        val futCallableServ:Future[CallableNFNService] = futServ flatMap { serv => serv.instantiateCallable(NFNName(Seq(fun)), futArgs, ccnWorker) }
         futCallableServ onSuccess {
           case callableServ => logger.debug(s"Found service for request: $callableServ")
         }

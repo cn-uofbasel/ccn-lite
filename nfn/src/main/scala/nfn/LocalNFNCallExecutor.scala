@@ -16,9 +16,8 @@ case class LocalNFNCallExecutor(ccnWorker: ActorRef) extends CallExecutor {
 
     val futValue =
     for {callableServ <- NFNService.parseAndFindFromName(call, ccnWorker)
-        servResult <- callableServ.exec
     } yield {
-      servResult match {
+      callableServ.exec match {
         case NFNIntValue(n) => ConstValue(n)
         case res @ _ => throw new Exception(s"LocalNFNCallExecutor: Result of executeCall is not implemented for: $res")
       }

@@ -17,27 +17,23 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  override def parse(unparsedName: String, unparsedValues: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService] = {
-    val values = unparsedValues match {
-      case Seq(docNameString) => Seq(
-        NFNNameValue(NFNName(Seq(docNameString)))
-      )
-      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
-    }
-    val name = NFNName(Seq(unparsedName))
+  override def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService] = {
     assert(name == this.toNFNName)
 
-    val function = { (values: Seq[NFNServiceValue]) =>
-      values match {
-        case Seq(docName: NFNNameValue) => { Future(
-          NFNIntValue(countWords(docName.name))
-        )}
-        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
+    val function: (Seq[NFNServiceValue]) => NFNIntValue = {
+      case Seq(doc: NFNBinaryDataValue) => {
+        NFNIntValue(
+          new String(doc.data).split(" ").size
+        )
       }
-
+      case values @ _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNBinaryDataValue and not $values")
     }
-    Future(CallableNFNService(name, values, function))
+
+    Future.sequence(futValues) map { values =>
+      CallableNFNService(name, values, function)
+    }
   }
 
-  override def toNFNName: NFNName = NFNName(Seq("WordCountService/Int/rInt"))
+  override def toNFNName: NFNName = NFNName(Seq("/WordCountService/NFNName/rInt"))
+
 }
