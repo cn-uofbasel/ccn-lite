@@ -1549,45 +1549,44 @@ normal:
                 
                 param = strdup(params[i]);
                 j= splitComponents(param, namecomp);
+                
                 if(isLocalAvailable(ccnl, namecomp)){ //if node has routable content local --> compute local
-                    printf("Routable content is local availabe --> start computation\n");
-                    goto compute;
+                    DEBUGMSG(49, "Routable content is local availabe --> start computation\n");
+                    complen = sprintf(comp, "call %d ", num_params);
+                    for(i = 0; i < num_params; ++i){
+                        complen += sprintf(comp+complen, "%s ", params[i]);
+                    }
+                    i = 0;
+                    namecomp[i++] = "COMPUTE";
+                    namecomp[i++] = strdup(comp);
+                    if(thunk_request) namecomp[i++] = "THUNK";
+                    namecomp[i++] = "NFN";
+                    namecomp[i++] = NULL;
+                    //if(thunk_request)  ask for other thunks to be available
+
+                    len = mkInterest(namecomp, 0, out);
+                    interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+                    if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
+                        DEBUGMSG(49, "Content can be computed");
+                        goto tail;
+                    }else{
+                        DEBUGMSG(49, "Got no thunk, continue with null result just for debugging\n");
+                        goto tail;
+                    }
                 }
                 
                 int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);    
                 free(param);
                 
-                printf("\n");
                 interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
                 //search locally for content
                 if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
-                    if(thunk_request){ //TODO: no thunk for local search!
-                        --(*num_of_required_thunks);
-                        res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
-                        if((*num_of_required_thunks) <= 0){
-                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
-                        } 
-                    }
-                    else{
-                        printf("Content locally found: %s\n", c->content);
-                        res = c->content;
-                    }
+                    DEBUGMSG(49, "Content locally found\n");
                     goto tail;
                 }
                 
                 else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
-                    //printf("Content in the network found: %s\n", c->content);
-                    if(thunk_request){
-                        --(*num_of_required_thunks);
-                        res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
-                        if((*num_of_required_thunks) <= 0){
-                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
-                        } 
-                    }
-                    else{
-                        printf("Content found in the network: %s\n", c->content);
-                        res = c->content;
-                    }
+                    DEBUGMSG(49, "Content found in the network\n");
                     goto tail;
                 }
                 //TODO Async stuff!?
@@ -1601,65 +1600,33 @@ normal:
             
         }//endfor
         
-        //Try to receive components and compute here! systemcall?
-        printf("No result found: Try to compute locally\n");
-        //Make interest string:
-#ifndef ABSTRACT_MACHINE
-compute:
-        complen = sprintf(comp, "call %d ", num_params);
-        for(i = 0; i < num_params; ++i){
-            complen += sprintf(comp+complen, "%s ", params[i]);
-        }
-        i = 0;
-        namecomp[i++] = "COMPUTE";
-        namecomp[i++] = strdup(comp);
-        if(thunk_request) namecomp[i++] = "THUNK";
-        namecomp[i++] = "NFN";
-        namecomp[i++] = NULL;
+        //TODO Try to receive components and compute here???
         
-        //if(thunk_request)  ask for other thunks to be available
         
-        printf("Interest name: %s %s %s %s\n", namecomp[0], namecomp[1], namecomp[2], namecomp[3]);
-        
-        len = mkInterest(namecomp, 0, out);
-        interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
-        if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
-            if(thunk_request){
-                --(*num_of_required_thunks);
-                res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
-                if((*num_of_required_thunks) <= 0){
-                    ccnl_nfn_reply_thunk(ccnl, original_prefix);
-                } 
-            }
-            else{
-                printf("Content locally found: %s\n", c->content);
-                res = c->content;
-            }
-        }else
-        {
-            printf("GOT NO THUNK, continue with null result just for debugging\n");
-            if(thunk_request){
-                --(*num_of_required_thunks);
-                res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
-                if((*num_of_required_thunks) <= 0){
-                    ccnl_nfn_reply_thunk(ccnl, original_prefix);
-                } 
-            }
-            else{
-                //printf("Content locally found: %s\n", c->content);
-                res = NULL;
-                res = "THUNK"; // FIXME: REMOVE THIS LINE
-            }  
-        }
-        interest = ccnl_interest_remove(ccnl, interest);
-        
-#endif //BSTRACT_MACHINE
-        
-        printf("OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
-        //place result
 tail:
-        if(res == NULL) res = "0";
-        if(!strncmp(res, "RST|",4)){
+        DEBUGMSG(49, "OP_FOX: PUSHING RESULT ON RESULTSTACK\n");
+#ifndef ABSTRACT_MACHINE
+        interest = ccnl_interest_remove(ccnl, interest);
+        //extract result from content object 
+        if(c == NULL){
+            DEBUGMSG(2, "No content object found\n");
+            res == NULL;
+        }
+        else if(thunk_request){ //TODO: no thunk for local search!
+            --(*num_of_required_thunks);
+            res = ccnl_nfn_add_thunk(ccnl, interest->prefix);
+            if((*num_of_required_thunks) <= 0){
+                ccnl_nfn_reply_thunk(ccnl, original_prefix);
+            } 
+        }
+        else{
+            res = c->content;
+        }    
+#endif
+        if(res == NULL) {
+            res = "0";
+        }
+        else if(!strncmp(res, "RST|",4)){
             res+=4;
         }
 	char rst[1000];
