@@ -178,6 +178,38 @@ char *cs_in_name;     // currently only one for incoming msgs
 char *global_dict;
 
 // ----------------------------------------------------------------------
+struct stack_element_s{
+    char *content;
+    struct stack_element_s *next;
+};
+
+void push_to_stack(struct stack_element_s **top, char *content){
+    struct stack_element_s *h = malloc(sizeof(struct stack_element_s));
+    if(*top != NULL){
+        h->next = *top;
+    }else{
+        h->next = NULL;
+    }
+    h->content = strdup(content);
+    *top = h;
+}
+
+char *pop_from_stack(struct stack_element_s **top){
+    struct stack_element_s *h = *top;
+    if(*top != NULL){
+        char *res = h->content;
+        if(h->next == NULL){
+            *top = NULL;
+        }else{
+            *top = h->next;
+        }
+        free(h);
+        return res;
+    }
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
 
 int iscontent(char *cp){
 	if(cp[0] == '/')
