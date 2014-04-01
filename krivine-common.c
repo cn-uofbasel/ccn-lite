@@ -309,11 +309,27 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
                     if(ccnl_prefix_cmp(c->name, md, interest->prefix, CMP_MATCH)){
                         return c;
                     }
-                    else{
-                        ccnl_core_RX(ccnl, i, buf+14, len-14, 
-                                &src_addr.sa, sizeof(src_addr.eth));
+                    else{//else --> normal packet handling???
+                        if (src_addr.sa.sa_family == AF_INET) {
+                                ccnl_core_RX(ccnl, i, buf, len,
+				     &src_addr.sa, sizeof(src_addr.ip4));
+                        }
+#ifdef USE_ETHERNET
+                        else if (src_addr.sa.sa_family == AF_PACKET) {
+                            if (len > 14){
+                                ccnl_core_RX(ccnl, i, buf+14, len-14,
+                                             &src_addr.sa, sizeof(src_addr.eth));
+                            }
+                        }
+#endif
+#ifdef USE_UNIXSOCKET
+                        else if (src_addr.sa.sa_family == AF_UNIX) {
+                            ccnl_core_RX(ccnl, i, buf, len,
+                                         &src_addr.sa, sizeof(src_addr.ux));
+                        }
+#endif
                     }
-                    //else --> normal packet handling???
+                    
                 }
             }
         }
