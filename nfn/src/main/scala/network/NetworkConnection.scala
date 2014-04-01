@@ -43,7 +43,7 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
   }
 
   def receive: Receive = {
-    // Received udp listener actor, set it as own actor
+    // Received udp socket actor, change receive handler to ready mehtod with reference to the socket actor
     case Udp.Bound(local) =>
       logger.info(s"$name ready")
       context.become(ready(sender))
@@ -54,19 +54,21 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
 
   def ready(socket: ActorRef): Receive = {
     case Send(data) => {
-      // TODO change logger to debug
       logger.debug(s"$name sending data")//${new String(data)}")
       socket ! Udp.Send(ByteString(data), target)
     }
     case Udp.Received(data, sendingRemote) => {
       logger.debug(s"$name received ${data.decodeString("utf-8")})")
-      workers.foreach(_ ! data)
+      frowardReceivedData(data)
     }
     case Udp.Unbind  => socket ! Udp.Unbind
     case Udp.Unbound => context.stop(self)
     case Handler(worker) => workers ::= worker
   }
+
+  def frowardReceivedData(data: ByteString): Unit = {
+    workers.foreach(_ ! data)
+  }
 }
 
-class CCNConnection()
 

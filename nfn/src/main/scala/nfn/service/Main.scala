@@ -14,7 +14,7 @@ import ccn.packet.{Interest, Content}
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.concurrent.Future
-import nfn.CCNWorker.{CCNAddToCache, CCNSendReceive}
+import nfn.NFNWorker.{CCNAddToCache, CCNSendReceive}
 import akka.pattern._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout

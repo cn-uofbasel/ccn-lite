@@ -9,7 +9,7 @@ import network.NetworkConnection._
 import nfn.service._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import nfn.CCNWorker._
+import nfn.NFNWorker._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -21,16 +21,17 @@ trait CCNPacketHandler {
   def receivedInterest(interest: Interest): Unit
 }
 
-object CCNWorker {
+object NFNWorker {
   case class CCNSendReceive(interest: Interest)
   case class CCNSend(interest: Interest)
+  case class CCNReceive(packet: Packet)
   case class CCNAddToCache(content: Content)
   case class ComputeResult(content: Content)
 }
 /**
  * Worker Actor which responds to ccn interest and content packets
  */
-case class CCNWorker() extends Actor {
+case class NFNWorker() extends Actor {
 
   val nfnSocket = context.actorOf(Props(new NetworkConnection()), name = "udpsocket")
 
@@ -46,12 +47,27 @@ case class CCNWorker() extends Actor {
   }
 
   private def createComputeWorker(interest: Interest): ActorRef =
-    context.actorOf(Props(classOf[ComputeWorker], self))//, s"ComputeWorker-${interest.name.mkString("/").hashCode}")
+    context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
 
   override def receive: Actor.Receive = {
 
     // received Data from network
     // If it is an interest, start a compute request
+//    case CCNReceive(packet) => {
+//      packet match {
+//        case interest: Interest => {
+//          val computeWorker = createComputeWorker(interest)
+//          pendingInterests += (interest.name -> computeWorker)
+//          computeWorker.tell(interest, self)
+//        }
+//        case content: Content => {
+//          pendingInterests.get(content.name) match {
+//            case Some(interestSender) => interestSender ! content
+//            case None => logger.error(s"Discarding content $content without pending interest")
+//          }
+//        }
+//      }
+//    }
     case data: ByteString => {
       val byteArr = data.toByteBuffer.array.clone
       val maybePacket: Option[Packet] = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
@@ -78,18 +94,20 @@ case class CCNWorker() extends Actor {
     case CCNSendReceive(interest) => {
       logger.info(s"$name received send-recv request for interest: $interest")
       pendingInterests += (interest.name -> sender)
-      val binaryInterest = ccnIf.mkBinaryInterest(interest)
-      nfnSocket ! Send(binaryInterest)
+      send(interest)
     }
 
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
     // convert the result to ccnb format and send it to the socket
     case ComputeResult(content) => {
       pendingInterests.get(content.name) match {
-        case Some(_) => {
+        case Some(worker) => {
           logger.debug("sending compute result to socket")
-          val binaryContent = ccnIf.mkBinaryContent(content)
-          nfnSocket ! Send(binaryContent)
+          send(content)
+          // TODO
+          // context.stop(worker)
+          // pit -= content.name
+          // but first make sure we are always talking about the same worker and that there are not several worker for the same name!
         }
         case None => logger.error(s"Received result from compute worker which timed out, discarding the result content: $content")
       }
@@ -101,6 +119,8 @@ case class CCNWorker() extends Actor {
       nfnSocket ! Send(binaryInterest)
     }
   }
+
+  def send(packet: Packet) = nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
 }
 
 
