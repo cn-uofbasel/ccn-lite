@@ -7,7 +7,7 @@ import language.experimental.macros
 
 import scala.reflect.runtime.{universe => ru}
 import scala.util.matching.Regex
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import ccn.ccnlite.CCNLite
 import nfn.service.impl._
 import ccn.packet.{Interest, Content}
@@ -134,7 +134,8 @@ case class NFNNameValue(name: NFNName) extends NFNServiceValue{
   override def toNFNName: NFNName = name
 }
 
-case class NFNServiceException(msg: String) extends Exception(msg)
+case class NFNServiceExecutionException(msg: String) extends Exception(msg)
+case class NFNServiceArgumentException(msg: String) extends Exception(msg)
 
 //case class DollarToChf() extends NFNService {
 //
@@ -171,6 +172,7 @@ case class NFNName(name: Seq[String]) {
 
 trait NFNServiceValue {
 
+
   def toNFNName: NFNName
 
   def toValueName: NFNName
@@ -178,9 +180,18 @@ trait NFNServiceValue {
 
 
 
-trait NFNService {
+trait NFNService extends Logging {
 
-  def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): CallableNFNService
+  def function: (Seq[NFNServiceValue]) => NFNServiceValue
+
+  def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]]
+
+  def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): Try[CallableNFNService] = {
+    logger.debug(s"AddService: InstantiateCallable(name: $name, toNFNName: $toNFNName")
+    assert(name == toNFNName, s"Service $toNFNName is created with wrong name $name")
+    verifyArgs(values)
+    Try(CallableNFNService(name, values, function))
+  }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 
   def toNFNName: NFNName
@@ -248,12 +259,21 @@ object NFNService extends Logging {
           }
         )
 
+        implicit def tryToFuture[T](t:Try[T]):Future[T] = {
+          t match{
+            case Success(s) => Future.successful(s)
+            case Failure(ex) => Future.failed(ex)
+          }
+        }
+
         val futCallableServ: Future[CallableNFNService] =
           for {
             args <- futArgs
             serv <- futServ
+            callable <- serv.instantiateCallable(serv.toNFNName, args)
+
           } yield {
-            serv.instantiateCallable(serv.toNFNName, args)
+            callable
           }
 
 

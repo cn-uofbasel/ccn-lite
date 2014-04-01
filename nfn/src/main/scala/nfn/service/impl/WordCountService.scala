@@ -17,21 +17,21 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  override def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): CallableNFNService = {
-    assert(name == this.toNFNName)
-
-    val function: (Seq[NFNServiceValue]) => NFNIntValue = {
-      case Seq(doc: NFNBinaryDataValue) => {
-        NFNIntValue(
-          new String(doc.data).split(" ").size
-        )
-      }
-      case values @ _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNBinaryDataValue and not $values")
-    }
-
-    CallableNFNService(name, values, function)
-  }
-
   override def toNFNName: NFNName = NFNName(Seq("WordCountService", "NFNName", "rInt"))
 
+  def throwException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$toNFNName can only be applied to values of type NFNBinaryDataValue and not $args")
+
+  override def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]] = {
+    if(args.forall(_.isInstanceOf[NFNBinaryDataValue])) Try(args)
+    else throwException(args)
+  }
+
+  override def function: (Seq[NFNServiceValue]) => NFNServiceValue = { docs =>
+    NFNIntValue(
+      docs.map({
+        case doc: NFNBinaryDataValue => new String(doc.data).split(" ").size
+        case _ => throwException(docs)
+      }).sum
+    )
+  }
 }

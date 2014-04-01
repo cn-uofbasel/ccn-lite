@@ -2,32 +2,28 @@ package nfn.service.impl
 
 import nfn.service._
 import com.typesafe.scalalogging.slf4j.Logging
+import scala.util.Try
 
 
 case class AddService() extends  NFNService with Logging {
-  def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): CallableNFNService = {
-    logger.debug(s"AddService: InstantiateCallable(name: $name, toNFNName: $toNFNName")
+  override def toNFNName: NFNName = NFNName(Seq("AddService", "Int", "Int", "rInt"))
 
-    assert(name == toNFNName, s"Service $toNFNName is created with wrong name $name")
+  def throwArgumentException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$toNFNName requires to arguments of type NFNIntValue and not $args")
 
-    values match {
-      case Seq(v1: NFNIntValue, v2: NFNIntValue) =>  {
-        CallableNFNService(name,
-                           values,
-                           { (values: Seq[NFNServiceValue]) =>
-                             values match {
-                               case Seq(l: NFNIntValue, r: NFNIntValue) => {
-                                 NFNIntValue(l.amount + r.amount)
-                               }
-                               case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
-                             }
-                           }
-        )
-
-      }
-      case _ => throw new Exception(s"Service $toNFNName can only be applied to two NFNIntValues and not '$values'")
+  override def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]] = {
+    args match {
+      case Seq(v1: NFNIntValue, v2: NFNIntValue) => Try(args)
+      case _ => throwArgumentException(args)
     }
   }
 
-  override def toNFNName: NFNName = NFNName(Seq("AddService", "Int", "Int", "rInt"))
+  override def function: (Seq[NFNServiceValue]) => NFNServiceValue = {
+    (values: Seq[NFNServiceValue]) =>
+      values match {
+        case Seq(l: NFNIntValue, r: NFNIntValue) => {
+          NFNIntValue(l.amount + r.amount)
+        }
+        case _ => throwArgumentException(values)
+      }
+  }
 }
