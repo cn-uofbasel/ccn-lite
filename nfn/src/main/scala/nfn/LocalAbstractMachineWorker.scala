@@ -7,6 +7,7 @@ import nfn.service.ContentStore
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.machine.ConstValue
 import nfn.NFNMaster.ComputeResult
+import scala.util.{Success, Failure, Try}
 
 /**
  * Created by basil on 01/04/14.
@@ -50,17 +51,23 @@ class LocalAbstractMachineWorker extends Actor {
 
     def handleComputeRequest(interest: Interest) = {
       // TODO this only works if
-      if(interest.name.size == 2) {
-        val expr = interest.name.init.mkString(" ")
-        val tryResult = lc.substituteParseCompileExecute(expr) map {
-          case List(result) => result match {
-            case ConstValue(n, _) => Content(interest.name, Array(n.toByte))
-            case r @ _ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
+      val content: Try[Content] =
+        if(interest.name.size == 2) {
+          val expr = interest.name.init.mkString(" ")
+          lc.substituteParseCompileExecute(expr) map {
+            case List(result) => result match {
+              case ConstValue(n, _) => Content(interest.name, n.toString.getBytes)
+              case r @ _ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
+            }
+            case results @ _ => throw new Exception(s"Local abstract machine: Result of exeuction contains more or less than 1 element: $results")
           }
-          case results @ _ => throw new Exception(s"Local abstract machine: Result of exeuction contains more or less than 1 element: $results")
         }
+        else throw new Exception(s"Local abstract machine can only parse compute requests with the form <lambda expr><NFN> and not $interest")
+
+      content match {
+        case Success(content) => sender ! content
+        case Failure(e) => logger.error(e.getMessage)
       }
-      else throw new Exception(s"Local abstract machine can only parse compute requests with the form <lambda expr><NFN> and not $interest")
     }
 
     logger.info(s"Received interest $interest")

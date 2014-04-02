@@ -209,10 +209,10 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
         val e = env
         val c = code.tail
 
-        // TODO: replace this with an actual decompilation of the arguments to an lambda ast and then creating a ast.Call object
         val argsStrings = args map {
-          case ConstValue(n, _) => n
-          case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented")
+          case ConstValue(value, _) => value
+          case VariableValue(name, _) => name
+          case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented for call: $name")
         }
 
         val r: Value = executeCall(s"call ${nArgs + 1} $name ${argsStrings.mkString(" ")}")

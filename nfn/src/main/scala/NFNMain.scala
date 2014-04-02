@@ -11,7 +11,7 @@ import nfn.NFNMaster.CCNSendReceive
 import nfn.service.{ContentStore, NFNName, NFNServiceLibrary}
 
 import language.experimental.macros
-import nfn.{NFNLocalMaster, NFNNetworkMaster, NFNMaster}
+import nfn.{NFNMasterLocal, NFNMasterNetwork, NFNMaster}
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,9 +36,9 @@ object NFNMain extends App {
   val ccnIf = CCNLite
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
-  val nfnWorker = system.actorOf(Props[NFNNetworkMaster], name = "nfnnetworkworker")
+//  val nfnWorker = system.actorOf(Props[NFNNetworkMaster], name = "nfnmaster-network")
+  val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-local")
   val udpSender = system.actorOf(Props(UDPSender()), name="UDPSender")
-//  val nfnWorker = system.actorOf(Props[NFNLocalWorker], name = "nfnlocalworker")
 
   Thread.sleep(2000)
   val docdata1 = "This is a test document with 8 words! but 12 is better".getBytes
