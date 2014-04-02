@@ -105,8 +105,7 @@ case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder = ExecutionOr
       executed <- execute(compiled)
     } yield executed
 
-    val intermediateStepCount = machine.intermediateConfigurations.fold("-")(_.size.toString)
-//    println(s"$code -$intermediateStepCount-> $result")
+    val intermediateStepCount = machine.intermediateConfigurations.fold("?")(_.size.toString)
     logger.info(s"$code -$intermediateStepCount-> $result")
 
     result

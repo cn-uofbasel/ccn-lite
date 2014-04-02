@@ -130,7 +130,7 @@ trait NFNMaster extends Actor {
   def send(packet: Packet)
 }
 
-case class NFNNetworkMaster() extends NFNMaster {
+case class NFNMasterNetwork() extends NFNMaster {
 
   val nfnSocket = context.actorOf(Props(new UDPConnection()), name = "udpsocket")
 
@@ -144,7 +144,7 @@ case class NFNNetworkMaster() extends NFNMaster {
   }
 }
 
-case class NFNLocalMaster() extends NFNMaster {
+case class NFNMasterLocal() extends NFNMaster {
 
   val localAM = context.actorOf(Props(new LocalAbstractMachineWorker()), name = "localAM")
 
