@@ -66,7 +66,7 @@ object LambdaCalculus extends App {
   lc.substituteParseCompileExecute(l)
 }
 
-case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder,
+case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder = ExecutionOrder.CallByValue,
                           debug: Boolean = false,
                           storeIntermediateSteps: Boolean = false,
                           maybeExecutor: Option[CallExecutor] = None) extends Logging {

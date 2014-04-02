@@ -15,7 +15,8 @@ case class LocalNFNCallExecutor(ccnWorker: ActorRef) extends CallExecutor {
   override def executeCall(call: String): Value = {
 
     val futValue =
-    for {callableServ <- NFNService.parseAndFindFromName(call, ccnWorker)
+    for {
+      callableServ <- NFNService.parseAndFindFromName(call, ccnWorker)
     } yield {
       callableServ.exec match {
         case NFNIntValue(n) => ConstValue(n)

@@ -5,15 +5,27 @@ import akka.util.ByteString
 import akka.event.Logging
 
 import network._
-import network.NetworkConnection._
+import network.UDPConnection._
 import nfn.service._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import nfn.NFNWorker._
+import nfn.NFNMaster._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 import java.io.{PrintWriter, StringWriter}
+import ccn.packet.Interest
+import nfn.NFNMaster.CCNAddToCache
+import network.UDPConnection.Send
+import scala.util.Failure
+import scala.Some
+import nfn.ComputeWorker
+import nfn.NFNMaster.ComputeResult
+import scala.util.Success
+import network.UDPConnection.Handler
+import ccn.packet.Content
+import nfn.NFNMaster.CCNSendReceive
+import nfn.service.CallableNFNService
 
 trait CCNPacketHandler {
   def receivedContent(content: Content): Unit
@@ -21,19 +33,19 @@ trait CCNPacketHandler {
   def receivedInterest(interest: Interest): Unit
 }
 
-object NFNWorker {
+object NFNMaster {
   case class CCNSendReceive(interest: Interest)
   case class CCNSend(interest: Interest)
   case class CCNReceive(packet: Packet)
   case class CCNAddToCache(content: Content)
   case class ComputeResult(content: Content)
+
 }
 /**
  * Worker Actor which responds to ccn interest and content packets
  */
-case class NFNWorker() extends Actor {
+trait NFNMaster extends Actor {
 
-  val nfnSocket = context.actorOf(Props(new NetworkConnection()), name = "udpsocket")
 
   val logger = Logging(context.system, this)
   val name = self.path.name
@@ -42,32 +54,38 @@ case class NFNWorker() extends Actor {
 
   var pendingInterests: Map[Seq[String], ActorRef] = Map()
 
-  override def preStart() = {
-    nfnSocket ! Handler(self)
-  }
-
   private def createComputeWorker(interest: Interest): ActorRef =
     context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
+
+  private def handleInterest(interest: Interest) = {
+    val computeWorker = createComputeWorker(interest)
+    pendingInterests += (interest.name -> computeWorker)
+    computeWorker.tell(interest, self)
+  }
+
+  def handleContent(content: Content) = {
+    pendingInterests.get(content.name) match {
+      case Some(interestSender) => {
+        interestSender ! content
+      }
+      case None => logger.error(s"Discarding content $content without pending interest")
+    }
+  }
+
+  def handlePacket(packet: Packet) = {
+    packet match {
+      case i: Interest => handleInterest(i)
+      case c: Content => handleContent(c)
+    }
+  }
 
   override def receive: Actor.Receive = {
 
     // received Data from network
     // If it is an interest, start a compute request
-//    case CCNReceive(packet) => {
-//      packet match {
-//        case interest: Interest => {
-//          val computeWorker = createComputeWorker(interest)
-//          pendingInterests += (interest.name -> computeWorker)
-//          computeWorker.tell(interest, self)
-//        }
-//        case content: Content => {
-//          pendingInterests.get(content.name) match {
-//            case Some(interestSender) => interestSender ! content
-//            case None => logger.error(s"Discarding content $content without pending interest")
-//          }
-//        }
-//      }
-//    }
+//    case CCNReceive(packet) => handlePacket(packet)
+    case packet:Packet => handlePacket(packet)
+
     case data: ByteString => {
       val byteArr = data.toByteBuffer.array.clone
       val maybePacket: Option[Packet] = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
@@ -75,18 +93,8 @@ case class NFNWorker() extends Actor {
       logger.info(s"$name received ${maybePacket.getOrElse("unparsable data")}")
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
-        case Some(interest: Interest) => {
-          val computeWorker = createComputeWorker(interest)
-          pendingInterests += (interest.name -> computeWorker)
-          computeWorker.tell(interest, self)
-        }
+        case Some(packet: Packet) => handlePacket(packet)
         // Received content, check if there is an entry in the pit. If so, send it to the attached worker, otherwise discard it
-        case Some(content: Content) => {
-          pendingInterests.get(content.name) match {
-            case Some(interestSender) => interestSender ! content
-            case None => logger.error(s"Discarding content $content without pending interest")
-          }
-        }
         case None => logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
       }
     }
@@ -115,13 +123,34 @@ case class NFNWorker() extends Actor {
 
     case CCNAddToCache(content) => {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
-      val binaryInterest = ccnIf.mkAddToCacheInterest(content)
-      nfnSocket ! Send(binaryInterest)
+      send(content)
     }
   }
 
-  def send(packet: Packet) = nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
+  def send(packet: Packet)
 }
+
+case class NFNNetworkMaster() extends NFNMaster {
+
+  val nfnSocket = context.actorOf(Props(new UDPConnection()), name = "udpsocket")
+
+  override def preStart() = {
+    nfnSocket ! Handler(self)
+  }
+
+
+  override def send(packet: Packet): Unit = {
+    nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
+  }
+}
+
+case class NFNLocalMaster() extends NFNMaster {
+
+  val localAM = context.actorOf(Props(new LocalAbstractMachineWorker()), name = "localAM")
+
+  override def send(packet: Packet): Unit = localAM ! packet
+}
+
 
 
 /**
