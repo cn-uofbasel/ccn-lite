@@ -6,9 +6,8 @@ import scala.util.Try
 
 
 case class AddService() extends  NFNService with Logging {
-  override def toNFNName: NFNName = NFNName(Seq("AddService", "Int", "Int", "rInt"))
 
-  def throwArgumentException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$toNFNName requires to arguments of type NFNIntValue and not $args")
+  def throwArgumentException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$nfnName requires to arguments of type NFNIntValue and not $args")
 
   override def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]] = {
     args match {

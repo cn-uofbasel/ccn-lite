@@ -1,7 +1,7 @@
 package nfn.service
 
 import bytecode.BytecodeLoader
-import java.io.{FileOutputStream, File}
+import java.io.{FileWriter, FileOutputStream, File}
 import language.experimental.macros
 
 
@@ -20,11 +20,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent._
+import scala.collection.mutable
 
 object ContentStore extends Logging {
-  private var cs: Map[Seq[String], Content] = Map()
+  private val cs: mutable.Map[Seq[String], Content] = mutable.Map()
 
-  def add(content: Content) = cs += content.name -> content
+  def add(content: Content) = {
+    cs += (content.name -> content)
+    println(s"CS: ${cs.keys}")
+  }
 
   def find(name: Seq[String]):Option[Content] = cs.get(name)
 
@@ -41,7 +45,7 @@ object NFNServiceLibrary extends Logging {
 
   def add(serv: NFNService) =  {
 
-    val name = serv.toNFNName.name
+    val name = serv.nfnName.name
     services += name -> serv
   }
 
@@ -96,11 +100,11 @@ object NFNServiceLibrary extends Logging {
         else byteCodeData(serv)
 
       val content = Content(
-        serv.toNFNName.name,
+        serv.nfnName.name,
         serviceContent
       )
 
-      logger.debug(s"nfnPublish: Adding ${content.name.mkString(" ")} to cache")
+      logger.debug(s"nfnPublish: Adding ${content.name} to cache")
       ccnWorker ! CCNAddToCache(content)
     }
   }
@@ -187,16 +191,18 @@ trait NFNService extends Logging {
   def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]]
 
   def instantiateCallable(name: NFNName, values: Seq[NFNServiceValue]): Try[CallableNFNService] = {
-    logger.debug(s"AddService: InstantiateCallable(name: $name, toNFNName: $toNFNName")
-    assert(name == toNFNName, s"Service $toNFNName is created with wrong name $name")
+    logger.debug(s"AddService: InstantiateCallable(name: $name, toNFNName: $nfnName")
+    assert(name == nfnName, s"Service $nfnName is created with wrong name $name")
     verifyArgs(values)
     Try(CallableNFNService(name, values, function))
   }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 
-  def toNFNName: NFNName
+  def nfnName: NFNName = NFNName(Seq(this.getClass.getCanonicalName.replace(".", "_")))
+
 
   def pinned: Boolean = true
+
 }
 
 object NFNService extends Logging {
@@ -212,12 +218,47 @@ object NFNService extends Logging {
           }
         }
         case None => {
-          val interest = Interest(Seq(fun))
-          val futServiceContent = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
-          futServiceContent map { content =>
-          // TODO parse service bytecode and create service
-            logger.error("TODO parse service bytecode and create service")
-            ???
+          def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
+            ContentStore.find(interest.name) match {
+              case Some(cachedContent) => Future(cachedContent)
+              case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+            }
+          }
+
+          val interest = Interest(fun.split("/").tail.toSeq)
+          val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
+          futServiceContent flatMap { content =>
+            // writes the content data to a temporary file, loadas the class from this file and deletes the file again
+            // TODO: this is ugly, either clean up or find a better solution (meaning to load a class directly from a byte array
+            println(s"Found service in cache, loading class from content object")
+            val serviceLibraryDir = "./service-library"
+            def createTempFile: File = {
+              val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
+              if (!f.exists) {
+                f
+              } else {
+                Thread.sleep(1)
+                createTempFile
+              }
+            }
+
+            var out: FileOutputStream = null
+            val file: File = createTempFile
+            try {
+              out = new FileOutputStream(file)
+              out.write(content.data)
+            } finally {
+              if (out != null) out.close
+              if (file.exists) file.delete
+            }
+            val servName = content.name.head.replace("_", ".")
+
+            val loadedService = BytecodeLoader.loadClass[NFNService](serviceLibraryDir, servName)
+
+            logger.debug(s"Dynamically loaded class $servName from content")
+
+            import myutil.Implicit.tryToFuture
+            loadedService
           }
         }
       }
@@ -278,7 +319,7 @@ object NFNService extends Logging {
           for {
             args <- futArgs
             serv <- futServ
-            callable <- serv.instantiateCallable(serv.toNFNName, args)
+            callable <- serv.instantiateCallable(serv.nfnName, args)
 
           } yield callable
 
@@ -320,8 +361,7 @@ object Main {
 
   def bytecodeLoading = {
     val jarfile = "/Users/basil/Dropbox/uni/master_thesis/code/testservice/target/scala-2.10/testservice_2.10-0.1-SNAPSHOT.jar"
-    val service = BytecodeLoader.loadClassFromJar[NFNService](jarfile, "NFNServiceTestImpl")
-
+    val service = BytecodeLoader.loadClass[NFNService](jarfile, "NFNServiceTestImpl")
   }
 
   def findLibraryFunctionWithReflection = {

@@ -123,6 +123,7 @@ trait NFNMaster extends Actor {
 
     case CCNAddToCache(content) => {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
+      ContentStore.add(content)
       send(content)
     }
   }
@@ -166,7 +167,6 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
 
   def receivedContent(content: Content) = {
     // Received content from request (sendrcv)
-    ???
     logger.error(s"ComputeWorker received content, discarding it because it does not know what to do with it")
   }
 

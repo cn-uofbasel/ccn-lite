@@ -8,6 +8,7 @@ import ccn.packet.{Content, Interest}
 import com.typesafe.config.ConfigFactory
 import network.UDPSender
 import nfn.NFNMaster.CCNSendReceive
+import nfn.service.impl.WordCountService
 import nfn.service.{ContentStore, NFNName, NFNServiceLibrary}
 
 import language.experimental.macros
@@ -40,7 +41,8 @@ object NFNMain extends App {
   val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-local")
   val udpSender = system.actorOf(Props(UDPSender()), name="UDPSender")
 
-  Thread.sleep(2000)
+  // Has to wait until udp connection is ready
+  Thread.sleep(1000)
   val docdata1 = "This is a test document with 8 words! but 12 is better".getBytes
   val docdata2 = "This is the second document with as many words required to get a totally random number. No i have nothing better to do than to count words in this doc.".getBytes
   val ts = System.currentTimeMillis()
@@ -48,21 +50,19 @@ object NFNMain extends App {
   val docname2 = Seq(s"$ts", "doc", "test", "2")
   val docContent1 = Content(docname1, docdata1)
   val docContent2 = Content(docname2, docdata2)
-  ContentStore.add(docContent1)
-  ContentStore.add(docContent2)
+
   nfnWorker ! NFNMaster.CCNAddToCache(docContent1)
   nfnWorker ! NFNMaster.CCNAddToCache(docContent2)
-  Thread.sleep(20)
-
   NFNServiceLibrary.nfnPublish(nfnWorker)
-  Thread.sleep(2000)
+  // Make sure that services and content is added to the nfn cache
+  Thread.sleep(200)
 
   (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
     case Success(content) => println(s"DOC1: $content")
     case Failure(e) => throw e
   }
 
-  val interest = Interest(Seq(s"call 3 /WordCountService/NFNName/rInt ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
+  val interest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
 ////  val interest = Interest(Seq(s"call 3 /AddService/Int/Int/rInt 9 3", "NFN"))
   (nfnWorker ? CCNSendReceive(interest)).mapTo[Content] onComplete  {
     case Success(content) => println(s"RESULT: $content")

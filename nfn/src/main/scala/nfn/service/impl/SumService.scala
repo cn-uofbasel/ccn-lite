@@ -28,6 +28,4 @@ import akka.actor.ActorRef
 //    }
 //    Future(CallableNFNService(name, values, function))
 //  }
-//
-//  override def toNFNName: NFNName = NFNName(Seq("SumService/Int/Int/rInt"))
 //}

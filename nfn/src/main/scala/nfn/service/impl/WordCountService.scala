@@ -17,9 +17,7 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  override def toNFNName: NFNName = NFNName(Seq("WordCountService", "NFNName", "rInt"))
-
-  def throwException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$toNFNName can only be applied to values of type NFNBinaryDataValue and not $args")
+  def throwException(args: Seq[NFNServiceValue]) = throw new NFNServiceArgumentException(s"$nfnName can only be applied to values of type NFNBinaryDataValue and not $args")
 
   override def verifyArgs(args: Seq[NFNServiceValue]): Try[Seq[NFNServiceValue]] = {
     if(args.forall(_.isInstanceOf[NFNBinaryDataValue])) Try(args)
@@ -34,4 +32,6 @@ case class WordCountService() extends NFNService {
       }).sum
     )
   }
+
+  override def pinned: Boolean = false
 }
