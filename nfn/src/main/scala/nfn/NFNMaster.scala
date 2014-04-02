@@ -123,12 +123,13 @@ trait NFNMaster extends Actor {
 
     case CCNAddToCache(content) => {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
-      ContentStore.add(content)
-      send(content)
+//      ContentStore.add(content)
+      sendToCache(content)
     }
   }
 
   def send(packet: Packet)
+  def sendToCache(content: Content)
 }
 
 case class NFNMasterNetwork() extends NFNMaster {
@@ -143,6 +144,10 @@ case class NFNMasterNetwork() extends NFNMaster {
   override def send(packet: Packet): Unit = {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
   }
+
+  override def sendToCache(content: Content): Unit = {
+    nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
+  }
 }
 
 case class NFNMasterLocal() extends NFNMaster {
@@ -150,6 +155,10 @@ case class NFNMasterLocal() extends NFNMaster {
   val localAM = context.actorOf(Props(new LocalAbstractMachineWorker()), name = "localAM")
 
   override def send(packet: Packet): Unit = localAM ! packet
+
+  override def sendToCache(content: Content): Unit = {
+    ContentStore.add(content)
+  }
 }
 
 

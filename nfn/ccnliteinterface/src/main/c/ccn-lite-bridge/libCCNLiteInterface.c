@@ -30,7 +30,7 @@ Java_ccnliteinterface_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyte
     }
 
     // Writes the ccnb interest as xml to the stream
-    ccnb2xml(0, interestData, &buf, &len, NULL, file, true);
+    ccnb2xml(0, interestData, &buf, &len, NULL, file, false);
 
     fflush(file);
     close(file);
