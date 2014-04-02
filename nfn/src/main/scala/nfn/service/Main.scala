@@ -27,7 +27,6 @@ object ContentStore extends Logging {
 
   def add(content: Content) = {
     cs += (content.name -> content)
-    println(s"CS: ${cs.keys}")
   }
 
   def find(name: Seq[String]):Option[Content] = cs.get(name)

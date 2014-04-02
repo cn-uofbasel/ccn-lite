@@ -59,18 +59,16 @@ object BytecodeLoader {
   }
 }
 
-case class TestClass() {
-  def fun = println("TestClass.fun")
-}
-
-object Test extends App {
-  import BytecodeLoader._
 
 
-  val classDir = classToDirname(new TestClass())
-  loadClass[TestClass](classDir, TestClass().getClass.getCanonicalName) match {
-    case Success(tc: TestClass) => tc.fun
-    case Failure(e) => throw e
-  }
-}
+//object Test extends App {
+//  import BytecodeLoader._
+//
+//
+//  val classDir = classToDirname(new TestClass())
+//  loadClass[TestClass](classDir, TestClass().getClass.getCanonicalName) match {
+//    case Success(tc: TestClass) => tc.fun
+//    case Failure(e) => throw e
+//  }
+//}
 

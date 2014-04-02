@@ -45,18 +45,16 @@ object CCNLite {
 
     // Just to be sure, if the file already exists, wait quickly and try again
     if (file.exists) {
-      Thread.sleep(10)
+      Thread.sleep(1)
       mkAddToCacheInterest(content)
     } else {
       file.createNewFile
-
       val out = new FileOutputStream(file)
       try {
         out.write(binaryContent)
       } finally {
         if (out != null) out.close
       }
-
       val absoluteFilename = file.getCanonicalPath
       val binaryInterest = ccnIf.mkAddToCacheInterest(absoluteFilename)
       file.delete
