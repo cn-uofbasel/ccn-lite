@@ -6,50 +6,68 @@ import akka.util.Timeout
 import ccn.ccnlite.CCNLite
 import ccn.packet.{Content, Interest}
 import com.typesafe.config.ConfigFactory
-import nfn.NFNWorker.CCNSendReceive
-import nfn.service.{NFNName, NFNServiceLibrary}
+import network.UDPSender
+import nfn.NFNMaster.CCNSendReceive
+import nfn.service.{ContentStore, NFNName, NFNServiceLibrary}
 
 import language.experimental.macros
-import nfn.NFNWorker
+import nfn.{NFNLocalMaster, NFNNetworkMaster, NFNMaster}
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import scala.util.{Success, Failure}
 
 
 object NFNMain extends App {
 
+  implicit val timeout = Timeout(20 seconds)
 
   val config = ConfigFactory.parseString("""
-    |akka.loglevel=DEBUG
-    |akka.debug.lifecycle=on
-    |akka.debug.receive=on
-    |akka.debug.event-stream=on
-    |akka.debug.unhandled=on
-    """.stripMargin
+                                           |akka.loglevel=DEBUG
+                                           |akka.debug.lifecycle=on
+                                           |akka.debug.receive=on
+                                           |akka.debug.event-stream=on
+                                           |akka.debug.unhandled=on
+                                           |akka.log-dead-letters=10
+                                           |akka.log-dead-letters-during-shutdown=on
+                                         """.stripMargin
   )
 
   val ccnIf = CCNLite
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
-  val ccnWorker = system.actorOf(Props[NFNWorker], name = "ccnworker")
+  val nfnWorker = system.actorOf(Props[NFNNetworkMaster], name = "nfnnetworkworker")
+  val udpSender = system.actorOf(Props(UDPSender()), name="UDPSender")
+//  val nfnWorker = system.actorOf(Props[NFNLocalWorker], name = "nfnlocalworker")
 
   Thread.sleep(2000)
   val docdata1 = "This is a test document with 8 words! but 12 is better".getBytes
   val docdata2 = "This is the second document with as many words required to get a totally random number. No i have nothing better to do than to count words in this doc.".getBytes
-  val docContent1 = Content(Seq("doc", "test", "1"), docdata1)
-  val docContent2 = Content(Seq("doc", "test", "2"), docdata2)
-  ccnWorker ! NFNWorker.CCNAddToCache(docContent1)
-  ccnWorker ! NFNWorker.CCNAddToCache(docContent2)
+  val ts = System.currentTimeMillis()
+  val docname1 = Seq(s"$ts", "doc", "test", "1")
+  val docname2 = Seq(s"$ts", "doc", "test", "2")
+  val docContent1 = Content(docname1, docdata1)
+  val docContent2 = Content(docname2, docdata2)
+  ContentStore.add(docContent1)
+  ContentStore.add(docContent2)
+  nfnWorker ! NFNMaster.CCNAddToCache(docContent1)
+  nfnWorker ! NFNMaster.CCNAddToCache(docContent2)
+  Thread.sleep(20)
 
-  NFNServiceLibrary.nfnPublish(ccnWorker)
+  NFNServiceLibrary.nfnPublish(nfnWorker)
   Thread.sleep(2000)
 
-  val interest = Interest(Seq(s"call 3 /WordCountService/NFNName/rInt /doc/test/1 /doc/test/2", "NFN"))
-//  val interest = Interest(Seq(s"call 3 /AddService/Int/Int/rInt 9 1", "NFN"))
-  implicit val timeout = Timeout(20 seconds)
-  val content = Await.result((ccnWorker ? CCNSendReceive(interest)).mapTo[Content], timeout.duration)
-  println(s"RESULT: $content")
+  (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
+    case Success(content) => println(s"DOC1: $content")
+    case Failure(e) => throw e
+  }
+
+  val interest = Interest(Seq(s"call 3 /WordCountService/NFNName/rInt ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
+////  val interest = Interest(Seq(s"call 3 /AddService/Int/Int/rInt 9 3", "NFN"))
+  (nfnWorker ? CCNSendReceive(interest)).mapTo[Content] onComplete  {
+    case Success(content) => println(s"RESULT: $content")
+    case Failure(e) => throw e
+  }
 
 
 

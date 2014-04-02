@@ -14,7 +14,7 @@ import ccn.packet.{Interest, Content}
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.concurrent.Future
-import nfn.NFNWorker.{CCNAddToCache, CCNSendReceive}
+import nfn.NFNMaster.{CCNAddToCache, CCNSendReceive}
 import akka.pattern._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
@@ -204,6 +204,56 @@ object NFNService extends Logging {
 
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
+    def findService(fun: String): Future[NFNService] = {
+      NFNServiceLibrary.find(fun) match {
+        case Some(serv) => {
+          future {
+            serv
+          }
+        }
+        case None => {
+          val interest = Interest(Seq(fun))
+          val futServiceContent = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+          futServiceContent map { content =>
+          // TODO parse service bytecode and create service
+            logger.error("TODO parse service bytecode and create service")
+            ???
+          }
+        }
+      }
+    }
+
+    def findArgs(args: List[String]): Future[List[NFNServiceValue]] = {
+      Future.sequence(
+        args map { (arg: String) =>
+          arg.forall(_.isDigit) match {
+            case true => {
+              future{
+                NFNIntValue(arg.toInt)
+              }
+            }
+            case false => {
+              val interest = Interest(arg.split("/").tail)
+
+              val futContent:Future[Content] = ContentStore.find(interest.name) match {
+                case Some(content) => Future(content)
+                case None => {
+                  val c = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+                  logger.info(s"Worker send request for interest $interest")
+                  c
+                }
+              }
+              futContent map { content =>
+                NFNBinaryDataValue(content.name, content.data)
+              }
+            }
+          }
+        }
+      )
+    }
+
+
+
     logger.debug(s"Trying to find service for: $name")
     val pattern = new Regex("""^call (\d)+ (.*)$""")
 
@@ -217,54 +267,12 @@ object NFNService extends Logging {
         assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
 
         // find service
-        val futServ: Future[NFNService] = NFNServiceLibrary.find(fun) match {
-          case Some(serv) => {
-            future {
-              serv
-            }
-          }
-          case None => {
-            val interest = Interest(Seq(fun))
-            val futServiceContent = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
-            futServiceContent map { content =>
-              // TODO parse service bytecode and create service
-              logger.error("TODO parse service bytecode and create service")
-              ???
-            }
-          }
-        }
+        val futServ = findService(fun)
 
         // create or find values
-        val futArgs: Future[List[NFNServiceValue]] = Future.sequence(
-          args map { (arg: String) =>
-            arg.forall(_.isDigit) match {
-              case true => {
-                future{
-                  NFNIntValue(arg.toInt)
-                }
-              }
-              case false => {
-                val interest = Interest(arg.split("/").tail)
+        val futArgs: Future[List[NFNServiceValue]] = findArgs(args)
 
-
-                val futContent:Future[Content] = ContentStore.find(interest.name) match {
-                  case Some(content) => Future(content)
-                  case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
-                }
-                futContent map { content =>
-                  NFNBinaryDataValue(content.name, content.data)
-                }
-              }
-            }
-          }
-        )
-
-        implicit def tryToFuture[T](t:Try[T]):Future[T] = {
-          t match{
-            case Success(s) => Future.successful(s)
-            case Failure(ex) => Future.failed(ex)
-          }
-        }
+        import myutil.Implicit.tryToFuture
 
         val futCallableServ: Future[CallableNFNService] =
           for {
@@ -272,10 +280,7 @@ object NFNService extends Logging {
             serv <- futServ
             callable <- serv.instantiateCallable(serv.toNFNName, args)
 
-          } yield {
-            callable
-          }
-
+          } yield callable
 
         futCallableServ onSuccess {
           case callableServ => logger.info(s"Instantiated callable serv: '$name' -> $callableServ")

@@ -8,16 +8,18 @@ import akka.util.ByteString
 
 import scala.concurrent._
 import ExecutionContext.Implicits.global
-import network.NetworkConnection._
+import network.UDPConnection._
+import network.UDPConnection.Send
+import network.UDPConnection.Handler
 
-object NetworkConnection {
+object UDPConnection {
   case class Send(data: Array[Byte])
   case class Handler(worker: ActorRef)
 }
 
 /**
  * A connection between a target socket and a remote socket.
- * Data is sent by passing an [[network.NetworkConnection.Send]] message containing the data to be sent.
+ * Data is sent by passing an [[network.UDPConnection.Send]] message containing the data to be sent.
  * Receiving data is handled by the member worker actor.
  * This actor initializes itself on preStart by sending a bind message to the IO manager.
  * On receiving a Bound message, it sets the ready method s its new [[akka.actor.Actor.Receive]] handler,
@@ -26,8 +28,8 @@ object NetworkConnection {
  * @param local Socket to listen for data
  * @param target socket to sent data to
  */
-class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localhost", 9001),
-                        target:InetSocketAddress = new InetSocketAddress("localhost", 9000)) extends Actor {
+class UDPConnection(local:InetSocketAddress = new InetSocketAddress("localhost", 9001),
+                    target:InetSocketAddress = new InetSocketAddress("localhost", 9000)) extends Actor {
   import context.system
 
   val name = self.path.name
@@ -42,6 +44,11 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
     IO(Udp) ! Udp.Bind(self, local)
   }
 
+  def handleWorker(worker: ActorRef) = {
+    logger.debug(s"Registered worker $worker")
+    workers ::= worker
+  }
+
   def receive: Receive = {
     // Received udp socket actor, change receive handler to ready mehtod with reference to the socket actor
     case Udp.Bound(local) =>
@@ -49,12 +56,12 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
       context.become(ready(sender))
     case Udp.CommandFailed(cmd) =>
       logger.error(s"Udp command '$cmd' failed")
-    case Handler(worker) => workers ::= worker
+    case Handler(worker) => handleWorker(worker)
   }
 
   def ready(socket: ActorRef): Receive = {
     case Send(data) => {
-      logger.debug(s"$name sending data")//${new String(data)}")
+      logger.debug(s"$name sending data")
       socket ! Udp.Send(ByteString(data), target)
     }
     case Udp.Received(data, sendingRemote) => {
@@ -63,7 +70,7 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
     }
     case Udp.Unbind  => socket ! Udp.Unbind
     case Udp.Unbound => context.stop(self)
-    case Handler(worker) => workers ::= worker
+    case Handler(worker) => handleWorker(worker)
   }
 
   def frowardReceivedData(data: ByteString): Unit = {
@@ -71,4 +78,28 @@ class NetworkConnection(local:InetSocketAddress = new InetSocketAddress("localho
   }
 }
 
+case class UDPSender(remote: InetSocketAddress = new InetSocketAddress("localhost", 9001)) extends Actor {
+  import context.system
+
+  val logger = Logging(context.system, this)
+
+  override def preStart() = {
+    IO(Udp) ! Udp.SimpleSender
+  }
+
+
+  override def receive: Actor.Receive = {
+    case Udp.SimpleSenderReady => {
+      logger.debug("ready")
+      context.become(ready(sender))
+    }
+  }
+
+  def ready(socket: ActorRef): Actor.Receive = {
+    case data: Array[Byte] => {
+      logger.debug(s"Sending data")
+      socket ! Udp.Send(ByteString(data), remote)
+    }
+  }
+}
 
