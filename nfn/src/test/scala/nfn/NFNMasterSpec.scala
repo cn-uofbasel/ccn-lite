@@ -1,7 +1,7 @@
 package nfn
 
 import akka.actor.{ActorRef, Props, ActorSystem}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.testkit.{TestActorRef, ImplicitSender, TestKit}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import java.net.InetSocketAddress
 import network.UDPConnection
@@ -14,7 +14,9 @@ class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
 with WordSpecLike with Matchers with BeforeAndAfterAll {
 
 
-  val nfnMasterLocal = system.actorOf(Props(NFNMasterLocal()))
+//  val nfnMasterLocal = system.actorOf(Props(NFNMasterLocal()))
+  val nfnMasterLocalRef = TestActorRef[NFNMasterLocal]
+  val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 //  val sock1 = new InetSocketAddress(9010)
 //  val sock2 = new InetSocketAddress(9011)
   val name = Seq("test", "data")
@@ -26,12 +28,13 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
   def this() = this(ActorSystem("NFNMasterSpec"))
 
   override def beforeAll {
-    nfnMasterLocal ! CCNAddToCache(content)
-    NFNServiceLibrary.nfnPublish(nfnMasterLocal)
-    while(ContentStore.find(name) == None) Thread.sleep(10)
+    nfnMasterLocalRef ! CCNAddToCache(content)
+    NFNServiceLibrary.nfnPublish(nfnMasterLocalRef)
+    // TODO maybe make better
+    while(nfnMasterLocalInstance.cs.find(content.name) == None) Thread.sleep(10)
   }
 
-  testNFNMaster(nfnMasterLocal, "NFNMasterLocal")
+  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -51,7 +54,7 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
 
     s"An $nfnMasterName actor" should {
       "send interest and receive corresponding data" in {
-        ContentStore.find(name) shouldBe Some(content)
+        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
         nfnMaster ! CCNSendReceive(interest)
         val expectedContent = expectMsg(content)
         expectedContent.data shouldBe data
@@ -64,10 +67,11 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
         nfnMaster ! CCNAddToCache(cacheContent)
         // TODO maybe make this nicer?
         Thread.sleep(10)
-        ContentStore.find(contentName) shouldBe Some(cacheContent)
+        nfnMasterLocalInstance.cs.find(contentName) shouldBe Some(cacheContent)
       }
       testComputeRequest("1 ADD 2", "3")
       testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
+      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 12 30", "43")
     }
   }
 }

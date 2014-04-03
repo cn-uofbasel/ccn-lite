@@ -22,11 +22,18 @@ trait CCNPacketHandler {
 }
 
 object NFNMaster {
+
   case class CCNSendReceive(interest: Interest)
+
   case class CCNAddToCache(content: Content)
+
   case class ComputeResult(content: Content)
 
+
+  lazy val nfnMaster = akka.actor.ActorSystem
 }
+
+
 /**
  * Worker Actor which responds to ccn interest and content packets
  */
@@ -38,23 +45,33 @@ trait NFNMaster extends Actor {
 
   val ccnIf = CCNLite
 
+  val cs = ContentStore()
+
   var pendingInterests: Map[Seq[String], ActorRef] = Map()
 
   private def createComputeWorker(interest: Interest): ActorRef =
     context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
 
   private def handleInterest(interest: Interest) = {
-    val computeWorker = createComputeWorker(interest)
-    pendingInterests += (interest.name -> computeWorker)
-    computeWorker.tell(interest, self)
+    cs.find(interest.name) match {
+      case Some(content) => sender ! content
+      case None => {
+        val computeWorker = createComputeWorker(interest)
+        pendingInterests += (interest.name -> computeWorker)
+        computeWorker.tell(interest, self)
+      }
+    }
   }
 
-  def handleContent(content: Content) = {
+
+  // Check pit for an address to return content to, otherwise discard it
+  private def handleContent(content: Content) = {
     pendingInterests.get(content.name) match {
       case Some(interestSender) => {
         interestSender ! content
+        pendingInterests -= content.name
       }
-      case None => logger.error(s"Discarding content $content without pending interest")
+      case None => logger.error(s"Discarding content $content because there is no entry in pit")
     }
   }
 
@@ -80,15 +97,19 @@ trait NFNMaster extends Actor {
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: Packet) => handlePacket(packet)
-        // Received content, check if there is an entry in the pit. If so, send it to the attached worker, otherwise discard it
         case None => logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
       }
     }
 
     case CCNSendReceive(interest) => {
       logger.info(s"$name received send-recv request for interest: $interest")
-      pendingInterests += (interest.name -> sender)
-      send(interest)
+      cs.find(interest.name) match {
+        case Some(content) => sender ! content
+        case None => {
+          pendingInterests += (interest.name -> sender)
+          send(interest)
+        }
+      }
     }
 
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
@@ -132,18 +153,19 @@ case class NFNMasterNetwork() extends NFNMaster {
   }
 
   override def sendAddToCache(content: Content): Unit = {
+    cs.add(content)
     nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
   }
 }
 
 case class NFNMasterLocal() extends NFNMaster {
 
-  val localAM = context.actorOf(Props(new LocalAbstractMachineWorker()), name = "localAM")
+  val localAM = context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), name = "localAM")
 
   override def send(packet: Packet): Unit = localAM ! packet
 
   override def sendAddToCache(content: Content): Unit = {
-    ContentStore.add(content)
+    cs.add(content)
   }
 }
 

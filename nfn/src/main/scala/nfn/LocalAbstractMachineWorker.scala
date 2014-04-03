@@ -6,13 +6,13 @@ import ccn.packet._
 import nfn.service.ContentStore
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.machine.ConstValue
-import nfn.NFNMaster.ComputeResult
+import nfn.NFNMaster.{CCNAddToCache, ComputeResult}
 import scala.util.{Success, Failure, Try}
 
 /**
  * Created by basil on 01/04/14.
  */
-class LocalAbstractMachineWorker extends Actor {
+class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
   val logger = Logging(context.system, this)
 
   val lc = LambdaCalculus(maybeExecutor = Some(LocalNFNCallExecutor(self)))
@@ -29,28 +29,16 @@ class LocalAbstractMachineWorker extends Actor {
 
   private def handleContent(content: Content, sender: ActorRef) = {
     logger.info(s"Received content $content, adding to contentstore")
-    ContentStore.add(content)
+    nfnMaster ! CCNAddToCache(content)
   }
 
 
   // Returns the content for the interest if it is in the contentstore
   // otherwise no response
   private def handleInterest(interest: Interest, sender: ActorRef) = {
-    def handleContentRequest(interest: Interest) = {
-      ContentStore.find(interest.name) match {
-        case Some(content) => {
-          logger.debug(s"Found content for interest $interest")
-          sender ! content
-        }
-        case None => if(interest.name.last == "NFN") {
-          logger.debug(s"Received compute request")
-          handleComputeRequest(interest)
-        }
-      }
-    }
 
     def handleComputeRequest(interest: Interest) = {
-      // TODO this only works if
+      // TODO this only works if the expression is in a single name and not split
       val content: Try[Content] =
         if(interest.name.size == 2) {
           val expr = interest.name.init.mkString(" ")
@@ -73,7 +61,7 @@ class LocalAbstractMachineWorker extends Actor {
     logger.info(s"Received interest $interest")
     interest.name match {
       case "COMPUTE" :: rest => handleComputeRequest(interest)
-      case _ =>  handleContentRequest(interest)
+      case _ => handleComputeRequest(interest)
     }
 
   }
