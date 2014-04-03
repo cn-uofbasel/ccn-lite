@@ -7,25 +7,13 @@ import akka.event.Logging
 import network._
 import network.UDPConnection._
 import nfn.service._
+import nfn.NFNMaster._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import nfn.NFNMaster._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{Success, Failure}
 import java.io.{PrintWriter, StringWriter}
-import ccn.packet.Interest
-import nfn.NFNMaster.CCNAddToCache
-import network.UDPConnection.Send
-import scala.util.Failure
-import scala.Some
-import nfn.ComputeWorker
-import nfn.NFNMaster.ComputeResult
-import scala.util.Success
-import network.UDPConnection.Handler
-import ccn.packet.Content
-import nfn.NFNMaster.CCNSendReceive
-import nfn.service.CallableNFNService
 
 trait CCNPacketHandler {
   def receivedContent(content: Content): Unit
@@ -35,8 +23,6 @@ trait CCNPacketHandler {
 
 object NFNMaster {
   case class CCNSendReceive(interest: Interest)
-  case class CCNSend(interest: Interest)
-  case class CCNReceive(packet: Packet)
   case class CCNAddToCache(content: Content)
   case class ComputeResult(content: Content)
 
@@ -124,12 +110,12 @@ trait NFNMaster extends Actor {
     case CCNAddToCache(content) => {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
 //      ContentStore.add(content)
-      sendToCache(content)
+      sendAddToCache(content)
     }
   }
 
   def send(packet: Packet)
-  def sendToCache(content: Content)
+  def sendAddToCache(content: Content)
 }
 
 case class NFNMasterNetwork() extends NFNMaster {
@@ -145,7 +131,7 @@ case class NFNMasterNetwork() extends NFNMaster {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
   }
 
-  override def sendToCache(content: Content): Unit = {
+  override def sendAddToCache(content: Content): Unit = {
     nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
   }
 }
@@ -156,7 +142,7 @@ case class NFNMasterLocal() extends NFNMaster {
 
   override def send(packet: Packet): Unit = localAM ! packet
 
-  override def sendToCache(content: Content): Unit = {
+  override def sendAddToCache(content: Content): Unit = {
     ContentStore.add(content)
   }
 }

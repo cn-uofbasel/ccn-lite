@@ -218,6 +218,9 @@ object NFNService extends Logging {
         }
         case None => {
           def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
+
+
+
             ContentStore.find(interest.name) match {
               case Some(cachedContent) => Future(cachedContent)
               case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
