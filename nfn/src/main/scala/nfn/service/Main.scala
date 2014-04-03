@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 import scala.concurrent._
 import scala.collection.mutable
 
-object ContentStore extends Logging {
+case class ContentStore() extends Logging {
   private val cs: mutable.Map[Seq[String], Content] = mutable.Map()
 
   def add(content: Content) = {
@@ -209,6 +209,7 @@ object NFNService extends Logging {
 
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
+    def loadFromCacheOrNetwork(interest: Interest): Future[Content] = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
     def findService(fun: String): Future[NFNService] = {
       NFNServiceLibrary.find(fun) match {
         case Some(serv) => {
@@ -217,15 +218,6 @@ object NFNService extends Logging {
           }
         }
         case None => {
-          def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
-
-
-
-            ContentStore.find(interest.name) match {
-              case Some(cachedContent) => Future(cachedContent)
-              case None => (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
-            }
-          }
 
           val interest = Interest(fun.split("/").tail.toSeq)
           val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
@@ -278,15 +270,7 @@ object NFNService extends Logging {
             case false => {
               val interest = Interest(arg.split("/").tail)
 
-              val futContent:Future[Content] = ContentStore.find(interest.name) match {
-                case Some(content) => Future(content)
-                case None => {
-                  val c = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
-                  logger.info(s"Worker send request for interest $interest")
-                  c
-                }
-              }
-              futContent map { content =>
+              loadFromCacheOrNetwork(interest) map  { content =>
                 NFNBinaryDataValue(content.name, content.data)
               }
             }
