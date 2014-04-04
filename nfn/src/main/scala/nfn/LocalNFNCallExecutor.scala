@@ -1,8 +1,7 @@
 package nfn
 
 import lambdacalculus.machine.{ConstValue, Value, CallExecutor}
-import nfn.service.{NFNIntValue, NFNService}
-import scala.util.{Failure, Success}
+import nfn.service._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor.ActorRef
 import scala.concurrent.Await

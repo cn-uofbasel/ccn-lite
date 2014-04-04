@@ -8,7 +8,6 @@ import lambdacalculus.LambdaCalculus
 import lambdacalculus.parser.ast._
 import nfn.NFNMaster._
 import ccn.packet._
-import ccn.CCNLiteProcess
 import nfn.service.impl.{WordCountService, AddService}
 
 
@@ -79,31 +78,31 @@ with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuit
     }
 
     s"An $nfnMasterName actor" should {
-      "send interest and receive corresponding data" in {
-        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
-        nfnMasterRef ! CCNSendReceive(interest)
-        val actualContent = expectMsgType[Content]
-        actualContent.data shouldBe data
-      }
+//      "send interest and receive corresponding data" in {
+//        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
+//        nfnMasterRef ! CCNSendReceive(interest)
+//        val actualContent = expectMsgType[Content]
+//        actualContent.data shouldBe data
+//      }
+//
+//      "add content to cache" in {
+//        val contentName = Seq("name", "addtocache")
+//        val contentData = "added to cache!".getBytes
+//        val cacheContent = Content(contentName, contentData)
+//        nfnMasterRef ! CCNAddToCache(cacheContent)
+//        // TODO maybe make this nicer?
+//        Thread.sleep(200)
+//        nfnMasterRef ! CCNSendReceive(Interest(contentName))
+//        val actualContent = expectMsgType[Content]
+//        actualContent.data shouldBe contentData
+//      }
+//      testComputeRequest("1 ADD 2", "3")
+//      testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
+//      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
+//      testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
-      "add content to cache" in {
-        val contentName = Seq("name", "addtocache")
-        val contentData = "added to cache!".getBytes
-        val cacheContent = Content(contentName, contentData)
-        nfnMasterRef ! CCNAddToCache(cacheContent)
-        // TODO maybe make this nicer?
-        Thread.sleep(200)
-        nfnMasterRef ! CCNSendReceive(Interest(contentName))
-        val actualContent = expectMsgType[Content]
-        actualContent.data shouldBe contentData
-      }
-      testComputeRequest("1 ADD 2", "3")
-      testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
-      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
-      testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
-
-//      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
+      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
     }
   }
 }

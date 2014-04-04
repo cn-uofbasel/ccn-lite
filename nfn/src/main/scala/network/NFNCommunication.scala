@@ -1,17 +1,13 @@
 package network
 
-import scala.concurrent._
-
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.xml.{Node, NodeSeq, Elem}
+import scala.xml._
 
 import javax.xml.bind.DatatypeConverter
+import org.xml.sax.SAXParseException
 
 import com.typesafe.scalalogging.slf4j.Logging
+
 import ccn.packet.{Packet, Content, Interest}
-import org.xml.sax.SAXParseException
 
 
 object NFNCommunication extends Logging {
@@ -67,33 +63,5 @@ object NFNCommunication extends Logging {
       case e:SAXParseException => None
     }
   }
-
-//  def main(args: Array[String]) = {
-//
-//    val socket = UDPClient("NFNSocket", 9000)
-//    val ccnIf = new CCNLiteInterface()
-//
-//    val interest = Interest(Seq("add 7 1"))
-//    val binaryInterest: Array[Byte] = ccnIf.mkBinaryInterest(interest.nameComponents.toArray)
-//
-//    val f = socket.sendReceive(binaryInterest)
-//    val respInterest = Await.result(f, 1 minute)
-//
-//    val xmlDataInterest = ccnIf.ccnbToXml(respInterest)
-//
-//    parseXml(xmlDataInterest) match {
-//      case Content(name, data) =>
-//        val dataString = new String(data)
-//        val resultPrefix = "RST|"
-//
-//        val resultContentString = dataString.startsWith(resultPrefix) match {
-//          case true => dataString.substring(resultPrefix.size)
-//          case false => throw new Exception(s"NFN could not compute result for: $interest")
-//        }
-//        logger.info(s"NFN: '${interest.name}' => '$resultContentString'")
-//
-//      case Interest(name) => throw new Exception(s"Received a Interest from NFN. not implemented")
-//    }
-//  }
 }
 
