@@ -1,6 +1,6 @@
 /*
- * krivine.c
- * a "Krivine lambda expression resolver" for CCN
+ * krivine-common.c
+ * Tools for the "Krivine lambda expression resolver" for CCN
  *
  * (C) 2014 <christian.tschudin@unibas.ch>
  *
@@ -304,6 +304,7 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 		socklen_t addrlen = sizeof(sockunion);
 		if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
 				(struct sockaddr*) &src_addr, &addrlen)) > 0) {
+                    //how to handle interest
                     struct ccnl_content_s *c = ccnl_extract_content_obj(ccnl, buf, len);
                     unsigned char *md = interest->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                     if(ccnl_prefix_cmp(c->name, md, interest->prefix, CMP_MATCH)){
@@ -391,9 +392,10 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
     int found = 0;
     struct ccnl_content_s *c;
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){ //todo: exact match not only prefix
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
+    printf("c: %p", c);
     //ccnl_interest_remove(ccnl, interest);
     return found;
 }
