@@ -357,6 +357,7 @@ ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *
     
     ccnl_interest_propagate(ccnl, i);
     //copy receive system to here from core
+    
     struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
     
     return c;
