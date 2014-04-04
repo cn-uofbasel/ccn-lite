@@ -15,9 +15,7 @@ import nfn.service.impl.{WordCountService, AddService}
 class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
 with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuiteExecution {
 
-  CCNLiteProcess.start()
-  Thread.sleep(1000)
-
+  println("INIT")
   val nfnMasterLocalRef = TestActorRef[NFNMasterLocal]
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
@@ -54,17 +52,16 @@ with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuit
     Thread.sleep(100)
   }
 
-//  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
+  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
   testNFNMaster(nfnMasterNetworkRef, "NFNMasterNetwork", nfnNetwork = true)
 
   override def afterAll() {
     TestKit.shutdownActorSystem(system)
-    CCNLiteProcess.stop()
-
   }
 
 
   def testNFNMaster(nfnMasterRef: ActorRef, nfnMasterName: String, nfnNetwork: Boolean = false) = {
+
     def testComputeRequest(req: String, result: String) = {
       val parsedExpr = lc.parse(req).get
       val parsedReq = if(nfnNetwork) LambdaNFNPrinter(parsedExpr) else LambdaPrettyPrinter(parsedExpr)

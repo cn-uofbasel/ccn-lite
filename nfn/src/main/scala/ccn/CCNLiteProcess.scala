@@ -29,9 +29,9 @@ class LogStreamReaderToFile(is: InputStream, logname: String, doOverride: Boolea
 /**
  * Created by basil on 04/04/14.
  */
-object CCNLiteProcess {
+case class CCNLiteProcess() {
 
-  var process: Process = null
+  private var process: Process = null
 
   def start() = {
     println("starting ccn-lite process")
