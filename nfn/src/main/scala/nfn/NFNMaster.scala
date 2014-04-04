@@ -133,7 +133,6 @@ trait NFNMaster extends Actor {
 
     case CCNAddToCache(content) => {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
-//      ContentStore.add(content)
       sendAddToCache(content)
     }
   }
@@ -156,7 +155,7 @@ case class NFNMasterNetwork() extends NFNMaster {
   }
 
   override def sendAddToCache(content: Content): Unit = {
-    cs.add(content)
+//    cs.add(content)
     nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
   }
 }

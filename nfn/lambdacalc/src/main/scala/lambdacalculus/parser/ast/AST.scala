@@ -153,11 +153,7 @@ object LambdaNFNPrinter {
 //  }
 
   def apply(expr: Expr): String =  {
-
-      println(s"Before: ${LambdaPrettyPrinter(expr)}")
-      val prepocessedExpr = LambdaNFNPreprocessor.apply(expr)
-      println(s"After: ${LambdaPrettyPrinter(prepocessedExpr)}")
-      prepocessedExpr match {
+      LambdaNFNPreprocessor.apply(expr) match {
         case Clos(arg, body) => s"@$arg " + p"$body"
         case Application(fun, arg) => p"$fun $arg"
         case UnaryExpr(op, v) =>  op.toString.toLowerCase + " " + p"$v"

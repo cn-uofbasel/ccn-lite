@@ -1,19 +1,22 @@
 package nfn
 
-import akka.actor.{ActorRef, Props, ActorSystem}
-import akka.testkit.{TestActorRef, ImplicitSender, TestKit}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import java.net.InetSocketAddress
-import network.UDPConnection
-import ccn.packet._
-import nfn.NFNMaster.{ComputeResult, CCNAddToCache, CCNSendReceive}
-import nfn.service.{NFNServiceLibrary, ContentStore}
-import nfn.service.impl.{WordCountService, AddService}
+import akka.actor._
+import akka.testkit._
+import org.scalatest._
+import nfn.service.NFNServiceLibrary
 import lambdacalculus.LambdaCalculus
-import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaPrettyPrinter}
+import lambdacalculus.parser.ast._
+import nfn.NFNMaster._
+import ccn.packet._
+import ccn.CCNLiteProcess
+import nfn.service.impl.{WordCountService, AddService}
+
 
 class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
-with WordSpecLike with Matchers with BeforeAndAfterAll {
+with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuiteExecution {
+
+  CCNLiteProcess.start()
+  Thread.sleep(1000)
 
   val nfnMasterLocalRef = TestActorRef[NFNMasterLocal]
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
@@ -21,13 +24,11 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
   val nfnMasterNetworkRef = TestActorRef[NFNMasterNetwork]
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
-//  val sock1 = new InetSocketAddress(9010)
-//  val sock2 = new InetSocketAddress(9011)
-
   val name = Seq("test", "data")
 
-  val doc1Name = Seq("test", "doc", "1")
-  val doc2Name = Seq("test", "doc", "2")
+  val ts = System.currentTimeMillis.toString
+  val doc1Name = Seq("test", ts, "doc", "1")
+  val doc2Name = Seq("test", ts, "doc", "2")
 
   val doc1Content = Content(doc1Name, "one two".getBytes)
   val doc2Content = Content(doc2Name, "one two three".getBytes)
@@ -38,26 +39,28 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
 
   val lc = LambdaCalculus()
 
-
   def this() = this(ActorSystem("NFNMasterSpec"))
 
-  override def beforeAll {
+  override def beforeAll() {
+
     def initMaster(ref: ActorRef) = {
       ref ! CCNAddToCache(content)
       ref ! CCNAddToCache(doc1Content)
       ref ! CCNAddToCache(doc2Content)
       NFNServiceLibrary.nfnPublish(ref)
     }
-    initMaster(nfnMasterNetworkRef)
     initMaster(nfnMasterLocalRef)
-    while(nfnMasterLocalInstance.cs.find(content.name) == None) Thread.sleep(10)
+    initMaster(nfnMasterNetworkRef)
+    Thread.sleep(100)
   }
 
-  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
+//  testNFNMaster(nfnMasterLocalRef, "NFNMasterLocal")
   testNFNMaster(nfnMasterNetworkRef, "NFNMasterNetwork", nfnNetwork = true)
 
-  override def afterAll {
+  override def afterAll() {
     TestKit.shutdownActorSystem(system)
+    CCNLiteProcess.stop()
+
   }
 
 
@@ -82,7 +85,7 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
       "send interest and receive corresponding data" in {
         nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
         nfnMasterRef ! CCNSendReceive(interest)
-        val actualContent = expectMsg(content)
+        val actualContent = expectMsgType[Content]
         actualContent.data shouldBe data
       }
 
@@ -92,16 +95,18 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
         val cacheContent = Content(contentName, contentData)
         nfnMasterRef ! CCNAddToCache(cacheContent)
         // TODO maybe make this nicer?
-        Thread.sleep(10)
+        Thread.sleep(200)
         nfnMasterRef ! CCNSendReceive(Interest(contentName))
-        expectMsg(cacheContent)
+        val actualContent = expectMsgType[Content]
+        actualContent.data shouldBe contentData
       }
       testComputeRequest("1 ADD 2", "3")
       testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
-      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 12 30", "43")
+      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
       testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
-      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
-      testComputeRequest(s"call 0 ${WordCountService().nfnName.toString}", "0")
+
+
+//      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
     }
   }
 }

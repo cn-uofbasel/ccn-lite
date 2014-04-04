@@ -4,6 +4,7 @@ import akka.pattern._
 
 import akka.util.Timeout
 import ccn.ccnlite.CCNLite
+import ccn.CCNLiteProcess
 import ccn.packet.{Content, Interest}
 import com.typesafe.config.ConfigFactory
 import network.UDPSender
@@ -21,7 +22,7 @@ import scala.util.{Success, Failure}
 
 object NFNMain extends App {
 
-  implicit val timeout = Timeout(20 seconds)
+  implicit val timeout = Timeout(14 seconds)
 
   val config = ConfigFactory.parseString("""
                                            |akka.loglevel=DEBUG
@@ -35,6 +36,7 @@ object NFNMain extends App {
   )
 
   val ccnIf = CCNLite
+  CCNLiteProcess.start()
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
   val nfnWorker = system.actorOf(Props[NFNMasterNetwork], name = "nfnmaster-network")
@@ -59,18 +61,28 @@ object NFNMain extends App {
   // Make sure that services and content is added to the nfn cache
   Thread.sleep(200)
 
-//  (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
-//    case Success(content) => println("YAY"); println(s"DOC1: $content")
-//    case Failure(e) => throw e
-//  }
-
-  val interest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
-//  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
-  (nfnWorker ? CCNSendReceive(interest)).mapTo[Content] onComplete  {
-    case Success(content) => println(s"RESULT: $content")
+  (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
+    case Success(content) => println(s"DOC1: $content")
     case Failure(e) => throw e
   }
 
+
+  val addInterest = Interest(Seq(s"add 1 3", "NFN"))
+  //  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
+  (nfnWorker ? CCNSendReceive(addInterest)).mapTo[Content] onComplete  {
+    case Success(content) => println(s"RESULT ADD: $content")
+    case Failure(e) => throw e
+  }
+
+  val wcInterest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
+//  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
+  (nfnWorker ? CCNSendReceive(wcInterest)).mapTo[Content] onComplete  {
+    case Success(content) => println(s"RESULT WC: $content")
+    case Failure(e) => throw e
+  }
+
+  Thread.sleep(15000)
+  CCNLiteProcess.stop()
 
 
 //  def repl(nfnSocket: ActorRef) = {
