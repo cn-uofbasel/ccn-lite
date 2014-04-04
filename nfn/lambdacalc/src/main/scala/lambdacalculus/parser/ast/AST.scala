@@ -57,7 +57,16 @@ object LambdaPrettyPrinter {
       s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
     case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
     case NopExpr() => "-"
-    case Call(name, args) => s"(call ${args.size} $name " + args.map(apply).mkString(" ") + ")"
+    case Call(name, args) => {
+      val s1 = s"(call ${args.size + 1} $name"
+      val s2 = if(args.size > 0) {
+          " " +
+          args.map(apply).mkString(" ")
+        } else ""
+      val s3 = ")"
+
+      s1 + s2 + s3
+    }
     case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
   }
 
@@ -74,7 +83,6 @@ object LambdaPrettyPrinter {
 }
 
 object LambdaNFNPreprocessor {
-
   private def replaceLets(letName: String, letExpr: Expr, expr: Expr): Expr = {
     def rpl(expr: Expr): Expr = {
       expr match {

@@ -15,7 +15,7 @@ import scala.util.{Success, Failure, Try}
 class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
   val logger = Logging(context.system, this)
 
-  val lc = LambdaCalculus(maybeExecutor = Some(LocalNFNCallExecutor(self)))
+  val lc = LambdaCalculus(maybeExecutor = Some(LocalNFNCallExecutor(nfnMaster)))
 
   override def receive: Actor.Receive = {
     case content: Content => {
@@ -36,34 +36,36 @@ class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
   // Returns the content for the interest if it is in the contentstore
   // otherwise no response
   private def handleInterest(interest: Interest, sender: ActorRef) = {
-
     def handleComputeRequest(interest: Interest) = {
-      // TODO this only works if the expression is in a single name and not split
-      val content: Try[Content] =
-        if(interest.name.size == 2) {
+      def tryComputeResultContent = {
+        // TODO this only works if the expression is in a single name and not split
+        if (interest.name.size == 2) {
           val expr = interest.name.init.mkString(" ")
           lc.substituteParseCompileExecute(expr) map {
             case List(result) => result match {
-              case ConstValue(n, _) => Content(interest.name, n.toString.getBytes)
-              case r @ _ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
+              case ConstValue(n, _) => {
+                logger.info("RESULT")
+                Content(interest.name, n.toString.getBytes)
+              }
+              case r@_ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
             }
-            case results @ _ => throw new Exception(s"Local abstract machine: Result of exeuction contains more or less than 1 element: $results")
+            case results@_ => throw new Exception(s"Local abstract machine: Result of exeuction contains more or less than 1 element: $results")
           }
         }
         else throw new Exception(s"Local abstract machine can only parse compute requests with the form <lambda expr><NFN> and not $interest")
+      }
 
-      content match {
-        case Success(content) => sender ! content
+      tryComputeResultContent match {
+        case Success(content) => {
+          logger.info(s"Computed content $content")
+          sender ! content
+        }
         case Failure(e) => logger.error(e.getMessage)
       }
     }
 
     logger.info(s"Received interest $interest")
-    interest.name match {
-      case "COMPUTE" :: rest => handleComputeRequest(interest)
-      case _ => handleComputeRequest(interest)
-    }
-
+    handleComputeRequest(interest)
   }
 }
 

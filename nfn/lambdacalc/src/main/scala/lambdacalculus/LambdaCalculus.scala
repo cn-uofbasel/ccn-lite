@@ -127,5 +127,7 @@ case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder = ExecutionOr
 
   def compile(code: Expr): Try[List[Instruction]] = Try(compiler(code))
 
-  def execute(code: List[Instruction]): Try[List[Value]] = Try(machine(code))
+  def execute(code: List[Instruction]): Try[List[Value]] = {
+    Try(machine(code))
+  }
 }

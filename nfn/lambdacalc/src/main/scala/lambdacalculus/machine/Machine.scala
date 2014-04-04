@@ -2,6 +2,7 @@ package lambdacalculus.machine
 
 import com.typesafe.scalalogging.slf4j.Logging
 import lambdacalculus.parser.ast.Call
+import scala.annotation.tailrec
 
 
 trait Configuration {
@@ -40,7 +41,8 @@ abstract class Machine(val storeIntermediateSteps:Boolean = false) extends Loggi
 
   def transform(state:AbstractConfiguration): AbstractConfiguration
 
-  def step(cfg: AbstractConfiguration):AbstractConfiguration = {
+  @tailrec
+  private def step(cfg: AbstractConfiguration):AbstractConfiguration = {
     logger.debug(cfg.toString)
     if(storeIntermediateSteps) _intermediateConfigurations ::= cfg
     if(cfg.isTransformable) {
