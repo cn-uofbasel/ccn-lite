@@ -1,15 +1,14 @@
-import scala.util.Try
 import nfn.service._
 import nfn.service.CallableNFNService
-import nfn.service.NFNIntValue
 import nfn.service.NFNName
-import nfn.service.NFNServiceException
+import nfn.service.value.NFNIntValue
+import scala.util.Try
 
 /**
  * Created by basil on 19/02/14.
  */
 
-case class UnitValue() extends NFNServiceValue {
+case class UnitValue() extends value.NFNValue {
   override def toValueName: NFNName = NFNName("Unit")
 
   override def toNFNName: NFNName = NFNName("Unit")
@@ -23,7 +22,7 @@ case class UnitValue() extends NFNServiceValue {
 class NFNServiceTestImpl extends NFNService {
 //  override def exec = println("Test NFNService class loaded successfully!")
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
-    val testFun = { (values: Seq[NFNServiceValue]) => Try(UnitValue()) }
+    val testFun = { (values: Seq[value.NFNValue]) => Try(UnitValue()) }
     CallableNFNService(NFNName(unparsedName), Seq(), testFun)
   }
   override def nfnName: NFNName = NFNName("")
@@ -40,7 +39,7 @@ case class ChfToDollar() extends NFNService {
     val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $nfnName could not parse function name '$unparsedName'"))
     assert(name == this.nfnName)
 
-    val function = { (values: Seq[NFNServiceValue]) =>
+    val function = { (values: Seq[value.NFNValue]) =>
       values match {
         case Seq(chf: NFNIntValue) => {
           Try(NFNIntValue(chf.amount*2))

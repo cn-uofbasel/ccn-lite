@@ -4,17 +4,14 @@ import akka.pattern._
 
 import akka.util.Timeout
 import ccn.ccnlite.CCNLite
-import ccn.CCNLiteProcess
 import ccn.packet.{Content, Interest}
 import com.typesafe.config.ConfigFactory
-import network.UDPSender
 import nfn.NFNMaster.CCNSendReceive
-import nfn.service.impl.{AddService, WordCountService}
-import nfn.service.{ContentStore, NFNName, NFNServiceLibrary}
+import nfn.service.impl._
+import nfn.service._
 
 import language.experimental.macros
-import nfn.{NFNMasterLocal, NFNMasterNetwork, NFNMaster}
-import scala.concurrent._
+import nfn._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}

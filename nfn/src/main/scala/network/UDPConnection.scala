@@ -9,8 +9,6 @@ import akka.util.ByteString
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import network.UDPConnection._
-import network.UDPConnection.Send
-import network.UDPConnection.Handler
 
 object UDPConnection {
   case class Send(data: Array[Byte])

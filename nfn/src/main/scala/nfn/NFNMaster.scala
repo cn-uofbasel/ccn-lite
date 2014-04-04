@@ -1,5 +1,11 @@
 package nfn
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Success, Failure}
+
+import java.io.{PrintWriter, StringWriter}
+
 import akka.actor._
 import akka.util.ByteString
 import akka.event.Logging
@@ -10,17 +16,8 @@ import nfn.service._
 import nfn.NFNMaster._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.{Success, Failure}
-import java.io.{PrintWriter, StringWriter}
-import ccn.CCNLiteProcess
+import ccn.{ContentStore, CCNLiteProcess}
 
-trait CCNPacketHandler {
-  def receivedContent(content: Content): Unit
-
-  def receivedInterest(interest: Interest): Unit
-}
 
 object NFNMaster {
 
