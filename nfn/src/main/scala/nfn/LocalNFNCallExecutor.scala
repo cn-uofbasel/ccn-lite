@@ -8,9 +8,6 @@ import akka.actor.ActorRef
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/**
- * Created by basil on 24/03/14.
- */
 case class LocalNFNCallExecutor(ccnWorker: ActorRef) extends CallExecutor {
   override def executeCall(call: String): Value = {
 

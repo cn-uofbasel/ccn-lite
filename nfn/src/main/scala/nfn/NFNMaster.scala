@@ -102,10 +102,13 @@ trait NFNMaster extends Actor {
     }
 
     case CCNSendReceive(interest) => {
-      logger.info(s"$name received send-recv request for interest: $interest")
       cs.find(interest.name) match {
-        case Some(content) => sender ! content
+        case Some(content) => {
+          logger.debug(s"Received SendReceive request, found content for interest $interest in local CS")
+          sender ! content
+        }
         case None => {
+          logger.debug(s"Received SendReceive request, aksing network for $interest ")
           pendingInterests += (interest.name -> sender)
           send(interest)
         }
@@ -187,7 +190,7 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
     logger.error(s"ComputeWorker received content, discarding it because it does not know what to do with it")
   }
 
-  // Recievied compute request
+  // Received compute request
   // Make sure it actually is a compute request and forward to the handle method
   def receivedInterest(interest: Interest, requestor: ActorRef) = {
     logger.debug(s"received compute interest: $interest")

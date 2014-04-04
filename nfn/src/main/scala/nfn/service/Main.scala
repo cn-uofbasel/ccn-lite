@@ -51,7 +51,6 @@ object NFNServiceLibrary extends Logging {
   def find(servName: String):Option[NFNService] = {
     servName.split("/") match {
       case Array("", servNameCmps @ _*) =>
-        logger.debug(s"Looking for: '$servNameCmps' in '$services'")
         val found = services.get(servNameCmps)
         logger.debug(s"Found $found")
         found
@@ -209,8 +208,12 @@ object NFNService extends Logging {
 
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
-    def loadFromCacheOrNetwork(interest: Interest): Future[Content] = (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+    def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
+      (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+    }
+
     def findService(fun: String): Future[NFNService] = {
+      logger.debug(s"Looking for service $fun")
       NFNServiceLibrary.find(fun) match {
         case Some(serv) => {
           future {
@@ -218,7 +221,6 @@ object NFNService extends Logging {
           }
         }
         case None => {
-
           val interest = Interest(fun.split("/").tail.toSeq)
           val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
           futServiceContent flatMap { content =>
@@ -259,18 +261,21 @@ object NFNService extends Logging {
     }
 
     def findArgs(args: List[String]): Future[List[NFNServiceValue]] = {
+      logger.debug(s"Looking for args $args")
       Future.sequence(
         args map { (arg: String) =>
           arg.forall(_.isDigit) match {
             case true => {
+              logger.debug(s"Arg '$arg' is a number")
               future{
                 NFNIntValue(arg.toInt)
               }
             }
             case false => {
               val interest = Interest(arg.split("/").tail)
-
+              logger.debug(s"Arg '$arg' is a name, asking nfn master to find content for $interest")
               loadFromCacheOrNetwork(interest) map  { content =>
+                logger.debug(s"Found arg $arg")
                 NFNBinaryDataValue(content.name, content.data)
               }
             }
@@ -291,7 +296,7 @@ object NFNService extends Logging {
 
         val count = countString.toInt - 1
         assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count + 1}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
-        assert(count > 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
+        assert(count >= 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
 
         // find service
         val futServ = findService(fun)
