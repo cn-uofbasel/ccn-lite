@@ -299,6 +299,38 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params,
     }
 }
 
+struct ccnl_content_s *
+ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, char **params, 
+        int num_params, char **namecomp, char *out, char *comp, char *param, 
+        int thunk_request){
+    struct ccnl_content_s *c;
+    int j;
+    int complen = sprintf(comp, "(@x call %d ", num_params);
+    for(j = 0; j < num_params; ++j){
+        if(current_param == j){
+            complen += sprintf(comp + complen, "x ");
+        }
+        else{
+            complen += sprintf(comp + complen, "%s ", params[j]);
+        }
+    }
+    complen += sprintf(comp + complen, ")");
+    DEBUGMSG(49, "Computation request: %s %s\n", comp, params[current_param]);
+    //make interest
+    int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
+    free(param);
+    //search
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
+        DEBUGMSG(49, "Content locally found\n");
+        return c;
+    }
+
+    else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
+        DEBUGMSG(49, "Content found in the network\n");
+        return c;
+    }
+}
 
 struct ccnl_content_s *
 ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param, 
@@ -318,38 +350,14 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param,
     if(isLocalAvailable(ccnl, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 params[current_param]);
-        c = ccnl_nfn_handle_local_computation(ccnl, params, num_params, namecomp, out, 
-                comp, thunk_request);
+        c = ccnl_nfn_handle_local_computation(ccnl, params, num_params, 
+                namecomp, out, comp, thunk_request);
         return c;
     }else{
-        //build computation string
-        complen = sprintf(comp, "(@x call %d ", num_params);
-       
-        for(j = 0; j < num_params; ++j){
-            if(current_param == j){
-                complen += sprintf(comp + complen, "x ");
-            }
-            else{
-                complen += sprintf(comp + complen, "%s ", params[j]);
-            }
-        }
-        complen += sprintf(comp + complen, ")");
-        DEBUGMSG(49, "Computation request: %s %s\n", comp, params[current_param]);
-        //make interest
-        int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out);    
-        free(param);
-        //search
-        struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-        if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
-            DEBUGMSG(49, "Content locally found\n");
-            return c;
-        }
-
-        else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
-            DEBUGMSG(49, "Content found in the network\n");
-            return c;
-        }
+        c = ccnl_nfn_handle_network_search(ccnl, current_param, params, num_params,
+                namecomp, out, comp, param, thunk_request);
     }
+    return c;
 }
 //------------------------------------------------------------
 char*
