@@ -36,7 +36,6 @@ object NFNMain extends App {
   )
 
   val ccnIf = CCNLite
-  CCNLiteProcess.start()
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
   val nfnWorker = system.actorOf(Props[NFNMasterNetwork], name = "nfnmaster-network")
@@ -80,9 +79,6 @@ object NFNMain extends App {
     case Success(content) => println(s"RESULT WC: $content")
     case Failure(e) => throw e
   }
-
-  Thread.sleep(15000)
-  CCNLiteProcess.stop()
 
 
 //  def repl(nfnSocket: ActorRef) = {

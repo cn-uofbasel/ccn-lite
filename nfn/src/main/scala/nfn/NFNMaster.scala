@@ -14,6 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
 import java.io.{PrintWriter, StringWriter}
+import ccn.CCNLiteProcess
 
 trait CCNPacketHandler {
   def receivedContent(content: Content): Unit
@@ -29,8 +30,8 @@ object NFNMaster {
 
   case class ComputeResult(content: Content)
 
+  case class Exit()
 
-  lazy val nfnMaster = akka.actor.ActorSystem
 }
 
 
@@ -38,7 +39,6 @@ object NFNMaster {
  * Worker Actor which responds to ccn interest and content packets
  */
 trait NFNMaster extends Actor {
-
 
   val logger = Logging(context.system, this)
   val name = self.path.name
@@ -114,7 +114,6 @@ trait NFNMaster extends Actor {
         }
       }
     }
-
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
     // convert the result to ccnb format and send it to the socket
     case ComputeResult(content) => {
@@ -135,13 +134,22 @@ trait NFNMaster extends Actor {
       logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
       sendAddToCache(content)
     }
+
+    case Exit() => {
+      exit()
+      context.system.shutdown()
+    }
   }
 
   def send(packet: Packet)
   def sendAddToCache(content: Content)
+  def exit(): Unit = ()
 }
 
 case class NFNMasterNetwork() extends NFNMaster {
+
+  val ccnLiteNFNNetworkProcess = CCNLiteProcess()
+  ccnLiteNFNNetworkProcess.start()
 
   val nfnSocket = context.actorOf(Props(new UDPConnection()), name = "udpsocket")
 
@@ -157,6 +165,10 @@ case class NFNMasterNetwork() extends NFNMaster {
   override def sendAddToCache(content: Content): Unit = {
 //    cs.add(content)
     nfnSocket ! Send(ccnIf.mkAddToCacheInterest(content))
+  }
+
+  override def exit(): Unit = {
+    ccnLiteNFNNetworkProcess.stop()
   }
 }
 
