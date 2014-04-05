@@ -10,13 +10,46 @@
 #ifndef KRIVINE_COMMON_C
 #define KRIVINE_COMMON_C
 
+//#include "krivine-common.h"
+
 #include "ccnl.h"
 #include "ccnx.h"
 #include "ccnl-core.h"
 
 #include "ccnl-pdu.c"
 
+#include <pthread.h>
+
+
 #define NFN_FACE -1;
+
+struct thread_s{
+    int id;
+    pthread_cond_t cond;
+    pthread_mutex_t mutex;
+    pthread_t thread;
+};
+
+struct threads_s *threads[1024];
+int threadid = -1;
+
+struct thread_parameter_s{
+    struct ccnl_relay_s *ccnl;
+    struct ccnl_buf_s *orig;
+    struct ccnl_prefix_s *prefix;
+    struct thread_s *thread;
+    struct ccnl_face_s *from;
+    
+};
+
+struct thread_s * 
+new_thread(){
+    struct thread_s *t = malloc(sizeof(struct thread_s));
+    t->id = --threadid;
+    t->cond =  (pthread_cond_t)PTHREAD_COND_INITIALIZER;
+    t->mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+    return t;
+}
 
 struct thunk_s{
     struct thunk_s *next, *prev;
@@ -26,9 +59,6 @@ struct thunk_s{
 
 struct thunk_s *thunk_list;
 int thunkid = 0;
-
-static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
-						    struct ccnl_interest_s *i);
 
 int
 hex2int(char c)
@@ -351,7 +381,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s
 }
 
 //FIXME use global search or special face?
-struct ccnl_content_s *
+void
 ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_content_computation()\n");
     
@@ -396,7 +426,6 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
-    printf("c: %p", c);
     //ccnl_interest_remove(ccnl, interest);
     return found;
 }

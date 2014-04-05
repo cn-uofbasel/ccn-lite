@@ -24,6 +24,7 @@
 #include "ccnl-core.h"
 
 
+
 #define CCNL_VERSION "2013-07-27"
 
 
@@ -664,7 +665,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     }
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
-    free_prefix(i->prefix);
+    //free_prefix(i->prefix); //TODO: //FIXME: IMPORTANT: memory leak
     free_3ptr_list(i->ppkd, i->pkt, i);
     return i2;
 }
@@ -783,6 +784,14 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		DEBUGMSG(6, "  forwarding content <%s>\n",
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
+#ifdef CCNL_NFN
+                if(i->from->faceid < 0){
+                   int threadid = -i->from->faceid;
+                   DEBUGMSG(49, "Send signal for threadid: %d", threadid);
+                   ccnl_nfn_send_signal(threadid);                  
+                }
+                else
+#endif 
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
