@@ -37,6 +37,7 @@ struct configuration_s{
     struct stack_s *argument_stack;
     struct environment_s *env; 
     struct environment_s *global_dict;
+    struct thread_s *thread;
 };
 
 struct closure_s *
@@ -272,8 +273,8 @@ int iscontent(char *cp){
 }
 //------------------------------------------------------------
 struct ccnl_content_s *
-ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params, 
-        int num_params, char **namecomp, char *out, char *comp, int thunk_request){
+ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+        char **params, int num_params, char **namecomp, char *out, char *comp, int thunk_request){
     int complen = sprintf(comp, "call %d ", num_params);
     struct ccnl_interest_s * interest;
     struct ccnl_content_s *c;
@@ -290,13 +291,26 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params,
     len = mkInterest(namecomp, 0, out);
     interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
     
-    if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
+    /*if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content can be computed");
         return c;
     }else{
+        
         DEBUGMSG(49, "Got no thunk, continue with null result just for debugging\n");
         return 0;
+    }*/
+    interest->from->faceid = config->thread->id;
+    printf("From face id %d\n", interest->from->faceid);
+    ccnl_interest_propagate(ccnl, i);
+    printf("WAITING on Signal; Threadid : %d \n", config->thread->id);
+    pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
+    //local search. look if content is now available!
+    printf("Got signal CONTINUE\n");
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
+        DEBUGMSG(49, "Content locally found\n");
+        return c;
     }
+    return 0;
 }
 
 struct ccnl_content_s *
@@ -333,10 +347,10 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, cha
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param, 
-        char **params, int num_params, int thunk_request){
-    char *out =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    char *comp =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+        int current_param, char **params, int num_params, int thunk_request){
+    char *out =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *namecomp[CCNL_MAX_NAME_COMP];
     char *param;
     struct ccnl_content_s *c;
@@ -350,12 +364,13 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param,
     if(isLocalAvailable(ccnl, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 params[current_param]);
-        c = ccnl_nfn_handle_local_computation(ccnl, params, num_params, 
+        c = ccnl_nfn_handle_local_computation(ccnl, config, params, num_params, 
                 namecomp, out, comp, thunk_request);
         return c;
     }else{
-        c = ccnl_nfn_handle_network_search(ccnl, current_param, params, num_params,
-                namecomp, out, comp, param, thunk_request);
+        //search for content in the network
+       //FIXME: enable c = ccnl_nfn_handle_network_search(ccnl, current_param, params, num_params,
+                //namecomp, out, comp, param, thunk_request);
     }
     return c;
 }
@@ -673,8 +688,8 @@ normal:
         //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
-                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, i, params, 
-                        num_params, thunk_request);
+                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, 
+                        configuration, i, params, num_params, thunk_request);
                 if(c){
                     push_to_stack(&configuration->result_stack, c->content);
                     goto tail;
@@ -740,7 +755,8 @@ setup_global_environment(struct environment_s **env){
 
 char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
-        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix){
+        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix, 
+        struct thread_s *thread){
     int steps = 0; 
     int halt = 0;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -752,6 +768,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     struct configuration_s *config = new_config(prog, global_dict);
+    config->thread = thread;
     
     while (config->prog && !halt && config->prog != 1){
 	steps++;

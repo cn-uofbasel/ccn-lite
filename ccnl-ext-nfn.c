@@ -22,6 +22,7 @@
 
 #include "ccnl-core.h"
 
+
 #include "krivine.c"
 #include "ccnl-includes.h"
 
@@ -38,10 +39,19 @@ ccnl_nfn_count_required_thunks(char *str)
     return num;
 }
 
-int 
-ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+
+
+void * 
+ccnl_nfn_thread(void *arg)
 {
+    struct thread_parameter_s *t = ((struct thread_parameter_s*)arg);
+    
+    struct ccnl_relay_s *ccnl = t->ccnl;
+    struct ccnl_buf_s *orig = t->orig;
+    struct ccnl_prefix_s *prefix = t->prefix;
+    struct ccnl_face_s *from = t->from;
+    struct thread_s *thread = t->thread;
+    
     int thunk_request = 0;
     int num_of_thunks = 0;
     struct ccnl_prefix_s *original_prefix;
@@ -78,7 +88,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(thunk_request){
         num_of_thunks = ccnl_nfn_count_required_thunks(str);
     }
-    char *res = Krivine_reduction(ccnl, str, thunk_request, &num_of_thunks, original_prefix);
+    char *res = Krivine_reduction(ccnl, str, thunk_request, &num_of_thunks,
+        original_prefix, thread);
     //stores result if computed   
     
     if(res){
@@ -100,6 +111,33 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    
+    pthread_exit ((void *) 0);
     return 0;
+}
+
+void 
+ccnl_nfn_send_signal(int threadid){
+    struct thread_s *thread = threads[threadid];
+    pthread_cond_broadcast(&thread->cond);
+}
+
+
+int 
+ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    struct thread_s *thread = new_thread();
+    struct thread_parameter_s *arg = malloc(sizeof(struct thread_parameter_s *));
+    char *h = malloc(10);
+    arg->ccnl = ccnl;
+    arg->orig = orig;
+    arg->prefix = prefix;
+    arg->from = from;
+    arg->thread = thread;
+    
+    int threadpos = -threadid;
+    threads[threadpos] = thread;
+    --threadid;
+    
+    pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
 }
