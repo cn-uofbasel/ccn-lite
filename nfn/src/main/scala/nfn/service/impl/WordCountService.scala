@@ -13,21 +13,23 @@ case class WordCountService() extends NFNService {
 
   def countWords(doc: NFNName) = 42
 
-  def throwException(args: Seq[NFNValue]) = throw new NFNServiceArgumentException(s"$nfnName can only be applied to values of type NFNBinaryDataValue and not $args")
 
   override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
     if(args.forall(_.isInstanceOf[NFNBinaryDataValue])) Try(args)
-    else throwException(args)
+    else throw argumentException(args)
   }
 
   override def function: (Seq[NFNValue]) => NFNValue = { docs =>
     NFNIntValue(
       docs.map({
         case doc: NFNBinaryDataValue => new String(doc.data).split(" ").size
-        case _ => throwException(docs)
+        case _ => throw argumentException(docs)
       }).sum
     )
   }
 
   override def pinned: Boolean = false
+
+  override def argumentException(args: Seq[NFNValue]): NFNServiceArgumentException =
+    new NFNServiceArgumentException(s"$nfnName can only be applied to values of type NFNBinaryDataValue and not $args")
 }

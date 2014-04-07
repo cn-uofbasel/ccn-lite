@@ -34,6 +34,9 @@ object NFNServiceLibrary extends Logging {
 
   add(AddService())
   add(WordCountService())
+  add(MapService())
+  add(ReduceService())
+  add(SumService())
 
   def add(serv: NFNService) =  {
 

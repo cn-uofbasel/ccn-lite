@@ -8,12 +8,13 @@ import nfn.service.NFNServiceArgumentException
 
 case class AddService() extends  NFNService with Logging {
 
-  def throwArgumentException(args: Seq[NFNValue]) = throw new NFNServiceArgumentException(s"$nfnName requires to arguments of type NFNIntValue and not $args")
+  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
+    new NFNServiceArgumentException(s"$nfnName requires to arguments of type NFNIntValue and not $args")
 
   override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
     args match {
       case Seq(v1: NFNIntValue, v2: NFNIntValue) => Try(args)
-      case _ => throwArgumentException(args)
+      case _ => throw argumentException(args)
     }
   }
 
@@ -22,7 +23,7 @@ case class AddService() extends  NFNService with Logging {
       case Seq(l: NFNIntValue, r: NFNIntValue) => {
         NFNIntValue(l.amount + r.amount)
       }
-      case _ => throwArgumentException(values)
+      case _ => throw argumentException(values)
     }
   }
 }
