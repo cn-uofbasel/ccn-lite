@@ -35,21 +35,19 @@ object NFNMain extends App {
   val ccnIf = CCNLite
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
-  val nfnWorker = system.actorOf(Props[NFNMasterNetwork], name = "nfnmaster-network")
+  val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-network")
 //  val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-local")
-//  val udpSender = system.actorOf(Props(UDPSender()), name="UDPSender")
 
   // Has to wait until udp connection is ready
   Thread.sleep(1000)
-  val docdata1 = "asdf".getBytes
-  val docdata2 = "This is the second document with as many words required to get a totally random number. No i have nothing better to do than to count words in this doc.".getBytes
+
+  val docdata1 = "one two three".getBytes
+  val docdata2 = "one two three four".getBytes
   val ts = System.currentTimeMillis()
   val docname1 = Seq(s"$ts", "doc", "test", "1")
   val docname2 = Seq(s"$ts", "doc", "test", "2")
   val docContent1 = Content(docname1, docdata1)
   val docContent2 = Content(docname2, docdata2)
-
-  println(s"XML: ${ccnIf.ccnbToXml(ccnIf.mkBinaryContent(docContent1))}")
 
   nfnWorker ! NFNMaster.CCNAddToCache(docContent1)
   nfnWorker ! NFNMaster.CCNAddToCache(docContent2)
@@ -57,26 +55,40 @@ object NFNMain extends App {
   // Make sure that services and content is added to the nfn cache
   Thread.sleep(200)
 
-  (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
-    case Success(content) => println(s"DOC1: $content")
+//  (nfnWorker ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
+//    case Success(content) => println(s"DOC1: $content")
+//    case Failure(e) => throw e
+//  }
+
+
+//  val addInterest = Interest(Seq(s"1 ADD 3", "NFN"))
+//  //  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
+//  (nfnWorker ? CCNSendReceive(addInterest)).mapTo[Content] onComplete  {
+//    case Success(content) => println(s"RESULT ADD: $content")
+//    case Failure(e) => throw e
+//  }
+//
+//  val wcInterest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
+//  (nfnWorker ? CCNSendReceive(wcInterest)).mapTo[Content] onComplete  {
+//    case Success(content) => println(s"RESULT WC: $content")
+//    case Failure(e) => throw e
+//  }
+//
+  val mapService = MapService().nfnName.toString
+  val wordCountService = WordCountService().nfnName.toString
+
+  val doc1 = NFNName(docname1).toString
+  val doc2 = NFNName(docname2).toString
+
+  val reduceService = ReduceService().nfnName.toString
+  val sumService = SumService().nfnName.toString
+
+  val mrInterest = Interest(Seq( s"call 4 $reduceService $sumService (call 4 $mapService $wordCountService $doc1 $doc2)", "NFN"))
+//  val mrInterest = Interest(Seq( s"call 4 $mapService $wordCountService $doc1 $doc2", "NFN"))
+  (nfnWorker ? CCNSendReceive(mrInterest)).mapTo[Content] onComplete  {
+    case Success(content) => println(s"WC: $content")
     case Failure(e) => throw e
   }
-
-
-  val addInterest = Interest(Seq(s"add 1 3", "NFN"))
-  //  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
-  (nfnWorker ? CCNSendReceive(addInterest)).mapTo[Content] onComplete  {
-    case Success(content) => println(s"RESULT ADD: $content")
-    case Failure(e) => throw e
-  }
-
-  val wcInterest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
-//  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
-  (nfnWorker ? CCNSendReceive(wcInterest)).mapTo[Content] onComplete  {
-    case Success(content) => println(s"RESULT WC: $content")
-    case Failure(e) => throw e
-  }
-
 
 //  def repl(nfnSocket: ActorRef) = {
 //    val parser = new LambdaParser()

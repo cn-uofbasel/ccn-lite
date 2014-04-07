@@ -18,7 +18,43 @@ import bytecode.BytecodeLoader
 import nfn.NFNMaster._
 
 object NFNService extends Logging {
+
   implicit val timeout = Timeout(20 seconds)
+
+  /**
+   * Creates a [[NFNService]] from a content object containing the binary code of the service.
+   * The data is written to a temporary file, which is passed to the [[BytecodeLoader]] which then instantiates the actual class.
+   * @param content
+   * @return
+   */
+  def serviceFromContent(content: Content): Try[NFNService] = {
+    val serviceLibraryDir = "./service-library"
+    def createTempFile: File = {
+      val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
+      if (!f.exists) {
+        f
+      } else {
+        Thread.sleep(1)
+        createTempFile
+      }
+    }
+
+    var out: FileOutputStream = null
+    val file: File = createTempFile
+    try {
+      out = new FileOutputStream(file)
+      out.write(content.data)
+    } finally {
+      if (out != null) out.close
+      if (file.exists) file.delete
+    }
+    val servName = content.name.head.replace("_", ".")
+
+    val loadedService = BytecodeLoader.loadClass[NFNService](serviceLibraryDir, servName)
+
+    logger.debug(s"Dynamically loaded class $servName from content")
+    loadedService
+  }
 
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
@@ -37,39 +73,8 @@ object NFNService extends Logging {
         case None => {
           val interest = Interest(fun.split("/").tail.toSeq)
           val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
-          futServiceContent flatMap { content =>
-            // writes the content data to a temporary file, loadas the class from this file and deletes the file again
-            // TODO: this is ugly, either clean up or find a better solution (meaning to load a class directly from a byte array
-            println(s"Found service in cache, loading class from content object")
-            val serviceLibraryDir = "./service-library"
-            def createTempFile: File = {
-              val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
-              if (!f.exists) {
-                f
-              } else {
-                Thread.sleep(1)
-                createTempFile
-              }
-            }
-
-            var out: FileOutputStream = null
-            val file: File = createTempFile
-            try {
-              out = new FileOutputStream(file)
-              out.write(content.data)
-            } finally {
-              if (out != null) out.close
-              if (file.exists) file.delete
-            }
-            val servName = content.name.head.replace("_", ".")
-
-            val loadedService = BytecodeLoader.loadClass[NFNService](serviceLibraryDir, servName)
-
-            logger.debug(s"Dynamically loaded class $servName from content")
-
-            import myutil.Implicit.tryToFuture
-            loadedService
-          }
+          import myutil.Implicit.tryToFuture
+          futServiceContent flatMap { serviceFromContent }
         }
       }
     }
@@ -109,7 +114,7 @@ object NFNService extends Logging {
         val (fun, args) = (l.head, l.tail)
 
         val count = countString.toInt - 1
-        assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count + 1}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
+        assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
         assert(count >= 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
 
         // find service
@@ -144,8 +149,11 @@ trait NFNService extends Logging {
 
   def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]]
 
+  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
+
+
   def instantiateCallable(name: NFNName, values: Seq[NFNValue]): Try[CallableNFNService] = {
-    logger.debug(s"AddService: InstantiateCallable(name: $name, toNFNName: $nfnName")
+    logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
     assert(name == nfnName, s"Service $nfnName is created with wrong name $name")
     verifyArgs(values)
     Try(CallableNFNService(name, values, function))

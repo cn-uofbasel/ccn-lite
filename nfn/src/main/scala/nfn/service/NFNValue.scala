@@ -1,6 +1,5 @@
 package nfn.service
 
-import nfn.service.NFNName
 
 trait NFNValue {
   def toNFNName: NFNName
@@ -20,10 +19,11 @@ case class NFNServiceValue(serv: NFNService) extends NFNValue {
   override def toNFNName: NFNName = serv.nfnName
 }
 
-case class NFNListValue(values: Seq[NFNValue]) extends NFNValue {
-  override def toValueName: NFNName = ???
+case class NFNListValue(values: List[NFNValue]) extends NFNValue {
 
-  override def toNFNName: NFNName = ???
+  override def toValueName: NFNName = NFNName(Seq(values.map({ _.toNFNName.toString }).mkString(" ")))
+
+  override def toNFNName: NFNName = NFNName(Seq(values.map({ _.toNFNName.toString }).mkString(" ")))
 }
 
 case class NFNNameValue(name: NFNName) extends NFNValue{
@@ -39,3 +39,5 @@ case class NFNIntValue(amount: Int) extends NFNValue {
 
   override def toValueName: NFNName = NFNName(Seq(amount.toString))
 }
+
+

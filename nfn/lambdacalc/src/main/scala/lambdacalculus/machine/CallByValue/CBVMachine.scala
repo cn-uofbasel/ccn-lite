@@ -49,7 +49,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
         val e = env
         val v =
           e.find(
-            {  _.maybeName == Some(name) }
+            {  _.maybeContextName == Some(name) }
           ).getOrElse(
             if(n < e.size) {
               e(n)
@@ -60,7 +60,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
           )
 
 //        accessedE match {
-//          case Some(CodeValue(c, maybeName)) =>
+//          case Some(CodeValue(c, maybeContextName)) =>
 //          case _ => accessedE
 //
 //        }
@@ -74,7 +74,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
 
         v match {
           // The accessed name is a list of code, add it to the current code to execute it
-          case CodeValue(cl, maybeName) => {
+          case CodeValue(cl, maybeContextName) => {
             val c = code.tail
             nextStack = s
             nextEnv = e
@@ -135,8 +135,8 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
         }
 
         val v = stack.head match {
-          case ConstValue(n, maybeConstName) => ConstValue(n, closure.maybeName)
-          case CodeValue(c, maybeConstName) => CodeValue(c, closure.maybeName)
+          case ConstValue(n, maybeConstName) => ConstValue(n, closure.maybeContextName)
+          case CodeValue(c, maybeConstName) => CodeValue(c, closure.maybeContextName)
           case _ => stack.head
         }
         val ct = closure.c
@@ -170,7 +170,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
       }
       case THENELSE(thenn, otherwise) => {
         val thenElseCode = stack.head match {
-          case ConstValue(n, maybeName) => if(n != 0) thenn else otherwise
+          case ConstValue(n, maybeContextName) => if(n != 0) thenn else otherwise
           case _ => throw new MachineException(s"CBNMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
         }
 
@@ -209,13 +209,16 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
         val e = env
         val c = code.tail
 
-        val argsStrings = args map {
-          case ConstValue(value, _) => value
+        def valueToNFNStringRep(value: Value): String = value match {
+          case ConstValue(n, _) => n.toString
           case VariableValue(name, _) => name
+          case ListValue(values, _) => values.map( valueToNFNStringRep ).mkString(" ")
           case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented for call: $name")
         }
 
-        val r: Value = executeCall(s"call ${nArgs + 1} $name ${argsStrings.mkString(" ")}")
+        val argsStrings = args map { valueToNFNStringRep }
+
+        val r: Value = executeCall(s"call ${3 + 1} $name ${argsStrings.mkString(" ")}")
 
         nextStack = r :: s
         nextEnv = e

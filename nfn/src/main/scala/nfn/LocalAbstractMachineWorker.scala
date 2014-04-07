@@ -4,7 +4,7 @@ import akka.actor._
 import akka.event.Logging
 import ccn.packet._
 import lambdacalculus.LambdaCalculus
-import lambdacalculus.machine.ConstValue
+import lambdacalculus.machine.{Value, ListValue, ConstValue}
 import nfn.NFNMaster.{CCNAddToCache, ComputeResult}
 import scala.util.{Success, Failure, Try}
 import ccn.ContentStore
@@ -36,18 +36,23 @@ class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
   // Returns the content for the interest if it is in the contentstore
   // otherwise no response
   private def handleInterest(interest: Interest, sender: ActorRef) = {
+
+    def computeResultToContent(computeResult: Value): String = computeResult match {
+      case ConstValue(n, _) => n.toString
+      case ListValue(values, _) => (values map { computeResultToContent }).mkString(" ")
+      case r@_ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
+    }
+
     def handleComputeRequest(interest: Interest) = {
-      def tryComputeResultContent = {
+      def tryComputeResultContent: Try[Content] = {
         // TODO this only works if the expression is in a single name and not split
         if (interest.name.size == 2) {
           val expr = interest.name.init.mkString(" ")
           lc.substituteParseCompileExecute(expr) map {
-            case List(result) => result match {
-              case ConstValue(n, _) => {
-                logger.info("RESULT")
-                Content(interest.name, n.toString.getBytes)
-              }
-              case r@_ => throw new Exception(s"Result is only implemented for type ConstValue and not $r")
+            case List(result: Value) => {
+              val resultString = computeResultToContent(result)
+              println(s"ResultString: $resultString")
+              Content(interest.name, resultString.getBytes)
             }
             case results@_ => throw new Exception(s"Local abstract machine: Result of exeuction contains more or less than 1 element: $results")
           }
