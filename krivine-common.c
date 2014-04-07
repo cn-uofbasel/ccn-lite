@@ -43,9 +43,9 @@ struct thread_parameter_s{
 };
 
 struct thread_s * 
-new_thread(){
+new_thread(int thread_id){
     struct thread_s *t = malloc(sizeof(struct thread_s));
-    t->id = --threadid;
+    t->id = thread_id;
     t->cond =  (pthread_cond_t)PTHREAD_COND_INITIALIZER;
     t->mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
     return t;
