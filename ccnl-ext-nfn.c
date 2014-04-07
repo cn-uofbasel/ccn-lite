@@ -126,7 +126,7 @@ int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
-    struct thread_s *thread = new_thread();
+    struct thread_s *thread = new_thread(threadid);
     struct thread_parameter_s *arg = malloc(sizeof(struct thread_parameter_s *));
     char *h = malloc(10);
     arg->ccnl = ccnl;

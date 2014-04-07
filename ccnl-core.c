@@ -776,6 +776,15 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 	}
 	// CONFORM: "Data MUST only be transmitted in response to
 	// an Interest that matches the Data."
+#ifdef CCNL_NFN
+        if(i->from->faceid < 0){
+           ccnl_content_add2cache(ccnl, c);
+           int threadid = -i->from->faceid;
+           DEBUGMSG(49, "Send signal for threadid: %d", threadid);
+           ccnl_nfn_send_signal(threadid);  
+           return 1;
+        }
+#endif
 	for (pi = i->pending; pi; pi = pi->next) {
 	    if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
 		continue;
@@ -784,15 +793,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		DEBUGMSG(6, "  forwarding content <%s>\n",
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
-#ifdef CCNL_NFN
-                if(i->from->faceid < 0){
-                   ccnl_content_add2cache(ccnl, c);
-                   int threadid = -i->from->faceid;
-                   DEBUGMSG(49, "Send signal for threadid: %d", threadid);
-                   ccnl_nfn_send_signal(threadid);                  
-                }
-                else
-#endif 
+                
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
