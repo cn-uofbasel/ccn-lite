@@ -301,7 +301,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     }*/
     interest->from->faceid = config->thread->id;
     printf("From face id %d\n", interest->from->faceid);
-    ccnl_interest_propagate(ccnl, i);
+    ccnl_interest_propagate(ccnl, interest);
     printf("WAITING on Signal; Threadid : %d \n", config->thread->id);
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
     //local search. look if content is now available!

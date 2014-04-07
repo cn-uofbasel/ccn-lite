@@ -786,6 +786,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 #ifdef CCNL_NFN
                 if(i->from->faceid < 0){
+                   ccnl_content_add2cache(ccnl, c);
                    int threadid = -i->from->faceid;
                    DEBUGMSG(49, "Send signal for threadid: %d", threadid);
                    ccnl_nfn_send_signal(threadid);                  
