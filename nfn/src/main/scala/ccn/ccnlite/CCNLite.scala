@@ -25,7 +25,7 @@ object CCNLite {
     ccnIf.mkBinaryInterest(interest.name.toArray)
   }
 
-  def mkBinaryPacket(packet: Packet): Array[Byte] = {
+  def mkBinaryPacket(packet: CCNPacket): Array[Byte] = {
     packet match {
       case i: Interest => mkBinaryInterest(i)
       case c: Content => mkBinaryContent(c)

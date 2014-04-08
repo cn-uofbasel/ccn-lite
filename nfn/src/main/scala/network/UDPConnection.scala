@@ -26,8 +26,7 @@ object UDPConnection {
  * @param local Socket to listen for data
  * @param target socket to sent data to
  */
-class UDPConnection(local:InetSocketAddress = new InetSocketAddress("localhost", 9001),
-                    target:InetSocketAddress = new InetSocketAddress("localhost", 9000)) extends Actor {
+class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends Actor {
   import context.system
 
   val name = self.path.name
