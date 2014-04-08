@@ -17,6 +17,8 @@ import nfn.NFNMaster._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
 import ccn.{ContentStore, CCNLiteProcess}
+import java.net.InetSocketAddress
+import myutil.IOHelper
 
 
 object NFNMaster {
@@ -29,6 +31,19 @@ object NFNMaster {
 
   case class Exit()
 
+}
+
+object NFNMasterFactory {
+  def network(context: ActorRefFactory, host: String, ccnLitePort: Int, computePort: Int) = {
+    context.actorOf(networkProps(ccnLitePort, computePort), name = "NFNMasterNetwork")
+  }
+
+  def networkProps(ccnLitePort: Int, computePort: Int) = Props(classOf[NFNMasterNetwork], "localhost", ccnLitePort, computePort)
+
+  def local(context: ActorRefFactory) = {
+    context.actorOf(localProps, name = "NFNMasterLocal")
+  }
+  def localProps = Props(classOf[NFNMasterLocal])
 }
 
 
@@ -72,7 +87,7 @@ trait NFNMaster extends Actor {
     }
   }
 
-  def handlePacket(packet: Packet) = {
+  def handlePacket(packet: CCNPacket) = {
     packet match {
       case i: Interest => handleInterest(i)
       case c: Content => handleContent(c)
@@ -84,16 +99,16 @@ trait NFNMaster extends Actor {
     // received Data from network
     // If it is an interest, start a compute request
 //    case CCNReceive(packet) => handlePacket(packet)
-    case packet:Packet => handlePacket(packet)
+    case packet:CCNPacket => handlePacket(packet)
 
     case data: ByteString => {
       val byteArr = data.toByteBuffer.array.clone
-      val maybePacket: Option[Packet] = NFNCommunication.parseXml(ccnIf.ccnbToXml(byteArr))
+      val maybePacket: Option[CCNPacket] = NFNCommunication.parseCCNPacket(ccnIf.ccnbToXml(byteArr))
 
       logger.info(s"$name received ${maybePacket.getOrElse("unparsable data")}")
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
-        case Some(packet: Packet) => handlePacket(packet)
+        case Some(packet: CCNPacket) => handlePacket(packet)
         case None => logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
       }
     }
@@ -136,26 +151,29 @@ trait NFNMaster extends Actor {
       exit()
       context.system.shutdown()
     }
+
   }
 
-  def send(packet: Packet)
+  def send(packet: CCNPacket)
   def sendAddToCache(content: Content)
   def exit(): Unit = ()
 }
 
-case class NFNMasterNetwork() extends NFNMaster {
+case class NFNMasterNetwork(host: String,
+                            ccnLitePort: Int,
+                            computePort: Int) extends NFNMaster {
 
-  val ccnLiteNFNNetworkProcess = CCNLiteProcess()
+  val ccnLiteNFNNetworkProcess = CCNLiteProcess(host, ccnLitePort, computePort)
   ccnLiteNFNNetworkProcess.start()
 
-  val nfnSocket = context.actorOf(Props(new UDPConnection()), name = "udpsocket")
+  val nfnSocket = context.actorOf(Props(classOf[UDPConnection], new InetSocketAddress(host, computePort), new InetSocketAddress(host, ccnLitePort)), name = s"udpsocket-$computePort-$ccnLitePort")
 
   override def preStart() = {
     nfnSocket ! Handler(self)
   }
 
 
-  override def send(packet: Packet): Unit = {
+  override def send(packet: CCNPacket): Unit = {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
   }
 
@@ -173,7 +191,7 @@ case class NFNMasterLocal() extends NFNMaster {
 
   val localAM = context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), name = "localAM")
 
-  override def send(packet: Packet): Unit = localAM ! packet
+  override def send(packet: CCNPacket): Unit = localAM ! packet
 
   override def sendAddToCache(content: Content): Unit = {
     cs.add(content)
@@ -224,10 +242,8 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
         requestor ! ComputeResult(content)
       }
       case Failure(e) => {
-        val sw = new StringWriter()
-        val pw = new PrintWriter(sw)
-        e.printStackTrace(pw)
-        logger.error(sw.toString)
+
+        logger.error(IOHelper.exceptionToString(e))
       }
     }
   }

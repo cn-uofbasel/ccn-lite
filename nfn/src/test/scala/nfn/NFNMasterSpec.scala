@@ -15,10 +15,10 @@ class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
 with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuiteExecution {
 
   println("INIT")
-  val nfnMasterLocalRef = TestActorRef[NFNMasterLocal]
+  val nfnMasterLocalRef = TestActorRef(NFNMasterFactory.localProps)
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
-  val nfnMasterNetworkRef = TestActorRef[NFNMasterNetwork]
+  val nfnMasterNetworkRef = TestActorRef(NFNMasterFactory.networkProps(10000, 10001))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
   val name = Seq("test", "data")

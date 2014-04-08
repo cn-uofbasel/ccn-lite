@@ -3,7 +3,6 @@ import akka.actor._
 import akka.pattern._
 
 import akka.util.Timeout
-import ccn.ccnlite.CCNLite
 import ccn.packet.{Content, Interest}
 import com.typesafe.config.ConfigFactory
 import nfn.NFNMaster.CCNSendReceive
@@ -32,11 +31,10 @@ object NFNMain extends App {
                                          """.stripMargin
   )
 
-  val ccnIf = CCNLite
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
-  val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-network")
-//  val nfnWorker = system.actorOf(Props[NFNMasterLocal], name = "nfnmaster-local")
+  val nfnWorker = NFNMasterFactory.local(system)
+//  val nfnWorker = NFNMasterFactory.network(system, "localhost", 10000, 10001)
 
   // Has to wait until udp connection is ready
   Thread.sleep(1000)
