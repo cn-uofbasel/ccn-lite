@@ -3,8 +3,9 @@ package ccn.ccnlite
 import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
 import java.io.{FileOutputStream, File}
+import com.typesafe.scalalogging.slf4j.Logging
 
-object CCNLite {
+object CCNLite extends Logging {
   val ccnIf = new CCNLiteInterface()
 
   def ccnbToXml(ccnbData: Array[Byte]): String = {
@@ -40,11 +41,12 @@ object CCNLite {
   def mkAddToCacheInterest(content: Content): Array[Byte] = {
     val binaryContent = mkBinaryContent(content)
 
-    val filename = s"./service-library/test${System.nanoTime}.ccnb"
+    val filename = s"./service-library/test-${content.name.hashCode}-${System.nanoTime}.ccnb"
     val file = new File(filename)
 
     // Just to be sure, if the file already exists, wait quickly and try again
     if (file.exists) {
+      logger.warn(s"Temporary file already existed, this should never happen!")
       Thread.sleep(1)
       mkAddToCacheInterest(content)
     } else {
