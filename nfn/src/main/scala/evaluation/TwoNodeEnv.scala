@@ -35,21 +35,13 @@ object TwoNodeEnv extends App {
   // Make sure the ccnlite nodes communicate between each other
   val nfnWorker1 = NFNMasterFactory.network(system1, node1Config)
   val nfnWorker2 = NFNMasterFactory.network(system2, node2Config)
-
-  Thread.sleep(1000)
   println("Initialized nodes!")
 
-
   nfnWorker1 ! Connect(node2Config)
-  Thread.sleep(1000)
   println("Connected nodes!")
 
-
   nfnWorker1 ! CCNAddToCache(docContent1)
-
   nfnWorker2 ! CCNAddToCache(docContent2)
-
-  Thread.sleep(1000)
   println("Initialized caches!")
 
   println("Asking for content!")
