@@ -72,8 +72,8 @@ trait NFNMaster extends Actor {
       case Some(content) => sender ! content
       case None => {
         val computeWorker = createComputeWorker(interest)
-        val updatedPendingInterests = computeWorker :: pit.get(interest.name).getOrElse(Nil)
-        pit += (interest.name -> updatedPendingInterests)
+        val updatedSendersForInterest = computeWorker :: pit.get(interest.name).getOrElse(Nil)
+        pit += (interest.name -> updatedSendersForInterest)
         computeWorker.tell(interest, self)
       }
     }
@@ -83,7 +83,7 @@ trait NFNMaster extends Actor {
   // Check pit for an address to return content to, otherwise discard it
   private def handleContent(content: Content) = {
     pit.get(content.name) match {
-      case Some(interestSenders @ _*) => {
+      case Some(List(interestSenders @ _*)) => {
         interestSenders foreach { _ ! content}
         pit -= content.name
       }
@@ -126,7 +126,8 @@ trait NFNMaster extends Actor {
         }
         case None => {
           logger.debug(s"Received SendReceive request, aksing network for $interest ")
-          pit += (interest.name -> sender)
+          val updatedSendersForInterest = sender :: pit.get(interest.name).getOrElse(Nil)
+          pit += (interest.name -> updatedSendersForInterest)
           send(interest)
         }
       }
