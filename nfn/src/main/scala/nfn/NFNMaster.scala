@@ -29,16 +29,20 @@ object NFNMaster {
 
   case class ComputeResult(content: Content)
 
+  case class Connect(nodeConfig: NodeConfig)
+
   case class Exit()
 
 }
 
+case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String)
+
 object NFNMasterFactory {
-  def network(context: ActorRefFactory, host: String, ccnLitePort: Int, computePort: Int) = {
-    context.actorOf(networkProps(ccnLitePort, computePort), name = "NFNMasterNetwork")
+  def network(context: ActorRefFactory, nodeConfig: NodeConfig) = {
+    context.actorOf(networkProps(nodeConfig), name = "NFNMasterNetwork")
   }
 
-  def networkProps(ccnLitePort: Int, computePort: Int) = Props(classOf[NFNMasterNetwork], "localhost", ccnLitePort, computePort)
+  def networkProps(nodeConfig: NodeConfig) = Props(classOf[NFNMasterNetwork], nodeConfig)
 
   def local(context: ActorRefFactory) = {
     context.actorOf(localProps, name = "NFNMasterLocal")
@@ -94,6 +98,7 @@ trait NFNMaster extends Actor {
     }
   }
 
+
   override def receive: Actor.Receive = {
 
     // received Data from network
@@ -109,7 +114,7 @@ trait NFNMaster extends Actor {
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet)
-        case None => logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
+        case None => logger.warning(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
       }
     }
 
@@ -147,6 +152,9 @@ trait NFNMaster extends Actor {
       sendAddToCache(content)
     }
 
+    // TODO this message is only for network node
+    case Connect(otherNodeConfig) => connect(otherNodeConfig)
+
     case Exit() => {
       exit()
       context.system.shutdown()
@@ -154,19 +162,21 @@ trait NFNMaster extends Actor {
 
   }
 
-  def send(packet: CCNPacket)
-  def sendAddToCache(content: Content)
+  def connect(otherNodeConfig: NodeConfig): Unit
+  def send(packet: CCNPacket): Unit
+  def sendAddToCache(content: Content): Unit
   def exit(): Unit = ()
 }
 
-case class NFNMasterNetwork(host: String,
-                            ccnLitePort: Int,
-                            computePort: Int) extends NFNMaster {
+case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
-  val ccnLiteNFNNetworkProcess = CCNLiteProcess(host, ccnLitePort, computePort)
+  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
   ccnLiteNFNNetworkProcess.start()
 
-  val nfnSocket = context.actorOf(Props(classOf[UDPConnection], new InetSocketAddress(host, computePort), new InetSocketAddress(host, ccnLitePort)), name = s"udpsocket-$computePort-$ccnLitePort")
+  val nfnSocket = context.actorOf(Props(classOf[UDPConnection],
+                                          new InetSocketAddress(nodeConfig.host, nodeConfig.computePort),
+                                          new InetSocketAddress(nodeConfig.host, nodeConfig.port)),
+                                        name = s"udpsocket-${nodeConfig.computePort}-${nodeConfig.port}")
 
   override def preStart() = {
     nfnSocket ! Handler(self)
@@ -185,6 +195,10 @@ case class NFNMasterNetwork(host: String,
   override def exit(): Unit = {
     ccnLiteNFNNetworkProcess.stop()
   }
+
+  override def connect(otherNodeConfig: NodeConfig): Unit = {
+    ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
+  }
 }
 
 case class NFNMasterLocal() extends NFNMaster {
@@ -196,6 +210,8 @@ case class NFNMasterLocal() extends NFNMaster {
   override def sendAddToCache(content: Content): Unit = {
     cs.add(content)
   }
+
+  override def connect(otherNodeConfig: NodeConfig): Unit = ???
 }
 
 

@@ -12,35 +12,57 @@ import nfn._
 import ccn.packet._
 import nfn.NFNMaster._
 
+
 object TwoNodeEnv extends App {
 
-  implicit val timeout = Timeout(20 seconds)
+  val timeoutDuration: FiniteDuration = 6 seconds
+  implicit val timeout = Timeout( timeoutDuration)
+
+  val node1Config = NodeConfig("localhost", 10000, 10001, "node1")
+  val node2Config = NodeConfig("localhost", 11000, 11001, "node2")
+
+  val docname1 = Seq(node1Config.prefix, "doc", "test1")
+  val docdata1 = "one two three".getBytes
+  val docContent1 = Content(docname1, docdata1)
+
+  val docname2 = Seq(node2Config.prefix, "doc", "test2")
+  val docdata2 = "one two three four".getBytes
+  val docContent2 = Content(docname2, docdata2)
 
   val system1: ActorSystem = ActorSystem("NFNActorSystem1", AkkaConfig())
   val system2: ActorSystem = ActorSystem("NFNActorSystem2", AkkaConfig())
 
   // Make sure the ccnlite nodes communicate between each other
-  val nfnWorker1 = NFNMasterFactory.network(system1, "localhost", 10000, 10001)
-  val nfnWorker2 = NFNMasterFactory.network(system2, "localhost", 11000, 11001)
+  val nfnWorker1 = NFNMasterFactory.network(system1, node1Config)
+  val nfnWorker2 = NFNMasterFactory.network(system2, node2Config)
 
   Thread.sleep(1000)
-  val docdata1 = "one two three".getBytes
-  val docdata2 = "one two three four".getBytes
-  val ts = System.currentTimeMillis()
-  val docname1 = Seq(s"$ts", "doc", "test", "1")
-  val docname2 = Seq(s"$ts", "doc", "test", "2")
-  val docContent1 = Content(docname1, docdata1)
-  val docContent2 = Content(docname2, docdata2)
+  println("Initialized nodes!")
 
-  nfnWorker2 ! CCNAddToCache(docContent1)
 
-  (nfnWorker1 ? CCNSendReceive(Interest(docname1))).mapTo[Content] onComplete {
-    case Success(content) => println(s"RECV: $content")
+  nfnWorker1 ! Connect(node2Config)
+  Thread.sleep(1000)
+  println("Connected nodes!")
+
+
+  nfnWorker1 ! CCNAddToCache(docContent1)
+
+  nfnWorker2 ! CCNAddToCache(docContent2)
+
+  Thread.sleep(1000)
+  println("Initialized caches!")
+
+  println("Asking for content!")
+  (nfnWorker1 ? CCNSendReceive(Interest(docname2))).mapTo[Content] onComplete {
+    case Success(content) => println(s"RECV FROM REMOTE: $content")
     case Failure(error) => throw error
   }
 
+  Thread.sleep(timeoutDuration.toMillis + 100)
+
+
   system1.shutdown()
-  Thread.sleep(20000)
+  system2.shutdown()
   nfnWorker1 ! Exit()
   nfnWorker2 ! Exit()
 }

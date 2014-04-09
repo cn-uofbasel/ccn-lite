@@ -18,7 +18,8 @@ with WordSpecLike with Matchers with BeforeAndAfterAll with SequentialNestedSuit
   val nfnMasterLocalRef = TestActorRef(NFNMasterFactory.localProps)
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
-  val nfnMasterNetworkRef = TestActorRef(NFNMasterFactory.networkProps(10000, 10001))
+  val nodeConfig = NodeConfig("localhost",10000, 10001, "testnode")
+  val nfnMasterNetworkRef = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
   val name = Seq("test", "data")

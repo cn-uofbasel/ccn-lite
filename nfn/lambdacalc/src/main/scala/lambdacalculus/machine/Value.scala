@@ -5,7 +5,7 @@ import lambdacalculus.machine.CallByName._
 import lambdacalculus.compiler._
 import lambdacalculus.parser.ast.LambdaPrettyPrinter
 
-sealed trait Value {
+trait Value {
   def maybeContextName: Option[String]
   override def toString: String = ValuePrettyPrinter.apply(this, None)
 }
