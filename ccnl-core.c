@@ -735,9 +735,14 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
-    DEBUGMSG(99, "ccnl_content_add2cache (%d/%d)\n",
-	     ccnl->contentcnt, ccnl->max_cache_entries);
+    DEBUGMSG(99, "ccnl_content_add2cache (%d/%d) --> %p\n",
+	     ccnl->contentcnt, ccnl->max_cache_entries, c);
 
+    struct ccnl_content_s *cit;
+    for(cit = ccnl->contents; cit; cit = cit->next){
+        DEBUGMSG(99, "--- Already in cache ---\n");
+        if(c == cit) return NULL;
+    }
     if (ccnl->max_cache_entries > 0 &&
 	ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
 	struct ccnl_content_s *c2;
@@ -765,8 +770,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     int cnt = 0;
     DEBUGMSG(99, "ccnl_content_serve_pending\n");
 
-    for (f = ccnl->faces; f; f = f->next)
+    for (f = ccnl->faces; f; f = f->next){
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
+    }
     for (i = ccnl->pit; i;) {
 	struct ccnl_pendint_s *pi;
 	if (!ccnl_i_prefixof_c(i->prefix, i->ppkd,
@@ -774,17 +780,21 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 	    i = i->next;
 	    continue;
 	}
-	// CONFORM: "Data MUST only be transmitted in response to
-	// an Interest that matches the Data."
+	DEBUGMSG(99, "MATCH: %d\n", i->from->faceid);
 #ifdef CCNL_NFN
         if(i->from->faceid < 0){
-           ccnl_content_add2cache(ccnl, c);
+           ccnl_content_add2cache(ccnl, c); //Darf nicht hier passieren, sonst wird c zweimal hinzugefügt
            int threadid = -i->from->faceid;
-           DEBUGMSG(49, "Send signal for threadid: %d", threadid);
+           i = ccnl_interest_remove(ccnl, i);
+           DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
            ccnl_nfn_send_signal(threadid);  
+           DEBUGMSG(49, "Done\n");
            return 1;
         }
 #endif
+        
+        // CONFORM: "Data MUST only be transmitted in response to
+	// an Interest that matches the Data."
 	for (pi = i->pending; pi; pi = pi->next) {
 	    if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
 		continue;
@@ -794,6 +804,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
                 
+                DEBUGMSG("--- Serve to: %d", pi->face->faceid);
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);

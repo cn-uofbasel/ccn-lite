@@ -102,8 +102,10 @@ ccnl_nfn_thread(void *arg)
         struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, res, strlen(res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
-        ccnl_content_add2cache(ccnl, c);
+        DEBUGMSG(99, "DELIVER CONTENT!\n");
         if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
+        ccnl_content_add2cache(ccnl, c);
+        
     }
     
     //TODO: check if really necessary
@@ -111,7 +113,7 @@ ccnl_nfn_thread(void *arg)
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    pthread_exit ((void *) 0);
+    //pthread_exit ((void *) 0);
     return 0;
 }
 
@@ -138,6 +140,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int threadpos = -threadid;
     threads[threadpos] = thread;
     --threadid;
-    
     pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
+    return 0;
 }
