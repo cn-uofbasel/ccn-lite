@@ -40,7 +40,7 @@ object NFNMain extends App {
   val nfnWorker = NFNMasterFactory.network(system, nodeConfig)
 
   // Has to wait until udp connection is ready
-  Thread.sleep(1000)
+//  Thread.sleep(1000)
 
   val docdata1 = "one two three".getBytes
   val docdata2 = "one two three four".getBytes

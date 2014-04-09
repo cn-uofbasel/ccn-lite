@@ -35,6 +35,8 @@ class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends A
 
   private var workers: List[ActorRef] = Nil
 
+  private var notConnectedSendQueue = List[Send]()
+
   override def preStart() = {
     // IO is the manager of the akka IO layer, send it a request
     // to listen on a certain host on a port
@@ -50,9 +52,19 @@ class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends A
     // Received udp socket actor, change receive handler to ready mehtod with reference to the socket actor
     case Udp.Bound(local) =>
       logger.info(s"$name ready")
+      if(notConnectedSendQueue.size > 0 ) {
+        logger.info(s"Sending ${notConnectedSendQueue.size} queued messages")
+      }
       context.become(ready(sender))
+      notConnectedSendQueue foreach { self ! _ }
+      notConnectedSendQueue = Nil
     case Udp.CommandFailed(cmd) =>
       logger.error(s"Udp command '$cmd' failed")
+    case send: Send => {
+      logger.debug(s"Adding to queue")
+      if(notConnectedSendQueue.size > 10) logger.warning("More than 10 messages queued and still not connected")
+      notConnectedSendQueue ::= send
+    }
     case Handler(worker) => handleWorker(worker)
   }
 
