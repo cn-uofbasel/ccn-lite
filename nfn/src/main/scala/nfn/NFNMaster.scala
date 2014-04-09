@@ -62,8 +62,7 @@ trait NFNMaster extends Actor {
   val ccnIf = CCNLite
 
   val cs = ContentStore()
-
-  var pendingInterests: Map[Seq[String], ActorRef] = Map()
+  var pit: Map[Seq[String], List[ActorRef]] = Map()
 
   private def createComputeWorker(interest: Interest): ActorRef =
     context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
@@ -73,7 +72,8 @@ trait NFNMaster extends Actor {
       case Some(content) => sender ! content
       case None => {
         val computeWorker = createComputeWorker(interest)
-        pendingInterests += (interest.name -> computeWorker)
+        val updatedPendingInterests = computeWorker :: pit.get(interest.name).getOrElse(Nil)
+        pit += (interest.name -> updatedPendingInterests)
         computeWorker.tell(interest, self)
       }
     }
@@ -82,10 +82,10 @@ trait NFNMaster extends Actor {
 
   // Check pit for an address to return content to, otherwise discard it
   private def handleContent(content: Content) = {
-    pendingInterests.get(content.name) match {
-      case Some(interestSender) => {
-        interestSender ! content
-        pendingInterests -= content.name
+    pit.get(content.name) match {
+      case Some(interestSenders @ _*) => {
+        interestSenders foreach { _ ! content}
+        pit -= content.name
       }
       case None => logger.error(s"Discarding content $content because there is no entry in pit")
     }
@@ -126,7 +126,7 @@ trait NFNMaster extends Actor {
         }
         case None => {
           logger.debug(s"Received SendReceive request, aksing network for $interest ")
-          pendingInterests += (interest.name -> sender)
+          pit += (interest.name -> sender)
           send(interest)
         }
       }
@@ -134,7 +134,7 @@ trait NFNMaster extends Actor {
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
     // convert the result to ccnb format and send it to the socket
     case ComputeResult(content) => {
-      pendingInterests.get(content.name) match {
+      pit.get(content.name) match {
         case Some(worker) => {
           logger.debug("sending compute result to socket")
           send(content)

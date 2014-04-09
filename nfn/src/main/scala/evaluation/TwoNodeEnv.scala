@@ -3,7 +3,7 @@ package evaluation
 import scala.util._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.actor.{Props, ActorSystem}
+import akka.actor.ActorSystem
 import akka.pattern._
 import akka.util.Timeout
 import config.AkkaConfig
@@ -29,8 +29,8 @@ object TwoNodeEnv extends App {
   val docdata2 = "one two three four".getBytes
   val docContent2 = Content(docname2, docdata2)
 
-  val system1: ActorSystem = ActorSystem("NFNActorSystem1", AkkaConfig())
-  val system2: ActorSystem = ActorSystem("NFNActorSystem2", AkkaConfig())
+  val system1 = ActorSystem("NFNActorSystem1", AkkaConfig())
+  val system2 = ActorSystem("NFNActorSystem2", AkkaConfig())
 
   // Make sure the ccnlite nodes communicate between each other
   val nfnWorker1 = NFNMasterFactory.network(system1, node1Config)
