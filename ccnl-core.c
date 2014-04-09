@@ -789,7 +789,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
            DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
            ccnl_nfn_send_signal(threadid);  
            DEBUGMSG(49, "Done\n");
-           return 1;
+           cnt++;
+           i = ccnl_interest_remove(ccnl, i);
+           continue;
         }
 #endif
         

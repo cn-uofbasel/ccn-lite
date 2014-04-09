@@ -334,7 +334,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, cha
     int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
     free(param);
     //search
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, NULL); //FIXME: NAMECOMP[0]???
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
         return c;

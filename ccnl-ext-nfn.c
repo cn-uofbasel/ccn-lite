@@ -90,8 +90,7 @@ ccnl_nfn_thread(void *arg)
     }
     char *res = Krivine_reduction(ccnl, str, thunk_request, &num_of_thunks,
         original_prefix, thread);
-    //stores result if computed   
-    
+    //stores result if computed      
     if(res){
         DEBUGMSG(2,"Computation finshed: %s\n", res);
         if(thunk_request){      
