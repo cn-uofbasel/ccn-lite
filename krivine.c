@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include "krivine-common.c"
 
+
 #define LAMBDA '@'
 
 #define term_is_var(t)     (!(t)->m)
@@ -291,35 +292,32 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     len = mkInterest(namecomp, 0, out);
     interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
     
-    /*if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
-        DEBUGMSG(49, "Content can be computed");
-        return c;
-    }else{
-        
-        DEBUGMSG(49, "Got no thunk, continue with null result just for debugging\n");
-        return 0;
-    }*/
+    //TODO: Check if it is already available locally
+    
     interest->from->faceid = config->thread->id;
-    printf("From face id %d\n", interest->from->faceid);
     ccnl_interest_propagate(ccnl, interest);
-    printf("WAITING on Signal; Threadid : %d \n", config->thread->id);
+    DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
     //local search. look if content is now available!
-    printf("Got signal CONTINUE\n");
+    DEBUGMSG(99, "Got signal CONTINUE\n");
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
-        DEBUGMSG(49, "Content locally found\n");
+        DEBUGMSG(49, "Content now available\n");
+        //ccnl_interest_remove(ccnl, interest);
         return c;
     }
+    //ccnl_interest_remove(ccnl, interest);
     return 0;
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, char **params, 
+ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, int current_param, char **params, 
         int num_params, char **namecomp, char *out, char *comp, char *param, 
         int thunk_request){
     struct ccnl_content_s *c;
     int j;
     int complen = sprintf(comp, "(@x call %d ", num_params);
+    DEBUGMSG(2, "ccnl_nfn_handle_network_search()\n");
+    
     for(j = 0; j < num_params; ++j){
         if(current_param == j){
             complen += sprintf(comp + complen, "x ");
@@ -334,15 +332,24 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, cha
     int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
     free(param);
     //search
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, NULL); //FIXME: NAMECOMP[0]???
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
+        //ccnl_interest_remove(ccnl, interest);
         return c;
     }
-
-    else if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
-        DEBUGMSG(49, "Content found in the network\n");
-        return c;
+    else{
+        ccnl_interest_propagate(ccnl, interest);
+        DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
+        pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
+        //local search. look if content is now available!
+        DEBUGMSG(99,"Got signal CONTINUE\n");
+        if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
+            DEBUGMSG(49, "Content now available: %s\n", c->content);
+            //ccnl_interest_remove(ccnl, interest);
+            return c;
+        }
+        return NULL;
     }
 }
 
@@ -368,9 +375,10 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
                 namecomp, out, comp, thunk_request);
         return c;
     }else{
-        //search for content in the network
-       //FIXME: enable c = ccnl_nfn_handle_network_search(ccnl, current_param, params, num_params,
-                //namecomp, out, comp, param, thunk_request);
+        DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
+                params[current_param]);
+        c = ccnl_nfn_handle_network_search(ccnl, config, current_param, params, num_params,
+                namecomp, out, comp, param, thunk_request);
     }
     return c;
 }
@@ -696,8 +704,8 @@ normal:
                 }
             }//endif
         }//endfor
-        
-        push_to_stack(&configuration->result_stack, "42");
+        DEBUGMSG(2, "Could not compute the result!\n");
+        return 0;
         
         tail:
         return pending+1;

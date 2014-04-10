@@ -101,7 +101,6 @@ ccnl_nfn_thread(void *arg)
         struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, res, strlen(res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
-        DEBUGMSG(99, "DELIVER CONTENT!\n");
         if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         

@@ -421,12 +421,13 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
     char out[CCNL_MAX_PACKET_SIZE];
     int len = mkInterest(namecomp, 0, out);
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+    interest->propagate = 0;
     int found = 0;
     struct ccnl_content_s *c;
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
-    //ccnl_interest_remove(ccnl, interest);
+    //interest = ccnl_interest_remove(ccnl, interest);
     return found;
 }
 
