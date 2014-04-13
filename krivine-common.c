@@ -23,6 +23,16 @@
 
 #define NFN_FACE -1;
 
+
+struct configuration_s{
+    char *prog;
+    struct stack_s *result_stack;
+    struct stack_s *argument_stack;
+    struct environment_s *env; 
+    struct environment_s *global_dict;
+    struct thread_s *thread;
+};
+
 struct thread_s{
     int id;
     pthread_cond_t cond;
@@ -370,14 +380,23 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 }
 
 struct ccnl_content_s *
-ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
+ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+        struct ccnl_interest_s *interest){
     DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
     
-    ccnl_interest_propagate(ccnl, i);
-    //copy receive system to here from core
-    struct ccnl_content_s *c = ccnl_receive_content_synchronous(ccnl, i);
+    struct ccnl_content_s *c;
+    interest->from->faceid = config->thread->id;
+    ccnl_interest_propagate(ccnl, interest);
     
-    return c;
+    DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
+    pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
+    //local search. look if content is now available!
+    DEBUGMSG(99,"Got signal CONTINUE\n");
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
+        DEBUGMSG(49, "Content now available: %s\n", c->content);
+        return c;
+    }
+    return NULL;
 }
 
 //FIXME use global search or special face?
@@ -496,12 +515,12 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_pre
 }
 
 struct ccnl_content_s *
-ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, char *thunk){
+ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *thunk){
     DEBUGMSG(2, "ccnl_nfn_resolve_thunk()\n");
     struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(thunk);
     if(interest){
         struct ccnl_content_s *c;
-        if((c = ccnl_nfn_global_content_search(ccnl, interest)) != NULL){
+        if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
             DEBUGMSG(49, "Thunk was resolved\n");
             return c;
         }
