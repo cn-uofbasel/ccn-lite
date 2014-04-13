@@ -78,7 +78,7 @@ pop_from_stack(struct stack_s **top){
 }
 
 char *
-pop_or_resolve(struct ccnl_relay_s *ccnl, struct configuration_s *config){
+pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     char *res = (char*) pop_from_stack(&config->result_stack);
     char *ret = res;
     struct ccnl_content_s *c;
@@ -576,9 +576,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i2 = atoi(h);
 	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -594,9 +594,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i2 = atoi(h);
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -610,9 +610,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i2 = atoi(h);
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
@@ -625,9 +625,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i2 = atoi(h);
 	res = i2-i1;
 	h = malloc(sizeof(char)*10);
@@ -640,9 +640,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, configuration);
+	h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	i2 = atoi(h);
 	res = i1*i2;
 	h = malloc(sizeof(char)*10);
@@ -655,7 +655,7 @@ normal:
 	char *h;
 	int i, offset;
 	char name[5];
-        h = pop_or_resolve(ccnl, configuration);
+        h = pop_or_resolve_from_result_stack(ccnl, configuration);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
 	sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
@@ -677,13 +677,13 @@ normal:
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
-        char *h = pop_or_resolve(ccnl, configuration);
+        char *h = pop_or_resolve_from_result_stack(ccnl, configuration);
         int num_params = atoi(h);
         int i;
         char **params = malloc(sizeof(char * ) * num_params); 
         
         for(i = 0; i < num_params; ++i){ //pop parameter from stack
-            params[i] = pop_or_resolve(ccnl, configuration);
+            params[i] = pop_or_resolve_from_result_stack(ccnl, configuration);
         }
         
         //as long as there is a routable parameter: try to find a result
