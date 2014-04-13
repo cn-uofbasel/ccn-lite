@@ -230,7 +230,7 @@ mkContent(char **namecomp,
 
 
 struct ccnl_content_s *
-add_computation_to_cache(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         char *res, int reslen){
  
     int i = 0;
@@ -489,7 +489,7 @@ ccnl_nfn_remove_thunk(char* thunkid){
 int 
 ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_prefix){
     DEBUGMSG(2, "ccnl_nfn_reply_thunk()\n");
-    struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, "THUNK", strlen("THUNK"));  
+    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, "THUNK", strlen("THUNK"));  
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);
     return 0;
