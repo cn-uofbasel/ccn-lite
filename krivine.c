@@ -74,15 +74,30 @@ push_to_stack(struct stack_s **top, void *content){
 
 void *
 pop_from_stack(struct stack_s **top){
+    void *res;
     if(top == NULL) return NULL;
     if( *top != NULL){
-            struct stack_s *h = *top;
-            void *res = h->content;
+        struct stack_s *h = *top;
+        res = h->content;
     	*top = h->next;
-            free(h);
-            return res;
-        }
+        free(h);
+        return res;
+    }
     return NULL;
+}
+
+char *
+pop_or_resolve(struct ccnl_relay_s *ccnl, struct stack_s **top){
+    char *res = (char*) pop_from_stack(top);
+    char *ret = res;
+    struct ccnl_content_s *c;
+    if(!strncmp(res, "THUNK", 5)){
+        printf("Resolve Thunk %s \n", res);
+        //resolve_thunk()
+        c = ccnl_nfn_resolve_thunk(ccnl, res);
+        ret = c->content;
+    }
+    return ret;
 }
 
 void 
@@ -333,6 +348,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     free(param);
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+    interest->from->faceid = config->thread->id;
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
         //ccnl_interest_remove(ccnl, interest);
@@ -373,12 +389,12 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
                 params[current_param]);
         c = ccnl_nfn_handle_local_computation(ccnl, config, params, num_params, 
                 namecomp, out, comp, thunk_request);
-        return c;
     }else{
         DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
                 params[current_param]);
         c = ccnl_nfn_handle_network_search(ccnl, config, current_param, params, num_params,
                 namecomp, out, comp, param, thunk_request);
+        
     }
     return c;
 }
@@ -583,9 +599,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i2 = atoi(h);
 	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -601,9 +617,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i2 = atoi(h);
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -617,9 +633,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i2 = atoi(h);
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
@@ -632,9 +648,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i2 = atoi(h);
 	res = i2-i1;
 	h = malloc(sizeof(char)*10);
@@ -647,9 +663,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
+	h = pop_or_resolve(ccnl, &configuration->result_stack);
 	i2 = atoi(h);
 	res = i1*i2;
 	h = malloc(sizeof(char)*10);
@@ -662,7 +678,7 @@ normal:
 	char *h;
 	int i, offset;
 	char name[5];
-        h = pop_from_stack(&configuration->result_stack);
+        h = pop_or_resolve(ccnl, &configuration->result_stack);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
 	sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
@@ -684,13 +700,13 @@ normal:
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
-        char *h = pop_from_stack(&configuration->result_stack);
+        char *h = pop_or_resolve(ccnl, &configuration->result_stack);
         int num_params = atoi(h);
         int i;
         char **params = malloc(sizeof(char * ) * num_params); 
         
         for(i = 0; i < num_params; ++i){ //pop parameter from stack
-            params[i] = pop_from_stack(&configuration->result_stack);
+            params[i] = pop_or_resolve(ccnl, &configuration->result_stack);
         }
         
         //as long as there is a routable parameter: try to find a result
@@ -699,7 +715,18 @@ normal:
                 struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, 
                         configuration, i, params, num_params, thunk_request);
                 if(c){
-                    push_to_stack(&configuration->result_stack, c->content);
+                    if(thunk_request){ //if thunk_request push thunkid on the stack
+                        
+                        --(*num_of_required_thunks);
+                        char * thunkid = ccnl_nfn_add_thunk(ccnl, original_prefix);
+                        push_to_stack(&configuration->result_stack, thunkid);
+                        if( *num_of_required_thunks <= 0){
+                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                        }
+                    }
+                    else{
+                        push_to_stack(&configuration->result_stack, c->content);
+                    }                    
                     goto tail;
                 }
             }//endif

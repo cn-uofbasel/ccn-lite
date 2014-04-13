@@ -36,6 +36,7 @@ ccnl_nfn_count_required_thunks(char *str)
         tok += 4;
         ++num;
     }
+    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);
     return num;
 }
 
@@ -55,8 +56,7 @@ ccnl_nfn_thread(void *arg)
     int thunk_request = 0;
     int num_of_thunks = 0;
     struct ccnl_prefix_s *original_prefix;
-    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p)\n", ccnl, orig, prefix, from);
-    DEBUGMSG(99, "NFN-engine\n"); 
+    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p)\n", ccnl, orig, prefix, from); 
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
         
@@ -98,7 +98,7 @@ ccnl_nfn_thread(void *arg)
             original_prefix->complen[original_prefix->compcnt-2] =  original_prefix->complen[original_prefix->compcnt-1];
             --original_prefix->compcnt;
         }
-        struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, res, strlen(res));
+        struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, res, strlen(res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
         if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
