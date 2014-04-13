@@ -971,7 +971,6 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_interest_s *i_it = NULL;
                 
                 for(i_it = relay->pit; i_it; i_it = i_it->next){
-                    DEBUGMSG(99, "COMPUTE_RESULT? %d\n", i_it->from->faceid);
                      int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                      //Check if prefix match and it is a nfn request
                      if(ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_EXACT) 

@@ -32,15 +32,6 @@ struct closure_s{
     struct environment_s *env;
 };
 
-struct configuration_s{
-    char *prog;
-    struct stack_s *result_stack;
-    struct stack_s *argument_stack;
-    struct environment_s *env; 
-    struct environment_s *global_dict;
-    struct thread_s *thread;
-};
-
 struct closure_s *
 new_closure(char *term, struct environment_s *env){
     struct closure_s *ret = malloc(sizeof(struct closure_s));
@@ -87,14 +78,14 @@ pop_from_stack(struct stack_s **top){
 }
 
 char *
-pop_or_resolve(struct ccnl_relay_s *ccnl, struct stack_s **top){
-    char *res = (char*) pop_from_stack(top);
+pop_or_resolve(struct ccnl_relay_s *ccnl, struct configuration_s *config){
+    char *res = (char*) pop_from_stack(&config->result_stack);
     char *ret = res;
     struct ccnl_content_s *c;
     if(!strncmp(res, "THUNK", 5)){
         printf("Resolve Thunk %s \n", res);
         //resolve_thunk()
-        c = ccnl_nfn_resolve_thunk(ccnl, res);
+        c = ccnl_nfn_resolve_thunk(ccnl, config, res);
         ret = c->content;
     }
     return ret;
@@ -310,14 +301,8 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     //TODO: Check if it is already available locally
     
     interest->from->faceid = config->thread->id;
-    ccnl_interest_propagate(ccnl, interest);
-    DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
-    pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
-    //local search. look if content is now available!
-    DEBUGMSG(99, "Got signal CONTINUE\n");
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
-        DEBUGMSG(49, "Content now available\n");
-        //ccnl_interest_remove(ccnl, interest);
+    if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+        DEBUGMSG(49, "Content found in the network\n");
         return c;
     }
     //ccnl_interest_remove(ccnl, interest);
@@ -354,19 +339,11 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
         //ccnl_interest_remove(ccnl, interest);
         return c;
     }
-    else{
-        ccnl_interest_propagate(ccnl, interest);
-        DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
-        pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
-        //local search. look if content is now available!
-        DEBUGMSG(99,"Got signal CONTINUE\n");
-        if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
-            DEBUGMSG(49, "Content now available: %s\n", c->content);
-            //ccnl_interest_remove(ccnl, interest);
-            return c;
-        }
-        return NULL;
+    else if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+        DEBUGMSG(49, "Content found in the network\n");
+        return c;
     }
+    return NULL;
 }
 
 struct ccnl_content_s *
@@ -599,9 +576,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i2 = atoi(h);
 	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -617,9 +594,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i2 = atoi(h);
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -633,9 +610,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i2 = atoi(h);
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
@@ -648,9 +625,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i2 = atoi(h);
 	res = i2-i1;
 	h = malloc(sizeof(char)*10);
@@ -663,9 +640,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i1 = atoi(h);
-	h = pop_or_resolve(ccnl, &configuration->result_stack);
+	h = pop_or_resolve(ccnl, configuration);
 	i2 = atoi(h);
 	res = i1*i2;
 	h = malloc(sizeof(char)*10);
@@ -678,7 +655,7 @@ normal:
 	char *h;
 	int i, offset;
 	char name[5];
-        h = pop_or_resolve(ccnl, &configuration->result_stack);
+        h = pop_or_resolve(ccnl, configuration);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
 	sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
@@ -700,13 +677,13 @@ normal:
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
-        char *h = pop_or_resolve(ccnl, &configuration->result_stack);
+        char *h = pop_or_resolve(ccnl, configuration);
         int num_params = atoi(h);
         int i;
         char **params = malloc(sizeof(char * ) * num_params); 
         
         for(i = 0; i < num_params; ++i){ //pop parameter from stack
-            params[i] = pop_or_resolve(ccnl, &configuration->result_stack);
+            params[i] = pop_or_resolve(ccnl, configuration);
         }
         
         //as long as there is a routable parameter: try to find a result
