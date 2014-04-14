@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-02-06 <christopher.scherb@unibas.ch>created 
+ * 2014-02-06 <christopher.scherb@unibas.ch>created
  */
 
 #include "ccnl-core.h"
@@ -38,33 +38,32 @@ ccnl_nfn_count_required_thunks(char *str)
     return num;
 }
 
-int 
+int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     int thunk_request = 0;
     int num_of_thunks = 0;
     struct ccnl_prefix_s *original_prefix;
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p)\n", ccnl, orig, prefix, from);
-    DEBUGMSG(99, "NFN-engine\n"); 
+    DEBUGMSG(99, "NFN-engine\n");
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
-        
+
         ccnl_nfn_copy_prefix(prefix, &original_prefix);
         thunk_request = 1;
         //FIXME: WARUM COPY VON PREFIX NÖTIG?
-      
-        DEBUGMSG(99, "  Thunk-request, currently not implementd\n"); 
+
+        DEBUGMSG(99, "  Thunk-request, currently not implementd\n");
         //TODO: search for num of required thunks???
     }
-<<<<<<< HEAD
     else{
         original_prefix = prefix;
     }
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
-        
-    
+
+
     //put packet together
     len = sprintf(str, "%s", prefix->comp[prefix->compcnt-2-thunk_request]);
     if(prefix->compcnt > 2 + thunk_request){
@@ -73,50 +72,34 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     for(i = 0; i < prefix->compcnt-2-thunk_request; ++i){
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
-    
-=======
-    char str[CCNL_MAX_PACKET_SIZE];
-    int i, len = 0;
-    
-    //put packet together
-    sprintf(str, "%s", prefix->comp[prefix->compcnt-2]);
-    for(i = 0; i < prefix->compcnt-2; ++i){
-        len += sprintf(str + len, "/%s", prefix->comp[i]);
-    }
-     
-    
-    /*for(i = 0; i < prefix->compcnt-1; ++i){
-        //DEBUGMSG(99, "%s\n", prefix->comp[i]);
-        len += sprintf(str + len, " %s", prefix->comp[i]);
-    }*/
->>>>>>> 77d83cd... Add utility to create compute requests
+
     DEBUGMSG(99, "%s\n", str);
     //search for result here... if found return...
     if(thunk_request){
         num_of_thunks = ccnl_nfn_count_required_thunks(str);
     }
     char *res = Krivine_reduction(ccnl, str, thunk_request, &num_of_thunks, original_prefix);
-    //stores result if computed   
-    
+    //stores result if computed
+
     if(res){
         DEBUGMSG(2,"Computation finshed: %s\n", res);
-        if(thunk_request){      
+        if(thunk_request){
             original_prefix->comp[original_prefix->compcnt-2] =  original_prefix->comp[original_prefix->compcnt-1];
             original_prefix->complen[original_prefix->compcnt-2] =  original_prefix->complen[original_prefix->compcnt-1];
             --original_prefix->compcnt;
         }
         struct ccnl_content_s *c = add_computation_to_cache(ccnl, original_prefix, res, strlen(res));
-            
+
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
         ccnl_content_add2cache(ccnl, c);
         if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
     }
-    
+
     //TODO: check if really necessary
     /*if(thunk_request)
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    
+
     return 0;
 }

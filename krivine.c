@@ -1,20 +1,3 @@
-<<<<<<< HEAD
-=======
-/*
- * krivine.c
- * a "Krivine lambda expression resolver" for CCN
- *
- * (C) 2013 <christian.tschudin@unibas.ch>
- *
- * 2013-05-10 created
- * 2013-05-15 spooky hash fct added. Encoding still uses "hashXXX"
- *            instead of the hash bits (for readability during devl)
- * 2013-06-09 recursion works, tail-recursion too, now we have
- *            a simple read-eval loop
- * 2016-03-14 integration for nfn <christopher.scherb@unibas.ch>
- */
-
->>>>>>> 77d83cd... Add utility to create compute requests
 #include <ctype.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -24,14 +7,6 @@
 #include <arpa/inet.h>
 #include "krivine-common.c"
 
-<<<<<<< HEAD
-=======
-#ifndef ABSTRACT_MACHINE
-#include "krivine-common.c"
-#endif
-
-#define CORRECT_PARENTHESES
->>>>>>> 77d83cd... Add utility to create compute requests
 #define LAMBDA '@'
 
 #define term_is_var(t)     (!(t)->m)
@@ -60,7 +35,7 @@ struct configuration_s{
     char *prog;
     struct stack_s *result_stack;
     struct stack_s *argument_stack;
-    struct environment_s *env; 
+    struct environment_s *env;
     struct environment_s *global_dict;
 };
 
@@ -83,14 +58,14 @@ new_config(char *prog, struct environment_s *global_dict){
     return ret;
 }
 
-void 
+void
 push_to_stack(struct stack_s **top, void *content){
     struct stack_s *h = malloc(sizeof(struct stack_s));
     if(top != NULL && *top != NULL){
                 h->next = *top;
         }else{
-	        h->next = NULL;
-	    }
+            h->next = NULL;
+        }
     h->content = content;
     *top = h;
 }
@@ -101,24 +76,24 @@ pop_from_stack(struct stack_s **top){
     if( *top != NULL){
             struct stack_s *h = *top;
             void *res = h->content;
-    	*top = h->next;
+        *top = h->next;
             free(h);
             return res;
         }
     return NULL;
 }
 
-void 
+void
 print_environment(struct environment_s *env){
    struct environment_s *e;
    printf("Environment address is: %p\n",env);
    int num = 0;
    for(e = env; e; e = e->next){
-	printf("Element %d %s %p\n", num++, e->name, e->element);        
+    printf("Element %d %s %p\n", num++, e->name, e->element);
    }
 }
 
-void 
+void
 print_result_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
@@ -127,19 +102,19 @@ print_result_stack(struct stack_s *stack){
    }
 }
 
-void 
+void
 print_argument_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
    for(s = stack; s; s = s->next){
         struct closure_s *c = s->content;
-	printf("Element %d %s\n ---Env: \n", num++, c->term);  
-	print_environment(c->env);
-	printf("--End Env\n");      
+    printf("Element %d %s\n ---Env: \n", num++, c->term);
+    print_environment(c->env);
+    printf("--End Env\n");
    }
 }
 
-void 
+void
 add_to_environment(struct environment_s **env, char *name, void *element){
    struct environment_s *newelement = malloc(sizeof(struct environment_s));
    newelement->name = name;
@@ -156,9 +131,9 @@ void *
 search_in_environment(struct environment_s *env, char *name){
   struct environment_s *envelement;
   for(envelement = env; envelement; envelement = envelement->next){
-    	if(!strcmp(name, envelement->name)){
-		     return envelement->element;	
-		}
+        if(!strcmp(name, envelement->name)){
+             return envelement->element;
+        }
     }
   return NULL;
 }
@@ -183,11 +158,11 @@ parse_var(char **cpp)
 
     p = *cpp;
     while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
-	p++;
+    p++;
     len = p - *cpp;
     p = malloc(len+1);
     if (!p)
-	return 0;
+    return 0;
     memcpy(p, *cpp, len);
     p[len] = '\0';
     *cpp += len;
@@ -206,46 +181,46 @@ parseKRIVINE(int lev, char **cp)
     struct term_s *t = 0, *s, *u;
 
     while (**cp) {
-	while (isspace(**cp))
-	    *cp += 1;
+    while (isspace(**cp))
+        *cp += 1;
 
-//	printf("parseKRIVINE %d %s\n", lev, *cp);
+//  printf("parseKRIVINE %d %s\n", lev, *cp);
 
-	if (**cp == ')')
-	    return t;
-	if (**cp == '(') {
-	    *cp += 1;
-	    s = parseKRIVINE(lev+1, cp);
-	    if (!s)
-		return 0;
-	    if (**cp != ')') {
-		printf("parseKRIVINE error: missing )\n");
-		return 0;
-	    } else
-		*cp += 1;
-	} else if (**cp == LAMBDA) {
-	    *cp += 1;
-	    s = calloc(1, sizeof(*s));
-	    s->v = parse_var(cp);
-	    s->m = parseKRIVINE(lev+1, cp);
-//	    printKRIVINE(dummybuf, s->m, 0);
-//	    printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
-	} else {
-	    s = calloc(1, sizeof(*s));
-	    s->v = parse_var(cp);
-//	    printf("  var: <%s>\n", s->v);
-	}
-	if (t) {
-//	    printKRIVINE(dummybuf, t, 0);
-//	    printf("  old term: <%s>\n", dummybuf);
-	    u = calloc(1, sizeof(*u));
-	    u->m = t;
-	    u->n = s;
-	    t = u;
-	} else
-	    t = s;
-//	printKRIVINE(dummybuf, t, 0);
-//	printf("  new term: <%s>\n", dummybuf);
+    if (**cp == ')')
+        return t;
+    if (**cp == '(') {
+        *cp += 1;
+        s = parseKRIVINE(lev+1, cp);
+        if (!s)
+        return 0;
+        if (**cp != ')') {
+        printf("parseKRIVINE error: missing )\n");
+        return 0;
+        } else
+        *cp += 1;
+    } else if (**cp == LAMBDA) {
+        *cp += 1;
+        s = calloc(1, sizeof(*s));
+        s->v = parse_var(cp);
+        s->m = parseKRIVINE(lev+1, cp);
+//      printKRIVINE(dummybuf, s->m, 0);
+//      printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
+    } else {
+        s = calloc(1, sizeof(*s));
+        s->v = parse_var(cp);
+//      printf("  var: <%s>\n", s->v);
+    }
+    if (t) {
+//      printKRIVINE(dummybuf, t, 0);
+//      printf("  old term: <%s>\n", dummybuf);
+        u = calloc(1, sizeof(*u));
+        u->m = t;
+        u->n = s;
+        t = u;
+    } else
+        t = s;
+//  printKRIVINE(dummybuf, t, 0);
+//  printf("  new term: <%s>\n", dummybuf);
     }
 //    printKRIVINE(dummybuf, t, 0);
 //    printf("  we return <%s>\n", dummybuf);
@@ -258,17 +233,17 @@ printKRIVINE(char *cfg, struct term_s *t, char last)
     int len = 0;
 
     if (t->v && t->m) { // Lambda (sequence)
-	len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
-	len += printKRIVINE(cfg + len, t->m, 'a');
-	len += sprintf(cfg + len, ")");
-	return len;
+    len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
+    len += printKRIVINE(cfg + len, t->m, 'a');
+    len += sprintf(cfg + len, ")");
+    return len;
     }
     if (t->v) { // (single) variable
-	if (isalnum(last))
-	    len += sprintf(cfg + len, " %s", t->v);
-	else
-	    len += sprintf(cfg + len, "%s", t->v);
-	return len;
+    if (isalnum(last))
+        len += sprintf(cfg + len, " %s", t->v);
+    else
+        len += sprintf(cfg + len, "%s", t->v);
+    return len;
     }
     // application (sequence)
 #ifdef CORRECT_PARENTHESES
@@ -278,26 +253,26 @@ printKRIVINE(char *cfg, struct term_s *t, char last)
     len += sprintf(cfg + len, ")");
 #else
     if (t->n->v && !t->n->m) {
-	len += printKRIVINE(cfg + len, t->m, last);
-	len += printKRIVINE(cfg + len, t->n, 'a');
+    len += printKRIVINE(cfg + len, t->m, last);
+    len += printKRIVINE(cfg + len, t->n, 'a');
     } else {
-	len += printKRIVINE(cfg + len, t->m, last);
-	len += sprintf(cfg + len, " (");
-	len += printKRIVINE(cfg + len, t->n, '(');
-	len += sprintf(cfg + len, ")");
+    len += printKRIVINE(cfg + len, t->m, last);
+    len += sprintf(cfg + len, " (");
+    len += printKRIVINE(cfg + len, t->n, '(');
+    len += sprintf(cfg + len, ")");
     }
 #endif
     return len;
 }
 
 int iscontent(char *cp){
-	if(cp[0] == '/')
-		return 1;
-	return 0;
+    if(cp[0] == '/')
+        return 1;
+    return 0;
 }
 //------------------------------------------------------------
 struct ccnl_content_s *
-ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params, 
+ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params,
         int num_params, char **namecomp, char *out, char *comp, int thunk_request){
     int complen = sprintf(comp, "call %d ", num_params);
     struct ccnl_interest_s * interest;
@@ -314,7 +289,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params,
     namecomp[i++] = NULL;
     len = mkInterest(namecomp, 0, out);
     interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
-    
+
     if((c = ccnl_nfn_content_computation(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content can be computed");
         return c;
@@ -325,8 +300,8 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, char **params,
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, char **params, 
-        int num_params, char **namecomp, char *out, char *comp, char *param, 
+ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, char **params,
+        int num_params, char **namecomp, char *out, char *comp, char *param,
         int thunk_request){
     struct ccnl_content_s *c;
     int j;
@@ -342,7 +317,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, cha
     complen += sprintf(comp + complen, ")");
     DEBUGMSG(49, "Computation request: %s %s\n", comp, params[current_param]);
     //make interest
-    int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
+    int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search
     free(param);
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
@@ -358,7 +333,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, int current_param, cha
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param, 
+ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param,
         char **params, int num_params, int thunk_request){
     char *out =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *comp =  malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
@@ -368,14 +343,14 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param,
     int j, complen;
     memset(comp, 0, CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
-    
+
     param = strdup(params[current_param]);
     j = splitComponents(param, namecomp);
-    
+
     if(isLocalAvailable(ccnl, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 params[current_param]);
-        c = ccnl_nfn_handle_local_computation(ccnl, params, num_params, 
+        c = ccnl_nfn_handle_local_computation(ccnl, params, num_params,
                 namecomp, out, comp, thunk_request);
         return c;
     }else{
@@ -386,20 +361,20 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, int current_param,
 }
 //------------------------------------------------------------
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration, 
-        int thunk_request, int *num_of_required_thunks,  
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration,
+        int thunk_request, int *num_of_required_thunks,
         struct ccnl_prefix_s *original_prefix, int *halt, char *dummybuf)
 {
     struct term_s *t;
     char *pending, *p, *cp;
     int len;
     char *prog = configuration->prog;
-    
+
     //pop closure
 
     if (!prog || strlen(prog) == 0) {
          if(configuration->result_stack){
-		return configuration->result_stack->content;
+        return configuration->result_stack->content;
          }
          printf("no result returned\n");
          return NULL;
@@ -410,12 +385,12 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration,
     p = strchr(prog, '(');
 
     if (!strncmp(prog, "ACCESS(", 7)) {
-	char *cname, *sname;
-	if (pending){
-	    cp = pending-1;
+    char *cname, *sname;
+    if (pending){
+        cp = pending-1;
         }
         else{
-	    cp = prog + strlen(prog) - 1;
+        cp = prog + strlen(prog) - 1;
         }
         len = cp - p;
         cp = malloc(len);
@@ -423,24 +398,24 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration,
         cp[len-1] = '\0';
         DEBUGMSG(2, "---to do: access <%s>\n", cp);
 
-	struct closure_s *closure = search_in_environment(configuration->env, cp);
-	if (!closure) {
-		closure = search_in_environment(configuration->global_dict, cp);
-		if(!closure){
-			printf("?? could not lookup var %s\n", cp);
-			return 0;
-		}
-	}
-	push_to_stack(&configuration->argument_stack, closure);
-	
-	return pending+1;
+    struct closure_s *closure = search_in_environment(configuration->env, cp);
+    if (!closure) {
+        closure = search_in_environment(configuration->global_dict, cp);
+        if(!closure){
+            printf("?? could not lookup var %s\n", cp);
+            return 0;
+        }
+    }
+    push_to_stack(&configuration->argument_stack, closure);
+
+    return pending+1;
     }
     if (!strncmp(prog, "CLOSURE(", 8)) {
         if (pending)
             cp = pending-1;
         else
             cp = prog + strlen(prog) - 1;
-	len = cp - p;
+    len = cp - p;
         cp = malloc(len);
         memcpy(cp, p+1, len-1);
         cp[len-1] = '\0';
@@ -450,11 +425,11 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration,
             char v[500], *c;
             int len;
             c = strchr(cp+12, ')'); if (!c) goto normal;
-	    len = c - (cp+12);
-	    memcpy(v, cp+12, len);
-	    v[len] = '\0';
-	    struct closure_s *closure = search_in_environment(configuration->env, v);
-	    if(!closure) goto normal;
+        len = c - (cp+12);
+        memcpy(v, cp+12, len);
+        v[len] = '\0';
+        struct closure_s *closure = search_in_environment(configuration->env, v);
+        if(!closure) goto normal;
             if(!strcmp(closure->term, cp)){
                 DEBUGMSG(2, "** detected tail recursion case %s\n", closure->term);
             }else{
@@ -464,7 +439,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *configuration,
         else{
             struct closure_s *closure;
 normal:
-            closure = new_closure(cp, configuration->env); 
+            closure = new_closure(cp, configuration->env);
             //configuration->env = NULL;//FIXME new environment?
             push_to_stack(&configuration->argument_stack, closure);
         }
@@ -472,26 +447,26 @@ normal:
             cp = pending + 1;
         }
         else{
-	    printf("** not implemented %d\n", __LINE__);
+        printf("** not implemented %d\n", __LINE__);
         }
         return cp;
     }
     if (!strncmp(prog, "GRAB(", 5)) {
         char *v, *cname;
         if (pending)
-	    v = pending-1;
-	else
-	    v = prog + strlen(prog) - 1;
-	len = v - p;
-	v = malloc(len);
-	memcpy(v, p+1, len-1);
-	v[len-1] = '\0';
-	DEBUGMSG(2, "---to do: grab <%s>\n", v);
+        v = pending-1;
+    else
+        v = prog + strlen(prog) - 1;
+    len = v - p;
+    v = malloc(len);
+    memcpy(v, p+1, len-1);
+    v[len-1] = '\0';
+    DEBUGMSG(2, "---to do: grab <%s>\n", v);
 
-	struct closure_s *closure = pop_from_stack(&configuration->argument_stack);
-	add_to_environment(&configuration->env, v, closure);
+    struct closure_s *closure = pop_from_stack(&configuration->argument_stack);
+    add_to_environment(&configuration->env, v, closure);
 
-	if(pending)
+    if(pending)
             pending++;
         return pending;
     }
@@ -506,200 +481,199 @@ normal:
         }else{
             sprintf(dummybuf, "%s", code);
         }
-	configuration->env = closure->env; //set environment from closure
+    configuration->env = closure->env; //set environment from closure
         return dummybuf;
     }
     if (!strncmp(prog, "RESOLVENAME(", 12)) {
-	char res[1000];
-	memset(res,0,sizeof(res));
+    char res[1000];
+    memset(res,0,sizeof(res));
         if (pending)
-	    cp = pending-1;
-	else
-	    cp = prog + strlen(prog) - 1;
+        cp = pending-1;
+    else
+        cp = prog + strlen(prog) - 1;
         len = cp - p;
         cp = malloc(len);
-	memcpy(cp, p+1, len-1);
-	cp[len-1] = '\0';
-	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
+    memcpy(cp, p+1, len-1);
+    cp[len-1] = '\0';
+    DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
 
         //check if term can be made available, if yes enter it as a var
-	//try with searching in global env for an added term!
+    //try with searching in global env for an added term!
         t = parseKRIVINE(0, &cp);
-	if (term_is_var(t)) {
-	    char *end = 0;
+    if (term_is_var(t)) {
+        char *end = 0;
             cp = t->v;
             if (isdigit(*cp)) {
-		// is disgit...
-		strtol(cp, &end, 0);
-		if (end && *end)
-		    end = 0;
-	    }
+        // is disgit...
+        strtol(cp, &end, 0);
+        if (end && *end)
+            end = 0;
+        }
             else if(iscontent(cp)){
-	   	// is content... 
-		DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
-		end = cp;
-	    }
+        // is content...
+        DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
+        end = cp;
+        }
             if (end) {
-		push_to_stack(&configuration->result_stack, cp);
-		if (pending)
-		    sprintf(res, "TAILAPPLY%s", pending);
-		else
-		    sprintf(res, "TAILAPPLY");
-	    }else {
-		if (pending)
-		    sprintf(res, "ACCESS(%s);TAILAPPLY%s", t->v, pending);
-		else
-		    sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
-	    }
+        push_to_stack(&configuration->result_stack, cp);
+        if (pending)
+            sprintf(res, "TAILAPPLY%s", pending);
+        else
+            sprintf(res, "TAILAPPLY");
+        }else {
+        if (pending)
+            sprintf(res, "ACCESS(%s);TAILAPPLY%s", t->v, pending);
+        else
+            sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
+        }
             return strdup(res);
         }
-	if (term_is_lambda(t)) {
+    if (term_is_lambda(t)) {
             char *var;
-	    var = t->v;
-	    printKRIVINE(dummybuf, t->m, 0);
-	    cp = strdup(dummybuf);
+        var = t->v;
+        printKRIVINE(dummybuf, t->m, 0);
+        cp = strdup(dummybuf);
             if (pending)
-		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
-	    else
-		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
-	    free(cp);
+        sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
+        else
+        sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
+        free(cp);
             return strdup(res);
         }
         if (term_is_app(t)) {
             printKRIVINE(dummybuf, t->n, 0);
-	    p = strdup(dummybuf);
-	    printKRIVINE(dummybuf, t->m, 0);
-	    cp = strdup(dummybuf);
-            
+        p = strdup(dummybuf);
+        printKRIVINE(dummybuf, t->m, 0);
+        cp = strdup(dummybuf);
+
             if (pending)
-  		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
-	    else
-		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
-	   
+        sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
+        else
+        sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
+
             return strdup(res);
         }
     }
     if (!strncmp(prog, "OP_CMPEQ", 8)) {
-	int i1, i2, acc;
-	char *h;
+    int i1, i2, acc;
+    char *h;
         char res[1000];
-	memset(res, 0, sizeof(res));
-	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_from_stack(&configuration->result_stack);
-	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
-	i2 = atoi(h);
-	acc = i1 == i2;
+    memset(res, 0, sizeof(res));
+    DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+    h = pop_from_stack(&configuration->result_stack);
+    i1 = atoi(h);
+    h = pop_from_stack(&configuration->result_stack);
+    i2 = atoi(h);
+    acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
         if (pending)
-	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-	else
-	    sprintf(res, "RESOLVENAME(%s)", cp);
-	return strdup(res);
+        sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+    else
+        sprintf(res, "RESOLVENAME(%s)", cp);
+    return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ", 9)) {
-	int i1, i2, acc;
-	char *h;
+    int i1, i2, acc;
+    char *h;
         char res[1000];
-	memset(res, 0, sizeof(res));
-	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_from_stack(&configuration->result_stack);
-	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
-	i2 = atoi(h);
-	acc = i2 <= i1;
+    memset(res, 0, sizeof(res));
+    DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+    h = pop_from_stack(&configuration->result_stack);
+    i1 = atoi(h);
+    h = pop_from_stack(&configuration->result_stack);
+    i2 = atoi(h);
+    acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
         if (pending)
-	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-	else
-	    sprintf(res, "RESOLVENAME(%s)", cp);
-	return strdup(res);
+        sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+    else
+        sprintf(res, "RESOLVENAME(%s)", cp);
+    return strdup(res);
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
-	int i1, i2, res;
-	char *h;
-	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_from_stack(&configuration->result_stack);
-	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
-	i2 = atoi(h);
-	res = i1+i2;
-	h = malloc(sizeof(char)*10);
+    int i1, i2, res;
+    char *h;
+    DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
+    h = pop_from_stack(&configuration->result_stack);
+    i1 = atoi(h);
+    h = pop_from_stack(&configuration->result_stack);
+    i2 = atoi(h);
+    res = i1+i2;
+    h = malloc(sizeof(char)*10);
         memset(h,0,10);
-	sprintf(h, "%d", res);
-	push_to_stack(&configuration->result_stack, h);
-	return pending+1;
+    sprintf(h, "%d", res);
+    push_to_stack(&configuration->result_stack, h);
+    return pending+1;
     }
     if (!strncmp(prog, "OP_SUB", 6)) {
-	int i1, i2, res;
-	char *h;
-	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_from_stack(&configuration->result_stack);
-	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
-	i2 = atoi(h);
-	res = i2-i1;
-	h = malloc(sizeof(char)*10);
+    int i1, i2, res;
+    char *h;
+    DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
+    h = pop_from_stack(&configuration->result_stack);
+    i1 = atoi(h);
+    h = pop_from_stack(&configuration->result_stack);
+    i2 = atoi(h);
+    res = i2-i1;
+    h = malloc(sizeof(char)*10);
         memset(h,0,10);
-	sprintf(h, "%d", res);
-	push_to_stack(&configuration->result_stack, h);
-	return pending+1;
+    sprintf(h, "%d", res);
+    push_to_stack(&configuration->result_stack, h);
+    return pending+1;
     }
     if (!strncmp(prog, "OP_MULT", 7)) {
-	int i1, i2, res;
-	char *h;
-	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_from_stack(&configuration->result_stack);
-	i1 = atoi(h);
-	h = pop_from_stack(&configuration->result_stack);
-	i2 = atoi(h);
-	res = i1*i2;
-	h = malloc(sizeof(char)*10);
+    int i1, i2, res;
+    char *h;
+    DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
+    h = pop_from_stack(&configuration->result_stack);
+    i1 = atoi(h);
+    h = pop_from_stack(&configuration->result_stack);
+    i2 = atoi(h);
+    res = i1*i2;
+    h = malloc(sizeof(char)*10);
         memset(h,0,10);
-	sprintf(h, "%d", res);
-	push_to_stack(&configuration->result_stack, h);
-	return pending+1;
+    sprintf(h, "%d", res);
+    push_to_stack(&configuration->result_stack, h);
+    return pending+1;
     }
     if(!strncmp(prog, "OP_CALL", 7)){
-	char *h;
-	int i, offset;
-	char name[5];
+    char *h;
+    int i, offset;
+    char name[5];
         h = pop_from_stack(&configuration->result_stack);
-	int num_params = atoi(h);
+    int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
-	sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
-        offset = strlen(dummybuf);	
-	for(i = 0; i < num_params; ++i){
-	    sprintf(name, "x%d", i);
-	    offset += sprintf(dummybuf+offset, "@%s(", name);
-	}
-	for(i =  num_params - 1; i >= 0; --i){
-	    sprintf(name, "x%d", i);
-	    offset += sprintf(dummybuf+offset, " %s", name);
-	}
+    sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
+        offset = strlen(dummybuf);
+    for(i = 0; i < num_params; ++i){
+        sprintf(name, "x%d", i);
+        offset += sprintf(dummybuf+offset, "@%s(", name);
+    }
+    for(i =  num_params - 1; i >= 0; --i){
+        sprintf(name, "x%d", i);
+        offset += sprintf(dummybuf+offset, " %s", name);
+    }
         offset += sprintf(dummybuf + offset, " %d", num_params);
-	offset += sprintf(dummybuf+offset, " op");
-	for(i = 0; i < num_params+2; ++i){
+    offset += sprintf(dummybuf+offset, " op");
+    for(i = 0; i < num_params+2; ++i){
             offset += sprintf(dummybuf + offset, ")");
-	}
-<<<<<<< HEAD
+    }
         offset += sprintf(dummybuf + offset, ";TAILAPPLY");
-	return strdup(dummybuf);
+    return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
         char *h = pop_from_stack(&configuration->result_stack);
         int num_params = atoi(h);
         int i;
-        char **params = malloc(sizeof(char * ) * num_params); 
-        
+        char **params = malloc(sizeof(char * ) * num_params);
+
         for(i = 0; i < num_params; ++i){ //pop parameter from stack
             params[i] = pop_from_stack(&configuration->result_stack);
         }
-        
+
         //as long as there is a routable parameter: try to find a result
         for(i = num_params - 1; i >= 0; --i){
             if(iscontent(params[i])){
-                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, i, params, 
+                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, i, params,
                         num_params, thunk_request);
                 if(c){
                     push_to_stack(&configuration->result_stack, c->content);
@@ -707,92 +681,15 @@ normal:
                 }
             }//endif
         }//endfor
-        
+
         push_to_stack(&configuration->result_stack, "42");
-        
+
         tail:
         return pending+1;
-=======
-        offset += sprintf(cp + offset, ";TAILAPPLY");
-	cp = config2str(&cfg, en, astack, rstack, cp);
-	
-
-	ccn_listen_for(cp);
-	return cp;
     }
 
-    if(!strncmp(prog, "OP_FOX(", 4)){
-    	
-	int num_params = pop1int(&cp, rstack), i;
-	cp = config2str(&cfg, en, astack, rstack, cp);
-	char **params = malloc(sizeof(char * ) * num_params); 
-
-	//TODO read function name and  parameters, call function 
-	char *cp;
-	cp = ccn_name2content(rstack); // should be split operation
-        char *a1 = strchr(cp, '|');
-        a1 = strchr(a1+1, '|');
-        int routable = -1;
-	for(i = 0; i < num_params; ++i){
-		char *end = strchr(a1+1, '|');
-		if(!end) end = a1+strlen(a1);
-		int num = end - a1;
-		params[i] = malloc (num * sizeof(char));
-		memcpy(params[i], a1+1, num-1);
-		params[i][num-1] = '\0';	
-		printf("FUNCTION PARAMS: %s\n", params[i]);
-                if(iscontent(params[i])){
-                    routable = i;
-                }
-		a1 = end;
-	}
-
-	//TODO function call --> make an interest to compute the result...
-        //test for routable parameter (routable > 0)....start with last parameter
-        //create an interest... with /<routable parameter>/rest with extracted parameter.
-	
-        //solange routable parameter: try to find a result
-        for(i = num_params - 1; i >= 0; --i){
-            if(iscontent(params[i])){
-                //mkInterest
-                //send interest and place it in FIB
-                //wait for reply
-                //goto result;
-            }
-        }
-        //compute //mk interest for all components and initialize the computation
-        
-        
-        printf("OP_FOX: NOT IMPLEMENTED: content: %d\n", routable);
-        //place result
-	char *res = "42";
-	char rst[1000];
-	int len = sprintf(rst, "RST|%s", res);
-	if(a1) sprintf(rst+len, "%s", a1);
-        
-	char *name =  mkHash(rst);
-	ccn_store(name, rst);
-
-	
-	if (pending)
-	    cp = config2str(&cfg, en, astack, name, pending+1);
-	else
-	    cp = config2str(&cfg, en, astack, name, "");
-	printf("CP: %s \n" , cp);
-
-	name = mkHash(cp);
-	ccn_store(name, cp);
-	ccn_listen_for(cp);
-	return cp;
-	
-	dump_hashes();
-	ccn_dump();
-	exit(-1);
->>>>>>> 77d83cd... Add utility to create compute requests
-    }
-    
     if(!strncmp(prog, "halt", 4)){
-	*halt = 1;
+    *halt = 1;
         //FIXME: create string from stack, allow particular reduced
         return configuration->result_stack->content;
     }
@@ -827,7 +724,7 @@ setup_global_environment(struct environment_s **env){
 
     closure = new_closure("CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "sub", closure);
-   
+
     closure = new_closure("CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "mult", closure);
 
@@ -842,9 +739,9 @@ setup_global_environment(struct environment_s **env){
 }
 
 char *
-Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
+Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request,
         int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix){
-    int steps = 0; 
+    int steps = 0;
     int halt = 0;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
     char *prog;
@@ -855,11 +752,11 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     struct configuration_s *config = new_config(prog, global_dict);
-    
+
     while (config->prog && !halt && config->prog != 1){
-	steps++;
-	DEBUGMSG(1, "Step %d: %s\n", steps, config->prog);
-	config->prog = ZAM_term(ccnl, config, thunk_request, 
+    steps++;
+    DEBUGMSG(1, "Step %d: %s\n", steps, config->prog);
+    config->prog = ZAM_term(ccnl, config, thunk_request,
                 num_of_required_thunks, original_prefix, &halt, dummybuf);
     }
     free(dummybuf);
