@@ -413,7 +413,7 @@ ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *
 }
 
 struct ccnl_interest_s *
-ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, char* name){
+ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *out, int len, char* name){
     DEBUGMSG(2, "ccnl_nfn_create_interest_object()\n");
     int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
@@ -426,7 +426,7 @@ ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, c
 			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     
     struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
-    from->faceid = NFN_FACE;
+    from->faceid = config->thread->id;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
     from->outq->data[0] = strdup(name);
@@ -435,11 +435,11 @@ ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, char *out, int len, c
 }
 
 int
-isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
+isLocalAvailable(struct ccnl_relay_s *ccnl, struct configuration_s *config, char **namecomp){
     DEBUGMSG(2, "isLocalAvailable()\n");
     char out[CCNL_MAX_PACKET_SIZE];
     int len = mkInterest(namecomp, 0, out);
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
     interest->propagate = 0;
     int found = 0;
     struct ccnl_content_s *c;
@@ -451,7 +451,7 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, char **namecomp){
 }
 
 char * 
-ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
+ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
     DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
     struct ccnl_prefix_s *new_prefix;
     ccnl_nfn_copy_prefix(prefix, &new_prefix);
@@ -464,7 +464,7 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
     }    
     char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     int len = mkInterest(new_prefix->comp, NULL, out);
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, new_prefix->comp[0]);
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, new_prefix->comp[0]);
     
     if(!interest)
         return NULL;
@@ -518,6 +518,7 @@ struct ccnl_content_s *
 ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *thunk){
     DEBUGMSG(2, "ccnl_nfn_resolve_thunk()\n");
     struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(thunk);
+    interest->retries = 20; // FIXME: set by thunk
     if(interest){
         struct ccnl_content_s *c;
         if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){

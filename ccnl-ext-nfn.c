@@ -138,6 +138,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int threadpos = -threadid;
     threads[threadpos] = thread;
     --threadid;
+    DEBUGMSG(99, "New Thread with threadid %d\n", -arg->thread->id);
     pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
     return 0;
 }
