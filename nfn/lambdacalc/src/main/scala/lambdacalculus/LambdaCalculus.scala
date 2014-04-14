@@ -6,7 +6,7 @@ import lambdacalculus.compiler.{CBVCompiler, CBNCompiler, Compiler}
 import lambdacalculus.machine.CallByName._
 import lambdacalculus.machine.CallByValue._
 import lambdacalculus.machine._
-import lambdacalculus.parser.ast.{LambdaPrettyPrinter, Expr}
+import lambdacalculus.parser.ast.{LambdaLocalPrettyPrinter, Expr}
 import scala.util.{Failure, Success, Try}
 import com.typesafe.scalalogging.slf4j.Logging
 import lambdacalculus.ExecutionOrder.ExecutionOrder

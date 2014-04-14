@@ -3,7 +3,7 @@ package lambdacalculus.machine
 import lambdacalculus.machine.CallByValue._
 import lambdacalculus.machine.CallByName._
 import lambdacalculus.compiler._
-import lambdacalculus.parser.ast.LambdaPrettyPrinter
+import lambdacalculus.parser.ast.LambdaLocalPrettyPrinter
 
 trait Value {
   def maybeContextName: Option[String]
@@ -17,7 +17,7 @@ case class ListValue(values:Seq[Value], maybeContextName: Option[String] = None)
 object ValuePrettyPrinter {
   def apply(value: Value, maybeCompiler: Option[Compiler] = None): String = {
     def instructionsToString(instr: List[Instruction]): String = maybeCompiler match {
-        case Some(comp) => LambdaPrettyPrinter(comp.decompile(instr))
+        case Some(comp) => LambdaLocalPrettyPrinter(comp.decompile(instr))
         case None => instr.mkString(",")
     }
 

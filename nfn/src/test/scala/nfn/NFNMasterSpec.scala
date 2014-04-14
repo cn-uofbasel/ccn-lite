@@ -64,7 +64,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
     def testComputeRequest(req: String, result: String) = {
       val parsedExpr = lc.parse(req).get
-      val parsedReq = if(nfnNetwork) LambdaNFNPrinter(parsedExpr) else LambdaPrettyPrinter(parsedExpr)
+      val parsedReq = if(nfnNetwork) LambdaNFNPrinter(parsedExpr) else LambdaLocalPrettyPrinter(parsedExpr)
 
       val temporaryPaddedResult = if(nfnNetwork) {"RST|" + result } else { result }
 
