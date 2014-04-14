@@ -296,7 +296,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     namecomp[i++] = "NFN";
     namecomp[i++] = NULL;
     len = mkInterest(namecomp, 0, out);
-    interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]);
+    interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
     
     //TODO: Check if it is already available locally
     
@@ -332,7 +332,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
     free(param);
     //search
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
     interest->from->faceid = config->thread->id;
     if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
@@ -361,7 +361,7 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
     param = strdup(params[current_param]);
     j = splitComponents(param, namecomp);
     
-    if(isLocalAvailable(ccnl, namecomp)){
+    if(isLocalAvailable(ccnl, config, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 params[current_param]);
         c = ccnl_nfn_handle_local_computation(ccnl, config, params, num_params, 
@@ -695,7 +695,7 @@ normal:
                     if(thunk_request){ //if thunk_request push thunkid on the stack
                         
                         --(*num_of_required_thunks);
-                        char * thunkid = ccnl_nfn_add_thunk(ccnl, original_prefix);
+                        char * thunkid = ccnl_nfn_add_thunk(ccnl, configuration, c->name);
                         push_to_stack(&configuration->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);

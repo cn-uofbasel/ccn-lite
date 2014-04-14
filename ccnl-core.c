@@ -969,7 +969,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef CCNL_NFN
             if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
                 struct ccnl_interest_s *i_it = NULL;
-                
+                int found = 0;
                 for(i_it = relay->pit; i_it; i_it = i_it->next){
                      int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                      //Check if prefix match and it is a nfn request
@@ -981,9 +981,12 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
                         ccnl_nfn_send_signal(threadid);  
                         DEBUGMSG(49, "Done\n");
+                        ++found;
                         goto Done;
                      }
                 }
+                if(found) goto Done;
+                DEBUGMSG(99, "no running computation found \n");
             }
 #endif       
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
