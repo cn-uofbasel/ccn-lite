@@ -165,4 +165,6 @@ trait NFNService extends Logging {
 
   def pinned: Boolean = true
 
+  override def toString = nfnName.toString
+
 }

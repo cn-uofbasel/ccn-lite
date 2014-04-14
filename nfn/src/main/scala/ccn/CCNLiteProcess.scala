@@ -87,6 +87,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
   }
 
   def connect(otherNodeConfig: NodeConfig): Unit = {
+    println(s"Connecting $nodeConfig to $otherNodeConfig")
     addFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix)
   }
 }

@@ -4,11 +4,25 @@ import nfn.{NFNMaster, NFNMasterFactory, NodeConfig}
 import scala.concurrent.duration.FiniteDuration
 import akka.util.Timeout
 import akka.actor.ActorSystem
+import akka.pattern._
 import config.AkkaConfig
 import nfn.NFNMaster.{Exit, Connect}
 import ccn.packet.{Interest, Content}
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
+
+object Node {
+  def connectAll(unconnectedNodes: Seq[Node]): Unit = {
+    if(unconnectedNodes.size > 1) {
+      val head = unconnectedNodes.head
+      val tail = unconnectedNodes.tail
+
+      tail foreach { _ <~> head }
+      connectAll(tail)
+    }
+  }
+}
 /**
  * Created by basil on 10/04/14.
  */
@@ -20,7 +34,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isRunning = true
   private var isConnecting = true
 
-  private val system = ActorSystem("NFNActorSystem1", AkkaConfig())
+  private val system = ActorSystem(s"Sys${nodeConfig.prefix}", AkkaConfig())
   private val _nfnMaster = NFNMasterFactory.network(system, nodeConfig)
 
   private def nfnMaster = {
@@ -125,8 +139,8 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def shutdown() = {
     assert(isRunning, "This node was already shut down")
-    isRunning = false
     nfnMaster ! Exit()
+    isRunning = false
     system.shutdown
   }
 

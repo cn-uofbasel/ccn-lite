@@ -19,11 +19,25 @@ import ccn.packet._
 import ccn.{ContentStore, CCNLiteProcess}
 import java.net.InetSocketAddress
 import myutil.IOHelper
+import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 
 
 object NFNMaster {
 
-  case class CCNSendReceive(interest: Interest)
+  case class CCNSendReceive(interest: Interest) {
+    def this(expr: Expr, local: Boolean = false) = {
+      this(Interest(
+        expr match {
+          case Variable(name, _) => Seq(name)
+          case _ => Seq(
+            if(local) LambdaLocalPrettyPrinter(expr)
+            else LambdaNFNPrinter(expr),
+            "NFN"
+          )
+        }
+      ))
+    }
+  }
 
   case class CCNAddToCache(content: Content)
 
@@ -110,7 +124,7 @@ trait NFNMaster extends Actor {
       val byteArr = data.toByteBuffer.array.clone
       val maybePacket: Option[CCNPacket] = NFNCommunication.parseCCNPacket(ccnIf.ccnbToXml(byteArr))
 
-      logger.info(s"$name received ${maybePacket.getOrElse("unparsable data")}")
+      logger.debug(s"$name received ${maybePacket.getOrElse("unparsable data")}")
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet)
@@ -121,11 +135,11 @@ trait NFNMaster extends Actor {
     case CCNSendReceive(interest) => {
       cs.find(interest.name) match {
         case Some(content) => {
-          logger.debug(s"Received SendReceive request, found content for interest $interest in local CS")
+          logger.info(s"Received SendReceive request, found content for interest $interest in local CS")
           sender ! content
         }
         case None => {
-          logger.debug(s"Received SendReceive request, aksing network for $interest ")
+          logger.info(s"Received SendReceive request, aksing network for $interest ")
           val updatedSendersForInterest = sender :: pit.get(interest.name).getOrElse(Nil)
           pit += (interest.name -> updatedSendersForInterest)
           send(interest)
@@ -149,7 +163,7 @@ trait NFNMaster extends Actor {
     }
 
     case CCNAddToCache(content) => {
-      logger.debug(s"sending add to cache for name ${content.name.mkString("/")}")
+      logger.info(s"sending add to cache for name ${content.name.mkString("/", "/", "")}")
       sendAddToCache(content)
     }
 

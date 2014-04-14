@@ -44,7 +44,7 @@ case class NopExpr() extends Expr
 case class Call(name: String, args: List[Expr]) extends Expr
 
 
-object LambdaPrettyPrinter {
+object LambdaLocalPrettyPrinter {
 
   def apply(expr: Expr): String =  expr match {
     case Clos(arg, body) => s"λ$arg." + p"$body"
