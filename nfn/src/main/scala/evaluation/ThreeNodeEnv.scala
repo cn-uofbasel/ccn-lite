@@ -54,7 +54,7 @@ object ThreeNodeEnv extends App {
 
   Thread.sleep(1000)
 
-  node1 ? Interest(docname3) onComplete {
+  node3 ? Interest(docname3) onComplete {
     case Success(content) => println(s"RECV FROM REMOTE: $content")
     case Failure(error) => throw error
   }
