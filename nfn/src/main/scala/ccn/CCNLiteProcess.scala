@@ -66,6 +66,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
     thread.start
 
     addFace(host, computePort, "COMPUTE")
+    faceId = 5
   }
 
   def stop() = {
@@ -76,6 +77,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
   }
 
   def addFace(otherHost: String, otherPort: Int, otherPrefix: String): Unit = {
+
     val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
     println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
@@ -83,7 +85,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
     val cmdPrefixReg =  s"../util/ccn-lite-ctrl -x $sockName prefixreg /$otherPrefix $faceId"
     println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
     Runtime.getRuntime.exec(cmdPrefixReg.split(" "))
-    faceId += 2
+    faceId += 3
   }
 
   def connect(otherNodeConfig: NodeConfig): Unit = {

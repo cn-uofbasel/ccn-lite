@@ -41,11 +41,10 @@ object ThreeNodeEnv extends App {
   var node2 = Node(node2Config)
   var node3 = Node(node3Config)
 
-//  Node.connectAll(Seq(node1, node2, node3))
+  Node.connectAll(Seq(node1, node2, node3))
   Thread.sleep(1000)
-  node1 <~> node2
-  node1 <~> node3
-  node2 <~> node3
+  node1 ~> node2
+  node1 ~> node3
 
   Thread.sleep(1000)
   node1 += docContent1
@@ -54,7 +53,7 @@ object ThreeNodeEnv extends App {
 
   Thread.sleep(1000)
 
-  node3 ? Interest(docname3) onComplete {
+  node1 ? Interest(docname3) onComplete {
     case Success(content) => println(s"RECV FROM REMOTE: $content")
     case Failure(error) => throw error
   }
@@ -63,6 +62,6 @@ object ThreeNodeEnv extends App {
 
   node1.shutdown
   node2.shutdown
-  node3.shutdown
+//  node3.shutdown
 }
 

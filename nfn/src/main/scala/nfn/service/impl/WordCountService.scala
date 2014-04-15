@@ -11,9 +11,6 @@ import nfn.service._
  */
 case class WordCountService() extends NFNService {
 
-  def countWords(doc: NFNName) = 42
-
-
   override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
     if(args.forall(_.isInstanceOf[NFNBinaryDataValue])) Try(args)
     else throw argumentException(args)

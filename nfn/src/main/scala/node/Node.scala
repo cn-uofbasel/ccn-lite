@@ -10,6 +10,7 @@ import nfn.NFNMaster.{Exit, Connect}
 import ccn.packet.{Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import nfn.service.NFNServiceLibrary
 
 
 object Node {
@@ -104,6 +105,12 @@ case class Node(nodeConfig: NodeConfig) {
   def +=(content: Content) = cache(content)
 
   /**
+   * Advertises the services to the network.
+   * TODO: this should be changed to advertise the service by setting up faces instead of adding them to the cache
+   */
+  def publishServices = NFNServiceLibrary.nfnPublish(nfnMaster)
+
+  /**
    * Fire and forgets an interest to the system. Response will still arrive in the local cache, but will discarded when arriving
    * @param req
    */
@@ -141,7 +148,6 @@ case class Node(nodeConfig: NodeConfig) {
     assert(isRunning, "This node was already shut down")
     nfnMaster ! Exit()
     isRunning = false
-    system.shutdown
   }
 
 }

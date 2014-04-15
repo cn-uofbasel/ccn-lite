@@ -10,6 +10,7 @@ import node.Node
 import ccn.packet._
 import scala.util._
 import nfn.service.impl.{SumService, ReduceService, WordCountService, MapService}
+import nfn.service.NFNServiceLibrary
 
 object WordCountEnv extends App {
 
@@ -46,18 +47,17 @@ object WordCountEnv extends App {
       }
     }
 
-  println(nodeNameDatas)
-
   val docNames = nodeNameDatas map { _._2.mkString("/", "/", "")}
 
   nodeNameDatas foreach { case (nodeId, name, data) =>
     nodes(nodeId) += Content(name, data)
   }
 
+  nodes foreach { _.publishServices }
 
-  val (reqNodeIndex, nameDoc2Node2, _) = nodeNameDatas.find(_._1 == 3).head
-  val reqNode = nodes(0)//(reqNodeIndex)
-  Thread.sleep(1000)
+
+  val (reqNodeIndex, nameDoc2Node2, _) = nodeNameDatas.find(_._1 == 4).head
+  val reqNode = nodes(reqNodeIndex)
 
 //  (reqNode ? Interest(nameDoc0Node1)) onComplete {
 //    case Success(content) => println(s"RCV: $content")
@@ -70,8 +70,7 @@ object WordCountEnv extends App {
   val sum = SumService().nfnName.toString
 
 //  (reqNode ? Interest(Seq(s"call ${docNames.size + 2} $map $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
-//  (reqNode ? Interest(Seq(s"call 2 $wc $nameDoc2Node2", "NFN"))) onComplete {
-    (reqNode ? Interest(nameDoc2Node2)) onComplete {
+  (reqNode ? Interest(Seq(s"call 2 $wc ${nameDoc2Node2.mkString("/", "/", "")}", "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
