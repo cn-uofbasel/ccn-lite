@@ -3,7 +3,7 @@
 CC=gcc
 #MYCFLAGS=-Wall -pedantic -std=c99 -g
 MYCFLAGS=-Wall -g -O0
-EXTLIBS=  -lcrypto
+EXTLIBS=  -lcrypto -lpthread 
 
 INST_PROGS= ccn-lite-relay \
             ccn-lite-minimalrelay

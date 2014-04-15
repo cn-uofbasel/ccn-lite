@@ -400,7 +400,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
 }
 
 //FIXME use global search or special face?
-void
+struct ccnl_content_s *
 ccnl_nfn_content_computation(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_content_computation()\n");
     
