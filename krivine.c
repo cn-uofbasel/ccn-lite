@@ -789,5 +789,5 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
                 num_of_required_thunks, original_prefix, &halt, dummybuf);
     }
     free(dummybuf);
-    return config->result_stack->content;
+    return pop_or_resolve_from_result_stack(ccnl, config);//config->result_stack->content;
 }
