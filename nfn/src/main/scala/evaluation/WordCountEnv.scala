@@ -9,8 +9,17 @@ import nfn.NodeConfig
 import node.Node
 import ccn.packet._
 import scala.util._
-import nfn.service.impl.{SumService, ReduceService, WordCountService, MapService}
+import nfn.service.impl._
 import nfn.service.NFNServiceLibrary
+import ccn.packet.Interest
+import nfn.service.impl.MapService
+import nfn.service.impl.WordCountService
+import nfn.service.impl.SumService
+import nfn.service.impl.ReduceService
+import scala.util.Failure
+import scala.util.Success
+import ccn.packet.Content
+import nfn.NodeConfig
 
 object WordCountEnv extends App {
 
@@ -69,8 +78,11 @@ object WordCountEnv extends App {
   val red = ReduceService().nfnName.toString
   val sum = SumService().nfnName.toString
 
+  val add = AddService().toString
+
 //  (reqNode ? Interest(Seq(s"call ${docNames.size + 2} $map $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
-  (reqNode ? Interest(Seq(s"call 2 $wc ${nameDoc2Node2.mkString("/", "/", "")}", "NFN"))) onComplete {
+//  (reqNode ? Interest(Seq(s"call 2 $wc ${nameDoc2Node2.mkString("/", "/", "")}", "NFN"))) onComplete {
+  (reqNode ? Interest(Seq(s"call 2 $add 3 4", "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
