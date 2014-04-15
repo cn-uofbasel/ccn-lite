@@ -41,6 +41,7 @@ struct thread_s{
 };
 
 struct threads_s *threads[1024];
+struct threads_s *main_thread;
 int threadid = -1;
 
 struct thread_parameter_s{
@@ -389,6 +390,8 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
     ccnl_interest_propagate(ccnl, interest);
     
     DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
+    struct thread_s *thread1 = main_thread;
+    pthread_cond_broadcast(&thread1->cond);
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
     //local search. look if content is now available!
     DEBUGMSG(99,"Got signal CONTINUE\n");
