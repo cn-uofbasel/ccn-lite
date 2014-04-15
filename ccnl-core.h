@@ -171,6 +171,9 @@ struct ccnl_interest_s {
     struct ccnl_buf_s *pkt;	   // full datagram
     int last_used;
     int retries;
+#ifdef CCNL_NFN
+    int propagate;                 //do not propagate this interest becauses it is in the NFN-engine
+#endif
 };
 
 struct ccnl_pendint_s { // pending interest

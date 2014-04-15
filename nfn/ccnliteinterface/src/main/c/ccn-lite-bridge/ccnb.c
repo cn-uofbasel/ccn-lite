@@ -293,7 +293,6 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     len += len1;
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
-    printf("Contentlen %d\n", len1);
     Bail:
     free(ccnb_file);
     free(contentobj);

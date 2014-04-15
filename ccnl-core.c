@@ -24,6 +24,7 @@
 #include "ccnl-core.h"
 
 
+
 #define CCNL_VERSION "2013-07-27"
 
 
@@ -594,6 +595,9 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->minsuffix = minsuffix;
     i->maxsuffix = maxsuffix;
     i->last_used = CCNL_NOW();
+#ifdef CCNL_NFN
+    i->propagate = 1;
+#endif
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
     return i;
 }
@@ -664,7 +668,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     }
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
-    free_prefix(i->prefix);
+    //free_prefix(i->prefix); //TODO: //FIXME: IMPORTANT: memory leak
     free_3ptr_list(i->ppkd, i->pkt, i);
     return i2;
 }
@@ -734,9 +738,14 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
-    DEBUGMSG(99, "ccnl_content_add2cache (%d/%d)\n",
-	     ccnl->contentcnt, ccnl->max_cache_entries);
+    DEBUGMSG(99, "ccnl_content_add2cache (%d/%d) --> %p\n",
+	     ccnl->contentcnt, ccnl->max_cache_entries, c);
 
+    struct ccnl_content_s *cit;
+    for(cit = ccnl->contents; cit; cit = cit->next){
+        DEBUGMSG(99, "--- Already in cache ---\n");
+        if(c == cit) return NULL;
+    }
     if (ccnl->max_cache_entries > 0 &&
 	ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
 	struct ccnl_content_s *c2;
@@ -764,16 +773,17 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     int cnt = 0;
     DEBUGMSG(99, "ccnl_content_serve_pending\n");
 
-    for (f = ccnl->faces; f; f = f->next)
+    for (f = ccnl->faces; f; f = f->next){
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
+    }
     for (i = ccnl->pit; i;) {
 	struct ccnl_pendint_s *pi;
 	if (!ccnl_i_prefixof_c(i->prefix, i->ppkd,
 			       i->minsuffix, i->maxsuffix, c)) {
 	    i = i->next;
 	    continue;
-	}
-	// CONFORM: "Data MUST only be transmitted in response to
+	}        
+        // CONFORM: "Data MUST only be transmitted in response to
 	// an Interest that matches the Data."
 	for (pi = i->pending; pi; pi = pi->next) {
 	    if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
@@ -783,6 +793,8 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		DEBUGMSG(6, "  forwarding content <%s>\n",
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
+                
+                DEBUGMSG("--- Serve to: %d", pi->face->faceid);
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
@@ -820,7 +832,11 @@ ccnl_do_ageing(void *ptr, void *dummy)
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
 	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
-	    ccnl_interest_propagate(relay, i);
+#ifdef CCNL_NFN
+	    if(i->propagate) ccnl_interest_propagate(relay, i);
+#else
+            ccnl_interest_propagate(relay, i);
+#endif
 	    i->retries++;
 	    i = i->next;
 	}
@@ -913,8 +929,9 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
                 i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
+                i->propagate = 0; //TODO: mechanism to set propagate in a meaningful way
                 ccnl_interest_append_pending(i, from);
-                ccnl_nfn(relay, buf2, p2, from, 0);
+                if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, 0);
                 goto Done;
             }
 #endif /*CCNL_NFN*/
@@ -949,6 +966,29 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
 	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
+#ifdef CCNL_NFN
+            if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
+                struct ccnl_interest_s *i_it = NULL;
+                int found = 0;
+                for(i_it = relay->pit; i_it; i_it = i_it->next){
+                     int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
+                     //Check if prefix match and it is a nfn request
+                     if(ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_EXACT) 
+                             && i_it->from->faceid < 0){ 
+                        ccnl_content_add2cache(relay, c);
+                        int threadid = -i_it->from->faceid;
+                        i_it = ccnl_interest_remove(relay, i_it);
+                        DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
+                        ccnl_nfn_send_signal(threadid);  
+                        DEBUGMSG(49, "Done\n");
+                        ++found;
+                        goto Done;
+                     }
+                }
+                if(found) goto Done;
+                DEBUGMSG(99, "no running computation found \n");
+            }
+#endif       
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");
