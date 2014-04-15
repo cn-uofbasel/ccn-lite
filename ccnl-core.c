@@ -31,8 +31,11 @@
 int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
-static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
-						    struct ccnl_interest_s *i);
+void
+ccnl_nfn_send_signal(int threadid);
+
+static struct ccnl_interest_s* 
+ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 // ----------------------------------------------------------------------
 // datastructure support functions
