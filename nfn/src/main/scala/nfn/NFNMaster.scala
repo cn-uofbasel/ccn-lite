@@ -106,6 +106,7 @@ trait NFNMaster extends Actor {
   }
 
   def handlePacket(packet: CCNPacket) = {
+    logger.info(s"Received: $packet")
     packet match {
       case i: Interest => handleInterest(i)
       case c: Content => handleContent(c)
