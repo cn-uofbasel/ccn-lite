@@ -20,6 +20,9 @@
  * 2014-02-06 <christopher.scherb@unibas.ch>created 
  */
 
+#ifndef CCNL_EXT_NFN_H
+#define CCNL_EXT_NFN_H
+
 #include "ccnl-core.h"
 
 
@@ -142,3 +145,5 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
     return 0;
 }
+
+#endif //CCNL_EXT_NFN_H
