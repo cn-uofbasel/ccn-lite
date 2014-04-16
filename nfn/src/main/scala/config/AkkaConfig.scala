@@ -9,7 +9,7 @@ object AkkaConfig {
   def apply(): Config = config
   val config =
     ConfigFactory.parseString("""
-      |akka.loglevel=INFO
+      |akka.loglevel=DEBUG
       |akka.debug.lifecycle=on
       |akka.debug.receive=on
       |akka.debug.event-stream=on

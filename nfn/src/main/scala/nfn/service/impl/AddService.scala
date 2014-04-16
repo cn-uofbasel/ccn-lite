@@ -21,7 +21,6 @@ case class AddService() extends  NFNService with Logging {
   override def function: (Seq[NFNValue]) => NFNValue = { (values: Seq[NFNValue]) =>
     values match {
       case Seq(l: NFNIntValue, r: NFNIntValue) => {
-        logger.info(s"L: $l R: $r")
         NFNIntValue(l.amount + r.amount)
       }
       case _ => throw argumentException(values)

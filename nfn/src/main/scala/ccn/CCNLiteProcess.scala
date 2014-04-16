@@ -44,7 +44,7 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
 case class CCNLiteProcess(nodeConfig: NodeConfig) {
 
   private var process: Process = null
-  private var faceId = 3
+  private var faceId = 2
 
   val host = nodeConfig.host
   val port = nodeConfig.port
@@ -55,15 +55,19 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
 
 
   def start() = {
-    val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
-    println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
-    val processBuilder = new ProcessBuilder(cmd.split(" "):_*)
-    processBuilder.redirectErrorStream(true)
-    process = processBuilder.start
+//    if(nodeConfig.prefix != "docRepo4") {
+      val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
+      println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
+      val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
+      processBuilder.redirectErrorStream(true)
+      process = processBuilder.start
 
-    val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
-    val thread = new Thread(lsr, s"LogStreamReader-$prefix")
-    thread.start
+      val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
+      val thread = new Thread(lsr, s"LogStreamReader-$prefix")
+      thread.start
+//    } else {
+//      println("SKIPPED START OF CCN-LITE NODE 4")
+//    }
 
     addFace(host, computePort, "COMPUTE")
     faceId = 5
@@ -78,7 +82,8 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
 
   def addFace(otherHost: String, otherPort: Int, otherPrefix: String): Unit = {
 
-    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
+//    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
+    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any 127.0.0.1 $otherPort"
     println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
 

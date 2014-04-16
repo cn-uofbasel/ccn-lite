@@ -4,20 +4,11 @@ import language.experimental.macros
 
 
 import scala.reflect.runtime.{universe => ru}
-import scala.util.matching.Regex
-import scala.util._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent._
-import scala.collection.mutable
-
-import java.io.{FileOutputStream, File}
 
 import com.typesafe.scalalogging.slf4j.Logging
 
 import akka.actor.ActorRef
-import akka.pattern._
-import akka.util.Timeout
 
 import ccn.ccnlite.CCNLite
 import ccn.packet._
@@ -61,13 +52,6 @@ object NFNServiceLibrary extends Logging {
   def find(servName: NFNName):Option[NFNService] = find(servName.toString)
 
   def convertDollarToChf(dollar: Int): Int = ???
-//    val serv = DollarToChf()
-//    val servRes = serv.exec(IntValue(dollar)).get
-//    servRes match {
-//      case intValue: IntValue => intValue.amount
-//      case _ => throw new Exception(s"${serv.toName} did not return a IntValue but a $servRes")
-//    }
-//  }
 
   /**
    * Advertises all locally available services to nfn by sending a 'addToCache' Interest,
@@ -103,10 +87,6 @@ object NFNServiceLibrary extends Logging {
     }
   }
 
-  // TODO: Best would be to abstract a general send - receive mechanism
-//  def nfnRequest(nfnSocket: ActorRef, servName: NFNName): Future[Option[NFNService]] = {
-//  }
-
   def convertChfToDollar(chf: Int): Int = ???
   def toPdf(webpage: String): String = ???
   def derp(foo: Int) = ???
@@ -120,31 +100,6 @@ object NFNServiceLibrary extends Logging {
 
 case class NFNServiceExecutionException(msg: String) extends Exception(msg)
 case class NFNServiceArgumentException(msg: String) extends Exception(msg)
-
-//case class DollarToChf() extends NFNService {
-//
-//  override def toNFNName:NFNName = NFNName(Seq("DollarToChf/Int/rInt"))
-//
-//  override def parse(unparsedName: String, unparsedValues: Seq[String], ccnWorker: ActorRef): Future[CallableNFNService] = {
-//    val values = unparsedValues match {
-//      case Seq(dollarValueString) => Seq(NFNIntValue(dollarValueString.toInt))
-//      case _ => throw new Exception(s"Service $toNFNName could not parse single Int value from: '$unparsedValues'")
-//    }
-//    val name = NFNName(Seq(unparsedName))
-//    assert(name == this.toNFNName)
-//
-//    val function = { (values: Seq[NFNServiceValue]) =>
-//      values match {
-//        case Seq(dollar: NFNIntValue) => {
-//          Future(NFNIntValue(dollar.amount/2))
-//        }
-//        case _ => throw new NFNServiceException(s"${this.toNFNName} can only be applied to a single NFNIntValue and not $values")
-//      }
-//
-//    }
-//    Future(CallableNFNService(name, values, function))
-//  }
-//}
 
 case class CallableNFNService(name: NFNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue) {
   def exec:NFNValue = function(values)
