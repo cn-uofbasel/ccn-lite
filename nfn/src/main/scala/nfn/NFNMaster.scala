@@ -76,7 +76,7 @@ trait NFNMaster extends Actor {
   val ccnIf = CCNLite
 
   val cs = ContentStore()
-  var pit: Map[Seq[String], List[ActorRef]] = Map()
+  var pit: Map[Seq[String], Set[ActorRef]] = Map()
 
   private def createComputeWorker(interest: Interest): ActorRef =
     context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
@@ -85,10 +85,17 @@ trait NFNMaster extends Actor {
     cs.find(interest.name) match {
       case Some(content) => sender ! content
       case None => {
-        val computeWorker = createComputeWorker(interest)
-        val updatedSendersForInterest = computeWorker :: pit.get(interest.name).getOrElse(Nil)
-        pit += (interest.name -> updatedSendersForInterest)
-        computeWorker.tell(interest, self)
+        pit.get(interest.name) match {
+          case Some(_) => {
+            val pendingFaces = pit(interest.name) + sender
+            pit += (interest.name -> pendingFaces )
+          }
+          case None =>
+            val computeWorker = createComputeWorker(interest)
+            val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set()) + computeWorker
+            pit += (interest.name -> updatedSendersForInterest)
+            computeWorker.tell(interest, self)
+        }
       }
     }
   }
@@ -96,12 +103,11 @@ trait NFNMaster extends Actor {
 
   // Check pit for an address to return content to, otherwise discard it
   private def handleContent(content: Content) = {
-    pit.get(content.name) match {
-      case Some(List(interestSenders @ _*)) => {
-        interestSenders foreach { _ ! content}
-        pit -= content.name
-      }
-      case None => logger.error(s"Discarding content $content because there is no entry in pit")
+    if(pit.get(content.name).isDefined) {
+      pit(content.name) foreach { pendingSender =>  pendingSender ! content}
+      pit -= content.name
+    } else {
+      logger.error(s"Discarding content $content because there is no entry in pit")
     }
   }
 
@@ -141,7 +147,7 @@ trait NFNMaster extends Actor {
         }
         case None => {
           logger.info(s"Received SendReceive request, aksing network for $interest ")
-          val updatedSendersForInterest = sender :: pit.get(interest.name).getOrElse(Nil)
+          val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set())  + sender
           pit += (interest.name -> updatedSendersForInterest)
           send(interest)
         }

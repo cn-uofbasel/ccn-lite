@@ -37,14 +37,16 @@ object WordCountEnv extends App {
 
   val nodes = nodeConfigs map { Node(_) }
 
+  Thread.sleep(1000)
   Node.connectAll(nodes)
 
+  Thread.sleep(1000)
 
   val docNamesWithoutPrefix =
     (0 until 10) map { n => Seq("docs", s"doc$n") }
 
   val docContents: List[Array[Byte]] =
-    ((0 until 10) map { n => ("content: '" + s"$n"*n + "'").getBytes }).toList
+    ((0 until 10) map { n => (s"$n "*n).trim.getBytes }).toList
 
   val indexForDocsOnNodes = List(Nil, List(0, 5, 7), List(2,6,9), List(3,1), List(4,8))
 
@@ -65,13 +67,11 @@ object WordCountEnv extends App {
   nodes foreach { _.publishServices }
 
 
-  val (reqNodeIndex, nameDoc2Node2, _) = nodeNameDatas.find(_._1 == 4).head
+  Thread.sleep(1000)
+  val (reqNodeIndex, nameDoc4Node4, _) = nodeNameDatas.find(_._1 == 4).head
+  val docsNode4: List[(Int, Seq[String], Array[Byte])] = nodeNameDatas.filter(_._1 == 4)
+  val nameDoc8Node4 = docsNode4.filter(_._2.last == "doc8").head._2
   val reqNode = nodes(reqNodeIndex)
-
-//  (reqNode ? Interest(nameDoc0Node1)) onComplete {
-//    case Success(content) => println(s"RCV: $content")
-//    case Failure(e) => throw e
-//  }
 
   val map = MapService().nfnName.toString
   val wc = WordCountService().nfnName.toString
@@ -81,15 +81,19 @@ object WordCountEnv extends App {
   val add = AddService().toString
 
 //  (reqNode ? Interest(Seq(s"call ${docNames.size + 2} $map $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
-//  (reqNode ? Interest(Seq(s"call 2 $wc ${nameDoc2Node2.mkString("/", "/", "")}", "NFN"))) onComplete {
-  (reqNode ? Interest(Seq(s"call 2 $add 3 4", "NFN"))) onComplete {
+//    (reqNode ? Interest(Seq(nameDoc2Node2.mkString("/", "/", ""), "NFN"))) onComplete {
+//  (reqNode ? Interest(Seq(s"call 3 $add 3 4", "NFN"))) onComplete {
+
+//  (reqNode ? Interest(nameDoc2Node2)) onComplete {
+//  (nodes.head ? Interest(Seq(s"call 3 $wc ${nameDoc4Node4.mkString("/", "/", "")} ${nameDoc8Node4.mkString("/", "/", "")}", "NFN"))) onComplete {
+  (nodes.head ? Interest(Seq(s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
 
-  Thread.sleep(10000)
-  nodes foreach { _.shutdown }
-
-  sys.exit
+//  Thread.sleep(10000)
+//  nodes foreach { _.shutdown }
+//
+//  sys.exit
 }
 

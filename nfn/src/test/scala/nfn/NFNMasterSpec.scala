@@ -100,7 +100,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       testComputeRequest("1 ADD 2", "3")
       testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
       testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
-      testComputeRequest(s"call 3 ${WordCountService().nfnName.toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
+      testComputeRequest(s"call 3 ${WordCountService().toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
 //      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
     }

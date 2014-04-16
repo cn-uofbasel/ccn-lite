@@ -106,7 +106,7 @@ object NFNService extends Logging {
 
 
     logger.debug(s"Trying to find service for: $name")
-    val pattern = new Regex("""^call (\d)+ (.*)$""")
+    val pattern = new Regex("""^call ([\d]+) (.*)$""")
 
     name match {
       case pattern(countString, funArgs) => {
