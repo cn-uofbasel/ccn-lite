@@ -20,6 +20,7 @@ import ccn.{ContentStore, CCNLiteProcess}
 import java.net.InetSocketAddress
 import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
+import nfn.local.LocalAbstractMachineWorker
 
 
 object NFNMaster {
@@ -44,6 +45,8 @@ object NFNMaster {
   case class ComputeResult(content: Content)
 
   case class Connect(nodeConfig: NodeConfig)
+
+  case class Thunk(interest: Interest)
 
   case class Exit()
 
@@ -153,17 +156,20 @@ trait NFNMaster extends Actor {
         }
       }
     }
+
+    case Thunk(interest) => {
+      ???
+    }
+
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
     // convert the result to ccnb format and send it to the socket
     case ComputeResult(content) => {
       pit.get(content.name) match {
-        case Some(worker) => {
+        case Some(workers) => {
           logger.debug("sending compute result to socket")
           send(content)
-          // TODO
-          // context.stop(worker)
-          // pit -= content.name
-          // but first make sure we are always talking about the same worker and that there are not several worker for the same name!
+          sender ! ComputeWorker.Exit()
+          pit -= content.name
         }
         case None => logger.error(s"Received result from compute worker which timed out, discarding the result content: $content")
       }
@@ -236,6 +242,9 @@ case class NFNMasterLocal() extends NFNMaster {
 }
 
 
+object ComputeWorker {
+  case class Exit()
+}
 
 /**
  *
@@ -260,19 +269,36 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
     val cmps = interest.name
     val computeCmps = cmps match {
       case Seq("COMPUTE", reqNfnCmps @ _ *) => {
-        val computeCmps = reqNfnCmps.take(reqNfnCmps.size - 1)
-        handleComputeRequest(computeCmps, interest, requestor)
+        assert(reqNfnCmps.last == "NFN")
+        val computeCmpsMaybeThunk = reqNfnCmps.init
+
+        val (computeCmps, isThunkReq) = if(computeCmpsMaybeThunk.last == "THUNK") {
+          computeCmpsMaybeThunk.init -> true
+        } else {
+          computeCmpsMaybeThunk -> false
+        }
+
+        handleComputeRequest(computeCmps, interest, isThunkReq, requestor)
       }
       case _ => logger.error(s"Dropping interest $interest because it is not a compute request")
     }
   }
 
-  def handleComputeRequest(computeCmps: Seq[String], interest: Interest, requestor: ActorRef) = {
+
+  /*
+   * Parses the compute request and instantiates a callable service.
+   * On success, sends a thunk back if required, executes the services and sends the result back.
+   */
+  def handleComputeRequest(computeCmps: Seq[String], interest: Interest, isThunkRequest: Boolean, requestor: ActorRef) = {
     logger.debug(s"Handling compute request for cmps: $computeCmps")
     val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
 
     callableServ onComplete {
       case Success(callableServ) => {
+        if(isThunkRequest) {
+          requestor ! Thunk(interest)
+        }
+
         val result = callableServ.exec
         val content = Content(interest.name, result.toValueName.name.mkString(" ").getBytes)
         logger.debug(s"Finished computation, result: $content")
@@ -292,5 +318,6 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
       val requestor = sender
       receivedInterest(interest, requestor)
     }
+    case Exit() => context.stop(self)
   }
 }

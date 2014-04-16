@@ -86,14 +86,36 @@ object WordCountEnv extends App {
 
 //  (reqNode ? Interest(nameDoc2Node2)) onComplete {
 //  (nodes.head ? Interest(Seq(s"call 3 $wc ${nameDoc4Node4.mkString("/", "/", "")} ${nameDoc8Node4.mkString("/", "/", "")}", "NFN"))) onComplete {
-  (nodes.head ? Interest(Seq(s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
+
+
+  def namesToAddedWordCount(docs: Seq[String]): String = {
+    def wcDoc(doc: String) =  s"call 2 $wc $doc"
+
+    def add(docs: Seq[String], cur: String = ""): String = {
+      docs match {
+        case Seq() => cur
+        case _ =>
+          val l = wcDoc(docs.head)
+          val next = if(cur == "") {
+            l
+          } else {
+            s"add ($l) ($cur)"
+          }
+          add(docs.tail, next)
+      }
+    }
+    add(docs)
+  }
+  val expr = namesToAddedWordCount(docNames)
+//  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
+  (nodes(1) ? Interest(Seq(expr, "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
 
-//  Thread.sleep(10000)
-//  nodes foreach { _.shutdown }
-//
-//  sys.exit
+  Thread.sleep(7000)
+  nodes foreach { _.shutdown }
+
+  sys.exit
 }
 
