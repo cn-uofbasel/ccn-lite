@@ -678,7 +678,7 @@ normal:
 	for(i = 0; i < num_params+2; ++i){
             offset += sprintf(dummybuf + offset, ")");
 	}
-        offset += sprintf(dummybuf + offset, ";TAILAPPLY");
+        offset += sprintf(dummybuf + offset, "%s", pending);
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
