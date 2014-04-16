@@ -114,7 +114,9 @@ ccnl_nfn_thread(void *arg)
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    //pthread_exit ((void *) 0);
+    struct thread_s *thread1 = main_thread;
+    pthread_cond_broadcast(&thread1->cond);
+    pthread_exit ((void *) 0);
     return 0;
 }
 
