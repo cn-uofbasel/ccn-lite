@@ -895,7 +895,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
     if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
-	DEBUGMSG(6, "  dropped because of duplicate nonce\n"); goto Skip;
+	DEBUGMSG(6, "  dropped because of duplicate nonce\n"); //goto Skip; //FIXME //TODO enable goto Skip
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));

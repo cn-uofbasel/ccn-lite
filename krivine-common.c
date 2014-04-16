@@ -246,7 +246,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
  
     int i = 0;
     char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    memset(out, CCNL_MAX_PACKET_SIZE, 0);
+    memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
     prefixcomps[prefix->compcnt] = 0;
@@ -276,6 +276,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 struct ccnl_content_s *
 ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, int type){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
+    
     struct ccnl_content_s *c_iter; 
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
@@ -310,6 +311,7 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
     int i, maxfd = -1, rc, content_received = 0;
     fd_set readfs, writefs;
     unsigned char buf[CCNL_MAX_PACKET_SIZE];
+    memset(buf, 0, CCNL_MAX_PACKET_SIZE);
     int len;
     if (ccnl->ifcount == 0) {
 	fprintf(stderr, "no socket to work with, not good, quitting\n");
@@ -441,6 +443,7 @@ int
 isLocalAvailable(struct ccnl_relay_s *ccnl, struct configuration_s *config, char **namecomp){
     DEBUGMSG(2, "isLocalAvailable()\n");
     char out[CCNL_MAX_PACKET_SIZE];
+    memset(out, 0, CCNL_MAX_PACKET_SIZE);
     int len = mkInterest(namecomp, 0, out);
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
     interest->propagate = 0;
@@ -466,6 +469,8 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, st
         --new_prefix->compcnt;
     }    
     char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    memset(out, 0, CCNL_MAX_PACKET_SIZE);
+    
     int len = mkInterest(new_prefix->comp, NULL, out);
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, new_prefix->comp[0]);
     
