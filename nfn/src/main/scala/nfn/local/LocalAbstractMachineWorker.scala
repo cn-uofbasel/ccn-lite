@@ -1,13 +1,12 @@
-package nfn
+package nfn.local
 
 import akka.actor._
 import akka.event.Logging
 import ccn.packet._
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.machine.{Value, ListValue, ConstValue}
-import nfn.NFNMaster.{CCNAddToCache, ComputeResult}
+import nfn.NFNMaster.CCNAddToCache
 import scala.util.{Success, Failure, Try}
-import ccn.ContentStore
 
 /**
  * Created by basil on 01/04/14.

@@ -1,8 +1,8 @@
-package nfn
+package nfn.local
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
-import scala.util.{Success, Failure}
+import scala.util.Failure
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor.ActorRef
