@@ -286,6 +286,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     struct ccnl_interest_s * interest;
     struct ccnl_content_s *c;
     int i, len;
+    DEBUGMSG(99, "ccnl_nfn_handle_local_computation()\n");
     for(i = 0; i < num_params; ++i){
         complen += sprintf(comp+complen, "%s ", params[i]);
     }
@@ -298,6 +299,9 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     len = mkInterest(namecomp, 0, out);
     interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
     
+    for(i = 0; i < interest->prefix->compcnt; ++i){
+        printf("/%s", interest->prefix->comp[i]);
+    }printf("\n");
     //TODO: Check if it is already available locally
     
     interest->from->faceid = config->thread->id;
@@ -695,9 +699,11 @@ normal:
                     if(thunk_request){ //if thunk_request push thunkid on the stack
                         
                         --(*num_of_required_thunks);
+                        DEBUGMSG(99, "%d thunks are required\n", *num_of_required_thunks);
                         char * thunkid = ccnl_nfn_add_thunk(ccnl, configuration, c->name);
                         push_to_stack(&configuration->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
+                            DEBUGMSG(99, "All thunks are available\n");
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         }
                     }

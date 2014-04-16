@@ -24,10 +24,10 @@
 #define CCNL_EXT_NFN_H
 
 #include "ccnl-core.h"
-
-
 #include "krivine.c"
+#include "krivine-common.c"
 #include "ccnl-includes.h"
+
 
 static int
 ccnl_nfn_count_required_thunks(char *str)
@@ -114,7 +114,9 @@ ccnl_nfn_thread(void *arg)
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    //pthread_exit ((void *) 0);
+    struct thread_s *thread1 = main_thread;
+    pthread_cond_broadcast(&thread1->cond);
+    pthread_exit ((void *) 0);
     return 0;
 }
 
@@ -122,6 +124,8 @@ void
 ccnl_nfn_send_signal(int threadid){
     struct thread_s *thread = threads[threadid];
     pthread_cond_broadcast(&thread->cond);
+    struct thread_s *thread1 = main_thread;
+    pthread_cond_wait(&(thread1->cond), &thread1->mutex);
 }
 
 
@@ -143,6 +147,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     --threadid;
     DEBUGMSG(99, "New Thread with threadid %d\n", -arg->thread->id);
     pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
+    struct thread_s *thread1 = main_thread;
+    pthread_cond_wait(&(thread1->cond), &thread1->mutex);
     return 0;
 }
 

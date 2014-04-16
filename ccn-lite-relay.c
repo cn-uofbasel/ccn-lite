@@ -658,6 +658,8 @@ main(int argc, char **argv)
         }
     }
 
+    main_thread = new_thread(0);
+    
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
