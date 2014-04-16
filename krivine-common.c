@@ -446,10 +446,10 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, struct configuration_s *config, char
     interest->propagate = 0;
     int found = 0;
     struct ccnl_content_s *c;
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){ //todo: exact match not only prefix
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
-    //interest = ccnl_interest_remove(ccnl, interest);
+    interest = ccnl_interest_remove(ccnl, interest);
     return found;
 }
 

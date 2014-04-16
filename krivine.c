@@ -699,9 +699,11 @@ normal:
                     if(thunk_request){ //if thunk_request push thunkid on the stack
                         
                         --(*num_of_required_thunks);
+                        DEBUGMSG(99, "%d thunks are required\n", *num_of_required_thunks);
                         char * thunkid = ccnl_nfn_add_thunk(ccnl, configuration, c->name);
                         push_to_stack(&configuration->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
+                            DEBUGMSG(99, "All thunks are available\n");
                             ccnl_nfn_reply_thunk(ccnl, original_prefix);
                         }
                     }
