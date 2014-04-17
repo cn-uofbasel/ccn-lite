@@ -39,8 +39,12 @@ object MainBuild extends Build {
         "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
         "ch.qos.logback" % "logback-classic" % "1.0.3",
         "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-        "org.slf4j" % "slf4j-api" % "1.7.5"
-      )
+        "org.slf4j" % "slf4j-api" % "1.7.5",
+        "com.assembla.scala-incubator" % "graph-core_2.10" % "1.8.0",
+        "org.tinyjee.jgraphx" % "jgraphx" % "2.3.0.5",
+        "jgraph" % "jgraph" % "5.13.0.0"
+
+  )
     )
   ).dependsOn(lambdaMacros, ccnliteinterface, lambdaCalculus)
   //aggregate(nfn, lambdaCalculus, lambdaMacros , testservice, ccnliteinterface)

@@ -24,9 +24,9 @@ object UDPConnection {
  * which passes recieved data to the worker and sends data to the remote.
  *
  * @param local Socket to listen for data
- * @param target socket to sent data to
+ * @param maybeTarget If Some(addr), the connection sends data to the target on receiving [[Send]] messages
  */
-class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends Actor {
+class UDPConnection(local:InetSocketAddress, maybeTarget:Option[InetSocketAddress]) extends Actor {
   import context.system
 
   val name = self.path.name
@@ -70,8 +70,13 @@ class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends A
 
   def ready(socket: ActorRef): Receive = {
     case Send(data) => {
-      logger.debug(s"$name sending data")
-      socket ! Udp.Send(ByteString(data), target)
+      maybeTarget match {
+        case Some(target) => {
+          logger.debug(s"$name sending data")
+          socket ! Udp.Send(ByteString(data), target)
+        }
+        case None => logger.warning("Received Send message, but target was not configurated on init, this socket is not able to send!")
+      }
     }
     case Udp.Received(data, sendingRemote) => {
       logger.debug(s"$name received ${data.decodeString("utf-8")})")
@@ -87,7 +92,7 @@ class UDPConnection(local:InetSocketAddress, target:InetSocketAddress) extends A
   }
 }
 
-case class UDPSender(remote: InetSocketAddress = new InetSocketAddress("localhost", 9001)) extends Actor {
+case class UDPSender(remote: InetSocketAddress) extends Actor {
   import context.system
 
   val logger = Logging(context.system, this)

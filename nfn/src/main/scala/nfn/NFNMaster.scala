@@ -21,6 +21,7 @@ import java.net.InetSocketAddress
 import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
+import monitor.Monitor
 
 
 object NFNMaster {
@@ -80,6 +81,7 @@ trait NFNMaster extends Actor {
 
   val cs = ContentStore()
   var pit: Map[Seq[String], Set[ActorRef]] = Map()
+
 
   private def createComputeWorker(interest: Interest): ActorRef =
     context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
@@ -158,6 +160,7 @@ trait NFNMaster extends Actor {
     }
 
     case Thunk(interest) => {
+      // create content object with interest.name, "THUNK".getBytes and send ti to the correct requestor
       ???
     }
 
@@ -181,7 +184,9 @@ trait NFNMaster extends Actor {
     }
 
     // TODO this message is only for network node
-    case Connect(otherNodeConfig) => connect(otherNodeConfig)
+    case Connect(otherNodeConfig) => {
+      connect(otherNodeConfig)
+    }
 
     case Exit() => {
       exit()
@@ -203,8 +208,10 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   val nfnSocket = context.actorOf(Props(classOf[UDPConnection],
                                           new InetSocketAddress(nodeConfig.host, nodeConfig.computePort),
-                                          new InetSocketAddress(nodeConfig.host, nodeConfig.port)),
+                                          Some(new InetSocketAddress(nodeConfig.host, nodeConfig.port))),
                                         name = s"udpsocket-${nodeConfig.computePort}-${nodeConfig.port}")
+
+
 
   override def preStart() = {
     nfnSocket ! Handler(self)
@@ -225,6 +232,7 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def connect(otherNodeConfig: NodeConfig): Unit = {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
+    Monitor.monitor ! Monitor.Connect(nodeConfig, otherNodeConfig)
   }
 }
 

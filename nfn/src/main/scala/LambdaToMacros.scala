@@ -1,21 +1,15 @@
-import akka.actor._
-import ccn.packet.Interest
 import ccnliteinterface.CCNLiteInterface
 import com.typesafe.scalalogging.slf4j.Logging
-import lambdacalculus.machine._
-import lambdacalculus.{ExecutionOrder, LambdaCalculus}
+import lambdacalculus.LambdaCalculus
 import language.experimental.macros
 
 import LambdaMacros._
-import nfn.{LocalNFNCallExecutor, ComputeWorker}
-import nfn.service.impl.{WordCountService, AddService}
+import nfn.service.impl.AddService
 import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.duration._
-import scala.Some
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
 
 import ExecutionContext.Implicits.global
-import nfn.service._
 import language.experimental.macros
 
 
