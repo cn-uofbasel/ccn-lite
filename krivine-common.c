@@ -274,14 +274,13 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 }
 
 struct ccnl_content_s *
-ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i, int type){
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
     
     struct ccnl_content_s *c_iter; 
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
-        md = c_iter->name->compcnt; //i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL; 
-        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, type)){ //FIXME: discuss how to compare WHAT IS MD?
+        if(!ccnl_prefix_cmp(c_iter->name, NULL, i->prefix, CMP_EXACT)){
             return c_iter;
         }
     }
@@ -397,7 +396,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
     //local search. look if content is now available!
     DEBUGMSG(99,"Got signal CONTINUE\n");
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){
+    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content now available: %s\n", c->content);
         return c;
     }
@@ -449,7 +448,7 @@ isLocalAvailable(struct ccnl_relay_s *ccnl, struct configuration_s *config, char
     interest->propagate = 0;
     int found = 0;
     struct ccnl_content_s *c;
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){ //todo: exact match not only prefix
+    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){ //todo: exact match not only prefix
         found = 1;
     }    
     interest = ccnl_interest_remove(ccnl, interest);
