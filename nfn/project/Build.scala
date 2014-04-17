@@ -42,8 +42,8 @@ object MainBuild extends Build {
         "org.slf4j" % "slf4j-api" % "1.7.5",
         "com.assembla.scala-incubator" % "graph-core_2.10" % "1.8.0",
         "org.tinyjee.jgraphx" % "jgraphx" % "2.3.0.5",
-        "jgraph" % "jgraph" % "5.13.0.0"
-
+        "jgraph" % "jgraph" % "5.13.0.0",
+         "org.scala-lang" %% "scala-pickling" % "0.8.0-SNAPSHOT"
   )
     )
   ).dependsOn(lambdaMacros, ccnliteinterface, lambdaCalculus)

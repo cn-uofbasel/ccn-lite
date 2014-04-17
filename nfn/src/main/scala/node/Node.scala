@@ -39,8 +39,9 @@ object Node {
     // 0 1 2    0 3 6
     // 3 4 5 -> 1 4 7
     // 6 7 8    2 5 8
-    val reshuffledNodes = 0 to N map { i =>
-      val index = i + n * (i % n) % N
+    val reshuffledNodes = 0 until N map { i =>
+      val index = (i/3 + n * (i % n)) % N
+      println(index)
       nodes(index)
     }
 
