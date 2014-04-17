@@ -63,7 +63,7 @@ object Node {
   }
 
   /**
-   * Connects every node with every other node.
+   * Connects every node with every other node (fully connected).
    * o - o
    * | X |
    * o - o

@@ -20,6 +20,7 @@ import scala.util.Failure
 import scala.util.Success
 import ccn.packet.Content
 import nfn.NodeConfig
+import monitor.Monitor
 
 object WordCountEnv extends App {
 
@@ -110,9 +111,12 @@ object WordCountEnv extends App {
     case Failure(e) => throw e
   }
 
-  Thread.sleep(7000)
-  nodes foreach { _.shutdown }
-
-  sys.exit
+  Monitor.monitor ! Monitor.Visualize()
+//  Thread.sleep(1000)
+//  Monitor.monitor ! Monitor.Visualize()
+//  Thread.sleep(7000)
+//  nodes foreach { _.shutdown }
+//
+//  sys.exit
 }
 
