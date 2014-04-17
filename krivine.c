@@ -338,7 +338,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
     interest->from->faceid = config->thread->id;
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){
+    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
         //ccnl_interest_remove(ccnl, interest);
         return c;
