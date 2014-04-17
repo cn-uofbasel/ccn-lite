@@ -160,8 +160,8 @@ trait NFNMaster extends Actor {
     }
 
     case Thunk(interest) => {
-      // create content object with interest.name, "THUNK".getBytes and send ti to the correct requestor
-      ???
+      logger.debug(s"sending thunk for interest $interest")
+      send(Content(interest.name, "THUNK".getBytes))
     }
 
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)

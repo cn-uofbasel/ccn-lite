@@ -11,6 +11,7 @@ import javax.swing.JFrame
 import scala.util.Random
 import com.mxgraph.swing.mxGraphComponent
 import com.mxgraph.layout.mxFastOrganicLayout
+import akka.util.ByteString
 
 
 object Monitor {
@@ -48,6 +49,10 @@ case class Monitor() extends Actor {
   var edges = Set[Pair[NodeConfig, NodeConfig]]()
 
   override def receive: Receive = {
+    case data: Array[Byte] => {
+    }
+    case data: ByteString => {
+    }
     case Monitor.Connect(from, to) => {
       if(!edges.contains(Pair(from, to))) {
         nodes += to
