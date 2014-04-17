@@ -280,8 +280,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s 
     struct ccnl_content_s *c_iter; 
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
-        md = i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL;
-        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, type)){
+        md = c_iter->name->compcnt; //i->prefix->compcnt - c_iter->name->compcnt == 1 ? compute_ccnx_digest(c_iter->pkt) : NULL; 
+        if(ccnl_prefix_cmp(c_iter->name, md, i->prefix, type)){ //FIXME: discuss how to compare WHAT IS MD?
             return c_iter;
         }
     }
@@ -397,7 +397,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
     //local search. look if content is now available!
     DEBUGMSG(99,"Got signal CONTINUE\n");
-    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_MATCH)) != NULL){
+    if((c = ccnl_nfn_local_content_search(ccnl, interest, CMP_EXACT)) != NULL){
         DEBUGMSG(49, "Content now available: %s\n", c->content);
         return c;
     }
