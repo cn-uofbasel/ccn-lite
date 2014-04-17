@@ -37,10 +37,8 @@ object WordCountEnv extends App {
 
   val nodes = nodeConfigs map { Node(_) }
 
-  Thread.sleep(1000)
   Node.connectAll(nodes)
 
-  Thread.sleep(1000)
 
   val docNamesWithoutPrefix =
     (0 until 10) map { n => Seq("docs", s"doc$n") }
@@ -67,7 +65,6 @@ object WordCountEnv extends App {
   nodes foreach { _.publishServices }
 
 
-  Thread.sleep(1000)
   val (reqNodeIndex, nameDoc4Node4, _) = nodeNameDatas.find(_._1 == 4).head
   val docsNode4: List[(Int, Seq[String], Array[Byte])] = nodeNameDatas.filter(_._1 == 4)
   val nameDoc8Node4 = docsNode4.filter(_._2.last == "doc8").head._2

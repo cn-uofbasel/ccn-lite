@@ -11,16 +11,86 @@ import ccn.packet.{Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import nfn.service.NFNServiceLibrary
+import scala.collection.immutable.{Iterable, IndexedSeq}
 
 
 object Node {
-  def connectAll(unconnectedNodes: Seq[Node]): Unit = {
-    if(unconnectedNodes.size > 1) {
-      val head = unconnectedNodes.head
-      val tail = unconnectedNodes.tail
+  /**
+   * Connects the given sequence to a grid.
+   * The size of the sequence does not have to be a power of a natural number.
+   * Example:
+   * o-o-o    o-o-o
+   * | | |    | | |
+   * o-o-o or o-o-o
+   * | | |    |
+   * o-o-o    o
+   * @param nodes
+   */
+  def connectGrid(nodes: Seq[Node]): Unit = {
+    if(nodes.size < 2) return
 
-      tail foreach { _ <~> head }
-      connectAll(tail)
+    import Math._
+    val N = nodes.size
+    val n = round(sqrt(N)).toInt
+
+    val horizontalLineNodes = nodes.grouped(n)
+    horizontalLineNodes foreach { connectLine }
+
+    // 0 1 2    0 3 6
+    // 3 4 5 -> 1 4 7
+    // 6 7 8    2 5 8
+    val reshuffledNodes = 0 to N map { i =>
+      val index = i + n * (i % n) % N
+      nodes(index)
+    }
+
+    val verticalLineNodes = reshuffledNodes.grouped(n)
+    verticalLineNodes foreach { connectLine }
+  }
+
+  /**
+   * Connects head with every node in tail, this results in a star shape.
+   * Example:
+   *   o
+   *   |
+   * o-o-o
+   * @param nodes
+   */
+  def connectStar(nodes: Seq[Node]): Unit = {
+    if(nodes.size < 2) return
+
+    nodes.tail foreach { _ <~> nodes.head }
+  }
+
+  /**
+   * Connects every node with every other node.
+   * o - o
+   * | X |
+   * o - o
+   * @param unconnectedNodes
+   */
+  def connectAll(unconnectedNodes: Seq[Node]): Unit = {
+    if(unconnectedNodes.size < 2) return
+
+    val head = unconnectedNodes.head
+    val tail = unconnectedNodes.tail
+
+    tail foreach { _ <~> head }
+    connectAll(tail)
+  }
+
+  /**
+   * Connects the nodes along the given sequence.
+   * Example:
+   * o-o-o-o
+   * @param nodes
+   * @return
+   */
+  def connectLine(nodes: Seq[Node]): Unit = {
+    if(nodes.size < 2) return
+
+    nodes.tail.fold(nodes.head) {
+      (left, right) => left <~> right; right
     }
   }
 }
