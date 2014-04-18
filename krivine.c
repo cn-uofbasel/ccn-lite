@@ -83,7 +83,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     char *ret = res;
     struct ccnl_content_s *c;
     if(!strncmp(res, "THUNK", 5)){
-        printf("Resolve Thunk %s \n", res);
+        DEBUGMSG(49, "Resolve Thunk %s \n", res);
         //resolve_thunk()
         c = ccnl_nfn_resolve_thunk(ccnl, config, res);
         ret = c->content;
@@ -298,13 +298,11 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     namecomp[i++] = NULL;
     len = mkInterest(namecomp, 0, out);
     interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
-    
     for(i = 0; i < interest->prefix->compcnt; ++i){
         printf("/%s", interest->prefix->comp[i]);
     }printf("\n");
     //TODO: Check if it is already available locally
     
-    interest->from->faceid = config->thread->id;
     if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
         return c;
@@ -337,7 +335,6 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     free(param);
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-    interest->from->faceid = config->thread->id;
     if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content locally found\n");
         //ccnl_interest_remove(ccnl, interest);
@@ -383,7 +380,7 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
 char*
 ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         int thunk_request, int *num_of_required_thunks,  
-        struct ccnl_prefix_s *original_prefix, int *halt, char *dummybuf)
+        int *halt, char *dummybuf)
 {
     struct term_s *t;
     char *pending, *p, *cp;
@@ -396,7 +393,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
          if(config->result_stack){
 		return config->result_stack->content;
          }
-         printf("no result returned\n");
+         DEBUGMSG(2, "no result returned\n");
          return NULL;
     }
 
@@ -422,7 +419,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 	if (!closure) {
 		closure = search_in_environment(config->global_dict, cp);
 		if(!closure){
-			printf("?? could not lookup var %s\n", cp);
+			DEBUGMSG(2, "?? could not lookup var %s\n", cp);
 			return 0;
 		}
 	}
@@ -704,7 +701,7 @@ normal:
                         push_to_stack(&config->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
                             DEBUGMSG(99, "All thunks are available\n");
-                            ccnl_nfn_reply_thunk(ccnl, original_prefix);
+                            ccnl_nfn_reply_thunk(ccnl, config->thread->prefix);
                         }
                     }
                     else{
@@ -727,7 +724,7 @@ normal:
         return config->result_stack->content;
     }
 
-    printf("unknown built-in command <%s>\n", prog);
+    DEBUGMSG(2, "unknown built-in command <%s>\n", prog);
 
     return 0;
 }
@@ -773,8 +770,7 @@ setup_global_environment(struct environment_s **env){
 
 char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
-        int *num_of_required_thunks, struct ccnl_prefix_s *original_prefix, 
-        struct thread_s *thread){
+        int *num_of_required_thunks, struct thread_s *thread){
     int steps = 0; 
     int halt = 0;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -792,7 +788,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, config->prog);
 	config->prog = ZAM_term(ccnl, config, thunk_request, 
-                num_of_required_thunks, original_prefix, &halt, dummybuf);
+                num_of_required_thunks, &halt, dummybuf);
     }
     free(dummybuf);
     return pop_or_resolve_from_result_stack(ccnl, config);//config->result_stack->content;
