@@ -667,6 +667,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     for(it = 0; it < i->prefix->compcnt; ++it){
         fprintf(stderr, "/%s", i->prefix->comp[it]);
     }
+    fprintf(stderr, "\n");
     while (i->pending) {
 	struct ccnl_pendint_s *tmp = i->pending->next;		\
 	ccnl_free(i->pending);
