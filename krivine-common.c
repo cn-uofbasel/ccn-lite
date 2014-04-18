@@ -38,6 +38,7 @@ struct thread_s{
     pthread_cond_t cond;
     pthread_mutex_t mutex;
     pthread_t thread;
+    struct ccnl_prefix_s *prefix;
 };
 
 struct threads_s *threads[1024];
@@ -54,18 +55,19 @@ struct thread_parameter_s{
 };
 
 struct thread_s * 
-new_thread(int thread_id){
+new_thread(int thread_id, struct ccnl_prefix_s *prefix){
     struct thread_s *t = malloc(sizeof(struct thread_s));
     t->id = thread_id;
     t->cond =  (pthread_cond_t)PTHREAD_COND_INITIALIZER;
     t->mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+    t->prefix = prefix;
     return t;
 }
 
 struct thunk_s{
     struct thunk_s *next, *prev;
     char thunkid[10];
-    struct ccnl_interest_s *i;
+    struct ccnl_prefix_s *prefix;
 };
 
 struct thunk_s *thunk_list;
@@ -152,6 +154,7 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
 
 void
 ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
+    DEBUGMSG(2, "ccnl_nfn_copy_prefix()\n");
     int i = 0;
     (*copy) = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     (*copy)->compcnt = prefix->compcnt;
@@ -169,11 +172,11 @@ ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
 void
 ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
     int i;
-    prefix->compcnt = 0;
     if(prefix->complen)free(prefix->complen);
     for(i = 0; i < prefix->compcnt; ++i){
         if(prefix->comp[i])free(prefix->comp[i]);
     }
+    prefix->compcnt = 0;
 }
 
 int
@@ -390,7 +393,7 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
     interest->from->faceid = config->thread->id;
     ccnl_interest_propagate(ccnl, interest);
     
-    DEBUGMSG(99, "WAITING on Signal; Threadid : %d \n", config->thread->id);
+    DEBUGMSG(99, "Waiting on Signal; Threadid : %d \n", -config->thread->id);
     struct thread_s *thread1 = main_thread;
     pthread_cond_broadcast(&thread1->cond);
     pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
@@ -467,25 +470,16 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, st
         new_prefix->comp[new_prefix->compcnt-1] = NULL;
         --new_prefix->compcnt;
     }    
-    char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    memset(out, 0, CCNL_MAX_PACKET_SIZE);
-    
-    int len = mkInterest(new_prefix->comp, NULL, out);
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, new_prefix->comp[0]);
-    
-    if(!interest)
-        return NULL;
-    
     struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
-    thunk->i = interest;
+    thunk->prefix = new_prefix;
     sprintf(thunk->thunkid, "THUNK%d", thunkid++);
     DBL_LINKED_LIST_ADD(thunk_list, thunk);
-    printf("NEWTHUNK: %s\n", thunk->thunkid);
+    DEBUGMSG(99, "Created new thunk with id: %s\n", thunk->thunkid);
     return strdup(thunk->thunkid);
 }
 
 struct ccnl_interest_s *
-ccnl_nfn_get_interest_for_thunk(char *thunkid){
+ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *thunkid){
     DEBUGMSG(2, "ccnl_nfn_get_interest_for_thunk()\n");
     struct thunk_s *thunk;
     for(thunk = thunk_list; thunk; thunk = thunk->next){
@@ -495,7 +489,11 @@ ccnl_nfn_get_interest_for_thunk(char *thunkid){
         }
     }
     if(thunk){
-        return thunk->i;
+        char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+        memset(out, 0, CCNL_MAX_PACKET_SIZE);
+        int len = mkInterest(thunk->prefix->comp, NULL, out);
+        struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, thunk->prefix->comp[0]);
+        return interest;
     }
     return NULL;
 }
@@ -524,9 +522,10 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_pre
 struct ccnl_content_s *
 ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *thunk){
     DEBUGMSG(2, "ccnl_nfn_resolve_thunk()\n");
-    struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(thunk);
-    interest->retries = 20; // FIXME: set by thunk
+    struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(ccnl, config, thunk);
+
     if(interest){
+        interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c;
         if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
             DEBUGMSG(49, "Thunk was resolved\n");

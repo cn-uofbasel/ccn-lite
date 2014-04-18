@@ -638,7 +638,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
     DEBUGMSG(99, "ccnl_interest_propagate\n");
-
+           
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
     
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
@@ -662,8 +662,11 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_interest_s *i2;
-    DEBUGMSG(40, "ccnl_interest_remove %p\n", (void *) i);
-
+    DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
+    int it;
+    for(it = 0; it < i->prefix->compcnt; ++it){
+        fprintf(stderr, "/%s", i->prefix->comp[it]);
+    }
     while (i->pending) {
 	struct ccnl_pendint_s *tmp = i->pending->next;		\
 	ccnl_free(i->pending);
@@ -878,7 +881,7 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 // the core logic of CCN:
 
 int
-ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		    unsigned char **data, int *datalen)
 {
     int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
@@ -894,32 +897,32 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (!buf) {
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
-    if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
+    if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
 	DEBUGMSG(6, "  dropped because of duplicate nonce\n"); //goto Skip; //FIXME //TODO enable goto Skip
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-	ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
+	ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
 	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1) goto Skip;
 	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
-	    rc = ccnl_mgmt(relay, buf, p, from); goto Done;
+	    rc = ccnl_mgmt(ccnl, buf, p, from); goto Done;
 	}
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
-	    for (c = relay->contents; c; c = c->next) {
+	    for (c = ccnl->contents; c; c = c->next) {
 		if (!ccnl_i_prefixof_c(p, ppkd, minsfx, maxsfx, c)) continue;
 		// FIXME: should check stale bit in aok here
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-		ccnl_print_stats(relay, STAT_SND_C); //log sent_c
+		ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
 		if (from->ifndx >= 0)
-		    ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+		    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
 		else
-		    ccnl_app_RX(relay, c);
+		    ccnl_app_RX(ccnl, c);
 		goto Skip;
 	    }
 	}
 	// CONFORM: Step 2: check whether interest is already known
-	for (i = relay->pit; i; i = i->next) {
+	for (i = ccnl->pit; i; i = i->next) {
 	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
 		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
 		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
@@ -931,22 +934,22 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
-                i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
+                i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
                 i->propagate = 0; //TODO: mechanism to set propagate in a meaningful way
                 ccnl_interest_append_pending(i, from);
-                if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, 0);
+                if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, 0);
                 goto Done;
             }
 #endif /*CCNL_NFN*/
-	    i = ccnl_interest_new(relay, from, &buf, &p, minsfx, maxsfx, &ppkd);
+	    i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
 		if (scope > 2)
-		    ccnl_interest_propagate(relay, i);
+		    ccnl_interest_propagate(ccnl, i);
 	    }
 	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
-	    ccnl_interest_propagate(relay, i);
+	    ccnl_interest_propagate(ccnl, i);
 	}
 	if (i) { // store the I request, for the incoming face (Step 3)
 	    DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
@@ -954,27 +957,27 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	}
     } else { // content
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
-	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
+	ccnl_print_stats(ccnl, STAT_RCV_C); //log count recv_content
         
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
                 && !memcmp(p->comp[1], "crypto", 6) &&
-                from == relay->crypto_face) {
-	    rc = ccnl_crypto(relay, buf, p, from); goto Done;
+                from == ccnl->crypto_face) {
+	    rc = ccnl_crypto(ccnl, buf, p, from); goto Done;
 	}
 #endif /*USE_SIGNATURES*/
         
         // CONFORM: Step 1:
-	for (c = relay->contents; c; c = c->next)
+	for (c = ccnl->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
+	c = ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
             
        
 #ifdef CCNL_NFN
         fprintf(stderr, "PIT Entries: \n");
         struct ccnl_interest_s *i_it;
-        for(i_it = relay->pit; i_it; i_it = i_it->next){
+        for(i_it = ccnl->pit; i_it; i_it = i_it->next){
                 int it;
                 fprintf(stderr, "    - ");
                 for(it = 0; it < i_it->prefix->compcnt; ++it){
@@ -990,16 +993,16 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
                 struct ccnl_interest_s *i_it = NULL;
                 int found = 0;
-                for(i_it = relay->pit; i_it; i_it = i_it->next){
+                for(i_it = ccnl->pit; i_it; i_it = i_it->next){
                      int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                      //Check if prefix match and it is a nfn request     
                      int cmp = ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH);
                      DEBUGMSG(99, "CMP: %d, faceid: %d \n", cmp, i_it->from->faceid);
                      if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
                              && i_it->from->faceid < 0){ 
-                        ccnl_content_add2cache(relay, c);
+                        ccnl_content_add2cache(ccnl, c);
                         int threadid = -i_it->from->faceid;
-                        i_it = ccnl_interest_remove(relay, i_it);
+                        i_it = ccnl_interest_remove(ccnl, i_it);
                         DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
                         ccnl_nfn_send_signal(threadid);  
                         DEBUGMSG(49, "Done\n");
@@ -1011,15 +1014,15 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 DEBUGMSG(99, "no running computation found \n");
             }
 #endif       
-	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
+	    if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");
 		free_content(c);
 		goto Skip;
 	    }
-	    if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
+	    if (ccnl->max_cache_entries != 0) { // it's set to -1 or a limit
 		DEBUGMSG(7, "  adding content to cache\n");
-		ccnl_content_add2cache(relay, c);
+		ccnl_content_add2cache(ccnl, c);
 	    } else {
 		DEBUGMSG(7, "  content not added to cache\n");
 		free_content(c);

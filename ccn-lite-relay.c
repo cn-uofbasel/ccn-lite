@@ -310,7 +310,7 @@ void ccnl_ageing(void *relay, void *aux)
 // ----------------------------------------------------------------------
 
 void
-ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
+ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
 		  int tcpport, char *uxpath, int max_cache_entries,
                   char *crypto_face_path)
 {
@@ -319,26 +319,26 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
     DEBUGMSG(99, "ccnl_relay_config\n");
 
-    relay->max_cache_entries = max_cache_entries;       
+    ccnl->max_cache_entries = max_cache_entries;       
 #ifdef USE_SCHEDULER
-    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
-    relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
+    ccnl->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+    ccnl->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
     
 #ifdef USE_ETHERNET
     // add (real) eth0 interface with index 0:
     if (ethdev) {
-	i = &relay->ifs[relay->ifcount];
+	i = &ccnl->ifs[ccnl->ifcount];
 	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
 	i->mtu = 1500;
 	i->reflect = 1;
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
-	    relay->ifcount++;
+	    ccnl->ifcount++;
 	    DEBUGMSG(99, "new ETH interface (%s %s) configured\n",
 		     ethdev, ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (ccnl->defaultInterfaceScheduler)
+		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open eth device\n");
@@ -346,17 +346,17 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 #endif // USE_ETHERNET
 
     if (udpport > 0) {
-	i = &relay->ifs[relay->ifcount];
+	i = &ccnl->ifs[ccnl->ifcount];
 	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
 //	i->frag = CCNL_DGRAM_FRAG_NONE;
 	i->mtu = CCN_DEFAULT_MTU;
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
-	    relay->ifcount++;
+	    ccnl->ifcount++;
 	    DEBUGMSG(99, "new UDP interface (ip4 %s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (ccnl->defaultInterfaceScheduler)
+		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open udp device\n");
@@ -364,21 +364,21 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
 #ifdef USE_HTTP_STATUS
     if (tcpport) {
-	relay->http = ccnl_http_new(relay, tcpport);
+	ccnl->http = ccnl_http_new(ccnl, tcpport);
     }
 #endif // USE_HTTP_STATUS
 
 #ifdef USE_UNIXSOCKET
     if (uxpath) {
-	i = &relay->ifs[relay->ifcount];
+	i = &ccnl->ifs[ccnl->ifcount];
 	i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
 	i->mtu = 4096;
 	if (i->sock >= 0) {
-	    relay->ifcount++;
+	    ccnl->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (ccnl->defaultInterfaceScheduler)
+		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
@@ -387,33 +387,33 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     if(crypto_face_path)
     {
         //sending interface + face
-        i = &relay->ifs[relay->ifcount];
+        i = &ccnl->ifs[ccnl->ifcount];
 	i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
 	i->mtu = 4096;
 	if (i->sock >= 0) {
-	    relay->ifcount++;
+	    ccnl->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (ccnl->defaultInterfaceScheduler)
+		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
-            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);       
-            relay->crypto_path = crypto_face_path;
+            ccnl_crypto_create_ccnl_crypto_face(ccnl, crypto_face_path);       
+            ccnl->crypto_path = crypto_face_path;
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
         
         //receiving interface
         memset(h,0,sizeof(h));
         sprintf(h,"%s-2",crypto_face_path);
-        i = &relay->ifs[relay->ifcount];
+        i = &ccnl->ifs[ccnl->ifcount];
 	i->sock = ccnl_open_unixpath(h, &i->addr.ux);
 	i->mtu = 4096;
 	if (i->sock >= 0) {
-	    relay->ifcount++;
+	    ccnl->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (relay->defaultInterfaceScheduler)
-		i->sched = relay->defaultInterfaceScheduler(relay,
+	    if (ccnl->defaultInterfaceScheduler)
+		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
             //create_ccnl_crypto_face(relay, crypto_face_path);       
 	} else
@@ -421,7 +421,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     }
 #endif //USE_SIGNATURES
 #endif // USE_UNIXSOCKET
-    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+    ccnl_set_timer(1000000, ccnl_ageing, ccnl, 0);
 }
 
 // ----------------------------------------------------------------------
@@ -658,7 +658,7 @@ main(int argc, char **argv)
         }
     }
 
-    main_thread = new_thread(0);
+    main_thread = new_thread(0, NULL);
     
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);

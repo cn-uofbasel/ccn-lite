@@ -655,7 +655,7 @@ ccnl_lnxkernel_cleanup(void)
 	    struct dentry *dir = dget_parent(p.dentry);
 
 	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
-	    rc = vfs_unlink(dir->d_inode, p.dentry);
+	    rc = vfs_unlink(dir->d_inode, p.dentry, NULL);
 	    mutex_unlock(&dir->d_inode->i_mutex);
 	    dput(dir);
 	    path_put(&p);
@@ -671,7 +671,7 @@ ccnl_lnxkernel_cleanup(void)
 	    struct dentry *dir = dget_parent(px.dentry);
 
 	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
-	    rc = vfs_unlink(dir->d_inode, px.dentry);
+	    rc = vfs_unlink(dir->d_inode, px.dentry, NULL);
 	    mutex_unlock(&dir->d_inode->i_mutex);
 	    dput(dir);
 	    path_put(&px);
