@@ -40,14 +40,27 @@ new_closure(char *term, struct environment_s *env){
     return ret;
 }
 
+struct fox_machine_state_s *
+new_machine_state(int thunk_request, int num_of_required_thunks){
+    struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
+    ret->thunk_request = thunk_request;
+    ret->num_of_required_thunks = num_of_required_thunks;
+    
+    return ret;
+}
+
 struct configuration_s *
-new_config(char *prog, struct environment_s *global_dict){
+new_config(char *prog, struct environment_s *global_dict, int thunk_request, 
+        int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
     struct configuration_s *ret = malloc(sizeof(struct configuration_s));
     ret->prog = prog;
     ret->result_stack = NULL;
     ret->argument_stack = NULL;
     ret->env = NULL;
     ret->global_dict = global_dict;
+    ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
+    ret->configid = configid;
+    ret->prefix = prefix;
     return ret;
 }
 
@@ -78,17 +91,27 @@ pop_from_stack(struct stack_s **top){
 }
 
 char *
-pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config){
-    char *res = (char*) pop_from_stack(&config->result_stack);
-    char *ret = res;
+pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+        int *restart){
+    char *res = NULL;
+    /*if(*restart){
+        DEBUGMSG(99, "pop_or_resolve_from_result_stack: Check for content: %s \n", config->fox_state->thunk);
+        res = config->fox_state->thunk;
+    } 
+    else{*/
+    res = (char*) pop_from_stack(&config->result_stack);
+    //}
     struct ccnl_content_s *c;
     if(!strncmp(res, "THUNK", 5)){
-        DEBUGMSG(49, "Resolve Thunk %s \n", res);
-        //resolve_thunk()
+        DEBUGMSG(49, "Resolve Thunk: %s \n", res);
         c = ccnl_nfn_resolve_thunk(ccnl, config, res);
-        ret = c->content;
+        if(c == NULL){
+            push_to_stack(&config->result_stack, res);
+            return NULL;
+        }
+        res = c->content;
     }
-    return ret;
+    return res;
 }
 
 void 
@@ -281,19 +304,19 @@ int iscontent(char *cp){
 //------------------------------------------------------------
 struct ccnl_content_s *
 ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-        char **params, int num_params, char **namecomp, char *out, char *comp, int thunk_request){
-    int complen = sprintf(comp, "call %d ", num_params);
+        char **namecomp, char *out, char *comp, int *halt){
+    int complen = sprintf(comp, "call %d ", config->fox_state->num_of_params);
     struct ccnl_interest_s * interest;
     struct ccnl_content_s *c;
     int i, len;
     DEBUGMSG(99, "ccnl_nfn_handle_local_computation()\n");
-    for(i = 0; i < num_params; ++i){
-        complen += sprintf(comp+complen, "%s ", params[i]);
+    for(i = 0; i < config->fox_state->num_of_params; ++i){
+        complen += sprintf(comp+complen, "%s ", config->fox_state->params[i]);
     }
     i = 0;
     namecomp[i++] = "COMPUTE";
     namecomp[i++] = strdup(comp);
-    if(thunk_request) namecomp[i++] = "THUNK";
+    if(config->fox_state->thunk_request) namecomp[i++] = "THUNK";
     namecomp[i++] = "NFN";
     namecomp[i++] = NULL;
     len = mkInterest(namecomp, 0, out);
@@ -308,48 +331,44 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
         return c;
     }
     //ccnl_interest_remove(ccnl, interest);
+    *halt = -1;
     return 0;
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, int current_param, char **params, 
-        int num_params, char **namecomp, char *out, char *comp, char *param, 
-        int thunk_request){
+ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+        char **namecomp, char *out, char *comp, int *halt){
+    
     struct ccnl_content_s *c;
     int j;
-    int complen = sprintf(comp, "(@x call %d ", num_params);
+    int complen = sprintf(comp, "(@x call %d ", config->fox_state->num_of_params);
     DEBUGMSG(2, "ccnl_nfn_handle_network_search()\n");
     
-    for(j = 0; j < num_params; ++j){
-        if(current_param == j){
+    for(j = 0; j < config->fox_state->num_of_params; ++j){
+        if(config->fox_state->it_routable_param == j){
             complen += sprintf(comp + complen, "x ");
         }
         else{
-            complen += sprintf(comp + complen, "%s ", params[j]);
+            complen += sprintf(comp + complen, "%s ", config->fox_state->params[j]);
         }
     }
     complen += sprintf(comp + complen, ")");
-    DEBUGMSG(49, "Computation request: %s %s\n", comp, params[current_param]);
+    DEBUGMSG(49, "Computation request: %s %s\n", comp, config->fox_state->params[config->fox_state->it_routable_param]);
     //make interest
-    int len = mkInterestCompute(namecomp, comp, complen, thunk_request, out); //TODO: no thunk request for local search  
-    free(param);
+    int len = mkInterestCompute(namecomp, comp, complen, config->fox_state->thunk_request, out); //TODO: no thunk request for local search  
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-    if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
-        DEBUGMSG(49, "Content locally found\n");
-        //ccnl_interest_remove(ccnl, interest);
-        return c;
-    }
-    else if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+    if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
         return c;
     }
+    *halt = -1;
     return NULL;
 }
 
 struct ccnl_content_s *
-ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-        int current_param, char **params, int num_params, int thunk_request){
+ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, 
+        struct configuration_s *config, int *halt){
     char *out =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *namecomp[CCNL_MAX_NAME_COMP];
@@ -359,20 +378,17 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
     memset(comp, 0, CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
-    param = strdup(params[current_param]);
+    param = strdup(config->fox_state->params[config->fox_state->it_routable_param]);
     j = splitComponents(param, namecomp);
     
     if(isLocalAvailable(ccnl, config, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
-                params[current_param]);
-        c = ccnl_nfn_handle_local_computation(ccnl, config, params, num_params, 
-                namecomp, out, comp, thunk_request);
+                config->fox_state->params[config->fox_state->it_routable_param]);
+        c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, out, comp, halt);
     }else{
         DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
-                params[current_param]);
-        c = ccnl_nfn_handle_network_search(ccnl, config, current_param, params, num_params,
-                namecomp, out, comp, param, thunk_request);
-        
+                config->fox_state->params[config->fox_state->it_routable_param]);
+        c = ccnl_nfn_handle_network_search(ccnl, config, namecomp, out, comp, halt);
     }
     return c;
 }
@@ -380,7 +396,7 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, struct configuration
 char*
 ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         int thunk_request, int *num_of_required_thunks,  
-        int *halt, char *dummybuf)
+        int *halt, char *dummybuf, int *restart)
 {
     struct term_s *t;
     char *pending, *p, *cp;
@@ -577,9 +593,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i2 = atoi(h);
 	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -595,9 +611,9 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i2 = atoi(h);
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
@@ -611,9 +627,18 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        if(h == NULL){
+            *halt = -1;
+            DEBUGMSG(99, "Add-Prog: %s\n", prog);
+            return prog;
+        }
 	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        if(h == NULL){
+            *halt = -1;
+            return prog;
+        }
 	i2 = atoi(h);
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
@@ -626,9 +651,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i2 = atoi(h);
 	res = i2-i1;
 	h = malloc(sizeof(char)*10);
@@ -641,9 +666,9 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config);
+	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	i2 = atoi(h);
 	res = i1*i2;
 	h = malloc(sizeof(char)*10);
@@ -656,7 +681,7 @@ normal:
 	char *h;
 	int i, offset;
 	char name[5];
-        h = pop_or_resolve_from_result_stack(ccnl, config);
+        h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
 	sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
@@ -678,30 +703,37 @@ normal:
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
-        char *h = pop_or_resolve_from_result_stack(ccnl, config);
-        int num_params = atoi(h);
+        if(*restart) {
+            *restart = 0;
+            goto recontinue;
+        }
+        char *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        config->fox_state->num_of_params = atoi(h);
         int i;
-        char **params = malloc(sizeof(char * ) * num_params); 
+        config->fox_state->params = malloc(sizeof(char * ) * config->fox_state->num_of_params); 
         
-        for(i = 0; i < num_params; ++i){ //pop parameter from stack
-            params[i] = pop_or_resolve_from_result_stack(ccnl, config);
+        for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
+            config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
         
         //as long as there is a routable parameter: try to find a result
-        for(i = num_params - 1; i >= 0; --i){
-            if(iscontent(params[i])){
+        config->fox_state->it_routable_param = config->fox_state->num_of_params - 1;
+recontinue:
+        for(; config->fox_state->it_routable_param >= 0; --config->fox_state->it_routable_param){
+            if(iscontent(config->fox_state->params[config->fox_state->it_routable_param])){
                 struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, 
-                        config, i, params, num_params, thunk_request);
+                        config, halt);
+                if(*halt < 0) return prog;
                 if(c){
                     if(thunk_request){ //if thunk_request push thunkid on the stack
                         
                         --(*num_of_required_thunks);
-                        DEBUGMSG(99, "%d thunks are required\n", *num_of_required_thunks);
                         char * thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
+                        DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
                         push_to_stack(&config->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
                             DEBUGMSG(99, "All thunks are available\n");
-                            ccnl_nfn_reply_thunk(ccnl, config->thread->prefix);
+                            ccnl_nfn_reply_thunk(ccnl, config->prefix);
                         }
                     }
                     else{
@@ -711,17 +743,19 @@ normal:
                 }
             }//endif
         }//endfor
-        DEBUGMSG(2, "Could not compute the result!\n");
+        if(! *halt)DEBUGMSG(2, "Could not compute the result!\n");
         return 0;
         
         tail:
+        DEBUGMSG(99, "Pending: %s\n", pending+1);
         return pending+1;
     }
     
     if(!strncmp(prog, "halt", 4)){
 	*halt = 1;
+        return pending;
         //FIXME: create string from stack, allow particular reduced
-        return config->result_stack->content;
+        //return config->result_stack->content;
     }
 
     DEBUGMSG(2, "unknown built-in command <%s>\n", prog);
@@ -770,9 +804,12 @@ setup_global_environment(struct environment_s **env){
 
 char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
-        int *num_of_required_thunks, struct thread_s *thread){
+        int *num_of_required_thunks, struct configuration_s *config,
+        struct ccnl_prefix_s *prefix){
+    
     int steps = 0; 
     int halt = 0;
+    int restart = 1;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
     char *prog;
     struct environment_s *global_dict = NULL;
@@ -781,15 +818,35 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     if(strlen(expression) == 0) return 0;
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
-    struct configuration_s *config = new_config(prog, global_dict);
-    config->thread = thread;
-    
+    if(!config){
+        config = new_config(prog, global_dict, thunk_request,
+                *num_of_required_thunks ,prefix, configid);
+        restart = 0;
+        --configid;
+    }
+    DEBUGMSG(99, "Prog: %s\n", config->prog);
+
     while (config->prog && !halt && config->prog != 1){
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, config->prog);
-	config->prog = ZAM_term(ccnl, config, thunk_request, 
-                num_of_required_thunks, &halt, dummybuf);
+	config->prog = ZAM_term(ccnl, config, config->fox_state->thunk_request, 
+                &config->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
-    free(dummybuf);
-    return pop_or_resolve_from_result_stack(ccnl, config);//config->result_stack->content;
+    if(halt < 0){
+        //put config in stack
+        configuration_list[-config->configid] = config;
+        DEBUGMSG(99,"Pause computation: %d\n", -config->configid);
+        DEBUGMSG(99, "Prog: %s %d\n", config->prog, config->fox_state->it_routable_param);
+        return 0;
+    }
+    else{
+        free(dummybuf);
+        DEBUGMSG(99, "end\n");
+        char *h = pop_or_resolve_from_result_stack(ccnl, config, &restart);//config->result_stack->content;
+        if(h == NULL){
+            halt = -1;
+            return 0;
+        }
+        return h;
+    }
 }

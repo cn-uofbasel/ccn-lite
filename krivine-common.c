@@ -10,7 +10,7 @@
 #ifndef KRIVINE_COMMON_C
 #define KRIVINE_COMMON_C
 
-//#include "krivine-common.h"
+#include "krivine-common.h"
 
 #include "ccnl.h"
 #include "ccnx.h"
@@ -18,51 +18,18 @@
 
 #include "ccnl-pdu.c"
 
-#include <pthread.h>
-
-
-#define NFN_FACE -1;
 
 
 struct configuration_s{
+    int configid;
     char *prog;
     struct stack_s *result_stack;
     struct stack_s *argument_stack;
     struct environment_s *env; 
     struct environment_s *global_dict;
-    struct thread_s *thread;
-};
-
-struct thread_s{
-    int id;
-    pthread_cond_t cond;
-    pthread_mutex_t mutex;
-    pthread_t thread;
+    struct fox_machine_state_s *fox_state;
     struct ccnl_prefix_s *prefix;
 };
-
-struct threads_s *threads[1024];
-struct threads_s *main_thread;
-int threadid = -1;
-
-struct thread_parameter_s{
-    struct ccnl_relay_s *ccnl;
-    struct ccnl_buf_s *orig;
-    struct ccnl_prefix_s *prefix;
-    struct thread_s *thread;
-    struct ccnl_face_s *from;
-    
-};
-
-struct thread_s * 
-new_thread(int thread_id, struct ccnl_prefix_s *prefix){
-    struct thread_s *t = malloc(sizeof(struct thread_s));
-    t->id = thread_id;
-    t->cond =  (pthread_cond_t)PTHREAD_COND_INITIALIZER;
-    t->mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-    t->prefix = prefix;
-    return t;
-}
 
 struct thunk_s{
     struct thunk_s *next, *prev;
@@ -72,6 +39,9 @@ struct thunk_s{
 
 struct thunk_s *thunk_list;
 int thunkid = 0;
+
+struct configuration_s *configuration_list[1024];
+int configid = -1;
 
 int
 hex2int(char c)
@@ -246,17 +216,19 @@ mkContent(char **namecomp,
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         char *res, int reslen){
- 
+    DEBUGMSG(49, "create_content_object()\n");
     int i = 0;
     char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
     prefixcomps[prefix->compcnt] = 0;
+    fprintf(stderr, "NAME: ");
     for(i = 0; i < prefix->compcnt; ++i)
     {
+        fprintf(stderr, "/%s", prefix->comp[i]);
         prefixcomps[i] = strdup(prefix->comp[i]);
-    }
+    } fprintf(stderr, "\n");
     
     int len = mkContent(prefixcomps, NULL, 0, res, reslen, out);
     
@@ -284,6 +256,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_interest_s 
     for(c_iter = ccnl->contents; c_iter; c_iter = c_iter->next){
         unsigned char *md;
         if(!ccnl_prefix_cmp(c_iter->name, NULL, i->prefix, CMP_EXACT)){
+             i = ccnl_interest_remove(ccnl, i);
             return c_iter;
         }
     }
@@ -387,22 +360,18 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 struct ccnl_content_s *
 ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         struct ccnl_interest_s *interest){
+    struct ccnl_content_s *c;
+    
     DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
     
-    struct ccnl_content_s *c;
-    interest->from->faceid = config->thread->id;
-    ccnl_interest_propagate(ccnl, interest);
-    
-    DEBUGMSG(99, "Waiting on Signal; Threadid : %d \n", -config->thread->id);
-    struct thread_s *thread1 = main_thread;
-    pthread_cond_broadcast(&thread1->cond);
-    pthread_cond_wait(&config->thread->cond, &config->thread->mutex);
-    //local search. look if content is now available!
-    DEBUGMSG(99,"Got signal CONTINUE\n");
+    //local search. look if content is  available!
     if((c = ccnl_nfn_local_content_search(ccnl, interest)) != NULL){
         DEBUGMSG(49, "Content now available: %s\n", c->content);
         return c;
     }
+    
+    interest->from->faceid = config->configid;
+    ccnl_interest_propagate(ccnl, interest);
     return NULL;
 }
 
@@ -433,7 +402,7 @@ ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, struct configuration_
 			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     
     struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
-    from->faceid = config->thread->id;
+    from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
     from->outq->data[0] = strdup(name);
@@ -528,7 +497,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
         interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c;
         if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
-            DEBUGMSG(49, "Thunk was resolved\n");
+            DEBUGMSG(49, "Thunk was resolved: %s\n", c->content);
             return c;
         }
     }

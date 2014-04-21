@@ -32,7 +32,7 @@ int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 void
-ccnl_nfn_send_signal(int threadid);
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
 
 static struct ccnl_interest_s* 
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
@@ -677,6 +677,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     //free_prefix(i->prefix); //TODO: //FIXME: IMPORTANT: memory leak
     free_3ptr_list(i->ppkd, i->pkt, i);
+
     return i2;
 }
 
@@ -938,7 +939,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
                 i->propagate = 0; //TODO: mechanism to set propagate in a meaningful way
                 ccnl_interest_append_pending(i, from);
-                if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, 0);
+                if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL);
                 goto Done;
             }
 #endif /*CCNL_NFN*/
@@ -1002,11 +1003,10 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                      if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
                              && i_it->from->faceid < 0){ 
                         ccnl_content_add2cache(ccnl, c);
-                        int threadid = -i_it->from->faceid;
+                        int configid = -i_it->from->faceid;
                         i_it = ccnl_interest_remove(ccnl, i_it);
-                        DEBUGMSG(49, "Send signal for threadid: %d\n", threadid);
-                        ccnl_nfn_send_signal(threadid);  
-                        DEBUGMSG(49, "Done\n");
+                        DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
+                        ccnl_nfn_continue_computation(ccnl, configid);
                         ++found;
                         goto Done;
                      }
