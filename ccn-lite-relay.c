@@ -657,8 +657,6 @@ main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
-    main_thread = new_thread(0, NULL);
     
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
