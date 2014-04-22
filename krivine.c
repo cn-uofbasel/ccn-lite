@@ -102,7 +102,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     res = (char*) pop_from_stack(&config->result_stack);
     //}
     struct ccnl_content_s *c;
-    if(!strncmp(res, "THUNK", 5)){
+    if(res && !strncmp(res, "THUNK", 5)){
         DEBUGMSG(49, "Resolve Thunk: %s \n", res);
         c = ccnl_nfn_resolve_thunk(ccnl, config, res);
         if(c == NULL){
@@ -625,21 +625,21 @@ normal:
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
 	int i1, i2, res;
-	char *h;
+	char *h, *h1, *h2;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        if(h == NULL){
-            *halt = -1;
-            DEBUGMSG(99, "Add-Prog: %s\n", prog);
-            return prog;
-        }
-	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        if(h == NULL){
+	h1 = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        if(h1 == NULL){
             *halt = -1;
             return prog;
         }
-	i2 = atoi(h);
+	i1 = atoi(h1);
+	h2 = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        if(h2 == NULL){
+            *halt = -1;
+            push_to_stack(&config->result_stack, h1);
+            return prog;
+        }
+	i2 = atoi(h2);
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
         memset(h,0,10);
@@ -836,7 +836,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         //put config in stack
         configuration_list[-config->configid] = config;
         DEBUGMSG(99,"Pause computation: %d\n", -config->configid);
-        DEBUGMSG(99, "Prog: %s %d\n", config->prog, config->fox_state->it_routable_param);
         return 0;
     }
     else{
