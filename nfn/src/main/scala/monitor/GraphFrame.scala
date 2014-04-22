@@ -16,7 +16,8 @@ import ccn.packet.Packet
  */
 class GraphFrame(nodes: Set[NodeConfig],
                  edges: Set[Pair[NodeConfig, NodeConfig]],
-                 packetsMaybeSentMaybeReceived: Map[Packet, Pair[Option[NodeConfig], Option[NodeConfig]]]
+                 packetsSent: Map[Seq[String], CCNPacketSentLog],
+                 packetsReceived: Map[Seq[String], CCNPacketReceiveLog]
                  ) extends JFrame {
 
   val visualizingGraph = new mxGraph()
@@ -36,6 +37,18 @@ class GraphFrame(nodes: Set[NodeConfig],
     node -> v
   }).toMap
 
+
+//  packetsSent filter { }
+//  val transmittedPackets =
+//    packetsMaybeSentMaybeReceived.filter {
+//      case (packet, maybeSentMaybeReceived) =>
+//        maybeSentMaybeReceived match {
+//          case Pair(Some(_), Some(_)) => true
+//          case _ => false
+//        }
+//    }
+
+//  println(transmittedPackets)
 
   val edgesWithVertex = edges map { e =>
   edges foreach { edge =>

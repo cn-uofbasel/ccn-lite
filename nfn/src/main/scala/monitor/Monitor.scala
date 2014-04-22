@@ -1,12 +1,13 @@
 package monitor
 
 import akka.actor.{Actor, ActorSystem, Props}
-import ccn.packet.{CCNPacket, Packet}
+import ccn.packet.CCNPacket
 import config.AkkaConfig
 import java.net.InetSocketAddress
 import network.UDPConnection
-import nfn.NodeConfig
+import nfn.{NFNMaster, NodeConfig}
 import akka.util.ByteString
+import akka.event.Logging
 
 
 object Monitor {
@@ -21,19 +22,28 @@ object Monitor {
   case class Connect(from: NodeConfig, to: NodeConfig)
   case class Disconnect(from: NodeConfig, to: NodeConfig)
 
-  case class PacketReceived(packet: Packet, receiver: NodeConfig)
+  case class PacketReceived(packet: CCNPacket, receiver: NodeConfig)
 
-  case class PacketSent(packet: Packet, sender: NodeConfig)
+  case class PacketSent(packet: CCNPacket, sender: NodeConfig)
 
   case class Visualize()
 
-  case class Send(packet: Packet)
+  case class Send(packet: CCNPacket)
 }
 
 /**
  * Created by basil on 17/04/14.
  */
+
+trait LogEntry {
+  def timestamp: Long
+}
+
+case class CCNPacketReceiveLog(packet: CCNPacket, receiver: NodeConfig, timestamp: Long) extends LogEntry
+case class CCNPacketSentLog(packet: CCNPacket, sender: NodeConfig, timestamp: Long) extends LogEntry
+
 case class Monitor() extends Actor {
+  val logger = Logging(context.system, this)
 
   val system = ActorSystem(s"Monitor", AkkaConfig())
   val nfnSocket = system.actorOf(
@@ -48,15 +58,29 @@ case class Monitor() extends Actor {
 
   var edges = Set[Pair[NodeConfig, NodeConfig]]()
 
-  var packetsSent = Set[(Packet, NodeConfig)]()
-  var packetsReceived = Set[(Packet, NodeConfig)]()
+//  var packetsSent = Set[(Packet, NodeConfig)]()
+//  var packetsReceived = Set[(Packet, NodeConfig)]()
 
-  var packetsMaybeSentMaybeReceived = Map[Packet, Pair[Option[NodeConfig], Option[NodeConfig]]]()
+  var packetsSent= Map[Seq[String], CCNPacketSentLog]()
+  var packetsReceived = Map[Seq[String], CCNPacketReceiveLog]()
 
   override def receive: Receive = {
-    case data: Array[Byte] => {
-    }
-    case data: ByteString => {
+    case UDPConnection.Received(data, sendingRemote) => {
+      NFNMaster.byteStringToPacket(data) match {
+        case Some(packet) => {
+          nodes.find(nodeConfig => nodeConfig.host == sendingRemote.getHostName && nodeConfig.port == sendingRemote.getPort) match {
+            case Some(nodeConfig) => {
+              packet match {
+                case ccnPacket: CCNPacket =>
+                  self ! Monitor.PacketSent(ccnPacket, nodeConfig)
+                case _ => logger.warning(s"Received packet $packet, discarding it")
+              }
+            }
+            case None => logger.warning(s"Received packet $packet from node $sendingRemote, but this node was never added")
+          }
+        }
+        case None => logger.debug("could not parse received packet (probably add to cache)")
+      }
     }
     case Monitor.Connect(from, to) => {
       if(!edges.contains(Pair(from, to))) {
@@ -67,33 +91,22 @@ case class Monitor() extends Actor {
     }
     case Monitor.Disconnect(from, to) =>
     case Monitor.Visualize() => {
-      new GraphFrame(nodes, edges, packetsMaybeSentMaybeReceived)
+      new GraphFrame(nodes, edges, packetsSent, packetsReceived)
     }
     case Monitor.PacketSent(packet, sndr) => {
-      packetsMaybeSentMaybeReceived += (
-        packet -> (
-          if(packetsMaybeSentMaybeReceived.contains(packet)) {
-            packetsMaybeSentMaybeReceived(packet) match {
-              case Pair(None, rcvr @ _) => Pair(Some(sndr), rcvr)
-              case p @ Pair(Some(_), _) => println("ERROR: this packet was already sent!"); p
-            }
-          } else {
-            Pair(Some(sndr), None)
-          })
-      )
+      packet match {
+        case ccnPacket: CCNPacket =>
+          packetsSent += (ccnPacket.name -> CCNPacketSentLog(ccnPacket, sndr, System.currentTimeMillis))
+        case _ => logger.warning(s"Sent packet $packet was discarded and not logged")
+      }
     }
+
     case Monitor.PacketReceived(packet, rcvr) => {
-      packetsMaybeSentMaybeReceived += (
-        packet -> (
-          if(packetsMaybeSentMaybeReceived.contains(packet)) {
-            packetsMaybeSentMaybeReceived(packet) match {
-              case Pair(sndr @ _, None) => Pair(sndr, Some(rcvr))
-              case p @ Pair(_, Some(_)) => println("ERROR: this packet was already received!"); p
-            }
-          } else {
-            Pair(None, Some(rcvr))
-          })
-        )
+      packet match {
+        case ccnPacket: CCNPacket =>
+          packetsReceived += (ccnPacket.name -> CCNPacketReceiveLog(ccnPacket, rcvr, System.currentTimeMillis))
+        case _ => logger.warning(s"Recieved packet $packet was discarded and not logged")
+      }
     }
   }
 }

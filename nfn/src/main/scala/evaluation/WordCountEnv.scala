@@ -80,7 +80,6 @@ object WordCountEnv extends App {
   val add = AddService().toString
 
 //  (reqNode ? Interest(Seq(s"call ${docNames.size + 2} $map $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
-//    (reqNode ? Interest(Seq(nameDoc2Node2.mkString("/", "/", ""), "NFN"))) onComplete {
 //  (reqNode ? Interest(Seq(s"call 3 $add 3 4", "NFN"))) onComplete {
 
 //  (reqNode ? Interest(nameDoc2Node2)) onComplete {
@@ -105,11 +104,14 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val expr = namesToAddedWordCount(docNames)
+  val expr = namesToAddedWordCount(docNames.take(1))
 //  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
-  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
+//  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
   Thread.sleep(800)
-  (nodes.head ? Interest(Seq(expr, "NFN"))) onComplete {
+//  (reqNode ? Interest(Seq(nameDoc2Node2.mkString("/", "/", ""), "NFN"))) onComplete {
+//  (nodes.head ? Interest(Seq(expr, "NFN"))) onComplete {
+    (nodes.head ? Interest(nameDoc4Node4)) onComplete {
+//  (nodes.head ? Interest(Seq("add 1 2", "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
