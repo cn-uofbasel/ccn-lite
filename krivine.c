@@ -151,7 +151,7 @@ add_to_environment(struct environment_s **env, char *name, void *element){
    newelement->name = name;
    newelement->element = element;
    if(env == NULL || *env == NULL){
-          newelement->next == NULL;
+          newelement->next = NULL;
       }else{
              newelement->next = *env;
          }
