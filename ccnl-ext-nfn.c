@@ -91,7 +91,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
-    int num_of_thunks = 0;
+    int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
@@ -113,11 +113,13 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "%s\n", str);
     //search for result here... if found return...
     if(thunk_request){
-        num_of_thunks = ccnl_nfn_count_required_thunks(str);
+        num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
     }
+    
+    
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, 
-            &num_of_thunks, config, original_prefix);
+            num_of_required_thunks, &config, original_prefix);
     
     //stores result if computed      
     if(res){
