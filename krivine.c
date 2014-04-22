@@ -804,7 +804,7 @@ setup_global_environment(struct environment_s **env){
 
 char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
-        int *num_of_required_thunks, struct configuration_s *config,
+        int *num_of_required_thunks, struct configuration_s **config,
         struct ccnl_prefix_s *prefix){
     
     int steps = 0; 
@@ -818,30 +818,30 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     if(strlen(expression) == 0) return 0;
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
-    if(!config){
-        config = new_config(prog, global_dict, thunk_request,
+    if(!*config){
+        *config = new_config(prog, global_dict, thunk_request,
                 *num_of_required_thunks ,prefix, configid);
         restart = 0;
         --configid;
     }
-    DEBUGMSG(99, "Prog: %s\n", config->prog);
+    DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
-    while (config->prog && !halt && config->prog != 1){
+    while ((*config)->prog && !halt && (*config)->prog != 1){
 	steps++;
-	DEBUGMSG(1, "Step %d: %s\n", steps, config->prog);
-	config->prog = ZAM_term(ccnl, config, config->fox_state->thunk_request, 
-                &config->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
+	DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
+	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
+                (*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
     if(halt < 0){
         //put config in stack
-        configuration_list[-config->configid] = config;
-        DEBUGMSG(99,"Pause computation: %d\n", -config->configid);
+        configuration_list[-(*config)->configid] = (*config);
+        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return 0;
     }
     else{
         free(dummybuf);
         DEBUGMSG(99, "end\n");
-        char *h = pop_or_resolve_from_result_stack(ccnl, config, &restart);//config->result_stack->content;
+        char *h = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;
         if(h == NULL){
             halt = -1;
             return 0;
