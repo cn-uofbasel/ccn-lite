@@ -26,7 +26,6 @@
 #include "ccnl-core.h"
 #include "krivine.c"
 #include "krivine-common.c"
-#include "ccnl-includes.h"
 
 
 static int
@@ -43,35 +42,60 @@ ccnl_nfn_count_required_thunks(char *str)
     return num;
 }
 
+static void
+ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
+    DEBUGMSG(49, "ccnl_nfn_remove_thunk_from_prefix()\n");
+    prefix->comp[prefix->compcnt-2] =  prefix->comp[prefix->compcnt-1];
+    prefix->complen[prefix->compcnt-2] =  prefix->complen[prefix->compcnt-1];
+    --prefix->compcnt;
+}
 
+void 
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
+    DEBUGMSG(49, "ccnl_nfn_send_signal()\n");
+    ccnl_nfn(ccnl, NULL, NULL, NULL, configuration_list[configid]);
+}
 
-void * 
-ccnl_nfn_thread(void *arg)
+int
+ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
 {
-    struct thread_parameter_s *t = ((struct thread_parameter_s*)arg);
+    DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
+    int i = 0;
+    for(i = 0; i < -configid; ++i){
+        struct ccnl_prefix_s *copy;
+        struct configuration_s *config = configuration_list[i];
+        if(!config) continue;
+        ccnl_nfn_copy_prefix(config->prefix ,&copy);
+        ccnl_nfn_remove_thunk_from_prefix(copy);
+        if(!ccnl_prefix_cmp(copy, NULL, prefix, CMP_EXACT)){
+             return 1;
+        }     
+    }
+    return 0;
+}
+
+int 
+ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+        struct configuration_s *config)
+{
+    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n", ccnl, orig, prefix, from, config); 
     
-    struct ccnl_relay_s *ccnl = t->ccnl;
-    struct ccnl_buf_s *orig = t->orig;
-    struct ccnl_prefix_s *prefix = t->prefix;
-    struct ccnl_face_s *from = t->from;
-    struct thread_s *thread = t->thread;
+    if(config) goto restart; //do not do parsing thinks again
     
+    if(ccnl_nfn_thunk_already_computing(prefix)){
+        DEBUGMSG(9, "Computation for this interest is already running\n");
+        return -1;
+    }
+    char *res = NULL;
+    struct ccnl_prefix_s *original_prefix;
+    ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
     int num_of_thunks = 0;
-    struct ccnl_prefix_s *original_prefix;
-    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p)\n", ccnl, orig, prefix, from); 
+   
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
-        
-        ccnl_nfn_copy_prefix(prefix, &original_prefix);
         thunk_request = 1;
-        //FIXME: WARUM COPY VON PREFIX NÖTIG?
-      
-        DEBUGMSG(99, "  Thunk-request, currently not implementd\n"); 
-        //TODO: search for num of required thunks???
-    }
-    else{
-        original_prefix = prefix;
     }
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
@@ -91,17 +115,17 @@ ccnl_nfn_thread(void *arg)
     if(thunk_request){
         num_of_thunks = ccnl_nfn_count_required_thunks(str);
     }
-    char *res = Krivine_reduction(ccnl, str, thunk_request, &num_of_thunks,
-        original_prefix, thread);
+restart:
+    res = Krivine_reduction(ccnl, str, thunk_request, 
+            &num_of_thunks, config, original_prefix);
+    
     //stores result if computed      
     if(res){
         DEBUGMSG(2,"Computation finshed: %s\n", res);
-        if(thunk_request){      
-            original_prefix->comp[original_prefix->compcnt-2] =  original_prefix->comp[original_prefix->compcnt-1];
-            original_prefix->complen[original_prefix->compcnt-2] =  original_prefix->complen[original_prefix->compcnt-1];
-            --original_prefix->compcnt;
+        if(config && config->fox_state->thunk_request){      
+            ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
-        struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, res, strlen(res));
+        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen(res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
         if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
@@ -114,41 +138,6 @@ ccnl_nfn_thread(void *arg)
     {
        ccnl_nfn_delete_prefix(prefix);
     }*/
-    struct thread_s *thread1 = main_thread;
-    pthread_cond_broadcast(&thread1->cond);
-    pthread_exit ((void *) 0);
-    return 0;
-}
-
-void 
-ccnl_nfn_send_signal(int threadid){
-    struct thread_s *thread = threads[threadid];
-    pthread_cond_broadcast(&thread->cond);
-    struct thread_s *thread1 = main_thread;
-    pthread_cond_wait(&(thread1->cond), &thread1->mutex);
-}
-
-
-int 
-ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
-{
-    struct thread_s *thread = new_thread(threadid);
-    struct thread_parameter_s *arg = malloc(sizeof(struct thread_parameter_s *));
-    char *h = malloc(10);
-    arg->ccnl = ccnl;
-    arg->orig = orig;
-    arg->prefix = prefix;
-    arg->from = from;
-    arg->thread = thread;
-    
-    int threadpos = -threadid;
-    threads[threadpos] = thread;
-    --threadid;
-    DEBUGMSG(99, "New Thread with threadid %d\n", -arg->thread->id);
-    pthread_create(&thread->thread, NULL, ccnl_nfn_thread, (void *)arg);
-    struct thread_s *thread1 = main_thread;
-    pthread_cond_wait(&(thread1->cond), &thread1->mutex);
     return 0;
 }
 
