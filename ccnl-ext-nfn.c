@@ -130,7 +130,7 @@ restart:
         struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen(res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
-        if(!thunk_request)ccnl_content_serve_pending(ccnl,c);
+        if(!config->fox_state->thunk_request)ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         
     }
