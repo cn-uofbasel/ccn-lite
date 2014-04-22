@@ -116,14 +116,17 @@ trait NFNMaster extends Actor {
     }
   }
 
+
   def handlePacket(packet: CCNPacket) = {
     logger.info(s"Received: $packet")
+    monitorReceive(packet)
     packet match {
       case i: Interest => handleInterest(i)
       case c: Content => handleContent(c)
     }
   }
 
+  def monitorReceive(packet: CCNPacket)
 
   override def receive: Actor.Receive = {
 
@@ -220,6 +223,7 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def send(packet: CCNPacket): Unit = {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
+    Monitor.monitor ! Monitor.PacketSent(packet, nodeConfig)
   }
 
   override def sendAddToCache(content: Content): Unit = {
@@ -234,6 +238,10 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
     Monitor.monitor ! Monitor.Connect(nodeConfig, otherNodeConfig)
   }
+
+  override def monitorReceive(packet: CCNPacket): Unit = {
+    Monitor.monitor ! Monitor.PacketReceived(packet, nodeConfig)
+  }
 }
 
 case class NFNMasterLocal() extends NFNMaster {
@@ -247,6 +255,8 @@ case class NFNMasterLocal() extends NFNMaster {
   }
 
   override def connect(otherNodeConfig: NodeConfig): Unit = ???
+
+  override def monitorReceive(packet: CCNPacket): Unit = ???
 }
 
 
