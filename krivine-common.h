@@ -10,6 +10,13 @@
 #ifndef KRIVINE_COMMON_H
 #define KRIVINE_COMMON_H
 
-
+struct fox_machine_state_s{
+    int num_of_params;
+    char **params;
+    int it_routable_param;
+    int thunk_request;
+    int num_of_required_thunks;
+    char *thunk;
+};
 
 #endif //KRIVINE_COMMON_H
