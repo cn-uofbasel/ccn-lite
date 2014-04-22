@@ -115,9 +115,11 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(thunk_request){
         num_of_thunks = ccnl_nfn_count_required_thunks(str);
     }
+    
+    
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, 
-            &num_of_thunks, config, original_prefix);
+            &num_of_thunks, &config, original_prefix);
     
     //stores result if computed      
     if(res){
