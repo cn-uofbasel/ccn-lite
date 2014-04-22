@@ -26,6 +26,10 @@ import monitor.Monitor
 
 object NFNMaster {
 
+  def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
+    NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
+  }
+
   case class CCNSendReceive(interest: Interest) {
     def this(expr: Expr, local: Boolean = false) = {
       this(Interest(
@@ -128,6 +132,7 @@ trait NFNMaster extends Actor {
 
   def monitorReceive(packet: CCNPacket)
 
+
   override def receive: Actor.Receive = {
 
     // received Data from network
@@ -135,15 +140,15 @@ trait NFNMaster extends Actor {
 //    case CCNReceive(packet) => handlePacket(packet)
     case packet:CCNPacket => handlePacket(packet)
 
-    case data: ByteString => {
-      val byteArr = data.toByteBuffer.array.clone
-      val maybePacket: Option[CCNPacket] = NFNCommunication.parseCCNPacket(ccnIf.ccnbToXml(byteArr))
 
+    case UDPConnection.Received(data, sendingRemote) => {
+      val maybePacket = byteStringToPacket(data)
       logger.debug(s"$name received ${maybePacket.getOrElse("unparsable data")}")
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet)
-        case None => logger.warning(s"Received data which cannot be parsed to a ccn packet: ${new String(byteArr)}")
+        case Some(AddToCache()) => ???
+        case None => logger.warning(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
       }
     }
 

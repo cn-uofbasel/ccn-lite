@@ -12,6 +12,7 @@ import network.UDPConnection._
 
 object UDPConnection {
   case class Send(data: Array[Byte])
+  case class Received(data: Array[Byte], sendingRemote: InetSocketAddress)
   case class Handler(worker: ActorRef)
 }
 
@@ -80,15 +81,15 @@ class UDPConnection(local:InetSocketAddress, maybeTarget:Option[InetSocketAddres
     }
     case Udp.Received(data, sendingRemote) => {
       logger.debug(s"$name received ${data.decodeString("utf-8")})")
-      frowardReceivedData(data)
+      frowardReceivedData(data, sendingRemote)
     }
     case Udp.Unbind  => socket ! Udp.Unbind
     case Udp.Unbound => context.stop(self)
     case Handler(worker) => handleWorker(worker)
   }
 
-  def frowardReceivedData(data: ByteString): Unit = {
-    workers.foreach(_ ! data)
+  def frowardReceivedData(data: ByteString, sendingRemote: InetSocketAddress): Unit = {
+    workers.foreach(_ ! Received(data.toByteBuffer.array.clone(), sendingRemote))
   }
 }
 
