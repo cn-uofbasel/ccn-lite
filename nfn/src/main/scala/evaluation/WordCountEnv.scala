@@ -115,9 +115,9 @@ object WordCountEnv extends App {
   }
 
   Thread.sleep(7000)
-//    Monitor.monitor ! Monitor.Visualize()
-  nodes foreach { _.shutdown }
-
-  sys.exit
+    Monitor.monitor ! Monitor.Visualize()
+//  nodes foreach { _.shutdown }
+//
+//  sys.exit
 }
 

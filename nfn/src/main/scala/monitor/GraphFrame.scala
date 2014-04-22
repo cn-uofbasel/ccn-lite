@@ -9,11 +9,15 @@ import com.mxgraph.swing.mxGraphComponent
 import com.mxgraph.util.{mxEventObject, mxEvent}
 import com.mxgraph.swing.util.mxMorphing
 import com.mxgraph.util.mxEventSource.mxIEventListener
+import ccn.packet.Packet
 
 /**
  * Created by basil on 17/04/14.
  */
-class GraphFrame(nodes: Set[NodeConfig], edges: Set[Pair[NodeConfig, NodeConfig]]) extends JFrame {
+class GraphFrame(nodes: Set[NodeConfig],
+                 edges: Set[Pair[NodeConfig, NodeConfig]],
+                 packetsMaybeSentMaybeReceived: Map[Packet, Pair[Option[NodeConfig], Option[NodeConfig]]]
+                 ) extends JFrame {
 
   val visualizingGraph = new mxGraph()
 
@@ -51,14 +55,16 @@ class GraphFrame(nodes: Set[NodeConfig], edges: Set[Pair[NodeConfig, NodeConfig]
 
   val graphComponent = new mxGraphComponent(visualizingGraph)
   // layout using morphing
-  visualizingGraph.getModel().beginUpdate()
+  visualizingGraph.getModel.beginUpdate()
   graphLayout.execute(par)
   val morph = new mxMorphing(graphComponent, 6, 1.5, 20)
   morph.addListener(mxEvent.DONE, new mxIEventListener() {
-    @Override
-    def invoke(arg0: AnyRef, arg1: mxEventObject) {
-      visualizingGraph.getModel().endUpdate();
-
+    override def invoke(arg0: AnyRef, arg1: mxEventObject) {
+      visualizingGraph.getModel.endUpdate()
+      val childs: Int = visualizingGraph.getModel.getChildCount()
+      (0 to childs) map {  i =>
+        println(s"CHILD: ${visualizingGraph.getModel.getChildAt(par, i)}")
+      }
     }
   })
 

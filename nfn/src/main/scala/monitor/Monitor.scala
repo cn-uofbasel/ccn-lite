@@ -1,20 +1,16 @@
 package monitor
 
 import akka.actor.{Actor, ActorSystem, Props}
-import ccn.packet.Packet
+import ccn.packet.{CCNPacket, Packet}
 import config.AkkaConfig
 import java.net.InetSocketAddress
 import network.UDPConnection
 import nfn.NodeConfig
-import com.mxgraph.view.mxGraph
-import javax.swing.JFrame
-import scala.util.Random
-import com.mxgraph.swing.mxGraphComponent
-import com.mxgraph.layout.mxFastOrganicLayout
 import akka.util.ByteString
 
 
 object Monitor {
+
   val host = "localhost"
   val port = 10666
 
@@ -24,6 +20,10 @@ object Monitor {
 
   case class Connect(from: NodeConfig, to: NodeConfig)
   case class Disconnect(from: NodeConfig, to: NodeConfig)
+
+  case class PacketReceived(packet: Packet, receiver: NodeConfig)
+
+  case class PacketSent(packet: Packet, sender: NodeConfig)
 
   case class Visualize()
 
@@ -48,6 +48,11 @@ case class Monitor() extends Actor {
 
   var edges = Set[Pair[NodeConfig, NodeConfig]]()
 
+  var packetsSent = Set[(Packet, NodeConfig)]()
+  var packetsReceived = Set[(Packet, NodeConfig)]()
+
+  var packetsMaybeSentMaybeReceived = Map[Packet, Pair[Option[NodeConfig], Option[NodeConfig]]]()
+
   override def receive: Receive = {
     case data: Array[Byte] => {
     }
@@ -62,7 +67,33 @@ case class Monitor() extends Actor {
     }
     case Monitor.Disconnect(from, to) =>
     case Monitor.Visualize() => {
-      new GraphFrame(nodes, edges)
+      new GraphFrame(nodes, edges, packetsMaybeSentMaybeReceived)
+    }
+    case Monitor.PacketSent(packet, sndr) => {
+      packetsMaybeSentMaybeReceived += (
+        packet -> (
+          if(packetsMaybeSentMaybeReceived.contains(packet)) {
+            packetsMaybeSentMaybeReceived(packet) match {
+              case Pair(None, rcvr @ _) => Pair(Some(sndr), rcvr)
+              case p @ Pair(Some(_), _) => println("ERROR: this packet was already sent!"); p
+            }
+          } else {
+            Pair(Some(sndr), None)
+          })
+      )
+    }
+    case Monitor.PacketReceived(packet, rcvr) => {
+      packetsMaybeSentMaybeReceived += (
+        packet -> (
+          if(packetsMaybeSentMaybeReceived.contains(packet)) {
+            packetsMaybeSentMaybeReceived(packet) match {
+              case Pair(sndr @ _, None) => Pair(sndr, Some(rcvr))
+              case p @ Pair(_, Some(_)) => println("ERROR: this packet was already received!"); p
+            }
+          } else {
+            Pair(None, Some(rcvr))
+          })
+        )
     }
   }
 }
