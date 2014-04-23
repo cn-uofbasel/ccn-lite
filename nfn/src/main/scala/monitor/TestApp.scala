@@ -1,26 +1,46 @@
 package monitor
 
 import nfn.NodeConfig
+import monitor.Monitor.{ContentLog, InterestLog, PacketLog, NodeLog}
+import ccn.packet.Interest
+import ccn.ccnlite.CCNLite
+import ccnliteinterface.CCNLiteInterface
+import network.NFNCommunication
 
 /**
  * Created by basil on 17/04/14.
  */
 object TestApp extends App {
-  val nodeConfs =
+
+  val starttime = System.currentTimeMillis()
+
+  Thread.sleep(5)
+  val nodes =
     Seq(
-      NodeConfig("asdf1", 1, -1, "asdf"),
-      NodeConfig("asdf2", 1, -1, "asdf"),
-      NodeConfig("asdf3", 1, -1, "asdf"),
-      NodeConfig("asdf4", 1, -1, "asdf")
+      NodeLog("localhost", 1, "docRepo1", "ComputeNode"),
+      NodeLog("localhost", 2, "docRepo2", "ComputeNode"),
+      NodeLog("localhost", 3, "docRepo3", "NFNNode"),
+      NodeLog("localhost", 4, "docRepo4", "NFNNode")
     )
 
-  val nodes = nodeConfs.toSet
   val edges = Set(
-    Pair(nodeConfs(0), nodeConfs(1)),
-    Pair(nodeConfs(1), nodeConfs(2)),
-    Pair(nodeConfs(2), nodeConfs(3)),
-    Pair(nodeConfs(3), nodeConfs(0))
+    Pair(nodes(0), nodes(1)),
+    Pair(nodes(1), nodes(0)),
+    Pair(nodes(1), nodes(2)),
+    Pair(nodes(2), nodes(3)),
+    Pair(nodes(3), nodes(0)),
+    Pair(nodes(0), nodes(2)),
+    Pair(nodes(2), nodes(1))
   )
 
-  new GraphFrame(nodes, edges)
+  val interest = Interest(Seq("name"))
+
+  val packets = Set(
+    PacketLog(nodes(0), nodes(1), isSent = true, InterestLog("/interest/name")),
+    PacketLog(nodes(0), nodes(1), isSent = false, InterestLog("/interest/name")),
+    PacketLog(nodes(1), nodes(0), isSent = true, ContentLog("/interest/name", "testcontent")),
+    PacketLog(nodes(1), nodes(0), isSent = false, ContentLog("/interest/name", "testcontent"))
+  )
+
+  OmnetIntegration(nodes.toSet, edges, packets, starttime)()
 }

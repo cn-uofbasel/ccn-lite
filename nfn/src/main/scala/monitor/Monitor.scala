@@ -5,9 +5,12 @@ import ccn.packet.CCNPacket
 import config.AkkaConfig
 import java.net.InetSocketAddress
 import network.UDPConnection
-import nfn.{NFNMaster, NodeConfig}
 import akka.util.ByteString
 import akka.event.Logging
+import net.liftweb.json._
+import monitor.Monitor._
+import scala.Some
+import scala.Some
 
 
 object Monitor {
@@ -19,30 +22,30 @@ object Monitor {
 
   val monitor = system.actorOf(Props(classOf[Monitor]))
 
-  case class Connect(from: NodeConfig, to: NodeConfig)
-  case class Disconnect(from: NodeConfig, to: NodeConfig)
-
-  case class PacketReceived(packet: CCNPacket, receiver: NodeConfig)
-
-  case class PacketSent(packet: CCNPacket, sender: NodeConfig)
-
   case class Visualize()
+
+  sealed trait MonitorLogEntry {
+    val timestamp = System.currentTimeMillis
+  }
+  case class NodeLog(host: String, port: Int, prefix: String, typ: String) extends MonitorLogEntry
+  case class ConnectLog(from: NodeLog, to: NodeLog) extends MonitorLogEntry
+
+  trait CCNPacketLog
+  case class ContentLog(name: String, data: String) extends CCNPacketLog
+  case class InterestLog(name: String) extends CCNPacketLog
+
+  case class PacketLog(from: NodeLog, to: NodeLog, isSent: Boolean, packet: CCNPacketLog) extends MonitorLogEntry
+  case class AddToCacheLog(node: NodeLog, ccnb: String) extends MonitorLogEntry
 
   case class Send(packet: CCNPacket)
 }
 
-/**
- * Created by basil on 17/04/14.
- */
 
-trait LogEntry {
-  def timestamp: Long
-}
-
-case class CCNPacketReceiveLog(packet: CCNPacket, receiver: NodeConfig, timestamp: Long) extends LogEntry
-case class CCNPacketSentLog(packet: CCNPacket, sender: NodeConfig, timestamp: Long) extends LogEntry
 
 case class Monitor() extends Actor {
+
+  val startTime = System.currentTimeMillis()
+
   val logger = Logging(context.system, this)
 
   val system = ActorSystem(s"Monitor", AkkaConfig())
@@ -54,61 +57,133 @@ case class Monitor() extends Actor {
   )
 
 
-  var nodes = Set[NodeConfig]()
+  var nodes = Set[NodeLog]()
 
-  var edges = Set[Pair[NodeConfig, NodeConfig]]()
+  var edges = Set[Pair[NodeLog, NodeLog]]()
 
-//  var packetsSent = Set[(Packet, NodeConfig)]()
-//  var packetsReceived = Set[(Packet, NodeConfig)]()
+  var loggedPackets = Set[PacketLog]()
 
-  var packetsSent= Map[Seq[String], CCNPacketSentLog]()
-  var packetsReceived = Map[Seq[String], CCNPacketReceiveLog]()
+  var addedToCache = Set[AddToCacheLog]()
 
-  override def receive: Receive = {
-    case UDPConnection.Received(data, sendingRemote) => {
-      NFNMaster.byteStringToPacket(data) match {
-        case Some(packet) => {
-          nodes.find(nodeConfig => nodeConfig.host == sendingRemote.getHostName && nodeConfig.port == sendingRemote.getPort) match {
-            case Some(nodeConfig) => {
-              packet match {
-                case ccnPacket: CCNPacket =>
-                  self ! Monitor.PacketSent(ccnPacket, nodeConfig)
-                case _ => logger.warning(s"Received packet $packet, discarding it")
-              }
-            }
-            case None => logger.warning(s"Received packet $packet from node $sendingRemote, but this node was never added")
-          }
-        }
-        case None => logger.debug("could not parse received packet (probably add to cache)")
-      }
-    }
-    case Monitor.Connect(from, to) => {
-      if(!edges.contains(Pair(from, to))) {
-        nodes += to
-        nodes += from
-        edges += Pair(from, to)
-      }
-    }
-    case Monitor.Disconnect(from, to) =>
-    case Monitor.Visualize() => {
-      new GraphFrame(nodes, edges, packetsSent, packetsReceived)
-    }
-    case Monitor.PacketSent(packet, sndr) => {
-      packet match {
-        case ccnPacket: CCNPacket =>
-          packetsSent += (ccnPacket.name -> CCNPacketSentLog(ccnPacket, sndr, System.currentTimeMillis))
-        case _ => logger.warning(s"Sent packet $packet was discarded and not logged")
-      }
-    }
+//  {
+//    "packet" : {
+//      "fromNode": {
+//        "host": "127.0.0.1",
+//        "port": 10001,
+//        "prefix": "docrepo1"
+//      },
+//      "toNode": {
+//        "host": "127.0.0.1",
+//        "port": 10002,
+//        "prefix": "docrepo2"
+//      },
+//      "isSent": true,
+//      "ccnb": "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
+//      IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
+//      dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
+//      dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
+//    }
+//  }
+//  {
+//    "connect": {
+//      "fromNode": {
+//        "host": "127.0.0.1",
+//        "port": 10001,
+//        "prefix": "docrepo1"
+//      },
+//      "toNode": {
+//        "host": "127.0.0.1",
+//        "port": 10002,
+//        "prefix": "docrepo2"
+//      }
+//    }
+//  }
+//  {
+//    "addtocache": {
+//      "node": {
+//        "host": "127.0.0.1"
+//        "port": 10001,
+//        "prefix": "docrepo1"
+//      },
+//      "ccnb": "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
+//      IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
+//      dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
+//      dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
+  //    }
+//  }
 
-    case Monitor.PacketReceived(packet, rcvr) => {
-      packet match {
-        case ccnPacket: CCNPacket =>
-          packetsReceived += (ccnPacket.name -> CCNPacketReceiveLog(ccnPacket, rcvr, System.currentTimeMillis))
-        case _ => logger.warning(s"Recieved packet $packet was discarded and not logged")
-      }
+  def handleConnectLog(log: ConnectLog): Unit = {
+    import log._
+    if(!edges.contains(Pair(from, to))) {
+      nodes += to
+      nodes += from
+      edges += Pair(from, to)
     }
   }
+
+  def handlePacketLog(log: PacketLog): Unit = {
+    def findNode(nodeLog: NodeLog): Option[NodeLog] = {
+      import nodeLog._
+      nodes.find {
+        nl => nl.host == host && nl.port == port
+      }
+    }
+
+    import log._
+    findNode(from) -> findNode(to) match {
+      case (Some(sndr), Some(rcvr)) => loggedPackets += log
+      case (sndr, rcvr) => logger.error(s"Could not find sender or receiver: ($sndr, $rcvr)")
+    }
+  }
+  def handleAddToCacheLog(log: AddToCacheLog): Unit =  addedToCache += log
+
+  implicit val formats = DefaultFormats
+
+  def handleConnectLogJson(json: JsonAST.JValue): Unit = {
+    json.extractOpt[ConnectLog] match {
+      case Some(log) => handleConnectLog(log)
+      case None => logger.error(s"Error when extracting ConnectLogRequest from json '$json'")
+    }
+  }
+
+  def handlePacketLogJson(json: JsonAST.JValue): Unit = {
+    json.extractOpt[PacketLog] match {
+      case Some(log) => handlePacketLog(log)
+      case None => logger.error(s"Error when extracting PacketLog from json '$json'")
+    }
+  }
+
+  def handleAddToCacheLogJson(json: JsonAST.JValue): Unit = {
+    json.extractOpt[AddToCacheLog] match {
+      case Some(log) => handleAddToCacheLog(log)
+      case None => logger.error(s"Error when extracting AddToCache from json '$json'")
+    }
+  }
+
+
+  def parseAndHandleJsonData(data: ByteString): Unit = {
+    val json = data.decodeString("UTF-8")
+    parseOpt(json) map {
+      case JField("connect", connectJson) => handleConnectLogJson(connectJson)
+      case JField("packet", packetJson) => handlePacketLogJson(packetJson)
+      case JField("addtocache", addToCacheJson) => handleAddToCacheLogJson(addToCacheJson)
+      case _ => logger.error(s"Could not parse json string '$json'")
+    }
+  }
+
+  override def receive: Receive = {
+    case cl: ConnectLog => handleConnectLog(cl)
+    case pl: PacketLog => handlePacketLog(pl)
+    case atc: AddToCacheLog => handleAddToCacheLog(atc)
+    case Monitor.Visualize() => {
+      OmnetIntegration(nodes, edges, loggedPackets, startTime)()
+    }
+
+    case data: ByteString => {
+      parseAndHandleJsonData(data)
+    }
+  }
+
 }
 
 

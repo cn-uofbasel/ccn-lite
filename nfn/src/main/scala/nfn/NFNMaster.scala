@@ -22,6 +22,7 @@ import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
 import monitor.Monitor
+import monitor.Monitor.{ContentLog, InterestLog, NodeLog}
 
 
 object NFNMaster {
@@ -57,7 +58,10 @@ object NFNMaster {
 
 }
 
-case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String)
+case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String) {
+  def toNFNNodeLog: NodeLog = NodeLog(host, port, prefix, "NFNNode")
+  def toComputeNodeLog: NodeLog = NodeLog(host, computePort, prefix + "compute", "ComputeNode")
+}
 
 object NFNMasterFactory {
   def network(context: ActorRefFactory, nodeConfig: NodeConfig) = {
@@ -74,7 +78,8 @@ object NFNMasterFactory {
 
 
 /**
- * Worker Actor which responds to ccn interest and content packets
+ * Master Actor which is basically a simple ccn router with a content store and a pednign interest table but with only one forwarding rule
+ * (an actual ccn router). It forwards compute requests to a [[ComputeWorker]].
  */
 trait NFNMaster extends Actor {
 
@@ -212,6 +217,10 @@ trait NFNMaster extends Actor {
 case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
+
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
+
   ccnLiteNFNNetworkProcess.start()
 
   val nfnSocket = context.actorOf(Props(classOf[UDPConnection],
@@ -228,7 +237,9 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def send(packet: CCNPacket): Unit = {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
-    Monitor.monitor ! Monitor.PacketSent(packet, nodeConfig)
+
+    val ccnb = NFNCommunication.encodeBase64(ccnIf.mkBinaryPacket(packet))
+    Monitor.monitor ! Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, InterestLog(packet.toString))
   }
 
   override def sendAddToCache(content: Content): Unit = {
@@ -241,11 +252,18 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def connect(otherNodeConfig: NodeConfig): Unit = {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
-    Monitor.monitor ! Monitor.Connect(nodeConfig, otherNodeConfig)
+    Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
   }
 
   override def monitorReceive(packet: CCNPacket): Unit = {
-    Monitor.monitor ! Monitor.PacketReceived(packet, nodeConfig)
+    packet match {
+      case i: Interest => Monitor.monitor ! Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, isSent = false, InterestLog(i.name.mkString("/", "/", "")))
+      case c: Content => {
+        val name = c.name.mkString("/", "/", "")
+        val data = new String(c.data).take(50)
+        Monitor.monitor ! Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ContentLog(name, data))
+      }
+    }
   }
 }
 
@@ -265,82 +283,6 @@ case class NFNMasterLocal() extends NFNMaster {
 }
 
 
-object ComputeWorker {
-  case class Exit()
-}
-
-/**
- *
- */
-case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
-
-  val name = self.path.name
-  val logger = Logging(context.system, this)
-  val ccnIf = CCNLite
-
-  private var result : Option[String] = None
-
-  def receivedContent(content: Content) = {
-    // Received content from request (sendrcv)
-    logger.error(s"ComputeWorker received content, discarding it because it does not know what to do with it")
-  }
-
-  // Received compute request
-  // Make sure it actually is a compute request and forward to the handle method
-  def receivedInterest(interest: Interest, requestor: ActorRef) = {
-    logger.debug(s"received compute interest: $interest")
-    val cmps = interest.name
-    val computeCmps = cmps match {
-      case Seq("COMPUTE", reqNfnCmps @ _ *) => {
-        assert(reqNfnCmps.last == "NFN")
-        val computeCmpsMaybeThunk = reqNfnCmps.init
-
-        val (computeCmps, isThunkReq) = if(computeCmpsMaybeThunk.last == "THUNK") {
-          computeCmpsMaybeThunk.init -> true
-        } else {
-          computeCmpsMaybeThunk -> false
-        }
-
-        handleComputeRequest(computeCmps, interest, isThunkReq, requestor)
-      }
-      case _ => logger.error(s"Dropping interest $interest because it is not a compute request")
-    }
-  }
 
 
-  /*
-   * Parses the compute request and instantiates a callable service.
-   * On success, sends a thunk back if required, executes the services and sends the result back.
-   */
-  def handleComputeRequest(computeCmps: Seq[String], interest: Interest, isThunkRequest: Boolean, requestor: ActorRef) = {
-    logger.debug(s"Handling compute request for cmps: $computeCmps")
-    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
 
-    callableServ onComplete {
-      case Success(callableServ) => {
-        if(isThunkRequest) {
-          requestor ! Thunk(interest)
-        }
-
-        val result = callableServ.exec
-        val content = Content(interest.name, result.toValueName.name.mkString(" ").getBytes)
-        logger.debug(s"Finished computation, result: $content")
-        requestor ! ComputeResult(content)
-      }
-      case Failure(e) => {
-
-        logger.error(IOHelper.exceptionToString(e))
-      }
-    }
-  }
-
-  override def receive: Actor.Receive = {
-    case content: Content => receivedContent(content)
-    case interest: Interest => {
-      // Just to make sure we are not closing over sender
-      val requestor = sender
-      receivedInterest(interest, requestor)
-    }
-    case Exit() => context.stop(self)
-  }
-}

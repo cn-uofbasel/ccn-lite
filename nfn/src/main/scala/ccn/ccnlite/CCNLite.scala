@@ -4,6 +4,7 @@ import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
 import java.io.{FileOutputStream, File}
 import com.typesafe.scalalogging.slf4j.Logging
+import network.NFNCommunication
 
 object CCNLite extends Logging {
   val ccnIf = new CCNLiteInterface()
@@ -62,6 +63,10 @@ object CCNLite extends Logging {
       file.delete
       binaryInterest
     }
+  }
+
+  def base64CCNBToPacket(base64ccnb: String): Option[CCNPacket] = {
+    NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(NFNCommunication.decodeBase64(base64ccnb)))
   }
 
   private def mkAddToCacheInterest(ccnbAbsoluteFilename: String): Array[Byte] = {

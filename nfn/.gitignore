@@ -27,4 +27,9 @@ project/plugins/project/
 # Vim
 *.swp
 
+# omnet
+.tkenvlog
+.tkenvrc
+
+
 c_xml.txt

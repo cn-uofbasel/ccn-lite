@@ -20,6 +20,10 @@ object NFNCommunication extends Logging {
     }
   }
 
+  def decodeBase64(data: String): Array[Byte] = DatatypeConverter.parseBase64Binary(data)
+  def encodeBase64(bytes: Array[Byte]): String = DatatypeConverter.printBase64Binary(bytes)
+
+
   def parsePacket(xmlString: String):Option[Packet] = {
     def parseData(elem: Node): String = {
       val data = elem \ "data"
@@ -32,7 +36,7 @@ object NFNCommunication extends Logging {
         case "string" =>
           nameData
         case "binary.base64" =>
-          new String(DatatypeConverter.parseBase64Binary(nameData))
+          new String(decodeBase64(nameData))
         case _ => throw new Exception(s"parseData() does not support data of type: '$encoding'")
       }
     }
