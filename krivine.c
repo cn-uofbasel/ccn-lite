@@ -677,10 +677,34 @@ normal:
 	push_to_stack(&config->result_stack, h);
 	return pending+1;
     }
+    if(!strncmp(prog, "OP_IFELSE", 9)){
+        char *h;
+        int i1;
+        h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
+        DEBUGMSG(99,"h: %s pending: %s\n", h, pending);
+        if(h == NULL){
+            *halt = -1;
+            return prog;
+        }
+        i1 = atoi(h);
+        if(i1){
+            DEBUGMSG(99, "Execute if\n");
+            struct closure_s *cl = pop_from_stack(&config->argument_stack);
+            pop_from_stack(&config->argument_stack);
+            push_to_stack(&config->argument_stack, cl);
+        }
+        else{
+            DEBUGMSG(99, "Execute else\n");
+            pop_from_stack(&config->argument_stack);
+        }
+        return pending+1;
+    }
     if(!strncmp(prog, "OP_CALL", 7)){
 	char *h;
 	int i, offset;
 	char name[5];
+        DEBUGMSG(2, "---to do: OP_CALL <%s>\n", prog+7);
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
@@ -707,14 +731,17 @@ normal:
             *restart = 0;
             goto recontinue;
         }
+        DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
         char *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
         config->fox_state->num_of_params = atoi(h);
+        DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
         config->fox_state->params = malloc(sizeof(char * ) * config->fox_state->num_of_params); 
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
+        DEBUGMSG(99, "%s\n",  config->fox_state->params[0]);
         
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = config->fox_state->num_of_params - 1;
@@ -780,7 +807,10 @@ setup_global_environment(struct environment_s **env){
     closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op@x@y x y op)", NULL);
     add_to_environment(env, "leq", closure);
 
-    closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
+    //closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
+    //add_to_environment(env, "ifelse", closure);
+    
+    closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
 
     closure = new_closure("CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
