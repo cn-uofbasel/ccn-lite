@@ -151,7 +151,7 @@ add_to_environment(struct environment_s **env, char *name, void *element){
    newelement->name = name;
    newelement->element = element;
    if(env == NULL || *env == NULL){
-          newelement->next == NULL;
+          newelement->next = NULL;
       }else{
              newelement->next = *env;
          }
@@ -392,7 +392,31 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     }
     return c;
 }
+
 //------------------------------------------------------------
+/**
+ * used to avoid code duplication for popping two integer values from result stack asynchronous
+ * requires to define i1 and i2 before calling to store the results.
+ */
+#define pop2int() \
+        do{     \
+            char *h1, *h2; \
+            h1 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
+            if(h1 == NULL){ \
+                *halt = -1; \
+                return prog; \
+            } \
+            i1 = atoi(h1); \
+            h2 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
+            if(h2 == NULL){ \
+                *halt = -1; \
+                push_to_stack(&config->result_stack, h1); \
+                return prog; \
+            } \
+            i2 = atoi(h2);    \ 
+        }while(0) ;
+//------------------------------------------------------------
+        
 char*
 ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         int thunk_request, int *num_of_required_thunks,  
@@ -593,10 +617,7 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i2 = atoi(h);
+	pop2int();
 	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
         if (pending)
@@ -611,10 +632,7 @@ normal:
         char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i2 = atoi(h);
+	pop2int();
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
         if (pending)
@@ -625,21 +643,9 @@ normal:
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
 	int i1, i2, res;
-	char *h, *h1, *h2;
+	char *h;
 	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	h1 = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        if(h1 == NULL){
-            *halt = -1;
-            return prog;
-        }
-	i1 = atoi(h1);
-	h2 = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        if(h2 == NULL){
-            *halt = -1;
-            push_to_stack(&config->result_stack, h1);
-            return prog;
-        }
-	i2 = atoi(h2);
+	pop2int();
 	res = i1+i2;
 	h = malloc(sizeof(char)*10);
         memset(h,0,10);
@@ -651,10 +657,7 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i2 = atoi(h);
+        pop2int();
 	res = i2-i1;
 	h = malloc(sizeof(char)*10);
         memset(h,0,10);
@@ -666,10 +669,7 @@ normal:
 	int i1, i2, res;
 	char *h;
 	DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i1 = atoi(h);
-	h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-	i2 = atoi(h);
+        pop2int();
 	res = i1*i2;
 	h = malloc(sizeof(char)*10);
         memset(h,0,10);
