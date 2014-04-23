@@ -55,7 +55,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
 
 
   def start() = {
-//    if(nodeConfig.prefix != "docRepo4") {
+//    if(nodeConfig.prefix != "docRepo0" && nodeConfig.prefix != "docRepo1") {
       val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
       println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
       val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
@@ -66,7 +66,8 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
       val thread = new Thread(lsr, s"LogStreamReader-$prefix")
       thread.start
 //    } else {
-//      println("SKIPPED START OF CCN-LITE NODE 4")
+//      println("SKIPPED START OF CCN-LITE NODE 0")
+//      println("SKIPPED START OF CCN-LITE NODE 1")
 //    }
 
     addFace(host, computePort, "COMPUTE")
@@ -83,7 +84,9 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
   def addFace(otherHost: String, otherPort: Int, otherPrefix: String): Unit = {
 
 //    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
+    // TODO host is hardcoded!
     val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any 127.0.0.1 $otherPort"
+    println("TODO: host is still hardcoded")
     println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
 

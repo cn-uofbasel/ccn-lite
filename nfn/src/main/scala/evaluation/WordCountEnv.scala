@@ -24,9 +24,8 @@ import monitor.Monitor
 
 object WordCountEnv extends App {
 
-  val timeoutDuration: FiniteDuration = 6 seconds
+  val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
-
 
   val n = 5
 
@@ -40,7 +39,6 @@ object WordCountEnv extends App {
   val nodes = nodeConfigs map { Node(_) }
 
   Node.connectAll(nodes)
-
 
   val docNamesWithoutPrefix =
     (0 until 10) map { n => Seq("docs", s"doc$n") }
@@ -104,22 +102,22 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val expr = namesToAddedWordCount(docNames.take(1))
+  val expr = namesToAddedWordCount(docNames)
 //  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
 //  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
-  Thread.sleep(800)
+//  Thread.sleep(800)
 //  (reqNode ? Interest(Seq(nameDoc2Node2.mkString("/", "/", ""), "NFN"))) onComplete {
-//  (nodes.head ? Interest(Seq(expr, "NFN"))) onComplete {
-    (nodes.head ? Interest(nameDoc4Node4)) onComplete {
-//  (nodes.head ? Interest(Seq("add 1 2", "NFN"))) onComplete {
+//  (nodes(0) ? Interest(Seq("sub 2 3", "NFN"))) onComplete {
+  (nodes(0) ? Interest(Seq(expr, "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
 
-  Thread.sleep(7000)
-    Monitor.monitor ! Monitor.Visualize()
-//  nodes foreach { _.shutdown }
-//
-//  sys.exit
+  Thread.sleep(timeoutDuration.toMillis)
+  Monitor.monitor ! Monitor.Visualize()
+  Thread.sleep(200)
+  nodes foreach { _.shutdown }
+
+  sys.exit
 }
 
