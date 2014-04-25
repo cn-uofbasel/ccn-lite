@@ -6,6 +6,7 @@
 
 #include <arpa/inet.h>
 #include "krivine-common.c"
+#include "ccnl-ext-debug.c"
 
 
 #define LAMBDA '@'
@@ -554,6 +555,44 @@ normal:
 	cp[len-1] = '\0';
 	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
 
+        //function definition
+        if(!strncmp(cp, "let", 3)){
+             DEBUGMSG(99, "Function definition, %s\n", cp);
+            /*char res2[1000];
+            strcpy(res, prog+11);
+            DEBUGMSG(99, "Function definition\n");
+            int i, end = 0;
+            char *h, *name, *lambda_expr;
+            for(i = 0; i < strlen(res); ++i){
+                if(!strncmp(res+i, "endlet", 6)){
+                    end = i;
+                    break;
+                }
+            }
+            pending = malloc(strlen(res+end+7) + 11);
+            sprintf(pending, "RESOLVENAME(%s", res+end+7);
+            DEBUGMSG(99, "Pending: %s\n", pending);
+            memcpy(res2, res+3, end-3);
+            h = strchr(res, '=');
+            name = malloc(h - res);
+            memcpy(name, res+4, h-res-4);
+            trim(name);
+            DEBUGMSG(99, "Name: %s\n", name);
+            lambda_expr = malloc(strlen(h));
+            memcpy(lambda_expr, h+1, strlen(h)-strlen(pending));
+            trim(lambda_expr);
+            DEBUGMSG(99, "lambda_expr: %s\n", lambda_expr);
+            add_to_environment(&config->env, name, lambda_expr);
+            print_environment(config->env);
+            return pending;*/
+            
+            char *name = "a";
+            char *lambda_expr = "CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY";
+            struct closure_s *cl = new_closure(lambda_expr, NULL);
+            add_to_environment(&config->env, name, cl);
+            return strdup("RESOLVENAME(a 1 2);TAILAPPLY");
+        }
+        
         //check if term can be made available, if yes enter it as a var
 	//try with searching in global env for an added term!
         t = parseKRIVINE(0, &cp);
@@ -682,7 +721,6 @@ normal:
         int i1;
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
         DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
-        DEBUGMSG(99,"h: %s pending: %s\n", h, pending);
         if(h == NULL){
             *halt = -1;
             return prog;
@@ -812,6 +850,9 @@ setup_global_environment(struct environment_s **env){
     
     closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
+    
+    /*closure = new_closure("CLOSURE(OP_DEFINE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
+    add_to_environment(env, "define", closure);*/
 
     closure = new_closure("CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "add", closure);
