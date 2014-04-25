@@ -557,40 +557,44 @@ normal:
 
         //function definition
         if(!strncmp(cp, "let", 3)){
-             DEBUGMSG(99, "Function definition, %s\n", cp);
-            /*char res2[1000];
-            strcpy(res, prog+11);
-            DEBUGMSG(99, "Function definition\n");
-            int i, end = 0;
-            char *h, *name, *lambda_expr;
+            DEBUGMSG(99, "Function definition: %s\n", cp);
+            strcpy(res, cp+3);
+            int i, end = 0, pendinglength, namelength, lambdalen;
+            char *h, *name, *lambda_expr, *resolveterm;
             for(i = 0; i < strlen(res); ++i){
                 if(!strncmp(res+i, "endlet", 6)){
                     end = i;
                     break;
                 }
             }
-            pending = malloc(strlen(res+end+7) + 11);
-            sprintf(pending, "RESOLVENAME(%s", res+end+7);
-            DEBUGMSG(99, "Pending: %s\n", pending);
-            memcpy(res2, res+3, end-3);
-            h = strchr(res, '=');
-            name = malloc(h - res);
-            memcpy(name, res+4, h-res-4);
-            trim(name);
-            DEBUGMSG(99, "Name: %s\n", name);
-            lambda_expr = malloc(strlen(h));
-            memcpy(lambda_expr, h+1, strlen(h)-strlen(pending));
-            trim(lambda_expr);
-            DEBUGMSG(99, "lambda_expr: %s\n", lambda_expr);
-            add_to_environment(&config->env, name, lambda_expr);
-            print_environment(config->env);
-            return pending;*/
+            pendinglength = strlen(res+end) + strlen("RESOLVENAME()");
+            h = strchr(cp, '=');
+            namelength = h - cp;
             
-            char *name = "a";
-            char *lambda_expr = "CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY";
-            struct closure_s *cl = new_closure(lambda_expr, NULL);
+            
+            lambda_expr = malloc(strlen(h));
+            name = malloc(namelength);
+            pending = malloc(pendinglength);
+            
+            memset(pending, 0, pendinglength);
+            memset(name, 0, namelength);
+            memset(lambda_expr, 0, strlen(h));
+            
+            sprintf(pending, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
+            
+            memcpy(name, cp+3, namelength-3); //copy name without let and endlet
+            trim(name);
+   
+            lambdalen = strlen(h)-strlen(pending)+11-6;
+            memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
+            trim(lambda_expr);
+            resolveterm = malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
+            sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
+            
+            struct closure_s *cl = new_closure(resolveterm, NULL);
             add_to_environment(&config->env, name, cl);
-            return strdup("RESOLVENAME(a 1 2);TAILAPPLY");
+            
+            return pending;
         }
         
         //check if term can be made available, if yes enter it as a var
