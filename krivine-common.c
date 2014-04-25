@@ -71,6 +71,21 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
     return len;
 }
 
+int trim(char *str){  // inplace, returns len after shrinking
+    int i;
+    while(str[0] != '\0' && str[0] == ' '){
+        for(i = 0; i < strlen(str); ++i)
+            str[i] = str[i+1];
+    }
+    for(i = strlen(str)-1; i >=0; ++i){
+        if(str[i] == ' '){
+            str[i] = '\0';
+            continue;
+        }
+        break;
+    }
+}
+
 //FIXME!!!!!
 int
 splitComponents(char* namecomp, char **prefix)
