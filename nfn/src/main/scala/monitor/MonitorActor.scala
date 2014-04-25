@@ -8,12 +8,10 @@ import network.UDPConnection
 import akka.util.ByteString
 import akka.event.Logging
 import net.liftweb.json._
-import monitor.Monitor._
-import scala.Some
-import scala.Some
+import monitor.MonitorActor._
 
 
-object Monitor {
+object MonitorActor {
 
   val host = "localhost"
   val port = 10666
@@ -27,34 +25,61 @@ object Monitor {
   sealed trait MonitorLogEntry {
     val timestamp = System.currentTimeMillis
   }
-  case class NodeLog(host: String, port: Int, prefix: String, typ: String) extends MonitorLogEntry
+  case class NodeLog(host: String, port: Int, `type`: Option[String], prefix: Option[String]) extends MonitorLogEntry
+  case class ConnectLogEntry(connectLog: ConnectLog)
   case class ConnectLog(from: NodeLog, to: NodeLog) extends MonitorLogEntry
 
   trait CCNPacketLog
   case class ContentLog(name: String, data: String) extends CCNPacketLog
   case class InterestLog(name: String) extends CCNPacketLog
 
+  /**
+   * {
+   *   "packetLog": {
+   *     "from": {
+   *       "host": "127.0.0.1",
+   *       "port": 10001,
+   *       "type" : "NFNNode",  // optional
+   *       "prefix": "docrepo1" // optional
+   *     },
+   *     "to": {
+   *       "host": "127.0.0.1",
+   *       "port": 10002
+   *     },
+   *     "isSent": true,
+   *     "packet": {
+   *       "name" : "/ccn/name",
+   *       "data" : "TWFuIGlzIGZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
+   *     }
+   *   }
+   * }
+   */
+  case class PacketLogEntry(packetLog: PacketLog)
   case class PacketLog(from: NodeLog, to: NodeLog, isSent: Boolean, packet: CCNPacketLog) extends MonitorLogEntry
+
+  case class AddToCacheLogEntry(addToCacheLog: AddToCacheLog)
   case class AddToCacheLog(node: NodeLog, ccnb: String) extends MonitorLogEntry
 
   case class Send(packet: CCNPacket)
 }
 
 
+trait Monitor extends Actor {
 
-case class Monitor() extends Actor {
-
-  val startTime = System.currentTimeMillis()
 
   val logger = Logging(context.system, this)
 
   val system = ActorSystem(s"Monitor", AkkaConfig())
   val nfnSocket = system.actorOf(
     Props(classOf[UDPConnection],
-    new InetSocketAddress(Monitor.host, Monitor.port),
-    None),
-    name = s"udpsocket-${Monitor.port}"
+      new InetSocketAddress(MonitorActor.host, MonitorActor.port),
+      None),
+    name = s"udpsocket-${MonitorActor.port}"
   )
+
+  val startTime = System.currentTimeMillis()
+
+
 
 
   var nodes = Set[NodeLog]()
@@ -64,53 +89,6 @@ case class Monitor() extends Actor {
   var loggedPackets = Set[PacketLog]()
 
   var addedToCache = Set[AddToCacheLog]()
-
-//  {
-//    "packet" : {
-//      "fromNode": {
-//        "host": "127.0.0.1",
-//        "port": 10001,
-//        "prefix": "docrepo1"
-//      },
-//      "toNode": {
-//        "host": "127.0.0.1",
-//        "port": 10002,
-//        "prefix": "docrepo2"
-//      },
-//      "isSent": true,
-//      "ccnb": "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
-//      IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
-//      dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
-//      dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
-//    }
-//  }
-//  {
-//    "connect": {
-//      "fromNode": {
-//        "host": "127.0.0.1",
-//        "port": 10001,
-//        "prefix": "docrepo1"
-//      },
-//      "toNode": {
-//        "host": "127.0.0.1",
-//        "port": 10002,
-//        "prefix": "docrepo2"
-//      }
-//    }
-//  }
-//  {
-//    "addtocache": {
-//      "node": {
-//        "host": "127.0.0.1"
-//        "port": 10001,
-//        "prefix": "docrepo1"
-//      },
-//      "ccnb": "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
-//      IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
-//      dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
-//      dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
-  //    }
-//  }
 
   def handleConnectLog(log: ConnectLog): Unit = {
     import log._
@@ -164,42 +142,24 @@ case class Monitor() extends Actor {
   def parseAndHandleJsonData(data: ByteString): Unit = {
     val json = data.decodeString("UTF-8")
     parseOpt(json) map {
-      case JField("connect", connectJson) => handleConnectLogJson(connectJson)
-      case JField("packet", packetJson) => handlePacketLogJson(packetJson)
-      case JField("addtocache", addToCacheJson) => handleAddToCacheLogJson(addToCacheJson)
+      case JField("connectLog", connectJson) => handleConnectLogJson(connectJson)
+      case JField("packetLog", packetJson) => handlePacketLogJson(packetJson)
+      case JField("addToCacheLog", addToCacheJson) => handleAddToCacheLogJson(addToCacheJson)
       case _ => logger.error(s"Could not parse json string '$json'")
     }
   }
 
   override def receive: Receive = {
-    case cl: ConnectLog => handleConnectLog(cl)
-    case pl: PacketLog => handlePacketLog(pl)
-    case atc: AddToCacheLog => handleAddToCacheLog(atc)
-    case Monitor.Visualize() => {
+    case cl: ConnectLogEntry => handleConnectLog(cl.connectLog)
+    case pl: PacketLogEntry => handlePacketLog(pl.packetLog)
+    case atc: AddToCacheLogEntry => handleAddToCacheLog(atc.addToCacheLog)
+
+    case MonitorActor.Visualize() => {
       OmnetIntegration(nodes, edges, loggedPackets, startTime)()
     }
-
     case data: ByteString => {
       parseAndHandleJsonData(data)
     }
   }
-
 }
-
-
-
-
-//case class GraphPosition(x: Float, y: Float)
-//
-//trait GraphPositional {
-//  val r = new Random()
-//  var pos = GraphPosition(r.nextFloat, r.nextFloat)
-//
-//}
-//
-//case class SpecificGraphPosition(x: Float, y: Float) extends GraphPositional {
-//  override def pos: GraphPosition = GraphPosition(x, y)
-//}
-
-
 

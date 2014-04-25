@@ -1,7 +1,7 @@
 package monitor
 
 import nfn.NodeConfig
-import monitor.Monitor.{ContentLog, InterestLog, PacketLog, NodeLog}
+import monitor.MonitorActor.{ContentLog, InterestLog, PacketLog, NodeLog}
 import ccn.packet.Interest
 import ccn.ccnlite.CCNLite
 import ccnliteinterface.CCNLiteInterface
@@ -17,10 +17,10 @@ object TestApp extends App {
   Thread.sleep(5)
   val nodes =
     Seq(
-      NodeLog("localhost", 1, "docRepo1", "ComputeNode"),
-      NodeLog("localhost", 2, "docRepo2", "ComputeNode"),
-      NodeLog("localhost", 3, "docRepo3", "NFNNode"),
-      NodeLog("localhost", 4, "docRepo4", "NFNNode")
+      NodeLog("localhost", 1, Some("docRepo1"), Some("ComputeNode")),
+      NodeLog("localhost", 2, Some("docRepo2"), Some("ComputeNode")),
+      NodeLog("localhost", 3, Some("docRepo3"), Some("NFNNode")),
+      NodeLog("localhost", 4, Some("docRepo4"), Some("NFNNode"))
     )
 
   val edges = Set(

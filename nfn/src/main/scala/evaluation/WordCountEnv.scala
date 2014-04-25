@@ -20,7 +20,7 @@ import scala.util.Failure
 import scala.util.Success
 import ccn.packet.Content
 import nfn.NodeConfig
-import monitor.Monitor
+import monitor.MonitorActor
 
 object WordCountEnv extends App {
 
@@ -114,7 +114,7 @@ object WordCountEnv extends App {
   }
 
   Thread.sleep(timeoutDuration.toMillis)
-  Monitor.monitor ! Monitor.Visualize()
+  MonitorActor.monitor ! MonitorActor.Visualize()
   Thread.sleep(200)
   nodes foreach { _.shutdown }
 

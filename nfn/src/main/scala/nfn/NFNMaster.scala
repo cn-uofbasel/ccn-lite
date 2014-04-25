@@ -21,8 +21,8 @@ import java.net.InetSocketAddress
 import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
-import monitor.Monitor
-import monitor.Monitor.{ContentLog, InterestLog, NodeLog}
+import monitor.MonitorActor
+import monitor.MonitorActor.{ContentLog, InterestLog, NodeLog}
 
 
 object NFNMaster {
@@ -59,8 +59,8 @@ object NFNMaster {
 }
 
 case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String) {
-  def toNFNNodeLog: NodeLog = NodeLog(host, port, prefix, "NFNNode")
-  def toComputeNodeLog: NodeLog = NodeLog(host, computePort, prefix + "compute", "ComputeNode")
+  def toNFNNodeLog: NodeLog = NodeLog(host, port, Some(prefix), Some("NFNNode"))
+  def toComputeNodeLog: NodeLog = NodeLog(host, computePort, Some(prefix + "compute"), Some("ComputeNode"))
 }
 
 object NFNMasterFactory {
@@ -218,8 +218,8 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
 
-  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
-  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
+  MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
+  MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
 
   ccnLiteNFNNetworkProcess.start()
 
@@ -239,7 +239,7 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
 
     val ccnb = NFNCommunication.encodeBase64(ccnIf.mkBinaryPacket(packet))
-    Monitor.monitor ! Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, InterestLog(packet.toString))
+    MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, InterestLog(packet.toString))
   }
 
   override def sendAddToCache(content: Content): Unit = {
@@ -252,16 +252,16 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def connect(otherNodeConfig: NodeConfig): Unit = {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
-    Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
+    MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
   }
 
   override def monitorReceive(packet: CCNPacket): Unit = {
     packet match {
-      case i: Interest => Monitor.monitor ! Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, isSent = false, InterestLog(i.name.mkString("/", "/", "")))
+      case i: Interest => MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, isSent = false, InterestLog(i.name.mkString("/", "/", "")))
       case c: Content => {
         val name = c.name.mkString("/", "/", "")
         val data = new String(c.data).take(50)
-        Monitor.monitor ! Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ContentLog(name, data))
+        MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ContentLog(name, data))
       }
     }
   }
