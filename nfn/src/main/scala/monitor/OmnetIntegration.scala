@@ -1,6 +1,6 @@
 package monitor
 
-import monitor.Monitor._
+import monitor.MonitorActor._
 import ccn.ccnlite.CCNLite
 import network.NFNCommunication
 import ccnliteinterface.CCNLiteInterface
@@ -64,6 +64,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     Packets(transmittedPackets)
   }
 
+
   def apply() = {
 
     import IOHelper.printToFile
@@ -79,6 +80,16 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     printToFile(new File(transmittedPacketsJsonFilename), transmittedPacketsJson)
     logger.info(s"Wrote transmittedPackets to .json file $transmittedPacketsJsonFilename")
 
+    logger.info(s"Starting Omnet...")
+    startOmnet()
+
+  }
+
+  def startOmnet() = {
+    val cmd = s"./omnetintegratio/omnetintegration"
+    val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
+    processBuilder.redirectErrorStream(true)
+    val process = processBuilder.start
   }
 
   def createTransmissionJson:String = {
@@ -90,8 +101,8 @@ case class OmnetIntegration(nodes: Set[NodeLog],
   def createNed(): String = {
     val submodules: Seq[String] = nodes.map ({ node =>
         val name = node.prefix
-        val typ = node.typ
-        s"$name: $typ;"
+        val `type` = node.`type`
+        s"$name: ${`type`};"
     }).toSeq
 
     val connections: Seq[String] = edges.groupBy{ edge =>
