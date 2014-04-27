@@ -6,6 +6,7 @@
 
 #include <arpa/inet.h>
 #include "krivine-common.c"
+#include "ccnl-ext-debug.c"
 
 
 #define LAMBDA '@'
@@ -554,6 +555,48 @@ normal:
 	cp[len-1] = '\0';
 	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
 
+        //function definition
+        if(!strncmp(cp, "let", 3)){
+            DEBUGMSG(99, "Function definition: %s\n", cp);
+            strcpy(res, cp+3);
+            int i, end = 0, pendinglength, namelength, lambdalen;
+            char *h, *name, *lambda_expr, *resolveterm;
+            for(i = 0; i < strlen(res); ++i){
+                if(!strncmp(res+i, "endlet", 6)){
+                    end = i;
+                    break;
+                }
+            }
+            pendinglength = strlen(res+end) + strlen("RESOLVENAME()");
+            h = strchr(cp, '=');
+            namelength = h - cp;
+            
+            
+            lambda_expr = malloc(strlen(h));
+            name = malloc(namelength);
+            pending = malloc(pendinglength);
+            
+            memset(pending, 0, pendinglength);
+            memset(name, 0, namelength);
+            memset(lambda_expr, 0, strlen(h));
+            
+            sprintf(pending, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
+            
+            memcpy(name, cp+3, namelength-3); //copy name without let and endlet
+            trim(name);
+   
+            lambdalen = strlen(h)-strlen(pending)+11-6;
+            memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
+            trim(lambda_expr);
+            resolveterm = malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
+            sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
+            
+            struct closure_s *cl = new_closure(resolveterm, NULL);
+            add_to_environment(&config->env, name, cl);
+            
+            return pending;
+        }
+        
         //check if term can be made available, if yes enter it as a var
 	//try with searching in global env for an added term!
         t = parseKRIVINE(0, &cp);
@@ -611,7 +654,7 @@ normal:
             return strdup(res);
         }
     }
-    if (!strncmp(prog, "OP_CMPEQ", 8)) {
+    if (!strncmp(prog, "OP_CMPEQ_CHURCH", 15)) {
 	int i1, i2, acc;
 	char *h;
         char res[1000];
@@ -626,7 +669,7 @@ normal:
 	    sprintf(res, "RESOLVENAME(%s)", cp);
 	return strdup(res);
     }
-    if (!strncmp(prog, "OP_CMPLEQ", 9)) {
+    if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
 	int i1, i2, acc;
 	char *h;
         char res[1000];
@@ -635,6 +678,42 @@ normal:
 	pop2int();
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
+        if (pending)
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
+    }
+    if (!strncmp(prog, "OP_CMPEQ", 8)) {
+	int i1, i2, acc;
+	char *h;
+        char res[1000];
+	memset(res, 0, sizeof(res));
+	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+	pop2int();
+	acc = i1 == i2;
+        if(acc)
+            cp = "1";
+        else
+            cp = "0";
+        if (pending)
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
+    }
+    if (!strncmp(prog, "OP_CMPLEQ", 9)) {
+	int i1, i2, acc;
+	char *h;
+        char res[1000];
+	memset(res, 0, sizeof(res));
+	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+	pop2int();
+	acc = i2 <= i1;
+        if(acc)
+            cp = "1";
+        else
+            cp = "0";
         if (pending)
 	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
 	else
@@ -677,10 +756,33 @@ normal:
 	push_to_stack(&config->result_stack, h);
 	return pending+1;
     }
+    if(!strncmp(prog, "OP_IFELSE", 9)){
+        char *h;
+        int i1;
+        h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
+        if(h == NULL){
+            *halt = -1;
+            return prog;
+        }
+        i1 = atoi(h);
+        if(i1){
+            DEBUGMSG(99, "Execute if\n");
+            struct closure_s *cl = pop_from_stack(&config->argument_stack);
+            pop_from_stack(&config->argument_stack);
+            push_to_stack(&config->argument_stack, cl);
+        }
+        else{
+            DEBUGMSG(99, "Execute else\n");
+            pop_from_stack(&config->argument_stack);
+        }
+        return pending+1;
+    }
     if(!strncmp(prog, "OP_CALL", 7)){
 	char *h;
 	int i, offset;
 	char name[5];
+        DEBUGMSG(2, "---to do: OP_CALL <%s>\n", prog+7);
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
 	int num_params = atoi(h);
         memset(dummybuf, 0, sizeof(dummybuf));
@@ -707,14 +809,17 @@ normal:
             *restart = 0;
             goto recontinue;
         }
+        DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
         char *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
         config->fox_state->num_of_params = atoi(h);
+        DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
         config->fox_state->params = malloc(sizeof(char * ) * config->fox_state->num_of_params); 
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
+        DEBUGMSG(99, "%s\n",  config->fox_state->params[0]);
         
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = config->fox_state->num_of_params - 1;
@@ -768,19 +873,30 @@ recontinue:
 void
 setup_global_environment(struct environment_s **env){
 
+    //Operator on Church numbers
     struct closure_s *closure = new_closure("RESOLVENAME(@x@y x)", NULL);
-    add_to_environment(env, "true", closure);
+    add_to_environment(env, "true_church", closure);
 
     closure = new_closure("RESOLVENAME(@x@y y)", NULL);
-    add_to_environment(env, "false", closure);
+    add_to_environment(env, "false_church", closure);
 
+    closure = new_closure("CLOSURE(OP_CMPEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))", NULL);
+    add_to_environment(env, "eq_church", closure);
+
+    closure = new_closure("CLOSURE(OP_CMPLEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))", NULL);
+    add_to_environment(env, "leq_church", closure);
+
+    closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
+    add_to_environment(env, "ifelse_church", closure);
+    
+    //Operator on integer numbers
     closure = new_closure("CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "eq", closure);
 
-    closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op@x@y x y op)", NULL);
+    closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "leq", closure);
-
-    closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
+    
+    closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
 
     closure = new_closure("CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
@@ -791,12 +907,6 @@ setup_global_environment(struct environment_s **env){
    
     closure = new_closure("CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "mult", closure);
-
-    closure = new_closure("RESOLVENAME(@f@n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))", NULL);
-    add_to_environment(env, "factprime", closure);
-
-    closure = new_closure("RESOLVENAME(factprime factprime)", NULL);
-    add_to_environment(env, "fact", closure);
 
     closure = new_closure("CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "call", closure);
