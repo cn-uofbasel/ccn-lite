@@ -23,6 +23,10 @@
 
 #include "ccnl-core.h"
 
+#ifdef CCNL_NFN_MONITOR
+#include "json.c"
+#endif
+
 
 
 #define CCNL_VERSION "2013-07-27"
@@ -652,8 +656,18 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
 	// suppress forwarding to origin of interest, except wireless
 	if (!i->from || fwd->face != i->from ||
-	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT))
+	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){
 	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+#ifdef CCNL_NFN_MONITOR
+            DEBUGMSG(99, "Output-Json:\n");
+            char monitorpacket[CCNL_MAX_PACKET_SIZE];
+            int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
+                    ntohs(fwd->face->peer.ip4.sin_port), 
+                    i->prefix, NULL, 0, monitorpacket);
+            sendtomonitor(monitorpacket, l);
+#endif    
+        }
+            
     }
     return;
 }
@@ -804,6 +818,14 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 
                 DEBUGMSG("--- Serve to: %d", pi->face->faceid);
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
+#ifdef CCNL_NFN_MONITOR
+                DEBUGMSG(99, "Output-Json:\n");
+                char monitorpacket[CCNL_MAX_PACKET_SIZE];
+                int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
+                        ntohs(pi->face->peer.ip4.sin_port), 
+                        c->name, c->content, c->contentlen, monitorpacket);
+                sendtomonitor(monitorpacket, l);
+#endif 
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
 	    c->served_cnt++;
