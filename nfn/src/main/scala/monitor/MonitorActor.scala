@@ -17,7 +17,6 @@ object MonitorActor {
   val port = 10666
 
   private val system = ActorSystem(s"Monitor", AkkaConfig())
-
   val monitor = system.actorOf(Props(classOf[Monitor]))
 
   case class Visualize()
@@ -25,13 +24,20 @@ object MonitorActor {
   sealed trait MonitorLogEntry {
     val timestamp = System.currentTimeMillis
   }
+
   case class NodeLog(host: String, port: Int, `type`: Option[String], prefix: Option[String]) extends MonitorLogEntry
   case class ConnectLogEntry(connectLog: ConnectLog)
   case class ConnectLog(from: NodeLog, to: NodeLog) extends MonitorLogEntry
 
-  trait CCNPacketLog
-  case class ContentLog(name: String, data: String) extends CCNPacketLog
-  case class InterestLog(name: String) extends CCNPacketLog
+  trait CCNPacketLog {
+    def `type`: String
+  }
+  case class ContentLog(name: String, data: String) extends CCNPacketLog {
+    val `type`: String = "content"
+  }
+  case class InterestLog(name: String) extends CCNPacketLog {
+    val `type`: String = "interest"
+  }
 
   /**
    * {
@@ -47,7 +53,7 @@ object MonitorActor {
    *       "port": 10002
    *     },
    *     "isSent": true,
-   *     "packet": {
+   *     "interest": {
    *       "name" : "/ccn/name",
    *       "data" : "TWFuIGlzIGZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
    *     }
@@ -64,7 +70,7 @@ object MonitorActor {
 }
 
 
-trait Monitor extends Actor {
+case class Monitor() extends Actor {
 
 
   val logger = Logging(context.system, this)
@@ -153,6 +159,9 @@ trait Monitor extends Actor {
     case cl: ConnectLogEntry => handleConnectLog(cl.connectLog)
     case pl: PacketLogEntry => handlePacketLog(pl.packetLog)
     case atc: AddToCacheLogEntry => handleAddToCacheLog(atc.addToCacheLog)
+    case cl: ConnectLog => handleConnectLog(cl)
+    case pl: PacketLog => handlePacketLog(pl)
+    case atc: AddToCacheLog => handleAddToCacheLog(atc)
 
     case MonitorActor.Visualize() => {
       OmnetIntegration(nodes, edges, loggedPackets, startTime)()

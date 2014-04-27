@@ -1,25 +1,16 @@
 package evaluation
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util._
 
 import akka.util.Timeout
-import nfn.NodeConfig
-import node.Node
+
 import ccn.packet._
-import scala.util._
+import node.Node
 import nfn.service.impl._
-import nfn.service.NFNServiceLibrary
-import ccn.packet.Interest
-import nfn.service.impl.MapService
-import nfn.service.impl.WordCountService
-import nfn.service.impl.SumService
-import nfn.service.impl.ReduceService
-import scala.util.Failure
-import scala.util.Success
-import ccn.packet.Content
 import nfn.NodeConfig
+
 import monitor.MonitorActor
 
 object WordCountEnv extends App {
@@ -117,7 +108,6 @@ object WordCountEnv extends App {
   MonitorActor.monitor ! MonitorActor.Visualize()
   Thread.sleep(200)
   nodes foreach { _.shutdown }
-
-  sys.exit
+//  sys.exit
 }
 
