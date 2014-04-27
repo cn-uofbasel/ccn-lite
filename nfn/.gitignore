@@ -28,8 +28,8 @@ project/plugins/project/
 *.swp
 
 # omnet
-.tkenvlog
-.tkenvrc
+*.tkenvlog
+*.tkenvrc
 
 
 c_xml.txt

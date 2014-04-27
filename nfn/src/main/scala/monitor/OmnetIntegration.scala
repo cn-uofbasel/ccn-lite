@@ -80,16 +80,6 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     printToFile(new File(transmittedPacketsJsonFilename), transmittedPacketsJson)
     logger.info(s"Wrote transmittedPackets to .json file $transmittedPacketsJsonFilename")
 
-    logger.info(s"Starting Omnet...")
-    startOmnet()
-
-  }
-
-  def startOmnet() = {
-    val cmd = s"./omnetintegratio/omnetintegration"
-    val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
-    processBuilder.redirectErrorStream(true)
-    val process = processBuilder.start
   }
 
   def createTransmissionJson:String = {
@@ -102,6 +92,15 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     val submodules: Seq[String] = nodes.map ({ node =>
         val name = node.prefix
         val `type` = node.`type`
+
+        val typeString = `type`.getOrElse {
+          nodes.find( n =>
+            n.host == node.host &&
+            n.port == node.port
+          ).getOrElse {
+            s"${node.host}:{$node.port}"
+          }
+        }
         s"$name: ${`type`};"
     }).toSeq
 

@@ -24,47 +24,20 @@ simple ComputeNode extends Node
 network NFNNetwork
 {
     submodules:
-        docRepo1: NFNNode;
-        docRepo3: NFNNode;
-        docRepo3compute: ComputeNode;
-        docRepo1compute: ComputeNode;
-        docRepo4: NFNNode;
-        docRepo0compute: ComputeNode;
-        docRepo2compute: ComputeNode;
-        docRepo2: NFNNode;
-        docRepo0: NFNNode;
-        docRepo4compute: ComputeNode;
+        Some(NFNNode): Some(docRepo4);
+        Some(ComputeNode): Some(docRepo1compute);
+        Some(ComputeNode): Some(docRepo0compute);
+        Some(NFNNode): Some(docRepo1);
+        Some(NFNNode): Some(docRepo0);
+        Some(ComputeNode): Some(docRepo2compute);
+        Some(NFNNode): Some(docRepo3);
+        Some(ComputeNode): Some(docRepo3compute);
+        Some(NFNNode): Some(docRepo2);
+        Some(ComputeNode): Some(docRepo4compute);
     connections:
-        docRepo3.out++ --> { delay = 1ms; } --> docRepo4.in++;
-        docRepo3.out++ --> { delay = 1ms; } --> docRepo3compute.in++;
-        docRepo3.out++ --> { delay = 1ms; } --> docRepo2.in++;
-        docRepo3.out++ --> { delay = 1ms; } --> docRepo0.in++;
-        docRepo3.out++ --> { delay = 1ms; } --> docRepo1.in++;
-        docRepo0.out++ --> { delay = 1ms; } --> docRepo2.in++;
-        docRepo0.out++ --> { delay = 1ms; } --> docRepo3.in++;
-        docRepo0.out++ --> { delay = 1ms; } --> docRepo4.in++;
-        docRepo0.out++ --> { delay = 1ms; } --> docRepo0compute.in++;
-        docRepo0.out++ --> { delay = 1ms; } --> docRepo1.in++;
-        docRepo4.out++ --> { delay = 1ms; } --> docRepo1.in++;
-        docRepo4.out++ --> { delay = 1ms; } --> docRepo4compute.in++;
-        docRepo4.out++ --> { delay = 1ms; } --> docRepo2.in++;
-        docRepo4.out++ --> { delay = 1ms; } --> docRepo3.in++;
-        docRepo4.out++ --> { delay = 1ms; } --> docRepo0.in++;
-        docRepo2.out++ --> { delay = 1ms; } --> docRepo0.in++;
-        docRepo2.out++ --> { delay = 1ms; } --> docRepo2compute.in++;
-        docRepo2.out++ --> { delay = 1ms; } --> docRepo4.in++;
-        docRepo2.out++ --> { delay = 1ms; } --> docRepo1.in++;
-        docRepo2.out++ --> { delay = 1ms; } --> docRepo3.in++;
-        docRepo1compute.out++ --> { delay = 1ms; } --> docRepo1.in++;
-        docRepo2compute.out++ --> { delay = 1ms; } --> docRepo2.in++;
-        docRepo0compute.out++ --> { delay = 1ms; } --> docRepo0.in++;
-        docRepo1.out++ --> { delay = 1ms; } --> docRepo2.in++;
-        docRepo1.out++ --> { delay = 1ms; } --> docRepo0.in++;
-        docRepo1.out++ --> { delay = 1ms; } --> docRepo4.in++;
-        docRepo1.out++ --> { delay = 1ms; } --> docRepo3.in++;
-        docRepo1.out++ --> { delay = 1ms; } --> docRepo1compute.in++;
-        docRepo3compute.out++ --> { delay = 1ms; } --> docRepo3.in++;
-        docRepo4compute.out++ --> { delay = 1ms; } --> docRepo4.in++;
+        Some(ComputeNode).out++ --> { delay = 1ms; } --> Some(NFNNode).in++;
+        Some(NFNNode).out++ --> { delay = 1ms; } --> Some(NFNNode).in++;
+        Some(NFNNode).out++ --> { delay = 1ms; } --> Some(ComputeNode).in++;
 }
 
     
