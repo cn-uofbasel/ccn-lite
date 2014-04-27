@@ -654,7 +654,7 @@ normal:
             return strdup(res);
         }
     }
-    if (!strncmp(prog, "OP_CMPEQ", 8)) {
+    if (!strncmp(prog, "OP_CMPEQ_CHURCH", 15)) {
 	int i1, i2, acc;
 	char *h;
         char res[1000];
@@ -669,7 +669,7 @@ normal:
 	    sprintf(res, "RESOLVENAME(%s)", cp);
 	return strdup(res);
     }
-    if (!strncmp(prog, "OP_CMPLEQ", 9)) {
+    if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
 	int i1, i2, acc;
 	char *h;
         char res[1000];
@@ -678,6 +678,42 @@ normal:
 	pop2int();
 	acc = i2 <= i1;
         cp =  acc ? "@x@y x" : "@x@y y";
+        if (pending)
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
+    }
+    if (!strncmp(prog, "OP_CMPEQ", 8)) {
+	int i1, i2, acc;
+	char *h;
+        char res[1000];
+	memset(res, 0, sizeof(res));
+	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+	pop2int();
+	acc = i1 == i2;
+        if(acc)
+            cp = "1";
+        else
+            cp = "0";
+        if (pending)
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
+    }
+    if (!strncmp(prog, "OP_CMPLEQ", 9)) {
+	int i1, i2, acc;
+	char *h;
+        char res[1000];
+	memset(res, 0, sizeof(res));
+	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+	pop2int();
+	acc = i2 <= i1;
+        if(acc)
+            cp = "1";
+        else
+            cp = "0";
         if (pending)
 	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
 	else
@@ -837,26 +873,31 @@ recontinue:
 void
 setup_global_environment(struct environment_s **env){
 
+    //Operator on Church numbers
     struct closure_s *closure = new_closure("RESOLVENAME(@x@y x)", NULL);
-    add_to_environment(env, "true", closure);
+    add_to_environment(env, "true_church", closure);
 
     closure = new_closure("RESOLVENAME(@x@y y)", NULL);
-    add_to_environment(env, "false", closure);
+    add_to_environment(env, "false_church", closure);
 
+    closure = new_closure("CLOSURE(OP_CMPEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))", NULL);
+    add_to_environment(env, "eq_church", closure);
+
+    closure = new_closure("CLOSURE(OP_CMPLEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))", NULL);
+    add_to_environment(env, "leq_church", closure);
+
+    closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
+    add_to_environment(env, "ifelse_church", closure);
+    
+    //Operator on integer numbers
     closure = new_closure("CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "eq", closure);
 
-    closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op@x@y x y op)", NULL);
+    closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "leq", closure);
-
-    //closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
-    //add_to_environment(env, "ifelse", closure);
     
     closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
-    
-    /*closure = new_closure("CLOSURE(OP_DEFINE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
-    add_to_environment(env, "define", closure);*/
 
     closure = new_closure("CLOSURE(OP_ADD);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "add", closure);
@@ -866,12 +907,6 @@ setup_global_environment(struct environment_s **env){
    
     closure = new_closure("CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "mult", closure);
-
-    closure = new_closure("RESOLVENAME(@f@n (ifelse (leq n 1) 1 (mult n ((f f)(sub n 1))) ))", NULL);
-    add_to_environment(env, "factprime", closure);
-
-    closure = new_closure("RESOLVENAME(factprime factprime)", NULL);
-    add_to_environment(env, "fact", closure);
 
     closure = new_closure("CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "call", closure);
