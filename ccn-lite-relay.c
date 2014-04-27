@@ -29,6 +29,7 @@
 
 #define CCNL_UNIX
 #define CCNL_NFN
+#define CCNL_NFN_MONITOR
 
 #define USE_CCNxDIGEST
 #define USE_DEBUG
@@ -39,7 +40,7 @@
 #define USE_MGMT
 #define USE_SCHEDULER
 #define USE_UNIXSOCKET
-#define USE_SIGNATURES
+#define USE_SIGNATURE
 
 #include "ccnl-includes.h"
 
