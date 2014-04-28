@@ -25,6 +25,7 @@
 
 #ifdef CCNL_NFN_MONITOR
 #include "json.c"
+#include "ccnl-ext-debug.c"
 #endif
 
 
@@ -664,7 +665,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
             int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
                     ntohs(fwd->face->peer.ip4.sin_port), 
                     i->prefix, NULL, 0, monitorpacket);
-            sendtomonitor(monitorpacket, l);
+            sendtomonitor(ccnl, monitorpacket, l);
 #endif    
         }
             
@@ -824,7 +825,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
                         ntohs(pi->face->peer.ip4.sin_port), 
                         c->name, c->content, c->contentlen, monitorpacket);
-                sendtomonitor(monitorpacket, l);
+                sendtomonitor(ccnl, monitorpacket, l);
 #endif 
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
