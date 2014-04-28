@@ -162,9 +162,10 @@ int udp_sendto(int sock, char *address, int port, char *data, int len){
 }
 
 int 
-sendtomonitor(char *content, int contentlen){
+sendtomonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen){
     char *address = "127.0.0.1";
     int port = 10666;
-    int s = socket(PF_INET, SOCK_DGRAM, 0);
+    //int s = socket(PF_INET, SOCK_DGRAM, 0);
+    int s = ccnl->ifs[0].sock;
     return udp_sendto(s, address, port, content, contentlen); 
 }
