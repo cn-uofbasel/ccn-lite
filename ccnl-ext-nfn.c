@@ -116,14 +116,15 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
     }
     
-    
+    ++numOfRunningComputations;
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, 
             num_of_required_thunks, &config, original_prefix);
     
     //stores result if computed      
     if(res){
-        DEBUGMSG(2,"Computation finshed: %s\n", res);
+        --numOfRunningComputations;
+        DEBUGMSG(2,"Computation finshed: %s, running computations: %d\n", res, numOfRunningComputations);
         if(config && config->fox_state->thunk_request){      
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }

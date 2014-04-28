@@ -42,6 +42,7 @@ int thunkid = 0;
 
 struct configuration_s *configuration_list[1024];
 int configid = -1;
+int numOfRunningComputations = 0;
 
 int
 hex2int(char c)
