@@ -84,9 +84,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) {
   def addFace(otherHost: String, otherPort: Int, otherPrefix: String): Unit = {
 
 //    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
-    // TODO host is hardcoded!
-    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any 127.0.0.1 $otherPort"
-    println("TODO: host is still hardcoded")
+    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
     println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
 

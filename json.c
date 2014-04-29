@@ -7,7 +7,7 @@
 
 #define CCNL_MAX_PACKET_SIZE 8192
 
-static char 
+static char
 encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
                                 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -20,7 +20,7 @@ encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 static char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
 
-void 
+void
 build_decoding_table() {
 
     decoding_table = malloc(256);
@@ -30,7 +30,7 @@ build_decoding_table() {
 }
 
 
-char 
+char
 *base64_encode(const unsigned char *data,
                     size_t input_length,
                     size_t *output_length) {
@@ -61,7 +61,7 @@ char
 }
 
 
-unsigned char 
+unsigned char
 *base64_decode(const char *data,
                              size_t input_length,
                              size_t *output_length) {
@@ -97,21 +97,21 @@ unsigned char
     return decoded_data;
 }
 
-void 
+void
 base64_cleanup() {
     free(decoding_table);
 }
 
-int 
+int
 create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
 	struct ccnl_prefix_s *prefix, char *data, int datalen, char *res)
 {
     char name[CCNL_MAX_PACKET_SIZE];
     int len = 0;
     for(int i = 0; i < prefix->compcnt; ++i){
-        len += sprintf(name+len, "/%s", prefix->comp[i]); 
+        len += sprintf(name+len, "/%s", prefix->comp[i]);
     }
-    
+
     len = 0;
     len += sprintf(res + len, "{\n");
     len += sprintf(res + len, "\"packetLog\":{\n");
@@ -134,7 +134,7 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
     long timestamp_milli =
         ((tv.tv_sec) * 1000 + (tv.tv_usec / 1000)); // convert tv_sec & tv_usec to millisecond
     len += sprintf(res + len, "\"timestamp\": %lu,\n", timestamp_milli);
-    
+
     len += sprintf(res + len, "\"packet\":{\n");
     len += sprintf(res + len, "\"type\": \"%s\",\n", data != NULL ? "content" : "interest" );
     len += sprintf(res + len, "\"name\": \"%s\"\n", name);
@@ -166,11 +166,11 @@ int udp_sendto(int sock, char *address, int port, char *data, int len){
     return rc;
 }
 
-int 
+int
 sendtomonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen){
     char *address = "127.0.0.1";
     int port = 10666;
     //int s = socket(PF_INET, SOCK_DGRAM, 0);
     int s = ccnl->ifs[0].sock;
-    return udp_sendto(s, address, port, content, contentlen); 
+    return udp_sendto(s, address, port, content, contentlen);
 }

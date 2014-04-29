@@ -11,7 +11,7 @@ import node.Node
 import nfn.service.impl._
 import nfn.NodeConfig
 
-import monitor.MonitorActor
+import monitor.Monitor
 
 object WordCountEnv extends App {
 
@@ -24,7 +24,7 @@ object WordCountEnv extends App {
     (0 until n) map { n =>
       val port = 10000 + n*10
       val computePort = port + 1
-      NodeConfig("localhost", port, computePort, s"docRepo$n")
+      NodeConfig(host = "127.0.0.1", port = port, computePort = computePort, prefix = s"docRepo$n")
     }
 
   val nodes = nodeConfigs map { Node(_) }
@@ -93,7 +93,7 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val expr = namesToAddedWordCount(docNames)
+  val expr = namesToAddedWordCount(docNames.take(1))
 //  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
 //  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
 //  Thread.sleep(800)
@@ -105,7 +105,7 @@ object WordCountEnv extends App {
   }
 
   Thread.sleep(timeoutDuration.toMillis)
-  MonitorActor.monitor ! MonitorActor.Visualize()
+  Monitor.monitor ! Monitor.Visualize()
   Thread.sleep(200)
   nodes foreach { _.shutdown }
 //  sys.exit

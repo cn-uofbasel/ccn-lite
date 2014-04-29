@@ -21,8 +21,8 @@ import java.net.InetSocketAddress
 import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
-import monitor.MonitorActor
-import monitor.MonitorActor.{ContentLog, InterestLog, NodeLog}
+import monitor.Monitor
+import monitor.Monitor.{ContentLog, InterestLog, NodeLog}
 
 
 object NFNMaster {
@@ -59,8 +59,8 @@ object NFNMaster {
 }
 
 case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String) {
-  def toNFNNodeLog: NodeLog = NodeLog(host, port, Some(prefix), Some("NFNNode"))
-  def toComputeNodeLog: NodeLog = NodeLog(host, computePort, Some(prefix + "compute"), Some("ComputeNode"))
+  def toNFNNodeLog: NodeLog = NodeLog(host, port, Some("NFNNode"), Some(prefix))
+  def toComputeNodeLog: NodeLog = NodeLog(host, computePort, Some("ComputeNode"), Some(prefix + "compute"))
 }
 
 object NFNMasterFactory {
@@ -165,7 +165,7 @@ trait NFNMaster extends Actor {
         }
         case None => {
           logger.info(s"Received SendReceive request, aksing network for $interest ")
-          val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set())  + sender
+          val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set()) + sender
           pit += (interest.name -> updatedSendersForInterest)
           send(interest)
         }
@@ -218,8 +218,8 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
 
-  MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
-  MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
 
   ccnLiteNFNNetworkProcess.start()
 
@@ -238,8 +238,11 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
   override def send(packet: CCNPacket): Unit = {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
 
-    val ccnb = NFNCommunication.encodeBase64(ccnIf.mkBinaryPacket(packet))
-    MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, InterestLog(packet.toString))
+    val ccnPacketLog = packet match {
+      case i: Interest => InterestLog("interest", i.toString)
+      case c: Content => ContentLog("content", c.toString, NFNCommunication.encodeBase64(c.data))
+    }
+    Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, ccnPacketLog)
   }
 
   override def sendAddToCache(content: Content): Unit = {
@@ -252,18 +255,19 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def connect(otherNodeConfig: NodeConfig): Unit = {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
-    MonitorActor.monitor ! MonitorActor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
+    Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
   }
 
   override def monitorReceive(packet: CCNPacket): Unit = {
-    packet match {
-      case i: Interest => MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, isSent = false, InterestLog(i.name.mkString("/", "/", "")))
+    val ccnPacketLog = packet match {
+      case i: Interest => InterestLog("interst", i.name.mkString("/", "/", ""))
       case c: Content => {
         val name = c.name.mkString("/", "/", "")
         val data = new String(c.data).take(50)
-        MonitorActor.monitor ! MonitorActor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ContentLog(name, data))
+        ContentLog("content", name, data)
       }
     }
+    Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
   }
 }
 

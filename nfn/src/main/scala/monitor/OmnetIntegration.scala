@@ -1,64 +1,78 @@
 package monitor
 
-import monitor.MonitorActor._
-import ccn.ccnlite.CCNLite
-import network.NFNCommunication
-import ccnliteinterface.CCNLiteInterface
-import ccn.packet.Interest
-import scala.collection.immutable.Iterable
+import monitor.Monitor._
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{read, write}
-import net.liftweb.json.JsonDSL._
-import scala.Some
-import scala.util.parsing.json
-import scala.io.Source
+import net.liftweb.json.Serialization.write
 import myutil.IOHelper
 import java.io.File
 import com.typesafe.scalalogging.slf4j.Logging
+import scala.Some
 
 case class Packets(packets: List[TransmittedPacket])
 case class TransmittedPacket(`type`: String, from: NodeLog, to: NodeLog, timeMillis: Long, transmissionTime: Long, packet: CCNPacketLog)
-/**
- * Created by basil on 23/04/14.
- */
+
 case class OmnetIntegration(nodes: Set[NodeLog],
                             edges: Set[Pair[NodeLog, NodeLog]],
                             loggedPackets: Set[PacketLog],
                             simStart: Long) extends Logging {
 
 
-  def packets = {
 
-    def loggedPacketToType(lp: PacketLog): String = if (lp.packet.isInstanceOf[InterestLog]) "interest" else "content"
+  def loggedPacketToType(lp: CCNPacketLog): String = lp match {
+    case i: InterestLog => "interest"
+    case c: ContentLog => "content"
+    case _ => "unkown"
+  }
+  def packets: Packets = {
 
-    def actuallyTransmittedPackets: List[TransmittedPacket] = {
-      println(s"LOGGED PACKETS: $loggedPackets")
-      loggedPackets.map({
-        lp1 =>
-          val maybeReceiveLog: Option[PacketLog] = loggedPackets.find {
-            lp2 =>
-              lp1.from == lp2.from &&
-                lp1.to == lp2.to &&
-                lp1.isSent != lp2.isSent &&
-                lp1.packet == lp2.packet &&
-                lp1.isSent
-          }
-          maybeReceiveLog map {
-            lp2 =>
-              val transmissionTime = lp2.timestamp - lp1.timestamp
-              val `type` = loggedPacketToType(lp1)
-              TransmittedPacket(`type`, lp1.from, lp1.to, lp1.timestamp - simStart, transmissionTime, lp1.packet)
-          }
-      }).collect({
-        case Some(transmittedPacket: TransmittedPacket) => transmittedPacket
-      }).toList
-    }
+
+//    def actuallyTransmittedPackets: List[TransmittedPacket] = {
+//      println(s"LOGGED PACKETS: $loggedPackets")
+//      loggedPackets.map({
+//        lp1 =>
+//          val maybeReceiveLog: Option[PacketLog] = loggedPackets.find {
+//            lp2 =>
+//              lp1.from == lp2.from &&
+//                lp1.to == lp2.to &&
+//                lp1.isSent != lp2.isSent &&
+//                lp1.packet == lp2.packet &&
+//                lp1.isSent
+//          }
+//          maybeReceiveLog flatMap {
+//            lp2 =>
+//              val transmissionTime = lp2.timestamp - lp1.timestamp
+//              val `type` = loggedPacketToType(lp1.packet)
+//              lp1.from match {
+//                case Some(from) =>
+//                  Some(TransmittedPacket(`type`, from, lp1.to, lp1.timestamp - simStart, transmissionTime, lp1.packet))
+//                case None => {
+//                  logger.warn(s"The packet log $lp1 does not have a from address, discarding it")
+//                  None
+//                }
+//              }
+//          }
+//      }).collect({
+//        case Some(tp) => tp
+//      }).toList
+//    }
 
     def transmittedPackets: List[TransmittedPacket] = {
       loggedPackets.toList.sortBy(_.timestamp).map({ lp =>
-        val `type` = loggedPacketToType(lp)
-        TransmittedPacket(`type`, lp.from, lp.to, lp.timestamp - simStart, 2, lp.packet)
-      })
+        val `type` = loggedPacketToType(lp.packet)
+        lp.from match {
+          case Some(from) =>
+            if(lp.isSent) {
+              Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp - simStart, 2, lp.packet))
+            } else {
+              logger.warn(s"Discarding all received packet logs")
+              None
+            }
+          case None => {
+              logger.warn(s"The packet log $lp does not have a from address, discarding it")
+              None
+          }
+        }
+      }).collect( {case Some(tp) => tp })
     }
 
     Packets(transmittedPackets)
@@ -66,6 +80,18 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
 
   def apply() = {
+
+    logger.debug(s"NODES: $nodes")
+    logger.debug(s"EDGES: $edges")
+    logger.debug(s"PACKETS:\n${loggedPackets.mkString("\n")}")
+
+    val sortedPackets: List[PacketLog] = loggedPackets.toList.sortBy(_.timestamp)
+
+    logger.debug(s"SORTED PACKETS")
+    sortedPackets foreach { lp =>
+      logger.debug(s"${lp.from.get.host}:${lp.from.get.port} -> ${lp.to.host}: ${lp.to.port}: ${lp.packet.name} (${lp.timestamp})")
+    }
+    logger.debug(s"SORTED PACKETS:\n${sortedPackets.mkString("\n")}")
 
     import IOHelper.printToFile
     val nedContent = createNed()
@@ -84,34 +110,58 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
   def createTransmissionJson:String = {
     implicit val formats = Serialization.formats(NoTypeHints)
-    write(packets)
+    import net.liftweb.json.JsonDSL._
+
+    def jsonPacket(p: CCNPacketLog): JValue =
+      p match {
+        case i: InterestLog =>
+        ("name" -> i.name) ~ ("type" -> "interest")
+        case c: ContentLog =>
+        ("name" -> c.name) ~ ("data" -> c.data) ~ ("type" -> "content")
+        case _ => throw new Exception("asdf")
+      }
+
+    val json: JsonAST.JValue =
+    ("packets" ->
+      packets.packets.map { p =>
+        ("from" ->
+          ("host" -> p.from.host) ~
+          ("port" -> p.from.port) ~
+          ("prefix" -> p.from.prefix) ~
+          ("type" -> p.from.`type`)) ~
+        ("to" ->
+          ("host" -> p.to.host) ~
+          ("port" -> p.to.port) ~
+          ("prefix" -> p.to.prefix) ~
+          ("type" -> p.to.`type`)) ~
+        ("packet" -> jsonPacket(p.packet)) ~
+        ("timeMillis" -> p.timeMillis) ~
+        ("transmissionTime" -> p.transmissionTime) ~
+        ("type" -> loggedPacketToType(p.packet))
+      } )
+    pretty(render(json))
+
   }
 
 
   def createNed(): String = {
-    val submodules: Seq[String] = nodes.map ({ node =>
-        val name = node.prefix
-        val `type` = node.`type`
+    def prefixOrDefaultName(nl: NodeLog): String = nl.prefix.getOrElse(s"${nl.host}${nl.port}")
 
-        val typeString = `type`.getOrElse {
-          nodes.find( n =>
-            n.host == node.host &&
-            n.port == node.port
-          ).getOrElse {
-            s"${node.host}:{$node.port}"
-          }
-        }
+    def typeOrDefaultType(nl: NodeLog): String = nl.`type`.getOrElse("DefaultNode")
+
+    val submodules: Seq[String] = nodes.map ({ node =>
+        val name = prefixOrDefaultName(node)
+        val `type` = typeOrDefaultType(node)
         s"$name: ${`type`};"
     }).toSeq
 
     val connections: Seq[String] = edges.groupBy{ edge =>
-      edge._1.prefix
-    }.flatMap({ case (prefix, edgesFromNode: Set[(NodeLog, NodeLog)]) =>
-      edgesFromNode map { edge =>
-        val from = edge._1.prefix
-        val to = edge._2.prefix
-        val fromGate = to
-        val toGate = from
+      prefixOrDefaultName(edge._1)
+    }.flatMap({ case (_, edgesFromNode: Set[(NodeLog, NodeLog)]) =>
+      edgesFromNode map { (edge: (NodeLog, NodeLog)) =>
+
+        val from = prefixOrDefaultName(edge._1)
+        val to = prefixOrDefaultName(edge._2)
         s"$from.out++ --> { delay = 1ms; } --> $to.in++;"
       }
     }).toSeq
@@ -138,6 +188,12 @@ case class OmnetIntegration(nodes: Set[NodeLog],
       |{
       |    parameters:
       |        @display("i=,gold");
+      |}
+      |
+      |simple DefaultNode extends Node
+      |{
+      |    parameters:
+      |        @display("i=,gray");
       |}
       |
       |network NFNNetwork

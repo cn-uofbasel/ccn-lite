@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.4 from ./contentto.msg.
+// Generated file, do not edit! Created by opp_msgc 4.4 from contentto.msg.
 //
 
 #ifndef _CONTENTTO_M_H_
@@ -16,7 +16,7 @@
 
 
 /**
- * Class generated from <tt>./contentto.msg</tt> by opp_msgc.
+ * Class generated from <tt>contentto.msg</tt> by opp_msgc.
  * <pre>
  * packet ContentTo
  * {
