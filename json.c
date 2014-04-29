@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-
+#include <time.h>
 #include "ccnl-core.h"
 
 #define CCNL_MAX_PACKET_SIZE 8192
@@ -129,7 +129,12 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
     len += sprintf(res + len, "},\n"); //to
 
     len += sprintf(res + len, "\"isSent\": %s,\n", "true");
-
+    struct timeval  tv;
+    gettimeofday(&tv, NULL);
+    long timestamp_milli =
+        ((tv.tv_sec) * 1000 + (tv.tv_usec / 1000)); // convert tv_sec & tv_usec to millisecond
+    len += sprintf(res + len, "\"timestamp\": %lu,\n", timestamp_milli);
+    
     len += sprintf(res + len, "\"packet\":{\n");
     len += sprintf(res + len, "\"type\": \"%s\",\n", data != NULL ? "content" : "interest" );
     len += sprintf(res + len, "\"name\": \"%s\"\n", name);
