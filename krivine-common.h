@@ -11,7 +11,7 @@
 #define KRIVINE_COMMON_H
 
 
-#define NFN_MAX_RUNNING_COMPUTATIONS 0
+#define NFN_MAX_RUNNING_COMPUTATIONS 10
 int numOfRunningComputations = 0;
 
 struct fox_machine_state_s{
