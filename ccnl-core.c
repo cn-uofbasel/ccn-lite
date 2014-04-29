@@ -22,6 +22,7 @@
  */
 
 #include "ccnl-core.h"
+#include "krivine-common.h"
 
 #ifdef CCNL_NFN_MONITOR
 #include "json.c"
@@ -660,7 +661,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){
 	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
 #ifdef CCNL_NFN_MONITOR
-            DEBUGMSG(99, "Output-Json:\n");
             char monitorpacket[CCNL_MAX_PACKET_SIZE];
             int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
                     ntohs(fwd->face->peer.ip4.sin_port), 
@@ -820,7 +820,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 DEBUGMSG("--- Serve to: %d", pi->face->faceid);
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 #ifdef CCNL_NFN_MONITOR
-                DEBUGMSG(99, "Output-Json:\n");
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
                         ntohs(pi->face->peer.ip4.sin_port), 
@@ -939,8 +938,17 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		// FIXME: should check stale bit in aok here
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
-		if (from->ifndx >= 0)
+		if (from->ifndx >= 0){
 		    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
+#ifdef CCNL_NFN_MONITOR
+                    char monitorpacket[CCNL_MAX_PACKET_SIZE];
+                    int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
+                            ntohs(from->peer.ip4.sin_port), 
+                            c->name, c->content, c->contentlen, monitorpacket);
+                    sendtomonitor(ccnl, monitorpacket, l);
+#endif 
+                }
+                     
 		else
 		    ccnl_app_RX(ccnl, c);
 		goto Skip;
@@ -956,16 +964,41 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	if (!i) { // this is a new/unknown I request: create and propagate
 //NFN PLUGIN CALL
 #ifdef CCNL_NFN
+            //if routable content local available, allow computation
+            int local_content = 0;
             if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
+                struct ccnl_prefix_s *prefix_nfn = ccnl_malloc(sizeof(struct ccnl_prefix_s));
+                prefix_nfn->comp = ccnl_malloc(p->compcnt-1);
+                prefix_nfn->comp[p->compcnt-2] = NULL;
+                prefix_nfn->complen = ccnl_malloc(p->compcnt-1);
+                prefix_nfn->compcnt = p->compcnt-2;
+
+                for(int it = 0; it < p->compcnt-2; ++it){
+                    prefix_nfn->comp[it] = strdup(p->comp[it]);
+                    prefix_nfn->complen[it] = p->complen[it];
+                }
+                
+                for(struct ccnl_content_s *c = ccnl->contents; c; c=c->next){
+                    if(!ccnl_prefix_cmp(prefix_nfn, 0, p, CMP_EXACT)){
+                        local_content = 1;
+                        break;
+                    }
+                }
+            }
+            DEBUGMSG(99, "Local computation: %d", local_content);
+            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS || local_content) //full, do not compute but propagate 
+                    && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
+                
                 i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
-                i->propagate = 0; //TODO: mechanism to set propagate in a meaningful way
+                i->propagate = 0; //do not forward interests for running computations
                 ccnl_interest_append_pending(i, from);
                 if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL);
                 goto Done;
             }
 #endif /*CCNL_NFN*/
+        
 	    i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
