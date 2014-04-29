@@ -10,6 +10,10 @@
 #ifndef KRIVINE_COMMON_H
 #define KRIVINE_COMMON_H
 
+
+#define NFN_MAX_RUNNING_COMPUTATIONS 0
+int numOfRunningComputations = 0;
+
 struct fox_machine_state_s{
     int num_of_params;
     char **params;
