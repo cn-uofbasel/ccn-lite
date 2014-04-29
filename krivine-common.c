@@ -40,9 +40,9 @@ struct thunk_s{
 struct thunk_s *thunk_list;
 int thunkid = 0;
 
-struct configuration_s *configuration_list[1024];
+struct configuration_s *configuration_list[NFN_MAX_RUNNING_COMPUTATIONS*100+1];
 int configid = -1;
-int numOfRunningComputations = 0;
+
 
 int
 hex2int(char c)
