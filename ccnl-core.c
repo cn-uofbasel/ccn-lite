@@ -40,7 +40,7 @@ int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
 
-static struct ccnl_interest_s* 
+static struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 // ----------------------------------------------------------------------
@@ -120,7 +120,7 @@ dehead(unsigned char **buf, int *len, int *num, int *typ)
 	    return 0;
 	}
 	val = (val << 7) | c;
-    } 
+    }
     return -1;
 }
 
@@ -449,8 +449,8 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
     r = ifc->queue + ((ifc->qfront + ifc->qlen) % CCNL_MAX_IF_QLEN);
     r->buf = buf;
     memcpy(&r->dst, dest, sizeof(sockunion));
-    r->txdone = tx_done; 
-    r->txdone_face = f; 
+    r->txdone = tx_done;
+    r->txdone_face = f;
     ifc->qlen++;
 
 #ifdef USE_SCHEDULER
@@ -644,9 +644,9 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
     DEBUGMSG(99, "ccnl_interest_propagate\n");
-           
+
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
-    
+
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
     // transmit an Interest Message on all listed dest faces in sequence."
     // CCNL strategy: we forward on all FWD entries with a prefix match
@@ -663,12 +663,12 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #ifdef CCNL_NFN_MONITOR
             char monitorpacket[CCNL_MAX_PACKET_SIZE];
             int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
-                    ntohs(fwd->face->peer.ip4.sin_port), 
+                    ntohs(fwd->face->peer.ip4.sin_port),
                     i->prefix, NULL, 0, monitorpacket);
             sendtomonitor(ccnl, monitorpacket, l);
-#endif    
+#endif
         }
-            
+
     }
     return;
 }
@@ -805,7 +805,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 			       i->minsuffix, i->maxsuffix, c)) {
 	    i = i->next;
 	    continue;
-	}        
+	}
         // CONFORM: "Data MUST only be transmitted in response to
 	// an Interest that matches the Data."
 	for (pi = i->pending; pi; pi = pi->next) {
@@ -816,16 +816,16 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		DEBUGMSG(6, "  forwarding content <%s>\n",
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
-                
+
                 DEBUGMSG("--- Serve to: %d", pi->face->faceid);
 		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 #ifdef CCNL_NFN_MONITOR
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
-                        ntohs(pi->face->peer.ip4.sin_port), 
+                        ntohs(pi->face->peer.ip4.sin_port),
                         c->name, c->content, c->contentlen, monitorpacket);
                 sendtomonitor(ccnl, monitorpacket, l);
-#endif 
+#endif
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
 	    c->served_cnt++;
@@ -957,7 +957,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	// CONFORM: Step 2: check whether interest is already known
 	for (i = ccnl->pit; i; i = i->next) {
 	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
-		i->minsuffix == minsfx && i->maxsuffix == maxsfx && 
+		i->minsuffix == minsfx && i->maxsuffix == maxsfx &&
 		((!ppkd && !i->ppkd) || buf_equal(ppkd, i->ppkd)) )
 		break;
 	}
@@ -1016,7 +1016,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     } else { // content
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
 	ccnl_print_stats(ccnl, STAT_RCV_C); //log count recv_content
-        
+
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
                 && !memcmp(p->comp[1], "crypto", 6) &&
@@ -1024,14 +1024,14 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    rc = ccnl_crypto(ccnl, buf, p, from); goto Done;
 	}
 #endif /*USE_SIGNATURES*/
-        
+
         // CONFORM: Step 1:
 	for (c = ccnl->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
 	c = ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
-            
-       
+
+
 #ifdef CCNL_NFN
         fprintf(stderr, "PIT Entries: \n");
         struct ccnl_interest_s *i_it;
@@ -1053,11 +1053,11 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 int found = 0;
                 for(i_it = ccnl->pit; i_it; i_it = i_it->next){
                      int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
-                     //Check if prefix match and it is a nfn request     
+                     //Check if prefix match and it is a nfn request
                      int cmp = ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH);
                      DEBUGMSG(99, "CMP: %d, faceid: %d \n", cmp, i_it->from->faceid);
                      if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
-                             && i_it->from->faceid < 0){ 
+                             && i_it->from->faceid < 0){
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
                         i_it = ccnl_interest_remove(ccnl, i_it);
@@ -1070,7 +1070,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 if(found) goto Done;
                 DEBUGMSG(99, "no running computation found \n");
             }
-#endif       
+#endif
 	    if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");

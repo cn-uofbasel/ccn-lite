@@ -1,7 +1,7 @@
 package monitor
 
 import nfn.NodeConfig
-import monitor.MonitorActor.{ContentLog, InterestLog, PacketLog, NodeLog}
+import monitor.Monitor.{ContentLog, InterestLog, PacketLog, NodeLog}
 import ccn.packet.Interest
 import ccn.ccnlite.CCNLite
 import ccnliteinterface.CCNLiteInterface
@@ -17,10 +17,10 @@ object TestApp extends App {
   Thread.sleep(5)
   val nodes =
     Seq(
-      NodeLog("localhost", 1, Some("docRepo1"), Some("ComputeNode")),
-      NodeLog("localhost", 2, Some("docRepo2"), Some("ComputeNode")),
-      NodeLog("localhost", 3, Some("docRepo3"), Some("NFNNode")),
-      NodeLog("localhost", 4, Some("docRepo4"), Some("NFNNode"))
+      NodeLog("127.0.0.1", 1, Some("docRepo1"), Some("ComputeNode")),
+      NodeLog("127.0.0.1", 2, Some("docRepo2"), Some("ComputeNode")),
+      NodeLog("127.0.0.1", 3, Some("docRepo3"), Some("NFNNode")),
+      NodeLog("127.0.0.1", 4, Some("docRepo4"), Some("NFNNode"))
     )
 
   val edges = Set(
@@ -36,10 +36,10 @@ object TestApp extends App {
   val interest = Interest(Seq("name"))
 
   val packets = Set(
-    PacketLog(nodes(0), nodes(1), isSent = true, InterestLog("/interest/name")),
-    PacketLog(nodes(0), nodes(1), isSent = false, InterestLog("/interest/name")),
-    PacketLog(nodes(1), nodes(0), isSent = true, ContentLog("/interest/name", "testcontent")),
-    PacketLog(nodes(1), nodes(0), isSent = false, ContentLog("/interest/name", "testcontent"))
+    new PacketLog(nodes(0), nodes(1), isSent = true, InterestLog("interst", "/interest/name")),
+    new PacketLog(nodes(0), nodes(1), isSent = false, InterestLog("interst", "/interest/name")),
+    new PacketLog(nodes(1), nodes(0), isSent = true, ContentLog("content", "/interest/name", "testcontent")),
+    new PacketLog(nodes(1), nodes(0), isSent = false, ContentLog("content", "/interest/name", "testcontent"))
   )
 
   OmnetIntegration(nodes.toSet, edges, packets, starttime)()

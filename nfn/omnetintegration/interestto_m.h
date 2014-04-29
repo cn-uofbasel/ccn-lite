@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.4 from ./interestto.msg.
+// Generated file, do not edit! Created by opp_msgc 4.4 from interestto.msg.
 //
 
 #ifndef _INTERESTTO_M_H_
@@ -16,7 +16,7 @@
 
 
 /**
- * Class generated from <tt>./interestto.msg</tt> by opp_msgc.
+ * Class generated from <tt>interestto.msg</tt> by opp_msgc.
  * <pre>
  * message InterestTo
  * {

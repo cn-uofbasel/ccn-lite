@@ -104,20 +104,17 @@ void Node::initialize()
 
         if(fromPrefix == getName()) {
             if(type == "interest") {
-                EV << "host: " << toHost << "\n";
-                EV << "port: " << toPort << "\n";
-                EV << "prefix: " << toPrefix << "\n";
-                EV << "name: " << name << "\n";
-                EV << "time: " << timeMillis << "\n";
+                EV << "scheduleInterest: from " << fromPrefix << " to " << toPrefix << " (" << timeMillis << ") name: " << name <<"\n";
                 scheduleInterestToMessage(toHost, toPort, toPrefix, name, timeMillis);
-            } else {
-                EV << "scheduleContentTo" << timeMillis << "\n";
+            } else if(type == "content") {
+                EV << "scheduleContent: from " << fromPrefix << " to " << toPrefix << " (" << timeMillis << ") name: " << name <<"\n";
                 assert(ccnPacket.HasMember("data"));
                 assert(ccnPacket["data"].IsString());
                 string data = ccnPacket["data"].GetString();
                 scheduleContentToMessage(toHost, toPort, toPrefix, name, data, timeMillis);
+            } else {
+                EV << "WARNING: Discarding packet with unimplmenented or wrong type" << type << "\n";
             }
-            EV << "STARTTIME" << timeMillis << "\n";
         }
 
     }
@@ -133,8 +130,11 @@ void Node::handleMessage(cMessage *msg)
             for(int i = 0; i < gateSize("out"); i++) {
                 int curGateID = findGate("out", i);
                 cGate* curGate = gate(curGateID);
-                const char* otherEndGateName = curGate->getPathEndGate()->getName();
-                if(strcmp(otherEndGateName, interestTo->getToPrefix())) {
+                const char* otherEndGateName = curGate->getPathEndGate()->getOwner()->getName();
+                const char* interestPrefix = interestTo->getToPrefix();
+                if(strcmp(otherEndGateName, interestTo->getToPrefix()) == 0) {
+                    printf("%s: prefix(%s) = other(%s)\n", getName(), interestPrefix, otherEndGateName);
+
                     maybeGate = curGate;
                     break;
                 }
@@ -161,9 +161,11 @@ void Node::handleMessage(cMessage *msg)
             for(int i = 0; i < gateSize("out"); i++) {
                 int curGateID = findGate("out", i);
                 cGate* curGate = gate(curGateID);
-                const char* otherEndGateName = curGate->getPathEndGate()->getOwnerModule()->getName();
-                EV << "toPrefix: " << contentTo->getToPrefix() << " otherEndGateName: " << otherEndGateName << "\n";
+
+                const char* otherEndGateName = curGate->getPathEndGate()->getOwner()->getName();
+                const char* contentPrefix = contentTo->getToPrefix();
                 if(strcmp(otherEndGateName, contentTo->getToPrefix()) == 0) {
+                    printf("%s: prefix(%s) = ohter(%s)\n", getName(), contentPrefix, otherEndGateName);
                     maybeGate = curGate;
                     break;
                 }
