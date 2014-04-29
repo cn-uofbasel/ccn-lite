@@ -30,6 +30,7 @@ project/plugins/project/
 # omnet
 *.tkenvlog
 *.tkenvrc
+*NFNNetwork.ned
 
 
-c_xml.txt
+*c_xml.txt

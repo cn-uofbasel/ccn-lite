@@ -162,7 +162,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
         val from = prefixOrDefaultName(edge._1)
         val to = prefixOrDefaultName(edge._2)
-        s"$from.out++ --> { delay = 1ms; } --> $to.in++;"
+        s"$from.out++ --> $to.in++;"
       }
     }).toSeq
 

@@ -18,7 +18,7 @@ object WordCountEnv extends App {
   val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
-  val n = 5
+  val n = 8
 
   val nodeConfigs=
     (0 until n) map { n =>
@@ -29,7 +29,7 @@ object WordCountEnv extends App {
 
   val nodes = nodeConfigs map { Node(_) }
 
-  Node.connectAll(nodes)
+  Node.connectGrid(nodes)
 
   val docNamesWithoutPrefix =
     (0 until 10) map { n => Seq("docs", s"doc$n") }
@@ -40,7 +40,7 @@ object WordCountEnv extends App {
   val indexForDocsOnNodes = List(Nil, List(0, 5, 7), List(2,6,9), List(3,1), List(4,8))// ++ (0 until (n - 5)) map { _ => Nil}
 
   val nodeNameDatas: List[(Int, Seq[String], Array[Byte])] =
-    indexForDocsOnNodes.zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
+    indexForDocsOnNodes.take(n).zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
        docIndizes map { docIndex =>
          val prefix = nodes(nodeIndex).nodeConfig.prefix
          (nodeIndex, Seq(prefix) ++ docNamesWithoutPrefix(docIndex), docContents(docIndex))
@@ -56,10 +56,10 @@ object WordCountEnv extends App {
   nodes foreach { _.publishServices }
 
 
-  val (reqNodeIndex, nameDoc4Node4, _) = nodeNameDatas.find(_._1 == 4).head
-  val docsNode4: List[(Int, Seq[String], Array[Byte])] = nodeNameDatas.filter(_._1 == 4)
-  val nameDoc8Node4 = docsNode4.filter(_._2.last == "doc8").head._2
-  val reqNode = nodes(reqNodeIndex)
+//  val (reqNodeIndex, nameDoc4Node4, _) = nodeNameDatas.find(_._1 == 4).head
+//  val docsNode4: List[(Int, Seq[String], Array[Byte])] = nodeNameDatas.filter(_._1 == 4)
+//  val nameDoc8Node4 = docsNode4.filter(_._2.last == "doc8").head._2
+//  val reqNode = nodes(reqNodeIndex)
 
   val map = MapService().nfnName.toString
   val wc = WordCountService().nfnName.toString
@@ -93,7 +93,7 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val expr = namesToAddedWordCount(docNames.take(1))
+  val expr = namesToAddedWordCount(docNames)
 //  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
 //  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
 //  Thread.sleep(800)
