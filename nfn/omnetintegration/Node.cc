@@ -133,8 +133,6 @@ void Node::handleMessage(cMessage *msg)
                 const char* otherEndGateName = curGate->getPathEndGate()->getOwner()->getName();
                 const char* interestPrefix = interestTo->getToPrefix();
                 if(strcmp(otherEndGateName, interestTo->getToPrefix()) == 0) {
-                    printf("%s: prefix(%s) = other(%s)\n", getName(), interestPrefix, otherEndGateName);
-
                     maybeGate = curGate;
                     break;
                 }
@@ -165,7 +163,6 @@ void Node::handleMessage(cMessage *msg)
                 const char* otherEndGateName = curGate->getPathEndGate()->getOwner()->getName();
                 const char* contentPrefix = contentTo->getToPrefix();
                 if(strcmp(otherEndGateName, contentTo->getToPrefix()) == 0) {
-                    printf("%s: prefix(%s) = ohter(%s)\n", getName(), contentPrefix, otherEndGateName);
                     maybeGate = curGate;
                     break;
                 }
@@ -202,8 +199,8 @@ void Node::scheduleInterestToMessage(string host, int port, string toPrefix, str
     // Omnet simulation parameters
     msg->setKind(INTEREST_TO);
     msg->setIsSend(true);
-    float simTime = ((float)timeMillis) / 1000.0f;
-    scheduleAt(simTime, msg);
+    // schedule in milliseconds (exponent of -3)
+    scheduleAt(SimTime(timeMillis, -3), msg);
 }
 void Node::scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, int timeMillis)
 {
@@ -222,6 +219,7 @@ void Node::scheduleContentToMessage(string host, int port, string toPrefix, stri
     // Omnet simulation parameters
     msg->setKind(CONTENT_TO);
     msg->setIsSend(true);
-    float simTime = ((float)timeMillis) / 1000.0f;
-    scheduleAt(simTime, msg);
+
+    // schedule in milliseconds (exponent of -3)
+    scheduleAt(SimTime(timeMillis, -3), msg);
 }

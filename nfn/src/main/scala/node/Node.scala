@@ -23,15 +23,17 @@ object Node {
    * | | |    | | |
    * o-o-o or o-o-o
    * | | |    |
-   * o-o-o    o
+   * o-o-o    o-o
    * @param nodes
    */
   def connectGrid(nodes: Seq[Node]): Unit = {
-    if(nodes.size < 2) return
+    if(nodes.size <= 1) return
 
     import Math._
     val N = nodes.size
-    val n = round(sqrt(N)).toInt
+    val roundedN = sqrt(N).toInt
+    val n = roundedN + (if(N / roundedN > 0) 1 else 0)
+    println(s"n: $n N: $N")
 
     val horizontalLineNodes = nodes.grouped(n)
     horizontalLineNodes foreach { connectLine }
@@ -40,7 +42,7 @@ object Node {
     // 3 4 5 -> 1 4 7
     // 6 7 8    2 5 8
     val reshuffledNodes = 0 until N map { i =>
-      val index = (i/3 + n * (i % n)) % N
+      val index = (i/n + n * (i % n)) % N
       println(index)
       nodes(index)
     }

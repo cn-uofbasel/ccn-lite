@@ -239,8 +239,8 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
 
     val ccnPacketLog = packet match {
-      case i: Interest => InterestLog("interest", i.toString)
-      case c: Content => ContentLog("content", c.toString, NFNCommunication.encodeBase64(c.data))
+      case i: Interest => InterestLog("interest", i.name.mkString("/", "/", ""))
+      case c: Content => ContentLog("content", c.name.mkString("/", "/", ""), NFNCommunication.encodeBase64(c.data))
     }
     Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, ccnPacketLog)
   }
