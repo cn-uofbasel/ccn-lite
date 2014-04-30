@@ -33,7 +33,7 @@ object TestApp extends App {
     Pair(nodes(2), nodes(1))
   )
 
-  val interest = Interest(Seq("name"))
+  val interest = Interest("name")
 
   val packets = Set(
     new PacketLog(nodes(0), nodes(1), isSent = true, InterestLog("interst", "/interest/name")),

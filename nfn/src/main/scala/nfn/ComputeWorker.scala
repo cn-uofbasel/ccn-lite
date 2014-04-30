@@ -6,7 +6,7 @@ import ccn.ccnlite.CCNLite
 import ccn.packet.{Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import nfn.service.{NFNService, CallableNFNService}
+import nfn.service.{NFNValue, NFNService, CallableNFNService}
 import scala.util.{Failure, Success}
 import myutil.IOHelper
 import ComputeWorker._
@@ -38,7 +38,7 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
   // Make sure it actually is a compute request and forward to the handle method
   def receivedInterest(interest: Interest, requestor: ActorRef) = {
     logger.debug(s"received compute interest: $interest")
-    val cmps = interest.name
+    val cmps = interest.name.cmps
     val computeCmps = cmps match {
       case Seq("COMPUTE", reqNfnCmps @ _ *) => {
         assert(reqNfnCmps.last == "NFN")
@@ -71,8 +71,8 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
           requestor ! NFNMaster.Thunk(interest)
         }
 
-        val result = callableServ.exec
-        val content = Content(interest.name, result.toValueName.name.mkString(" ").getBytes)
+        val result: NFNValue = callableServ.exec
+        val content = Content(interest.name, result.toStringRepresentation.getBytes)
         logger.debug(s"Finished computation, result: $content")
         requestor ! NFNMaster.ComputeResult(content)
       }

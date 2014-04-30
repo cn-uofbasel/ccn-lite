@@ -69,7 +69,7 @@ object NFNCommunication extends Logging {
           xml match {
             case interest @ <interest>{_*}</interest> => {
               val nameComponents = parseComponents(interest)
-              Interest(nameComponents)
+              Interest(nameComponents :_*)
             }
   //  This is the start of parsing management packets.
   // Something is wrong in the conversion to xml and the 'unkown' tag is not closed propery.
@@ -89,7 +89,7 @@ object NFNCommunication extends Logging {
             case content @ <contentobj>{_*}</contentobj> => {
               val nameComponents = parseComponents(content)
               val contentData = parseContentData(content)
-              Content(nameComponents, contentData)
+              Content(contentData, nameComponents :_*)
             }
             case _ => throw new Exception("XML parser cannot parse:\n" + xml)
           }

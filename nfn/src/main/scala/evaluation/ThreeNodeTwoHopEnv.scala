@@ -25,15 +25,15 @@ object ThreeNodeTwoHopEnv extends App {
   val node2Config = NodeConfig("localhost", 10020, 10021, "node/node2")
   val node3Config = NodeConfig("localhost", 10030, 10031, "node/node3")
 
-  val docname1 = Seq("node", node1Config.prefix, "doc", "test1")
+  val docname1 = CCNName("node", node1Config.prefix, "doc", "test1")
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
 
-  val docname2 = Seq("node", node2Config.prefix, "doc", "test2")
+  val docname2 = CCNName("node", node2Config.prefix, "doc", "test2")
   val docdata2 = "two two".getBytes
   val docContent2 = Content(docname2, docdata2)
 
-  val docname3 = Seq("node", node3Config.prefix, "doc", "test3")
+  val docname3 = CCNName("node", node3Config.prefix, "doc", "test3")
   val docdata3 = "three three three".getBytes
   val docContent3 = Content(docname3, docdata3)
 

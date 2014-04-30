@@ -7,19 +7,46 @@ sealed trait Packet
  */
 trait Ack
 
+object CCNName {
+//  def apply(cmps: String *): CCNName = CCNName(cmps.toList)
+  def withAddedNFNComponent(ccnName: CCNName) = CCNName(ccnName.cmps ++ Seq("NFN") :_*)
+  def withAddedNFNComponent(cmps: Seq[String]) = CCNName(cmps ++ Seq("NFN") :_*)
+}
+
+
+case class CCNName(cmps: String *) {
+  def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
+  override def toString = cmps.mkString("/", "/", "")
+}
+
 sealed trait CCNPacket extends Packet {
-  def name: Seq[String]
-  def nameComponents:Seq[String] = name ++ Seq("NFN")
+  def name: CCNName
 }
 
-case class Interest(name: Seq[String]) extends CCNPacket {
-  def this(nameStr: String) = this(Seq(nameStr))
-  override def toString = s"Interest('${name}')"
+object NFNInterest {
+  def apply(cmps: String *): Interest = Interest(CCNName(cmps :_*))
 }
-case class Content(name: Seq[String], data: Array[Byte]) extends CCNPacket {
 
-  def this(nameStr: String, data: Array[Byte]) = this(Seq(nameStr), data)
-  override def toString = s"Content('$name' => ${new String(data)})"
+object Interest {
+  def apply(cmps: String *): Interest = Interest(CCNName(cmps :_*))
+}
+case class Interest(name: CCNName) extends CCNPacket {
+  def this(cmps: String *) = this(CCNName(cmps:_*))
+}
+
+object Content {
+  def apply(data: Array[Byte], cmps: String *): Content =
+    Content(CCNName(cmps :_*), data)
+}
+
+case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
+
+//  def this(data: Array[Byte], cmps: String *) = this(CCNName(cmps.toList), data)
+  def possiblyShortenedDataString: String = {
+    val dataString = new String(data)
+    if(dataString.length > 20) dataString.take(20) + "..." else dataString
+  }
+  override def toString = s"Content('$name' => $possiblyShortenedDataString)"
 }
 
 case class AddToCache() extends Packet with Ack

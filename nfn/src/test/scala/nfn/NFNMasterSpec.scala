@@ -22,14 +22,14 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
   val nfnMasterNetworkRef: TestActorRef[NFNMasterNetwork] = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
-  val name = Seq("test", "data")
+  val name = CCNName("test", "data")
 
   val ts = System.currentTimeMillis.toString
   val doc1Name = Seq("test", ts, "doc", "1")
   val doc2Name = Seq("test", ts, "doc", "2")
 
-  val doc1Content = Content(doc1Name, "one two".getBytes)
-  val doc2Content = Content(doc2Name, "one two three".getBytes)
+  val doc1Content = Content("one two".getBytes, doc1Name:_*)
+  val doc2Content = Content("one two three".getBytes, doc2Name:_*)
 
   val data = "test".getBytes
   val interest = Interest(name)
@@ -71,7 +71,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       s"compute result '$temporaryPaddedResult' for ${if(nfnNetwork) "local" else "nfn"} request '$parsedReq'" in {
 
         val computeReqName = Seq(parsedReq, "NFN")
-        nfnMasterRef ! CCNSendReceive(Interest(computeReqName))
+        nfnMasterRef ! CCNSendReceive(Interest(computeReqName:_*))
         val actualContent = expectMsgType[Content]
         actualContent.name shouldBe computeReqName
         actualContent.data shouldBe temporaryPaddedResult.getBytes
@@ -89,17 +89,17 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       "add content to cache" in {
         val contentName = Seq("name", "addtocache")
         val contentData = "added to cache!".getBytes
-        val cacheContent = Content(contentName, contentData)
+        val cacheContent = Content(contentData, contentName:_*)
         nfnMasterRef ! CCNAddToCache(cacheContent)
         // TODO maybe make this nicer?
         Thread.sleep(200)
-        nfnMasterRef ! CCNSendReceive(Interest(contentName))
+        nfnMasterRef ! CCNSendReceive(Interest(contentName:_*))
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe contentData
       }
       testComputeRequest("1 ADD 2", "3")
-      testComputeRequest(s"call 3 ${AddService().nfnName.toString} 12 30", "42")
-      testComputeRequest(s"1 ADD call 3 ${AddService().nfnName.toString} 11 29", "41")
+      testComputeRequest(s"call 3 ${AddService().ccnName.toString} 12 30", "42")
+      testComputeRequest(s"1 ADD call 3 ${AddService().ccnName.toString} 11 29", "41")
       testComputeRequest(s"call 3 ${WordCountService().toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
 //      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
