@@ -84,7 +84,7 @@ object NFNMasterFactory {
 trait NFNMaster extends Actor {
 
   val logger = Logging(context.system, this)
-  val name = self.path.name
+  logger.debug("init")
 
   val ccnIf = CCNLite
 
@@ -97,17 +97,22 @@ trait NFNMaster extends Actor {
 
   private def handleInterest(interest: Interest) = {
     cs.find(interest.name) match {
-      case Some(content) => sender ! content
+      case Some(content) => {
+        logger.debug(s"Found content $content in content store, send it back")
+        sender ! content
+      }
       case None => {
         pit.get(interest.name) match {
-          case Some(_) => {
-            val pendingFaces = pit(interest.name) + sender
-            pit += (interest.name -> pendingFaces )
+          case Some(pendingFaces) => {
+            logger.debug(s"Received interest which is already in pit, add it to the pit")
+            val pendingFacesWithSender = pendingFaces + sender
+            pit += (interest.name -> pendingFacesWithSender )
           }
           case None =>
+            logger.debug(s"Received interest which is not in pit, create compute worker and forward to it")
             val computeWorker = createComputeWorker(interest)
-            val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set()) + computeWorker
-            pit += (interest.name -> updatedSendersForInterest)
+            val pendingFaces = Set(computeWorker)
+            pit += (interest.name -> pendingFaces)
             computeWorker.tell(interest, self)
         }
       }
@@ -148,7 +153,7 @@ trait NFNMaster extends Actor {
 
     case UDPConnection.Received(data, sendingRemote) => {
       val maybePacket = byteStringToPacket(data)
-      logger.debug(s"$name received ${maybePacket.getOrElse("unparsable data")}")
+      logger.debug(s"Received ${maybePacket.getOrElse("unparsable data")}")
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet)
@@ -164,10 +169,17 @@ trait NFNMaster extends Actor {
           sender ! content
         }
         case None => {
-          logger.info(s"Received SendReceive request, asking network for $interest ")
-          val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set()) + sender
-          pit += (interest.name -> updatedSendersForInterest)
-          send(interest)
+          pit.get(interest.name) match {
+            case Some(pendingFaces) =>  {
+              logger.info(s"Received SendReceive request $interest, entry already exists in pit, just add sender to pending faces")
+              pit += (interest.name -> (pendingFaces + sender))
+            }
+            case None => {
+              logger.info(s"Received SendReceive request $interest, no entry in pit, asking network")
+              pit += (interest.name -> Set(sender))
+              send(interest)
+            }
+          }
         }
       }
     }
@@ -187,7 +199,7 @@ trait NFNMaster extends Actor {
           sender ! ComputeWorker.Exit()
           pit -= content.name
         }
-        case None => logger.error(s"Received result from compute worker which timed out, discarding the result content: $content")
+        case None => logger.warning(s"Received result from compute worker which timed out, discarding the result content: $content")
       }
     }
 

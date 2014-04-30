@@ -73,14 +73,14 @@ class UDPConnection(local:InetSocketAddress, maybeTarget:Option[InetSocketAddres
     case Send(data) => {
       maybeTarget match {
         case Some(target) => {
-          logger.debug(s"$name sending data")
+//          logger.debug(s"$name sending data")
           socket ! Udp.Send(ByteString(data), target)
         }
-        case None => logger.warning("Received Send message, but target was not configurated on init, this socket is not able to send!")
+        case None => logger.warning("Received Send message, but this socket was configurated to be a receiver-only socket!")
       }
     }
     case Udp.Received(data, sendingRemote) => {
-      logger.debug(s"$name received ${data.decodeString("utf-8")})")
+//      logger.debug(s"$name received ${data.decodeString("utf-8")})")
       frowardReceivedData(data, sendingRemote)
     }
     case Udp.Unbind  => socket ! Udp.Unbind
@@ -112,7 +112,7 @@ case class UDPSender(remote: InetSocketAddress) extends Actor {
 
   def ready(socket: ActorRef): Actor.Receive = {
     case data: Array[Byte] => {
-      logger.debug(s"Sending data")
+//      logger.debug(s"Sending data")
       socket ! Udp.Send(ByteString(data), remote)
     }
   }

@@ -12,6 +12,7 @@ import nfn.service.impl._
 import nfn.NodeConfig
 
 import monitor.Monitor
+import akka.pattern.AskTimeoutException
 
 object WordCountEnv extends App {
 
@@ -32,25 +33,30 @@ object WordCountEnv extends App {
   Node.connectAll(nodes)
 
   val docNamesWithoutPrefix =
-    (0 until 10) map { n => Seq("docs", s"doc$n") }
+    (0 until 10) map { n => CCNName("docs", s"doc$n") }
 
   val docContents: List[Array[Byte]] =
     ((0 until 10) map { n => (s"$n "*n).trim.getBytes }).toList
 
   val indexForDocsOnNodes = List(Nil, List(0, 5, 7), List(2,6,9), List(3,1), List(4,8))// ++ (0 until (n - 5)) map { _ => Nil}
 
-  val nodeNameDatas: List[(Int, Seq[String], Array[Byte])] =
+  val nodeNameDatas: List[(Int, CCNName, Array[Byte])] =
     indexForDocsOnNodes.zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
        docIndizes map { docIndex =>
-         val prefix = nodes(nodeIndex).nodeConfig.prefix
-         (nodeIndex, Seq(prefix) ++ docNamesWithoutPrefix(docIndex), docContents(docIndex))
+         val prefix: String = nodes(nodeIndex).nodeConfig.prefix
+         val cmps: Seq[String] = Seq(prefix) ++ docNamesWithoutPrefix(docIndex).cmps
+         (nodeIndex, CCNName(cmps:_*), docContents(docIndex))
       }
     }
 
-  val docNames = nodeNameDatas map { _._2.mkString("/", "/", "")}
+  val docNamesNode1: List[CCNName] = nodeNameDatas.filter(_._1 == 1).map {
+    _._2
+  }
+
+  val docNames = nodeNameDatas map { _._2 }
 
   nodeNameDatas foreach { case (nodeId, name, data) =>
-    nodes(nodeId) += Content(data, name:_*)
+    nodes(nodeId) += Content(name, data)
   }
 
   nodes foreach { _.publishServices }
@@ -67,10 +73,10 @@ object WordCountEnv extends App {
 
   val add = AddService().toString
 
-  def namesToAddedWordCount(docs: Seq[String]): String = {
-    def wcDoc(doc: String) =  s"call 2 $wc $doc"
+  def namesToAddedWordCount(docs: List[CCNName]): String = {
+    def wcDoc(doc: CCNName) =  s"call 2 $wc $doc"
 
-    def add(docs: Seq[String], cur: String = ""): String = {
+    def add(docs: List[CCNName], cur: String = ""): String = {
       docs match {
         case Seq() => cur
         case _ =>
@@ -85,26 +91,38 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val expr = namesToAddedWordCount(docNames)
+  val addAllDocsSeperatelyExpression = namesToAddedWordCount(docNames.take(3))
+  val interest = Interest(CCNName(addAllDocsSeperatelyExpression, "NFN"))
+  printInterestResult(interest)
 
-  (nodes(0) ? Interest(CCNName(expr, "NFN"))) onComplete {
-    case Success(content) => println(s"RESULT: $content")
-    case Failure(e) => throw e
+  def printInterestResult(interest: Interest) = {
+    (nodes(0) ? interest) onComplete {
+      case Success(content) => println(s"RESULT: $content")
+      case Failure(e) => e match {
+        case _: AskTimeoutException => println(s"TIMEOUT: $interest")
+        case _  => throw e
+      }
+    }
   }
 
-  import lambdamacros.LambdaMacros._
-  (nodes(0) ? Interest(CCNName(lambda({
-    val a = 1
-    6 * (a + 1)
-  }),"NFN"))) onComplete {
-    case Success(content) => println(s"RESULT: $content")
-    case Failure(e) => throw e
-  }
+
+  val addAllDocsNode1 = s"call ${docNamesNode1.size + 1} $wc ${docNamesNode1.mkString(" ")}"
+  printInterestResult(Interest(CCNName(addAllDocsNode1, "NFN")))
+
+//  import lambdamacros.LambdaMacros._
+//  (nodes(0) ? Interest(CCNName(lambda({
+//    val a = 1
+//    6 * (a + 1)
+//  }),"NFN"))) onComplete {
+//    case Success(content) => println(s"RESULT: $content")
+//    case Failure(e) => throw e
+//  }
 
   Thread.sleep(timeoutDuration.toMillis)
   Monitor.monitor ! Monitor.Visualize()
   Thread.sleep(200)
   nodes foreach { _.shutdown }
+
 //  sys.exit
 }
 

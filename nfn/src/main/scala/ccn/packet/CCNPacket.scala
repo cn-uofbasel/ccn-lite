@@ -16,7 +16,10 @@ object CCNName {
 
 case class CCNName(cmps: String *) {
   def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
-  override def toString = cmps.mkString("/", "/", "")
+  override def toString = {
+    if(cmps.last == "NFN") cmps.toList.mkString("/")
+    else cmps.toList.mkString("/", "/", "")
+  }
 }
 
 sealed trait CCNPacket extends Packet {

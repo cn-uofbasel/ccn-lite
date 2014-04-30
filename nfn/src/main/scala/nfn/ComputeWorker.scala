@@ -38,8 +38,7 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
   // Make sure it actually is a compute request and forward to the handle method
   def receivedInterest(interest: Interest, requestor: ActorRef) = {
     logger.debug(s"received compute interest: $interest")
-    val cmps = interest.name.cmps
-    val computeCmps = cmps match {
+    interest.name.cmps match {
       case Seq("COMPUTE", reqNfnCmps @ _ *) => {
         assert(reqNfnCmps.last == "NFN")
         val computeCmpsMaybeThunk = reqNfnCmps.init
