@@ -31,20 +31,20 @@ object NFNMaster {
     NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
   }
 
-  case class CCNSendReceive(interest: Interest) {
-    def this(expr: Expr, local: Boolean = false) = {
-      this(Interest(
+  object CCNSendReceive {
+    def fromExpression(expr: Expr, local: Boolean = false): CCNSendReceive = {
+      val nameCmps: Seq[String] =
         expr match {
           case Variable(name, _) => Seq(name)
-          case _ => Seq(
-            if(local) LambdaLocalPrettyPrinter(expr)
-            else LambdaNFNPrinter(expr),
-            "NFN"
-          )
+          case _ =>
+            if (local) Seq(LambdaLocalPrettyPrinter(expr))
+            else Seq(LambdaNFNPrinter(expr), "NFN")
         }
-      ))
+      CCNSendReceive(Interest(nameCmps: _*))
     }
   }
+
+  case class CCNSendReceive(interest: Interest)
 
   case class CCNAddToCache(content: Content)
 
@@ -89,7 +89,7 @@ trait NFNMaster extends Actor {
   val ccnIf = CCNLite
 
   val cs = ContentStore()
-  var pit: Map[Seq[String], Set[ActorRef]] = Map()
+  var pit: Map[CCNName, Set[ActorRef]] = Map()
 
 
   private def createComputeWorker(interest: Interest): ActorRef =
@@ -153,7 +153,7 @@ trait NFNMaster extends Actor {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet)
         case Some(AddToCache()) => ???
-        case None => logger.warning(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
+        case None => logger.debug(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
       }
     }
 
@@ -192,7 +192,7 @@ trait NFNMaster extends Actor {
     }
 
     case CCNAddToCache(content) => {
-      logger.info(s"sending add to cache for name ${content.name.mkString("/", "/", "")}")
+      logger.info(s"sending add to cache for name ${content.name}")
       sendAddToCache(content)
     }
 
@@ -239,8 +239,8 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
 
     val ccnPacketLog = packet match {
-      case i: Interest => InterestLog("interest", i.name.mkString("/", "/", ""))
-      case c: Content => ContentLog("content", c.name.mkString("/", "/", ""), NFNCommunication.encodeBase64(c.data))
+      case i: Interest => InterestLog("interest", i.name.toString)
+      case c: Content => ContentLog("content", c.name.toString, c.possiblyShortenedDataString)
     }
     Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, ccnPacketLog)
   }
@@ -260,9 +260,9 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
   override def monitorReceive(packet: CCNPacket): Unit = {
     val ccnPacketLog = packet match {
-      case i: Interest => InterestLog("interst", i.name.mkString("/", "/", ""))
+      case i: Interest => InterestLog("interst", i.name.toString)
       case c: Content => {
-        val name = c.name.mkString("/", "/", "")
+        val name = c.name.toString
         val data = new String(c.data).take(50)
         ContentLog("content", name, data)
       }

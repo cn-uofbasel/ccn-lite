@@ -48,7 +48,7 @@ object NFNService extends Logging {
       if (out != null) out.close
       if (file.exists) file.delete
     }
-    val servName = content.name.head.replace("_", ".")
+    val servName = content.name.cmps.head.replace("_", ".")
 
     val loadedService = BytecodeLoader.loadClass[NFNService](serviceLibraryDir, servName)
 
@@ -71,7 +71,7 @@ object NFNService extends Logging {
           }
         }
         case None => {
-          val interest = Interest(fun.split("/").tail.toSeq)
+          val interest = Interest(fun.split("/").tail.toSeq :_*)
           val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
           import myutil.Implicit.tryToFuture
           futServiceContent flatMap { serviceFromContent }
@@ -91,7 +91,7 @@ object NFNService extends Logging {
               }
             }
             case false => {
-              val interest = Interest(arg.split("/").tail)
+              val interest = Interest(arg.split("/").tail.toList :_*)
               logger.debug(s"Arg '$arg' is a name, asking nfn master to find content for $interest")
               loadFromCacheOrNetwork(interest) map  { content =>
                 logger.debug(s"Found arg $arg")
@@ -129,7 +129,7 @@ object NFNService extends Logging {
           for {
             args <- futArgs
             serv <- futServ
-            callable <- serv.instantiateCallable(serv.nfnName, args)
+            callable <- serv.instantiateCallable(serv.ccnName, args)
 
           } yield callable
 
@@ -152,19 +152,19 @@ trait NFNService extends Logging {
   def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
 
 
-  def instantiateCallable(name: NFNName, values: Seq[NFNValue]): Try[CallableNFNService] = {
+  def instantiateCallable(name: CCNName, values: Seq[NFNValue]): Try[CallableNFNService] = {
     logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
-    assert(name == nfnName, s"Service $nfnName is created with wrong name $name")
+    assert(name == ccnName, s"Service $ccnName is created with wrong name $name")
     verifyArgs(values)
     Try(CallableNFNService(name, values, function))
   }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 
-  def nfnName: NFNName = NFNName(Seq(this.getClass.getCanonicalName.replace(".", "_")))
+  def ccnName: CCNName = CCNName(this.getClass.getCanonicalName.replace(".", "_"))
 
 
   def pinned: Boolean = true
 
-  override def toString = nfnName.toString
+  override def toString = ccnName.toString
 
 }

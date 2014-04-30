@@ -3,7 +3,7 @@ import akka.actor._
 import akka.pattern._
 
 import akka.util.Timeout
-import ccn.packet.{Content, Interest}
+import ccn.packet.{NFNInterest, CCNName, Content, Interest}
 import com.typesafe.config.ConfigFactory
 import nfn.NFNMaster._
 import nfn.service.impl._
@@ -45,8 +45,8 @@ object NFNMain extends App {
   val docdata1 = "one two three".getBytes
   val docdata2 = "one two three four".getBytes
   val ts = System.currentTimeMillis()
-  val docname1 = Seq(s"$ts", "doc", "test", "1")
-  val docname2 = Seq(s"$ts", "doc", "test", "2")
+  val docname1 = CCNName(s"$ts", "doc", "test", "1")
+  val docname2 = CCNName(s"$ts", "doc", "test", "2")
   val docContent1 = Content(docname1, docdata1)
   val docContent2 = Content(docname2, docdata2)
 
@@ -62,14 +62,14 @@ object NFNMain extends App {
   }
 
 
-  val addInterest = Interest(Seq(s"1 ADD 3", "NFN"))
+  val addInterest = NFNInterest(s"1 ADD 3")
   //  val interest = Interest(Seq(s"call 3 ${AddService().nfnName.toString} 9 3", "NFN"))
   (nfnWorker ? CCNSendReceive(addInterest)).mapTo[Content] onComplete  {
     case Success(content) => println(s"RESULT ADD: $content")
     case Failure(e) => throw e
   }
 
-  val wcInterest = Interest(Seq(s"call 3 ${WordCountService().nfnName.toString} ${docname1.mkString("/", "/", "")} ${docname2.mkString("/", "/", "")}", "NFN"))
+  val wcInterest = NFNInterest(s"call 3 ${WordCountService().ccnName.toString} $docname1 $docname2")
   (nfnWorker ? CCNSendReceive(wcInterest)).mapTo[Content] onComplete  {
     case Success(content) => println(s"RESULT WC: $content")
     case Failure(e) => throw e

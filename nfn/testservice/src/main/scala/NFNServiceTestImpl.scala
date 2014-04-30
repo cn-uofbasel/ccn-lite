@@ -25,7 +25,7 @@ class NFNServiceTestImpl extends NFNService {
     val testFun = { (values: Seq[value.NFNValue]) => Try(UnitValue()) }
     CallableNFNService(NFNName(unparsedName), Seq(), testFun)
   }
-  override def nfnName: NFNName = NFNName("")
+  override def ccnName: NFNName = NFNName("")
 }
 
 
@@ -34,23 +34,23 @@ case class ChfToDollar() extends NFNService {
   override def parse(unparsedName: String, unparsedValues: Seq[String]): CallableNFNService = {
     val values = unparsedValues match {
       case Seq(chfValueString) => Seq(NFNIntValue(chfValueString.toInt))
-      case _ => throw new Exception(s"Service $nfnName could not parse single Int value from: '$unparsedValues'")
+      case _ => throw new Exception(s"Service $ccnName could not parse single Int value from: '$unparsedValues'")
     }
-    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $nfnName could not parse function name '$unparsedName'"))
-    assert(name == this.nfnName)
+    val name = NFNName.parse(unparsedName).getOrElse(throw new Exception(s"Service $ccnName could not parse function name '$unparsedName'"))
+    assert(name == this.ccnName)
 
     val function = { (values: Seq[value.NFNValue]) =>
       values match {
         case Seq(chf: NFNIntValue) => {
           Try(NFNIntValue(chf.amount*2))
         }
-        case _ => throw new NFNServiceException(s"${this.nfnName} can only be applied to a single NFNIntValue and not $values")
+        case _ => throw new NFNServiceException(s"${this.ccnName} can only be applied to a single NFNIntValue and not $values")
       }
 
     }
     CallableNFNService(name, values, function)
   }
-  override def nfnName: NFNName = NFNName("ChfToDollar/Int/Int")
+  override def ccnName: NFNName = NFNName("ChfToDollar/Int/Int")
 
 
 }

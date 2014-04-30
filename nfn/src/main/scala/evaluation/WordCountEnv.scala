@@ -50,7 +50,7 @@ object WordCountEnv extends App {
   val docNames = nodeNameDatas map { _._2.mkString("/", "/", "")}
 
   nodeNameDatas foreach { case (nodeId, name, data) =>
-    nodes(nodeId) += Content(name, data)
+    nodes(nodeId) += Content(data, name:_*)
   }
 
   nodes foreach { _.publishServices }
@@ -60,10 +60,10 @@ object WordCountEnv extends App {
   Thread.sleep(1000)
 
 
-  val map = MapService().nfnName.toString
-  val wc = WordCountService().nfnName.toString
-  val red = ReduceService().nfnName.toString
-  val sum = SumService().nfnName.toString
+  val map = MapService().ccnName.toString
+  val wc = WordCountService().ccnName.toString
+  val red = ReduceService().ccnName.toString
+  val sum = SumService().ccnName.toString
 
   val add = AddService().toString
 
@@ -87,13 +87,13 @@ object WordCountEnv extends App {
   }
   val expr = namesToAddedWordCount(docNames)
 
-  (nodes(0) ? Interest(Seq(expr, "NFN"))) onComplete {
+  (nodes(0) ? Interest(CCNName(expr, "NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }
 
   import lambdamacros.LambdaMacros._
-  (nodes(0) ? Interest(Seq(lambda({
+  (nodes(0) ? Interest(CCNName(lambda({
     val a = 1
     6 * (a + 1)
   }),"NFN"))) onComplete {

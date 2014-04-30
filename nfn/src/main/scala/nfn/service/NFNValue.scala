@@ -1,43 +1,46 @@
 package nfn.service
 
+import ccn.packet.CCNName
+
 
 trait NFNValue {
-  def toNFNName: NFNName
+  def toCCNName: CCNName
 
-  def toValueName: NFNName
+  def toStringRepresentation: String
 }
 
-case class NFNBinaryDataValue(name: Seq[String], data: Array[Byte]) extends NFNValue {
-  override def toValueName: NFNName = NFNName(Seq(new String(data)))
+case class NFNBinaryDataValue(name: CCNName, data: Array[Byte]) extends NFNValue {
 
-  override def toNFNName: NFNName = NFNName(name)
+  override def toCCNName: CCNName = name
+
+  override def toStringRepresentation: String = new String(data)
 }
 
 case class NFNServiceValue(serv: NFNService) extends NFNValue {
-  override def toValueName: NFNName = serv.nfnName
+  override def toStringRepresentation: String = serv.ccnName.toString
 
-  override def toNFNName: NFNName = serv.nfnName
+  override def toCCNName: CCNName = serv.ccnName
 }
 
 case class NFNListValue(values: List[NFNValue]) extends NFNValue {
 
-  override def toValueName: NFNName = NFNName(Seq(values.map({ _.toNFNName.toString }).mkString(" ")))
+  override def toStringRepresentation: String = values.map({ _.toCCNName.toString }).mkString(" ")
 
-  override def toNFNName: NFNName = NFNName(Seq(values.map({ _.toNFNName.toString }).mkString(" ")))
+  override def toCCNName: CCNName = CCNName(values.map({ _.toCCNName.toString }).mkString(" "))
 }
 
-case class NFNNameValue(name: NFNName) extends NFNValue{
-  override def toValueName: NFNName = name
+case class NFNNameValue(name: CCNName) extends NFNValue{
+  override def toStringRepresentation: String = name.toString
 
-  override def toNFNName: NFNName = name
+  override def toCCNName: CCNName = name
 }
 
 case class NFNIntValue(amount: Int) extends NFNValue {
   def apply = amount
 
-  override def toNFNName: NFNName = NFNName(Seq("Int"))
+  override def toCCNName: CCNName = CCNName("Int")
 
-  override def toValueName: NFNName = NFNName(Seq(amount.toString))
+  override def toStringRepresentation: String = amount.toString
 }
 
 

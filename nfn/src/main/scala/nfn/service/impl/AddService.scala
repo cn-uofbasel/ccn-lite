@@ -9,7 +9,7 @@ import nfn.service.NFNServiceArgumentException
 case class AddService() extends  NFNService with Logging {
 
   def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
-    new NFNServiceArgumentException(s"$nfnName requires to arguments of type NFNIntValue and not $args")
+    new NFNServiceArgumentException(s"$ccnName requires to arguments of type NFNIntValue and not $args")
 
   override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
     args match {

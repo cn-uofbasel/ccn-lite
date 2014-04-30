@@ -20,7 +20,7 @@ import bytecode.BytecodeLoader
 
 
 object NFNServiceLibrary extends Logging {
-  private var services:Map[Seq[String], NFNService] = Map()
+  private var services:Map[CCNName, NFNService] = Map()
   private val ccnIf = CCNLite
 
   add(AddService())
@@ -30,8 +30,7 @@ object NFNServiceLibrary extends Logging {
   add(SumService())
 
   def add(serv: NFNService) =  {
-
-    val name = serv.nfnName.name
+    val name = serv.ccnName
     services += name -> serv
   }
 
@@ -40,7 +39,7 @@ object NFNServiceLibrary extends Logging {
   def find(servName: String):Option[NFNService] = {
     servName.split("/") match {
       case Array("", servNameCmps @ _*) =>
-        val found = services.get(servNameCmps)
+        val found = services.get(CCNName(servNameCmps:_*))
         logger.debug(s"Found $found")
         found
       case _ => {
@@ -51,7 +50,7 @@ object NFNServiceLibrary extends Logging {
   }
 
 
-  def find(servName: NFNName):Option[NFNService] = find(servName.toString)
+  def find(servName: CCNName):Option[NFNService] = find(servName.toString)
 
   def convertDollarToChf(dollar: Int): Int = ???
 
@@ -80,7 +79,7 @@ object NFNServiceLibrary extends Logging {
         else byteCodeData(serv)
 
       val content = Content(
-        serv.nfnName.name,
+        serv.ccnName,
         serviceContent
       )
 
@@ -103,12 +102,8 @@ object NFNServiceLibrary extends Logging {
 case class NFNServiceExecutionException(msg: String) extends Exception(msg)
 case class NFNServiceArgumentException(msg: String) extends Exception(msg)
 
-case class CallableNFNService(name: NFNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue) {
+case class CallableNFNService(name: CCNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue) extends Logging {
   def exec:NFNValue = function(values)
-}
-
-case class NFNName(name: Seq[String]) {
-  override def toString = name.mkString("/", "/", "")
 }
 
 

@@ -14,7 +14,7 @@ object CCNLite extends Logging {
   }
 
   def mkBinaryContent(content: Content): Array[Byte] = {
-    val name = content.name.toArray
+    val name = content.name.cmps.toArray
     val data = content.data
     ccnIf.mkBinaryContent(name, data)
   }
@@ -24,7 +24,7 @@ object CCNLite extends Logging {
   }
 
   def mkBinaryInterest(interest: Interest): Array[Byte] = {
-    ccnIf.mkBinaryInterest(interest.name.toArray)
+    ccnIf.mkBinaryInterest(interest.name.cmps.toArray)
   }
 
   def mkBinaryPacket(packet: CCNPacket): Array[Byte] = {

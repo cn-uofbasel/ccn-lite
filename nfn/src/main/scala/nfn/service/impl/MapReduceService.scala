@@ -41,7 +41,7 @@ case class MapService() extends NFNService {
           val tryExec = NFNService.serviceFromContent(Content(servName, servData)) map { (serv: NFNService) =>
             NFNListValue(
               (args map { arg =>
-                serv.instantiateCallable(serv.nfnName, Seq(arg)).get.exec
+                serv.instantiateCallable(serv.ccnName, Seq(arg)).get.exec
               }).toList
             )
           }
@@ -77,12 +77,12 @@ case class ReduceService() extends NFNService {
     (values: Seq[NFNValue]) => {
       values match {
         case Seq(fun: NFNServiceValue, argList: NFNListValue) => {
-          fun.serv.instantiateCallable(fun.serv.nfnName, argList.values).get.exec
+          fun.serv.instantiateCallable(fun.serv.ccnName, argList.values).get.exec
         }
         case Seq(NFNBinaryDataValue(servName, servData), args @ _*) => {
           val tryExec: Try[NFNValue] = NFNService.serviceFromContent(Content(servName, servData)) flatMap {
             (serv: NFNService) =>
-              serv.instantiateCallable(serv.nfnName, args) map {
+              serv.instantiateCallable(serv.ccnName, args) map {
                 callableServ =>
                   callableServ.exec
               }

@@ -45,8 +45,8 @@ class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
     def handleComputeRequest(interest: Interest) = {
       def tryComputeResultContent: Try[Content] = {
         // TODO this only works if the expression is in a single name and not split
-        if (interest.name.size == 2) {
-          val expr = interest.name.init.mkString(" ")
+        if (interest.name.cmps.size == 2) {
+          val expr = interest.name.cmps.init.mkString(" ")
           lc.substituteParseCompileExecute(expr) map {
             case List(result: Value) => {
               val resultString = computeResultToContent(result)
