@@ -52,7 +52,7 @@ ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
 
 void 
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
-    DEBUGMSG(49, "ccnl_nfn_send_signal()\n");
+    DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
     ccnl_nfn(ccnl, NULL, NULL, NULL, configuration_list[configid]);
 }
 
