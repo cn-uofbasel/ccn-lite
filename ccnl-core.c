@@ -856,8 +856,14 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
 		// than being held indefinitely."
 	if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
-				i->retries > CCNL_MAX_INTEREST_RETRANSMIT)
-	    i = ccnl_interest_remove(relay, i);
+				i->retries > CCNL_MAX_INTEREST_RETRANSMIT){
+#ifdef CCNL_NFN
+            if(i->from->faceid < 0){
+                ccnl_nfn_continue_computation(relay, -i->from->faceid);
+            }
+#endif
+            i = ccnl_interest_remove(relay, i);
+        }
 	else {
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
