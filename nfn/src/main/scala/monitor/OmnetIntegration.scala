@@ -64,7 +64,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
             if(lp.isSent) {
               Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp - simStart, 2, lp.packet))
             } else {
-              logger.debug(s"Discarding all received packet logs")
+//              logger.debug(s"Discarding all received packet logs")
               None
             }
           case None => {
