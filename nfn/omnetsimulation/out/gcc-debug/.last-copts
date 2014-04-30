@@ -1,1 +1,0 @@
--g -Wall   -fno-stack-protector  -DHAVE_PCAP -DXMLPARSER=libxml -DWITH_PARSIM -DWITH_NETBUILDER  -I. -I/usr/local/delightful/omnetpp-4.4.1/include
