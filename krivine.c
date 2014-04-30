@@ -327,7 +327,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     }printf("\n");
     //TODO: Check if it is already available locally
     
-    if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+    if((c = ccnl_nfn_global_content_search(ccnl, config, interest, 0)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
         return c;
     }
@@ -338,7 +338,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
 
 struct ccnl_content_s *
 ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        char **namecomp, char *out, char *comp, int *halt){
+        char **namecomp, char *out, char *comp, int *halt, int search_only_local){
     
     struct ccnl_content_s *c;
     int j;
@@ -359,17 +359,17 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     int len = mkInterestCompute(namecomp, comp, complen, config->fox_state->thunk_request, out); //TODO: no thunk request for local search  
     //search
     struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
-    if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+    if((c = ccnl_nfn_global_content_search(ccnl, config, interest, search_only_local)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
         return c;
     }
-    *halt = -1;
+    if(!search_only_local)*halt = -1;
     return NULL;
 }
 
 struct ccnl_content_s *
 ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, 
-        struct configuration_s *config, int *halt){
+        struct configuration_s *config, int *halt, int search_only_local){
     char *out =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *namecomp[CCNL_MAX_NAME_COMP];
@@ -389,7 +389,7 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     }else{
         DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
                 config->fox_state->params[config->fox_state->it_routable_param]);
-        c = ccnl_nfn_handle_network_search(ccnl, config, namecomp, out, comp, halt);
+        c = ccnl_nfn_handle_network_search(ccnl, config, namecomp, out, comp, halt, search_only_local);
     }
     return c;
 }
@@ -805,8 +805,10 @@ normal:
 	return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
+        int search_only_local = 0;
         if(*restart) {
             *restart = 0;
+            search_only_local = 1;
             goto recontinue;
         }
         DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
@@ -819,15 +821,15 @@ normal:
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
-        DEBUGMSG(99, "%s\n",  config->fox_state->params[0]);
-        
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = config->fox_state->num_of_params - 1;
 recontinue:
         for(; config->fox_state->it_routable_param >= 0; --config->fox_state->it_routable_param){
             if(iscontent(config->fox_state->params[config->fox_state->it_routable_param])){
+                DEBUGMSG(99, "Using %s as routable content\n", config->fox_state->params[config->fox_state->it_routable_param]);
                 struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, 
-                        config, halt);
+                        config, halt, search_only_local);
+                search_only_local = 0;
                 if(*halt < 0) return prog;
                 if(c){
                     if(thunk_request){ //if thunk_request push thunkid on the stack
@@ -916,7 +918,7 @@ char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
         int num_of_required_thunks, struct configuration_s **config,
         struct ccnl_prefix_s *prefix){
-    
+    DEBUGMSG(99, "Krivine_reduction()\n");
     int steps = 0; 
     int halt = 0;
     int restart = 1;
@@ -925,7 +927,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     struct environment_s *global_dict = NULL;
     char *dummybuf = malloc(2000);
     setup_global_environment(&global_dict);
-    if(strlen(expression) == 0) return 0;
+    if(!*config && strlen(expression) == 0) return 0;
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
