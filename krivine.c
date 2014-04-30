@@ -382,7 +382,7 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     param = strdup(config->fox_state->params[config->fox_state->it_routable_param]);
     j = splitComponents(param, namecomp);
     
-    if(!search_only_local && isLocalAvailable(ccnl, config, namecomp)){
+    if(isLocalAvailable(ccnl, config, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 config->fox_state->params[config->fox_state->it_routable_param]);
         c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, out, comp, halt);
