@@ -375,7 +375,7 @@ ccnl_receive_content_synchronous(struct ccnl_relay_s *ccnl, struct ccnl_interest
 
 struct ccnl_content_s *
 ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        struct ccnl_interest_s *interest){
+        struct ccnl_interest_s *interest, int search_only_local){
     struct ccnl_content_s *c;
     
     DEBUGMSG(2, "ccnl_nfn_global_content_search()\n");
@@ -385,7 +385,10 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
         DEBUGMSG(49, "Content now available: %s\n", c->content);
         return c;
     }
-    
+    if(search_only_local) {
+        interest = ccnl_interest_remove(ccnl, interest);
+        return NULL;
+    }
     interest->from->faceid = config->configid;
     ccnl_interest_propagate(ccnl, interest);
     return NULL;
@@ -512,7 +515,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     if(interest){
         interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c;
-        if((c = ccnl_nfn_global_content_search(ccnl, config, interest)) != NULL){
+        if((c = ccnl_nfn_global_content_search(ccnl, config, interest, 0)) != NULL){
             DEBUGMSG(49, "Thunk was resolved: %s\n", c->content);
             return c;
         }
