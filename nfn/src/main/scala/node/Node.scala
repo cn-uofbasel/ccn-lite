@@ -22,7 +22,7 @@ object Node {
    * o-o-o    o-o-o
    * | | |    | | |
    * o-o-o or o-o-o
-   * | | |    |
+   * | | |    | |
    * o-o-o    o-o
    * @param nodes
    */
@@ -60,7 +60,7 @@ object Node {
    * @param nodes
    */
   def connectStar(nodes: Seq[Node]): Unit = {
-    if(nodes.size < 2) return
+    if(nodes.size <= 1) return
 
     nodes.tail foreach { _ <~> nodes.head }
   }
@@ -73,7 +73,7 @@ object Node {
    * @param unconnectedNodes
    */
   def connectAll(unconnectedNodes: Seq[Node]): Unit = {
-    if(unconnectedNodes.size < 2) return
+    if(unconnectedNodes.size <= 1 ) return
 
     val head = unconnectedNodes.head
     val tail = unconnectedNodes.tail
@@ -90,9 +90,9 @@ object Node {
    * @return
    */
   def connectLine(nodes: Seq[Node]): Unit = {
-    if(nodes.size < 2) return
+    if(nodes.size <= 1) return
 
-    nodes.tail.fold(nodes.head) {
+    nodes.tail.foldLeft(nodes.head) {
       (left, right) => left <~> right; right
     }
   }
@@ -108,7 +108,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isRunning = true
   private var isConnecting = true
 
-  private val system = ActorSystem(s"Sys${nodeConfig.prefix}", AkkaConfig())
+  private val system = ActorSystem(s"Sys${nodeConfig.prefix.replace("/", "-")}", AkkaConfig())
   private val _nfnMaster = NFNMasterFactory.network(system, nodeConfig)
 
   private def nfnMaster = {
@@ -182,6 +182,8 @@ case class Node(nodeConfig: NodeConfig) {
    * TODO: this should be changed to advertise the service by setting up faces instead of adding them to the cache
    */
   def publishServices = NFNServiceLibrary.nfnPublish(nfnMaster)
+
+  def removeLocalServices = NFNServiceLibrary.removeAll()
 
   /**
    * Fire and forgets an interest to the system. Response will still arrive in the local cache, but will discarded when arriving

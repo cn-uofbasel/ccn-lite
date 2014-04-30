@@ -13,27 +13,27 @@ import ccn.packet._
 import nfn.NFNMaster._
 import scala.concurrent.Future
 import node.Node
+import monitor.Monitor
 
 
-
-object ThreeNodeEnv extends App {
+object ThreeNodeTwoHopEnv extends App {
 
   val timeoutDuration: FiniteDuration = 8 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
-  val node1Config = NodeConfig("localhost", 10010, 10011, "node1")
-  val node2Config = NodeConfig("localhost", 10020, 10021, "node2")
-  val node3Config = NodeConfig("localhost", 10030, 10031, "node3")
+  val node1Config = NodeConfig("localhost", 10010, 10011, "node/node1")
+  val node2Config = NodeConfig("localhost", 10020, 10021, "node/node2")
+  val node3Config = NodeConfig("localhost", 10030, 10031, "node/node3")
 
-  val docname1 = Seq(node1Config.prefix, "doc", "test1")
+  val docname1 = Seq("node", node1Config.prefix, "doc", "test1")
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
 
-  val docname2 = Seq(node2Config.prefix, "doc", "test2")
+  val docname2 = Seq("node", node2Config.prefix, "doc", "test2")
   val docdata2 = "two two".getBytes
   val docContent2 = Content(docname2, docdata2)
 
-  val docname3 = Seq(node3Config.prefix, "doc", "test3")
+  val docname3 = Seq("node", node3Config.prefix, "doc", "test3")
   val docdata3 = "three three three".getBytes
   val docContent3 = Content(docname3, docdata3)
 
@@ -41,10 +41,10 @@ object ThreeNodeEnv extends App {
   var node2 = Node(node2Config)
   var node3 = Node(node3Config)
 
-  Node.connectAll(Seq(node1, node2, node3))
-  Thread.sleep(1000)
-  node1 ~> node2
-  node1 ~> node3
+  Node.connectLine(Seq(node1, node2, node3))
+//  Thread.sleep(1000)
+//  node1 ~> node2
+//  node1 ~> node3
 
   Thread.sleep(1000)
   node1 += docContent1
@@ -60,8 +60,10 @@ object ThreeNodeEnv extends App {
 
   Thread.sleep(timeoutDuration.toMillis + 100)
 
+  Monitor.monitor ! Monitor.Visualize()
+
   node1.shutdown
   node2.shutdown
-//  node3.shutdown
+  node3.shutdown
 }
 

@@ -18,7 +18,7 @@ object WordCountEnv extends App {
   val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
-  val n = 8
+  val n = 5
 
   val nodeConfigs=
     (0 until n) map { n =>
@@ -29,7 +29,7 @@ object WordCountEnv extends App {
 
   val nodes = nodeConfigs map { Node(_) }
 
-  Node.connectGrid(nodes)
+  Node.connectAll(nodes)
 
   val docNamesWithoutPrefix =
     (0 until 10) map { n => Seq("docs", s"doc$n") }
@@ -40,7 +40,7 @@ object WordCountEnv extends App {
   val indexForDocsOnNodes = List(Nil, List(0, 5, 7), List(2,6,9), List(3,1), List(4,8))// ++ (0 until (n - 5)) map { _ => Nil}
 
   val nodeNameDatas: List[(Int, Seq[String], Array[Byte])] =
-    indexForDocsOnNodes.take(n).zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
+    indexForDocsOnNodes.zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
        docIndizes map { docIndex =>
          val prefix = nodes(nodeIndex).nodeConfig.prefix
          (nodeIndex, Seq(prefix) ++ docNamesWithoutPrefix(docIndex), docContents(docIndex))
@@ -55,11 +55,10 @@ object WordCountEnv extends App {
 
   nodes foreach { _.publishServices }
 
+  nodes foreach { _.removeLocalServices }
 
-//  val (reqNodeIndex, nameDoc4Node4, _) = nodeNameDatas.find(_._1 == 4).head
-//  val docsNode4: List[(Int, Seq[String], Array[Byte])] = nodeNameDatas.filter(_._1 == 4)
-//  val nameDoc8Node4 = docsNode4.filter(_._2.last == "doc8").head._2
-//  val reqNode = nodes(reqNodeIndex)
+  Thread.sleep(1000)
+
 
   val map = MapService().nfnName.toString
   val wc = WordCountService().nfnName.toString
@@ -67,13 +66,6 @@ object WordCountEnv extends App {
   val sum = SumService().nfnName.toString
 
   val add = AddService().toString
-
-//  (reqNode ? Interest(Seq(s"call ${docNames.size + 2} $map $wc ${docNames.mkString(" ")}", "NFN"))) onComplete {
-//  (reqNode ? Interest(Seq(s"call 3 $add 3 4", "NFN"))) onComplete {
-
-//  (reqNode ? Interest(nameDoc2Node2)) onComplete {
-//  (nodes.head ? Interest(Seq(s"call 3 $wc ${nameDoc4Node4.mkString("/", "/", "")} ${nameDoc8Node4.mkString("/", "/", "")}", "NFN"))) onComplete {
-
 
   def namesToAddedWordCount(docs: Seq[String]): String = {
     def wcDoc(doc: String) =  s"call 2 $wc $doc"
@@ -94,12 +86,17 @@ object WordCountEnv extends App {
     add(docs)
   }
   val expr = namesToAddedWordCount(docNames)
-//  val expr = s"call ${docNames.size + 1} $wc ${docNames.mkString(" ")}"
-//  (nodes.head ! Interest(Seq(expr, "THUNK", "NFN")))
-//  Thread.sleep(800)
-//  (reqNode ? Interest(Seq(nameDoc2Node2.mkString("/", "/", ""), "NFN"))) onComplete {
-//  (nodes(0) ? Interest(Seq("sub 2 3", "NFN"))) onComplete {
+
   (nodes(0) ? Interest(Seq(expr, "NFN"))) onComplete {
+    case Success(content) => println(s"RESULT: $content")
+    case Failure(e) => throw e
+  }
+
+  import lambdamacros.LambdaMacros._
+  (nodes(0) ? Interest(Seq(lambda({
+    val a = 1
+    6 * (a + 1)
+  }),"NFN"))) onComplete {
     case Success(content) => println(s"RESULT: $content")
     case Failure(e) => throw e
   }

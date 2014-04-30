@@ -29,8 +29,17 @@ project/plugins/project/
 
 # omnet
 *.tkenvlog
-*.tkenvrc
-*NFNNetwork.ned
+omnetsimulation/.tkenvrc
+omnetsimulation/Makefile
+omnetsimulation/contentto_m.cc
+omnetsimulation/contentto_m.h
+omnetsimulation/interestto_m.cc
+omnetsimulation/interestto_m.h
+omnetsimulation/omnetintegration
+omnetsimulation/omnetsimulation
+omnetsimulation/out*
 
+omnetsimulation/NFNNetwork.ned
+omnetsimulation/transmittedPackets.json
 
 *c_xml.txt
