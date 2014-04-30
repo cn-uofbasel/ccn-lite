@@ -1058,11 +1058,10 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 struct ccnl_interest_s *i_it = NULL;
                 int found = 0;
                 for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-                     int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                      //Check if prefix match and it is a nfn request     
-                     int cmp = ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH);
-                     DEBUGMSG(99, "CMP: %d, faceid: %d \n", cmp, i_it->from->faceid);
-                     if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
+                     int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
+                     DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
+                     if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
                              && i_it->from->faceid < 0){ 
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
