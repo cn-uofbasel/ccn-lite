@@ -1,3 +1,4 @@
+import lambdamacros.LambdaMacros
 import org.scalatest.{Matchers, FlatSpec}
 
 import language.experimental.macros

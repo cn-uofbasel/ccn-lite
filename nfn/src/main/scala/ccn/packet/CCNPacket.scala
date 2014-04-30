@@ -7,7 +7,6 @@ sealed trait Packet
  */
 trait Ack
 
-
 sealed trait CCNPacket extends Packet {
   def name: Seq[String]
   def nameComponents:Seq[String] = name ++ Seq("NFN")

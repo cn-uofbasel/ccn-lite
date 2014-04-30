@@ -64,7 +64,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
             if(lp.isSent) {
               Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp - simStart, 2, lp.packet))
             } else {
-              logger.warn(s"Discarding all received packet logs")
+              logger.debug(s"Discarding all received packet logs")
               None
             }
           case None => {
@@ -81,27 +81,27 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
   def apply() = {
 
-    logger.debug(s"NODES: $nodes")
-    logger.debug(s"EDGES: $edges")
-    logger.debug(s"PACKETS:\n${loggedPackets.mkString("\n")}")
+//    logger.debug(s"NODES: $nodes")
+//    logger.debug(s"EDGES: $edges")
+//    logger.debug(s"PACKETS:\n${loggedPackets.mkString("\n")}")
 
     val sortedPackets: List[PacketLog] = loggedPackets.toList.sortBy(_.timestamp)
 
-    logger.debug(s"SORTED PACKETS")
-    sortedPackets foreach { lp =>
-      logger.debug(s"${lp.from.get.host}:${lp.from.get.port} -> ${lp.to.host}: ${lp.to.port}: ${lp.packet.name} (${lp.timestamp})")
-    }
-    logger.debug(s"SORTED PACKETS:\n${sortedPackets.mkString("\n")}")
+//    logger.debug(s"SORTED PACKETS")
+//    sortedPackets foreach { lp =>
+//      logger.debug(s"${lp.from.get.host}:${lp.from.get.port} -> ${lp.to.host}: ${lp.to.port}: ${lp.packet.name} (${lp.timestamp})")
+//    }
+//    logger.debug(s"SORTED PACKETS:\n${sortedPackets.mkString("\n")}")
 
     import IOHelper.printToFile
     val nedContent = createNed()
-    val nedFilename = "./omnetintegration/NFNNetwork.ned"
+    val nedFilename = "./omnetsimulation/NFNNetwork.ned"
 
     printToFile(new File(nedFilename), nedContent)
     logger.info(s"Wrote .ned file to $nedFilename")
 
     val transmittedPacketsJson = createTransmissionJson
-    val transmittedPacketsJsonFilename = "./omnetintegration/transmittedPackets.json"
+    val transmittedPacketsJsonFilename = "./omnetsimulation/transmittedPackets.json"
 
     printToFile(new File(transmittedPacketsJsonFilename), transmittedPacketsJson)
     logger.info(s"Wrote transmittedPackets to .json file $transmittedPacketsJsonFilename")

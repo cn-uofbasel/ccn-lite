@@ -35,6 +35,8 @@ object NFNServiceLibrary extends Logging {
     services += name -> serv
   }
 
+  def removeAll() = services = Map()
+
   def find(servName: String):Option[NFNService] = {
     servName.split("/") match {
       case Array("", servNameCmps @ _*) =>

@@ -160,12 +160,12 @@ object LambdaNFNPrinter {
         case BinaryExpr(op, v1, v2) => op.toString.toLowerCase + " " + p"$v1" + " " + p"$v2"
         case Variable(name, _) => name
         case Constant(i) => i.toString
-        //    case Let(name, expr, maybeCodeExpr) =>
-        //      s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
+//        case Let(name, expr, maybeCodeExpr) =>
+//          s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
 //            case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
         case Call(name, args) => s"call ${args.size + 1} $name " + args.map({arg: Expr => p"$arg"}).mkString(" ")
         case NopExpr() => ""
-        case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
+        case _ => throw new NotImplementedError(s"NFNPrettyPrinter cannot pretty print: $expr")
       }
   }
 

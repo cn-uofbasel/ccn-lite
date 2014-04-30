@@ -164,7 +164,7 @@ trait NFNMaster extends Actor {
           sender ! content
         }
         case None => {
-          logger.info(s"Received SendReceive request, aksing network for $interest ")
+          logger.info(s"Received SendReceive request, asking network for $interest ")
           val updatedSendersForInterest = pit.get(interest.name).getOrElse(Set()) + sender
           pit += (interest.name -> updatedSendersForInterest)
           send(interest)

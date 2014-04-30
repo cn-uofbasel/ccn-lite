@@ -1,3 +1,5 @@
+package lambdamacros
+
 import scala.reflect.macros.Context
 import scala.language.experimental.macros
 

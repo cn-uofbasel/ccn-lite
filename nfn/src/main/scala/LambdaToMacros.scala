@@ -1,6 +1,7 @@
 import ccnliteinterface.CCNLiteInterface
 import com.typesafe.scalalogging.slf4j.Logging
 import lambdacalculus.LambdaCalculus
+import lambdamacros.LambdaMacros
 import language.experimental.macros
 
 import LambdaMacros._
