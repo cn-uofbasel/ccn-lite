@@ -41,30 +41,6 @@ new_closure(char *term, struct environment_s *env){
     return ret;
 }
 
-struct fox_machine_state_s *
-new_machine_state(int thunk_request, int num_of_required_thunks){
-    struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
-    ret->thunk_request = thunk_request;
-    ret->num_of_required_thunks = num_of_required_thunks;
-    
-    return ret;
-}
-
-struct configuration_s *
-new_config(char *prog, struct environment_s *global_dict, int thunk_request, 
-        int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
-    struct configuration_s *ret = malloc(sizeof(struct configuration_s));
-    ret->prog = prog;
-    ret->result_stack = NULL;
-    ret->argument_stack = NULL;
-    ret->env = NULL;
-    ret->global_dict = global_dict;
-    ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
-    ret->configid = configid;
-    ret->prefix = prefix;
-    return ret;
-}
-
 void 
 push_to_stack(struct stack_s **top, void *content){
     struct stack_s *h = malloc(sizeof(struct stack_s));
@@ -946,7 +922,8 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     }
     if(halt < 0){
         //put config in stack
-        configuration_list[-(*config)->configid] = (*config);
+        DBL_LINKED_LIST_ADD(configuration_list, *config);
+        //configuration_list[-(*config)->configid] = (*config);
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
     }

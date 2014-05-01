@@ -53,7 +53,8 @@ ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
 void 
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
-    ccnl_nfn(ccnl, NULL, NULL, NULL, configuration_list[configid]);
+    struct configuration_s *config = find_configuration(configuration_list, -configid);
+    ccnl_nfn(ccnl, NULL, NULL, NULL, config);
 }
 
 int
@@ -63,7 +64,7 @@ ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
     int i = 0;
     for(i = 0; i < -configid; ++i){
         struct ccnl_prefix_s *copy;
-        struct configuration_s *config = configuration_list[i];
+        struct configuration_s *config = find_configuration(configuration_list, -i);
         if(!config) continue;
         ccnl_nfn_copy_prefix(config->prefix ,&copy);
         ccnl_nfn_remove_thunk_from_prefix(copy);
@@ -123,7 +124,7 @@ restart:
     
     //stores result if computed      
     if(res){
-        --numOfRunningComputations;
+        
         DEBUGMSG(2,"Computation finshed: %s, running computations: %d\n", res, numOfRunningComputations);
         if(config && config->fox_state->thunk_request){      
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
@@ -133,6 +134,8 @@ restart:
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
         if(!config->fox_state->thunk_request)ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
+        --numOfRunningComputations;
+        DBL_LINKED_LIST_REMOVE(configuration_list, config);
         
     }
     
