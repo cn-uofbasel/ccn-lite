@@ -970,29 +970,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	if (!i) { // this is a new/unknown I request: create and propagate
 //NFN PLUGIN CALL
 #ifdef CCNL_NFN
-            //if routable content local available, allow computation
-            int local_content = 0;
-            if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-                struct ccnl_prefix_s *prefix_nfn = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-                prefix_nfn->comp = ccnl_malloc(p->compcnt-1);
-                prefix_nfn->comp[p->compcnt-2] = NULL;
-                prefix_nfn->complen = ccnl_malloc(p->compcnt-1);
-                prefix_nfn->compcnt = p->compcnt-2;
-
-                for(int it = 0; it < p->compcnt-2; ++it){
-                    prefix_nfn->comp[it] = strdup(p->comp[it]);
-                    prefix_nfn->complen[it] = p->complen[it];
-                }
-                
-                for(struct ccnl_content_s *c = ccnl->contents; c; c=c->next){
-                    if(!ccnl_prefix_cmp(prefix_nfn, 0, p, CMP_EXACT)){
-                        local_content = 1;
-                        break;
-                    }
-                }
-            }
-            DEBUGMSG(99, "Local computation: %d", local_content);
-            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS || local_content) //full, do not compute but propagate 
+            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate 
                     && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
@@ -1057,7 +1035,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
                 struct ccnl_interest_s *i_it = NULL;
                 int found = 0;
-                for(i_it = ccnl->pit; i_it; i_it = i_it->next){
+                for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
                      //Check if prefix match and it is a nfn request     
                      int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
                      DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
@@ -1069,7 +1047,10 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                         DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
                         ccnl_nfn_continue_computation(ccnl, configid);
                         ++found;
-                        goto Done;
+                        //goto Done;
+                     }
+                     else{
+                         i_it = i_it->next;
                      }
                 }
                 if(found) goto Done;
