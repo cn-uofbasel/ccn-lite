@@ -20,29 +20,40 @@
 
 
 
-struct configuration_s{
-    int configid;
-    char *prog;
-    struct stack_s *result_stack;
-    struct stack_s *argument_stack;
-    struct environment_s *env; 
-    struct environment_s *global_dict;
-    struct fox_machine_state_s *fox_state;
-    struct ccnl_prefix_s *prefix;
-};
+struct fox_machine_state_s *
+new_machine_state(int thunk_request, int num_of_required_thunks){
+    struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
+    ret->thunk_request = thunk_request;
+    ret->num_of_required_thunks = num_of_required_thunks;
+    
+    return ret;
+}
 
-struct thunk_s{
-    struct thunk_s *next, *prev;
-    char thunkid[10];
-    struct ccnl_prefix_s *prefix;
-};
+struct configuration_s *
+new_config(char *prog, struct environment_s *global_dict, int thunk_request, 
+        int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
+    struct configuration_s *ret = malloc(sizeof(struct configuration_s));
+    ret->prog = prog;
+    ret->result_stack = NULL;
+    ret->argument_stack = NULL;
+    ret->env = NULL;
+    ret->global_dict = global_dict;
+    ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
+    ret->configid = configid;
+    ret->prefix = prefix;
+    return ret;
+}
 
-struct thunk_s *thunk_list;
-int thunkid = 0;
-
-struct configuration_s *configuration_list[NFN_MAX_RUNNING_COMPUTATIONS*100+1];
-int configid = -1;
-
+struct configuration_s*
+find_configuration(struct configuration_s *config_list, int configid){
+    struct configuration_s *config;
+    for(config = config_list; config; config = config->next){
+        if(config->configid == configid){
+            return config;
+        }
+    }
+    return NULL;
+}
 
 int
 hex2int(char c)
