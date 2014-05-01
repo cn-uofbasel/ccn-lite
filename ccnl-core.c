@@ -43,6 +43,9 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
 static struct ccnl_interest_s* 
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
+static struct ccnl_interest_s* 
+ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+
 // ----------------------------------------------------------------------
 // datastructure support functions
 
@@ -368,7 +371,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
 	if (pit->pending)
 	    pit = pit->next;
 	else
-	    pit = ccnl_interest_remove(ccnl, pit);
+	    pit = ccnl_interest_remove_continue_computations(ccnl, pit);
     }
     for (ppfwd = &ccnl->fib; *ppfwd;) {
 	if ((*ppfwd)->face == f) {
@@ -696,6 +699,17 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     return i2;
 }
 
+struct ccnl_interest_s*
+ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
+        struct ccnl_interest_s *i){
+#ifdef CCNL_NFN
+            if(i->from->faceid < 0){
+                ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
+            }
+#endif
+    ccnl_interest_remove(ccnl, i);
+}
+
 // ----------------------------------------------------------------------
 // handling of content messages
 
@@ -857,12 +871,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
 		// than being held indefinitely."
 	if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
 				i->retries > CCNL_MAX_INTEREST_RETRANSMIT){
-#ifdef CCNL_NFN
-            if(i->from->faceid < 0){
-                ccnl_nfn_continue_computation(relay, -i->from->faceid);
-            }
-#endif
-            i = ccnl_interest_remove(relay, i);
+            i = ccnl_interest_remove_continue_computations(relay, i);
         }
 	else {
 	    // CONFORM: "A node MUST retransmit Interest Messages
@@ -1043,9 +1052,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                              && i_it->from->faceid < 0){ 
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
-                        i_it = ccnl_interest_remove(ccnl, i_it);
+                        i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
                         DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                        ccnl_nfn_continue_computation(ccnl, configid);
                         ++found;
                         //goto Done;
                      }
