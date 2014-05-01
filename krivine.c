@@ -909,6 +909,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     if(!*config){
         *config = new_config(prog, global_dict, thunk_request,
                 num_of_required_thunks ,prefix, configid);
+        DBL_LINKED_LIST_ADD(configuration_list, *config);
         restart = 0;
         --configid;
     }
@@ -922,7 +923,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     }
     if(halt < 0){
         //put config in stack
-        DBL_LINKED_LIST_ADD(configuration_list, *config);
         //configuration_list[-(*config)->configid] = (*config);
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
