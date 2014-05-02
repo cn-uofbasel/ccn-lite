@@ -41,6 +41,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request,
     ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
     ret->configid = configid;
     ret->prefix = prefix;
+    ret->thunk = 0;
     return ret;
 }
 
