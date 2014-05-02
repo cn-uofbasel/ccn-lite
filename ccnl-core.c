@@ -703,12 +703,14 @@ struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
         struct ccnl_interest_s *i){
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
-#ifdef CCNL_NFN //todo: change order!!!
-            if(i->from->faceid < 0){
-                ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
-            }
-#endif
+    int faceid = i->from->faceid;
     ccnl_interest_remove(ccnl, i);
+#ifdef CCNL_NFN
+    if(faceid < 0){
+        ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
+    }
+#endif
+   
 }
 
 // ----------------------------------------------------------------------
