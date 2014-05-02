@@ -35,6 +35,10 @@ struct configuration_s{
     
     struct configuration_s *next;
     struct configuration_s *prev;
+   
+    double starttime;
+    double endtime;
+    int thunk;
 };
 
 struct thunk_s{

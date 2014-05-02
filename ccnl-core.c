@@ -702,7 +702,8 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
         struct ccnl_interest_s *i){
-#ifdef CCNL_NFN
+    DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
+#ifdef CCNL_NFN //todo: change order!!!
             if(i->from->faceid < 0){
                 ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
             }

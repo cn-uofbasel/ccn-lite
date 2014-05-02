@@ -81,12 +81,18 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     struct ccnl_content_s *c;
     if(res && !strncmp(res, "THUNK", 5)){
         DEBUGMSG(49, "Resolve Thunk: %s \n", res);
+        if(!config->thunk){
+            config->thunk = 1;
+            config->starttime = CCNL_NOW();
+            config->endtime = config->starttime+20; //TODO: determine number from interest
+        }
         c = ccnl_nfn_resolve_thunk(ccnl, config, res);
         if(c == NULL){
             push_to_stack(&config->result_stack, res);
             return NULL;
         }
-        res = c->content;
+        config->thunk = 0;
+        res = c->content;  
     }
     return res;
 }

@@ -54,6 +54,15 @@ void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = find_configuration(configuration_list, -configid);
+    
+    if(config->thunk && CCNL_NOW() > config->endtime){
+        DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
+        DBL_LINKED_LIST_REMOVE(configuration_list, config);
+        //Reply error!
+        //config->thunk = 0;
+        return;
+    }
+    
     ccnl_nfn(ccnl, NULL, NULL, NULL, config);
 }
 
@@ -136,7 +145,6 @@ restart:
         ccnl_content_add2cache(ccnl, c);
         --numOfRunningComputations;
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
-        
     }
     
     //TODO: check if really necessary
