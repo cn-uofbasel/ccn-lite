@@ -42,6 +42,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request,
     ret->configid = configid;
     ret->prefix = prefix;
     ret->thunk = 0;
+    ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
     return ret;
 }
 
@@ -511,9 +512,14 @@ ccnl_nfn_remove_thunk(char* thunkid){
 }
 
 int 
-ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct ccnl_prefix *original_prefix){
+ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     DEBUGMSG(2, "ccnl_nfn_reply_thunk()\n");
-    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, "THUNK", strlen("THUNK"));  
+    struct ccnl_prefix_s *original_prefix = config->prefix;
+    char reply_content[100];
+    memset(reply_content, 0, 100);
+    int thunk_time = (int)config->thunk_time; 
+    sprintf(reply_content, "THUNK%d", thunk_time);
+    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, reply_content, strlen(reply_content));  
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);
     return 0;
