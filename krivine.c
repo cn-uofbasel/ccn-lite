@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include "krivine-common.c"
 #include "ccnl-ext-debug.c"
+#include "ccnl-includes.h"
 
 
 #define LAMBDA '@'
@@ -38,30 +39,6 @@ new_closure(char *term, struct environment_s *env){
     struct closure_s *ret = malloc(sizeof(struct closure_s));
     ret->term = term;
     ret->env = env;
-    return ret;
-}
-
-struct fox_machine_state_s *
-new_machine_state(int thunk_request, int num_of_required_thunks){
-    struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
-    ret->thunk_request = thunk_request;
-    ret->num_of_required_thunks = num_of_required_thunks;
-    
-    return ret;
-}
-
-struct configuration_s *
-new_config(char *prog, struct environment_s *global_dict, int thunk_request, 
-        int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
-    struct configuration_s *ret = malloc(sizeof(struct configuration_s));
-    ret->prog = prog;
-    ret->result_stack = NULL;
-    ret->argument_stack = NULL;
-    ret->env = NULL;
-    ret->global_dict = global_dict;
-    ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
-    ret->configid = configid;
-    ret->prefix = prefix;
     return ret;
 }
 
@@ -105,12 +82,19 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     struct ccnl_content_s *c;
     if(res && !strncmp(res, "THUNK", 5)){
         DEBUGMSG(49, "Resolve Thunk: %s \n", res);
+        if(!config->thunk){
+            config->thunk = 1;
+            config->starttime = CCNL_NOW();
+            config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
+            DEBUGMSG(99,"Wating %f sec for Thunk\n", config->thunk_time);
+        }
         c = ccnl_nfn_resolve_thunk(ccnl, config, res);
         if(c == NULL){
             push_to_stack(&config->result_stack, res);
             return NULL;
         }
-        res = c->content;
+        config->thunk = 0;
+        res = c->content;  
     }
     return res;
 }
@@ -835,12 +819,16 @@ recontinue:
                     if(thunk_request){ //if thunk_request push thunkid on the stack
                         
                         --(*num_of_required_thunks);
-                        char * thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
+                        char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
+                        char *time_required = c->content + strlen("THUNK");
+                        int thunk_time = strtol(time_required, NULL, 10);
+                        thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
+                        config->thunk_time += thunk_time; // ADD OR CHOOSE MAX?
                         DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
                         push_to_stack(&config->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
                             DEBUGMSG(99, "All thunks are available\n");
-                            ccnl_nfn_reply_thunk(ccnl, config->prefix);
+                            ccnl_nfn_reply_thunk(ccnl, config);
                         }
                     }
                     else{
@@ -932,7 +920,8 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
         *config = new_config(prog, global_dict, thunk_request,
-                num_of_required_thunks ,prefix, configid);
+                num_of_required_thunks, prefix, configid);
+        DBL_LINKED_LIST_ADD(configuration_list, *config);
         restart = 0;
         --configid;
     }
@@ -946,7 +935,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     }
     if(halt < 0){
         //put config in stack
-        configuration_list[-(*config)->configid] = (*config);
+        //configuration_list[-(*config)->configid] = (*config);
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
     }
