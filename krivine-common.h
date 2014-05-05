@@ -12,6 +12,7 @@
 
 
 #define NFN_MAX_RUNNING_COMPUTATIONS 10
+#define NFN_DEFAULT_WAITING_TIME 10
 int numOfRunningComputations = 0;
 
 struct fox_machine_state_s{
@@ -39,6 +40,7 @@ struct configuration_s{
     double starttime;
     double endtime;
     int thunk;
+    double thunk_time;
 };
 
 struct thunk_s{
