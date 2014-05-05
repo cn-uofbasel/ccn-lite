@@ -82,56 +82,56 @@ object LambdaLocalPrettyPrinter {
   }
 }
 
-object LambdaNFNPreprocessor {
-  private def replaceLets(letName: String, letExpr: Expr, expr: Expr): Expr = {
-    def rpl(expr: Expr): Expr = {
-      expr match {
-        case clos@Clos(arg, body) =>
-          // Only replace the name if the closure does not introduce the same name
-          if (arg != letName)
-            Clos(arg, rpl(expr))
-          else clos
-        case Application(fun, arg) => Application(rpl(fun), rpl(arg))
-        case UnaryExpr(op, v) => UnaryExpr(op, rpl(v))
-        case BinaryExpr(op, v1, v2) =>  BinaryExpr(op, rpl(v1), rpl(v2))
-        case v @ Variable(name, _) => if(name == letName) letExpr else v
-        case c @ Constant(i) => c
-        case Let(name, expr, maybeCodeExpr) => Let(name, rpl(expr), maybeCodeExpr map { rpl })
-        case IfElse(test, thenn, otherwise) => IfElse(rpl(test), rpl(thenn), rpl(otherwise))
-        case Call(name, args) =>
-          if(name == letName)
-            Call(name, args map { rpl })
-          else
-            Call(name, args map { rpl })
-
-        case n @ NopExpr() => n
-        case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
-      }
-    }
-    rpl(expr)
-  }
-
-
-  // Recursively goes througha all expressions and for each Let expression tries to replace all occurrences in the subtree
-  def apply(expr: Expr): Expr = expr match {
-    case let @ Let(name, letExpr, maybeCode) => {
-      maybeCode match {
-        case Some(code) => replaceLets(name, letExpr, code)
-        case None => let
-      }
-    }
-    case Clos(arg, body) => Clos(arg, apply(body))
-    case Application(fun, arg) => Application(apply(fun), apply(arg))
-    case UnaryExpr(op, v) => UnaryExpr(op, apply(v))
-    case BinaryExpr(op, v1, v2) =>  BinaryExpr(op, apply(v1), apply(v2))
-    case v:Variable => v
-    case c:Constant => c
-    case IfElse(test, thenn, otherwise) => IfElse(apply(test), apply(thenn), apply(otherwise))
-    case Call(name, args) => Call(name, args map { apply })
-    case n @ NopExpr() => n
-    case _ => expr
-  }
-}
+//object LambdaNFNPreprocessor {
+//  private def replaceLets(letName: String, letExpr: Expr, expr: Expr): Expr = {
+//    def rpl(expr: Expr): Expr = {
+//      expr match {
+//        case clos@Clos(arg, body) =>
+//          // Only replace the name if the closure does not introduce the same name
+////          if (arg != letName)
+//            Clos(arg, rpl(expr))
+////          else clos
+//        case Application(fun, arg) => Application(rpl(fun), rpl(arg))
+//        case UnaryExpr(op, v) => UnaryExpr(op, rpl(v))
+//        case BinaryExpr(op, v1, v2) =>  BinaryExpr(op, rpl(v1), rpl(v2))
+//        case v @ Variable(name, _) => if(name == letName) letExpr else v
+//        case c @ Constant(i) => c
+//        case Let(name, expr, maybeCodeExpr) => Let(name, rpl(expr), maybeCodeExpr map { rpl })
+//        case IfElse(test, thenn, otherwise) => IfElse(rpl(test), rpl(thenn), rpl(otherwise))
+//        case Call(name, args) =>
+//          if(name == letName)
+//            Call(name, args map { rpl })
+//          else
+//            Call(name, args map { rpl })
+//
+//        case n @ NopExpr() => n
+//        case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
+//      }
+//    }
+//    rpl(expr)
+//  }
+//
+//
+//  // Recursively goes througha all expressions and for each Let expression tries to replace all occurrences in the subtree
+//  def apply(expr: Expr): Expr = expr match {
+//    case let @ Let(name, letExpr, maybeCode) => {
+//      maybeCode match {
+//        case Some(code) => replaceLets(name, letExpr, code)
+//        case None => let
+//      }
+//    }
+//    case Clos(arg, body) => Clos(arg, apply(body))
+//    case Application(fun, arg) => Application(apply(fun), apply(arg))
+//    case UnaryExpr(op, v) => UnaryExpr(op, apply(v))
+//    case BinaryExpr(op, v1, v2) =>  BinaryExpr(op, apply(v1), apply(v2))
+//    case v:Variable => v
+//    case c:Constant => c
+//    case IfElse(test, thenn, otherwise) => IfElse(apply(test), apply(thenn), apply(otherwise))
+//    case Call(name, args) => Call(name, args map { apply })
+//    case n @ NopExpr() => n
+//    case _ => expr
+//  }
+//}
 
 
 object LambdaNFNPrinter {
@@ -153,16 +153,17 @@ object LambdaNFNPrinter {
 //  }
 
   def apply(expr: Expr): String =  {
-      LambdaNFNPreprocessor.apply(expr) match {
+//      LambdaNFNPreprocessor.apply(expr) match {
+      expr match {
         case Clos(arg, body) => s"@$arg " + p"$body"
         case Application(fun, arg) => p"$fun $arg"
         case UnaryExpr(op, v) =>  op.toString.toLowerCase + " " + p"$v"
         case BinaryExpr(op, v1, v2) => op.toString.toLowerCase + " " + p"$v1" + " " + p"$v2"
         case Variable(name, _) => name
         case Constant(i) => i.toString
-//        case Let(name, expr, maybeCodeExpr) =>
-//          s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
-//            case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
+        case Let(name, expr, maybeCodeExpr) =>
+          s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
+            case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
         case Call(name, args) => s"call ${args.size + 1} $name " + args.map({arg: Expr => p"$arg"}).mkString(" ")
         case NopExpr() => ""
         case _ => throw new NotImplementedError(s"NFNPrettyPrinter cannot pretty print: $expr")

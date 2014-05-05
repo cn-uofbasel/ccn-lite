@@ -1,7 +1,7 @@
 package monitor
 
 import nfn.NodeConfig
-import monitor.Monitor.{ContentLog, InterestLog, PacketLog, NodeLog}
+import monitor.Monitor.{ContentInfoLog, InterestInfoLog, PacketLog, NodeLog}
 import ccn.packet.Interest
 import ccn.ccnlite.CCNLite
 import ccnliteinterface.CCNLiteInterface
@@ -36,10 +36,10 @@ object TestApp extends App {
   val interest = Interest("name")
 
   val packets = Set(
-    new PacketLog(nodes(0), nodes(1), isSent = true, InterestLog("interst", "/interest/name")),
-    new PacketLog(nodes(0), nodes(1), isSent = false, InterestLog("interst", "/interest/name")),
-    new PacketLog(nodes(1), nodes(0), isSent = true, ContentLog("content", "/interest/name", "testcontent")),
-    new PacketLog(nodes(1), nodes(0), isSent = false, ContentLog("content", "/interest/name", "testcontent"))
+    new PacketLog(nodes(0), nodes(1), isSent = true, InterestInfoLog("interst", "/interest/name")),
+    new PacketLog(nodes(0), nodes(1), isSent = false, InterestInfoLog("interst", "/interest/name")),
+    new PacketLog(nodes(1), nodes(0), isSent = true, ContentInfoLog("content", "/interest/name", "testcontent")),
+    new PacketLog(nodes(1), nodes(0), isSent = false, ContentInfoLog("content", "/interest/name", "testcontent"))
   )
 
   OmnetIntegration(nodes.toSet, edges, packets, starttime)()

@@ -8,7 +8,7 @@ import network.UDPConnection
 import akka.event.Logging
 import net.liftweb.json._
 import monitor.Monitor._
-import scala.util.{Success, Failure, Try}
+import scala.util.Try
 import scala.util.Failure
 import scala.Some
 import scala.util.Success
@@ -34,12 +34,12 @@ object Monitor {
   case class ConnectLogEntry(connectLog: ConnectLog)
   case class ConnectLog(from: NodeLog, to: NodeLog) extends MonitorLogEntry
 
-  sealed trait CCNPacketLog {
+  sealed trait PacketInfoLog {
     def `type`: String
     def name: String
   }
-  case class ContentLog(`type`: String = "content", name: String, data: String) extends CCNPacketLog
-  case class InterestLog(`type`: String = "interest", name: String) extends CCNPacketLog
+  case class ContentInfoLog(`type`: String = "content", name: String, data: String) extends PacketInfoLog
+  case class InterestInfoLog(`type`: String = "interest", name: String) extends PacketInfoLog
 
   /**
    * {
@@ -63,10 +63,10 @@ object Monitor {
    * }
    */
 
-  case class PacketLog(from: Option[NodeLog], to: NodeLog, isSent: Boolean, override val timestamp: Long, packet: CCNPacketLog) extends MonitorLogEntry {
-    def this(from: NodeLog, to: NodeLog, isSent: Boolean, packet: CCNPacketLog) =
+  case class PacketLog(from: Option[NodeLog], to: NodeLog, isSent: Boolean, override val timestamp: Long, packet: PacketInfoLog) extends MonitorLogEntry {
+    def this(from: NodeLog, to: NodeLog, isSent: Boolean, packet: PacketInfoLog) =
       this(Some(from), to, isSent, System.currentTimeMillis ,packet)
-    def this(from: Option[NodeLog], to: NodeLog, isSent: Boolean, packet: CCNPacketLog) =
+    def this(from: Option[NodeLog], to: NodeLog, isSent: Boolean, packet: PacketInfoLog) =
       this(from, to, isSent, System.currentTimeMillis ,packet)
 //    def this(from: Option[NodeLog], to: NodeLog, isSent: Boolean, timestamp: Long, packet: CCNPacketLog) =
 //      this(from, to, isSent, timestamp,packet)
@@ -152,7 +152,7 @@ case class Monitor() extends Actor {
 
   implicit val formats =
     DefaultFormats.withHints(
-      ShortTypeHints(List(classOf[InterestLog], classOf[ContentLog])) )
+      ShortTypeHints(List(classOf[InterestInfoLog], classOf[ContentInfoLog])) )
 
   def handleConnectLogJson(json: JsonAST.JValue): Unit = {
     json.extractOpt[ConnectLog] match {
@@ -174,14 +174,14 @@ case class Monitor() extends Actor {
       logger.debug(s"parsed packet: $parsedPacket")
 
       val name = (parsedPacket \\ "name").extract[String]
-      val packet: CCNPacketLog =
+      val packet: PacketInfoLog =
       (parsedPacket \\ "type").extract[String] match {
         case t @ "interest" => {
-          InterestLog(t, name)
+          InterestInfoLog(t, name)
         }
         case t @ "content" =>
           val data = (parsedPacket \\ "data").extract[String]
-          ContentLog(t, name, data)
+          ContentInfoLog(t, name, data)
         case _ =>
           logger.error("error when parsing packet")
           throw new Exception("error when parsing packet")

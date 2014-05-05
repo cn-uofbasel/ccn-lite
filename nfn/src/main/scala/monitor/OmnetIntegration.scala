@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.slf4j.Logging
 import scala.Some
 
 case class Packets(packets: List[TransmittedPacket])
-case class TransmittedPacket(`type`: String, from: NodeLog, to: NodeLog, timeMillis: Long, transmissionTime: Long, packet: CCNPacketLog)
+case class TransmittedPacket(`type`: String, from: NodeLog, to: NodeLog, timeMillis: Long, transmissionTime: Long, packet: PacketInfoLog)
 
 case class OmnetIntegration(nodes: Set[NodeLog],
                             edges: Set[Pair[NodeLog, NodeLog]],
@@ -18,9 +18,9 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
 
 
-  def loggedPacketToType(lp: CCNPacketLog): String = lp match {
-    case i: InterestLog => "interest"
-    case c: ContentLog => "content"
+  def loggedPacketToType(lp: PacketInfoLog): String = lp match {
+    case i: InterestInfoLog => "interest"
+    case c: ContentInfoLog => "content"
     case _ => "unkown"
   }
   def packets: Packets = {
@@ -112,11 +112,11 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     implicit val formats = Serialization.formats(NoTypeHints)
     import net.liftweb.json.JsonDSL._
 
-    def jsonPacket(p: CCNPacketLog): JValue =
+    def jsonPacket(p: PacketInfoLog): JValue =
       p match {
-        case i: InterestLog =>
+        case i: InterestInfoLog =>
         ("name" -> i.name) ~ ("type" -> "interest")
-        case c: ContentLog =>
+        case c: ContentInfoLog =>
         ("name" -> c.name) ~ ("data" -> c.data) ~ ("type" -> "content")
         case _ => throw new Exception("asdf")
       }
