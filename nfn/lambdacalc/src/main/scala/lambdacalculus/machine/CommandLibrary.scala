@@ -47,9 +47,6 @@ case class CommandLibrary(compiler: Compiler) {
 
   def lib =
     """
-      |one = 1
-      |succ = (λx.x ADD 1)
-      |if
     """.stripMargin
 //  def lib =
 //    """

@@ -91,11 +91,13 @@ object WordCountEnv extends App {
     }
     add(docs)
   }
-  val addAllDocsSeperatelyExpression = namesToAddedWordCount(docNames.take(3))
-  val interest = Interest(CCNName(addAllDocsSeperatelyExpression, "NFN"))
-  printInterestResult(interest)
+
+  //*******************************************************************************
 
   def printInterestResult(interest: Interest) = {
+
+    Thread.sleep(1000)
+
     (nodes(0) ? interest) onComplete {
       case Success(content) => println(s"RESULT: $content")
       case Failure(e) => e match {
@@ -104,12 +106,27 @@ object WordCountEnv extends App {
       }
     }
   }
+//
+//  val addAllDocsSeperatelyExpression = namesToAddedWordCount(docNames.take(3))
+//  val interest = Interest(CCNName(addAllDocsSeperatelyExpression, "NFN"))
+//  printInterestResult(interest)
+
 
 
   val addAllDocsNode1 = s"call ${docNamesNode1.size + 1} $wc ${docNamesNode1.mkString(" ")}"
   printInterestResult(Interest(CCNName(addAllDocsNode1, "NFN")))
 
-//  import lambdamacros.LambdaMacros._
+
+  val documents: Set[String] = Set("doc1"*1, "doc2"*2, "doc3"*3)
+
+  val wordCount: Int = documents.map {
+    (doc: String) => doc.split(" ").length
+  } reduce {
+    (left: Int, right: Int) => left + right
+  }
+
+
+  //  import lambdamacros.LambdaMacros._
 //  (nodes(0) ? Interest(CCNName(lambda({
 //    val a = 1
 //    6 * (a + 1)

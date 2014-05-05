@@ -34,16 +34,7 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
       }
       (parsed.get, decompiled)
     }
-    s"The expression: $expr" should s"evaluate with call-by-name to $result" in {
-      val r = LambdaCalculus(CallByName).substituteParseCompileExecute(expr)
-
-      r.isSuccess should be (true)
-      r.get.size should be (1)
-      r.get.head should be (a [ConstValue])
-      r.get.head.asInstanceOf[ConstValue].n should be (result)
-
-    }
-    it should s"evaluate with call-by-value to $result" in {
+    s"The expression: $expr" should s"evaluate with call-by-value to $result" in {
       val r = LambdaCalculus(CallByValue).substituteParseCompileExecute(expr)
 
       r.isSuccess should be (true)
@@ -51,15 +42,58 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
       r.get.head should be (a [ConstValue])
       r.get.head.asInstanceOf[ConstValue].n should be (result)
     }
-    ignore should "compile and decompile to the same AST with call-by-name" in {
-      val (parsed, decompiled) = decompile(CallByName)
-      parsed shouldBe decompiled
-    }
-    ignore should "compile and decompile to the same AST with call-by-value" in {
-      val (parsed, decompiled) = decompile(CallByValue)
-      parsed shouldBe decompiled
-    }
+//    ignore should s"evaluate with call-by-name to $result" in {
+//      val r = LambdaCalculus(CallByName).substituteParseCompileExecute(expr)
+//
+//      r.isSuccess should be (true)
+//      r.get.size should be (1)
+//      r.get.head should be (a [ConstValue])
+//      r.get.head.asInstanceOf[ConstValue].n should be (result)
+//    }
+//    ignore should "compile and decompile to the same AST with call-by-name" in {
+//      val (parsed, decompiled) = decompile(CallByName)
+//      parsed shouldBe decompiled
+//    }
+//    ignore should "compile and decompile to the same AST with call-by-value" in {
+//      val (parsed, decompiled) = decompile(CallByValue)
+//      parsed shouldBe decompiled
+//    }
   }
+
+  val tupleEnv =
+    """
+      |let pair = λa.λb.λf.(f a b) endlet
+      |let first  = λp.p (λa.λb.a) endlet
+      |let second = λp.p (λa.λb.b) endlet
+    """.stripMargin
+  testExpression( s"$tupleEnv first (pair 1 2)", 1 )
+  testExpression( s"$tupleEnv second (pair 1 2)", 2 )
+
+  val boolEnv =
+    """
+      |let true = 1 endlet
+      |let false = 0 endlet
+    """.stripMargin
+
+  val listEnv =
+    s"""
+      |$boolEnv
+      |$tupleEnv
+      |let empty = λf.λx.x endlet
+      |let append = λa.λl.λf.λx.f a (l f x) endlet
+      |let head = λl.l(λa.λb.a) dummy endlet
+      |let isempty = λl.l (λa.λb.false) true endlet
+      |let map = λl.λh.λf.λx.l ((λm.f m) h) x endlet
+      |let tail = λl.first (l (λa.λb.pair (second b) (append a (second b)) ) (pair empty empty)) endlet
+    """.stripMargin
+
+  testExpression(s"$listEnv head (append 1 empty)", 1)
+
+  testExpression(s"$listEnv head (append 2 (append 1 empty))", 2)
+
+//  testExpression(s"$listEnv head (tail (append 2 (append 1 empty)))", 1)
+
+  testExpression(s"$listEnv head (map  (append 2 (append 1 empty)) (λa.a ADD 1))", 3)
 
   // POS
   testExpression("2", 2)
@@ -78,9 +112,6 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
   testExpression("(λx.(((λx.x ADD 1) 3) ADD x)) 7", 11)
   testExpression("((λx.x ADD 1) 2)", 3)
   testExpression("(λx. x ADD x) 3", 6)
-  testExpression("one ADD one", 2)
-  testExpression("succ 2", 3)
-  testExpression("succ 3", 4)
   testExpression("if 2 GT 1 then 42 else 0", 42)
   testExpression("if 0 GT 1 then 42 else 0", 0)
   testExpression("(λx.if x GT 1 then 42 else 0) 2", 42)

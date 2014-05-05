@@ -22,7 +22,7 @@ import myutil.IOHelper
 import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
 import monitor.Monitor
-import monitor.Monitor.{ContentLog, InterestLog, NodeLog}
+import monitor.Monitor.{ContentInfoLog, InterestInfoLog, NodeLog}
 
 
 object NFNMaster {
@@ -44,7 +44,7 @@ object NFNMaster {
     }
   }
 
-  case class CCNSendReceive(interest: Interest)
+  case class CCNSendReceive(interest: Interest, useThunks: Boolean = false)
 
   case class CCNAddToCache(content: Content)
 
@@ -93,30 +93,49 @@ trait NFNMaster extends Actor {
 
 
   private def createComputeWorker(interest: Interest): ActorRef =
-    context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.hashCode}")
+    context.actorOf(Props(classOf[ComputeWorker], self), s"ComputeWorker-${interest.name.hashCode}")
 
-  private def handleInterest(interest: Interest) = {
-    cs.find(interest.name) match {
-      case Some(content) => {
-        logger.debug(s"Found content $content in content store, send it back")
-        sender ! content
-      }
-      case None => {
-        pit.get(interest.name) match {
-          case Some(pendingFaces) => {
-            logger.debug(s"Received interest which is already in pit, add it to the pit")
-            val pendingFacesWithSender = pendingFaces + sender
-            pit += (interest.name -> pendingFacesWithSender )
+  /*
+   * Handles an interests to the compute server with the following flow:
+   * First, checks if the interest is a thunk or not.
+   * It looks up the name of the interest as a normal interest without the thunk component in the content store.
+   * If it founds the content, it either sends back the thunk answer or the content itself.
+   * If it does not find the content, it does not differentiate between thunk or not anymore.
+   * The interest is simply added to the pit if the interest is already pending or
+   * a new compute worker is initialized and started and an entry is added to the pit.
+   * If the interest is a thunk, the computeWorker handles the interest the following:
+   * it first tries to receive all services and data objects,
+   * if it has received all it sends thunk content back before starting to execute the result.
+   */
+  private def handleInterestToComputeServer(interest: Interest) = {
+
+    val (nameWithoutThunk, isThunk) = interest.name.withoutThunkAndIsThunk
+
+      cs.find(nameWithoutThunk) match {
+        case Some(content) => {
+          if (isThunk) {
+            sendThunkContentForName(nameWithoutThunk)
+          } else {
+            logger.debug(s"Found content $content in content store, send it back")
+            send(content)
           }
-          case None =>
-            logger.debug(s"Received interest which is not in pit, create compute worker and forward to it")
-            val computeWorker = createComputeWorker(interest)
-            val pendingFaces = Set(computeWorker)
-            pit += (interest.name -> pendingFaces)
-            computeWorker.tell(interest, self)
+        }
+        case None => {
+          pit.get(interest.name) match {
+            case Some(pendingFaces) => {
+              logger.debug(s"Received interest which is already in pit, add it to the pit")
+              val pendingFacesWithSender = pendingFaces + sender
+              pit += (nameWithoutThunk -> pendingFacesWithSender)
+            }
+            case None =>
+              logger.debug(s"Received interest which is not in pit, create compute worker and forward to it")
+              val computeWorker = createComputeWorker(interest)
+              val pendingFaces = Set(computeWorker)
+              pit += (interest.name -> pendingFaces)
+              computeWorker.tell(interest, self)
+          }
         }
       }
-    }
   }
 
 
@@ -130,18 +149,44 @@ trait NFNMaster extends Actor {
     }
   }
 
+  private def handleThunkContent(thunkContent: Content) = {
+    pit.get(thunkContent.name) match {
+      case Some(_) => {
+        val (contentNameWithoutThunk, isThunk) = thunkContent.name.withoutThunkAndIsThunk
+
+        assert(isThunk, s"handleThunkContent received the content object $thunkContent which is not a thunk")
+
+        send(Interest(contentNameWithoutThunk))
+        pit -= thunkContent.name
+      }
+      case None => logger.error(s"Discarding thunk content $thunkContent because there is no entry in pit")
+    }
+
+  }
 
   def handlePacket(packet: CCNPacket) = {
     logger.info(s"Received: $packet")
     monitorReceive(packet)
     packet match {
-      case i: Interest => handleInterest(i)
-      case c: Content => handleContent(c)
+      case i: Interest => handleInterestToComputeServer(i)
+      case c: Content => {
+        if(new String(c.data) == "THUNK") {
+          handleThunkContent(c)
+        } else {
+          handleContent(c)
+        }
+      }
     }
   }
 
   def monitorReceive(packet: CCNPacket)
 
+
+  def sendThunkContentForName(name: CCNName): Unit = {
+    val thunkContent = Content.thunkForName(name)
+    logger.debug(s"sending thunk ${thunkContent.name}")
+    send(thunkContent)
+  }
 
   override def receive: Actor.Receive = {
 
@@ -162,22 +207,50 @@ trait NFNMaster extends Actor {
       }
     }
 
-    case CCNSendReceive(interest) => {
-      cs.find(interest.name) match {
+    /**
+     * [[CCNSendReceive]] is a message of the external API which retrieves the content for the interest and sends it back to the sender actor.
+     * The sender actor can be initialized from an ask patter or form another actor.
+     * It tries to first serve the interest from the local cs, otherwise it adds an entry to the pit
+     * and asks the network if it was the first entry in the pit.
+     * Thunk interests get converted to normal interests, thunks need to be enabled with the boolean flag in the message
+     */
+    case CCNSendReceive(maybeThunkInterest, useThunks) => {
+      val (nameWithoutThunk, isThunk) = maybeThunkInterest.name.withoutThunkAndIsThunk
+
+      if(isThunk) {
+        logger.warning("A thunk message was sent to CCNSentReceive, treating it as an normal interest without thunks. Use the flag in the CCNSentReceive message to enable or disable thunks")
+      }
+
+//      val interest =
+//        if(useThunks) {
+//          maybeThunkInterest.thunkify
+//        } else {
+//          Interest(nameWithoutThunk)
+//        }
+
+      cs.find(nameWithoutThunk) match {
         case Some(content) => {
-          logger.info(s"Received SendReceive request, found content for interest $interest in local CS")
+          logger.info(s"Received SendReceive request, found content for interest $content in local CS")
           sender ! content
         }
         case None => {
-          pit.get(interest.name) match {
+          pit.get(nameWithoutThunk) match {
             case Some(pendingFaces) =>  {
-              logger.info(s"Received SendReceive request $interest, entry already exists in pit, just add sender to pending faces")
-              pit += (interest.name -> (pendingFaces + sender))
+              logger.info(s"Received SendReceive request $nameWithoutThunk, entry already exists in pit, just add sender to pending faces")
+              pit += (nameWithoutThunk -> (pendingFaces + sender))
             }
             case None => {
-              logger.info(s"Received SendReceive request $interest, no entry in pit, asking network")
-              pit += (interest.name -> Set(sender))
-              send(interest)
+              logger.info(s"Received SendReceive request $nameWithoutThunk, no entry in pit, asking network")
+              pit += (nameWithoutThunk -> Set(sender))
+
+              if(useThunks) {
+                val thunkInterest = Interest(nameWithoutThunk.thunkify)
+                pit += thunkInterest.name -> pit.getOrElse(thunkInterest.name, Set()).+(sender)
+                send(thunkInterest)
+              } else {
+                val interest = Interest(nameWithoutThunk)
+                send(interest)
+              }
             }
           }
         }
@@ -185,8 +258,7 @@ trait NFNMaster extends Actor {
     }
 
     case Thunk(interest) => {
-      logger.debug(s"sending thunk for interest $interest")
-      send(Content(interest.name, "THUNK".getBytes))
+      sendThunkContentForName(interest.name)
     }
 
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
@@ -228,10 +300,11 @@ trait NFNMaster extends Actor {
 
 case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
-  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
 
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
+
+  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
 
   ccnLiteNFNNetworkProcess.start()
 
@@ -248,13 +321,13 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
 
   override def send(packet: CCNPacket): Unit = {
-    nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
-
     val ccnPacketLog = packet match {
-      case i: Interest => InterestLog("interest", i.name.toString)
-      case c: Content => ContentLog("content", c.name.toString, c.possiblyShortenedDataString)
+      case i: Interest => InterestInfoLog("interest", i.name.toString)
+      case c: Content => ContentInfoLog("content", c.name.toString, c.possiblyShortenedDataString)
     }
     Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog, true, ccnPacketLog)
+
+    nfnSocket ! Send(ccnIf.mkBinaryPacket(packet))
   }
 
   override def sendAddToCache(content: Content): Unit = {
@@ -266,17 +339,17 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
   }
 
   override def connect(otherNodeConfig: NodeConfig): Unit = {
-    ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
     Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
+    ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
   }
 
   override def monitorReceive(packet: CCNPacket): Unit = {
     val ccnPacketLog = packet match {
-      case i: Interest => InterestLog("interst", i.name.toString)
+      case i: Interest => InterestInfoLog("interst", i.name.toString)
       case c: Content => {
         val name = c.name.toString
         val data = new String(c.data).take(50)
-        ContentLog("content", name, data)
+        ContentInfoLog("content", name, data)
       }
     }
     Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)

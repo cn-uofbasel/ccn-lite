@@ -24,7 +24,7 @@ class MonitorSpec(_system: ActorSystem) extends TestKit(_system)
       val node1 = NodeLog("testhost1", 1, Some("testtype"), Some("testprefix"))
       val node2 = NodeLog("testhost1", 1, Some("testtype"), Some("testprefix"))
 
-      val testPacket = InterestLog("interest", "/test/Interest")
+      val testPacket = InterestInfoLog("interest", "/test/Interest")
 
       val pl = new PacketLog(node1, node2, true, testPacket)
       import monitorInstance.formats

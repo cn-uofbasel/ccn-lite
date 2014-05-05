@@ -199,7 +199,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @return
    */
   def sendReceive(req: Interest): Future[Content] = {
-    (nfnMaster ? NFNMaster.CCNSendReceive(req)).mapTo[Content]
+    (nfnMaster ? NFNMaster.CCNSendReceive(req, useThunks = true)).mapTo[Content]
   }
 
 
