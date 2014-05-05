@@ -15,8 +15,7 @@ import ccn.packet._
 import nfn.service.impl._
 import nfn.NFNMaster._
 import bytecode.BytecodeLoader
-
-
+import nfn.NFNApi
 
 
 object NFNServiceLibrary extends Logging {
@@ -84,7 +83,7 @@ object NFNServiceLibrary extends Logging {
       )
 
       logger.debug(s"nfnPublish: Adding ${content.name} to cache")
-      ccnWorker ! CCNAddToCache(content)
+      ccnWorker ! NFNApi.CCNAddToCache(content)
     }
   }
 

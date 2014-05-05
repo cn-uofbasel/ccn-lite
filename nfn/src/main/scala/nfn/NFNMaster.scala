@@ -31,6 +31,16 @@ object NFNMaster {
     NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
   }
 
+  case class ComputeResult(content: Content)
+
+  case class Thunk(interest: Interest)
+
+  case class Exit()
+
+}
+
+object NFNApi {
+
   object CCNSendReceive {
     def fromExpression(expr: Expr, local: Boolean = false): CCNSendReceive = {
       val nameCmps: Seq[String] =
@@ -48,14 +58,7 @@ object NFNMaster {
 
   case class CCNAddToCache(content: Content)
 
-  case class ComputeResult(content: Content)
-
   case class Connect(nodeConfig: NodeConfig)
-
-  case class Thunk(interest: Interest)
-
-  case class Exit()
-
 }
 
 case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String) {
@@ -123,7 +126,7 @@ trait NFNMaster extends Actor {
         case None => {
           pit.get(interest.name) match {
             case Some(pendingFaces) => {
-              logger.debug(s"Received interest which is already in pit, add it to the pit")
+              logger.debug(s"Received interest which is already in pit, add face to the pending faces (if it is not added yet)")
               val pendingFacesWithSender = pendingFaces + sender
               pit += (nameWithoutThunk -> pendingFacesWithSender)
             }
@@ -156,7 +159,10 @@ trait NFNMaster extends Actor {
 
         assert(isThunk, s"handleThunkContent received the content object $thunkContent which is not a thunk")
 
-        send(Interest(contentNameWithoutThunk))
+
+        val interest = Interest(contentNameWithoutThunk)
+        logger.debug(s"Received thunk $thunkContent, sending actual interest $interest")
+        send(interest)
         pit -= thunkContent.name
       }
       case None => logger.error(s"Discarding thunk content $thunkContent because there is no entry in pit")
@@ -184,7 +190,7 @@ trait NFNMaster extends Actor {
 
   def sendThunkContentForName(name: CCNName): Unit = {
     val thunkContent = Content.thunkForName(name)
-    logger.debug(s"sending thunk ${thunkContent.name}")
+    logger.debug(s"sending thunk answer ${thunkContent}")
     send(thunkContent)
   }
 
@@ -208,13 +214,13 @@ trait NFNMaster extends Actor {
     }
 
     /**
-     * [[CCNSendReceive]] is a message of the external API which retrieves the content for the interest and sends it back to the sender actor.
+     * [[NFNApi.CCNSendReceive]] is a message of the external API which retrieves the content for the interest and sends it back to the sender actor.
      * The sender actor can be initialized from an ask patter or form another actor.
      * It tries to first serve the interest from the local cs, otherwise it adds an entry to the pit
      * and asks the network if it was the first entry in the pit.
      * Thunk interests get converted to normal interests, thunks need to be enabled with the boolean flag in the message
      */
-    case CCNSendReceive(maybeThunkInterest, useThunks) => {
+    case NFNApi.CCNSendReceive(maybeThunkInterest, useThunks) => {
       val (nameWithoutThunk, isThunk) = maybeThunkInterest.name.withoutThunkAndIsThunk
 
       if(isThunk) {
@@ -245,10 +251,12 @@ trait NFNMaster extends Actor {
 
               if(useThunks) {
                 val thunkInterest = Interest(nameWithoutThunk.thunkify)
+                logger.debug(s"Sending interest $thunkInterest as thunk")
                 pit += thunkInterest.name -> pit.getOrElse(thunkInterest.name, Set()).+(sender)
                 send(thunkInterest)
               } else {
                 val interest = Interest(nameWithoutThunk)
+                logger.debug(s"Sending interest $interest without thunk")
                 send(interest)
               }
             }
@@ -264,24 +272,25 @@ trait NFNMaster extends Actor {
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
     // convert the result to ccnb format and send it to the socket
     case ComputeResult(content) => {
-      pit.get(content.name) match {
-        case Some(workers) => {
-          logger.debug("sending compute result to socket")
+
+//      pit.get(content.name) match {
+//        case Some(workers) => {
+          logger.debug(s"sending compute result $content to socket")
           send(content)
           sender ! ComputeWorker.Exit()
           pit -= content.name
-        }
-        case None => logger.warning(s"Received result from compute worker which timed out, discarding the result content: $content")
-      }
+//        }
+//        case None => logger.warning(s"Received result from compute worker which timed out, discarding the result content: $content")
+//      }
     }
 
-    case CCNAddToCache(content) => {
+    case NFNApi.CCNAddToCache(content) => {
       logger.info(s"sending add to cache for name ${content.name}")
       sendAddToCache(content)
     }
 
     // TODO this message is only for network node
-    case Connect(otherNodeConfig) => {
+    case NFNApi.Connect(otherNodeConfig) => {
       connect(otherNodeConfig)
     }
 

@@ -16,6 +16,7 @@ import akka.actor._
 import ccn.packet._
 import bytecode.BytecodeLoader
 import nfn.NFNMaster._
+import nfn.NFNApi
 
 object NFNService extends Logging {
 
@@ -59,7 +60,7 @@ object NFNService extends Logging {
   def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
 
     def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
-      (ccnWorker ? CCNSendReceive(interest)).mapTo[Content]
+      (ccnWorker ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
     }
 
     def findService(fun: String): Future[NFNService] = {
@@ -144,6 +145,8 @@ object NFNService extends Logging {
 }
 
 trait NFNService extends Logging {
+
+//  def nFNMaster: ActorRef
 
   def function: (Seq[NFNValue]) => NFNValue
 

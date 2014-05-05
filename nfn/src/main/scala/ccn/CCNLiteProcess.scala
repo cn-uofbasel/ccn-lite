@@ -55,7 +55,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
 
 
   def start() = {
-//    if(nodeConfig.prefix != "docRepo0") {
+    if(nodeConfig.prefix != "docRepo1") {
       val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
       println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
       val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
@@ -65,9 +65,9 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
       val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
       val thread = new Thread(lsr, s"LogStreamReader-$prefix")
       thread.start
-//    } else {
-//      logger.warn("SKIPPED START OF CCN-LITE NODE 0")
-//    }
+    } else {
+      logger.warn("SKIPPED START OF CCN-LITE NODE 0")
+    }
 
     addFace(host, computePort, "COMPUTE")
     faceId = 5
