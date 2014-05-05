@@ -820,7 +820,7 @@ recontinue:
                         
                         --(*num_of_required_thunks);
                         char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
-                        char *time_required = c->content + strlen("THUNK");
+                        char *time_required = c->content;
                         int thunk_time = strtol(time_required, NULL, 10);
                         thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
                         config->thunk_time += thunk_time; // ADD OR CHOOSE MAX?
