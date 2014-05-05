@@ -856,14 +856,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
 		// than being held indefinitely."
 	if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
-				i->retries > CCNL_MAX_INTEREST_RETRANSMIT){
-#ifdef CCNL_NFN
-            if(i->from->faceid < 0){
-                ccnl_nfn_continue_computation(relay, -i->from->faceid);
-            }
-#endif
-            i = ccnl_interest_remove(relay, i);
-        }
+				i->retries > CCNL_MAX_INTEREST_RETRANSMIT)
+	    i = ccnl_interest_remove(relay, i);
 	else {
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
@@ -949,12 +943,12 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #ifdef CCNL_NFN_MONITOR
                     char monitorpacket[CCNL_MAX_PACKET_SIZE];
                     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
-                            ntohs(from->peer.ip4.sin_port),
+                            ntohs(from->peer.ip4.sin_port), 
                             c->name, c->content, c->contentlen, monitorpacket);
                     sendtomonitor(ccnl, monitorpacket, l);
-#endif
+#endif 
                 }
-
+                     
 		else
 		    ccnl_app_RX(ccnl, c);
 		goto Skip;
@@ -983,7 +977,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     prefix_nfn->comp[it] = strdup(p->comp[it]);
                     prefix_nfn->complen[it] = p->complen[it];
                 }
-
+                
                 for(struct ccnl_content_s *c = ccnl->contents; c; c=c->next){
                     if(!ccnl_prefix_cmp(prefix_nfn, 0, p, CMP_EXACT)){
                         local_content = 1;
@@ -992,11 +986,11 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 }
             }
             DEBUGMSG(99, "Local computation: %d", local_content);
-            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS || local_content) //full, do not compute but propagate
+            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS || local_content) //full, do not compute but propagate 
                     && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
-
+                
                 i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
                 i->propagate = 0; //do not forward interests for running computations
                 ccnl_interest_append_pending(i, from);
@@ -1004,7 +998,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 goto Done;
             }
 #endif /*CCNL_NFN*/
-
+        
 	    i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
@@ -1058,10 +1052,11 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 struct ccnl_interest_s *i_it = NULL;
                 int found = 0;
                 for(i_it = ccnl->pit; i_it; i_it = i_it->next){
+                     int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
                      //Check if prefix match and it is a nfn request
-                     int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
-                     DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
-                     if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
+                     int cmp = ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH);
+                     DEBUGMSG(99, "CMP: %d, faceid: %d \n", cmp, i_it->from->faceid);
+                     if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
                              && i_it->from->faceid < 0){
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
