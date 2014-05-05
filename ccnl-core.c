@@ -43,6 +43,9 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
 static struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
+static struct ccnl_interest_s*
+ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+
 // ----------------------------------------------------------------------
 // datastructure support functions
 
@@ -368,7 +371,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
 	if (pit->pending)
 	    pit = pit->next;
 	else
-	    pit = ccnl_interest_remove(ccnl, pit);
+	    pit = ccnl_interest_remove_continue_computations(ccnl, pit);
     }
     for (ppfwd = &ccnl->fib; *ppfwd;) {
 	if ((*ppfwd)->face == f) {
@@ -659,7 +662,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	// suppress forwarding to origin of interest, except wireless
 	if (!i->from || fwd->face != i->from ||
 	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){
-	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
 #ifdef CCNL_NFN_MONITOR
             char monitorpacket[CCNL_MAX_PACKET_SIZE];
             int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
@@ -667,7 +669,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                     i->prefix, NULL, 0, monitorpacket);
             sendtomonitor(ccnl, monitorpacket, l);
 #endif
-        }
+            ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+            }
 
     }
     return;
@@ -694,6 +697,20 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     free_3ptr_list(i->ppkd, i->pkt, i);
 
     return i2;
+}
+
+struct ccnl_interest_s*
+ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
+        struct ccnl_interest_s *i){
+    DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
+    int faceid = i->from->faceid;
+    ccnl_interest_remove(ccnl, i);
+#ifdef CCNL_NFN
+    if(faceid < 0){
+        ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
+    }
+#endif
+
 }
 
 // ----------------------------------------------------------------------
@@ -818,7 +835,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
                 DEBUGMSG("--- Serve to: %d", pi->face->faceid);
-		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 #ifdef CCNL_NFN_MONITOR
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
@@ -826,6 +842,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                         c->name, c->content, c->contentlen, monitorpacket);
                 sendtomonitor(ccnl, monitorpacket, l);
 #endif
+                ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
 	    c->served_cnt++;
@@ -856,8 +873,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
 		// than being held indefinitely."
 	if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
-				i->retries > CCNL_MAX_INTEREST_RETRANSMIT)
-	    i = ccnl_interest_remove(relay, i);
+				i->retries > CCNL_MAX_INTEREST_RETRANSMIT){
+            i = ccnl_interest_remove_continue_computations(relay, i);
+        }
 	else {
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
@@ -939,16 +957,17 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
 		if (from->ifndx >= 0){
-		    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
+
 #ifdef CCNL_NFN_MONITOR
                     char monitorpacket[CCNL_MAX_PACKET_SIZE];
                     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
-                            ntohs(from->peer.ip4.sin_port), 
+                            ntohs(from->peer.ip4.sin_port),
                             c->name, c->content, c->contentlen, monitorpacket);
                     sendtomonitor(ccnl, monitorpacket, l);
-#endif 
+#endif
+                    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
                 }
-                     
+
 		else
 		    ccnl_app_RX(ccnl, c);
 		goto Skip;
@@ -964,33 +983,11 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	if (!i) { // this is a new/unknown I request: create and propagate
 //NFN PLUGIN CALL
 #ifdef CCNL_NFN
-            //if routable content local available, allow computation
-            int local_content = 0;
-            if(!memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-                struct ccnl_prefix_s *prefix_nfn = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-                prefix_nfn->comp = ccnl_malloc(p->compcnt-1);
-                prefix_nfn->comp[p->compcnt-2] = NULL;
-                prefix_nfn->complen = ccnl_malloc(p->compcnt-1);
-                prefix_nfn->compcnt = p->compcnt-2;
-
-                for(int it = 0; it < p->compcnt-2; ++it){
-                    prefix_nfn->comp[it] = strdup(p->comp[it]);
-                    prefix_nfn->complen[it] = p->complen[it];
-                }
-                
-                for(struct ccnl_content_s *c = ccnl->contents; c; c=c->next){
-                    if(!ccnl_prefix_cmp(prefix_nfn, 0, p, CMP_EXACT)){
-                        local_content = 1;
-                        break;
-                    }
-                }
-            }
-            DEBUGMSG(99, "Local computation: %d", local_content);
-            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS || local_content) //full, do not compute but propagate 
+            if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate
                     && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
                 struct ccnl_buf_s *buf2 = buf;
                 struct ccnl_prefix_s *p2 = p;
-                
+
                 i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
                 i->propagate = 0; //do not forward interests for running computations
                 ccnl_interest_append_pending(i, from);
@@ -998,7 +995,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 goto Done;
             }
 #endif /*CCNL_NFN*/
-        
+
 	    i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
@@ -1051,20 +1048,21 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
                 struct ccnl_interest_s *i_it = NULL;
                 int found = 0;
-                for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-                     int md = i_it->prefix->compcnt - c->name->compcnt == 1 ? compute_ccnx_digest(c->pkt) : NULL;
+                for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
                      //Check if prefix match and it is a nfn request
-                     int cmp = ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH);
-                     DEBUGMSG(99, "CMP: %d, faceid: %d \n", cmp, i_it->from->faceid);
-                     if( ccnl_prefix_cmp(c->name, md, i_it->prefix, CMP_MATCH)
+                     int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
+                     DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
+                     if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
                              && i_it->from->faceid < 0){
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
-                        i_it = ccnl_interest_remove(ccnl, i_it);
+                        i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
                         DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                        ccnl_nfn_continue_computation(ccnl, configid);
                         ++found;
-                        goto Done;
+                        //goto Done;
+                     }
+                     else{
+                         i_it = i_it->next;
                      }
                 }
                 if(found) goto Done;
