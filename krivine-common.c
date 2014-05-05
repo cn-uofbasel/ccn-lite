@@ -518,7 +518,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     char reply_content[100];
     memset(reply_content, 0, 100);
     int thunk_time = (int)config->thunk_time; 
-    sprintf(reply_content, "THUNK%d", thunk_time);
+    sprintf(reply_content, "%d", thunk_time);
     struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, reply_content, strlen(reply_content));  
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);
