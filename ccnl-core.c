@@ -661,8 +661,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
 	// suppress forwarding to origin of interest, except wireless
 	if (!i->from || fwd->face != i->from ||
-	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){
-	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+	    (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){   
 #ifdef CCNL_NFN_MONITOR
             char monitorpacket[CCNL_MAX_PACKET_SIZE];
             int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
@@ -670,6 +669,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                     i->prefix, NULL, 0, monitorpacket);
             sendtomonitor(ccnl, monitorpacket, l);
 #endif    
+            ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
         }
             
     }
@@ -835,7 +835,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
                 
                 DEBUGMSG("--- Serve to: %d", pi->face->faceid);
-		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 #ifdef CCNL_NFN_MONITOR
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
@@ -843,6 +842,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                         c->name, c->content, c->contentlen, monitorpacket);
                 sendtomonitor(ccnl, monitorpacket, l);
 #endif 
+                ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
 	    } else // upcall to deliver content to local client
 		ccnl_app_RX(ccnl, c);
 	    c->served_cnt++;
@@ -957,7 +957,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
 		if (from->ifndx >= 0){
-		    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
+		    
 #ifdef CCNL_NFN_MONITOR
                     char monitorpacket[CCNL_MAX_PACKET_SIZE];
                     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
@@ -965,6 +965,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                             c->name, c->content, c->contentlen, monitorpacket);
                     sendtomonitor(ccnl, monitorpacket, l);
 #endif 
+                    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
                 }
                      
 		else
