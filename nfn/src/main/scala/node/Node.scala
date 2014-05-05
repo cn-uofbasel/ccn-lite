@@ -1,12 +1,11 @@
 package node
 
-import nfn.{NFNMaster, NFNMasterFactory, NodeConfig}
+import nfn.{NFNApi, NFNMaster, NFNMasterFactory, NodeConfig}
 import scala.concurrent.duration.FiniteDuration
 import akka.util.Timeout
 import akka.actor.ActorSystem
 import akka.pattern._
 import config.AkkaConfig
-import nfn.NFNMaster.{Exit, Connect}
 import ccn.packet.{Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -108,7 +107,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isRunning = true
   private var isConnecting = true
 
-  private val system = ActorSystem(s"Sys${nodeConfig.prefix.replace("/", "-")}", AkkaConfig())
+  private val system = ActorSystem(s"Sys${nodeConfig.prefix.replace("/", "-")}", AkkaConfig.configDebug)
   private val _nfnMaster = NFNMasterFactory.network(system, nodeConfig)
 
   private def nfnMaster = {
@@ -125,7 +124,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def connect(otherNode: Node) = {
     assert(isConnecting, "Node can only connect to other nodes before caching any content")
-    nfnMaster ! Connect(otherNode.nodeConfig)
+    nfnMaster ! NFNApi.Connect(otherNode.nodeConfig)
   }
 
   /**
@@ -168,7 +167,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def cache(content: Content) = {
     isConnecting = false
-    nfnMaster ! NFNMaster.CCNAddToCache(content)
+    nfnMaster ! NFNApi.CCNAddToCache(content)
   }
 
   /**
@@ -190,7 +189,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @param req
    */
   def send(req: Interest) = {
-    nfnMaster ! NFNMaster.CCNSendReceive(req)
+    nfnMaster ! NFNApi.CCNSendReceive(req)
   }
 
   /**
@@ -199,7 +198,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @return
    */
   def sendReceive(req: Interest): Future[Content] = {
-    (nfnMaster ? NFNMaster.CCNSendReceive(req, useThunks = true)).mapTo[Content]
+    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks = true)).mapTo[Content]
   }
 
 
@@ -221,7 +220,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def shutdown() = {
     assert(isRunning, "This node was already shut down")
-    nfnMaster ! Exit()
+    nfnMaster ! NFNMaster.Exit()
     isRunning = false
   }
 

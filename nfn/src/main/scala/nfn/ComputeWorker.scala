@@ -3,7 +3,7 @@ package nfn
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import ccn.ccnlite.CCNLite
-import ccn.packet.{Interest, Content}
+import ccn.packet.{CCNName, Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import nfn.service.{NFNValue, NFNService, CallableNFNService}
@@ -41,13 +41,7 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
     interest.name.cmps match {
       case Seq("COMPUTE", reqNfnCmps @ _ *) => {
         assert(reqNfnCmps.last == "NFN")
-        val computeCmpsMaybeThunk = reqNfnCmps.init
-
-        val (computeCmps, isThunkReq) = if(computeCmpsMaybeThunk.last == "THUNK") {
-          computeCmpsMaybeThunk.init -> true
-        } else {
-          computeCmpsMaybeThunk -> false
-        }
+        val (computeCmps, isThunkReq) = CCNName(reqNfnCmps.init:_*).withoutThunkAndIsThunk
 
         handleComputeRequest(computeCmps, interest, isThunkReq, requestor)
       }
@@ -60,9 +54,9 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
    * Parses the compute request and instantiates a callable service.
    * On success, sends a thunk back if required, executes the services and sends the result back.
    */
-  def handleComputeRequest(computeCmps: Seq[String], interest: Interest, isThunkRequest: Boolean, requestor: ActorRef) = {
-    logger.debug(s"Handling compute request for cmps: $computeCmps")
-    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeCmps.mkString(" "), ccnWorker)
+  def handleComputeRequest(computeName: CCNName, interest: Interest, isThunkRequest: Boolean, requestor: ActorRef) = {
+    logger.debug(s"Handling compute request for name: $computeName")
+    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnWorker)
 
     callableServ onComplete {
       case Success(callableServ) => {
@@ -71,8 +65,8 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
         }
 
         val result: NFNValue = callableServ.exec
-        val content = Content(interest.name, result.toStringRepresentation.getBytes)
-        logger.debug(s"Finished computation, result: $content")
+        val content = Content(interest.name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
+        logger.info(s"Finished computation, result: $content")
         requestor ! NFNMaster.ComputeResult(content)
       }
       case Failure(e) => {

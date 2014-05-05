@@ -97,7 +97,6 @@ object WordCountEnv extends App {
   def printInterestResult(interest: Interest) = {
 
     Thread.sleep(1000)
-
     (nodes(0) ? interest) onComplete {
       case Success(content) => println(s"RESULT: $content")
       case Failure(e) => e match {

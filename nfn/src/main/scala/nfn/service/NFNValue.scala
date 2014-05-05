@@ -22,6 +22,8 @@ case class NFNServiceValue(serv: NFNService) extends NFNValue {
   override def toCCNName: CCNName = serv.ccnName
 }
 
+
+
 case class NFNListValue(values: List[NFNValue]) extends NFNValue {
 
   override def toStringRepresentation: String = values.map({ _.toCCNName.toString }).mkString(" ")
@@ -43,4 +45,17 @@ case class NFNIntValue(amount: Int) extends NFNValue {
   override def toStringRepresentation: String = amount.toString
 }
 
+case class NFNStringValue(str: String) extends NFNValue {
+  def apply = str
 
+  override def toCCNName: CCNName = CCNName("String")
+
+  override def toStringRepresentation: String = str
+}
+
+case class NFNEmptValue() extends NFNValue {
+
+  override def toCCNName: CCNName = CCNName("EmptyValue")
+
+  override def toStringRepresentation: String = ""
+}

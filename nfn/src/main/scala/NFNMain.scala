@@ -5,6 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import ccn.packet.{NFNInterest, CCNName, Content, Interest}
 import com.typesafe.config.ConfigFactory
+import nfn.NFNApi._
 import nfn.NFNMaster._
 import nfn.service.impl._
 import nfn.service._
@@ -50,8 +51,8 @@ object NFNMain extends App {
   val docContent1 = Content(docname1, docdata1)
   val docContent2 = Content(docname2, docdata2)
 
-  nfnWorker ! NFNMaster.CCNAddToCache(docContent1)
-  nfnWorker ! NFNMaster.CCNAddToCache(docContent2)
+  nfnWorker ! CCNAddToCache(docContent1)
+  nfnWorker ! CCNAddToCache(docContent2)
   NFNServiceLibrary.nfnPublish(nfnWorker)
   // Make sure that services and content is added to the nfn cache
   Thread.sleep(200)

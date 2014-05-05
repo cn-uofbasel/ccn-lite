@@ -21,7 +21,7 @@ object Monitor {
   val host = "localhost"
   val port = 10666
 
-  private val system = ActorSystem(s"Monitor", AkkaConfig())
+  private val system = ActorSystem(s"Monitor", AkkaConfig.configInfo)
   val monitor = system.actorOf(Props(classOf[Monitor]))
 
   case class Visualize()
@@ -85,18 +85,12 @@ case class Monitor() extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val system = ActorSystem(s"Monitor", AkkaConfig())
-
-  val nfnSocket = system.actorOf(
+  val nfnSocket = context.actorOf(
     Props(classOf[UDPConnection],
       new InetSocketAddress(Monitor.host, Monitor.port),
       None),
     name = s"udpsocket-${Monitor.port}"
   )
-
-
-
-
 
   var nodes = Set[NodeLog]()
 
@@ -171,7 +165,6 @@ case class Monitor() extends Actor {
       val parsedPacket: JsonAST.JValue = json \\ "packet"
 
 //      JObject(List(JField(type,JString(interest)), JField(name,JString(/docRepo1/docs/doc0/(@x call 2 /nfn_service_impl_WordCountService x )/NFN))))
-      logger.debug(s"parsed packet: $parsedPacket")
 
       val name = (parsedPacket \\ "name").extract[String]
       val packet: PacketInfoLog =

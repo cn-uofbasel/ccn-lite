@@ -5,8 +5,8 @@ import akka.event.Logging
 import ccn.packet._
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.machine.{Value, ListValue, ConstValue}
-import nfn.NFNMaster.CCNAddToCache
 import scala.util.{Success, Failure, Try}
+import nfn.NFNApi
 
 /**
  * Created by basil on 01/04/14.
@@ -28,7 +28,7 @@ class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
 
   private def handleContent(content: Content, sender: ActorRef) = {
     logger.info(s"Received content $content, adding to contentstore")
-    nfnMaster ! CCNAddToCache(content)
+    nfnMaster ! NFNApi.CCNAddToCache(content)
   }
 
 

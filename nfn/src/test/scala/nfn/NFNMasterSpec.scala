@@ -41,9 +41,9 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
   override def beforeAll() {
     def initCaches(ref: ActorRef) = {
-      ref ! CCNAddToCache(content)
-      ref ! CCNAddToCache(doc1Content)
-      ref ! CCNAddToCache(doc2Content)
+      ref ! NFNApi.CCNAddToCache(content)
+      ref ! NFNApi.CCNAddToCache(doc1Content)
+      ref ! NFNApi.CCNAddToCache(doc2Content)
       NFNServiceLibrary.nfnPublish(ref)
     }
 
@@ -71,7 +71,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       s"compute result '$temporaryPaddedResult' for ${if(nfnNetwork) "local" else "nfn"} request '$parsedReq'" in {
 
         val computeReqName = Seq(parsedReq, "NFN")
-        nfnMasterRef ! CCNSendReceive(Interest(computeReqName:_*))
+        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(computeReqName:_*))
         val actualContent = expectMsgType[Content]
         actualContent.name shouldBe computeReqName
         actualContent.data shouldBe temporaryPaddedResult.getBytes
@@ -81,7 +81,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
     s"An $nfnMasterName actor" should {
       "send interest and receive corresponding data" in {
         nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
-        nfnMasterRef ! CCNSendReceive(interest)
+        nfnMasterRef ! NFNApi.CCNSendReceive(interest)
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe data
       }
@@ -90,10 +90,10 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
         val contentName = Seq("name", "addtocache")
         val contentData = "added to cache!".getBytes
         val cacheContent = Content(contentData, contentName:_*)
-        nfnMasterRef ! CCNAddToCache(cacheContent)
+        nfnMasterRef ! NFNApi.CCNAddToCache(cacheContent)
         // TODO maybe make this nicer?
         Thread.sleep(200)
-        nfnMasterRef ! CCNSendReceive(Interest(contentName:_*))
+        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(contentName:_*))
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe contentData
       }
