@@ -17,7 +17,6 @@ case class OmnetIntegration(nodes: Set[NodeLog],
                             simStart: Long) extends Logging {
 
 
-
   def loggedPacketToType(lp: PacketInfoLog): String = lp match {
     case i: InterestInfoLog => "interest"
     case c: ContentInfoLog => "content"
@@ -127,12 +126,12 @@ case class OmnetIntegration(nodes: Set[NodeLog],
         ("from" ->
           ("host" -> p.from.host) ~
           ("port" -> p.from.port) ~
-          ("prefix" -> p.from.prefix) ~
+          ("prefix" -> p.from.prefix.map(_.replace("/", ""))) ~
           ("type" -> p.from.`type`)) ~
         ("to" ->
           ("host" -> p.to.host) ~
           ("port" -> p.to.port) ~
-          ("prefix" -> p.to.prefix) ~
+          ("prefix" -> p.to.prefix.map(_.replace("/", ""))) ~
           ("type" -> p.to.`type`)) ~
         ("packet" -> jsonPacket(p.packet)) ~
         ("timeMillis" -> p.timeMillis) ~
@@ -145,7 +144,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
 
   def createNed(): String = {
-    def prefixOrDefaultName(nl: NodeLog): String = nl.prefix.getOrElse(s"${nl.host}${nl.port}")
+    def prefixOrDefaultName(nl: NodeLog) = nl.prefix.getOrElse(s"${nl.host}${nl.port}").replace("/", "")
 
     def typeOrDefaultType(nl: NodeLog): String = nl.`type`.getOrElse("DefaultNode")
 

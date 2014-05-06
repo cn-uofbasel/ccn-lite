@@ -1,13 +1,8 @@
 package nfn
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.{Success, Failure}
-
-import java.io.{PrintWriter, StringWriter}
 
 import akka.actor._
-import akka.util.ByteString
 import akka.event.Logging
 
 import network._
@@ -33,7 +28,7 @@ object NFNMaster {
 
   case class ComputeResult(content: Content)
 
-  case class Thunk(interest: Interest)
+  case class Thunk(interest: Interest, executionTimeEstimated: Option[Int])
 
   case class Exit()
 
@@ -59,10 +54,12 @@ object NFNApi {
   case class CCNAddToCache(content: Content)
 
   case class Connect(nodeConfig: NodeConfig)
+
+  case class AddFace(nodeConfig: NodeConfig, gateway: NodeConfig)
 }
 
-case class NodeConfig(host: String, port: Int, computePort: Int, prefix: String) {
-  def toNFNNodeLog: NodeLog = NodeLog(host, port, Some("NFNNode"), Some(prefix))
+case class NodeConfig(host: String, port: Int, computePort: Int, prefix: CCNName) {
+  def toNFNNodeLog: NodeLog = NodeLog(host, port, Some("NFNNode"), Some(prefix.toString))
   def toComputeNodeLog: NodeLog = NodeLog(host, computePort, Some("ComputeNode"), Some(prefix + "compute"))
 }
 
@@ -111,13 +108,13 @@ trait NFNMaster extends Actor {
    * if it has received all it sends thunk content back before starting to execute the result.
    */
   private def handleInterestToComputeServer(interest: Interest) = {
-
     val (nameWithoutThunk, isThunk) = interest.name.withoutThunkAndIsThunk
 
       cs.find(nameWithoutThunk) match {
         case Some(content) => {
           if (isThunk) {
-            sendThunkContentForName(nameWithoutThunk)
+            // TODO: time estimate?
+            sendThunkContentForName(nameWithoutThunk, None)
           } else {
             logger.debug(s"Found content $content in content store, send it back")
             send(content)
@@ -176,7 +173,9 @@ trait NFNMaster extends Actor {
     packet match {
       case i: Interest => handleInterestToComputeServer(i)
       case c: Content => {
-        if(new String(c.data) == "THUNK") {
+
+        val isThunkContent = c.name.withoutThunkAndIsThunk._2
+        if(isThunkContent) {
           handleThunkContent(c)
         } else {
           handleContent(c)
@@ -188,11 +187,12 @@ trait NFNMaster extends Actor {
   def monitorReceive(packet: CCNPacket)
 
 
-  def sendThunkContentForName(name: CCNName): Unit = {
-    val thunkContent = Content.thunkForName(name)
+  def sendThunkContentForName(name: CCNName, executionTimeEstimated: Option[Int]): Unit = {
+    val thunkContent = Content.thunkForName(name, executionTimeEstimated)
     logger.debug(s"sending thunk answer ${thunkContent}")
     send(thunkContent)
   }
+
 
   override def receive: Actor.Receive = {
 
@@ -265,8 +265,8 @@ trait NFNMaster extends Actor {
       }
     }
 
-    case Thunk(interest) => {
-      sendThunkContentForName(interest.name)
+    case Thunk(interest, executionTimeEstimated) => {
+      sendThunkContentForName(interest.name, executionTimeEstimated)
     }
 
     // CCN worker itself is responsible to handle compute requests from the network (interests which arrived in binary format)
@@ -294,6 +294,11 @@ trait NFNMaster extends Actor {
       connect(otherNodeConfig)
     }
 
+    // TODO this message is only for network node
+    case NFNApi.AddFace(otherNodeConfig, gateway) => {
+      addPrefix(otherNodeConfig, gateway)
+    }
+
     case Exit() => {
       exit()
       context.system.shutdown()
@@ -301,6 +306,7 @@ trait NFNMaster extends Actor {
 
   }
 
+  def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig): Unit
   def connect(otherNodeConfig: NodeConfig): Unit
   def send(packet: CCNPacket): Unit
   def sendAddToCache(content: Content): Unit
@@ -352,9 +358,14 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
   }
 
+  override def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig): Unit = {
+    // TODO: faces are not logged / visualized in any way
+    ccnLiteNFNNetworkProcess.addPrefix(prefixNode, gatewayNode)
+  }
+
   override def monitorReceive(packet: CCNPacket): Unit = {
     val ccnPacketLog = packet match {
-      case i: Interest => InterestInfoLog("interst", i.name.toString)
+      case i: Interest => InterestInfoLog("interest", i.name.toString)
       case c: Content => {
         val name = c.name.toString
         val data = new String(c.data).take(50)
@@ -363,6 +374,7 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
     }
     Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
   }
+
 }
 
 case class NFNMasterLocal() extends NFNMaster {
@@ -378,6 +390,8 @@ case class NFNMasterLocal() extends NFNMaster {
   override def connect(otherNodeConfig: NodeConfig): Unit = ???
 
   override def monitorReceive(packet: CCNPacket): Unit = ???
+
+  override def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig): Unit = ???
 }
 
 

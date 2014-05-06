@@ -37,7 +37,7 @@ object NFNMain extends App {
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
 //  val nfnWorker = NFNMasterFactory.local(system)
-  val nodeConfig = NodeConfig("localhost", 10000, 10001, "node")
+  val nodeConfig = NodeConfig("localhost", 10000, 10001, CCNName("node"))
   val nfnWorker = NFNMasterFactory.network(system, nodeConfig)
 
   // Has to wait until udp connection is ready

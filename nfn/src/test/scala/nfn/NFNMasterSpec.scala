@@ -18,7 +18,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
   val nfnMasterLocalRef: TestActorRef[NFNMasterLocal] = TestActorRef(NFNMasterFactory.localProps)
   val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
-  val nodeConfig = NodeConfig("localhost",10000, 10001, "testnode")
+  val nodeConfig = NodeConfig("localhost",10000, 10001, CCNName("testnode"))
   val nfnMasterNetworkRef: TestActorRef[NFNMasterNetwork] = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 

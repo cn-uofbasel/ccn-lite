@@ -16,7 +16,7 @@ object LambdaExpressionTester extends App {
   val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
-  val nodeConfig = NodeConfig("localhost", 10010, 10011, "node1")
+  val nodeConfig = NodeConfig("localhost", 10010, 10011, CCNName("node1"))
 
   val node = Node(nodeConfig)
 

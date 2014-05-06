@@ -25,7 +25,7 @@ object WordCountEnv extends App {
     (0 until n) map { n =>
       val port = 10000 + n*10
       val computePort = port + 1
-      NodeConfig(host = "127.0.0.1", port = port, computePort = computePort, prefix = s"docRepo$n")
+      NodeConfig(host = "127.0.0.1", port = port, computePort = computePort, prefix = CCNName(s"docRepo$n"))
     }
 
   val nodes = nodeConfigs map { Node(_) }
@@ -43,9 +43,9 @@ object WordCountEnv extends App {
   val nodeNameDatas: List[(Int, CCNName, Array[Byte])] =
     indexForDocsOnNodes.zipWithIndex flatMap { case (docIndizes: List[Int], nodeIndex: Int) =>
        docIndizes map { docIndex =>
-         val prefix: String = nodes(nodeIndex).nodeConfig.prefix
-         val cmps: Seq[String] = Seq(prefix) ++ docNamesWithoutPrefix(docIndex).cmps
-         (nodeIndex, CCNName(cmps:_*), docContents(docIndex))
+         val prefix = nodes(nodeIndex).nodeConfig.prefix
+         val docNameWithPrefix = prefix.append(docNamesWithoutPrefix(docIndex))
+         (nodeIndex, docNameWithPrefix, docContents(docIndex))
       }
     }
 

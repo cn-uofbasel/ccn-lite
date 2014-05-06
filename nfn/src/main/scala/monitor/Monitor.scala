@@ -17,7 +17,7 @@ import net.liftweb.json.ShortTypeHints
 
 object Monitor {
 
-  val startTime = System.currentTimeMillis()
+  val startTime = System.nanoTime
   val host = "localhost"
   val port = 10666
 
@@ -27,7 +27,7 @@ object Monitor {
   case class Visualize()
 
   sealed trait MonitorLogEntry {
-    val timestamp = System.currentTimeMillis
+    val timestamp = System.nanoTime
   }
 
   case class NodeLog(host: String, port: Int, `type`: Option[String], prefix: Option[String]) extends MonitorLogEntry
@@ -65,9 +65,9 @@ object Monitor {
 
   case class PacketLog(from: Option[NodeLog], to: NodeLog, isSent: Boolean, override val timestamp: Long, packet: PacketInfoLog) extends MonitorLogEntry {
     def this(from: NodeLog, to: NodeLog, isSent: Boolean, packet: PacketInfoLog) =
-      this(Some(from), to, isSent, System.currentTimeMillis ,packet)
+      this(Some(from), to, isSent, System.nanoTime ,packet)
     def this(from: Option[NodeLog], to: NodeLog, isSent: Boolean, packet: PacketInfoLog) =
-      this(from, to, isSent, System.currentTimeMillis ,packet)
+      this(from, to, isSent, System.nanoTime ,packet)
 //    def this(from: Option[NodeLog], to: NodeLog, isSent: Boolean, timestamp: Long, packet: CCNPacketLog) =
 //      this(from, to, isSent, timestamp,packet)
   }
@@ -258,4 +258,3 @@ case class Monitor() extends Actor {
     }
   }
 }
-
