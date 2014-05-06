@@ -206,7 +206,9 @@ case class Node(nodeConfig: NodeConfig) {
    * @return
    */
   def sendReceive(req: Interest): Future[Content] = {
-    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks = false)).mapTo[Content]
+    def isNFNReq = !req.name.cmps.forall(_!="NFN")
+    val useThunks = isNFNReq
+    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks)).mapTo[Content]
   }
 
 
