@@ -12,7 +12,7 @@ import network.NFNCommunication
  */
 object TestApp extends App {
 
-  val starttime = System.currentTimeMillis()
+  val starttime = System.nanoTime
 
   Thread.sleep(5)
   val nodes =

@@ -94,13 +94,13 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
     import IOHelper.printToFile
     val nedContent = createNed()
-    val nedFilename = "./omnetsimulation/NFNNetwork.ned"
+    val nedFilename = "./omnetreplay/NFNNetwork.ned"
 
     printToFile(new File(nedFilename), nedContent)
     logger.info(s"Wrote .ned file to $nedFilename")
 
     val transmittedPacketsJson = createTransmissionJson
-    val transmittedPacketsJsonFilename = "./omnetsimulation/transmittedPackets.json"
+    val transmittedPacketsJsonFilename = "./omnetreplay/transmittedPackets.json"
 
     printToFile(new File(transmittedPacketsJsonFilename), transmittedPacketsJson)
     logger.info(s"Wrote transmittedPackets to .json file $transmittedPacketsJsonFilename")
