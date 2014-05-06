@@ -200,7 +200,7 @@ void Node::scheduleInterestToMessage(string host, int port, string toPrefix, str
     msg->setKind(INTEREST_TO);
     msg->setIsSend(true);
     // schedule in milliseconds (exponent of -3)
-    scheduleAt(SimTime(timeMillis, -9), msg);
+    scheduleAt(SimTime(timeMillis, -12), msg);
 }
 void Node::scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, long timeMillis)
 {
@@ -221,5 +221,5 @@ void Node::scheduleContentToMessage(string host, int port, string toPrefix, stri
     msg->setIsSend(true);
 
     // schedule in milliseconds (exponent of -3)
-    scheduleAt(SimTime(timeMillis, -9), msg);
+    scheduleAt(SimTime(timeMillis, -12), msg);
 }

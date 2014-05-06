@@ -36,7 +36,7 @@ omnetreplay/contentto_m.h
 omnetreplay/interestto_m.cc
 omnetreplay/interestto_m.h
 omnetreplay/omnetintegration
-omnetreplay/omnetsimulation
+omnetreplay/omnetreplay
 omnetreplay/out*
 
 omnetreplay/NFNNetwork.ned
