@@ -45,12 +45,9 @@ object ThreeNodeTwoHopEnv extends App {
   node1.addFace(node3, node2)
   node3.addFace(node1, node2)
 
-  Thread.sleep(1000)
   node1 += docContent1
   node2 += docContent2
   node3 += docContent3
-
-  Thread.sleep(1000)
 
   node1 ? Interest(docname3) onComplete {
     case Success(content) => println(s"RECV FROM REMOTE: $content")

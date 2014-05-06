@@ -2,4 +2,4 @@ make clean
 opp_msgc .
 opp_makemake -f
 make
-./omnetsimulation
+./omnetreplay

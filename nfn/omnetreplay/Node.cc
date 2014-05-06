@@ -23,8 +23,8 @@ class Node : public cSimpleModule
     // The following redefined virtual function holds the algorithm.
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-    virtual void scheduleInterestToMessage(string host, int port, string toPrefix, string name, int timeMillis);
-    virtual void scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, int timeMillis);
+    virtual void scheduleInterestToMessage(string host, int port, string toPrefix, string name, long timeMillis);
+    virtual void scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, long timeMillis);
 };
 
 // The module class needs to be registered with OMNeT++
@@ -86,8 +86,8 @@ void Node::initialize()
 
         assert(packet.HasMember("timeMillis"));
         assert(packet["timeMillis"].IsNumber());
-        assert(packet["timeMillis"].IsInt());
-        int timeMillis = packet["timeMillis"].GetInt();
+        assert(packet["timeMillis"].IsInt64());
+        long timeMillis = packet["timeMillis"].GetInt64();
 
         assert(packet.HasMember("transmissionTime"));
         assert(packet["transmissionTime"].IsNumber());
@@ -183,7 +183,7 @@ void Node::handleMessage(cMessage *msg)
     }
 }
 
-void Node::scheduleInterestToMessage(string host, int port, string toPrefix, string name, int timeMillis)
+void Node::scheduleInterestToMessage(string host, int port, string toPrefix, string name, long timeMillis)
 {
     char msgname[10000];
     sprintf(msgname, "interest(%s)", name.c_str());
@@ -200,9 +200,9 @@ void Node::scheduleInterestToMessage(string host, int port, string toPrefix, str
     msg->setKind(INTEREST_TO);
     msg->setIsSend(true);
     // schedule in milliseconds (exponent of -3)
-    scheduleAt(SimTime(timeMillis, -3), msg);
+    scheduleAt(SimTime(timeMillis, -9), msg);
 }
-void Node::scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, int timeMillis)
+void Node::scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, long timeMillis)
 {
     char msgname[100];
     sprintf(msgname, "interest(%s)", name.c_str());
@@ -221,5 +221,5 @@ void Node::scheduleContentToMessage(string host, int port, string toPrefix, stri
     msg->setIsSend(true);
 
     // schedule in milliseconds (exponent of -3)
-    scheduleAt(SimTime(timeMillis, -3), msg);
+    scheduleAt(SimTime(timeMillis, -9), msg);
 }
