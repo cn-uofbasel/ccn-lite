@@ -823,7 +823,7 @@ recontinue:
                         char *time_required = c->content;
                         int thunk_time = strtol(time_required, NULL, 10);
                         thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
-                        config->thunk_time += thunk_time; // ADD OR CHOOSE MAX?
+                        config->thunk_time = config->thunk_time > thunk_time ? config->thunk_time : thunk_time;
                         DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
                         push_to_stack(&config->result_stack, thunkid);
                         if( *num_of_required_thunks <= 0){
