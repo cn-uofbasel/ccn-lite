@@ -3,6 +3,7 @@ package ccn
 import java.io._
 import com.typesafe.scalalogging.slf4j.Logging
 import nfn.NodeConfig
+import ccn.packet.CCNName
 
 /**
  * Pipes a [[InputStream]] to a file with the given name into ./log/<name>.log.
@@ -43,34 +44,48 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
  */
 case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
 
+  case class NetworkFace(toHost: String, toPort: Int) {
+    private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
+    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
+    Runtime.getRuntime.exec(cmdUDPFace.split(" "))
+    udpFaces += (toHost -> toPort) -> this
+
+    private val networkFaceId: Int = globalFaceId
+    globalFaceId += 2
+
+    def registerPrefix(prefixToRegister: String) = {
+      val cmdPrefixReg =  s"../util/ccn-lite-ctrl -x $sockName prefixreg $prefixToRegister $networkFaceId"
+      println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
+      Runtime.getRuntime.exec(cmdPrefixReg.split(" "))
+      globalFaceId += 1
+    }
+  }
+
   private var process: Process = null
-  private var faceId = 2
+  private var globalFaceId = 2
 
   val host = nodeConfig.host
   val port = nodeConfig.port
   val computePort = nodeConfig.computePort
-  val prefix = nodeConfig.prefix
+  val prefix = nodeConfig.prefix.toString
 
-  val sockName = s"/tmp/mgmt.$prefix.sock"
+  val sockName = s"/tmp/mgmt.${nodeConfig.prefix.cmps.mkString(".")}.sock"
 
+  var udpFaces:Map[(String, Int), NetworkFace] = Map()
 
   def start() = {
-    if(nodeConfig.prefix != "docRepo1") {
-      val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
-      println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
-      val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
-      processBuilder.redirectErrorStream(true)
-      process = processBuilder.start
+    val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
+    println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
+    val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
+    processBuilder.redirectErrorStream(true)
+    process = processBuilder.start
 
-      val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
-      val thread = new Thread(lsr, s"LogStreamReader-$prefix")
-      thread.start
-    } else {
-      logger.warn("SKIPPED START OF CCN-LITE NODE 0")
-    }
+    val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
+    val thread = new Thread(lsr, s"LogStreamReader-$prefix")
+    thread.start
 
-    addFace(host, computePort, "COMPUTE")
-    faceId = 5
+    addPrefixToNewOrExistingNetworkFace(host, computePort, "COMPUTE")
+    globalFaceId = 5
   }
 
   def stop() = {
@@ -80,21 +95,23 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
     }
   }
 
-  def addFace(otherHost: String, otherPort: Int, otherPrefix: String): Unit = {
+  private def getOrCreateNetworkFace(host: String, port: Int): NetworkFace = {
+    udpFaces.getOrElse(host -> port, NetworkFace(host, port))
+  }
 
-//    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
-    val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $otherHost $otherPort"
-    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
-    Runtime.getRuntime.exec(cmdUDPFace.split(" "))
+  private def addPrefixToNewOrExistingNetworkFace(host: String, port: Int, prefix: String) = {
+    val networkFace = getOrCreateNetworkFace(host, port)
 
-    val cmdPrefixReg =  s"../util/ccn-lite-ctrl -x $sockName prefixreg /$otherPrefix $faceId"
-    println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
-    Runtime.getRuntime.exec(cmdPrefixReg.split(" "))
-    faceId += 3
+    networkFace.registerPrefix(prefix)
   }
 
   def connect(otherNodeConfig: NodeConfig): Unit = {
     println(s"Connecting $nodeConfig to $otherNodeConfig")
-    addFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix)
+    addPrefixToNewOrExistingNetworkFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix.toString)
+  }
+
+  def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig) = {
+    println(s"Adding prefix from node $prefixNode to $gatewayNode")
+    addPrefixToNewOrExistingNetworkFace(gatewayNode.host, gatewayNode.port, prefixNode.prefix.toString)
   }
 }

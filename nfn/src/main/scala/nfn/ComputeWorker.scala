@@ -61,7 +61,7 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
     callableServ onComplete {
       case Success(callableServ) => {
         if(isThunkRequest) {
-          requestor ! NFNMaster.Thunk(interest)
+          requestor ! NFNMaster.Thunk(interest, callableServ.executionTimeEstimate)
         }
 
         val result: NFNValue = callableServ.exec

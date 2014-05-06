@@ -107,7 +107,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isRunning = true
   private var isConnecting = true
 
-  private val system = ActorSystem(s"Sys${nodeConfig.prefix.replace("/", "-")}", AkkaConfig.configDebug)
+  private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
   private val _nfnMaster = NFNMasterFactory.network(system, nodeConfig)
 
   private def nfnMaster = {
@@ -125,6 +125,14 @@ case class Node(nodeConfig: NodeConfig) {
   def connect(otherNode: Node) = {
     assert(isConnecting, "Node can only connect to other nodes before caching any content")
     nfnMaster ! NFNApi.Connect(otherNode.nodeConfig)
+  }
+
+  def addFace(faceOfNode: Node, gateway: Node) = {
+    nfnMaster ! NFNApi.AddFace(faceOfNode.nodeConfig, gateway.nodeConfig)
+  }
+
+  def addFaces(faceOfNodes: List[Node], gateway: Node) = {
+    faceOfNodes map { addFace(_, gateway) }
   }
 
   /**
@@ -198,7 +206,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @return
    */
   def sendReceive(req: Interest): Future[Content] = {
-    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks = true)).mapTo[Content]
+    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks = false)).mapTo[Content]
   }
 
 

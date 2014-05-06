@@ -92,29 +92,12 @@ object NFNServiceLibrary extends Logging {
   def derp(foo: Int) = ???
 }
 
-
-
-
-
-
-
 case class NFNServiceExecutionException(msg: String) extends Exception(msg)
 case class NFNServiceArgumentException(msg: String) extends Exception(msg)
 
-case class CallableNFNService(name: CCNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue) extends Logging {
+case class CallableNFNService(name: CCNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue, executionTimeEstimate: Option[Int]) extends Logging {
   def exec:NFNValue = function(values)
 }
-
-
-
-
-
-
-
-
-
-
-
 
 object Main {
 //  ServiceLibrary.add(DollarToChf())

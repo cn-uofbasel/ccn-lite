@@ -52,6 +52,11 @@ case class CCNName(cmps: String *) extends Logging {
       case _ => CCNName(cmps ++ Seq("THUNK"): _*)
     }
   }
+
+  def append(cmpsToAppend:String*):CCNName = CCNName(cmps ++ cmpsToAppend:_*)
+  def prepend(cmpsToPrepend:String*):CCNName = CCNName(cmpsToPrepend ++ cmps:_*)
+  def append(nameToAppend:CCNName):CCNName = append(nameToAppend.cmps:_*)
+  def prepend(nameToPrepend:CCNName):CCNName = prepend(nameToPrepend.cmps:_*)
 }
 
 sealed trait CCNPacket extends Packet {
@@ -59,7 +64,7 @@ sealed trait CCNPacket extends Packet {
 }
 
 object NFNInterest {
-  def apply(cmps: String *): Interest = Interest(CCNName((cmps ++ Seq("NFN")) :_*))
+  def apply(cmps: String *): Interest = Interest(CCNName(cmps ++ Seq("NFN") :_*))
 }
 
 object Interest {
@@ -78,12 +83,13 @@ object Content {
   def apply(data: Array[Byte], cmps: String *): Content =
     Content(CCNName(cmps :_*), data)
 
-  def thunkForName(name: CCNName) = {
+  def thunkForName(name: CCNName, executionTimeEstimated: Option[Int]) = {
     val thunkyfiedName = name.thunkify
-    Content(thunkyfiedName, "THUNK".getBytes)
+    val thunkContentData = executionTimeEstimated.fold("")(_.toString)
+    Content(thunkyfiedName, thunkContentData.getBytes)
   }
-  def thunkForInterest(interest: Interest): Content = {
-    thunkForName(interest.name)
+  def thunkForInterest(interest: Interest, executionTimeEstimate: Option[Int]): Content = {
+    thunkForName(interest.name, executionTimeEstimate)
   }
 }
 
