@@ -13,12 +13,7 @@
 #endif
 
 
-
-
-
-#define CCNL_MAX_PACKET_SIZE 8192
-
-static char
+static char 
 encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
                                 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -41,8 +36,8 @@ build_decoding_table() {
 }
 
 
-char
-*base64_encode(const unsigned char *data,
+char 
+*base64_encode(const char *data,
                     size_t input_length,
                     size_t *output_length) {
 
@@ -76,7 +71,7 @@ unsigned char
 *base64_decode(const char *data,
                              size_t input_length,
                              size_t *output_length) {
-
+    uint32_t i, j;
     if (decoding_table == NULL) build_decoding_table();
 
     if (input_length % 4 != 0) return NULL;
@@ -88,12 +83,12 @@ unsigned char
     unsigned char *decoded_data = malloc(*output_length);
     if (decoded_data == NULL) return NULL;
 
-    for (int i = 0, j = 0; i < input_length;) {
+    for (i = 0, j = 0; i < input_length;) {
 
-        uint32_t sextet_a = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-        uint32_t sextet_b = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-        uint32_t sextet_c = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-        uint32_t sextet_d = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
+        uint32_t sextet_a = data[i] == '=' ? 0 & i++ : decoding_table[(uint32_t) data[i++]];
+        uint32_t sextet_b = data[i] == '=' ? 0 & i++ : decoding_table[(uint32_t) data[i++]];
+        uint32_t sextet_c = data[i] == '=' ? 0 & i++ : decoding_table[(uint32_t) data[i++]];
+        uint32_t sextet_d = data[i] == '=' ? 0 & i++ : decoding_table[(uint32_t) data[i++]];
 
         uint32_t triple = (sextet_a << 3 * 6)
         + (sextet_b << 2 * 6)
@@ -165,8 +160,8 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
     len += sprintf(res + len, "\"name\": \"%s\"\n", name);
 
     if(data){
-            size_t newlen;
-            char *newdata = base64_encode(data, datalen, &newlen);
+            //size_t newlen;
+            //char *newdata = base64_encode(data, datalen, &newlen);
 
             len += sprintf(res + len, ",\"data\": \"%s\"\n", data);
     }
@@ -187,7 +182,7 @@ int udp_sendto(int sock, char *address, int port, char *data, int len){
           fprintf(stderr, "inet_aton() failed\n");
           exit(1);
     }
-    rc = sendto(sock, data, len, 0, &si_other, sizeof(si_other));
+    rc = sendto(sock, data, len, 0, (const struct sockaddr *)&si_other, sizeof(si_other));
     return rc;
 }
 
@@ -197,5 +192,5 @@ sendtomonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen){
     int port = 10666;
     //int s = socket(PF_INET, SOCK_DGRAM, 0);
     int s = ccnl->ifs[0].sock;
-    return udp_sendto(s, address, port, content, contentlen);
+    return udp_sendto(s, address, port, content, contentlen); 
 }
