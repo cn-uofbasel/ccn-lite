@@ -287,6 +287,22 @@ int iscontent(char *cp){
 	return 0;
 }
 //------------------------------------------------------------
+
+int choose_parameter(struct configuration_s *config){
+
+    int num = config->fox_state->num_of_params - config->fox_state->it_routable_param;
+    if(num < 0) return -1;
+    while(!iscontent(config->fox_state->params[num])){
+        if(--num < 0){
+            return -1;
+        }
+    }
+    return num;
+
+}
+
+
+
 struct ccnl_content_s *
 ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         char **namecomp, char *out, char *comp, int *halt){
@@ -322,7 +338,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
 
 struct ccnl_content_s *
 ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        char **namecomp, char *out, char *comp, int *halt, int search_only_local){
+        int parameter_num, char **namecomp, char *out, char *comp, int *halt, int search_only_local){
     
     struct ccnl_content_s *c;
     int j;
@@ -330,7 +346,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     DEBUGMSG(2, "ccnl_nfn_handle_network_search()\n");
     
     for(j = 0; j < config->fox_state->num_of_params; ++j){
-        if(config->fox_state->it_routable_param == j){
+        if(parameter_num == j){
             complen += sprintf(comp + complen, "x ");
         }
         else{
@@ -338,7 +354,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
         }
     }
     complen += sprintf(comp + complen, ")");
-    DEBUGMSG(49, "Computation request: %s %s\n", comp, config->fox_state->params[config->fox_state->it_routable_param]);
+    DEBUGMSG(49, "Computation request: %s %s\n", comp, config->fox_state->params[parameter_num]);
     //make interest
     int len = mkInterestCompute(namecomp, comp, complen, config->fox_state->thunk_request, out); //TODO: no thunk request for local search  
     //search
@@ -353,7 +369,7 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
 
 struct ccnl_content_s *
 ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, 
-        struct configuration_s *config, int *halt, int search_only_local){
+        struct configuration_s *config, int parameter_num, int *halt, int search_only_local){
     char *out =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *namecomp[CCNL_MAX_NAME_COMP];
@@ -363,17 +379,17 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     memset(comp, 0, CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
-    param = strdup(config->fox_state->params[config->fox_state->it_routable_param]);
+    param = strdup(config->fox_state->params[parameter_num]);
     j = splitComponents(param, namecomp);
     
     if(isLocalAvailable(ccnl, config, namecomp)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
-                config->fox_state->params[config->fox_state->it_routable_param]);
+                config->fox_state->params[parameter_num]);
         c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, out, comp, halt);
     }else{
         DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
-                config->fox_state->params[config->fox_state->it_routable_param]);
-        c = ccnl_nfn_handle_network_search(ccnl, config, namecomp, out, comp, halt, search_only_local);
+                config->fox_state->params[parameter_num]);
+        c = ccnl_nfn_handle_network_search(ccnl, config, parameter_num ,namecomp, out, comp, halt, search_only_local);
     }
     return c;
 }
@@ -806,12 +822,64 @@ normal:
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
         //as long as there is a routable parameter: try to find a result
-        config->fox_state->it_routable_param = config->fox_state->num_of_params - 1;
+        config->fox_state->it_routable_param = 0;
+        int parameter_number = -1;
+        struct ccnl_content_s *c = NULL;
 recontinue:
+
+
+
+        //check if last result is now available
+        if(search_only_local){
+            //choose  routable parameter
+            parameter_number = choose_parameter(config);
+
+            c = ccnl_nfn_handle_routable_content(ccnl,
+                                    config, parameter_number, halt, search_only_local);
+            search_only_local = 0;
+        }
+
+        //result was not locally found
+        if(!c){
+            //choose next parameter
+            ++config->fox_state->it_routable_param;
+            parameter_number = choose_parameter(config);
+
+            //no more parameter --> no result found
+            if(parameter_number < 0) return NULL;
+
+            c = ccnl_nfn_handle_routable_content(ccnl,
+                                    config, parameter_number, halt, search_only_local);
+
+            //wait for content, return current program to continue later
+            if(*halt < 0) return prog;
+        }
+
+        if(c){
+            if(thunk_request){ //if thunk_request push thunkid on the stack
+
+                --(*num_of_required_thunks);
+                char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
+                char *time_required = c->content;
+                int thunk_time = strtol(time_required, NULL, 10);
+                thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
+                config->thunk_time = config->thunk_time > thunk_time ? config->thunk_time : thunk_time;
+                DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
+                push_to_stack(&config->result_stack, thunkid);
+                if( *num_of_required_thunks <= 0){
+                    DEBUGMSG(99, "All thunks are available\n");
+                    ccnl_nfn_reply_thunk(ccnl, config);
+                }
+            }
+            else{
+                push_to_stack(&config->result_stack, c->content);
+            }
+        }
+/*
         for(; config->fox_state->it_routable_param >= 0; --config->fox_state->it_routable_param){
             if(iscontent(config->fox_state->params[config->fox_state->it_routable_param])){
                 DEBUGMSG(99, "Using %s as routable content\n", config->fox_state->params[config->fox_state->it_routable_param]);
-                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl, 
+                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl,
                         config, halt, search_only_local);
                 search_only_local = 0;
                 if(*halt < 0) return prog;
@@ -838,10 +906,8 @@ recontinue:
                 }
             }//endif
         }//endfor
-        if(! *halt)DEBUGMSG(2, "Could not compute the result!\n");
-        return 0;
+*/
         
-        tail:
         DEBUGMSG(99, "Pending: %s\n", pending+1);
         return pending+1;
     }

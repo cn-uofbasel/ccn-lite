@@ -1062,8 +1062,8 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                              && i_it->from->faceid < 0){ 
                         ccnl_content_add2cache(ccnl, c);
                         int configid = -i_it->from->faceid;
-                        i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
                         DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
+                        i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
                         ++found;
                         //goto Done;
                      }
