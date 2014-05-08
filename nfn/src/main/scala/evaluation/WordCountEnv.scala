@@ -9,10 +9,11 @@ import akka.util.Timeout
 import ccn.packet._
 import node.Node
 import nfn.service.impl._
-import nfn.NodeConfig
+import nfn.{LambdaNFNImplicits, NodeConfig}
 
 import monitor.Monitor
 import akka.pattern.AskTimeoutException
+import lambdacalculus.parser.ast.LambdaDSL
 
 object WordCountEnv extends App {
 
@@ -112,10 +113,13 @@ object WordCountEnv extends App {
 //  printInterestResult(interest)
 
 
+  import LambdaDSL._
+  import LambdaNFNImplicits._
+  implicit val useThunks = false
 
-  val addAllDocsNode1 = s"call ${docNamesNode1.size + 1} $wc ${docNamesNode1.mkString(" ")}"
-  printInterestResult(Interest(CCNName(addAllDocsNode1, "NFN")))
-
+  printInterestResult(
+    wc call (docNamesNode1)
+  )
 
   val documents: Set[String] = Set("doc1"*1, "doc2"*2, "doc3"*3)
 
