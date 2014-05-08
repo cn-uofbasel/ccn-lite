@@ -14,6 +14,7 @@ import nfn.NFNMaster._
 import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
+import lambdacalculus.parser.ast.{LambdaDSL, LambdaDsl}
 
 
 object ThreeNodeTwoHopEnv extends App {
@@ -48,6 +49,12 @@ object ThreeNodeTwoHopEnv extends App {
   node1 += docContent1
   node2 += docContent2
   node3 += docContent3
+
+
+  import LambdaDSL._
+
+
+  val a = 'x @: "y" @: (('x * 1) - "y")
 
   node1 ? Interest(docname3) onComplete {
     case Success(content) => println(s"RECV FROM REMOTE: $content")
