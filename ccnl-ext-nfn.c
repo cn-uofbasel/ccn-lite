@@ -62,7 +62,6 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
         //config->thunk = 0;
         return;
     }
-    
     ccnl_nfn(ccnl, NULL, NULL, NULL, config);
 }
 
@@ -89,7 +88,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         struct configuration_s *config)
 {
-    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n", ccnl, orig, prefix, from, config); 
+    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
+             (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
     
     if(config) goto restart; //do not do parsing thinks again
     

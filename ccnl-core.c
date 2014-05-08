@@ -37,6 +37,11 @@
 int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
+int
+ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+        struct configuration_s *config);
+
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
 
@@ -703,14 +708,15 @@ struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
         struct ccnl_interest_s *i){
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
+    struct ccnl_interest_s *interest;
     int faceid = i->from->faceid;
-    ccnl_interest_remove(ccnl, i);
+    interest = ccnl_interest_remove(ccnl, i);
 #ifdef CCNL_NFN
     if(faceid < 0){
         ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
     }
 #endif
-   
+   return interest;
 }
 
 // ----------------------------------------------------------------------
@@ -779,11 +785,11 @@ struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     DEBUGMSG(99, "ccnl_content_add2cache (%d/%d) --> %p\n",
-	     ccnl->contentcnt, ccnl->max_cache_entries, c);
+         ccnl->contentcnt, ccnl->max_cache_entries, (void*)c);
 
     struct ccnl_content_s *cit;
     for(cit = ccnl->contents; cit; cit = cit->next){
-        DEBUGMSG(99, "--- Already in cache ---\n");
+        //DEBUGMSG(99, "--- Already in cache ---\n");
         if(c == cit) return NULL;
     }
     if (ccnl->max_cache_entries > 0 &&
@@ -839,7 +845,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
                         ntohs(pi->face->peer.ip4.sin_port), 
-                        c->name, c->content, c->contentlen, monitorpacket);
+                        c->name, (char*)c->content, c->contentlen, monitorpacket);
                 sendtomonitor(ccnl, monitorpacket, l);
 #endif 
                 ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
@@ -962,7 +968,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     char monitorpacket[CCNL_MAX_PACKET_SIZE];
                     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
                             ntohs(from->peer.ip4.sin_port), 
-                            c->name, c->content, c->contentlen, monitorpacket);
+                            c->name, (char*)c->content, c->contentlen, monitorpacket);
                     sendtomonitor(ccnl, monitorpacket, l);
 #endif 
                     ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
