@@ -51,7 +51,6 @@ object ThreeNodeTwoHopEnv extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-
   implicit val useThunks = false
 
 

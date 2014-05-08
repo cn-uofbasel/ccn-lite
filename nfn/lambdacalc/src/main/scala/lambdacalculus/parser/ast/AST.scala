@@ -39,6 +39,7 @@ object LambdaDSL {
   implicit def symbolToExpr (sym: Symbol): Variable = Variable.toVar(sym)
   implicit def stringToExpr (str: String): Variable = Variable(str)
   implicit def intToConstant(c: Int):Constant  = Constant(c)
+  implicit def listOfStringToListOfExprs(listOfStr: List[String]): List[Expr] = listOfStr map { str => stringToExpr(str) }
 }
 
 sealed abstract class Expr extends Positional {
