@@ -35,7 +35,7 @@ object LambdaDSLTest extends App {
 object LambdaDSL {
 //  implicit def call(symbolNameAndExprs: (Symbol, List[Expr])): Call = symbolAndExprsToCall(symbolNameAndExprs)
   implicit def symbolAndExprsToCall(symbolNameAndExprs: (Symbol, List[Expr])): Call = Call(symbolNameAndExprs._1.name, symbolNameAndExprs._2)
-  implicit def symbolAndExprsToCall(nameAndExprs: (String, List[Expr])): Call = Call(nameAndExprs._1, nameAndExprs._2)
+  implicit def stringAndExprsToCall(nameAndExprs: (String, List[Expr])): Call = Call(nameAndExprs._1, nameAndExprs._2)
   implicit def symbolToExpr (sym: Symbol): Variable = Variable.toVar(sym)
   implicit def stringToExpr (str: String): Variable = Variable(str)
   implicit def intToConstant(c: Int):Constant  = Constant(c)
@@ -67,7 +67,8 @@ object Variable {
 case class Variable(name: String, accessValue: Int = -1) extends Expr {
   def apply(args: List[Expr]): Call = call(args)
   def call(args: List[Expr]): Call = {
-    Expr.symbolAndExprsToCall(Symbol(this.name) -> args)
+    import LambdaDSL._
+    Symbol(this.name) -> args
   }
 }
 
@@ -84,43 +85,7 @@ case class NopExpr() extends Expr
 case class Call(name: String, args: List[Expr]) extends Expr
 
 
-object LambdaLocalPrettyPrinter {
 
-  def apply(expr: Expr): String =  expr match {
-    case Clos(arg, body) => s"λ$arg." + p"$body"
-    case Application(fun, arg) => p"$fun $arg"
-    case UnaryExpr(op, v) => s"$op " + p"$v"
-    case BinaryExpr(op, v1, v2) => p"$v1 " + op.toString + p" $v2"
-    case Variable(name, _) => name
-    case Constant(i) => i.toString
-    case Let(name, expr, maybeCodeExpr) =>
-      s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
-    case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
-    case NopExpr() => "-"
-    case Call(name, args) => {
-      val s1 = s"(call ${args.size + 1} $name"
-      val s2 = if(args.size > 0) {
-          " " +
-          args.map(apply).mkString(" ")
-        } else ""
-      val s3 = ")"
-
-      s1 + s2 + s3
-    }
-    case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
-  }
-
-  implicit class PrettyPrinting(val sc: StringContext) {
-    def p(args: Expr*) = sc.s(args map parensIfNeeded:_*)
-  }
-
-  def parensIfNeeded(expr: Expr) = expr match {
-    case Variable(name, _) => name
-    case Constant(i) => i
-//    case Literal(lit) => lit
-    case _            => "(" + apply(expr) + ")"
-  }
-}
 
 //object LambdaNFNPreprocessor {
 //  private def replaceLets(letName: String, letExpr: Expr, expr: Expr): Expr = {
@@ -174,50 +139,4 @@ object LambdaLocalPrettyPrinter {
 //}
 
 
-object LambdaNFNPrinter {
-//  def nfnNameComponents(expr: Expr): Array[String] = {
-//
-//    val (restExpr:Expr, firstCmp) = expr match {
-//      case Clos(arg, body) => throw new Exception("LambdaNFNPrinter.nfnNameComponents cannot split a top-level closure to a nfn compatible name")
-//      case Application(fun, arg) =>
-//      case UnaryExpr(op, v) =>  op.toString.toLowerCase + " " + p"$v"
-//      case BinaryExpr(op, v1, v2) => op.toString.toLowerCase + " " + p"$v1" + " " + p"$v2"
-//      case Variable(name, _) => (NopExpr, name)
-//      case Constant(i) => (NopExpr, i.toString)
-//      //    case Let(name, expr, maybeCodeExpr) =>
-//      //      s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
-//      //    case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
-//      case NopExpr() => ("")
-//      case _ => throw new NotImplementedError(s"LambdaPrettyPrinter cannot pretty print: $expr")
-//    }
-//  }
 
-  def apply(expr: Expr): String =  {
-//      LambdaNFNPreprocessor.apply(expr) match {
-      expr match {
-        case Clos(arg, body) => s"@$arg " + p"$body"
-        case Application(fun, arg) => p"$fun $arg"
-        case UnaryExpr(op, v) =>  op.toString.toLowerCase + " " + p"$v"
-        case BinaryExpr(op, v1, v2) => op.toString.toLowerCase + " " + p"$v1" + " " + p"$v2"
-        case Variable(name, _) => name
-        case Constant(i) => i.toString
-        case Let(name, expr, maybeCodeExpr) =>
-          s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
-            case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
-        case Call(name, args) => s"call ${args.size + 1} $name " + args.map({arg: Expr => p"$arg"}).mkString(" ")
-        case NopExpr() => ""
-        case _ => throw new NotImplementedError(s"NFNPrettyPrinter cannot pretty print: $expr")
-      }
-  }
-
-  implicit class PrettyPrinting(val sc: StringContext) {
-    def p(args: Expr*) = sc.s(args map parensIfNeeded:_*)
-  }
-
-  def parensIfNeeded(expr: Expr) = expr match {
-    case Variable(name, _) => name
-    case Constant(i) => i
-    //    case Literal(lit) => lit
-    case _            => "(" + apply(expr) + ")"
-  }
-}

@@ -3,18 +3,15 @@ package evaluation
 import scala.util._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern._
 import akka.util.Timeout
-import config.AkkaConfig
 
 import nfn._
 import ccn.packet._
-import nfn.NFNMaster._
 import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
-import lambdacalculus.parser.ast.{LambdaDSL, LambdaDsl}
+import lambdacalculus.parser.ast.LambdaDSL
 
 
 object ThreeNodeTwoHopEnv extends App {
@@ -50,13 +47,17 @@ object ThreeNodeTwoHopEnv extends App {
   node2 += docContent2
   node3 += docContent3
 
+  Thread.sleep(200)
 
   import LambdaDSL._
+  import LambdaNFNImplicits._
+
+  implicit val useThunks = false
 
 
-  val a = 'x @: "y" @: (('x * 1) - "y")
+  val expr = 'x @: ("y" @: (('x * 1) - "y")  ! 2) ! 3
 
-  node1 ? Interest(docname3) onComplete {
+  node1 ? expr onComplete {
     case Success(content) => println(s"RECV FROM REMOTE: $content")
     case Failure(error) => throw error
   }

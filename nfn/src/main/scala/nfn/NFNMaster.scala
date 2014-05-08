@@ -14,7 +14,7 @@ import ccn.packet._
 import ccn.{ContentStore, CCNLiteProcess}
 import java.net.InetSocketAddress
 import myutil.IOHelper
-import lambdacalculus.parser.ast.{LambdaNFNPrinter, LambdaLocalPrettyPrinter, Variable, Expr}
+import lambdacalculus.parser.ast.{LambdaPrettyPrinter, Variable, Expr}
 import nfn.local.LocalAbstractMachineWorker
 import monitor.Monitor
 import monitor.Monitor.{ContentInfoLog, InterestInfoLog, NodeLog}
@@ -42,7 +42,7 @@ object NFNApi {
         expr match {
           case Variable(name, _) => Seq(name)
           case _ =>
-            if (local) Seq(LambdaLocalPrettyPrinter(expr))
+            if (local) Seq(LambdaPrettyPrinter(expr))
             else Seq(LambdaNFNPrinter(expr), "NFN")
         }
       CCNSendReceive(Interest(nameCmps: _*))
