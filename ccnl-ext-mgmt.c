@@ -77,9 +77,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         int id = -it; 
         
         int packetsize = size/2;
-        char *packet = (char*) ccnl_malloc(sizeof(char)*packetsize * 2);
+        unsigned char *packet = (unsigned char*) ccnl_malloc(sizeof(char)*packetsize * 2);
         int len4 = 0;
-        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
+        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG);
         if(it == numPackets - 1) {
             len4 += mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
@@ -116,7 +116,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_content_s *c = 0;
                 struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
                 unsigned char *content = 0;
-                char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+                unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
                 pkt = ccnl_extract_prefix_nonce_ppkd(&buf2, &len5, 0, 0,
                                0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -126,7 +126,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 }
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
-                prefix_a->comp[0] = "mgmt";
+                prefix_a->comp[0] = (unsigned char *)"mgmt";
                 sprintf(ht, "seqnum-%d", it);
                 prefix_a->comp[1] = ht;
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
