@@ -23,7 +23,33 @@ object UnaryOp extends Enumeration {
 }
 
 
-sealed abstract class Expr extends Positional
+object LambdaDSLTest extends App {
+  import LambdaDSL._
+
+  val a: Expr = 'x @: "y" @: (('x * 1) - "y")
+
+  val b: Call = "/WordCount" call ("/doc/doc1" :: Nil)
+
+}
+
+object LambdaDSL {
+//  implicit def call(symbolNameAndExprs: (Symbol, List[Expr])): Call = symbolAndExprsToCall(symbolNameAndExprs)
+  implicit def symbolAndExprsToCall(symbolNameAndExprs: (Symbol, List[Expr])): Call = Call(symbolNameAndExprs._1.name, symbolNameAndExprs._2)
+  implicit def symbolAndExprsToCall(nameAndExprs: (String, List[Expr])): Call = Call(nameAndExprs._1, nameAndExprs._2)
+  implicit def symbolToExpr (sym: Symbol): Variable = Variable.toVar(sym)
+  implicit def stringToExpr (str: String): Variable = Variable(str)
+  implicit def intToConstant(c: Int):Constant  = Constant(c)
+}
+
+sealed abstract class Expr extends Positional {
+  def @: (symbolName: Symbol): Expr = Clos(symbolName.name,this)
+  def @: (stringName: String): Expr = Clos(stringName,this)
+  def ! (arg: Expr) = Application(this,arg)
+  def + (expr: Expr) = BinaryExpr(BinaryOp.Add, this, expr)
+  def - (expr: Expr) = BinaryExpr(BinaryOp.Sub, this, expr)
+  def * (expr: Expr) = BinaryExpr(BinaryOp.Mult, this, expr)
+  def / (expr: Expr) = BinaryExpr(BinaryOp.Div, this, expr)
+}
 
 case class Clos(boundVariable: String, body: Expr) extends Expr {
   override def equals(o: Any) = o match {
@@ -34,8 +60,22 @@ case class Clos(boundVariable: String, body: Expr) extends Expr {
 }
 case class Application(rator: Expr, rand: Expr) extends Expr
 
-case class Variable(name: String, accessValue: Int = -1) extends Expr
+object Variable {
+  implicit def toVar (sym: Symbol): Variable = Variable(sym.name)
+}
+
+case class Variable(name: String, accessValue: Int = -1) extends Expr {
+  def apply(args: List[Expr]): Call = call(args)
+  def call(args: List[Expr]): Call = {
+    Expr.symbolAndExprsToCall(Symbol(this.name) -> args)
+  }
+}
+
+object Constant {
+}
+
 case class Constant(i: Int) extends Expr
+
 case class UnaryExpr(op: UnaryOp.UnaryOp, v: Expr) extends Expr
 case class BinaryExpr(op: BinaryOp.BinaryOp, v1: Expr, v2:Expr) extends Expr
 case class Let(name: String, letExpr: Expr, code: Option[Expr]) extends Expr
