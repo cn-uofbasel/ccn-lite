@@ -96,6 +96,7 @@ object WordCountEnv extends App {
 
   def printInterestResult(interest: Interest) = {
 
+    implicit val useThunks = true
     Thread.sleep(1000)
     (nodes(0) ? interest) onComplete {
       case Success(content) => println(s"RESULT: $content")

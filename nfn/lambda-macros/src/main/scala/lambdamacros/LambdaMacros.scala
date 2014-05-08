@@ -68,10 +68,14 @@ object LambdaMacros {
     reify { }
   }
 
-  def lambda(param: Any): String = macro lambda_impl
+//  def compileToLambda(param: Any)(implicit lambdaPrinter: LambdaPrinter): String = {
+//    lambda(param, lambdaPrinter)
+//  }
+
+  def lambda(param: Any, lambdaPrinter: LambdaPrinter): String = macro lambda_impl
 
   def lambda_impl(c: Context)
-                 (param: c.Expr[Any]) : c.Expr[String] = {
+                 (param: c.Expr[Any], lambdaPrinter: c.Expr[LambdaPrinter]) : c.Expr[String] = {
 
 //  def lambda[T](param: T): String = macro lambda_impl[T]
 //
@@ -447,7 +451,9 @@ object LambdaMacros {
     printRaw_impl(c)(param)
 
     val res: String =
-      LambdaNFNPrinter(toLambda(q"$param"))
+      lambdaPrinter.splice (
+        toLambda(q"$param")
+      )
 //      q"$param" match {
 //        case _ => throw new Exception("Can only lambdafy blocks!")
 //      }

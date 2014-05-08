@@ -1,6 +1,6 @@
 package evaluation.usecase
 
-import nfn.NodeConfig
+import nfn.{LambdaNFNPrinter, NodeConfig}
 import node.Node
 import ccn.packet._
 import scala.util.{Failure, Success}
@@ -9,7 +9,6 @@ import akka.pattern.AskTimeoutException
 import scala.concurrent.duration._
 import akka.util.Timeout
 import lambdacalculus.LambdaCalculus
-import lambdacalculus.parser.ast.LambdaNFNPrinter
 
 object LambdaExpressionTester extends App {
 
@@ -43,6 +42,7 @@ object LambdaExpressionTester extends App {
     println(s"Sending $exprNFNString to network")
     val interest: Interest = Interest(exprNFNString, "NFN")
 
+    implicit val useThunks = false
     (node ? interest) onComplete {
       case Success(content) => println(s"RESULT: $content")
       case Failure(e) => e match {
