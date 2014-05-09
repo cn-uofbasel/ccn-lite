@@ -375,14 +375,14 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     char *namecomp[CCNL_MAX_NAME_COMP];
     char *param;
     struct ccnl_content_s *c;
-    int j, complen;
+    int j;
     memset(comp, 0, CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
     param = strdup(config->fox_state->params[parameter_num]);
     j = splitComponents(param, namecomp);
     
-    if(isLocalAvailable(ccnl, config, namecomp)){
+    if(ccnl_nfn_local_content_search(ccnl, namecomp, j)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 config->fox_state->params[parameter_num]);
         c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, out, comp, halt);
