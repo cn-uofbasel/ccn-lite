@@ -57,10 +57,10 @@ object NFNService extends Logging {
     loadedService
   }
 
-  def parseAndFindFromName(name: String, ccnWorker: ActorRef): Future[CallableNFNService] = {
+  def parseAndFindFromName(name: String, nfnMaster: ActorRef): Future[CallableNFNService] = {
 
     def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
-      (ccnWorker ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
+      (nfnMaster ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
     }
 
     def findService(fun: String): Future[NFNService] = {
@@ -130,7 +130,7 @@ object NFNService extends Logging {
           for {
             args <- futArgs
             serv <- futServ
-            callable <- serv.instantiateCallable(serv.ccnName, args, serv.executionTimeEstimate)
+            callable <- serv.instantiateCallable(serv.ccnName, args, nfnMaster, serv.executionTimeEstimate)
           } yield callable
 
         futCallableServ onSuccess {
@@ -145,22 +145,19 @@ object NFNService extends Logging {
 
 trait NFNService extends Logging {
 
-//  def nFNMaster: ActorRef
-
   def executionTimeEstimate: Option[Int] = None
 
-  def function: (Seq[NFNValue]) => NFNValue
+  def function: (Seq[NFNValue], ActorRef) => NFNValue
 
   def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]]
 
   def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
 
-
-  def instantiateCallable(name: CCNName, values: Seq[NFNValue], executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
+  def instantiateCallable(name: CCNName, values: Seq[NFNValue], nfnMaster: ActorRef, executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
     logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
     assert(name == ccnName, s"Service $ccnName is created with wrong name $name")
     verifyArgs(values)
-    Try(CallableNFNService(name, values, function, executionTimeEstimate))
+    Try(CallableNFNService(name, values, nfnMaster, function, executionTimeEstimate))
   }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 

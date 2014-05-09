@@ -51,11 +51,15 @@ object NFNApi {
 
   case class CCNSendReceive(interest: Interest, useThunks: Boolean = false)
 
-  case class CCNAddToCache(content: Content)
+  case class AddToCCNCache(content: Content)
+
+  case class AddToLocalCache(content: Content, prependLocalPrefix: Boolean = false)
 
   case class Connect(nodeConfig: NodeConfig)
 
-  case class AddFace(nodeConfig: NodeConfig, gateway: NodeConfig)
+  case class AddCCNFace(nodeConfig: NodeConfig, gateway: NodeConfig)
+
+  case class AddLocalFace(nameWithoutPrefix: String)
 }
 
 case class NodeConfig(host: String, port: Int, computePort: Int, prefix: CCNName) {
@@ -284,9 +288,18 @@ trait NFNMaster extends Actor {
 //      }
     }
 
-    case NFNApi.CCNAddToCache(content) => {
+    case NFNApi.AddToCCNCache(content) => {
       logger.info(s"sending add to cache for name ${content.name}")
       sendAddToCache(content)
+    }
+
+    case NFNApi.AddToLocalCache(content, prependLocalPrefix) => {
+      val contentToAdd =
+      if(prependLocalPrefix) {
+        Content(nodeConfig.prefix.append(content.name), content.data)
+      } else content
+      logger.info(s"Adding content for ${contentToAdd.name} to local cache")
+      cs.add(contentToAdd)
     }
 
     // TODO this message is only for network node
@@ -295,9 +308,10 @@ trait NFNMaster extends Actor {
     }
 
     // TODO this message is only for network node
-    case NFNApi.AddFace(otherNodeConfig, gateway) => {
+    case NFNApi.AddCCNFace(otherNodeConfig, gateway) => {
       addPrefix(otherNodeConfig, gateway)
     }
+
 
     case Exit() => {
       exit()
@@ -311,6 +325,8 @@ trait NFNMaster extends Actor {
   def send(packet: CCNPacket): Unit
   def sendAddToCache(content: Content): Unit
   def exit(): Unit = ()
+
+  def nodeConfig: NodeConfig
 }
 
 case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
@@ -379,6 +395,8 @@ case class NFNMasterNetwork(nodeConfig: NodeConfig) extends NFNMaster {
 
 case class NFNMasterLocal() extends NFNMaster {
 
+
+
   val localAM = context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), name = "localAM")
 
   override def send(packet: CCNPacket): Unit = localAM ! packet
@@ -392,6 +410,8 @@ case class NFNMasterLocal() extends NFNMaster {
   override def monitorReceive(packet: CCNPacket): Unit = ???
 
   override def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig): Unit = ???
+
+  override def nodeConfig: NodeConfig = ???
 }
 
 

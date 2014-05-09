@@ -27,6 +27,7 @@ object NFNServiceLibrary extends Logging {
   add(MapService())
   add(ReduceService())
   add(SumService())
+  add(Publish())
 
   def add(serv: NFNService) =  {
     val name = serv.ccnName
@@ -83,7 +84,7 @@ object NFNServiceLibrary extends Logging {
       )
 
       logger.debug(s"nfnPublish: Adding ${content.name} to cache")
-      ccnWorker ! NFNApi.CCNAddToCache(content)
+      ccnWorker ! NFNApi.AddToCCNCache(content)
     }
   }
 
@@ -95,8 +96,8 @@ object NFNServiceLibrary extends Logging {
 case class NFNServiceExecutionException(msg: String) extends Exception(msg)
 case class NFNServiceArgumentException(msg: String) extends Exception(msg)
 
-case class CallableNFNService(name: CCNName, values: Seq[NFNValue], function: (Seq[NFNValue]) => NFNValue, executionTimeEstimate: Option[Int]) extends Logging {
-  def exec:NFNValue = function(values)
+case class CallableNFNService(name: CCNName, values: Seq[NFNValue], nfnMaster: ActorRef, function: (Seq[NFNValue], ActorRef) => NFNValue, executionTimeEstimate: Option[Int]) extends Logging {
+  def exec:NFNValue = function(values, nfnMaster)
 }
 
 object Main {

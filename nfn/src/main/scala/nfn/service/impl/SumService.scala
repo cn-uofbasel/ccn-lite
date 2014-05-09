@@ -4,6 +4,7 @@ import nfn.service._
 import scala.util.Try
 import nfn.service.NFNServiceArgumentException
 import nfn.service.NFNIntValue
+import akka.actor.ActorRef
 
 /**
  * Simple service which takes a sequence of [[NFNIntValue]] and sums them to a single [[NFNIntValue]]
@@ -15,8 +16,8 @@ case class SumService() extends NFNService {
     else throw argumentException(args)
   }
 
-  override def function: (Seq[NFNValue]) => NFNValue = {
-    (values: Seq[NFNValue]) => {
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = {
+    (values: Seq[NFNValue], _) => {
       NFNIntValue(
         values.map({
           case i: NFNIntValue => i.amount

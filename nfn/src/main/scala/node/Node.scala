@@ -128,7 +128,7 @@ case class Node(nodeConfig: NodeConfig) {
   }
 
   def addFace(faceOfNode: Node, gateway: Node) = {
-    nfnMaster ! NFNApi.AddFace(faceOfNode.nodeConfig, gateway.nodeConfig)
+    nfnMaster ! NFNApi.AddCCNFace(faceOfNode.nodeConfig, gateway.nodeConfig)
   }
 
   def addFaces(faceOfNodes: List[Node], gateway: Node) = {
@@ -175,7 +175,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def cache(content: Content) = {
     isConnecting = false
-    nfnMaster ! NFNApi.CCNAddToCache(content)
+    nfnMaster ! NFNApi.AddToCCNCache(content)
   }
 
   /**

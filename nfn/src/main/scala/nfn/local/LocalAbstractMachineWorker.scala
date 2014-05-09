@@ -28,7 +28,7 @@ class LocalAbstractMachineWorker(nfnMaster: ActorRef) extends Actor {
 
   private def handleContent(content: Content, sender: ActorRef) = {
     logger.info(s"Received content $content, adding to contentstore")
-    nfnMaster ! NFNApi.CCNAddToCache(content)
+    nfnMaster ! NFNApi.AddToCCNCache(content)
   }
 
 
