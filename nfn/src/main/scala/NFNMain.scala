@@ -6,7 +6,7 @@ import akka.util.Timeout
 import ccn.packet.{NFNInterest, CCNName, Content, Interest}
 import com.typesafe.config.ConfigFactory
 import nfn.NFNApi._
-import nfn.NFNMaster._
+import nfn.NFNServer._
 import nfn.service.impl._
 import nfn.service._
 
@@ -36,9 +36,9 @@ object NFNMain extends App {
 
   val system: ActorSystem = ActorSystem("NFNActorSystem", config)
 
-//  val nfnWorker = NFNMasterFactory.local(system)
+//  val nfnWorker = CCNServerFactory.local(system)
   val nodeConfig = NodeConfig("localhost", 10000, 10001, CCNName("node"))
-  val nfnWorker = NFNMasterFactory.network(system, nodeConfig)
+  val nfnWorker = CCNServerFactory.ccnServer(system, nodeConfig)
 
   // Has to wait until udp connection is ready
 //  Thread.sleep(1000)

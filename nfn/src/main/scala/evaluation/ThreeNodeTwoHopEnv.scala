@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
 import lambdacalculus.parser.ast.{Variable, Expr, LambdaDSL}
-import nfn.service.impl.Publish
+import nfn.service.impl.{WordCountService, Publish}
 
 
 object ThreeNodeTwoHopEnv extends App {
@@ -56,23 +56,29 @@ object ThreeNodeTwoHopEnv extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks = false
+  implicit val useThunks = true
 
   val pub = Publish().toString
 
-  val expr: Expr = 'x @: ("y" @: (('x * 1) - "y")  ! 2) ! 3
+  val wc = WordCountService().toString
 
-  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name))
+  val expr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
 
-  node1 ? pubExpr onComplete {
-    case Success(content) => println(s"ACK ADDED: $content")
-    case Failure(error) => throw error
-  }
+  val wcExpr: Expr = wc call(List(docname1, docname2, docname3))
 
-  node1 ? Interest(node1.nodeConfig.prefix.append("doc", "test1added")) onComplete {
-    case Success(content) => println(s"RECV: $content")
-    case Failure(error) => throw error
-  }
+
+//  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name))
+//
+//  node1 ? pubExpr onComplete {
+//    case Success(content) => println(s"ACK ADDED: $content")
+//    case Failure(error) => throw error
+//  }
+
+    node1 ? wcExpr onComplete {
+      case Success(content) => println(s"RECVRESULT: $content")
+      case Failure(error) => throw error
+    }
+
 
   Thread.sleep(timeoutDuration.toMillis + 100)
 

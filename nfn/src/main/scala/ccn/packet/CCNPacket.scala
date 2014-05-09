@@ -23,6 +23,12 @@ case class CCNName(cmps: String *) extends Logging {
     else cmps.toList.mkString("/", "/", "")
   }
 
+  def isThunk: Boolean = cmps.size >= 2 && cmps.drop(cmps.size-2).forall(_ != "THUNK") == false
+
+  def isNFN: Boolean = cmps.size >= 1 && cmps.last == "NFN"
+
+  def isCompute: Boolean = (cmps.size >= 1) && cmps.head == "COMPUTE"
+
   def withoutThunkAndIsThunk: (CCNName, Boolean) = {
     if(cmps.size == 0) this -> false                                  // name '/' is not a thunk
     cmps.last match {
@@ -75,6 +81,7 @@ case class Interest(name: CCNName) extends CCNPacket {
   def this(cmps: String *) = this(CCNName(cmps:_*))
 
   def thunkify: Interest = Interest(name.thunkify)
+
 
 }
 

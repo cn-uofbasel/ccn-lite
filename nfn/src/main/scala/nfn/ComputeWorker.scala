@@ -21,7 +21,7 @@ object ComputeWorker {
 /**
  *
  */
-case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
+case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
   val name = self.path.name
   val logger = Logging(context.system, this)
@@ -36,16 +36,16 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
 
   // Received compute request
   // Make sure it actually is a compute request and forward to the handle method
-  def receivedInterest(interest: Interest, requestor: ActorRef) = {
-    logger.debug(s"received compute interest: $interest")
-    interest.name.cmps match {
+  def receivedComputeRequest(name: CCNName, requestor: ActorRef) = {
+    logger.debug(s"received compute request: $name")
+    name.cmps match {
       case Seq("COMPUTE", reqNfnCmps @ _ *) => {
         assert(reqNfnCmps.last == "NFN")
         val (computeCmps, isThunkReq) = CCNName(reqNfnCmps.init:_*).withoutThunkAndIsThunk
 
-        handleComputeRequest(computeCmps, interest, isThunkReq, requestor)
+        handleComputeRequest(computeCmps, name, isThunkReq, requestor)
       }
-      case _ => logger.error(s"Dropping interest $interest because it is not a compute request")
+      case _ => logger.error(s"Dropping interest $name because it is not a compute request")
     }
   }
 
@@ -54,20 +54,21 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
    * Parses the compute request and instantiates a callable service.
    * On success, sends a thunk back if required, executes the services and sends the result back.
    */
-  def handleComputeRequest(computeName: CCNName, interest: Interest, isThunkRequest: Boolean, requestor: ActorRef) = {
+  def handleComputeRequest(computeName: CCNName, originalName: CCNName, isThunkRequest: Boolean, requestor: ActorRef) = {
     logger.debug(s"Handling compute request for name: $computeName")
-    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnWorker)
+    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnServer)
 
     callableServ onComplete {
       case Success(callableServ) => {
         if(isThunkRequest) {
-          requestor ! NFNMaster.Thunk(interest, callableServ.executionTimeEstimate)
+          // TODO: No default value for network
+          requestor ! Content(originalName, callableServ.executionTimeEstimate.fold("")(_.toString).getBytes)
         }
 
         val result: NFNValue = callableServ.exec
-        val content = Content(interest.name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
+        val content = Content(originalName.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
         logger.info(s"Finished computation, result: $content")
-        requestor ! NFNMaster.ComputeResult(content)
+        requestor ! content
       }
       case Failure(e) => {
 
@@ -77,11 +78,8 @@ case class ComputeWorker(ccnWorker: ActorRef) extends Actor {
   }
 
   override def receive: Actor.Receive = {
-    case content: Content => receivedContent(content)
-    case interest: Interest => {
-      // Just to make sure we are not closing over sender
-      val requestor = sender
-      receivedInterest(interest, requestor)
+    case ComputeServer.Compute(name, useThunks) => {
+      receivedComputeRequest(name, sender)
     }
     case Exit() => context.stop(self)
   }

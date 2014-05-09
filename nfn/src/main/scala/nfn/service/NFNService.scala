@@ -15,7 +15,7 @@ import akka.actor._
 
 import ccn.packet._
 import bytecode.BytecodeLoader
-import nfn.NFNMaster._
+import nfn.NFNServer._
 import nfn.NFNApi
 
 object NFNService extends Logging {
@@ -57,10 +57,10 @@ object NFNService extends Logging {
     loadedService
   }
 
-  def parseAndFindFromName(name: String, nfnMaster: ActorRef): Future[CallableNFNService] = {
+  def parseAndFindFromName(name: String, ccnServer: ActorRef): Future[CallableNFNService] = {
 
     def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
-      (nfnMaster ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
+      (ccnServer ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
     }
 
     def findService(fun: String): Future[NFNService] = {
@@ -93,7 +93,7 @@ object NFNService extends Logging {
             }
             case false => {
               val interest = Interest(arg.split("/").tail.toList :_*)
-              logger.debug(s"Arg '$arg' is a name, asking nfn master to find content for $interest")
+              logger.debug(s"Arg '$arg' is a name, asking the ccnServer to find content for $interest")
               loadFromCacheOrNetwork(interest) map  { content =>
                 logger.debug(s"Found arg $arg")
                 NFNBinaryDataValue(content.name, content.data)
@@ -130,7 +130,7 @@ object NFNService extends Logging {
           for {
             args <- futArgs
             serv <- futServ
-            callable <- serv.instantiateCallable(serv.ccnName, args, nfnMaster, serv.executionTimeEstimate)
+            callable <- serv.instantiateCallable(serv.ccnName, args, ccnServer, serv.executionTimeEstimate)
           } yield callable
 
         futCallableServ onSuccess {
@@ -153,11 +153,11 @@ trait NFNService extends Logging {
 
   def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
 
-  def instantiateCallable(name: CCNName, values: Seq[NFNValue], nfnMaster: ActorRef, executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
+  def instantiateCallable(name: CCNName, values: Seq[NFNValue], ccnServer: ActorRef, executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
     logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
     assert(name == ccnName, s"Service $ccnName is created with wrong name $name")
     verifyArgs(values)
-    Try(CallableNFNService(name, values, nfnMaster, function, executionTimeEstimate))
+    Try(CallableNFNService(name, values, ccnServer, function, executionTimeEstimate))
   }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]
 

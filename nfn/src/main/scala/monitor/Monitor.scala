@@ -41,27 +41,8 @@ object Monitor {
   case class ContentInfoLog(`type`: String = "content", name: String, data: String) extends PacketInfoLog
   case class InterestInfoLog(`type`: String = "interest", name: String) extends PacketInfoLog
 
-  /**
-   * {
-   *   "packetLog": {
-   *     "from": {
-   *       "host": "127.0.0.1",
-   *       "port": 10001,
-   *       "type" : "NFNNode",  // optional
-   *       "prefix": "docrepo1" // optional
-   *     },
-   *     "to": {
-   *       "host": "127.0.0.1",
-   *       "port": 10002
-   *     },
-   *     "isSent": true,
-   *     "interest": {
-   *       "name" : "/ccn/name",
-   *       "data" : "TWFuIGlzIGZmF0aWdhYmxlIGdlbmVyYXRpb24" // base 64
-   *     }
-   *   }
-   * }
-   */
+  case class PacketLogWithoutConfigs(fromHost: String, fromPort: Int, toHost: String, toPort: Int, isSent: Boolean, packet: PacketInfoLog ) extends MonitorLogEntry
+
 
   case class PacketLog(from: Option[NodeLog], to: NodeLog, isSent: Boolean, override val timestamp: Long, packet: PacketInfoLog) extends MonitorLogEntry {
     def this(from: NodeLog, to: NodeLog, isSent: Boolean, packet: PacketInfoLog) =
@@ -246,6 +227,19 @@ case class Monitor() extends Actor {
     case cl: ConnectLog => handleConnectLog(cl)
     case pl: PacketLog => handlePacketLog(pl)
     case atc: AddToCacheLog => handleAddToCacheLog(atc)
+
+    case plWithoutConfig: PacketLogWithoutConfigs => {
+      val maybeFrom = findNode(plWithoutConfig.fromHost, plWithoutConfig.fromPort)
+      val maybeTo = findNode(plWithoutConfig.toHost, plWithoutConfig.toPort)
+
+      maybeTo match {
+        case Some(to) => {
+          val pl = PacketLog(maybeFrom, to,plWithoutConfig.isSent, plWithoutConfig.timestamp, plWithoutConfig.packet)
+          self.tell(pl, sender)
+        }
+        case None => logger.error(s"Receiver of packet for a packetlog without config does not exist: $plWithoutConfig")
+      }
+    }
 
     case Monitor.Visualize() => {
       OmnetIntegration(nodes, edges, loggedPackets, startTime)()
