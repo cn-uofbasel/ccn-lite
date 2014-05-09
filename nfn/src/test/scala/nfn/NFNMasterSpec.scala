@@ -6,7 +6,7 @@ import org.scalatest._
 import nfn.service.NFNServiceLibrary
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.parser.ast._
-import nfn.NFNMaster._
+import nfn.NFNServer._
 import ccn.packet._
 import nfn.service.impl.{WordCountService, AddService}
 
@@ -15,11 +15,9 @@ class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
 with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with SequentialNestedSuiteExecution {
 
   println("INIT")
-  val nfnMasterLocalRef: TestActorRef[NFNMasterLocal] = TestActorRef(NFNMasterFactory.localProps)
-  val nfnMasterLocalInstance = nfnMasterLocalRef.underlyingActor
 
   val nodeConfig = NodeConfig("localhost",10000, 10001, CCNName("testnode"))
-  val nfnMasterNetworkRef: TestActorRef[NFNMasterNetwork] = TestActorRef(NFNMasterFactory.networkProps(nodeConfig))
+  val nfnMasterNetworkRef: TestActorRef[NFNServer] = TestActorRef(CCNServerFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
   val name = CCNName("test", "data")
@@ -47,7 +45,6 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       NFNServiceLibrary.nfnPublish(ref)
     }
 
-    initCaches(nfnMasterLocalRef)
     initCaches(nfnMasterNetworkRef)
     Thread.sleep(100)
   }
@@ -80,7 +77,6 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
     s"An $nfnMasterName actor" should {
       "send interest and receive corresponding data" in {
-        nfnMasterLocalInstance.cs.find(name) shouldBe Some(content)
         nfnMasterRef ! NFNApi.CCNSendReceive(interest)
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe data

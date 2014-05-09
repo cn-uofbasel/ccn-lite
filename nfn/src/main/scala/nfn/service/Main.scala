@@ -13,7 +13,7 @@ import akka.actor.ActorRef
 import ccn.ccnlite.CCNLite
 import ccn.packet._
 import nfn.service.impl._
-import nfn.NFNMaster._
+import nfn.NFNServer._
 import bytecode.BytecodeLoader
 import nfn.NFNApi
 

@@ -1,6 +1,6 @@
 package node
 
-import nfn.{NFNApi, NFNMaster, NFNMasterFactory, NodeConfig}
+import nfn.{NFNApi, NFNServer, CCNServerFactory, NodeConfig}
 import scala.concurrent.duration.FiniteDuration
 import akka.util.Timeout
 import akka.actor.ActorSystem
@@ -108,7 +108,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isConnecting = true
 
   private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
-  private val _nfnMaster = NFNMasterFactory.network(system, nodeConfig)
+  private val _nfnMaster = CCNServerFactory.ccnServer(system, nodeConfig)
 
   private def nfnMaster = {
     assert(isRunning, "Node was already shutdown")
@@ -229,7 +229,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def shutdown() = {
     assert(isRunning, "This node was already shut down")
-    nfnMaster ! NFNMaster.Exit()
+    nfnMaster ! NFNServer.Exit()
     isRunning = false
   }
 

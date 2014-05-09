@@ -9,12 +9,18 @@ import akka.util.ByteString
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import network.UDPConnection._
+import ccn.packet.{CCNPacket, Interest, Content}
+import ccnliteinterface.CCNLiteInterface
+import ccn.ccnlite.CCNLite
 
 object UDPConnection {
   case class Send(data: Array[Byte])
   case class Received(data: Array[Byte], sendingRemote: InetSocketAddress)
   case class Handler(worker: ActorRef)
 }
+
+
+
 
 /**
  * A connection between a target socket and a remote socket.
