@@ -4,6 +4,7 @@ import scala.util.Try
 
 import nfn.service._
 import ccn.packet.Content
+import akka.actor.ActorRef
 
 
 /**
@@ -34,15 +35,15 @@ case class MapService() extends NFNService {
   }
 
 
-  override def function: (Seq[NFNValue]) => NFNValue = {
-    (values: Seq[NFNValue]) => {
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = {
+    (values: Seq[NFNValue], nfnMaster) => {
       values match {
         case Seq(NFNBinaryDataValue(servName, servData), args @ _*) => {
           val tryExec = NFNService.serviceFromContent(Content(servName, servData)) map { (serv: NFNService) =>
             NFNListValue(
               (args map { arg =>
                 val execTime = serv.executionTimeEstimate flatMap { _ => this.executionTimeEstimate }
-                serv.instantiateCallable(serv.ccnName, Seq(arg), execTime).get.exec
+                serv.instantiateCallable(serv.ccnName, Seq(arg), nfnMaster, execTime).get.exec
               }).toList
             )
           }
@@ -74,18 +75,18 @@ case class ReduceService() extends NFNService {
     }
   }
 
-  override def function: (Seq[NFNValue]) => NFNValue = {
-    (values: Seq[NFNValue]) => {
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = {
+    (values: Seq[NFNValue], nfnMaster) => {
       values match {
         case Seq(fun: NFNServiceValue, argList: NFNListValue) => {
           // TODO exec time
-          fun.serv.instantiateCallable(fun.serv.ccnName, argList.values, None).get.exec
+          fun.serv.instantiateCallable(fun.serv.ccnName, argList.values, nfnMaster, None).get.exec
         }
         case Seq(NFNBinaryDataValue(servName, servData), args @ _*) => {
           val tryExec: Try[NFNValue] = NFNService.serviceFromContent(Content(servName, servData)) flatMap {
             (serv: NFNService) =>
               // TODO exec time
-              serv.instantiateCallable(serv.ccnName, args, None) map {
+              serv.instantiateCallable(serv.ccnName, args, nfnMaster, None) map {
                 callableServ =>
                   callableServ.exec
               }

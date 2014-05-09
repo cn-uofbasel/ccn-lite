@@ -2,6 +2,7 @@ package nfn.service.impl
 
 import scala.util.Try
 import nfn.service._
+import akka.actor.ActorRef
 
 /**
  * Created by basil on 24/03/14.
@@ -13,7 +14,7 @@ case class WordCountService() extends NFNService {
     else throw argumentException(args)
   }
 
-  override def function: (Seq[NFNValue]) => NFNValue = { docs =>
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (docs, _) =>
     NFNIntValue(
       docs.map({
         case doc: NFNBinaryDataValue => new String(doc.data).split(" ").size

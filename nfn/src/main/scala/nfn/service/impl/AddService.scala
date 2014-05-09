@@ -4,6 +4,7 @@ import nfn.service._
 import com.typesafe.scalalogging.slf4j.Logging
 import scala.util.Try
 import nfn.service.NFNServiceArgumentException
+import akka.actor.ActorRef
 
 
 case class AddService() extends  NFNService with Logging {
@@ -18,7 +19,7 @@ case class AddService() extends  NFNService with Logging {
     }
   }
 
-  override def function: (Seq[NFNValue]) => NFNValue = { (values: Seq[NFNValue]) =>
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (values: Seq[NFNValue], _) =>
     values match {
       case Seq(l: NFNIntValue, r: NFNIntValue) => {
         NFNIntValue(l.amount + r.amount)

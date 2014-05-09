@@ -41,9 +41,9 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
   override def beforeAll() {
     def initCaches(ref: ActorRef) = {
-      ref ! NFNApi.CCNAddToCache(content)
-      ref ! NFNApi.CCNAddToCache(doc1Content)
-      ref ! NFNApi.CCNAddToCache(doc2Content)
+      ref ! NFNApi.AddToCCNCache(content)
+      ref ! NFNApi.AddToCCNCache(doc1Content)
+      ref ! NFNApi.AddToCCNCache(doc2Content)
       NFNServiceLibrary.nfnPublish(ref)
     }
 
@@ -90,7 +90,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
         val contentName = Seq("name", "addtocache")
         val contentData = "added to cache!".getBytes
         val cacheContent = Content(contentData, contentName:_*)
-        nfnMasterRef ! NFNApi.CCNAddToCache(cacheContent)
+        nfnMasterRef ! NFNApi.AddToCCNCache(cacheContent)
         // TODO maybe make this nicer?
         Thread.sleep(200)
         nfnMasterRef ! NFNApi.CCNSendReceive(Interest(contentName:_*))

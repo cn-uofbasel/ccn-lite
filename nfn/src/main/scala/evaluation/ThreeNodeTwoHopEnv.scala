@@ -11,7 +11,8 @@ import ccn.packet._
 import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
-import lambdacalculus.parser.ast.LambdaDSL
+import lambdacalculus.parser.ast.{Variable, Expr, LambdaDSL}
+import nfn.service.impl.Publish
 
 
 object ThreeNodeTwoHopEnv extends App {
@@ -27,6 +28,7 @@ object ThreeNodeTwoHopEnv extends App {
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
 
+
   val docname2 = node2Config.prefix.append("doc", "test2")
   val docdata2 = "two two".getBytes
   val docContent2 = Content(docname2, docdata2)
@@ -34,6 +36,8 @@ object ThreeNodeTwoHopEnv extends App {
   val docname3 = node3Config.prefix.append("doc", "test3")
   val docdata3 = "three three three".getBytes
   val docContent3 = Content(docname3, docdata3)
+
+  val doc3PrefixToAddContent = Content(node3Config.prefix.append("doc", "test3", "prefixToAdd"), "/doc/test3added".getBytes)
 
   var node1 = Node(node1Config)
   var node2 = Node(node2Config)
@@ -46,6 +50,7 @@ object ThreeNodeTwoHopEnv extends App {
   node1 += docContent1
   node2 += docContent2
   node3 += docContent3
+  node3 += doc3PrefixToAddContent
 
   Thread.sleep(200)
 
@@ -53,11 +58,19 @@ object ThreeNodeTwoHopEnv extends App {
   import LambdaNFNImplicits._
   implicit val useThunks = false
 
+  val pub = Publish().toString
 
-  val expr = 'x @: ("y" @: (('x * 1) - "y")  ! 2) ! 3
+  val expr: Expr = 'x @: ("y" @: (('x * 1) - "y")  ! 2) ! 3
 
-  node1 ? expr onComplete {
-    case Success(content) => println(s"RECV FROM REMOTE: $content")
+  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name))
+
+  node1 ? pubExpr onComplete {
+    case Success(content) => println(s"ACK ADDED: $content")
+    case Failure(error) => throw error
+  }
+
+  node1 ? Interest(node1.nodeConfig.prefix.append("doc", "test1added")) onComplete {
+    case Success(content) => println(s"RECV: $content")
     case Failure(error) => throw error
   }
 

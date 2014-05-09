@@ -51,8 +51,8 @@ object NFNMain extends App {
   val docContent1 = Content(docname1, docdata1)
   val docContent2 = Content(docname2, docdata2)
 
-  nfnWorker ! CCNAddToCache(docContent1)
-  nfnWorker ! CCNAddToCache(docContent2)
+  nfnWorker ! AddToCCNCache(docContent1)
+  nfnWorker ! AddToCCNCache(docContent2)
   NFNServiceLibrary.nfnPublish(nfnWorker)
   // Make sure that services and content is added to the nfn cache
   Thread.sleep(200)
