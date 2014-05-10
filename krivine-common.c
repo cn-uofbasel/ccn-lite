@@ -100,7 +100,18 @@ int trim(char *str){  // inplace, returns len after shrinking
     }
 }
 
-//FIXME!!!!!
+int
+add_computation_components(char **namecomp, int thunk_request, char *comp){
+    int i = 0;
+    while(namecomp[i]) ++i;
+
+    namecomp[i++] =  comp;
+    if(thunk_request) namecomp[i++] = "THUNK";
+    namecomp[i++] = "NFN";
+    namecomp[i++] = NULL;
+    return i;
+}
+
 int
 splitComponents(char* namecomp, char **prefix)
 { 
@@ -116,40 +127,53 @@ splitComponents(char* namecomp, char **prefix)
     return i;
 }
 
-int
-mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
+#ifndef USE_UTIL
+struct ccnl_interest_s *
+mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+                  char **namecomp)
 {
-#ifndef USE_UTIL 
-    DEBUGMSG(2, "mkInterestCompute()\n");
-#endif
+
+    DEBUGMSG(2, "mkInterestObject()\n");
+
+    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    struct ccnl_prefix_s *p = 0;
+    char *out = malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *content = 0;
+    int num; int typ;
     int len = 0, k, i;
     unsigned char *cp;
-    
+
     len += mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    char **nc = namecomp;
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	cp = (unsigned char*) strdup(*namecomp);
-	k = unescape_component(cp);
-	//	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, cp, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-	free(cp);
-	namecomp++;
+        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+        cp = (unsigned char*) strdup(*namecomp);
+        k = unescape_component(cp);
+        //	k = strlen(*namecomp);
+        len += mkHeader(out+len, k, CCN_TT_BLOB);
+        memcpy(out+len, cp, k);
+        len += k;
+        out[len++] = 0; // end-of-component
+        free(cp);
+        ++namecomp;
     }
-    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, computation, computationlen);
-    if(thunk) len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "NFN");
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
 
-    return len;  
+    dehead(&out, &len, &num, &typ);
+    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
+             &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
+    from->faceid = config->configid;
+    from->last_used = CCNL_NOW();
+    from->outq = malloc(sizeof(struct ccnl_buf_s));
+    from->outq->data[0] = strdup(nc[0]);
+    from->outq->datalen = strlen(nc[0]);
+    return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 }
-
-
-#ifndef USE_UTIL 
 
 void
 ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
@@ -244,7 +268,7 @@ mkContent(char **namecomp,
 
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-        char *res, int reslen){
+        char *contentstr, int contentlen){
     DEBUGMSG(49, "create_content_object()\n");
     int i = 0;
     char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
@@ -259,7 +283,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         prefixcomps[i] = strdup(prefix->comp[i]);
     } fprintf(stderr, "\n");
     
-    int len = mkContent(prefixcomps, NULL, 0, res, reslen, out);
+    int len = mkContent(prefixcomps, NULL, 0, contentstr, contentlen, out);
     
     
     int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
@@ -300,22 +324,6 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, char **namecomp, int co
 }
 
 struct ccnl_content_s *
-ccnl_extract_content_obj(struct ccnl_relay_s* ccnl, char *out, int len){
-    
-    DEBUGMSG(2, "ccnl_extract_content_obj()\n");
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = 0;
-    int num; int typ;
-    dehead(&out, &len, &num, &typ);
-    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);    
-    
-    return ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);   
-}
-
-struct ccnl_content_s *
 ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         struct ccnl_interest_s *interest, int search_only_local){
     struct ccnl_content_s *c;
@@ -335,28 +343,6 @@ ccnl_nfn_global_content_search(struct ccnl_relay_s *ccnl, struct configuration_s
     interest->from->faceid = config->configid;
     ccnl_interest_propagate(ccnl, interest);
     return NULL;
-}
-
-struct ccnl_interest_s *
-ccnl_nfn_create_interest_object(struct ccnl_relay_s *ccnl, struct configuration_s *config, char *out, int len, char* name){
-    DEBUGMSG(2, "ccnl_nfn_create_interest_object()\n");
-    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
-    
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = 0;
-    int num; int typ;
-    dehead(&out, &len, &num, &typ);
-    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
-    
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
-    from->faceid = config->configid;
-    from->last_used = CCNL_NOW();
-    from->outq = malloc(sizeof(struct ccnl_buf_s));
-    from->outq->data[0] = strdup(name);
-    from->outq->datalen = strlen(name);
-    return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 }
 
 char * 
@@ -392,8 +378,7 @@ ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
-        int len = mkInterest(thunk->prefix->comp, NULL, out);
-        struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, thunk->prefix->comp[0]);
+        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix->comp);
         return interest;
     }
     return NULL;

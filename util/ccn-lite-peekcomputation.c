@@ -20,6 +20,37 @@
 
 #include "ccnl-socket.c"
 
+int
+mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
+{
+#ifndef USE_UTIL
+    DEBUGMSG(2, "mkInterestCompute()\n");
+#endif
+    int len = 0, k, i;
+    unsigned char *cp;
+
+    len += mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    while (*namecomp) {
+    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+    cp = (unsigned char*) strdup(*namecomp);
+    k = unescape_component(cp);
+    //	k = strlen(*namecomp);
+    len += mkHeader(out+len, k, CCN_TT_BLOB);
+    memcpy(out+len, cp, k);
+    len += k;
+    out[len++] = 0; // end-of-component
+    free(cp);
+    namecomp++;
+    }
+    len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, computation, computationlen);
+    if(thunk) len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
+    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "NFN");
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+    return len;
+}
 
 int main(int argc, char **argv){
     
