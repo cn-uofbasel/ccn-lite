@@ -301,11 +301,9 @@ int choose_parameter(struct configuration_s *config){
 
 }
 
-
-
 struct ccnl_content_s *
 ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-        char **namecomp, char *out, char *comp, int *halt){
+        char **namecomp, char *comp, int *halt){
     int complen = sprintf(comp, "call %d ", config->fox_state->num_of_params);
     struct ccnl_interest_s * interest;
     struct ccnl_content_s *c;
@@ -320,8 +318,8 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
     if(config->fox_state->thunk_request) namecomp[i++] = "THUNK";
     namecomp[i++] = "NFN";
     namecomp[i++] = NULL;
-    len = mkInterest(namecomp, 0, out);
-    interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]);
+
+    interest = mkInterestObject(ccnl, config, namecomp);
     for(i = 0; i < interest->prefix->compcnt; ++i){
         printf("/%s", interest->prefix->comp[i]);
     }printf("\n");
@@ -338,7 +336,7 @@ ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuratio
 
 struct ccnl_content_s *
 ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        int parameter_num, char **namecomp, char *out, char *comp, int *halt, int search_only_local){
+        int parameter_num, char **namecomp, char *comp, int *halt, int search_only_local){
     
     struct ccnl_content_s *c;
     int j;
@@ -356,9 +354,8 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
     complen += sprintf(comp + complen, ")");
     DEBUGMSG(49, "Computation request: %s %s\n", comp, config->fox_state->params[parameter_num]);
     //make interest
-    int len = mkInterestCompute(namecomp, comp, complen, config->fox_state->thunk_request, out); //TODO: no thunk request for local search  
-    //search
-    struct ccnl_interest_s *interest = ccnl_nfn_create_interest_object(ccnl, config, out, len, namecomp[0]); //FIXME: NAMECOMP[0]???
+    add_computation_components(namecomp, config->fox_state->thunk_request, comp);
+    struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, namecomp);
     if((c = ccnl_nfn_global_content_search(ccnl, config, interest, search_only_local)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
         return c;
@@ -370,14 +367,12 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
 struct ccnl_content_s *
 ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, 
         struct configuration_s *config, int parameter_num, int *halt, int search_only_local){
-    char *out =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
     char *namecomp[CCNL_MAX_NAME_COMP];
     char *param;
     struct ccnl_content_s *c;
     int j;
     memset(comp, 0, CCNL_MAX_PACKET_SIZE);
-    memset(out, 0, CCNL_MAX_PACKET_SIZE);
     
     param = strdup(config->fox_state->params[parameter_num]);
     j = splitComponents(param, namecomp);
@@ -385,11 +380,11 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
     if(ccnl_nfn_local_content_search(ccnl, namecomp, j)){
         DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
                 config->fox_state->params[parameter_num]);
-        c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, out, comp, halt);
+        c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, comp, halt);
     }else{
         DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
                 config->fox_state->params[parameter_num]);
-        c = ccnl_nfn_handle_network_search(ccnl, config, parameter_num ,namecomp, out, comp, halt, search_only_local);
+        c = ccnl_nfn_handle_network_search(ccnl, config, parameter_num ,namecomp, comp, halt, search_only_local);
     }
     return c;
 }
