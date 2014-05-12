@@ -685,8 +685,9 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_interest_s *i2;
-    DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
     int it;
+    DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
+
     for(it = 0; it < i->prefix->compcnt; ++it){
         fprintf(stderr, "/%s", i->prefix->comp[it]);
     }
@@ -707,9 +708,11 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
         struct ccnl_interest_s *i){
-    DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
     struct ccnl_interest_s *interest;
+    DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
+#ifdef CCNL_NFN
     int faceid = i->from->faceid;
+#endif
     interest = ccnl_interest_remove(ccnl, i);
 #ifdef CCNL_NFN
     if(faceid < 0){
@@ -784,10 +787,9 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
+    struct ccnl_content_s *cit;
     DEBUGMSG(99, "ccnl_content_add2cache (%d/%d) --> %p\n",
          ccnl->contentcnt, ccnl->max_cache_entries, (void*)c);
-
-    struct ccnl_content_s *cit;
     for(cit = ccnl->contents; cit; cit = cit->next){
         //DEBUGMSG(99, "--- Already in cache ---\n");
         if(c == cit) return NULL;
@@ -840,7 +842,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
                 
-                DEBUGMSG("--- Serve to: %d", pi->face->faceid);
+        DEBUGMSG(99, "--- Serve to: %d", pi->face->faceid);
 #ifdef CCNL_NFN_MONITOR
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),

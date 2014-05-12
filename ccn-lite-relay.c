@@ -316,7 +316,6 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
                   char *crypto_face_path)
 {
     struct ccnl_if_s *i;
-    char h[1024];
 
     DEBUGMSG(99, "ccnl_relay_config\n");
 
