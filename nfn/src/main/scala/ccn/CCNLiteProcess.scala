@@ -84,8 +84,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start
 
-    addPrefixToNewOrExistingNetworkFace(host, computePort, "COMPUTE")
-    globalFaceId = 5
+    globalFaceId = 2
   }
 
   def stop() = {
@@ -110,8 +109,9 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
     addPrefixToNewOrExistingNetworkFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix.toString)
   }
 
-  def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig) = {
-    println(s"Adding prefix from node $prefixNode to $gatewayNode")
-    addPrefixToNewOrExistingNetworkFace(gatewayNode.host, gatewayNode.port, prefixNode.prefix.toString)
+
+  def addPrefix(prefix: CCNName, gatewayHost: String, gatewayPort: Int) = {
+    println(s"Adding prefix $prefix to gateway ($gatewayHost:$gatewayPort)")
+    addPrefixToNewOrExistingNetworkFace(gatewayHost, gatewayPort, prefix.toString)
   }
 }

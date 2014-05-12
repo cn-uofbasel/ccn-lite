@@ -6,6 +6,8 @@ import java.net.InetSocketAddress
 
 import akka.actor._
 import akka.event.Logging
+import akka.pattern._
+import scala.util.{Failure, Success}
 
 import network._
 import nfn.NFNServer._
@@ -15,6 +17,9 @@ import ccn._
 import lambdacalculus.parser.ast._
 import monitor.Monitor
 import monitor.Monitor.PacketLogWithoutConfigs
+import akka.util.Timeout
+import scala.concurrent.duration._
+
 
 
 object NFNServer {
@@ -49,9 +54,6 @@ object NFNApi {
 
   case class AddToLocalCache(content: Content, prependLocalPrefix: Boolean = false)
 
-//  case class AddCCNFace(nodeConfig: NodeConfig, gateway: NodeConfig)
-
-//  case class AddLocalFace(nameWithoutPrefix: String)
 }
 
 
@@ -62,9 +64,6 @@ object CCNServerFactory {
   }
   def networkProps(nodeConfig: NodeConfig) = Props(classOf[NFNServer], nodeConfig)
 }
-
-
-
 
 
 class UDPConnectionContentInterest(local:InetSocketAddress,
@@ -121,20 +120,17 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
 
   val ccnIf = CCNLite
 
-  val cs = ContentStore()
-  var pit: Map[CCNName, Set[ActorRef]] = Map()
 
   val cacheContent: Boolean = true
 
   var maybeLocalAbstractMachine: Option[ActorRef] = None
 
 
-  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
-  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
-
-
 
   val computeServer: ActorRef = context.actorOf(Props(classOf[ComputeServer]), name = "ComputeServer")
+
+  var pit: ActorRef = context.actorOf(Props(classOf[PIT]), name = "PIT")
+  var cs: ActorRef = context.actorOf(Props(classOf[CS]), name = "CS")
 
   val nfnGateway = context.actorOf(Props(classOf[UDPConnectionContentInterest],
     new InetSocketAddress(nodeConfig.host, nodeConfig.computePort),
@@ -147,38 +143,53 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     nfnGateway ! UDPConnection.Handler(self)
   }
 
-
+  val defaultTimeoutDuration = 5 seconds
 
   // Check pit for an address to return content to, otherwise discard it
   private def handleContent(content: Content) = {
 
+
     def handleThunkContent = {
-      pit.get(content.name) match {
-        case Some(pendingFaces) => {
-          val (contentNameWithoutThunk, isThunk) = content.name.withoutThunkAndIsThunk
 
-          assert(isThunk, s"handleThunkContent received the content object $content which is not a thunk")
-
-          // if the thunk content name is a compute name it means that the content was sent by the compute server
-          // send the thunk content to the gateway
-          if(content.name.isCompute) {
-            nfnGateway ! content
-
-          // else it was a thunk interest, which means we can now send the actual interest
-          } else {
-            val interest = Interest(contentNameWithoutThunk)
-            logger.debug(s"Received thunk $content, sending actual interest $interest")
-            nfnGateway ! interest
-            pit += contentNameWithoutThunk -> pendingFaces
-          }
-          pit -= content.name
+      def timeoutFromContent: FiniteDuration = {
+        val timeoutInContent = new String(content.data)
+        if(timeoutInContent != "" || timeoutInContent.forall(_.isDigit)) {
+          timeoutInContent.toInt millis
+        } else {
+          defaultTimeoutDuration
         }
-        case None => logger.error(s"Discarding thunk content $content because there is no entry in pit")
       }
+
+      implicit val timeout = Timeout(timeoutFromContent)
+      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] map {
+          case Some(pendingFaces) => {
+            val (contentNameWithoutThunk, isThunk) = content.name.withoutThunkAndIsThunk
+
+            assert(isThunk, s"handleThunkContent received the content object $content which is not a thunk")
+
+            // if the thunk content name is a compute name it means that the content was sent by the compute server
+            // send the thunk content to the gateway
+            if(content.name.isCompute) {
+              nfnGateway ! content
+
+              // else it was a thunk interest, which means we can now send the actual interest
+            } else {
+              val interest = Interest(contentNameWithoutThunk)
+              logger.debug(s"Received thunk $content, sending actual interest $interest")
+              nfnGateway ! interest
+//              pit += contentNameWithoutThunk -> pendingFaces
+
+              pendingFaces foreach { pf => pit ! PIT.Add(contentNameWithoutThunk, pf, timeout.duration) }
+            }
+            pit ! PIT.Remove(content.name)
+          }
+          case None => logger.error(s"Discarding thunk content $content because there is no entry in pit")
+        }
     }
     def handleNonThunkContent = {
 
-      pit.get(content.name) match {
+      implicit val timeout = Timeout(defaultTimeoutDuration)
+      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] map {
         case Some(pendingFaces) => {
           if (content.name.isCompute) {
             logger.debug("Received computation result, sending back computation ack")
@@ -186,11 +197,12 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
           }
 
           if (cacheContent) {
-            cs.add(content)
+            cs ! CS.Add(content)
           }
 
-          pendingFaces foreach { pendingSender => pendingSender ! content }
-          pit -= content.name
+          pendingFaces foreach { pendingSender => pendingSender.send(content) }
+
+          pit ! PIT.Remove(content.name)
         }
         case None =>
           logger.warning(s"Discarding content $content because there is no entry in pit")
@@ -205,17 +217,22 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
   }
 
   private def handleInterest(i: Interest) = {
-    cs.find(i.name) match {
+    implicit val timeout = Timeout(defaultTimeoutDuration)
+    (cs ? CS.Get(i.name)).mapTo[Option[Content]] map {
       case Some(contentFromLocalCS) =>
+        logger.debug(s"Served $contentFromLocalCS from local CS")
         sender ! contentFromLocalCS
-
       case None => {
 
-        pit.get(i.name) match {
+        val senderFace = ActorRefFace(sender)
+
+        implicit val timeout = Timeout(defaultTimeoutDuration)
+        (pit ? PIT.Get(i.name)).mapTo[Option[Set[Face]]] map {
+//        pit.get(i.name) match {
           case Some(pendingFaces) =>
-            pit += i.name -> (pendingFaces + sender)
+            pit ! PIT.Add(i.name, senderFace, defaultTimeoutDuration)
           case None => {
-            pit += i.name -> Set(sender)
+            pit ! PIT.Add(i.name, senderFace, defaultTimeoutDuration)
 
             // /.../.../NFN
             if (i.name.isNFN) {
@@ -249,14 +266,21 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     }
   }
 
-
-  def addToPit(name: CCNName, interestSender: ActorRef) = {
-    pit += name -> (pit.get(name).getOrElse(Set[ActorRef]()) + interestSender)
-  }
-
   def handlePacket(packet: CCNPacket) = {
-    monitorReceive(packet)
+    def monitorReceive(packet: CCNPacket): Unit = {
+      val ccnPacketLog = packet match {
+        case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
+        case c: Content => {
+          val name = c.name.toString
+          val data = new String(c.data).take(50)
+          Monitor.ContentInfoLog("content", name, data)
+        }
+      }
+      Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
+    }
+
     val isThunk = packet.name.isThunk
+
     packet match {
       case i: Interest => {
         logger.info(s"Received interest: $i")
@@ -299,16 +323,16 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
 
     case NFNApi.AddToCCNCache(content) => {
       logger.info(s"sending add to cache for name ${content.name}")
-      sendAddToCache(content)
+      nfnGateway ! UDPConnection.Send(ccnIf.mkAddToCacheInterest(content))
     }
 
     case NFNApi.AddToLocalCache(content, prependLocalPrefix) => {
       val contentToAdd =
-      if(prependLocalPrefix) {
-        Content(nodeConfig.prefix.append(content.name), content.data)
-      } else content
+        if(prependLocalPrefix) {
+          Content(nodeConfig.prefix.append(content.name), content.data)
+        } else content
       logger.info(s"Adding content for ${contentToAdd.name} to local cache")
-      cs.add(contentToAdd)
+      cs ! CS.Add(contentToAdd)
     }
 
 
@@ -319,30 +343,9 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
 
   }
 
-//  def sendToNetwork(packet: CCNPacket): Unit = {
-//
-//
-//    nfnGateway ! UDPConnection.Send(ccnIf.mkBinaryPacket(packet))
-//  }
-
-  def sendAddToCache(content: Content): Unit = {
-    nfnGateway ! UDPConnection.Send(ccnIf.mkAddToCacheInterest(content))
-  }
-
   def exit(): Unit = {
     computeServer ! PoisonPill
     nfnGateway ! PoisonPill
   }
 
-  def monitorReceive(packet: CCNPacket): Unit = {
-    val ccnPacketLog = packet match {
-      case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
-      case c: Content => {
-        val name = c.name.toString
-        val data = new String(c.data).take(50)
-        Monitor.ContentInfoLog("content", name, data)
-      }
-    }
-    Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
-  }
 }
