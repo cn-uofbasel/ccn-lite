@@ -44,8 +44,8 @@ object ThreeNodeTwoHopEnv extends App {
   var node3 = Node(node3Config)
 
   Node.connectLine(Seq(node1, node2, node3))
-  node1.addFace(node3, node2)
-  node3.addFace(node1, node2)
+  node1.addNodeFace(node3, node2)
+  node3.addNodeFace(node1, node2)
 
   node1 += docContent1
   node1 += Content(CCNName("node", "node1"), "".getBytes)

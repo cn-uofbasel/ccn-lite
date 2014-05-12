@@ -77,24 +77,24 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
     Monitor.monitor ! new PacketLogWithoutConfigs(local.getHostString, local.getPort, target.getHostString, target.getPort, true, ccnPacketLog)
   }
 
-  def handlePacket(packet: CCNPacket) =
+  def handlePacket(packet: CCNPacket, senderCopy: ActorRef) =
     packet match {
       case i: Interest =>
         val binaryInterest = CCNLite.mkBinaryInterest(i)
-        self.tell(UDPConnection.Send(binaryInterest), sender)
+        self.tell(UDPConnection.Send(binaryInterest), senderCopy)
       case c: Content =>
         val binaryContent = CCNLite.mkBinaryContent(c)
-        self.tell(UDPConnection.Send(binaryContent), sender)
+        self.tell(UDPConnection.Send(binaryContent), senderCopy)
     }
 
   def interestContentReceiveWithoutLog: Receive = {
-    case p: CCNPacket => handlePacket(p)
+    case p: CCNPacket => handlePacket(p, sender)
   }
 
   def interestContentReceive: Receive = {
     case p: CCNPacket => {
       logPacket(p)
-      handlePacket(p)
+      handlePacket(p, sender)
     }
   }
 
@@ -143,11 +143,10 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     nfnGateway ! UDPConnection.Handler(self)
   }
 
-  val defaultTimeoutDuration = 5 seconds
+  val defaultTimeoutDuration = 5.seconds
 
   // Check pit for an address to return content to, otherwise discard it
-  private def handleContent(content: Content) = {
-
+  private def handleContent(content: Content, senderCopy: ActorRef) = {
 
     def handleThunkContent = {
 
@@ -161,7 +160,7 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
       }
 
       implicit val timeout = Timeout(timeoutFromContent)
-      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] map {
+      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] onSuccess {
           case Some(pendingFaces) => {
             val (contentNameWithoutThunk, isThunk) = content.name.withoutThunkAndIsThunk
 
@@ -189,7 +188,7 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     def handleNonThunkContent = {
 
       implicit val timeout = Timeout(defaultTimeoutDuration)
-      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] map {
+      (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] onSuccess {
         case Some(pendingFaces) => {
           if (content.name.isCompute) {
             logger.debug("Received computation result, sending back computation ack")
@@ -216,18 +215,18 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     }
   }
 
-  private def handleInterest(i: Interest) = {
+  private def handleInterest(i: Interest, senderCopy: ActorRef) = {
     implicit val timeout = Timeout(defaultTimeoutDuration)
-    (cs ? CS.Get(i.name)).mapTo[Option[Content]] map {
+    (cs ? CS.Get(i.name)).mapTo[Option[Content]] onSuccess  {
       case Some(contentFromLocalCS) =>
         logger.debug(s"Served $contentFromLocalCS from local CS")
-        sender ! contentFromLocalCS
+        senderCopy ! contentFromLocalCS
       case None => {
 
-        val senderFace = ActorRefFace(sender)
+        val senderFace = ActorRefFace(senderCopy)
 
         implicit val timeout = Timeout(defaultTimeoutDuration)
-        (pit ? PIT.Get(i.name)).mapTo[Option[Set[Face]]] map {
+        (pit ? PIT.Get(i.name)).mapTo[Option[Set[Face]]] onSuccess {
 //        pit.get(i.name) match {
           case Some(pendingFaces) =>
             pit ! PIT.Add(i.name, senderFace, defaultTimeoutDuration)
@@ -266,7 +265,7 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     }
   }
 
-  def handlePacket(packet: CCNPacket) = {
+  def handlePacket(packet: CCNPacket, senderCopy: ActorRef) = {
     def monitorReceive(packet: CCNPacket): Unit = {
       val ccnPacketLog = packet match {
         case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
@@ -284,11 +283,11 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     packet match {
       case i: Interest => {
         logger.info(s"Received interest: $i")
-        handleInterest(i)
+        handleInterest(i, senderCopy)
       }
       case c: Content => {
         logger.info(s"Received content: $c")
-        handleContent(c)
+        handleContent(c, senderCopy)
       }
     }
   }
@@ -296,12 +295,12 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
   override def receive: Actor.Receive = {
     // received Data from network
     // If it is an interest, start a compute request
-    case packet:CCNPacket => handlePacket(packet)
+    case packet:CCNPacket => handlePacket(packet, sender)
     case UDPConnection.Received(data, sendingRemote) => {
       val maybePacket = byteStringToPacket(data)
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
-        case Some(packet: CCNPacket) => handlePacket(packet)
+        case Some(packet: CCNPacket) => handlePacket(packet, sender)
         case Some(AddToCache()) => ???
         case None => logger.debug(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
       }
@@ -318,7 +317,7 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
       val interest =
         if(useThunks) maybeThunkInterest.thunkify
         else          maybeThunkInterest
-      handlePacket(interest)
+      handlePacket(interest, sender)
     }
 
     case NFNApi.AddToCCNCache(content) => {
