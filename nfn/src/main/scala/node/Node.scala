@@ -146,12 +146,16 @@ case class Node(nodeConfig: NodeConfig) {
     ccnLiteNFNNetworkProcess.connect(otherNode.nodeConfig)
   }
 
-  def addFace(faceOfNode: Node, gateway: Node) = {
+  def addNodeFace(faceOfNode: Node, gateway: Node) = {
     ccnLiteNFNNetworkProcess.addPrefix(faceOfNode.nodeConfig.prefix, gateway.nodeConfig.host, gateway.nodeConfig.port)
   }
 
-  def addFaces(faceOfNodes: List[Node], gateway: Node) = {
-    faceOfNodes map { addFace(_, gateway) }
+  def addPrefixFace(prefix: CCNName, gateway: Node) = {
+    ccnLiteNFNNetworkProcess.addPrefix(prefix, gateway.nodeConfig.host, gateway.nodeConfig.port)
+  }
+
+  def addNodeFaces(faceOfNodes: List[Node], gateway: Node) = {
+    faceOfNodes map { addNodeFace(_, gateway) }
   }
 
   /**
@@ -194,6 +198,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def cache(content: Content) = {
     nfnMaster ! NFNApi.AddToLocalCache(content)
+    ccnLiteNFNNetworkProcess.addPrefix(content.name, nodeConfig.host, nodeConfig.port)
   }
 
   /**
