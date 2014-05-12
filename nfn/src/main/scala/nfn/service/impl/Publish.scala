@@ -17,15 +17,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * Created by basil on 08/05/14.
  */
 case class Publish() extends NFNService {
-  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (args, nfnMaster) =>
-    println(s"$this was called")
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (args, nfnServer) =>
     args match {
-      case Seq(NFNBinaryDataValue(contentName, contentData), NFNBinaryDataValue(_, publishPrefixNameData)) => {
+      case Seq(NFNBinaryDataValue(contentName, contentData), NFNBinaryDataValue(_, publishPrefixNameData), _) => {
         implicit val timeout =  Timeout(5 seconds)
 
         val nameOfContentWithoutPrefixToAdd = CCNName(new String(publishPrefixNameData).split("/").tail:_*)
-        println(s"BLA: $nameOfContentWithoutPrefixToAdd")
-        nfnMaster ! NFNApi.AddToLocalCache(Content(nameOfContentWithoutPrefixToAdd, contentData), prependLocalPrefix = true)
+        nfnServer ! NFNApi.AddToLocalCache(Content(nameOfContentWithoutPrefixToAdd, contentData), prependLocalPrefix = true)
         NFNEmptValue()
       }
       case _ => throw argumentException(args)
@@ -38,7 +36,7 @@ case class Publish() extends NFNService {
 
   override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
     args match {
-      case Seq(_:NFNBinaryDataValue, _:NFNBinaryDataValue) => Try(args)
+      case Seq(_:NFNBinaryDataValue, _:NFNBinaryDataValue, _) => Try(args)
       case _ => throw argumentException(args)
     }
   }

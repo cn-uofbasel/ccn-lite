@@ -1,22 +1,42 @@
 package ccn
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
 
-import com.typesafe.scalalogging.slf4j.Logging
+import akka.actor.Actor
+import akka.actor.Actor.Receive
+import akka.event.Logging
 
 import ccn.packet._
 
-/**
- * Created by basil on 04/04/14.
- */
-case class ContentStore() extends Logging {
+object CS {
+
+  /**
+   * Returns Option[Content] depending on if it was in the content store
+   * @param name
+   */
+  case class Get(name: CCNName)
+
+  /**
+   * Returns nothing
+   * @param content
+   */
+  case class Add(content: Content)
+
+  /**
+   * Retruns nothing
+   * @param name
+   */
+  case class Remove(name: CCNName)
+}
+
+case class CS() extends Actor {
+  val logger = Logging(context.system, this)
   private val cs: mutable.Map[CCNName, Content] = mutable.Map()
 
-  def add(content: Content) = {
-    cs += (content.name -> content)
+  override def receive: Receive = {
+    case CS.Get(name) => sender ! cs.get(name)
+    case CS.Add(content) => cs += (content.name -> content)
+    case CS.Remove(name) => cs -= name
   }
-
-  def find(name: CCNName):Option[Content] = cs.get(name)
-
-  def remote(name: CCNName): Unit = cs -= name
 }

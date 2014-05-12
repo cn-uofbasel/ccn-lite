@@ -81,15 +81,15 @@ object NFNService extends Logging {
     }
 
     def findArgs(args: List[String]): Future[List[NFNValue]] = {
-      logger.debug(s"Looking for args $args")
+      logger.debug(s"Looking for args ${args.mkString("[ ", ", ", " ]")}")
       Future.sequence(
         args map { (arg: String) =>
           arg.forall(_.isDigit) match {
             case true => {
               logger.debug(s"Arg '$arg' is a number")
-              future{
+              Future(
                 NFNIntValue(arg.toInt)
-              }
+              )
             }
             case false => {
               val interest = Interest(arg.split("/").tail.toList :_*)

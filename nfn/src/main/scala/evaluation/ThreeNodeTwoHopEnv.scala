@@ -37,7 +37,7 @@ object ThreeNodeTwoHopEnv extends App {
   val docdata3 = "three three three".getBytes
   val docContent3 = Content(docname3, docdata3)
 
-  val doc3PrefixToAddContent = Content(node3Config.prefix.append("doc", "test3", "prefixToAdd"), "/doc/test3added".getBytes)
+  val doc3PrefixToAddContent = Content(node3Config.prefix.append("prefixToAdd", "doc", "test3"), "/dynadded/doc/test3".getBytes)
 
   var node1 = Node(node1Config)
   var node2 = Node(node2Config)
@@ -48,8 +48,10 @@ object ThreeNodeTwoHopEnv extends App {
   node3.addFace(node1, node2)
 
   node1 += docContent1
+  node1 += Content(CCNName("node", "node1"), "".getBytes)
   node2 += docContent2
-  node3 += docContent3
+  node3 += docContent3 // /node/node3/doc/test3
+//  node3 += Content(CCNName("node", "node3", "doc", "test3", "derp"), "derp".getBytes) // /node/node3/doc/test3/derp
   node3 += doc3PrefixToAddContent
 
   Thread.sleep(200)
@@ -62,23 +64,31 @@ object ThreeNodeTwoHopEnv extends App {
 
   val wc = WordCountService().toString
 
-  val expr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
+  val compExpr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
 
   val wcExpr: Expr = wc call(List(docname1, docname2, docname3))
 
-
-//  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name))
+  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name, CCNName("node", "node1")))
 //
 //  node1 ? pubExpr onComplete {
 //    case Success(content) => println(s"ACK ADDED: $content")
 //    case Failure(error) => throw error
 //  }
 
-    node1 ? wcExpr onComplete {
-      case Success(content) => println(s"RECVRESULT: $content")
-      case Failure(error) => throw error
-    }
+  Thread.sleep(200)
 
+  val expr = wcExpr
+  node1 ? expr onComplete {
+    case Success(content) => println(s"PUBLISHED: $content")
+    case Failure(error) => throw error
+  }
+
+//  Thread.sleep(1000)
+//
+//  node1 ? Interest(CCNName("node", "node1", "dynadded", "doc", "test3")) onComplete {
+//    case Success(content) => println(s"RECVRESULT: $content")
+//    case Failure(error) => throw error
+//  }
 
   Thread.sleep(timeoutDuration.toMillis + 100)
 

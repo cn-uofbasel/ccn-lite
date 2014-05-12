@@ -6,7 +6,7 @@ import akka.util.Timeout
 import akka.actor.ActorSystem
 import akka.pattern._
 import config.AkkaConfig
-import ccn.packet.{Interest, Content}
+import ccn.packet.{CCNName, Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import nfn.service.NFNServiceLibrary
@@ -107,14 +107,26 @@ case class Node(nodeConfig: NodeConfig) {
   implicit val timeout = Timeout( timeoutDuration)
 
   private var isRunning = true
+
+  /**
+   * This flag is required because ccn-lite internally increases the faceid for each interest it receives.
+   * The faceid is only written to the ccnlite output, which we currently do not parse during runtime.
+   * Therefore, as soon as one interest is sent, connecting nodes (= add faces to ccnlite) is no longer valid.
+   * This can be removed by either parsing the ccnlite output or if ccnlite changes how faces are setup.
+   */
   private var isConnecting = true
 
   private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
   private val _nfnServer = CCNServerFactory.ccnServer(system, nodeConfig)
 
-  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
+  private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
   ccnLiteNFNNetworkProcess.start()
 
+  ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
+  ccnLiteNFNNetworkProcess.addPrefix(nodeConfig.prefix, nodeConfig.host, nodeConfig.computePort)
+
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
+  Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
 
   private def nfnMaster = {
     assert(isRunning, "Node was already shutdown")
@@ -135,7 +147,7 @@ case class Node(nodeConfig: NodeConfig) {
   }
 
   def addFace(faceOfNode: Node, gateway: Node) = {
-    ccnLiteNFNNetworkProcess.addPrefix(faceOfNode.nodeConfig, gateway.nodeConfig)
+    ccnLiteNFNNetworkProcess.addPrefix(faceOfNode.nodeConfig.prefix, gateway.nodeConfig.host, gateway.nodeConfig.port)
   }
 
   def addFaces(faceOfNodes: List[Node], gateway: Node) = {
@@ -181,8 +193,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @param content
    */
   def cache(content: Content) = {
-    isConnecting = false
-    nfnMaster ! NFNApi.AddToCCNCache(content)
+    nfnMaster ! NFNApi.AddToLocalCache(content)
   }
 
   /**
@@ -204,6 +215,7 @@ case class Node(nodeConfig: NodeConfig) {
    * @param req
    */
   def send(req: Interest)(implicit useThunks: Boolean) = {
+    isConnecting = false
     nfnMaster ! NFNApi.CCNSendReceive(req, useThunks && isNFNReq(req))
   }
 
