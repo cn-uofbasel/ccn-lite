@@ -25,10 +25,7 @@ object NFNServer {
 
   case class ComputeResult(content: Content)
 
-  case class Thunk(interest: Interest, executionTimeEstimated: Option[Int])
-
   case class Exit()
-
 }
 
 object NFNApi {
@@ -52,11 +49,9 @@ object NFNApi {
 
   case class AddToLocalCache(content: Content, prependLocalPrefix: Boolean = false)
 
-  case class Connect(nodeConfig: NodeConfig)
+//  case class AddCCNFace(nodeConfig: NodeConfig, gateway: NodeConfig)
 
-  case class AddCCNFace(nodeConfig: NodeConfig, gateway: NodeConfig)
-
-  case class AddLocalFace(nameWithoutPrefix: String)
+//  case class AddLocalFace(nameWithoutPrefix: String)
 }
 
 
@@ -137,9 +132,7 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog)
 
-  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
 
-  ccnLiteNFNNetworkProcess.start()
 
   val computeServer: ActorRef = context.actorOf(Props(classOf[ComputeServer]), name = "ComputeServer")
 
@@ -276,13 +269,6 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
     }
   }
 
-//  def sendThunkContentForName(name: CCNName, executionTimeEstimated: Option[Int]): Unit = {
-//    val thunkContent = Content.thunkForName(name, executionTimeEstimated)
-//    logger.debug(s"sending thunk answer ${thunkContent}")
-//    sendToNetwork(thunkContent)
-//  }
-
-
   override def receive: Actor.Receive = {
     // received Data from network
     // If it is an interest, start a compute request
@@ -311,10 +297,6 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
       handlePacket(interest)
     }
 
-//    case Thunk(interest, executionTimeEstimated) => {
-//      sendThunkContentForName(interest.name, executionTimeEstimated)
-//    }
-
     case NFNApi.AddToCCNCache(content) => {
       logger.info(s"sending add to cache for name ${content.name}")
       sendAddToCache(content)
@@ -327,16 +309,6 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
       } else content
       logger.info(s"Adding content for ${contentToAdd.name} to local cache")
       cs.add(contentToAdd)
-    }
-
-    // TODO this message is only for network node
-    case NFNApi.Connect(otherNodeConfig) => {
-      connect(otherNodeConfig)
-    }
-
-    // TODO this message is only for network node
-    case NFNApi.AddCCNFace(otherNodeConfig, gateway) => {
-      addPrefix(otherNodeConfig, gateway)
     }
 
 
@@ -360,17 +332,6 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
   def exit(): Unit = {
     computeServer ! PoisonPill
     nfnGateway ! PoisonPill
-    ccnLiteNFNNetworkProcess.stop()
-  }
-
-  def connect(otherNodeConfig: NodeConfig): Unit = {
-    Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNodeConfig.toNFNNodeLog)
-    ccnLiteNFNNetworkProcess.connect(otherNodeConfig)
-  }
-
-  def addPrefix(prefixNode: NodeConfig, gatewayNode: NodeConfig): Unit = {
-    // TODO: faces are not logged / visualized in any way
-    ccnLiteNFNNetworkProcess.addPrefix(prefixNode, gatewayNode)
   }
 
   def monitorReceive(packet: CCNPacket): Unit = {

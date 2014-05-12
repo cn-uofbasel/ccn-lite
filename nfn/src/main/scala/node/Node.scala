@@ -11,6 +11,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import nfn.service.NFNServiceLibrary
 import scala.collection.immutable.{Iterable, IndexedSeq}
+import ccn.CCNLiteProcess
+import monitor.Monitor
 
 
 object Node {
@@ -108,11 +110,15 @@ case class Node(nodeConfig: NodeConfig) {
   private var isConnecting = true
 
   private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
-  private val _nfnMaster = CCNServerFactory.ccnServer(system, nodeConfig)
+  private val _nfnServer = CCNServerFactory.ccnServer(system, nodeConfig)
+
+  val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
+  ccnLiteNFNNetworkProcess.start()
+
 
   private def nfnMaster = {
     assert(isRunning, "Node was already shutdown")
-    _nfnMaster
+    _nfnServer
   }
 
   /**
@@ -124,11 +130,12 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def connect(otherNode: Node) = {
     assert(isConnecting, "Node can only connect to other nodes before caching any content")
-    nfnMaster ! NFNApi.Connect(otherNode.nodeConfig)
+    Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toNFNNodeLog, otherNode.nodeConfig.toNFNNodeLog)
+    ccnLiteNFNNetworkProcess.connect(otherNode.nodeConfig)
   }
 
   def addFace(faceOfNode: Node, gateway: Node) = {
-    nfnMaster ! NFNApi.AddCCNFace(faceOfNode.nodeConfig, gateway.nodeConfig)
+    ccnLiteNFNNetworkProcess.addPrefix(faceOfNode.nodeConfig, gateway.nodeConfig)
   }
 
   def addFaces(faceOfNodes: List[Node], gateway: Node) = {
@@ -230,6 +237,7 @@ case class Node(nodeConfig: NodeConfig) {
   def shutdown() = {
     assert(isRunning, "This node was already shut down")
     nfnMaster ! NFNServer.Exit()
+    ccnLiteNFNNetworkProcess.stop()
     isRunning = false
   }
 
