@@ -152,8 +152,8 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
 
       def timeoutFromContent: FiniteDuration = {
         val timeoutInContent = new String(content.data)
-        if(timeoutInContent != "" || timeoutInContent.forall(_.isDigit)) {
-          timeoutInContent.toInt millis
+        if(timeoutInContent != "" && timeoutInContent.forall(_.isDigit)) {
+          timeoutInContent.toInt seconds
         } else {
           defaultTimeoutDuration
         }
@@ -175,10 +175,11 @@ case class NFNServer(nodeConfig: NodeConfig) extends Actor {
             } else {
               val interest = Interest(contentNameWithoutThunk)
               logger.debug(s"Received thunk $content, sending actual interest $interest")
-              nfnGateway ! interest
 //              pit += contentNameWithoutThunk -> pendingFaces
 
+              logger.debug(s"Timeout duration: ${timeout.duration}")
               pendingFaces foreach { pf => pit ! PIT.Add(contentNameWithoutThunk, pf, timeout.duration) }
+              nfnGateway ! interest
             }
             pit ! PIT.Remove(content.name)
           }

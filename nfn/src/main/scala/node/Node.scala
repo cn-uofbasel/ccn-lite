@@ -198,6 +198,7 @@ case class Node(nodeConfig: NodeConfig) {
    */
   def cache(content: Content) = {
     nfnMaster ! NFNApi.AddToLocalCache(content)
+    nfnMaster ! NFNApi.AddToCCNCache(content)
     ccnLiteNFNNetworkProcess.addPrefix(content.name, nodeConfig.host, nodeConfig.port)
   }
 
