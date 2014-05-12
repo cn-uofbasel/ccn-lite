@@ -339,22 +339,9 @@ ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s
         int parameter_num, char **namecomp, char *comp, int *halt, int search_only_local){
     
     struct ccnl_content_s *c;
-    int j;
-    int complen = sprintf(comp, "(@x call %d ", config->fox_state->num_of_params);
-    DEBUGMSG(2, "ccnl_nfn_handle_network_search()\n");
-    
-    for(j = 0; j < config->fox_state->num_of_params; ++j){
-        if(parameter_num == j){
-            complen += sprintf(comp + complen, "x ");
-        }
-        else{
-            complen += sprintf(comp + complen, "%s ", config->fox_state->params[j]);
-        }
-    }
-    complen += sprintf(comp + complen, ")");
-    DEBUGMSG(49, "Computation request: %s %s\n", comp, config->fox_state->params[parameter_num]);
-    //make interest
-    add_computation_components(namecomp, config->fox_state->thunk_request, comp);
+    int l = createComputationString(config, parameter_num, comp);
+    l = add_computation_components(namecomp, config->fox_state->thunk_request, comp);
+
     struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, namecomp);
     if((c = ccnl_nfn_global_content_search(ccnl, config, interest, search_only_local)) != NULL){
         DEBUGMSG(49, "Content found in the network\n");
@@ -413,6 +400,20 @@ ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl,
         }while(0) ;
 //------------------------------------------------------------
         
+int
+create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request, int compcnt, char **namecomp)
+{
+    if(ccnl_nfn_local_content_search(ccnl, namecomp, compcnt)){ //local computation name components
+        compcnt = add_local_computation_components(namecomp, thunk_request, config);
+    }
+    else{ //network search name components
+        char *comp = malloc(CCNL_MAX_PACKET_SIZE);
+        int compstrlen = createComputationString(config, parameter_number, comp);
+        compcnt = add_computation_components(namecomp, thunk_request, comp);
+    }
+    return compcnt;
+}
+
 char*
 ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
         int thunk_request, int *num_of_required_thunks,  
@@ -822,15 +823,14 @@ normal:
         struct ccnl_content_s *c = NULL;
 recontinue:
 
-
-
         //check if last result is now available
         if(search_only_local){
             //choose  routable parameter
             parameter_number = choose_parameter(config);
-
-            c = ccnl_nfn_handle_routable_content(ccnl,
-                                    config, parameter_number, halt, search_only_local);
+            char *namecomp[CCNL_MAX_NAME_COMP];
+            int compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
+            compcnt =create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
+            c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt); //search for a result
             search_only_local = 0;
         }
 
@@ -842,6 +842,9 @@ recontinue:
 
             //no more parameter --> no result found
             if(parameter_number < 0) return NULL;
+
+            //TODO: create name components.... (refactor as function)!!!!!!!!!
+            //local search first, later global search with no return and exit
 
             c = ccnl_nfn_handle_routable_content(ccnl,
                                     config, parameter_number, halt, search_only_local);
@@ -994,13 +997,13 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
 	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
                 &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
-    if(halt < 0){
+    if(halt < 0){ //HALT < 0 means pause computation
         //put config in stack
         //configuration_list[-(*config)->configid] = (*config);
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
     }
-    else{
+    else{ //HALT > 0 means computation finished
         free(dummybuf);
         DEBUGMSG(99, "end\n");
         char *h = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;

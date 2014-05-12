@@ -105,11 +105,49 @@ add_computation_components(char **namecomp, int thunk_request, char *comp){
     int i = 0;
     while(namecomp[i]) ++i;
 
-    namecomp[i++] =  comp;
+    namecomp[i++] = comp;
     if(thunk_request) namecomp[i++] = "THUNK";
     namecomp[i++] = "NFN";
-    namecomp[i++] = NULL;
+    namecomp[i] = NULL;
     return i;
+}
+
+int
+add_local_computation_components(char **namecomp, int thunk_request, struct configuration_s *config){
+
+    int i;
+    char *comp = malloc(CCNL_MAX_PACKET_SIZE);
+    int complen = sprintf(comp, "call %d ", config->fox_state->num_of_params);
+    for(i = 0; i < config->fox_state->num_of_params; ++i){
+        complen += sprintf(comp+complen, "%s ", config->fox_state->params[i]);
+    }
+    for(i = 0; i < CCNL_MAX_NAME_COMP; ++i){
+        namecomp[i] = 0;
+    }
+    i = 0;
+    namecomp[i++] = "COMPUTE";
+    namecomp[i++] = strdup(comp);
+    if(config->fox_state->thunk_request) namecomp[i++] = "THUNK";
+    namecomp[i++] = "NFN";
+    namecomp[i] = NULL;
+    return i;
+}
+
+int
+createComputationString(struct configuration_s *config, int parameter_num, char *comp){
+
+    int j;
+    int complen = sprintf(comp, "(@x call %d ", config->fox_state->num_of_params);
+    for(j = 0; j < config->fox_state->num_of_params; ++j){
+        if(parameter_num == j){
+            complen += sprintf(comp + complen, "x ");
+        }
+        else{
+            complen += sprintf(comp + complen, "%s ", config->fox_state->params[j]);
+        }
+    }
+    complen += sprintf(comp + complen, ")");
+    return complen;
 }
 
 int
@@ -147,9 +185,9 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     len += mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     char **nc = namecomp;
-    while (*namecomp) {
+    while (*nc) {
         len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-        cp = (unsigned char*) strdup(*namecomp);
+        cp = (unsigned char*) strdup(*nc);
         k = unescape_component(cp);
         //	k = strlen(*namecomp);
         len += mkHeader(out+len, k, CCN_TT_BLOB);
@@ -157,7 +195,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         len += k;
         out[len++] = 0; // end-of-component
         free(cp);
-        ++namecomp;
+        ++nc;
     }
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
@@ -170,8 +208,8 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
-    from->outq->data[0] = strdup(nc[0]);
-    from->outq->datalen = strlen(nc[0]);
+    from->outq->data[0] = strdup(namecomp[0]);
+    from->outq->datalen = strlen(namecomp[0]);
     return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 }
 
@@ -308,11 +346,13 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, char **namecomp, int co
     struct ccnl_content_s *content;
     struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s));
     int i;
-    prefix->comp = (unsigned char**)namecomp;
+
     prefix->compcnt = compcnt;
     prefix->complen = malloc(sizeof(int)*compcnt);
+    prefix->comp = namecomp;
     for(i = 0; i < compcnt; ++i){
         prefix->complen[i] = strlen(namecomp[i]);
+        //prefix->comp[i] = namecomp[i];
     }
 
     for(content = ccnl->contents; content; content = content->next){
