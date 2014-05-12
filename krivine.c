@@ -301,81 +301,6 @@ int choose_parameter(struct configuration_s *config){
 
 }
 
-struct ccnl_content_s *
-ccnl_nfn_handle_local_computation(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-        char **namecomp, char *comp, int *halt){
-    int complen = sprintf(comp, "call %d ", config->fox_state->num_of_params);
-    struct ccnl_interest_s * interest;
-    struct ccnl_content_s *c;
-    int i, len;
-    DEBUGMSG(99, "ccnl_nfn_handle_local_computation()\n");
-    for(i = 0; i < config->fox_state->num_of_params; ++i){
-        complen += sprintf(comp+complen, "%s ", config->fox_state->params[i]);
-    }
-    i = 0;
-    namecomp[i++] = "COMPUTE";
-    namecomp[i++] = strdup(comp);
-    if(config->fox_state->thunk_request) namecomp[i++] = "THUNK";
-    namecomp[i++] = "NFN";
-    namecomp[i++] = NULL;
-
-    interest = mkInterestObject(ccnl, config, namecomp);
-    for(i = 0; i < interest->prefix->compcnt; ++i){
-        printf("/%s", interest->prefix->comp[i]);
-    }printf("\n");
-    //TODO: Check if it is already available locally
-    
-    if((c = ccnl_nfn_global_content_search(ccnl, config, interest, 0)) != NULL){
-        DEBUGMSG(49, "Content found in the network\n");
-        return c;
-    }
-    //ccnl_interest_remove(ccnl, interest);
-    *halt = -1;
-    return 0;
-}
-
-struct ccnl_content_s *
-ccnl_nfn_handle_network_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        int parameter_num, char **namecomp, char *comp, int *halt, int search_only_local){
-    
-    struct ccnl_content_s *c;
-    int l = createComputationString(config, parameter_num, comp);
-    l = add_computation_components(namecomp, config->fox_state->thunk_request, comp);
-
-    struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, namecomp);
-    if((c = ccnl_nfn_global_content_search(ccnl, config, interest, search_only_local)) != NULL){
-        DEBUGMSG(49, "Content found in the network\n");
-        return c;
-    }
-    if(!search_only_local)*halt = -1;
-    return NULL;
-}
-
-struct ccnl_content_s *
-ccnl_nfn_handle_routable_content(struct ccnl_relay_s *ccnl, 
-        struct configuration_s *config, int parameter_num, int *halt, int search_only_local){
-    char *comp =  ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    char *namecomp[CCNL_MAX_NAME_COMP];
-    char *param;
-    struct ccnl_content_s *c;
-    int j;
-    memset(comp, 0, CCNL_MAX_PACKET_SIZE);
-    
-    param = strdup(config->fox_state->params[parameter_num]);
-    j = splitComponents(param, namecomp);
-    
-    if(ccnl_nfn_local_content_search(ccnl, namecomp, j)){
-        DEBUGMSG(49, "Routable content %s is local availabe --> start computation\n",
-                config->fox_state->params[parameter_num]);
-        c = ccnl_nfn_handle_local_computation(ccnl, config, namecomp, comp, halt);
-    }else{
-        DEBUGMSG(49, "Routable content %s is not local availabe --> start search in the network\n",
-                config->fox_state->params[parameter_num]);
-        c = ccnl_nfn_handle_network_search(ccnl, config, parameter_num ,namecomp, comp, halt, search_only_local);
-    }
-    return c;
-}
-
 //------------------------------------------------------------
 /**
  * used to avoid code duplication for popping two integer values from result stack asynchronous
@@ -825,7 +750,7 @@ recontinue:
 
         //check if last result is now available
         if(search_only_local){
-            //choose  routable parameter
+            //choose last  routable parameter
             parameter_number = choose_parameter(config);
             char *namecomp[CCNL_MAX_NAME_COMP];
             int compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
@@ -839,20 +764,22 @@ recontinue:
             //choose next parameter
             ++config->fox_state->it_routable_param;
             parameter_number = choose_parameter(config);
-
             //no more parameter --> no result found
             if(parameter_number < 0) return NULL;
 
-            //TODO: create name components.... (refactor as function)!!!!!!!!!
-            //local search first, later global search with no return and exit
-
-            c = ccnl_nfn_handle_routable_content(ccnl,
-                                    config, parameter_number, halt, search_only_local);
-
-            //wait for content, return current program to continue later
-            if(*halt < 0) return prog;
+            char *namecomp[CCNL_MAX_NAME_COMP];
+            int compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
+            compcnt = create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
+            c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt);
+            if(!c){  //Result not in cache
+                struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, namecomp);
+                ccnl_interest_propagate(ccnl, interest);
+                //wait for content, return current program to continue later
+                *halt = -1;
+                if(*halt < 0) return prog;
+            }
         }
-
+        //if result was found ---> handle it
         if(c){
             if(thunk_request){ //if thunk_request push thunkid on the stack
 
@@ -872,40 +799,7 @@ recontinue:
             else{
                 push_to_stack(&config->result_stack, c->content);
             }
-        }
-/*
-        for(; config->fox_state->it_routable_param >= 0; --config->fox_state->it_routable_param){
-            if(iscontent(config->fox_state->params[config->fox_state->it_routable_param])){
-                DEBUGMSG(99, "Using %s as routable content\n", config->fox_state->params[config->fox_state->it_routable_param]);
-                struct ccnl_content_s *c = ccnl_nfn_handle_routable_content(ccnl,
-                        config, halt, search_only_local);
-                search_only_local = 0;
-                if(*halt < 0) return prog;
-                if(c){
-                    if(thunk_request){ //if thunk_request push thunkid on the stack
-                        
-                        --(*num_of_required_thunks);
-                        char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
-                        char *time_required = c->content;
-                        int thunk_time = strtol(time_required, NULL, 10);
-                        thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
-                        config->thunk_time = config->thunk_time > thunk_time ? config->thunk_time : thunk_time;
-                        DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
-                        push_to_stack(&config->result_stack, thunkid);
-                        if( *num_of_required_thunks <= 0){
-                            DEBUGMSG(99, "All thunks are available\n");
-                            ccnl_nfn_reply_thunk(ccnl, config);
-                        }
-                    }
-                    else{
-                        push_to_stack(&config->result_stack, c->content);
-                    }                    
-                    goto tail;
-                }
-            }//endif
-        }//endfor
-*/
-        
+        }        
         DEBUGMSG(99, "Pending: %s\n", pending+1);
         return pending+1;
     }
@@ -913,8 +807,6 @@ recontinue:
     if(!strncmp(prog, "halt", 4)){
 	*halt = 1;
         return pending;
-        //FIXME: create string from stack, allow particular reduced
-        //return config->result_stack->content;
     }
 
     DEBUGMSG(2, "unknown built-in command <%s>\n", prog);
