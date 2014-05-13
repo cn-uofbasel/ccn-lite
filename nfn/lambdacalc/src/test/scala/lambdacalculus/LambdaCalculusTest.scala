@@ -93,38 +93,38 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
 
 //  testExpression(s"$listEnv head (tail (append 2 (append 1 empty)))", 1)
 
-  testExpression(s"$listEnv head (map  (append 2 (append 1 empty)) (λa.a ADD 1))", 3)
+  testExpression(s"$listEnv head (map  (append 2 (append 1 empty)) (λa.add a 1))", 3)
 
   // POS
   testExpression("2", 2)
-  testExpression("1 ADD 2", 3)
-  testExpression("1 ADD -2", -1)
-  testExpression("1 SUB 2", -1)
-  testExpression("2 MULT 3", 6)
-  testExpression("4 DIV 2", 2)
-  testExpression("4 DIV 3", 1)
-  testExpression("(1 ADD 2)", 3)
-  testExpression("(1 ADD 2) SUB 3", 0)
-  testExpression("1 ADD (2 SUB 3)", 0)
-  testExpression("1 ADD 2 SUB 3", 0)
-  testExpression("((λy.(λx.y ADD x)) 2) 3", 5)
-  testExpression("(λy.(λx.x ADD x)) 2 3", 6)
-  testExpression("(λx.(((λx.x ADD 1) 3) ADD x)) 7", 11)
-  testExpression("((λx.x ADD 1) 2)", 3)
-  testExpression("(λx. x ADD x) 3", 6)
-  testExpression("if 2 GT 1 then 42 else 0", 42)
-  testExpression("if 0 GT 1 then 42 else 0", 0)
-  testExpression("(λx.if x GT 1 then 42 else 0) 2", 42)
-  testExpression("(λx.if x GT 1 then 42 else 0) 0", 0)
-  testExpression("(λx.if x LT 1 then 42 else 0) 0", 42)
-  testExpression("let mySucc = (λx. x ADD 1) endlet mySucc 1", 2)
-  testExpression("let f1 = (λa.a ADD 12) endlet let f2 = (λb.b SUB 12) endlet f1 42", 54)
-  testExpression("let f1 = (λa.a ADD 12) endlet let f2 = (λb.b SUB 12) endlet f2 42", 30)
-  testExpression("(λx. let f1 = (λa.a ADD 12) endlet let f2 = (λb.b SUB 12) endlet f2 x) 42 ", 30)
+  testExpression("add 1 2", 3)
+  testExpression("add 1 -2", -1)
+  testExpression("sub 1 2", -1)
+  testExpression("mult 2 3", 6)
+  testExpression("div 4 2", 2)
+  testExpression("div 4 3", 1)
+  testExpression("(add 1 2)", 3)
+  testExpression("sub (add 1 2) 3", 0)
+  testExpression("add 1 (sub 2 3)", 0)
+  testExpression("sub add 1 2 3", 0)
+  testExpression("((λy.(λx.add y x)) 2) 3", 5)
+  testExpression("(λy.(λx.add x x)) 2 3", 6)
+  testExpression("(λx.add ((λx.add x 1) 3) x ) 7", 11)
+  testExpression("((λx.add x 1) 2)", 3)
+  testExpression("(λx. add x x) 3", 6)
+  testExpression("if gt 2 1 then 42 else 0", 42)
+  testExpression("if gt 0 1 then 42 else 0", 0)
+  testExpression("(λx.if gt x 1 then 42 else 0) 2", 42)
+  testExpression("(λx.if gt x 1 then 42 else 0) 0", 0)
+  testExpression("(λx.if lt x 1 then 42 else 0) 0", 42)
+  testExpression("let mySucc = (λx. add x 1) endlet mySucc 1", 2)
+  testExpression("let f1 = (λa.add a 12) endlet let f2 = (λb.sub b 12) endlet f1 42", 54)
+  testExpression("let f1 = (λa.add a 12) endlet let f2 = (λb.sub b 12) endlet f2 42", 30)
+  testExpression("(λx. let f1 = (λa.add a 12) endlet let f2 = (λb.sub b 12) endlet f2 x) 42 ", 30)
   testExpression("""
                    | (λx.
-                   |   let f1 = (λa.a ADD 12) endlet
-                   |   let f2 = (λb.b SUB 12) endlet
+                   |   let f1 = (λa.add a 12) endlet
+                   |   let f2 = (λb.sub b 12) endlet
                    |   f2 x
                    | ) 42
                  """.stripMargin, 30)
@@ -132,9 +132,9 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
     """
       |let countToTen =
       |  λx.
-      |    if (x LT 10)
+      |    if (lt x 10)
       |    then
-      |      countToTen (x ADD 1)
+      |      countToTen (add x 1)
       |    else
       |      x
       |endlet
@@ -144,9 +144,9 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
     """
       |let countToTen =
       |  λx.
-      |    if (x LT 10)
+      |    if (lt x 10)
       |    then
-      |      countToTen (x ADD 1)
+      |      countToTen (add x 1)
       |    else
       |      x
       |endlet
@@ -156,27 +156,21 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
     """
       |let countToTen =
       |  λx.
-      |    if (x LT 10)
+      |    if (lt x 10)
       |    then
-      |      countToTen (x ADD 1)
+      |      countToTen (add x 1)
       |    else
       |      x
       |endlet
       |countToTen 8
     """.stripMargin, 10)
 
-  testExpression(
-    """
-      |call SumService/Int/Int/rInt 3 11 1
-    """.stripMargin, 12
-  )
-
   // NEG
 
   "The expression: 1 ADD " should s" throw ParseException with call-by-value " in {
     evaluating {
       intercept[ParseException] {
-        LambdaCalculus(CallByValue).substituteParseCompileExecute("1 ADD")
+        LambdaCalculus(CallByValue).substituteParseCompileExecute("add 1")
       }
     }
 
@@ -184,7 +178,7 @@ class LambdaCalculusTest extends FlatSpec with Matchers with GivenWhenThen{
   it should s" throw ParseException with call-by-name" in {
     evaluating {
       intercept[ParseException] {
-        LambdaCalculus(CallByValue).substituteParseCompileExecute("1 ADD")
+        LambdaCalculus(CallByValue).substituteParseCompileExecute("add 1 ")
       }
     }
   }

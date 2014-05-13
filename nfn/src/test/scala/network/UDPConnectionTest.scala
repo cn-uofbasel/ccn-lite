@@ -37,7 +37,7 @@ import network.UDPConnection.Send
 //  "An Echo actor" must {
 //
 //    "send back messages unchanged" in {
-//      val actualCon = system.actorOf(Props(new UDPConnection(local = sock1, target = sock2)))
+//      val actualCon = system.actorOf(Props(new UDPConnection(localAbstractMachine = sock1, target = sock2)))
 //      actualCon ! UDPConnection.Send(data)
 //      expectMsg(data)
 //    }

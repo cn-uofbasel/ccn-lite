@@ -5,21 +5,21 @@ import scala.util.parsing.input.Positional
 
 object BinaryOp extends Enumeration {
   type BinaryOp = Value
-  val Add = Value("ADD")
-  val Sub = Value("SUB")
-  val Mult = Value("MULT")
-  val Div = Value("DIV")
-  val Eq = Value("EQ")
-  val Neq = Value("NEQ")
-  val Lt = Value("LT")
-  val Gt = Value("GT")
-  val Lte = Value("LTE")
-  val Gte = Value("GTE")
+  val Add = Value("add")
+  val Sub = Value("sub")
+  val Mult = Value("mult")
+  val Div = Value("div")
+  val Eq = Value("eq")
+  val Neq = Value("neq")
+  val Lt = Value("lt")
+  val Gt = Value("gt")
+  val Lte = Value("lte")
+  val Gte = Value("gte")
 }
 
 object UnaryOp extends Enumeration {
   type UnaryOp = Value
-  val Cdr = Value("CDR")
+  val Cdr = Value("cdr")
 }
 
 
@@ -30,6 +30,7 @@ object LambdaDSLTest extends App {
 
   val b: Call = "/WordCount" call ("/doc/doc1" :: Nil)
 
+  val l: Expr = ("derp" =: 'a) ~ ('derp)
 }
 
 object LambdaDSL {
@@ -43,13 +44,17 @@ object LambdaDSL {
 }
 
 sealed abstract class Expr extends Positional {
-  def @: (symbolName: Symbol): Expr = Clos(symbolName.name,this)
-  def @: (stringName: String): Expr = Clos(stringName,this)
+  def @: (symbolName: Symbol): Clos = Clos(symbolName.name,this)
+  def @: (stringName: String): Clos = Clos(stringName,this)
   def ! (arg: Expr) = Application(this,arg)
   def + (expr: Expr) = BinaryExpr(BinaryOp.Add, this, expr)
   def - (expr: Expr) = BinaryExpr(BinaryOp.Sub, this, expr)
   def * (expr: Expr) = BinaryExpr(BinaryOp.Mult, this, expr)
   def / (expr: Expr) = BinaryExpr(BinaryOp.Div, this, expr)
+  def =:(symbolName: Symbol): Let = Let(symbolName.name, this, None)
+  def =:(name: String): Let = Let(name, this, None)
+
+  def iif(test: Expr, thenn: Expr, otherwise: Expr) = IfElse(test, thenn, otherwise)
 }
 
 case class Clos(boundVariable: String, body: Expr) extends Expr {
@@ -80,7 +85,9 @@ case class Constant(i: Int) extends Expr
 
 case class UnaryExpr(op: UnaryOp.UnaryOp, v: Expr) extends Expr
 case class BinaryExpr(op: BinaryOp.BinaryOp, v1: Expr, v2:Expr) extends Expr
-case class Let(name: String, letExpr: Expr, code: Option[Expr]) extends Expr
+case class Let(name: String, letExpr: Expr, code: Option[Expr]) extends Expr {
+  def ~(expr: Expr): Let = Let(name, letExpr, Some(expr))
+}
 case class IfElse(test: Expr, thenn: Expr, otherwise: Expr) extends Expr
 case class NopExpr() extends Expr
 case class Call(name: String, args: List[Expr]) extends Expr

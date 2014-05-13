@@ -65,7 +65,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
       val temporaryPaddedResult = if(nfnNetwork) {"RST|" + result } else { result }
 
-      s"compute result '$temporaryPaddedResult' for ${if(nfnNetwork) "local" else "nfn"} request '$parsedReq'" in {
+      s"compute result '$temporaryPaddedResult' for ${if(nfnNetwork) "localAbstractMachine" else "nfn"} request '$parsedReq'" in {
 
         val computeReqName = Seq(parsedReq, "NFN")
         nfnMasterRef ! NFNApi.CCNSendReceive(Interest(computeReqName:_*))
