@@ -117,7 +117,7 @@ case class Node(nodeConfig: NodeConfig) {
   private var isConnecting = true
 
   private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
-  private val _nfnServer = CCNServerFactory.ccnServer(system, nodeConfig)
+  private val _nfnServer = CCNServerFactory.ccnServer(system, nodeConfig, withLocalAM = true)
 
   private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
   ccnLiteNFNNetworkProcess.start()
@@ -217,7 +217,7 @@ case class Node(nodeConfig: NodeConfig) {
   def removeLocalServices = NFNServiceLibrary.removeAll()
 
   /**
-   * Fire and forgets an interest to the system. Response will still arrive in the local cache, but will discarded when arriving
+   * Fire and forgets an interest to the system. Response will still arrive in the localAbstractMachine cache, but will discarded when arriving
    * @param req
    */
   def send(req: Interest)(implicit useThunks: Boolean) = {

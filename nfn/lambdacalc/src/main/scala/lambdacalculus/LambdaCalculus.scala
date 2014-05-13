@@ -1,7 +1,7 @@
 package lambdacalculus
 
 
-import lambdacalculus.parser.LambdaParser
+import lambdacalculus.parser.{LambdaParser, StandardLambdaParser}
 import lambdacalculus.compiler.{CBVCompiler, CBNCompiler, Compiler}
 import lambdacalculus.machine.CallByName._
 import lambdacalculus.machine.CallByValue._
@@ -25,7 +25,7 @@ object LambdaCalculusDecompilation extends App {
 
 //  val l = "(\\x.x ADD 1) 2"
 //  val l = "1 ADD 2"
-  val l ="let mySucc = (\\x. x ADD 1) endlet mySucc 1"
+  val l ="let mySucc = (\\x. add x 1) endlet mySucc 1"
   val lc = LambdaCalculus(ExecutionOrder.CallByValue, true, false)
   val parsed =
     for {s <- lc.substituteLibrary(l)
@@ -69,9 +69,9 @@ object LambdaCalculus extends App {
 case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder = ExecutionOrder.CallByValue,
                           debug: Boolean = false,
                           storeIntermediateSteps: Boolean = false,
-                          maybeExecutor: Option[CallExecutor] = None) extends Logging {
+                          maybeExecutor: Option[CallExecutor] = None,
+                          parser: LambdaParser = new StandardLambdaParser()) extends Logging {
 
-  val parser = new LambdaParser()
   val compiler = compilerForExecOrder(debug, execOrder)
   val machine = machineForExecOrder(storeIntermediateSteps, execOrder, maybeExecutor)
 

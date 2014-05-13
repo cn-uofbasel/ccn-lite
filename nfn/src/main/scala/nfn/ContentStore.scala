@@ -1,15 +1,13 @@
-package ccn
+package nfn
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.mutable
 
 import akka.actor.Actor
-import akka.actor.Actor.Receive
 import akka.event.Logging
 
 import ccn.packet._
 
-object CS {
+object ContentStore {
 
   /**
    * Returns Option[Content] depending on if it was in the content store
@@ -30,13 +28,13 @@ object CS {
   case class Remove(name: CCNName)
 }
 
-case class CS() extends Actor {
+case class ContentStore() extends Actor {
   val logger = Logging(context.system, this)
   private val cs: mutable.Map[CCNName, Content] = mutable.Map()
 
   override def receive: Receive = {
-    case CS.Get(name) => sender ! cs.get(name)
-    case CS.Add(content) => cs += (content.name -> content)
-    case CS.Remove(name) => cs -= name
+    case ContentStore.Get(name) => sender ! cs.get(name)
+    case ContentStore.Add(content) => cs += (content.name -> content)
+    case ContentStore.Remove(name) => cs -= name
   }
 }

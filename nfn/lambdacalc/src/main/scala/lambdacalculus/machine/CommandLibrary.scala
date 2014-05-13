@@ -1,6 +1,6 @@
 package lambdacalculus.machine
 
-import lambdacalculus.parser.LambdaParser
+import lambdacalculus.parser.StandardLambdaParser
 import lambdacalculus.parser.ast.{Let, Expr}
 import lambdacalculus.compiler.Compiler
 
@@ -9,7 +9,7 @@ case class CommandInstruction(name: String, instructions: List[Instruction])
 case class CommandLibrary(compiler: Compiler) {
 
 //  private val parsedLib:List[Let] = {
-//    val parser = new LambdaParser()
+//    val parser = new StandardLambdaParser()
 //    parser.definitions(lib) match {
 //      case parser.Success(defs:List[Let], _) => defs
 //      case parser.NoSuccess(msg, input) => throw new Exception("Error parsing command library: " + msg)

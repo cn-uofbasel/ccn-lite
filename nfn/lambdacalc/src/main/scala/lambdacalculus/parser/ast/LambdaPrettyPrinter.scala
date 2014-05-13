@@ -10,7 +10,7 @@ object LambdaPrettyPrinter extends LambdaPrinter {
     case Clos(arg, body) => s"λ$arg." + p"$body"
     case Application(fun, arg) => p"$fun $arg"
     case UnaryExpr(op, v) => s"$op " + p"$v"
-    case BinaryExpr(op, v1, v2) => p"$v1 " + op.toString + p" $v2"
+    case BinaryExpr(op, v1, v2) => op.toString + p" $v1" + p" $v2"
     case Variable(name, _) => name
     case Constant(i) => i.toString
     case Let(name, expr, maybeCodeExpr) =>

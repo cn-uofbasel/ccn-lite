@@ -97,7 +97,7 @@ class CCNLiteInterface {
   @native def ccnbToXml(binaryPacket: Array[Byte]): String
 
   /**
-   * Creates an ccnb format interest to add a content object to the local ccn cache.
+   * Creates an ccnb format interest to add a content object to the localAbstractMachine ccn cache.
    * The content object itself must formated in ccnb and stored in a file.
    * @param ccnbAbsoluteFilename Filename of the file containing the content object formated in ccnb
    * @return Binary data of the interest in ccnb format

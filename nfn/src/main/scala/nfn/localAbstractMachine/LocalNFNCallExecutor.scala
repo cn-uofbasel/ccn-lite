@@ -1,4 +1,4 @@
-package nfn.local
+package nfn.localAbstractMachine
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._

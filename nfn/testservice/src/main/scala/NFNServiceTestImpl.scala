@@ -17,7 +17,7 @@ case class UnitValue() extends value.NFNValue {
 /*
  * Example of a NFNService implementation
  * To add a service to NFN, implement the NFNService interface and
- * add the jar to the local NFNInterface.
+ * add the jar to the localAbstractMachine NFNInterface.
  */
 class NFNServiceTestImpl extends NFNService {
 //  override def exec = println("Test NFNService class loaded successfully!")

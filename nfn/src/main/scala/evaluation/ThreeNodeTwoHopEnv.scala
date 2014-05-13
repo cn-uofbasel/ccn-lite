@@ -58,7 +58,7 @@ object ThreeNodeTwoHopEnv extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks = true
+  implicit val useThunks = false
 
   val pub = Publish().toString
 
@@ -66,9 +66,9 @@ object ThreeNodeTwoHopEnv extends App {
 
   val compExpr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
 
-  val wcExpr: Expr = wc call(List(docname1, docname2, docname3))
+  val wcExpr: Expr = wc call List(docname1, docname2, docname3)
 
-  val pubExpr: Expr = pub call(List(docname3, doc3PrefixToAddContent.name, CCNName("node", "node1")))
+  val pubExpr: Expr = pub call List(docname3, doc3PrefixToAddContent.name, CCNName("node", "node1"))
 //
 //  node1 ? pubExpr onComplete {
 //    case Success(content) => println(s"ACK ADDED: $content")

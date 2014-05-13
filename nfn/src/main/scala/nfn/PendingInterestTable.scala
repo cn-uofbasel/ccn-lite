@@ -1,7 +1,6 @@
-package ccn
+package nfn
 
 import ccn.packet.CCNName
-import akka.actor.ActorRef
 
 case class PendingInterestTable[FaceType]() {
   var pit: Map[CCNName, Set[FaceType]] = Map()
