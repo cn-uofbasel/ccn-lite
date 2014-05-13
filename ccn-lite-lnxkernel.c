@@ -673,7 +673,11 @@ ccnl_lnxkernel_cleanup(void)
 	    struct dentry *dir = dget_parent(p.dentry);
 
 	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
-	    rc = vfs_unlink(dir->d_inode, p.dentry);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
+            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);                                                                                                                                               
+#else
+            rc = vfs_unlink(dir->d_inode, p.dentry);
+#endif
 	    mutex_unlock(&dir->d_inode->i_mutex);
 	    dput(dir);
 	    path_put(&p);
@@ -689,7 +693,11 @@ ccnl_lnxkernel_cleanup(void)
 	    struct dentry *dir = dget_parent(px.dentry);
 
 	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
+	    rc = vfs_unlink(dir->d_inode, px.dentry, NULL);
+#else
 	    rc = vfs_unlink(dir->d_inode, px.dentry);
+#endif
 	    mutex_unlock(&dir->d_inode->i_mutex);
 	    dput(dir);
 	    path_put(&px);
