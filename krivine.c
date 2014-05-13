@@ -154,7 +154,6 @@ search_in_environment(struct environment_s *env, char *name){
   return NULL;
 }
 
-
 //parse functions
 //------------------------------------------------------------------
 
