@@ -728,8 +728,10 @@ normal:
         return strdup(dummybuf);
     }
     if(!strncmp(prog, "OP_FOX", 6)){
+        int local_search = 0;
         if(*restart) {
             *restart = 0;
+	    local_search = 1;
             goto recontinue;
         }
         DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
@@ -744,18 +746,20 @@ normal:
         }
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = 0;
-        int parameter_number = -1;
+        int parameter_number = 0;
         struct ccnl_content_s *c = NULL;
 
-recontinue:
         //check if last result is now available
-        parameter_number = choose_parameter(config);
         unsigned char *namecomp[CCNL_MAX_NAME_COMP];
-        int compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
-        compcnt =create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
-        c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt); //search for a result
-        if(c) goto handlecontent;
-
+	int compcnt = 0;
+recontinue:
+	if(local_search){
+	    parameter_number = choose_parameter(config);
+            compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
+            compcnt =create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
+            c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt); //search for a result
+            if(c) goto handlecontent;
+	}
         //result was not delivered --> choose next parameter
         ++config->fox_state->it_routable_param;
         parameter_number = choose_parameter(config);
