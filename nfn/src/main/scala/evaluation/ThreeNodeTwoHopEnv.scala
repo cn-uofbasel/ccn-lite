@@ -12,8 +12,7 @@ import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
 import lambdacalculus.parser.ast.{Variable, Expr, LambdaDSL}
-import nfn.service.impl.{WordCountService, Publish}
-
+import nfn.service.impl.{Translate, WordCountService, Publish}
 
 object ThreeNodeTwoHopEnv extends App {
 
@@ -39,9 +38,9 @@ object ThreeNodeTwoHopEnv extends App {
 
   val doc3PrefixToAddContent = Content(node3Config.prefix.append("prefixToAdd", "doc", "test3"), "/dynadded/doc/test3".getBytes)
 
-  var node1 = Node(node1Config)
-  var node2 = Node(node2Config)
-  var node3 = Node(node3Config)
+  var node1 = Node(node1Config, withLocalAM = true)
+  var node2 = Node(node2Config, withLocalAM = true)
+  var node3 = Node(node3Config, withLocalAM = true)
 
   Node.connectLine(Seq(node1, node2, node3))
   node1.addNodeFace(node3, node2)
@@ -54,6 +53,7 @@ object ThreeNodeTwoHopEnv extends App {
 //  node3 += Content(CCNName("node", "node3", "doc", "test3", "derp"), "derp".getBytes) // /node/node3/doc/test3/derp
   node3 += doc3PrefixToAddContent
 
+  node1.publishServices
   Thread.sleep(200)
 
   import LambdaDSL._
@@ -64,11 +64,15 @@ object ThreeNodeTwoHopEnv extends App {
 
   val wc = WordCountService().toString
 
+  val translate = Translate().toString
+
   val compExpr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
 
   val wcExpr: Expr = wc call List(docname1, docname2, docname3)
 
   val pubExpr: Expr = pub call List(docname3, doc3PrefixToAddContent.name, CCNName("node", "node1"))
+
+  val wcTranslateExpr: Expr = wc call List(translate call List(docname3))
 //
 //  node1 ? pubExpr onComplete {
 //    case Success(content) => println(s"ACK ADDED: $content")
@@ -77,15 +81,15 @@ object ThreeNodeTwoHopEnv extends App {
 
   Thread.sleep(200)
 
-  val expr = wcExpr
+  val expr = wcTranslateExpr
   node1 ? expr onComplete {
-    case Success(content) => println(s"PUBLISHED: $content")
+    case Success(content) => println(s"Res: $content")
     case Failure(error) => throw error
   }
-
+//
 //  Thread.sleep(1000)
 //
-//  node1 ? Interest(CCNName("node", "node1", "dynadded", "doc", "test3")) onComplete {
+//  node3 ? Interest(CCNName("node", "node1", "dynadded", "doc", "test3")) onComplete {
 //    case Success(content) => println(s"RECVRESULT: $content")
 //    case Failure(error) => throw error
 //  }

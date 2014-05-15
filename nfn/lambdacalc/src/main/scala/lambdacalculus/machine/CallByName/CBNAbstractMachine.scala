@@ -2,7 +2,7 @@ package lambdacalculus.machine.CallByName
 
 import lambdacalculus.machine._
 
-case class CBNMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends Machine {
+case class CBNAbstractMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends AbstractMachine {
 
   type AbstractConfiguration = CBNConfiguration
 
@@ -148,7 +148,7 @@ case class CBNMachine(override val storeIntermediateSteps:Boolean = false, maybe
       case THENELSE(thenn, otherwise) => {
         val thenElseCode = stack.head match {
           case ConstValue(n, _) => if(n != 0) thenn else otherwise
-          case _ => throw new MachineException(s"CBNMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
+          case _ => throw new MachineException(s"CBNAbstractMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
         }
 
         nextStack = stack.tail
@@ -167,10 +167,10 @@ case class CBNMachine(override val storeIntermediateSteps:Boolean = false, maybe
         nextEnv = e
         nextCode = c
       }
-      case _ => throw new MachineException(s"CBNMachine: unkown Instruction: ${code.head}")
+      case _ => throw new MachineException(s"CBNAbstractMachine: unkown Instruction: ${code.head}")
     }
     } catch {
-      case e: UnsupportedOperationException => throw new MachineException("CBNMachine" + e.getMessage)
+      case e: UnsupportedOperationException => throw new MachineException("CBNAbstractMachine" + e.getMessage)
     }
     CBNConfiguration(nextStack, nextEnv, nextCode)
   }

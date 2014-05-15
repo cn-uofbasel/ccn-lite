@@ -3,7 +3,7 @@ package node
 import nfn.{NFNApi, NFNServer, CCNServerFactory, NodeConfig}
 import scala.concurrent.duration.FiniteDuration
 import akka.util.Timeout
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern._
 import config.AkkaConfig
 import ccn.packet.{CCNName, Interest, Content}
@@ -98,12 +98,13 @@ object Node {
     }
   }
 }
+
 /**
  * Created by basil on 10/04/14.
  */
-case class Node(nodeConfig: NodeConfig) {
+case class Node(nodeConfig: NodeConfig, withLocalAM: Boolean = false) {
 
-  val timeoutDuration: FiniteDuration = 6 seconds
+  val timeoutDuration: FiniteDuration = 6.seconds
   implicit val timeout = Timeout( timeoutDuration)
 
   private var isRunning = true
@@ -116,8 +117,8 @@ case class Node(nodeConfig: NodeConfig) {
    */
   private var isConnecting = true
 
-  private val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
-  private val _nfnServer = CCNServerFactory.ccnServer(system, nodeConfig, withLocalAM = true)
+  val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
+  val _nfnServer: ActorRef = CCNServerFactory.ccnServer(system, nodeConfig)
 
   private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
   ccnLiteNFNNetworkProcess.start()

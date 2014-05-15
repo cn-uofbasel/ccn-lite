@@ -3,7 +3,7 @@ package lambdacalculus.machine.CallByValue
 import lambdacalculus.machine._
 import com.typesafe.scalalogging.slf4j.Logging
 
-case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends Machine with Logging {
+case class CBVAbstractMachine(override val storeIntermediateSteps:Boolean = false, maybeExecutor: Option[CallExecutor] = None) extends AbstractMachine with Logging {
 
   type AbstractConfiguration = CBVConfiguration
 
@@ -58,7 +58,6 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
             }
 
           )
-
 //        accessedE match {
 //          case Some(CodeValue(c, maybeContextName)) =>
 //          case _ => accessedE
@@ -171,7 +170,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
       case THENELSE(thenn, otherwise) => {
         val thenElseCode = stack.head match {
           case ConstValue(n, maybeContextName) => if(n != 0) thenn else otherwise
-          case _ => throw new MachineException(s"CBNMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
+          case _ => throw new MachineException(s"CBNAbstractMachine: top of stack needs to be of ConstValue to check the test case of an if-then-else epxression")
         }
 
         nextStack = stack.tail
@@ -213,7 +212,7 @@ case class CBVMachine(override val storeIntermediateSteps:Boolean = false, maybe
           case ConstValue(n, _) => n.toString
           case VariableValue(name, _) => name
           case ListValue(values, _) => values.map( valueToNFNStringRep ).mkString(" ")
-          case arg @ _ => throw new MachineException(s"CBVMachine: transformation from value $arg to a string is not implemented for call: $name")
+          case arg @ _ => throw new MachineException(s"CBVAbstractMachine: transformation from value $arg to a string is not implemented for call: $name")
         }
 
         val argsStrings = args map { valueToNFNStringRep }
