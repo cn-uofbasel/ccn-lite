@@ -94,9 +94,9 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
     }
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
-    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s: %d (%p)\n",
+    DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s prefix=%s: %d (%p)\n",
 	     mode, nlen, p->compcnt, name->compcnt,
-	     ccnl_prefix_to_path(name), rc, md);
+	     ccnl_prefix_to_path(name), ccnl_prefix_to_path(p), rc, md);
     return rc;
 }
 

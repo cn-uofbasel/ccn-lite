@@ -287,16 +287,23 @@ int iscontent(char *cp){
 }
 //------------------------------------------------------------
 
+//choose the it_routable_param
 int choose_parameter(struct configuration_s *config){
 
-    int num = config->fox_state->num_of_params - config->fox_state->it_routable_param;
-    if(num < 0) return -1;
-    while(!iscontent(config->fox_state->params[num])){
-        if(--num < 0){
-            return -1;
-        }
+    int param_to_choose = config->fox_state->it_routable_param;
+    int num;
+    DEBUGMSG(99, "choose_parameter(%d)\n", param_to_choose);
+    for(num = config->fox_state->num_of_params-1; num >=0; --num){
+	DEBUGMSG(99, "num: %d \n", num);
+        DEBUGMSG(99, "content %s\n", config->fox_state->params[num]);
+    	if(iscontent(config->fox_state->params[num])){
+	   DEBUGMSG(99, "iscontent\n");
+	   --param_to_choose; 
+           if(param_to_choose <= 0)
+		return num;
+	}
     }
-    return num;
+    return -1;
 
 }
 
