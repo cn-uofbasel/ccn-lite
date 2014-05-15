@@ -24,7 +24,7 @@ case class Publish() extends NFNService {
 
         val nameOfContentWithoutPrefixToAdd = CCNName(new String(publishPrefixNameData).split("/").tail:_*)
         nfnServer ! NFNApi.AddToLocalCache(Content(nameOfContentWithoutPrefixToAdd, contentData), prependLocalPrefix = true)
-        NFNEmptValue()
+        NFNEmptyValue()
       }
       case _ => throw argumentException(args)
     }

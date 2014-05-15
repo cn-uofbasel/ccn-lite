@@ -13,6 +13,9 @@ trait Value {
 case class ConstValue(n: Int, maybeContextName: Option[String] = None) extends Value
 case class CodeValue(c: List[Instruction], maybeContextName:Option[String] = None) extends Value
 case class ListValue(values:Seq[Value], maybeContextName: Option[String] = None) extends Value
+case class NopValue() extends Value{
+  override def maybeContextName: Option[String] = None
+}
 
 object ValuePrettyPrinter {
   def apply(value: Value, maybeCompiler: Option[Compiler] = None): String = {

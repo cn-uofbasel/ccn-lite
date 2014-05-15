@@ -16,7 +16,7 @@ trait CallExecutor {
   def executeCall(call: String): Value
 }
 
-abstract class Machine(val storeIntermediateSteps:Boolean = false) extends Logging {
+abstract class AbstractMachine(val storeIntermediateSteps:Boolean = false) extends Logging {
 
   type AbstractConfiguration <: Configuration
 
@@ -66,7 +66,7 @@ abstract class Machine(val storeIntermediateSteps:Boolean = false) extends Loggi
   protected def executeCall(call: String): Value = {
     maybeExecutor match {
       case Some(exec) => exec.executeCall(call)
-      case None => throw new MachineException("This Machine needs a CallExecutor if it should be able to execute call commands")
+      case None => throw new MachineException("This AbstractMachine needs a CallExecutor if it should be able to execute call commands")
     }
   }
 }

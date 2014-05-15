@@ -80,9 +80,9 @@ case class LambdaCalculus(execOrder: ExecutionOrder.ExecutionOrder = ExecutionOr
     case ExecutionOrder.CallByName => CBNCompiler(debug)
     case ExecutionOrder.CallByValue => CBVCompiler(debug)
   }
-  private def machineForExecOrder(storeIntermediateSteps: Boolean, execOrder: ExecutionOrder, maybeExecutor: Option[CallExecutor]): Machine = execOrder match {
-    case ExecutionOrder.CallByName => CBNMachine(storeIntermediateSteps)
-    case ExecutionOrder.CallByValue => CBVMachine(storeIntermediateSteps, maybeExecutor)
+  private def machineForExecOrder(storeIntermediateSteps: Boolean, execOrder: ExecutionOrder, maybeExecutor: Option[CallExecutor]): AbstractMachine = execOrder match {
+    case ExecutionOrder.CallByName => CBNAbstractMachine(storeIntermediateSteps)
+    case ExecutionOrder.CallByValue => CBVAbstractMachine(storeIntermediateSteps, maybeExecutor)
   }
 
   def substituteParse(code: String): Try[Expr] = {

@@ -32,6 +32,7 @@ object NFNValueToMachineValue {
     nfnValue match {
       case NFNIntValue(n) => ConstValue(n)
       case NFNNameValue(name) => VariableValue(name.toString)
+      case NFNEmptyValue() => NopValue()
       case NFNListValue(values: List[NFNValue]) => ListValue(values map { toMachineValue})
       case _ =>  throw new Exception(s"NFNValueToMachineValue: conversion of $nfnValue to machine value type not implemented")
     }

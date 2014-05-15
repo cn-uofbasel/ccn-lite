@@ -53,7 +53,7 @@ case class NFNStringValue(str: String) extends NFNValue {
   override def toStringRepresentation: String = str
 }
 
-case class NFNEmptValue() extends NFNValue {
+case class NFNEmptyValue() extends NFNValue {
 
   override def toCCNName: CCNName = CCNName("EmptyValue")
 

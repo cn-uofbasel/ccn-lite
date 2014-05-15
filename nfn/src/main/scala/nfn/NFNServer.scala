@@ -219,7 +219,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
     implicit val timeout = Timeout(defaultTimeoutDuration)
     (cs ? ContentStore.Get(i.name)).mapTo[Option[Content]] onSuccess  {
       case Some(contentFromLocalCS) =>
-        logger.debug(s"Served $contentFromLocalCS from localAbstractMachine CS")
+        logger.debug(s"Served $contentFromLocalCS from local CS")
         senderCopy ! contentFromLocalCS
       case None => {
 
@@ -245,7 +245,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
 
                 // /.../.../NFN
                 // An NFN interest without compute flag means that it must be reduced by an abstract machine
-                // If no localAbstractMachine machine is avaialbe, forward it to the nfn network
+                // If no local machine is available, forward it to the nfn network
               } else {
                 maybeLocalAbstractMachine match {
                   case Some(localAbstractMachine) => {
@@ -329,7 +329,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
         if(prependLocalPrefix) {
           Content(nodeConfig.prefix.append(content.name), content.data)
         } else content
-      logger.info(s"Adding content for ${contentToAdd.name} to localAbstractMachine cache")
+      logger.info(s"Adding content for ${contentToAdd.name} to local cache")
       cs ! ContentStore.Add(contentToAdd)
     }
 

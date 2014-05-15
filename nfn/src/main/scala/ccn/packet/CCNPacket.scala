@@ -19,7 +19,8 @@ object CCNName {
 case class CCNName(cmps: String *) extends Logging {
   def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
   override def toString = {
-    if(cmps.last == "NFN") cmps.toList.mkString("/")
+    if(cmps.size == 0) ""
+    else if(cmps.last == "NFN") cmps.toList.mkString("/")
     else cmps.toList.mkString("/", "/", "")
   }
 

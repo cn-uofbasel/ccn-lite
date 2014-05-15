@@ -28,6 +28,7 @@ object NFNServiceLibrary extends Logging {
   add(ReduceService())
   add(SumService())
   add(Publish())
+  add(Translate())
 
   def add(serv: NFNService) =  {
     val name = serv.ccnName
