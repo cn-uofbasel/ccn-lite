@@ -598,7 +598,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -752,11 +752,11 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
  * @return 
  */
 int
-check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
+check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
 
     int ret = 1;
     int contentlen = 0;
-    int num, typ, i;
+    int num, typ;
     char *newbuffer;
     
     if(dehead(&buf, &len, &num, &typ)) return 0; 
@@ -797,7 +797,6 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *
     memcpy(*recvbuffer+*recvbufferlen, buf, contentlen);
     *recvbufferlen += contentlen;    
     
-    Bail:
     return ret;
 }
 
@@ -922,18 +921,18 @@ main(int argc, char *argv[])
         if(!use_udp)
             ux_sendto(sock, ux, out, len);
         else
-            udp_sendto(sock, udp, port, out, len);
+            udp_sendto(sock, udp, port, (char*)out, len);
         
 //	sleep(1);
        
-        int slen = 0; int num = 1; int len2 = 0;
+        unsigned int slen = 0; int num = 1; int len2 = 0;
         int hasNext = 0;
 
         memset(out, 0, sizeof(out));
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else
-            len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+            len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
         hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
         if(!verified_i) verified = 0;
 
@@ -942,31 +941,31 @@ main(int argc, char *argv[])
            char interest2[100];
            len2 = make_next_seg_debug_interest(num++, interest2);
            if(!use_udp)
-                ux_sendto(sock, ux, interest2, len2);
+                ux_sendto(sock, ux, (unsigned char*)interest2, len2);
            else
                 udp_sendto(sock, udp, port, interest2, len2);
            memset(out, 0, sizeof(out));
            if(!use_udp)
                 len = recv(sock, out, sizeof(out), 0);
            else
-                len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+                len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
            hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
            if(!verified_i) verified = 0;
            ++numOfParts;
 
         }
         recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
-        recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        recvbufferlen2 += mkHeader((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
         if(relay_public_key && use_udp)
         {
             char sigoutput[200];
             
             if(verified){
                 sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                recvbufferlen2 += mkStrBlob((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }else{
                 sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                recvbufferlen2 += mkStrBlob((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }
         }
         memcpy(recvbuffer2+recvbufferlen2, recvbuffer, recvbufferlen);
