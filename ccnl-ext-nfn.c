@@ -97,7 +97,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(9, "Computation for this interest is already running\n");
         return -1;
     }
-    char *res = NULL;
+    unsigned char *res = NULL;
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
@@ -138,7 +138,7 @@ restart:
         if(config && config->fox_state->thunk_request){      
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
-        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen(res));
+        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen((char *)res));
             
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
         ccnl_content_serve_pending(ccnl,c);
