@@ -54,6 +54,7 @@ object Experiment2 extends App {
   node3.addNodeFace(node4, node2)
   node4.addNodeFace(node1, node2)
   node4.addNodeFace(node3, node2)
+  node4.addPrefixFace(WordCountService().ccnName, node2)
 
   node1 += docContent1
   node2 += docContent2
@@ -61,20 +62,29 @@ object Experiment2 extends App {
   node4 += docContent4
 
   node1.publishServices
-  Thread.sleep(200)
+  node2.publishServices
+  node3.publishServices
+  node4.removeLocalServices
+  Thread.sleep(1000)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
   implicit val useThunks = false
 
-
   val wc = WordCountService().toString
 
-  val wcExpr: Expr = (wc call List(docname2)) + (wc call List(docname3))
+  val exThunkVsNoThunk: Expr = (wc call List(docname2)) + (wc call List(docname3))
 
-  val expr = wcExpr
+  val exRouteTowardsData: Expr = wc call List(docname4)
+
+  val expr = exThunkVsNoThunk
+
+  val startTime = System.currentTimeMillis()
   node1 ? expr onComplete {
-    case Success(content) => println(s"Res: $content")
+    case Success(content) => {
+      val totalTime = System.currentTimeMillis - startTime
+      println(s"Res(${totalTime}): $content")
+    }
     case Failure(error) => throw error
   }
 
