@@ -42,6 +42,10 @@ object CCNLite extends Logging {
   def mkAddToCacheInterest(content: Content): Array[Byte] = {
     val binaryContent = mkBinaryContent(content)
 
+    val servLibDir = new File("./service-library")
+    if(!servLibDir.exists) {
+      servLibDir.mkdir()
+    }
     val filename = s"./service-library/test-${content.name.hashCode}-${System.nanoTime}.ccnb"
     val file = new File(filename)
 
