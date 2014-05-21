@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 import nfn.NFNApi
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext.Implicits.global
+import config.AkkaConfig
 
 /**
  * Created by basil on 08/05/14.
@@ -20,7 +21,7 @@ case class Publish() extends NFNService {
   override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (args, nfnServer) =>
     args match {
       case Seq(NFNBinaryDataValue(contentName, contentData), NFNBinaryDataValue(_, publishPrefixNameData), _) => {
-        implicit val timeout =  Timeout(5 seconds)
+        implicit val timeout = AkkaConfig.timeout
 
         val nameOfContentWithoutPrefixToAdd = CCNName(new String(publishPrefixNameData).split("/").tail:_*)
         nfnServer ! NFNApi.AddToLocalCache(Content(nameOfContentWithoutPrefixToAdd, contentData), prependLocalPrefix = true)

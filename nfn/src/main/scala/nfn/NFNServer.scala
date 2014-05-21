@@ -20,6 +20,7 @@ import monitor.Monitor.PacketLogWithoutConfigs
 import akka.util.Timeout
 import scala.concurrent.duration._
 import nfn.localAbstractMachine.LocalAbstractMachineWorker
+import config.AkkaConfig
 
 
 object NFNServer {
@@ -129,7 +130,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
       Some(context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), "LocalAM"))
     } else None
 
-  val defaultTimeoutDuration = 5.seconds
+  val defaultTimeoutDuration = AkkaConfig.timeoutDuration
 
   var pit: ActorRef = context.actorOf(Props(classOf[PIT]), name = "PIT")
   var cs: ActorRef = context.actorOf(Props(classOf[ContentStore]), name = "ContentStore")

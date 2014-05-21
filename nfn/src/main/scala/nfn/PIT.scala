@@ -65,7 +65,7 @@ case class PIT() extends Actor {
 
     case Timeout(name, face) => {
       pit.get(name) map { pendingFaces =>
-        logger.debug(s"Timing out interest: $name to face $face")
+        logger.warning(s"Timing out interest: $name to face $face")
         pit += name -> (pendingFaces - face)
       }
     }
