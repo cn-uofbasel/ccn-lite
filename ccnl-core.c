@@ -821,6 +821,13 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     int cnt = 0;
     DEBUGMSG(99, "ccnl_content_serve_pending\n");
 
+
+    DEBUGMSG(99, "PIT, serving content %s:\n", ccnl_prefix_to_path(c->name));
+    struct ccnl_interest_s *i_it;
+    for(i_it = ccnl->pit; i_it; i_it = i_it->next){
+        fprintf(stderr, "         -------------------- %s\n", ccnl_prefix_to_path(i_it->prefix));
+    }
+
     for (f = ccnl->faces; f; f = f->next){
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
     }
