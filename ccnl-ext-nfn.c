@@ -55,7 +55,17 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = find_configuration(configuration_list, -configid);
     
-    //config->prefix
+    struct ccnl_interest_s *original_interest;
+    for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
+        if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
+            original_interest->last_used = CCNL_NOW();
+            original_interest->retries = 0;
+            original_interest->from->last_used = CCNL_NOW();
+            break;
+        }
+    }
+
+
 
 
     if(config->thunk && CCNL_NOW() > config->endtime){
