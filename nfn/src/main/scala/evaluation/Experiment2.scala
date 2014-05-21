@@ -10,13 +10,12 @@ import ccn.packet._
 import scala.concurrent.Future
 import node.Node
 import monitor.Monitor
-import lambdacalculus.parser.ast.{Variable, Expr, LambdaDSL}
-import nfn.service.impl.{Translate, WordCountService, Publish}
+import lambdacalculus.parser.ast._
+import nfn.service.impl._
+import config.AkkaConfig
 
 object Experiment2 extends App {
 
-  val timeoutDuration: FiniteDuration = 5 seconds
-  implicit val timeout = Timeout( timeoutDuration)
 
   val node1Config = NodeConfig("127.0.0.1", 10010, 10011, CCNName("node", "node1"))
   val node2Config = NodeConfig("127.0.0.1", 10020, 10021, CCNName("node", "node2"))
@@ -43,7 +42,7 @@ object Experiment2 extends App {
   val node1 = Node(node1Config, withLocalAM = false)
   val node2 = Node(node2Config, withLocalAM = false)
   val node3 = Node(node3Config, withLocalAM = false)
-  val node4 = Node(node4Config, withLocalAM = false)
+  val node4 = Node(node4Config, withLocalAM = false, withComputeServer = false)
 
   node1 <~> node2
   node1 <~> node3
@@ -72,14 +71,22 @@ object Experiment2 extends App {
   implicit val useThunks = false
 
   val wc = WordCountService().toString
+  val as = SumService().toString
 
   val exThunkVsNoThunk: Expr = (wc call List(docname2)) + (wc call List(docname3))
 
   val exRouteTowardsData: Expr = wc call List(docname4)
 
-  val expr = exThunkVsNoThunk
 
-  val startTime = System.currentTimeMillis()
+  val exServ1 = wc call List(docname3)
+  val exServ2 = wc call List(docname2)
+  val exComposedServ: Expr = as call List(exServ1, exServ2)
+
+  val expr = exRouteTowardsData
+
+  import AkkaConfig.timeout
+
+  var startTime = System.currentTimeMillis()
   node1 ? expr onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
@@ -88,7 +95,7 @@ object Experiment2 extends App {
     case Failure(error) => throw error
   }
 
-  Thread.sleep(timeoutDuration.toMillis + 100)
+  Thread.sleep(AkkaConfig.timeoutDuration.toMillis + 100)
 
   Monitor.monitor ! Monitor.Visualize()
 

@@ -102,9 +102,9 @@ object Node {
 /**
  * Created by basil on 10/04/14.
  */
-case class Node(nodeConfig: NodeConfig, withLocalAM: Boolean = false) {
+case class Node(nodeConfig: NodeConfig, withComputeServer: Boolean = true, withLocalAM: Boolean = false) {
 
-  val timeoutDuration: FiniteDuration = 6.seconds
+  val timeoutDuration: FiniteDuration = AkkaConfig.timeoutDuration
   implicit val timeout = Timeout( timeoutDuration)
 
   private var isRunning = true
@@ -123,7 +123,9 @@ case class Node(nodeConfig: NodeConfig, withLocalAM: Boolean = false) {
   private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
   ccnLiteNFNNetworkProcess.start()
 
-  ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
+  if(withComputeServer) {
+    ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
+  }
   ccnLiteNFNNetworkProcess.addPrefix(nodeConfig.prefix, nodeConfig.host, nodeConfig.computePort)
 
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)

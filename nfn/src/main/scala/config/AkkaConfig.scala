@@ -1,11 +1,17 @@
 package config
 
 import com.typesafe.config.{Config, ConfigFactory}
+import scala.concurrent.duration._
+import akka.util.Timeout
 
 /**
  * Created by basil on 08/04/14.
  */
 object AkkaConfig {
+
+
+  val timeoutDuration: FiniteDuration = 20 seconds
+  implicit val timeout = Timeout( timeoutDuration)
 
   val configInfo =
     ConfigFactory.parseString("""

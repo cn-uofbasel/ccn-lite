@@ -17,10 +17,11 @@ import ccn.packet._
 import bytecode.BytecodeLoader
 import nfn.NFNServer._
 import nfn.NFNApi
+import config.AkkaConfig
 
 object NFNService extends Logging {
 
-  implicit val timeout = Timeout(20 seconds)
+  implicit val timeout = AkkaConfig.timeout
 
   /**
    * Creates a [[NFNService]] from a content object containing the binary code of the service.
