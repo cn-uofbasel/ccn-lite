@@ -68,7 +68,7 @@ object Experiment2 extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks = false
+  implicit val useThunks = true
 
   val wc = WordCountService().toString
   val as = SumService().toString

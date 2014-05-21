@@ -688,12 +688,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     int it;
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
 
-#ifdef CCNL_NFN
-    if(!i->propagate) {
-        return i->next;
-    }
-#endif
-
     for(it = 0; it < i->prefix->compcnt; ++it){
         fprintf(stderr, "/%s", i->prefix->comp[it]);
     }
@@ -830,14 +824,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     struct ccnl_face_s *f;
     int cnt = 0;
     DEBUGMSG(99, "ccnl_content_serve_pending\n");
-#ifdef CCNL_NFN
-
-    DEBUGMSG(99, "PIT, serving content %s:\n", ccnl_prefix_to_path(c->name));
-    struct ccnl_interest_s *i_it;
-    for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-        fprintf(stderr, "         -------------------- %s, propagate: %d\n", ccnl_prefix_to_path(i_it->prefix), i_it->propagate);
-    }
-#endif
 
     for (f = ccnl->faces; f; f = f->next){
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
@@ -1057,44 +1043,46 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
 
 #ifdef CCNL_NFN
-        fprintf(stderr, "PIT Entries: \n");
-        struct ccnl_interest_s *i_it;
-        for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-                int it;
-                fprintf(stderr, "    - ");
-                for(it = 0; it < i_it->prefix->compcnt; ++it){
-                        fprintf(stderr, "/%s", i_it->prefix->comp[it]);
-                }
-                fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
-        }
-        fprintf(stderr, "Content name: ");
-        int it = 0;
-        for(it = 0; it < c->name->compcnt; ++it){
-            fprintf(stderr, "/%s",  c->name->comp[it]);
-        }fprintf(stderr, "\n");
-            if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
-                struct ccnl_interest_s *i_it = NULL;
-                int found = 0;
-                for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
-                     //Check if prefix match and it is a nfn request
-                     int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
-                     DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
-                     if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
-                             && i_it->from->faceid < 0){
-                        ccnl_content_add2cache(ccnl, c);
-                        int configid = -i_it->from->faceid;
-                        DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                        i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
-                        ++found;
-                        //goto Done;
-                     }
-                     else{
-                         i_it = i_it->next;
-                     }
-                }
-                if(found) goto Done;
-                DEBUGMSG(99, "no running computation found \n");
+        if(debug_level >= 99){
+            printf(stderr, "PIT Entries: \n");
+            struct ccnl_interest_s *i_it;
+            for(i_it = ccnl->pit; i_it; i_it = i_it->next){
+                    int it;
+                    fprintf(stderr, "    - ");
+                    for(it = 0; it < i_it->prefix->compcnt; ++it){
+                            fprintf(stderr, "/%s", i_it->prefix->comp[it]);
+                    }
+                    fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
             }
+            fprintf(stderr, "Content name: ");
+            int it = 0;
+            for(it = 0; it < c->name->compcnt; ++it){
+                fprintf(stderr, "/%s",  c->name->comp[it]);
+            }fprintf(stderr, "\n");
+        }
+        if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
+            struct ccnl_interest_s *i_it = NULL;
+            int found = 0;
+            for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
+                 //Check if prefix match and it is a nfn request
+                 int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
+                 DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
+                 if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
+                         && i_it->from->faceid < 0){
+                    ccnl_content_add2cache(ccnl, c);
+                    int configid = -i_it->from->faceid;
+                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
+                    i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
+                    ++found;
+                    //goto Done;
+                 }
+                 else{
+                     i_it = i_it->next;
+                 }
+            }
+            if(found) goto Done;
+            DEBUGMSG(99, "no running computation found \n");
+        }
 #endif
 	    if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
