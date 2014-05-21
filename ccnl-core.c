@@ -688,6 +688,12 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     int it;
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
 
+#ifdef CCNL_NFN
+    if(!i->propagate) {
+        return i->next;
+    }
+#endif
+
     for(it = 0; it < i->prefix->compcnt; ++it){
         fprintf(stderr, "/%s", i->prefix->comp[it]);
     }
@@ -709,9 +715,13 @@ struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
         struct ccnl_interest_s *i){
     struct ccnl_interest_s *interest;
+    int faceid = 0;
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
 #ifdef CCNL_NFN
-    int faceid = i->from->faceid;
+    if(i != 0 && i->from != 0){
+        faceid = i->from->faceid;
+    }
+
 #endif
     interest = ccnl_interest_remove(ccnl, i);
 #ifdef CCNL_NFN
@@ -820,13 +830,14 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     struct ccnl_face_s *f;
     int cnt = 0;
     DEBUGMSG(99, "ccnl_content_serve_pending\n");
-
+#ifdef CCNL_NFN
 
     DEBUGMSG(99, "PIT, serving content %s:\n", ccnl_prefix_to_path(c->name));
     struct ccnl_interest_s *i_it;
     for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-        fprintf(stderr, "         -------------------- %s\n", ccnl_prefix_to_path(i_it->prefix));
+        fprintf(stderr, "         -------------------- %s, propagate: %d\n", ccnl_prefix_to_path(i_it->prefix), i_it->propagate);
     }
+#endif
 
     for (f = ccnl->faces; f; f = f->next){
 	f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
