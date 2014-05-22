@@ -15,9 +15,32 @@
 #define NFN_DEFAULT_WAITING_TIME 10
 int numOfRunningComputations = 0;
 
+
+#define STACK_TYPE_INT 0
+#define STACK_TYPE_PREFIX 1
+#define STACK_TYPE_THUNK 2
+#define STACK_TYPE_CLOSURE 3
+
+struct stack_s{
+    void *content;
+    int type;
+    struct stack_s *next;
+};
+
+struct environment_s{
+    char *name;
+    void *element;
+    struct environment_s *next;
+};
+
+struct closure_s{
+    char *term;
+    struct environment_s *env;
+};
+
 struct fox_machine_state_s{
     int num_of_params;
-    char **params;
+    struct stack_s **params;
     int it_routable_param;
     int thunk_request;
     int num_of_required_thunks;
@@ -55,5 +78,9 @@ int thunkid = 0;
 struct configuration_s *configuration_list;
 
 int configid = -1;
+
+
+
+
 
 #endif //KRIVINE_COMMON_H
