@@ -468,7 +468,7 @@ ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
-        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix->comp);
+        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix);
         return interest;
     }
     return NULL;
