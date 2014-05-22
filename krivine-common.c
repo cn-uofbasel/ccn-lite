@@ -174,7 +174,7 @@ add_local_computation_components(struct ccnl_prefix_s *prefix, struct configurat
     }
 
     i = 0;
-    ret = malloc(sizeof(struct ccnl_prefix_s *));
+    ret = malloc(sizeof(struct ccnl_prefix_s));
     int size = config->fox_state->thunk_request ? 4 : 3;
 
     ret->comp = malloc(sizeof(char*) * size);
