@@ -302,7 +302,6 @@ int choose_parameter(struct configuration_s *config){
             }
         }
     }
-
     return -1;
 
 }
