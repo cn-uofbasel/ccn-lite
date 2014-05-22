@@ -26,7 +26,6 @@ object Experiment2 extends App {
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
 
-
   val docname2 = node2Config.prefix.append("doc", "test2")
   val docdata2 = "two two".getBytes
   val docContent2 = Content(docname2, docdata2)
@@ -42,7 +41,7 @@ object Experiment2 extends App {
   val node1 = Node(node1Config, withLocalAM = false)
   val node2 = Node(node2Config, withLocalAM = false)
   val node3 = Node(node3Config, withLocalAM = false)
-  val node4 = Node(node4Config, withLocalAM = false, withComputeServer = false)
+  val node4 = Node(node4Config, withLocalAM = false)//, withComputeServer = false)
 
   node1 <~> node2
   node1 <~> node3
@@ -63,26 +62,32 @@ object Experiment2 extends App {
   node1.publishServices
   node2.publishServices
   node3.publishServices
-  node4.removeLocalServices
+  node4.publishServices
+//  node4.removeLocalServices
   Thread.sleep(1000)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks = true
+  implicit val useThunks = false
 
   val wc = WordCountService().toString
-  val as = SumService().toString
+  val ss = SumService().toString
+  val ts = Translate().toString
 
   val exThunkVsNoThunk: Expr = (wc call List(docname2)) + (wc call List(docname3))
 
   val exRouteTowardsData: Expr = wc call List(docname4)
 
+  val exCallCall: Expr = ss call (ts call docname2)
+
 
   val exServ1 = wc call List(docname3)
   val exServ2 = wc call List(docname2)
-  val exComposedServ: Expr = as call List(exServ1, exServ2)
+  val exComposedServ: Expr = ss call List(exServ1, exServ2)
 
-  val expr = exRouteTowardsData
+  val exAddAdd = ((wc call docname1) + (wc call docname2)) + ((wc call docname3) + (wc call docname4))
+
+  val expr = exCallCall
 
   import AkkaConfig.timeout
 
