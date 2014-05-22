@@ -97,10 +97,10 @@ Usage:
     goto Usage;
     comp = argv[optind++];
     if (!argv[optind])
-    goto Usage;
+	goto Usage;
 
-    int j= splitComponents(argv[optind], namecomp);
-    len = mkInterestCompute(namecomp, comp, strlen(comp), thunk_request, out);
+    struct ccnl_prefix_s *prefix = create_prefix_from_name(argv[optind]);
+    len = mkInterestCompute(prefix->comp, comp, strlen(comp), thunk_request, out);
 
     if(print){
         fwrite(out, sizeof(char), len, stdout);

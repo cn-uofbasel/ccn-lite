@@ -74,6 +74,8 @@ object Experiment2 extends App {
   val ss = SumService().toString
   val ts = Translate().toString
 
+  val exComp: Expr = 10 + 2
+
   val exThunkVsNoThunk: Expr = (wc call List(docname2)) + (wc call List(docname3))
 
   val exRouteTowardsData: Expr = wc call List(docname4)

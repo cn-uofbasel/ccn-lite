@@ -19,6 +19,23 @@
 #include "ccnl-pdu.c"
 
 
+char*
+ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
+{
+//    static char prefix_buf[1024];
+    char *prefix_buf = malloc(4096);
+    int len= 0, i;
+
+    if (!pr)
+    return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        len += sprintf(prefix_buf + len, "/%s", pr->comp[i]);
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;
+}
+
+
 
 struct fox_machine_state_s *
 new_machine_state(int thunk_request, int num_of_required_thunks){
@@ -101,75 +118,141 @@ int trim(char *str){  // inplace, returns len after shrinking
     return strlen(str);
 }
 
-int
-add_computation_components(unsigned char **namecomp, int thunk_request, unsigned char *comp){
+struct ccnl_prefix_s *
+add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, unsigned char *comp){
     int i = 0;
-    while(namecomp[i]) ++i;
+    /*while(namecomp[i]) ++i;
 
     namecomp[i++] = comp;
     if(thunk_request) namecomp[i++] = (unsigned char *)"THUNK";
     namecomp[i++] = (unsigned char *)"NFN";
-    namecomp[i] = NULL;
-    return i;
+    namecomp[i] = NULL;*/
+
+    int size = thunk_request ? 3 : 2;
+
+    struct ccnl_prefix_s *ret = malloc(sizeof(struct ccnl_prefix_s));
+    ret->comp = malloc((prefix->compcnt +size) * sizeof(char*));
+    ret->complen = malloc((prefix->compcnt +size) * sizeof(int));
+    ret->compcnt = prefix->compcnt +size;
+    ret->path = NULL;
+    for(i = 0; i < prefix->compcnt; ++i){
+#ifndef USE_UTIL
+        DEBUGMSG(99, "COPY %s\n", prefix->comp[i]);
+#endif
+        ret->comp[i] = strdup(prefix->comp[i]);
+        ret->complen[i] = prefix->complen[i];
+    }
+    ret->comp[i] = comp;
+    ret->complen[i] = strlen(comp);
+    ++i;
+    if(thunk_request){
+        ret->comp[i] = (unsigned char *)"THUNK";
+        ret->complen[i] = strlen("THUNK");
+        ++i;
+    }
+    ret->comp[i] = (unsigned char *)"NFN";
+    ret->complen[i] = strlen("NFN");
+
+    return ret;
 }
 
-int
-add_local_computation_components(unsigned char **namecomp, struct configuration_s *config){
+struct ccnl_prefix_s *
+add_local_computation_components(struct ccnl_prefix_s *prefix, struct configuration_s *config){
 
-    int i;
+    int i = 0;
     char *comp = malloc(CCNL_MAX_PACKET_SIZE);
+    struct ccnl_prefix_s *ret;
     int complen = sprintf(comp, "call %d ", config->fox_state->num_of_params);
     for(i = 0; i < config->fox_state->num_of_params; ++i){
-        complen += sprintf(comp+complen, "%s ", config->fox_state->params[i]);
+        if(config->fox_state->params[i]->type == STACK_TYPE_INT)
+            complen += sprintf(comp+complen, "%d ", *((int*)config->fox_state->params[i]->content));
+        else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
+            complen += sprintf(comp+complen, "%s ", ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+#ifndef USE_UTIL
+        else DEBUGMSG(1, "Invalid type %d\n", config->fox_state->params[i]->type);
+#endif
     }
-    for(i = 0; i < CCNL_MAX_NAME_COMP; ++i){
-        namecomp[i] = 0;
-    }
+
     i = 0;
-    namecomp[i++] = (unsigned char *)"COMPUTE";
-    namecomp[i++] = (unsigned char *)strdup(comp);
-    if(config->fox_state->thunk_request) namecomp[i++] = (unsigned char *)"THUNK";
-    namecomp[i++] = (unsigned char *)"NFN";
-    namecomp[i] = NULL;
-    return i;
+    ret = malloc(sizeof(struct ccnl_prefix_s *));
+    int size = config->fox_state->thunk_request ? 4 : 3;
+
+    ret->comp = malloc(sizeof(char*) * size);
+    ret->complen = malloc(sizeof(int) * size);
+
+    ret->comp[i] = (unsigned char *)"COMPUTE";
+    ret->complen[i] = strlen("COMPUTE");
+    ++i;
+    ret->comp[i] = (unsigned char *)strdup(comp);
+    ret->complen[i] = strlen(comp);
+    ++i;
+    if(config->fox_state->thunk_request){
+        ret->comp[i] = (unsigned char *)"THUNK";
+        ret->complen[i] = strlen("THUNK");
+        ++i;
+    }
+    ret->comp[i] = (unsigned char *)"NFN";
+    ret->complen[i] = strlen("NFN");
+
+    ret->compcnt = i+1;
+
+    return ret;
 }
 
 int
 createComputationString(struct configuration_s *config, int parameter_num, unsigned char *comp){
 
-    int j;
+    int i;
     int complen = sprintf((char*)comp, "(@x call %d ", config->fox_state->num_of_params);
-    for(j = 0; j < config->fox_state->num_of_params; ++j){
-        if(parameter_num == j){
+    for(i = 0; i < config->fox_state->num_of_params; ++i){
+        if(parameter_num == i){
             complen += sprintf((char*)comp + complen, "x ");
         }
         else{
-            complen += sprintf((char*)comp + complen, "%s ", config->fox_state->params[j]);
+            //complen += sprintf((char*)comp + complen, "%s ", config->fox_state->params[j]);
+
+            if(config->fox_state->params[i]->type == STACK_TYPE_INT)
+                complen += sprintf(comp+complen, "%d ", *((int*)config->fox_state->params[i]->content));
+            else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
+                complen += sprintf(comp+complen, "%s ", ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+#ifndef USE_UTIL
+            else DEBUGMSG(1, "Invalid type %d\n", config->fox_state->params[i]->type);
+#endif
         }
     }
     complen += sprintf((char*)comp + complen, ")");
     return complen;
 }
 
-int
-splitComponents(char* namecomp, unsigned char **prefix)
+struct ccnl_prefix_s *
+create_prefix_from_name(char* namestr)
 { 
-    int i = 0;
-    char *cp;
-    cp = strtok(namecomp, "/");
+    int i = 0, j = 0;
+    char *cp = NULL;
+    char *prefixcomp[CCNL_MAX_NAME_COMP];
+    struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s ));
+    cp = strtok(namestr, "/");
     
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-        prefix[i++] = (unsigned char *)cp;
+        prefixcomp[i++] = (unsigned char *)cp;
         cp = strtok(NULL, "/");
     }
-    prefix[i] = NULL;
-    return i;
+    prefixcomp[i] = NULL;
+    prefix->comp = (char **)malloc(i*sizeof(char*));
+    prefix->compcnt = i;
+    prefix->path = NULL;
+    prefix->complen = (int *)malloc(i*sizeof(int));
+    for(j = 0; j < i; ++j){
+        prefix->complen[j] = strlen(prefixcomp[j]);
+        prefix->comp[j] = strdup(prefixcomp[j]);
+    }
+    return prefix;
 }
 
 #ifndef USE_UTIL
 struct ccnl_interest_s *
 mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-                  unsigned char **namecomp)
+                 struct ccnl_prefix_s *prefix)
 {
 
     DEBUGMSG(2, "mkInterestObject()\n");
@@ -179,16 +262,15 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_prefix_s *p = 0;
     unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
     unsigned char *content = 0;
-    int num; int typ;
+    int num; int typ, i;
     int len = 0, k;
     unsigned char *cp;
 
     len += mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    unsigned char **nc = namecomp;
-    while (*nc) {
+    for(i = 0; i < prefix->compcnt; ++i){
         len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-        cp = (unsigned char*) strdup((char *)*nc);
+        cp = (unsigned char*) strdup((char *)prefix->comp[i]);
         k = unescape_component(cp);
         //	k = strlen(*namecomp);
         len += mkHeader(out+len, k, CCN_TT_BLOB);
@@ -196,7 +278,6 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         len += k;
         out[len++] = 0; // end-of-component
         free(cp);
-        ++nc;
     }
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
@@ -209,8 +290,8 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
-    from->outq->data[0] = strdup((char *)namecomp[0]);
-    from->outq->datalen = strlen((char *)namecomp[0]);
+    from->outq->data[0] = strdup((char *)prefix->comp[0]);
+    from->outq->datalen = prefix->complen[0];
     return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
 }
 
@@ -341,21 +422,12 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 }
 
 struct ccnl_content_s *
-ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, unsigned char **namecomp, int compcnt){
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
 
     struct ccnl_content_s *content;
-    struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s));
     int i;
-
-    prefix->compcnt = compcnt;
-    prefix->complen = malloc(sizeof(int)*compcnt);
-    prefix->comp = namecomp;
-    for(i = 0; i < compcnt; ++i){
-        prefix->complen[i] = (int)strlen((char*)namecomp[i]);
-        //prefix->comp[i] = namecomp[i];
-    }
-
+    DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path2(prefix));
     for(content = ccnl->contents; content; content = content->next){
         if(!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)){
             return content;
@@ -396,7 +468,7 @@ ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
-        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix->comp);
+        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix);
         return interest;
     }
     return NULL;
@@ -436,7 +508,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     if(interest){
         interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c = NULL;
-        if((c = ccnl_nfn_local_content_search(ccnl, interest->prefix->comp, interest->prefix->compcnt)) != NULL){
+        if((c = ccnl_nfn_local_content_search(ccnl, interest->prefix)) != NULL){
             interest = ccnl_interest_remove(ccnl, interest);
             return c;
         }
