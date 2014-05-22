@@ -18,21 +18,6 @@
 
 //Machine state functions
 //------------------------------------------------------------------
-struct stack_s{
-    void *content;
-    struct stack_s *next;
-};
-
-struct environment_s{
-    char *name;
-    void *element;
-    struct environment_s *next;
-};
-
-struct closure_s{
-    char *term;
-    struct environment_s *env;
-};
 
 struct closure_s *
 new_closure(char *term, struct environment_s *env){
@@ -43,7 +28,7 @@ new_closure(char *term, struct environment_s *env){
 }
 
 void 
-push_to_stack(struct stack_s **top, void *content){
+push_to_stack(struct stack_s **top, void *content, int type){
     struct stack_s *h = malloc(sizeof(struct stack_s));
     if(top != NULL && *top != NULL){
                 h->next = *top;
@@ -51,24 +36,24 @@ push_to_stack(struct stack_s **top, void *content){
 	        h->next = NULL;
 	    }
     h->content = content;
+    h->type = type;
     *top = h;
 }
 
-void *
+struct stack_s *
 pop_from_stack(struct stack_s **top){
-    void *res;
+    struct stack_s *res;
     if(top == NULL) return NULL;
     if( *top != NULL){
         struct stack_s *h = *top;
-        res = h->content;
+        res = h;
     	*top = h->next;
-        free(h);
         return res;
     }
     return NULL;
 }
 
-unsigned char *
+struct stack_s *
 pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int *restart){
     unsigned char *res = NULL;
@@ -77,26 +62,42 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
         res = config->fox_state->thunk;
     } 
     else{*/
-    res = (unsigned char*) pop_from_stack(&config->result_stack);
+    struct stack_s *elm = pop_from_stack(&config->result_stack);
     //}
     struct ccnl_content_s *c;
-    if(res && !strncmp((char *)res, "THUNK", 5)){
-        DEBUGMSG(49, "Resolve Thunk: %s \n", res);
-        if(!config->thunk){
-            config->thunk = 1;
-            config->starttime = CCNL_NOW();
-            config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
-            DEBUGMSG(99,"Wating %f sec for Thunk\n", config->thunk_time);
+    if(elm->type == STACK_TYPE_THUNK){
+        res = (unsigned char *)elm->content;
+        if(res && !strncmp((char *)res, "THUNK", 5)){
+            DEBUGMSG(49, "Resolve Thunk: %s \n", res);
+            if(!config->thunk){
+                config->thunk = 1;
+                config->starttime = CCNL_NOW();
+                config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
+                DEBUGMSG(99,"Wating %f sec for Thunk\n", config->thunk_time);
+            }
+            c = ccnl_nfn_resolve_thunk(ccnl, config, res);
+            if(c == NULL){
+                push_to_stack(&config->result_stack, elm->content, elm->type);
+                return NULL;
+            }
+            struct stack_s *elm1 = malloc(sizeof(struct stack_s));
+            if(isdigit(*c->content)){
+                int *integer = malloc(sizeof(int));
+                *integer = strtol(c->content, NULL, 0);
+                elm1->content = (void*)integer;
+                elm1->next = NULL;
+                elm1->type = STACK_TYPE_INT;
+            }
+            else{
+                elm1->content = c->name;
+                elm1->next = NULL;
+                elm1->type = STACK_TYPE_PREFIX;
+            }
+
+            return elm1;
         }
-        c = ccnl_nfn_resolve_thunk(ccnl, config, res);
-        if(c == NULL){
-            push_to_stack(&config->result_stack, res);
-            return NULL;
-        }
-        config->thunk = 0;
-        res = c->content;  
     }
-    return res;
+    return elm;
 }
 
 void 
@@ -162,7 +163,7 @@ struct term_s {
     struct term_s *m, *n;
     // if m is 0, we have a var  v
     // is both m and n are not 0, we have an application  (M N)
-    // if n is 0, we have a lambda term  /v M
+    // if n is 0, we have a lambda term  @v M
 };
 
 char*
@@ -294,12 +295,14 @@ int choose_parameter(struct configuration_s *config){
     int num;
     DEBUGMSG(99, "choose_parameter(%d)\n", param_to_choose);
     for(num = config->fox_state->num_of_params-1; num >=0; --num){
-    	if(iscontent(config->fox_state->params[num])){
-	   --param_to_choose; 
-           if(param_to_choose <= 0)
-		return num;
-	}
+        if(config->fox_state->params[num]->type == STACK_TYPE_PREFIX){
+            --param_to_choose;
+            if(param_to_choose <= 0){
+                return num;
+            }
+        }
     }
+
     return -1;
 
 }
@@ -311,36 +314,37 @@ int choose_parameter(struct configuration_s *config){
  */
 #define pop2int() \
         do{     \
-            unsigned char *h1, *h2; \
+            struct stack_s *h1, *h2; \
             h1 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
             if(h1 == NULL){ \
                 *halt = -1; \
                 return prog; \
             } \
-            i1 = atoi((char *)h1); \
+            if(h1->type == STACK_TYPE_INT) i1 = *(int*)h1->content;\
             h2 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
             if(h2 == NULL){ \
                 *halt = -1; \
-                push_to_stack(&config->result_stack, h1); \
+                push_to_stack(&config->result_stack, h1->content, h1->type); \
                 return prog; \
             } \
-            i2 = atoi((char *)h2); \
+            if(h1->type == STACK_TYPE_INT) i2 = *(int*)h2->content;\
         }while(0) ;
 //------------------------------------------------------------
         
-int
+struct ccnl_prefix_s *
 create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request,
-                 int compcnt, unsigned char **namecomp)
+                 struct ccnl_prefix_s *prefix)
 {
-    if(ccnl_nfn_local_content_search(ccnl, namecomp, compcnt)){ //local computation name components
-        compcnt = add_local_computation_components(namecomp, config);
+
+    if(ccnl_nfn_local_content_search(ccnl, prefix)){ //local computation name components
+        DEBUGMSG(99, "content local available\n");
+       return add_local_computation_components(prefix, config);
     }
     else{ //network search name components
         unsigned char *comp = malloc(CCNL_MAX_PACKET_SIZE);
         createComputationString(config, parameter_number, comp);
-        compcnt = add_computation_components(namecomp, thunk_request, comp);
+        return add_computation_components(prefix, thunk_request, comp);
     }
-    return compcnt;
 }
 
 char*
@@ -388,7 +392,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                 return 0;
             }
         }
-        push_to_stack(&config->argument_stack, closure);
+        push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
 
         return pending+1;
     }
@@ -423,7 +427,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 normal:
             closure = new_closure(cp, config->env); 
             //configuration->env = NULL;//FIXME new environment?
-            push_to_stack(&config->argument_stack, closure);
+            push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
         }
         if(pending){
             cp = pending + 1;
@@ -445,7 +449,8 @@ normal:
 	v[len-1] = '\0';
 	DEBUGMSG(2, "---to do: grab <%s>\n", v);
 
-	struct closure_s *closure = pop_from_stack(&config->argument_stack);
+    struct stack_s *stack = pop_from_stack(&config->argument_stack);
+    struct closure_s *closure = (struct closure_s *) stack->content;
 	add_to_environment(&config->env, v, closure);
 
 	if(pending)
@@ -456,7 +461,8 @@ normal:
         char *code;
         DEBUGMSG(2, "---to do: tailapply\n");
 
-        struct closure_s *closure = pop_from_stack(&config->argument_stack);
+        struct stack_s *stack = pop_from_stack(&config->argument_stack);
+        struct closure_s *closure = (struct closure_s *) stack->content;
         code = closure->term;
         if(pending){ //build new term
             sprintf(dummybuf, "%s%s", code, pending);
@@ -523,35 +529,41 @@ normal:
         
         //check if term can be made available, if yes enter it as a var
 	//try with searching in global env for an added term!
-        t = parseKRIVINE(0, &cp);
+    t = parseKRIVINE(0, &cp);
 	if (term_is_var(t)) {
-	    char *end = 0;
-            cp = t->v;
-            if (isdigit(*cp)) {
-		// is disgit...
-		strtol(cp, &end, 0);
-		if (end && *end)
-		    end = 0;
+        char *end = 0;
+        cp = t->v;
+        if (isdigit(*cp)) {
+            // is disgit...
+            int *integer = malloc(sizeof(int));
+            *integer = strtol(cp, &end, 0);
+            if (end && *end){
+                end = 0;
+            }
+            if(end){
+                push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
+            }
 	    }
-            else if(iscontent(cp)){
-	   	// is content... 
-		DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
-		end = cp;
-	    }
-            if (end) {
-		push_to_stack(&config->result_stack, cp);
-		if (pending)
-		    sprintf(res, "TAILAPPLY%s", pending);
-		else
-		    sprintf(res, "TAILAPPLY");
-	    }else {
-		if (pending)
-		    sprintf(res, "ACCESS(%s);TAILAPPLY%s", t->v, pending);
-		else
-		    sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
-	    }
-            return strdup(res);
+        else if(iscontent(cp)){
+            // is content...
+            DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
+            struct ccnl_prefix_s *prefix = create_prefix_from_name(cp);
+            push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
+            end = 1;
         }
+        if (end) {
+            if (pending)
+                sprintf(res, "TAILAPPLY%s", pending);
+            else
+                sprintf(res, "TAILAPPLY");
+        }else{
+            if (pending)
+                sprintf(res, "ACCESS(%s);TAILAPPLY%s", t->v, pending);
+            else
+                sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
+        }
+        return strdup(res);
+    }
 	if (term_is_lambda(t)) {
             char *var;
 	    var = t->v;
@@ -641,40 +653,34 @@ normal:
 	return strdup(res);
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
-	int i1, i2, res;
-	char *h;
-	DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-	pop2int();
-	res = i1+i2;
-	h = malloc(sizeof(char)*10);
-        memset(h,0,10);
-	sprintf(h, "%d", res);
-	push_to_stack(&config->result_stack, h);
-	return pending+1;
+        int i1, i2, res;
+        int *h = malloc(sizeof(int));
+        DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
+        pop2int();
+        res = i1+i2;
+        *h = res;
+        push_to_stack(&config->result_stack, h, STACK_TYPE_INT);
+        return pending+1;
     }
     if (!strncmp(prog, "OP_SUB", 6)) {
         int i1, i2, res;
-        unsigned char *h;
+        int *h = malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
         pop2int();
         res = i2-i1;
-        h = malloc(sizeof(char)*10);
-            memset(h,0,10);
         sprintf((char *)h, "%d", res);
-        push_to_stack(&config->result_stack, h);
+        push_to_stack(&config->result_stack, h, STACK_TYPE_INT);
         return pending+1;
         }
-        if (!strncmp(prog, "OP_MULT", 7)) {
-            int i1, i2, res;
-            unsigned char *h;
-            DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-            pop2int();
-            res = i1*i2;
-            h = malloc(sizeof(char)*10);
-                memset(h,0,10);
-            sprintf((char*)h, "%d", res);
-            push_to_stack(&config->result_stack, h);
-            return pending+1;
+    if (!strncmp(prog, "OP_MULT", 7)) {
+        int i1, i2, res;
+        unsigned char *h;
+        DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
+        pop2int();
+        res = i1*i2;
+        *h = res;
+        push_to_stack(&config->result_stack, h, STACK_TYPE_INT);
+        return pending+1;
     }
     if(!strncmp(prog, "OP_IFELSE", 9)){
         unsigned char *h;
@@ -690,7 +696,7 @@ normal:
             DEBUGMSG(99, "Execute if\n");
             struct closure_s *cl = pop_from_stack(&config->argument_stack);
             pop_from_stack(&config->argument_stack);
-            push_to_stack(&config->argument_stack, cl);
+            push_to_stack(&config->argument_stack, cl, STACK_TYPE_CLOSURE);
         }
         else{
             DEBUGMSG(99, "Execute else\n");
@@ -699,12 +705,12 @@ normal:
         return pending+1;
     }
     if(!strncmp(prog, "OP_CALL", 7)){
-        unsigned char *h;
+        struct stack_s *h;
         int i, offset;
         char name[5];
         DEBUGMSG(2, "---to do: OP_CALL <%s>\n", prog+7);
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        int num_params = atoi((char*)h);
+        int num_params = *(int *)h->content;
         memset(dummybuf, 0, 2000);
         sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
         offset = strlen(dummybuf);
@@ -732,14 +738,15 @@ normal:
             goto recontinue;
         }
         DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
-        unsigned char *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        config->fox_state->num_of_params = atoi((char *)h);
+        struct stack_s *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
+        //TODO CHECK IF INT
+        config->fox_state->num_of_params = *(int*)h->content;
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
-        config->fox_state->params = malloc(sizeof(char * ) * config->fox_state->num_of_params); 
+        config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s* ) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
-            config->fox_state->params[i] = (char *)pop_or_resolve_from_result_stack(ccnl, config, restart);
+            config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = 0;
@@ -747,27 +754,25 @@ normal:
         struct ccnl_content_s *c = NULL;
 
         //check if last result is now available
-        unsigned char *namecomp[CCNL_MAX_NAME_COMP];
-	int compcnt = 0;
+        int compcnt = 0;
 recontinue:
-	if(local_search){
-	    parameter_number = choose_parameter(config);
-            compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
-            compcnt =create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
-            c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt); //search for a result
+        if(local_search){
+            parameter_number = choose_parameter(config);
+            struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
+            c = ccnl_nfn_local_content_search(ccnl, pref); //search for a result
             if(c) goto handlecontent;
-	}
+        }
         //result was not delivered --> choose next parameter
         ++config->fox_state->it_routable_param;
         parameter_number = choose_parameter(config);
         if(parameter_number < 0) return NULL; //no more parameter --> no result found
-        compcnt = splitComponents(strdup(config->fox_state->params[parameter_number]), namecomp);
-        compcnt = create_namecomps(ccnl, config, parameter_number, thunk_request, compcnt, namecomp);
-        c = ccnl_nfn_local_content_search(ccnl, namecomp, compcnt);
+        //TODO: create new prefix with name components!!!!
+        struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
+        c = ccnl_nfn_local_content_search(ccnl, pref);
         if(c) goto handlecontent;
 
          //Result not in cache, search over the network
-        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, namecomp);
+        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, pref);
         ccnl_interest_propagate(ccnl, interest);
         //wait for content, return current program to continue later
         *halt = -1; //set halt to -1 for async computations
@@ -784,14 +789,21 @@ handlecontent: //if result was found ---> handle it
                 thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
                 config->thunk_time = config->thunk_time > thunk_time ? config->thunk_time : thunk_time;
                 DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
-                push_to_stack(&config->result_stack, thunkid);
+                push_to_stack(&config->result_stack, thunkid, STACK_TYPE_THUNK);
                 if( *num_of_required_thunks <= 0){
                     DEBUGMSG(99, "All thunks are available\n");
                     ccnl_nfn_reply_thunk(ccnl, config);
                 }
             }
-            else{
-                push_to_stack(&config->result_stack, c->content);
+            else{;
+                if(isdigit(*c->content)){
+                    int *integer = malloc(sizeof(int));
+                    *integer = strtol(c->content, 0, 0);
+                    push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
+                }
+                else{
+                    push_to_stack(&config->result_stack, c->name, STACK_TYPE_PREFIX);
+                }
             }
         }        
         DEBUGMSG(99, "Pending: %s\n", pending+1);
@@ -884,18 +896,26 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
                 &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
     if(halt < 0){ //HALT < 0 means pause computation
-        //put config in stack
-        //configuration_list[-(*config)->configid] = (*config);
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
     }
     else{ //HALT > 0 means computation finished
         free(dummybuf);
         DEBUGMSG(99, "end\n");
-        unsigned char *h = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;
-        if(h == NULL){
+        struct stack_s *stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;
+        if(stack == NULL){
             halt = -1;
             return NULL;
+        }
+        char *h = NULL;
+        if(stack->type == STACK_TYPE_PREFIX){
+            struct ccnl_prefix *pref = stack->content;
+            h = ccnl_prefix_to_path2(pref);
+        }
+        else if(stack->type == STACK_TYPE_INT){
+            h = calloc(0, 10);
+            int integer = *(int*)stack->content;
+            sprintf(h,"%d", integer);
         }
         return h;
     }
