@@ -81,7 +81,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
                 return NULL;
             }
             struct stack_s *elm1 = malloc(sizeof(struct stack_s));
-            if(isdigit(c->content)){
+            if(isdigit(*c->content)){
                 int *integer = malloc(sizeof(int));
                 *integer = strtol(c->content, NULL, 0);
                 elm1->content = (void*)integer;
@@ -903,6 +903,10 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         free(dummybuf);
         DEBUGMSG(99, "end\n");
         struct stack_s *stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;
+        if(stack == NULL){
+            halt = -1;
+            return NULL;
+        }
         char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix *pref = stack->content;
@@ -912,11 +916,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
             h = calloc(0, 10);
             int integer = *(int*)stack->content;
             sprintf(h,"%d", integer);
-        }
-
-        if(h == NULL){
-            halt = -1;
-            return NULL;
         }
         return h;
     }
