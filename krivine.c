@@ -801,7 +801,23 @@ handlecontent: //if result was found ---> handle it
                     push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
                 }
                 else{
-                    push_to_stack(&config->result_stack, c->name, STACK_TYPE_PREFIX);
+
+                    struct ccnl_prefix_s *name = malloc(sizeof(struct ccnl_prefix_s));
+                    name->comp = malloc(2*sizeof(char*));
+                    name->complen = malloc(2*sizeof(int));
+                    name->compcnt = 2;
+                    name->comp[1] = "NFN";
+                    name->complen[1] = 3;
+                    name->comp[0] = calloc(0,sizeof(CCNL_MAX_PACKET_SIZE));
+
+                    int it, len = 0;
+                    len += sprintf(name->comp[0]+len, "call %d ", config->fox_state->num_of_params);
+                    for(it = 0; it < config->fox_state->num_of_params; ++i){
+                        len += sprintf(name->comp[0]+len, "%s ", config->fox_state->params[i]);
+                    }
+                    name->complen[0] = strlen(name->comp[0]);
+
+                    push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                 }
             }
         }        
