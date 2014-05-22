@@ -65,9 +65,6 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
         }
     }
 
-
-
-
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(configuration_list, config);

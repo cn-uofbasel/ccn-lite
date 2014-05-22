@@ -846,7 +846,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 			 ccnl_prefix_to_path(c->name));
 		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
-        DEBUGMSG(99, "--- Serve to: %d", pi->face->faceid);
+        DEBUGMSG(99, "--- Serve to: %d\n", pi->face->faceid);
 
 #ifdef CCNL_NFN_MONITOR
                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
