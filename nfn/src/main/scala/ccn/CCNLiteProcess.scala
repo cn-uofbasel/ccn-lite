@@ -74,6 +74,8 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
   var udpFaces:Map[(String, Int), NetworkFace] = Map()
 
   def start() = {
+//    if(port != 10020) {
+
     val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
     println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
@@ -84,6 +86,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start
 
+//    }
     globalFaceId = 2
   }
 
