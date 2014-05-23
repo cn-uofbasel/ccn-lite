@@ -794,7 +794,7 @@ handlecontent: //if result was found ---> handle it
                     ccnl_nfn_reply_thunk(ccnl, config);
                 }
             }
-            else{;
+            else{
                 if(isdigit(*c->content)){
                     int *integer = malloc(sizeof(int));
                     *integer = strtol(c->content, 0, 0);
@@ -812,8 +812,16 @@ handlecontent: //if result was found ---> handle it
 
                     int it, len = 0;
                     len += sprintf(name->comp[0]+len, "call %d ", config->fox_state->num_of_params);
-                    for(it = 0; it < config->fox_state->num_of_params; ++i){
-                        len += sprintf(name->comp[0]+len, "%s ", config->fox_state->params[i]);
+                    for(it = 0; it < config->fox_state->num_of_params; ++it){
+
+                        struct stack_s * stack = config->fox_state->params[it]->content;
+                        if(stack->type == STACK_TYPE_PREFIX){
+                            len += sprintf(name->comp[0]+len, "%s ", ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content));
+                        }
+                        else if(stack->type == STACK_TYPE_INT){
+                            len += sprintf(name->comp[0]+len, "%d ", *(int*)stack->content);
+                        }
+
                     }
                     name->complen[0] = strlen(name->comp[0]);
 
@@ -925,7 +933,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix *pref = stack->content;
-            h = ccnl_prefix_to_path2(pref);
+            h = ccnl_nfn_local_content_search(ccnl, pref)->content;
         }
         else if(stack->type == STACK_TYPE_INT){
             h = calloc(0, 10);
