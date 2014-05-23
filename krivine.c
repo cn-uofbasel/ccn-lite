@@ -27,7 +27,7 @@ new_closure(char *term, struct environment_s *env){
     return ret;
 }
 
-void 
+void
 push_to_stack(struct stack_s **top, void *content, int type){
     struct stack_s *h = malloc(sizeof(struct stack_s));
     if(top != NULL && *top != NULL){
@@ -60,7 +60,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     /*if(*restart){
         DEBUGMSG(99, "pop_or_resolve_from_result_stack: Check for content: %s \n", config->fox_state->thunk);
         res = config->fox_state->thunk;
-    } 
+    }
     else{*/
     struct stack_s *elm = pop_from_stack(&config->result_stack);
     //}
@@ -100,17 +100,17 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     return elm;
 }
 
-void 
+void
 print_environment(struct environment_s *env){
    struct environment_s *e;
    printf("Environment address is: %p\n", (void *)env);
    int num = 0;
    for(e = env; e; e = e->next){
-	printf("Element %d %s %p\n", num++, e->name, e->element);        
+	printf("Element %d %s %p\n", num++, e->name, e->element);
    }
 }
 
-void 
+void
 print_result_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
@@ -119,19 +119,19 @@ print_result_stack(struct stack_s *stack){
    }
 }
 
-void 
+void
 print_argument_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
    for(s = stack; s; s = s->next){
         struct closure_s *c = s->content;
-	printf("Element %d %s\n ---Env: \n", num++, c->term);  
+	printf("Element %d %s\n ---Env: \n", num++, c->term);
 	print_environment(c->env);
-	printf("--End Env\n");      
+	printf("--End Env\n");
    }
 }
 
-void 
+void
 add_to_environment(struct environment_s **env, char *name, void *element){
    struct environment_s *newelement = malloc(sizeof(struct environment_s));
    newelement->name = name;
@@ -149,7 +149,7 @@ search_in_environment(struct environment_s *env, char *name){
   struct environment_s *envelement;
   for(envelement = env; envelement; envelement = envelement->next){
     	if(!strcmp(name, envelement->name)){
-		     return envelement->element;	
+		     return envelement->element;
 		}
     }
   return NULL;
@@ -329,7 +329,7 @@ int choose_parameter(struct configuration_s *config){
             if(h1->type == STACK_TYPE_INT) i2 = *(int*)h2->content;\
         }while(0) ;
 //------------------------------------------------------------
-        
+
 struct ccnl_prefix_s *
 create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
@@ -347,8 +347,8 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
 }
 
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        int thunk_request, int *num_of_required_thunks,  
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+        int thunk_request, int *num_of_required_thunks,
         int *halt, char *dummybuf, int *restart)
 {
     struct term_s *t;
@@ -356,7 +356,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     int len;
     char *prog = config->prog;
     memset(dummybuf, 0, 2000);
-    
+
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if(config->result_stack){
@@ -424,7 +424,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         else{
             struct closure_s *closure;
 normal:
-            closure = new_closure(cp, config->env); 
+            closure = new_closure(cp, config->env);
             //configuration->env = NULL;//FIXME new environment?
             push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
         }
@@ -499,33 +499,33 @@ normal:
             pendinglength = strlen(res+end) + strlen("RESOLVENAME()");
             h = strchr(cp, '=');
             namelength = h - cp;
-            
-            
+
+
             lambda_expr = malloc(strlen(h));
             name = malloc(namelength);
             pending = malloc(pendinglength);
-            
+
             memset(pending, 0, pendinglength);
             memset(name, 0, namelength);
             memset(lambda_expr, 0, strlen(h));
-            
+
             sprintf(pending, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
-            
+
             memcpy(name, cp+3, namelength-3); //copy name without let and endlet
             trim(name);
-   
+
             lambdalen = strlen(h)-strlen(pending)+11-6;
             memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
             trim(lambda_expr);
             resolveterm = malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
             sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
-            
+
             struct closure_s *cl = new_closure(resolveterm, NULL);
             add_to_environment(&config->env, name, cl);
-            
+
             return pending;
         }
-        
+
         //check if term can be made available, if yes enter it as a var
 	//try with searching in global env for an added term!
     t = parseKRIVINE(0, &cp);
@@ -580,12 +580,12 @@ normal:
 	    p = strdup(dummybuf);
 	    printKRIVINE(dummybuf, t->m, 0);
 	    cp = strdup(dummybuf);
-            
+
             if (pending)
   		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
 	    else
 		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
-	   
+
             return strdup(res);
         }
     }
@@ -743,7 +743,7 @@ normal:
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
         config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
-        
+
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
         }
@@ -840,11 +840,11 @@ handlecontent: //if result was found ---> handle it
                     DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path2(mapping->key), ccnl_prefix_to_path2(mapping->value));
                 }
             }
-        }        
+        }
         DEBUGMSG(99, "Pending: %s\n", pending+1);
         return pending+1;
     }
-    
+
     if(!strncmp(prog, "halt", 4)){
 	*halt = 1;
         return pending;
@@ -875,14 +875,14 @@ setup_global_environment(struct environment_s **env){
 
     closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
     add_to_environment(env, "ifelse_church", closure);
-    
+
     //Operator on integer numbers
     closure = new_closure("CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "eq", closure);
 
     closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "leq", closure);
-    
+
     closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
 
@@ -891,7 +891,7 @@ setup_global_environment(struct environment_s **env){
 
     closure = new_closure("CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "sub", closure);
-   
+
     closure = new_closure("CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "mult", closure);
 
@@ -900,11 +900,11 @@ setup_global_environment(struct environment_s **env){
 }
 
 unsigned char *
-Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
+Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request,
         int num_of_required_thunks, struct configuration_s **config,
         struct ccnl_prefix_s *prefix){
     DEBUGMSG(99, "Krivine_reduction()\n");
-    int steps = 0; 
+    int steps = 0;
     int halt = 0;
     int restart = 1;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -927,7 +927,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     while ((*config)->prog && !halt && (*config)->prog != 1){
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
-	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
+	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request,
                 &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
     if(halt < 0){ //HALT < 0 means pause computation

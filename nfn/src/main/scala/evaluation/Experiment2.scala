@@ -82,7 +82,7 @@ object Experiment2 extends App {
 
   val exRouteTowardsData: Expr = wc call List(docname4)
 
-  val exCallCall: Expr = ss call (ts call docname2)
+  val exCallCall: Expr = wc call (ts call docname2)
 
 
   val exServ1 = wc call List(docname3)
@@ -96,7 +96,7 @@ object Experiment2 extends App {
   import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
-  node1 ? expr onComplete {
+  node1 ? exCallCall onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res(${totalTime}): $content")
