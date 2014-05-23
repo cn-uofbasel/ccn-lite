@@ -237,7 +237,7 @@ create_prefix_from_name(char* namestr)
     int i = 0, j = 0;
     char *cp = NULL;
     char *prefixcomp[CCNL_MAX_NAME_COMP];
-    struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s ));
+    struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s));
     cp = strtok(namestr, "/");
     
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
@@ -293,7 +293,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
              &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
