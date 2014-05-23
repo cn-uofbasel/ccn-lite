@@ -56,9 +56,9 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
    */
   def handleComputeRequest(computeName: CCNName, originalName: CCNName, isThunkRequest: Boolean, requestor: ActorRef) = {
     logger.debug(s"Handling compute request for name: $computeName")
-    val callableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnServer)
+    val futCallableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnServer)
 
-    callableServ onComplete {
+    futCallableServ onComplete {
       case Success(callableServ) => {
         if(isThunkRequest) {
           // TODO: No default value for network
