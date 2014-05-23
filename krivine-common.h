@@ -38,6 +38,12 @@ struct closure_s{
     struct environment_s *env;
 };
 
+struct prefix_mapping_s{
+     struct prefix_mapping_s *next, *prev;
+     struct ccnl_prefix_s *key;
+     struct ccnl_prefix_s *value;
+};
+
 struct fox_machine_state_s{
     int num_of_params;
     struct stack_s **params;
@@ -45,6 +51,7 @@ struct fox_machine_state_s{
     int thunk_request;
     int num_of_required_thunks;
     char *thunk;
+    struct prefix_mapping_s *prefix_mapping;
 };
 
 struct configuration_s{

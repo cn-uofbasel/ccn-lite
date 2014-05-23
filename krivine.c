@@ -832,6 +832,10 @@ handlecontent: //if result was found ---> handle it
                     name->complen[0] = len;
 
                     push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
+                    struct prefix_mapping_s *mapping = malloc(sizeof(struct prefix_mapping_s));
+                    mapping->key = c->name;
+                    mapping->value = name;
+                    DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 }
             }
         }        
@@ -940,8 +944,19 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix_s *pref = stack->content;
             struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, pref);
+
             if(cont == NULL){
-                return NULL;
+                struct prefix_mapping_s *iter;
+                for(iter = (*config)->fox_state->prefix_mapping; iter; iter = iter->next){
+                    if(!ccnl_prefix_cmp(pref, 0, iter->key, CMP_EXACT)){
+                        cont = ccnl_nfn_local_content_search(ccnl, iter->value);
+                        DBL_LINKED_LIST_REMOVE((*config)->fox_state->prefix_mapping, iter);
+                        break;
+                    }
+                }
+                if(cont == NULL){
+                    return NULL;
+                }
             }
             h = cont->content;
         }
