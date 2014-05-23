@@ -742,7 +742,7 @@ normal:
         config->fox_state->num_of_params = *(int*)h->content;
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
-        config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s* ) * config->fox_state->num_of_params);
+        config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
@@ -808,22 +808,28 @@ handlecontent: //if result was found ---> handle it
                     name->compcnt = 2;
                     name->comp[1] = "NFN";
                     name->complen[1] = 3;
-                    name->comp[0] = calloc(0,sizeof(CCNL_MAX_PACKET_SIZE));
+                    name->comp[0] = calloc(0, CCNL_MAX_PACKET_SIZE);
+                    name->path = NULL;
 
                     int it, len = 0;
                     len += sprintf(name->comp[0]+len, "call %d ", config->fox_state->num_of_params);
                     for(it = 0; it < config->fox_state->num_of_params; ++it){
 
-                        struct stack_s * stack = config->fox_state->params[it]->content;
+                        struct stack_s *stack = config->fox_state->params[it];
                         if(stack->type == STACK_TYPE_PREFIX){
-                            len += sprintf(name->comp[0]+len, "%s ", ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content));
+                            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
+                            len += sprintf(name->comp[0]+len, "%s ", pref_str);
                         }
                         else if(stack->type == STACK_TYPE_INT){
                             len += sprintf(name->comp[0]+len, "%d ", *(int*)stack->content);
                         }
+                        else{
+                            DEBUGMSG(1, "Invalid stack type\n");
+                            return NULL;
+                        }
 
                     }
-                    name->complen[0] = strlen(name->comp[0]);
+                    name->complen[0] = len;
 
                     push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                 }
@@ -932,8 +938,12 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         }
         char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
-            struct ccnl_prefix *pref = stack->content;
-            h = ccnl_nfn_local_content_search(ccnl, pref)->content;
+            struct ccnl_prefix_s *pref = stack->content;
+            struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, pref);
+            if(cont == NULL){
+                return NULL;
+            }
+            h = cont->content;
         }
         else if(stack->type == STACK_TYPE_INT){
             h = calloc(0, 10);
