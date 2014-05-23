@@ -813,16 +813,16 @@ handlecontent: //if result was found ---> handle it
                     name->path = NULL;
 
                     int it, len = 0;
-                    len += sprintf(name->comp[0]+len, "call %d ", config->fox_state->num_of_params);
+                    len += sprintf(name->comp[0]+len, "call %d", config->fox_state->num_of_params);
                     for(it = 0; it < config->fox_state->num_of_params; ++it){
 
                         struct stack_s *stack = config->fox_state->params[it];
                         if(stack->type == STACK_TYPE_PREFIX){
-                            char *pref_str = ((struct ccnl_prefix_s*)stack->content)->comp[0];
-                            len += sprintf(name->comp[0]+len, "(%s) ", pref_str);
+                            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
+                            len += sprintf(name->comp[0]+len, "(%s)", pref_str);
                         }
                         else if(stack->type == STACK_TYPE_INT){
-                            len += sprintf(name->comp[0]+len, "%d ", *(int*)stack->content);
+                            len += sprintf(name->comp[0]+len, " %d", *(int*)stack->content);
                         }
                         else{
                             DEBUGMSG(1, "Invalid stack type\n");
@@ -945,7 +945,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix_s *pref = stack->content;
-            struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, config, pref);
+            struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, *config, pref);
             if(cont == NULL){
                 return NULL;
             }
