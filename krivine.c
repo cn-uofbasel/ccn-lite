@@ -808,7 +808,8 @@ handlecontent: //if result was found ---> handle it
                     name->compcnt = 2;
                     name->comp[1] = "NFN";
                     name->complen[1] = 3;
-                    name->comp[0] = calloc(0, CCNL_MAX_PACKET_SIZE);
+                    name->comp[0] = malloc(CCNL_MAX_PACKET_SIZE);
+                    memset(name->comp[0], 0, CCNL_MAX_PACKET_SIZE);
                     name->path = NULL;
 
                     int it, len = 0;
@@ -833,9 +834,10 @@ handlecontent: //if result was found ---> handle it
 
                     push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                     struct prefix_mapping_s *mapping = malloc(sizeof(struct prefix_mapping_s));
-                    mapping->key = c->name;
-                    mapping->value = name;
+                    mapping->key = name;
+                    mapping->value = c->name;
                     DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
+                    DEBUGMSG(99, "Created a mapping %s - %s", mapping->key, mapping->value);
                 }
             }
         }        
@@ -947,6 +949,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
 
             if(cont == NULL){
                 struct prefix_mapping_s *iter;
+                DEBUGMSG(99, "Searching for a mapping!");
                 for(iter = (*config)->fox_state->prefix_mapping; iter; iter = iter->next){
                     if(!ccnl_prefix_cmp(pref, 0, iter->key, CMP_EXACT)){
                         cont = ccnl_nfn_local_content_search(ccnl, iter->value);
