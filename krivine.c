@@ -818,8 +818,8 @@ handlecontent: //if result was found ---> handle it
 
                         struct stack_s *stack = config->fox_state->params[it];
                         if(stack->type == STACK_TYPE_PREFIX){
-                            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
-                            len += sprintf(name->comp[0]+len, "%s ", pref_str);
+                            char *pref_str = ((struct ccnl_prefix_s*)stack->content)->comp[0];
+                            len += sprintf(name->comp[0]+len, "(%s) ", pref_str);
                         }
                         else if(stack->type == STACK_TYPE_INT){
                             len += sprintf(name->comp[0]+len, "%d ", *(int*)stack->content);
@@ -837,7 +837,7 @@ handlecontent: //if result was found ---> handle it
                     mapping->key = name;
                     mapping->value = c->name;
                     DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
-                    DEBUGMSG(99, "Created a mapping %s - %s", mapping->key, mapping->value);
+                    DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path2(mapping->key), ccnl_prefix_to_path2(mapping->value));
                 }
             }
         }        
