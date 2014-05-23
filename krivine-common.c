@@ -425,7 +425,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 }
 
 struct ccnl_content_s *
-ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix){
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
     DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
 
     struct ccnl_content_s *content;
@@ -436,6 +436,17 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *p
             return content;
         }
     }
+    struct prefix_mapping_s *iter;
+    for(iter = config->fox_state->prefix_mapping; iter; iter = iter->next){
+        if(!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)){
+            for(content = ccnl->contents; content; content = content->next){
+                if(!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT)){
+                    return content;
+                }
+            }
+        }
+    }
+
     return NULL;
 }
 
@@ -511,7 +522,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     if(interest){
         interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c = NULL;
-        if((c = ccnl_nfn_local_content_search(ccnl, interest->prefix)) != NULL){
+        if((c = ccnl_nfn_local_content_search(ccnl, config, interest->prefix)) != NULL){
             interest = ccnl_interest_remove(ccnl, interest);
             return c;
         }
