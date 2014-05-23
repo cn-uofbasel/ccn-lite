@@ -335,7 +335,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
                  struct ccnl_prefix_s *prefix)
 {
 
-    if(ccnl_nfn_local_content_search(ccnl, prefix)){ //local computation name components
+    if(ccnl_nfn_local_content_search(ccnl, config, prefix)){ //local computation name components
         DEBUGMSG(99, "content local available\n");
        return add_local_computation_components(prefix, config);
     }
@@ -758,7 +758,7 @@ recontinue:
         if(local_search){
             parameter_number = choose_parameter(config);
             struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
-            c = ccnl_nfn_local_content_search(ccnl, pref); //search for a result
+            c = ccnl_nfn_local_content_search(ccnl, config, pref); //search for a result
             if(c) goto handlecontent;
         }
         //result was not delivered --> choose next parameter
@@ -767,7 +767,7 @@ recontinue:
         if(parameter_number < 0) return NULL; //no more parameter --> no result found
         //TODO: create new prefix with name components!!!!
         struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
-        c = ccnl_nfn_local_content_search(ccnl, pref);
+        c = ccnl_nfn_local_content_search(ccnl, config, pref);
         if(c) goto handlecontent;
 
          //Result not in cache, search over the network
@@ -805,7 +805,7 @@ handlecontent: //if result was found ---> handle it
                     struct ccnl_prefix_s *name = malloc(sizeof(struct ccnl_prefix_s));
                     name->comp = malloc(2*sizeof(char*));
                     name->complen = malloc(2*sizeof(int));
-                    name->compcnt = 2;
+                    name->compcnt = 1;
                     name->comp[1] = "NFN";
                     name->complen[1] = 3;
                     name->comp[0] = malloc(CCNL_MAX_PACKET_SIZE);
@@ -945,21 +945,9 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix_s *pref = stack->content;
-            struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, pref);
-
+            struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, config, pref);
             if(cont == NULL){
-                struct prefix_mapping_s *iter;
-                DEBUGMSG(99, "Searching for a mapping!");
-                for(iter = (*config)->fox_state->prefix_mapping; iter; iter = iter->next){
-                    if(!ccnl_prefix_cmp(pref, 0, iter->key, CMP_EXACT)){
-                        cont = ccnl_nfn_local_content_search(ccnl, iter->value);
-                        DBL_LINKED_LIST_REMOVE((*config)->fox_state->prefix_mapping, iter);
-                        break;
-                    }
-                }
-                if(cont == NULL){
-                    return NULL;
-                }
+                return NULL;
             }
             h = cont->content;
         }
