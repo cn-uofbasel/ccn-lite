@@ -29,7 +29,10 @@ ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
     if (!pr)
     return NULL;
     for (i = 0; i < pr->compcnt; i++) {
-        len += sprintf(prefix_buf + len, "/%s", pr->comp[i]);
+        if(!strncmp("CALL", pr->comp[i], 4))
+            len += sprintf(prefix_buf + len, "%s", pr->comp[i]);
+        else
+            len += sprintf(prefix_buf + len, "/%s", pr->comp[i]);
     }
     prefix_buf[len] = '\0';
     return prefix_buf;
