@@ -16,8 +16,9 @@ import akka.actor._
 import ccn.packet._
 import bytecode.BytecodeLoader
 import nfn.NFNServer._
-import nfn.NFNApi
+import nfn.{LambdaNFNImplicits, LambdaNFNPrinter, NFNApi}
 import config.AkkaConfig
+import lambdacalculus.parser.ast._
 
 object NFNService extends Logging {
 
@@ -73,31 +74,54 @@ object NFNService extends Logging {
           }
         }
         case None => {
-          val interest = Interest(fun.split("/").tail.toSeq :_*)
-          val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
-          import myutil.Implicit.tryToFuture
-          futServiceContent flatMap { serviceFromContent }
+          CCNName.fromString(fun) match {
+            case Some(interestName) =>
+              val interest = Interest(interestName)
+              val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
+              import myutil.Implicit.tryToFuture
+              futServiceContent flatMap { serviceFromContent }
+            case None => Future.failed(new Exception(s"Could not create name for service $fun"))
+          }
         }
       }
     }
 
-    def findArgs(args: List[String]): Future[List[NFNValue]] = {
+    def findArgs(args: List[Expr]): Future[List[NFNValue]] = {
       logger.debug(s"Looking for args ${args.mkString("[ ", ", ", " ]")}")
       Future.sequence(
-        args map { (arg: String) =>
-          arg.forall(_.isDigit) match {
-            case true => {
+        args map { (arg: Expr) =>
+          arg match {
+            case Constant(i) => {
               logger.debug(s"Arg '$arg' is a number")
               Future(
-                NFNIntValue(arg.toInt)
+                NFNIntValue(i)
               )
             }
-            case false => {
-              val interest = Interest(arg.split("/").tail.toList :_*)
-              logger.debug(s"Arg '$arg' is a name, asking the ccnServer to find content for $interest")
-              loadFromCacheOrNetwork(interest) map  { content =>
-                logger.debug(s"Found arg $arg")
-                NFNBinaryDataValue(content.name, content.data)
+            case otherExpr @ _ => {
+              import LambdaDSL._
+              import LambdaNFNImplicits._
+              val maybeInterest = otherExpr match {
+                case Variable(varName, _) => {
+                  CCNName.fromString(varName) map {
+                    Interest(_)
+                  }
+                }
+                case _ => Some(NFNInterest(otherExpr))
+              }
+
+              maybeInterest match {
+                case Some(interest) => {
+                  logger.debug(s"Arg '$arg' is a name, asking the ccnServer to find content for $interest")
+                  loadFromCacheOrNetwork(interest) map  { content =>
+                    logger.debug(s"Found $content for arg $arg")
+                    NFNBinaryDataValue(content.name, content.data)
+                  }
+                }
+                case None => {
+                  val errorMsg = s"Could not created interest for arg $arg)"
+                  logger.error(errorMsg)
+                  Future.failed(new Exception(errorMsg))
+                }
               }
             }
           }
@@ -107,40 +131,44 @@ object NFNService extends Logging {
 
 
 
-    logger.debug(s"Trying to find service for: $name")
-    val pattern = new Regex("""^call ([\d]+) (.*)$""")
+//    logger.debug(s"Trying to find service for: $name")
+//    val pattern = new Regex("""^call ([\d]+) (.*)$""")
 
-    name match {
-      case pattern(countString, funArgs) => {
-        val l = funArgs.split(" ").toList
-        val (fun, args) = (l.head, l.tail)
+    val lc = lambdacalculus.LambdaCalculus()
 
-        val count = countString.toInt - 1
-        assert(count == args.size, s"matched name $name is not a valid service call, because arg count (${count}) is not equal to number of args (${args.size}) (currently nfn counts the function name itself as an arg)")
-        assert(count >= 0, s"matched name $name is not a valid service call, because count cannot be 0 or smaller (currently nfn counts the function name itself as an arg)")
 
-        // find service
-        val futServ = findService(fun)
 
-        // create or find values
-        val futArgs: Future[List[NFNValue]] = findArgs(args)
+    val res: Try[Future[CallableNFNService]] =
+      lc.parse(name) map { (parsedExpr: Expr) =>
+        val r: Future[CallableNFNService] =
+          parsedExpr match {
+            case Call(funName, argExprs) => {
 
-        import myutil.Implicit.tryToFuture
+              // find service
+              val futServ: Future[NFNService] = findService(funName)
 
-        val futCallableServ: Future[CallableNFNService] =
-          for {
-            args <- futArgs
-            serv <- futServ
-            callable <- serv.instantiateCallable(serv.ccnName, args, ccnServer, serv.executionTimeEstimate)
-          } yield callable
+              // create or find values for args
+              val futArgs: Future[List[NFNValue]] = findArgs(argExprs)
 
-        futCallableServ onSuccess {
-          case callableServ => logger.info(s"Instantiated callable serv: '$name' -> $callableServ")
-        }
-        futCallableServ
+              import myutil.Implicit.tryToFuture
+              val futCallableServ: Future[CallableNFNService] =
+                for {
+                  args <- futArgs
+                  serv <- futServ
+                  callable <- serv.instantiateCallable(serv.ccnName, args, ccnServer, serv.executionTimeEstimate)
+                } yield callable
+
+              futCallableServ onSuccess {
+                case callableServ => logger.info(s"Instantiated callable serv: '$name' -> $callableServ")
+              }
+              futCallableServ
+            }
+            case _ => throw new Exception("only call is valid")
+          }
+        r
       }
-      case unvalidServ @ _ => throw new Exception(s"matched name $name (parsed to: $unvalidServ) is not a valid service call, because arg count is not equal nto number of args (currently nfn counts the function name itself as an arg)")
-    }
+    import myutil.Implicit.tryFutureToFuture
+    res
   }
 }
 

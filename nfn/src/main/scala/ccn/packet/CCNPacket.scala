@@ -13,14 +13,20 @@ object CCNName {
 //  def apply(cmps: String *): CCNName = CCNName(cmps.toList)
   def withAddedNFNComponent(ccnName: CCNName) = CCNName(ccnName.cmps ++ Seq("NFN") :_*)
   def withAddedNFNComponent(cmps: Seq[String]) = CCNName(cmps ++ Seq("NFN") :_*)
+
+  def fromString(name: String):Option[CCNName] = {
+    if(name.startsWith("/") == false) None
+    else {
+      Some(CCNName(name.split("/").tail:_*))
+    }
+  }
 }
 
 
 case class CCNName(cmps: String *) extends Logging {
   def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
   override def toString = {
-    if(cmps.size == 0) ""
-    else if(cmps.last == "NFN") cmps.toList.mkString("/")
+    if(cmps.size == 0) "/"
     else cmps.toList.mkString("/", "/", "")
   }
 
@@ -106,7 +112,7 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
 //  def this(data: Array[Byte], cmps: String *) = this(CCNName(cmps.toList), data)
   def possiblyShortenedDataString: String = {
     val dataString = new String(data)
-    if(dataString.length > 20) dataString.take(20) + "..." else dataString
+    if(dataString.length > 50) dataString.take(50) + "..." else dataString
   }
   override def toString = s"Content('$name' => $possiblyShortenedDataString)"
 }

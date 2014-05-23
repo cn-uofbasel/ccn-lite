@@ -126,9 +126,10 @@ print_closing_tag(char *tag_name, int lev, FILE *out)
     if(tag_name != NULL) {
     	print_level(lev-1, out);
     	fprintf(out, "</%s>\n", tag_name);
-    } else {
-        fprintf(stderr, "<native> warnning: skipped closing tag because it was null\n");
     }
+    // else {
+    //     fprintf(stderr, "<native> warnning: skipped closing tag because it was null\n");
+    // }
 }
 
 bool

@@ -38,15 +38,15 @@ object NFNServiceLibrary extends Logging {
   def removeAll() = services = Map()
 
   def find(servName: String):Option[NFNService] = {
-    servName.split("/") match {
-      case Array("", servNameCmps @ _*) =>
-        val found = services.get(CCNName(servNameCmps:_*))
+
+    CCNName.fromString(servName) match {
+      case Some(name) =>
+        val found = services.get(name)
         logger.debug(s"Found $found")
         found
-      case _ => {
+      case None =>
         logger.error(s"Could not split name $servName with '/'")
         None
-      }
     }
   }
 

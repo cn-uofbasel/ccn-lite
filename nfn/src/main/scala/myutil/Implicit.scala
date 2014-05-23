@@ -16,5 +16,12 @@ object Implicit {
       case Failure(ex) => Future.failed(ex)
     }
   }
+
+  implicit def tryFutureToFuture[T](t:Try[Future[T]]):Future[T] = {
+    t match{
+      case Success(s) => s
+      case Failure(ex) => Future.failed(ex)
+    }
+  }
 }
 
