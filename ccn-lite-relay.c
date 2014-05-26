@@ -28,8 +28,8 @@
 
 
 #define CCNL_UNIX
-#define CCNL_NFN
-#define CCNL_NFN_MONITOR
+//#define CCNL_NFN
+//#define CCNL_NFN_MONITOR
 
 #define USE_CCNxDIGEST
 #define USE_DEBUG

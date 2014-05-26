@@ -63,6 +63,9 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     }
     else{*/
     struct stack_s *elm = pop_from_stack(&config->result_stack);
+    if(!elm){
+        return NULL;
+    }
     //}
     struct ccnl_content_s *c;
     if(elm->type == STACK_TYPE_THUNK){
@@ -819,7 +822,7 @@ handlecontent: //if result was found ---> handle it
                         struct stack_s *stack = config->fox_state->params[it];
                         if(stack->type == STACK_TYPE_PREFIX){
                             char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
-                            len += sprintf(name->comp[0]+len, " (%s)", pref_str);
+                            len += sprintf(name->comp[0]+len, " %s", pref_str);
                         }
                         else if(stack->type == STACK_TYPE_INT){
                             len += sprintf(name->comp[0]+len, " %d", *(int*)stack->content);
