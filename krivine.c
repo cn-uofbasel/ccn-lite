@@ -638,21 +638,21 @@ normal:
 	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ", 9)) {
-	int i1, i2, acc;
-    char res[1000];
-	memset(res, 0, sizeof(res));
-	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	pop2int();
-	acc = i2 <= i1;
-        if(acc)
-            cp = "1";
+        int i1, i2, acc;
+        char res[1000];
+        memset(res, 0, sizeof(res));
+        DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+        pop2int();
+        acc = i2 <= i1;
+            if(acc)
+                cp = "1";
+            else
+                cp = "0";
+            if (pending)
+            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
         else
-            cp = "0";
-        if (pending)
-	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-	else
-	    sprintf(res, "RESOLVENAME(%s)", cp);
-	return strdup(res);
+            sprintf(res, "RESOLVENAME(%s)", cp);
+        return strdup(res);
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
         int i1, i2, res;
@@ -685,7 +685,7 @@ normal:
         return pending+1;
     }
     if(!strncmp(prog, "OP_IFELSE", 9)){
-        unsigned char *h;
+        struct stack_s *h;
         int i1;
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
         DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
@@ -693,12 +693,16 @@ normal:
             *halt = -1;
             return prog;
         }
-        i1 = atoi((char *)h);
+        if(h->type != STACK_TYPE_INT){
+            DEBUGMSG(99, "ifelse requires int as condition");
+            return 0;
+        }
+        i1 = *(int *)h->content;
         if(i1){
             DEBUGMSG(99, "Execute if\n");
-            struct closure_s *cl = pop_from_stack(&config->argument_stack);
+            struct stack_s *stack = pop_from_stack(&config->argument_stack);
             pop_from_stack(&config->argument_stack);
-            push_to_stack(&config->argument_stack, cl, STACK_TYPE_CLOSURE);
+            push_to_stack(&config->argument_stack, stack->content, STACK_TYPE_CLOSURE);
         }
         else{
             DEBUGMSG(99, "Execute else\n");
