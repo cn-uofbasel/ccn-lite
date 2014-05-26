@@ -55,13 +55,7 @@ object NFNServiceLibrary extends Logging {
 
   def convertDollarToChf(dollar: Int): Int = ???
 
-  /**
-   * Advertises all locally available services to nfn by sending a 'addToCache' Interest,
-   * containing a content object with the name of the service (and optionally also the bytecode * of the service).
-   * @param ccnWorker
-   */
-  def nfnPublish(ccnWorker: ActorRef) = {
-
+  def nfnPublishService(serv: NFNService, ccnWorker: ActorRef) = {
     def pinnedData = "pinnedfunction".getBytes
 
     def byteCodeData(serv: NFNService):Array[Byte] = {
@@ -73,19 +67,27 @@ object NFNServiceLibrary extends Logging {
       }
     }
 
+    val serviceContent =
+      if(serv.pinned) pinnedData
+      else byteCodeData(serv)
+
+    val content = Content(
+      serv.ccnName,
+      serviceContent
+    )
+
+    logger.debug(s"nfnPublish: Adding ${content.name} to cache")
+    ccnWorker ! NFNApi.AddToCCNCache(content)
+  }
+
+  /**
+   * Advertises all locally available services to nfn by sending a 'addToCache' Interest,
+   * containing a content object with the name of the service (and optionally also the bytecode * of the service).
+   * @param ccnWorker
+   */
+  def nfnPublish(ccnWorker: ActorRef) = {
     for((_, serv) <- services) {
-
-      val serviceContent =
-        if(serv.pinned) pinnedData
-        else byteCodeData(serv)
-
-      val content = Content(
-        serv.ccnName,
-        serviceContent
-      )
-
-      logger.debug(s"nfnPublish: Adding ${content.name} to cache")
-      ccnWorker ! NFNApi.AddToCCNCache(content)
+      nfnPublishService(serv, ccnWorker)
     }
   }
 
@@ -102,29 +104,6 @@ case class CallableNFNService(name: CCNName, values: Seq[NFNValue], nfnMaster: A
 }
 
 object Main {
-//  ServiceLibrary.add(DollarToChf())
-//
-//  val nfn = PrintNFNInterface()
-//
-//  val lambdaExpression: String =
-//    lambda(
-//    {
-//      val dollar = 100
-//      def suc(x: Int, y: Int): Int = x + 1 + y
-//      ServiceLibrary.convertChfToDollar(ServiceLibrary.convertDollarToChf(dollar))
-//    })
-//
-//  nfn.send(lambdaExpression)
-//
-//  val service = "DollarToChf/Int/rInt 100"
-//  nfn.exec(service)
-  //        {
-  //          val dollar = 100
-  //          val chf = 50
-  //          val test = 0
-  //          if(2 > test) Library.convertChfToDollar(chf) else Library.convertDollarToChf(dollar)
-  //        }
-
 
   def bytecodeLoading = {
     val jarfile = "/Users/basil/Dropbox/uni/master_thesis/code/testservice/target/scala-2.10/testservice_2.10-0.1-SNAPSHOT.jar"

@@ -1,7 +1,7 @@
 package nfn.service
 
 import scala.util.matching.Regex
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -112,10 +112,16 @@ object NFNService extends Logging {
               maybeInterest match {
                 case Some(interest) => {
                   logger.debug(s"Arg '$arg' is a name, asking the ccnServer to find content for $interest")
-                  loadFromCacheOrNetwork(interest) map  { content =>
+                  val foundContent: Future[NFNBinaryDataValue] = loadFromCacheOrNetwork(interest) map  { content =>
                     logger.debug(s"Found $content for arg $arg")
                     NFNBinaryDataValue(content.name, content.data)
                   }
+
+                  foundContent.onFailure {
+                    case error => logger.error(s"Could not find content for arg $arg", error)
+                  }
+
+                  foundContent
                 }
                 case None => {
                   val errorMsg = s"Could not created interest for arg $arg)"
@@ -129,14 +135,7 @@ object NFNService extends Logging {
       )
     }
 
-
-
-//    logger.debug(s"Trying to find service for: $name")
-//    val pattern = new Regex("""^call ([\d]+) (.*)$""")
-
     val lc = lambdacalculus.LambdaCalculus()
-
-
 
     val res: Try[Future[CallableNFNService]] =
       lc.parse(name) map { (parsedExpr: Expr) =>
@@ -147,6 +146,7 @@ object NFNService extends Logging {
               // find service
               val futServ: Future[NFNService] = findService(funName)
 
+              findArgs(argExprs).zip(Future(argExprs))
               // create or find values for args
               val futArgs: Future[List[NFNValue]] = findArgs(argExprs)
 
@@ -163,7 +163,7 @@ object NFNService extends Logging {
               }
               futCallableServ
             }
-            case _ => throw new Exception("only call is valid")
+            case _ => throw new Exception("call is the only valid expression for a COMPUTE request")
           }
         r
       }
@@ -193,7 +193,7 @@ trait NFNService extends Logging {
   def ccnName: CCNName = CCNName(this.getClass.getCanonicalName.replace(".", "_"))
 
 
-  def pinned: Boolean = true
+  def pinned: Boolean = false
 
   override def toString = ccnName.toString
 

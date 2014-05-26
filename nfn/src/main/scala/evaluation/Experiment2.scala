@@ -41,7 +41,7 @@ object Experiment2 extends App {
   val node1 = Node(node1Config, withLocalAM = false)
   val node2 = Node(node2Config, withLocalAM = false)
   val node3 = Node(node3Config, withLocalAM = false)
-  val node4 = Node(node4Config, withLocalAM = false)//, withComputeServer = false)
+  val node4 = Node(node4Config, withLocalAM = false, withComputeServer = false)
 
   node1 <~> node2
   node1 <~> node3
@@ -52,6 +52,7 @@ object Experiment2 extends App {
   node3.addNodeFace(node4, node2)
   node4.addNodeFace(node1, node2)
   node4.addNodeFace(node3, node2)
+
   node4.addPrefixFace(WordCountService().ccnName, node2)
 
   node1 += docContent1
@@ -59,11 +60,19 @@ object Experiment2 extends App {
   node3 += docContent3
   node4 += docContent4
 
-  node1.publishServices
-  node2.publishServices
-  node3.publishServices
-  node4.publishServices
+//  node1.publishServices
+//  node2.publishServices
+//  node3.publishServices
+//  node4.publishServices
 //  node4.removeLocalServices
+
+//  node1.removeLocalServices
+//  node2.removeLocalServices
+//  node3.removeLocalServices
+//  node4.removeLocalServices
+
+  node2.publishService(WordCountService())
+
   Thread.sleep(1000)
 
   import LambdaDSL._
@@ -76,30 +85,34 @@ object Experiment2 extends App {
 
   val exComp: Expr = 'x @: ('x + 10) ! 2
 
-  val exSimpleCall: Expr = wc call docname2
+  val exSimpleCall: Expr = wc appl docname2
 
-  val exThunkVsNoThunk: Expr = (wc call List(docname2)) + (wc call List(docname3))
+  val exThunkVsNoThunk: Expr = (wc appl List(docname2)) + (wc appl List(docname3))
 
-  val exRouteTowardsData: Expr = wc call List(docname4)
+  val exRouteTowardsData: Expr = wc appl List(docname4)
 
-  val exCallCall: Expr = wc call (ts call docname2)
+  val exCallCall: Expr = wc appl (ts appl docname2)
+
+  val exCallCallCall: Expr = wc appl (ts appl (ts appl docname2))
 
 
-  val exServ1 = wc call List(docname3)
-  val exServ2 = wc call List(docname2)
-  val exComposedServ: Expr = ss call List(exServ1, exServ2)
+  val exServ1 = wc appl List(docname3)
+  val exServ2 = wc appl List(docname2)
+  val exComposedServ: Expr = ss appl List(exServ1, exServ2)
 
-  val exAddAdd = ((wc call docname1) + (wc call docname2)) + ((wc call docname3) + (wc call docname4))
+  val exAddAdd = ((wc appl docname1) + (wc appl docname2)) + ((wc appl docname3) + (wc appl docname4))
 
-  val expr = exCallCall
+  val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
+
+  val expr = exIf
 
   import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
-  node1 ? exCallCall onComplete {
+  node1 ? expr onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
-      println(s"Res(${totalTime}): $content")
+      println(s"Res($totalTime): $content")
     }
     case Failure(error) => throw error
   }

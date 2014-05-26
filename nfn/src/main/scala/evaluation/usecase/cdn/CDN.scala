@@ -1,29 +1,139 @@
 package evaluation.usecase.cdn
 
-import akka.actor._
-import akka.pattern._
-import ccn.packet.{Interest, Content}
-import nfn.NFNServer
-import lambdacalculus.parser.ast.{Expr, Variable, Call}
-import scala.concurrent.Future
+import scala.util._
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
 
-case class CDN(nfnMaster: ActorRef) {
+import nfn._
+import ccn.packet._
+import scala.concurrent.Future
+import node.Node
+import monitor.Monitor
+import lambdacalculus.parser.ast._
+import nfn.service.impl._
+import config.AkkaConfig
+import nfn.service._
+import akka.actor.ActorRef
+import scala.util.Failure
+import nfn.service.NFNServiceArgumentException
+import scala.util.Success
+import nfn.service.NFNBinaryDataValue
+import nfn.NodeConfig
 
+case class ESIInclude() extends NFNService {
+  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
+    new NFNServiceArgumentException(s"$ccnName requires to arguments of type: name of webpage, name of tag to replace, name of content to replace tag with and not $args")
 
-//  def translate(text: String, lang: String): Future[Content] = {
-//    val timeout = Timeout(3000)
-//    val interest = Interest(Seq(s"call 2 /nfn_service_Translate $text", "NFN"))
-//    (nfnMaster ? NFNServer.CCNSendReceive(interest)).mapTo[Content]
-//  }
+  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
+    args match {
+      case Seq(v1: NFNBinaryDataValue, v2: NFNBinaryDataValue, v3: NFNBinaryDataValue) => Try(args)
+      case _ => throw argumentException(args)
+    }
+  }
 
-  def loadBalance(req: String): String = {
-    s"""
-      |  if( call 1 /nfn_service_HasComputeAvail )
-      |    $req
-      |  else
-      |    forward
-    """.stripMargin
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (values: Seq[NFNValue], _) =>
+    values match {
+      case Seq(xmlDoc: NFNBinaryDataValue, tagToReplace: NFNBinaryDataValue, contentToReplaceTagWith: NFNBinaryDataValue) => {
+        val doc = new String(xmlDoc.data)
+        val tag = new String(tagToReplace.data)
+        val replaceWith = new String(contentToReplaceTagWith.data)
+        val res = doc.replaceAllLiterally(tag, replaceWith)
+        NFNStringValue(res)
+      }
+      case _ => throw argumentException(values)
+    }
   }
 }
+
+case class RandomAd() extends NFNService {
+  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
+    new NFNServiceArgumentException(s"$ccnName requires no arguments and not $args")
+
+  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
+    args match {
+      case Seq() => Try(args)
+      case _ => throw argumentException(args)
+    }
+  }
+
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (values: Seq[NFNValue], _) =>
+    values match {
+      case Seq() => {
+        val randomAd = s"""<div class="ad">randomly chosen ad at: ${System.currentTimeMillis}</div>"""
+        NFNStringValue(randomAd)
+      }
+      case _ => throw argumentException(values)
+    }
+  }
+}
+
+object CDN extends App {
+
+  val node1Config = NodeConfig("127.0.0.1", 10010, 10011, CCNName("node", "node1"))
+  val node2Config = NodeConfig("127.0.0.1", 10020, 10021, CCNName("node", "node2"))
+
+  val esiTagname = node1Config.prefix.append("esi", "tag", "include", "randomad")
+  val esiTag = "<esi:include:randomad/>"
+  val esiTagData = esiTag.getBytes
+  val esiTagContent = Content(esiTagname, esiTagData)
+
+  val webpagename = node1Config.prefix.append("webpage", "test1")
+  val webpagedata =
+    s"""
+      |<html>
+      | <body>
+      |   <div>
+      |     <h1>html page</h1>
+      |     <p>random content</p>
+      |     $esiTag
+      |   </div>
+      | </body>
+      |</html>
+    """.stripMargin.getBytes
+  val webpageContent = Content(webpagename, webpagedata)
+
+
+  val node1 = Node(node1Config, withLocalAM = false)
+  val node2 = Node(node2Config, withLocalAM = false)
+
+  node1 <~> node2
+
+  node1 += webpageContent
+  node1 += esiTagContent
+
+  node1.publishService(ESIInclude())
+
+  node1.publishService(RandomAd())
+  node2.publishService(RandomAd())
+
+  import LambdaDSL._
+  import LambdaNFNImplicits._
+  implicit val useThunks = false
+
+  val esiInclude = ESIInclude().toString
+  val randomAd = RandomAd().toString
+
+  val exIncludeAd: Expr = esiInclude appl (webpagename, esiTagname, randomAd appl())
+
+  val expr = exIncludeAd
+
+  import AkkaConfig.timeout
+
+  var startTime = System.currentTimeMillis()
+  node1 ? expr onComplete {
+    case Success(content) => {
+      val totalTime = System.currentTimeMillis - startTime
+      println(s"Res($totalTime): ${new String(content.data)}")
+    }
+    case Failure(error) => throw error
+  }
+
+  Thread.sleep(AkkaConfig.timeoutDuration.toMillis + 100)
+
+  Monitor.monitor ! Monitor.Visualize()
+
+  node1.shutdown()
+  node2.shutdown()
+}
+

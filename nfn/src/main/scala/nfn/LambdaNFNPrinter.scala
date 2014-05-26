@@ -54,9 +54,9 @@ object LambdaNFNPrinter extends LambdaPrinter {
         case Variable(name, _) => name
         case Constant(i) => i.toString
         case Let(name, expr, maybeCodeExpr) =>
-          s"\nlet $name = " + p"$expr" + " endlet\n" + maybeCodeExpr.fold("")(e => p"$e")
-            case IfElse(test, thenn, otherwise) => p"if $test \nthen $thenn \nelse $otherwise\n"
-        case Call(name, args) => s"call ${args.size + 1} $name " + args.map({arg: Expr => p"$arg"}).mkString(" ")
+          s"let $name = " + p"$expr" + " endlet" + maybeCodeExpr.fold("")(e => p"$e")
+        case IfElse(test, thenn, otherwise) => "ifelse " + p"$test " + p"$thenn " + p"$otherwise"
+        case Call(name, args) => s"call ${args.size + 1} $name" + (if(args.size > 0) " " else "") + args.map({arg: Expr => p"$arg"}).mkString(" ")
         case NopExpr() => ""
         case _ => throw new NotImplementedError(s"NFNPrettyPrinter cannot pretty print: $expr")
       }

@@ -28,7 +28,7 @@ object LambdaDSLTest extends App {
 
   val a: Expr = 'x @: "y" @: (('x * 1) - "y")
 
-  val b: Call = "/WordCount" call ("/doc/doc1" :: Nil)
+  val b: Call = "/WordCount" appl ("/doc/doc1" :: Nil)
 
   val l: Expr = ("derp" =: 'a) ~ ('derp)
 }
@@ -41,6 +41,8 @@ object LambdaDSL {
   implicit def stringToExpr (str: String): Variable = Variable(str)
   implicit def intToConstant(c: Int):Constant  = Constant(c)
   implicit def listOfStringToListOfExprs(listOfStr: List[String]): List[Expr] = listOfStr map { str => stringToExpr(str) }
+
+  def iif(test: Expr, thenn: Expr, otherwise: Expr) = IfElse(test, thenn, otherwise)
 }
 
 sealed abstract class Expr extends Positional {
@@ -51,10 +53,11 @@ sealed abstract class Expr extends Positional {
   def - (expr: Expr) = BinaryExpr(BinaryOp.Sub, this, expr)
   def * (expr: Expr) = BinaryExpr(BinaryOp.Mult, this, expr)
   def / (expr: Expr) = BinaryExpr(BinaryOp.Div, this, expr)
+  def > (expr: Expr) = BinaryExpr(BinaryOp.Gt, this, expr)
+  def ===(expr: Expr) = BinaryExpr(BinaryOp.Eq, this, expr)
   def =:(symbolName: Symbol): Let = Let(symbolName.name, this, None)
   def =:(name: String): Let = Let(name, this, None)
 
-  def iif(test: Expr, thenn: Expr, otherwise: Expr) = IfElse(test, thenn, otherwise)
 }
 
 case class Clos(boundVariable: String, body: Expr) extends Expr {
@@ -71,15 +74,17 @@ object Variable {
 }
 
 case class Variable(name: String, accessValue: Int = -1) extends Expr {
-  def apply(args: List[Expr]): Call = call(args)
-  def call(args: List[Expr]): Call = {
-    import LambdaDSL._
-    Symbol(this.name) -> args
-  }
-  def call(arg1: Expr): Call = {
-    import LambdaDSL._
-    Symbol(this.name) -> List(arg1)
-  }
+  def apply(args: List[Expr]): Call = appl(args)
+
+  import LambdaDSL._
+  def appl(args: List[Expr]): Call =  Symbol(this.name) -> args
+  def appl(): Call =  Symbol(this.name) -> List()
+  def appl(arg1: Expr): Call =  Symbol(this.name) -> List(arg1)
+  def appl(arg1: Expr, arg2: Expr): Call =  Symbol(this.name) -> List(arg1, arg2)
+  def appl(arg1: Expr, arg2: Expr, arg3: Expr): Call =  Symbol(this.name) -> List(arg1, arg2, arg3)
+  def appl(arg1: Expr, arg2: Expr, arg3: Expr, arg4: Expr): Call =  Symbol(this.name) -> List(arg1, arg2, arg3, arg4)
+  def appl(arg1: Expr, arg2: Expr, arg3: Expr, arg4: Expr, arg5: Expr): Call =  Symbol(this.name) -> List(arg1, arg2, arg3, arg4, arg5)
+  def appl(arg1: Expr, arg2: Expr, arg3: Expr, arg4: Expr, arg5: Expr, arg6: Expr): Call =  Symbol(this.name) -> List(arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
 object Constant {
