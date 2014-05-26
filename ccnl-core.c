@@ -22,7 +22,10 @@
  */
 
 #include "ccnl-core.h"
+
+#ifdef CCNL_NFN
 #include "krivine-common.h"
+#endif
 
 #ifdef CCNL_NFN_MONITOR
 #include "json.c"
