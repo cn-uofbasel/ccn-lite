@@ -9,7 +9,7 @@ import config.AkkaConfig
 import ccn.packet.{CCNName, Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import nfn.service.NFNServiceLibrary
+import nfn.service.{NFNService, NFNServiceLibrary}
 import scala.collection.immutable.{Iterable, IndexedSeq}
 import ccn.CCNLiteProcess
 import monitor.Monitor
@@ -120,12 +120,10 @@ case class Node(nodeConfig: NodeConfig, withComputeServer: Boolean = true, withL
   val system = ActorSystem(s"Sys${nodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
   val _nfnServer: ActorRef = CCNServerFactory.ccnServer(system, nodeConfig)
 
-  private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig)
+  private val ccnLiteNFNNetworkProcess = CCNLiteProcess(nodeConfig, withComputeServer)
   ccnLiteNFNNetworkProcess.start()
 
-  if(withComputeServer) {
-    ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
-  }
+
   ccnLiteNFNNetworkProcess.addPrefix(nodeConfig.prefix, nodeConfig.host, nodeConfig.computePort)
 
   Monitor.monitor ! Monitor.ConnectLog(nodeConfig.toComputeNodeLog, nodeConfig.toNFNNodeLog)
@@ -216,6 +214,10 @@ case class Node(nodeConfig: NodeConfig, withComputeServer: Boolean = true, withL
    * TODO: this should be changed to advertise the service by setting up faces instead of adding them to the cache
    */
   def publishServices = NFNServiceLibrary.nfnPublish(nfnMaster)
+
+  def publishService(serv: NFNService) = {
+    NFNServiceLibrary.nfnPublishService(serv, nfnMaster)
+  }
 
   def removeLocalServices = NFNServiceLibrary.removeAll()
 

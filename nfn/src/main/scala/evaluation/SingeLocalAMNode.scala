@@ -33,8 +33,8 @@ object SingeLocalAMNode extends App {
 
   val translate = Translate().toString
 
-  val wcExpr: Expr = wc call List(docName)
-  val wcTranslateExpr: Expr = wc call List(translate call List(docName))
+  val wcExpr: Expr = wc appl List(docName)
+  val wcTranslateExpr: Expr = wc appl List(translate appl List(docName))
 
   val compExpr: Expr = 'x @: ("y" @: (('x * 1) + "y")  ! 2) ! 3
 

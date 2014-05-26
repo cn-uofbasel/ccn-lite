@@ -42,7 +42,7 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
  * Call start and stop.
  * @param nodeConfig
  */
-case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
+case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends Logging {
 
   case class NetworkFace(toHost: String, toPort: Int) {
     private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
@@ -72,26 +72,34 @@ case class CCNLiteProcess(nodeConfig: NodeConfig) extends Logging {
   val sockName = s"/tmp/mgmt.${nodeConfig.prefix.cmps.mkString(".")}.sock"
 
   var udpFaces:Map[(String, Int), NetworkFace] = Map()
+  val processName = if(withCompute) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
-    if(port != 10020) {
+//    if(port != 10010) {
 
-    val cmd = s"../ccn-lite-relay -v 99 -u $port -x $sockName"
-    println(s"CCNLiteProcess-$prefix: executing: '$cmd'")
+    val ccnliteExecutable = if(withCompute) "../ccn-nfn-relay" else "../ccn-lite-relay"
+    val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
+    println(s"$processName-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
     processBuilder.redirectErrorStream(true)
     process = processBuilder.start
 
+
+
     val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
-    thread.start
+    thread.start()
 
-    }
+//    }
     globalFaceId = 2
+
+    if(withCompute) {
+      addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
+    }
   }
 
   def stop() = {
-    println(s"CCNLiteProcess-$prefix: stop")
+    println(s"$processName-$prefix: stop")
     if (process != null) {
       process.destroy()
     }

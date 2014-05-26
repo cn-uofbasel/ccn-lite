@@ -118,7 +118,7 @@ object WordCountEnv extends App {
   implicit val useThunks = false
 
   printInterestResult(
-    wc call (docNamesNode1)
+    wc appl (docNamesNode1)
   )
 
   val documents: Set[String] = Set("doc1"*1, "doc2"*2, "doc3"*3)
