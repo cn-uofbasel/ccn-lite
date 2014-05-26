@@ -624,8 +624,7 @@ normal:
 	int i1, i2, acc;
     char res[1000];
 	memset(res, 0, sizeof(res));
-    if(!cp) cp = "NULL";
-	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+    DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
 	pop2int();
 	acc = i1 == i2;
     if(acc)
@@ -642,8 +641,7 @@ normal:
         int i1, i2, acc;
         char res[1000];
         memset(res, 0, sizeof(res));
-        if(!cp) cp = "NULL";
-        DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+        DEBUGMSG(2, "---to do: OP_CMPLEQ<%s>\n", pending);
         pop2int();
         acc = i2 <= i1;
             if(acc)
