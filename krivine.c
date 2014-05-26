@@ -607,23 +607,24 @@ normal:
 	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
-	int i1, i2, acc;
+        int i1, i2, acc;
         char res[1000];
-	memset(res, 0, sizeof(res));
-	DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-	pop2int();
-	acc = i2 <= i1;
-        cp =  acc ? "@x@y x" : "@x@y y";
-        if (pending)
-	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-	else
-	    sprintf(res, "RESOLVENAME(%s)", cp);
-	return strdup(res);
+        memset(res, 0, sizeof(res));
+        DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+        pop2int();
+        acc = i2 <= i1;
+            cp =  acc ? "@x@y x" : "@x@y y";
+            if (pending)
+            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+        else
+            sprintf(res, "RESOLVENAME(%s)", cp);
+        return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPEQ", 8)) {
 	int i1, i2, acc;
     char res[1000];
 	memset(res, 0, sizeof(res));
+    if(!cp) cp = "NULL";
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
 	pop2int();
 	acc = i1 == i2;
@@ -641,6 +642,7 @@ normal:
         int i1, i2, acc;
         char res[1000];
         memset(res, 0, sizeof(res));
+        if(!cp) cp = "NULL";
         DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
         pop2int();
         acc = i2 <= i1;
