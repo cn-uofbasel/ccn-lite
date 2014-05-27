@@ -56,6 +56,7 @@ struct fox_machine_state_s{
 
 struct configuration_s{
     int configid;
+    int start_request;
     char *prog;
     struct stack_s *result_stack;
     struct stack_s *argument_stack;
