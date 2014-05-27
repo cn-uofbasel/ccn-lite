@@ -224,7 +224,7 @@ createComputationString(struct configuration_s *config, int parameter_num, unsig
             else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
                 complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
 #ifndef USE_UTIL
-            else DEBUGMSG(1, "Invalid type %d\n", config->fox_state->params[i]->type);
+            else DEBUGMSG(1, "Invalid type in createComputationString() %d\n", config->fox_state->params[i]->type);
 #endif
         }
     }
