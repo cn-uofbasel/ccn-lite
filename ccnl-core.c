@@ -46,7 +46,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct configuration_s *config);
 
 void
-ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid);
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
 
 static struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
@@ -723,7 +723,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     interest = ccnl_interest_remove(ccnl, i);
 #ifdef CCNL_NFN
     if(faceid < 0){
-        ccnl_nfn_continue_computation(ccnl, -i->from->faceid);
+        ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
     }
 #endif
    return interest;
@@ -1075,7 +1075,10 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     ccnl_content_add2cache(ccnl, c);
                     int configid = -i_it->from->faceid;
                     DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                    i_it = ccnl_interest_remove_continue_computations(ccnl, i_it);
+
+                    int faceid = -i->from->faceid;
+                    i_it = ccnl_interest_remove(ccnl, i_it);
+                    ccnl_nfn_continue_computation(ccnl, faceid, 0);
                     ++found;
                     //goto Done;
                  }
