@@ -746,7 +746,17 @@ normal:
         config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
-            config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
+            //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
+            config->fox_state->params[i] = pop_from_stack(&config->result_stack);
+            if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){
+                char *thunkname = (char*)config->fox_state->params[i]->content;
+                struct ccnl_interest_s *thunk_interest= ccnl_nfn_get_interest_for_thunk(ccnl, config, thunkname);
+                struct stack_s *thunk_elm = malloc(sizeof(struct stack_s));
+                thunk_elm->type = STACK_TYPE_PREFIX;
+                thunk_elm->content = thunk_interest->prefix;
+                thunk_elm->next = NULL;
+                config->fox_state->params[i] = thunk_elm;
+            }
         }
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = 0;
