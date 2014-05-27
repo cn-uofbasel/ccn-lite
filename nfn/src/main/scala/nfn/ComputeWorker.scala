@@ -34,11 +34,11 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
   // Received compute request
   // Make sure it actually is a compute request and forward to the handle method
-  def receivedThunkRequest(computeName: CCNName, requestor: ActorRef) = {
-    if(computeName.isCompute && computeName.isNFN && computeName.isThunk) {
+  def receivedThunkRequest(computeName: CCNName, useThunks: Boolean, requestor: ActorRef) = {
+    if(computeName.isCompute && computeName.isNFN) {
       logger.debug(s"Received thunk request: $computeName")
       val computeCmps = computeName.withoutCompute.withoutThunk.withoutNFN
-      handleThunkRequest(computeCmps, computeName, requestor)
+      handleThunkRequest(computeCmps, computeName, useThunks, requestor)
     } else {
       logger.error(s"Dropping compute interest $computeName, because it does not begin with ${CCNName.computeKeyword}, end with ${CCNName.nfnKeyword} or is not a thunk, therefore is not a valid compute interest")
     }
@@ -49,16 +49,18 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
    * Parses the compute request and instantiates a callable service.
    * On success, sends a thunk back if required, executes the services and sends the result back.
    */
-  def handleThunkRequest(computeName: CCNName, originalName: CCNName, requestor: ActorRef) = {
+  def handleThunkRequest(computeName: CCNName, originalName: CCNName, useThunks:Boolean, requestor: ActorRef) = {
     logger.debug(s"Handling compute request for name: $computeName")
     assert(computeName.cmps.size == 1, "Compute cmps at this moment should only have one component")
     val futCallableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.head, ccnServer)
 
     // send back thunk content when callable service is creating (means everything was available)
-    futCallableServ onSuccess {
-      case callableServ => {
+    if(useThunks) {
+      futCallableServ onSuccess {
+        case callableServ => {
           // TODO: No default value for network
           requestor ! Content(originalName, callableServ.executionTimeEstimate.fold("")(_.toString).getBytes)
+        }
       }
     }
     maybeFutCallable = Some(futCallableServ)
@@ -67,9 +69,11 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
   override def receive: Actor.Receive = {
     case ComputeServer.Thunk(name) => {
-      receivedThunkRequest(name, sender)
+      receivedThunkRequest(name, useThunks = true, sender)
     }
-    case ComputeServer.Compute(name) => {
+    case msg @ ComputeServer.Compute(name) => {
+
+      val senderCopy = sender
       maybeFutCallable match {
         case Some(futCallable) => {
           futCallable onComplete {
@@ -77,14 +81,16 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
               val result: NFNValue = callable.exec
               val content = Content(name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
               logger.info(s"Finished computation, result: $content")
-              sender ! content
+              senderCopy ! content
             }
             case Failure(e) => {
               logger.error(e, "There was an error when creating the callable service")
             }
           }
         }
-        case None => logger.error("Compute message was sent before thunk, which means that the service to execute has not yet been created")
+        case None =>
+          receivedThunkRequest(name, useThunks = false, sender)
+          self.tell(msg, sender)
       }
     }
     case Exit() => context.stop(self)

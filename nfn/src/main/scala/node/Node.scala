@@ -225,19 +225,18 @@ case class Node(nodeConfig: NodeConfig, withComputeServer: Boolean = true, withL
    * Fire and forgets an interest to the system. Response will still arrive in the localAbstractMachine cache, but will discarded when arriving
    * @param req
    */
-  def send(req: Interest) = {
+  def send(req: Interest)(implicit useThunks: Boolean) = {
     isConnecting = false
-    nfnMaster ! NFNApi.CCNSendReceive(req)
+    nfnMaster ! NFNApi.CCNSendReceive(req, useThunks)
   }
 
-  def isNFNReq(req: Interest) = !req.name.cmps.forall(_!="NFN")
   /**
    * Sends the request and returns the future of the content
    * @param req
    * @return
    */
-  def sendReceive(req: Interest): Future[Content] = {
-    (nfnMaster ? NFNApi.CCNSendReceive(req)).mapTo[Content]
+  def sendReceive(req: Interest)(implicit useThunks: Boolean): Future[Content] = {
+    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks)).mapTo[Content]
   }
 
 
@@ -245,14 +244,14 @@ case class Node(nodeConfig: NodeConfig, withComputeServer: Boolean = true, withL
    * Symbolic method for [[send]]
    * @param req
    */
-  def !(req: Interest) = send(req)
+  def !(req: Interest)(implicit useThunks: Boolean) = send(req)
 
   /**
    * Symbolic method for [[sendReceive]]
    * @param req
    * @return
    */
-  def ?(req: Interest): Future[Content] = sendReceive(req)
+  def ?(req: Interest)(implicit useThunks: Boolean): Future[Content] = sendReceive(req)
 
   /**
    * Shuts this node down. After shutting down, any method call will result in an exception
