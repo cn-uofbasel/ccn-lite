@@ -1076,7 +1076,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     int configid = -i_it->from->faceid;
                     DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
 
-                    int faceid = -i->from->faceid;
+                    int faceid = -i_it->from->faceid;
                     i_it = ccnl_interest_remove(ccnl, i_it);
                     ccnl_nfn_continue_computation(ccnl, faceid, 0);
                     ++found;
