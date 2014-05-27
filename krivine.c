@@ -908,7 +908,7 @@ setup_global_environment(struct environment_s **env){
 
 unsigned char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request,
-        int num_of_required_thunks, struct configuration_s **config,
+                  int start_request, int num_of_required_thunks, struct configuration_s **config,
         struct ccnl_prefix_s *prefix){
     DEBUGMSG(99, "Krivine_reduction()\n");
     int steps = 0;
@@ -923,11 +923,15 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
-        *config = new_config(prog, global_dict, thunk_request,
+        DEBUGMSG(99, "PREFIX %s", ccnl_prefix_to_path2(prefix));
+        *config = new_config(prog, global_dict, thunk_request, start_request,
                 num_of_required_thunks, prefix, configid);
         DBL_LINKED_LIST_ADD(configuration_list, *config);
         restart = 0;
         --configid;
+    }
+    if(num_of_required_thunks == 0){
+        ccnl_nfn_reply_thunk(ccnl, *config);
     }
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
