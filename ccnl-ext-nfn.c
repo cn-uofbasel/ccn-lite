@@ -38,7 +38,7 @@ ccnl_nfn_count_required_thunks(char *str)
         tok += 4;
         ++num;
     }
-    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);    
+    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);
     return num;
 }
 
@@ -51,7 +51,7 @@ ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
 }
 
 void 
-ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = find_configuration(configuration_list, -configid);
     
@@ -64,10 +64,9 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
             break;
         }
     }
-
-
-    if(!config->start_request){
+    if(continue_from_remove && !config->start_request){
         //this is not the node to continue the computation
+        DEBUGMSG(99, "Computation will be continue on other node;");
         return;
     }
     if(config->thunk && CCNL_NOW() > config->endtime){
