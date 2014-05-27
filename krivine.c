@@ -57,16 +57,10 @@ struct stack_s *
 pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int *restart){
     unsigned char *res = NULL;
-    /*if(*restart){
-        DEBUGMSG(99, "pop_or_resolve_from_result_stack: Check for content: %s \n", config->fox_state->thunk);
-        res = config->fox_state->thunk;
-    }
-    else{*/
     struct stack_s *elm = pop_from_stack(&config->result_stack);
     if(!elm){
         return NULL;
     }
-    //}
     struct ccnl_content_s *c;
     if(elm->type == STACK_TYPE_THUNK){
         res = (unsigned char *)elm->content;
@@ -930,7 +924,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         restart = 0;
         --configid;
     }
-    if(num_of_required_thunks == 0){
+    if(thunk_request && num_of_required_thunks == 0){
         ccnl_nfn_reply_thunk(ccnl, *config);
     }
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
