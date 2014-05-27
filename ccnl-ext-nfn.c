@@ -38,7 +38,7 @@ ccnl_nfn_count_required_thunks(char *str)
         tok += 4;
         ++num;
     }
-    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);
+    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);    
     return num;
 }
 
@@ -65,6 +65,11 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid){
         }
     }
 
+
+    if(!config->start_request){
+        //this is not the node to continue the computation
+        return;
+    }
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
@@ -111,11 +116,16 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
+    int start_request = 0;
     int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
         thunk_request = 1;
+    }
+    else if(!memcmp(prefix->comp[prefix->compcnt-2], "USETHUNK", 8)){
+        thunk_request = 1;
+        start_request = 1;
     }
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
@@ -138,7 +148,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     ++numOfRunningComputations;
 restart:
-    res = Krivine_reduction(ccnl, str, thunk_request, 
+    res = Krivine_reduction(ccnl, str, thunk_request, start_request,
             num_of_required_thunks, &config, original_prefix);
     
     //stores result if computed      
