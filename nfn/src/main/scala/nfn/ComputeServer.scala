@@ -6,12 +6,9 @@ import ccn.packet.CCNName
 
 object ComputeServer {
 
-  /**
-   * Message to start computation on compute server, response will be a content object or a timeout
-   * @param name
-   * @param useThunks
-   */
-  case class Compute(name: CCNName, useThunks: Boolean)
+  case class Compute(name: CCNName)
+
+  case class Thunk(name: CCNName)
 
   /**
    * Message to finish computation on compute server
@@ -29,19 +26,32 @@ case class ComputeServer() extends Actor {
   var computeWorkers = Map[CCNName, ActorRef]()
 
   override def receive: Actor.Receive = {
-    case computeMsg @ ComputeServer.Compute(name: CCNName, useThunks) => {
-      if(!computeWorkers.contains(name)) {
-        val computeWorker = createComputeWorker(name, sender)
-        computeWorkers += name -> computeWorker
-        val initialRequestor = sender
-        computeWorker.tell(computeMsg, initialRequestor)
+    /**
+     * Check if computation is already running, if not start a new computation, otherwise do nothing
+     */
+    case computeMsg @ ComputeServer.Thunk(name: CCNName) => {
+      if(name.isCompute) {
+        val nameWithoutThunk = name.withoutThunk
+        if(!computeWorkers.contains(nameWithoutThunk)) {
+          logger.debug(s"Started new computation for $nameWithoutThunk")
+          val computeWorker = createComputeWorker(nameWithoutThunk, sender)
+          computeWorkers += nameWithoutThunk -> computeWorker
+          computeWorker.tell(computeMsg, sender)
+        } else {
+          logger.debug(s"Computation for $name is already running")
+        }
+      } else {
+        logger.error(s"Interest was not a compute interest, discaring it")
       }
     }
 
     case ComputeServer.ComputationFinished(name) => {
-      computeWorkers.get(name) map { computeWorkerToRemove =>
-        computeWorkerToRemove ! PoisonPill
-        computeWorkers -= name
+      computeWorkers.get(name) match {
+        case Some(computeWorkerToRemove) => {
+          computeWorkerToRemove ! PoisonPill
+          computeWorkers -= name
+        }
+        case None => logger.warning(s"Received ComputationFinished for $name, but computation doesn't exist anymore")
       }
     }
   }
