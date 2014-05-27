@@ -77,7 +77,6 @@ object Experiment2 extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks = false
 
   val wc = WordCountService().toString
   val ss = SumService().toString
@@ -104,7 +103,7 @@ object Experiment2 extends App {
 
   val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
 
-  val expr = exIf
+  val expr = exSimpleCall
 
   import AkkaConfig.timeout
 

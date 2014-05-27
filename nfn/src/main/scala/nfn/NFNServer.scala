@@ -36,20 +36,7 @@ object NFNServer {
 
 object NFNApi {
 
-  object CCNSendReceive {
-    def fromExpression(expr: Expr, local: Boolean = false): CCNSendReceive = {
-      val nameCmps: Seq[String] =
-        expr match {
-          case Variable(name, _) => Seq(name)
-          case _ =>
-            if (local) Seq(LambdaPrettyPrinter(expr))
-            else Seq(LambdaNFNPrinter(expr), "NFN")
-        }
-      CCNSendReceive(Interest(nameCmps: _*))
-    }
-  }
-
-  case class CCNSendReceive(interest: Interest, useThunks: Boolean = false)
+  case class CCNSendReceive(interest: Interest)
 
   case class AddToCCNCache(content: Content)
 
@@ -149,7 +136,6 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
   private def handleContent(content: Content, senderCopy: ActorRef) = {
 
     def handleThunkContent = {
-
       def timeoutFromContent: FiniteDuration = {
         val timeoutInContent = new String(content.data)
         if(timeoutInContent != "" && timeoutInContent.forall(_.isDigit)) {
@@ -162,7 +148,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
       implicit val timeout = Timeout(timeoutFromContent)
       (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] onSuccess {
           case Some(pendingFaces) => {
-            val (contentNameWithoutThunk, isThunk) = content.name.withoutThunkAndIsThunk
+            val (contentNameWithoutThunk, isThunk) = content.name.withoutInterestThunkAndIsInterestThunk
 
             assert(isThunk, s"handleThunkContent received the content object $content which is not a thunk")
 
@@ -209,7 +195,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
       }
     }
 
-    if(content.name.isThunk) {
+    if(content.name.isInterestThunk) {
       handleThunkContent
     } else {
       handleNonThunkContent
@@ -218,32 +204,34 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
 
   private def handleInterest(i: Interest, senderCopy: ActorRef) = {
     implicit val timeout = Timeout(defaultTimeoutDuration)
-    (cs ? ContentStore.Get(i.name)).mapTo[Option[Content]] onSuccess  {
+    (cs ? ContentStore.Get(i.name)).mapTo[Option[Content]] onSuccess {
       case Some(contentFromLocalCS) =>
         logger.debug(s"Served $contentFromLocalCS from local CS")
         senderCopy ! contentFromLocalCS
       case None => {
-
         val senderFace = ActorRefFace(senderCopy)
-        implicit val timeout = Timeout(defaultTimeoutDuration)
         (pit ? PIT.Get(i.name)).mapTo[Option[Set[Face]]] onSuccess {
-//        pit.get(i.name) match {
           case Some(pendingFaces) =>
             pit ! PIT.Add(i.name, senderFace, defaultTimeoutDuration)
           case None => {
             pit ! PIT.Add(i.name, senderFace, defaultTimeoutDuration)
 
             // /.../.../NFN
+            // nfn interests are either:
+            // - send to the compute server if they start with compute
+            // - send to a local AM if one exists
+            // - forwarded to nfn gateway
+            // not nfn interests are always forwarded to the nfn gateway
             if (i.name.isNFN) {
               // /COMPUTE/call .../.../NFN
               // A compute flag at the beginning means that the interest is a binary computation
               // to be executed on the compute server
               if (i.name.isCompute) {
-                // TODO forward to compute server wit
-                // TODO sue thunks for computeserver
-                val useThunks = i.name.isThunk
-                computeServer ! ComputeServer.Compute(i.name, useThunks)
-
+                if(i.name.isThunk) {
+                  computeServer ! ComputeServer.Thunk(i.name)
+                } else {
+                  computeServer ! ComputeServer.Compute(i.name)
+                }
                 // /.../.../NFN
                 // An NFN interest without compute flag means that it must be reduced by an abstract machine
                 // If no local machine is available, forward it to the nfn network
@@ -278,8 +266,6 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
       Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
     }
 
-    val isThunk = packet.name.isThunk
-
     packet match {
       case i: Interest => {
         logger.info(s"Received interest: $i")
@@ -313,11 +299,11 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
      * and asks the network if it was the first entry in the pit.
      * Thunk interests get converted to normal interests, thunks need to be enabled with the boolean flag in the message
      */
-    case NFNApi.CCNSendReceive(maybeThunkInterest, useThunks) => {
-      val interest =
-        if(useThunks) maybeThunkInterest.thunkify
-        else          maybeThunkInterest
-      handlePacket(interest, sender)
+    case NFNApi.CCNSendReceive(interest) => {
+      val maybeThunkInterest =
+        if(interest.name.isNFN) interest.thunkifyInterest
+        else          interest
+      handlePacket(maybeThunkInterest, sender)
     }
 
     case NFNApi.AddToCCNCache(content) => {

@@ -10,12 +10,16 @@ sealed trait Packet
 trait Ack
 
 object CCNName {
+  val thunkInterestKeyword = "USETHUNK"
+  val thunkKeyword = "THUNK"
+  val nfnKeyword = "NFN"
+  val computeKeyword = "COMPUTE"
 //  def apply(cmps: String *): CCNName = CCNName(cmps.toList)
-  def withAddedNFNComponent(ccnName: CCNName) = CCNName(ccnName.cmps ++ Seq("NFN") :_*)
-  def withAddedNFNComponent(cmps: Seq[String]) = CCNName(cmps ++ Seq("NFN") :_*)
+  def withAddedNFNComponent(ccnName: CCNName) = CCNName(ccnName.cmps ++ Seq(nfnKeyword) :_*)
+  def withAddedNFNComponent(cmps: Seq[String]) = CCNName(cmps ++ Seq(nfnKeyword) :_*)
 
   def fromString(name: String):Option[CCNName] = {
-    if(name.startsWith("/") == false) None
+    if(!name.startsWith("/")) None
     else {
       Some(CCNName(name.split("/").tail:_*))
     }
@@ -24,47 +28,79 @@ object CCNName {
 
 
 case class CCNName(cmps: String *) extends Logging {
+
+
+  import CCNName.{thunkKeyword, thunkInterestKeyword, nfnKeyword, computeKeyword}
+
   def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
   override def toString = {
     if(cmps.size == 0) "/"
     else cmps.toList.mkString("/", "/", "")
   }
 
-  def isThunk: Boolean = cmps.size >= 2 && cmps.drop(cmps.size-2).forall(_ != "THUNK") == false
+  private def isThunkWithKeyword(keyword: String) = cmps.size >= 2 && !cmps.drop(cmps.size-2).forall(_ != keyword)
 
-  def isNFN: Boolean = cmps.size >= 1 && cmps.last == "NFN"
+  def isThunk: Boolean = isThunkWithKeyword(thunkKeyword)
 
-  def isCompute: Boolean = (cmps.size >= 1) && cmps.head == "COMPUTE"
+  def isInterestThunk: Boolean = isThunkWithKeyword(thunkInterestKeyword)
 
-  def withoutThunkAndIsThunk: (CCNName, Boolean) = {
-    if(cmps.size == 0) this -> false                                  // name '/' is not a thunk
+  def isNFN: Boolean = cmps.size >= 1 && cmps.last == nfnKeyword
+
+  def isCompute: Boolean = cmps.size >= 1 && cmps.head == computeKeyword
+
+  def withoutCompute: CCNName = {
+    if(cmps.size > 0) {
+      if(cmps.head == computeKeyword) CCNName(cmps.tail:_*)
+      else this
+    } else this
+  }
+
+  def withoutNFN: CCNName = {
+    if(cmps.size > 0) {
+      if(cmps.last == nfnKeyword) CCNName(cmps.init:_*)
+      else this
+    } else this
+  }
+
+  private def withoutThunkAndIsThunkWithKeyword(keyword: String): (CCNName, Boolean) = {
+    if(cmps.size == 0) this -> false                                       // name '/' is not a thunk
     cmps.last match {
-      case "THUNK" =>                                                 // thunk of normal ccn name like /docRepo/doc/1/THUNK
-        CCNName(cmps.init:_*) -> true                                 // return /docRepo/doc/1 -> true
-      case "NFN" =>                                                   // nfn thunk like /add 1 1/(maybe: THUNK)/NFN
-        val cmpsWithoutNFNCmp = cmps.init                             // remove last nfn tag
+      case t if t == keyword =>                                                 // thunk of normal ccn name like /docRepo/doc/1/THUNK
+        CCNName(cmps.init:_*) -> true                                      // return /docRepo/doc/1 -> true
+      case t if t == nfnKeyword =>                                                   // nfn thunk like /add 1 1/(maybe: THUNK)/NFN
+        val cmpsWithoutNFNCmp = cmps.init                                  // remove last nfn tag
         if(cmpsWithoutNFNCmp.size == 0) this -> false
-        cmpsWithoutNFNCmp.last match {                                // name '/NFN' is not a thunk
-          case "THUNK" =>                                             // nfn thunk like /add 1 1/THUNK/NFN
-            CCNName(cmpsWithoutNFNCmp.init ++ Seq("NFN"):_*) -> true  // return /add 1 1/NFN
-          case _ => this -> false                                     //return /add 1 1/NFN -> false (original name)
+        cmpsWithoutNFNCmp.last match {                                     // name '/NFN' is not a thunk
+          case t2 if t2 == keyword =>                                             // nfn thunk like /add 1 1/THUNK/NFN
+            CCNName(cmpsWithoutNFNCmp.init ++ Seq(nfnKeyword):_*) -> true  // return /add 1 1/NFN
+          case _ => this -> false                                          //return /add 1 1/NFN -> false (original name)
         }
-      case _ =>                                                       // normal ccn name like /docRepo/doc/1
-        this -> false                                                 // return /docRepo/doc/1 -> false (original name)
+      case _ =>                                                            // normal ccn name like /docRepo/doc/1
+        this -> false                                                      // return /docRepo/doc/1 -> false (original name)
     }
   }
 
-  def thunkify: CCNName = {
+  def withoutThunk: CCNName = withoutThunkAndIsThunk._1
+  def withoutInterestThunk: CCNName = withoutInterestThunkAndIsInterestThunk._1
+
+  def withoutThunkAndIsThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkKeyword)
+  def withoutInterestThunkAndIsInterestThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkInterestKeyword)
+
+  private def thunkifyWithKeyword(keyword: String): CCNName = {
     cmps match {
-      case _ if cmps.last == "NFN" =>
+      case _ if cmps.last == nfnKeyword =>
         cmps.init match {
-          case cmpsWithoutLast if cmpsWithoutLast.last == "THUNK" => this
-          case cmpsWithoutLast => CCNName(cmpsWithoutLast ++ Seq("THUNK", "NFN"): _*)
+          case cmpsWithoutLast if cmpsWithoutLast.last == keyword => this
+          case cmpsWithoutLast => CCNName(cmpsWithoutLast ++ Seq(keyword, nfnKeyword): _*)
         }
-      case _ if cmps.last == "THUNK" => this
-      case _ => CCNName(cmps ++ Seq("THUNK"): _*)
+      case _ if cmps.last == keyword => this
+      case _ => CCNName(cmps ++ Seq(keyword): _*)
     }
   }
+
+  def thunkify: CCNName = thunkifyWithKeyword(thunkKeyword)
+
+  def thunkifyInterest: CCNName = thunkifyWithKeyword(thunkInterestKeyword)
 
   def append(cmpsToAppend:String*):CCNName = CCNName(cmps ++ cmpsToAppend:_*)
   def prepend(cmpsToPrepend:String*):CCNName = CCNName(cmpsToPrepend ++ cmps:_*)
@@ -86,6 +122,8 @@ object Interest {
 case class Interest(name: CCNName) extends CCNPacket {
 
   def this(cmps: String *) = this(CCNName(cmps:_*))
+
+  def thunkifyInterest: Interest = Interest(name.thunkifyInterest)
 
   def thunkify: Interest = Interest(name.thunkify)
 

@@ -11,10 +11,8 @@ import scala.util.{Failure, Success}
 import myutil.IOHelper
 import ComputeWorker._
 
-/**
- * Created by basil on 23/04/14.
- */
 object ComputeWorker {
+  case class Callable(callable: CallableNFNService)
   case class Exit()
 }
 
@@ -23,11 +21,11 @@ object ComputeWorker {
  */
 case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
-  val name = self.path.name
+
   val logger = Logging(context.system, this)
   val ccnIf = CCNLite
 
-  private var result : Option[String] = None
+  var maybeFutCallable: Option[Future[CallableNFNService]] = None
 
   def receivedContent(content: Content) = {
     // Received content from request (sendrcv)
@@ -36,16 +34,13 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
   // Received compute request
   // Make sure it actually is a compute request and forward to the handle method
-  def receivedComputeRequest(name: CCNName, requestor: ActorRef) = {
-    logger.debug(s"received compute request: $name")
-    name.cmps match {
-      case Seq("COMPUTE", reqNfnCmps @ _ *) => {
-        assert(reqNfnCmps.last == "NFN")
-        val (computeCmps, isThunkReq) = CCNName(reqNfnCmps.init:_*).withoutThunkAndIsThunk
-
-        handleComputeRequest(computeCmps, name, isThunkReq, requestor)
-      }
-      case _ => logger.error(s"Dropping interest $name because it is not a compute request")
+  def receivedThunkRequest(computeName: CCNName, requestor: ActorRef) = {
+    if(computeName.isCompute && computeName.isNFN && computeName.isThunk) {
+      logger.debug(s"Received thunk request: $computeName")
+      val computeCmps = computeName.withoutCompute.withoutThunk.withoutNFN
+      handleThunkRequest(computeCmps, computeName, requestor)
+    } else {
+      logger.error(s"Dropping compute interest $computeName, because it does not begin with ${CCNName.computeKeyword}, end with ${CCNName.nfnKeyword} or is not a thunk, therefore is not a valid compute interest")
     }
   }
 
@@ -54,32 +49,43 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
    * Parses the compute request and instantiates a callable service.
    * On success, sends a thunk back if required, executes the services and sends the result back.
    */
-  def handleComputeRequest(computeName: CCNName, originalName: CCNName, isThunkRequest: Boolean, requestor: ActorRef) = {
+  def handleThunkRequest(computeName: CCNName, originalName: CCNName, requestor: ActorRef) = {
     logger.debug(s"Handling compute request for name: $computeName")
-    val futCallableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.mkString(" "), ccnServer)
+    assert(computeName.cmps.size == 1, "Compute cmps at this moment should only have one component")
+    val futCallableServ: Future[CallableNFNService] = NFNService.parseAndFindFromName(computeName.cmps.head, ccnServer)
 
-    futCallableServ onComplete {
-      case Success(callableServ) => {
-        if(isThunkRequest) {
+    // send back thunk content when callable service is creating (means everything was available)
+    futCallableServ onSuccess {
+      case callableServ => {
           // TODO: No default value for network
           requestor ! Content(originalName, callableServ.executionTimeEstimate.fold("")(_.toString).getBytes)
-        }
-
-        val result: NFNValue = callableServ.exec
-        val content = Content(originalName.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
-        logger.info(s"Finished computation, result: $content")
-        requestor ! content
-      }
-      case Failure(e) => {
-
-        logger.error(IOHelper.exceptionToString(e))
       }
     }
+    maybeFutCallable = Some(futCallableServ)
+
   }
 
   override def receive: Actor.Receive = {
-    case ComputeServer.Compute(name, useThunks) => {
-      receivedComputeRequest(name, sender)
+    case ComputeServer.Thunk(name) => {
+      receivedThunkRequest(name, sender)
+    }
+    case ComputeServer.Compute(name) => {
+      maybeFutCallable match {
+        case Some(futCallable) => {
+          futCallable onComplete {
+            case Success(callable) => {
+              val result: NFNValue = callable.exec
+              val content = Content(name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
+              logger.info(s"Finished computation, result: $content")
+              sender ! content
+            }
+            case Failure(e) => {
+              logger.error(e, "There was an error when creating the callable service")
+            }
+          }
+        }
+        case None => logger.error("Compute message was sent before thunk, which means that the service to execute has not yet been created")
+      }
     }
     case Exit() => context.stop(self)
   }
