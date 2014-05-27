@@ -33,7 +33,7 @@ case class ComputeServer() extends Actor {
       if(name.isCompute) {
         val nameWithoutThunk = name.withoutThunk
         if(!computeWorkers.contains(nameWithoutThunk)) {
-          logger.debug(s"Started new computation for $nameWithoutThunk")
+          logger.debug(s"Started new computation with thunks for $nameWithoutThunk")
           val computeWorker = createComputeWorker(nameWithoutThunk, sender)
           computeWorkers += nameWithoutThunk -> computeWorker
           computeWorker.tell(computeMsg, sender)
@@ -45,14 +45,34 @@ case class ComputeServer() extends Actor {
       }
     }
 
-    case ComputeServer.ComputationFinished(name) => {
-      computeWorkers.get(name) match {
-        case Some(computeWorkerToRemove) => {
-          computeWorkerToRemove ! PoisonPill
-          computeWorkers -= name
+    case computeMsg @ ComputeServer.Compute(name: CCNName) => {
+      if(!name.isThunk) {
+        computeWorkers.get(name) match {
+          case Some(worker) => {
+            logger.debug(s"Received Compute for $name, forwarding it to running compute worker")
+            worker.tell(computeMsg, sender)
+          }
+          case None => {
+            logger.debug(s"Started new computation without thunks for $name")
+            val computeWorker = createComputeWorker(name, sender)
+            computeWorkers += name -> computeWorker
+            computeWorker.tell(computeMsg, sender)
+          }
         }
-        case None => logger.warning(s"Received ComputationFinished for $name, but computation doesn't exist anymore")
+      }
+      else {
+        logger.error(s"Compute message must contain the name of the final interest and not a thunk interest: $name")
       }
     }
+
+//    case ComputeServer.ComputationFinished(name) => {
+//      computeWorkers.get(name) match {
+//        case Some(computeWorkerToRemove) => {
+//          computeWorkerToRemove ! PoisonPill
+//          computeWorkers -= name
+//        }
+//        case None => logger.warning(s"Received ComputationFinished for $name, but computation doesn't exist anymore")
+//      }
+//    }
   }
 }

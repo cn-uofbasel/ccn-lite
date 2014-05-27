@@ -68,7 +68,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
       s"compute result '$temporaryPaddedResult' for ${if(nfnNetwork) "localAbstractMachine" else "nfn"} request '$parsedReq'" in {
 
         val computeReqName = Seq(parsedReq, "NFN")
-        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(computeReqName:_*))
+        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(computeReqName:_*), useThunks = false)
         val actualContent = expectMsgType[Content]
         actualContent.name shouldBe computeReqName
         actualContent.data shouldBe temporaryPaddedResult.getBytes
@@ -77,7 +77,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
     s"An $nfnMasterName actor" should {
       "send interest and receive corresponding data" in {
-        nfnMasterRef ! NFNApi.CCNSendReceive(interest)
+        nfnMasterRef ! NFNApi.CCNSendReceive(interest, useThunks = false)
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe data
       }
@@ -89,7 +89,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
         nfnMasterRef ! NFNApi.AddToCCNCache(cacheContent)
         // TODO maybe make this nicer?
         Thread.sleep(200)
-        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(contentName:_*))
+        nfnMasterRef ! NFNApi.CCNSendReceive(Interest(contentName:_*), useThunks = false)
         val actualContent = expectMsgType[Content]
         actualContent.data shouldBe contentData
       }

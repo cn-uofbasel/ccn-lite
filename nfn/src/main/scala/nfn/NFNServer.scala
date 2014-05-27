@@ -36,7 +36,7 @@ object NFNServer {
 
 object NFNApi {
 
-  case class CCNSendReceive(interest: Interest)
+  case class CCNSendReceive(interest: Interest, useThunks: Boolean)
 
   case class AddToCCNCache(content: Content)
 
@@ -135,7 +135,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
   // Check pit for an address to return content to, otherwise discard it
   private def handleContent(content: Content, senderCopy: ActorRef) = {
 
-    def handleThunkContent = {
+    def handleInterstThunkContent = {
       def timeoutFromContent: FiniteDuration = {
         val timeoutInContent = new String(content.data)
         if(timeoutInContent != "" && timeoutInContent.forall(_.isDigit)) {
@@ -150,23 +150,15 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
           case Some(pendingFaces) => {
             val (contentNameWithoutThunk, isThunk) = content.name.withoutInterestThunkAndIsInterestThunk
 
-            assert(isThunk, s"handleThunkContent received the content object $content which is not a thunk")
+            assert(isThunk, s"handleInterstThunkContent received the content object $content which is not a thunk")
 
-            // if the thunk content name is a compute name it means that the content was sent by the compute server
-            // send the thunk content to the gateway
-            if(content.name.isCompute) {
-              nfnGateway ! content
+            val interest = Interest(contentNameWithoutThunk)
+            logger.debug(s"Received usethunk $content, sending actual interest $interest")
 
+            logger.debug(s"Timeout duration: ${timeout.duration}")
+            pendingFaces foreach { pf => pit ! PIT.Add(contentNameWithoutThunk, pf, timeout.duration) }
+            nfnGateway ! interest
               // else it was a thunk interest, which means we can now send the actual interest
-            } else {
-              val interest = Interest(contentNameWithoutThunk)
-              logger.debug(s"Received thunk $content, sending actual interest $interest")
-//              pit += contentNameWithoutThunk -> pendingFaces
-
-              logger.debug(s"Timeout duration: ${timeout.duration}")
-              pendingFaces foreach { pf => pit ! PIT.Add(contentNameWithoutThunk, pf, timeout.duration) }
-              nfnGateway ! interest
-            }
             pit ! PIT.Remove(content.name)
           }
           case None => logger.error(s"Discarding thunk content $content because there is no entry in pit")
@@ -177,10 +169,6 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
       implicit val timeout = Timeout(defaultTimeoutDuration)
       (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] onSuccess {
         case Some(pendingFaces) => {
-          if (content.name.isCompute) {
-            logger.debug("Received computation result, sending back computation ack")
-            computeServer ! ComputeServer.ComputationFinished(content.name)
-          }
 
           if (cacheContent) {
             cs ! ContentStore.Add(content)
@@ -196,7 +184,7 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
     }
 
     if(content.name.isInterestThunk) {
-      handleThunkContent
+      handleInterstThunkContent
     } else {
       handleNonThunkContent
     }
@@ -299,10 +287,10 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
      * and asks the network if it was the first entry in the pit.
      * Thunk interests get converted to normal interests, thunks need to be enabled with the boolean flag in the message
      */
-    case NFNApi.CCNSendReceive(interest) => {
+    case NFNApi.CCNSendReceive(interest, useThunks) => {
       val maybeThunkInterest =
-        if(interest.name.isNFN) interest.thunkifyInterest
-        else          interest
+        if(interest.name.isNFN && useThunks) interest.thunkifyInterest
+        else interest
       handlePacket(maybeThunkInterest, sender)
     }
 

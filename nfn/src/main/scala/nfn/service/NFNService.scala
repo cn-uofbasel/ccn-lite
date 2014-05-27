@@ -62,7 +62,7 @@ object NFNService extends Logging {
   def parseAndFindFromName(name: String, ccnServer: ActorRef): Future[CallableNFNService] = {
 
     def loadFromCacheOrNetwork(interest: Interest): Future[Content] = {
-      (ccnServer ? NFNApi.CCNSendReceive(interest)).mapTo[Content]
+      (ccnServer ? NFNApi.CCNSendReceive(interest, useThunks = false)).mapTo[Content]
     }
 
     def findService(fun: String): Future[NFNService] = {
