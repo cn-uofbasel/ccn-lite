@@ -258,6 +258,41 @@ create_prefix_from_name(char* namestr)
 }
 
 #ifndef USE_UTIL
+
+struct ccnl_prefix_s *
+create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config){
+    struct ccnl_prefix_s *name = malloc(sizeof(struct ccnl_prefix_s));
+    name->comp = malloc(2*sizeof(char*));
+    name->complen = malloc(2*sizeof(int));
+    name->compcnt = 1;
+    name->comp[1] = "NFN";
+    name->complen[1] = 3;
+    name->comp[0] = malloc(CCNL_MAX_PACKET_SIZE);
+    memset(name->comp[0], 0, CCNL_MAX_PACKET_SIZE);
+    name->path = NULL;
+
+    int it, len = 0;
+    len += sprintf(name->comp[0]+len, "call %d", config->fox_state->num_of_params);
+    for(it = 0; it < config->fox_state->num_of_params; ++it){
+
+        struct stack_s *stack = config->fox_state->params[it];
+        if(stack->type == STACK_TYPE_PREFIX){
+            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
+            len += sprintf(name->comp[0]+len, " %s", pref_str);
+        }
+        else if(stack->type == STACK_TYPE_INT){
+            len += sprintf(name->comp[0]+len, " %d", *(int*)stack->content);
+        }
+        else{
+            DEBUGMSG(1, "Invalid stack type\n");
+            return NULL;
+        }
+
+    }
+    name->complen[0] = len;
+}
+
+
 struct ccnl_interest_s *
 mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  struct ccnl_prefix_s *prefix)
