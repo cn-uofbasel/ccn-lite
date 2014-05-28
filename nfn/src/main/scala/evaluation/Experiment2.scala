@@ -16,32 +16,35 @@ import config.AkkaConfig
 
 object Experiment2 extends App {
 
+  val node1Prefix = CCNName("node", "node1")
+  val node1Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, node1Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10011, node1Prefix)))
+  val node2Prefix = CCNName("node", "node2")
+  val node2Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10020, node2Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10021, node2Prefix)))
+  val node3Prefix = CCNName("node", "node3")
+  val node3Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10030, node3Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10031, node3Prefix)))
+  val node4Prefix = CCNName("node", "node4")
+  val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix, isCCNOnly = true)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
 
-  val node1Config = NodeConfig("127.0.0.1", 10010, 10011, CCNName("node", "node1"))
-  val node2Config = NodeConfig("127.0.0.1", 10020, 10021, CCNName("node", "node2"))
-  val node3Config = NodeConfig("127.0.0.1", 10030, 10031, CCNName("node", "node3"))
-  val node4Config = NodeConfig("127.0.0.1", 10040, 10041, CCNName("node", "node4"))
-
-  val docname1 = node1Config.prefix.append("doc", "test1")
+  val docname1 = node1Prefix.append("doc", "test1")
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
 
-  val docname2 = node2Config.prefix.append("doc", "test2")
+  val docname2 = node2Prefix.append("doc", "test2")
   val docdata2 = "two two".getBytes
   val docContent2 = Content(docname2, docdata2)
 
-  val docname3 = node3Config.prefix.append("doc", "test3")
+  val docname3 = node3Prefix.append("doc", "test3")
   val docdata3 = "three three three".getBytes
   val docContent3 = Content(docname3, docdata3)
 
-  val docname4 = node4Config.prefix.append("doc", "test4")
+  val docname4 = node4Prefix.append("doc", "test4")
   val docdata4 = "four four four four".getBytes
   val docContent4 = Content(docname4, docdata4)
 
-  val node1 = Node(node1Config, withLocalAM = false)
-  val node2 = Node(node2Config, withLocalAM = false)
-  val node3 = Node(node3Config, withLocalAM = false)
-  val node4 = Node(node4Config, withLocalAM = false, withComputeServer = false)
+  val node1 = Node(node1Config)
+  val node2 = Node(node2Config)
+  val node3 = Node(node3Config)
+  val node4 = Node(node4Config)
 
   node1 <~> node2
   node1 <~> node3
@@ -64,7 +67,7 @@ object Experiment2 extends App {
   node2.publishServices
   node3.publishServices
 //  node4.publishServices
-//  node4.removeLocalServices
+  node4.removeLocalServices
 
 //  node1.removeLocalServices
 //  node2.removeLocalServices
@@ -77,7 +80,7 @@ object Experiment2 extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = true
+  implicit val useThunks: Boolean = false
 
   val wc = WordCountService().toString
   val ss = SumService().toString
@@ -104,7 +107,7 @@ object Experiment2 extends App {
 
   val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
 
-  val expr = exCallCall
+  val expr = exSimpleCall
 
   import AkkaConfig.timeout
 

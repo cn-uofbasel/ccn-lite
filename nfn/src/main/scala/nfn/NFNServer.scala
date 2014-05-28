@@ -47,10 +47,10 @@ object NFNApi {
 
 
 object CCNServerFactory {
-  def ccnServer(context: ActorRefFactory, nodeConfig: NodeConfig, withLocalAM: Boolean = false) = {
-    context.actorOf(networkProps(nodeConfig, withLocalAM), name = "NFNServer")
+  def ccnServer(context: ActorRefFactory, nodeConfig: CombinedNodeConfig) = {
+    context.actorOf(networkProps(nodeConfig), name = "NFNServer")
   }
-  def networkProps(nodeConfig: NodeConfig, withLocalAM: Boolean = false) = Props(classOf[NFNServer], nodeConfig, withLocalAM)
+  def networkProps(nodeConfig: CombinedNodeConfig) = Props(classOf[NFNServer], nodeConfig)
 }
 
 
@@ -102,7 +102,7 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
  *  All connection, interest and content request are logged to the [[Monitor]].
  *  A NFNServer also maintains a socket which is connected to the actual CCNNetwork, usually an CCNLite instance encapsulated in a [[CCNLiteProcess]].
  */
-case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor {
+case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
 
   val logger = Logging(context.system, this)
 
@@ -113,23 +113,45 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
   val computeServer: ActorRef = context.actorOf(Props(classOf[ComputeServer]), name = "ComputeServer")
 
   val maybeLocalAbstractMachine: Option[ActorRef] =
-    if(withLocalAM) {
-      Some(context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), "LocalAM"))
-    } else None
+    nodeConfig.maybeComputeNodeConfig flatMap { computeNodeConfig =>
+      if(computeNodeConfig.withLocalAM)
+        Some(context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), "LocalAM"))
+      else None
+    }
 
   val defaultTimeoutDuration = AkkaConfig.timeoutDuration
 
   var pit: ActorRef = context.actorOf(Props(classOf[PIT]), name = "PIT")
   var cs: ActorRef = context.actorOf(Props(classOf[ContentStore]), name = "ContentStore")
 
-  val nfnGateway = context.actorOf(Props(classOf[UDPConnectionContentInterest],
-    new InetSocketAddress(nodeConfig.host, nodeConfig.computePort),
-    new InetSocketAddress(nodeConfig.host, nodeConfig.port)),
-    name = s"udpsocket-${nodeConfig.computePort}-${nodeConfig.port}")
+  val maybeNfnGateway: Option[ActorRef] =
+  for {
+    nfnNodeConfig <- nodeConfig.maybeNFNNodeConfig
+    computeNodeConfig <- nodeConfig.maybeComputeNodeConfig
+  } yield {
+    context.actorOf(Props(classOf[UDPConnectionContentInterest],
+      new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
+      new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port)),
+      name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}")
+  }
 
+
+  def nfnGateway: ActorRef = {
+    maybeNfnGateway match {
+      case Some(nfnGateway) => nfnGateway
+      case None => {
+        val m = "NFNServer was not configured with both a nfn node and a compute node, therefore the nfnGateway does not exist to send a message to"
+        val e = new Exception(m)
+        logger.error(e, m)
+        throw e
+      }
+    }
+  }
 
   override def preStart() = {
-    nfnGateway ! UDPConnection.Handler(self)
+    maybeNfnGateway foreach { nfnGateway =>
+      nfnGateway ! UDPConnection.Handler(self)
+    }
   }
 
   // Check pit for an address to return content to, otherwise discard it
@@ -242,17 +264,17 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
   }
 
   def handlePacket(packet: CCNPacket, senderCopy: ActorRef) = {
-    def monitorReceive(packet: CCNPacket): Unit = {
-      val ccnPacketLog = packet match {
-        case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
-        case c: Content => {
-          val name = c.name.toString
-          val data = new String(c.data).take(50)
-          Monitor.ContentInfoLog("content", name, data)
-        }
-      }
-      Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
-    }
+//    def monitorReceive(packet: CCNPacket): Unit = {
+//      val ccnPacketLog = packet match {
+//        case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
+//        case c: Content => {
+//          val name = c.name.toString
+//          val data = new String(c.data).take(50)
+//          Monitor.ContentInfoLog("content", name, data)
+//        }
+//      }
+//      Monitor.monitor ! new Monitor.PacketLog(nodeConfig.toNFNNodeLog, nodeConfig.toComputeNodeLog, isSent = false, ccnPacketLog)
+//    }
 
     packet match {
       case i: Interest => {
@@ -300,12 +322,20 @@ case class NFNServer(nodeConfig: NodeConfig, withLocalAM: Boolean) extends Actor
     }
 
     case NFNApi.AddToLocalCache(content, prependLocalPrefix) => {
-      val contentToAdd =
-        if(prependLocalPrefix) {
-          Content(nodeConfig.prefix.append(content.name), content.data)
-        } else content
-      logger.info(s"Adding content for ${contentToAdd.name} to local cache")
-      cs ! ContentStore.Add(contentToAdd)
+
+      nodeConfig.maybeComputeNodeConfig match {
+        case Some(computeNodeConfig) => {
+          val contentToAdd =
+            if(prependLocalPrefix) {
+              Content(computeNodeConfig.prefix.append(content.name), content.data)
+            } else content
+          logger.info(s"Adding content for ${contentToAdd.name} to local cache")
+          cs ! ContentStore.Add(contentToAdd)
+        }
+        case None => {
+          logger.error("This node was not defined with a compute node config, therefore cannot add something to local cache")
+        }
+      }
     }
 
 

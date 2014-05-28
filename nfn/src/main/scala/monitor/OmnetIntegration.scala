@@ -24,46 +24,14 @@ case class OmnetIntegration(nodes: Set[NodeLog],
   }
   def packets: Packets = {
 
-
-//    def actuallyTransmittedPackets: List[TransmittedPacket] = {
-//      println(s"LOGGED PACKETS: $loggedPackets")
-//      loggedPackets.map({
-//        lp1 =>
-//          val maybeReceiveLog: Option[PacketLog] = loggedPackets.find {
-//            lp2 =>
-//              lp1.from == lp2.from &&
-//                lp1.to == lp2.to &&
-//                lp1.isSent != lp2.isSent &&
-//                lp1.packet == lp2.packet &&
-//                lp1.isSent
-//          }
-//          maybeReceiveLog flatMap {
-//            lp2 =>
-//              val transmissionTime = lp2.timestamp - lp1.timestamp
-//              val `type` = loggedPacketToType(lp1.packet)
-//              lp1.from match {
-//                case Some(from) =>
-//                  Some(TransmittedPacket(`type`, from, lp1.to, lp1.timestamp - simStart, transmissionTime, lp1.packet))
-//                case None => {
-//                  logger.warn(s"The packet log $lp1 does not have a from address, discarding it")
-//                  None
-//                }
-//              }
-//          }
-//      }).collect({
-//        case Some(tp) => tp
-//      }).toList
-//    }
-
     def transmittedPackets: List[TransmittedPacket] = {
       loggedPackets.toList.sortBy(_.timestamp).map({ lp =>
         val `type` = loggedPacketToType(lp.packet)
         lp.from match {
           case Some(from) =>
             if(lp.isSent) {
-              Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp - simStart, 2, lp.packet))
+              Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp, 2, lp.packet))
             } else {
-//              logger.debug(s"Discarding all received packet logs")
               None
             }
           case None => {
@@ -123,6 +91,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     val json: JsonAST.JValue =
     ("packets" ->
       packets.packets.map { p =>
+        println(s"TIMEMILLIS: ${p.timeMillis}")
         ("from" ->
           ("host" -> p.from.host) ~
           ("port" -> p.from.port) ~

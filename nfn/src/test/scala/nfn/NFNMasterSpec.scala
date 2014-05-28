@@ -16,7 +16,9 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
 
   println("INIT")
 
-  val nodeConfig = NodeConfig("localhost",10000, 10001, CCNName("testnode"))
+  val nodePrefix = CCNName("testnode")
+  val computeNodeConfig = ComputeNodeConfig("127.0.0.1", 10021, nodePrefix)
+  val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, nodePrefix)), Some(computeNodeConfig))
   val nfnMasterNetworkRef: TestActorRef[NFNServer] = TestActorRef(CCNServerFactory.networkProps(nodeConfig))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 

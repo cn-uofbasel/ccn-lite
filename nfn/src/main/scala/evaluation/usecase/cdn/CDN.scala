@@ -70,15 +70,17 @@ case class RandomAd() extends NFNService {
 
 object CDN extends App {
 
-  val node1Config = NodeConfig("127.0.0.1", 10010, 10011, CCNName("node", "node1"))
-  val node2Config = NodeConfig("127.0.0.1", 10020, 10021, CCNName("node", "node2"))
+  val node1Prefix = CCNName("node", "node1")
+  val node1Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, node1Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10011, node1Prefix)))
+  val node2Prefix = CCNName("node", "node2")
+  val node2Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10020, node2Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10021, node2Prefix)))
 
-  val esiTagname = node1Config.prefix.append("esi", "tag", "include", "randomad")
+  val esiTagname = node1Prefix.append("esi", "tag", "include", "randomad")
   val esiTag = "<esi:include:randomad/>"
   val esiTagData = esiTag.getBytes
   val esiTagContent = Content(esiTagname, esiTagData)
 
-  val webpagename = node1Config.prefix.append("webpage", "test1")
+  val webpagename = node1Prefix.append("webpage", "test1")
   val webpagedata =
     s"""
       |<html>
@@ -94,8 +96,8 @@ object CDN extends App {
   val webpageContent = Content(webpagename, webpagedata)
 
 
-  val node1 = Node(node1Config, withLocalAM = false)
-  val node2 = Node(node2Config, withLocalAM = false)
+  val node1 = Node(node1Config)
+  val node2 = Node(node2Config)
 
   node1 <~> node2
 
