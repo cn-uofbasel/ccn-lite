@@ -78,6 +78,7 @@ struct thunk_s{
     struct thunk_s *next, *prev;
     char thunkid[10];
     struct ccnl_prefix_s *prefix;
+    struct ccnl_prefix_s *reduced_prefix;
 };
 
 struct thunk_s *thunk_list;
