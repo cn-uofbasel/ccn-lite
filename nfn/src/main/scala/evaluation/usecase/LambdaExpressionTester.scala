@@ -1,6 +1,6 @@
 package evaluation.usecase
 
-import nfn.{LambdaNFNPrinter, NodeConfig}
+import nfn._
 import node.Node
 import ccn.packet._
 import scala.util.{Failure, Success}
@@ -9,13 +9,19 @@ import akka.pattern.AskTimeoutException
 import scala.concurrent.duration._
 import akka.util.Timeout
 import lambdacalculus.LambdaCalculus
+import nfn.CombinedNodeConfig
+import scala.util.Success
+import scala.util.Failure
+import scala.Some
+import nfn.NFNNodeConfig
 
 object LambdaExpressionTester extends App {
 
   val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
-  val nodeConfig = NodeConfig("localhost", 10010, 10011, CCNName("node1"))
+  val nodePrefix = CCNName("node1")
+  val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, nodePrefix)), Some(ComputeNodeConfig("127.0.0.1", 10021, nodePrefix)))
 
   val node = Node(nodeConfig)
 

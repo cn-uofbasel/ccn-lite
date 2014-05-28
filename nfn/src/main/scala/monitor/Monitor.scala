@@ -27,7 +27,7 @@ object Monitor {
   case class Visualize()
 
   sealed trait MonitorLogEntry {
-    val timestamp = System.nanoTime
+    val timestamp: Long = System.nanoTime
   }
 
   case class NodeLog(host: String, port: Int, `type`: Option[String], prefix: Option[String]) extends MonitorLogEntry
@@ -247,7 +247,6 @@ case class Monitor() extends Actor {
     case UDPConnection.Received(data, sendingRemote: InetSocketAddress) => {
       val host = ipHost(sendingRemote.getHostName)
       val port = sendingRemote.getPort
-//      val ipHost = ipHost(sendingRemote.getHostName)
       parseAndHandleJsonDataFrom(data, HostAndPort(host, port))
     }
   }

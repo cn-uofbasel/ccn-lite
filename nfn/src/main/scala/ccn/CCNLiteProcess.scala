@@ -2,7 +2,7 @@ package ccn
 
 import java.io._
 import com.typesafe.scalalogging.slf4j.Logging
-import nfn.NodeConfig
+import nfn.{NFNNodeConfig, NodeConfig}
 import ccn.packet.CCNName
 
 /**
@@ -42,7 +42,7 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
  * Call start and stop.
  * @param nodeConfig
  */
-case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends Logging {
+case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) extends Logging {
 
   case class NetworkFace(toHost: String, toPort: Int) {
     private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
@@ -66,7 +66,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends 
 
   val host = nodeConfig.host
   val port = nodeConfig.port
-  val computePort = nodeConfig.computePort
+//  val computePort = nodeConfig.computePort
   val prefix = nodeConfig.prefix.toString
 
   val sockName = s"/tmp/mgmt.${nodeConfig.prefix.cmps.mkString(".")}.sock"
@@ -75,7 +75,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends 
   val processName = if(withCompute) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
-    if(port != 10010) {
+//    if(port != 10010) {
 
     val ccnliteExecutable = if(withCompute) "../ccn-nfn-relay" else "../ccn-lite-relay"
     val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
@@ -90,12 +90,10 @@ case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends 
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start()
 
-    }
+//    }
     globalFaceId = 2
 
-    if(withCompute) {
-      addPrefix(CCNName("COMPUTE"), nodeConfig.host, nodeConfig.computePort)
-    }
+
   }
 
   def stop() = {
@@ -115,7 +113,7 @@ case class CCNLiteProcess(nodeConfig: NodeConfig, withCompute: Boolean) extends 
     networkFace.registerPrefix(prefix)
   }
 
-  def connect(otherNodeConfig: NodeConfig): Unit = {
+  def connect(otherNodeConfig: NFNNodeConfig): Unit = {
     println(s"Connecting $nodeConfig to $otherNodeConfig")
     addPrefixToNewOrExistingNetworkFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix.toString)
   }
