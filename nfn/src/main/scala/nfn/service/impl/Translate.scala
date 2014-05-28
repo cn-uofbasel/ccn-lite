@@ -14,7 +14,6 @@ case class Translate() extends NFNService {
       case Seq(NFNBinaryDataValue(name, data)) =>
         // translating should happen here
         val str = new String(data)
-        println(s"TRANSLATE: $str")
         NFNBinaryDataValue(name, ((str + " ")*3).getBytes)
       case _ => throw argumentException(args)
     }
