@@ -58,8 +58,8 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
         if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
-            original_interest->last_used = CCNL_NOW()-100;
-            original_interest->retries = 0-10;
+            original_interest->last_used = CCNL_NOW();
+            original_interest->retries = 0;
             original_interest->from->last_used = CCNL_NOW();
             break;
         }
@@ -167,6 +167,13 @@ restart:
         ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         --numOfRunningComputations;
+        struct ccnl_interest_s *interest = NULL;
+        for(interest = ccnl->pit; interest; interest = interest->next){
+            if(!ccnl_prefix_cmp(interest->prefix, 0, c->name, CMP_EXACT)){
+                interest->propagate = 1;
+                break;
+            }
+        }
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
     }
     

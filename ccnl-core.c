@@ -688,7 +688,7 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
 #ifdef CCNL_NFN
-    if(i->propagate) return i;
+    if(i->propagate == 0) return i->next;
 #endif
     struct ccnl_interest_s *i2;
     int it;
