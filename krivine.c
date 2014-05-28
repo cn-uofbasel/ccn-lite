@@ -756,11 +756,7 @@ normal:
                 thunk_elm->type = STACK_TYPE_PREFIX;
                 thunk_elm->content = thunk->reduced_prefix;
                 thunk_elm->next = NULL;
-                config->fox_state->params[i] = thunk_elm;
-
-                //TODO TODO TODO: build a new prefix with no NFN, no COMPUTE AND NO PARAMETER OUTSITE!
-                //(USE PREVIOUS CONFIG TO BUILD THE STRING?), but what happens if multiple parameter are a thunk?
-                //Additional field for thunk, that contrains this prefix, build when params are available, e.g. when thunk is created
+                config->fox_state->params[i] = thunk_elm;          
             }
         }
         //as long as there is a routable parameter: try to find a result
@@ -780,7 +776,7 @@ recontinue:
         //result was not delivered --> choose next parameter
         ++config->fox_state->it_routable_param;
         parameter_number = choose_parameter(config);
-        if(parameter_number < 0) return NULL; //no more parameter --> no result found
+        if(parameter_number < 0) return NULL; //no more parameter --> no result found, can try a local computation
         //TODO: create new prefix with name components!!!!
         struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
