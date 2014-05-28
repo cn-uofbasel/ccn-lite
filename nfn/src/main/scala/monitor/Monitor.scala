@@ -21,7 +21,7 @@ object Monitor {
   val host = "localhost"
   val port = 10666
 
-  private val system = ActorSystem(s"Monitor", AkkaConfig.configDebug)
+  private val system = ActorSystem(s"Monitor", AkkaConfig.configInfo)
   val monitor = system.actorOf(Props(classOf[Monitor]))
 
   case class Visualize()
