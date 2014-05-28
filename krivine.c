@@ -756,8 +756,19 @@ normal:
                 thunk_elm->type = STACK_TYPE_PREFIX;
                 thunk_elm->content = thunk->reduced_prefix;
                 thunk_elm->next = NULL;
-                config->fox_state->params[i] = thunk_elm;          
+                config->fox_state->params[i] = thunk_elm;
+
             }
+
+            if(config->fox_state->params[i]->type == STACK_TYPE_INT){
+                int p = *(int *)config->fox_state->params[i]->content;
+                DEBUGMSG(99, "Parameter %d %d\n", i, p);
+            }
+            else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX){
+                DEBUGMSG(99, "Parameter %d %s\n", i, ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+            }
+
+
         }
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = 0;
