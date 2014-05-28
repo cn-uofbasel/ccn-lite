@@ -162,18 +162,13 @@ restart:
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
         struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen((char *)res));
-            
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
+
+        set_propagate_of_interests_to_1(ccnl, c->name);
         ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         --numOfRunningComputations;
-        struct ccnl_interest_s *interest = NULL;
-        for(interest = ccnl->pit; interest; interest = interest->next){
-            if(!ccnl_prefix_cmp(interest->prefix, 0, c->name, CMP_EXACT)){
-                interest->propagate = 1;
-                break;
-            }
-        }
+
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
     }
     

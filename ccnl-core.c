@@ -717,6 +717,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     struct ccnl_interest_s *interest;
     int faceid = 0;
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
+
 #ifdef CCNL_NFN
     if(i != 0 && i->from != 0){
         faceid = i->from->faceid;
