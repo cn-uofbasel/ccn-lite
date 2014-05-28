@@ -30,7 +30,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
         lp.from match {
           case Some(from) =>
             if(lp.isSent) {
-              Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp, 2, lp.packet))
+              Some(TransmittedPacket(`type`, from, lp.to, lp.timestamp - simStart, 2, lp.packet))
             } else {
               None
             }

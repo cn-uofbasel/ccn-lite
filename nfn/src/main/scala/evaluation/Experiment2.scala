@@ -112,17 +112,18 @@ object Experiment2 extends App {
   import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
-  node1 ? (wc appl docname1) onComplete {
+  node1 ? exCallCall onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")
+      Monitor.monitor ! Monitor.Visualize()
     }
-    case Failure(error) => throw error
+    case Failure(error) =>
+      Monitor.monitor ! Monitor.Visualize()
+      throw error
   }
 
   Thread.sleep(AkkaConfig.timeoutDuration.toMillis + 100)
-
-  Monitor.monitor ! Monitor.Visualize()
 
   node1.shutdown()
   node2.shutdown()

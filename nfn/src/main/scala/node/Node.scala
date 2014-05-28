@@ -168,7 +168,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
     assert(otherNode.nodeConfig.maybeNFNNodeConfig.isDefined, "Other Node can only be connected to it runs a cnnlite process, init the other node with a NFNNodeConfig")
 
     val thisNFNConfig = nodeConfig.maybeNFNNodeConfig.get
-    val otherNFNConfig = nodeConfig.maybeNFNNodeConfig.get
+    val otherNFNConfig = otherNode.nodeConfig.maybeNFNNodeConfig.get
     Monitor.monitor ! Monitor.ConnectLog(thisNFNConfig.toNodeLog, otherNFNConfig.toNodeLog)
     ccnLiteNFNNetworkProcess.connect(otherNFNConfig)
   }
@@ -230,10 +230,10 @@ case class Node(nodeConfig: CombinedNodeConfig) {
 
     nodeConfig.maybeComputeNodeConfig map { computeNodeConfig =>
       nfnMaster ! NFNApi.AddToLocalCache(content)
+      ccnLiteNFNNetworkProcess.addPrefix(content.name, computeNodeConfig.host, computeNodeConfig.port)
     }
     nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
-      nfnMaster ! NFNApi.AddToLocalCache(content)
-      ccnLiteNFNNetworkProcess.addPrefix(content.name, nfnNodeConfig.host, nfnNodeConfig.port)
+      nfnMaster ! NFNApi.AddToCCNCache(content)
     }
 
   }

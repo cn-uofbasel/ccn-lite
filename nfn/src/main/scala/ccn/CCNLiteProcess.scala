@@ -114,13 +114,11 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
   }
 
   def connect(otherNodeConfig: NFNNodeConfig): Unit = {
-    println(s"Connecting $nodeConfig to $otherNodeConfig")
     addPrefixToNewOrExistingNetworkFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix.toString)
   }
 
 
   def addPrefix(prefix: CCNName, gatewayHost: String, gatewayPort: Int) = {
-    println(s"Adding prefix $prefix to gateway ($gatewayHost:$gatewayPort)")
     addPrefixToNewOrExistingNetworkFace(gatewayHost, gatewayPort, prefix.toString)
   }
 }
