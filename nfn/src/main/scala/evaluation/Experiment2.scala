@@ -80,7 +80,7 @@ object Experiment2 extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = false
+  implicit val useThunks: Boolean = true
 
   val wc = WordCountService().toString
   val ss = SumService().toString
@@ -107,12 +107,12 @@ object Experiment2 extends App {
 
   val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
 
-  val expr = exSimpleCall
+  val expr = exCallCall
 
   import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
-  node1 ? expr onComplete {
+  node1 ? (wc appl docname1) onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")
