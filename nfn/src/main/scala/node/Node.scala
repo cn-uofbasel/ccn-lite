@@ -129,7 +129,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
 
   val maybeCCNLiteProcess: Option[CCNLiteProcess] = {
     nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
-      val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(nfnNodeConfig, withCompute = true)
+      val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(nfnNodeConfig, withCompute = nodeConfig.maybeComputeNodeConfig.isDefined)
       ccnLiteNFNNetworkProcess.start()
 
       nodeConfig.maybeNFNNodeConfig.zip(nodeConfig.maybeComputeNodeConfig) map { case (nfnConfig, computeNodeConfig) =>

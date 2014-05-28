@@ -21,6 +21,7 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import nfn.localAbstractMachine.LocalAbstractMachineWorker
 import config.AkkaConfig
+import scala.concurrent.Future
 
 
 object NFNServer {
@@ -125,16 +126,15 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
   var cs: ActorRef = context.actorOf(Props(classOf[ContentStore]), name = "ContentStore")
 
   val maybeNfnGateway: Option[ActorRef] =
-  for {
-    nfnNodeConfig <- nodeConfig.maybeNFNNodeConfig
-    computeNodeConfig <- nodeConfig.maybeComputeNodeConfig
-  } yield {
-    context.actorOf(Props(classOf[UDPConnectionContentInterest],
-      new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
-      new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port)),
-      name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}")
-  }
-
+    for {
+      nfnNodeConfig <- nodeConfig.maybeNFNNodeConfig
+      computeNodeConfig <- nodeConfig.maybeComputeNodeConfig
+    } yield {
+      context.actorOf(Props(classOf[UDPConnectionContentInterest],
+        new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
+        new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port)),
+        name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}")
+    }
 
   def nfnGateway: ActorRef = {
     maybeNfnGateway match {
@@ -213,8 +213,10 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
   }
 
   private def handleInterest(i: Interest, senderCopy: ActorRef) = {
+
     implicit val timeout = Timeout(defaultTimeoutDuration)
-    (cs ? ContentStore.Get(i.name)).mapTo[Option[Content]] onSuccess {
+    val f: Future[Unit] =
+    (cs ? ContentStore.Get(i.name)).mapTo[Option[Content]] map {
       case Some(contentFromLocalCS) =>
         logger.debug(s"Served $contentFromLocalCS from local CS")
         senderCopy ! contentFromLocalCS
@@ -251,7 +253,9 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
                     // TODO send to localAbstractMachine AM
                     localAbstractMachine ! i
                   }
-                  case None => nfnGateway ! i
+                  case None => {
+                    nfnGateway ! i
+                  }
                 }
               }
             } else {
@@ -261,6 +265,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         }
       }
     }
+
   }
 
   def handlePacket(packet: CCNPacket, senderCopy: ActorRef) = {
