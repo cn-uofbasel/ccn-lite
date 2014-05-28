@@ -107,6 +107,10 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if(config) goto restart; //do not do parsing thinks again
     
+
+    from->flags = CCNL_FACE_FLAGS_STATIC;
+
+
     if(ccnl_nfn_thunk_already_computing(prefix)){
         DEBUGMSG(9, "Computation for this interest is already running\n");
         return -1;
@@ -158,11 +162,13 @@ restart:
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
         struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen((char *)res));
-            
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
+
+        set_propagate_of_interests_to_1(ccnl, c->name);
         ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         --numOfRunningComputations;
+
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
     }
     
