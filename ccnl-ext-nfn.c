@@ -58,8 +58,8 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
         if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
-            original_interest->last_used = CCNL_NOW();
-            original_interest->retries = 0;
+            original_interest->last_used = CCNL_NOW()-100;
+            original_interest->retries = 0-10;
             original_interest->from->last_used = CCNL_NOW();
             break;
         }
