@@ -290,6 +290,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
 
     }
     name->complen[0] = len;
+    return name;
 }
 
 
