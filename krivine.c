@@ -748,14 +748,19 @@ normal:
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
             config->fox_state->params[i] = pop_from_stack(&config->result_stack);
-            if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){
+            if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){ //USE NAME OF A THUNK
                 char *thunkname = (char*)config->fox_state->params[i]->content;
-                struct ccnl_interest_s *thunk_interest= ccnl_nfn_get_interest_for_thunk(ccnl, config, thunkname);
+
+                struct thunk_s *thunk = ccnl_nfn_get_thunk(thunkname);
                 struct stack_s *thunk_elm = malloc(sizeof(struct stack_s));
                 thunk_elm->type = STACK_TYPE_PREFIX;
-                thunk_elm->content = thunk_interest->prefix;
+                thunk_elm->content = thunk->reduced_prefix;
                 thunk_elm->next = NULL;
                 config->fox_state->params[i] = thunk_elm;
+
+                //TODO TODO TODO: build a new prefix with no NFN, no COMPUTE AND NO PARAMETER OUTSITE!
+                //(USE PREVIOUS CONFIG TO BUILD THE STRING?), but what happens if multiple parameter are a thunk?
+                //Additional field for thunk, that contrains this prefix, build when params are available, e.g. when thunk is created
             }
         }
         //as long as there is a routable parameter: try to find a result
@@ -813,36 +818,7 @@ handlecontent: //if result was found ---> handle it
                 }
                 else{
 
-                    struct ccnl_prefix_s *name = malloc(sizeof(struct ccnl_prefix_s));
-                    name->comp = malloc(2*sizeof(char*));
-                    name->complen = malloc(2*sizeof(int));
-                    name->compcnt = 1;
-                    name->comp[1] = "NFN";
-                    name->complen[1] = 3;
-                    name->comp[0] = malloc(CCNL_MAX_PACKET_SIZE);
-                    memset(name->comp[0], 0, CCNL_MAX_PACKET_SIZE);
-                    name->path = NULL;
-
-                    int it, len = 0;
-                    len += sprintf(name->comp[0]+len, "call %d", config->fox_state->num_of_params);
-                    for(it = 0; it < config->fox_state->num_of_params; ++it){
-
-                        struct stack_s *stack = config->fox_state->params[it];
-                        if(stack->type == STACK_TYPE_PREFIX){
-                            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
-                            len += sprintf(name->comp[0]+len, " %s", pref_str);
-                        }
-                        else if(stack->type == STACK_TYPE_INT){
-                            len += sprintf(name->comp[0]+len, " %d", *(int*)stack->content);
-                        }
-                        else{
-                            DEBUGMSG(1, "Invalid stack type\n");
-                            return NULL;
-                        }
-
-                    }
-                    name->complen[0] = len;
-
+                    struct ccnl_prefix_s *name = create_prefix_for_content_on_result_stack(ccnl, config);
                     push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                     struct prefix_mapping_s *mapping = malloc(sizeof(struct prefix_mapping_s));
                     mapping->key = name;
