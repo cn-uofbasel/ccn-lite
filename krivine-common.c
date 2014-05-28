@@ -38,8 +38,6 @@ ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
     return prefix_buf;
 }
 
-
-
 struct fox_machine_state_s *
 new_machine_state(int thunk_request, int num_of_required_thunks){
     struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
@@ -258,6 +256,15 @@ create_prefix_from_name(char* namestr)
 }
 
 #ifndef USE_UTIL
+void
+set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref){
+    struct ccnl_interest_s *interest = NULL;
+    for(interest = ccnl->pit; interest; interest = interest->next){
+        if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
+            interest->propagate = 1;
+        }
+    }
+}
 
 struct ccnl_prefix_s *
 create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config){
@@ -560,6 +567,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     int thunk_time = (int)config->thunk_time; 
     sprintf(reply_content, "%d", thunk_time);
     struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, (unsigned char*)reply_content, strlen(reply_content));
+    set_propagate_of_interests_to_1(ccnl, c->name);
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);
     return 0;
