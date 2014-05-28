@@ -107,6 +107,10 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     if(config) goto restart; //do not do parsing thinks again
     
+
+    from->flags = CCNL_FACE_FLAGS_STATIC;
+
+
     if(ccnl_nfn_thunk_already_computing(prefix)){
         DEBUGMSG(9, "Computation for this interest is already running\n");
         return -1;
