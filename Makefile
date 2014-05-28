@@ -46,7 +46,7 @@ ccn-nfn-relay: ccn-lite-relay.c \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
-	ccnl-ext-crypto.c ccnl-ext-nfn.c Makefile
+        ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c Makefile
 	${CC} -o $@ ${MYCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
 
 ccn-lite-relay: ccn-lite-relay.c \
