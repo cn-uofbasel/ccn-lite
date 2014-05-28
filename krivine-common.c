@@ -506,22 +506,29 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, st
     }    
     struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
     thunk->prefix = new_prefix;
+    thunk->reduced_prefix = create_prefix_for_content_on_result_stack(ccnl, config);
     sprintf(thunk->thunkid, "THUNK%d", thunkid++);
     DBL_LINKED_LIST_ADD(thunk_list, thunk);
     DEBUGMSG(99, "Created new thunk with id: %s\n", thunk->thunkid);
     return strdup(thunk->thunkid);
 }
 
-struct ccnl_interest_s *
-ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunkid){
-    DEBUGMSG(2, "ccnl_nfn_get_interest_for_thunk()\n");
+struct thunk_s *
+ccnl_nfn_get_thunk(unsigned char *thunkid){
     struct thunk_s *thunk;
     for(thunk = thunk_list; thunk; thunk = thunk->next){
         if(!strcmp(thunk->thunkid, (char*)thunkid)){
             DEBUGMSG(49, "Thunk table entry found\n");
-            break;
+            return thunk;
         }
     }
+    return NULL;
+}
+
+struct ccnl_interest_s *
+ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunkid){
+    DEBUGMSG(2, "ccnl_nfn_get_interest_for_thunk()\n");
+    struct thunk_s *thunk = ccnl_nfn_get_thunk(thunkid);
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
