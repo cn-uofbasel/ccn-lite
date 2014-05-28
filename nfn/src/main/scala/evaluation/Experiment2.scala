@@ -60,9 +60,9 @@ object Experiment2 extends App {
   node3 += docContent3
   node4 += docContent4
 
-//  node1.publishServices
-//  node2.publishServices
-//  node3.publishServices
+  node1.publishServices
+  node2.publishServices
+  node3.publishServices
 //  node4.publishServices
 //  node4.removeLocalServices
 
