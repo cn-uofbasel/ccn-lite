@@ -58,18 +58,21 @@ object Experiment2 extends App {
 
   node4.addPrefixFace(WordCountService().ccnName, node2)
 
+  node1.addPrefixFace(WordCountService().ccnName, node2)
+  node1.addPrefixFace(Translate().ccnName, node2)
+
   node1 += docContent1
   node2 += docContent2
   node3 += docContent3
   node4 += docContent4
 
-  node1.publishServices
+//  node1.publishServices
   node2.publishServices
   node3.publishServices
 //  node4.publishServices
-  node4.removeLocalServices
 
-//  node1.removeLocalServices
+  node1.removeLocalServices
+  node4.removeLocalServices
 //  node2.removeLocalServices
 //  node3.removeLocalServices
 //  node4.removeLocalServices
@@ -112,7 +115,7 @@ object Experiment2 extends App {
   import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
-  node1 ? exCallCall onComplete {
+  node1 ? exRouteTowardsData onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")

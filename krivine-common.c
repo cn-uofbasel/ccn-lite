@@ -53,7 +53,7 @@ new_machine_state(int thunk_request, int num_of_required_thunks){
 
 struct configuration_s *
 new_config(char *prog, struct environment_s *global_dict, int thunk_request, int start_request,
-        int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
+        int start_locally, int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
     struct configuration_s *ret = malloc(sizeof(struct configuration_s));
     ret->prog = prog;
     ret->result_stack = NULL;
@@ -63,6 +63,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request, int
     ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
     ret->configid = configid;
     ret->start_request = start_request;
+    ret->start_locally = start_locally;
     ret->prefix = prefix;
     ret->thunk = 0;
     ret->local_done = 0;

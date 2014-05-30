@@ -133,10 +133,12 @@ case class Node(nodeConfig: CombinedNodeConfig) {
       ccnLiteNFNNetworkProcess.start()
 
       nodeConfig.maybeNFNNodeConfig.zip(nodeConfig.maybeComputeNodeConfig) map { case (nfnConfig, computeNodeConfig) =>
-        ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), computeNodeConfig.host, computeNodeConfig.port)
-        ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
-        Monitor.monitor ! Monitor.ConnectLog(computeNodeConfig.toNodeLog, nfnNodeConfig.toNodeLog)
-        Monitor.monitor ! Monitor.ConnectLog(nfnNodeConfig.toNodeLog, computeNodeConfig.toNodeLog)
+        if(!nfnConfig.isCCNOnly) {
+          ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), computeNodeConfig.host, computeNodeConfig.port)
+          ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
+          Monitor.monitor ! Monitor.ConnectLog(computeNodeConfig.toNodeLog, nfnNodeConfig.toNodeLog)
+          Monitor.monitor ! Monitor.ConnectLog(nfnNodeConfig.toNodeLog, computeNodeConfig.toNodeLog)
+        }
       }
       ccnLiteNFNNetworkProcess
     }
