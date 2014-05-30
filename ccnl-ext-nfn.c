@@ -64,9 +64,9 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }
-    if(continue_from_remove && !config->start_request){
+    if(continue_from_remove && !config->start_request && config->fox_state->thunk_request){
         //this is not the node to continue the computation
-        DEBUGMSG(99, "Computation will be continue on other node;");
+        DEBUGMSG(99, "Computation will be continue on other node\n");
         return;
     }
     if(config->thunk && CCNL_NOW() > config->endtime){
