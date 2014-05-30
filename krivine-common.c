@@ -65,6 +65,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request, int
     ret->start_request = start_request;
     ret->prefix = prefix;
     ret->thunk = 0;
+    ret->local_done = 0;
     ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
     return ret;
 }
@@ -163,7 +164,7 @@ add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, unsi
 }
 
 struct ccnl_prefix_s *
-add_local_computation_components(struct ccnl_prefix_s *prefix, struct configuration_s *config){
+add_local_computation_components(struct configuration_s *config){
 
     int i = 0;
     char *comp = malloc(CCNL_MAX_PACKET_SIZE);
