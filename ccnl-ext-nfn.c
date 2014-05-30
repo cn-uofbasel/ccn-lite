@@ -118,6 +118,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
     int start_request = 0;
+    int start_locally = 0;
     int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
@@ -135,6 +136,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(ccnl_nfn_local_content_search(ccnl, NULL, prefix_name) == NULL){
             ccnl_interest_propagate(ccnl, interest);
             return 0;
+        }
+        else{
+            start_locally = 1;
         }
     }
 
@@ -159,7 +163,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     ++numOfRunningComputations;
 restart:
-    res = Krivine_reduction(ccnl, str, thunk_request, start_request,
+    res = Krivine_reduction(ccnl, str, thunk_request, start_request, start_locally,
             num_of_required_thunks, &config, original_prefix);
     
     //stores result if computed      
