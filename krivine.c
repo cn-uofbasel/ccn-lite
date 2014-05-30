@@ -334,7 +334,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
 
     if(ccnl_nfn_local_content_search(ccnl, config, prefix)){ //local computation name components
         DEBUGMSG(99, "content local available\n");
-       return add_local_computation_components(prefix, config);
+       return add_local_computation_components(config);
     }
     else{ //network search name components
         unsigned char *comp = malloc(CCNL_MAX_PACKET_SIZE);
@@ -777,7 +777,7 @@ normal:
 
         //check if last result is now available
         int compcnt = 0;
-recontinue:
+recontinue: //loop by reentering after timeout of the interest...
         if(local_search){
             parameter_number = choose_parameter(config);
             struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
@@ -787,7 +787,7 @@ recontinue:
         //result was not delivered --> choose next parameter
         ++config->fox_state->it_routable_param;
         parameter_number = choose_parameter(config);
-        if(parameter_number < 0) return NULL; //no more parameter --> no result found, can try a local computation
+        if(parameter_number < 0) goto local_compute; //no more parameter --> no result found, can try a local computation
         //TODO: create new prefix with name components!!!!
         struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
@@ -799,6 +799,15 @@ recontinue:
         //wait for content, return current program to continue later
         *halt = -1; //set halt to -1 for async computations
         if(*halt < 0) return prog;
+
+local_compute:
+        if(config->local_done){
+            return NULL;
+        }
+        config->local_done = 1;
+        pref = add_local_computation_components(config);
+        interest = mkInterestObject(ccnl, config, pref);
+        ccnl_interest_propagate(ccnl, interest);
 
 handlecontent: //if result was found ---> handle it
         if(c){
