@@ -58,6 +58,7 @@ struct configuration_s{
     int configid;
     int start_request;
     int local_done;
+    int start_locally;
     char *prog;
     struct stack_s *result_stack;
     struct stack_s *argument_stack;

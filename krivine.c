@@ -332,7 +332,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
                  struct ccnl_prefix_s *prefix)
 {
 
-    if(ccnl_nfn_local_content_search(ccnl, config, prefix)){ //local computation name components
+    if(config->start_locally || ccnl_nfn_local_content_search(ccnl, config, prefix)){ //local computation name components
         DEBUGMSG(99, "content local available\n");
        return add_local_computation_components(config);
     }
@@ -903,8 +903,8 @@ setup_global_environment(struct environment_s **env){
 }
 
 unsigned char *
-Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, 
-                  int start_request, int num_of_required_thunks, struct configuration_s **config,
+Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request, int start_request,
+                  int start_locally, int num_of_required_thunks, struct configuration_s **config,
         struct ccnl_prefix_s *prefix){
     DEBUGMSG(99, "Krivine_reduction()\n");
     int steps = 0; 
@@ -921,7 +921,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     if(!*config){
         DEBUGMSG(99, "PREFIX %s", ccnl_prefix_to_path2(prefix));
         *config = new_config(prog, global_dict, thunk_request, start_request,
-                num_of_required_thunks, prefix, configid);
+                start_locally, num_of_required_thunks, prefix, configid);
         DBL_LINKED_LIST_ADD(configuration_list, *config);
         restart = 0;
         --configid;
