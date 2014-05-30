@@ -131,7 +131,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(interest && interest->prefix->compcnt > 1 + thunk_request){ // forward interests with outsourced components
         struct ccnl_prefix_s *prefix_name;
         ccnl_nfn_copy_prefix(prefix, &prefix_name);
-        prefix_name->compcnt - (1 + thunk_request);
+        prefix_name->compcnt -= (2 + thunk_request);
         if(ccnl_nfn_local_content_search(ccnl, NULL, prefix_name) == NULL){
             ccnl_interest_propagate(ccnl, interest);
             return 0;
