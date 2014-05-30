@@ -486,7 +486,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s 
         }
     }
     struct prefix_mapping_s *iter;
-    if(!config->fox_state || !config->fox_state->prefix_mapping){
+    if(!config || !config->fox_state || !config->fox_state->prefix_mapping){
         return NULL;
     }
     for(iter = config->fox_state->prefix_mapping; iter; iter = iter->next){
