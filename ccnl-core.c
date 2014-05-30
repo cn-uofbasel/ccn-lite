@@ -43,7 +43,7 @@ int ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
       struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-        struct configuration_s *config);
+        struct configuration_s *config, struct ccnl_interest_s *interest);
 
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
@@ -1010,16 +1010,16 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
                 i->propagate = 0; //do not forward interests for running computations
                 ccnl_interest_append_pending(i, from);
-                if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL);
+                if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i);
                 goto Done;
             }
 #endif /*CCNL_NFN*/
         
-	    i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
-	    if (i) { // CONFORM: Step 3 (and 4)
-		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
-		if (scope > 2)
-		    ccnl_interest_propagate(ccnl, i);
+        i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+        if (i) { // CONFORM: Step 3 (and 4)
+            DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
+            if (scope > 2)
+                ccnl_interest_propagate(ccnl, i);
 	    }
 	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
