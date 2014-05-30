@@ -76,7 +76,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         //config->thunk = 0;
         return;
     }
-    ccnl_nfn(ccnl, NULL, NULL, NULL, config);
+    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL);
 }
 
 int
@@ -100,16 +100,14 @@ ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
-        struct configuration_s *config)
+        struct configuration_s *config, struct ccnl_interest_s *interest)
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
     
     if(config) goto restart; //do not do parsing thinks again
-    
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
-
 
     if(ccnl_nfn_thunk_already_computing(prefix)){
         DEBUGMSG(9, "Computation for this interest is already running\n");
@@ -130,6 +128,16 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         thunk_request = 1;
         start_request = 1;
     }
+    if(interest && interest->prefix->compcnt > 1 + thunk_request){
+        struct ccnl_prefix_s *prefix_name;
+        ccnl_nfn_copy_prefix(prefix, &prefix_name);
+        prefix_name->compcnt - (1 + thunk_request);
+        if(ccnl_nfn_local_content_search(ccnl, NULL, prefix) == NULL){
+            ccnl_interest_propagate(ccnl, interest);
+            return 0;
+        }
+    }
+
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
         
