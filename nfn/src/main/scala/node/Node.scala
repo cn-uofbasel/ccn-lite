@@ -15,6 +15,13 @@ import ccn.CCNLiteProcess
 import monitor.Monitor
 import ccn.CCNLiteProcess
 
+object StandardNodeFactory {
+  def forId(id: Int, isCCNOnly: Boolean = false): Node = {
+    val nodePrefix = CCNName("node", s"node$id")
+    val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10000 + id * 10, nodePrefix, isCCNOnly)), Some(ComputeNodeConfig("127.0.0.1", 10000 + id * 10 + 1, nodePrefix)))
+    Node(nodeConfig)
+  }
+}
 
 object Node {
   /**
@@ -108,6 +115,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
   val timeoutDuration: FiniteDuration = AkkaConfig.timeoutDuration
   implicit val timeout = Timeout( timeoutDuration)
 
+  def prefix: CCNName = nodeConfig.maybeComputeNodeConfig.get.prefix
 
 
   private var isRunning = true
@@ -122,7 +130,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
 
   val maybeNFNServer: Option[ActorRef] = {
     nodeConfig.maybeComputeNodeConfig map { computeNodeConfig =>
-      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
+      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configInfo)
       CCNServerFactory.ccnServer(system, nodeConfig)
     }
   }

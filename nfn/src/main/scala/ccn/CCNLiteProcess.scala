@@ -46,7 +46,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
 
   case class NetworkFace(toHost: String, toPort: Int) {
     private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
-    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
+//    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
     udpFaces += (toHost -> toPort) -> this
 
@@ -55,7 +55,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
 
     def registerPrefix(prefixToRegister: String) = {
       val cmdPrefixReg =  s"../util/ccn-lite-ctrl -x $sockName prefixreg $prefixToRegister $networkFaceId"
-      println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
+//      println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
       Runtime.getRuntime.exec(cmdPrefixReg.split(" "))
       globalFaceId += 1
     }
@@ -78,8 +78,8 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
 //    if(port != 10010) {
 
     val ccnliteExecutable = if(withCompute) "../ccn-nfn-relay" else "../ccn-lite-relay"
-    val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
-    println(s"$processName-$prefix: executing: '$cmd'")
+    val cmd = s"$ccnliteExecutable -v 1 -u $port -x $sockName"
+//    println(s"$processName-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
     processBuilder.redirectErrorStream(true)
     process = processBuilder.start
@@ -97,7 +97,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
   }
 
   def stop() = {
-    println(s"$processName-$prefix: stop")
+//    println(s"$processName-$prefix: stop")
     if (process != null) {
       process.destroy()
     }

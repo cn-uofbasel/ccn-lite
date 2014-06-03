@@ -18,7 +18,7 @@ case class CombinedNodeConfig(maybeNFNNodeConfig: Option[NFNNodeConfig], maybeCo
  * Created by basil on 09/05/14.
  */
 case class NFNNodeConfig(host: String, port: Int, prefix: CCNName, isCCNOnly: Boolean = false) extends NodeConfig {
-  def toNodeLog: NodeLog = NodeLog(host, port, Some("NFNNode"), Some(prefix.toString))
+  def toNodeLog: NodeLog = NodeLog(host, port, Some(if(isCCNOnly) "CCNNode" else "NFNNode"), Some(prefix.toString))
 }
 
 

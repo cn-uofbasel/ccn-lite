@@ -10,12 +10,12 @@ import akka.util.Timeout
 object AkkaConfig {
 
 
-  val timeoutDuration: FiniteDuration = 10 seconds
+  val timeoutDuration: FiniteDuration = 20 seconds
   implicit val timeout = Timeout( timeoutDuration)
 
   val configInfo =
     ConfigFactory.parseString("""
-      |akka.loglevel=Info
+      |akka.loglevel=INFO
       |akka.debug.lifecycle=on
       |akka.debug.receive=on
       |akka.debug.event-stream=on
