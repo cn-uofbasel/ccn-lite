@@ -138,7 +138,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             return 0;
         }
         else{
-            start_locally = 1;
+            if(!start_request) start_locally = 1;
         }
     }
 
