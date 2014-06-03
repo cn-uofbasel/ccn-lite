@@ -91,7 +91,6 @@ case class OmnetIntegration(nodes: Set[NodeLog],
     val json: JsonAST.JValue =
     ("packets" ->
       packets.packets.map { p =>
-        println(s"TIMEMILLIS: ${p.timeMillis}")
         ("from" ->
           ("host" -> p.from.host) ~
           ("port" -> p.from.port) ~
@@ -152,11 +151,18 @@ case class OmnetIntegration(nodes: Set[NodeLog],
       |        @display("i=,cyan");
       |}
       |
+      |simple CCNNode extends Node
+      |{
+      |    parameters:
+      |       @display("i=,red");
+      |}
+      |
       |simple ComputeNode extends Node
       |{
       |    parameters:
       |        @display("i=,gold");
       |}
+      |
       |
       |simple DefaultNode extends Node
       |{

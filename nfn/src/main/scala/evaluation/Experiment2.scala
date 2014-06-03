@@ -23,7 +23,7 @@ object Experiment2 extends App {
   val node3Prefix = CCNName("node", "node3")
   val node3Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10030, node3Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10031, node3Prefix)))
   val node4Prefix = CCNName("node", "node4")
-  val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix, isCCNOnly = true)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
+  val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
 
   val docname1 = node1Prefix.append("doc", "test1")
   val docdata1 = "one".getBytes
@@ -71,7 +71,7 @@ object Experiment2 extends App {
   node3.publishServices
 //  node4.publishServices
 
-  node1.removeLocalServices
+//  node1.removeLocalServices
   node4.removeLocalServices
 //  node2.removeLocalServices
 //  node3.removeLocalServices
@@ -110,12 +110,16 @@ object Experiment2 extends App {
 
   val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
 
-  val expr = exCallCall
+  val exprString: String = "x" @: Call("x", Variable(docname2.toString) :: Nil) ! WordCountService().toString
+//  val exRouteToService = NFNInterest(WordCountService().ccnName.append(exprString).cmps:_*)
+  val exRouteToService = NFNInterest(exprString)
+
+
+  val expr = exThunkVsNoThunk
 
   import AkkaConfig.timeout
-
   var startTime = System.currentTimeMillis()
-  node1 ? exRouteTowardsData onComplete {
+  node1 ? expr onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")
