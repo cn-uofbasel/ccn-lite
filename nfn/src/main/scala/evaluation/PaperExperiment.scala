@@ -13,17 +13,21 @@ import monitor.Monitor
 import lambdacalculus.parser.ast._
 import nfn.service.impl._
 import config.AkkaConfig
+import java.io.File
 
 object PaperExperiment extends App {
 
+  val expNum = 6
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
 
-  // remove for exp
-  val node3 = StandardNodeFactory.forId(3)
-  // add for exp6
-//  val node3 = StandardNodeFactory.forId(3, isCCNOnly = true)
+  val node3 =
+    if(expNum != 3) {
+      StandardNodeFactory.forId(3)
+    } else {
+      StandardNodeFactory.forId(3, isCCNOnly = true)
+    }
 
   val node4 = StandardNodeFactory.forId(4)
   val node5 = StandardNodeFactory.forId(5, isCCNOnly = true)
@@ -62,10 +66,11 @@ object PaperExperiment extends App {
   node2.addNodeFaces(List(node3), node1)
 
 
-  // remove for experiment 3
-  node1 <~> node3
-  node1.addNodeFaces(List(node4, node5), node3)
-  node3.addNodeFaces(List(node2), node1)
+  if(expNum != 3) {
+    node1 <~> node3
+    node1.addNodeFaces(List(node4, node5), node3)
+    node3.addNodeFaces(List(node2), node1)
+  }
 
 
   node2 <~> node4
@@ -80,39 +85,48 @@ object PaperExperiment extends App {
   node5.addNodeFaces(List(node1), node3)
 
   // remove for exp 6
-  node4 <~> node5
-  node5.addNodeFaces(List(node2), node4)
-
-  // add for exp6
-//  node4.addNodeFace(node5, node3)
-
+  if(expNum != 6) {
+    node4 <~> node5
+    node5.addNodeFaces(List(node2), node4)
+  } else {
+    node4.addNodeFace(node5, node3)
+  }
 
   nodes.foreach(_.removeLocalServices)
 
+  nodes foreach { node =>
+    node.publishService(Translate())
+  }
+
   // remove for exp6
-  node3.publishService(WordCountService())
+  if(expNum != 6) {
+    node3.publishService(WordCountService())
+  }
 
   node4.publishService(WordCountService())
 
   val wcPrefix = WordCountService().ccnName
 
   // remove for exp3
-  node1.addPrefixFace(wcPrefix, node3)
-
-  // add for exp3
-//  node1.addPrefixFace(wcPrefix, node2)
+  if(expNum != 3) {
+    node1.addPrefixFace(wcPrefix, node3)
+  } else {
+    node1.addPrefixFace(wcPrefix, node2)
+  }
 
   node2.addPrefixFace(wcPrefix, node4)
 
   node5.addPrefixFace(wcPrefix, node3)
 
-  // remove for exp 6
-  node5.addPrefixFace(wcPrefix, node4)
+  if(expNum != 6) {
+    node5.addPrefixFace(wcPrefix, node4)
+  } else {
 
-  // add for exp6
-//  node3.addPrefixFace(wcPrefix, node4)
+    node3.addPrefixFace(wcPrefix, node4)
+  }
 
-  Thread.sleep(2000)
+
+  Thread.sleep(1000)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
@@ -121,12 +135,13 @@ object PaperExperiment extends App {
   val ts = Translate().toString
   val wc = WordCountService().toString
 
-  nodes foreach { node =>
-    node ? (ts appl node.prefix.append("dummy"))
-  }
+//  nodes foreach { node =>
+//    node ? (ts appl node.prefix.append("dummy"))
+//  }
+
+  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
-
 
 
   val exp1 = wc appl docname1
@@ -152,9 +167,15 @@ object PaperExperiment extends App {
   // wc face from 3 to 4
   val exp6 = wc appl docname5
 
-  doExp(wc appl docname4)
-  Thread.sleep(1000)
-  doExp(wc appl docname3)
+  expNum match {
+    case 1 => doExp(exp1)
+    case 2 => doExp(exp2)
+    case 3 => doExp(exp3)
+    case 4 => doExp(exp4)
+    case 5 => doExp(exp5_1); Thread.sleep(2000); doExp(exp5_2)
+    case 6 => doExp(exp6)
+    case _ => throw new Exception(s"expNum can only be 1 to 6 and not $expNum")
+  }
 
   def doExp(exprToDo: Expr) = {
 

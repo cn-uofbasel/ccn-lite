@@ -16,7 +16,7 @@
       "name":"/add (call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3) (call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4)/NFN",
       "type":"interest"
     },
-    "timeMillis":1630272000,
+    "timeMillis":3779409000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -36,7 +36,7 @@
       "name":"/node/node3/doc/test3/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":1631514000,
+    "timeMillis":3780055000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -56,7 +56,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3/NFN",
       "type":"interest"
     },
-    "timeMillis":1632182000,
+    "timeMillis":3780564000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -76,7 +76,7 @@
       "name":"/nfn_service_impl_WordCountService",
       "type":"interest"
     },
-    "timeMillis":1807947000,
+    "timeMillis":3797855000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -97,7 +97,7 @@
       "data":"����",
       "type":"content"
     },
-    "timeMillis":1808219000,
+    "timeMillis":3798170000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -117,7 +117,7 @@
       "name":"/node/node3/doc/test3/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":1983745000,
+    "timeMillis":3977239000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -137,7 +137,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3/NFN",
       "type":"interest"
     },
-    "timeMillis":2082765000,
+    "timeMillis":4124867000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -158,7 +158,7 @@
       "data":"3",
       "type":"content"
     },
-    "timeMillis":2329124000,
+    "timeMillis":4311472000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -179,7 +179,7 @@
       "data":"3",
       "type":"content"
     },
-    "timeMillis":2329516000,
+    "timeMillis":4311790000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -199,7 +199,7 @@
       "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":2330013000,
+    "timeMillis":4312232000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -219,7 +219,7 @@
       "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":2330060000,
+    "timeMillis":4312265000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -239,7 +239,7 @@
       "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":2330233000,
+    "timeMillis":4312337000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -259,7 +259,7 @@
       "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":2330242000,
+    "timeMillis":4312378000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -279,7 +279,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4/NFN",
       "type":"interest"
     },
-    "timeMillis":2330940000,
+    "timeMillis":4312989000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -299,7 +299,7 @@
       "name":"/nfn_service_impl_WordCountService",
       "type":"interest"
     },
-    "timeMillis":2352305000,
+    "timeMillis":4332446000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -320,7 +320,7 @@
       "data":"����",
       "type":"content"
     },
-    "timeMillis":2352831000,
+    "timeMillis":4332747000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -341,7 +341,7 @@
       "data":"4",
       "type":"content"
     },
-    "timeMillis":2861884000,
+    "timeMillis":4842146000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -362,7 +362,7 @@
       "data":"4",
       "type":"content"
     },
-    "timeMillis":2862238000,
+    "timeMillis":4842493000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -383,7 +383,7 @@
       "data":"4",
       "type":"content"
     },
-    "timeMillis":2862274000,
+    "timeMillis":4842528000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -404,7 +404,7 @@
       "data":"4",
       "type":"content"
     },
-    "timeMillis":2862328000,
+    "timeMillis":4842579000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -425,7 +425,7 @@
       "data":"4",
       "type":"content"
     },
-    "timeMillis":2862339000,
+    "timeMillis":4842612000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -446,7 +446,7 @@
       "data":"7",
       "type":"content"
     },
-    "timeMillis":2862526000,
+    "timeMillis":4842812000,
     "transmissionTime":2,
     "type":"content"
   }]

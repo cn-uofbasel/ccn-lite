@@ -16,6 +16,13 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
 
   private val reader = new BufferedReader(new InputStreamReader(is))
   val filename = {
+    val logFolderFile = new File("./log")
+    if(logFolderFile.exists && logFolderFile.isFile) {
+      logFolderFile.delete
+    }
+    if(!new File("./log").exists) {
+      logFolderFile.mkdir
+    }
     if (appendTimestamp) s"./log/$logname.log"
     else s"./log/$logname-${System.currentTimeMillis}.log"
   }
