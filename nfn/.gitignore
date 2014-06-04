@@ -42,4 +42,6 @@ omnetreplay/out*
 omnetreplay/NFNNetwork.ned
 omnetreplay/transmittedPackets.json
 
+*.dSYM/*
+
 *c_xml.txt

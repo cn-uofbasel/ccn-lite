@@ -16,7 +16,7 @@
       "name":"/call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3/NFN",
       "type":"interest"
     },
-    "timeMillis":1612171000,
+    "timeMillis":3692745000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -36,7 +36,7 @@
       "name":"/node/node3/doc/test3/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":1613344000,
+    "timeMillis":3693559000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -56,7 +56,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3/NFN",
       "type":"interest"
     },
-    "timeMillis":1614011000,
+    "timeMillis":3694218000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -76,7 +76,7 @@
       "name":"/nfn_service_impl_WordCountService",
       "type":"interest"
     },
-    "timeMillis":1793914000,
+    "timeMillis":3714716000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -97,7 +97,7 @@
       "data":"����",
       "type":"content"
     },
-    "timeMillis":1794211000,
+    "timeMillis":3715025000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -117,7 +117,7 @@
       "name":"/node/node3/doc/test3/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":1984635000,
+    "timeMillis":3978970000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -137,7 +137,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3/NFN",
       "type":"interest"
     },
-    "timeMillis":2086880000,
+    "timeMillis":4090545000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -158,7 +158,7 @@
       "data":"3",
       "type":"content"
     },
-    "timeMillis":2316474000,
+    "timeMillis":4228634000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -179,7 +179,7 @@
       "data":"3",
       "type":"content"
     },
-    "timeMillis":2316781000,
+    "timeMillis":4229009000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -200,7 +200,7 @@
       "data":"3",
       "type":"content"
     },
-    "timeMillis":2316998000,
+    "timeMillis":4229235000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -217,10 +217,10 @@
       "type":"NFNNode"
     },
     "packet":{
-      "name":"/add (call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1) (call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3)/NFN",
+      "name":"/add (call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4) (call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3)/NFN",
       "type":"interest"
     },
-    "timeMillis":3610040000,
+    "timeMillis":5694125000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -232,35 +232,15 @@
     },
     "to":{
       "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
-      "type":"ComputeNode"
+      "port":10020,
+      "prefix":"nodenode2",
+      "type":"CCNNode"
     },
     "packet":{
-      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":3610738000,
-    "transmissionTime":2,
-    "type":"interest"
-  },{
-    "from":{
-      "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
-      "type":"ComputeNode"
-    },
-    "to":{
-      "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
-      "type":"NFNNode"
-    },
-    "packet":{
-      "name":"/nfn_service_impl_WordCountService",
-      "type":"interest"
-    },
-    "timeMillis":3624765000,
+    "timeMillis":5694818000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -277,10 +257,30 @@
       "type":"NFNNode"
     },
     "packet":{
-      "name":"/nfn_service_impl_WordCountService",
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":3625044000,
+    "timeMillis":5694854000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10020,
+      "prefix":"nodenode2",
+      "type":"CCNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "type":"interest"
+    },
+    "timeMillis":5694964000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -292,78 +292,76 @@
     },
     "to":{
       "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
+      "port":10040,
+      "prefix":"nodenode4",
       "type":"NFNNode"
     },
     "packet":{
-      "name":"/nfn_service_impl_WordCountService",
-      "data":"����",
-      "type":"content"
-    },
-    "timeMillis":3625160000,
-    "transmissionTime":2,
-    "type":"content"
-  },{
-    "from":{
-      "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
-      "type":"NFNNode"
-    },
-    "to":{
-      "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
-      "type":"ComputeNode"
-    },
-    "packet":{
-      "name":"/nfn_service_impl_WordCountService",
-      "data":"����",
-      "type":"content"
-    },
-    "timeMillis":3625275000,
-    "transmissionTime":2,
-    "type":"content"
-  },{
-    "from":{
-      "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
-      "type":"NFNNode"
-    },
-    "to":{
-      "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
-      "type":"ComputeNode"
-    },
-    "packet":{
-      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
       "type":"interest"
     },
-    "timeMillis":3985333000,
+    "timeMillis":5694965000,
     "transmissionTime":2,
     "type":"interest"
   },{
     "from":{
       "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10041,
+      "prefix":"nodenode4compute",
+      "type":"ComputeNode"
+    },
+    "packet":{
+      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4/NFN",
+      "type":"interest"
+    },
+    "timeMillis":5695663000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10041,
+      "prefix":"nodenode4compute",
       "type":"ComputeNode"
     },
     "to":{
       "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
+      "port":10040,
+      "prefix":"nodenode4",
       "type":"NFNNode"
     },
     "packet":{
-      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
-      "data":"1",
+      "name":"/nfn_service_impl_WordCountService",
+      "type":"interest"
+    },
+    "timeMillis":5711421000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10041,
+      "prefix":"nodenode4compute",
+      "type":"ComputeNode"
+    },
+    "packet":{
+      "name":"/nfn_service_impl_WordCountService",
+      "data":"����",
       "type":"content"
     },
-    "timeMillis":4134535000,
+    "timeMillis":5711737000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -375,16 +373,181 @@
     },
     "to":{
       "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
+      "port":10020,
+      "prefix":"nodenode2",
+      "type":"CCNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "type":"interest"
+    },
+    "timeMillis":5979185000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10010,
+      "prefix":"nodenode1",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10030,
+      "prefix":"nodenode3",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "type":"interest"
+    },
+    "timeMillis":5979241000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10041,
+      "prefix":"nodenode4compute",
       "type":"ComputeNode"
     },
     "packet":{
-      "name":"/add (call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1) (call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3)/NFN",
+      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4/NFN",
+      "type":"interest"
+    },
+    "timeMillis":6145877000,
+    "transmissionTime":2,
+    "type":"interest"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10041,
+      "prefix":"nodenode4compute",
+      "type":"ComputeNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4/NFN",
       "data":"4",
       "type":"content"
     },
-    "timeMillis":4135114000,
+    "timeMillis":6220428000,
+    "transmissionTime":2,
+    "type":"content"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10030,
+      "prefix":"nodenode3",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "data":"4",
+      "type":"content"
+    },
+    "timeMillis":6220747000,
+    "transmissionTime":2,
+    "type":"content"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10040,
+      "prefix":"nodenode4",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10020,
+      "prefix":"nodenode2",
+      "type":"CCNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "data":"4",
+      "type":"content"
+    },
+    "timeMillis":6220790000,
+    "transmissionTime":2,
+    "type":"content"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10030,
+      "prefix":"nodenode3",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10010,
+      "prefix":"nodenode1",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "data":"4",
+      "type":"content"
+    },
+    "timeMillis":6220860000,
+    "transmissionTime":2,
+    "type":"content"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10020,
+      "prefix":"nodenode2",
+      "type":"CCNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10010,
+      "prefix":"nodenode1",
+      "type":"NFNNode"
+    },
+    "packet":{
+      "name":"/node/node4/doc/test4/(@x call 2 /nfn_service_impl_WordCountService x)/NFN",
+      "data":"4",
+      "type":"content"
+    },
+    "timeMillis":6220865000,
+    "transmissionTime":2,
+    "type":"content"
+  },{
+    "from":{
+      "host":"127.0.0.1",
+      "port":10010,
+      "prefix":"nodenode1",
+      "type":"NFNNode"
+    },
+    "to":{
+      "host":"127.0.0.1",
+      "port":10011,
+      "prefix":"nodenode1compute",
+      "type":"ComputeNode"
+    },
+    "packet":{
+      "name":"/add (call 2 /nfn_service_impl_WordCountService /node/node4/doc/test4) (call 2 /nfn_service_impl_WordCountService /node/node3/doc/test3)/NFN",
+      "data":"7",
+      "type":"content"
+    },
+    "timeMillis":6221308000,
     "transmissionTime":2,
     "type":"content"
   }]

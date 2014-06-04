@@ -16,7 +16,7 @@
       "name":"/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
       "type":"interest"
     },
-    "timeMillis":1748372000,
+    "timeMillis":3129504000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -36,27 +36,7 @@
       "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
       "type":"interest"
     },
-    "timeMillis":1750295000,
-    "transmissionTime":2,
-    "type":"interest"
-  },{
-    "from":{
-      "host":"127.0.0.1",
-      "port":10010,
-      "prefix":"nodenode1",
-      "type":"NFNNode"
-    },
-    "to":{
-      "host":"127.0.0.1",
-      "port":10011,
-      "prefix":"nodenode1compute",
-      "type":"ComputeNode"
-    },
-    "packet":{
-      "name":"/COMPUTE/call 2 /nfn_service_impl_WordCountService /node/node1/doc/test1/NFN",
-      "type":"interest"
-    },
-    "timeMillis":1983345000,
+    "timeMillis":3130245000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -76,7 +56,7 @@
       "name":"/nfn_service_impl_WordCountService",
       "type":"interest"
     },
-    "timeMillis":2014689000,
+    "timeMillis":3148684000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -96,7 +76,7 @@
       "name":"/nfn_service_impl_WordCountService",
       "type":"interest"
     },
-    "timeMillis":2015175000,
+    "timeMillis":3148998000,
     "transmissionTime":2,
     "type":"interest"
   },{
@@ -117,7 +97,7 @@
       "data":"����",
       "type":"content"
     },
-    "timeMillis":2015431000,
+    "timeMillis":3149168000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -138,7 +118,7 @@
       "data":"����",
       "type":"content"
     },
-    "timeMillis":2015771000,
+    "timeMillis":3149282000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -159,7 +139,7 @@
       "data":"1",
       "type":"content"
     },
-    "timeMillis":2534902000,
+    "timeMillis":3663726000,
     "transmissionTime":2,
     "type":"content"
   },{
@@ -180,7 +160,7 @@
       "data":"1",
       "type":"content"
     },
-    "timeMillis":2535562000,
+    "timeMillis":3664141000,
     "transmissionTime":2,
     "type":"content"
   }]
