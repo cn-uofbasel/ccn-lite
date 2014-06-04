@@ -16,13 +16,14 @@ import config.AkkaConfig
 
 object PaperExperiment extends App {
 
+
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
 
   // remove for exp
-//  val node3 = StandardNodeFactory.forId(3)
+  val node3 = StandardNodeFactory.forId(3)
   // add for exp6
-  val node3 = StandardNodeFactory.forId(3, isCCNOnly = true)
+//  val node3 = StandardNodeFactory.forId(3, isCCNOnly = true)
 
   val node4 = StandardNodeFactory.forId(4)
   val node5 = StandardNodeFactory.forId(5, isCCNOnly = true)
@@ -54,6 +55,7 @@ object PaperExperiment extends App {
   node4 += docContent4
   node5 += docContent5
 
+  nodes foreach { node => node += Content(node.prefix.append("dummy"), "dummy".getBytes)}
 
   node1 <~> node2
   node1.addNodeFaces(List(node4), node2)
@@ -78,14 +80,17 @@ object PaperExperiment extends App {
   node5.addNodeFaces(List(node1), node3)
 
   // remove for exp 6
-//  node4 <~> node5
-//  node5.addNodeFaces(List(node2), node4)
+  node4 <~> node5
+  node5.addNodeFaces(List(node2), node4)
+
+  // add for exp6
+//  node4.addNodeFace(node5, node3)
 
 
   nodes.foreach(_.removeLocalServices)
 
   // remove for exp6
-//  node3.publishService(WordCountService())
+  node3.publishService(WordCountService())
 
   node4.publishService(WordCountService())
 
@@ -105,15 +110,24 @@ object PaperExperiment extends App {
   node5.addPrefixFace(wcPrefix, node4)
 
   // add for exp6
-  node3.addPrefixFace(wcPrefix, node4)
+//  node3.addPrefixFace(wcPrefix, node4)
 
-  Thread.sleep(1000)
+  Thread.sleep(2000)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
   implicit val useThunks: Boolean = false
 
+  val ts = Translate().toString
   val wc = WordCountService().toString
+
+  nodes foreach { node =>
+    node ? (ts appl node.prefix.append("dummy"))
+  }
+
+  Thread.sleep(2000)
+
+
 
   val exp1 = wc appl docname1
 
@@ -131,14 +145,16 @@ object PaperExperiment extends App {
   val exp4 = (wc appl docname3) + (wc appl docname4)
 
   val exp5_1 = wc appl docname3
-  val exp5_2 = (wc appl docname1) + (wc appl docname3)
+  val exp5_2 = (wc appl docname4) + (wc appl docname3)
 
   // node 3 to ccn only (simluate "overloaded" router)
   // cut 4 <-> 5
   // wc face from 3 to 4
   val exp6 = wc appl docname5
 
-  doExp(exp6)
+  doExp(wc appl docname4)
+  Thread.sleep(1000)
+  doExp(wc appl docname3)
 
   def doExp(exprToDo: Expr) = {
 
