@@ -64,7 +64,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }
-    if(continue_from_remove && !config->start_request && config->fox_state->thunk_request){
+    if(continue_from_remove && config->fox_state->thunk_request){
         //this is not the node to continue the computation
         DEBUGMSG(99, "Computation will be continue on other node\n");
         return;
@@ -163,7 +163,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     ++numOfRunningComputations;
 restart:
-    res = Krivine_reduction(ccnl, str, thunk_request, start_request, start_locally,
+    res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
             num_of_required_thunks, &config, original_prefix);
     
     //stores result if computed      
