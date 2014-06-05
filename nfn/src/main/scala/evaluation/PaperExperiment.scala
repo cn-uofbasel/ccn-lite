@@ -17,7 +17,7 @@ import java.io.File
 
 object PaperExperiment extends App {
 
-  val expNum = 6
+  val expNum = 7
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
@@ -98,6 +98,10 @@ object PaperExperiment extends App {
     node.publishService(Translate())
   }
 
+  if(expNum == 7) {
+    node1.publishService(WordCountService())
+  }
+
   // remove for exp6
   if(expNum != 6) {
     node3.publishService(WordCountService())
@@ -108,13 +112,16 @@ object PaperExperiment extends App {
   val wcPrefix = WordCountService().ccnName
 
   // remove for exp3
-  if(expNum != 3) {
+  if(expNum != 3 && expNum != 7) {
     node1.addPrefixFace(wcPrefix, node3)
-  } else {
+  } else if(expNum != 7) {
     node1.addPrefixFace(wcPrefix, node2)
   }
 
   node2.addPrefixFace(wcPrefix, node4)
+  if(expNum == 7) {
+    node2.addPrefixFace(wcPrefix, node1)
+  }
 
   node5.addPrefixFace(wcPrefix, node3)
 
@@ -167,6 +174,9 @@ object PaperExperiment extends App {
   // wc face from 3 to 4
   val exp6 = wc appl docname5
 
+  // Adds the wordcountservice to node1 and adds routing from node2 to 1
+  val exp7 = wc appl docname5
+
   expNum match {
     case 1 => doExp(exp1)
     case 2 => doExp(exp2)
@@ -174,6 +184,7 @@ object PaperExperiment extends App {
     case 4 => doExp(exp4)
     case 5 => doExp(exp5_1); Thread.sleep(2000); doExp(exp5_2)
     case 6 => doExp(exp6)
+    case 7 => doExp(exp7)
     case _ => throw new Exception(s"expNum can only be 1 to 6 and not $expNum")
   }
 

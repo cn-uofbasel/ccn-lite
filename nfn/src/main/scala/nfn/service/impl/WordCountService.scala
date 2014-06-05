@@ -24,8 +24,6 @@ case class WordCountService() extends NFNService {
     )
   }
 
-  override def pinned: Boolean = false
-
   override def argumentException(args: Seq[NFNValue]): NFNServiceArgumentException =
     new NFNServiceArgumentException(s"$ccnName can only be applied to values of type NFNBinaryDataValue and not $args")
 

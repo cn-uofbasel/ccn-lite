@@ -13,6 +13,35 @@ import monitor.Monitor
 import lambdacalculus.parser.ast._
 import nfn.service.impl._
 import config.AkkaConfig
+import nfn.service._
+import akka.actor.ActorRef
+import nfn.service.impl.WordCountService
+import nfn.service.impl.SumService
+import scala.util.Failure
+import scala.Some
+import nfn.service.NFNServiceArgumentException
+import lambdacalculus.parser.ast.Call
+import nfn.CombinedNodeConfig
+import nfn.service.impl.Translate
+import scala.util.Success
+import nfn.ComputeNodeConfig
+import nfn.service.NFNBinaryDataValue
+import nfn.NFNNodeConfig
+
+case class TestService() extends NFNService {
+  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
+    if(args.size == 0) Try(args)
+    else throw argumentException(args)
+  }
+
+  override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (docs, _) =>
+    println("yay")
+    NFNEmptyValue()
+  }
+
+  override def argumentException(args: Seq[NFNValue]): NFNServiceArgumentException =
+    new NFNServiceArgumentException(s"$ccnName does not take any arguments")
+}
 
 object Experiment2 extends App {
 
