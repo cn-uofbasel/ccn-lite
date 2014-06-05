@@ -32,6 +32,12 @@ object NFNService extends Logging {
    */
   def serviceFromContent(content: Content): Try[NFNService] = {
     val serviceLibraryDir = "./service-library"
+    val serviceLibararyFile = new File(serviceLibraryDir)
+
+    if(serviceLibararyFile.exists) {
+      serviceLibararyFile.mkdir
+    }
+
     def createTempFile: File = {
       val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
       if (!f.exists) {
