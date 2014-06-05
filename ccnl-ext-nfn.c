@@ -117,17 +117,12 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
     int thunk_request = 0;
-    int start_request = 0;
     int start_locally = 0;
     int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {
         thunk_request = 1;
-    }
-    else if(!memcmp(prefix->comp[prefix->compcnt-2], "USETHUNK", 8)){
-        thunk_request = 1;
-        start_request = 1;
     }
     if(interest && interest->prefix->compcnt > 2 + thunk_request){ // forward interests with outsourced components
         struct ccnl_prefix_s *prefix_name;
@@ -138,7 +133,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             return 0;
         }
         else{
-            if(!start_request) start_locally = 1;
+            start_locally = 1;
         }
     }
 
