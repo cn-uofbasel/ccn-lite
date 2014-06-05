@@ -22,6 +22,8 @@ import scala.concurrent.duration._
 import nfn.localAbstractMachine.LocalAbstractMachineWorker
 import config.AkkaConfig
 import scala.concurrent.Future
+import java.io.{ByteArrayOutputStream, FileOutputStream, File}
+import myutil.IOHelper
 
 
 object NFNServer {
@@ -303,7 +305,23 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet, sender)
         case Some(AddToCache()) => ???
-        case None => logger.debug(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
+        case None => {
+          if(new String(data).contains("Content successfully added")) {
+            logger.debug(s"Received content add to cache ack")
+          } else {
+            val failedMessagesDir = "./failed-messages"
+            val failedMessagesDirFile= new File(failedMessagesDir)
+
+            if(!failedMessagesDirFile.exists) {
+              failedMessagesDirFile.mkdir
+            }
+            val f = new File(s"$failedMessagesDir/${System.nanoTime}")
+            val fos = new FileOutputStream(f)
+            fos.write(data)
+            fos.close
+            logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
+          }
+        }
       }
     }
 

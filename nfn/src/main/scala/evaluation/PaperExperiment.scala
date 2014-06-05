@@ -171,7 +171,7 @@ object PaperExperiment extends App {
   val exp6 = wc appl docname5
 
   // Adds the wordcountservice to node1 and adds routing from node2 to 1
-  val exp7 = wc appl docname5
+  val exp7 = wc appl docname3
 
   expNum match {
     case 1 => doExp(exp1)
