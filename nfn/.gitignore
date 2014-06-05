@@ -45,3 +45,4 @@ omnetreplay/transmittedPackets.json
 *.dSYM/*
 
 *c_xml.txt
+failed-messages
