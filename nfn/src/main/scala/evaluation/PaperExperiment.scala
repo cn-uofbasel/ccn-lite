@@ -137,16 +137,12 @@ object PaperExperiment extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = false
+  implicit val useThunks: Boolean = true
 
   val ts = Translate().toString
   val wc = WordCountService().toString
 
-//  nodes foreach { node =>
-//    node ? (ts appl node.prefix.append("dummy"))
-//  }
-
-  node1 ? (ts appl node1.prefix.append("dummy"))
+//  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
 
@@ -189,7 +185,6 @@ object PaperExperiment extends App {
   }
 
   def doExp(exprToDo: Expr) = {
-
     import AkkaConfig.timeout
     var startTime = System.currentTimeMillis()
     node1 ? exprToDo onComplete {
