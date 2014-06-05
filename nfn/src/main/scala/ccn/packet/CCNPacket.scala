@@ -10,7 +10,8 @@ sealed trait Packet
 trait Ack
 
 object CCNName {
-  val thunkInterestKeyword = "USETHUNK"
+//  val thunkInterestKeyword = "USETHUNK"
+  val thunkInterestKeyword = "THUNK"
   val thunkKeyword = "THUNK"
   val nfnKeyword = "NFN"
   val computeKeyword = "COMPUTE"
@@ -30,7 +31,7 @@ object CCNName {
 case class CCNName(cmps: String *) extends Logging {
 
 
-  import CCNName.{thunkKeyword, thunkInterestKeyword, nfnKeyword, computeKeyword}
+  import CCNName.{thunkKeyword, nfnKeyword, computeKeyword}
 
   def to = toString.replaceAll("/", "_").replaceAll("[^a-zA-Z0-9]", "-")
   override def toString = {
@@ -42,7 +43,7 @@ case class CCNName(cmps: String *) extends Logging {
 
   def isThunk: Boolean = isThunkWithKeyword(thunkKeyword)
 
-  def isInterestThunk: Boolean = isThunkWithKeyword(thunkInterestKeyword)
+//  def isInterestThunk: Boolean = isThunkWithKeyword(thunkInterestKeyword)
 
   def isNFN: Boolean = cmps.size >= 1 && cmps.last == nfnKeyword
 
@@ -81,10 +82,10 @@ case class CCNName(cmps: String *) extends Logging {
   }
 
   def withoutThunk: CCNName = withoutThunkAndIsThunk._1
-  def withoutInterestThunk: CCNName = withoutInterestThunkAndIsInterestThunk._1
+//  def withoutInterestThunk: CCNName = withoutInterestThunkAndIsInterestThunk._1
 
   def withoutThunkAndIsThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkKeyword)
-  def withoutInterestThunkAndIsInterestThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkInterestKeyword)
+//  def withoutInterestThunkAndIsInterestThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkInterestKeyword)
 
   private def thunkifyWithKeyword(keyword: String): CCNName = {
     cmps match {
@@ -99,8 +100,8 @@ case class CCNName(cmps: String *) extends Logging {
   }
 
   def thunkify: CCNName = thunkifyWithKeyword(thunkKeyword)
-
-  def thunkifyInterest: CCNName = thunkifyWithKeyword(thunkInterestKeyword)
+//
+//  def thunkifyInterest: CCNName = thunkifyWithKeyword(thunkInterestKeyword)
 
   def append(cmpsToAppend:String*):CCNName = CCNName(cmps ++ cmpsToAppend:_*)
   def prepend(cmpsToPrepend:String*):CCNName = CCNName(cmpsToPrepend ++ cmps:_*)
@@ -123,7 +124,7 @@ case class Interest(name: CCNName) extends CCNPacket {
 
   def this(cmps: String *) = this(CCNName(cmps:_*))
 
-  def thunkifyInterest: Interest = Interest(name.thunkifyInterest)
+//  def thunkifyInterest: Interest = Interest(name.thunkifyInterest)
 
   def thunkify: Interest = Interest(name.thunkify)
 

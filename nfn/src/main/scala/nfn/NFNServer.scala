@@ -170,7 +170,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
       implicit val timeout = Timeout(timeoutFromContent)
       (pit ? PIT.Get(content.name)).mapTo[Option[Set[Face]]] onSuccess {
           case Some(pendingFaces) => {
-            val (contentNameWithoutThunk, isThunk) = content.name.withoutInterestThunkAndIsInterestThunk
+            val (contentNameWithoutThunk, isThunk) = content.name.withoutThunkAndIsThunk
 
             assert(isThunk, s"handleInterstThunkContent received the content object $content which is not a thunk")
 
@@ -205,7 +205,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
       }
     }
 
-    if(content.name.isInterestThunk) {
+    if(content.name.isThunk && !content.name.isCompute) {
       handleInterstThunkContent
     } else {
       handleNonThunkContent
@@ -316,7 +316,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
      */
     case NFNApi.CCNSendReceive(interest, useThunks) => {
       val maybeThunkInterest =
-        if(interest.name.isNFN && useThunks) interest.thunkifyInterest
+        if(interest.name.isNFN && useThunks) interest.thunkify
         else interest
       handlePacket(maybeThunkInterest, sender)
     }

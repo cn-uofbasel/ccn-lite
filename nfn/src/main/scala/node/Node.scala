@@ -130,7 +130,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
 
   val maybeNFNServer: Option[ActorRef] = {
     nodeConfig.maybeComputeNodeConfig map { computeNodeConfig =>
-      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configInfo)
+      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
       CCNServerFactory.ccnServer(system, nodeConfig)
     }
   }
