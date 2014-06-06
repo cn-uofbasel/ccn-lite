@@ -99,8 +99,11 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
-    
-    if(config) goto restart; //do not do parsing thinks again
+    int thunk_request = 0;
+    if(config){
+        thunk_request = config->fox_state->thunk_request;
+        goto restart; //do not do parsing thinks again
+    }
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
@@ -111,7 +114,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *res = NULL;
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
-    int thunk_request = 0;
+
     int start_locally = 0;
     int num_of_required_thunks = 0;
    
