@@ -13,10 +13,14 @@
 #include "krivine-common.h"
 
 #include "ccnl.h"
-#include "ccnx.h"
-#include "ccnl-core.h"
+#ifdef USE_SUITE_CCNB
+#include "pkt-ccnb-enc.c"
+#endif
+#ifdef USE_SUITE_NDNTLV
+#include "pkt-ndntlv-enc.c"
+#endif
 
-#include "ccnl-pdu.c"
+#include "ccnl-core.h"
 
 
 char*
@@ -53,7 +57,8 @@ new_machine_state(int thunk_request, int num_of_required_thunks){
 
 struct configuration_s *
 new_config(char *prog, struct environment_s *global_dict, int thunk_request,
-        int start_locally, int num_of_required_thunks, struct ccnl_prefix_s *prefix, int configid){
+           int start_locally, int num_of_required_thunks, struct ccnl_prefix_s *prefix,
+           int configid, int suite){
     struct configuration_s *ret = malloc(sizeof(struct configuration_s));
     ret->prog = prog;
     ret->result_stack = NULL;
@@ -64,6 +69,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request,
     ret->configid = configid;
     ret->start_locally = start_locally;
     ret->prefix = prefix;
+    ret->suite = suite;
     ret->thunk = 0;
     ret->local_done = 0;
     ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
@@ -79,34 +85,6 @@ find_configuration(struct configuration_s *config_list, int configid){
         }
     }
     return NULL;
-}
-
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
 }
 
 int trim(char *str){  // inplace, returns len after shrinking
@@ -308,43 +286,37 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
 
     DEBUGMSG(2, "mkInterestObject()\n");
-
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
-    unsigned char *content = 0;
-    int num; int typ, i;
-    int len = 0, k;
-    unsigned char *cp;
+    char *cp, *content;
 
-    len += mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    for(i = 0; i < prefix->compcnt; ++i){
-        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-        cp = (unsigned char*) strdup((char *)prefix->comp[i]);
-        k = unescape_component(cp);
-        //	k = strlen(*namecomp);
-        len += mkHeader(out+len, k, CCN_TT_BLOB);
-        memcpy(out+len, cp, k);
-        len += k;
-        out[len++] = 0; // end-of-component
-        free(cp);
-    }
-    out[len++] = 0; // end-of-name
-    out[len++] = 0; // end-of-interest
 
-    dehead(&out, &len, &num, &typ);
-    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
-             &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
-
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
     from->outq->data[0] = strdup((char *)prefix->comp[0]);
-    from->outq->datalen = prefix->complen[0];
-    return ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+    from->outq->datalen = strlen((char *)prefix->comp[0]);
+
+    if(config->suite == CCNL_SUITE_CCNB){
+        len = mkInterest(prefix->comp, NULL, out);
+        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
+                                &p, &nonce, &ppkd, &content, &contlen);
+        return ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB, &buf, &p, minsfx, maxsfx);
+    }
+    else if(config->suite == CCNL_SUITE_CCNTLV){
+        //NOT YET IMPLEMETED
+        return -1;
+    }
+    else if(config->suite == CCNL_SUITE_NDNTLV){
+       /*len = ccnl_ndntlv_mkInterest(prefix->comp, 0, NULL, out);
+       buf = ccnl_ndntlv_extract( out, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+                                 &p, &nonce, &ppkd, &content, &contlen);
+       return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);*/
+    }
+    return 0;
 }
 
 void
@@ -374,103 +346,50 @@ ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
     prefix->compcnt = 0;
 }
 
-int
-mkContent(char **namecomp,
-	  unsigned char *publisher, int plen,
-	  unsigned char *body, int blen,
-	  unsigned char *out)
-{
-    int len = 0, k;
-
-    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-
-/*    // add signature
-#ifdef USE_SIGNATURES
-    if(private_key_path)
-        len += add_signature(out+len, private_key_path, body, blen);  
-#endif*/
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = unescape_component((unsigned char*) *namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    if (publisher) {
-	struct timeval t;
-	unsigned char tstamp[6];
-	uint32_t *sec;
-	uint16_t *secfrac;
-
-	gettimeofday(&t, NULL);
-	sec = (uint32_t*)(tstamp + 0); // big endian
-	*sec = htonl(t.tv_sec);
-	secfrac = (uint16_t*)(tstamp + 4);
-	*secfrac = htons(4048L * t.tv_usec / 1000000);
-	len += mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
-	memcpy(out+len, tstamp, sizeof(tstamp));
-	len += sizeof(tstamp);
-	out[len++] = 0; // end-of-timestamp
-
-	len += mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-	len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-	len += mkHeader(out+len, plen, CCN_TT_BLOB);
-	memcpy(out+len, publisher, plen);
-	len += plen;
-	out[len++] = 0; // end-of-publisher
-	out[len++] = 0; // end-of-signedinfo
-    }
-
-    len += mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len += mkHeader(out+len, blen, CCN_TT_BLOB);
-    memcpy(out + len, body, blen);
-    len += blen;
-    out[len++] = 0; // end-of-content
-
-    out[len++] = 0; // end-of-contentobj
-
-    return len;
-}
-
-
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-        unsigned char *contentstr, int contentlen){
+        unsigned char *contentstr, int contentlen, int suite){
+    DEBUGMSG(49, "create_content_object()\n");
     DEBUGMSG(49, "create_content_object()\n");
     int i = 0;
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, len;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *content = 0;
+    int num; int typ;
     unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
-    
+
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
+
     prefixcomps[prefix->compcnt] = 0;
     fprintf(stderr, "NAME: ");
     for(i = 0; i < prefix->compcnt; ++i)
     {
         fprintf(stderr, "/%s", prefix->comp[i]);
         prefixcomps[i] = strdup((char *)prefix->comp[i]);
-    } fprintf(stderr, "\n");
-    
-    int len = mkContent(prefixcomps, NULL, 0, (unsigned char *)contentstr, contentlen, out);
-    
-    
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
-    
-    struct ccnl_content_s *c = 0;
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = 0;
-    int num; int typ;
-    dehead(&out, &len, &num, &typ);
-    buf = ccnl_extract_prefix_nonce_ppkd(&out, &len, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);    
-    
-    c = ccnl_content_new(ccnl, &buf, &p, &ppkd, content, contlen);
-    return c;
+    }
+    fprintf(stderr, "\n");
+
+    if(suite == CCNL_SUITE_CCNB){
+        mkContent(prefixcomps, content, contentlen, out);
+        len = mkContent(prefixcomps, contentstr, contentlen, out);
+        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
+                              &p, &nonce, &ppkd, &content, &contlen);
+        return ccnl_content_new(ccnl, CCNL_SUITE_CCNB, buf, p, ppkd, content, contlen);
+    }
+    else if(suite == CCNL_SUITE_CCNTLV){
+        // net yet implemeted;
+        return 0;
+    }
+    else if(suite == CCNL_SUITE_NDNTLV){
+        len = ccnl_ndntlv_mkContent(prefixcomps, content, contentlen, out, CCNL_MAX_PACKET_SIZE);
+        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
+                                &p, &nonce, &ppkd, &content, &contlen);
+        return ccnl_content_new(ccnl, CCNL_SUITE_NDNTLV, buf, p, ppkd, content, contlen);
+    }
+    return 0;
 }
 
 struct ccnl_content_s *
@@ -567,7 +486,8 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     memset(reply_content, 0, 100);
     int thunk_time = (int)config->thunk_time; 
     sprintf(reply_content, "%d", thunk_time);
-    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, (unsigned char*)reply_content, strlen(reply_content));
+    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, (unsigned char*)reply_content,
+                                                     strlen(reply_content), config->suite);
     set_propagate_of_interests_to_1(ccnl, c->name);
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);

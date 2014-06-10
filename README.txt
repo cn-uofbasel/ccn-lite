@@ -170,6 +170,10 @@ user space version as well as the kernel module.
   compiled from within the OMNeT environment. More details and
   installation instructions can be found in README-OMNeT.txt
 
+  Ubuntu needs the following packages:
+    libssl-dev
+  (load them with "sudo apt-get install ...")
+
 ---
 
 4) List of Files

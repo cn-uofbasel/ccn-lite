@@ -126,6 +126,7 @@ debug_free(void *p, const char *fn, int lno)
 static int consume(int typ, int num, unsigned char **buf, int *len,
 		   unsigned char **valptr, int *vallen);
 
+/*
 static int
 dehead(unsigned char **buf, int *len, int *num, int *typ)
 {
@@ -181,6 +182,7 @@ consume(int typ, int num, unsigned char **buf, int *len,
 //  case DTAG, DATTR:
     return -1;
 }
+*/
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \

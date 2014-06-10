@@ -905,7 +905,7 @@ setup_global_environment(struct environment_s **env){
 unsigned char *
 Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request,
                   int start_locally, int num_of_required_thunks, struct configuration_s **config,
-        struct ccnl_prefix_s *prefix){
+                  struct ccnl_prefix_s *prefix, int suite){
     DEBUGMSG(99, "Krivine_reduction()\n");
     int steps = 0;
     int halt = 0;
@@ -921,7 +921,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     if(!*config){
         DEBUGMSG(99, "PREFIX %s", ccnl_prefix_to_path2(prefix));
         *config = new_config(prog, global_dict, thunk_request,
-                start_locally, num_of_required_thunks, prefix, configid);
+                start_locally, num_of_required_thunks, prefix, configid, suite);
         DBL_LINKED_LIST_ADD(configuration_list, *config);
         restart = 0;
         --configid;

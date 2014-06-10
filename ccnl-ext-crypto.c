@@ -25,11 +25,11 @@
 #ifdef USE_SIGNATURES
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
-#include "ccnx.h"
+#include "pkt-ccnb.h"
+//#include "pkt-ccnb.c"
 #include "ccnl-includes.h"
 #include "ccnl.h"
 #include "ccnl-ext-mgmt.c"
-#include "ccnl-pdu.c"
 
 char buf[64000];
 int plen;
@@ -406,7 +406,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           from = from->next;
       }
       
-      buf1 = ccnl_extract_prefix_nonce_ppkd(&msg2, &len2, &scope, &aok, &minsfx,
+      buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
 			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
       if (p->complen[2] < sizeof(cmd)) {
@@ -453,8 +453,8 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           unsigned char *content = 0;
           char *ht = (char *) ccnl_malloc(sizeof(char)*20);
           int contlen;
-          pkt = ccnl_extract_prefix_nonce_ppkd(&out, &len1, 0, 0,
-                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+          pkt = ccnl_ccnb_extract(&out, &len1, 0, 0, 0, 0,
+				  &prefix_a, &nonce, &ppkd, &content, &contlen);
           
           if (!pkt) {
                DEBUGMSG(6, " parsing error\n"); goto Done;
@@ -472,7 +472,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
           prefix_a->complen[0] = strlen("mgmt");
           prefix_a->complen[1] = strlen(ht);
-          c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+          c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
                                 content, contlen);
           if (!c) goto Done;
           
