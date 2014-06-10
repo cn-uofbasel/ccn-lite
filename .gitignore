@@ -19,10 +19,11 @@ ccn-lite-simu
 krivine
 
 # binaries in subdirectories
+util/ccn-lite-cryptoserver
 util/ccn-lite-ctrl
 util/ccn-lite-peek
-util/ccn-lite-ccnb2hex
 util/ccn-lite-ccnb2xml
+util/ccn-lite-pktdump
 util/ccn-lite-deF
 util/ccn-lite-mkC
 util/ccn-lite-mkF

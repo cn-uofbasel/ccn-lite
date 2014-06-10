@@ -35,11 +35,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../ccnx.h"
+
+#define USE_SUITE_CCNB
+
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
-#include "../ccnl-pdu.c"
+#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-dec.c"
+#include "../pkt-ccnb-enc.c"
 
 
 // ----------------------------------------------------------------------

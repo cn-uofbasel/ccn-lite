@@ -21,7 +21,9 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
+
 #define USE_SIGNATURES
+#define USE_SUITE_CCNB
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,11 +37,12 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "../ccnx.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
-//#include "../ccnl-pdu.c"
+#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-dec.c"
+#include "../pkt-ccnb-enc.c"
 
 #include "ccnl-crypto.c"
 

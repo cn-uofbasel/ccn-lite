@@ -150,6 +150,12 @@ void ccnl_sched_destroy(struct ccnl_sched_s *s);
 #endif // USE_UNIXSOCKET
 
 // ----------------------------------------------------------------------
+
+int
+ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+
+// ----------------------------------------------------------------------
 // prototypes for platform and extention independend routines:
 
 int ccnl_is_local_addr(sockunion *su);

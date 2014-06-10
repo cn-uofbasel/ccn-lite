@@ -71,7 +71,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         //config->thunk = 0;
         return;
     }
-    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL);
+    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL, 0);
 }
 
 int
@@ -95,17 +95,21 @@ ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
-        struct configuration_s *config, struct ccnl_interest_s *interest)
+        struct configuration_s *config, struct ccnl_interest_s *interest,
+         int suite)
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
     int thunk_request = 0;
     if(config){
+        suite = config->suite;
         thunk_request = config->fox_state->thunk_request;
         goto restart; //do not do parsing thinks again
     }
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
+
+
 
     if(ccnl_nfn_thunk_already_computing(prefix)){
         DEBUGMSG(9, "Computation for this interest is already running\n");
@@ -157,7 +161,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ++numOfRunningComputations;
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
-            num_of_required_thunks, &config, original_prefix);
+            num_of_required_thunks, &config, original_prefix, suite);
     
     //stores result if computed      
     if(res){
@@ -166,7 +170,8 @@ restart:
         if(config && config->fox_state->thunk_request){      
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
-        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res, strlen((char *)res));
+        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res,
+                                                         strlen((char *)res), config->suite);
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
 
         set_propagate_of_interests_to_1(ccnl, c->name);

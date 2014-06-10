@@ -34,8 +34,8 @@
 #include <string.h>
 #endif
 
-#include "ccnx.h"
-#include "ccnl-pdu.c"
+#include "pkt-ccnb.h"
+#include "pkt-ccnb-enc.c"
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
@@ -74,23 +74,26 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int numPackets = len/(size/2) + 1;
     
     for(it = 0; it < numPackets; ++it){
-        int id = -it;
-
+      //        int id = -it; 
+        
         int packetsize = size/2;
         unsigned char *packet = (unsigned char*) ccnl_malloc(sizeof(char)*packetsize * 2);
         int len4 = 0;
-        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG);
+        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
         if(it == numPackets - 1) {
             len4 += mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
         len4 += mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
         packet[len4++] = 0;
         
-        if(it == 0) id = from->faceid;
+//#ifdef USE_SIGNATURES
+	//        if(it == 0) id = from->faceid;
     
 #ifdef USE_SIGNATURES
         if(!ccnl_is_local_addr(&from->peer))
-                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+	  //                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+	    ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto",
+			     it ? -it : from->faceid);     
         else
         {
 #endif
@@ -118,8 +121,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 unsigned char *content = 0;
                 unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
-                pkt = ccnl_extract_prefix_nonce_ppkd(&buf2, &len5, 0, 0,
-                               0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+                pkt = ccnl_ccnb_extract(&buf2, &len5, 0, 0, 0, 0,
+				&prefix_a, &nonce, &ppkd, &content, &contlen);
 
                 if (!pkt) {
                      //DEBUGMSG(6, " parsing error\n"); goto Done;
@@ -132,8 +135,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen((char*)ht);
-                c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
-                                      content, contlen);
+                c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a,
+				     &ppkd, content, contlen);
                 //if (!c) goto Done;
 
                 ccnl_content_serve_pending(ccnl, c);
@@ -1502,15 +1505,15 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //add object to cache here...
     data = buf + 2;
 
-    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-                         0, 0, &prefix_a, &nonce, &ppkd, &content, &contlen);
+    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+			    &prefix_a, &nonce, &ppkd, &content, &contlen);
     if (!pkt) {
         DEBUGMSG(6, " parsing error\n"); goto Done;
     }
     if (!prefix_a) {
         DEBUGMSG(6, " no prefix error\n"); goto Done;
     }
-    c = ccnl_content_new(ccnl, &pkt, &prefix_a, &ppkd,
+    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
                         content, contlen);
     if (!c) goto Done;
     ccnl_content_add2cache(ccnl, c);

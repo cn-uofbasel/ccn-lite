@@ -12,7 +12,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../ccnx.h"
 #include "../ccnl.h"
 
 #include "ccnl-common.c"
