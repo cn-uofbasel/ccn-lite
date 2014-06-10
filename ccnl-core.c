@@ -546,7 +546,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
 #ifdef CCNL_NFN
     if(faceid < 0){
             ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
-        }
+    }
 #endif
    return interest;
 }
@@ -584,7 +584,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
 {
     struct ccnl_content_s *c;
     DEBUGMSG(99, "ccnl_content_new <%s>\n",
-	     prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix));
+         prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix));
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c) return NULL;

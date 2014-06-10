@@ -133,7 +133,6 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
     return len;
 }
 
-
 #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(CCNL_NFN)
 
 static int
@@ -145,12 +144,12 @@ mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
+        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+        k = strlen(*namecomp);
+        len += mkHeader(out+len, k, CCN_TT_BLOB);
+        memcpy(out+len, *namecomp++, k);
+        len += k;
+        out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
 

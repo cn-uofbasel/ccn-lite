@@ -187,10 +187,12 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             struct ccnl_buf_s *buf2 = buf;
             struct ccnl_prefix_s *p2 = p;
 
-            i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+            i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
+                                  &buf, &p, minsfx, maxsfx);
+
             i->propagate = 0; //do not forward interests for running computations
             ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i);
+            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB);
             goto Done;
         }
 #endif /*CCNL_NFN*/
