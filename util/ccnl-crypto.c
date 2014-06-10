@@ -30,6 +30,9 @@
 #include <openssl/objects.h>
 #include <openssl/err.h>
 // ----------------------------------------------------------------------
+
+
+
 #endif
 
 /*
@@ -117,9 +120,9 @@ int sign(char* private_key_path, unsigned char *msg, int msg_len, char *sig, int
     sha(msg, msg_len, md);
     
     //Compute signatur
-    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
+    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int*)sig_len, rsa);
     if(!err){
-        printf("Error: %d\n", ERR_get_error());
+        printf("Error: %ul\n", (unsigned int)ERR_get_error());
     }
     RSA_free(rsa);
     return err;
@@ -143,9 +146,9 @@ int verify(char* public_key_path, unsigned char *msg, int msg_len, char *sig, in
     sha(msg, msg_len, md);
     
     //Verify signature
-    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
+    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int)sig_len, rsa);
     if(!verified){
-        printf("Error: %d\n", ERR_get_error());
+        printf("Error: %ul\n", (unsigned int)ERR_get_error());
     }
     RSA_free(rsa);
     return verified;
@@ -153,7 +156,7 @@ int verify(char* public_key_path, unsigned char *msg, int msg_len, char *sig, in
 
 int add_signature(unsigned char *out, char *private_key_path, char *file, int fsize)
 {
-    int len, i;
+    int len;
     
     unsigned char sig[2048];
     int sig_len;
@@ -162,13 +165,13 @@ int add_signature(unsigned char *out, char *private_key_path, char *file, int fs
     len += mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
+    if(!sign(private_key_path, (unsigned char*)file, fsize, (char*)sig, &sig_len)) return 0;
     //printf("SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
     
     //add signaturebits bits...
     len += mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
-    len += addBlob(out + len, sig, sig_len);
+    len += addBlob(out + len, (char*)sig, sig_len);
     out[len++] = 0; // end signaturebits
     
     out[len++] = 0; // end signature
