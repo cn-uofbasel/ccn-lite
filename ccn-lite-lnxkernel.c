@@ -215,6 +215,10 @@ ccnl_close_socket(struct socket *s)
 
 #include "ccnl-ext-mgmt.c"
 
+#ifdef USE_SIGNATURES
+#include "ccnl-ext-crypto.c"
+#endif
+
 #ifdef USE_SCHEDULER
 #  include "ccnl-ext-sched.c"
 
@@ -458,7 +462,7 @@ static char *e = NULL;
 static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int s = CCNL_SUITE_CCNB; // or CCNL_SUITE_NDNTLV
-static int u = 0;
+static int u = 0; // u = CCN_UDP_PORT?
 static int v = 0;
 static char *p = NULL;
 static char *k = NULL;

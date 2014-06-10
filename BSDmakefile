@@ -3,9 +3,12 @@
 CC=gcc
 #MYCFLAGS=-Wall -pedantic -std=c99 -g
 MYCFLAGS=-Wall -g -O0
-EXTLIBS=  -lcrypto
+EXTLIBS=  -lcrypto -lpthread 
+
+NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR
 
 INST_PROGS= ccn-lite-relay \
+	    ccn-nfn-relay \
             ccn-lite-minimalrelay
 
 PROGS=	${INST_PROGS}
@@ -19,11 +22,20 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	BSDmakefile ccnl-core.c ccnx.h ccnl.h ccnl-core.h
 	${CC} -o $@ ${MYCFLAGS} $<
 
+ccn-nfn-relay: ccn-lite-relay.c \
+	BSDmakefile ccnl-includes.h ccnx.h ccnl.h ccnl-core.h \
+	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
+	ccnl-ext-http.c \
+	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-crypto.c ccnl-ext-nfn.c Makefile
+	${CC} -o $@ ${MYCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+
 ccn-lite-relay: ccn-lite-relay.c \
 	BSDmakefile ccnl-includes.h ccnx.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
-	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-frag.c ccnl-ext-mgmt.c
+	ccnl-ext-sched.c ccnl-pdu.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-crypto.c Makefile
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
 datastruct.pdf: datastruct.dot

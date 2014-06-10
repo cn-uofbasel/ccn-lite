@@ -719,7 +719,7 @@ debug_realloc(void *p, int s, const char *fn, int lno)
 void
 debug_free(void *p, const char *fn, int lno)
 {
-    struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
+    /*struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
 
     if (!p) {
 //	fprintf(stderr, "%s: @@@ memerror - free() of NULL ptr at %s:%d\n",
@@ -732,9 +732,9 @@ debug_free(void *p, const char *fn, int lno)
 		timestamp(), fn, lno, p);
 	return;
     }
-    if (h->tstamp)
+    if (h->tstamp && *h->tstamp)
 	free(h->tstamp);
-    free(h);
+    free(h);*/
 }
 
 struct ccnl_buf_s*

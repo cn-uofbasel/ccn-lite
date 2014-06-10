@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -DUSE_UTIL
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
@@ -10,8 +10,9 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkI \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
-	ccn-lite-cryptoserver
+	ccn-lite-cryptoserver\
 
+#	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
 #	ccn-lite-mkF \
 #	ccn-lite-mkndnD \
@@ -48,6 +49,9 @@ ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ../pkt-ccnb.h ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
+
+#ccn-lite-peekcomputation: Makefile ccn-lite-peekcomputation.c ${CCNB_LIB} ../ccnl.h  ccnl-common.c
+#	$(CC) $(CFLAGS) ccn-lite-peekcomputation.c -o $@ 
 
 ccn-lite-mkndnD: Makefile ccn-lite-mkndnD.c ${NDNTLV_LIB}
 	$(CC) $(CFLAGS) ccn-lite-mkndnD.c -o $@

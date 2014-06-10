@@ -134,7 +134,7 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 }
 
 
-#if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
+#if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(CCNL_NFN)
 
 static int
 mkContent(char **namecomp, char *data, int datalen, unsigned char *out)

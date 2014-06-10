@@ -125,7 +125,7 @@ mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -177,7 +177,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -228,7 +228,7 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -292,7 +292,7 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -342,7 +342,7 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -388,7 +388,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -436,7 +436,7 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -493,7 +493,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char 
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -538,7 +538,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     
     //add content to interest...
     len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len3 += addBlob(stmt+len3, ccnb_file, fsize);
+    len3 += addBlob(stmt+len3, (char*)ccnb_file, fsize);
     stmt[len3++] = 0; // end content
     
     len2 += mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
@@ -552,14 +552,14 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
 		  (char*) contentobj, len2);
     
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
-    printf("Contentlen %d\n", len1);
-    Bail:
+    printf("Contentlen %ld\n", len1);
+
     free(ccnb_file);
     free(contentobj);
     free(stmt);
@@ -601,7 +601,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
 		  (char*) contentobj, len2);
 
 #ifdef USE_SIGNATURES
-    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+    if(private_key_path) len += add_signature(out+len, private_key_path, (char*)out1, len1);
 #endif /*USE_SIGNATURES*/ 
     memcpy(out+len, out1, len1);
     len += len1;
@@ -677,7 +677,7 @@ int udp_sendto(int sock, char *address, int port, char *data, int len){
           fprintf(stderr, "inet_aton() failed\n");
           exit(1);
     }
-    rc = sendto(sock, data, len, 0, &si_other, sizeof(si_other));
+    rc = sendto(sock, data, len, 0, (const struct sockaddr *)&si_other, sizeof(si_other));
     return rc;
 }
 
@@ -703,16 +703,16 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 int 
 make_next_seg_debug_interest(int num, char *out)
 {
-    int len = 0, k;
+    int len = 0;
     unsigned char cp[100];
     
-    sprintf(cp, "seqnum-%d", num);
+    sprintf((char*)cp, "seqnum-%d", num);
 
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = mkHeader((unsigned char*)out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += mkHeader((unsigned char*)out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, cp);
+    len += mkStrBlob((unsigned char*)out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "mgmt");
+    len += mkStrBlob((unsigned char*)out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*)cp);
     
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
@@ -724,7 +724,7 @@ make_next_seg_debug_interest(int num, char *out)
 int
 handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
 {
-   int num, typ, verified = 0, siglen, i;
+   int num, typ, verified = 0, siglen;
    char *sigtype = 0, *sig = 0; 
    while (dehead(buf, buflen, &num, &typ) == 0) {
         
@@ -738,7 +738,7 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
         if (consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
     siglen = siglen-((*buflen)+4);
-    char *buf2 = *buf;
+    unsigned char *buf2 = *buf;
     int buflen2 = *buflen - 1;
     if(relay_public_key)
     {
@@ -755,11 +755,11 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
  * @return 
  */
 int
-check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
+check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
 
     int ret = 1;
     int contentlen = 0;
-    int num, typ, i;
+    int num, typ;
     char *newbuffer;
     
     if(dehead(&buf, &len, &num, &typ)) return 0; 
@@ -800,7 +800,6 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *
     memcpy(*recvbuffer+*recvbufferlen, buf, contentlen);
     *recvbufferlen += contentlen;    
     
-    Bail:
     return ret;
 }
 
@@ -925,18 +924,18 @@ main(int argc, char *argv[])
         if(!use_udp)
             ux_sendto(sock, ux, out, len);
         else
-            udp_sendto(sock, udp, port, out, len);
+            udp_sendto(sock, udp, port, (char*)out, len);
         
 //	sleep(1);
        
-        int slen = 0; int num = 1; int len2 = 0;
+        unsigned int slen = 0; int num = 1; int len2 = 0;
         int hasNext = 0;
 
         memset(out, 0, sizeof(out));
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else
-            len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+            len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
         hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
         if(!verified_i) verified = 0;
 
@@ -945,31 +944,31 @@ main(int argc, char *argv[])
            char interest2[100];
            len2 = make_next_seg_debug_interest(num++, interest2);
            if(!use_udp)
-                ux_sendto(sock, ux, interest2, len2);
+                ux_sendto(sock, ux, (unsigned char*)interest2, len2);
            else
                 udp_sendto(sock, udp, port, interest2, len2);
            memset(out, 0, sizeof(out));
            if(!use_udp)
                 len = recv(sock, out, sizeof(out), 0);
            else
-                len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
+                len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
            hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
            if(!verified_i) verified = 0;
            ++numOfParts;
 
         }
         recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
-        recvbufferlen2 += mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        recvbufferlen2 += mkHeader((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
         if(relay_public_key && use_udp)
         {
             char sigoutput[200];
             
             if(verified){
                 sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                recvbufferlen2 += mkStrBlob((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }else{
                 sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
-                recvbufferlen2 += mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
+                recvbufferlen2 += mkStrBlob((unsigned char*)recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }
         }
         memcpy(recvbuffer2+recvbufferlen2, recvbuffer, recvbufferlen);
