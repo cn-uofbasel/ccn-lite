@@ -144,11 +144,11 @@ object Experiment2 extends App {
   val exRouteToService = NFNInterest(exprString)
 
 
-  val expr = exThunkVsNoThunk
+  val expr = exSimpleCall
 
   import AkkaConfig.timeout
   var startTime = System.currentTimeMillis()
-  node1 ? Interest(docname2) onComplete {
+  node1 ? (wc appl docname1) onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")
