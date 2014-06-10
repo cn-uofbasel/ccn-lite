@@ -98,10 +98,6 @@ object PaperExperiment extends App {
     node.publishService(Translate())
   }
 
-  if(expNum == 7) {
-    node1.publishService(WordCountService())
-  }
-
   // remove for exp6
   if(expNum != 6) {
     node3.publishService(WordCountService())
@@ -137,12 +133,12 @@ object PaperExperiment extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = true
+  implicit val useThunks: Boolean = false
 
   val ts = Translate().toString
   val wc = WordCountService().toString
 
-//  node1 ? (ts appl node1.prefix.append("dummy"))
+  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
 
@@ -171,7 +167,7 @@ object PaperExperiment extends App {
   val exp6 = wc appl docname5
 
   // Adds the wordcountservice to node1 and adds routing from node2 to 1
-  val exp7 = wc appl docname3
+  val exp7 = (wc appl docname4) + (wc appl docname3)
 
   expNum match {
     case 1 => doExp(exp1)
@@ -181,7 +177,7 @@ object PaperExperiment extends App {
     case 5 => doExp(exp5_1); Thread.sleep(2000); doExp(exp5_2)
     case 6 => doExp(exp6)
     case 7 => doExp(exp7)
-    case _ => throw new Exception(s"expNum can only be 1 to 6 and not $expNum")
+    case _ => throw new Exception(s"expNum can only be 1 to 7 and not $expNum")
   }
 
   def doExp(exprToDo: Expr) = {
