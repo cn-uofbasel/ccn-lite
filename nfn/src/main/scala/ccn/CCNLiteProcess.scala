@@ -82,7 +82,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
   val processName = if(withCompute) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
-//    if(port != 10010) {
+    if(port != 10010) {
 
     val ccnliteExecutable = if(withCompute) "../ccn-nfn-relay" else "../ccn-lite-relay"
     val cmd = s"$ccnliteExecutable -v 1 -u $port -x $sockName"
@@ -97,7 +97,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, withCompute: Boolean) exten
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start()
 
-//    }
+    }
     globalFaceId = 2
 
 
