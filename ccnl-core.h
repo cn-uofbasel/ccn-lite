@@ -43,6 +43,12 @@
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
 
+enum {
+  CCNL_SUITE_CCNB,
+  CCNL_SUITE_CCNTLV,
+  CCNL_SUITE_NDNTLV
+};
+
 // ----------------------------------------------------------------------
 
 typedef union {
@@ -87,6 +93,7 @@ struct ccnl_if_s { // interface for packet IO
 struct ccnl_relay_s {
     time_t startup_time;
     int id;
+    char suite;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
     struct ccnl_interest_s *pit;
@@ -161,16 +168,34 @@ struct ccnl_forward_s {
     struct ccnl_face_s *face;
 };
 
+struct ccnl_ccnb_id_s { // interest details
+    int minsuffix, maxsuffix, aok;
+    struct ccnl_buf_s *ppkd;       // publisher public key digest
+};
+
+struct ccnl_ccntlv_id_s { // interest details
+    char dummy; // keep the compiler happy and silent
+};
+
+struct ccnl_ndntlv_id_s { // interest details
+    int minsuffix, maxsuffix, mbf;
+    struct ccnl_buf_s *ppkl;       // publisher public key locator
+};
+
 struct ccnl_interest_s {
+    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_interest_s *next, *prev;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     struct ccnl_prefix_s *prefix;
-    int minsuffix, maxsuffix;
-    struct ccnl_buf_s *ppkd;	   // publisher public key digest
-    struct ccnl_buf_s *pkt;	   // full datagram
     int last_used;
     int retries;
+    union {
+	struct ccnl_ccnb_id_s ccnb;
+	struct ccnl_ccntlv_id_s ccntlv;
+	struct ccnl_ndntlv_id_s ndntlv;
+    } details;
+    char suite;
 #ifdef CCNL_NFN
     int propagate;                 //do not propagate this interest becauses it is in the NFN-engine
 #endif
@@ -182,11 +207,23 @@ struct ccnl_pendint_s { // pending interest
     int last_used;
 };
 
+struct ccnl_ccnb_cd_s { // content details
+    struct ccnl_buf_s *ppkd;       // publisher public key digest
+};
+
+struct ccnl_ccntlv_cd_s { // content details
+    char dummy; // keep the compiler happy and silent
+};
+
+struct ccnl_ndntlv_cd_s { // content details
+    struct ccnl_buf_s *ppkl;       // publisher public key locator
+};
+
 struct ccnl_content_s {
+    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_content_s *next, *prev;
     struct ccnl_prefix_s *name;
     struct ccnl_buf_s *ppkd; // publisher public key digest
-    struct ccnl_buf_s *pkt; // full datagram
     int flags;
     unsigned char *content; // pointer into the data buffer
     int contentlen;
@@ -194,6 +231,12 @@ struct ccnl_content_s {
     // >> CCNL: currently no stale bit, old content is fully removed <<
     int last_used;
     int served_cnt;
+    union {
+	struct ccnl_ccnb_cd_s ccnb;
+	struct ccnl_ccntlv_cd_s ccntlv;
+	struct ccnl_ndntlv_cd_s ndntlv;
+    } details;
+    char suite;
 };
 
 // ----------------------------------------------------------------------
@@ -218,6 +261,9 @@ const char*
 compile_string(void)
 {
     static const char *cp = ""
+#ifdef USE_CCNxDIGEST
+	"USE_CCNxDIGEST "
+#endif
 #ifdef USE_DEBUG
 	"USE_DEBUG "
 #endif
@@ -238,6 +284,15 @@ compile_string(void)
 #endif
 #ifdef USE_SCHEDULER
 	"USE_SCHEDULER "
+#endif
+#ifdef USE_SUITE_CCNB
+	"USE_SUITE_CCNB "
+#endif
+#ifdef USE_SUITE_CCNTLV
+	"USE_SUITE_CCNTLV "
+#endif
+#ifdef USE_SUITE_NDNTLV
+	"USE_SUITE_NDNTLV "
 #endif
 #ifdef USE_UNIXSOCKET
 	"USE_UNIXSOCKET "

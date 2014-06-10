@@ -1,8 +1,8 @@
 /*
- * @f ccnx.h
- * @b CCN constants
+ * @f pkt-ccnb.h
+ * @b CCN lite - CCNb wire format constants
  *
- * Copyright (C) 2011, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
  *
  * File history:
  * 2011-03-13 created
+ * 2014-03-17 renamed to prepare for a world with many wire formats
  */
 
 // ----------------------------------------------------------------------

@@ -28,8 +28,6 @@
 
 
 #define CCNL_UNIX
-//#define CCNL_NFN
-//#define CCNL_NFN_MONITOR
 
 #define USE_CCNxDIGEST
 #define USE_DEBUG
@@ -37,14 +35,17 @@
 #define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
-#define USE_MGMT
+// #define USE_MGMT
 #define USE_SCHEDULER
+#define USE_SUITE_CCNB
+// #define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
-#define USE_SIGNATURE
+// #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 
-#include "ccnx.h"
+// #include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -60,7 +61,6 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "ccnl-pdu.c"
 #include "ccnl-ext-frag.c"
 #ifdef USE_SIGNATURES
 #include "ccnl-ext-crypto.c"
@@ -72,6 +72,7 @@
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
+char suite; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
 
 struct timeval*
 ccnl_run_events()
@@ -386,17 +387,19 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
 #ifdef USE_SIGNATURES
     if(crypto_face_path)
     {
+		char h[1024];
         //sending interface + face
         i = &ccnl->ifs[ccnl->ifcount];
-	i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
-	i->mtu = 4096;
-	if (i->sock >= 0) {
-	    ccnl->ifcount++;
-	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
-		     ccnl_addr2ascii(&i->addr));
-	    if (ccnl->defaultInterfaceScheduler)
-		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+		i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
+		i->mtu = 4096;
+		if (i->sock >= 0) {
+			ccnl->ifcount++;
+			DEBUGMSG(99, "new UNIX interface (%s) configured\n",
+		    	ccnl_addr2ascii(&i->addr));
+			if (ccnl->defaultInterfaceScheduler){
+				i->sched = ccnl->defaultInterfaceScheduler(ccnl,
 							ccnl_interface_CTS);
+			}
             ccnl_crypto_create_ccnl_crypto_face(ccnl, crypto_face_path);       
             ccnl->crypto_path = crypto_face_path;
 	} else
@@ -555,16 +558,16 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
 		    buf->datalen = datalen;
 		    datalen -= 2;
-		    pkt = ccnl_extract_prefix_nonce_ppkd(&data, &datalen, 0, 0,
-			      0, 0, &prefix, &nonce, &ppkd, &content, &contlen);
+		    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+				&prefix, &nonce, &ppkd, &content, &contlen);
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }
 		    if (!prefix) {
 			DEBUGMSG(6, "  no prefix error\n"); goto Done;
 		    }
-		    c = ccnl_content_new(ccnl, &pkt, &prefix, &ppkd,
-					 content, contlen);
+		    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix,
+					 &ppkd, content, contlen);
 		    if (!c)
 			goto Done;
 		    ccnl_content_add2cache(ccnl, c);
@@ -605,7 +608,7 @@ main(int argc, char **argv)
     time(&theRelay.startup_time);
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:u:v:x:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -623,6 +626,23 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 's':
+            suite = atoi(optarg);
+	    switch (suite) {
+#ifdef USE_SUITE_CCNB
+	    case CCNL_SUITE_CCNB:
+		udpport = tcpport = CCN_UDP_PORT;
+		break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	    case CCNL_SUITE_NDNTLV:
+		udpport = tcpport = NDN_UDP_PORT;
+		break;
+	    default:
+		break;
+	    }
+	    break;
+#endif
+        case 't':
             tcpport = atoi(optarg);
             break;
         case 'u':
@@ -645,7 +665,8 @@ main(int argc, char **argv)
 		    " [-e ethdev]"
 		    " [-g MIN_INTER_PACKET_INTERVAL]"
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
-		    " [-s tcpport]"
+		    " [-s SUITE (0=ccnb, 2=ndntlv)"
+		    " [-t tcpport]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
 
@@ -657,7 +678,7 @@ main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-    
+
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);

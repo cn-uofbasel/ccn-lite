@@ -20,6 +20,7 @@
  * 2013-07-06  created
  */
 
+#define USE_SUITE_CCNB
 #define USE_SIGNATURES
 
 #include <ctype.h>
@@ -37,9 +38,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "../ccnx.h"
 #include "../ccnl.h"
 
+#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-enc.c"
 #include "ccnl-crypto.c"
 
 // ----------------------------------------------------------------------
