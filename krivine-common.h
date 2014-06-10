@@ -57,6 +57,7 @@ struct fox_machine_state_s{
 struct configuration_s{
     int configid;
     int local_done;
+    int suite;
     int start_locally;
     char *prog;
     struct stack_s *result_stack;

@@ -34,6 +34,8 @@
 
 
 #endif
+
+/*
 int
 mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 {
@@ -85,6 +87,7 @@ mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
     return mkBlob(out, num, tt, str, strlen(str));
 }
 
+*/
 #ifdef USE_SIGNATURES
 int sha(void* input, unsigned long length, unsigned char* md)
 {
