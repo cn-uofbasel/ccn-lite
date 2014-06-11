@@ -303,7 +303,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *namecomps[CCNL_MAX_NAME_COMP];
     namecomps[prefix->compcnt] = 0;
     for(i = 0; i < prefix->compcnt; ++i){
-        namecomps[i] = strdup(prefix->comp[i]);
+        namecomps[i] = strdup((char *)prefix->comp[i]);
     }
 
     if(config->suite == CCNL_SUITE_CCNB){

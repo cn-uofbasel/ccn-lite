@@ -782,6 +782,7 @@ recontinue: //loop by reentering after timeout of the interest...
             parameter_number = choose_parameter(config);
             struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
             c = ccnl_nfn_local_content_search(ccnl, config, pref); //search for a result
+            set_propagate_of_interests_to_1(ccnl, pref); //TODO Check?
             if(c) goto handlecontent;
         }
         //result was not delivered --> choose next parameter
