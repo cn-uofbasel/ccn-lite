@@ -385,6 +385,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     else if(suite == CCNL_SUITE_NDNTLV){
         len = ccnl_ndntlv_mkContent(prefixcomps, content, contentlen, out, CCNL_MAX_PACKET_SIZE);
+        //FIXME: ccnl_ndntlv_dehead(data, datalen, &typ, &len)
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
                                 &p, &nonce, &ppkd, &content, &contlen);
         return ccnl_content_new(ccnl, CCNL_SUITE_NDNTLV, &buf, &p, &ppkd, content, contlen);
