@@ -546,7 +546,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
 #ifdef CCNL_NFN
     if(faceid < 0){
             ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
-        }
+    }
 #endif
    return interest;
 }

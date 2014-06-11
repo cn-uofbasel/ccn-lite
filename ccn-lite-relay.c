@@ -35,7 +35,7 @@
 #define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
-// #define USE_MGMT
+#define USE_MGMT
 #define USE_SCHEDULER
 #define USE_SUITE_CCNB
 // #define USE_SUITE_CCNTLV
