@@ -55,6 +55,10 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = find_configuration(configuration_list, -configid);
     
+    if(!config){
+        return;
+    }
+
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
         if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){

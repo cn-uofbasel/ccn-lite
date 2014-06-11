@@ -135,7 +135,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
     if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
-	DEBUGMSG(6, "  dropped because of duplicate nonce\n"); goto Skip;
+    DEBUGMSG(6, "  dropped because of duplicate nonce\n"); //goto Skip;
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
@@ -265,6 +265,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
 
                     int faceid = -i_it->from->faceid;
+                    i_it->propagate = 1;
                     i_it = ccnl_interest_remove(ccnl, i_it);
                     ccnl_nfn_continue_computation(ccnl, faceid, 0);
                     ++found;
