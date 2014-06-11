@@ -286,7 +286,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
 
     DEBUGMSG(2, "mkInterestObject()\n");
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num;
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num, i;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
@@ -300,8 +300,15 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     from->outq->data[0] = strdup((char *)prefix->comp[0]);
     from->outq->datalen = strlen((char *)prefix->comp[0]);
 
+    char *namecomps[CCNL_MAX_NAME_COMP];
+    namecomps[prefix->compcnt] = 0;
+    for(i = 0; i < prefix->compcnt; ++i){
+        namecomps[i] = strdup(prefix->comp[i]);
+    }
+
     if(config->suite == CCNL_SUITE_CCNB){
-        len = mkInterest(prefix->comp, NULL, out);
+
+        len = mkInterest(namecomps, NULL, out);
         dehead(&out, &len, &num, &typ);
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
                                 &p, &nonce, &ppkd, &content, &contlen);
@@ -312,7 +319,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return -1;
     }
     else if(config->suite == CCNL_SUITE_NDNTLV){
-       /*len = ccnl_ndntlv_mkInterest(prefix->comp, 0, NULL, out);
+       /*len = ccnl_ndntlv_mkInterest(namecomps, 0, NULL, out);
        buf = ccnl_ndntlv_extract( out, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
                                  &p, &nonce, &ppkd, &content, &contlen);
        return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);*/
