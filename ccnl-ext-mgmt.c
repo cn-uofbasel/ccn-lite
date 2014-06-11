@@ -1703,10 +1703,9 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
-
     if (prefix->complen[2] < sizeof(cmd)) {
-	memcpy(cmd, prefix->comp[2], prefix->complen[2]);
-	cmd[prefix->complen[2]] = '\0';
+        memcpy(cmd, prefix->comp[2], prefix->complen[2]);
+        cmd[prefix->complen[2]] = '\0';
     } else
 	strcpy(cmd, "cmd-is-too-long-to-display");
 

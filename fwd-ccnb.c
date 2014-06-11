@@ -141,7 +141,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
     ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
 	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1) goto Skip;
-	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
+    if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
         rc = ccnl_mgmt(ccnl, buf, p, from); goto Done;
 	}
 	// CONFORM: Step 1:
@@ -187,10 +187,12 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             struct ccnl_buf_s *buf2 = buf;
             struct ccnl_prefix_s *p2 = p;
 
-            i = ccnl_interest_new(ccnl, from, &buf, &p, minsfx, maxsfx, &ppkd);
+            i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
+                                  &buf, &p, minsfx, maxsfx);
+
             i->propagate = 0; //do not forward interests for running computations
             ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i);
+            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB);
             goto Done;
         }
 #endif /*CCNL_NFN*/
