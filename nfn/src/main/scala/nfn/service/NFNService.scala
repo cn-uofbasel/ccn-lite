@@ -53,16 +53,16 @@ object NFNService extends Logging {
     try {
       out = new FileOutputStream(file)
       out.write(content.data)
+      val servName = content.name.cmps.head.replace("_", ".")
+
+      val loadedService = BytecodeLoader.loadClass[NFNService](file.getCanonicalPath, servName)
+
+      logger.debug(s"Dynamically loaded class $servName from content")
+      loadedService
     } finally {
       if (out != null) out.close
       if (file.exists) file.delete
     }
-    val servName = content.name.cmps.head.replace("_", ".")
-
-    val loadedService = BytecodeLoader.loadClass[NFNService](serviceLibraryDir, servName)
-
-    logger.debug(s"Dynamically loaded class $servName from content")
-    loadedService
   }
 
   def parseAndFindFromName(name: String, ccnServer: ActorRef): Future[CallableNFNService] = {
