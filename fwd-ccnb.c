@@ -141,7 +141,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
     ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
 	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1) goto Skip;
-	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
+    if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
         rc = ccnl_mgmt(ccnl, buf, p, from); goto Done;
 	}
 	// CONFORM: Step 1:
