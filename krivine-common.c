@@ -290,7 +290,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
-    char *cp, *content;
+    unsigned char *cp, *content;
 
 
     struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
@@ -309,7 +309,9 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if(config->suite == CCNL_SUITE_CCNB){
 
         len = mkInterest(namecomps, NULL, out);
-        dehead(&out, &len, &num, &typ);
+        if(dehead(&out, &len, &num, &typ)){
+            return 0;
+        }
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
                                 &p, &nonce, &ppkd, &content, &contlen);
         return ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB, &buf, &p, minsfx, maxsfx);
@@ -319,10 +321,12 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return -1;
     }
     else if(config->suite == CCNL_SUITE_NDNTLV){
-       /*len = ccnl_ndntlv_mkInterest(namecomps, 0, NULL, out);
-       buf = ccnl_ndntlv_extract( out, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+       len = ccnl_ndntlv_mkInterest(namecomps, 0, NULL, out);
+       *cp = out;
+       if(ccnl_ndntlv_dehead(&out, &len, &typ, &num))
+       buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
                                  &p, &nonce, &ppkd, &content, &contlen);
-       return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);*/
+       return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);
     }
     return 0;
 }
@@ -360,13 +364,13 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     DEBUGMSG(49, "create_content_object()\n");
     DEBUGMSG(49, "create_content_object()\n");
     int i = 0;
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, len;
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, len, mbf = 0;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = malloc(CCNL_MAX_PACKET_SIZE);
     int num; int typ;
-    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE), *cp;
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
 
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
@@ -393,9 +397,10 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     else if(suite == CCNL_SUITE_NDNTLV){
         len = ccnl_ndntlv_mkContent(prefixcomps, content, contentlen, out, CCNL_MAX_PACKET_SIZE);
-        //FIXME: ccnl_ndntlv_dehead(data, datalen, &typ, &len)
-        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
-                                &p, &nonce, &ppkd, &content, &contlen);
+        *cp = out;
+        if(ccnl_ndntlv_dehead(&out, &len, &typ, &num))
+        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+                                  &p, &nonce, &ppkd, &content, &contlen);
         return ccnl_content_new(ccnl, CCNL_SUITE_NDNTLV, &buf, &p, &ppkd, content, contlen);
     }
     return 0;
