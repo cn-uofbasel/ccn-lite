@@ -145,6 +145,7 @@ Usage:
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n",
+        "     split compnents with |",
 	    argv[0]);
 	    exit(1);
         }
@@ -152,7 +153,7 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
-    cp = strtok(argv[optind], "/");
+    cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	prefix[i++] = cp;
 	cp = strtok(NULL, "/");

@@ -803,6 +803,7 @@ check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferle
     return ret;
 }
 
+#ifndef USE_JNI_LIB
 int
 main(int argc, char *argv[])
 {
@@ -1015,3 +1016,4 @@ Usage:
     }
     return -1;
 }
+#endif
