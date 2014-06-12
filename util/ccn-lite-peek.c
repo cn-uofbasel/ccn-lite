@@ -145,7 +145,6 @@ Usage:
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n",
-        "     split compnents with |",
 	    argv[0]);
 	    exit(1);
         }
