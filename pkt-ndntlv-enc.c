@@ -137,10 +137,10 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope,
     long int nonce = random();
 
     if (scope >= 0) {
-	if (scope > 2)
-	    return -1;
-	if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
-	    return -1;
+        if (scope > 2)
+            return -1;
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
+            return -1;
     }
 
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
