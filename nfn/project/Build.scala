@@ -22,12 +22,6 @@ object MainBuild extends Build {
 
   import BuildSettings._
 
-
-  initialize ~= { _ =>
-    println("init java.library.path = ./ccnliteinterface/src/main/c/ccn-lite-bridge")
-    System.setProperty("java.library.path", "./ccnliteinterface/src/main/c/ccn-lite-bridge")
-  }
-
   lazy val nfn: Project = Project(
     "nfn",
     file("."),

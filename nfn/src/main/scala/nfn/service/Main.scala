@@ -1,28 +1,20 @@
 package nfn.service
 
-import java.io.{FileOutputStream, File}
-
-import language.experimental.macros
-
-
-import scala.reflect.runtime.{universe => ru}
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import com.typesafe.scalalogging.slf4j.Logging
+import java.io.{File, FileOutputStream}
 
 import akka.actor.ActorRef
-
+import bytecode.BytecodeLoader
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import nfn.service.impl._
-import nfn.NFNServer._
-import bytecode.BytecodeLoader
+import com.typesafe.scalalogging.slf4j.Logging
 import nfn.NFNApi
+
+import scala.language.experimental.macros
+import scala.reflect.runtime.{universe => ru}
 
 
 object NFNServiceLibrary extends Logging {
   private var services:Map[CCNName, NFNService] = Map()
-  private val ccnIf = CCNLite
   val tempBytecodeContentDirName = "./temp-bytecode-content"
 
   def add(serv: NFNService) =  {

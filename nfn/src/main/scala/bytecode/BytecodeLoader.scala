@@ -97,7 +97,7 @@ object BytecodeLoader {
 
     val urls: Array[URL] = Array( new URL(s"jar:file:$jarFilename!/") )
 
-    val cl: URLClassLoader = new URLClassLoader(urls)
+    val cl: URLClassLoader = new URLClassLoader(urls, this.getClass.getClassLoader)
 
     entries foreach { e =>
       if (!e.isDirectory && e.getName.endsWith(".class")) {
