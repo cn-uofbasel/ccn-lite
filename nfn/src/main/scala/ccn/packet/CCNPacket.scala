@@ -153,7 +153,7 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
     val dataString = new String(data)
     if(dataString.length > 50) dataString.take(50) + "..." else dataString
   }
-  override def toString = s"Content('$name' => $possiblyShortenedDataString)"
+  override def toString = s"Content('$name' => [${data.size}]$possiblyShortenedDataString)"
 }
 
 case class AddToCache() extends Packet with Ack

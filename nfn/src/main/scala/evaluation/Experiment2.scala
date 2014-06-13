@@ -1,5 +1,10 @@
 package evaluation
 
+import java.io.File
+
+import myutil.IOHelper
+
+import scala.io.Source
 import scala.util._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,6 +59,12 @@ object Experiment2 extends App {
   val node4Prefix = CCNName("node", "node4")
   val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
 
+
+
+  val chfToDollar = CCNName("testservice_ChfToDollar")
+  val chfToDollarData = IOHelper.readByteArrayFromFile("./service-library/chfToDollar.jar")
+  val chfToDollarContent = Content(chfToDollar, chfToDollarData)
+
   val docname1 = node1Prefix.append("doc", "test1")
   val docdata1 = "one".getBytes
   val docContent1 = Content(docname1, docdata1)
@@ -91,6 +102,7 @@ object Experiment2 extends App {
   node1.addPrefixFace(Translate().ccnName, node2)
 
   node1 += docContent1
+  node1 += chfToDollarContent
   node2 += docContent2
   node3 += docContent3
   node4 += docContent4
