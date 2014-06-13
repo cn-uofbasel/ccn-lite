@@ -1,36 +1,18 @@
 package evaluation.usecase.cdn
 
-import scala.util._
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import akka.util.Timeout
-
-import nfn._
-import ccn.packet._
-import scala.concurrent.Future
-import node.Node
-import monitor.Monitor
-import lambdacalculus.parser.ast._
-import nfn.service.impl._
-import config.AkkaConfig
-import nfn.service._
 import akka.actor.ActorRef
-import scala.util.Failure
-import nfn.service.NFNServiceArgumentException
-import scala.util.Success
-import nfn.service.NFNBinaryDataValue
-import nfn.NodeConfig
+import ccn.packet._
+import config.AkkaConfig
+import lambdacalculus.parser.ast._
+import monitor.Monitor
+import nfn._
+import nfn.service._
+import node.Node
 
-case class ESIInclude() extends NFNService {
-  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
-    new NFNServiceArgumentException(s"$ccnName requires to arguments of type: name of webpage, name of tag to replace, name of content to replace tag with and not $args")
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util._
 
-  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
-    args match {
-      case Seq(v1: NFNBinaryDataValue, v2: NFNBinaryDataValue, v3: NFNBinaryDataValue) => Try(args)
-      case _ => throw argumentException(args)
-    }
-  }
+class ESIInclude() extends NFNService {
 
   override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (values: Seq[NFNValue], _) =>
     values match {
@@ -41,21 +23,13 @@ case class ESIInclude() extends NFNService {
         val res = doc.replaceAllLiterally(tag, replaceWith)
         NFNStringValue(res)
       }
-      case _ => throw argumentException(values)
+      case _ =>
+        throw new NFNServiceArgumentException(s"$ccnName requires to arguments of type: name of webpage, name of tag to replace, name of content to replace tag with and not $values")
     }
   }
 }
 
-case class RandomAd() extends NFNService {
-  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException =
-    new NFNServiceArgumentException(s"$ccnName requires no arguments and not $args")
-
-  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
-    args match {
-      case Seq() => Try(args)
-      case _ => throw argumentException(args)
-    }
-  }
+class RandomAd() extends NFNService {
 
   override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (values: Seq[NFNValue], _) =>
     values match {
@@ -63,7 +37,8 @@ case class RandomAd() extends NFNService {
         val randomAd = s"""<div class="ad">randomly chosen ad at: ${System.currentTimeMillis}</div>"""
         NFNStringValue(randomAd)
       }
-      case _ => throw argumentException(values)
+      case _ =>
+        throw new NFNServiceArgumentException(s"$ccnName requires no arguments and not $values")
     }
   }
 }
@@ -104,23 +79,21 @@ object CDN extends App {
   node1 += webpageContent
   node1 += esiTagContent
 
-  node1.publishService(ESIInclude())
+  node1.publishService(new ESIInclude())
 
-  node1.publishService(RandomAd())
-  node2.publishService(RandomAd())
+  node1.publishService(new RandomAd())
+  node2.publishService(new RandomAd())
 
-  import LambdaDSL._
-  import LambdaNFNImplicits._
+  import lambdacalculus.parser.ast.LambdaDSL._
+  import nfn.LambdaNFNImplicits._
   implicit val useThunks = false
 
-  val esiInclude = ESIInclude().toString
-  val randomAd = RandomAd().toString
+  val esiInclude = new ESIInclude().toString
+  val randomAd = new RandomAd().toString
 
-  val exIncludeAd: Expr = esiInclude appl (webpagename, esiTagname, randomAd appl())
+  val exIncludeAd: Expr = esiInclude appl (webpagename, esiTagname, randomAd appl() )
 
   val expr = exIncludeAd
-
-  import AkkaConfig.timeout
 
   var startTime = System.currentTimeMillis()
   node1 ? expr onComplete {

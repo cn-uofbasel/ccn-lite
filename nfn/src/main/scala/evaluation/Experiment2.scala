@@ -33,19 +33,11 @@ import nfn.ComputeNodeConfig
 import nfn.service.NFNBinaryDataValue
 import nfn.NFNNodeConfig
 
-case class TestService() extends NFNService {
-  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
-    if(args.size == 0) Try(args)
-    else throw argumentException(args)
-  }
-
+class TestService() extends NFNService {
   override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (docs, _) =>
     println("yay")
     NFNEmptyValue()
   }
-
-  override def argumentException(args: Seq[NFNValue]): NFNServiceArgumentException =
-    new NFNServiceArgumentException(s"$ccnName does not take any arguments")
 }
 
 object Experiment2 extends App {
@@ -96,10 +88,10 @@ object Experiment2 extends App {
   node4.addNodeFace(node1, node2)
   node4.addNodeFace(node3, node2)
 
-  node4.addPrefixFace(WordCountService().ccnName, node2)
+  node4.addPrefixFace(new WordCountService().ccnName, node2)
 
-  node1.addPrefixFace(WordCountService().ccnName, node2)
-  node1.addPrefixFace(Translate().ccnName, node2)
+  node1.addPrefixFace(new WordCountService().ccnName, node2)
+  node1.addPrefixFace(new Translate().ccnName, node2)
 
   node1 += docContent1
   node1 += chfToDollarContent
@@ -118,7 +110,7 @@ object Experiment2 extends App {
 //  node3.removeLocalServices
 //  node4.removeLocalServices
 
-  node2.publishService(WordCountService())
+  node2.publishService(new WordCountService())
 
   Thread.sleep(1000)
 
@@ -126,9 +118,9 @@ object Experiment2 extends App {
   import LambdaNFNImplicits._
   implicit val useThunks: Boolean = false
 
-  val wc = WordCountService().toString
-  val ss = SumService().toString
-  val ts = Translate().toString
+  val wc = new WordCountService().toString
+  val ss = new SumService().toString
+  val ts = new Translate().toString
 
   val exComp: Expr = 'x @: ('x + 10) ! 2
 
@@ -151,7 +143,7 @@ object Experiment2 extends App {
 
   val exIf = iif((wc appl docname2) === 2, ts appl docname2, ts appl docname3)
 
-  val exprString: String = "x" @: Call("x", Variable(docname2.toString) :: Nil) ! WordCountService().toString
+  val exprString: String = "x" @: Call("x", Variable(docname2.toString) :: Nil) ! new WordCountService().toString
 //  val exRouteToService = NFNInterest(WordCountService().ccnName.append(exprString).cmps:_*)
   val exRouteToService = NFNInterest(exprString)
 

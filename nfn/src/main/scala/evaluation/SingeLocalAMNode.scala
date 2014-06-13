@@ -37,9 +37,9 @@ object SingeLocalAMNode extends App {
 
   node cache content
 
-  val wc = WordCountService().toString
+  val wc = new WordCountService().toString
 
-  val translate = Translate().toString
+  val translate = new Translate().toString
 
   val wcExpr: Expr = wc appl List(docName)
   val wcTranslateExpr: Expr = wc appl List(translate appl List(docName))

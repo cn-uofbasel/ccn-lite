@@ -184,14 +184,9 @@ trait NFNService extends Logging {
 
   def function: (Seq[NFNValue], ActorRef) => NFNValue
 
-  def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]]
-
-  def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
-
   def instantiateCallable(name: CCNName, values: Seq[NFNValue], ccnServer: ActorRef, executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
     logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
     assert(name == ccnName, s"Service $ccnName is created with wrong name $name")
-    verifyArgs(values)
     Try(CallableNFNService(name, values, ccnServer, function, executionTimeEstimate))
   }
 //  def instantiateCallable(name: NFNName, futValues: Seq[Future[NFNServiceValue]], ccnWorker: ActorRef): Future[CallableNFNService]

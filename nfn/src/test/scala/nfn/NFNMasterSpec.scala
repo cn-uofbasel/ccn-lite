@@ -2,13 +2,12 @@ package nfn
 
 import akka.actor._
 import akka.testkit._
-import org.scalatest._
-import nfn.service.NFNServiceLibrary
+import ccn.packet._
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.parser.ast._
-import nfn.NFNServer._
-import ccn.packet._
-import nfn.service.impl.{WordCountService, AddService}
+import nfn.service.NFNServiceLibrary
+import nfn.service.impl.{AddService, WordCountService}
+import org.scalatest._
 
 
 class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
@@ -96,9 +95,9 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
         actualContent.data shouldBe contentData
       }
       testComputeRequest("1 ADD 2", "3")
-      testComputeRequest(s"call 3 ${AddService().ccnName.toString} 12 30", "42")
-      testComputeRequest(s"1 ADD call 3 ${AddService().ccnName.toString} 11 29", "41")
-      testComputeRequest(s"call 3 ${WordCountService().toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
+      testComputeRequest(s"call 3 ${new AddService().ccnName.toString} 12 30", "42")
+      testComputeRequest(s"1 ADD call 3 ${new AddService().ccnName.toString} 11 29", "41")
+      testComputeRequest(s"call 3 ${new WordCountService().toString} ${doc1Name.mkString("/", "/", "")} ${doc2Name.mkString("/", "/", "")}", "5")
 
 //      testComputeRequest(s"call 1 ${WordCountService().nfnName.toString}", "0")
     }
