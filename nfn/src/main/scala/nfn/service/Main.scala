@@ -22,14 +22,6 @@ object NFNServiceLibrary extends Logging {
   private var services:Map[CCNName, NFNService] = Map()
   private val ccnIf = CCNLite
 
-  add(AddService())
-  add(WordCountService())
-  add(MapService())
-  add(ReduceService())
-  add(SumService())
-  add(Publish())
-  add(Translate())
-
   def add(serv: NFNService) =  {
     val name = serv.ccnName
     services += name -> serv
