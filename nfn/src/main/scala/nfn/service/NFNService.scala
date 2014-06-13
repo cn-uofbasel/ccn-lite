@@ -1,24 +1,19 @@
 package nfn.service
 
-import scala.util.matching.Regex
-import scala.util.{Failure, Success, Try}
-import scala.concurrent.duration._
-import scala.concurrent._
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.io.{File, FileOutputStream}
 
-import java.io.{FileOutputStream, File}
-import com.typesafe.scalalogging.slf4j.Logging
-
-import akka.pattern._
-import akka.util.Timeout
 import akka.actor._
-
-import ccn.packet._
+import akka.pattern._
 import bytecode.BytecodeLoader
-import nfn.NFNServer._
-import nfn.{LambdaNFNImplicits, LambdaNFNPrinter, NFNApi}
+import ccn.packet._
+import com.typesafe.scalalogging.slf4j.Logging
 import config.AkkaConfig
 import lambdacalculus.parser.ast._
+import nfn.NFNApi
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
+import scala.util.Try
 
 object NFNService extends Logging {
 
@@ -84,7 +79,6 @@ object NFNService extends Logging {
             case Some(interestName) =>
               val interest = Interest(interestName)
               val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
-              import myutil.Implicit.tryToFuture
               futServiceContent flatMap { serviceFromContent }
             case None => Future.failed(new Exception(s"Could not create name for service $fun"))
           }
@@ -104,8 +98,6 @@ object NFNService extends Logging {
               )
             }
             case otherExpr @ _ => {
-              import LambdaDSL._
-              import LambdaNFNImplicits._
               val maybeInterest = otherExpr match {
                 case Variable(varName, _) => {
                   CCNName.fromString(varName) map {
@@ -178,7 +170,7 @@ object NFNService extends Logging {
   }
 }
 
-trait NFNService extends Logging {
+trait NFNService {
 
   def executionTimeEstimate: Option[Int] = None
 
@@ -189,7 +181,6 @@ trait NFNService extends Logging {
   def argumentException(args: Seq[NFNValue]):NFNServiceArgumentException
 
   def instantiateCallable(name: CCNName, values: Seq[NFNValue], ccnServer: ActorRef, executionTimeEstimate: Option[Int]): Try[CallableNFNService] = {
-    logger.debug(s"NFNService: InstantiateCallable(name: $name, values: $values")
     assert(name == ccnName, s"Service $ccnName is created with wrong name $name")
     verifyArgs(values)
     Try(CallableNFNService(name, values, ccnServer, function, executionTimeEstimate))
