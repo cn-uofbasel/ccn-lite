@@ -16,7 +16,7 @@ object NFNCommunication extends Logging {
   def parseCCNPacket(xmlString: String): Option[CCNPacket] = {
     parsePacket(xmlString) match {
       case Some(ccnPacket:CCNPacket) => Some(ccnPacket)
-      case _ => None
+      case _ =>  None
     }
   }
 
@@ -54,50 +54,31 @@ object NFNCommunication extends Logging {
     }
 
 
-    // TODO fix plz!
-    // This is a hack to avoid parsing addToCache packets.
-    // The main issue is that these packets have a ccnlite specific management module format
-    if(xmlString.hashCode == -1007970307) {
-      Some(AddToCache())
+    if(xmlString.contains("fragmentation")) {
+      logger.error("A packet was fragmented, this is not yet implemented")
+      return None
     }
-    else {
-      val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
+    val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
-      try {
-        val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
-        Some(
-          xml match {
-            case interest @ <interest>{_*}</interest> => {
-              val nameComponents = parseComponents(interest)
-              Interest(nameComponents :_*)
-            }
-  //  This is the start of parsing management packets.
-  // Something is wrong in the conversion to xml and the 'unkown' tag is not closed propery.
-  // And it obviously should not be 'unkown' anyway.
-  //          case fragment @ <contentobj><fragmentation>{_*}</fragmentation></contentobj> => {
-  //            val any = fragment \ "any"
-  //            assert(any.size == 1, "When parsing the fragmentation content there was not just one any element")
-  //            val anyData = parseData(any.head)
-  //            // TODO oops, fix this in native code
-  //            val unkown = fragment \ "unkown"
-  //            assert(unkown.size == 1, "When parsing the ?unkown? content there was not just one any element")
-  //            val unkownData = parseData(unkown.head)
-  //            println(s"ANY: ${new String(anyData)}")
-  //            println(s"UNKOWN: ${new String(unkownData)}")
-  //            ???
-  //          }
-            case content @ <contentobj>{_*}</contentobj> => {
-              val nameComponents = parseComponents(content)
-              val contentData = parseContentData(content)
-              Content(contentData, nameComponents :_*)
-            }
-            case _ => throw new Exception("XML parser cannot parse:\n" + xml)
+    try {
+      val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
+      Some(
+        xml match {
+          case interest @ <interest>{_*}</interest> => {
+            val nameComponents = parseComponents(interest)
+            Interest(nameComponents :_*)
           }
-        )
-      } catch {
-        case e:SAXParseException => {
-          None
+          case content @ <contentobj>{_*}</contentobj> => {
+            val nameComponents = parseComponents(content)
+            val contentData = parseContentData(content)
+            Content(contentData, nameComponents :_*)
+          }
+          case _ => throw new Exception("XML parser cannot parse:\n" + xml)
         }
+      )
+    } catch {
+      case e:SAXParseException => {
+        None
       }
     }
   }

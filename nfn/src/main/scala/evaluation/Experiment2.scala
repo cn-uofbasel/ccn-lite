@@ -51,8 +51,6 @@ object Experiment2 extends App {
   val node4Prefix = CCNName("node", "node4")
   val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
 
-
-
   val chfToDollar = CCNName("testservice_ChfToDollar")
   val chfToDollarData = IOHelper.readByteArrayFromFile("./service-library/chfToDollar.jar")
   val chfToDollarContent = Content(chfToDollar, chfToDollarData)
@@ -89,7 +87,6 @@ object Experiment2 extends App {
   node4.addNodeFace(node3, node2)
 
   node4.addPrefixFace(new WordCountService().ccnName, node2)
-
   node1.addPrefixFace(new WordCountService().ccnName, node2)
   node1.addPrefixFace(new Translate().ccnName, node2)
 
@@ -100,14 +97,14 @@ object Experiment2 extends App {
   node4 += docContent4
 
 //  node1.publishServices
-  node2.publishServices
-  node3.publishServices
+//  node2.publishServices
+//  node3.publishServices
 //  node4.publishServices
 
-//  node1.removeLocalServices
+  node1.removeLocalServices
   node4.removeLocalServices
-//  node2.removeLocalServices
-//  node3.removeLocalServices
+  node2.removeLocalServices
+  node3.removeLocalServices
 //  node4.removeLocalServices
 
   node2.publishService(new WordCountService())

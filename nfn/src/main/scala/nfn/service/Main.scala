@@ -1,5 +1,7 @@
 package nfn.service
 
+import java.io.{FileOutputStream, File}
+
 import language.experimental.macros
 
 
@@ -21,6 +23,7 @@ import nfn.NFNApi
 object NFNServiceLibrary extends Logging {
   private var services:Map[CCNName, NFNService] = Map()
   private val ccnIf = CCNLite
+  val tempBytecodeContentDirName = "./temp-bytecode-content"
 
   def add(serv: NFNService) =  {
     val name = serv.ccnName
@@ -52,7 +55,27 @@ object NFNServiceLibrary extends Logging {
 
     def byteCodeData(serv: NFNService):Array[Byte] = {
       BytecodeLoader.fromClass(serv) match {
-        case Some(bc) => bc
+        case Some(bc) => {
+          // TODO remove this when packet fragmentation works
+          // replace with simply 'bc'
+          val tempBytecodeContentDir = new File(tempBytecodeContentDirName)
+          if(!tempBytecodeContentDir.exists()) {
+            tempBytecodeContentDir.mkdir()
+          }
+          val bytecodeContentFileName = s"$tempBytecodeContentDirName/${serv.ccnName.cmps.mkString("+")}"
+
+          val bytecodeContentFile = new File(bytecodeContentFileName)
+          if(bytecodeContentFile.exists()) {
+            bytecodeContentFile.delete()
+            bytecodeContentFile.createNewFile()
+          }
+          val out = new FileOutputStream(bytecodeContentFile)
+          try{
+            out.write(bc)
+          } finally { out.close() }
+
+          bytecodeContentFileName.getBytes
+        }
         case None =>
           logger.error(s"nfnPublush: No bytecode found for unpinned service $serv")
           pinnedData
@@ -68,7 +91,7 @@ object NFNServiceLibrary extends Logging {
       serviceContent
     )
 
-    logger.debug(s"nfnPublish: Adding ${content.name} to cache")
+    logger.debug(s"nfnPublish: Adding ${content.name} (size=${serviceContent.size}) to cache")
     ccnWorker ! NFNApi.AddToCCNCache(content)
   }
 

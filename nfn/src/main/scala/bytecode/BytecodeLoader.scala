@@ -2,6 +2,7 @@ package bytecode
 
 import java.net.{URL, URLClassLoader}
 import java.util.zip.ZipEntry
+import myutil.IOHelper
 import org.apache.bcel.Repository
 import org.apache.bcel.classfile._
 
@@ -25,12 +26,6 @@ object BytecodeLoader {
   }
 
   def byteCodeForClassAndDependencies(className: String) = {
-
-    //    val filename = "/tmp/foo.jar"
-    //    val file = new File(filename)
-    //    if(file.exists()) {
-    //      file.delete()
-    //    }
 
     val baOut = new ByteArrayOutputStream()
     val jarOut = new JarOutputStream(baOut)
@@ -92,15 +87,15 @@ object BytecodeLoader {
    * @tparam T Type the loaded class is casted to
    * @return
    */
-  def loadClass[T](dirOrJar: String, classNameToLoad: String): Try[T] = {
-    val url = new File(dirOrJar).toURI.toURL
+  def loadClass[T](jarFilename: String, classNameToLoad: String): Try[T] = {
+//    val url = new File(jarFilename).toURI.toURL
 //    val urls = Array(url)
 
-    val jar = new JarFile(dirOrJar)
+    val jar = new JarFile(jarFilename)
 
     val entries: Iterator[JarEntry] = JEnumerationWrapper(jar.entries())
 
-    val urls: Array[URL] = Array( new URL(s"jar:file:$dirOrJar!/") )
+    val urls: Array[URL] = Array( new URL(s"jar:file:$jarFilename!/") )
 
     val cl: URLClassLoader = new URLClassLoader(urls)
 
@@ -119,39 +114,12 @@ object BytecodeLoader {
     throw new Exception(s"Class $classNameToLoad was not found in jar")
   }
 
-  def jarToByteArray(jarfile: String): Array[Byte] = Source.fromFile(jarfile).getLines.mkString.getBytes
-
-  def classToFilename(clazz: Any) = {
-    def classBaseDirectory =  clazz.getClass.getProtectionDomain.getCodeSource.getLocation.getFile
-    def classNamespaceDirectoriesAndName = clazz.getClass.getName.replace(".", "/")
-
-    classBaseDirectory + classNamespaceDirectoriesAndName + ".class"
-  }
-  def classToDirname(clazz: Any) = {
-    clazz.getClass.getProtectionDomain.getCodeSource.getLocation.getFile
-  }
-
-  def classfileOfClass(clazz: Any):Option[File] = {
-    val classFile = new File(classToFilename(clazz))
-    if(!classFile.exists) None
-    else Some(classFile)
-  }
-
   def fromClass(clazz: Any):Option[Array[Byte]] = {
-//    classfileOfClass(clazz) map { classFile =>
-//      val path = Paths.get(classFile.toURI)
-//      Files.readAllBytes(path)
-//    }
     val byteCode = byteCodeForClassAndDependencies(clazz.getClass.getCanonicalName)
+
     println(s"loaded bytecode (size: ${byteCode.size}")
     Some(byteCode)
 
-  }
-
-  def toClass[T](classBytecode: Array[Byte], className: String) = {
-    val cl = this.getClass.getClassLoader
-    val clazz = cl.loadClass(className)
-    clazz.newInstance.asInstanceOf[T]
   }
 }
 
