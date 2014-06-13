@@ -1,16 +1,85 @@
 package bytecode
 
 import java.net.{URL, URLClassLoader}
+import java.util.zip.ZipEntry
+import org.apache.bcel.Repository
+import org.apache.bcel.classfile._
+
 import scala.io.Source
 import scala.collection.convert.Wrappers.JEnumerationWrapper
-import java.io.File
+import java.io.{FileOutputStream, ByteArrayOutputStream, File}
 import java.nio.file.{Paths, Path, Files}
 import scala.util._
-import java.util.jar.{JarEntry, JarFile}
+import java.util.jar.{JarOutputStream, JarEntry, JarFile}
 import nfn.NFNServer
 import nfn.service.NFNService
 
 object BytecodeLoader {
+
+  class DependencyEmitter(javaClass: JavaClass) extends EmptyVisitor {
+    override def visitConstantClass(obj: ConstantClass) {
+      val cp = javaClass.getConstantPool
+      val bytes = obj.getBytes(cp)
+      System.out.println(s"found: $bytes")
+    }
+  }
+
+  def byteCodeForClassAndDependencies(className: String) = {
+
+    //    val filename = "/tmp/foo.jar"
+    //    val file = new File(filename)
+    //    if(file.exists()) {
+    //      file.delete()
+    //    }
+
+    val baOut = new ByteArrayOutputStream()
+    val jarOut = new JarOutputStream(baOut)
+
+    val startsWithFilters = List("scala", "java", "[Ljava")
+    val containFilters = List("impl")
+    var folders: Set[String] = Set()
+    try {
+      val javaClass = Repository.lookupClass(className)
+      val visitor = new EmptyVisitor() {
+        override def visitConstantClass(obj: ConstantClass) {
+          val cp = javaClass.getConstantPool
+          val dependentClassnameQualified = obj.getBytes(cp)
+
+
+
+          // dependantClassQualified does not start with any element of the filters
+          if(startsWithFilters.forall(!dependentClassnameQualified.startsWith(_)) &&
+            containFilters.forall(dependentClassnameQualified.contains)) {
+
+            val lastSlashIndex = dependentClassnameQualified.lastIndexOf("/") + 1 // "asdf/asdf/asdf" => ("asdf/asdf/", "asdf")
+            val (path, _) = dependentClassnameQualified.splitAt(lastSlashIndex)
+
+            if (!folders.contains(path)) {
+              println(s"adding folder: $path")
+              folders += path
+              println(s"folders: $folders")
+              jarOut.putNextEntry(new ZipEntry(path)); // Folders must end with "/".
+            }
+            println(s"adding: $dependentClassnameQualified.class")
+            jarOut.putNextEntry(new ZipEntry(dependentClassnameQualified + ".class"))
+            jarOut.write(javaClass.getBytes)
+            println(s"adding bytecode: ${new String(javaClass.getBytes).take(50)} ...")
+            jarOut.closeEntry()
+          } else {
+            println(s"skipping: $dependentClassnameQualified")
+          }
+        }
+      }
+      val classWalker = new DescendingVisitor(javaClass, visitor)
+      classWalker.visit()
+
+    } finally {
+      jarOut.close()
+    }
+
+    baOut.toByteArray
+  }
+
 
 
   /**
@@ -69,10 +138,14 @@ object BytecodeLoader {
   }
 
   def fromClass(clazz: Any):Option[Array[Byte]] = {
-    classfileOfClass(clazz) map { classFile =>
-      val path = Paths.get(classFile.toURI)
-      Files.readAllBytes(path)
-    }
+//    classfileOfClass(clazz) map { classFile =>
+//      val path = Paths.get(classFile.toURI)
+//      Files.readAllBytes(path)
+//    }
+    val byteCode = byteCodeForClassAndDependencies(clazz.getClass.getCanonicalName)
+    println(s"loaded bytecode (size: ${byteCode.size}")
+    Some(byteCode)
+
   }
 
   def toClass[T](classBytecode: Array[Byte], className: String) = {
