@@ -321,7 +321,11 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return -1;
     }
     else if(config->suite == CCNL_SUITE_NDNTLV){
-       len = ccnl_ndntlv_mkInterest(namecomps, 0, NULL, out);
+       int tmplen = CCNL_MAX_PACKET_SIZE;
+       len = ccnl_ndntlv_mkInterest(namecomps, -1, &tmplen, out);
+       memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
+       len = CCNL_MAX_PACKET_SIZE - tmplen;
+
        *cp = out;
        if(ccnl_ndntlv_dehead(&out, &len, &typ, &num))
        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
