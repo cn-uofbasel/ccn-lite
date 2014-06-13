@@ -23,8 +23,8 @@ void
 build_decoding_table() {
 
     decoding_table = malloc(256);
-
-    for (int i = 0; i < 64; i++)
+    int i;
+    for (i = 0; i < 64; i++)
         decoding_table[(unsigned char) encoding_table[i]] = i;
 }
 
@@ -39,8 +39,8 @@ char
     char *encoded_data = malloc(*output_length);
     memset(encoded_data, '\0', *output_length);
     if (encoded_data == NULL) return NULL;
-
-    for (int i = 0, j = 0; i < input_length;) {
+    int i, j;
+    for (i = 0, j = 0; i < input_length;) {
 
         uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
         uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
@@ -53,8 +53,7 @@ char
         encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
         encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
     }
-
-    for (int i = 0; i < mod_table[input_length % 3]; i++)
+    for (i = 0; i < mod_table[input_length % 3]; i++)
         encoded_data[*output_length - 2 - i] = '=';
 
     return encoded_data;
