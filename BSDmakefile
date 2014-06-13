@@ -3,7 +3,7 @@
 CC=gcc
 #MYCFLAGS=-Wall -pedantic -std=c99 -g
 MYCFLAGS=-Wall -g -O0
-EXTLIBS=  -lcrypto -lpthread
+EXTLIBS=  -lcrypto
 
 NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR
 
