@@ -103,33 +103,33 @@ Usage:
 	goto Usage;
     cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	prefix[i++] = cp;
-	cp = strtok(NULL, "/");
+        prefix[i++] = cp;
+        cp = strtok(NULL, "|");
     }
     prefix[i] = NULL;
     if(!strncmp(packettype, "CCNB", 4)){
         len = mkInterest(prefix, NULL, out);
     }
     else if(!strncmp(packettype, "NDNTLV", 6)){
-        int tmplen = sizeof(out);
+        int tmplen = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_mkInterest(prefix, -1, &tmplen, out);
         memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
         len = CCNL_MAX_PACKET_SIZE - tmplen;
     }
 
     if (ux) { // use UNIX socket
-	dest = ux;
-	sock = ux_open();
-	sendproc = ux_sendto;
+        dest = ux;
+        sock = ux_open();
+        sendproc = ux_sendto;
     } else { // UDP
-	dest = udp;
-	sock = udp_open();
-	sendproc = udp_sendto;
+        dest = udp;
+        sock = udp_open();
+        sendproc = udp_sendto;
     }
 
     for (i = 0; i < 3; i++) {
-	request_content(sock, sendproc, dest, out, len, wait);
-//	fprintf(stderr, "retry\n");
+        request_content(sock, sendproc, dest, out, len, wait);
+    //	fprintf(stderr, "retry\n");
     }
     close(sock);
 

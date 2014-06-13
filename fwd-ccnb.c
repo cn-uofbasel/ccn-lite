@@ -235,7 +235,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef CCNL_NFN
         if(debug_level >= 99){
-            printf(stderr, "PIT Entries: \n");
+            fprintf(stderr, "PIT Entries: \n");
             struct ccnl_interest_s *i_it;
             for(i_it = ccnl->pit; i_it; i_it = i_it->next){
                     int it;

@@ -104,6 +104,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
+    DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path2(prefix));
     int thunk_request = 0;
     if(config){
         suite = config->suite;
