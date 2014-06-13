@@ -21,7 +21,9 @@
  * 2014-03-20 extracted from ccnl-core.c
  */
 
-#if defined(USE_SUITE_CCNB)
+#if defined(USE_SUITE_CCNB) && !defined(PKT_CCNB_DEC_C)
+#define PKT_CCNB_DEC_C
+
 
 #include "pkt-ccnb.h"
 
@@ -53,7 +55,7 @@ dehead(unsigned char **buf, int *len, int *num, int *typ)
 	    return 0;
 	}
 	val = (val << 7) | c;
-    } 
+    }
     return -1;
 }
 
@@ -132,5 +134,4 @@ unmkBinaryInt(unsigned char **data, int *datalen,
 }
 
 #endif
-
 // eof

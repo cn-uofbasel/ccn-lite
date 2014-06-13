@@ -36,6 +36,8 @@
 #include "../pkt-ccnb.h"
 #include "../ccnl.h"
 
+#include "../pkt-ndntlv-enc.c"
+
 // ----------------------------------------------------------------------
 
 int
@@ -54,34 +56,6 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
     }
     for (i = len-1; i >= 0; i--)
 	*buf++ = tmp[i];
-    return len;
-}
-
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
     return len;
 }
 
@@ -178,11 +152,12 @@ main(int argc, char *argv[])
     int i = 0, f, len, opt;
     int dlen = 0, plen = 0;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
+    char *packettype = "CCNB";
     uint32_t nonce;
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "hd:n:o:p:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hd:n:o:p:s:x:f:")) != -1) {
         switch (opt) {
         case 'd':
 	    digest = (unsigned char*)optarg;
@@ -215,6 +190,9 @@ main(int argc, char *argv[])
         case 'x':
 	    maxSuffix = optarg;
 	    break;
+        case 'f':
+        packettype = optarg;
+        break;
         case 'h':
         default:
 Usage:
@@ -223,7 +201,8 @@ Usage:
 	    "  -n LEN     miN additional components\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
 	    "  -p DIGEST  publisher fingerprint\n"
-	    "  -x LEN     maX additional components\n",
+        "  -x LEN     maX additional components\n"
+        "  -f packet type [CCNB | NDNTLV | CCNTLV]",
 	    argv[0]);
 	    exit(1);
         }
@@ -237,12 +216,21 @@ Usage:
 	cp = strtok(NULL, "/");
     }
     prefix[i] = NULL;
-    len = mkInterest(prefix,
-		     minSuffix, maxSuffix,
-		     digest, dlen,
-		     publisher, plen,
-		     scope, &nonce,
-		     out);
+
+    if(!strncmp(packettype, "CCNB", 4)){
+        len = mkInterest(prefix,
+                 minSuffix, maxSuffix,
+                 digest, dlen,
+                 publisher, plen,
+                 scope, &nonce,
+                 out);
+    }
+    else if(!strncmp(packettype, "NDNTLV", 6)){
+        int tmplen = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_ndntlv_mkInterest(prefix, -1, &tmplen, out);
+        memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
+        len = CCNL_MAX_PACKET_SIZE - tmplen;
+    }
 
     if (fname) {
 	f = creat(fname, 0666);
