@@ -95,17 +95,17 @@ object PaperExperiment extends App {
   nodes.foreach(_.removeLocalServices)
 
   nodes foreach { node =>
-    node.publishService(Translate())
+    node.publishService(new Translate())
   }
 
   // remove for exp6
   if(expNum != 6) {
-    node3.publishService(WordCountService())
+    node3.publishService(new WordCountService())
   }
 
-  node4.publishService(WordCountService())
+  node4.publishService(new WordCountService())
 
-  val wcPrefix = WordCountService().ccnName
+  val wcPrefix = new WordCountService().ccnName
 
   // remove for exp3
   if(expNum != 3 && expNum != 7) {
@@ -135,8 +135,8 @@ object PaperExperiment extends App {
   import LambdaNFNImplicits._
   implicit val useThunks: Boolean = false
 
-  val ts = Translate().toString
-  val wc = WordCountService().toString
+  val ts = new Translate().toString
+  val wc = new WordCountService().toString
 
   node1 ? (ts appl node1.prefix.append("dummy"))
 

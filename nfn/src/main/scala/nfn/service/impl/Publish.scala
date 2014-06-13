@@ -1,23 +1,12 @@
 package nfn.service.impl
 
-import nfn.service._
-import scala.util.Try
 import akka.actor.ActorRef
-import akka.pattern._
-import nfn.service.NFNServiceArgumentException
-import nfn.service.NFNStringValue
-import ccn.packet.{AddToCache, Content, CCNName, Interest}
-import scala.concurrent.{Future, Await}
-import scala.concurrent.duration._
-import nfn.NFNApi
-import akka.util.Timeout
-import scala.concurrent.ExecutionContext.Implicits.global
+import ccn.packet.{CCNName, Content}
 import config.AkkaConfig
+import nfn.NFNApi
+import nfn.service.{NFNServiceArgumentException, _}
 
-/**
- * Created by basil on 08/05/14.
- */
-case class Publish() extends NFNService {
+class Publish() extends NFNService {
   override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (args, nfnServer) =>
     args match {
       case Seq(NFNBinaryDataValue(contentName, contentData), NFNBinaryDataValue(_, publishPrefixNameData), _) => {
@@ -27,18 +16,8 @@ case class Publish() extends NFNService {
         nfnServer ! NFNApi.AddToLocalCache(Content(nameOfContentWithoutPrefixToAdd, contentData), prependLocalPrefix = true)
         NFNEmptyValue()
       }
-      case _ => throw argumentException(args)
-    }
-  }
-
-  override def argumentException(args: Seq[NFNValue]): NFNServiceArgumentException = {
-    new NFNServiceArgumentException(s"$ccnName can only be applied to arguments of type CCNNameValue and not: $args")
-  }
-
-  override def verifyArgs(args: Seq[NFNValue]): Try[Seq[NFNValue]] = {
-    args match {
-      case Seq(_:NFNBinaryDataValue, _:NFNBinaryDataValue, _) => Try(args)
-      case _ => throw argumentException(args)
+      case _ =>
+        throw new NFNServiceArgumentException(s"$ccnName can only be applied to arguments of type CCNNameValue and not: $args")
     }
   }
 }

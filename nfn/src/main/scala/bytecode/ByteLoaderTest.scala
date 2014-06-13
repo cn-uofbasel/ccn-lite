@@ -13,7 +13,7 @@ object ByteLoaderTest extends App {
   val tryServ: Try[NFNService] = BytecodeLoader.loadClass[NFNService](testServiceJarfile, "/testservice_ChfToDollar")
 
   tryServ match {
-    case Success(serv) => println(s"${serv.ccnName} returned success, throw argument exception"); throw serv.argumentException(Nil)
+    case Success(serv) => println(s"${serv.ccnName} returned success, throw argument exception")
 
     case Failure(e) => throw e
   }
