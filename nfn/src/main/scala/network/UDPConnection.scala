@@ -1,26 +1,26 @@
 package network
 
+import java.net.InetSocketAddress
+
 import akka.actor._
 import akka.event.Logging
-import java.net.InetSocketAddress
-import akka.io.{Udp, IO}
+import akka.io.{IO, Udp}
 import akka.util.ByteString
-
-import scala.concurrent._
-import ExecutionContext.Implicits.global
 import network.UDPConnection._
-import ccn.packet.{CCNPacket, Interest, Content}
-import ccnliteinterface.CCNLiteInterface
-import ccn.ccnlite.CCNLite
 
 object UDPConnection {
   case class Send(data: Array[Byte])
   case class Received(data: Array[Byte], sendingRemote: InetSocketAddress)
   case class Handler(worker: ActorRef)
+
+  val maxPacketSizeKB = 8*1024
+
+  val UdpSocketOptions = List(
+    Udp.SO.SendBufferSize(maxPacketSizeKB),
+    Udp.SO.ReceiveBufferSize(maxPacketSizeKB)
+  )
+
 }
-
-
-
 
 /**
  * A connection between a target socket and a remote socket.
@@ -47,7 +47,7 @@ class UDPConnection(local:InetSocketAddress, maybeTarget:Option[InetSocketAddres
   override def preStart() = {
     // IO is the manager of the akka IO layer, send it a request
     // to listen on a certain host on a port
-    IO(Udp) ! Udp.Bind(self, local)
+    IO(Udp) ! Udp.Bind(self, local, UdpSocketOptions)
   }
 
   def handleWorker(worker: ActorRef) = {
@@ -80,7 +80,11 @@ class UDPConnection(local:InetSocketAddress, maybeTarget:Option[InetSocketAddres
       maybeTarget match {
         case Some(target) => {
 //          logger.debug(s"$name sending data")
-          socket ! Udp.Send(ByteString(data), target)
+          if(data.size > maxPacketSizeKB) {
+            throw new Exception(s"The UDPSocket is only able to send packets with max size $maxPacketSizeKB and not ${data.size}")
+          } else {
+            socket ! Udp.Send(ByteString(data), target)
+          }
         }
         case None => logger.warning("Received Send message, but this socket was configurated to be a receiver-only socket!")
       }
@@ -105,7 +109,7 @@ case class UDPSender(remote: InetSocketAddress) extends Actor {
   val logger = Logging(context.system, this)
 
   override def preStart() = {
-    IO(Udp) ! Udp.SimpleSender
+    IO(Udp) ! Udp.SimpleSender(UdpSocketOptions)
   }
 
 
@@ -119,7 +123,11 @@ case class UDPSender(remote: InetSocketAddress) extends Actor {
   def ready(socket: ActorRef): Actor.Receive = {
     case data: Array[Byte] => {
 //      logger.debug(s"Sending data")
-      socket ! Udp.Send(ByteString(data), remote)
+      if(data.size > maxPacketSizeKB) {
+        throw new Exception(s"The UDPSocket is only able to send packets with max size $maxPacketSizeKB and not ${data.size}")
+      } else {
+        socket ! Udp.Send(ByteString(data), remote)
+      }
     }
   }
 }
