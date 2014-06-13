@@ -26,38 +26,41 @@ object NFNService extends Logging {
    * @return
    */
   def serviceFromContent(content: Content): Try[NFNService] = {
-    val serviceLibraryDir = "./service-library"
-    val serviceLibararyFile = new File(serviceLibraryDir)
-
-    if(serviceLibararyFile.exists) {
-      serviceLibararyFile.mkdir
-    }
-
-    def createTempFile: File = {
-      val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
-      if (!f.exists) {
-        f
-      } else {
-        Thread.sleep(1)
-        createTempFile
-      }
-    }
-
-    var out: FileOutputStream = null
-    val file: File = createTempFile
-    try {
-      out = new FileOutputStream(file)
-      out.write(content.data)
-      val servName = content.name.cmps.head.replace("_", ".")
-
-      val loadedService = BytecodeLoader.loadClass[NFNService](file.getCanonicalPath, servName)
-
-      logger.debug(s"Dynamically loaded class $servName from content")
-      loadedService
-    } finally {
-      if (out != null) out.close
-      if (file.exists) file.delete
-    }
+//    println(s"serviceFromContent: content size=${content.data.size}")
+//    val serviceLibraryDir = "./service-library"
+//    val serviceLibararyFile = new File(serviceLibraryDir)
+//
+//    if(serviceLibararyFile.exists) {
+//      serviceLibararyFile.mkdir
+//    }
+//
+//    def createTempFile: File = {
+//      val f = new File(s"$serviceLibraryDir/${System.nanoTime}")
+//      if (!f.exists) {
+//        f
+//      } else {
+//        Thread.sleep(1)
+//        createTempFile
+//      }
+//    }
+//
+//    var out: FileOutputStream = null
+//    val file: File = createTempFile
+//    try {
+//      out = new FileOutputStream(file)
+//      out.write(content.data)
+//      out.flush()
+    val servName = content.name.cmps.head.replace("_", ".")
+    val fileName = new String(content.data)
+    val filePath = new File(fileName).getCanonicalPath
+    val loadedService: Try[NFNService] = BytecodeLoader.loadClass[NFNService](filePath, servName)
+    logger.debug(s"Dynamically loaded class $servName from content")
+    loadedService
+//      loadedService
+//    } finally {
+//      if (out != null) out.close
+////      if (file.exists) file.delete
+//    }
   }
 
   def parseAndFindFromName(name: String, ccnServer: ActorRef): Future[CallableNFNService] = {
@@ -79,6 +82,8 @@ object NFNService extends Logging {
             case Some(interestName) =>
               val interest = Interest(interestName)
               val futServiceContent: Future[Content] = loadFromCacheOrNetwork(interest)
+
+              import myutil.Implicit.tryToFuture
               futServiceContent flatMap { serviceFromContent }
             case None => Future.failed(new Exception(s"Could not create name for service $fun"))
           }
@@ -98,6 +103,8 @@ object NFNService extends Logging {
               )
             }
             case otherExpr @ _ => {
+
+              import nfn.LambdaNFNImplicits._
               val maybeInterest = otherExpr match {
                 case Variable(varName, _) => {
                   CCNName.fromString(varName) map {

@@ -70,7 +70,11 @@ object CCNLite extends Logging {
   }
 
   def base64CCNBToPacket(base64ccnb: String): Option[CCNPacket] = {
-    NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(NFNCommunication.decodeBase64(base64ccnb)))
+    val xml = CCNLite.ccnbToXml(NFNCommunication.decodeBase64(base64ccnb))
+    logger.debug(s"FROM XML:\n$xml")
+    val pkt = NFNCommunication.parseCCNPacket(xml)
+    logger.debug(s"TO PACKET:\n$pkt")
+    pkt
   }
 
   private def mkAddToCacheInterest(ccnbAbsoluteFilename: String): Array[Byte] = {
