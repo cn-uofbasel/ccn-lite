@@ -42,7 +42,13 @@
 
 #include "../pkt-ccnb.h"
 #include "../pkt-ccnb-enc.c"
+
+#include "../pkt-ndntlv.h"
+#include "../pkt-ndntlv-enc.c"
+
 #include "ccnl-crypto.c"
+
+
 
 // ----------------------------------------------------------------------
 
@@ -50,34 +56,6 @@ char *private_key_path;
 char *witness;
 
 // ----------------------------------------------------------------------
-
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
-}
 
 int
 mkContent(char **namecomp,
@@ -153,18 +131,21 @@ main(int argc, char *argv[])
     char *infname = 0, *outfname = 0;
     int i = 0, f, len, opt, plen;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
-    
+    char *packettype = "CCNB";
     private_key_path = 0;
     witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:k:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:o:p:k:w:f:")) != -1) {
         switch (opt) {
         case 'i':
-	    infname = optarg;
-	    break;
+            infname = optarg;
+            break;
         case 'o':
-	    outfname = optarg;
-	    break;
+            outfname = optarg;
+            break;
+        case 'f':
+            packettype = optarg;
+            break;
         case 'k':
             private_key_path = optarg;
             break;
@@ -172,15 +153,15 @@ main(int argc, char *argv[])
             witness = optarg;
             break;
         case 'p':
-	    publisher = (unsigned char*)optarg;
-	    plen = unescape_component(publisher);
-	    if (plen != 32) {
-		fprintf(stderr,
-		 "publisher key digest has wrong length (%d instead of 32)\n",
-		 plen);
-		exit(-1);
-	    }
-	    break;
+            publisher = (unsigned char*)optarg;
+            plen = unescape_component(publisher);
+            if (plen != 32) {
+            fprintf(stderr,
+             "publisher key digest has wrong length (%d instead of 32)\n",
+             plen);
+            exit(-1);
+            }
+            break;
         case 'h':
         default:
 Usage:
@@ -188,8 +169,9 @@ Usage:
 	    "  -i FNAME   input file (instead of stdin)\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
 	    "  -p DIGEST  publisher fingerprint\n"
-            "  -k FNAME   publisher private key\n"  
-            "  -w STRING  witness\n"       ,
+        "  -k FNAME   publisher private key\n"
+        "  -f packet type [CCNB | NDNTLV | CCNTLV]"
+        "  -w STRING  witness\n"       ,
 	    argv[0]);
 	    exit(1);
         }
@@ -213,7 +195,15 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    len = mkContent(prefix, publisher, plen, body, len, out);
+    if(!strncmp(packettype, "CCNB", 4)){
+        len = mkContent(prefix, publisher, plen, body, len, out);
+    }
+    else if(!strncmp(packettype, "NDNTLV", 6)){
+        int len2 = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, out);
+        memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
+        len = CCNL_MAX_PACKET_SIZE - len2;
+    }
 
     if (outfname) {
 	f = creat(outfname, 0666);
