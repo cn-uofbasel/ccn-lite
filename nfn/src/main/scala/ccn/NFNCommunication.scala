@@ -65,7 +65,11 @@ object NFNCommunication extends Logging {
           case content @ <contentobj>{_*}</contentobj> => {
             val nameComponents = parseComponents(content)
             val contentData = parseContentData(content)
-            Content(contentData, nameComponents :_*)
+            if(new String(contentData).startsWith("NACK")) {
+              NAck(CCNName(nameComponents :_*))
+            } else {
+              Content(contentData, nameComponents :_*)
+            }
           }
           case _ => throw new Exception("XML parser cannot parse:\n" + xml)
         }

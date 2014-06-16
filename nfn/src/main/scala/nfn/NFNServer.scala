@@ -64,6 +64,7 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
     val ccnPacketLog = packet match {
       case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
       case c: Content => Monitor.ContentInfoLog("content", c.name.toString, c.possiblyShortenedDataString)
+      case n: NAck => Monitor.ContentInfoLog("content", n.name.toString, "NACK")
     }
     Monitor.monitor ! new PacketLogWithoutConfigs(local.getHostString, local.getPort, target.getHostString, target.getPort, true, ccnPacketLog)
   }
@@ -76,6 +77,10 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
       case c: Content =>
         val binaryContent = CCNLite.mkBinaryContent(c)
         self.tell(UDPConnection.Send(binaryContent), senderCopy)
+      case n: NAck =>
+        val binaryContent = CCNLite.mkBinaryContent(Content(n.name, n.content.getBytes))
+        self.tell(UDPConnection.Send(binaryContent), senderCopy)
+
     }
 
   def interestContentReceiveWithoutLog: Receive = {
@@ -270,6 +275,17 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
 
   }
 
+  def handleNack(nack: NAck, senderCopy: ActorRef) = {
+    implicit val timeout = Timeout(defaultTimeoutDuration)
+    (pit ? PIT.Get(nack.name)).mapTo[Option[Set[Face]]] onSuccess {
+      case Some(pendingFaces) => {
+        pendingFaces foreach { _.send(nack) }
+        pit ! PIT.Remove(nack.name)
+      }
+      case None => logger.warning(s"Received nack for name which is not in PIT: $nack")
+    }
+  }
+
   def handlePacket(packet: CCNPacket, senderCopy: ActorRef) = {
 //    def monitorReceive(packet: CCNPacket): Unit = {
 //      val ccnPacketLog = packet match {
@@ -292,6 +308,11 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         logger.info(s"Received content: $c")
         handleContent(c, senderCopy)
       }
+      case n: NAck => {
+        logger.info(s"Received NAck: $n")
+        handleNack(n, senderCopy)
+      }
+
     }
   }
 
@@ -307,7 +328,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         case Some(AddToCache()) => ???
         case None => {
           if(new String(data).contains("Content successfully added")) {
-            logger.debug(s"Received content add to cache ack\n${new String(data)}")
+            logger.debug(s"Received content add to cache ack")
           } else {
             val failedMessagesDir = "./failed-messages"
             val failedMessagesDirFile= new File(failedMessagesDir)

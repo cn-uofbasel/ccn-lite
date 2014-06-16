@@ -2,11 +2,12 @@ package node
 
 import nfn._
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.ExecutionContext.Implicits.global
 import akka.util.Timeout
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern._
 import config.AkkaConfig
-import ccn.packet.{CCNName, Interest, Content}
+import ccn.packet._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import nfn.service.{NFNService, NFNServiceLibrary}
@@ -281,7 +282,11 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    * @return
    */
   def sendReceive(req: Interest)(implicit useThunks: Boolean): Future[Content] = {
-    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks)).mapTo[Content]
+    (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks)).mapTo[CCNPacket] map {
+      case n: NAck => throw new Exception("NACK")
+      case c: Content => c
+      case i: Interest => throw new Exception("An interest was returned, this should never happen")
+    }
   }
 
 

@@ -15,6 +15,8 @@ object ComputeServer {
    * @param name
    */
   case class ComputationFinished(name: CCNName)
+
+  case class EndComputation(name: CCNName)
 }
 
 case class ComputeServer() extends Actor {
@@ -63,6 +65,16 @@ case class ComputeServer() extends Actor {
       else {
         logger.error(s"Compute message must contain the name of the final interest and not a thunk interest: $name")
       }
+    }
+
+    case nack @ ComputeServer.EndComputation(name) => {
+      computeWorkers.get(name) match {
+        case Some(computeWorker) => {
+          computeWorker ! ComputeWorker.End
+        }
+        case None => logger.warning(s"Received nack for computation which does not exist: $name")
+      }
+
     }
 
 //    case ComputeServer.ComputationFinished(name) => {
