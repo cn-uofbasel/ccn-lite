@@ -13,7 +13,7 @@ import ComputeWorker._
 
 object ComputeWorker {
   case class Callable(callable: CallableNFNService)
-  case class Exit()
+  case class End()
 }
 
 /**
@@ -93,6 +93,6 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
           self.tell(msg, sender)
       }
     }
-    case Exit() => context.stop(self)
+    case End() => context.stop(self)
   }
 }

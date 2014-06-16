@@ -110,6 +110,7 @@ object Experiment2 extends App with Logging {
 //  node4.removeLocalServices
 
   node2.publishService(new WordCountService())
+  node2.publishService(new Translate())
 
   Thread.sleep(1000)
 
@@ -147,7 +148,7 @@ object Experiment2 extends App with Logging {
   val exRouteToService = NFNInterest(exprString)
 
 
-  val expr = Interest("large", "doc")
+  val expr = exCallCallCall
 
   import AkkaConfig.timeout
   var startTime = System.currentTimeMillis()

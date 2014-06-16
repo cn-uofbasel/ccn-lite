@@ -159,4 +159,9 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
   override def toString = s"Content('$name' => [${data.size}]$possiblyShortenedDataString)"
 }
 
+case class NAck(name: CCNName) extends CCNPacket {
+  val content: String = "NACK"
+}
+
 case class AddToCache() extends Packet with Ack
+
