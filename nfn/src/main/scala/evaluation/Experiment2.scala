@@ -2,6 +2,7 @@ package evaluation
 
 import java.io.File
 
+import com.typesafe.scalalogging.slf4j.Logging
 import myutil.IOHelper
 
 import scala.io.Source
@@ -40,8 +41,9 @@ class TestService() extends NFNService {
   }
 }
 
-object Experiment2 extends App {
+object Experiment2 extends App with Logging {
 
+  logger.info("Starting Experiment2")
   val node1Prefix = CCNName("node", "node1")
   val node1Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, node1Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10011, node1Prefix)))
   val node2Prefix = CCNName("node", "node2")
@@ -51,9 +53,9 @@ object Experiment2 extends App {
   val node4Prefix = CCNName("node", "node4")
   val node4Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10040, node4Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10041, node4Prefix)))
 
-  val chfToDollar = CCNName("testservice_ChfToDollar")
-  val chfToDollarData = IOHelper.readByteArrayFromFile("./service-library/chfToDollar.jar")
-  val chfToDollarContent = Content(chfToDollar, chfToDollarData)
+//  val chfToDollar = CCNName("testservice_ChfToDollar")
+//  val chfToDollarData = IOHelper.readByteArrayFromFile("./service-library/chfToDollar.jar")
+//  val chfToDollarContent = Content(chfToDollar, chfToDollarData)
 
   val docname1 = node1Prefix.append("doc", "test1")
   val docdata1 = "one".getBytes
@@ -91,7 +93,7 @@ object Experiment2 extends App {
   node1.addPrefixFace(new Translate().ccnName, node2)
 
   node1 += docContent1
-  node1 += chfToDollarContent
+//  node1 += chfToDollarContent
   node2 += docContent2
   node3 += docContent3
   node4 += docContent4
@@ -145,11 +147,11 @@ object Experiment2 extends App {
   val exRouteToService = NFNInterest(exprString)
 
 
-  val expr = exSimpleCall
+  val expr = Interest("large", "doc")
 
   import AkkaConfig.timeout
   var startTime = System.currentTimeMillis()
-  node1 ? (wc appl docname1) onComplete {
+  node1 ? expr onComplete {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): $content")

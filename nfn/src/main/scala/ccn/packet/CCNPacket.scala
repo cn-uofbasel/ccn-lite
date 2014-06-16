@@ -151,7 +151,10 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
 //  def this(data: Array[Byte], cmps: String *) = this(CCNName(cmps.toList), data)
   def possiblyShortenedDataString: String = {
     val dataString = new String(data)
-    if(dataString.length > 50) dataString.take(50) + "..." else dataString
+    val dataStringLen = dataString.length
+    if(dataStringLen > 50)
+      dataString.take(50) + "..." + dataString.takeRight(10)
+    else dataString
   }
   override def toString = s"Content('$name' => [${data.size}]$possiblyShortenedDataString)"
 }
