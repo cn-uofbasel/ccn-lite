@@ -1,11 +1,11 @@
 package monitor
 
+import ccn.NFNCommunication
 import nfn.NodeConfig
 import monitor.Monitor.{ContentInfoLog, InterestInfoLog, PacketLog, NodeLog}
 import ccn.packet.Interest
 import ccn.ccnlite.CCNLite
 import ccnliteinterface.CCNLiteInterface
-import network.NFNCommunication
 
 /**
  * Created by basil on 17/04/14.

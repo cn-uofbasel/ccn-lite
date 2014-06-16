@@ -48,6 +48,7 @@ object NFNServiceLibrary extends Logging {
     def byteCodeData(serv: NFNService):Array[Byte] = {
       BytecodeLoader.fromClass(serv) match {
         case Some(bc) => {
+//          if(bc.length + serv.ccnName)
           // TODO remove this when packet fragmentation works
           // replace with simply 'bc'
           val tempBytecodeContentDir = new File(tempBytecodeContentDirName)

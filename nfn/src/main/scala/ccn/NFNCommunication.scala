@@ -1,13 +1,12 @@
-package network
-
-import scala.xml._
+package ccn
 
 import javax.xml.bind.DatatypeConverter
-import org.xml.sax.SAXParseException
-
-import com.typesafe.scalalogging.slf4j.Logging
 
 import ccn.packet._
+import com.typesafe.scalalogging.slf4j.Logging
+import org.xml.sax.SAXParseException
+
+import scala.xml._
 
 
 object NFNCommunication extends Logging {
@@ -53,11 +52,6 @@ object NFNCommunication extends Logging {
       parseData(contents.head).getBytes
     }
 
-
-    if(xmlString.contains("fragmentation")) {
-      logger.error("A packet was fragmented, this is not yet implemented")
-      return None
-    }
     val cleanedXmlString = xmlString.trim.replace("&", "&amp;")
 
     try {

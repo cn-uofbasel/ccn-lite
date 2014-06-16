@@ -307,7 +307,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         case Some(AddToCache()) => ???
         case None => {
           if(new String(data).contains("Content successfully added")) {
-            logger.debug(s"Received content add to cache ack")
+            logger.debug(s"Received content add to cache ack\n${new String(data)}")
           } else {
             val failedMessagesDir = "./failed-messages"
             val failedMessagesDirFile= new File(failedMessagesDir)
@@ -340,7 +340,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
     }
 
     case NFNApi.AddToCCNCache(content) => {
-      logger.info(s"sending add to cache for name ${content.name}")
+      logger.info(s"sending add to cache for $content")
       nfnGateway ! UDPConnection.Send(ccnIf.mkAddToCacheInterest(content))
     }
 

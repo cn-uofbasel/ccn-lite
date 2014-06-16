@@ -1,9 +1,9 @@
 package ccn.ccnlite
 
+import ccn.NFNCommunication
 import ccnliteinterface.CCNLiteInterface
 import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 import ccn.packet._
-import network.NFNCommunication
 
 
 /**

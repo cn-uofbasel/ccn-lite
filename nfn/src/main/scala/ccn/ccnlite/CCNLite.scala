@@ -1,10 +1,10 @@
 package ccn.ccnlite
 
+import ccn.NFNCommunication
 import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
 import java.io.{FileOutputStream, File}
 import com.typesafe.scalalogging.slf4j.Logging
-import network.NFNCommunication
 
 object CCNLite extends Logging {
   val ccnIf = new CCNLiteInterface()
@@ -71,9 +71,7 @@ object CCNLite extends Logging {
 
   def base64CCNBToPacket(base64ccnb: String): Option[CCNPacket] = {
     val xml = CCNLite.ccnbToXml(NFNCommunication.decodeBase64(base64ccnb))
-    logger.debug(s"FROM XML:\n$xml")
     val pkt = NFNCommunication.parseCCNPacket(xml)
-    logger.debug(s"TO PACKET:\n$pkt")
     pkt
   }
 
