@@ -186,6 +186,13 @@ restart:
 
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
     }
+#ifdef CCNL_NACK
+    else if(config->local_done){
+        struct ccnl_content_s *nack = create_content_object(ccnl, config->prefix, ":NACK", 5, config->suite);
+        ccnl_content_serve_pending(ccnl, nack);
+
+    }
+#endif
     
     //TODO: check if really necessary
     /*if(thunk_request)

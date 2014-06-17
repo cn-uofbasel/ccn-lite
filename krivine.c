@@ -812,6 +812,13 @@ local_compute:
 
 handlecontent: //if result was found ---> handle it
         if(c){
+#ifdef CCNL_NACK
+            if(!strncmp(c->content, ":NACK", 5)){
+                DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+                 ++config->fox_state->it_routable_param;
+                return prog;
+            }
+#endif
             if(thunk_request){ //if thunk_request push thunkid on the stack
 
                 --(*num_of_required_thunks);
