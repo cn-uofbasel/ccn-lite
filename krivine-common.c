@@ -42,6 +42,13 @@ ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
     return prefix_buf;
 }
 
+void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+                     struct ccnl_face_s *from, int suite){
+    DEBUGMSG(99, "ccnl_nack_reply()\n");
+    struct ccnl_content_s *nack = create_content_object(ccnl, prefix, ":NACK", 5, suite);
+    ccnl_face_enqueue(ccnl, from, nack->pkt);
+}
+
 struct fox_machine_state_s *
 new_machine_state(int thunk_request, int num_of_required_thunks){
     struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));

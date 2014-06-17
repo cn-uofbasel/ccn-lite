@@ -509,14 +509,14 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         }
 
     }
+
 #ifdef CCNL_NACK
     if(!matching_face){
-        DEBUGMSG(99, "NACK\n");
-        struct ccnl_content_s *nack = create_content_object(ccnl, i->prefix, ":NACK", 5, i->suite);
-        ccnl_face_enqueue(ccnl, i->from, nack->pkt);
+        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
         ccnl_interest_remove(ccnl, i);
     }
 #endif
+
     return;
 }
 
@@ -525,6 +525,11 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
 #ifdef CCNL_NFN
     if(i->propagate == 0) return i->next;
+#endif
+#ifdef CCNL_NACK
+    if(i->from->faceid > 0){
+        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
+    }
 #endif
     struct ccnl_interest_s *i2;
     int it;
@@ -784,8 +789,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
     while (f) {
 	if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
-				(f->last_used + CCNL_FACE_TIMEOUT) <= t)
-	    f = ccnl_face_remove(relay, f);
+                (f->last_used + CCNL_FACE_TIMEOUT) <= t){
+	    f = ccnl_face_remove(relay, f);   
+    }
 	else
 	    f = f->next;
     }
