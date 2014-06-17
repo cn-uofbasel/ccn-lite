@@ -59,7 +59,8 @@ ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
-	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NACK
+
 
 ccn-lite-simu: ccn-lite-simu.c  ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	ccnl-includes.h ccnl.h ccnl-core.h \

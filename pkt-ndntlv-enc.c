@@ -20,6 +20,8 @@
  * 2014-03-05 created
  */
 
+#ifndef PKT_NDNTLV_ENC_C
+#define PKT_NDNTLV_ENC_C
 #include "pkt-ndntlv.h"
 
 int
@@ -198,5 +200,5 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 
     return oldoffset - *offset;
 }
-
+#endif
 // eof
