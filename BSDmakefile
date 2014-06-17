@@ -37,7 +37,8 @@ ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c BSDmakefile
-	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NACK
+
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
