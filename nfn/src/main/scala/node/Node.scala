@@ -18,7 +18,7 @@ import ccn.CCNLiteProcess
 
 object StandardNodeFactory {
   def forId(id: Int, isCCNOnly: Boolean = false): Node = {
-    val nodePrefix = CCNName("node", s"node$id")
+    val nodePrefix = CCNName(s"node$id")
     val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10000 + id * 10, nodePrefix, isCCNOnly)), Some(ComputeNodeConfig("127.0.0.1", 10000 + id * 10 + 1, nodePrefix)))
     Node(nodeConfig)
   }
@@ -138,7 +138,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
 
   val maybeCCNLiteProcess: Option[CCNLiteProcess] = {
     nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
-      val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(nfnNodeConfig, withCompute = nodeConfig.maybeComputeNodeConfig.isDefined)
+      val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(nfnNodeConfig, isCCNOnly = nfnNodeConfig.isCCNOnly)
       ccnLiteNFNNetworkProcess.start()
 
       nodeConfig.maybeNFNNodeConfig.zip(nodeConfig.maybeComputeNodeConfig) map { case (nfnConfig, computeNodeConfig) =>
