@@ -51,11 +51,11 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     struct ccnl_content_s *nack = create_content_object(ccnl, prefix, ":NACK", 5, suite);
 #ifdef CCNL_NFN_MONITOR
-    char monitorpacket[CCNL_MAX_PACKET_SIZE];
-    int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
+     char monitorpacket[CCNL_MAX_PACKET_SIZE];
+     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
             ntohs(from->peer.ip4.sin_port),
-            prefix, NULL, 0, monitorpacket);
-    sendtomonitor(ccnl, monitorpacket, l);
+            nack->name, (char*)nack->content, nack->contentlen, monitorpacket);
+     sendtomonitor(ccnl, monitorpacket, l);
 #endif
     ccnl_face_enqueue(ccnl, from, nack->pkt);
 }
