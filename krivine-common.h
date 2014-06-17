@@ -95,4 +95,7 @@ struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         unsigned char *contentstr, int contentlen, int suite);
 
+void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+                     struct ccnl_face_s *from, int suite);
+
 #endif //KRIVINE_COMMON_H
