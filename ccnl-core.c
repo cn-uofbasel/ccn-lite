@@ -38,6 +38,9 @@
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
 
+void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+                     struct ccnl_face_s *from, int suite);
+
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
