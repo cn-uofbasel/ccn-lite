@@ -140,7 +140,7 @@ object PaperExperiment extends App {
   val wc = new WordCountService().toString
   val nack = new NackServ().toString
 
-//  node1 ? (ts appl node1.prefix.append("dummy"))
+  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
 
