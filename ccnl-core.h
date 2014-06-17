@@ -197,7 +197,7 @@ struct ccnl_interest_s {
     } details;
     char suite;
 #ifdef CCNL_NFN
-    int propagate;                 //do not propagate this interest becauses it is in the NFN-engine
+    int propagate;                 //set to 0 to not propagate this interest becauses it is in the NFN-engine
 #endif
 };
 

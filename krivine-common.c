@@ -379,13 +379,11 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
 
     prefixcomps[prefix->compcnt] = 0;
-    fprintf(stderr, "NAME: ");
+
     for(i = 0; i < prefix->compcnt; ++i)
     {
-        fprintf(stderr, "/%s", prefix->comp[i]);
         prefixcomps[i] = strdup((char *)prefix->comp[i]);
     }
-    fprintf(stderr, "\n");
 
     if(suite == CCNL_SUITE_CCNB){
         len = mkContent(prefixcomps, contentstr, contentlen, out);
