@@ -64,7 +64,7 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
     val ccnPacketLog = packet match {
       case i: Interest => Monitor.InterestInfoLog("interest", i.name.toString)
       case c: Content => Monitor.ContentInfoLog("content", c.name.toString, c.possiblyShortenedDataString)
-      case n: NAck => Monitor.ContentInfoLog("content", n.name.toString, "NACK")
+      case n: NAck => Monitor.ContentInfoLog("content", n.name.toString, ":NACK")
     }
     Monitor.monitor ! new PacketLogWithoutConfigs(local.getHostString, local.getPort, target.getHostString, target.getPort, true, ccnPacketLog)
   }
