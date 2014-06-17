@@ -665,6 +665,11 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         //DEBUGMSG(99, "--- Already in cache ---\n");
         if(c == cit) return NULL;
     }
+#ifdef CCNL_NACK
+    if(!strncmp(c->content, ":NACK", 5)){
+        return NULL;
+    }
+#endif
     if (ccnl->max_cache_entries > 0 &&
     ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
     struct ccnl_content_s *c2;
