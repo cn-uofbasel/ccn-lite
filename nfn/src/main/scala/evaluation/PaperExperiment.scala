@@ -17,7 +17,7 @@ import java.io.File
 
 object PaperExperiment extends App {
 
-  val expNum = 1
+  val expNum = 2
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
@@ -60,6 +60,7 @@ object PaperExperiment extends App {
   node5 += docContent5
 
   nodes foreach { node => node += Content(node.prefix.append("dummy"), "dummy".getBytes)}
+  nodes foreach { node => node.publishService(new NackServ()) }
 
   node1 <~> node2
   node1.addNodeFaces(List(node4), node2)
@@ -137,8 +138,9 @@ object PaperExperiment extends App {
 
   val ts = new Translate().toString
   val wc = new WordCountService().toString
+  val nack = new NackServ().toString
 
-  node1 ? (ts appl node1.prefix.append("dummy"))
+//  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
 
@@ -169,6 +171,8 @@ object PaperExperiment extends App {
   // Adds the wordcountservice to node1 and adds routing from node2 to 1
   val exp7 = (wc appl docname4) + (wc appl docname3)
 
+  val exp8 = nack appl
+
   expNum match {
     case 1 => doExp(exp1)
     case 2 => doExp(exp2)
@@ -177,12 +181,13 @@ object PaperExperiment extends App {
     case 5 => doExp(exp5_1); Thread.sleep(2000); doExp(exp5_2)
     case 6 => doExp(exp6)
     case 7 => doExp(exp7)
+    case 8 => doExp(exp8)
     case _ => throw new Exception(s"expNum can only be 1 to 7 and not $expNum")
   }
 
   def doExp(exprToDo: Expr) = {
     import AkkaConfig.timeout
-    var startTime = System.currentTimeMillis()
+    val startTime = System.currentTimeMillis()
     node1 ? exprToDo onComplete {
       case Success(content) => {
         val totalTime = System.currentTimeMillis - startTime

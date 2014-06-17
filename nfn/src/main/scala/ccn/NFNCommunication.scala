@@ -65,7 +65,7 @@ object NFNCommunication extends Logging {
           case content @ <contentobj>{_*}</contentobj> => {
             val nameComponents = parseComponents(content)
             val contentData = parseContentData(content)
-            if(new String(contentData).startsWith("NACK")) {
+            if(new String(contentData).startsWith(":NACK")) {
               NAck(CCNName(nameComponents :_*))
             } else {
               Content(contentData, nameComponents :_*)

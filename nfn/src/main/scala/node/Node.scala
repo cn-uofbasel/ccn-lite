@@ -144,7 +144,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
       nodeConfig.maybeNFNNodeConfig.zip(nodeConfig.maybeComputeNodeConfig) map { case (nfnConfig, computeNodeConfig) =>
         if(!nfnConfig.isCCNOnly) {
           ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), computeNodeConfig.host, computeNodeConfig.port)
-          ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
+//          ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
           Monitor.monitor ! Monitor.ConnectLog(computeNodeConfig.toNodeLog, nfnNodeConfig.toNodeLog)
           Monitor.monitor ! Monitor.ConnectLog(nfnNodeConfig.toNodeLog, computeNodeConfig.toNodeLog)
         }
@@ -283,7 +283,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    */
   def sendReceive(req: Interest)(implicit useThunks: Boolean): Future[Content] = {
     (nfnMaster ? NFNApi.CCNSendReceive(req, useThunks)).mapTo[CCNPacket] map {
-      case n: NAck => throw new Exception("NACK")
+      case n: NAck => throw new Exception(":NACK")
       case c: Content => c
       case i: Interest => throw new Exception("An interest was returned, this should never happen")
     }

@@ -16,6 +16,7 @@ using namespace rapidjson;
 
 const short INTEREST_TO = 1;
 const short CONTENT_TO = 2;
+const short NACK_TO = 0;
 
 class Node : public cSimpleModule
 {
@@ -149,7 +150,7 @@ void Node::handleMessage(cMessage *msg)
             delete interestTo;
         }
 
-    } else if(msg->getKind() == CONTENT_TO) {
+    } else if(msg->getKind() == CONTENT_TO || msg->getKind() == NACK_TO) {
 
         ContentTo *contentTo = check_and_cast<ContentTo *>(msg);
         if(contentTo->getIsSend()) {
@@ -205,7 +206,7 @@ void Node::scheduleInterestToMessage(string host, int port, string toPrefix, str
 void Node::scheduleContentToMessage(string host, int port, string toPrefix, string name, string data, long timeMillis)
 {
     char msgname[100];
-    sprintf(msgname, "interest(%s)", name.c_str());
+    sprintf(msgname, "content(%s)", name.c_str());
 
     ContentTo *msg = new ContentTo(msgname);
 
@@ -217,7 +218,11 @@ void Node::scheduleContentToMessage(string host, int port, string toPrefix, stri
     msg->setToPrefix(toPrefix.c_str());
 
     // Omnet simulation parameters
-    msg->setKind(CONTENT_TO);
+    if(strcmp(data.c_str(), ":NACK") == 0) {
+        msg->setKind(NACK_TO);
+    } else {
+        msg->setKind(CONTENT_TO);
+    }
     msg->setIsSend(true);
 
     // schedule in milliseconds (exponent of -3)

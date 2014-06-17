@@ -6,7 +6,7 @@ import ccn.ccnlite.CCNLite
 import ccn.packet.{CCNName, Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import nfn.service.{NFNValue, NFNService, CallableNFNService}
+import nfn.service.{NFNServiceExecutionException, NFNValue, NFNService, CallableNFNService}
 import scala.util.{Failure, Success}
 import myutil.IOHelper
 import ComputeWorker._
@@ -78,10 +78,17 @@ case class ComputeWorker(ccnServer: ActorRef) extends Actor {
         case Some(futCallable) => {
           futCallable onComplete {
             case Success(callable) => {
-              val result: NFNValue = callable.exec
-              val content = Content(name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
-              logger.info(s"Finished computation, result: $content")
-              senderCopy ! content
+              try {
+                val result: NFNValue = callable.exec
+                val content = Content(name.withoutThunkAndIsThunk._1, result.toStringRepresentation.getBytes)
+                logger.info(s"Finished computation, result: $content")
+                senderCopy ! content
+              } catch {
+                case e: NFNServiceExecutionException => {
+                  logger.error(e, s"Error when executing the service $name, return a NACK to the sender.")
+                  senderCopy ! Content(name, ":NACK".getBytes)
+                }
+              }
             }
             case Failure(e) => {
               logger.error(e, "There was an error when creating the callable service")

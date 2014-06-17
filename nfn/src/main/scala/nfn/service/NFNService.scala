@@ -191,7 +191,6 @@ trait NFNService {
 
   def ccnName: CCNName = CCNName(this.getClass.getCanonicalName.replace(".", "_"))
 
-
   def pinned: Boolean = false
 
   override def toString = ccnName.toString
