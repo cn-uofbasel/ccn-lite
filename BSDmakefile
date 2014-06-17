@@ -5,7 +5,7 @@ CC=gcc
 MYCFLAGS=-Wall -g -O0
 EXTLIBS=  -lcrypto
 
-NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR
+NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR -DCCNL_NACK
 
 INST_PROGS= ccn-lite-relay \
 	    ccn-nfn-relay \
