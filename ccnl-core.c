@@ -529,11 +529,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #ifdef CCNL_NFN
     if(i->propagate == 0) return i->next;
 #endif
-#ifdef CCNL_NACK
-    if(i->from->faceid > 0){
-        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
-    }
-#endif
     struct ccnl_interest_s *i2;
     int it;
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
@@ -573,6 +568,12 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
 #ifdef CCNL_NFN
     if(i != 0 && i->from != 0){
             faceid = i->from->faceid;
+    }
+#endif
+#ifdef CCNL_NACK
+    DEBUGMSG(99, "FROM FACEID: %d", faceid);
+    if(faceid >= 0){
+        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
     }
 #endif
     interest = ccnl_interest_remove(ccnl, i);
