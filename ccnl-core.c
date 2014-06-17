@@ -908,4 +908,25 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 	break;
     }
 }
+
+#ifdef CCNL_NACK
+#include "ccnl-objects.c"
+
+void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+                     struct ccnl_face_s *from, int suite){
+    DEBUGMSG(99, "ccnl_nack_reply()\n");
+    if(from->faceid <= 0){
+        return;
+    }
+    struct ccnl_content_s *nack = create_content_object(ccnl, prefix, ":NACK", 5, suite);
+#ifdef CCNL_NFN_MONITOR
+     char monitorpacket[CCNL_MAX_PACKET_SIZE];
+     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
+            ntohs(from->peer.ip4.sin_port),
+            nack->name, (char*)nack->content, nack->contentlen, monitorpacket);
+     sendtomonitor(ccnl, monitorpacket, l);
+#endif
+    ccnl_face_enqueue(ccnl, from, nack->pkt);
+}
+#endif
 // eof
