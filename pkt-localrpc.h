@@ -28,8 +28,26 @@
 // data marshalling
 #define NDN_TLV_RPC_SEQUENCE		0x82
 #define NDN_TLV_RPC_ASCII		0x83
-#define NDN_TLV_RPC_INT			0x84
-#define NDN_TLC_RPC_BIN			0x85
+#define NDN_TLV_RPC_NONNEGINT		0x84
+#define NDN_TLV_RPC_BIN			0x85
+
+
+struct rdr_ds_s { // RPC Data Representation data structure
+    int type;
+    int flatlen;
+    unsigned char *flat;
+    union {
+	unsigned int nonnegintval;
+	int asciilen;
+	int binlen;
+	struct rdr_ds_s *nextinseq;
+	struct rdr_ds_s *lambdavar;
+	struct rdr_ds_s *appexpr;
+    } u;
+    struct rdr_ds_s *aux;
+};
+
+#define NDN_TLV_RPC_SERIALIZED		-1
 
 // prototypes for fwd-localrpc.c:
 int ccnl_localrpc_RX_rpcreturn();
