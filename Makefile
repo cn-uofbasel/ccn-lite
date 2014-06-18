@@ -53,7 +53,7 @@ ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 ccn-lite-simu: ccn-lite-simu.c  ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
-	ccnl-ext-frag.c ccnl-ext-sched.c ccnl-simu-client.c
+	ccnl-ext-frag.c ccnl-ext-sched.c ccnl-simu-client.c ccnl-util.c
 	${EXTMAKE}
 	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
 
