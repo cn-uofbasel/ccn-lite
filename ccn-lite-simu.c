@@ -49,12 +49,14 @@ void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 #include "ccnl-core.c"
+#include "ccnl-util.c"
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "pkt-ccnb-enc.c"
 #include "pkt-ndntlv-enc.c"
 #include "ccnl-ext-frag.c"
+
 
 char suite = CCNL_SUITE_CCNB;
 
