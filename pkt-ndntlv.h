@@ -75,4 +75,10 @@ Values		Designation
 >32767		For application use (3-byte encoding)
 */
 
+// prototypes:
+
+// int ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val);
+unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
+int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
+
 // eof

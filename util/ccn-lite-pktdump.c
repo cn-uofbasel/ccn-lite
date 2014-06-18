@@ -1,6 +1,7 @@
 /*
  * @f util/ccn-lite-pktdump.c
  * @b CCN lite - dumps CCNB, CCN-TLV and NDN-TLV encoded packets
+ *               as well as RPC data structures
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -36,11 +37,13 @@
 #include "../pkt-ccnb-dec.c"
 #include "../pkt-ccntlv-dec.c"
 #include "../pkt-ndntlv-dec.c"
+#include "../pkt-localrpc.h"
 
 enum {
     SUITE_CCNB = 0,
     SUITE_CCNTLV,
-    SUITE_NDNTLV
+    SUITE_NDNTLV,
+    SUITE_LOCRPC
 };
 
 void
@@ -52,7 +55,7 @@ hexdump(int lev, unsigned char *base, unsigned char *cp, int len)
 	maxi = len > 8 ? 8 : len;
 
 	printf("%04zx  ", cp - base);
-	for (i = 0; i < lev+1; i++)
+	for (i = 0; i <= lev; i++)
 	    printf("  ");
 	for (i = 0; i < 8; i++)
 	    printf(i < maxi ? "%02x " : "   ", i < maxi ? cp[i] : 0);
@@ -192,16 +195,6 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
 	    }
 	    printf(">\n");
 	    hexdump(lev, base, *buf, num);
-/*
-		for (i = 0; i < num; i++) {
-		    if ((i%8) == 0) {
-			printf("\n%04zx  ", *buf - base + i);
-			for (j = 0; j < lev; j++) printf("  ");
-		    }
-		    printf(" %02x", (*buf)[i]);
-		}
-		printf("\n");
-*/
 	    *buf += num;
 	    *len -= num;
 	    break;
@@ -613,20 +606,148 @@ ndn_init()
 // ----------------------------------------------------------------------
 
 int
+localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
+{
+    int typ, vallen, i;
+    unsigned char *cp;
+    char *n, tmp[100], dorecurse;
+
+    while (*len > 0) {
+	cp = *buf;
+
+	dorecurse = 0;
+	if (*cp < NDN_TLV_RPC_APPLICATION) {
+	    sprintf(tmp, "Variable=v%02x", *cp);
+	    n = tmp;
+	    *buf += 1;
+	    *len -= 1;
+	    vallen = 0;
+	} else {
+	    if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
+		return -1;
+	    if (vallen > *len) {
+		fprintf(stderr, "\n%04zx ** NDN_TLV_RPC length problem:\n"
+			"  type=%hu, len=%hu larger than %d available bytes\n",
+			cp - base, typ, vallen, *len);
+		exit(-1);
+	    }
+	    switch(typ) {
+	    case NDN_TLV_RPC_APPLICATION:
+		n = "Application"; dorecurse = 1; break;
+	    case NDN_TLV_RPC_LAMBDA:
+		n = "Lambda"; dorecurse = 1; break;
+	    case NDN_TLV_RPC_SEQUENCE:
+		n = "Sequence"; dorecurse = 1; break;
+	    case NDN_TLV_RPC_INT:
+		n = "Integer"; break;
+	    case NDN_TLV_RPC_ASCII:
+		n = "ASCII"; break;
+	    case NDN_TLC_RPC_BIN:
+		n = "BinaryData"; break;
+	    default:
+		sprintf(tmp, "Type=0x%x", typ);
+		n = tmp;
+		break;
+	    }
+	}
+
+	printf("%04zx  ", cp - base);
+	for (i = 0; i < lev; i++)
+	    printf("  ");
+	for (; cp < *buf; cp++)
+	    printf("%02x ", *cp);
+	printf("-- <%s, len=%d>\n", n, vallen);
+
+	if (dorecurse) {
+	    localrpc_parse(lev+1, base, buf, len);
+	    continue;
+	}
+
+	if (typ == NDN_TLV_RPC_INT) {
+	    printf("%04zx  ", *buf - base);
+	    for (i = 0; i <= lev; i++)
+		printf("  ");
+	    printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
+	} else if (typ == NDN_TLV_RPC_ASCII) {
+	    printf("%04zx  ", *buf - base);
+	    for (i = 0; i <= lev; i++)
+		printf("  ");
+	    strcpy(tmp, "\"");
+	    i = sizeof(tmp) - 6;
+	    if (vallen < i)
+		i = vallen;
+	    memcpy(tmp+1, *buf, i);
+	    strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
+	    printf("%s\n", tmp);
+	} else if (vallen > 0)
+	    hexdump(lev, base, *buf, vallen);
+	*buf += vallen;
+	*len -= vallen;
+    }
+    return 0;
+}
+
+static void
+localrpc_201405(unsigned char *data, int len)
+{
+    unsigned char *buf = data;
+
+    int origlen = len, typ, vallen, typ2, vallen2, len2;
+    unsigned char *cp;
+
+    if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
+					typ != NDN_TLV_RPC_APPLICATION)
+	return;
+
+    cp = buf;
+    len2 = vallen;
+    if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
+	return;
+    if (typ2 == NDN_TLV_RPC_INT) { // RPC return code
+	printf("0000  RPC-result\n");
+	printf("%04zx    INT %ld\n", cp - data,
+	       ccnl_ndntlv_nonNegInt(buf, vallen2));
+	buf += vallen2;
+	len = origlen - (buf - data);
+	localrpc_parse(1, data, &buf, &len);
+    } else { // RPC request
+	buf = data;
+	localrpc_parse(0, data, &buf, &origlen);
+    }
+
+    printf("%04zx  pkt.end\n", buf - data);
+}
+
+// ----------------------------------------------------------------------
+
+int
 pkt2suite(unsigned char *data, int len)
 {
     if (len < 1)
 	return -1;
 
-    if (*data == 0x01 || *data == 0x04)
+    switch (*data) {
+
+    case 0x01:
+    case 0x04:
 	return SUITE_CCNB;
 
-    if (*data == 0x05 || *data == 0x06)
+    case 0x05:
+    case 0x06:
         return SUITE_NDNTLV;
 
-    if (data[0] == 0 && len > 1 &&
-	(data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
+    case 0x80:
+        return SUITE_LOCRPC;
+
+    case 0x00:
+	if (len > 1 &&
+	    (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
             return SUITE_CCNTLV;
+	// fall through
+
+    default:
+	break;
+    }
 
     return -1;
 }
@@ -689,6 +810,10 @@ main(int argc, char *argv[])
     case SUITE_NDNTLV:
 	printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
 	ndntlv_201311(data, len);
+	break;
+    case SUITE_LOCRPC:
+	printf("#   %s NDN TLV format, local RPC (May 2014)\n#\n", forced);
+	localrpc_201405(data, len);
 	break;
     default:
 	printf("#   unknown pkt format, showing plain hex\n");
