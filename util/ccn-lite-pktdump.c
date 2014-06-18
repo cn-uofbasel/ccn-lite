@@ -638,11 +638,11 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
 		n = "Lambda"; dorecurse = 1; break;
 	    case NDN_TLV_RPC_SEQUENCE:
 		n = "Sequence"; dorecurse = 1; break;
-	    case NDN_TLV_RPC_INT:
+	    case NDN_TLV_RPC_NONNEGINT:
 		n = "Integer"; break;
 	    case NDN_TLV_RPC_ASCII:
 		n = "ASCII"; break;
-	    case NDN_TLC_RPC_BIN:
+	    case NDN_TLV_RPC_BIN:
 		n = "BinaryData"; break;
 	    default:
 		sprintf(tmp, "Type=0x%x", typ);
@@ -663,7 +663,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
 	    continue;
 	}
 
-	if (typ == NDN_TLV_RPC_INT) {
+	if (typ == NDN_TLV_RPC_NONNEGINT) {
 	    printf("%04zx  ", *buf - base);
 	    for (i = 0; i <= lev; i++)
 		printf("  ");
@@ -703,7 +703,7 @@ localrpc_201405(unsigned char *data, int len)
     len2 = vallen;
     if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
 	return;
-    if (typ2 == NDN_TLV_RPC_INT) { // RPC return code
+    if (typ2 == NDN_TLV_RPC_NONNEGINT) { // RPC return code
 	printf("0000  RPC-result\n");
 	printf("%04zx    INT %ld\n", cp - data,
 	       ccnl_ndntlv_nonNegInt(buf, vallen2));
