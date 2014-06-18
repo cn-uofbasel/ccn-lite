@@ -25,4 +25,13 @@
 
 // this is a place holder file
 
+int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+		    unsigned char **data, int *datalen)
+{
+    DEBUGMSG(6, "ccnl_RX_localrpc: %d bytes from face=%p (id=%d.%d) -- ignored\n",
+	     *datalen, (void*)from, relay->id, from ? from->faceid : -1);
+
+    return -1;
+}
+
 // eof
