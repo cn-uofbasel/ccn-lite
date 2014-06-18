@@ -297,6 +297,15 @@ compile_string(void)
 #ifdef USE_UNIXSOCKET
 	"USE_UNIXSOCKET "
 #endif
+#ifdef CCNL_NFN
+    "USE_NFN "
+#endif
+#ifdef CCNL_NFN_MONITOR
+    "USE_NFN_MONITOR "
+#endif
+#ifdef CCNL_NACK
+    "USE_NACK "
+#endif
 	;
   return cp;
 }
