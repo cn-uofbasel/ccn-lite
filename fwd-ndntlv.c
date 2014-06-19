@@ -225,7 +225,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             i->propagate = 0; //do not forward interests for running computations
             ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, NULL, i, CCNL_SUITE_NDNTLV);
+            if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, NULL, i, CCNL_SUITE_NDNTLV, 0);
             goto Done;
         }
 #endif /*CCNL_NFN*/
