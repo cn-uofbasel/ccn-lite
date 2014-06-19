@@ -35,9 +35,9 @@
 // #define USE_FRAG
 // #define USE_ETHERNET
 #define USE_HTTP_STATUS
-// #define USE_MGMT
+#define USE_MGMT
 #define USE_SCHEDULER
-// #define USE_SUITE_CCNB
+#define USE_SUITE_CCNB
 // #define USE_SUITE_CCNTLV
 // #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
@@ -57,6 +57,7 @@
 #define ccnl_app_RX(x,y)		do{}while(0)
 #define ccnl_print_stats(x,y)		do{}while(0)
 
+#include "ccnl-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-http.c"
@@ -704,7 +705,7 @@ main(int argc, char **argv)
 		    " [-g MIN_INTER_PACKET_INTERVAL]"
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
 		    " [-s SUITE (0=ccnb, 2=ndntlv)"
-		    " [-t tcpport]"
+		    " [-t tcpport (for HTML status page)]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
 

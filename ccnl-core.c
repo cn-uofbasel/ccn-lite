@@ -756,30 +756,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #  include "fwd-ndntlv.c"
 #endif
 
-int
-ccnl_pkt2suite(unsigned char *data, int len)
-{
-#ifdef USE_SUITE_CCNB
-    if (*data == 0x01 || *data == 0x04)
-	return CCNL_SUITE_CCNB;
-#endif
-
-#ifdef USE_SUITE_CCNTLV
-    if (data[0] == 0 && len > 1) {
-	if (data[1] == CCNX_TLV_TL_Interest ||
-	    data[1] == CCNX_TLV_TL_Object)
-	    return CCNL_SUITE_CCNTLV;
-    }
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-    if (*data == 0x05 || *data == 0x06)
-	return CCNL_SUITE_NDNTLV;
-#endif
-
-    return -1;
-}
-
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 	     int datalen, struct sockaddr *sa, int addrlen)

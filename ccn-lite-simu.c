@@ -48,8 +48,8 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
-#include "ccnl-core.c"
 #include "ccnl-util.c"
+#include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"

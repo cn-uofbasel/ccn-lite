@@ -36,7 +36,7 @@
 
 #include "pkt-ccnb.h"
 #include "pkt-ccnb-enc.c"
-#include "ccnl.h"
+// #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 
