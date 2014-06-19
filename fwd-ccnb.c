@@ -192,7 +192,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
             i->propagate = 0; //do not forward interests for running computations
             ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB);
+            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB, 0);
             goto Done;
         }
 #endif /*CCNL_NFN*/
@@ -253,6 +253,15 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         }
         if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
             struct ccnl_interest_s *i_it = NULL;
+#ifdef CCNL_NACK
+            if(!memcmp(c->content, ":NACK", 5)){
+                DEBUGMSG(99, "Handle NACK packet: local compute!\n");
+                struct ccnl_buf_s *buf2 = buf; // c->pkt
+                struct ccnl_prefix_s *p2 = p; // c->name
+                ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from, NULL, CCNL_SUITE_CCNB);
+                goto Done;
+            }
+#endif // CCNL_NACK
             int found = 0;
             for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
                  //Check if prefix match and it is a nfn request
@@ -278,7 +287,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if(found) goto Done;
             DEBUGMSG(99, "no running computation found \n");
         }
-#endif
+#endif //CCNL_NFN
         if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");

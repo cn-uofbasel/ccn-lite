@@ -35,8 +35,19 @@
 #include "json.c"
 #endif
 
+int
+ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+        struct configuration_s *config, struct ccnl_interest_s *interest,
+         int suite, int start_locally);
+
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
+
+void
+ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+                                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+                                  struct configuration_s *config, int suite);
 
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                      struct ccnl_face_s *from, int suite);
@@ -571,7 +582,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     }
 #endif
 #ifdef CCNL_NACK
-    DEBUGMSG(99, "FROM FACEID: %d", faceid);
+    DEBUGMSG(99, "FROM FACEID: %d\n", faceid);
     if(faceid >= 0){
         ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
     }
