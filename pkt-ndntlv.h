@@ -21,7 +21,7 @@
  */
 
 #define NDN_UDP_PORT			6363
-
+#define NDN_DEFAULT_MTU			4096
 
 // Packet types:
 #define NDN_TLV_Interest 		0x05

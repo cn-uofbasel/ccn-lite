@@ -761,16 +761,16 @@ main(int argc, char *argv[])
     int len, maxlen, suite = -1;
 
     ndn_init();
-    while ((opt = getopt(argc, argv, "he:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:")) != -1) {
         switch (opt) {
-        case 'e':
+        case 's':
             suite = atoi(optarg);
             break;
 	default:
 	help:
             fprintf(stderr, "usage: %s [options] <encoded_data\n"
 		    "  -h           this help\n"
-		    "  -e ENCODING  (0=ccnb, 1=ccntlv, 2=ndntlv)\n",
+		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n",
 		    argv[0]);
             exit(1);
 	}

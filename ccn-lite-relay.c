@@ -29,17 +29,17 @@
 
 #define CCNL_UNIX
 
-#define USE_CCNxDIGEST
+// #define USE_CCNxDIGEST
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_FRAG
-#define USE_ETHERNET
+// #define USE_FRAG
+// #define USE_ETHERNET
 #define USE_HTTP_STATUS
 // #define USE_MGMT
 #define USE_SCHEDULER
-#define USE_SUITE_CCNB
+// #define USE_SUITE_CCNB
 // #define USE_SUITE_CCNTLV
-#define USE_SUITE_LOCALRPC
+// #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
@@ -67,7 +67,7 @@
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
+char suite = CCNL_SUITE_NDNTLV; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
 
 struct timeval*
 ccnl_run_events()
@@ -308,7 +308,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
-		  int tcpport, char *uxpath, int max_cache_entries,
+		  int tcpport, char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
     struct ccnl_if_s *i;
@@ -345,7 +345,15 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
 //	i->frag = CCNL_DGRAM_FRAG_NONE;
-	i->mtu = CCN_DEFAULT_MTU;
+
+#ifdef USE_SUITE_CCNB
+	if (suite == CCNL_SUITE_CCNB)
+	    i->mtu = CCN_DEFAULT_MTU;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	if (suite == CCNL_SUITE_NDNTLV)
+	    i->mtu = NDN_DEFAULT_MTU;
+#endif
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
 	    relay->ifcount++;
@@ -506,19 +514,34 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 
 void
-ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
+ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 {
     DIR *dir;
     struct dirent *de;
     int datalen;
+    char *suffix;
 
     DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
+
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	suffix = "*.ccnb"; break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+	suffix = "*.ndntlv"; break;
+#endif
+    default:
+	fprintf(stderr, "unknown suite and encoding, cannot populate cache.\n");
+	return;
+    }
 
     dir = opendir(path);
     if (!dir)
 	return;
     while ((de = readdir(dir))) {
-	if (!fnmatch("*.ccnb", de->d_name, FNM_NOESCAPE)) {
+	if (!fnmatch(suffix, de->d_name, FNM_NOESCAPE)) {
 	    char fname[1000];
 	    struct stat s;
 	    strcpy(fname, path);
@@ -542,25 +565,46 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 							s.st_size);
 		datalen = read(fd, buf->data, s.st_size);
 		close(fd);
-		if (datalen == s.st_size && datalen >= 2 &&
-			    buf->data[0] == 0x04 && buf->data[1] == 0x82) {
+		if (datalen == s.st_size && datalen >= 2) {
 		    struct ccnl_prefix_s *prefix = 0;
 		    struct ccnl_content_s *c = 0;
 		    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-		    unsigned char *content, *data = buf->data + 2;
-		    int contlen;
+		    unsigned char *content, *data;
+		    int contlen, typ, len;
 
 		    buf->datalen = datalen;
-		    datalen -= 2;
-		    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+		    switch (suite) {
+#ifdef USE_SUITE_CCNB
+		    case CCNL_SUITE_CCNB:
+			if (buf->data[0] != 0x04 || buf->data[1] != 0x82)
+			    goto notacontent;
+			data = buf->data + 2;
+			datalen -= 2;
+			pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
 				&prefix, &nonce, &ppkd, &content, &contlen);
+			break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+		    case CCNL_SUITE_NDNTLV:
+			data = buf->data;
+			if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
+			    typ != NDN_TLV_Data)
+			    goto notacontent;
+			pkt = ccnl_ndntlv_extract(data - buf->data,
+						  &data, &datalen, 0, 0, 0, 0,
+				&prefix, &nonce, &ppkd, &content, &contlen);
+			break;
+#endif
+		    default:
+			goto Done;
+		    }
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }
 		    if (!prefix) {
 			DEBUGMSG(6, "  no prefix error\n"); goto Done;
 		    }
-		    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix,
+		    c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
 					 &ppkd, content, contlen);
 		    if (!c)
 			goto Done;
@@ -573,6 +617,7 @@ Done:
 		    ccnl_free(nonce);
 		    ccnl_free(ppkd);
 		} else {
+notacontent:
 		    DEBUGMSG(6, "  not a content object\n");
 		    ccnl_free(buf);
 		}
@@ -588,8 +633,7 @@ main(int argc, char **argv)
 {
     int opt;
     int max_cache_entries = -1;
-    int udpport = CCN_UDP_PORT;
-    int tcpport = CCN_UDP_PORT;
+    int udpport, tcpport;
     char *datadir = NULL;
     char *ethdev = NULL;
     char *crypto_sock_path = 0;
@@ -679,9 +723,9 @@ main(int argc, char **argv)
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
     ccnl_relay_config(&theRelay, ethdev, udpport, tcpport,
-		      uxpath, max_cache_entries, crypto_sock_path);
+		      uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
-	ccnl_populate_cache(&theRelay, datadir);
+	ccnl_populate_cache(&theRelay, datadir, suite);
     
     ccnl_io_loop(&theRelay);
 
