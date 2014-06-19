@@ -114,10 +114,28 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope,
 	    return -1;
     }
 
+    {
+	unsigned char lifetime[2] = { 0x0f, 0xa0 };
+	unsigned char mustbefresh[2] = { 0x12, 0x00 };
+
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
+				    offset, buf) < 0)
+	    return -1;
+
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+				    offset, buf) < 0)
+	    return -1;
+
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
+				    offset, buf) < 0)
+	    return -1;
+    }
+
+/*
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
 				offset, buf) < 0)
 	return -1;
-
+*/
     for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
     while (--cnt >= 0) {

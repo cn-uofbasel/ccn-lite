@@ -2,7 +2,7 @@
  * @f util/ccn-lite-peek.c
  * @b request content: send an interest, wait for reply, output to stdout
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,15 +18,19 @@
  *
  * File history:
  * 2013-04-06  created
+ * 2014-06-18  added NDNTLV support
  */
 
 #include <ctype.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -37,13 +41,24 @@
 
 
 #define USE_SUITE_CCNB
+#define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
+#include "../ccnl-util.c"
 
 #include "ccnl-common.c"
-#include "../pkt-ccnb.h"
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccnb-enc.c"
+
+#ifdef USE_SUITE_CCNB
+# include "../pkt-ccnb.h"
+# include "../pkt-ccnb-dec.c"
+# include "../pkt-ccnb-enc.c"
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+# include "../pkt-ndntlv.h"
+# include "../pkt-ndntlv-dec.c"
+# include "../pkt-ndntlv-enc.c"
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -60,35 +75,7 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
-}
-
-int
-peek_mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
+peek_mkCcnbInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 {
     int len = 0, k;
     unsigned char *cp;
@@ -116,6 +103,19 @@ peek_mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 	len += sizeof(unsigned int);
     }
     out[len++] = 0; // end-of-interest
+
+    return len;
+}
+
+
+int
+peek_mkNdntlvInterest(char **namecomp, unsigned char *out, int outlen)
+{
+    int len, offset;
+
+    offset = outlen;
+    len = ccnl_ndntlv_mkInterest(namecomp, -1, &offset, out);
+    memmove(out, out + offset, len);
 
     return len;
 }
@@ -251,14 +251,18 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[8*1024];
-    int i = 0, len, opt, sock = 0;
+    int i = 0, len, opt, sock = 0, suite = 2;
     char *prefix[CCNL_MAX_NAME_COMP], *cp, *dest;
-    char *udp = "127.0.0.1/9695", *ux = NULL;
+//    char *udp = "127.0.0.1/9695", *ux = NULL;
+    char *udp = "127.0.0.1/6363", *ux = NULL;
     float wait = 3.0;
     int (*sendproc)(int,char*,unsigned char*,int);
 
-    while ((opt = getopt(argc, argv, "hu:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
+        case 's':
+	    suite = atoi(optarg);
+	    break;
         case 'u':
 	    udp = optarg;
 	    break;
@@ -273,7 +277,9 @@ main(int argc, char *argv[])
 Usage:
 	    fprintf(stderr, "usage: %s "
 	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
-	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
+	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
+//	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
+	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n",
 	    argv[0]);
@@ -283,13 +289,26 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
+
+    srandom(time(NULL)); // random() is  used in mkNdntlvInterest()
+
     cp = strtok(argv[optind], "/");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	prefix[i++] = cp;
 	cp = strtok(NULL, "/");
     }
     prefix[i] = NULL;
-    len = peek_mkInterest(prefix, NULL, out);
+    if (suite == 0)
+	len = peek_mkCcnbInterest(prefix, NULL, out);
+    else if (suite == 1) {
+	printf("CCNx-TLV not supported at this time, aborting\n");
+	exit(-1);
+    } else
+	len = peek_mkNdntlvInterest(prefix, out, sizeof(out));
+
+    i = creat("pkt.bin", S_IRWXU);
+    write(i, out, len);
+    close(i);
 
     if (ux) { // use UNIX socket
 	dest = ux;
