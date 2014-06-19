@@ -29,7 +29,6 @@
 #include "pkt-ccnb.h"
 //#include "pkt-ccnb.c"
 #include "ccnl-includes.h"
-#include "ccnl.h"
 #include "ccnl-ext-mgmt.c"
 
 char buf[64000];

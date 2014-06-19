@@ -51,3 +51,37 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 
 // ----------------------------------------------------------------------
 
+int
+ccnl_pkt2suite(unsigned char *data, int len)
+{
+    if (len <= 0)
+	return -1;
+
+#ifdef USE_SUITE_CCNB
+    if (*data == 0x01 || *data == 0x04)
+	return CCNL_SUITE_CCNB;
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+    if (data[0] == 0 && len > 1) {
+	if (data[1] == CCNX_TLV_TL_Interest ||
+	    data[1] == CCNX_TLV_TL_Object)
+	    return CCNL_SUITE_CCNTLV;
+    }
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+    if (*data == 0x05 || *data == 0x06)
+	return CCNL_SUITE_NDNTLV;
+#endif
+
+#ifdef USE_SUITE_LOCALRPC
+    if (*data == 0x80)
+	return CCNL_SUITE_LOCALRPC;
+#endif
+
+    return -1;
+}
+
+// ----------------------------------------------------------------------
+

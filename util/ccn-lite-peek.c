@@ -44,21 +44,29 @@
 #define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
-#include "../ccnl-util.c"
 
 #include "ccnl-common.c"
 
 #ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb.h"
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+# include "../pkt-ndntlv.h"
+#endif
+
+#include "../ccnl-util.c"
+
+#ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-# include "../pkt-ndntlv.h"
 # include "../pkt-ndntlv-dec.c"
 # include "../pkt-ndntlv-enc.c"
 #endif
+
 
 // ----------------------------------------------------------------------
 
@@ -239,20 +247,30 @@ request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
 	if (block_on_read(sock, wait) <= 0)
 	    break;
 	len2 = recv(sock, buf, sizeof(buf), 0);
+	fprintf(stderr, "received %d bytes\n", len2);
 	cp = buf;
 	len = len2;
+	switch(ccnl_pkt2suite(buf, len)) {
 #ifdef USE_SUITE_CCNB
-	if (len2 < 0 || ccnl_ccnb_dehead(&cp, &len, &dummy, &typ))
+	case CCNL_SUITE_CCNB:
+	    if (len2 < 0 || ccnl_ccnb_dehead(&cp, &len, &dummy, &typ))
+		return;
+	    if (typ != CCN_TT_DTAG || dummy != CCN_DTAG_CONTENTOBJ)
+		continue;
 	    break;
-	if (typ != CCN_TT_DTAG || dummy != CCN_DTAG_CONTENTOBJ)
-	    continue;
 #endif
-#ifdef USE_SUITE_CCNB
-	if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &dummy))
+
+#ifdef USE_SUITE_NDNTLV
+	case CCNL_SUITE_NDNTLV:
+	    if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &dummy))
+		return;
+	    if (typ != NDN_TLV_Data)
+		continue;
 	    break;
-	if (typ != NDN_TLV_Data)
-	    continue;
 #endif
+	default:
+	    return;
+	}
 	write(1, buf, len2);
 	myexit(0);
     }
