@@ -87,18 +87,18 @@ mkContent(char **namecomp,
 {
     int len = 0, k;
 
-    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
 
     // add signature
 #ifdef USE_SIGNATURES
     if(private_key_path)
         len += add_signature(out+len, private_key_path, body, blen);  
 #endif
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
 	k = unescape_component((unsigned char*) *namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
 	len += k;
 	out[len++] = 0; // end-of-component
@@ -116,23 +116,23 @@ mkContent(char **namecomp,
 	*sec = htonl(t.tv_sec);
 	secfrac = (uint16_t*)(tstamp + 4);
 	*secfrac = htons(4048L * t.tv_usec / 1000000);
-	len += mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
+	len += ccnl_ccnb_mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
 	memcpy(out+len, tstamp, sizeof(tstamp));
 	len += sizeof(tstamp);
 	out[len++] = 0; // end-of-timestamp
 
-	len += mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-	len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-	len += mkHeader(out+len, plen, CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
+	len += ccnl_ccnb_mkHeader(out+len, plen, CCN_TT_BLOB);
 	memcpy(out+len, publisher, plen);
 	len += plen;
 	out[len++] = 0; // end-of-publisher
 	out[len++] = 0; // end-of-signedinfo
     }
 
-    len += mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len += mkHeader(out+len, blen, CCN_TT_BLOB);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkHeader(out+len, blen, CCN_TT_BLOB);
     memcpy(out + len, body, blen);
     len += blen;
     out[len++] = 0; // end-of-content

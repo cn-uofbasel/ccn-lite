@@ -26,7 +26,7 @@
 #define PKT_CCNB_ENC_C
 
 int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
+ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 {
     unsigned char tmp[100];
     int len = 0, i;
@@ -45,11 +45,11 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 }
 
 int
-addBlob(unsigned char *out, char *cp, int cnt)
+ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt)
 {
     int len;
 
-    len = mkHeader(out, cnt, CCN_TT_BLOB);
+    len = ccnl_ccnb_mkHeader(out, cnt, CCN_TT_BLOB);
     memcpy(out+len, cp, cnt);
     len += cnt;
 
@@ -57,30 +57,30 @@ addBlob(unsigned char *out, char *cp, int cnt)
 }
 
 int
-mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-       char *cp, int cnt)
+ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
+		 char *cp, int cnt)
 {
     int len;
 
-    len = mkHeader(out, num, tt);
-    len += addBlob(out+len, cp, cnt);
+    len = ccnl_ccnb_mkHeader(out, num, tt);
+    len += ccnl_ccnb_addBlob(out+len, cp, cnt);
     out[len++] = 0;
 
     return len;
 }
 
 int
-mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-	  char *str)
+ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
+		    char *str)
 {
-    return mkBlob(out, num, tt, str, strlen(str));
+    return ccnl_ccnb_mkBlob(out, num, tt, str, strlen(str));
 }
 
 int
-mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
-	    unsigned int val, int bytes)
+ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
+		      unsigned int val, int bytes)
 {
-    int len = mkHeader(out, num, tt);
+    int len = ccnl_ccnb_mkHeader(out, num, tt);
 
     if (!bytes) {
 	for (bytes = sizeof(val) - 1; bytes > 0; bytes--)
@@ -88,7 +88,7 @@ mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 		break;
 	bytes++;
     }
-    len += mkHeader(out+len, bytes, CCN_TT_BLOB);
+    len += ccnl_ccnb_mkHeader(out+len, bytes, CCN_TT_BLOB);
 
     while (bytes > 0) { // big endian
 	bytes--;
@@ -106,25 +106,25 @@ mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 // in one place only ?
 
 int
-mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
+ccnl_ccnb_mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 {
     int len = 0, k;
 
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
 	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
     if (nonce) {
-	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
 	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
 	len += sizeof(unsigned int);
     }
@@ -137,25 +137,26 @@ mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
 #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET)
 
 static int
-mkContent(char **namecomp, char *data, int datalen, unsigned char *out)
+ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
+		    unsigned char *out)
 {
     int len = 0, k;
 
-    len = mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
 	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
 
-    len += mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
-    len += mkHeader(out+len, datalen, CCN_TT_BLOB);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
+    len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
     memcpy(out+len, data, datalen);
     len += datalen;
     out[len++] = 0; // end-of-content obj

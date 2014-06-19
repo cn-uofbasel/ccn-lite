@@ -80,15 +80,15 @@ peek_mkCcnbInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
     int len = 0, k;
     unsigned char *cp;
 
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
     while (*namecomp) {
-	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
 	cp = (unsigned char*) strdup(*namecomp);
 	k = unescape_component(cp);
 	//	k = strlen(*namecomp);
-	len += mkHeader(out+len, k, CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, cp, k);
 	len += k;
 	out[len++] = 0; // end-of-component
@@ -97,8 +97,8 @@ peek_mkCcnbInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
     }
     out[len++] = 0; // end-of-name
     if (nonce) {
-	len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
 	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
 	len += sizeof(unsigned int);
     }
@@ -227,18 +227,23 @@ void
 request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
 		char *dest, unsigned char *out, int len, float wait)
 {
-    unsigned char buf[64*1024];
-    int len2 = sendproc(sock, dest, out, len), rc;
+    unsigned char buf[64*1024], *cp;
+    int len2 = sendproc(sock, dest, out, len), typ, vallen;
 
     if (len2 < 0) {
 	perror("sendto");
 	myexit(1);
     }
     
-    rc = block_on_read(sock, wait);
-    if (rc == 1) {
+    for (;;) {
+	if (block_on_read(sock, wait) <= 0)
+	    break;
 	len2 = recv(sock, buf, sizeof(buf), 0);
-	if (len2 > 0) {
+	cp = buf;
+	len = len2;
+	if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &vallen))
+	    break;
+	if (typ == NDN_TLV_Data) {
 	    write(1, buf, len2);
 	    myexit(0);
 	}
@@ -278,10 +283,10 @@ Usage:
 	    fprintf(stderr, "usage: %s "
 	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
-//	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
-	    "  -w timeout       in sec (float)\n",
+	    "  -w timeout       in sec (float)\n"
+	    "Example URI: /ndn/edu/wustl/ping\n",
 	    argv[0]);
 	    exit(1);
         }
@@ -299,7 +304,7 @@ Usage:
     }
     prefix[i] = NULL;
     if (suite == 0)
-	len = peek_mkCcnbInterest(prefix, NULL, out);
+	len = ccnl_ccnb_mkInterest(prefix, NULL, out);
     else if (suite == 1) {
 	printf("CCNx-TLV not supported at this time, aborting\n");
 	exit(-1);
@@ -322,7 +327,6 @@ Usage:
 
     for (i = 0; i < 3; i++) {
 	request_content(sock, sendproc, dest, out, len, wait);
-//	fprintf(stderr, "retry\n");
     }
     close(sock);
 
