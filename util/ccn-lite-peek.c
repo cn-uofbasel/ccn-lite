@@ -225,10 +225,10 @@ block_on_read(int sock, float wait)
 
 void
 request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
-		char *dest, unsigned char *out, int len, float wait)
+		char *dest, unsigned char *out, int len, float wait, int suite)
 {
     unsigned char buf[64*1024], *cp;
-    int len2 = sendproc(sock, dest, out, len), typ, vallen;
+    int len2 = sendproc(sock, dest, out, len), typ, dummy;
 
     if (len2 < 0) {
 	perror("sendto");
@@ -241,12 +241,20 @@ request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
 	len2 = recv(sock, buf, sizeof(buf), 0);
 	cp = buf;
 	len = len2;
-	if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &vallen))
+#ifdef USE_SUITE_CCNB
+	if (len2 < 0 || ccnl_ccnb_dehead(&cp, &len, &dummy, &typ))
 	    break;
-	if (typ == NDN_TLV_Data) {
-	    write(1, buf, len2);
-	    myexit(0);
-	}
+	if (typ != CCN_TT_DTAG || dummy != CCN_DTAG_CONTENTOBJ)
+	    continue;
+#endif
+#ifdef USE_SUITE_CCNB
+	if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &dummy))
+	    break;
+	if (typ != NDN_TLV_Data)
+	    continue;
+#endif
+	write(1, buf, len2);
+	myexit(0);
     }
 }
 
@@ -326,7 +334,7 @@ Usage:
     }
 
     for (i = 0; i < 3; i++) {
-	request_content(sock, sendproc, dest, out, len, wait);
+	request_content(sock, sendproc, dest, out, len, wait, suite);
     }
     close(sock);
 
