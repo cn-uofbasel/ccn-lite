@@ -794,6 +794,8 @@ main(int argc, char *argv[])
     }
 
     printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
+    if (len == 0)
+	goto done;
     if (suite == -1) {
 	suite = pkt2suite(data, len);
 	forced = "auto-detected";
@@ -818,6 +820,7 @@ main(int argc, char *argv[])
     default:
 	printf("#   unknown pkt format, showing plain hex\n");
 	hexdump(-1, data, data, len);
+done:
 	printf("%04x  pkt.end\n", len);
 	break;
     }

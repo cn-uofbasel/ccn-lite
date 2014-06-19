@@ -126,7 +126,8 @@ debug_free(void *p, const char *fn, int lno)
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
 	char *s; unsigned char *valptr; int vallen; \
-	if (consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) \
+		goto Bail; \
 	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
 	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
 	ccnl_free(VAR); \
@@ -137,7 +138,8 @@ debug_free(void *p, const char *fn, int lno)
 #define extractStr2(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
 	char *s; unsigned char *valptr; int vallen; \
-	if (consume(typ, num, buf, buflen, &valptr, &vallen) < 0) goto Bail; \
+	if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0) \
+		goto Bail; \
 	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
 	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
 	ccnl_free(VAR); \

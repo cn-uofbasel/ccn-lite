@@ -28,11 +28,11 @@
 // ----------------------------------------------------------------------
 // ccnb parsing support
 
-static int consume(int typ, int num, unsigned char **buf, int *len,
-		   unsigned char **valptr, int *vallen);
+static int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
+			     unsigned char **valptr, int *vallen);
 
 static int
-dehead(unsigned char **buf, int *len, int *num, int *typ)
+ccnl_ccnb_dehead(unsigned char **buf, int *len, int *num, int *typ)
 {
     int i;
     int val = 0;
@@ -58,21 +58,23 @@ dehead(unsigned char **buf, int *len, int *num, int *typ)
 }
 
 static int
-hunt_for_end(unsigned char **buf, int *len,
+ccnl_ccnb_hunt_for_end(unsigned char **buf, int *len,
 	     unsigned char **valptr, int *vallen)
 {
     int typ, num;
 
-    while (dehead(buf, len, &num, &typ) == 0) {
-	if (num==0 && typ==0)					return 0;
-	if (consume(typ, num, buf, len, valptr, vallen) < 0)	return -1;
+    while (ccnl_ccnb_dehead(buf, len, &num, &typ) == 0) {
+	if (num==0 && typ==0)
+	    return 0;
+	if (ccnl_ccnb_consume(typ, num, buf, len, valptr, vallen) < 0)
+	    return -1;
     }
     return -1;
 }
 
 static int
-consume(int typ, int num, unsigned char **buf, int *len,
-	unsigned char **valptr, int *vallen)
+ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
+		  unsigned char **valptr, int *vallen)
 {
     if (typ == CCN_TT_BLOB || typ == CCN_TT_UDATA) {
 	if (valptr)  *valptr = *buf;
@@ -81,14 +83,14 @@ consume(int typ, int num, unsigned char **buf, int *len,
 	return 0;
     }
     if (typ == CCN_TT_DTAG || typ == CCN_TT_DATTR)
-	return hunt_for_end(buf, len, valptr, vallen);
+	return ccnl_ccnb_hunt_for_end(buf, len, valptr, vallen);
 //  case CCN_TT_TAG, CCN_TT_ATTR:
 //  case DTAG, DATTR:
     return -1;
 }
 
 int
-data2uint(unsigned char *cp, int len)
+ccnl_ccnb_data2uint(unsigned char *cp, int len)
 {
     int i, val;
 
@@ -101,14 +103,14 @@ data2uint(unsigned char *cp, int len)
 }
 
 int
-unmkBinaryInt(unsigned char **data, int *datalen,
-	      unsigned int *result, unsigned char *width)
+ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
+			unsigned int *result, unsigned char *width)
 {
     unsigned char *cp = *data;
     int len = *datalen, typ, num;
     unsigned int val = 0;
 
-    if (dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
+    if (ccnl_ccnb_dehead(&cp, &len, &num, &typ) != 0 || typ != CCN_TT_BLOB)
 	return -1;
     if (width) {
       if (*width < num)
