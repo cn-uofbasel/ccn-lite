@@ -60,6 +60,8 @@ ccnl_http_new(struct ccnl_relay_s *ccnl, int serverport)
     }
     http->server = s;
 
+    DEBUGMSG(1, "HTTP status server listening at TCP port %d\n", serverport);
+
     return http;
 }
 
@@ -298,32 +300,8 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "<tr><td>nonces.max:"
 		   "<td align=right> %d<td>\n", CCNL_MAX_NONCES);
 
-    len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td>");
-#ifdef USE_DEBUG
-    len +=  sprintf(txt+len, " DEBUG");
-#endif
-#ifdef USE_DEBUG_MALLOC
-    len +=  sprintf(txt+len, " DEBUG_MALLOC");
-#endif
-#ifdef USE_FRAG
-    len +=  sprintf(txt+len, " FRAGS");
-#endif
-#ifdef USE_ETHERNET
-    len +=  sprintf(txt+len, " ETHERNET");
-#endif
-#ifdef USE_HTTP_STATUS
-    len +=  sprintf(txt+len, " HTTP_STATUS");
-#endif
-#ifdef USE_MGMT
-    len +=  sprintf(txt+len, " MGMT");
-#endif
-#ifdef USE_SCHEDULER
-    len +=  sprintf(txt+len, " SCHEDULER");
-#endif
-#ifdef USE_UNIXSOCKET
-    len +=  sprintf(txt+len, " UNIXSOCKET");
-#endif
-    len +=  sprintf(txt+len, "\n");
+    len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td> %s\n",
+		   compile_string());
     len += sprintf(txt+len, "<tr><td>compile.time:"
 		   "<td><td>%s %s\n", __DATE__, __TIME__);
     len += sprintf(txt+len, "<tr><td>compile.ccnl_core_version:"
