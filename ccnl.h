@@ -47,7 +47,8 @@ enum {
   CCNL_SUITE_CCNB,
   CCNL_SUITE_CCNTLV,
   CCNL_SUITE_NDNTLV,
-  CCNL_SUITE_LOCALRPC
+  CCNL_SUITE_LOCALRPC,
+  CCNL_SUITE_LAST
 };
 
 // ----------------------------------------------------------------------

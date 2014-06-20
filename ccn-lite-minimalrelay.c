@@ -337,7 +337,7 @@ int
 main(int argc, char **argv)
 {
     int opt;
-    int udpport = CCN_UDP_PORT;
+    int udpport = 0;
     char *prefix, *defaultgw;
     struct ccnl_if_s *i;
     struct ccnl_forward_s *fwd;
@@ -345,11 +345,13 @@ main(int argc, char **argv)
 
     srandom(time(NULL));
 
+    theRelay.suite = CCNL_SUITE_NDNTLV;
+
     while ((opt = getopt(argc, argv, "hs:u:v:")) != -1) {
         switch (opt) {
         case 's':
 	    opt = atoi(optarg);
-	    if (opt >= 0 && opt <= 2)
+	    if (opt >= CCNL_SUITE_CCNB && opt < CCNL_SUITE_LAST)
 		theRelay.suite = opt;
             break;
         case 'u':
@@ -361,13 +363,13 @@ main(int argc, char **argv)
         case 'h':
         default:
             fprintf(stderr,
-		    "usage:\n%s [-h] [-s SUITE] [-u udpport] [-v debuglevel] PREFIX DGWIP/DGWPORT\n", argv[0]);
+		    "usage:\n%s [-h] [-s SUITE] [-u udpport] [-v debuglevel] PREFIX DGWIP/DGWUDPPORT\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
 
     if ((optind+1) >= argc) {
-	fprintf(stderr, "Expected two arguments (e.g. /a/b/c 1.2.3.4/9695) after options\n");
+	fprintf(stderr, "Expected two arguments (e.g. /a/b/c 1.2.3.4:6363) after options\n");
 	exit(EXIT_FAILURE);
     }
     prefix = argv[optind];
@@ -382,7 +384,7 @@ main(int argc, char **argv)
 #endif
 
     i = &theRelay.ifs[0];
-    i->mtu = CCN_DEFAULT_MTU;
+    i->mtu = NDN_DEFAULT_MTU;
     i->fwdalli = 1;
     i->sock = ccnl_open_udpdev(udpport);
     if (i->sock < 0)

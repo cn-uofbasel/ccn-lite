@@ -666,7 +666,10 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 's':
-            suite = atoi(optarg);
+	    opt = atoi(optarg);
+	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
+		break;
+	    suite = opt;
 	    switch (suite) {
 #ifdef USE_SUITE_CCNB
 	    case CCNL_SUITE_CCNB:
@@ -677,11 +680,11 @@ main(int argc, char **argv)
 	    case CCNL_SUITE_NDNTLV:
 		udpport = httpport = NDN_UDP_PORT;
 		break;
+#endif
 	    default:
 		break;
 	    }
 	    break;
-#endif
         case 't':
             httpport = atoi(optarg);
             break;

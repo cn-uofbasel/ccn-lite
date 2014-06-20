@@ -459,7 +459,7 @@ static char *e = NULL;
 static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int s = CCNL_SUITE_CCNB; // or CCNL_SUITE_NDNTLV
-static int u = 0;
+static int u = -1;
 static int v = 0;
 static char *p = NULL;
 static char *k = NULL;
@@ -476,7 +476,7 @@ module_param(s, int, 0);
 MODULE_PARM_DESC(s, "suite (0=ccnb, 2=ndntlv)");
 
 module_param(u, int, 0);
-MODULE_PARM_DESC(u, "UDP port (default: 9695 for ccnb, 6363 for ndntlv)");
+MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
 
 module_param(v, int, 0);
 MODULE_PARM_DESC(v, "verbosity level");
@@ -511,13 +511,13 @@ ccnl_init(void)
 
 #ifdef USE_SUITE_CCNB
     if (s == CCNL_SUITE_CCNB) {
-	if (!u)
+	if (u < 0)
 	    u = CCN_UDP_PORT;
     }
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (s == CCNL_SUITE_NDNTLV) {
-	if (!u)
+	if (u < 0)
 	    u = NDN_UDP_PORT;
     }
 #endif
