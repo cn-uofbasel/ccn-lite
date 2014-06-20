@@ -163,7 +163,7 @@ case class Monitor() extends Actor {
 
       val from = maybeParsedFrom.orElse(findNode(fromHostAndPort.host, fromHostAndPort.port))
       val to = findSameNode(parsedTo).getOrElse {
-        logger.warning("packet log with a to address which is not stored in nodes")
+        logger.warning(s"packet log $parsedTo with a to address which is not stored in nodes: $nodes")
         parsedTo
       }
 

@@ -75,7 +75,16 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         //config->thunk = 0;
         return;
     }
-    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL, 0);
+    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL, 0, 0);
+}
+
+void
+ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+                                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+                                  struct configuration_s *config, int suite){
+    DEBUGMSG(49, "ccnl_nfn_nack_local_computation\n");
+    struct ccnl_interest_s *interest = NULL;
+    ccnl_nfn(ccnl, orig, prefix, from, config, interest, suite, 1);
 }
 
 int
@@ -100,7 +109,7 @@ int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         struct configuration_s *config, struct ccnl_interest_s *interest,
-         int suite)
+         int suite, int start_locally)
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
@@ -124,7 +133,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
 
-    int start_locally = 0;
+
     int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))

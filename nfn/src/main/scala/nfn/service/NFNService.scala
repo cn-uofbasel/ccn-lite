@@ -196,3 +196,7 @@ trait NFNService {
   override def toString = ccnName.toString
 
 }
+
+abstract class NFNDynamicService() extends NFNService {
+  override def ccnName = CCNName("nfn_DynamicService")
+}

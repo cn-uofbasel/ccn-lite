@@ -34,6 +34,9 @@ object BytecodeLoader {
     val containFilters = List("impl")
     var folders: Set[String] = Set()
     try {
+//      val nfnServiceInterface = Repository.lookupClass(NFNService.getClass.getName)
+//      println(s"NFNServInter: ${nfnServiceInterface.getClassName}")
+      println(s"ClassName:$className")
       val javaClass = Repository.lookupClass(className)
       val visitor = new EmptyVisitor() {
         override def visitConstantClass(obj: ConstantClass) {
@@ -100,11 +103,32 @@ object BytecodeLoader {
     val cl: URLClassLoader = new URLClassLoader(urls, this.getClass.getClassLoader)
 
     entries foreach { e =>
+
       if (!e.isDirectory && e.getName.endsWith(".class")) {
         println(s"Class entry: ${e.getName}")
-        val classEntryName = e.getName.substring(0, e.getName.length-6).replace('/', '.')
-        if(classEntryName == classNameToLoad.replace("/", "").replace("_", ".")) {
-          val clazz = cl.loadClass(classEntryName)
+
+
+        val entryClassName = e.getName.substring(0, e.getName.length-6).replace('/', '.')
+
+
+//        try {
+//          val nfnServiceIf = Repository.lookupClass(NFNService.getClass.getName)
+//          val lookedUpClass = Repository.lookupClass(entryClassName)
+//          lookedUpClass.getSuperClasses foreach { superClass =>
+//            println(s"super class: ${superClass.getClassName}")
+//            superClass.isInstanceOf[NFNService]
+//          }
+////          match {
+////            case Some(_) =>
+////            println(s"$entryClassName implements NFNService!")
+////            case None =>
+////            println(s"$entryClassName does not implement NFNService!")
+////          }
+//        } catch {
+//          case ex: Exception => throw ex
+//        }
+        if(entryClassName == classNameToLoad.replace("/", "").replace("_", ".")) {
+          val clazz = cl.loadClass(entryClassName)
 
           val loadedClazz: T = clazz.newInstance.asInstanceOf[T]
           return Try(loadedClazz)
@@ -115,7 +139,7 @@ object BytecodeLoader {
   }
 
   def fromClass(clazz: Any):Option[Array[Byte]] = {
-    val byteCode = byteCodeForClassAndDependencies(clazz.getClass.getCanonicalName)
+    val byteCode = byteCodeForClassAndDependencies(clazz.getClass.getName)
 
     println(s"loaded bytecode (size: ${byteCode.size}")
     Some(byteCode)

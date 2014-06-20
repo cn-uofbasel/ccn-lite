@@ -1,5 +1,8 @@
 package evaluation
 
+import akka.actor.ActorRef
+import nfn.service._
+
 import scala.util._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -129,16 +132,24 @@ object PaperExperiment extends App {
     node3.addPrefixFace(wcPrefix, node4)
   }
 
+  val dynServ = new NFNDynamicService {
+    override def function: (Seq[NFNValue], ActorRef) => NFNValue = { (_, _) =>
+      println("yay")
+      NFNIntValue(42)
+    }
+  }
+  node1.publishService(dynServ)
 
   Thread.sleep(1000)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = false
+  implicit val useThunks: Boolean = true
 
   val ts = new Translate().toString
   val wc = new WordCountService().toString
   val nack = new NackServ().toString
+  val dyn = dynServ.toString
 
   node1 ? (ts appl node1.prefix.append("dummy"))
 
@@ -173,6 +184,8 @@ object PaperExperiment extends App {
 
   val exp8 = nack appl
 
+  val exp9 = dyn appl
+
   expNum match {
     case 1 => doExp(exp1)
     case 2 => doExp(exp2)
@@ -182,6 +195,7 @@ object PaperExperiment extends App {
     case 6 => doExp(exp6)
     case 7 => doExp(exp7)
     case 8 => doExp(exp8)
+    case 9 => doExp(exp9)
     case _ => throw new Exception(s"expNum can only be 1 to 7 and not $expNum")
   }
 
