@@ -243,7 +243,8 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	len = ccnl_ccnb_mkInterest(namecomp, &nonce, (unsigned char*) tmp);
+	len = ccnl_ccnb_mkInterest(namecomp, &nonce,
+				   (unsigned char*) tmp, sizeof(tmp));
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV

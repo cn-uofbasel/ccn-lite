@@ -106,7 +106,8 @@ ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 // in one place only ?
 
 int
-ccnl_ccnb_mkInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
+ccnl_ccnb_mkInterest(char **namecomp, unsigned int *nonce,
+		     unsigned char *out, int outlen)
 {
     int len = 0, k;
 
