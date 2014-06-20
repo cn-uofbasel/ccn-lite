@@ -105,6 +105,26 @@ ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
     return 0;
 }
 
+struct ccnl_prefix_s *
+ccnl_nfn_create_new_prefix(struct ccnl_prefix_s *p){
+    struct ccnl_prefix_s *p2 = ccnl_malloc(sizeof(struct ccnl_prefix_s));
+    p2->compcnt = p->compcnt;
+    p2->complen = ccnl_malloc(sizeof(int) * p->compcnt);
+    p2->comp = ccnl_malloc(sizeof(char *) * p->compcnt);
+    int it1, it2;
+    for(it1 = 0; it1 < p->compcnt; ++it1){
+        int len = 0;
+        p2->complen[it1] = p->complen[it1];
+        p2->comp[it1] = ccnl_malloc(p->complen[it1] + 1);
+        for(it2 = 0; it2 < p->complen[it1]; ++it2){
+            len += sprintf(p2->comp[it1]+it2, "%c", p->comp[it1][it2]);
+        }
+        sprintf(p2->comp[it1]+ len, "\0");
+    }
+
+    return p2;
+}
+
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
@@ -113,6 +133,10 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
+
+    if(suite == CCNL_SUITE_NDNTLV){
+        prefix = ccnl_nfn_create_new_prefix(prefix);
+    }
     DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path2(prefix));
     int thunk_request = 0;
     if(config){
