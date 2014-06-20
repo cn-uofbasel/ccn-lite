@@ -309,7 +309,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
-		  int tcpport, char *uxpath, int suite, int max_cache_entries,
+		  int httpport, char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
     struct ccnl_if_s *i;
@@ -368,8 +368,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     }
 
 #ifdef USE_HTTP_STATUS
-    if (tcpport) {
-	relay->http = ccnl_http_new(relay, tcpport);
+    if (httpport > 0) {
+	relay->http = ccnl_http_new(relay, httpport);
     }
 #endif // USE_HTTP_STATUS
 
@@ -634,7 +634,7 @@ main(int argc, char **argv)
 {
     int opt;
     int max_cache_entries = -1;
-    int udpport, tcpport;
+    int udpport, httpport;
     char *datadir = NULL;
     char *ethdev = NULL;
     char *crypto_sock_path = 0;
@@ -646,6 +646,7 @@ main(int argc, char **argv)
 
     time(&theRelay.startup_time);
     srandom(time(NULL));
+    udpport = httpport = NDN_UDP_PORT;
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
         switch (opt) {
@@ -669,12 +670,12 @@ main(int argc, char **argv)
 	    switch (suite) {
 #ifdef USE_SUITE_CCNB
 	    case CCNL_SUITE_CCNB:
-		udpport = tcpport = CCN_UDP_PORT;
+		udpport = httpport = CCN_UDP_PORT;
 		break;
 #endif
 #ifdef USE_SUITE_NDNTLV
 	    case CCNL_SUITE_NDNTLV:
-		udpport = tcpport = NDN_UDP_PORT;
+		udpport = httpport = NDN_UDP_PORT;
 		break;
 	    default:
 		break;
@@ -682,7 +683,7 @@ main(int argc, char **argv)
 	    break;
 #endif
         case 't':
-            tcpport = atoi(optarg);
+            httpport = atoi(optarg);
             break;
         case 'u':
             udpport = atoi(optarg);
@@ -723,7 +724,7 @@ main(int argc, char **argv)
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
-    ccnl_relay_config(&theRelay, ethdev, udpport, tcpport,
+    ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
 		      uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
 	ccnl_populate_cache(&theRelay, datadir, suite);

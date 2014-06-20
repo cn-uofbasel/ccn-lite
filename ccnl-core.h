@@ -254,40 +254,46 @@ compile_string(void)
 {
     static const char *cp = ""
 #ifdef USE_CCNxDIGEST
-	"USE_CCNxDIGEST "
+	"CCNxDIGEST, "
 #endif
 #ifdef USE_DEBUG
-	"USE_DEBUG "
+	"DEBUG, "
 #endif
 #ifdef USE_DEBUG_MALLOC
-	"USE_DEBUG_MALLOC "
+	"DEBUG_MALLOC, "
 #endif
 #ifdef USE_FRAG
-	"USE_FRAG "
+	"FRAG, "
 #endif
 #ifdef USE_ETHERNET
-	"USE_ETHERNET "
+	"ETHERNET, "
 #endif
 #ifdef USE_HTTP_STATUS
-	"USE_HTTP_STATUS "
+	"HTTP_STATUS, "
 #endif
 #ifdef USE_MGMT
-	"USE_MGMT "
+	"MGMT, "
 #endif
 #ifdef USE_SCHEDULER
-	"USE_SCHEDULER "
+	"SCHEDULER, "
 #endif
 #ifdef USE_SUITE_CCNB
-	"USE_SUITE_CCNB "
+	"SUITE_CCNB, "
 #endif
 #ifdef USE_SUITE_CCNTLV
-	"USE_SUITE_CCNTLV "
+	"SUITE_CCNTLV, "
+#endif
+#ifdef USE_SUITE_LOCALRPC
+	"SUITE_LOCALRPC, "
 #endif
 #ifdef USE_SUITE_NDNTLV
-	"USE_SUITE_NDNTLV "
+	"SUITE_NDNTLV, "
 #endif
 #ifdef USE_UNIXSOCKET
-	"USE_UNIXSOCKET "
+	"UNIXSOCKET, "
+#endif
+#ifdef USE_SIGNATURES
+	"SIGNATURES, "
 #endif
 	;
   return cp;
