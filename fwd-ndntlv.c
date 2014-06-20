@@ -204,22 +204,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
             struct ccnl_buf_s *buf2 = buf;
             //Create new prefix
-            struct ccnl_prefix_s *p2 = malloc(sizeof(struct ccnl_prefix_s));
-            p2->compcnt = p->compcnt;
-            p2->complen = malloc(sizeof(int) * p->compcnt);
-            p2->comp = malloc(sizeof(char *) * p->compcnt);
-            int it1, it2;
-            for(it1 = 0; it1 < p->compcnt; ++it1){
-                int len = 0;
-                p2->complen[it1] = p->complen[it1];
-                p2->comp[it1] = malloc(p->complen[it1] + 1);
-                for(it2 = 0; it2 < p->complen[it1]; ++it2){
-                    len += sprintf(p2->comp[it1]+it2, "%c", p->comp[it1][it2]);
-                }
-                sprintf(p2->comp[it1]+ len, "\0");
-                printf("\n");
-            }
-
+            struct ccnl_prefix_s *p2 = p;
             i = ccnl_interest_new(relay, from, CCNL_SUITE_NDNTLV,
                                   &buf, &p, minsfx, maxsfx);
 
@@ -292,7 +277,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if(!memcmp(c->content, ":NACK", 5)){
                 DEBUGMSG(99, "Handle NACK packet: local compute!\n");
                 struct ccnl_buf_s *buf2 = buf; // c->pkt
-                struct ccnl_prefix_s *p2 = p; // c->name
+                struct ccnl_prefix_s *p2 =p; // c->name
                 ccnl_nfn_nack_local_computation(relay, c->pkt, c->name, from, NULL, CCNL_SUITE_NDNTLV);
                 goto Done;
             }
