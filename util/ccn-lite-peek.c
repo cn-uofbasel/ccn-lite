@@ -83,41 +83,8 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-peek_mkCcnbInterest(char **namecomp, unsigned int *nonce, unsigned char *out)
-{
-    int len = 0, k;
-    unsigned char *cp;
-
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	cp = (unsigned char*) strdup(*namecomp);
-	k = unescape_component(cp);
-	//	k = strlen(*namecomp);
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, cp, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-	free(cp);
-	namecomp++;
-    }
-    out[len++] = 0; // end-of-name
-    if (nonce) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
-	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
-	len += sizeof(unsigned int);
-    }
-    out[len++] = 0; // end-of-interest
-
-    return len;
-}
-
-
-int
-peek_mkNdntlvInterest(char **namecomp, unsigned char *out, int outlen)
+ndntlv_mkInterest(char **namecomp, unsigned int *nonce,
+		  unsigned char *out, int outlen)
 {
     int len, offset;
 
@@ -155,22 +122,6 @@ udp_open()
 }
 
 int
-udp_sendto(int sock, char *dest, unsigned char *data, int len)
-{
-    struct sockaddr_in dst;
-    char buf[256];
-    strcpy(buf, dest);
-
-    dst.sin_family = PF_INET;
-    dst.sin_addr.s_addr = inet_addr(strtok(buf, "/"));
-    dst.sin_port = htons(atoi(strtok(NULL, "/")));
-
-    return sendto(sock, data, len, 0, (struct sockaddr*) &dst, sizeof(dst));
-}
-
-// ----------------------------------------------------------------------
-
-int
 ux_open()
 {
 static char mysockname[200];
@@ -201,17 +152,6 @@ static char mysockname[200];
     return sock;
 }
 
-int ux_sendto(int sock, char *topath, unsigned char *data, int len)
-{
-    struct sockaddr_un name;
-
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
-
-    return sendto(sock, data, len, 0, (struct sockaddr*) &name,
-		  sizeof(struct sockaddr_un));
-}
-
 // ----------------------------------------------------------------------
 
 int
@@ -231,63 +171,43 @@ block_on_read(int sock, float wait)
     return rc;
 }
 
-void
-request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
-		char *dest, unsigned char *out, int len, float wait, int suite)
-{
-    unsigned char buf[64*1024], *cp;
-    int len2 = sendproc(sock, dest, out, len), typ, dummy;
-
-    if (len2 < 0) {
-	perror("sendto");
-	myexit(1);
-    }
-    
-    for (;;) {
-	if (block_on_read(sock, wait) <= 0)
-	    break;
-	len2 = recv(sock, buf, sizeof(buf), 0);
-	fprintf(stderr, "received %d bytes\n", len2);
-	cp = buf;
-	len = len2;
-	switch(ccnl_pkt2suite(buf, len)) {
 #ifdef USE_SUITE_CCNB
-	case CCNL_SUITE_CCNB:
-	    if (len2 < 0 || ccnl_ccnb_dehead(&cp, &len, &dummy, &typ))
-		return;
-	    if (typ != CCN_TT_DTAG || dummy != CCN_DTAG_CONTENTOBJ)
-		continue;
-	    break;
+int ccnb_isContent(unsigned char *buf, int len)
+{
+    int num, typ;
+    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
+	return -1;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+	return 0;
+    return 1;
+}
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-	case CCNL_SUITE_NDNTLV:
-	    if (len2 < 0 || ccnl_ndntlv_dehead(&cp, &len, &typ, &dummy))
-		return;
-	    if (typ != NDN_TLV_Data)
-		continue;
-	    break;
-#endif
-	default:
-	    return;
-	}
-	write(1, buf, len2);
-	myexit(0);
-    }
+int ndntlv_isData(unsigned char *buf, int len)
+{
+    int typ, vallen;
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+	return -1;
+    if (typ != NDN_TLV_Data)
+	return 0;
+    return 1;
 }
+#endif
+
 
 // ----------------------------------------------------------------------
 
 int
 main(int argc, char *argv[])
 {
-    unsigned char out[8*1024];
-    int i = 0, len, opt, sock = 0, suite = 2;
-    char *prefix[CCNL_MAX_NAME_COMP], *cp, *dest;
-//    char *udp = "127.0.0.1/9695", *ux = NULL;
-    char *udp = "127.0.0.1/6363", *ux = NULL;
+    unsigned char out[64*1024];
+    int cnt, i, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
+    struct sockaddr sa;
     float wait = 3.0;
-    int (*sendproc)(int,char*,unsigned char*,int);
+    int (*mkInterest)(char**,unsigned int*,unsigned char*,int);
+    int (*isContent)(unsigned char*,int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
@@ -321,41 +241,85 @@ Usage:
     if (!argv[optind]) 
 	goto Usage;
 
-    srandom(time(NULL)); // random() is  used in mkNdntlvInterest()
+    srandom(time(NULL));
 
-    cp = strtok(argv[optind], "/");
-    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	prefix[i++] = cp;
-	cp = strtok(NULL, "/");
-    }
-    prefix[i] = NULL;
-    if (suite == 0)
-	len = ccnl_ccnb_mkInterest(prefix, NULL, out);
-    else if (suite == 1) {
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	mkInterest = ccnl_ccnb_mkInterest;
+	isContent = ccnb_isContent;
+	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+	mkInterest = ndntlv_mkInterest;
+	isContent = ndntlv_isData;
+	break;
+#endif
+    default:
 	printf("CCNx-TLV not supported at this time, aborting\n");
 	exit(-1);
-    } else
-	len = peek_mkNdntlvInterest(prefix, out, sizeof(out));
-
-    i = creat("pkt.bin", S_IRWXU);
-    write(i, out, len);
-    close(i);
+    }
 
     if (ux) { // use UNIX socket
-	dest = ux;
+	struct sockaddr_un *su = (struct sockaddr_un*) &sa;
+	su->sun_family = AF_UNIX;
+	strcpy(su->sun_path, ux);
 	sock = ux_open();
-	sendproc = ux_sendto;
     } else { // UDP
-	dest = udp;
+	struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+	si->sin_family = PF_INET;
+	si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
+	si->sin_port = htons(atoi(strtok(NULL, "/")));
 	sock = udp_open();
-	sendproc = udp_sendto;
     }
 
-    for (i = 0; i < 3; i++) {
-	request_content(sock, sendproc, dest, out, len, wait, suite);
+    for (cnt = 0; cnt < 3; cnt++) {
+	char *uri = strdup(argv[optind]), *cp;
+	unsigned int nonce = random();
+
+	cp = strtok(argv[optind], "/");
+	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
+	    prefix[i++] = cp;
+	    cp = strtok(NULL, "/");
+	}
+	prefix[i] = NULL;
+	len = mkInterest(prefix, &nonce, out, sizeof(out));
+	free(uri);
+
+	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
+	    perror("sendto");
+	    myexit(1);
+	}
+
+	for (;;) { // wait for a content pkt (ignore interests)
+	    int rc;
+
+	    if (block_on_read(sock, wait) <= 0) // timeout
+		break;
+	    len = recv(sock, out, sizeof(out), 0);
+/*
+	    fprintf(stderr, "received %d bytes\n", len);
+	    if (len > 0)
+		fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+*/
+	    rc = isContent(out, len);
+	    if (rc < 0)
+		goto done;
+	    if (rc == 0) { // it's an interest, ignore it
+		fprintf(stderr, "skipping non-data packet\n");
+		continue;
+	    }
+	    write(1, out, len);
+	    myexit(0);
+	}
+	if (cnt < 2)
+	    fprintf(stderr, "re-sending interest\n");
     }
+    fprintf(stderr, "timeout\n");
+
+done:
     close(sock);
-
     myexit(-1);
     return 0; // avoid a compiler warning
 }
