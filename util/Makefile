@@ -10,6 +10,7 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkI \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
+	ccn-lite-rpc \
 	ccn-lite-cryptoserver
 
 #	ccn-lite-deF \
@@ -20,7 +21,7 @@ PROGS=	ccn-lite-ctrl \
 CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c
 CCNTLV_LIB = ../pkt-ccntlv.h ../pkt-ccntlv-dec.c ../pkt-ccntlv-enc.c
 NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
-LOCRPC_LIB = ../pkt-localrpc.h
+LOCRPC_LIB = ../pkt-localrpc.h ../pkt-localrpc-dec.c ../pkt-localrpc-enc.c
 
 all: $(PROGS)
 
@@ -32,11 +33,14 @@ ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-commo
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
 
-ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
+ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB}
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
+
+ccn-lite-rpc: Makefile ccn-lite-rpc.c ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h ccnl-common.c
+	$(CC) $(CFLAGS) ccn-lite-rpc.c -o $@ 
 
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 

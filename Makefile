@@ -29,8 +29,8 @@ obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
 CCNB_LIB =      pkt-ccnb.h pkt-ccnb-dec.c pkt-ccnb-enc.c fwd-ccnb.c
-LOCRPC_LIB =    pkt-localrpc.h fwd-localrpc.c
 NDNTLV_LIB =    pkt-ndntlv.h pkt-ndntlv-dec.c pkt-ndntlv-enc.c fwd-ndntlv.c
+LOCRPC_LIB =    pkt-localrpc.h pkt-localrpc-enc.c pkt-localrpc-dec.c fwd-localrpc.c
 
 # ----------------------------------------------------------------------
 

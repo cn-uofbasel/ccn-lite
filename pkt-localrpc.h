@@ -27,25 +27,48 @@
 
 // data marshalling
 #define NDN_TLV_RPC_SEQUENCE		0x82
-#define NDN_TLV_RPC_ASCII		0x83
+#define NDN_TLV_RPC_VAR			0x83
 #define NDN_TLV_RPC_NONNEGINT		0x84
 #define NDN_TLV_RPC_BIN			0x85
+#define NDN_TLV_RPC_STR			0x86
 
 
-struct rdr_ds_s { // RPC Data Representation data structure
+struct rdr_ds_s { // RPC Data Representation (RPR) data structure
     int type;
     int flatlen;
     unsigned char *flat;
+    struct rdr_ds_s *nextinseq;
     union {
-	unsigned int nonnegintval;
-	int asciilen;
-	int binlen;
-	struct rdr_ds_s *nextinseq;
+	struct rdr_ds_s *fct;
 	struct rdr_ds_s *lambdavar;
-	struct rdr_ds_s *appexpr;
+	unsigned int nonnegintval;
+	int varlen;
+	int binlen;
+	int strlen;
     } u;
     struct rdr_ds_s *aux;
 };
+
+/* use of struct rdr_ds_s:
+
+  App->u.fct (function)
+     ->aux (1st param)
+              -> u.nextinseq (2nd param) ...
+
+  Lambda->u.lambdavar
+     ->aux (1st body part)
+              -> u.nextinseq (2nd body part) ...
+
+  Seq->aux (first element)
+              -> u.nextinseq (2nd element)
+                                -> u.nextinseq (3rd element) ...
+
+  Var->aux (char*)
+  BIN->aux (char*)
+  STR->aux (char*)
+
+*/
+
 
 #define NDN_TLV_RPC_SERIALIZED		-1
 

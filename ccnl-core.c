@@ -786,7 +786,10 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     default:
 	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
 		 ifndx, datalen, *data);
-	break;
+	return;
+    }
+    if (datalen > 0) {
+	DEBUGMSG(6, "ccnl_core_RX: %d bytes left\n", datalen);
     }
 }
 // eof

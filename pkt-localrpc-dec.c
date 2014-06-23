@@ -45,10 +45,12 @@
 
 struct rdr_ds_s* ccnl_rdr_unserialize(unsigned char *buf, int buflen)
 {
-    struct rdr_ds_s *ds = (struct rdr_ds_s*) calloc(1, sizeof(struct rdr_ds_s));
+    struct rdr_ds_s *ds;
 
+    ds = (struct rdr_ds_s*) ccnl_calloc(1, sizeof(struct rdr_ds_s));
     if (!ds)
 	return NULL;
+
     ds->flat = buf;
     ds->flatlen = buflen;
     ds->type = NDN_TLV_RPC_SERIALIZED;
@@ -60,7 +62,7 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
 {
     unsigned char *buf;
     int typ, vallen, len;
-    struct rdr_ds_s *a, *b, *end;
+    struct rdr_ds_s *a, *end;
 
     if (!ds)
 	return -2;
@@ -81,79 +83,72 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
 	return -4;
     switch (typ) {
     case NDN_TLV_RPC_NONNEGINT:
-	ds->u.nonnegintval = ccnl_ndntlv_nonNegInt(buf, len);
+	ds->u.nonnegintval = ccnl_ndntlv_nonNegInt(buf, vallen);
 	ds->type = NDN_TLV_RPC_NONNEGINT;
-	break;
-    case NDN_TLV_RPC_ASCII:
-	ds->u.asciilen = vallen;
-	ds->aux = (struct rdr_ds_s*) buf;
-	ds->type = NDN_TLV_RPC_ASCII;
 	ds->flatlen = (buf - ds->flat) + vallen;
-	break;
+	return 0;
+    case NDN_TLV_RPC_VAR:
+	ds->u.varlen = vallen;
+	ds->aux = (struct rdr_ds_s*) buf;
+	ds->type = NDN_TLV_RPC_VAR;
+	ds->flatlen = (buf - ds->flat) + vallen;
+	return 0;
     case NDN_TLV_RPC_BIN:
 	ds->u.binlen = vallen;
 	ds->aux = (struct rdr_ds_s*) buf;
 	ds->type = NDN_TLV_RPC_BIN;
 	ds->flatlen = (buf - ds->flat) + vallen;
-	break;
+	return 0;
+    case NDN_TLV_RPC_STR:
+	ds->u.strlen = vallen;
+	ds->aux = (struct rdr_ds_s*) buf;
+	ds->type = NDN_TLV_RPC_STR;
+	ds->flatlen = (buf - ds->flat) + vallen;
+	return 0;
+
     case NDN_TLV_RPC_APPLICATION:
 	ds->flatlen = buf - ds->flat;
 	a = ccnl_rdr_unserialize(buf, vallen);
-	if (ccnl_rdr_getType(a) < 0)
+	if (!a || ccnl_rdr_getType(a) < 0)
 	    return -5;
 	buf += a->flatlen;
-	vallen -= a->flatlen;
-	b = ccnl_rdr_unserialize(buf, vallen);
-	if (ccnl_rdr_getType(b) < 0)
-	    return -6;
-	ds->flatlen += a->flatlen + b->flatlen;
-	ds->u.appexpr = a;
-	ds->aux = b;
+	len -= a->flatlen;
+	ds->u.fct = a;
+	ds->flatlen += a->flatlen;
 	ds->type = NDN_TLV_RPC_APPLICATION;
 	break;
     case NDN_TLV_RPC_LAMBDA:
 	ds->flatlen = buf - ds->flat;
 	a = ccnl_rdr_unserialize(buf, vallen);
-	if (ccnl_rdr_getType(a) < 0)
-	    return -7;
+	if (!a || ccnl_rdr_getType(a) < 0)
+	    return -6;
 	buf += a->flatlen;
-	vallen -= a->flatlen;
-	b = ccnl_rdr_unserialize(buf, vallen);
-	if (ccnl_rdr_getType(b) < 0)
-	    return -8;
-	ds->flatlen += a->flatlen + b->flatlen;
+	len -= a->flatlen;
 	ds->u.lambdavar = a;
-	ds->aux = b;
+	ds->flatlen += a->flatlen;
 	ds->type = NDN_TLV_RPC_LAMBDA;
 	break;
     case NDN_TLV_RPC_SEQUENCE:
-	ds->type = NDN_TLV_RPC_SEQUENCE;
 	ds->flatlen = buf - ds->flat;
-	if (vallen > 0) {
-	    a = ccnl_rdr_unserialize(buf, vallen);
-	    if (ccnl_rdr_getType(a) < 0)
-		return -9; // better do a break?
-	    ds->flatlen += a->flatlen;
-	    ds->aux = a;
-	    buf += a->flatlen;
-	    vallen -= a->flatlen;
-	}
-	end = ds;
-	while (vallen > 0) {
-	    a = ccnl_rdr_unserialize(buf, vallen);
-	    if (ccnl_rdr_getType(a) < 0)
-		return -10; // better do a break?
-	    ds->flatlen += a->flatlen;
-	    end->u.nextinseq = (struct rdr_ds_s*) calloc(1, sizeof(struct rdr_ds_s));
-	    if (!end->u.nextinseq)
-		return -11;
-	    end = end->u.nextinseq;
-	    end->type = NDN_TLV_RPC_SEQUENCE;
-	    end->aux = a;
-	    buf += a->flatlen;
-	    vallen -= a->flatlen;
-	}
+	ds->type = NDN_TLV_RPC_SEQUENCE;
 	break;
+    default:
+	return -1;
+    }
+
+    end = 0;
+    while (len > 0) {
+	a = ccnl_rdr_unserialize(buf, len);
+	if (!a || ccnl_rdr_getType(a) < 0)
+	    return -10;
+	ds->flatlen += a->flatlen;
+	if (!end)
+	    ds->aux = a;
+	else
+	    end->nextinseq = a;
+	end = a;
+	buf += a->flatlen;
+	len -= a->flatlen;
     }
 
     return ds->type;
