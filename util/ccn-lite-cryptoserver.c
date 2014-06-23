@@ -116,13 +116,13 @@ ccnl_crypto_get_tag_content(unsigned char **buf, int *len, char *content, int co
 }
 
 int
-handle_verify(char **buf, int *buflen, int sock, char *callback){
-    int num, typ, verified = 0; int i;
+handle_verify(unsigned char **buf, int *buflen, int sock, char *callback){
+    int num, typ, verified = 0;
     int contentlen = 0;
     int siglen = 0;
-    char *txid_s = 0, *sig = 0, *content = 0;
-    int len = 0, len2 = 0, len3 = 0;
-    char *component_buf = 0, *msg = 0;
+    unsigned char *txid_s = 0, *sig = 0, *content = 0;
+    int len = 0, len3 = 0;
+    unsigned char *component_buf = 0, *msg = 0;
     char h[1024];
     
     while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
@@ -158,11 +158,11 @@ handle_verify(char **buf, int *buflen, int sock, char *callback){
     
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, "verify");
-    len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, txid_s);
+    len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s);
     memset(h,0,sizeof(h));
     sprintf(h,"%d", verified);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h);
-    len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, content, contentlen);
+    len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, (char*) content, contentlen);
     
     len += ccnl_ccnb_mkBlob(msg+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) component_buf, len3);
@@ -182,13 +182,13 @@ handle_verify(char **buf, int *buflen, int sock, char *callback){
 
 
 int
-handle_sign(char **buf, int *buflen, int sock, char *callback){
-    int num, typ, ret = 0; int i;
-    int contentlen = 0;
-    int siglen = 0;
-    char *txid_s = 0, *sig = 0, *content = 0;
-    int len = 0, len2 = 0, len3 = 0;
-    char *component_buf = 0, *msg = 0;
+handle_sign(unsigned char **buf, int *buflen, int sock, char *callback){
+    int num, typ, ret = 0;
+    unsigned int contentlen = 0;
+    unsigned int siglen = 0;
+    unsigned char *txid_s = 0, *sig = 0, *content = 0;
+    int len = 0, len3 = 0;
+    unsigned char *component_buf = 0, *msg = 0;
     char h[1024];
 
     while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
@@ -209,7 +209,7 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     sign(private_key, content, contentlen, sig, &siglen);
     if(siglen <= 0){
         ccnl_free(sig);
-        sig = "Error";
+        sig = (unsigned char*) "Error";
         siglen = 6;
     }
 
@@ -226,14 +226,15 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, "sign");
-    len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, txid_s);
+    len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s);
 
     len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // signature
 		   (char*) sig, siglen);
-    len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, content, contentlen);
+    len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST,
+			     CCN_TT_DTAG, (char*) content, contentlen);
     
     len += ccnl_ccnb_mkBlob(msg+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) component_buf, len3);
+			    (char*) component_buf, len3);
 
 
     
@@ -251,7 +252,7 @@ handle_sign(char **buf, int *buflen, int sock, char *callback){
     return ret;
 }
 
-int parse_crypto_packet(char *buf, int buflen, int sock){
+int parse_crypto_packet(unsigned char *buf, int buflen, int sock){
     int num, typ;
     char component[100];
     char type[100];
@@ -331,7 +332,7 @@ int crypto_main_loop(int sock)
 {
     //receive packet async and call parse/answer...
   int len; //, pid; 
-    char buf[CCNL_MAX_PACKET_SIZE];
+    unsigned char buf[CCNL_MAX_PACKET_SIZE];
     struct sockaddr_un src_addr;
     socklen_t addrlen = sizeof(struct sockaddr_un);
     
