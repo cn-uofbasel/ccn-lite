@@ -20,6 +20,7 @@
  * 2012-07-01  created
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -510,6 +511,6 @@ main(int argc, char *argv[])
     " Parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml.\n"
     " To check the status of the signatures, use the ccn-lite-ctrl with publickey.\n"
     " %s -h print this message.\n",
-    argv[0], argv[0]);
+	    argv[0]);
     return 0;
 }

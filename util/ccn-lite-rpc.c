@@ -53,7 +53,7 @@
 #include "../ccnl-util.c"
 
 #define ccnl_calloc(n,s) calloc(n,s)
-// #define ccnl_free(p) free(p)
+#define ccnl_free(p) free(p)
 
 #include "../pkt-ndntlv-dec.c"
 #include "../pkt-ndntlv-enc.c"
@@ -464,7 +464,7 @@ Usage:
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n"
 	    "EXPRESSION examples:\n"
-	    "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n",
+	    "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n"
 	    "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n",
 	    argv[0]);
 	    exit(1);

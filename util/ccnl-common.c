@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef XXX
 
 #  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_free(p)		debug_free(p, __FILE__, __LINE__)
@@ -122,6 +123,7 @@ debug_free(void *p, const char *fn, int lno)
 	free(h->tstamp);
     free(h);
 }
+#endif
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \

@@ -22,9 +22,6 @@
  *             of return message
  */
 
-#define USE_SIGNATURES
-#define USE_SUITE_CCNB
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,9 +35,20 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#define CCNL_UNIX
+
+#define USE_SUITE_CCNB
+// #define USE_SUITE_NDNTLV
+#define USE_SIGNATURES
+
+#include "../ccnl-includes.h"
 #include "../ccnl.h"
+#include "../ccnl-ext-debug.c"
+#include "../ccnl-ext.h"
+#include "../ccnl-platform.c"
 
 #include "ccnl-common.c"
+
 #include "../pkt-ccnb.h"
 #include "../pkt-ccnb-dec.c"
 #include "../pkt-ccnb-enc.c"
@@ -539,7 +547,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     
     //add content to interest...
     len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_addBlob(stmt+len3, ccnb_file, fsize);
+    len3 += ccnl_ccnb_addBlob(stmt+len3, (char*) ccnb_file, fsize);
     stmt[len3++] = 0; // end content
     
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
@@ -559,8 +567,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     len += len1;
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
-    printf("Contentlen %d\n", len1);
-    Bail:
+    printf("Contentlen %ld\n", len1);
+
     free(ccnb_file);
     free(contentobj);
     free(stmt);
@@ -669,7 +677,10 @@ ccnl_crypto_ux_open(char *frompath)
     return sock;
 }
 
-int udp_sendto(int sock, char *address, int port, char *data, int len){
+int
+udp_sendto(int sock, char *address, int port,
+	   unsigned char *data, int len)
+{
     int rc;
     struct sockaddr_in si_other;
     si_other.sin_family = AF_INET;
@@ -678,7 +689,8 @@ int udp_sendto(int sock, char *address, int port, char *data, int len){
           fprintf(stderr, "inet_aton() failed\n");
           exit(1);
     }
-    rc = sendto(sock, data, len, 0, &si_other, sizeof(si_other));
+    rc = sendto(sock, data, len, 0, (struct sockaddr*) &si_other,
+		sizeof(si_other));
     return rc;
 }
 
@@ -702,10 +714,10 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 }
 
 int 
-make_next_seg_debug_interest(int num, char *out)
+make_next_seg_debug_interest(int num, unsigned char *out)
 {
-    int len = 0, k;
-    unsigned char cp[100];
+    int len = 0;
+    char cp[100];
     
     sprintf(cp, "seqnum-%d", num);
 
@@ -725,8 +737,9 @@ make_next_seg_debug_interest(int num, char *out)
 int
 handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
 {
-   int num, typ, verified = 0, siglen, i;
-   char *sigtype = 0, *sig = 0; 
+   int num, typ, verified = 0, siglen;
+   unsigned char *sigtype = 0;
+   unsigned char *sig = 0; 
    while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
         
         if (num==0 && typ==0)
@@ -736,10 +749,11 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
         siglen = *buflen;
         extractStr2(sig, CCN_DTAG_SIGNATUREBITS);
         
-        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0)
+	    goto Bail;
     }
     siglen = siglen-((*buflen)+4);
-    char *buf2 = *buf;
+    unsigned char *buf2 = *buf;
     int buflen2 = *buflen - 1;
     if(relay_public_key)
     {
@@ -756,12 +770,14 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
  * @return 
  */
 int
-check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *relay_public_key, int *verified){
+check_has_next(unsigned char *buf, int len, unsigned char **recvbuffer,
+	       int *recvbufferlen, char *relay_public_key, int *verified)
+{
 
     int ret = 1;
     int contentlen = 0;
-    int num, typ, i;
-    char *newbuffer;
+    int num, typ;
+    unsigned char *newbuffer;
     
     if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return 0; 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return 0;
@@ -801,7 +817,6 @@ check_has_next(char *buf, int len, char **recvbuffer, int *recvbufferlen, char *
     memcpy(*recvbuffer+*recvbufferlen, buf, contentlen);
     *recvbufferlen += contentlen;    
     
-    Bail:
     return ret;
 }
 
@@ -809,7 +824,7 @@ int
 main(int argc, char *argv[])
 {
     char mysockname[200], *progname=argv[0];
-    char *recvbuffer = 0, *recvbuffer2 = 0;
+    unsigned char *recvbuffer = 0, *recvbuffer2 = 0;
     int recvbufferlen = 0, recvbufferlen2 = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
     char *udp = "0.0.0.0";
@@ -930,20 +945,22 @@ main(int argc, char *argv[])
         
 //	sleep(1);
        
-        int slen = 0; int num = 1; int len2 = 0;
-        int hasNext = 0;
+        socklen_t slen = 0;
+	int num = 1, len2 = 0, hasNext = 0;
 
         memset(out, 0, sizeof(out));
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else
-            len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-        hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
+            len = recvfrom(sock, out, sizeof(out), 0,
+			   (struct sockaddr*) &si, &slen);
+        hasNext = check_has_next(out, len, &recvbuffer, &recvbufferlen,
+				 relay_public_key, &verified_i);
         if(!verified_i) verified = 0;
 
         while(hasNext){
            //send an interest for debug packets... and store content in a array...
-           char interest2[100];
+           unsigned char interest2[100];
            len2 = make_next_seg_debug_interest(num++, interest2);
            if(!use_udp)
                 ux_sendto(sock, ux, interest2, len2);
@@ -953,8 +970,10 @@ main(int argc, char *argv[])
            if(!use_udp)
                 len = recv(sock, out, sizeof(out), 0);
            else
-                len = recvfrom(sock, out, sizeof(out), 0, &si, &slen);
-           hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
+                len = recvfrom(sock, out, sizeof(out), 0,
+			       (struct sockaddr*) &si, &slen);
+           hasNext =  check_has_next(out+2, len-2, &recvbuffer, &recvbufferlen,
+				     relay_public_key, &verified_i);
            if(!verified_i) verified = 0;
            ++numOfParts;
 
