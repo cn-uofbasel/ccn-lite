@@ -102,7 +102,7 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
 	}
 	val = (val << 7) | c;
     } 
-    printf("?decoding problem?\n");
+    fprintf(stderr, "?decoding problem?\n");
     return -1;
 }
 
@@ -640,10 +640,12 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
 		n = "Sequence"; dorecurse = 1; break;
 	    case NDN_TLV_RPC_NONNEGINT:
 		n = "Integer"; break;
-	    case NDN_TLV_RPC_ASCII:
-		n = "ASCII"; break;
+	    case NDN_TLV_RPC_VAR:
+		n = "Variable"; break;
 	    case NDN_TLV_RPC_BIN:
 		n = "BinaryData"; break;
+	    case NDN_TLV_RPC_STR:
+		n = "String"; break;
 	    default:
 		sprintf(tmp, "Type=0x%x", typ);
 		n = tmp;
@@ -659,7 +661,8 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
 	printf("-- <%s, len=%d>\n", n, vallen);
 
 	if (dorecurse) {
-	    localrpc_parse(lev+1, base, buf, len);
+	    *len -= vallen;
+	    localrpc_parse(lev+1, base, buf, &vallen);
 	    continue;
 	}
 
@@ -668,17 +671,18 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len)
 	    for (i = 0; i <= lev; i++)
 		printf("  ");
 	    printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-	} else if (typ == NDN_TLV_RPC_ASCII) {
+	} else if (typ == NDN_TLV_RPC_STR || typ == NDN_TLV_RPC_VAR) {
 	    printf("%04zx  ", *buf - base);
 	    for (i = 0; i <= lev; i++)
 		printf("  ");
-	    strcpy(tmp, "\"");
-	    i = sizeof(tmp) - 6;
-	    if (vallen < i)
-		i = vallen;
-	    memcpy(tmp+1, *buf, i);
-	    strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-	    printf("%s\n", tmp);
+	    if (typ == NDN_TLV_RPC_STR)
+		printf("\"");
+	    cp = malloc(vallen+1);
+	    memcpy(cp, *buf, vallen);
+	    cp[vallen] = '\0';
+	    printf("%s", cp);
+	    free(cp);
+	    printf(typ == NDN_TLV_RPC_STR ? "\"\n" : "\n");
 	} else if (vallen > 0)
 	    hexdump(lev, base, *buf, vallen);
 	*buf += vallen;
@@ -692,27 +696,29 @@ localrpc_201405(unsigned char *data, int len)
 {
     unsigned char *buf = data;
 
-    int origlen = len, typ, vallen, typ2, vallen2, len2;
+    int origlen = len, typ, vallen;
     unsigned char *cp;
 
-    if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
+    while (origlen > 0) {
+	len = origlen;
+	cp = buf;
+	if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
 					typ != NDN_TLV_RPC_APPLICATION)
-	return;
+	    return;
 
-    cp = buf;
-    len2 = vallen;
-    if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
-	return;
-    if (typ2 == NDN_TLV_RPC_NONNEGINT) { // RPC return code
-	printf("0000  RPC-result\n");
-	printf("%04zx    INT %ld\n", cp - data,
-	       ccnl_ndntlv_nonNegInt(buf, vallen2));
-	buf += vallen2;
-	len = origlen - (buf - data);
-	localrpc_parse(1, data, &buf, &len);
-    } else { // RPC request
-	buf = data;
-	localrpc_parse(0, data, &buf, &origlen);
+	if (*buf == NDN_TLV_RPC_NONNEGINT) { // look-ahead, detect RPC return
+	    origlen -= vallen + (buf - cp);
+	    printf("%04zx  ", cp - data);
+	    for (; cp < buf; cp++)
+		printf("%02x ", *cp);
+	    printf("-- <RPC-result, len=%d>\n", vallen);
+	    localrpc_parse(1, data, &buf, &vallen);
+	} else { // RPC request
+	    len = vallen + (buf - cp);
+	    origlen -= len;
+	    buf = cp;
+	    localrpc_parse(0, data, &buf, &len);
+	}
     }
 
     printf("%04zx  pkt.end\n", buf - data);

@@ -25,6 +25,7 @@
 #define USE_SIGNATURES
 #define USE_SUITE_CCNB
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
