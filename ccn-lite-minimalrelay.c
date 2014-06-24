@@ -45,7 +45,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 // ----------------------------------------------------------------------
 
-#define USE_SUITE_CCNB
+// #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
 
 #define DEBUGMSG(LVL, ...) do {       \

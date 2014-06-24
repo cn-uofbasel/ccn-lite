@@ -90,6 +90,7 @@
 #include <linux/inet.h>  // in_aton
 #include <linux/net.h>
 #include <linux/netdevice.h>
+#include <linux/string.h>
 #include <linux/un.h>
 
 #include <net/inet_sock.h>

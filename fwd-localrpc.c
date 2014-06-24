@@ -170,6 +170,7 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int encoding, len;
     char *cp;
+    unsigned char *ucp;
 
     DEBUGMSG(11, "rpc_forward\n");
 
@@ -180,7 +181,6 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 	
     cp = ccnl_malloc(param->u.varlen + 1);
-    struct rdr_ds_s *val = 0;
     memcpy(cp, param->aux, param->u.varlen);
     cp[param->u.varlen] = '\0';
     if (!strcmp(cp,      "/rpc/const/encoding/ndn2013"))
@@ -206,17 +206,17 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    return 0;
 	}
 
-	cp = (char*) param->aux;
+	ucp = (unsigned char*) param->aux;
 	len = param->u.binlen;
 	switch(encoding) {
 #ifdef USE_SUITE_CCNB
 	case CCNL_SUITE_CCNB:
-	    ccnl_RX_ccnb(relay, from, &cp, &len);
+	    ccnl_RX_ccnb(relay, from, &ucp, &len);
 	    break;
 #endif
 #ifdef USE_SUITE_NDNTLV
 	case CCNL_SUITE_NDNTLV:
-	    ccnl_RX_ndntlv(relay, from, &cp, &len);
+	    ccnl_RX_ndntlv(relay, from, &ucp, &len);
 	    break;
 #endif
 	default:
@@ -237,7 +237,7 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	memcpy(cp, param->aux, param->u.varlen);
 	cp[param->u.varlen] = '\0';
 	if (!strcmp(cp, "/rpc/config/compileString")) {
-	    val = ccnl_rdr_mkStr(compile_string());
+	    val = ccnl_rdr_mkStr((char*)compile_string());
 	} else if (!strcmp(cp, "/rpc/config/localTime")) {
 	    time_t t = time(NULL);
 	    char *p = ctime(&t);
@@ -305,7 +305,7 @@ ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay,
     builtinFct *fct;
     struct rpc_exec_s *exec;
 
-    DEBUGMSG(10, "ccnl_RX_handleApplication face=%p\n", from);
+    DEBUGMSG(10, "ccnl_RX_handleApplication face=%p\n", (void*) from);
 
     ftype = ccnl_rdr_getType(fexpr);
     if (ftype != NDN_TLV_RPC_VAR) {

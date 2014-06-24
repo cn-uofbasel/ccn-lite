@@ -101,11 +101,10 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_mkInterest(char **namecomp, int scope,
+ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 		       int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt;
-    long int nonce = random();
 
     if (scope >= 0) {
 	if (scope > 2)
@@ -122,7 +121,7 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope,
 				    offset, buf) < 0)
 	    return -1;
 
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+	if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
 				    offset, buf) < 0)
 	    return -1;
 
@@ -132,7 +131,7 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope,
     }
 
 /*
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
 				offset, buf) < 0)
 	return -1;
 */
