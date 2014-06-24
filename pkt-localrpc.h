@@ -20,14 +20,14 @@
  * 2014-05-11 created
  */
 
-// #define NDN_TLV_RPC_VARIABLE           0x00..0x7f
+// #define NDN_TLV_RPC_USERDEFINEDNAME  0x00..0x7f
 
 #define NDN_TLV_RPC_APPLICATION		0x80
 #define NDN_TLV_RPC_LAMBDA		0x81
 
 // data marshalling
 #define NDN_TLV_RPC_SEQUENCE		0x82
-#define NDN_TLV_RPC_VAR			0x83
+#define NDN_TLV_RPC_NAME		0x83
 #define NDN_TLV_RPC_NONNEGINT		0x84
 #define NDN_TLV_RPC_BIN			0x85
 #define NDN_TLV_RPC_STR			0x86
@@ -42,7 +42,7 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 	struct rdr_ds_s *fct;
 	struct rdr_ds_s *lambdavar;
 	unsigned int nonnegintval;
-	int varlen;
+	int namelen;
 	int binlen;
 	int strlen;
     } u;
