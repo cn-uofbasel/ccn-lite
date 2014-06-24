@@ -121,7 +121,7 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 				    offset, buf) < 0)
 	    return -1;
 
-	if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+	if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) nonce, 4,
 				    offset, buf) < 0)
 	    return -1;
 
