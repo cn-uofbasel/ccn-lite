@@ -250,10 +250,10 @@ parseConst(char **cpp)
 
     p = *cpp;
     if (isalpha(*p) || *p == '/') {
-	c->type = NDN_TLV_RPC_VAR;
+	c->type = NDN_TLV_RPC_NAME;
 	while (*p == '/' || isalnum(*p) || *p == '_')
 	    p++;
-	c->u.varlen = p - *cpp;
+	c->u.namelen = p - *cpp;
     } else if (isdigit(*p)) {
 	c->type = NDN_TLV_RPC_NONNEGINT;
 	c->u.nonnegintval = 0;
@@ -354,7 +354,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 	n = "LBD"; break;
     case NDN_TLV_RPC_SEQUENCE:
 	n = "SEQ"; break;
-    case NDN_TLV_RPC_VAR:
+    case NDN_TLV_RPC_NAME:
 	n = "VAR"; break;
     case NDN_TLV_RPC_NONNEGINT:
 	n = "INT"; break;
@@ -378,7 +378,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 	break;
     case NDN_TLV_RPC_SEQUENCE:
 	break;
-    case NDN_TLV_RPC_VAR:
+    case NDN_TLV_RPC_NAME:
     case NDN_TLV_RPC_NONNEGINT:
     case NDN_TLV_RPC_BIN:
     case NDN_TLV_RPC_STR:
@@ -465,7 +465,7 @@ Usage:
 
     reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
-//    write(1, request, reqlen);
+    write(1, request, reqlen);
 
     srandom(time(NULL));
 

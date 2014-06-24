@@ -87,10 +87,10 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
 	ds->type = NDN_TLV_RPC_NONNEGINT;
 	ds->flatlen = (buf - ds->flat) + vallen;
 	return 0;
-    case NDN_TLV_RPC_VAR:
-	ds->u.varlen = vallen;
+    case NDN_TLV_RPC_NAME:
+	ds->u.namelen = vallen;
 	ds->aux = (struct rdr_ds_s*) buf;
-	ds->type = NDN_TLV_RPC_VAR;
+	ds->type = NDN_TLV_RPC_NAME;
 	ds->flatlen = (buf - ds->flat) + vallen;
 	return 0;
     case NDN_TLV_RPC_BIN:

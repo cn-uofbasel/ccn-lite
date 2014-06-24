@@ -43,7 +43,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 	n = "LBD"; break;
     case NDN_TLV_RPC_SEQUENCE:
 	n = "SEQ"; break;
-    case NDN_TLV_RPC_VAR:
+    case NDN_TLV_RPC_NAME:
 	n = "VAR"; break;
     case NDN_TLV_RPC_NONNEGINT:
 	n = "INT"; break;
@@ -56,8 +56,8 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     }
     for (i = 0; i < lev; i++)
 	fprintf(stderr, "  ");
-    if (t == NDN_TLV_RPC_VAR)
-	fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->u.varlen);
+    if (t == NDN_TLV_RPC_NAME)
+	fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->u.namelen);
     else
 	fprintf(stderr, "%s (0x%x)\n", n, t);
 
@@ -70,7 +70,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 	break;
     case NDN_TLV_RPC_SEQUENCE:
 	break;
-    case NDN_TLV_RPC_VAR:
+    case NDN_TLV_RPC_NAME:
     case NDN_TLV_RPC_NONNEGINT:
     case NDN_TLV_RPC_BIN:
     case NDN_TLV_RPC_STR:
@@ -174,15 +174,15 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG(11, "rpc_forward\n");
 
-    if (ccnl_rdr_getType(param) != NDN_TLV_RPC_VAR) {
+    if (ccnl_rdr_getType(param) != NDN_TLV_RPC_NAME) {
 	ccnl_emit_RpcReturn(relay, from,
 			    415, "rpc_forward: expected encoding name", NULL);
 	return 0;
     }
 	
-    cp = ccnl_malloc(param->u.varlen + 1);
-    memcpy(cp, param->aux, param->u.varlen);
-    cp[param->u.varlen] = '\0';
+    cp = ccnl_malloc(param->u.namelen + 1);
+    memcpy(cp, param->aux, param->u.namelen);
+    cp[param->u.namelen] = '\0';
     if (!strcmp(cp,      "/rpc/const/encoding/ndn2013"))
 	encoding = CCNL_SUITE_NDNTLV;
 #ifdef CCNL_SUITE_CCNB
@@ -231,11 +231,11 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     DEBUGMSG(11, "rpc_lookup\n");
 
-    if (ccnl_rdr_getType(param) == NDN_TLV_RPC_VAR) {
-	char *cp = ccnl_malloc(param->u.varlen + 1);
+    if (ccnl_rdr_getType(param) == NDN_TLV_RPC_NAME) {
+	char *cp = ccnl_malloc(param->u.namelen + 1);
 	struct rdr_ds_s *val = 0;
-	memcpy(cp, param->aux, param->u.varlen);
-	cp[param->u.varlen] = '\0';
+	memcpy(cp, param->aux, param->u.namelen);
+	cp[param->u.namelen] = '\0';
 	if (!strcmp(cp, "/rpc/config/compileString")) {
 	    val = ccnl_rdr_mkStr((char*)compile_string());
 	} else if (!strcmp(cp, "/rpc/config/localTime")) {
@@ -275,11 +275,11 @@ builtinFct* rpc_getBuiltinFct(struct rdr_ds_s *var)
 {
     struct x_s *x = builtin;
 
-    if (var->type != NDN_TLV_RPC_VAR)
+    if (var->type != NDN_TLV_RPC_NAME)
 	return NULL;
     while (x->name) {
-	if (strlen(x->name) == var->u.varlen &&
-	    !memcmp(x->name, var->aux, var->u.varlen))
+	if (strlen(x->name) == var->u.namelen &&
+	    !memcmp(x->name, var->aux, var->u.namelen))
 	    return x->fct;
 	x++;
     }
@@ -308,7 +308,7 @@ ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay,
     DEBUGMSG(10, "ccnl_RX_handleApplication face=%p\n", (void*) from);
 
     ftype = ccnl_rdr_getType(fexpr);
-    if (ftype != NDN_TLV_RPC_VAR) {
+    if (ftype != NDN_TLV_RPC_NAME) {
 	DEBUGMSG(11, " (%02x) only constant fct names supported yet\n", ftype);
 	ccnl_emit_RpcReturn(relay, from,
 			    404, "only constant fct names supported yet", NULL);
