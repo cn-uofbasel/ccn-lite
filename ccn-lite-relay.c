@@ -33,7 +33,7 @@
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 // #define USE_FRAG
-// #define USE_ETHERNET
+#define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
 #define USE_SCHEDULER
@@ -60,10 +60,20 @@
 #include "ccnl-util.c"
 #include "ccnl-core.c"
 
+#ifdef USE_SUITE_CCNB
+# include "pkt-ccnb.h"
+# include "pkt-ccnb-enc.c"
+#endif
+#ifdef USE_SUITE_NDNTLV
+# include "pkt-ndntlv.h"
+# include "pkt-ndntlv-enc.c"
+#endif
+
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
+
 
 // ----------------------------------------------------------------------
 

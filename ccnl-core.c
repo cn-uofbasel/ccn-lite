@@ -23,7 +23,7 @@
 
 #include "ccnl-core.h"
 
-#define CCNL_VERSION "2014-05-11"
+#define CCNL_VERSION "2014-06-23"
 
 static struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 						    struct ccnl_interest_s *i);
@@ -748,13 +748,14 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #  include "fwd-ccnb.c"
 #endif
 
+#ifdef USE_SUITE_NDNTLV
+#  include "fwd-ndntlv.c"
+#endif
+
 #ifdef USE_SUITE_LOCALRPC
 #  include "fwd-localrpc.c"
 #endif
 
-#ifdef USE_SUITE_NDNTLV
-#  include "fwd-ndntlv.c"
-#endif
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,

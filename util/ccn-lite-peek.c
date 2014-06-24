@@ -83,13 +83,13 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-ndntlv_mkInterest(char **namecomp, unsigned int *nonce,
+ndntlv_mkInterest(char **namecomp, int *nonce,
 		  unsigned char *out, int outlen)
 {
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(namecomp, -1, &offset, out);
+    len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
     memmove(out, out + offset, len);
 
     return len;
@@ -206,7 +206,7 @@ main(int argc, char *argv[])
     char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
-    int (*mkInterest)(char**,unsigned int*,unsigned char*,int);
+    int (*mkInterest)(char**,int*,unsigned char*,int);
     int (*isContent)(unsigned char*,int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
@@ -276,7 +276,7 @@ Usage:
 
     for (cnt = 0; cnt < 3; cnt++) {
 	char *uri = strdup(argv[optind]), *cp;
-	unsigned int nonce = random();
+	int nonce = random();
 
 	cp = strtok(argv[optind], "/");
 	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {

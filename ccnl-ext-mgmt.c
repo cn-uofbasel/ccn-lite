@@ -27,21 +27,7 @@
 
 #ifdef USE_MGMT
 
-#ifdef CCNL_LINUXKERNEL
-#include <linux/string.h>
-#else
-#include <stdlib.h>
-#include <string.h>
-#endif
-
-#include "pkt-ccnb.h"
-#include "pkt-ccnb-enc.c"
-// #include "ccnl.h"
-#include "ccnl-core.h"
-#include "ccnl-ext-debug.c"
-
 #include "ccnl-ext-crypto.c"
-#include "ccnl-ext.h"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -66,7 +52,7 @@ ccnl_is_local_addr(sockunion *su)
 int 
 ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
-                int len, char *buf)
+                int len, unsigned char *buf)
 {
     
     int it;
@@ -83,7 +69,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(it == numPackets - 1) {
             len4 += ccnl_ccnb_mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
-        len4 += ccnl_ccnb_mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
+        len4 += ccnl_ccnb_mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST,
+				 CCN_TT_DTAG, (char*) buf + it*packetsize,
+				 packetsize);
         packet[len4++] = 0;
         
 #ifdef USE_SIGNATURES
@@ -128,9 +116,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 }
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
-                prefix_a->comp[0] = "mgmt";
+                prefix_a->comp[0] = (unsigned char*) "mgmt";
                 sprintf(ht, "seqnum-%d", it);
-                prefix_a->comp[1] = ht;
+                prefix_a->comp[1] = (unsigned char*) ht;
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen(ht);
@@ -570,9 +558,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     if (debugaction) {
 	cp = "debug cmd worked";
-	DEBUGMSG(99, "  debugaction is %s\n",
-	       debugaction);
-	if (!strcmp((const char*)debugaction, "dump")){
+	DEBUGMSG(99, "  debugaction is %s\n", debugaction);
+	if (!strcmp((char*) debugaction, "dump")){
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
@@ -585,10 +572,10 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
         }
-	else if (!strcmp((const char*)debugaction, "halt")){
+	else if (!strcmp((char*) debugaction, "halt")){
 	    ccnl->halt_flag = 1;
         }
-	else if (!strcmp((const char*)debugaction, "dump+halt")) {
+	else if (!strcmp((char*) debugaction, "dump+halt")) {
 	    ccnl_dump(0, CCNL_RELAY, ccnl);
             
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
@@ -610,7 +597,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/ 
-    if(!debugaction) debugaction = "Error for debug cmd";
+    if (!debugaction)
+	debugaction = (unsigned char*) "Error for debug cmd";
     stmt_length = 200 * num_faces + 200 * num_interfaces + 200 * num_fwds //alloc stroage for answer dynamically.
             + 200 * num_interests + 200 * num_contents;
     contentobject_length = stmt_length + 1000;
@@ -632,7 +620,7 @@ Bail:
     len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
     stmt[len3++] = 0; //end-of-debugstmt
     
-    if(!strcmp((const char*)debugaction, "dump") || !strcmp((const char*)debugaction, "dump+halt")) //halt returns no content
+    if(!strcmp((char*) debugaction, "dump") || !strcmp((char*) debugaction, "dump+halt")) //halt returns no content
     {
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
         //len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
@@ -972,7 +960,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	f->frag = ccnl_frag_new(e, mtuval);
 	cp = "setfrag cmd worked";
 #else
-	cp = "no fragmentation support" + 0*e; // use e to silence compiler
+	cp = "no fragmentation support" + 0*e*mtuval; // use e*mtuval to silence compiler
 #endif
     } else {
 Error:
@@ -1111,7 +1099,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int rc = -1;
     
     //variables for answer
-    int len = 0, len3, portnum;
+    int len = 0, len3;
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
     struct ccnl_if_s *i;
@@ -1155,6 +1143,8 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 #if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
+	int portnum;
+
         cp = "newETHdev cmd worked";
 	portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
 
@@ -1580,7 +1570,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(c2->name->compcnt != num_of_components) continue;
         for(i = 0; i < num_of_components; ++i)
         {
-            if(strcmp(c2->name->comp[i], components[i]))
+	    if(strcmp((char*)(c2->name->comp[i]), (char*)components[i]))
             {
                 break;
             }

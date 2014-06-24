@@ -219,7 +219,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 // ----------------------------------------------------------------------
 
 void
-ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
+ccnl_client_TX(char node, char *name, int seqn, int nonce)
 {
     char *namecomp[20], *n;
     char tmp[512], tmp2[10];
@@ -250,7 +250,8 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 	len = sizeof(tmp);
-	ccnl_ndntlv_mkInterest(namecomp, -1, &len, (unsigned char*) tmp);
+	ccnl_ndntlv_mkInterest(namecomp, -1, &nonce,
+			       &len, (unsigned char*) tmp);
 	memmove(tmp, tmp + len, sizeof(tmp) - len);
 	len = sizeof(tmp) - len;
 	break;

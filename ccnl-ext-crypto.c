@@ -24,12 +24,6 @@
 #define CCNL_EXT_CRYPTO_C
 
 #ifdef USE_SIGNATURES
-#include "ccnl-core.h"
-#include "ccnl-ext-debug.c"
-#include "pkt-ccnb.h"
-//#include "pkt-ccnb.c"
-#include "ccnl-includes.h"
-#include "ccnl-ext-mgmt.c"
 
 char buf[64000];
 int plen;

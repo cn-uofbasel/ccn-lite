@@ -92,23 +92,6 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-ndntlv_mkInterest(char **namecomp, unsigned int *nonce,
-		  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ndntlv_mkInterest(namecomp, -1, &offset, out);
-    memmove(out, out + offset, len);
-
-    return len;
-}
-
-
-
-// ----------------------------------------------------------------------
-
-int
 udp_open()
 {
     int s;
