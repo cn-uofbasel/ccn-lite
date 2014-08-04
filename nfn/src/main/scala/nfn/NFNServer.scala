@@ -80,7 +80,6 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
       case n: NAck =>
         val binaryContent = CCNLite.mkBinaryContent(Content(n.name, n.content.getBytes))
         self.tell(UDPConnection.Send(binaryContent), senderCopy)
-
     }
 
   def interestContentReceiveWithoutLog: Receive = {
@@ -272,7 +271,6 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         }
       }
     }
-
   }
 
   def handleNack(nack: NAck, senderCopy: ActorRef) = {
@@ -312,7 +310,6 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
         logger.info(s"Received NAck: $n")
         handleNack(n, senderCopy)
       }
-
     }
   }
 
@@ -387,12 +384,10 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
       exit()
       context.system.shutdown()
     }
-
   }
 
   def exit(): Unit = {
     computeServer ! PoisonPill
     nfnGateway ! PoisonPill
   }
-
 }

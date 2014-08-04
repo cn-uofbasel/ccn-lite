@@ -25,7 +25,7 @@ object BytecodeLoader {
     }
   }
 
-  def byteCodeForClassAndDependencies(className: String) = {
+  def byteCodeForClassAndDependencies(className: String): Array[Byte] = {
 
     val baOut = new ByteArrayOutputStream()
     val jarOut = new JarOutputStream(baOut)
