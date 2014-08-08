@@ -1,6 +1,6 @@
 package monitor
 
-import ccn.NFNCommunication
+import ccn.NFNCCNLiteParser
 import nfn.NodeConfig
 import monitor.Monitor.{ContentInfoLog, InterestInfoLog, PacketLog, NodeLog}
 import ccn.packet.Interest

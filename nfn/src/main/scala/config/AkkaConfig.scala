@@ -4,9 +4,6 @@ import com.typesafe.config.{Config, ConfigFactory}
 import scala.concurrent.duration._
 import akka.util.Timeout
 
-/**
- * Created by basil on 08/04/14.
- */
 object AkkaConfig {
 
 

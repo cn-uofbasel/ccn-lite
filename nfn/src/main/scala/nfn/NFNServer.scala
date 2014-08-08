@@ -29,7 +29,7 @@ import myutil.IOHelper
 object NFNServer {
 
   def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
-    NFNCommunication.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
+    NFNCCNLiteParser.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
   }
 
   case class ComputeResult(content: Content)

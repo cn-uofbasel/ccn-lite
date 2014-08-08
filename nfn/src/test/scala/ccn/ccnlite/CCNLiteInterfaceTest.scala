@@ -1,6 +1,6 @@
 package ccn.ccnlite
 
-import ccn.NFNCommunication
+import ccn.NFNCCNLiteParser
 import ccnliteinterface.CCNLiteInterface
 import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 import ccn.packet._
@@ -19,7 +19,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
     When("parsed to xml string")
     val xmlUnparsed = ccnIf.ccnbToXml(ccnbInterest)
     Then("xml parsed to interest")
-    val resultInterest = NFNCommunication.parseCCNPacket(xmlUnparsed)
+    val resultInterest = NFNCCNLiteParser.parseCCNPacket(xmlUnparsed)
     resultInterest.get should be (a [Interest])
     resultInterest.get.name should be (Seq("name", "interest"))
   }
@@ -32,7 +32,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
     When("parsed to xml string")
     val xmlUnparsed = ccnIf.ccnbToXml(ccnbContent)
     Then("xml parsed to content")
-    val resultContent = NFNCommunication.parseCCNPacket(xmlUnparsed)
+    val resultContent = NFNCCNLiteParser.parseCCNPacket(xmlUnparsed)
     resultContent should be (a [Content])
     resultContent.get.name should be (Seq("name", "content"))
     resultContent.get.asInstanceOf[Content].data should be ("testcontent".getBytes)

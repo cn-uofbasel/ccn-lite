@@ -9,8 +9,7 @@ import org.xml.sax.SAXParseException
 import scala.xml._
 
 
-object NFNCommunication extends Logging {
-
+object NFNCCNLiteParser extends Logging {
 
   def parseCCNPacket(xmlString: String): Option[CCNPacket] = {
     parsePacket(xmlString) match {

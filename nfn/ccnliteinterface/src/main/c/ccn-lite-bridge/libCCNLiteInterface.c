@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include "ccnliteinterface_CCNLiteInterface.h"
-<<<<<<< Updated upstream
 
 #include "../../../../../../ccnl.h"
 #include "../../../../../../pkt-ccnb.h"
@@ -12,10 +11,6 @@
 #include "../../../../../../pkt-ccnb-dec.c"
 #include "../../../../../../util/ccn-lite-ctrl.c"
 #include "../../../../../../util/ccn-lite-pktdump.c"
-=======
-// #include "ccnb.c"
-#include "ccn-lite-ccnb2xml-java.c"
->>>>>>> Stashed changes
 
 // #ifdef __APPLE__
 #include "open_memstream.h"
