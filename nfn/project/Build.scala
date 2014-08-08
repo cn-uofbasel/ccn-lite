@@ -1,3 +1,6 @@
+import java.io._
+
+import sbt.File
 import sbt._
 import Keys._
 
@@ -10,7 +13,8 @@ object BuildSettings {
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
     resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
-    addCompilerPlugin("org.scalamacros" % "paradise" % paradiseVersion cross CrossVersion.full)
+    addCompilerPlugin("org.scalamacros" % "paradise" % paradiseVersion cross CrossVersion.full),
+    MainBuild.compileJNI
   )
 
   // important to use ~= so that any other initializations aren't dropped
@@ -36,8 +40,6 @@ object MainBuild extends Build {
         "org.slf4j" % "slf4j-api" % "1.7.5",
         "net.liftweb" %% "lift-json" % "2.5.1",
         "org.apache.bcel" % "bcel" % "5.2"
-
-
       )
     )
   ).dependsOn(lambdaMacros, ccnliteinterface, lambdaCalculus)
@@ -92,5 +94,29 @@ object MainBuild extends Build {
       )
     )
   )
+
+
+  val compileJNITask = TaskKey[Unit]("compileJniNativelib")
+  val compileJNI = compileJNITask := {
+    val processBuilder = new java.lang.ProcessBuilder("./make.sh")
+    processBuilder.directory(new File("./ccnliteinterface/src/main/c/ccn-lite-bridge"))
+    val process = processBuilder.start()
+    val processOutputReaderPrinter = new InputStreamToStdOut(process.getInputStream)
+    val t = new Thread(processOutputReaderPrinter).start()
+    process.waitFor()
+    println(s"Compile JNI Process finished with return value ${process.exitValue()}")
+    process.destroy()
+  }
+}
+
+class InputStreamToStdOut(is: InputStream) extends Runnable {
+  override def run(): Unit = {
+    val reader = new BufferedReader(new InputStreamReader(is))
+    var line = reader.readLine
+    while(line != null) {
+      println(reader.readLine())
+      line = reader.readLine
+    }
+  }
 }
 
