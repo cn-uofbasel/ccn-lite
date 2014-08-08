@@ -19,6 +19,7 @@ import ccn.CCNLiteProcess
 object StandardNodeFactory {
   def forId(id: Int, isCCNOnly: Boolean = false): Node = {
     val nodePrefix = CCNName("node", s"node$id")
+//    val nodePrefix = CCNName(s"node$id")
     val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10000 + id * 10, nodePrefix, isCCNOnly)), Some(ComputeNodeConfig("127.0.0.1", 10000 + id * 10 + 1, nodePrefix)))
     Node(nodeConfig)
   }

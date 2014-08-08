@@ -1,21 +1,22 @@
 package bytecode
 
+import java.io.ByteArrayOutputStream
 import java.net.{URL, URLClassLoader}
+import java.util.jar.{JarEntry, JarFile, JarOutputStream}
 import java.util.zip.ZipEntry
-import myutil.IOHelper
+
+import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.bcel.Repository
 import org.apache.bcel.classfile._
 
-import scala.io.Source
 import scala.collection.convert.Wrappers.JEnumerationWrapper
-import java.io.{FileOutputStream, ByteArrayOutputStream, File}
-import java.nio.file.{Paths, Path, Files}
 import scala.util._
-import java.util.jar.{JarOutputStream, JarEntry, JarFile}
-import nfn.NFNServer
-import nfn.service.NFNService
 
-object BytecodeLoader {
+
+/**
+ * Both specified class from a jar and creates bytecode jarfile for a certain class.
+ */
+object BytecodeLoader extends Logging {
 
   class DependencyEmitter(javaClass: JavaClass) extends EmptyVisitor {
     override def visitConstantClass(obj: ConstantClass) {
@@ -25,6 +26,12 @@ object BytecodeLoader {
     }
   }
 
+  /**
+   * Finds the class with the given class name, finds all dependent classes, filters out both Scala and Java SDK classes,
+   * puts everything accordingly into a jarfile and returns the data for this jarfile
+   * @param className The class to find the bytecode for all dependent classes
+   * @return The data of the created jarfile
+   */
   def byteCodeForClassAndDependencies(className: String): Array[Byte] = {
 
     val baOut = new ByteArrayOutputStream()
@@ -34,16 +41,11 @@ object BytecodeLoader {
     val containFilters = List("impl")
     var folders: Set[String] = Set()
     try {
-//      val nfnServiceInterface = Repository.lookupClass(NFNService.getClass.getName)
-//      println(s"NFNServInter: ${nfnServiceInterface.getClassName}")
-      println(s"ClassName:$className")
       val javaClass = Repository.lookupClass(className)
       val visitor = new EmptyVisitor() {
         override def visitConstantClass(obj: ConstantClass) {
           val cp = javaClass.getConstantPool
           val dependentClassnameQualified = obj.getBytes(cp)
-
-
 
           // dependantClassQualified does not start with any element of the filters
           if(startsWithFilters.forall(!dependentClassnameQualified.startsWith(_)) &&
@@ -53,18 +55,12 @@ object BytecodeLoader {
             val (path, _) = dependentClassnameQualified.splitAt(lastSlashIndex)
 
             if (!folders.contains(path)) {
-              println(s"adding folder: $path")
               folders += path
-              println(s"folders: $folders")
               jarOut.putNextEntry(new ZipEntry(path)); // Folders must end with "/".
             }
-            println(s"adding: $dependentClassnameQualified.class")
             jarOut.putNextEntry(new ZipEntry(dependentClassnameQualified + ".class"))
             jarOut.write(javaClass.getBytes)
-            println(s"adding bytecode: ${new String(javaClass.getBytes).take(50)} ...")
             jarOut.closeEntry()
-          } else {
-            println(s"skipping: $dependentClassnameQualified")
           }
         }
       }
@@ -74,25 +70,19 @@ object BytecodeLoader {
     } finally {
       jarOut.close()
     }
+    logger.info(s"Created jar with dependant bytecode for class $className")
 
     baOut.toByteArray
   }
 
-
-
   /**
-   * Loads a class from either from:
-   * - a directory containing .class files
-   * - from a jarfile (containing .class files)
-   * The result is casted to the type parameter T
-   * @param dirOrJar Either a directory containing .class files or a jarfile
-   * @param className Name of the class to be loaded (don't forget package names)
-   * @tparam T Type the loaded class is casted to
-   * @return
+   * Loads the specified class form a jarfile.
+   * @param jarFilename Name of the jarfile to load
+   * @param classNameToLoad Name of the class that should be loaded from the jar
+   * @tparam T The type of the resulting class, usually a trait the class to load implements
+   * @return The laoded class of the type parameter
    */
   def loadClass[T](jarFilename: String, classNameToLoad: String): Try[T] = {
-//    val url = new File(jarFilename).toURI.toURL
-//    val urls = Array(url)
 
     val jar = new JarFile(jarFilename)
 
@@ -110,23 +100,6 @@ object BytecodeLoader {
 
         val entryClassName = e.getName.substring(0, e.getName.length-6).replace('/', '.')
 
-
-//        try {
-//          val nfnServiceIf = Repository.lookupClass(NFNService.getClass.getName)
-//          val lookedUpClass = Repository.lookupClass(entryClassName)
-//          lookedUpClass.getSuperClasses foreach { superClass =>
-//            println(s"super class: ${superClass.getClassName}")
-//            superClass.isInstanceOf[NFNService]
-//          }
-////          match {
-////            case Some(_) =>
-////            println(s"$entryClassName implements NFNService!")
-////            case None =>
-////            println(s"$entryClassName does not implement NFNService!")
-////          }
-//        } catch {
-//          case ex: Exception => throw ex
-//        }
         if(entryClassName == classNameToLoad.replace("/", "").replace("_", ".")) {
           val clazz = cl.loadClass(entryClassName)
 
@@ -140,23 +113,7 @@ object BytecodeLoader {
 
   def fromClass(clazz: Any):Option[Array[Byte]] = {
     val byteCode = byteCodeForClassAndDependencies(clazz.getClass.getName)
-
-    println(s"loaded bytecode (size: ${byteCode.size}")
     Some(byteCode)
-
   }
 }
-
-
-
-//object Test extends App {
-//  import BytecodeLoader._
-//
-//
-//  val classDir = classToDirname(new TestClass())
-//  loadClass[TestClass](classDir, TestClass().getClass.getCanonicalName) match {
-//    case Success(tc: TestClass) => tc.fun
-//    case Failure(e) => throw e
-//  }
-//}
 

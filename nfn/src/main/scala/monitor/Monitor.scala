@@ -105,8 +105,6 @@ case class Monitor() extends Actor {
   }
 
   def handlePacketLog(log: PacketLog, fromHostAndPort: Option[HostAndPort] = None): Unit = {
-
-
     // If no host and port was passed to the function, try to take it form the log (might still be None)
     val maybeFrom: Option[NodeLog] =
       fromHostAndPort.fold(log.from) { hostAndPort =>

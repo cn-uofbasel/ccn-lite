@@ -1,11 +1,15 @@
 package ccn.ccnlite
 
-import ccn.NFNCommunication
+import ccn.NFNCCNLiteParser
 import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
 import java.io.{FileOutputStream, File}
 import com.typesafe.scalalogging.slf4j.Logging
 
+
+/**
+ * Wrapper for the [[CCNLiteInterface]]
+ */
 object CCNLite extends Logging {
   val ccnIf = new CCNLiteInterface()
 
@@ -46,7 +50,7 @@ object CCNLite extends Logging {
     if(!servLibDir.exists) {
       servLibDir.mkdir()
     }
-    val filename = s"./service-library/test-${content.name.hashCode}-${System.nanoTime}.ccnb"
+    val filename = s"./service-library/${content.name.hashCode}-${System.nanoTime}.ccnb"
     val file = new File(filename)
 
     // Just to be sure, if the file already exists, wait quickly and try again
@@ -70,8 +74,8 @@ object CCNLite extends Logging {
   }
 
   def base64CCNBToPacket(base64ccnb: String): Option[CCNPacket] = {
-    val xml = CCNLite.ccnbToXml(NFNCommunication.decodeBase64(base64ccnb))
-    val pkt = NFNCommunication.parseCCNPacket(xml)
+    val xml = CCNLite.ccnbToXml(NFNCCNLiteParser.decodeBase64(base64ccnb))
+    val pkt = NFNCCNLiteParser.parseCCNPacket(xml)
     pkt
   }
 

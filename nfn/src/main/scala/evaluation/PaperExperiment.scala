@@ -144,14 +144,14 @@ object PaperExperiment extends App {
 
   import LambdaDSL._
   import LambdaNFNImplicits._
-  implicit val useThunks: Boolean = true
+  implicit val useThunks: Boolean = false
 
   val ts = new Translate().toString
   val wc = new WordCountService().toString
   val nack = new NackServ().toString
   val dyn = dynServ.toString
 
-  node1 ? (ts appl node1.prefix.append("dummy"))
+//  node1 ? (ts appl node1.prefix.append("dummy"))
 
   Thread.sleep(2000)
 
@@ -167,7 +167,6 @@ object PaperExperiment extends App {
   // remove wc face to node 3
   val exp3 = wc appl docname5
 
-  // add links again !!!!
   // thunks vs no thunks
   val exp4 = (wc appl docname3) + (wc appl docname4)
 

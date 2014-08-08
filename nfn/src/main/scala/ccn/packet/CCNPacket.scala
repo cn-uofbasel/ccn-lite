@@ -10,12 +10,10 @@ sealed trait Packet
 trait Ack
 
 object CCNName {
-//  val thunkInterestKeyword = "USETHUNK"
   val thunkInterestKeyword = "THUNK"
   val thunkKeyword = "THUNK"
   val nfnKeyword = "NFN"
   val computeKeyword = "COMPUTE"
-//  def apply(cmps: String *): CCNName = CCNName(cmps.toList)
   def withAddedNFNComponent(ccnName: CCNName) = CCNName(ccnName.cmps ++ Seq(nfnKeyword) :_*)
   def withAddedNFNComponent(cmps: Seq[String]) = CCNName(cmps ++ Seq(nfnKeyword) :_*)
 
@@ -42,8 +40,6 @@ case class CCNName(cmps: String *) extends Logging {
   private def isThunkWithKeyword(keyword: String) = cmps.size >= 2 && !cmps.drop(cmps.size-2).forall(_ != keyword)
 
   def isThunk: Boolean = isThunkWithKeyword(thunkKeyword)
-
-//  def isInterestThunk: Boolean = isThunkWithKeyword(thunkInterestKeyword)
 
   def isNFN: Boolean = cmps.size >= 1 && cmps.last == nfnKeyword
 
@@ -82,10 +78,8 @@ case class CCNName(cmps: String *) extends Logging {
   }
 
   def withoutThunk: CCNName = withoutThunkAndIsThunk._1
-//  def withoutInterestThunk: CCNName = withoutInterestThunkAndIsInterestThunk._1
 
   def withoutThunkAndIsThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkKeyword)
-//  def withoutInterestThunkAndIsInterestThunk: (CCNName, Boolean) = withoutThunkAndIsThunkWithKeyword(thunkInterestKeyword)
 
   private def thunkifyWithKeyword(keyword: String): CCNName = {
     cmps match {
@@ -100,8 +94,6 @@ case class CCNName(cmps: String *) extends Logging {
   }
 
   def thunkify: CCNName = thunkifyWithKeyword(thunkKeyword)
-//
-//  def thunkifyInterest: CCNName = thunkifyWithKeyword(thunkInterestKeyword)
 
   def append(cmpsToAppend:String*):CCNName = CCNName(cmps ++ cmpsToAppend:_*)
   def prepend(cmpsToPrepend:String*):CCNName = CCNName(cmpsToPrepend ++ cmps:_*)
@@ -123,8 +115,6 @@ object Interest {
 case class Interest(name: CCNName) extends CCNPacket {
 
   def this(cmps: String *) = this(CCNName(cmps:_*))
-
-//  def thunkifyInterest: Interest = Interest(name.thunkifyInterest)
 
   def thunkify: Interest = Interest(name.thunkify)
 
@@ -148,7 +138,6 @@ object Content {
 
 case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
 
-//  def this(data: Array[Byte], cmps: String *) = this(CCNName(cmps.toList), data)
   def possiblyShortenedDataString: String = {
     val dataString = new String(data)
     val dataStringLen = dataString.length
@@ -156,7 +145,7 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
       dataString.take(50) + "..." + dataString.takeRight(10)
     else dataString
   }
-  override def toString = s"Content('$name' => [${data.size}]$possiblyShortenedDataString)"
+  override def toString = s"Content('$name' => $possiblyShortenedDataString[size=${data.size}])"
 }
 
 case class NAck(name: CCNName) extends CCNPacket {
