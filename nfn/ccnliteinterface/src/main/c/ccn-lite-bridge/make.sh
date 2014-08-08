@@ -1,6 +1,7 @@
 #!/bin/sh
 
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
+echo "Compile JNI native library for the CCNLite interface..."
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
 
 gcc -dynamiclib -o libCCNLiteInterface.jnilib ./libCCNLiteInterface.c ./open_memstream.c -lcrypto -I$JAVA_HOME/include -I$JAVA_HOME/include/darwin -framework JavaVM
 

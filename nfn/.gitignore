@@ -45,6 +45,8 @@ omnetreplay/transmittedPackets.json
 *.dSYM/*
 
 # Scala NFN
+*.jno
+*.so
 *c_xml.txt
 failed-messages
 service-library
