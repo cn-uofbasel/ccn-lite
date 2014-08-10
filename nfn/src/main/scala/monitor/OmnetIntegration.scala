@@ -154,7 +154,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
       |simple CCNNode extends Node
       |{
       |    parameters:
-      |       @display("i=,red");
+      |       @display("i=,green");
       |}
       |
       |simple ComputeNode extends Node

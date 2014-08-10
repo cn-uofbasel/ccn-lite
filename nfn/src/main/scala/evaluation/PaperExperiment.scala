@@ -20,7 +20,7 @@ import java.io.File
 
 object PaperExperiment extends App {
 
-  val expNum = 3
+  val expNum = 5
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
@@ -61,7 +61,6 @@ object PaperExperiment extends App {
   node4 += docContent4
   node5 += docContent5
 
-  nodes foreach { node => node += Content(node.prefix.append("dummy"), "dummy".getBytes)}
   nodes foreach { node => node.publishService(new NackServ()) }
 
   node1 <~> node2
@@ -138,8 +137,7 @@ object PaperExperiment extends App {
     }
   }
   node1.publishService(dynServ)
-
-  Thread.sleep(1000)
+  Thread.sleep(500)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
@@ -149,11 +147,6 @@ object PaperExperiment extends App {
   val wc = new WordCountService().toString
   val nack = new NackServ().toString
   val dyn = dynServ.toString
-
-//  node1 ? (ts appl node1.prefix.append("dummy"))
-
-  Thread.sleep(2000)
-
 
   val exp1 = wc appl docname1
 
@@ -170,7 +163,7 @@ object PaperExperiment extends App {
   val exp4 = (wc appl docname3) + (wc appl docname4)
 
   val exp5_1 = wc appl docname3
-  val exp5_2 = (wc appl docname4) + (wc appl docname3)
+  val exp5_2 = (wc appl docname3) + (wc appl docname4)
 
   // node 3 to ccn only (simluate "overloaded" router)
   // cut 4 <-> 5
