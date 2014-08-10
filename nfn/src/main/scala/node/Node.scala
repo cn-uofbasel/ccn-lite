@@ -246,6 +246,8 @@ case class Node(nodeConfig: CombinedNodeConfig) {
     }
     nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
       nfnMaster ! NFNApi.AddToCCNCache(content)
+      Thread.sleep(50)
+
     }
 
   }

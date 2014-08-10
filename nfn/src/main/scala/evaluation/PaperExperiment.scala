@@ -20,17 +20,16 @@ import java.io.File
 
 object PaperExperiment extends App {
 
-  val expNum = 2
+  val expNum = 3
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
 
-  val node3 =
-    if(expNum != 3) {
-      StandardNodeFactory.forId(3)
-    } else {
-      StandardNodeFactory.forId(3, isCCNOnly = true)
-    }
+  val node3 = StandardNodeFactory.forId(3)
+//    if(expNum != 3) {
+//    } else {
+//      StandardNodeFactory.forId(3, isCCNOnly = true)
+//    }
 
   val node4 = StandardNodeFactory.forId(4)
   val node5 = StandardNodeFactory.forId(5, isCCNOnly = true)

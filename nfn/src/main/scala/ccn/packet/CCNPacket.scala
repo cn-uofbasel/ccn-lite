@@ -145,7 +145,7 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
       dataString.take(50) + "..." + dataString.takeRight(10)
     else dataString
   }
-  override def toString = s"Content('$name' => $possiblyShortenedDataString[size=${data.size}])"
+  override def toString = s"Content('$name' => '$possiblyShortenedDataString' [size=${data.size}])"
 }
 
 case class NAck(name: CCNName) extends CCNPacket {

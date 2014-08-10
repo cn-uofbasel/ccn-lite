@@ -3,8 +3,9 @@ package ccn.ccnlite
 import ccn.NFNCCNLiteParser
 import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
-import java.io.{FileOutputStream, File}
+import java.io.{FileReader, FileOutputStream, File}
 import com.typesafe.scalalogging.slf4j.Logging
+import myutil.IOHelper
 
 
 /**
@@ -14,7 +15,12 @@ object CCNLite extends Logging {
   val ccnIf = new CCNLiteInterface()
 
   def ccnbToXml(ccnbData: Array[Byte]): String = {
-    ccnIf.ccnbToXml(ccnbData)
+    // This synchronized is required because currently ccnbToXml writes to the local file c_xml.txt
+    // This results in issues when concurrenlty writing/creating/deleting the same file (filelock)
+    // Fix the implementation of Java_ccnliteinterface_CCNLiteInterface_ccnbToXml in the ccnliteinterface and remove synchronized
+    this.synchronized {
+      ccnIf.ccnbToXml(ccnbData)
+    }
   }
 
   def mkBinaryContent(content: Content): Array[Byte] = {
@@ -68,6 +74,7 @@ object CCNLite extends Logging {
       }
       val absoluteFilename = file.getCanonicalPath
       val binaryInterest = ccnIf.mkAddToCacheInterest(absoluteFilename)
+
       file.delete
       binaryInterest
     }
