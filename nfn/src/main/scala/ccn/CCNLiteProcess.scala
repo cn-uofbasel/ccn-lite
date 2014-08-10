@@ -87,7 +87,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, isCCNOnly: Boolean) extends
 
     val ccnliteExecutable = if(isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
     val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
-    println(s"$processName-$prefix: executing: '$cmd'")
+//    println(s"$processName-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
     processBuilder.redirectErrorStream(true)
     process = processBuilder.start

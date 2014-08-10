@@ -12,7 +12,7 @@ object AkkaConfig {
 
   val configInfo =
     ConfigFactory.parseString("""
-      |akka.loglevel=INFO
+      |akka.loglevel=ERROR
       |akka.debug.lifecycle=on
       |akka.debug.receive=on
       |akka.debug.event-stream=on
@@ -24,7 +24,7 @@ object AkkaConfig {
 
   val configDebug =
     ConfigFactory.parseString("""
-                                |akka.loglevel=DEBUG
+                                |akka.loglevel=ERROR
                                 |akka.debug.lifecycle=on
                                 |akka.debug.receive=on
                                 |akka.debug.event-stream=on

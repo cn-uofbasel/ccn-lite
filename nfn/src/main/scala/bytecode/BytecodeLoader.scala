@@ -95,7 +95,7 @@ object BytecodeLoader extends Logging {
     entries foreach { e =>
 
       if (!e.isDirectory && e.getName.endsWith(".class")) {
-        println(s"Class entry: ${e.getName}")
+//        println(s"Class entry: ${e.getName}")
 
 
         val entryClassName = e.getName.substring(0, e.getName.length-6).replace('/', '.')
