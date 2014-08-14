@@ -27,14 +27,14 @@ new_closure(char *term, struct environment_s *env){
     return ret;
 }
 
-void
+void 
 push_to_stack(struct stack_s **top, void *content, int type){
     struct stack_s *h = malloc(sizeof(struct stack_s));
     if(top != NULL && *top != NULL){
                 h->next = *top;
         }else{
-            h->next = NULL;
-        }
+	        h->next = NULL;
+	    }
     h->content = content;
     h->type = type;
     *top = h;
@@ -47,7 +47,7 @@ pop_from_stack(struct stack_s **top){
     if( *top != NULL){
         struct stack_s *h = *top;
         res = h;
-        *top = h->next;
+    	*top = h->next;
         return res;
     }
     return NULL;
@@ -97,17 +97,17 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     return elm;
 }
 
-void
+void 
 print_environment(struct environment_s *env){
    struct environment_s *e;
    printf("Environment address is: %p\n", (void *)env);
    int num = 0;
    for(e = env; e; e = e->next){
-    printf("Element %d %s %p\n", num++, e->name, e->element);
+	printf("Element %d %s %p\n", num++, e->name, e->element);        
    }
 }
 
-void
+void 
 print_result_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
@@ -116,19 +116,19 @@ print_result_stack(struct stack_s *stack){
    }
 }
 
-void
+void 
 print_argument_stack(struct stack_s *stack){
    struct stack_s *s;
    int num = 0;
    for(s = stack; s; s = s->next){
         struct closure_s *c = s->content;
-    printf("Element %d %s\n ---Env: \n", num++, c->term);
-    print_environment(c->env);
-    printf("--End Env\n");
+	printf("Element %d %s\n ---Env: \n", num++, c->term);  
+	print_environment(c->env);
+	printf("--End Env\n");      
    }
 }
 
-void
+void 
 add_to_environment(struct environment_s **env, char *name, void *element){
    struct environment_s *newelement = malloc(sizeof(struct environment_s));
    newelement->name = name;
@@ -145,9 +145,9 @@ void *
 search_in_environment(struct environment_s *env, char *name){
   struct environment_s *envelement;
   for(envelement = env; envelement; envelement = envelement->next){
-        if(!strcmp(name, envelement->name)){
-             return envelement->element;
-        }
+    	if(!strcmp(name, envelement->name)){
+		     return envelement->element;	
+		}
     }
   return NULL;
 }
@@ -171,11 +171,11 @@ parse_var(char **cpp)
 
     p = *cpp;
     while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
-    p++;
+	p++;
     len = p - *cpp;
     p = malloc(len+1);
     if (!p)
-    return 0;
+	return 0;
     memcpy(p, *cpp, len);
     p[len] = '\0';
     *cpp += len;
@@ -194,46 +194,46 @@ parseKRIVINE(int lev, char **cp)
     struct term_s *t = 0, *s, *u;
 
     while (**cp) {
-    while (isspace(**cp))
-        *cp += 1;
+	while (isspace(**cp))
+	    *cp += 1;
 
-//  printf("parseKRIVINE %d %s\n", lev, *cp);
+//	printf("parseKRIVINE %d %s\n", lev, *cp);
 
-    if (**cp == ')')
-        return t;
-    if (**cp == '(') {
-        *cp += 1;
-        s = parseKRIVINE(lev+1, cp);
-        if (!s)
-        return 0;
-        if (**cp != ')') {
-        printf("parseKRIVINE error: missing )\n");
-        return 0;
-        } else
-        *cp += 1;
-    } else if (**cp == LAMBDA) {
-        *cp += 1;
-        s = calloc(1, sizeof(*s));
-        s->v = parse_var(cp);
-        s->m = parseKRIVINE(lev+1, cp);
-//      printKRIVINE(dummybuf, s->m, 0);
-//      printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
-    } else {
-        s = calloc(1, sizeof(*s));
-        s->v = parse_var(cp);
-//      printf("  var: <%s>\n", s->v);
-    }
-    if (t) {
-//      printKRIVINE(dummybuf, t, 0);
-//      printf("  old term: <%s>\n", dummybuf);
-        u = calloc(1, sizeof(*u));
-        u->m = t;
-        u->n = s;
-        t = u;
-    } else
-        t = s;
-//  printKRIVINE(dummybuf, t, 0);
-//  printf("  new term: <%s>\n", dummybuf);
+	if (**cp == ')')
+	    return t;
+	if (**cp == '(') {
+	    *cp += 1;
+	    s = parseKRIVINE(lev+1, cp);
+	    if (!s)
+		return 0;
+	    if (**cp != ')') {
+		printf("parseKRIVINE error: missing )\n");
+		return 0;
+	    } else
+		*cp += 1;
+	} else if (**cp == LAMBDA) {
+	    *cp += 1;
+	    s = calloc(1, sizeof(*s));
+	    s->v = parse_var(cp);
+	    s->m = parseKRIVINE(lev+1, cp);
+//	    printKRIVINE(dummybuf, s->m, 0);
+//	    printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
+	} else {
+	    s = calloc(1, sizeof(*s));
+	    s->v = parse_var(cp);
+//	    printf("  var: <%s>\n", s->v);
+	}
+	if (t) {
+//	    printKRIVINE(dummybuf, t, 0);
+//	    printf("  old term: <%s>\n", dummybuf);
+	    u = calloc(1, sizeof(*u));
+	    u->m = t;
+	    u->n = s;
+	    t = u;
+	} else
+	    t = s;
+//	printKRIVINE(dummybuf, t, 0);
+//	printf("  new term: <%s>\n", dummybuf);
     }
 //    printKRIVINE(dummybuf, t, 0);
 //    printf("  we return <%s>\n", dummybuf);
@@ -246,17 +246,17 @@ printKRIVINE(char *cfg, struct term_s *t, char last)
     int len = 0;
 
     if (t->v && t->m) { // Lambda (sequence)
-    len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
-    len += printKRIVINE(cfg + len, t->m, 'a');
-    len += sprintf(cfg + len, ")");
-    return len;
+	len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
+	len += printKRIVINE(cfg + len, t->m, 'a');
+	len += sprintf(cfg + len, ")");
+	return len;
     }
     if (t->v) { // (single) variable
-    if (isalnum(last))
-        len += sprintf(cfg + len, " %s", t->v);
-    else
-        len += sprintf(cfg + len, "%s", t->v);
-    return len;
+	if (isalnum(last))
+	    len += sprintf(cfg + len, " %s", t->v);
+	else
+	    len += sprintf(cfg + len, "%s", t->v);
+	return len;
     }
     // application (sequence)
 #ifdef CORRECT_PARENTHESES
@@ -266,22 +266,22 @@ printKRIVINE(char *cfg, struct term_s *t, char last)
     len += sprintf(cfg + len, ")");
 #else
     if (t->n->v && !t->n->m) {
-    len += printKRIVINE(cfg + len, t->m, last);
-    len += printKRIVINE(cfg + len, t->n, 'a');
+	len += printKRIVINE(cfg + len, t->m, last);
+	len += printKRIVINE(cfg + len, t->n, 'a');
     } else {
-    len += printKRIVINE(cfg + len, t->m, last);
-    len += sprintf(cfg + len, " (");
-    len += printKRIVINE(cfg + len, t->n, '(');
-    len += sprintf(cfg + len, ")");
+	len += printKRIVINE(cfg + len, t->m, last);
+	len += sprintf(cfg + len, " (");
+	len += printKRIVINE(cfg + len, t->n, '(');
+	len += sprintf(cfg + len, ")");
     }
 #endif
     return len;
 }
 
 int iscontent(char *cp){
-    if(cp[0] == '/')
-        return 1;
-    return 0;
+	if(cp[0] == '/')
+		return 1;
+	return 0;
 }
 //------------------------------------------------------------
 
@@ -326,7 +326,7 @@ int choose_parameter(struct configuration_s *config){
             if(h1->type == STACK_TYPE_INT) i2 = *(int*)h2->content;\
         }while(0) ;
 //------------------------------------------------------------
-
+        
 struct ccnl_prefix_s *
 create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
@@ -344,8 +344,8 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
 }
 
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-        int thunk_request, int *num_of_required_thunks,
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+        int thunk_request, int *num_of_required_thunks,  
         int *halt, char *dummybuf, int *restart)
 {
     struct term_s *t;
@@ -353,11 +353,11 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     int len;
     char *prog = config->prog;
     memset(dummybuf, 0, 2000);
-
+    
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if(config->result_stack){
-        return config->result_stack->content;
+		return config->result_stack->content;
          }
          DEBUGMSG(2, "no result returned\n");
          return NULL;
@@ -397,7 +397,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             cp = pending-1;
         else
             cp = prog + strlen(prog) - 1;
-    len = cp - p;
+	len = cp - p;
         cp = malloc(len);
         memcpy(cp, p+1, len-1);
         cp[len-1] = '\0';
@@ -407,11 +407,11 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             char v[500], *c;
             int len;
             c = strchr(cp+12, ')'); if (!c) goto normal;
-        len = c - (cp+12);
-        memcpy(v, cp+12, len);
-        v[len] = '\0';
-        struct closure_s *closure = search_in_environment(config->env, v);
-        if(!closure) goto normal;
+	    len = c - (cp+12);
+	    memcpy(v, cp+12, len);
+	    v[len] = '\0';
+	    struct closure_s *closure = search_in_environment(config->env, v);
+	    if(!closure) goto normal;
             if(!strcmp(closure->term, cp)){
                 DEBUGMSG(2, "** detected tail recursion case %s\n", closure->term);
             }else{
@@ -421,7 +421,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         else{
             struct closure_s *closure;
 normal:
-            closure = new_closure(cp, config->env);
+            closure = new_closure(cp, config->env); 
             //configuration->env = NULL;//FIXME new environment?
             push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
         }
@@ -429,27 +429,27 @@ normal:
             cp = pending + 1;
         }
         else{
-        printf("** not implemented %d\n", __LINE__);
+	    printf("** not implemented %d\n", __LINE__);
         }
         return cp;
     }
     if (!strncmp(prog, "GRAB(", 5)) {
         char *v;
         if (pending)
-        v = pending-1;
-    else
-        v = prog + strlen(prog) - 1;
-    len = v - p;
-    v = malloc(len);
-    memcpy(v, p+1, len-1);
-    v[len-1] = '\0';
-    DEBUGMSG(2, "---to do: grab <%s>\n", v);
+	    v = pending-1;
+	else
+	    v = prog + strlen(prog) - 1;
+	len = v - p;
+	v = malloc(len);
+	memcpy(v, p+1, len-1);
+	v[len-1] = '\0';
+	DEBUGMSG(2, "---to do: grab <%s>\n", v);
 
     struct stack_s *stack = pop_from_stack(&config->argument_stack);
     struct closure_s *closure = (struct closure_s *) stack->content;
-    add_to_environment(&config->env, v, closure);
+	add_to_environment(&config->env, v, closure);
 
-    if(pending)
+	if(pending)
             pending++;
         return pending;
     }
@@ -465,21 +465,21 @@ normal:
         }else{
             sprintf(dummybuf, "%s", code);
         }
-    config->env = closure->env; //set environment from closure
+	config->env = closure->env; //set environment from closure
         return strdup(dummybuf);
     }
     if (!strncmp(prog, "RESOLVENAME(", 12)) {
-    char res[1000];
-    memset(res,0,sizeof(res));
+	char res[1000];
+	memset(res,0,sizeof(res));
         if (pending)
-        cp = pending-1;
-    else
-        cp = prog + strlen(prog) - 1;
+	    cp = pending-1;
+	else
+	    cp = prog + strlen(prog) - 1;
         len = cp - p;
         cp = malloc(len);
-    memcpy(cp, p+1, len-1);
-    cp[len-1] = '\0';
-    DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
+	memcpy(cp, p+1, len-1);
+	cp[len-1] = '\0';
+	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
 
         //function definition
         if(!strncmp(cp, "let", 3)){
@@ -496,37 +496,37 @@ normal:
             pendinglength = strlen(res+end) + strlen("RESOLVENAME()");
             h = strchr(cp, '=');
             namelength = h - cp;
-
-
+            
+            
             lambda_expr = malloc(strlen(h));
             name = malloc(namelength);
             pending = malloc(pendinglength);
-
+            
             memset(pending, 0, pendinglength);
             memset(name, 0, namelength);
             memset(lambda_expr, 0, strlen(h));
-
+            
             sprintf(pending, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
-
+            
             memcpy(name, cp+3, namelength-3); //copy name without let and endlet
             trim(name);
-
+   
             lambdalen = strlen(h)-strlen(pending)+11-6;
             memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
             trim(lambda_expr);
             resolveterm = malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
             sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
-
+            
             struct closure_s *cl = new_closure(resolveterm, NULL);
             add_to_environment(&config->env, name, cl);
-
+            
             return pending;
         }
-
+        
         //check if term can be made available, if yes enter it as a var
-    //try with searching in global env for an added term!
+	//try with searching in global env for an added term!
     t = parseKRIVINE(0, &cp);
-    if (term_is_var(t)) {
+	if (term_is_var(t)) {
         char *end = 0;
         cp = t->v;
         if (isdigit(*cp)) {
@@ -539,7 +539,7 @@ normal:
             if(end){
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             }
-        }
+	    }
         else if(iscontent(cp)){
             // is content...
             DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
@@ -560,45 +560,45 @@ normal:
         }
         return strdup(res);
     }
-    if (term_is_lambda(t)) {
+	if (term_is_lambda(t)) {
             char *var;
-        var = t->v;
-        printKRIVINE(dummybuf, t->m, 0);
-        cp = strdup(dummybuf);
+	    var = t->v;
+	    printKRIVINE(dummybuf, t->m, 0);
+	    cp = strdup(dummybuf);
             if (pending)
-        sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
-        else
-        sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
-        free(cp);
+		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
+	    else
+		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
+	    free(cp);
             return strdup(res);
         }
         if (term_is_app(t)) {
             printKRIVINE(dummybuf, t->n, 0);
-        p = strdup(dummybuf);
-        printKRIVINE(dummybuf, t->m, 0);
-        cp = strdup(dummybuf);
-
+	    p = strdup(dummybuf);
+	    printKRIVINE(dummybuf, t->m, 0);
+	    cp = strdup(dummybuf);
+            
             if (pending)
-        sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
-        else
-        sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
-
+  		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
+	    else
+		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
+	   
             return strdup(res);
         }
     }
     if (!strncmp(prog, "OP_CMPEQ_CHURCH", 15)) {
-    int i1, i2, acc;
+	int i1, i2, acc;
     char res[1000];
-    memset(res, 0, sizeof(res));
-    DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-    pop2int();
-    acc = i1 == i2;
+	memset(res, 0, sizeof(res));
+	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+	pop2int();
+	acc = i1 == i2;
         cp =  acc ? "@x@y x" : "@x@y y";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-    else
-        sprintf(res, "RESOLVENAME(%s)", cp);
-    return strdup(res);
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
         int i1, i2, acc;
@@ -615,21 +615,21 @@ normal:
         return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPEQ", 8)) {
-    int i1, i2, acc;
+	int i1, i2, acc;
     char res[1000];
-    memset(res, 0, sizeof(res));
+	memset(res, 0, sizeof(res));
     DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
-    pop2int();
-    acc = i1 == i2;
+	pop2int();
+	acc = i1 == i2;
     if(acc)
         cp = "1";
     else
         cp = "0";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-    else
-        sprintf(res, "RESOLVENAME(%s)", cp);
-    return strdup(res);
+	    sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
+	else
+	    sprintf(res, "RESOLVENAME(%s)", cp);
+	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ", 9)) {
         int i1, i2, acc;
@@ -734,7 +734,7 @@ normal:
         int local_search = 0;
         if(*restart) {
             *restart = 0;
-        local_search = 1;
+	    local_search = 1;
             goto recontinue;
         }
         DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
@@ -744,7 +744,7 @@ normal:
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
         config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
-
+        
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
             config->fox_state->params[i] = pop_from_stack(&config->result_stack);
@@ -851,13 +851,13 @@ handlecontent: //if result was found ---> handle it
                     DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path2(mapping->key), ccnl_prefix_to_path2(mapping->value));
                 }
             }
-        }
+        }        
         DEBUGMSG(99, "Pending: %s\n", pending+1);
         return pending+1;
     }
-
+    
     if(!strncmp(prog, "halt", 4)){
-    *halt = 1;
+	*halt = 1;
         return pending;
     }
 
@@ -886,14 +886,14 @@ setup_global_environment(struct environment_s **env){
 
     closure = new_closure("RESOLVENAME(@expr@yes@no(expr yes no))", NULL);
     add_to_environment(env, "ifelse_church", closure);
-
+    
     //Operator on integer numbers
     closure = new_closure("CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "eq", closure);
 
     closure = new_closure("CLOSURE(OP_CMPLEQ);RESOLVENAME(@op(@x(@y x y op)))", NULL);
     add_to_environment(env, "leq", closure);
-
+    
     closure = new_closure("CLOSURE(OP_IFELSE);RESOLVENAME(@op(@x x op));TAILAPPLY", NULL);
     add_to_environment(env, "ifelse", closure);
 
@@ -902,7 +902,7 @@ setup_global_environment(struct environment_s **env){
 
     closure = new_closure("CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "sub", closure);
-
+   
     closure = new_closure("CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY", NULL);
     add_to_environment(env, "mult", closure);
 
@@ -915,7 +915,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
                   int start_locally, int num_of_required_thunks, struct configuration_s **config,
                   struct ccnl_prefix_s *prefix, int suite){
     DEBUGMSG(99, "Krivine_reduction()\n");
-    int steps = 0;
+    int steps = 0; 
     int halt = 0;
     int restart = 1;
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
@@ -940,9 +940,9 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
     while ((*config)->prog && !halt && (*config)->prog != 1){
-    steps++;
-    DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
-    (*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request,
+	steps++;
+	DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
+	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
                 &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
     }
     if(halt < 0){ //HALT < 0 means pause computation
