@@ -38,7 +38,6 @@ omnetreplay/interestto_m.h
 omnetreplay/omnetintegration
 omnetreplay/omnetreplay
 omnetreplay/out*
-
 omnetreplay/NFNNetwork.ned
 omnetreplay/transmittedPackets.json
 
