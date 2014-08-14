@@ -30,7 +30,10 @@ util/ccn-lite-mkF
 util/ccn-lite-mkI
 util/ccn-lite-cryptoserver
 util/ccn-lite-peekcomputation
+<<<<<<< HEAD
 *.dSYM
+=======
+>>>>>>> 77d83cd... Add utility to create compute requests
 # unit tests
 test/unit/prefix-cmp
 
