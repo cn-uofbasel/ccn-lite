@@ -5,11 +5,13 @@ CC=gcc
 MYCFLAGS=-Wall -g -O0
 EXTLIBS=  -lcrypto
 
-NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR -DCCNL_NACK
+NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR
 
 INST_PROGS= ccn-lite-relay \
-	    ccn-nfn-relay \
-	    ccn-lite-minimalrelay
+		ccn-nfn-relay \
+		ccn-lite-relay-nack \
+		ccn-nfn-relay-nack \
+		ccn-lite-minimalrelay
 
 PROGS=  ${INST_PROGS}
 
@@ -19,9 +21,25 @@ all: ${PROGS}
 	make -C util
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
-	${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
+	${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile \
 	ccnl-core.c ccnl.h ccnl-core.h
 	${CC} -o $@ ${MYCFLAGS} $<
+
+ccn-nfn-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
+	BSDmakefile ccnl-includes.h ccnl.h ccnl-core.h \
+	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
+	ccnl-ext-http.c \
+	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c BSDmakefile
+	${CC} -o $@ ${MYCFLAGS} ${NFNFLAGS} -DCCNL_NACK $< ${EXTLIBS}
+
+ccn-lite-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
+	BSDmakefile ccnl-includes.h ccnl.h ccnl-core.h \
+	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
+	ccnl-ext-http.c \
+	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-crypto.c BSDmakefile
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NACK -DCCNL_NFN_MONITOR
 
 ccn-nfn-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
 	BSDmakefile ccnl-includes.h ccnl.h ccnl-core.h \
@@ -31,14 +49,13 @@ ccn-nfn-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
 	ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c BSDmakefile
 	${CC} -o $@ ${MYCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
 
-ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile\
+ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} BSDmakefile \
 	BSDmakefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c BSDmakefile
-	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NACK -DCCNL_NFN_MONITOR
-
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NFN_MONITOR
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
