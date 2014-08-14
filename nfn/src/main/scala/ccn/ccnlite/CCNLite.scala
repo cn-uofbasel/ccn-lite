@@ -41,6 +41,7 @@ object CCNLite extends Logging {
     packet match {
       case i: Interest => mkBinaryInterest(i)
       case c: Content => mkBinaryContent(c)
+      case n: NAck => mkBinaryContent(n.toContent)
     }
   }
 

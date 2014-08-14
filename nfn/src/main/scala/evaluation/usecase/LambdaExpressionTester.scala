@@ -1,7 +1,8 @@
 package evaluation.usecase
 
+import com.typesafe.config.ConfigFactory
 import nfn._
-import node.Node
+import node.LocalNode
 import ccn.packet._
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,17 +14,20 @@ import nfn.CombinedNodeConfig
 import scala.util.Success
 import scala.util.Failure
 import scala.Some
-import nfn.NFNNodeConfig
+import nfn.RouterConfig
 
 object LambdaExpressionTester extends App {
 
   val timeoutDuration: FiniteDuration = 5 seconds
   implicit val timeout = Timeout( timeoutDuration)
+  implicit val config = ConfigFactory.load()
 
   val nodePrefix = CCNName("node1")
-  val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, nodePrefix)), Some(ComputeNodeConfig("127.0.0.1", 10021, nodePrefix)))
 
-  val node = Node(nodeConfig)
+  val node = LocalNode(
+    RouterConfig("127.0.0.1", 10010, nodePrefix),
+    Some(ComputeNodeConfig("127.0.0.1", 10021, nodePrefix))
+  )
 
   Thread.sleep(1000)
 

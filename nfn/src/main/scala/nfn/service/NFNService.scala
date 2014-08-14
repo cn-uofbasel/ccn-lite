@@ -4,12 +4,15 @@ import java.io.{File, FileOutputStream}
 
 import akka.actor._
 import akka.pattern._
+import akka.util.Timeout
 import bytecode.BytecodeLoader
 import ccn.packet._
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.ConfigFile
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.slf4j.Logging
 import config.AkkaConfig
 import lambdacalculus.parser.ast._
-import nfn.NFNApi
+import nfn.{StaticConfig, NodeConfig, NFNApi}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -17,7 +20,7 @@ import scala.util.Try
 
 object NFNService extends Logging {
 
-  implicit val timeout = AkkaConfig.timeout
+  implicit val timeout = Timeout(StaticConfig.defaultTimeoutDuration)
 
   /**
    * Creates a [[NFNService]] from a content object containing the binary code of the service.
@@ -151,7 +154,6 @@ object NFNService extends Logging {
               // find service
               val futServ: Future[NFNService] = findService(funName)
 
-              findArgs(argExprs).zip(Future(argExprs))
               // create or find values for args
               val futArgs: Future[List[NFNValue]] = findArgs(argExprs)
 

@@ -2,12 +2,13 @@ package evaluation.usecase.cdn
 
 import akka.actor.ActorRef
 import ccn.packet._
+import com.typesafe.config.ConfigFactory
 import config.AkkaConfig
 import lambdacalculus.parser.ast._
 import monitor.Monitor
 import nfn._
 import nfn.service._
-import node.Node
+import node.LocalNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util._
@@ -45,10 +46,18 @@ class RandomAd() extends NFNService {
 
 object CDN extends App {
 
-  val node1Prefix = CCNName("node", "node1")
-  val node1Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, node1Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10011, node1Prefix)))
+  implicit val config = ConfigFactory.load()
+
+  val node1Prefix = CCNName("node", "node2")
+  val node1 = LocalNode(
+    RouterConfig("127.0.0.1", 10020, node1Prefix),
+    Some(ComputeNodeConfig("127.0.0.1", 10021, node1Prefix))
+  )
   val node2Prefix = CCNName("node", "node2")
-  val node2Config = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10020, node2Prefix)), Some(ComputeNodeConfig("127.0.0.1", 10021, node2Prefix)))
+  val node2 = LocalNode(
+    RouterConfig("127.0.0.1", 10020, node2Prefix),
+    Some(ComputeNodeConfig("127.0.0.1", 10021, node2Prefix))
+  )
 
   val esiTagname = node1Prefix.append("esi", "tag", "include", "randomad")
   val esiTag = "<esi:include:randomad/>"
@@ -71,8 +80,6 @@ object CDN extends App {
   val webpageContent = Content(webpagename, webpagedata)
 
 
-  val node1 = Node(node1Config)
-  val node2 = Node(node2Config)
 
   node1 <~> node2
 
@@ -96,19 +103,18 @@ object CDN extends App {
   val expr = exIncludeAd
 
   var startTime = System.currentTimeMillis()
-  node1 ? expr onComplete {
+  (node1 ? expr) andThen {
     case Success(content) => {
       val totalTime = System.currentTimeMillis - startTime
       println(s"Res($totalTime): ${new String(content.data)}")
     }
     case Failure(error) => throw error
+  } andThen { case _ =>
+    Monitor.monitor ! Monitor.Visualize()
+    node1.shutdown()
+    node2.shutdown()
   }
 
-  Thread.sleep(AkkaConfig.timeoutDuration.toMillis + 100)
 
-  Monitor.monitor ! Monitor.Visualize()
-
-  node1.shutdown()
-  node2.shutdown()
 }
 

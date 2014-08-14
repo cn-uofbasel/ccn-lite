@@ -1,10 +1,13 @@
 package evaluation
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.ConfigFile
+import com.typesafe.config.ConfigFactory
+
 import scala.concurrent.duration._
 import akka.util.Timeout
 import nfn._
 import ccn.packet.{Content, CCNName}
-import node.Node
+import node.LocalNode
 import lambdacalculus.parser.ast.{Expr, LambdaDSL}
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +18,7 @@ import nfn.service.impl.WordCountService
 import scala.util.Success
 import scala.util.Failure
 import scala.Some
-import nfn.NFNNodeConfig
+import nfn.RouterConfig
 
 /**
  * Created by basil on 14/05/14.
@@ -24,13 +27,17 @@ object SingeLocalAMNode extends App {
 
   val timeoutDuration: FiniteDuration = 8.seconds
   implicit val timeout = Timeout( timeoutDuration)
+  implicit val config = ConfigFactory.load()
   import LambdaDSL._
   import LambdaNFNImplicits._
   implicit val useThunks = false
 
   val nodePrefix = CCNName("node", "node1")
-  val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, nodePrefix)), Some(ComputeNodeConfig("127.0.0.1", 10011, nodePrefix, withLocalAM = true)))
-  val node = Node(nodeConfig)
+  val node = LocalNode(
+    RouterConfig("127.0.0.1", 10010, nodePrefix),
+    Some(ComputeNodeConfig("127.0.0.1", 10011, nodePrefix, withLocalAM = true))
+  )
+
 
   val docName = CCNName("node", "node1", "doc", "name")
   val content = Content(docName, "test content yo".getBytes)

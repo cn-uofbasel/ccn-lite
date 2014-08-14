@@ -150,6 +150,8 @@ case class Content(name: CCNName, data: Array[Byte]) extends CCNPacket {
 
 case class NAck(name: CCNName) extends CCNPacket {
   val content: String = ":NACK"
+
+  def toContent = Content(name, content.getBytes)
 }
 
 case class AddToCache() extends Packet with Ack
