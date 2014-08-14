@@ -1,5 +1,8 @@
 package node
 
+import java.util.concurrent.TimeUnit
+
+import com.typesafe.config.Config
 import nfn._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,15 +20,16 @@ import monitor.Monitor
 import ccn.CCNLiteProcess
 
 object StandardNodeFactory {
-  def forId(id: Int, isCCNOnly: Boolean = false): Node = {
+  def forId(id: Int, isCCNOnly: Boolean = false)(implicit config: Config): LocalNode = {
     val nodePrefix = CCNName("node", s"node$id")
-//    val nodePrefix = CCNName(s"node$id")
-    val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10000 + id * 10, nodePrefix, isCCNOnly = isCCNOnly)), Some(ComputeNodeConfig("127.0.0.1", 10000 + id * 10 + 1, nodePrefix)))
-    Node(nodeConfig)
+    LocalNode(
+      RouterConfig("127.0.0.1", 10000 + id * 10, nodePrefix, isCCNOnly = isCCNOnly),
+      Some(ComputeNodeConfig("127.0.0.1", 10000 + id * 10 + 1, nodePrefix, withLocalAM = false))
+    )
   }
 }
 
-object Node {
+object LocalNode {
   /**
    * Connects the given sequence to a grid.
    * The size of the sequence does not have to be a power of a natural number.
@@ -37,7 +41,7 @@ object Node {
    * o-o-o    o-o
    * @param nodes
    */
-  def connectGrid(nodes: Seq[Node]): Unit = {
+  def connectGrid(nodes: Seq[LocalNode]): Unit = {
     if(nodes.size <= 1) return
 
     import Math._
@@ -70,7 +74,7 @@ object Node {
    * o-o-o
    * @param nodes
    */
-  def connectStar(nodes: Seq[Node]): Unit = {
+  def connectStar(nodes: Seq[LocalNode]): Unit = {
     if(nodes.size <= 1) return
 
     nodes.tail foreach { _ <~> nodes.head }
@@ -83,7 +87,7 @@ object Node {
    * o - o
    * @param unconnectedNodes
    */
-  def connectAll(unconnectedNodes: Seq[Node]): Unit = {
+  def connectAll(unconnectedNodes: Seq[LocalNode]): Unit = {
     if(unconnectedNodes.size <= 1 ) return
 
     val head = unconnectedNodes.head
@@ -100,7 +104,7 @@ object Node {
    * @param nodes
    * @return
    */
-  def connectLine(nodes: Seq[Node]): Unit = {
+  def connectLine(nodes: Seq[LocalNode]): Unit = {
     if(nodes.size <= 1) return
 
     nodes.tail.foldLeft(nodes.head) {
@@ -112,59 +116,53 @@ object Node {
 /**
  * Created by basil on 10/04/14.
  */
-case class Node(nodeConfig: CombinedNodeConfig) {
+case class LocalNode(routerConfig: RouterConfig, maybeComputeNodeConfig: Option[ComputeNodeConfig]){
 
-  val timeoutDuration: FiniteDuration = AkkaConfig.timeoutDuration
-  implicit val timeout = Timeout( timeoutDuration)
-
-  def prefix: CCNName = nodeConfig.maybeComputeNodeConfig.get.prefix
-
+  implicit val timeout = Timeout(StaticConfig.defaultTimeoutDuration)
 
   private var isRunning = true
 
+  val prefix = routerConfig.prefix
+
   /**
-   * This flag is required because ccn-lite internally increases the faceid for each interest it receives.
+   * This flag is required because ccn-lite internally increases the faceid for each management operation and interest it receives.
    * The faceid is only written to the ccnlite output, which we currently do not parse during runtime.
    * Therefore, as soon as one interest is sent, connecting nodes (= add faces to ccnlite) is no longer valid.
    * This can be removed by either parsing the ccnlite output or if ccnlite changes how faces are setup.
    */
   private var isConnecting = true
 
+  private var isDoingManagementOperations = false
+
   val maybeNFNServer: Option[ActorRef] = {
-    nodeConfig.maybeComputeNodeConfig map { computeNodeConfig =>
-      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.configDebug)
-      CCNServerFactory.ccnServer(system, nodeConfig)
+    maybeComputeNodeConfig map { computeNodeConfig =>
+      val system = ActorSystem(s"Sys${computeNodeConfig.prefix.toString.replace("/", "-")}", AkkaConfig.config(StaticConfig.debugLevel))
+      NFNServerFactory.nfnServer(system, routerConfig, computeNodeConfig)
     }
   }
 
-  val maybeCCNLiteProcess: Option[CCNLiteProcess] = {
-    nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
-      val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(nfnNodeConfig, isCCNOnly = nfnNodeConfig.isCCNOnly)
-      ccnLiteNFNNetworkProcess.start()
+  val ccnLiteProcess: CCNLiteProcess = {
+    val ccnLiteNFNNetworkProcess: CCNLiteProcess = CCNLiteProcess(routerConfig)
+    ccnLiteNFNNetworkProcess.start()
 
-      nodeConfig.maybeNFNNodeConfig.zip(nodeConfig.maybeComputeNodeConfig) map { case (nfnConfig, computeNodeConfig) =>
-        if(!nfnConfig.isCCNOnly) {
-          ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), computeNodeConfig.host, computeNodeConfig.port)
-//          ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
-          Monitor.monitor ! Monitor.ConnectLog(computeNodeConfig.toNodeLog, nfnNodeConfig.toNodeLog)
-          Monitor.monitor ! Monitor.ConnectLog(nfnNodeConfig.toNodeLog, computeNodeConfig.toNodeLog)
-        }
+    // If there is also a compute server, setup the local face
+    maybeComputeNodeConfig map {computeNodeConfig =>
+      if(!routerConfig.isCCNOnly) {
+        ccnLiteNFNNetworkProcess.addPrefix(CCNName("COMPUTE"), computeNodeConfig.host, computeNodeConfig.port)
+        //          ccnLiteNFNNetworkProcess.addPrefix(computeNodeConfig.prefix, computeNodeConfig.host, computeNodeConfig.port)
+        Monitor.monitor ! Monitor.ConnectLog(computeNodeConfig.toNodeLog, routerConfig.toNodeLog)
+        Monitor.monitor ! Monitor.ConnectLog(routerConfig.toNodeLog, computeNodeConfig.toNodeLog)
       }
-      ccnLiteNFNNetworkProcess
     }
+    ccnLiteNFNNetworkProcess
   }
 
 
 
   private def nfnMaster = {
     assert(isRunning, "Node was already shutdown")
-    assert(maybeNFNServer.isDefined, "Node received command which requires a local nfn server, init the node with a NFNNodeConfig")
+    assert(maybeNFNServer.isDefined, "Node received command which requires a local nfn server, init the node with a RouterConfig")
     maybeNFNServer.get
-  }
-
-  private def ccnLiteNFNNetworkProcess: CCNLiteProcess = {
-    assert(maybeCCNLiteProcess.isDefined, "Node received command which requires this node to have a running ccnlite process, init the node with a NFNNodeConfig")
-    maybeCCNLiteProcess.get
   }
 
   /**
@@ -174,29 +172,23 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    * - and registration of the prefix und the face (there could be several prefixes under the same network face, but currently only one is supported)
    * @param otherNode
    */
-  def connect(otherNode: Node) = {
+  def connect(otherNode: LocalNode) = {
     assert(isConnecting, "Node can only connect to other nodes before caching any content")
-    assert(nodeConfig.maybeNFNNodeConfig.isDefined, "Node can only connect to another node if it runs a cnnlite process, init the node with a NFNNodeConfig")
-    assert(otherNode.nodeConfig.maybeNFNNodeConfig.isDefined, "Other Node can only be connected to it runs a cnnlite process, init the other node with a NFNNodeConfig")
 
-    val thisNFNConfig = nodeConfig.maybeNFNNodeConfig.get
-    val otherNFNConfig = otherNode.nodeConfig.maybeNFNNodeConfig.get
-    Monitor.monitor ! Monitor.ConnectLog(thisNFNConfig.toNodeLog, otherNFNConfig.toNodeLog)
-    ccnLiteNFNNetworkProcess.connect(otherNFNConfig)
+    Monitor.monitor ! Monitor.ConnectLog(routerConfig.toNodeLog, otherNode.routerConfig.toNodeLog)
+    ccnLiteProcess.connect(otherNode.routerConfig)
   }
 
-  def addNodeFace(faceOfNode: Node, gateway: Node) = {
-    assert(faceOfNode.nodeConfig.maybeNFNNodeConfig.isDefined, "Faces can only be added to nodes which have a running ccnlite process")
-    addPrefixFace(faceOfNode.nodeConfig.maybeNFNNodeConfig.get.prefix, gateway)
+  def addNodeFace(faceOfNode: LocalNode, gateway: LocalNode) = {
+    addPrefixFace(faceOfNode.routerConfig.prefix, gateway)
   }
 
-  def addPrefixFace(prefix: CCNName, gateway: Node) = {
-    assert(gateway.nodeConfig.maybeNFNNodeConfig.isDefined, "Faces can only be added to nodes which have a running ccnlite process")
-    val gatewayConfig = gateway.nodeConfig.maybeNFNNodeConfig.get
-    ccnLiteNFNNetworkProcess.addPrefix(prefix, gatewayConfig.host, gatewayConfig.port)
+  def addPrefixFace(prefix: CCNName, gateway: LocalNode) = {
+    val gatewayConfig = gateway.routerConfig
+    ccnLiteProcess.addPrefix(prefix, gatewayConfig.host, gatewayConfig.port)
   }
 
-  def addNodeFaces(faceOfNodes: List[Node], gateway: Node) = {
+  def addNodeFaces(faceOfNodes: List[LocalNode], gateway: LocalNode) = {
     faceOfNodes map { addNodeFace(_, gateway) }
   }
 
@@ -204,7 +196,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    * Connects this with other and other with this, see [[connect]] for details of the connection process.
    * @param otherNode
    */
-  def connectBidirectional(otherNode: Node) = {
+  def connectBidirectional(otherNode: LocalNode) = {
     this.connect(otherNode)
     otherNode.connect(this)
   }
@@ -213,25 +205,25 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    * Connects otherNode with this, see [[connect]] for details of the connection process
    * @param otherNode
    */
-  def connectFromOther(otherNode: Node) = otherNode.connect(this)
+  def connectFromOther(otherNode: LocalNode) = otherNode.connect(this)
 
   /**
    * Symbolic method for [[connectBidirectional]]
    * @param otherNode
    */
-  def <~>(otherNode: Node) =  connectBidirectional(otherNode)
+  def <~>(otherNode: LocalNode) =  connectBidirectional(otherNode)
 
   /**
    * Symbolic method for [[connect]]
    * @param otherNode
    */
-  def ~>(otherNode: Node) = connect(otherNode)
+  def ~>(otherNode: LocalNode) = connect(otherNode)
 
   /**
    * Symbolic methdo for [[connectFromOther]]
    * @param otherNode
    */
-  def <~(otherNode: Node) = connectFromOther(otherNode)
+  def <~(otherNode: LocalNode) = connectFromOther(otherNode)
 
 
   /**
@@ -239,17 +231,9 @@ case class Node(nodeConfig: CombinedNodeConfig) {
    * @param content
    */
   def cache(content: Content) = {
+    if(isConnecting)
 
-    nodeConfig.maybeComputeNodeConfig map { computeNodeConfig =>
-      nfnMaster ! NFNApi.AddToLocalCache(content)
-//      ccnLiteNFNNetworkProcess.addPrefix(content.name, computeNodeConfig.host, computeNodeConfig.port)
-    }
-    nodeConfig.maybeNFNNodeConfig map { nfnNodeConfig =>
-      nfnMaster ! NFNApi.AddToCCNCache(content)
-      Thread.sleep(50)
-
-    }
-
+    nfnMaster ! NFNApi.AddToCCNCache(content)
   }
 
   /**
@@ -312,7 +296,7 @@ case class Node(nodeConfig: CombinedNodeConfig) {
   def shutdown() = {
     assert(isRunning, "This node was already shut down")
     nfnMaster ! NFNServer.Exit()
-    ccnLiteNFNNetworkProcess.stop()
+    ccnLiteProcess.stop()
     isRunning = false
   }
 

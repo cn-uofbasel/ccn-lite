@@ -1,6 +1,7 @@
 package evaluation
 
-import akka.actor.ActorRef
+import akka.actor.{ActorLogging, ActorRef}
+import com.typesafe.config.{Config, ConfigFactory}
 import nfn.service._
 
 import scala.util._
@@ -11,25 +12,24 @@ import akka.util.Timeout
 import nfn._
 import ccn.packet._
 import scala.concurrent.Future
-import node.{StandardNodeFactory, Node}
+import node.{StandardNodeFactory, LocalNode}
 import monitor.Monitor
 import lambdacalculus.parser.ast._
 import nfn.service.impl._
 import config.AkkaConfig
 import java.io.File
 
+
 object PaperExperiment extends App {
 
-  val expNum = 5
+  implicit val conf: Config = ConfigFactory.load()
+
+  val expNum = 4
 
   val node1 = StandardNodeFactory.forId(1)
   val node2 = StandardNodeFactory.forId(2, isCCNOnly = true)
 
   val node3 = StandardNodeFactory.forId(3)
-//    if(expNum != 3) {
-//    } else {
-//      StandardNodeFactory.forId(3, isCCNOnly = true)
-//    }
 
   val node4 = StandardNodeFactory.forId(4)
   val node5 = StandardNodeFactory.forId(5, isCCNOnly = true)
@@ -37,43 +37,31 @@ object PaperExperiment extends App {
 
   val docname1 = node1.prefix.append("doc", "test1")
   val docdata1 = "one".getBytes
-  val docContent1 = Content(docname1, docdata1)
 
   val docname2 = node2.prefix.append("doc", "test2")
   val docdata2 = "two two".getBytes
-  val docContent2 = Content(docname2, docdata2)
 
   val docname3 = node3.prefix.append("doc", "test3")
   val docdata3 = "three three three".getBytes
-  val docContent3 = Content(docname3, docdata3)
 
   val docname4 = node4.prefix.append("doc", "test4")
   val docdata4 = "four four four four".getBytes
-  val docContent4 = Content(docname4, docdata4)
 
   val docname5 = node5.prefix.append("doc", "test5")
   val docdata5 = "five five five five five".getBytes
-  val docContent5 = Content(docname5, docdata5)
-
-  node1 += docContent1
-  node2 += docContent2
-  node3 += docContent3
-  node4 += docContent4
-  node5 += docContent5
-
-  nodes foreach { node => node.publishService(new NackServ()) }
 
   node1 <~> node2
-  node1.addNodeFaces(List(node4), node2)
-  node2.addNodeFaces(List(node3), node1)
-
+  if(expNum != 3) {
+    node1.addNodeFaces(List(node4), node2)
+    node2.addNodeFaces(List(node3), node1)
+  } else {
+    node1.addNodeFaces(List(node3, node4, node5), node2)
+  }
 
   if(expNum != 3) {
     node1 <~> node3
-    node1.addNodeFaces(List(node4, node5), node3)
-    node3.addNodeFaces(List(node2), node1)
+    node1.addNodeFaces(List(node4), node3)
   }
-
 
   node2 <~> node4
   node2.addNodeFaces(List(node3, node5), node4)
@@ -93,12 +81,11 @@ object PaperExperiment extends App {
   } else {
     node4.addNodeFace(node5, node3)
   }
-
-  nodes.foreach(_.removeLocalServices)
-
-  nodes foreach { node =>
-    node.publishService(new Translate())
-  }
+  node1 += Content(docname1, docdata1)
+  node2 += Content(docname2, docdata2)
+  node3 += Content(docname3, docdata3)
+  node4 += Content(docname4, docdata4)
+  node5 += Content(docname5, docdata5)
 
   // remove for exp6
   if(expNum != 6) {
@@ -137,7 +124,6 @@ object PaperExperiment extends App {
     }
   }
   node1.publishService(dynServ)
-  Thread.sleep(500)
 
   import LambdaDSL._
   import LambdaNFNImplicits._
@@ -193,20 +179,18 @@ object PaperExperiment extends App {
   def doExp(exprToDo: Expr) = {
     import AkkaConfig.timeout
     val startTime = System.currentTimeMillis()
-    node1 ? exprToDo onComplete {
+    node1 ? exprToDo andThen {
       case Success(content) => {
         val totalTime = System.currentTimeMillis - startTime
         println(s"RESULT($totalTime): $content")
-        Monitor.monitor ! Monitor.Visualize()
       }
       case Failure(error) =>
-        Monitor.monitor ! Monitor.Visualize()
         throw error
+//        Monitor.monitor ! Monitor.Visualize()
     }
   }
-
-  Thread.sleep(AkkaConfig.timeoutDuration.toMillis + 100)
-
+  Thread.sleep(StaticConfig.defaultTimeoutDuration.toMillis + 100)
+  Monitor.monitor ! Monitor.Visualize()
   nodes foreach { _.shutdown() }
 }
 

@@ -1,29 +1,25 @@
 package nfn
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
+import java.io.{File, FileOutputStream}
 import java.net.InetSocketAddress
 
 import akka.actor._
 import akka.event.Logging
 import akka.pattern._
-import scala.util.{Failure, Success}
-
-import network._
-import nfn.NFNServer._
+import akka.util.Timeout
+import ccn._
 import ccn.ccnlite.CCNLite
 import ccn.packet._
-import ccn._
-import lambdacalculus.parser.ast._
+import config.AkkaConfig
 import monitor.Monitor
 import monitor.Monitor.PacketLogWithoutConfigs
-import akka.util.Timeout
-import scala.concurrent.duration._
+import network._
+import nfn.NFNServer._
 import nfn.localAbstractMachine.LocalAbstractMachineWorker
-import config.AkkaConfig
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import java.io.{ByteArrayOutputStream, FileOutputStream, File}
-import myutil.IOHelper
+import scala.concurrent.duration._
 
 
 object NFNServer {
@@ -48,12 +44,11 @@ object NFNApi {
 }
 
 
-
-object CCNServerFactory {
-  def ccnServer(context: ActorRefFactory, nodeConfig: CombinedNodeConfig) = {
-    context.actorOf(networkProps(nodeConfig), name = "NFNServer")
+object NFNServerFactory {
+  def nfnServer(context: ActorRefFactory, nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) = {
+    context.actorOf(networkProps(nfnNodeConfig, computeNodeConfig), name = "NFNServer")
   }
-  def networkProps(nodeConfig: CombinedNodeConfig) = Props(classOf[NFNServer], nodeConfig)
+  def networkProps(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) = Props(classOf[NFNServer], nfnNodeConfig, computeNodeConfig)
 }
 
 
@@ -109,7 +104,8 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
  *  All connection, interest and content request are logged to the [[Monitor]].
  *  A NFNServer also maintains a socket which is connected to the actual CCNNetwork, usually an CCNLite instance encapsulated in a [[CCNLiteProcess]].
  */
-case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
+//case class NFNServer(maybeNFNNodeConfig: Option[RouterConfig], maybeComputeNodeConfig: Option[ComputeNodeConfig]) extends Actor {
+case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) extends Actor {
 
   val logger = Logging(context.system, this)
 
@@ -120,44 +116,23 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
   val computeServer: ActorRef = context.actorOf(Props(classOf[ComputeServer]), name = "ComputeServer")
 
   val maybeLocalAbstractMachine: Option[ActorRef] =
-    nodeConfig.maybeComputeNodeConfig flatMap { computeNodeConfig =>
       if(computeNodeConfig.withLocalAM)
         Some(context.actorOf(Props(classOf[LocalAbstractMachineWorker], self), "LocalAM"))
       else None
-    }
 
-  val defaultTimeoutDuration = AkkaConfig.timeoutDuration
+  val defaultTimeoutDuration = StaticConfig.defaultTimeoutDuration
 
   var pit: ActorRef = context.actorOf(Props(classOf[PIT]), name = "PIT")
   var cs: ActorRef = context.actorOf(Props(classOf[ContentStore]), name = "ContentStore")
 
-  val maybeNfnGateway: Option[ActorRef] =
-    for {
-      nfnNodeConfig <- nodeConfig.maybeNFNNodeConfig
-      computeNodeConfig <- nodeConfig.maybeComputeNodeConfig
-    } yield {
+  val nfnGateway: ActorRef =
       context.actorOf(Props(classOf[UDPConnectionContentInterest],
         new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
         new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port)),
         name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}")
-    }
-
-  def nfnGateway: ActorRef = {
-    maybeNfnGateway match {
-      case Some(nfnGateway) => nfnGateway
-      case None => {
-        val m = "NFNServer was not configured with both a nfn node and a compute node, therefore the nfnGateway does not exist to send a message to"
-        val e = new Exception(m)
-        logger.error(e, m)
-        throw e
-      }
-    }
-  }
 
   override def preStart() = {
-    maybeNfnGateway foreach { nfnGateway =>
       nfnGateway ! UDPConnection.Handler(self)
-    }
   }
 
   // Check pit for an address to return content to, otherwise discard it
@@ -274,13 +249,19 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
   }
 
   def handleNack(nack: NAck, senderCopy: ActorRef) = {
-    implicit val timeout = Timeout(defaultTimeoutDuration)
-    (pit ? PIT.Get(nack.name)).mapTo[Option[Set[Face]]] onSuccess {
-      case Some(pendingFaces) => {
-        pendingFaces foreach { _.send(nack) }
-        pit ! PIT.Remove(nack.name)
+    if(StaticConfig.isNackEnabled) {
+      implicit val timeout = Timeout(defaultTimeoutDuration)
+      (pit ? PIT.Get(nack.name)).mapTo[Option[Set[Face]]] onSuccess {
+        case Some(pendingFaces) => {
+          pendingFaces foreach {
+            _.send(nack)
+          }
+          pit ! PIT.Remove(nack.name)
+        }
+        case None => logger.warning(s"Received nack for name which is not in PIT: $nack")
       }
-      case None => logger.warning(s"Received nack for name which is not in PIT: $nack")
+    }else{
+      logger.error(s"Received nack even though nacks are disabled!")
     }
   }
 
@@ -336,7 +317,7 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
             val f = new File(s"$failedMessagesDir/${System.nanoTime}")
             val fos = new FileOutputStream(f)
             fos.write(data)
-            fos.close
+            fos.close()
             logger.error(s"Received data which cannot be parsed to a ccn packet: ${new String(data)}")
           }
         }
@@ -363,20 +344,12 @@ case class NFNServer(nodeConfig: CombinedNodeConfig) extends Actor {
     }
 
     case NFNApi.AddToLocalCache(content, prependLocalPrefix) => {
-
-      nodeConfig.maybeComputeNodeConfig match {
-        case Some(computeNodeConfig) => {
-          val contentToAdd =
-            if(prependLocalPrefix) {
-              Content(computeNodeConfig.prefix.append(content.name), content.data)
-            } else content
-          logger.info(s"Adding content for ${contentToAdd.name} to local cache")
-          cs ! ContentStore.Add(contentToAdd)
-        }
-        case None => {
-          logger.error("This node was not defined with a compute node config, therefore cannot add something to local cache")
-        }
-      }
+      val contentToAdd =
+        if(prependLocalPrefix) {
+          Content(computeNodeConfig.prefix.append(content.name), content.data)
+        } else content
+      logger.info(s"Adding content for ${contentToAdd.name} to local cache")
+      cs ! ContentStore.Add(contentToAdd)
     }
 
 

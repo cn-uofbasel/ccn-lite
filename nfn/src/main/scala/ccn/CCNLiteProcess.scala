@@ -2,7 +2,7 @@ package ccn
 
 import java.io._
 import com.typesafe.scalalogging.slf4j.Logging
-import nfn.{NFNNodeConfig, NodeConfig}
+import nfn.{StaticConfig, RouterConfig, NodeConfig}
 import ccn.packet.CCNName
 
 /**
@@ -49,11 +49,11 @@ class LogStreamReaderToFile(is: InputStream, logname: String, appendTimestamp: B
  * Call start and stop.
  * @param nodeConfig
  */
-case class CCNLiteProcess(nodeConfig: NFNNodeConfig, isCCNOnly: Boolean) extends Logging {
+case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
 
   case class NetworkFace(toHost: String, toPort: Int) {
     private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
-//    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
+    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
     udpFaces += (toHost -> toPort) -> this
 
@@ -79,25 +79,25 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, isCCNOnly: Boolean) extends
   val sockName = s"/tmp/mgmt.${nodeConfig.prefix.cmps.mkString(".")}.sock"
 
   var udpFaces:Map[(String, Int), NetworkFace] = Map()
-  val processName = if(isCCNOnly) "CCNLiteNFNProcess" else "CCNLiteProcess"
+  val processName = if(nodeConfig.isCCNOnly) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
 //    if(port != 10050) {
 
 
-    val ccnliteExecutable = if(isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
+    val ccnliteExecutableName = if(nodeConfig.isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
+    val ccnliteExecutable = ccnliteExecutableName + (if(StaticConfig.isNackEnabled) "-nack" else "")
     val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
-//    println(s"$processName-$prefix: executing: '$cmd'")
+    println(s"$processName-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
     processBuilder.redirectErrorStream(true)
     process = processBuilder.start
-
-
 
     val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start()
 
+//    getOrCreateNetworkFace(host, port)
 //    }
     globalFaceId = 2
   }
@@ -119,7 +119,7 @@ case class CCNLiteProcess(nodeConfig: NFNNodeConfig, isCCNOnly: Boolean) extends
     networkFace.registerPrefix(prefix)
   }
 
-  def connect(otherNodeConfig: NFNNodeConfig): Unit = {
+  def connect(otherNodeConfig: RouterConfig): Unit = {
     addPrefixToNewOrExistingNetworkFace(otherNodeConfig.host, otherNodeConfig.port, otherNodeConfig.prefix.toString)
   }
 

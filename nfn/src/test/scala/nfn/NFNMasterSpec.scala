@@ -3,6 +3,7 @@ package nfn
 import akka.actor._
 import akka.testkit._
 import ccn.packet._
+import com.typesafe.config.ConfigFactory
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.parser.ast._
 import nfn.service.NFNServiceLibrary
@@ -13,12 +14,16 @@ import org.scalatest._
 class NFNMasterSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
 with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll with SequentialNestedSuiteExecution {
 
+  implicit val config = ConfigFactory.load()
   println("INIT")
 
   val nodePrefix = CCNName("testnode")
   val computeNodeConfig = ComputeNodeConfig("127.0.0.1", 10021, nodePrefix)
-  val nodeConfig = CombinedNodeConfig(Some(NFNNodeConfig("127.0.0.1", 10010, nodePrefix)), Some(computeNodeConfig))
-  val nfnMasterNetworkRef: TestActorRef[NFNServer] = TestActorRef(CCNServerFactory.networkProps(nodeConfig))
+  val nfnMasterNetworkRef: TestActorRef[NFNServer] =
+    TestActorRef(NFNServerFactory.networkProps(
+      RouterConfig("127.0.0.1", 10010, nodePrefix),
+      computeNodeConfig
+    ))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
   val name = CCNName("test", "data")
