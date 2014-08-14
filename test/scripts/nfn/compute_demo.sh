@@ -1,8 +1,9 @@
 killall ccn-lite-relay
+killall ccn-nfn-relay
 killall python
 
-$CCNL_HOME/ccn-lite-relay -v 99 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
-$CCNL_HOME/ccn-lite-relay -v 99 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
 
 sleep 3
 
@@ -24,5 +25,5 @@ python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-peekcomputation -u 127.0.0.1/9000 -w 100 "(@x add 6 (call 1 x))" "/test/data" | $CCNL_HOME/util/ccn-lite-ccnb2hex
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/9000 -w 100 "call 1 /test/data|NFN" | $CCNL_HOME/util/ccn-lite-pktdump
 

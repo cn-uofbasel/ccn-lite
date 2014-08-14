@@ -24,8 +24,8 @@ python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-peekcomputation -t -u 127.0.0.1/9000 -w 100 "(@x add 6 (call 1 x))" "/test/data" | $CCNL_HOME/util/ccn-lite-ccnb2hex
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/9000 -w 100 "call 1 /test/data|THUNK|NFN"  | $CCNL_HOME/util/ccn-lite-pktdump
 
 sleep 5
 
-$CCNL_HOME/util/ccn-lite-peekcomputation -u 127.0.0.1/9000 -w 100 "(@x add 6 (call 1 x))" "/test/data" | $CCNL_HOME/util/ccn-lite-ccnb2hex
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/9000 -w 100 "call 1 /test/data|NFN" | $CCNL_HOME/util/ccn-lite-pktdump

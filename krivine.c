@@ -789,7 +789,7 @@ recontinue: //loop by reentering after timeout of the interest...
         ++config->fox_state->it_routable_param;
         parameter_number = choose_parameter(config);
         if(parameter_number < 0) goto local_compute; //no more parameter --> no result found, can try a local computation
-        //TODO: create new prefix with name components!!!!
+        //create new prefix with name components!!!!
         struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
         if(c) goto handlecontent;
