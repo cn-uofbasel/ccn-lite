@@ -58,7 +58,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
-static struct ccnl_interest_s* 
+static struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 static struct ccnl_interest_s*
@@ -549,7 +549,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     }
     fprintf(stderr, "\n");
     while (i->pending) {
-        struct ccnl_pendint_s *tmp = i->pending->next;		\
+        struct ccnl_pendint_s *tmp = i->pending->next;      \
         ccnl_free(i->pending);
         i->pending = tmp;
     }
@@ -808,12 +808,12 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
     }
     while (f) {
-	if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
+    if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
                 (f->last_used + CCNL_FACE_TIMEOUT) <= t){
-	    f = ccnl_face_remove(relay, f);   
+        f = ccnl_face_remove(relay, f);
     }
-	else
-	    f = f->next;
+    else
+        f = f->next;
     }
 }
 
