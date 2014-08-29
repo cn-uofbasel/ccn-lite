@@ -927,7 +927,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
-        DEBUGMSG(99, "PREFIX %s", ccnl_prefix_to_path2(prefix));
+        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path2(prefix));
         *config = new_config(prog, global_dict, thunk_request,
                 start_locally, num_of_required_thunks, prefix, configid, suite);
         DBL_LINKED_LIST_ADD(configuration_list, *config);
