@@ -28,8 +28,7 @@
 char*
 ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
 {
-//    static char prefix_buf[1024];
-    char *prefix_buf = malloc(4096);
+    /*char *prefix_buf = malloc(4096);
     int len= 0, i;
 
     if (!pr)
@@ -39,6 +38,24 @@ ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
             len += sprintf(prefix_buf + len, "%s", pr->comp[i]);
         else
             len += sprintf(prefix_buf + len, "/%s", pr->comp[i]);
+
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;*/
+
+    char *prefix_buf = malloc(4096);
+    int len= 0, i,j;
+
+    if (!pr)
+    return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        if(strncmp("call", pr->comp[i], 4) && strncmp(pr->comp[pr->compcnt-1], "NFN", 3))
+            len += sprintf(prefix_buf + len, "/");
+
+        for(j = 0; j < pr->complen[i]; ++j){
+            len += sprintf(prefix_buf + len, "%c", pr->comp[i][j]);
+        }
+
     }
     prefix_buf[len] = '\0';
     return prefix_buf;

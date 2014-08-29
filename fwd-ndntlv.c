@@ -64,9 +64,9 @@ ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen,
 
 		if (typ == NDN_TLV_NameComponent &&
 					p->compcnt < CCNL_MAX_NAME_COMP) {
-		    p->comp[p->compcnt] = cp;
-		    p->complen[p->compcnt] = i;
-		    p->compcnt++;
+            p->comp[p->compcnt] = cp;
+            p->complen[p->compcnt] = i;
+            p->compcnt++;
 		}  // else unknown type: skip
 		cp += i;
 		len2 -= i;
