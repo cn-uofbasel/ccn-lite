@@ -231,7 +231,6 @@ case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNode
               } else {
                 maybeLocalAbstractMachine match {
                   case Some(localAbstractMachine) => {
-                    // TODO send to localAbstractMachine AM
                     localAbstractMachine ! i
                   }
                   case None => {

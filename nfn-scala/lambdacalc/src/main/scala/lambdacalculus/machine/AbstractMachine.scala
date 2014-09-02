@@ -24,12 +24,6 @@ abstract class AbstractMachine(val storeIntermediateSteps:Boolean = false) exten
 
   var _intermediateConfigurations: List[AbstractConfiguration] = List()
 
-//  def applyWithCommands(code:List[Instruction], cmds: List[CommandInstruction]):List[Value] = {
-//    info(s"Executing: $code (lib: $cmds")
-//    val cmdsCode = cmds.map(cmdsInstr => cmdsInstr.instructions).flatten
-//    result(step(startCfg(cmdsCode ++ code)))
-//  }
-
   def apply(code:List[Instruction]):List[Value] = {
     logger.info(s"Executing code: $code")
     result(step(startCfg(code)))
