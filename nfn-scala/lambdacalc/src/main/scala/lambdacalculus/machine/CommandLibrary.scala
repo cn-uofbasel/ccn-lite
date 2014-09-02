@@ -8,18 +8,6 @@ case class CommandInstruction(name: String, instructions: List[Instruction])
 
 case class CommandLibrary(compiler: Compiler) {
 
-//  private val parsedLib:List[Let] = {
-//    val parser = new StandardLambdaParser()
-//    parser.definitions(lib) match {
-//      case parser.Success(defs:List[Let], _) => defs
-//      case parser.NoSuccess(msg, input) => throw new Exception("Error parsing command library: " + msg)
-//    }
-//  }
-//  private val compiledLib:List[CommandInstruction] = {
-//      parsedLib map { let => CommandInstruction(let.name, compiler.compile(let)) }
-//  }
-//  def commands = compiledLib
-
   def apply(code: String): String = substitudeCommands(code)
 
 

@@ -244,7 +244,6 @@ case class LocalNode(routerConfig: RouterConfig, maybeComputeNodeConfig: Option[
 
   /**
    * Advertises the services to the network.
-   * TODO: this should be changed to advertise the service by setting up faces instead of adding them to the cache
    */
   def publishServices = NFNServiceLibrary.nfnPublish(nfnMaster)
 
