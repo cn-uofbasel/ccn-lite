@@ -50,21 +50,22 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
-    while (dehead(data, datalen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(data, datalen, &num, &typ) == 0) {
 	if (num==0 && typ==0) break; // end
 	if (typ == CCN_TT_DTAG) {
 	    if (num == CCN_DTAG_NAME) {
 		for (;;) {
-		    if (dehead(data, datalen, &num, &typ) != 0) goto Bail;
+		    if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0)
+			goto Bail;
 		    if (num==0 && typ==0)
 			break;
 		    if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
 			p->compcnt < CCNL_MAX_NAME_COMP) {
-			if (hunt_for_end(data, datalen, p->comp + p->compcnt,
+			if (ccnl_ccnb_hunt_for_end(data, datalen, p->comp + p->compcnt,
 				p->complen + p->compcnt) < 0) goto Bail;
 			p->compcnt++;
 		    } else {
-			if (consume(typ, num, data, datalen, 0, 0) < 0)
+			if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0)
 			    goto Bail;
 		    }
 		}
@@ -73,15 +74,15 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 	    if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
 		num == CCN_DTAG_MINSUFFCOMP || num == CCN_DTAG_MAXSUFFCOMP ||
 					 num == CCN_DTAG_PUBPUBKDIGEST) {
-		if (hunt_for_end(data, datalen, &cp, &len) < 0) goto Bail;
+		if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0) goto Bail;
 		if (num == CCN_DTAG_SCOPE && len == 1 && scope)
 		    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
 		if (num == CCN_DTAG_ANSWERORIGKIND && aok)
-		    *aok = data2uint(cp, len);
+		    *aok = ccnl_ccnb_data2uint(cp, len);
 		if (num == CCN_DTAG_MINSUFFCOMP && min)
-		    *min = data2uint(cp, len);
+		    *min = ccnl_ccnb_data2uint(cp, len);
 		if (num == CCN_DTAG_MAXSUFFCOMP && max)
-		    *max = data2uint(cp, len);
+		    *max = ccnl_ccnb_data2uint(cp, len);
 		if (num == CCN_DTAG_NONCE && !n)
 		    n = ccnl_buf_new(cp, len);
 		if (num == CCN_DTAG_PUBPUBKDIGEST && !pub)
@@ -92,12 +93,12 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 		    continue;
 	    }
 	    if (num == CCN_DTAG_CONTENT) {
-		if (consume(typ, num, data, datalen, content, contlen) < 0)
+		if (ccnl_ccnb_consume(typ, num, data, datalen, content, contlen) < 0)
 		    goto Bail;
 		continue;
 	    }
 	}
-	if (consume(typ, num, data, datalen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) goto Bail;
     }
     if (prefix)    *prefix = p;    else free_prefix(p);
     if (nonce)     *nonce = n;     else ccnl_free(n);
@@ -320,7 +321,8 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	     *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {
-	if (dehead(data, datalen, &num, &typ) || typ != CCN_TT_DTAG) return -1;
+	if (ccnl_ccnb_dehead(data, datalen, &num, &typ) || typ != CCN_TT_DTAG)
+	    return -1;
 	switch (num) {
 	case CCN_DTAG_INTEREST:
 	case CCN_DTAG_CONTENTOBJ:

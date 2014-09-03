@@ -36,7 +36,7 @@
 
 #include "pkt-ccnb.h"
 #include "pkt-ccnb-enc.c"
-#include "ccnl.h"
+// #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.c"
 
@@ -79,11 +79,11 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         int packetsize = size/2;
         unsigned char *packet = (unsigned char*) ccnl_malloc(sizeof(char)*packetsize * 2);
         int len4 = 0;
-        len4 += mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
+        len4 += ccnl_ccnb_mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
         if(it == numPackets - 1) {
-            len4 += mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
+            len4 += ccnl_ccnb_mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
-        len4 += mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
+        len4 += ccnl_ccnb_mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, buf + it*packetsize, packetsize);
         packet[len4++] = 0;
         
 //#ifdef USE_SIGNATURES
@@ -101,7 +101,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             //store the other parts in cache, after checking the pit
             unsigned char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
             int len5 = 0;
-            len5 += mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+            len5 += ccnl_ccnb_mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
             memcpy(buf2+len5, packet, len4);
             len5 +=len4;
             buf2[len5++] = 0; // end-of-interest
@@ -184,7 +184,7 @@ Bail:
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
 	char *s; unsigned char *valptr; int vallen; \
-	if (consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
 	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
 	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
 	ccnl_free(VAR); \
@@ -199,16 +199,16 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
 {
     int len = 0, len3 = 0;
 
-    len = mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG); 
-    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type);
+    len = ccnl_ccnb_mkHeader(out1+len, CCN_DTAG_NAME, CCN_TT_DTAG); 
+    len += ccnl_ccnb_mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out1+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, component_type);
     out1[len++] = 0;
     
     // prepare FWDENTRY
-    len3 = mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
+    len3 = ccnl_ccnb_mkStrBlob(out3, CCN_DTAG_ACTION, CCN_TT_DTAG, answer);
 
-    len += mkBlob(out1+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out1+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char *)out1);
@@ -224,35 +224,35 @@ ccnl_mgmt_create_interface_stmt(int num_interfaces, int *interfaceifndx, long *i
     char str[100];
     for(it = 0; it < num_interfaces; ++it) // interface content
         {
-            len3 += mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
+            len3 += ccnl_ccnb_mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
              
             memset(str, 0, 100);
             sprintf(str, "%d", interfaceifndx[it]);
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
             
             memset(str, 0, 100);
             sprintf(str, "%s", interfaceaddr[it]);
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
             
             memset(str, 0, 100);
             if(interfacedevtype[it] == 1)
             {
                  sprintf(str, "%p", (void *) interfacedev[it]);
-                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
+                 len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
             }
             else if(interfacedevtype[it] == 2)
             {
                  sprintf(str, "%p", (void *) interfacedev[it]);
-                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
+                 len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             else{
                  sprintf(str, "%p", (void *) interfacedev[it]);
-                 len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
+                 len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             
             memset(str, 0, 100);
             sprintf(str, "%d", interfacereflect[it]);
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str);
             
             stmt[len3++] = 0; //end of fwd;
         }
@@ -269,40 +269,40 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
     char str[100];
     for(it = 0; it < num_faces; ++it) //FACES CONTENT
     {
-        len3 += mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+        len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
 
         memset(str, 0, 100);
         sprintf(str, "%d", faceid[it]);
-        len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str,"%p", (void *)facenext[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str,"%p", (void *)faceprev[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str,"%d", faceifndx[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str,"%02x", faceflags[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         if(facetype[it] == AF_INET)
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
 #ifdef USE_ETHERNET
         else if(facetype[it] == AF_PACKET)
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
 #endif
         else if(facetype[it] == AF_UNIX)
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
         else{
             sprintf(str,"peer=?");
-            len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
+            len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
         }
 	// FIXME: dump frag information if present
 
@@ -319,25 +319,25 @@ ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface
     char str[100];
     for(it = 0; it < num_fwds; ++it) //FWDS content
     {
-         len3 += mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
+         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
 
          memset(str, 0, 100);
          sprintf(str, "%p", (void *)fwd[it]);
-         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
          sprintf(str, "%p", (void *)fwdnext[it]);
-         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
          sprintf(str, "%p", (void *)fwdface[it]);
-         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
          sprintf(str, "%d", fwdfaceid[it]);
-         len3 += mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
          
-         len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it]);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it]);
 
          stmt[len3++] = 0; //end of fwd;
 
@@ -355,41 +355,41 @@ ccnl_mgmt_create_interest_stmt(int num_interests, long *interest, long *interest
     char str[100];
     for(it = 0; it < num_interests; ++it) // interest content
     {
-        len3 += mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
+        len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) interest[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) interestnext[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) interestprev[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", interestlast[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_LAST, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LAST, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", interestmin[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_MIN, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MIN, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", interestmax[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_MAX, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MAX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", interestretries[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) interestpublisher[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
         
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it]);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it]);
 
         stmt[len3++] = 0; //end of interest;
     }
@@ -405,29 +405,29 @@ ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext
     char str[100];
     for(it = 0; it < num_contents; ++it)   // content content
     {
-        len3 += mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
+        len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) content[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) contentnext[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%p", (void *) contentprev[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", contentlast_use[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
         sprintf(str, "%d", contentserved_cnt[it]);
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
         
-        len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it]);
+        len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it]);
         
         stmt[len3++] = 0; //end of content;
     }
@@ -548,23 +548,23 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_DEBUGREQUEST) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 	extractStr(action, CCN_DTAG_ACTION);
 	extractStr(debugaction, CCNL_DTAG_DEBUGACTION);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="debug"
@@ -621,22 +621,22 @@ Bail:
     contentobj = ccnl_malloc(contentobject_length);
     stmt = ccnl_malloc(stmt_length);
 
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "debug");
     out[len++] = 0;
 
     // prepare debug statement
-    len3 = mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
-    len3 += mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) debugaction);
-    len3 += mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
+    len3 = ccnl_ccnb_mkHeader(stmt, CCNL_DTAG_DEBUGREQUEST, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) debugaction);
+    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_DEBUGACTION, CCN_TT_DTAG, cp);
     stmt[len3++] = 0; //end-of-debugstmt
     
     if(!strcmp((const char*)debugaction, "dump") || !strcmp((const char*)debugaction, "dump+halt")) //halt returns no content
     {
-        len3 += mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
-        //len3 += mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
+        len3 += ccnl_ccnb_mkHeader(stmt+len3, CCNL_DTAG_DEBUGREPLY, CCN_TT_DTAG);
+        //len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cinterfaces[it]);
         
         len3 = ccnl_mgmt_create_interface_stmt(num_interfaces, interfaceifndx, interfacedev, 
                 interfacedevtype, interfacereflect, interfaceaddr, stmt, len3);
@@ -657,7 +657,7 @@ Bail:
     
     stmt[len3++] = 0; //end of debug reply
    
-    len += mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out);
@@ -752,18 +752,18 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 	extractStr(action, CCN_DTAG_ACTION);
@@ -776,7 +776,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 //	extractStr(frag, CCNL_DTAG_FRAG);
 	extractStr(flags, CCNL_DTAG_FACEFLAGS);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newface"
@@ -851,40 +851,40 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 Bail:
     /*ANSWER*/
 
-    len = mkHeader(out_buf, CCN_DTAG_NAME, CCN_TT_DTAG);
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
+    len = ccnl_ccnb_mkHeader(out_buf, CCN_DTAG_NAME, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newface");
     out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
-    len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+    len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
     sprintf((char *)retstr,"newface:  %s", cp);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
     if (macsrc)
-	len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
+	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
     if (ip4src) {
-	len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
-        len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
+	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
     }
     if (host)
-	len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_HOST, CCN_TT_DTAG, (char*) host);
+	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_HOST, CCN_TT_DTAG, (char*) host);
     if (port)
-	len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
+	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
     /*
     if (frag)
-	len3 += mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
+	len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
-	len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
+	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
     if (f) {
         sprintf((char *)faceidstr,"%i",f->faceid);
-        len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
     }
     
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
@@ -925,18 +925,18 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 	extractStr(action, CCN_DTAG_ACTION);
@@ -944,7 +944,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	extractStr(frag, CCNL_DTAG_FRAG);
 	extractStr(mtu, CCNL_DTAG_MTU);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newface"
@@ -985,21 +985,21 @@ Error:
 Bail:
     ccnl_free(action);
 
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
+    len += ccnl_ccnb_mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "setfrag");
     out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
-    len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
-    len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
-    len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu);
+    len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MTU, CCN_TT_DTAG, (char*) mtu);
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
@@ -1031,24 +1031,24 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 	extractStr(action, CCN_DTAG_ACTION);
 	extractStr(faceid, CCN_DTAG_FACEID);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="destroyface"
@@ -1076,19 +1076,19 @@ Bail:
         return -1;
     }
    
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
+    len += ccnl_ccnb_mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "destroyface");
     out_buf[len++] = 0; // end-of-name
 
     // prepare FACEINSTANCE
-    len3 = mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
-    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
@@ -1123,18 +1123,18 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_DEVINSTANCE) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 	extractStr(action, CCN_DTAG_ACTION);
@@ -1144,7 +1144,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	extractStr(frag, CCNL_DTAG_FRAG);
 	extractStr(flags, CCNL_DTAG_DEVFLAGS);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newdev"
@@ -1273,41 +1273,41 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
 
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
+    len += ccnl_ccnb_mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "newdev");
     out_buf[len++] = 0; // end-of-name
     
     // prepare DEVINSTANCE
-    len3 = mkHeader(faceinst_buf, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
-    len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
+    len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCNL_DTAG_DEVINSTANCE, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
     if (devname)
-    len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
+    len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVNAME, CCN_TT_DTAG,
                       (char *) devname);
     
     if (devname && port) {
         if (port)
-            len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
         if (frag)
-            len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
         if (flags)
-            len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
         faceinst_buf[len3++] = 0; // end-of-faceinst 
     }
     else if (ip4src && port) {
         if (ip4src)
-            len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
         if (port)
-            len3 += mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
         if (frag)
-            len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, (char*) frag);
         if (flags)
-            len3 += mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
+            len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_DEVFLAGS, CCN_TT_DTAG, (char*) flags);
         faceinst_buf[len3++] = 0; // end-of-faceinst
     }
 
-    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
@@ -1356,15 +1356,15 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
   
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     buflen = num;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FWDINGENTRY) goto Bail;
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
@@ -1374,24 +1374,24 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
 	if (num==0 && typ==0)
 	    break; // end
 
 	if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
 	    for (;;) {
-		if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+		if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 		if (num==0 && typ==0)
 		    break;
 		if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
 		    p->compcnt < CCNL_MAX_NAME_COMP) {
 			// if (ccnl_grow_prefix(p)) goto Bail;
-		    if (consume(typ, num, &buf, &buflen,
+		    if (ccnl_ccnb_consume(typ, num, &buf, &buflen,
 				p->comp + p->compcnt,
 				p->complen + p->compcnt) < 0) goto Bail;
 		    p->compcnt++;
 		} else {
-		    if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+		    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
 		}
 	    }
 	    continue;
@@ -1400,7 +1400,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	extractStr(action, CCN_DTAG_ACTION);
 	extractStr(faceid, CCN_DTAG_FACEID);
 
-	if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="prefixreg"
@@ -1436,21 +1436,21 @@ Bail:
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "prefixreg", cp);
         return -1;
     }
-    len += mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
-    len += mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action);
+    len += ccnl_ccnb_mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action);
     out_buf[len++] = 0; // end-of-name
 
     // prepare FWDENTRY
-    len3 = mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
-    len3 += mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+    len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
 
-    len3 += mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
-    len += mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
@@ -1486,21 +1486,21 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
     
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
 
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     
     datalen = buflen - 2;
     data = buf;  
 
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
     //add object to cache here...
     data = buf + 2;
@@ -1550,29 +1550,29 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
  
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
      
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
      
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         if (num==0 && typ==0)
 	    break; // end
         ++num_of_components;
         extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
        
-        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     ++num_of_components;
     
@@ -1624,15 +1624,15 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buflen = orig->datalen;
     
     //SKIP HEADER FIELDS
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_INTEREST) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
-    if (dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_SIGNATURE) goto Bail;
-    while (dehead(&buf, &buflen, &num, &typ) == 0) {
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         
         if (num==0 && typ==0)
 	    break; // end
@@ -1640,7 +1640,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(sigtype, CCN_DTAG_NAME);
         siglen = buflen;
         extractStr(sig, CCN_DTAG_SIGNATUREBITS);
-        if (consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     siglen = siglen-(buflen+4);
     
