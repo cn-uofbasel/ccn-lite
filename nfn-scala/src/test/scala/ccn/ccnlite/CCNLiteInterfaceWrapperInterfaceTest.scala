@@ -3,7 +3,7 @@ package ccn.ccnlite
 import java.io.{FileWriter, File}
 
 import ccn.NFNCCNLiteParser
-import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface._
 import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 import ccn.packet._
 

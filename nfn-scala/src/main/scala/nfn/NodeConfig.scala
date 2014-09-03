@@ -2,8 +2,7 @@ package nfn
 
 import java.util.concurrent.TimeUnit
 
-import ccn.ccnlite.{CCNLiteInterfaceType, CCNLiteWireFormat, CCNBWireFormat}
-import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface._
 import com.typesafe.config.ConfigException.BadValue
 import com.typesafe.config.{ConfigFactory, Config}
 import monitor.Monitor.NodeLog

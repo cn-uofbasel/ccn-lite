@@ -2,8 +2,9 @@ package nfn
 
 import akka.actor._
 import akka.testkit._
-import ccn.ccnlite.{CCNLiteJniInterface, CCNBWireFormat, CCNLiteInterfaceWrapper}
+import ccn.ccnlite.CCNLiteInterfaceWrapper
 import ccn.packet._
+import ccnliteinterface._
 import com.typesafe.config.ConfigFactory
 import lambdacalculus.LambdaCalculus
 import lambdacalculus.parser.ast._

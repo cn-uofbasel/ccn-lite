@@ -2,7 +2,7 @@ package ccnliteinterface.cli
 
 import java.io._
 
-import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface._
 import com.typesafe.scalalogging.slf4j.Logging
 
 import scala.concurrent.Future
@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
  * Created by basil on 03/09/14.
  */
-case class CCNLiteInterfaceCCNbCli() extends CCNLiteInterface with Logging {
+case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInterface with Logging {
 
   val utilFolderName = "../util/"
 
@@ -64,14 +64,14 @@ case class CCNLiteInterfaceCCNbCli() extends CCNLiteInterface with Logging {
 
   override def mkBinaryInterest(nameCmps: Array[String]): Array[Byte] = {
     val mkI = "ccn-lite-mkI"
-    val cmds = Array(utilFolderName+mkI, "-f", "CCNB", nameCmps.mkString("|"))
+    val cmds = Array(utilFolderName+mkI, "-f", wireFormat.toString, nameCmps.mkString("|"))
     val (res, _) = executeCommandToByteArray(cmds, None)
     res
   }
 
   override def mkBinaryContent(name: Array[String], data: Array[Byte]): Array[Byte] = {
     val mkC = "ccn-lite-mkC"
-    val cmds = Array(utilFolderName+mkC, "-f", "CCNB", name.mkString("|"))
+    val cmds = Array(utilFolderName+mkC, "-f", wireFormat.toString, name.mkString("|"))
     val (res, _) = executeCommandToByteArray(cmds, Some(data))
 
     res
@@ -79,7 +79,11 @@ case class CCNLiteInterfaceCCNbCli() extends CCNLiteInterface with Logging {
 
   override def ccnbToXml(binaryPacket: Array[Byte]): String = {
     val pktdump = "ccn-lite-pktdump"
-    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-e", "0")
+    val wireFormatNum = wireFormat match {
+      case CCNBWireFormat() => 0
+      case NDNTLVWireFormat() => 2
+    }
+    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-e", wireFormat.toString)
 
     val (res, _) = executeCommandToByteArray(cmds, Some(binaryPacket))
 
@@ -98,8 +102,8 @@ case class CCNLiteInterfaceCCNbCli() extends CCNLiteInterface with Logging {
   }
 }
 
-object CCNLiteInterfaceCCNbCli extends App {
-  val ccnIf = CCNLiteInterfaceCCNbCli()
+object CCNLiteInterfaceCli extends App {
+  val ccnIf = CCNLiteInterfaceCli(CCNBWireFormat())
 
   val bi = ccnIf.mkBinaryInterest(Array("yay", "wo"))
 
