@@ -5,11 +5,14 @@ import java.net.InetSocketAddress
 
 import akka.actor._
 import akka.event.Logging
+import akka.event.Logging
 import akka.pattern._
 import akka.util.Timeout
 import ccn._
-import ccn.ccnlite.CCNLite
+import ccn.ccnlite.CCNLiteInterfaceWrapper
 import ccn.packet._
+import ccnliteinterface.CCNLiteInterface
+import com.typesafe.scalalogging.slf4j.Logging
 import config.AkkaConfig
 import monitor.Monitor
 import monitor.Monitor.PacketLogWithoutConfigs
@@ -24,9 +27,6 @@ import scala.concurrent.duration._
 
 object NFNServer {
 
-  def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
-    NFNCCNLiteParser.parseCCNPacket(CCNLite.ccnbToXml(byteArr))
-  }
 
   case class ComputeResult(content: Content)
 
@@ -44,16 +44,24 @@ object NFNApi {
 }
 
 
-object NFNServerFactory {
-  def nfnServer(context: ActorRefFactory, nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) = {
-    context.actorOf(networkProps(nfnNodeConfig, computeNodeConfig), name = "NFNServer")
+object NFNServerFactory extends Logging {
+  def nfnServer(context: ActorRefFactory, nfnRouterConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) = {
+
+    val wireFormat = StaticConfig.packetformat
+    val ccnLiteIfType = StaticConfig.ccnlitelibrarytype
+
+    val ccnLiteIf = CCNLiteInterfaceWrapper.createCCNLiteInterface(wireFormat, ccnLiteIfType)
+
+    context.actorOf(networkProps(nfnRouterConfig, computeNodeConfig, ccnLiteIf), name = "NFNServer")
   }
-  def networkProps(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) = Props(classOf[NFNServer], nfnNodeConfig, computeNodeConfig)
+  def networkProps(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig, ccnIf: CCNLiteInterfaceWrapper) =
+    Props(classOf[NFNServer], nfnNodeConfig, computeNodeConfig, ccnIf)
 }
 
 
 class UDPConnectionContentInterest(local:InetSocketAddress,
-                                   target:InetSocketAddress) extends UDPConnection(local, Some(target)) {
+                                   target:InetSocketAddress,
+                                   ccnLite: CCNLiteInterfaceWrapper) extends UDPConnection(local, Some(target)) {
 
   def logPacket(packet: CCNPacket) = {
     val ccnPacketLog = packet match {
@@ -67,13 +75,13 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
   def handlePacket(packet: CCNPacket, senderCopy: ActorRef) =
     packet match {
       case i: Interest =>
-        val binaryInterest = CCNLite.mkBinaryInterest(i)
+        val binaryInterest = ccnLite.mkBinaryInterest(i)
         self.tell(UDPConnection.Send(binaryInterest), senderCopy)
       case c: Content =>
-        val binaryContent = CCNLite.mkBinaryContent(c)
+        val binaryContent = ccnLite.mkBinaryContent(c)
         self.tell(UDPConnection.Send(binaryContent), senderCopy)
       case n: NAck =>
-        val binaryContent = CCNLite.mkBinaryContent(Content(n.name, n.content.getBytes))
+        val binaryContent = ccnLite.mkBinaryContent(Content(n.name, n.content.getBytes))
         self.tell(UDPConnection.Send(binaryContent), senderCopy)
     }
 
@@ -102,14 +110,15 @@ class UDPConnectionContentInterest(local:InetSocketAddress,
  *  - the [[ComputeServer]] or [[ComputeWorker]]can make use of the pit
  *  - any interest with the help of the akka "ask" pattern
  *  All connection, interest and content request are logged to the [[Monitor]].
- *  A NFNServer also maintains a socket which is connected to the actual CCNNetwork, usually an CCNLite instance encapsulated in a [[CCNLiteProcess]].
+ *  A NFNServer also maintains a socket which is connected to the actual CCNNetwork, usually an CCNLiteInterfaceWrapper instance encapsulated in a [[CCNLiteProcess]].
  */
 //case class NFNServer(maybeNFNNodeConfig: Option[RouterConfig], maybeComputeNodeConfig: Option[ComputeNodeConfig]) extends Actor {
-case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig) extends Actor {
+case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNodeConfig, ccnIf: CCNLiteInterfaceWrapper) extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val ccnIf = CCNLite
+//  nfnNodeConfig.config
+//  val ccnIf = new CCNLiteInterfaceWrapper()
 
   val cacheContent: Boolean = true
 
@@ -126,10 +135,15 @@ case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNode
   var cs: ActorRef = context.actorOf(Props(classOf[ContentStore]), name = "ContentStore")
 
   val nfnGateway: ActorRef =
-      context.actorOf(Props(classOf[UDPConnectionContentInterest],
-        new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
-        new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port)),
-        name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}")
+      context.actorOf(
+        Props(
+          classOf[UDPConnectionContentInterest],
+            new InetSocketAddress(computeNodeConfig.host, computeNodeConfig.port),
+            new InetSocketAddress(nfnNodeConfig.host, nfnNodeConfig.port),
+            ccnIf
+        ),
+        name = s"udpsocket-${computeNodeConfig.host}-${nfnNodeConfig.port}"
+      )
 
   override def preStart() = {
       nfnGateway ! UDPConnection.Handler(self)
@@ -298,7 +312,7 @@ case class NFNServer(nfnNodeConfig: RouterConfig, computeNodeConfig: ComputeNode
     // If it is an interest, start a compute request
     case packet:CCNPacket => handlePacket(packet, sender)
     case UDPConnection.Received(data, sendingRemote) => {
-      val maybePacket = byteStringToPacket(data)
+      val maybePacket = ccnIf.byteStringToPacket(data)
       maybePacket match {
         // Received an interest from the network (byte format) -> spawn a new worker which handles the messages (if it crashes we just assume a timeout at the moment)
         case Some(packet: CCNPacket) => handlePacket(packet, sender)

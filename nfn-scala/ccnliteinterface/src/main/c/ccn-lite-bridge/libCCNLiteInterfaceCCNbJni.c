@@ -3,7 +3,7 @@
 #define CCNL_NFN
 
 #include <stdio.h>
-#include "ccnliteinterface_CCNLiteInterface.h"
+#include "ccnliteinterface_jni_CCNLiteInterfaceCCNbJni.h"
 
 #include "../../../../../../ccnl.h"
 #include "../../../../../../pkt-ccnb.h"
@@ -17,7 +17,7 @@
 // #endif
 
 JNIEXPORT jstring JNICALL
-Java_ccnliteinterface_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInterest)
+Java_ccnliteinterface_jni_CCNLiteInterfaceCCNbJni_ccnbToXml(JNIEnv *env, jobject obj, jbyteArray binaryInterest)
 {
     jbyte* jInterestData = (*env)->GetByteArrayElements(env, binaryInterest, NULL);
     jsize len = (*env)->GetArrayLength(env, binaryInterest);
@@ -94,7 +94,7 @@ Java_ccnliteinterface_CCNLiteInterface_ccnbToXml(JNIEnv *env, jobject obj, jbyte
 // }
 
 JNIEXPORT jbyteArray JNICALL
-Java_ccnliteinterface_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
+Java_ccnliteinterface_jni_CCNLiteInterfaceCCNbJni_mkBinaryContent(JNIEnv *env,
                                       jobject obj,
                                       jobjectArray nameComponentStringArray,
                                       jbyteArray j_content)
@@ -164,7 +164,7 @@ Java_ccnliteinterface_CCNLiteInterface_mkBinaryContent(JNIEnv *env,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_ccnliteinterface_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
+Java_ccnliteinterface_jni_CCNLiteInterfaceCCNbJni_mkBinaryInterest(JNIEnv *env,
                                        jobject obj,
                                        jobjectArray nameComponentStringArray)
 {
@@ -223,7 +223,7 @@ Java_ccnliteinterface_CCNLiteInterface_mkBinaryInterest(JNIEnv *env,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_ccnliteinterface_CCNLiteInterface_mkAddToCacheInterest(JNIEnv *env,
+Java_ccnliteinterface_jni_CCNLiteInterfaceCCNbJni_mkAddToCacheInterest(JNIEnv *env,
                                            jobject obj,
                                            jstring ccnbContentFilename)
 {
