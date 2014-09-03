@@ -3,7 +3,7 @@ package nfn
 import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import akka.util.Timeout
-import ccn.ccnlite.CCNLite
+import ccn.ccnlite.CCNLiteInterfaceWrapper
 import ccn.packet.{CCNName, Interest, Content}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,7 +23,7 @@ object ComputeWorker {
 case class ComputeWorker(ccnServer: ActorRef) extends Actor {
 
   val logger = Logging(context.system, this)
-  val ccnIf = CCNLite
+  val ccnIf = CCNLiteInterfaceWrapper
 
   var maybeFutCallable: Option[Future[CallableNFNService]] = None
 
