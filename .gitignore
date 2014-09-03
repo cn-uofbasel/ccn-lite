@@ -15,7 +15,10 @@ Module.symvers
 ccn-lite-minimalrelay
 ccn-lite-relay
 ccn-nfn-relay
+ccn-lite-relay-nack
+ccn-nfn-relay-nack
 ccn-lite-simu
+
 krivine
 
 # binaries in subdirectories

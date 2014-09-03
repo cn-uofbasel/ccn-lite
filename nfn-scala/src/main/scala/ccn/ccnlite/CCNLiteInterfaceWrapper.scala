@@ -4,6 +4,7 @@ import ccn.NFNCCNLiteParser
 import ccn.packet._
 import java.io.{FileReader, FileOutputStream, File}
 import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface.cli.CCNLiteInterfaceCCNbCli
 import ccnliteinterface.jni.CCNLiteInterfaceCCNbJni
 import com.typesafe.scalalogging.slf4j.Logging
 import myutil.IOHelper
@@ -12,15 +13,15 @@ import myutil.IOHelper
 object CCNLiteWireFormat {
   def fromName(possibleFormatName: String): Option[CCNLiteWireFormat] = {
     possibleFormatName match {
-      case "ccnb" => Some(CCNbWireFormat())
-      case "ndn" => Some(NDNWireFormat())
+      case "ccnb" => Some(CCNBWireFormat())
+      case "ndntlv" => Some(NDNTLVWireFormat())
       case _ => None
     }
   }
 }
 trait CCNLiteWireFormat
-case class CCNbWireFormat() extends CCNLiteWireFormat
-case class NDNWireFormat() extends CCNLiteWireFormat
+case class CCNBWireFormat() extends CCNLiteWireFormat
+case class NDNTLVWireFormat() extends CCNLiteWireFormat
 
 
 
@@ -45,7 +46,9 @@ object CCNLiteInterfaceWrapper{
 
     val ccnLiteIf =
       (wireFormat, ccnLiteInterfaceType) match {
-        case (CCNbWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
+        case (CCNBWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
+        case (CCNBWireFormat(), CCNLiteCliInterface()) => new CCNLiteInterfaceCCNbCli()
+
         case _ => throw new CCNLiteInterfaceException(s"Currently only CCNb wire format and JNI interface is implemented and not $wireFormat with $ccnLiteInterfaceType")
       }
     CCNLiteInterfaceWrapper(ccnLiteIf)
