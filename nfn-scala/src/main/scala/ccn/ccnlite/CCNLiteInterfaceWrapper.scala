@@ -3,40 +3,16 @@ package ccn.ccnlite
 import ccn.NFNCCNLiteParser
 import ccn.packet._
 import java.io.{FileReader, FileOutputStream, File}
-import ccnliteinterface.CCNLiteInterface
-import ccnliteinterface.cli.CCNLiteInterfaceCCNbCli
+import ccnliteinterface._
+import ccnliteinterface.cli.CCNLiteInterfaceCli
 import ccnliteinterface.jni.CCNLiteInterfaceCCNbJni
 import com.typesafe.scalalogging.slf4j.Logging
 import myutil.IOHelper
 
 
-object CCNLiteWireFormat {
-  def fromName(possibleFormatName: String): Option[CCNLiteWireFormat] = {
-    possibleFormatName match {
-      case "ccnb" => Some(CCNBWireFormat())
-      case "ndntlv" => Some(NDNTLVWireFormat())
-      case _ => None
-    }
-  }
-}
-trait CCNLiteWireFormat
-case class CCNBWireFormat() extends CCNLiteWireFormat
-case class NDNTLVWireFormat() extends CCNLiteWireFormat
 
 
 
-object CCNLiteInterfaceType {
-  def fromName(possibleName: String): Option[CCNLiteInterfaceType] = {
-    possibleName match {
-      case "jni" => Some(CCNLiteJniInterface())
-      case "cli" => Some(CCNLiteCliInterface())
-      case _ => None
-    }
-  }
-}
-trait CCNLiteInterfaceType
-case class CCNLiteJniInterface() extends CCNLiteInterfaceType
-case class CCNLiteCliInterface() extends CCNLiteInterfaceType
 
 object CCNLiteInterfaceWrapper{
 
@@ -46,10 +22,9 @@ object CCNLiteInterfaceWrapper{
 
     val ccnLiteIf =
       (wireFormat, ccnLiteInterfaceType) match {
+        case (_, CCNLiteCliInterface()) => new CCNLiteInterfaceCli(wireFormat)
         case (CCNBWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
-        case (CCNBWireFormat(), CCNLiteCliInterface()) => new CCNLiteInterfaceCCNbCli()
-
-        case _ => throw new CCNLiteInterfaceException(s"Currently only CCNb wire format and JNI interface is implemented and not $wireFormat with $ccnLiteInterfaceType")
+        case _ => throw new CCNLiteInterfaceException(s"Currently only CCNB/NDNTLV wire format with CLI or CCNB wire formath with JNI interface is supported and not $wireFormat with $ccnLiteInterfaceType")
       }
     CCNLiteInterfaceWrapper(ccnLiteIf)
   }
@@ -136,7 +111,8 @@ case class CCNLiteInterfaceWrapper(ccnIf: CCNLiteInterface) extends Logging {
   private def mkAddToCacheInterest(ccnbAbsoluteFilename: String): Array[Byte] = {
     ccnIf.mkAddToCacheInterest(ccnbAbsoluteFilename)
   }
-    def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
-      NFNCCNLiteParser.parseCCNPacket(ccnbToXml(byteArr))
-    }
+
+  def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
+    NFNCCNLiteParser.parseCCNPacket(ccnbToXml(byteArr))
+  }
 }
