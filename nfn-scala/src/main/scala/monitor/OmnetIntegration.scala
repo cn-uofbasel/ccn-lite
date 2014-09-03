@@ -62,6 +62,7 @@ case class OmnetIntegration(nodes: Set[NodeLog],
 
     import IOHelper.printToFile
     val nedContent = createNed()
+
     val nedFilename = "./omnetreplay/NFNNetwork.ned"
 
     printToFile(new File(nedFilename), nedContent)

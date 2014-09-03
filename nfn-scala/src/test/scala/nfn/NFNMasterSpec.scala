@@ -2,6 +2,7 @@ package nfn
 
 import akka.actor._
 import akka.testkit._
+import ccn.ccnlite.{CCNLiteJniInterface, CCNbWireFormat, CCNLiteInterfaceWrapper}
 import ccn.packet._
 import com.typesafe.config.ConfigFactory
 import lambdacalculus.LambdaCalculus
@@ -22,7 +23,8 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
   val nfnMasterNetworkRef: TestActorRef[NFNServer] =
     TestActorRef(NFNServerFactory.networkProps(
       RouterConfig("127.0.0.1", 10010, nodePrefix),
-      computeNodeConfig
+      computeNodeConfig,
+      CCNLiteInterfaceWrapper.createCCNLiteInterface(CCNbWireFormat(), CCNLiteJniInterface())
     ))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 
