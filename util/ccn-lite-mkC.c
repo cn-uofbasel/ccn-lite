@@ -179,10 +179,10 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
-    cp = strtok(argv[optind], "/");
+    cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	prefix[i++] = cp;
-	cp = strtok(NULL, "/");
+    cp = strtok(NULL, "|");
     }
     prefix[i] = NULL;
 
