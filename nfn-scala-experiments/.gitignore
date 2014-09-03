@@ -1,0 +1,52 @@
+.DS_Store
+*.class
+*.log
+
+# sbt specific
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+
+# IntelliJ
+.idea/
+*.iml
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+
+# omnet
+*.tkenvlog
+omnetreplay/.tkenvrc
+omnetreplay/Makefile
+omnetreplay/contentto_m.cc
+omnetreplay/contentto_m.h
+omnetreplay/interestto_m.cc
+omnetreplay/interestto_m.h
+omnetreplay/omnetintegration
+omnetreplay/omnetreplay
+omnetreplay/out*
+omnetreplay/NFNNetwork.ned
+omnetreplay/transmittedPackets.json
+
+*.dSYM/*
+
+# Scala NFN
+*.jno
+*.so
+*c_xml.txt
+failed-messages
+service-library
+temp-bytecode-content
