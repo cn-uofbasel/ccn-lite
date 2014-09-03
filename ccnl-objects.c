@@ -6,7 +6,7 @@
 #include "pkt-ndntlv-enc.c"
 
 static int
-mkContent(char **namecomp, char *data, int datalen, unsigned char *out);
+ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen, unsigned char *out);
 
 #ifdef CCNL_NFN
 struct ccnl_interest_s *
@@ -37,8 +37,8 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     if(config->suite == CCNL_SUITE_CCNB){
 
-        len = mkInterest(namecomps, NULL, out);
-        if(dehead(&out, &len, &num, &typ)){
+        len = ccnl_ccnb_mkInterest(namecomps, NULL, out, 0);
+        if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
             return 0;
         }
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
@@ -51,7 +51,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
     else if(config->suite == CCNL_SUITE_NDNTLV){
        int tmplen = CCNL_MAX_PACKET_SIZE;
-       len = ccnl_ndntlv_mkInterest(namecomps, -1, &tmplen, out);
+       len = ccnl_ndntlv_mkInterest(namecomps, -1, nonce, &tmplen, out);
        memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
        len = CCNL_MAX_PACKET_SIZE - tmplen;
        unsigned char *cp = out;
@@ -89,8 +89,8 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
 
     if(suite == CCNL_SUITE_CCNB){
-        len = mkContent(prefixcomps, contentstr, contentlen, out);
-        if(dehead(&out, &len, &num, &typ)){
+        len = ccnl_ccnb_mkContent(prefixcomps, contentstr, contentlen, out);
+        if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
             return NULL;
         }
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
