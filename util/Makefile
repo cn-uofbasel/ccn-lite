@@ -21,6 +21,7 @@ PROGS=	ccn-lite-ctrl \
 CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c
 CCNTLV_LIB = ../pkt-ccntlv.h ../pkt-ccntlv-dec.c ../pkt-ccntlv-enc.c
 NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
+LOCRPC_LIB = ../pkt-localrpc.h
 
 all: $(PROGS)
 
@@ -35,7 +36,7 @@ ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-commo
 ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
-ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB}
+ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB}
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
 
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h

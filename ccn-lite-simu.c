@@ -48,6 +48,7 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
+#include "ccnl-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
@@ -56,7 +57,12 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #include "pkt-ndntlv-enc.c"
 #include "ccnl-ext-frag.c"
 
+
+#ifdef CCNL_SUITE_NDNTLV
+char suite = CCNL_SUITE_NDNTLV;
+#else
 char suite = CCNL_SUITE_CCNB;
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -180,7 +186,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	len2 = mkContent(namecomp, (char*) data, len, tmp2);
+	len2 = ccnl_ccnb_mkContent(namecomp, (char*) data, len, tmp2);
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -217,7 +223,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 // ----------------------------------------------------------------------
 
 void
-ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
+ccnl_client_TX(char node, char *name, int seqn, int nonce)
 {
     char *namecomp[20], *n;
     char tmp[512], tmp2[10];
@@ -241,13 +247,15 @@ ccnl_client_TX(char node, char *name, int seqn, unsigned int nonce)
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	len = mkInterest(namecomp, &nonce, (unsigned char*) tmp);
+	len = ccnl_ccnb_mkInterest(namecomp, &nonce,
+				   (unsigned char*) tmp, sizeof(tmp));
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 	len = sizeof(tmp);
-	ccnl_ndntlv_mkInterest(namecomp, -1, &len, (unsigned char*) tmp);
+	ccnl_ndntlv_mkInterest(namecomp, -1, &nonce,
+			       &len, (unsigned char*) tmp);
 	memmove(tmp, tmp + len, sizeof(tmp) - len);
 	len = sizeof(tmp) - len;
 	break;
@@ -776,7 +784,7 @@ main(int argc, char **argv)
 		    "[-g MIN_INTER_PACKET_INTERVAL] "
 		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
 #ifdef USE_SUITE_NDNTLV
-		    "[-s SUITE (0=ccnb, 2=ndntlv)] "
+		    "[-s SUITE  0=ccnb, 2=ndntlv (default)] "
 #endif
 		    "[-v DEBUG_LEVEL]\n",
 		    argv[0]);
