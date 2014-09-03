@@ -21,7 +21,7 @@
  */
 
 #define NDN_UDP_PORT			6363
-
+#define NDN_DEFAULT_MTU			4096
 
 // Packet types:
 #define NDN_TLV_Interest 		0x05
@@ -74,5 +74,10 @@ Values		Designation
 253-32767 	Reserved for future assignments (3-byte encoding)
 >32767		For application use (3-byte encoding)
 */
+
+// pkt-ndntlv-dec.c prototypes:
+// int ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val);
+unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
+int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 
 // eof

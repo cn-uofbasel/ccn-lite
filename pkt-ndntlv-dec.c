@@ -23,7 +23,7 @@
 #include "pkt-ndntlv.h"
 
 
-int
+static int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
     if (**buf < 253 && *len >= 1) {
@@ -51,8 +51,10 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 {
     unsigned long int val = 0;
 
-    while (len-- > 0)
+    while (len-- > 0) {
 	val = (val << 8) | *cp;
+	cp++;
+    }
     return val;
 }
 
