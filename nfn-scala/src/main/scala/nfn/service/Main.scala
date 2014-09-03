@@ -4,7 +4,7 @@ import java.io.{File, FileOutputStream}
 
 import akka.actor.ActorRef
 import bytecode.BytecodeLoader
-import ccn.ccnlite.CCNLite
+import ccn.ccnlite.CCNLiteInterfaceWrapper
 import ccn.packet._
 import com.typesafe.scalalogging.slf4j.Logging
 import nfn.NFNApi

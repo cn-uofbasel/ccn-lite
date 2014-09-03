@@ -1,10 +1,8 @@
 package lambdacalculus.compiler
 
 import lambdacalculus.parser.ast._
-import lambdacalculus.machine.CommandInstruction
 
 object Binder {
-//  def applyWithCommands(ast: Expr, cmds: List[CommandInstruction]): Expr = bind(ast, List(cmds.map(_.name).reverse))
 
   def apply(ast: Expr): Expr = bind(ast, List())
 
@@ -14,11 +12,7 @@ object Binder {
       case Clos(name, body) => {
         val (head, tail) = if(scope.isEmpty) (Nil, Nil) else (scope.head, scope.tail)
 
-        body match {
-          case _ => Clos(name, bind(body, (name :: head) :: tail))
-          // TODO is this needed?
-//          case _ => Clos(name, bind(body, List(name) :: scope))
-        }
+        Clos(name, bind(body, (name :: head) :: tail))
       }
       case v @ Variable(name, _) => {
         val accessValue = scope.flatten.view.takeWhile(n => n != name).size

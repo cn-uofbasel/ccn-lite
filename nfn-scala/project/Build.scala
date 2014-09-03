@@ -3,10 +3,12 @@ import java.io._
 import sbt.File
 import sbt._
 import Keys._
+import sbtassembly.Plugin.AssemblyKeys._
+import sbtassembly.Plugin.assemblySettings
 
 object BuildSettings {
   val paradiseVersion = "2.0.0-M3"
-  val buildSettings = Defaults.defaultSettings ++ Seq (
+  val buildSettings = Defaults.defaultSettings ++ assemblySettings ++ Seq (
     version       := "0.1-SNAPSHOT",
     scalaVersion  := "2.10.3",
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-encoding", "UTF-8"),
@@ -14,12 +16,9 @@ object BuildSettings {
     resolvers += Resolver.sonatypeRepo("releases"),
     resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
     addCompilerPlugin("org.scalamacros" % "paradise" % paradiseVersion cross CrossVersion.full),
-    MainBuild.compileJNI
+    MainBuild.compileJNI,
+    test in assembly := {}
   )
-
-  // important to use ~= so that any other initializations aren't dropped
-  //   the _ discards the meaningless () value previously assigned to 'initialize'
-
 }
 
 object MainBuild extends Build {
@@ -73,6 +72,11 @@ object MainBuild extends Build {
     )
   ).dependsOn(lambdaCalculus)
 
+  lazy val nfnScalaExperiments: Project = Project(
+    "nfn-scala-experiments",
+    file("nfn-scala-experiments"),
+    settings = buildSettings
+  ).dependsOn(nfn)
 
   lazy val testservice: Project = Project(
     "testservice",
