@@ -53,7 +53,8 @@ case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
 
   case class NetworkFace(toHost: String, toPort: Int) {
     private val cmdUDPFace = s"../util/ccn-lite-ctrl -x $sockName newUDPface any $toHost $toPort"
-    println(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
+    logger.debug(s"CCNLiteProcess-$prefix: executing '$cmdUDPFace")
+
     Runtime.getRuntime.exec(cmdUDPFace.split(" "))
     udpFaces += (toHost -> toPort) -> this
 
@@ -62,7 +63,7 @@ case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
 
     def registerPrefix(prefixToRegister: String) = {
       val cmdPrefixReg =  s"../util/ccn-lite-ctrl -x $sockName prefixreg $prefixToRegister $networkFaceId"
-//      println(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
+      logger.debug(s"CCNLiteProcess-$prefix: executing '$cmdPrefixReg")
       Runtime.getRuntime.exec(cmdPrefixReg.split(" "))
       globalFaceId += 1
     }
@@ -82,13 +83,10 @@ case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
   val processName = if(nodeConfig.isCCNOnly) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
-//    if(port != 10050) {
-
-
     val ccnliteExecutableName = if(nodeConfig.isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
     val ccnliteExecutable = ccnliteExecutableName + (if(StaticConfig.isNackEnabled) "-nack" else "")
     val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
-    println(s"$processName-$prefix: executing: '$cmd'")
+    logger.debug(s"$processName-$prefix: executing: '$cmd'")
     val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
     processBuilder.redirectErrorStream(true)
     process = processBuilder.start
@@ -97,13 +95,10 @@ case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
     val thread = new Thread(lsr, s"LogStreamReader-$prefix")
     thread.start()
 
-//    getOrCreateNetworkFace(host, port)
-//    }
     globalFaceId = 2
   }
 
   def stop() = {
-//    println(s"$processName-$prefix: stop")
     if (process != null) {
       process.destroy()
     }

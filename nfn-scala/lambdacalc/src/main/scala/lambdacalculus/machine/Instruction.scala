@@ -6,17 +6,12 @@ import lambdacalculus.parser.ast.UnaryOp
 
 
 trait Instruction extends Tokens {
-//  override def toString = stringRepr
   def stringRepr: String
 }
 
 case class LET(defName: String, clos: List[Instruction]) extends Instruction {
   def stringRepr: String = s"LET(${clos.mkString(",")}"
 }
-
-//case class ENDLET() extends Instruction {
-//  def stringRepr: String = "ENDLET"
-//}
 
 case class IF(test: List[Instruction]) extends Instruction {
   def stringRepr: String = s"IF(${test.mkString(", ")}"
@@ -64,20 +59,4 @@ case class BINARYOP(op: BinaryOp.BinaryOp) extends Instruction {
 case class CALL(name: String, nArgs: Int) extends Instruction {
   override def stringRepr: String = s"CALL($name: $nArgs)"
 }
-
-//sealed abstract class UnaryOp(name: String) {
-//  override def toString = name
-//
-//  def apply(v: Value):Value = ???
-//}
-
-//case class ATOM() extends UnaryOp("ATOM")
-
-//case class NULL() extends UnaryOp("NULL")
-
-//// head
-//case class CAR() extends UnaryOp("CAR")
-//
-//// tail
-//case class CDR() extends UnaryOp("CDR")
 
