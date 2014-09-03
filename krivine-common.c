@@ -12,7 +12,7 @@
 
 #include "krivine-common.h"
 
-#include "ccnl.h"
+//#include "ccnl.h"
 #ifdef USE_SUITE_CCNB
 #include "pkt-ccnb-enc.c"
 #endif
