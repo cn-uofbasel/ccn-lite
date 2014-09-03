@@ -1,18 +1,61 @@
 package ccn.ccnlite
 
 import ccn.NFNCCNLiteParser
-import ccnliteinterface.CCNLiteInterface
 import ccn.packet._
 import java.io.{FileReader, FileOutputStream, File}
+import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface.jni.CCNLiteInterfaceCCNbJni
 import com.typesafe.scalalogging.slf4j.Logging
 import myutil.IOHelper
 
 
+object CCNLiteWireFormat {
+  def fromName(possibleFormatName: String): Option[CCNLiteWireFormat] = {
+    possibleFormatName match {
+      case "ccnb" => Some(CCNbWireFormat())
+      case "ndn" => Some(NDNWireFormat())
+      case _ => None
+    }
+  }
+}
+trait CCNLiteWireFormat
+case class CCNbWireFormat() extends CCNLiteWireFormat
+case class NDNWireFormat() extends CCNLiteWireFormat
+
+
+
+object CCNLiteInterfaceType {
+  def fromName(possibleName: String): Option[CCNLiteInterfaceType] = {
+    possibleName match {
+      case "jni" => Some(CCNLiteJniInterface())
+      case "cli" => Some(CCNLiteCliInterface())
+      case _ => None
+    }
+  }
+}
+trait CCNLiteInterfaceType
+case class CCNLiteJniInterface() extends CCNLiteInterfaceType
+case class CCNLiteCliInterface() extends CCNLiteInterfaceType
+
+object CCNLiteInterfaceWrapper{
+
+  case class CCNLiteInterfaceException(msg: String) extends Exception
+
+  def createCCNLiteInterface (wireFormat: CCNLiteWireFormat, ccnLiteInterfaceType: CCNLiteInterfaceType) : CCNLiteInterfaceWrapper = {
+
+    val ccnLiteIf =
+      (wireFormat, ccnLiteInterfaceType) match {
+        case (CCNbWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
+        case _ => throw new CCNLiteInterfaceException(s"Currently only CCNb wire format and JNI interface is implemented and not $wireFormat with $ccnLiteInterfaceType")
+      }
+    CCNLiteInterfaceWrapper(ccnLiteIf)
+  }
+}
+
 /**
  * Wrapper for the [[CCNLiteInterface]]
  */
-object CCNLite extends Logging {
-  val ccnIf = new CCNLiteInterface()
+case class CCNLiteInterfaceWrapper(ccnIf: CCNLiteInterface) extends Logging {
 
   def ccnbToXml(ccnbData: Array[Byte]): String = {
     // This synchronized is required because currently ccnbToXml writes to the local file c_xml.txt
@@ -82,7 +125,7 @@ object CCNLite extends Logging {
   }
 
   def base64CCNBToPacket(base64ccnb: String): Option[CCNPacket] = {
-    val xml = CCNLite.ccnbToXml(NFNCCNLiteParser.decodeBase64(base64ccnb))
+    val xml = ccnIf.ccnbToXml(NFNCCNLiteParser.decodeBase64(base64ccnb))
     val pkt = NFNCCNLiteParser.parseCCNPacket(xml)
     pkt
   }
@@ -90,4 +133,7 @@ object CCNLite extends Logging {
   private def mkAddToCacheInterest(ccnbAbsoluteFilename: String): Array[Byte] = {
     ccnIf.mkAddToCacheInterest(ccnbAbsoluteFilename)
   }
+    def byteStringToPacket(byteArr: Array[Byte]): Option[Packet] = {
+      NFNCCNLiteParser.parseCCNPacket(ccnbToXml(byteArr))
+    }
 }

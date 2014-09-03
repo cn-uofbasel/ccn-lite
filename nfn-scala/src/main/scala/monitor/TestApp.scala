@@ -4,7 +4,7 @@ import ccn.NFNCCNLiteParser
 import nfn.NodeConfig
 import monitor.Monitor.{ContentInfoLog, InterestInfoLog, PacketLog, NodeLog}
 import ccn.packet.Interest
-import ccn.ccnlite.CCNLite
+import ccn.ccnlite.CCNLiteInterfaceWrapper
 import ccnliteinterface.CCNLiteInterface
 
 /**
