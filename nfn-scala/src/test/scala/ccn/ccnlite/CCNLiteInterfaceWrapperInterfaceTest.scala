@@ -3,7 +3,7 @@ package ccn.ccnlite
 import java.io.{FileWriter, File}
 
 import ccn.NFNCCNLiteParser
-import ccnliteinterface.CCNLiteInterface
+import ccnliteinterface._
 import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 import ccn.packet._
 
@@ -12,7 +12,7 @@ import ccn.packet._
 * Created by basil on 05/03/14.
 */
 class CCNLiteInterfaceWrapperInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
-  val ccnIf = CCNLiteInterfaceWrapper.createCCNLiteInterface(CCNbWireFormat(), CCNLiteJniInterface())
+  val ccnIf = CCNLiteInterfaceWrapper.createCCNLiteInterface(CCNBWireFormat(), CCNLiteJniInterface())
   val interest = Interest("name", "interest")
 
   s"Interest $interest" should "be converted to ccnb back to xml into interest object" in {

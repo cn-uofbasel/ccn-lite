@@ -75,6 +75,7 @@ object NFNCCNLiteParser extends Logging {
       )
     } catch {
       case e:SAXParseException => {
+        logger.error(s"Error when parsing the xml message of ccnbToXml string:\n$cleanedXmlString\n", e)
         None
       }
     }
