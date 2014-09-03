@@ -25,35 +25,6 @@
 #include "pkt-ndntlv.h"
 
 int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
-}
-
-
-int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 {
     int len, i, t;
@@ -132,23 +103,40 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_mkInterest(char **namecomp, int scope,
+ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 		       int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt;
-    long int nonce = random();
 
     if (scope >= 0) {
-        if (scope > 2)
-            return -1;
-        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
-            return -1;
+	if (scope > 2)
+	    return -1;
+	if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
+	    return -1;
     }
 
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
+    {
+	unsigned char lifetime[2] = { 0x0f, 0xa0 };
+	unsigned char mustbefresh[2] = { 0x12, 0x00 };
+
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
+				    offset, buf) < 0)
+	    return -1;
+
+	if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) nonce, 4,
+				    offset, buf) < 0)
+	    return -1;
+
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
+				    offset, buf) < 0)
+	    return -1;
+    }
+
+/*
+    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
 				offset, buf) < 0)
 	return -1;
-
+*/
     for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
     while (--cnt >= 0) {
@@ -168,7 +156,6 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope,
 
     return oldoffset - *offset;
 }
-
 
 int
 ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,

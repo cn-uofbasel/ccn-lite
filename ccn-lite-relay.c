@@ -39,6 +39,7 @@
 #define USE_SCHEDULER
 #define USE_SUITE_CCNB
 // #define USE_SUITE_CCNTLV
+// #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
@@ -56,6 +57,7 @@
 #define ccnl_app_RX(x,y)		do{}while(0)
 #define ccnl_print_stats(x,y)		do{}while(0)
 
+#include "ccnl-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-http.c"
@@ -72,7 +74,7 @@
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
+char suite = CCNL_SUITE_NDNTLV; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
 
 struct timeval*
 ccnl_run_events()
@@ -312,34 +314,34 @@ void ccnl_ageing(void *relay, void *aux)
 // ----------------------------------------------------------------------
 
 void
-ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
-		  int tcpport, char *uxpath, int max_cache_entries,
+ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
+		  int tcpport, char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
     struct ccnl_if_s *i;
 
     DEBUGMSG(99, "ccnl_relay_config\n");
 
-    ccnl->max_cache_entries = max_cache_entries;       
+    relay->max_cache_entries = max_cache_entries;       
 #ifdef USE_SCHEDULER
-    ccnl->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
-    ccnl->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
+    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+    relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
     
 #ifdef USE_ETHERNET
     // add (real) eth0 interface with index 0:
     if (ethdev) {
-	i = &ccnl->ifs[ccnl->ifcount];
+	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
 	i->mtu = 1500;
 	i->reflect = 1;
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
-	    ccnl->ifcount++;
+	    relay->ifcount++;
 	    DEBUGMSG(99, "new ETH interface (%s %s) configured\n",
 		     ethdev, ccnl_addr2ascii(&i->addr));
-	    if (ccnl->defaultInterfaceScheduler)
-		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open eth device\n");
@@ -347,17 +349,25 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
 #endif // USE_ETHERNET
 
     if (udpport > 0) {
-	i = &ccnl->ifs[ccnl->ifcount];
+	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
 //	i->frag = CCNL_DGRAM_FRAG_NONE;
-	i->mtu = CCN_DEFAULT_MTU;
+
+#ifdef USE_SUITE_CCNB
+	if (suite == CCNL_SUITE_CCNB)
+	    i->mtu = CCN_DEFAULT_MTU;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	if (suite == CCNL_SUITE_NDNTLV)
+	    i->mtu = NDN_DEFAULT_MTU;
+#endif
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
-	    ccnl->ifcount++;
+	    relay->ifcount++;
 	    DEBUGMSG(99, "new UDP interface (ip4 %s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (ccnl->defaultInterfaceScheduler)
-		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open udp device\n");
@@ -365,21 +375,21 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
 
 #ifdef USE_HTTP_STATUS
     if (tcpport) {
-	ccnl->http = ccnl_http_new(ccnl, tcpport);
+	relay->http = ccnl_http_new(relay, tcpport);
     }
 #endif // USE_HTTP_STATUS
 
 #ifdef USE_UNIXSOCKET
     if (uxpath) {
-	i = &ccnl->ifs[ccnl->ifcount];
+	i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
 	i->mtu = 4096;
 	if (i->sock >= 0) {
-	    ccnl->ifcount++;
+	    relay->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (ccnl->defaultInterfaceScheduler)
-		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
@@ -387,36 +397,35 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
 #ifdef USE_SIGNATURES
     if(crypto_face_path)
     {
-		char h[1024];
+	char h[1024];
         //sending interface + face
-        i = &ccnl->ifs[ccnl->ifcount];
-		i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
-		i->mtu = 4096;
-		if (i->sock >= 0) {
-			ccnl->ifcount++;
-			DEBUGMSG(99, "new UNIX interface (%s) configured\n",
-		    	ccnl_addr2ascii(&i->addr));
-			if (ccnl->defaultInterfaceScheduler){
-				i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+        i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
+	i->mtu = 4096;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
+		     ccnl_addr2ascii(&i->addr));
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
-			}
-            ccnl_crypto_create_ccnl_crypto_face(ccnl, crypto_face_path);       
-            ccnl->crypto_path = crypto_face_path;
+            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);       
+            relay->crypto_path = crypto_face_path;
 	} else
 	    fprintf(stderr, "sorry, could not open unix datagram device\n");
         
         //receiving interface
         memset(h,0,sizeof(h));
         sprintf(h,"%s-2",crypto_face_path);
-        i = &ccnl->ifs[ccnl->ifcount];
+        i = &relay->ifs[relay->ifcount];
 	i->sock = ccnl_open_unixpath(h, &i->addr.ux);
 	i->mtu = 4096;
 	if (i->sock >= 0) {
-	    ccnl->ifcount++;
+	    relay->ifcount++;
 	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
-	    if (ccnl->defaultInterfaceScheduler)
-		i->sched = ccnl->defaultInterfaceScheduler(ccnl,
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
             //create_ccnl_crypto_face(relay, crypto_face_path);       
 	} else
@@ -424,7 +433,7 @@ ccnl_relay_config(struct ccnl_relay_s *ccnl, char *ethdev, int udpport,
     }
 #endif //USE_SIGNATURES
 #endif // USE_UNIXSOCKET
-    ccnl_set_timer(1000000, ccnl_ageing, ccnl, 0);
+    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
 // ----------------------------------------------------------------------
@@ -512,19 +521,34 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 
 void
-ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
+ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 {
     DIR *dir;
     struct dirent *de;
     int datalen;
+    char *suffix;
 
     DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
+
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	suffix = "*.ccnb"; break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+	suffix = "*.ndntlv"; break;
+#endif
+    default:
+	fprintf(stderr, "unknown suite and encoding, cannot populate cache.\n");
+	return;
+    }
 
     dir = opendir(path);
     if (!dir)
 	return;
     while ((de = readdir(dir))) {
-	if (!fnmatch("*.ccnb", de->d_name, FNM_NOESCAPE)) {
+	if (!fnmatch(suffix, de->d_name, FNM_NOESCAPE)) {
 	    char fname[1000];
 	    struct stat s;
 	    strcpy(fname, path);
@@ -548,25 +572,46 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 							s.st_size);
 		datalen = read(fd, buf->data, s.st_size);
 		close(fd);
-		if (datalen == s.st_size && datalen >= 2 &&
-			    buf->data[0] == 0x04 && buf->data[1] == 0x82) {
+		if (datalen == s.st_size && datalen >= 2) {
 		    struct ccnl_prefix_s *prefix = 0;
 		    struct ccnl_content_s *c = 0;
 		    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-		    unsigned char *content, *data = buf->data + 2;
-		    int contlen;
+		    unsigned char *content, *data;
+		    int contlen, typ, len;
 
 		    buf->datalen = datalen;
-		    datalen -= 2;
-		    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+		    switch (suite) {
+#ifdef USE_SUITE_CCNB
+		    case CCNL_SUITE_CCNB:
+			if (buf->data[0] != 0x04 || buf->data[1] != 0x82)
+			    goto notacontent;
+			data = buf->data + 2;
+			datalen -= 2;
+			pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
 				&prefix, &nonce, &ppkd, &content, &contlen);
+			break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+		    case CCNL_SUITE_NDNTLV:
+			data = buf->data;
+			if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
+			    typ != NDN_TLV_Data)
+			    goto notacontent;
+			pkt = ccnl_ndntlv_extract(data - buf->data,
+						  &data, &datalen, 0, 0, 0, 0,
+				&prefix, &nonce, &ppkd, &content, &contlen);
+			break;
+#endif
+		    default:
+			goto Done;
+		    }
 		    if (!pkt) {
 			DEBUGMSG(6, "  parsing error\n"); goto Done;
 		    }
 		    if (!prefix) {
 			DEBUGMSG(6, "  no prefix error\n"); goto Done;
 		    }
-		    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix,
+		    c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
 					 &ppkd, content, contlen);
 		    if (!c)
 			goto Done;
@@ -579,6 +624,7 @@ Done:
 		    ccnl_free(nonce);
 		    ccnl_free(ppkd);
 		} else {
+notacontent:
 		    DEBUGMSG(6, "  not a content object\n");
 		    ccnl_free(buf);
 		}
@@ -594,8 +640,7 @@ main(int argc, char **argv)
 {
     int opt;
     int max_cache_entries = -1;
-    int udpport = CCN_UDP_PORT;
-    int tcpport = CCN_UDP_PORT;
+    int udpport, tcpport;
     char *datadir = NULL;
     char *ethdev = NULL;
     char *crypto_sock_path = 0;
@@ -666,7 +711,7 @@ main(int argc, char **argv)
 		    " [-g MIN_INTER_PACKET_INTERVAL]"
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
 		    " [-s SUITE (0=ccnb, 2=ndntlv)"
-		    " [-t tcpport]"
+		    " [-t tcpport (for HTML status page)]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
 
@@ -685,9 +730,9 @@ main(int argc, char **argv)
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
     ccnl_relay_config(&theRelay, ethdev, udpport, tcpport,
-		      uxpath, max_cache_entries, crypto_sock_path);
+		      uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
-	ccnl_populate_cache(&theRelay, datadir);
+	ccnl_populate_cache(&theRelay, datadir, suite);
     
     ccnl_io_loop(&theRelay);
 

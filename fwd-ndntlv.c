@@ -29,7 +29,8 @@
 
 // we use one extraction routine for both interest and data pkts
 struct ccnl_buf_s*
-ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen,
+ccnl_ndntlv_extract(int hdrlen,
+		    unsigned char **data, int *datalen,
 		    int *scope, int *mbf, int *min, int *max,
 		    struct ccnl_prefix_s **prefix,
 		    struct ccnl_buf_s **nonce,
@@ -145,7 +146,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
 	return -1;
-    buf = ccnl_ndntlv_extract(*data - cp, data, datalen,
+    buf = ccnl_ndntlv_extract(*data - cp,
+			      data, datalen,
 			      &scope, &mbf, &minsfx, &maxsfx,
 			      &p, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
