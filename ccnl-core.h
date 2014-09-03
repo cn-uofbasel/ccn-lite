@@ -43,12 +43,6 @@
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
 
-enum {
-  CCNL_SUITE_CCNB,
-  CCNL_SUITE_CCNTLV,
-  CCNL_SUITE_NDNTLV
-};
-
 // ----------------------------------------------------------------------
 
 typedef union {

@@ -82,7 +82,7 @@ int print_tag_content_with_tag(unsigned char **buf, int *len, char *tag, FILE *s
 {
     int num, typ; 
     printf("<%s>", tag);
-    dehead(buf, len, &num, &typ);
+    ccnl_ccnb_dehead(buf, len, &num, &typ);
     print_tag_content(buf, len, stream);
     printf("</%s>\n", tag);
     return 0;
@@ -99,7 +99,7 @@ handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* t
     print_offset(offset); printf("<%s>\n", tag);
     while(1)
     {
-        if(dehead(buf, len, &num, &typ)) return -1;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
         switch(num)
         {
             case CCNL_DTAG_IFNDX:
@@ -260,7 +260,7 @@ handle_ccn_debugreply(unsigned char **buf, int *len, int offset, FILE *stream)
     
     while(1)
     {
-        if(dehead(buf, len, &num, &typ)) return -1;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
         switch(num)
         {
             case CCNL_DTAG_INTERFACE:
@@ -291,7 +291,7 @@ int
 handle_ccn_debugaction(unsigned char **buf, int *len, int offset, FILE *stream)
 {
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<DEBUGACTION>");
     print_tag_content(buf,len,stream);
     printf("</DEBUGACTION>\n");
@@ -302,7 +302,7 @@ int
 handle_ccn_action(unsigned char **buf, int *len, int offset, FILE *stream)
 {
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<ACTION>");
     print_tag_content(buf,len,stream);
     printf("</ACTION>\n");
@@ -317,7 +317,7 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     print_offset(offset); printf("<DEBUGREQUEST>\n");
     while(1)
     {
-        if(dehead(buf, len, &num, &typ)) goto Bail;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) goto Bail;
         switch(num)
         {
             case CCN_DTAG_ACTION:
@@ -340,7 +340,7 @@ int
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
    int num, typ, i;
-   if(dehead(buf, buflen, &num, &typ)) return -1; 
+   if(ccnl_ccnb_dehead(buf, buflen, &num, &typ)) return -1; 
    if (typ != CCN_TT_BLOB) return 0;
    
    print_offset(offset);
@@ -365,7 +365,7 @@ handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *st
     int num, typ;
     print_offset(offset);
     printf("<COMPONENT>");
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_tag_content(buf,len,stream);
     printf("</COMPONENT>\n");
     return 0;
@@ -374,14 +374,14 @@ handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *st
 int 
 handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
     int num, typ, i;
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<NAME>\n");
     
     for(i = 0; i < 3; ++i)
     {
         if(num != CCN_DTAG_COMPONENT) return -1;
                 handle_ccn_component_content(buf, len, offset+4, stream);
-        if(dehead(buf, len, &num, &typ)) return -1;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
         
     }
     print_offset(offset); printf("</NAME>\n");
@@ -391,10 +391,10 @@ handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
 int 
 handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<CONTENT>\n");
     while(typ != 2){
-        dehead(buf, len, &num, &typ);
+        ccnl_ccnb_dehead(buf, len, &num, &typ);
     }
     while(1)
     {
@@ -428,7 +428,7 @@ handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
                 goto Bail;
                 break;
         }
-        if(dehead(buf, len, &num, &typ)) break;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) break;
     }
     Bail:
     print_offset(offset); printf("</CONTENT>\n");
@@ -438,10 +438,10 @@ handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
 int 
 handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream){
     int num, typ;
-    if(dehead(buf, len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
     print_offset(offset); printf("<CONTENTOBJ>\n");
     while(typ != 2){
-        dehead(buf, len, &num, &typ);
+        ccnl_ccnb_dehead(buf, len, &num, &typ);
     }
     while(1)
     {
@@ -460,7 +460,7 @@ handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream){
                 goto Bail;
                 break;
         }
-        if(dehead(buf, len, &num, &typ)) break;
+        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) break;
     }
     Bail:
     print_offset(offset); printf("</CONTENTOBJ>\n");
@@ -472,7 +472,7 @@ int
 handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
     
     int num, typ;
-    if(dehead(&buf, &len, &num, &typ)) return -1;
+    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return -1;
     switch(num)
     {
         case CCN_DTAG_CONTENTOBJ:
