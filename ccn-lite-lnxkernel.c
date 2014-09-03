@@ -207,6 +207,7 @@ ccnl_close_socket(struct socket *s)
 #include "ccnl-platform.c"
 #include "ccnl-ext.h"
 
+#include "ccnl-util.c"
 #include "ccnl-core.c"
 
 #ifdef USE_FRAG
