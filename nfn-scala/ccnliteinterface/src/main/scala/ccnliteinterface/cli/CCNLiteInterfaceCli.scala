@@ -103,7 +103,7 @@ case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInt
 }
 
 object CCNLiteInterfaceCli extends App {
-  val ccnIf = CCNLiteInterfaceCli(CCNBWireFormat())
+  val ccnIf = CCNLiteInterfaceCli(NDNTLVWireFormat())
 
   val bi = ccnIf.mkBinaryInterest(Array("yay", "wo"))
 
