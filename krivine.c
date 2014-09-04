@@ -765,7 +765,7 @@ normal:
                 DEBUGMSG(99, "Parameter %d %d\n", i, p);
             }
             else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX){
-                DEBUGMSG(99, "Parameter %d %s\n", i, ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+                DEBUGMSG(99, "Parameter %d %s\n", i, ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
             }
 
 
@@ -848,7 +848,7 @@ handlecontent: //if result was found ---> handle it
                     mapping->key = name;
                     mapping->value = c->name;
                     DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
-                    DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path2(mapping->key), ccnl_prefix_to_path2(mapping->value));
+                    DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path(mapping->key), ccnl_prefix_to_path(mapping->value));
                 }
             }
         }        
@@ -927,7 +927,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     prog = malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
-        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path2(prefix));
+        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
         *config = new_config(prog, global_dict, thunk_request,
                 start_locally, num_of_required_thunks, prefix, configid, suite);
         DBL_LINKED_LIST_ADD(configuration_list, *config);

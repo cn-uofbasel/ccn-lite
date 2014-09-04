@@ -137,7 +137,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(suite == CCNL_SUITE_NDNTLV){
         prefix = ccnl_nfn_create_new_prefix(prefix);
     }
-    DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path2(prefix));
+    DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
     int thunk_request = 0;
     if(config){
         suite = config->suite;
