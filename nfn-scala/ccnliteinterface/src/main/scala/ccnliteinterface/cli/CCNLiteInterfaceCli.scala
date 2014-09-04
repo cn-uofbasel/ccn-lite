@@ -61,17 +61,21 @@ case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInt
 
     (result, err)
   }
+  def wireFormatNum(f: CCNLiteWireFormat) = wireFormat match {
+    case CCNBWireFormat() => 0
+    case NDNTLVWireFormat() => 2
+  }
 
   override def mkBinaryInterest(nameCmps: Array[String]): Array[Byte] = {
     val mkI = "ccn-lite-mkI"
-    val cmds = Array(utilFolderName+mkI, "-f", wireFormat.toString, nameCmps.mkString("|"))
+    val cmds = Array(utilFolderName+mkI, "-s", wireFormatNum(wireFormat).toString, nameCmps.mkString("|"))
     val (res, _) = executeCommandToByteArray(cmds, None)
     res
   }
 
   override def mkBinaryContent(name: Array[String], data: Array[Byte]): Array[Byte] = {
     val mkC = "ccn-lite-mkC"
-    val cmds = Array(utilFolderName+mkC, "-f", wireFormat.toString, name.mkString("|"))
+    val cmds = Array(utilFolderName+mkC, "-s", wireFormatNum(wireFormat).toString, name.mkString("|"))
     val (res, _) = executeCommandToByteArray(cmds, Some(data))
 
     res
@@ -79,11 +83,7 @@ case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInt
 
   override def ccnbToXml(binaryPacket: Array[Byte]): String = {
     val pktdump = "ccn-lite-pktdump"
-    val wireFormatNum = wireFormat match {
-      case CCNBWireFormat() => 0
-      case NDNTLVWireFormat() => 2
-    }
-    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-e", wireFormat.toString)
+    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-s", wireFormatNum(wireFormat).toString)
 
     val (res, _) = executeCommandToByteArray(cmds, Some(binaryPacket))
 
