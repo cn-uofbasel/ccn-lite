@@ -131,11 +131,11 @@ main(int argc, char *argv[])
     char *infname = 0, *outfname = 0;
     int i = 0, f, len, opt, plen;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
-    char *packettype = "CCNB";
+    int packettype = 2;
     private_key_path = 0;
     witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:k:w:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
@@ -143,8 +143,8 @@ main(int argc, char *argv[])
         case 'o':
             outfname = optarg;
             break;
-        case 'f':
-            packettype = optarg;
+        case 's':
+            packettype = atoi(optarg);
             break;
         case 'k':
             private_key_path = optarg;
@@ -166,9 +166,11 @@ main(int argc, char *argv[])
         default:
 Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
-	    "  -i FNAME   input file (instead of stdin)\n"
-	    "  -o FNAME   output file (instead of stdout)\n"
-	    "  -p DIGEST  publisher fingerprint\n"
+	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+        "  -i FNAME   input file (instead of stdin)\n"
+        "  -o FNAME   output file (instead of stdout)\n"
+	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+        "  -p DIGEST  publisher fingerprint\n"
         "  -k FNAME   publisher private key\n"
         "  -f packet type [CCNB | NDNTLV | CCNTLV]"
         "  -w STRING  witness\n"       ,
@@ -195,10 +197,10 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    if(!strncmp(packettype, "CCNB", 4)){
+    if(packettype == 0){ //CCNB
         len = mkContent(prefix, publisher, plen, body, len, out);
     }
-    else if(!strncmp(packettype, "NDNTLV", 6)){
+    else if(packettype == 2){ //NDNTLV
         int len2 = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
