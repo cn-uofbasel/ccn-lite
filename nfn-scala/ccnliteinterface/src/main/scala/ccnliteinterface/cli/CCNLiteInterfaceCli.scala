@@ -83,7 +83,7 @@ case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInt
 
   override def ccnbToXml(binaryPacket: Array[Byte]): String = {
     val pktdump = "ccn-lite-pktdump"
-    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-s", wireFormatNum(wireFormat).toString)
+    val cmds = Array(utilFolderName+pktdump, "-f", "1")//"-s", wireFormatNum(wireFormat).toString)
 
     val (res, _) = executeCommandToByteArray(cmds, Some(binaryPacket))
 

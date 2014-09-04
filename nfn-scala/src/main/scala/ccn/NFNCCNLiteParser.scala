@@ -39,8 +39,14 @@ object NFNCCNLiteParser extends Logging {
       }
     }
 
-    def parseComponents(elem: Elem):Seq[String] = {
+    def parseComponentsCCNB(elem: Elem):Seq[String] = {
       val components = elem \ "name" \ "component"
+
+      components.map { parseData }
+    }
+
+    def parseComponentsNDNTLV(elem: Elem):Seq[String] = {
+      val components = elem \ "Name" \ "NameComponent"
 
       components.map { parseData }
     }
@@ -57,12 +63,25 @@ object NFNCCNLiteParser extends Logging {
       val xml: Elem = scala.xml.XML.loadString(cleanedXmlString)
       Some(
         xml match {
-          case interest @ <interest>{_*}</interest> => {
-            val nameComponents = parseComponents(interest)
+          case interest @ <interest>{_*}</interest>=> {
+            val nameComponents = parseComponentsCCNB(interest)
             Interest(nameComponents :_*)
           }
           case content @ <contentobj>{_*}</contentobj> => {
-            val nameComponents = parseComponents(content)
+            val nameComponents = parseComponentsCCNB(content)
+            val contentData = parseContentData(content)
+            if(new String(contentData).startsWith(":NACK")) {
+              NAck(CCNName(nameComponents :_*))
+            } else {
+              Content(contentData, nameComponents :_*)
+            }
+          }
+          case interest @ <Interest>{_*}</Interest>=> {
+            val nameComponents = parseComponentsNDNTLV(interest)
+            Interest(nameComponents :_*)
+          }
+          case content @ <Data>{_*}</Data> => {
+            val nameComponents = parseComponentsNDNTLV(content)
             val contentData = parseContentData(content)
             if(new String(contentData).startsWith(":NACK")) {
               NAck(CCNName(nameComponents :_*))
@@ -75,7 +94,7 @@ object NFNCCNLiteParser extends Logging {
       )
     } catch {
       case e:SAXParseException => {
-        logger.error(s"Error when parsing the xml message of ccnbToXml string:\n$cleanedXmlString\n", e)
+        logger.error(s"SAXParseException (not printed) when parsing the xml message of ccnbToXml string:\n$cleanedXmlString")
         None
       }
     }
