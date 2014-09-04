@@ -1,7 +1,35 @@
 package ccnliteinterface
 
+import ccnliteinterface.cli.CCNLiteInterfaceCli
 import ccnliteinterface.jni.CCNLiteInterfaceCCNbJni
 
+object CCNLiteInterface {
+
+  case class CCNLiteInterfaceException(msg: String) extends Exception
+
+  def createCCNLiteInterface (wireFormat: CCNLiteWireFormat, ccnLiteInterfaceType: CCNLiteInterfaceType) : CCNLiteInterface = {
+    (wireFormat, ccnLiteInterfaceType) match {
+      case (_, CCNLiteCliInterface()) => new CCNLiteInterfaceCli(wireFormat)
+      case (CCNBWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
+      case _ => throw new CCNLiteInterfaceException(s"Currently only CCNB/NDNTLV wire format with CLI or CCNB wire formath with JNI interface is supported and not $wireFormat with $ccnLiteInterfaceType")
+    }
+  }
+
+  def main(args: Array[String]) = {
+    val ccnIf = new CCNLiteInterfaceCCNbJni()
+
+    val ccnbInterest: Array[Byte] = ccnIf.mkBinaryInterest(Array("/contentname/interest", "NFN"))
+    val xmlInterest:String = ccnIf.ccnbToXml(ccnbInterest)
+    println(s"Interest:\n$xmlInterest")
+
+    val data = "testdata".getBytes()
+    val ccnbContent: Array[Byte] = ccnIf.mkBinaryContent(Array("/contentname/content", "NFN"), data)
+    val xmlContent:String = ccnIf.ccnbToXml(ccnbContent)
+    println(s"Content:\n$xmlContent")
+
+    //  println(s"Last: ${xmlContent.substring(xmlContent.size - 10, xmlContent.size)}")
+  }
+}
 /**
  * Abstracts the packet wire format and the ccn-lite mangement commands to a common interface.
  * Implementation can either use the native ccn-lite library or the cli tools.
@@ -102,24 +130,5 @@ trait CCNLiteInterface {
 
 }
 
-object CCNLiteInterface {
-
-  private val ccnIf = new CCNLiteInterfaceCCNbJni()
-
-  def main(args: Array[String]) = {
-    val ccnIf = new CCNLiteInterfaceCCNbJni()
-
-    val ccnbInterest: Array[Byte] = ccnIf.mkBinaryInterest(Array("/contentname/interest", "NFN"))
-    val xmlInterest:String = ccnIf.ccnbToXml(ccnbInterest)
-    println(s"Interest:\n$xmlInterest")
-
-    val data = "testdata".getBytes()
-    val ccnbContent: Array[Byte] = ccnIf.mkBinaryContent(Array("/contentname/content", "NFN"), data)
-    val xmlContent:String = ccnIf.ccnbToXml(ccnbContent)
-    println(s"Content:\n$xmlContent")
-
-    //  println(s"Last: ${xmlContent.substring(xmlContent.size - 10, xmlContent.size)}")
-  }
-}
 
 

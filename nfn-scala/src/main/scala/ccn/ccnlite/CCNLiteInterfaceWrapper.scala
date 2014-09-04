@@ -12,22 +12,10 @@ import myutil.IOHelper
 
 
 
+object CCNLiteInterfaceWrapper {
 
-
-object CCNLiteInterfaceWrapper{
-
-  case class CCNLiteInterfaceException(msg: String) extends Exception
-
-  def createCCNLiteInterface (wireFormat: CCNLiteWireFormat, ccnLiteInterfaceType: CCNLiteInterfaceType) : CCNLiteInterfaceWrapper = {
-
-    val ccnLiteIf =
-      (wireFormat, ccnLiteInterfaceType) match {
-        case (_, CCNLiteCliInterface()) => new CCNLiteInterfaceCli(wireFormat)
-        case (CCNBWireFormat(), CCNLiteJniInterface()) => new CCNLiteInterfaceCCNbJni()
-        case _ => throw new CCNLiteInterfaceException(s"Currently only CCNB/NDNTLV wire format with CLI or CCNB wire formath with JNI interface is supported and not $wireFormat with $ccnLiteInterfaceType")
-      }
-    CCNLiteInterfaceWrapper(ccnLiteIf)
-  }
+  def createCCNLiteInterfaceWrapper(wireFormat: CCNLiteWireFormat, ccnIfType: CCNLiteInterfaceType) =
+    CCNLiteInterfaceWrapper(CCNLiteInterface.createCCNLiteInterface(wireFormat, ccnIfType))
 }
 
 /**

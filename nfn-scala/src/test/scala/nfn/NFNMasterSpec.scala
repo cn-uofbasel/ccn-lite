@@ -25,7 +25,7 @@ with WordSpecLike with Matchers with BeforeAndAfterEach with BeforeAndAfterAll w
     TestActorRef(NFNServerFactory.networkProps(
       RouterConfig("127.0.0.1", 10010, nodePrefix),
       computeNodeConfig,
-      CCNLiteInterfaceWrapper.createCCNLiteInterface(CCNBWireFormat(), CCNLiteJniInterface())
+      CCNLiteInterfaceWrapper.createCCNLiteInterfaceWrapper(CCNBWireFormat(), CCNLiteJniInterface())
     ))
   val nfnMasterNetworkInstance = nfnMasterNetworkRef.underlyingActor
 

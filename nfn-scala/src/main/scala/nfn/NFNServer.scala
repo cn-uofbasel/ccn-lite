@@ -50,7 +50,7 @@ object NFNServerFactory extends Logging {
     val wireFormat = StaticConfig.packetformat
     val ccnLiteIfType = StaticConfig.ccnlitelibrarytype
 
-    val ccnLiteIf = CCNLiteInterfaceWrapper.createCCNLiteInterface(wireFormat, ccnLiteIfType)
+    val ccnLiteIf = CCNLiteInterfaceWrapper(CCNLiteInterface.createCCNLiteInterface(wireFormat, ccnLiteIfType))
 
     context.actorOf(networkProps(nfnRouterConfig, computeNodeConfig, ccnLiteIf), name = "NFNServer")
   }
