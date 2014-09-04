@@ -14,6 +14,7 @@ import ccn.packet._
 class CCNLiteInterfaceWrapperInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
 
   testCCNLiteInterfaceWrapper(CCNBWireFormat(), CCNLiteJniInterface())
+  testCCNLiteInterfaceWrapper(CCNBWireFormat(), CCNLiteJniInterface())
   def testCCNLiteInterfaceWrapper(wireFormat: CCNBWireFormat, ifType: CCNLiteInterfaceType) = {
     val ccnIf = CCNLiteInterface.createCCNLiteInterface(CCNBWireFormat(), CCNLiteJniInterface())
 

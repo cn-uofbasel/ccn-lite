@@ -7,10 +7,10 @@ import sun.misc.BASE64Encoder
 
 class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
 
-//  testCCNLiteInterface(CCNBWireFormat(), CCNLiteCliInterface())
+  testCCNLiteInterface(CCNBWireFormat(), CCNLiteCliInterface())
   testCCNLiteInterface(CCNBWireFormat(), CCNLiteJniInterface())
 
-//  testCCNLiteInterface(NDNTLVWireFormat(), CCNLiteCliInterface())
+  testCCNLiteInterface(NDNTLVWireFormat(), CCNLiteCliInterface())
 //  testCCNLiteInterface(NDNTLVWireFormat(), CCNLiteJniInterface())
 
   def testCCNLiteInterface(wireFormat: CCNLiteWireFormat, ifType: CCNLiteInterfaceType) = {
@@ -30,7 +30,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
       val wfInterest = ccnIf.mkBinaryInterest(name)
       When("parsed to xml string")
       val xml = ccnIf.ccnbToXml(wfInterest)
-      Then("xml parsed to interest")
+      Then(s"xml:\n$xml\nparsed to interest")
       name.foreach { cmp =>
         stringContainsBase64EncodedString(xml, cmp) shouldBe true
       }
@@ -42,7 +42,7 @@ class CCNLiteInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
       val wfContent = ccnIf.mkBinaryContent(name, dataString.getBytes)
       When("parsed to xml string")
       val xml = ccnIf.ccnbToXml(wfContent)
-      Then("xml parsed to interest")
+      Then(s"xml:\n$xml\nparsed to content")
       name.foreach { cmp =>
         stringContainsBase64EncodedString(xml, cmp) shouldBe true
       }
