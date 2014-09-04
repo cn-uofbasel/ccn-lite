@@ -14,8 +14,8 @@ import ccn.packet._
 class CCNLiteInterfaceWrapperInterfaceTest extends FlatSpec with Matchers with GivenWhenThen {
 
   testCCNLiteInterfaceWrapper(CCNBWireFormat(), CCNLiteJniInterface())
-  testCCNLiteInterfaceWrapper(CCNBWireFormat(), CCNLiteJniInterface())
-  def testCCNLiteInterfaceWrapper(wireFormat: CCNBWireFormat, ifType: CCNLiteInterfaceType) = {
+  testCCNLiteInterfaceWrapper(NDNTLVWireFormat(), CCNLiteCliInterface())
+  def testCCNLiteInterfaceWrapper(wireFormat: CCNLiteWireFormat, ifType: CCNLiteInterfaceType) = {
     val ccnIf = CCNLiteInterface.createCCNLiteInterface(CCNBWireFormat(), CCNLiteJniInterface())
 
     val interest = Interest("name", "interest")
@@ -38,7 +38,7 @@ class CCNLiteInterfaceWrapperInterfaceTest extends FlatSpec with Matchers with G
       resultContent.get.name.cmps should be (Seq("name", "content"))
       resultContent.get.asInstanceOf[Content].data should be ("testcontent".getBytes)
     }
-    s"Content $content" should "be converted to ccnb for an addToCache requeest" in {
+    s"CCNLiteInterface of type $ifType with wire format $wireFormat with Content $content" should "be converted to ccnb for an addToCache requeest" in {
 
       val testfile = new File("./testfile" + System.currentTimeMillis())
       val fw = new FileWriter(testfile)

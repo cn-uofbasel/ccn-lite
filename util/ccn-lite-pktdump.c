@@ -617,7 +617,7 @@ ndn_type2name(unsigned type)
 
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
-               int *len, char *cur_tag, FILE* out)
+               int *len, char *cur_tag, int rawxml, FILE* out)
 {
     int typ, vallen, i, maxi;
     unsigned char *cp;
@@ -640,39 +640,66 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
         n = tmp;
     }
 
-    fprintf(out, "%04zx  ", cp - base);
+    if(!rawxml) {
+        fprintf(out, "%04zx  ", cp - base);
+    }
+
     for (i = 0; i < lev; i++)
         fprintf(out, "  ");
-    for (; cp < *buf; cp++)
-        fprintf(out, "%02x ", *cp);
-    fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+    if(!rawxml) {
+        for (; cp < *buf; cp++)
+            fprintf(out, "%02x ", *cp);
+    }
+
+    if(rawxml) {
+        fprintf(out, "<%s>\n", n);
+    } else {
+        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+    }
 
     if (typ < NDN_TLV_MAX_TYPE && ndntlv_recurse[typ]) {
         *len -= vallen;
-        if (ndn_parse_sequence(lev+1, base, buf, &vallen, n, out) < 0)
-        return -1;
+        if (ndn_parse_sequence(lev+1, base, buf, &vallen, n, rawxml, out) < 0) {
+            return -1;
+        }
+        fprintf(out, "</%s>\n", n);
         continue;
     }
+
 
     while (vallen > 0) {
         maxi = vallen > 8 ? 8 : vallen;
         cp = *buf;
-        fprintf(out, "%04zx  ", cp - base);
-        for (i = 0; i < lev+1; i++)
-        fprintf(out, "  ");
-        for (i = 0; i < 8; i++, cp++)
-        printf(i < maxi ? "%02x " : "   ", *cp);
+        if(!rawxml) {
+            fprintf(out, "%04zx  ", cp - base);
+            for (i = 0; i < lev+1; i++)
+                fprintf(out, "  ");
+        }
+        if(rawxml) {
+            fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", vallen);
+            base64dump(lev, base, *buf, vallen, rawxml, out);
+            fprintf(out, "</data>\n");
+        } else {
+            for (i = 0; i < 8; i++, cp++)
+                printf(i < maxi ? "%02x " : "   ", *cp);
+        }
         cp = *buf;
-        for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
-        fprintf(out, " ");
-        fprintf(out, "  |");
-        for (i = 0; i < maxi; i++, cp++)
-        fprintf(out, "%c", isprint(*cp) ? *cp : '.');
-        fprintf(out, "|\n");
+        if(!rawxml) {
+            for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
+            fprintf(out, " ");
+            fprintf(out, "  |");
+            for (i = 0; i < maxi; i++, cp++)
+            fprintf(out, "%c", isprint(*cp) ? *cp : '.');
+            fprintf(out, "|");
+        }
+        fprintf(out, "\n");
 
         vallen -= maxi;
         *buf += maxi;
         *len -= maxi;
+    }
+    if(rawxml) {
+        fprintf(out, "</%s>\n", n, vallen);
     }
     }
     return 0;
@@ -684,8 +711,10 @@ ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
     unsigned char *buf = data;
 
     // dump the sequence of TLV fields, should start with a name TLV
-    ndn_parse_sequence(0, data, &buf, &len, "payload", out);
-    fprintf(out, "%04zx  pkt.end\n", buf - data);
+    ndn_parse_sequence(0, data, &buf, &len, "payload", rawxml, out);
+    if(!rawxml) {
+        fprintf(out, "%04zx  pkt.end\n", buf - data);
+    }
 }
 
 static void
