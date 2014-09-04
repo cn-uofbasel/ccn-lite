@@ -679,7 +679,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
 }
 
 static void
-ndntlv_201311(unsigned char *data, int len, FILE* out)
+ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
@@ -925,7 +925,7 @@ main(int argc, char *argv[])
             if(!rawxml) {
                 printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
             }
-        	ndntlv_201311(data, len, rawxml);
+        	ndntlv_201311(data, len, rawxml, out);
         	break;
         case SUITE_LOCRPC:
             if(!rawxml) {
