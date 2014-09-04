@@ -97,19 +97,19 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
 
     if (mode == CMP_EXACT && nlen != p->compcnt)
 	goto done;
-    for (i = 0; i < nlen && i < p->compcnt; i++) {
-	comp = i < name->compcnt ? name->comp[i] : md;
-	clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
-	if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
-	    rc = mode == CMP_EXACT ? -1 : i;
-	    goto done;
-	}
+    for (i = 0; i < nlen && i < p->compcnt; ++i) {
+        comp = i < name->compcnt ? name->comp[i] : md;
+        clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
+        if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
+            rc = mode == CMP_EXACT ? -1 : i;
+            goto done;
+        }
     }
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
     DEBUGMSG(49, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s prefix=%s: %d (%p)\n",
 	     mode, nlen, p->compcnt, name->compcnt,
-	     ccnl_prefix_to_path(name), ccnl_prefix_to_path(p), rc, md);
+         ccnl_prefix_to_path(name), ccnl_prefix_to_path(p), rc, md);
     return rc;
 }
 
