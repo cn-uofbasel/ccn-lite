@@ -219,6 +219,7 @@ main(int argc, char *argv[])
         default:
 Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
+            "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
 	    "  -d DIGEST  content digest (sets -x to 0)\n"
 	    "  -n LEN     miN additional components\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
