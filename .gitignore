@@ -11,17 +11,20 @@
 modules.order
 Module.symvers
 
-# binaries
+# Project files:
+
+# ccn-binaries
 ccn-lite-minimalrelay
 ccn-lite-relay
-ccn-nfn-relay
-ccn-lite-relay-nack
-ccn-nfn-relay-nack
 ccn-lite-simu
 
+# nfn-binaries
+ccn-lite-relay-nack
+ccn-nfn-relay
+ccn-nfn-relay-nack
 krivine
 
-# binaries in subdirectories
+# util binaries
 util/ccn-lite-cryptoserver
 util/ccn-lite-ctrl
 util/ccn-lite-peek
@@ -33,11 +36,22 @@ util/ccn-lite-mkF
 util/ccn-lite-mkI
 util/ccn-lite-cryptoserver
 util/ccn-lite-peekcomputation
-<<<<<<< HEAD
-*.dSYM
-=======
->>>>>>> 77d83cd... Add utility to create compute requests
+
 # unit tests
 test/unit/prefix-cmp
+
+# OSX:
+
+# contains debug symbols tables for Xcode
+*.dSYM 
+
+# vim:
+*.swp
+
+# sublime:
+*.sublime-workspace
+*.sublime-project
+
+
 
 # eof
