@@ -118,29 +118,8 @@ ccnl_addr2ascii(sockunion *su)
     return NULL;
 }
 
-static char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
-{
-//    static char prefix_buf[1024];
-    static char prefix_buf[4096];
-    int len, i, j;
-
-    if (!pr)
-	return NULL;
-    for (len = 0, i = 0; i < pr->compcnt; i++) {
-	if ((len + 1 + 3*pr->complen[i]) >= sizeof(prefix_buf))
-	  return (char*) "(...prefix...)";
-	prefix_buf[len++] = '/';
-	for (j = 0; j < pr->complen[i]; j++) {
-	    unsigned char c = pr->comp[i][j];
-	    len += sprintf(prefix_buf+len,
-		    !isprint(c) || isspace(c) || c=='/' ? "%%%02x" : "%c",
-		    c);
-	}
-    }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
-}
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 
 // ----------------------------------------------------------------------
 
@@ -765,6 +744,23 @@ debug_memdump()
 		h->size, h->fname, h->lineno, h->tstamp);
     }
     fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
+}
+
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+{
+    char *prefix_buf = malloc(4096);
+    int len= 0, i;
+    if (!pr)
+    return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        if(!strncmp("call", pr->comp[i], 4) && strncmp(pr->comp[pr->compcnt-1], "NFN", 3))
+            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+        else
+            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;
 }
 
 
