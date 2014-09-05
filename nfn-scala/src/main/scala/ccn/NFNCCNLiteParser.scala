@@ -24,6 +24,7 @@ object NFNCCNLiteParser extends Logging {
 
   def parsePacket(xmlString: String):Option[Packet] = {
     def parseData(elem: Node): String = {
+
       val data = elem \ "data"
 
       val nameSize = (data \ "@size").text.toInt
@@ -48,7 +49,29 @@ object NFNCCNLiteParser extends Logging {
     def parseComponentsNDNTLV(elem: Elem):Seq[String] = {
       val components = elem \ "Name" \ "NameComponent"
 
-      components.map { parseData }
+      val cmps = components.map { parseDataNDNTLV }
+
+      cmps
+    }
+
+    def parseDataNDNTLV(elem: Node): String = {
+      val datasNodes = elem \ "data"
+
+      datasNodes.foldLeft("") { (curData: String, data: Node) =>
+        val nameSize = (data \ "@size").text.toInt
+        val encoding = (data \ "@dt").text
+        val nameData = data.text.trim
+
+        val nextData = encoding match {
+          case "string" =>
+            nameData
+          case "binary.base64" =>
+            new String(decodeBase64(nameData))
+          case _ => throw new Exception(s"parseData() does not support data of type: '$encoding'")
+        }
+
+        curData + nextData
+      }
     }
 
     def parseContentData(elem: Elem): Array[Byte] = {
