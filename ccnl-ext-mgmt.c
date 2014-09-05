@@ -1517,7 +1517,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
-    suite = pkt2suite(buf, buflen);
+
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
@@ -1535,11 +1535,24 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     
+    suite = pkt2suite(buf, buflen);
     //add object to cache here...
     data = buf + 2;
 
-    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-			    &prefix_a, &nonce, &ppkd, &content, &contlen);
+
+    switch(suite){
+        case CCNL_SUITE_CCNB:
+            pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+                    &prefix_a, &nonce, &ppkd, &content, &contlen);
+            break;
+        case CCNL_SUITE_NDNTLV:
+            pkt = ccnl_ndntlv_extract(*data, data, datalen, 0, 0, 0, 0,
+                              &prefix_a, &nonce, &ppkd, &content, &contlen);
+            break;
+        default:
+            pkt = 0;
+    }
+
     if (!pkt) {
         DEBUGMSG(6, " parsing error\n"); goto Done;
     }
