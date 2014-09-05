@@ -666,40 +666,39 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
         continue;
     }
 
+    // printf("BASE: %s\n", base);
+    if(rawxml) {
+        fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", vallen);
+        base64dump(lev, base, *buf, vallen, rawxml, out);
+        fprintf(out, "</data>\n");
 
-    while (vallen > 0) {
-        maxi = vallen > 8 ? 8 : vallen;
-        cp = *buf;
-        if(!rawxml) {
+        fprintf(out, "</%s>\n", n);
+
+        *len -= vallen;
+        *buf += vallen;
+    } else {
+
+        while (vallen > 0) {
+            maxi = vallen > 8 ? 8 : vallen;
+            cp = *buf;
             fprintf(out, "%04zx  ", cp - base);
             for (i = 0; i < lev+1; i++)
                 fprintf(out, "  ");
-        }
-        if(rawxml) {
-            fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", vallen);
-            base64dump(lev, base, *buf, vallen, rawxml, out);
-            fprintf(out, "</data>\n");
-        } else {
             for (i = 0; i < 8; i++, cp++)
-                printf(i < maxi ? "%02x " : "   ", *cp);
-        }
-        cp = *buf;
-        if(!rawxml) {
+                fprintf(out, i < maxi ? "%02x " : "   ", *cp);
+            cp = *buf;
             for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
             fprintf(out, " ");
             fprintf(out, "  |");
             for (i = 0; i < maxi; i++, cp++)
             fprintf(out, "%c", isprint(*cp) ? *cp : '.');
             fprintf(out, "|");
-        }
-        fprintf(out, "\n");
+            fprintf(out, "\n");
 
-        vallen -= maxi;
-        *buf += maxi;
-        *len -= maxi;
-    }
-    if(rawxml) {
-        fprintf(out, "</%s>\n", n, vallen);
+            vallen -= maxi;
+            *buf += maxi;
+            *len -= maxi;
+        }
     }
     }
     return 0;
