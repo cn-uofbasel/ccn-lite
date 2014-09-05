@@ -24,43 +24,6 @@
 
 #include "ccnl-core.h"
 
-
-char*
-ccnl_prefix_to_path2(struct ccnl_prefix_s *pr)
-{
-    /*char *prefix_buf = malloc(4096);
-    int len= 0, i;
-
-    if (!pr)
-    return NULL;
-    for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", pr->comp[i], 4) && strncmp(pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%s", pr->comp[i]);
-        else
-            len += sprintf(prefix_buf + len, "/%s", pr->comp[i]);
-
-    }
-    prefix_buf[len] = '\0';
-    return prefix_buf;*/
-
-    char *prefix_buf = malloc(4096);
-    int len= 0, i,j;
-
-    if (!pr)
-    return NULL;
-    for (i = 0; i < pr->compcnt; i++) {
-        if(strncmp("call", pr->comp[i], 4) && strncmp(pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "/");
-
-        for(j = 0; j < pr->complen[i]; ++j){
-            len += sprintf(prefix_buf + len, "%c", pr->comp[i][j]);
-        }
-
-    }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
-}
-
 struct fox_machine_state_s *
 new_machine_state(int thunk_request, int num_of_required_thunks){
     struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
@@ -171,7 +134,7 @@ add_local_computation_components(struct configuration_s *config){
         if(config->fox_state->params[i]->type == STACK_TYPE_INT)
             complen += sprintf(comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
         else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
-            complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+            complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
 #ifndef USE_UTIL
         else DEBUGMSG(1, "Invalid type %d\n", config->fox_state->params[i]->type);
 #endif
@@ -218,7 +181,7 @@ createComputationString(struct configuration_s *config, int parameter_num, unsig
             if(config->fox_state->params[i]->type == STACK_TYPE_INT)
                 complen += sprintf(comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
             else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
-                complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path2((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+                complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
 #ifndef USE_UTIL
             else DEBUGMSG(1, "Invalid type in createComputationString() %d\n", config->fox_state->params[i]->type);
 #endif
@@ -282,7 +245,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
 
         struct stack_s *stack = config->fox_state->params[it];
         if(stack->type == STACK_TYPE_PREFIX){
-            char *pref_str = ccnl_prefix_to_path2((struct ccnl_prefix_s*)stack->content);
+            char *pref_str = ccnl_prefix_to_path((struct ccnl_prefix_s*)stack->content);
             len += sprintf(name->comp[0]+len, " %s", pref_str);
         }
         else if(stack->type == STACK_TYPE_INT){
@@ -331,7 +294,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s 
 
     struct ccnl_content_s *content;
     int i;
-    DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path2(prefix));
+    DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
     for(content = ccnl->contents; content; content = content->next){
         if(!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)){
             return content;
