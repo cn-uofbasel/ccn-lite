@@ -27,7 +27,7 @@ case class CCNLiteInterfaceWrapper(ccnIf: CCNLiteInterface) extends Logging {
     // This synchronized is required because currently ccnbToXml writes to the local file c_xml.txt
     // This results in issues when concurrenlty writing/creating/deleting the same file (filelock)
     // Fix the implementation of Java_ccnliteinterface_CCNLiteInterface_ccnbToXml in the ccnliteinterface and remove synchronized
-    this.synchronized {
+    CCNLiteInterfaceWrapper.synchronized {
       ccnIf.ccnbToXml(ccnbData)
     }
   }
