@@ -1467,13 +1467,45 @@ Bail:
 }
 
 int
+pkt2suite(unsigned char *data, int len)
+{
+    if (len < 1)
+    return -1;
+
+    switch (*data) {
+
+    case 0x01:
+    case 0x04:
+    return CCNL_SUITE_CCNB;
+
+    case 0x05:
+    case 0x06:
+        return CCNL_SUITE_NDNTLV;
+
+    case 0x80:
+        return CCNL_SUITE_LOCALRPC;
+
+    /*case 0x00:
+    if (len > 1 &&
+        (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
+            return SUITE_CCNTLV;
+    // fall through
+*/
+    default:
+    break;
+    }
+
+    return -1;
+}
+
+int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
     unsigned char *data;
     int buflen, datalen, contlen;
-    int num, typ;
+    int num, typ, suite;
     
     struct ccnl_prefix_s *prefix_a = 0;
     struct ccnl_content_s *c = 0;
@@ -1485,6 +1517,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
+    suite = pkt2suite(buf, buflen);
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
@@ -1513,8 +1546,10 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (!prefix_a) {
         DEBUGMSG(6, " no prefix error\n"); goto Done;
     }
-    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
+
+    c = ccnl_content_new(ccnl, suite, &pkt, &prefix_a, &ppkd,
                         content, contlen);
+
     if (!c) goto Done;
     ccnl_content_add2cache(ccnl, c);
     c->flags |= CCNL_CONTENT_FLAGS_STATIC;
