@@ -661,12 +661,11 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
         }
 
         // printf("BASE: %s\n", base);
-        if(rawxml) {
+        if(rawxml && vallen > 0) {
             fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", vallen);
             base64dump(lev, base, *buf, vallen, rawxml, out);
             fprintf(out, "</data>\n");
 
-            fprintf(out, "</%s>\n", n);
 
             *len -= vallen;
             *buf += vallen;
@@ -693,6 +692,9 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                 *buf += maxi;
                 *len -= maxi;
             }
+        }
+        if(rawxml) {
+            fprintf(out, "</%s>\n", n);
         }
     }
     return 0;
