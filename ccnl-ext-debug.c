@@ -723,7 +723,7 @@ debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
 							    lno, tstamp);
 
     if (!b)
-	return NULL;
+        return NULL;
     b->next = NULL;
     b->datalen = len;
     if (data)
