@@ -68,6 +68,7 @@ ccnl_ndntlv_extract(int hdrlen,
             p->comp[p->compcnt] = cp;
             p->complen[p->compcnt] = i;
             p->compcnt++;
+
 		}  // else unknown type: skip
 		cp += i;
 		len2 -= i;
@@ -101,8 +102,8 @@ ccnl_ndntlv_extract(int hdrlen,
 	    break;
 	case NDN_TLV_Content:
 	    if (content) {
-		*content = *data;
-		*contlen = len;
+            *content = *data;
+            *contlen = len;
 	    }
 	    break;
 	default:

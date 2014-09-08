@@ -186,6 +186,7 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len)
 {
+    return 1;
     int typ, vallen;
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
 	return -1;
@@ -285,6 +286,7 @@ Usage:
 	}
 	prefix[i] = NULL;
 	len = mkInterest(prefix, &nonce, out, sizeof(out));
+
 	free(uri);
 
 	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
