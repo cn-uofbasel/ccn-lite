@@ -83,17 +83,21 @@ case class CCNLiteProcess(nodeConfig: RouterConfig) extends Logging {
   val processName = if(nodeConfig.isCCNOnly) "CCNLiteNFNProcess" else "CCNLiteProcess"
 
   def start() = {
-    val ccnliteExecutableName = if(nodeConfig.isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
-    val ccnliteExecutable = ccnliteExecutableName + (if(StaticConfig.isNackEnabled) "-nack" else "")
-    val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
-    logger.debug(s"$processName-$prefix: executing: '$cmd'")
-    val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
-    processBuilder.redirectErrorStream(true)
-    process = processBuilder.start
 
-    val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
-    val thread = new Thread(lsr, s"LogStreamReader-$prefix")
-    thread.start()
+//    if(port != 10010) {
+
+      val ccnliteExecutableName = if(nodeConfig.isCCNOnly) "../ccn-lite-relay" else "../ccn-nfn-relay"
+      val ccnliteExecutable = ccnliteExecutableName + (if(StaticConfig.isNackEnabled) "-nack" else "")
+      val cmd = s"$ccnliteExecutable -v 99 -u $port -x $sockName"
+      logger.debug(s"$processName-$prefix: executing: '$cmd'")
+      val processBuilder = new ProcessBuilder(cmd.split(" "): _*)
+      processBuilder.redirectErrorStream(true)
+      process = processBuilder.start
+
+      val lsr = new LogStreamReaderToFile(process.getInputStream, s"ccnlite-$host-$port", appendTimestamp = true)
+      val thread = new Thread(lsr, s"LogStreamReader-$prefix")
+      thread.start()
+//    }
 
     globalFaceId = 2
   }

@@ -60,13 +60,13 @@ case class CCNLiteInterfaceWrapper(ccnIf: CCNLiteInterface) extends Logging {
 
   def mkAddToCacheInterest(content: Content): Array[Byte] = {
 
-    val ccnLiteCCNBIf = CCNLiteInterfaceWrapper.createCCNLiteInterfaceWrapper(CCNBWireFormat(), StaticConfig.ccnlitelibrarytype)
-
-    val binaryContent = ccnLiteCCNBIf.mkBinaryContent(content)
+//    val ccnLiteCCNBIf = CCNLiteInterfaceWrapper.createCCNLiteInterfaceWrapper(CCNBWireFormat(), StaticConfig.ccnlitelibrarytype)
+//
+//    val binaryContent = ccnLiteCCNBIf.mkBinaryContent(content)
 
     // TODO this hack is required because even though the management operations can be written in CCNB,
     // for the addToCache message the encoding must be in CCNB currently
-//    val binaryContent = mkBinaryContent(content)
+    val binaryContent = mkBinaryContent(content)
 
     val servLibDir = new File("./service-library")
     if(!servLibDir.exists) {

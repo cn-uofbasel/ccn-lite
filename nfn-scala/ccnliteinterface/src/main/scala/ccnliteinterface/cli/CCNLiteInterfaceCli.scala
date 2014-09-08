@@ -13,7 +13,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInterface with Logging {
 
-  val utilFolderName = "../util/"
+  val ccnLiteEnv = {
+    val maybeCcnLiteEnv = System.getenv("CCNL_PATH")
+    if(maybeCcnLiteEnv == null) {
+      throw new Exception("CCNL_PATH system variable is not set. Set it to the root directory of ccn-lite.")
+    }
+    maybeCcnLiteEnv
+  }
+
+  val utilFolderName = s"$ccnLiteEnv/util/"
 
   private def executeCommandToByteArray(cmds: Array[String], maybeDataToPipe: Option[Array[Byte]]): (Array[Byte], Array[Byte]) = {
 
@@ -82,8 +90,19 @@ case class CCNLiteInterfaceCli(wireFormat: CCNLiteWireFormat) extends CCNLiteInt
   }
 
   override def ccnbToXml(binaryPacket: Array[Byte]): String = {
+    logger.warn(s"ccnbToXml for: '${new String(binaryPacket)}'")
+    val f = new File("./testfile" + binaryPacket.hashCode())
+
+    val bos = new BufferedOutputStream(new FileOutputStream(f))
+    try {
+      bos.write(binaryPacket)
+    } finally {
+      bos.close()
+    }
+
+
     val pktdump = "ccn-lite-pktdump"
-    val cmds = Array(utilFolderName+pktdump, "-f", "1")//"-s", wireFormatNum(wireFormat).toString)
+    val cmds = Array(utilFolderName+pktdump, "-f", "1", "-s", wireFormatNum(wireFormat).toString)
 
     val (res, _) = executeCommandToByteArray(cmds, Some(binaryPacket))
 

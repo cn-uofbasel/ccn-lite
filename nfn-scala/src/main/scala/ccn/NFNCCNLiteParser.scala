@@ -76,6 +76,13 @@ object NFNCCNLiteParser extends Logging {
 
     def parseContentData(elem: Elem): Array[Byte] = {
       val contents = elem \ "content"
+
+      assert(contents.size == 1, "content should only contain one node with content")
+      parseData(contents.head).getBytes
+    }
+    def parseContentDataNDNTLV(elem: Elem): Array[Byte] = {
+      val contents = elem \ "Content"
+
       assert(contents.size == 1, "content should only contain one node with content")
       parseData(contents.head).getBytes
     }
@@ -105,7 +112,7 @@ object NFNCCNLiteParser extends Logging {
           }
           case content @ <Data>{_*}</Data> => {
             val nameComponents = parseComponentsNDNTLV(content)
-            val contentData = parseContentData(content)
+            val contentData = parseContentDataNDNTLV(content)
             if(new String(contentData).startsWith(":NACK")) {
               NAck(CCNName(nameComponents :_*))
             } else {
@@ -117,7 +124,9 @@ object NFNCCNLiteParser extends Logging {
       )
     } catch {
       case e:SAXParseException => {
-        logger.error(s"SAXParseException (not printed) when parsing the xml message of ccnbToXml string:\n$cleanedXmlString")
+//        logger.error(s"SAXParseException (not printed) when parsing the xml message of ccnbToXml string:\n$cleanedXmlString")
+//        logger.error(s"SAXParseException when parsing the xml message of ccnbToXml string:\n$cleanedXmlString", e)
+        logger.error(s"SAXParseException when parsing the xml message of ccnbToXml string")
         None
       }
     }
