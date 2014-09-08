@@ -1568,7 +1568,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     c = ccnl_content_new(ccnl, suite, &pkt, &prefix_a, &ppkd,
                         content, contlen);
 
-    if (!c) goto Done;
+    if (!c || !c->name || !c->content) goto Done;
     ccnl_content_add2cache(ccnl, c);
     c->flags |= CCNL_CONTENT_FLAGS_STATIC;
      
