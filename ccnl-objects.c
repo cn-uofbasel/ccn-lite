@@ -30,10 +30,10 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     from->outq->datalen = strlen((char *)prefix->comp[0]);
 
     char *namecomps[CCNL_MAX_NAME_COMP];
-    namecomps[prefix->compcnt] = 0;
     for(i = 0; i < prefix->compcnt; ++i){
         namecomps[i] = strdup((char *)prefix->comp[i]);
     }
+    namecomps[prefix->compcnt] = 0;
 
     if(config->suite == CCNL_SUITE_CCNB){
 
@@ -80,13 +80,11 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
 
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
-
-    prefixcomps[prefix->compcnt] = 0;
-
     for(i = 0; i < prefix->compcnt; ++i)
     {
         prefixcomps[i] = strdup((char *)prefix->comp[i]);
     }
+    prefixcomps[prefix->compcnt] = 0;
 
     if(suite == CCNL_SUITE_CCNB){
         len = ccnl_ccnb_mkContent(prefixcomps, contentstr, contentlen, out);
