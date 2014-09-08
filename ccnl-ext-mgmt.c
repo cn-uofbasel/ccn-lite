@@ -1537,7 +1537,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     data = buf + 2;
 
-
     suite = pkt2suite(buf, buflen);
     //add object to cache here...
 
@@ -1546,12 +1545,13 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     switch(suite){
         case CCNL_SUITE_CCNB:
+
             pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
                     &prefix_a, &nonce, &ppkd, &content, &contlen);
             break;
         case CCNL_SUITE_NDNTLV:
-            //if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) goto Bail;
-            pkt = ccnl_ndntlv_extract(data - cp, &data, &datalen, 0, 0, 0, 0,
+            datalen = datalen - 7;
+            pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen, 0, 0, 0, 0,
                               &prefix_a, &nonce, &ppkd, &content, &contlen);
             break;
         default:
