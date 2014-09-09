@@ -1,19 +1,23 @@
 # Makefile
 
-CC=gcc
+CC?=gcc
 MYCFLAGS=-O3 -Wall -pedantic -std=c99 -g \
 	-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 #MYCFLAGS= -Wall -g -O0
-EXTLIBS=  -lcrypto
+EXTLIBS=  -lcrypto -lrt
 EXTMAKE=
 EXTMAKECLEAN=
 
+NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR -DCCNL_NACK
+
 INST_PROGS= ccn-lite-relay \
+            ccn-nfn-relay \
             ccn-lite-minimalrelay \
             ccn-lite-simu
 
 PROGS=	${INST_PROGS} \
 	ccn-lite-lnxkernel
+
 
 
 ifdef USE_CHEMFLOW
@@ -42,13 +46,21 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	ccnl-core.c ccnl.h ccnl-core.h
 	${CC} -o $@ ${MYCFLAGS} $<
 
+ccn-nfn-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
+	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
+	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
+	ccnl-ext-http.c \
+	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
+	ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c Makefile
+	${CC} -o $@ ${MYCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+
 ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
-	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${MYCFLAGS} $< ${EXTLIBS} -DCCNL_NACK -DCCNL_NFN_MONITOR
 
 ccn-lite-simu: ccn-lite-simu.c  ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \

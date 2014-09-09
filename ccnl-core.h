@@ -177,7 +177,7 @@ struct ccnl_ndntlv_id_s { // interest details
 };
 
 struct ccnl_interest_s {
-    struct ccnl_buf_s *pkt;	   // full datagram
+    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_interest_s *next, *prev;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
@@ -190,8 +190,10 @@ struct ccnl_interest_s {
 	struct ccnl_ndntlv_id_s ndntlv;
     } details;
     char suite;
+#ifdef CCNL_NFN
+    int propagate;                 //set to 0 to not propagate this interest becauses it is in the NFN-engine
+#endif
 };
-
 
 struct ccnl_pendint_s { // pending interest
     struct ccnl_pendint_s *next; // , *prev;
@@ -294,6 +296,15 @@ compile_string(void)
 #endif
 #ifdef USE_SIGNATURES
 	"SIGNATURES, "
+#endif
+#ifdef CCNL_NFN
+    "USE_NFN "
+#endif
+#ifdef CCNL_NFN_MONITOR
+    "USE_NFN_MONITOR "
+#endif
+#ifdef CCNL_NACK
+    "USE_NACK "
 #endif
 	;
   return cp;

@@ -11,12 +11,20 @@
 modules.order
 Module.symvers
 
-# binaries
+# Project files:
+
+# ccn-binaries
 ccn-lite-minimalrelay
 ccn-lite-relay
 ccn-lite-simu
 
-# binaries in subdirectories
+# nfn-binaries
+ccn-lite-relay-nack
+ccn-nfn-relay
+ccn-nfn-relay-nack
+krivine
+
+# util binaries
 util/ccn-lite-cryptoserver
 util/ccn-lite-ctrl
 util/ccn-lite-peek
@@ -26,8 +34,24 @@ util/ccn-lite-deF
 util/ccn-lite-mkC
 util/ccn-lite-mkF
 util/ccn-lite-mkI
+util/ccn-lite-cryptoserver
+util/ccn-lite-peekcomputation
 
 # unit tests
 test/unit/prefix-cmp
+
+# OSX:
+
+# contains debug symbols tables for Xcode
+*.dSYM 
+
+# vim:
+*.swp
+
+# sublime:
+*.sublime-workspace
+*.sublime-project
+
+
 
 # eof
