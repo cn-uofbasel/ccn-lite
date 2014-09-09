@@ -44,8 +44,8 @@ ccnl_is_local_addr(sockunion *su)
 	return 0;
     if (su->sa.sa_family == AF_UNIX)
 	return -1;
-    /*if (su->sa.sa_family == AF_INET)
-	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);*/
+    if (su->sa.sa_family == AF_INET)
+	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
     return 0;
 }
 
@@ -74,9 +74,10 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 				 packetsize);
         packet[len4++] = 0;
         
-#ifdef USE_SIGNATURES
+//#ifdef USE_SIGNATURES
 	//        if(it == 0) id = from->faceid;
     
+#ifdef USE_SIGNATURES
         if(!ccnl_is_local_addr(&from->peer))
 	  //                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
 	    ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto",
@@ -106,7 +107,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_content_s *c = 0;
                 struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
                 unsigned char *content = 0;
-                char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+                unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
                 pkt = ccnl_ccnb_extract(&buf2, &len5, 0, 0, 0, 0,
 				&prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -116,12 +117,12 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 }
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
-                prefix_a->comp[0] = (unsigned char*) "mgmt";
-                sprintf(ht, "seqnum-%d", it);
-                prefix_a->comp[1] = (unsigned char*) ht;
+                prefix_a->comp[0] = (unsigned char *)"mgmt";
+                sprintf((char*)ht, "seqnum-%d", it);
+                prefix_a->comp[1] = ht;
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
-                prefix_a->complen[1] = strlen(ht);
+                prefix_a->complen[1] = strlen((char*)ht);
                 c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a,
 				     &ppkd, content, contlen);
                 //if (!c) goto Done;
@@ -198,7 +199,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     len += ccnl_ccnb_mkBlob(out1+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out1);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char *)out1);
     return;
 }
 
@@ -597,8 +598,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 Bail:
     /*ANSWER*/ 
-    if (!debugaction)
-	debugaction = (unsigned char*) "Error for debug cmd";
+    if(!debugaction) debugaction = (unsigned char *)"Error for debug cmd";
     stmt_length = 200 * num_faces + 200 * num_interfaces + 200 * num_fwds //alloc stroage for answer dynamically.
             + 200 * num_interests + 200 * num_contents;
     contentobject_length = stmt_length + 1000;
@@ -647,7 +647,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out);
     
     /*END ANWER*/
     
@@ -874,7 +874,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
 
     
     /*END ANWER*/  
@@ -989,7 +989,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
 
     ccnl_free(faceid);
     ccnl_free(frag);
@@ -1078,7 +1078,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
 
     
     /*END ANWER*/  
@@ -1299,7 +1299,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
     
     ccnl_free(devname);
     ccnl_free(port);
@@ -1442,7 +1442,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
     
     /*END ANWER*/  
 
@@ -1456,13 +1456,45 @@ Bail:
 }
 
 int
+pkt2suite(unsigned char *data, int len)
+{
+    if (len < 1)
+    return -1;
+
+    switch (*data) {
+
+    case 0x01:
+    case 0x04:
+    return CCNL_SUITE_CCNB;
+
+    case 0x05:
+    case 0x06:
+        return CCNL_SUITE_NDNTLV;
+
+    case 0x80:
+        return CCNL_SUITE_LOCALRPC;
+
+    /*case 0x00:
+    if (len > 1 &&
+        (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
+            return SUITE_CCNTLV;
+    // fall through
+*/
+    default:
+    break;
+    }
+
+    return -1;
+}
+
+int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
     unsigned char *data;
     int buflen, datalen, contlen;
-    int num, typ;
+    int num, typ, suite;
     
     struct ccnl_prefix_s *prefix_a = 0;
     struct ccnl_content_s *c = 0;
@@ -1474,6 +1506,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
+
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
@@ -1485,26 +1518,46 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
     
+
     datalen = buflen - 2;
-    data = buf;  
 
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    
-    //add object to cache here...
+
     data = buf + 2;
 
-    pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-			    &prefix_a, &nonce, &ppkd, &content, &contlen);
+    suite = pkt2suite(buf, buflen);
+    //add object to cache here...
+
+    unsigned char *cp = data;
+    int len = 0, len2;
+
+    switch(suite){
+        case CCNL_SUITE_CCNB:
+
+            pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+                    &prefix_a, &nonce, &ppkd, &content, &contlen);
+            break;
+        case CCNL_SUITE_NDNTLV:
+            datalen = datalen - 7;
+            pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen, 0, 0, 0, 0,
+                              &prefix_a, &nonce, &ppkd, &content, &contlen);
+            break;
+        default:
+            pkt = 0;
+    }
+
     if (!pkt) {
         DEBUGMSG(6, " parsing error\n"); goto Done;
     }
     if (!prefix_a) {
         DEBUGMSG(6, " no prefix error\n"); goto Done;
     }
-    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
+
+    c = ccnl_content_new(ccnl, suite, &pkt, &prefix_a, &ppkd,
                         content, contlen);
-    if (!c) goto Done;
+
+    if (!c || !c->name || !c->content) goto Done;
     ccnl_content_add2cache(ccnl, c);
     c->flags |= CCNL_CONTENT_FLAGS_STATIC;
      
@@ -1570,7 +1623,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(c2->name->compcnt != num_of_components) continue;
         for(i = 0; i < num_of_components; ++i)
         {
-	    if(strcmp((char*)(c2->name->comp[i]), (char*)components[i]))
+            if(strcmp((char*)c2->name->comp[i], (char*)components[i]))
             {
                 break;
             }
@@ -1692,10 +1745,9 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
-
     if (prefix->complen[2] < sizeof(cmd)) {
-	memcpy(cmd, prefix->comp[2], prefix->complen[2]);
-	cmd[prefix->complen[2]] = '\0';
+        memcpy(cmd, prefix->comp[2], prefix->complen[2]);
+        cmd[prefix->complen[2]] = '\0';
     } else
 	strcpy(cmd, "cmd-is-too-long-to-display");
 

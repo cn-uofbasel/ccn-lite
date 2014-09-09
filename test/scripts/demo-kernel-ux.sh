@@ -36,7 +36,7 @@ $CCNL_HOME/ccn-lite-relay -v 99 -x $UXB -d $CCNL_HOME/test/ccnb 2>/tmp/b.log &
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-peek -x $UXA /ccnx/0.7.1/doc/technical/NameEnumerationProtocol.txt | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -x $UXA "ccnx|0.7.1|doc|technical|NameEnumerationProtocol.txt" | $CCNL_HOME/util/ccn-lite-pktdump
 
 # shutdown both relays
 rmmod ccn-lite-lnxkernel

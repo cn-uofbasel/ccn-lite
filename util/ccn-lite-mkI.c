@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 
 #include "../pkt-ccnb.h"
+#include "../pkt-ndntlv-enc.c"
 #include "../ccnl.h"
 
 // ----------------------------------------------------------------------
@@ -84,9 +85,19 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
     }
     return len;
 }
+int
+ndntlv_mkInterest(char **namecomp, int *nonce,
+                 unsigned char *out, int outlen)
+{
+     int len, offset;
+     offset = outlen;
+     len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
+     memmove(out, out + offset, len);
+     return len;
+}
 
 int
-mkInterest(char **namecomp,
+ccnb_mkInterest(char **namecomp,
 	   char *minSuffix, char *maxSuffix,
 	   unsigned char *digest, int dlen,
 	   unsigned char *publisher, int plen,
@@ -171,18 +182,19 @@ mkInterest(char **namecomp,
 int
 main(int argc, char *argv[])
 {
-    unsigned char out[8*1024];
-    char *minSuffix = 0, *maxSuffix = 0, *scope;
+    unsigned char out[CCNL_MAX_PACKET_SIZE];
+    char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     unsigned char *digest = 0, *publisher = 0;
     char *fname = 0;
     int i = 0, f, len, opt;
     int dlen = 0, plen = 0;
+    int packettype = 0;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     uint32_t nonce;
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "hd:n:o:p:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hd:n:o:p:c:s:x:")) != -1) {
         switch (opt) {
         case 'd':
 	    digest = (unsigned char*)optarg;
@@ -209,8 +221,11 @@ main(int argc, char *argv[])
 		exit(-1);
 	    }
 	    break;
-        case 's':
+        case 'c':
 	    scope = optarg;
+	    break;
+        case 's':
+	    packettype = atoi(optarg);
 	    break;
         case 'x':
 	    maxSuffix = optarg;
@@ -219,6 +234,8 @@ main(int argc, char *argv[])
         default:
 Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
+            "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+	    "  -c SCOPE"
 	    "  -d DIGEST  content digest (sets -x to 0)\n"
 	    "  -n LEN     miN additional components\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
@@ -231,18 +248,27 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
-    cp = strtok(argv[optind], "/");
+    cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	prefix[i++] = cp;
-	cp = strtok(NULL, "/");
+	cp = strtok(NULL, "|");
     }
     prefix[i] = NULL;
-    len = mkInterest(prefix,
+    if(packettype == 0){
+    	len = ccnb_mkInterest(prefix,
 		     minSuffix, maxSuffix,
 		     digest, dlen,
 		     publisher, plen,
 		     scope, &nonce,
 		     out);
+    }
+    else if(packettype ==1){
+    	printf("Not Implemented yet\n");
+    }
+    else if(packettype == 2){
+	int tmplen = CCNL_MAX_PACKET_SIZE;
+    	len = ndntlv_mkInterest(prefix, &nonce, out, CCNL_MAX_PACKET_SIZE);
+    }
 
     if (fname) {
 	f = creat(fname, 0666);
