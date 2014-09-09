@@ -29,10 +29,10 @@
 
 #define CCNL_UNIX
 
-// #define USE_CCNxDIGEST
+#define USE_CCNxDIGEST
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-// #define USE_FRAG
+#define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
@@ -73,6 +73,12 @@
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
+#ifdef USE_SIGNATURES
+#include "ccnl-ext-crypto.c"
+#endif
+#ifdef CCNL_NFN
+#include "ccnl-ext-nfn.c"
+#endif
 
 
 // ----------------------------------------------------------------------

@@ -186,6 +186,7 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len)
 {
+    return 1;
     int typ, vallen;
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
 	return -1;
@@ -278,13 +279,14 @@ Usage:
 	char *uri = strdup(argv[optind]), *cp;
 	int nonce = random();
 
-	cp = strtok(argv[optind], "/");
+	cp = strtok(argv[optind], "|");
 	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	    prefix[i++] = cp;
-	    cp = strtok(NULL, "/");
+	    cp = strtok(NULL, "|");
 	}
 	prefix[i] = NULL;
 	len = mkInterest(prefix, &nonce, out, sizeof(out));
+
 	free(uri);
 
 	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {

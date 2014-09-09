@@ -95,7 +95,7 @@ echo "** Received content:"
 
 # test access to content:
 
-$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$CCNL_PORTB /ccnx/0.7.1/doc/technical/URI.txt | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$CCNL_PORTB "ccnx|0.7.1|doc|technical|URI.txt" | $CCNL_HOME/util/ccn-lite-pktdump
 echo
 
 # shut down all relays:
