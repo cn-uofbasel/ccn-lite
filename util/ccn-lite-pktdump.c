@@ -761,8 +761,8 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len, int 
         n = "Sequence"; dorecurse = 1; break;
         case NDN_TLV_RPC_NONNEGINT:
         n = "Integer"; break;
-        case NDN_TLV_RPC_ASCII:
-        n = "ASCII"; break;
+        case NDN_TLV_RPC_NAME:
+        n = "NAME"; break;
         case NDN_TLV_RPC_BIN:
         n = "BinaryData"; break;
         default:
@@ -789,7 +789,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len, int 
         for (i = 0; i <= lev; i++)
         printf("  ");
         printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-    } else if (typ == NDN_TLV_RPC_ASCII) {
+    } else if (typ == NDN_TLV_RPC_NAME) {
         printf("%04zx  ", *buf - base);
         for (i = 0; i <= lev; i++)
         printf("  ");
@@ -813,7 +813,7 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
-    int origlen = len, typ, vallen;
+    int origlen = len, typ, vallen, typ2, vallen2, len2;
     unsigned char *cp;
 
     if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
