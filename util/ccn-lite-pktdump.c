@@ -54,40 +54,40 @@ hexdump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml, FI
     int i, maxi;
 
     while (len > 0) {
-	    maxi = len > 8 ? 8 : len;
+        maxi = len > 8 ? 8 : len;
 
-	    if(!rawxml) {
-	        fprintf(out, "%04zx  ", cp - base);
-	    }
+        if(!rawxml) {
+            fprintf(out, "%04zx  ", cp - base);
+        }
 
-	    for (i = 0; i < lev+1; i++)
-	        fprintf(out, "  ");
-	    for (i = 0; i < 8; i++)
-	        printf(i < maxi ? "%02x " : "   ", i < maxi ? cp[i] : 0);
+        for (i = 0; i < lev+1; i++)
+            fprintf(out, "  ");
+        for (i = 0; i < 8; i++)
+            printf(i < maxi ? "%02x " : "   ", i < maxi ? cp[i] : 0);
 
-	    if(!rawxml) {
-	        for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
-	            fprintf(out, " ");
-	        fprintf(out, "  |");
-	        for (i = 0; i < maxi; i++, cp++)
-	            fprintf(out, "%c", isprint(*cp) ? *cp : '.');
-	        fprintf(out, "|\n");
-	    } else {
-	        fprintf(out, "\n");
-	    }
+        if(!rawxml) {
+            for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
+                fprintf(out, " ");
+            fprintf(out, "  |");
+            for (i = 0; i < maxi; i++, cp++)
+                fprintf(out, "%c", isprint(*cp) ? *cp : '.');
+            fprintf(out, "|\n");
+        } else {
+            fprintf(out, "\n");
+        }
 
-	    len -= maxi;
+        len -= maxi;
     }
 }
 
 void
 base64dump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml, FILE* out) {
-	int encodedLen = -1;
+    int encodedLen = -1;
     int i;
     for(i = 0; i < lev + 1; i++) {
-		fprintf(out, "  ");
-	}
-	fprintf(out, "%s\n", base64_encode(cp, len, &encodedLen));
+        fprintf(out, "  ");
+    }
+    fprintf(out, "%s\n", base64_encode(cp, len, &encodedLen));
     cp += len;
     len = 0;
 }
@@ -123,7 +123,7 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
     for (i = 0; i < (int)sizeof(i) && i < *len; i++) {
         unsigned char c = (*buf)[i];
         if(!rawxml) {
-        	fprintf(out, "%02x ", c);
+            fprintf(out, "%02x ", c);
         }
         if ( c & 0x80 ) {
             *num = (val << 4) | ((c >> 3) & 0xf);
@@ -135,7 +135,7 @@ ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
         val = (val << 7) | c;
     }
     if(!rawxml) {
-    	fprintf(out, "?decoding problem?\n");
+        fprintf(out, "?decoding problem?\n");
     }
     return -1;
 }
@@ -220,15 +220,15 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
         switch (typ) {
         case CCN_TT_BLOB:
         case CCN_TT_UDATA:
-        	if(rawxml) {
-            	fprintf(out, "<data ", num, num > 1 ? "s" : "");
-            	fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
-        	} else {
-            	fprintf(out, " -- <data (%d byte%s)", num, num > 1 ? "s" : "");
-        	}
+            if(rawxml) {
+                fprintf(out, "<data ", num, num > 1 ? "s" : "");
+                fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
+            } else {
+                fprintf(out, " -- <data (%d byte%s)", num, num > 1 ? "s" : "");
+            }
             if (ccnb_must_recurse(/* work in progress */)) {
               if(!rawxml) {
-              	fprintf(out, ", recursive decoding>\n");
+                fprintf(out, ", recursive decoding>\n");
               }
             // ...
     //      *buf += num;
@@ -236,9 +236,9 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             }
             fprintf(out, ">\n");
             if(!rawxml) {
-            	hexdump(lev, base, *buf, num, rawxml, out);
+                hexdump(lev, base, *buf, num, rawxml, out);
             } else {
-            	base64dump(lev, base, *buf, num, rawxml, out);
+                base64dump(lev, base, *buf, num, rawxml, out);
             }
     /*
             for (i = 0; i < num; i++) {
@@ -254,25 +254,25 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             *len -= num;
             int i;
             for(i = 0; i < lev ; i++) {
-            	fprintf(out, "  ");
+                fprintf(out, "  ");
             }
             fprintf(out, "</data>\n");
             break;
         case CCN_TT_DTAG:
             next_tag = ccnb_dtag2name(num);
             if (next_tag) {
-            	if(!rawxml) {
-                	fprintf(out, " -- <%s>\n", next_tag);
-            	} else {
-                	fprintf(out, "<%s>\n", next_tag);
-            	}
+                if(!rawxml) {
+                    fprintf(out, " -- <%s>\n", next_tag);
+                } else {
+                    fprintf(out, "<%s>\n", next_tag);
+                }
             }
             else {
-            	if(!rawxml) {
-                	fprintf(out, " -- <unknown tt=%d num=%d>\n", typ, num);
-            	} else {
-                	fprintf(out, "<unknown>\n");
-            	}
+                if(!rawxml) {
+                    fprintf(out, " -- <unknown tt=%d num=%d>\n", typ, num);
+                } else {
+                    fprintf(out, "<unknown>\n");
+                }
             }
             if (ccnb_parse_lev(lev+1, base, buf, len, next_tag, rawxml, out) < 0) {
                 return -1;
@@ -286,30 +286,24 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
             break;
         case 0:
             if (num == 0 || cur_tag != NULL) { // end tag
-            	if(!rawxml) {
-                	fprintf(out, " -- </%s>\n", cur_tag);
-            	} else {
-                	fprintf(out, "</%s>\n", cur_tag );
-            	}
+                if(!rawxml) {
+                    fprintf(out, " -- </%s>\n", cur_tag);
+                } else {
+                    fprintf(out, "</%s>\n", cur_tag );
+                }
                 return 0;
             }
         default:
-        	if(!rawxml) {
-            	fprintf(out, "-- tt=%d num=%d not implemented yet\n", typ, num);
-        	} else {
-            	fprintf(out, "=%d num=%d not implemented yet\n", typ, num);
-        	}
+            if(!rawxml) {
+                fprintf(out, "-- tt=%d num=%d not implemented yet\n", typ, num);
+            } else {
+                fprintf(out, "=%d num=%d not implemented yet\n", typ, num);
+            }
             break;
         }
     }
-    // if(cur_tag == NULL) {
-    // 	printf("cur tag is null\n");
-    // } else {
-    // 	printf("cur tag is not null\n");
-    // }
-    // printf("num: %d", num);
     if(cur_tag != NULL) {
-    	fprintf(out, "</%s>\n", cur_tag );
+        fprintf(out, "</%s>\n", cur_tag );
     }
     return 0;
 }
@@ -322,7 +316,7 @@ ccnb_parse(unsigned char *data, int len, int rawxml, FILE* out)
 
     ccnb_parse_lev(0, data, &buf, &len, NULL, rawxml, out);
     if(!rawxml) {
-    	fprintf(out, "%04zx  pkt.end\n", buf - data);
+        fprintf(out, "%04zx  pkt.end\n", buf - data);
     }
 }
 
@@ -624,83 +618,84 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
     char *n, tmp[100];
 
     while (*len > 0) {
-    cp = *buf;
-    if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
-        return -1;
-    if (vallen > *len) {
-        fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
-            "  type=%hu, len=%hu larger than %d available bytes\n",
-            cp - base, base, typ, vallen, *len);
-        exit(-1);
-    }
-
-    n = ndn_type2name(typ);
-    if (!n) {
-        sprintf(tmp, "type=%hu", typ);
-        n = tmp;
-    }
-
-    if(!rawxml) {
-        fprintf(out, "%04zx  ", cp - base);
-    }
-
-    for (i = 0; i < lev; i++)
-        fprintf(out, "  ");
-    if(!rawxml) {
-        for (; cp < *buf; cp++)
-            fprintf(out, "%02x ", *cp);
-    }
-
-    if(rawxml) {
-        fprintf(out, "<%s>\n", n);
-    } else {
-        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
-    }
-
-    if (typ < NDN_TLV_MAX_TYPE && ndntlv_recurse[typ]) {
-        *len -= vallen;
-        if (ndn_parse_sequence(lev+1, base, buf, &vallen, n, rawxml, out) < 0) {
-            return -1;
-        }
-        fprintf(out, "</%s>\n", n);
-        continue;
-    }
-
-
-    while (vallen > 0) {
-        maxi = vallen > 8 ? 8 : vallen;
         cp = *buf;
+        if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
+            return -1;
+        if (vallen > *len) {
+            fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
+                "  type=%hu, len=%hu larger than %d available bytes\n",
+                cp - base, base, typ, vallen, *len);
+            exit(-1);
+        }
+
+        n = ndn_type2name(typ);
+        if (!n) {
+            sprintf(tmp, "type=%hu", typ);
+            n = tmp;
+        }
+
         if(!rawxml) {
             fprintf(out, "%04zx  ", cp - base);
-            for (i = 0; i < lev+1; i++)
-                fprintf(out, "  ");
         }
+
+        for (i = 0; i < lev; i++)
+            fprintf(out, "  ");
+        if(!rawxml) {
+            for (; cp < *buf; cp++)
+                fprintf(out, "%02x ", *cp);
+        }
+
         if(rawxml) {
+            fprintf(out, "<%s>\n", n);
+        } else {
+            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+        }
+
+        if (typ < NDN_TLV_MAX_TYPE && ndntlv_recurse[typ]) {
+            *len -= vallen;
+            if (ndn_parse_sequence(lev+1, base, buf, &vallen, n, rawxml, out) < 0) {
+                return -1;
+            }
+            fprintf(out, "</%s>\n", n);
+            continue;
+        }
+
+        // printf("BASE: %s\n", base);
+        if(rawxml && vallen > 0) {
             fprintf(out, "<data size=\"%i\" dt=\"binary.base64\">\n", vallen);
             base64dump(lev, base, *buf, vallen, rawxml, out);
             fprintf(out, "</data>\n");
-        } else {
-            for (i = 0; i < 8; i++, cp++)
-                printf(i < maxi ? "%02x " : "   ", *cp);
-        }
-        cp = *buf;
-        if(!rawxml) {
-            for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
-            fprintf(out, " ");
-            fprintf(out, "  |");
-            for (i = 0; i < maxi; i++, cp++)
-            fprintf(out, "%c", isprint(*cp) ? *cp : '.');
-            fprintf(out, "|");
-        }
-        fprintf(out, "\n");
 
-        vallen -= maxi;
-        *buf += maxi;
-        *len -= maxi;
-    }
-    if(rawxml) {
-        fprintf(out, "</%s>\n", n, vallen);
-    }
+
+            *len -= vallen;
+            *buf += vallen;
+        } else {
+
+            while (vallen > 0) {
+                maxi = vallen > 8 ? 8 : vallen;
+                cp = *buf;
+                fprintf(out, "%04zx  ", cp - base);
+                for (i = 0; i < lev+1; i++)
+                    fprintf(out, "  ");
+                for (i = 0; i < 8; i++, cp++)
+                    fprintf(out, i < maxi ? "%02x " : "   ", *cp);
+                cp = *buf;
+                for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
+                fprintf(out, " ");
+                fprintf(out, "  |");
+                for (i = 0; i < maxi; i++, cp++)
+                fprintf(out, "%c", isprint(*cp) ? *cp : '.');
+                fprintf(out, "|");
+                fprintf(out, "\n");
+
+                vallen -= maxi;
+                *buf += maxi;
+                *len -= maxi;
+            }
+        }
+        if(rawxml) {
+            fprintf(out, "</%s>\n", n);
+        }
     }
     return 0;
 }
@@ -739,76 +734,76 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len, int 
     char *n, tmp[100], dorecurse;
 
     while (*len > 0) {
-	cp = *buf;
+    cp = *buf;
 
-	dorecurse = 0;
-	if (*cp < NDN_TLV_RPC_APPLICATION) {
-	    sprintf(tmp, "Variable=v%02x", *cp);
-	    n = tmp;
-	    *buf += 1;
-	    *len -= 1;
-	    vallen = 0;
-	} else {
-	    if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
-		return -1;
-	    if (vallen > *len) {
-		fprintf(stderr, "\n%04zx ** NDN_TLV_RPC length problem:\n"
-			"  type=%hu, len=%hu larger than %d available bytes\n",
-			cp - base, typ, vallen, *len);
-		exit(-1);
-	    }
-	    switch(typ) {
-	    case NDN_TLV_RPC_APPLICATION:
-		n = "Application"; dorecurse = 1; break;
-	    case NDN_TLV_RPC_LAMBDA:
-		n = "Lambda"; dorecurse = 1; break;
-	    case NDN_TLV_RPC_SEQUENCE:
-		n = "Sequence"; dorecurse = 1; break;
-	    case NDN_TLV_RPC_NONNEGINT:
-		n = "Integer"; break;
-	    case NDN_TLV_RPC_ASCII:
-		n = "ASCII"; break;
-	    case NDN_TLV_RPC_BIN:
-		n = "BinaryData"; break;
-	    default:
-		sprintf(tmp, "Type=0x%x", typ);
-		n = tmp;
-		break;
-	    }
-	}
+    dorecurse = 0;
+    if (*cp < NDN_TLV_RPC_APPLICATION) {
+        sprintf(tmp, "Variable=v%02x", *cp);
+        n = tmp;
+        *buf += 1;
+        *len -= 1;
+        vallen = 0;
+    } else {
+        if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
+        return -1;
+        if (vallen > *len) {
+        fprintf(stderr, "\n%04zx ** NDN_TLV_RPC length problem:\n"
+            "  type=%hu, len=%hu larger than %d available bytes\n",
+            cp - base, typ, vallen, *len);
+        exit(-1);
+        }
+        switch(typ) {
+        case NDN_TLV_RPC_APPLICATION:
+        n = "Application"; dorecurse = 1; break;
+        case NDN_TLV_RPC_LAMBDA:
+        n = "Lambda"; dorecurse = 1; break;
+        case NDN_TLV_RPC_SEQUENCE:
+        n = "Sequence"; dorecurse = 1; break;
+        case NDN_TLV_RPC_NONNEGINT:
+        n = "Integer"; break;
+        case NDN_TLV_RPC_ASCII:
+        n = "ASCII"; break;
+        case NDN_TLV_RPC_BIN:
+        n = "BinaryData"; break;
+        default:
+        sprintf(tmp, "Type=0x%x", typ);
+        n = tmp;
+        break;
+        }
+    }
 
-	printf("%04zx  ", cp - base);
-	for (i = 0; i < lev; i++)
-	    printf("  ");
-	for (; cp < *buf; cp++)
-	    printf("%02x ", *cp);
-	printf("-- <%s, len=%d>\n", n, vallen);
+    printf("%04zx  ", cp - base);
+    for (i = 0; i < lev; i++)
+        printf("  ");
+    for (; cp < *buf; cp++)
+        printf("%02x ", *cp);
+    printf("-- <%s, len=%d>\n", n, vallen);
 
-	if (dorecurse) {
-	    localrpc_parse(lev+1, base, buf, len, rawxml, out);
-	    continue;
-	}
+    if (dorecurse) {
+        localrpc_parse(lev+1, base, buf, len, rawxml, out);
+        continue;
+    }
 
-	if (typ == NDN_TLV_RPC_NONNEGINT) {
-	    printf("%04zx  ", *buf - base);
-	    for (i = 0; i <= lev; i++)
-		printf("  ");
-	    printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-	} else if (typ == NDN_TLV_RPC_ASCII) {
-	    printf("%04zx  ", *buf - base);
-	    for (i = 0; i <= lev; i++)
-		printf("  ");
-	    strcpy(tmp, "\"");
-	    i = sizeof(tmp) - 6;
-	    if (vallen < i)
-		i = vallen;
-	    memcpy(tmp+1, *buf, i);
-	    strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-	    printf("%s\n", tmp);
-	} else if (vallen > 0)
-	    hexdump(lev, base, *buf, vallen, rawxml, out);
-	*buf += vallen;
-	*len -= vallen;
+    if (typ == NDN_TLV_RPC_NONNEGINT) {
+        printf("%04zx  ", *buf - base);
+        for (i = 0; i <= lev; i++)
+        printf("  ");
+        printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
+    } else if (typ == NDN_TLV_RPC_ASCII) {
+        printf("%04zx  ", *buf - base);
+        for (i = 0; i <= lev; i++)
+        printf("  ");
+        strcpy(tmp, "\"");
+        i = sizeof(tmp) - 6;
+        if (vallen < i)
+        i = vallen;
+        memcpy(tmp+1, *buf, i);
+        strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
+        printf("%s\n", tmp);
+    } else if (vallen > 0)
+        hexdump(lev, base, *buf, vallen, rawxml, out);
+    *buf += vallen;
+    *len -= vallen;
     }
     return 0;
 }
@@ -822,23 +817,23 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
     unsigned char *cp;
 
     if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
-					typ != NDN_TLV_RPC_APPLICATION)
-	return;
+                    typ != NDN_TLV_RPC_APPLICATION)
+    return;
 
     cp = buf;
     len2 = vallen;
     if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
-	return;
+    return;
     if (typ2 == NDN_TLV_RPC_NONNEGINT) { // RPC return code
-	printf("0000  RPC-result\n");
-	printf("%04zx    INT %ld\n", cp - data,
-	       ccnl_ndntlv_nonNegInt(buf, vallen2));
-	buf += vallen2;
-	len = origlen - (buf - data);
-	localrpc_parse(1, data, &buf, &len, rawxml, out);
+    printf("0000  RPC-result\n");
+    printf("%04zx    INT %ld\n", cp - data,
+           ccnl_ndntlv_nonNegInt(buf, vallen2));
+    buf += vallen2;
+    len = origlen - (buf - data);
+    localrpc_parse(1, data, &buf, &len, rawxml, out);
     } else { // RPC request
-	buf = data;
-	localrpc_parse(0, data, &buf, &origlen, rawxml, out);
+    buf = data;
+    localrpc_parse(0, data, &buf, &origlen, rawxml, out);
     }
 
     printf("%04zx  pkt.end\n", buf - data);
@@ -850,13 +845,13 @@ int
 pkt2suite(unsigned char *data, int len)
 {
     if (len < 1)
-	return -1;
+    return -1;
 
     switch (*data) {
 
     case 0x01:
     case 0x04:
-	return SUITE_CCNB;
+    return SUITE_CCNB;
 
     case 0x05:
     case 0x06:
@@ -866,13 +861,13 @@ pkt2suite(unsigned char *data, int len)
         return SUITE_LOCRPC;
 
     case 0x00:
-	if (len > 1 &&
-	    (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
+    if (len > 1 &&
+        (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
             return SUITE_CCNTLV;
-	// fall through
+    // fall through
 
     default:
-	break;
+    break;
     }
 
     return -1;
@@ -895,35 +890,35 @@ main(int argc, char *argv[])
         case 's':
             suite = atoi(optarg);
             break;
-		case 'f':
-        	rawxml = atoi(optarg);
-        	break;
-	default:
-	help:
+        case 'f':
+            rawxml = atoi(optarg);
+            break;
+    default:
+    help:
             fprintf(stderr, "usage: %s [options] <encoded_data\n"
-		    "  -h           this help\n"
-		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n"
+            "  -h           this help\n"
+            "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n"
             "  -f FORMAT    (0=readable, 1=rawxml)\n",
-		    argv[0]);
+            argv[0]);
             exit(1);
-	}
+    }
     }
 
     if (argv[optind])
-	goto help;
+    goto help;
 
     len = 0;
     maxlen = sizeof(data);
     while (maxlen > 0) {
-	rc = read(0, data+len, maxlen);
-	if (rc == 0)
-	    break;
-	if (rc < 0) {
-	    perror("read");
-	    return 1;
-	}
-	len += rc;
-	maxlen -= rc;
+    rc = read(0, data+len, maxlen);
+    if (rc == 0)
+        break;
+    if (rc < 0) {
+        perror("read");
+        return 1;
+    }
+    len += rc;
+    maxlen -= rc;
     }
 
     if(!rawxml) {
@@ -931,47 +926,47 @@ main(int argc, char *argv[])
     }
 
     if (len == 0) {
-	   goto done;
+       goto done;
     }
     if (suite == -1) {
-    	suite = pkt2suite(data, len);
-    	forced = "auto-detected";
+        suite = pkt2suite(data, len);
+        forced = "auto-detected";
     }
     switch (suite) {
         case SUITE_CCNB:
             if(!rawxml) {
                 printf("#   %s CCNB format\n#\n", forced);
             }
-        	ccnb_parse(data, len, rawxml, out);
-        	break;
+            ccnb_parse(data, len, rawxml, out);
+            break;
         case SUITE_CCNTLV:
             if(!rawxml) {
-            	printf("#   %s CCNx TLV format (as of Mar 2014)\n#\n", forced);
+                printf("#   %s CCNx TLV format (as of Mar 2014)\n#\n", forced);
             }
-        	ccntlv_201311(data, len, rawxml, out);
-        	break;
+            ccntlv_201311(data, len, rawxml, out);
+            break;
         case SUITE_NDNTLV:
             if(!rawxml) {
                 printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
             }
-        	ndntlv_201311(data, len, rawxml, out);
-        	break;
+            ndntlv_201311(data, len, rawxml, out);
+            break;
         case SUITE_LOCRPC:
             if(!rawxml) {
                 printf("#   %s NDN TLV format, local RPC (May 2014)\n#\n", forced);
             }
-        	localrpc_201405(data, len, rawxml, out);
-        	break;
+            localrpc_201405(data, len, rawxml, out);
+            break;
         default:
             if(!rawxml) {
                 printf("#   unknown pkt format, showing plain hex\n");
             }
-        	hexdump(-1, data, data, len, rawxml, out);
+            hexdump(-1, data, data, len, rawxml, out);
     done:
         if(!rawxml) {
             printf("%04x  pkt.end\n", len);
         }
-    	break;
+        break;
     }
 
     return 0;
