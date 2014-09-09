@@ -33,7 +33,7 @@ $CCNL_HOME/ccn-lite-relay -v 99 -u $PORTB -x $UXB -d $CCNL_HOME/test/ccnb 2>/tmp
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA /ccnx/0.7.1/doc/technical/NameEnumerationProtocol.txt | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA "ccnx|0.7.1|doc|technical|NameEnumerationProtocol.txt" | $CCNL_HOME/util/ccn-lite-pktdump
 
 # shutdown both relays
 echo ""

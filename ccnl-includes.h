@@ -52,7 +52,7 @@
   int inet_aton(const char *cp, struct in_addr *inp);
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
 #  undef USE_ETHERNET
    // ethernet support in FreeBSD is work in progress ...

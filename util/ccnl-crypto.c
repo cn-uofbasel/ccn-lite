@@ -2,7 +2,7 @@
  * @f util/ccnl-crypto.c
  * @b crypto functions for the CCN-lite utilities
  *
- * Copyright (C) 2013, Christopher Scherb, University of Basel
+ * Copyright (C) 2013, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,59 @@
 // ----------------------------------------------------------------------
 #endif
 
+/*
+int
+mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
+{
+    unsigned char tmp[100];
+    int len = 0, i;
+
+    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
+    len = 1;
+    num = num >> 4;
+
+    while (num > 0) {
+	tmp[len++] = num & 0x7f;
+	num = num >> 7;
+    }
+    for (i = len-1; i >= 0; i--)
+	*buf++ = tmp[i];
+    return len;
+}
+
+int
+addBlob(unsigned char *out, char *cp, int cnt)
+{
+    int len;
+
+    len = mkHeader(out, cnt, CCN_TT_BLOB);
+    memcpy(out+len, cp, cnt);
+    len += cnt;
+
+    return len;
+}
+
+int
+mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
+       char *cp, int cnt)
+{
+    int len;
+
+    len = mkHeader(out, num, tt);
+    len += addBlob(out+len, cp, cnt);
+    out[len++] = 0;
+
+    return len;
+}
+
+int
+mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
+	  char *str)
+{
+    return mkBlob(out, num, tt, str, strlen(str));
+}
+
+*/
 #ifdef USE_SIGNATURES
 int sha(void* input, unsigned long length, unsigned char* md)
 {
@@ -67,9 +120,9 @@ sign(char* private_key_path, unsigned char *msg, int msg_len,
     sha(msg, msg_len, md);
     
     //Compute signatur
-    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
+    int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int*)sig_len, rsa);
     if(!err){
-        printf("Error: %ld\n", ERR_get_error());
+        printf("Error: %ul\n", (unsigned int)ERR_get_error());
     }
     RSA_free(rsa);
     return err;
@@ -95,9 +148,9 @@ verify(char* public_key_path, unsigned char *msg, int msg_len,
     sha(msg, msg_len, md);
     
     //Verify signature
-    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, sig, sig_len, rsa);
+    int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int)sig_len, rsa);
     if(!verified){
-        printf("Error: %ld\n", ERR_get_error());
+        printf("Error: %ul\n", (unsigned int)ERR_get_error());
     }
     RSA_free(rsa);
     return verified;
@@ -116,13 +169,13 @@ add_signature(unsigned char *out, char *private_key_path,
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    if(!sign(private_key_path, file, fsize, sig, &sig_len)) return 0;
+    if(!sign(private_key_path, (unsigned char*)file, fsize, (char*)sig, &sig_len)) return 0;
     //printf("SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
     
     //add signaturebits bits...
     len += ccnl_ccnb_mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
-    len += ccnl_ccnb_addBlob(out + len, (char*) sig, sig_len);
+    len += ccnl_ccnb_addBlob(out + len, (char*)sig, sig_len);
     out[len++] = 0; // end signaturebits
     
     out[len++] = 0; // end signature
