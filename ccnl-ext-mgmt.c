@@ -199,7 +199,7 @@ void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig
     len += ccnl_ccnb_mkBlob(out1+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) out3, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char *)out1);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char *)out1);
     return;
 }
 
@@ -647,7 +647,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) stmt, len3);
     
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out);
     
     /*END ANWER*/
     
@@ -874,7 +874,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
     
     /*END ANWER*/  
@@ -989,7 +989,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
     ccnl_free(faceid);
     ccnl_free(frag);
@@ -1078,7 +1078,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) faceinst_buf, len3);
     
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
     
     /*END ANWER*/  
@@ -1299,7 +1299,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
                    (char*) faceinst_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
     
     ccnl_free(devname);
     ccnl_free(port);
@@ -1442,7 +1442,7 @@ Bail:
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
 		   (char*) fwdentry_buf, len3);
 
-    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (char*)out_buf);
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
     
     /*END ANWER*/  
 
@@ -1528,9 +1528,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     suite = pkt2suite(buf, buflen);
     //add object to cache here...
-
-    unsigned char *cp = data;
-    int len = 0, len2;
 
     switch(suite){
         case CCNL_SUITE_CCNB:

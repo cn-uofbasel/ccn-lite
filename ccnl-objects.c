@@ -16,7 +16,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     DEBUGMSG(2, "mkInterestObject()\n");
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num, i;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    struct ccnl_buf_s *buf = 0, *ppkd=0, *nonce=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
     unsigned char *content;
@@ -26,7 +26,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = malloc(sizeof(struct ccnl_buf_s));
-    from->outq->data[0] = strdup((char *)prefix->comp[0]);
+    from->outq->data[0] = (long)strdup((char *)prefix->comp[0]);
     from->outq->datalen = strlen((char *)prefix->comp[0]);
 
     char *namecomps[CCNL_MAX_NAME_COMP];
@@ -47,11 +47,12 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
     else if(config->suite == CCNL_SUITE_CCNTLV){
         //NOT YET IMPLEMETED
-        return -1;
+        return 0;
     }
     else if(config->suite == CCNL_SUITE_NDNTLV){
        int tmplen = CCNL_MAX_PACKET_SIZE;
-       len = ccnl_ndntlv_mkInterest(namecomps, -1, nonce, &tmplen, out);
+       int nonce2;
+       len = ccnl_ndntlv_mkInterest(namecomps, -1, &nonce2, &tmplen, out);
        memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
        len = CCNL_MAX_PACKET_SIZE - tmplen;
        unsigned char *cp = out;
@@ -87,7 +88,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     prefixcomps[prefix->compcnt] = 0;
 
     if(suite == CCNL_SUITE_CCNB){
-        len = ccnl_ccnb_mkContent(prefixcomps, contentstr, contentlen, out);
+        len = ccnl_ccnb_mkContent(prefixcomps, (char*)contentstr, contentlen, out);
         if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
             return NULL;
         }

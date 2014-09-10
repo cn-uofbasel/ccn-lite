@@ -145,7 +145,7 @@ debug_free(void *p, const char *fn, int lno)
 	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
 	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
 	ccnl_free(VAR); \
-	VAR = (unsigned char*) s; \
+    VAR = (unsigned char*) s; \
 	continue; \
     } do {} while(0)
 

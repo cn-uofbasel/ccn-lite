@@ -117,9 +117,9 @@ ccnl_nfn_create_new_prefix(struct ccnl_prefix_s *p){
         p2->complen[it1] = p->complen[it1];
         p2->comp[it1] = ccnl_malloc(p->complen[it1] + 1);
         for(it2 = 0; it2 < p->complen[it1]; ++it2){
-            len += sprintf(p2->comp[it1]+it2, "%c", p->comp[it1][it2]);
+            len += sprintf((char*)p2->comp[it1]+it2, "%c", p->comp[it1][it2]);
         }
-        sprintf(p2->comp[it1]+ len, "\0");
+        sprintf((char*)p2->comp[it1]+ len, "%c", '\0');
     }
 
     return p2;
@@ -221,7 +221,7 @@ restart:
     }
 #ifdef CCNL_NACK
     else if(config->local_done){
-        struct ccnl_content_s *nack = create_content_object(ccnl, config->prefix, ":NACK", 5, config->suite);
+        struct ccnl_content_s *nack = create_content_object(ccnl, config->prefix, (unsigned char*)":NACK", 5, config->suite);
         ccnl_content_serve_pending(ccnl, nack);
 
     }

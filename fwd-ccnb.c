@@ -257,8 +257,6 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #ifdef CCNL_NACK
             if(!memcmp(c->content, ":NACK", 5)){
                 DEBUGMSG(99, "Handle NACK packet: local compute!\n");
-                struct ccnl_buf_s *buf2 = buf; // c->pkt
-                struct ccnl_prefix_s *p2 = p; // c->name
                 ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from, NULL, CCNL_SUITE_CCNB);
                 goto Done;
             }

@@ -80,7 +80,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
             struct stack_s *elm1 = malloc(sizeof(struct stack_s));
             if(isdigit(*c->content)){
                 int *integer = malloc(sizeof(int));
-                *integer = strtol(c->content, NULL, 0);
+                *integer = (int)strtol((char*)c->content, NULL, 0);
                 elm1->content = (void*)integer;
                 elm1->next = NULL;
                 elm1->type = STACK_TYPE_INT;
@@ -545,7 +545,7 @@ normal:
             DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
             struct ccnl_prefix_s *prefix = create_prefix_from_name(cp);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
-            end = 1;
+            end = (char*)1;
         }
         if (end) {
             if (pending)
@@ -670,11 +670,11 @@ normal:
         }
     if (!strncmp(prog, "OP_MULT", 7)) {
         int i1, i2, res;
-        unsigned char *h;
+        int *h = malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
         pop2int();
         res = i1*i2;
-        *h = res;
+        sprintf((char *)h, "%d", res);
         push_to_stack(&config->result_stack, h, STACK_TYPE_INT);
         return pending+1;
     }
@@ -751,7 +751,7 @@ normal:
             if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){ //USE NAME OF A THUNK
                 char *thunkname = (char*)config->fox_state->params[i]->content;
 
-                struct thunk_s *thunk = ccnl_nfn_get_thunk(thunkname);
+                struct thunk_s *thunk = ccnl_nfn_get_thunk((unsigned char*)thunkname);
                 struct stack_s *thunk_elm = malloc(sizeof(struct stack_s));
                 thunk_elm->type = STACK_TYPE_PREFIX;
                 thunk_elm->content = thunk->reduced_prefix;
@@ -776,7 +776,6 @@ normal:
         struct ccnl_content_s *c = NULL;
 
         //check if last result is now available
-        int compcnt = 0;
 recontinue: //loop by reentering after timeout of the interest...
         if(local_search){
             parameter_number = choose_parameter(config);
@@ -813,7 +812,7 @@ local_compute:
 handlecontent: //if result was found ---> handle it
         if(c){
 #ifdef CCNL_NACK
-            if(!strncmp(c->content, ":NACK", 5)){
+            if(!strncmp((char*)c->content, ":NACK", 5)){
                 DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
                  ++config->fox_state->it_routable_param;
                 return prog;
@@ -837,7 +836,7 @@ handlecontent: //if result was found ---> handle it
             else{
                 if(isdigit(*c->content)){
                     int *integer = malloc(sizeof(int));
-                    *integer = strtol(c->content, 0, 0);
+                    *integer = strtol((char*)c->content, 0, 0);
                     push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
                 }
                 else{
@@ -939,7 +938,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     }
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
-    while ((*config)->prog && !halt && (*config)->prog != 1){
+    while ((*config)->prog && !halt && (long)(*config)->prog != 1){
 	steps++;
 	DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
 	(*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
@@ -957,7 +956,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
             halt = -1;
             return NULL;
         }
-        char *h = NULL;
+        unsigned char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix_s *pref = stack->content;
             struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, *config, pref);
@@ -969,7 +968,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         else if(stack->type == STACK_TYPE_INT){
             h = calloc(0, 10);
             int integer = *(int*)stack->content;
-            sprintf(h,"%d", integer);
+            sprintf((char*)h,"%d", integer);
         }
         return h;
     }
