@@ -20,7 +20,9 @@
  * 2014-06-18 created
  */
 
-
+#ifndef CCNL_UTIL_C
+#define CCNL_UTIL_C
+#pragma once
 int
 hex2int(char c)
 {
@@ -85,3 +87,4 @@ ccnl_pkt2suite(unsigned char *data, int len)
 
 // ----------------------------------------------------------------------
 
+#endif //CCNL_UTIL_C

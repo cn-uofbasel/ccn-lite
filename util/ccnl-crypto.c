@@ -169,7 +169,7 @@ add_signature(unsigned char *out, char *private_key_path,
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
     
-    if(!sign(private_key_path, (unsigned char*)file, fsize, (char*)sig, &sig_len)) return 0;
+    if(!sign(private_key_path, (unsigned char*)file, fsize, (unsigned char*)sig, &sig_len)) return 0;
     //printf("SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
     
