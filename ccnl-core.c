@@ -35,19 +35,23 @@
 #include "json.c"
 #endif
 
+#ifdef CCNL_NFN
 int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
       struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
         struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally);
+#endif
 
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
 
+#ifdef CCNL_NFN
 void
 ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                                 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
                                   struct configuration_s *config, int suite);
+#endif
 
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                      struct ccnl_face_s *from, int suite);
@@ -491,9 +495,10 @@ void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
-    int matching_face = 0;
     DEBUGMSG(99, "ccnl_interest_propagate\n");
-
+#ifdef CCNL_NACK
+    int matching_face = 0;
+#endif
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
 
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
@@ -518,7 +523,9 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                 sendtomonitor(ccnl, monitorpacket, l);
 #endif
                 ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+#ifdef CCNL_NACK
                 matching_face = 1;
+#endif
         }
 
     }
@@ -572,7 +579,9 @@ struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
 		        struct ccnl_interest_s *i){
     struct ccnl_interest_s *interest;
+#if defined(CCNL_NFN) || defined(CCNL_NACK)
     int faceid = 0;
+#endif
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
 
 #ifdef CCNL_NFN
@@ -675,7 +684,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if(c == cit) return NULL;
     }
 #ifdef CCNL_NACK
-    if(!strncmp(c->content, ":NACK", 5)){
+    if(!strncmp((char*)c->content, ":NACK", 5)){
         return NULL;
     }
 #endif
@@ -924,7 +933,7 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     if(from->faceid <= 0){
         return;
     }
-    struct ccnl_content_s *nack = create_content_object(ccnl, prefix, ":NACK", 5, suite);
+    struct ccnl_content_s *nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
 #ifdef CCNL_NFN_MONITOR
      char monitorpacket[CCNL_MAX_PACKET_SIZE];
      int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),

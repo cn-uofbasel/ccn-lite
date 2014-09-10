@@ -57,7 +57,7 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 	*buf++ = tmp[i];
     return len;
 }
-
+/*
 int
 hex2int(char c)
 {
@@ -84,7 +84,7 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 	in += 3;
     }
     return len;
-}
+}*/
 int
 ndntlv_mkInterest(char **namecomp, int *nonce,
                  unsigned char *out, int outlen)
@@ -266,8 +266,7 @@ Usage:
     	printf("Not Implemented yet\n");
     }
     else if(packettype == 2){
-	int tmplen = CCNL_MAX_PACKET_SIZE;
-    	len = ndntlv_mkInterest(prefix, &nonce, out, CCNL_MAX_PACKET_SIZE);
+        len = ndntlv_mkInterest(prefix, (int*)&nonce, out, CCNL_MAX_PACKET_SIZE);
     }
 
     if (fname) {

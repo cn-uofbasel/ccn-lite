@@ -23,6 +23,7 @@
 #ifndef PKT_NDNTLV_ENC_C
 #define PKT_NDNTLV_ENC_C
 #include "pkt-ndntlv.h"
+#include "ccnl-util.c"
 
 int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
