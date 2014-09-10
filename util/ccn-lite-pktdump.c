@@ -87,7 +87,7 @@ base64dump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml,
     for(i = 0; i < lev + 1; i++) {
         fprintf(out, "  ");
     }
-    fprintf(out, "%s\n", base64_encode(cp, len, &encodedLen));
+    fprintf(out, "%s\n", base64_encode((char*)cp, len, (size_t*)&encodedLen));
     cp += len;
     len = 0;
 }
@@ -221,7 +221,7 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
         case CCN_TT_BLOB:
         case CCN_TT_UDATA:
             if(rawxml) {
-                fprintf(out, "<data ", num, num > 1 ? "s" : "");
+                fprintf(out, "<data ");
                 fprintf(out, "size=\"%i\" dt=\"binary.base64\"", num);
             } else {
                 fprintf(out, " -- <data (%d byte%s)", num, num > 1 ? "s" : "");

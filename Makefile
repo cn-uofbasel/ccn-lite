@@ -1,7 +1,7 @@
 # Makefile
 
 CC?=gcc
-MYCFLAGS=-O3 -Wall -pedantic -std=c99 -g \
+MYCFLAGS=-O3 -Wall -Werror -pedantic -std=c99 -g \
 	-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 #MYCFLAGS= -Wall -g -O0
 EXTLIBS=  -lcrypto -lrt

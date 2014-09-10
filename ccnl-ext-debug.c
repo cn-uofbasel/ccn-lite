@@ -754,7 +754,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     if (!pr)
     return NULL;
     for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", pr->comp[i], 4) && strncmp(pr->comp[pr->compcnt-1], "NFN", 3))
+        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
             len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
         else
             len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
