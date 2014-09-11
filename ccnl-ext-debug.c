@@ -749,7 +749,7 @@ debug_memdump()
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    char *prefix_buf = malloc(4096);
+    char *prefix_buf = ccnl_malloc(4096);
     int len= 0, i;
     if (!pr)
     return NULL;
