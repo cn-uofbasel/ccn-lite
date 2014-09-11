@@ -35,6 +35,25 @@
 #include "json.c"
 #endif
 
+#ifdef CCNL_LINUXKERNEL
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+{
+    char *prefix_buf = ccnl_malloc(4096);
+    int len= 0, i;
+    if (!pr)
+    return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
+            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+        else
+            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;
+}
+#endif
+
 #ifdef CCNL_NFN
 int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
