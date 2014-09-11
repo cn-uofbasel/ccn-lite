@@ -587,7 +587,7 @@ normal:
         }
     }
     if (!strncmp(prog, "OP_CMPEQ_CHURCH", 15)) {
-	int i1, i2, acc;
+	int i1=0, i2=0, acc;
     char res[1000];
 	memset(res, 0, sizeof(res));
 	DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
@@ -601,7 +601,7 @@ normal:
 	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
-        int i1, i2, acc;
+        int i1=0, i2=0, acc;
         char res[1000];
         memset(res, 0, sizeof(res));
         DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
@@ -615,7 +615,7 @@ normal:
         return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPEQ", 8)) {
-	int i1, i2, acc;
+	int i1=0, i2=0, acc;
     char res[1000];
 	memset(res, 0, sizeof(res));
     DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
@@ -632,7 +632,7 @@ normal:
 	return strdup(res);
     }
     if (!strncmp(prog, "OP_CMPLEQ", 9)) {
-        int i1, i2, acc;
+        int i1=0, i2=0, acc;
         char res[1000];
         memset(res, 0, sizeof(res));
         DEBUGMSG(2, "---to do: OP_CMPLEQ<%s>\n", pending);
@@ -649,7 +649,7 @@ normal:
         return strdup(res);
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
-        int i1, i2, res;
+        int i1=0, i2=0, res;
         int *h = malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
         pop2int();
@@ -659,7 +659,7 @@ normal:
         return pending+1;
     }
     if (!strncmp(prog, "OP_SUB", 6)) {
-        int i1, i2, res;
+        int i1=0, i2=0, res;
         int *h = malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
         pop2int();
@@ -669,7 +669,7 @@ normal:
         return pending+1;
         }
     if (!strncmp(prog, "OP_MULT", 7)) {
-        int i1, i2, res;
+        int i1=0, i2=0, res;
         int *h = malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
         pop2int();
@@ -680,7 +680,7 @@ normal:
     }
     if(!strncmp(prog, "OP_IFELSE", 9)){
         struct stack_s *h;
-        int i1;
+        int i1=0;
         h = pop_or_resolve_from_result_stack(ccnl, config, restart);
         DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
         if(h == NULL){

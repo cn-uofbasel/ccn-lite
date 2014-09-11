@@ -186,7 +186,7 @@ main(int argc, char *argv[])
     char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     unsigned char *digest = 0, *publisher = 0;
     char *fname = 0;
-    int i = 0, f, len, opt;
+    int i = 0, f, len=0, opt;
     int dlen = 0, plen = 0;
     int packettype = 0;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;

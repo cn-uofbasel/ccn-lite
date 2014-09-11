@@ -62,9 +62,12 @@ hexdump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml, FI
 
         for (i = 0; i < lev+1; i++)
             fprintf(out, "  ");
-        for (i = 0; i < 8; i++)
-            printf(i < maxi ? "%02x " : "   ", i < maxi ? cp[i] : 0);
-
+        for (i = 0; i < 8; i++){
+	    if(i < maxi)
+		    fprintf(out, "%02x ", cp[i]);
+	    else
+		    fprintf(out, "   ");
+	}
         if(!rawxml) {
             for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
                 fprintf(out, " ");
@@ -482,13 +485,13 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
         if (vallen > *len) {
           fprintf(stderr, "\n%04zx ** CCNTLV length problem:\n"
               "  type=%hu, len=%hu larger than %d available bytes\n",
-              *buf - base, typ, vallen, *len);
+              *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
           exit(-1);
         }
 
         n = ccnl_ccntlv_type2name(ctx, typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", typ);
+            sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -624,13 +627,13 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
         if (vallen > *len) {
             fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
                 "  type=%hu, len=%hu larger than %d available bytes\n",
-                cp - base, base, typ, vallen, *len);
+                cp - base, base, (unsigned short)typ, (unsigned short)vallen, *len);
             exit(-1);
         }
 
         n = ndn_type2name(typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", typ);
+            sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -677,8 +680,12 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                 fprintf(out, "%04zx  ", cp - base);
                 for (i = 0; i < lev+1; i++)
                     fprintf(out, "  ");
-                for (i = 0; i < 8; i++, cp++)
-                    fprintf(out, i < maxi ? "%02x " : "   ", *cp);
+                for (i = 0; i < 8; i++, cp++){
+			if(i < maxi)
+				fprintf(out, "%02x ", *cp);
+	    		else
+		    		fprintf(out, "   ");
+		}
                 cp = *buf;
                 for (i = 79 - 6 - 2*(lev+1) - 8*3 - 12; i > 0; i--)
                 fprintf(out, " ");
@@ -749,7 +756,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len, int 
         if (vallen > *len) {
         fprintf(stderr, "\n%04zx ** NDN_TLV_RPC length problem:\n"
             "  type=%hu, len=%hu larger than %d available bytes\n",
-            cp - base, typ, vallen, *len);
+            cp - base, (unsigned short)typ, (unsigned short)vallen, *len);
         exit(-1);
         }
         switch(typ) {
@@ -766,7 +773,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len, int 
         case NDN_TLV_RPC_BIN:
         n = "BinaryData"; break;
         default:
-        sprintf(tmp, "Type=0x%x", typ);
+        sprintf(tmp, "Type=0x%x", (unsigned short)typ);
         n = tmp;
         break;
         }

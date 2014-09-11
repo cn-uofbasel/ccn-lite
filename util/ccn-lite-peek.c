@@ -203,7 +203,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, i, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, i=0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
