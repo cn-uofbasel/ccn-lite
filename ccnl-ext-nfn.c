@@ -131,6 +131,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally)
 {
+    int num_of_required_thunks = 0;
+    int thunk_request = 0;
+    struct ccnl_prefix_s *original_prefix = NULL;
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
              (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
 
@@ -138,7 +141,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         prefix = ccnl_nfn_create_new_prefix(prefix);
     }
     DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
-    int thunk_request = 0;
     if(config){
         suite = config->suite;
         thunk_request = config->fox_state->thunk_request;
@@ -154,11 +156,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         return -1;
     }
     unsigned char *res = NULL;
-    struct ccnl_prefix_s *original_prefix;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
 
 
-    int num_of_required_thunks = 0;
    
     if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
     {

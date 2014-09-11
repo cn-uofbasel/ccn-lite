@@ -256,7 +256,7 @@ done:
     return len;
 }
 
-static int ccnl_rdr_serialize_fillTorL(int val, unsigned char *buf)
+static int ccnl_rdr_serialize_fillTorL(long val, unsigned char *buf)
 {
     int len, i, t;
 
