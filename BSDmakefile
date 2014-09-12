@@ -1,9 +1,8 @@
 # BSDMakefile
 
 CC=gcc
-#MYCFLAGS=-Wall -pedantic -std=c99 -g
-MYCFLAGS=-Wall -g -O0
-EXTLIBS=  -lcrypto
+MYCFLAGS= -Wall -pedantic -Werror -std=c99 -g -Wno-error=deprecated-declarations
+EXTLIBS=  -lcrypto 
 
 NFNFLAGS= -DCCNL_NFN -DCCNL_NFN_MONITOR
 
