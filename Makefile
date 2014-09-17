@@ -7,7 +7,7 @@
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
 CC?=gcc
-CFLAGS=-O3 -Wall -Werror -pedantic -std=c99 -g
+CCNLCFLAGS=-O3 -Wall -Werror -pedantic -std=c99 -g
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 OSX_CFLAGS=-Wno-error=deprecated-declarations
 
@@ -24,12 +24,12 @@ ifeq ($(uname_S),Linux)
     EXTLIBS += -lrt
     INST_PROGS += ccn-lite-lnxkernel \
                   ccn-lite-simu
-    CFLAGS += ${LINUX_CFLAGS}
+    CCNLCFLAGS += ${LINUX_CFLAGS}
 endif
 
 ifeq ($(uname_S),Darwin)
     $(info *** Configuring for OSX ***)
-    CFLAGS += ${OSX_CFLAGS}
+    CCNLCFLAGS += ${OSX_CFLAGS}
     EXTMAKECLEAN += rm -rf *.dSYM
 endif
 
@@ -53,7 +53,7 @@ CHEMFLOW_HOME=./chemflow/chemflow-20121006
 EXTLIBS=-lcf -lcfserver -lcrypto
 EXTMAKE=cd ${CHEMFLOW_HOME}; make
 EXTMAKECLEAN=cd ${CHEMFLOW_HOME}; make clean
-CFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
+CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
 EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
@@ -72,7 +72,7 @@ all: ${PROGS}
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} Makefile\
 	ccnl-core.c ccnl.h ccnl-core.h
-	${CC} -o $@ ${CFLAGS} $<
+	${CC} -o $@ ${CCNLCFLAGS} $<
 
 ccn-nfn-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
@@ -80,7 +80,7 @@ ccn-nfn-relay: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c Makefile
-	${CC} -o $@ ${CFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
 
 ccn-nfn-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
@@ -88,7 +88,7 @@ ccn-nfn-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${NDNTLV_LIB} Makefile\
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c ccnl-ext-nfn.c krivine.c krivine-common.c Makefile
-	${CC} -o $@ ${CFLAGS} ${NFNFLAGS} -DCCNL_NACK $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} -DCCNL_NACK $< ${EXTLIBS}
 
 ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
@@ -96,7 +96,7 @@ ccn-lite-relay: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
-	${CC} -o $@ ${CFLAGS} $< ${EXTLIBS} 
+	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS} 
 
 ccn-lite-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
@@ -104,14 +104,14 @@ ccn-lite-relay-nack: ccn-lite-relay.c ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	ccnl-ext-http.c \
 	ccnl-ext-sched.c ccnl-ext-frag.c ccnl-ext-mgmt.c \
 	ccnl-ext-crypto.c Makefile
-	${CC} -o $@ ${CFLAGS} -DCCNL_NACK -DCCNL_NFN_MONITOR $< ${EXTLIBS} 
+	${CC} -o $@ ${CCNLCFLAGS} -DCCNL_NACK -DCCNL_NFN_MONITOR $< ${EXTLIBS} 
 
 ccn-lite-simu: ccn-lite-simu.c  ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} \
 	Makefile ccnl-includes.h ccnl.h ccnl-core.h \
 	ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c ccnl-core.c \
 	ccnl-ext-frag.c ccnl-ext-sched.c ccnl-simu-client.c ccnl-util.c
 	${EXTMAKE}
-	${CC} -o $@ ${CFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 
 ccn-lite-omnet:  ${CCNB_LIB} ${LOCRPC_LIB} ${NDNTLV_LIB} Makefile \
 	ccnl-core.c ccnl-core.h ccnl-ext-debug.c \
