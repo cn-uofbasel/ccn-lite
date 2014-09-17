@@ -22,8 +22,8 @@ INST_PROGS= ccn-lite-relay \
 ifeq ($(uname_S),Linux)
     $(info *** Configuring for Linux (with kernel module) ***)
     EXTLIBS += -lrt
-    INST_PROGS += ccn-lite-lnxkernel \
-                  ccn-lite-simu
+    INST_PROGS += ccn-lite-simu
+    PROGS += ccn-lite-lnxkernel 
     CCNLCFLAGS += ${LINUX_CFLAGS}
 endif
 
@@ -46,7 +46,7 @@ ifdef USE_NACKS
     endif
 endif
 
-PROGS=  ${INST_PROGS}
+PROGS += ${INST_PROGS}
 
 ifdef USE_CHEMFLOW
 CHEMFLOW_HOME=./chemflow/chemflow-20121006
