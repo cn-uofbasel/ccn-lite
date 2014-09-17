@@ -1,5 +1,5 @@
-# Makefile
-# Makefile for both Linux and OS X
+# ccn-lite Makefile for Linux and OS X
+
 # If nfn targets should be compiled export USE_NFN environment variable to something 
 # or add commandline option -e <FLAG>=0 to make
 # For (experimental) nack set USE_NACKS to something
@@ -83,9 +83,9 @@ SUITE_LIBS = ${CCNB_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
 
 CCNL_CORE_LIB = ccnl.h ccnl-core.h ccnl-core.c
 
-CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} Makefile \
+CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-                 ccnl-ext-mgmt.c ccnl-ext-http.c ccnl-ext-crypto.c Makefile
+                 ccnl-ext-mgmt.c ccnl-ext-http.c ccnl-ext-crypto.c 
 
 CCNL_PLATFORM_LIB = ccnl-includes.h \
                     ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c  \
@@ -101,7 +101,7 @@ all: ${PROGS}
 	make -C util
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
-	${SUITE_LIBS} Makefile ${CCNL_CORE_LIB}
+	${SUITE_LIBS} ${CCNL_CORE_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $<
 
 ccn-nfn-relay: ${CCNL_RELAY_LIB} 
@@ -117,14 +117,14 @@ ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS} 
 
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
-	Makefile ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
+	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
 	ccnl-simu-client.c ccnl-util.c
 	${EXTMAKE}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 
-ccn-lite-omnet:  ${SUITE_LIBS} Makefile \
+ccn-lite-omnet:  ${SUITE_LIBS} \
 	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-	ccn-lite-omnet.c Makefile
+	ccn-lite-omnet.c 
 	rm -rf omnet/src/ccn-lite/*
 	rm -rf ccn-lite-omnet.tgz
 	cp -a $^ omnet/src/ccn-lite/
@@ -136,8 +136,8 @@ ccn-lite-lnxkernel:
 	make modules
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
-modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} Makefile \
-    ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c Makefile
+modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
+    ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c 
 	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(shell pwd) modules
 
 datastruct.pdf: datastruct.dot
