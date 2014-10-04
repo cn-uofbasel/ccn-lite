@@ -25,7 +25,7 @@
 #include "ccnl-core.h"
 
 
-#define CCNL_VERSION "2014-03-20"
+#define CCNL_VERSION "2014-10-03"
 
 #ifdef CCNL_NFN
 #include "krivine-common.h"
@@ -741,26 +741,35 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         struct ccnl_pendint_s *pi;
 
         switch (i->suite) {
-    #ifdef USE_SUITE_CCNB
+#ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
             if (!ccnl_i_prefixof_c(i->prefix, i->details.ccnb.minsuffix,
                        i->details.ccnb.maxsuffix, c)) {
-            // XX must also check i->ppkd
-            i = i->next;
-            continue;
+		// XX must also check i->ppkd
+		i = i->next;
+		continue;
             }
             break;
-    #endif
-    #ifdef USE_SUITE_NDNTLV
+#endif
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV:
+	    if (ccnl_prefix_cmp(c->name, NULL, i->prefix, CMP_EXACT)) {
+		// XX must also check keyid
+		i = i->next;
+		continue;
+            }
+            break;
+#endif
+#ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             if (!ccnl_i_prefixof_c(i->prefix, i->details.ndntlv.minsuffix,
                        i->details.ndntlv.maxsuffix, c)) {
-            // XX must also check i->ppkl,
-            i = i->next;
-            continue;
+		// XX must also check i->ppkl,
+		i = i->next;
+		continue;
             }
             break;
-    #endif
+#endif
         default:
             i = i->next;
             continue;
@@ -897,6 +906,10 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
+#  include "fwd-ccntlv.c"
+#endif
+
+#ifdef USE_SUITE_NDNTLV
 #  include "fwd-ndntlv.c"
 #endif
 
@@ -925,13 +938,13 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     case CCNL_SUITE_CCNTLV:
 	ccnl_RX_ccntlv(relay, from, &data, &datalen); break;
 #endif
-#ifdef USE_SUITE_LOCALRPC
-    case CCNL_SUITE_LOCALRPC:
-	ccnl_RX_localrpc(relay, from, &data, &datalen); break;
-#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 	ccnl_RX_ndntlv(relay, from, &data, &datalen); break;
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    case CCNL_SUITE_LOCALRPC:
+	ccnl_RX_localrpc(relay, from, &data, &datalen); break;
 #endif
     default:
 	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",

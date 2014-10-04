@@ -20,13 +20,18 @@
  * 2014-03-05 created
  */
 
+#ifndef PKT_CCNTLV_H
+#define PKT_CCNTLV_H
+
 struct ccnx_tlvhdr_ccnx201311_s {
     unsigned char version;
     unsigned char msgtype;
-    uint16_t payloadlen;
+    uint16_t msglen;
     uint16_t reserved;
     uint16_t hdrlen;
 };
+
+#define CCNX_TLV_V0				0
 
 // global
 #define CCNX_TLV_G_Name				0x0000
@@ -76,4 +81,7 @@ struct ccnx_tlvhdr_ccnx201311_s {
 #define CCNX_TLV_C_Sigbits			0x000E
 #define CCNX_TLV_C_KeyLocator			0x000F
 
+int unescape_component(unsigned char *comp);
+
+#endif
 // eof

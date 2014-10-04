@@ -38,15 +38,14 @@
 #define USE_MGMT
 #define USE_SCHEDULER
 #define USE_SUITE_CCNB
-// #define USE_SUITE_CCNTLV
-#define USE_SUITE_LOCALRPC
+#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
+#define USE_SUITE_LOCALRPC
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 
-// #include "pkt-ccnb.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -57,17 +56,21 @@
 #define ccnl_app_RX(x,y)		do{}while(0)
 #define ccnl_print_stats(x,y)		do{}while(0)
 
-#include "ccnl-util.c"
-#include "ccnl-core.c"
-
 #ifdef USE_SUITE_CCNB
 # include "pkt-ccnb.h"
 # include "pkt-ccnb-enc.c"
 #endif
-#ifdef USE_SUITE_NDNTLV
-# include "pkt-ndntlv.h"
-# include "pkt-ndntlv-enc.c"
+#ifdef USE_SUITE_CCNTLV
+# include "pkt-ccntlv.h"
+# include "pkt-ccntlv-enc.c"
 #endif
+#ifdef USE_SUITE_NDNTLV
+# include "pkt-ndntlv-enc.c"
+# include "pkt-ndntlv-dec.c"
+#endif
+
+#include "ccnl-util.c"
+#include "ccnl-core.c"
 
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"

@@ -30,6 +30,7 @@
 #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 #define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_SCHEDULER
 #define USE_ETHERNET
@@ -48,20 +49,33 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
+#ifdef USE_SUITE_CCNB
+# include "pkt-ccnb-enc.c"
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+# include "pkt-ccntlv-enc.c"
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+# include "pkt-ndntlv-enc.c"
+// # include "pkt-ndntlv-enc.c"
+#endif
+
+
 #include "ccnl-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"
-#include "pkt-ccnb-enc.c"
-#include "pkt-ndntlv-enc.c"
+
 #include "ccnl-ext-frag.c"
 
 
 #ifdef CCNL_SUITE_NDNTLV
 char suite = CCNL_SUITE_NDNTLV;
 #else
-char suite = CCNL_SUITE_CCNB;
+char suite;
 #endif
 
 // ----------------------------------------------------------------------
@@ -102,6 +116,7 @@ ccnl_path_to_prefix(const char *path)
 
     if (!pr)
         return NULL;
+    pr->suite = 0;
     pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
@@ -189,6 +204,15 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 	len2 = ccnl_ccnb_mkContent(namecomp, (char*) data, len, tmp2);
 	break;
 #endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	len2 = sizeof(tmp2);
+	ccnl_ccntlv_mkContentWithHdr(namecomp, data, len, &len2,
+				     (unsigned char*) tmp2);
+	memmove(tmp2, tmp2 + len2, sizeof(tmp2) - len2);
+	len2 = sizeof(tmp2) - len2;
+	break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 	len2 = sizeof(tmp2);
@@ -249,6 +273,14 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     case CCNL_SUITE_CCNB:
 	len = ccnl_ccnb_mkInterest(namecomp, &nonce,
 				   (unsigned char*) tmp, sizeof(tmp));
+	break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	len = sizeof(tmp);
+	ccnl_ccntlv_mkInterestWithHdr(namecomp, -1, &len, (unsigned char*) tmp);
+	memmove(tmp, tmp + len, sizeof(tmp) - len);
+	len = sizeof(tmp) - len;
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -784,7 +816,7 @@ main(int argc, char **argv)
 		    "[-g MIN_INTER_PACKET_INTERVAL] "
 		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
 #ifdef USE_SUITE_NDNTLV
-		    "[-s SUITE  0=ccnb, 2=ndntlv (default)] "
+		    "[-s SUITE  0=ccnb, 1=ccntlv, 2=ndntlv (default)] "
 #endif
 		    "[-v DEBUG_LEVEL]\n",
 		    argv[0]);

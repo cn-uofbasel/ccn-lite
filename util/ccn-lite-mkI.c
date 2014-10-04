@@ -30,12 +30,15 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "arpa/inet.h" // htons()
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "../pkt-ccnb.h"
+#include "../pkt-ccntlv-enc.c"
 #include "../pkt-ndntlv-enc.c"
 #include "../ccnl.h"
+#include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
 
@@ -56,44 +59,6 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
     for (i = len-1; i >= 0; i--)
 	*buf++ = tmp[i];
     return len;
-}
-/*
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
-{
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
-}*/
-int
-ndntlv_mkInterest(char **namecomp, int *nonce,
-                 unsigned char *out, int outlen)
-{
-     int len, offset;
-     offset = outlen;
-     len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
-     memmove(out, out + offset, len);
-     return len;
 }
 
 int
@@ -177,6 +142,38 @@ ccnb_mkInterest(char **namecomp,
     return len;
 }
 
+int
+ccntlv_mkInterest(char **namecomp, char *scope, unsigned char *out, int outlen)
+{
+     int len, offset, oldoffset;
+     int s = scope ? atoi(scope) : -1;
+
+     offset = oldoffset = outlen;
+     len = ccnl_ccntlv_mkInterest(namecomp, s, &offset, out);
+     ccnl_ccntlv_prependFixedHdr(0, 1,
+				 len, 0, &offset, out);
+     len = oldoffset - offset;
+     if (len > 0)
+	 memmove(out, out + offset, len);
+
+     return len;
+}
+
+int
+ndntlv_mkInterest(char **namecomp, char *scope, int *nonce,
+                 unsigned char *out, int outlen)
+{
+    int len, offset;
+    int s = scope ? atoi(scope) : -1;
+
+    offset = outlen;
+    len = ccnl_ndntlv_mkInterest(namecomp, s, nonce, &offset, out);
+    if (len > 0)
+	memmove(out, out + offset, len);
+
+    return len;
+}
+
 // ----------------------------------------------------------------------
 
 int
@@ -188,7 +185,7 @@ main(int argc, char *argv[])
     char *fname = 0;
     int i = 0, f, len=0, opt;
     int dlen = 0, plen = 0;
-    int packettype = 0;
+    int packettype = 2;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     uint32_t nonce;
 
@@ -196,6 +193,9 @@ main(int argc, char *argv[])
 
     while ((opt = getopt(argc, argv, "hd:n:o:p:c:s:x:")) != -1) {
         switch (opt) {
+        case 'c':
+	    scope = optarg;
+	    break;
         case 'd':
 	    digest = (unsigned char*)optarg;
 	    dlen = unescape_component(digest);
@@ -220,9 +220,6 @@ main(int argc, char *argv[])
 		 plen);
 		exit(-1);
 	    }
-	    break;
-        case 'c':
-	    scope = optarg;
 	    break;
         case 's':
 	    packettype = atoi(optarg);
@@ -254,27 +251,42 @@ Usage:
 	cp = strtok(NULL, "|");
     }
     prefix[i] = NULL;
-    if(packettype == 0){
+
+    switch (packettype) {
+    case 0:
     	len = ccnb_mkInterest(prefix,
 		     minSuffix, maxSuffix,
 		     digest, dlen,
 		     publisher, plen,
 		     scope, &nonce,
 		     out);
+	break;
+    case 1:
+        len = ccntlv_mkInterest(prefix, scope, out,
+				CCNL_MAX_PACKET_SIZE);
+	break;
+    case 2:
+        len = ndntlv_mkInterest(prefix, scope, (int*)&nonce, out,
+				CCNL_MAX_PACKET_SIZE);
+	break;
+    default:
+    	printf("Not Implemented (yet)\n");
+	len = 0;
+	break;
     }
-    else if(packettype ==1){
-    	printf("Not Implemented yet\n");
-    }
-    else if(packettype == 2){
-        len = ndntlv_mkInterest(prefix, (int*)&nonce, out, CCNL_MAX_PACKET_SIZE);
+    if (len <= 0) {
+	fprintf(stderr, "internal error: empty packet\n");
+	return -1;
     }
 
     if (fname) {
 	f = creat(fname, 0666);
-      if (f < 0)
-	perror("file open:");
+	if (f < 0) {
+	    perror("file open:");
+	    return -1;
+	}
     } else
-      f = 1;
+	f = 1;
 
     write(f, out, len);
     close(f);

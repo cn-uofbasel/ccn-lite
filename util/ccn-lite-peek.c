@@ -41,25 +41,19 @@
 
 
 #define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
 
-#include "ccnl-common.c"
-
-#ifdef USE_SUITE_CCNB
-# include "../pkt-ccnb.h"
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-# include "../pkt-ndntlv.h"
-#endif
-
-#include "../ccnl-util.c"
-
 #ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+# include "../pkt-ccntlv-dec.c"
+# include "../pkt-ccntlv-enc.c"
 #endif
 
 #ifdef USE_SUITE_NDNTLV
@@ -67,6 +61,7 @@
 # include "../pkt-ndntlv-enc.c"
 #endif
 
+#include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
 
@@ -83,6 +78,19 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
+ccntlv_mkInterest(char **namecomp, int *dummy, unsigned char *out, int outlen)
+{
+    int len, offset;
+
+    offset = outlen;
+    len = ccnl_ccntlv_mkInterest(namecomp, -1, &offset, out);
+    if (len > 0)
+	memmove(out, out + offset, len);
+
+    return len;
+}
+
+int
 ndntlv_mkInterest(char **namecomp, int *nonce,
 		  unsigned char *out, int outlen)
 {
@@ -90,7 +98,8 @@ ndntlv_mkInterest(char **namecomp, int *nonce,
 
     offset = outlen;
     len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
-    memmove(out, out + offset, len);
+    if (len > 0)
+	memmove(out, out + offset, len);
 
     return len;
 }
@@ -175,6 +184,7 @@ block_on_read(int sock, float wait)
 int ccnb_isContent(unsigned char *buf, int len)
 {
     int num, typ;
+
     if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
 	return -1;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
@@ -183,11 +193,33 @@ int ccnb_isContent(unsigned char *buf, int len)
 }
 #endif
 
+#ifdef USE_SUITE_CCNTLV
+int ccntlv_isObject(unsigned char *buf, int len)
+{
+    unsigned int typ, vallen;
+    struct ccnx_tlvhdr_ccnx201311_s *hp = (struct ccnx_tlvhdr_ccnx201311_s*)buf;
+
+    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201311_s))
+	return -1;
+    if (hp->version != CCNX_TLV_V0)
+	return -1;
+    if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s)+hp->hdrlen+hp->msglen > len))
+	return -1;
+    buf += hp->hdrlen;
+    len -= hp->hdrlen;
+    if (ccnl_ccntlv_dehead(&buf, &len, &typ, &vallen))
+	return -1;
+    if (hp->msgtype != CCNX_TLV_TL_Object || typ != CCNX_TLV_TL_Object)
+	return 0;
+    return 1;
+}
+#endif
+
 #ifdef USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len)
 {
-    return 1;
     int typ, vallen;
+
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
 	return -1;
     if (typ != NDN_TLV_Data)
@@ -251,6 +283,12 @@ Usage:
 	isContent = ccnb_isContent;
 	break;
 #endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	mkInterest = ccntlv_mkInterest;
+	isContent = ccntlv_isObject;
+	break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 	mkInterest = ndntlv_mkInterest;
@@ -258,7 +296,7 @@ Usage:
 	break;
 #endif
     default:
-	printf("CCNx-TLV not supported at this time, aborting\n");
+	printf("unknown suite\n");
 	exit(-1);
     }
 
