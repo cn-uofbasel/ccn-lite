@@ -121,6 +121,7 @@ struct ccnl_prefix_s {
     unsigned char **comp;
     int *complen;
     int compcnt;
+    char suite;
     unsigned char *path; // memory for name component copies
 };
 

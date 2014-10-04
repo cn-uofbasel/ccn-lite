@@ -45,6 +45,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p) return NULL;
+    p->suite = CCNL_SUITE_CCNB;
     p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
 					   sizeof(unsigned char**));
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));

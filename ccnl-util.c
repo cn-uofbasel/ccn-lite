@@ -23,6 +23,7 @@
 #ifndef CCNL_UTIL_C
 #define CCNL_UTIL_C
 #pragma once
+
 int
 hex2int(char c)
 {
@@ -65,7 +66,7 @@ ccnl_pkt2suite(unsigned char *data, int len)
 #endif
 
 #ifdef USE_SUITE_CCNTLV
-    if (data[0] == 0 && len > 1) {
+    if (data[0] == CCNX_TLV_V0 && len > 1) {
 	if (data[1] == CCNX_TLV_TL_Interest ||
 	    data[1] == CCNX_TLV_TL_Object)
 	    return CCNL_SUITE_CCNTLV;
@@ -73,7 +74,7 @@ ccnl_pkt2suite(unsigned char *data, int len)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == 0x05 || *data == 0x06)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data)
 	return CCNL_SUITE_NDNTLV;
 #endif
 

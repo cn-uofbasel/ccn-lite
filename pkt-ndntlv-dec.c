@@ -20,6 +20,9 @@
  * 2014-03-05 created
  */
 
+#ifndef PKT_NDNTLV_DEC_C
+#define PKT_NDNTLV_DEC_C
+
 #include "pkt-ndntlv.h"
 
 
@@ -70,6 +73,5 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
     return 0;
 }
 
-
-
+#endif
 // eof

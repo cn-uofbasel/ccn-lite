@@ -22,8 +22,8 @@
 
 #ifndef PKT_NDNTLV_ENC_C
 #define PKT_NDNTLV_ENC_C
+
 #include "pkt-ndntlv.h"
-#include "ccnl-util.c"
 
 int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
@@ -83,7 +83,7 @@ ccnl_ndntlv_prependNonNegInt(int type, unsigned int val,
     }
     if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
 	return -1;
-    return *offset - oldoffset;
+    return oldoffset - *offset;
 }
 
 int
@@ -188,5 +188,6 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 
     return oldoffset - *offset;
 }
+
 #endif
 // eof
