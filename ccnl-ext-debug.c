@@ -698,7 +698,7 @@ debug_realloc(void *p, int s, const char *fn, int lno)
 void
 debug_free(void *p, const char *fn, int lno)
 {
-    /*struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
+    struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
 
     if (!p) {
 //	fprintf(stderr, "%s: @@@ memerror - free() of NULL ptr at %s:%d\n",
@@ -713,14 +713,14 @@ debug_free(void *p, const char *fn, int lno)
     }
     if (h->tstamp && *h->tstamp)
 	free(h->tstamp);
-    free(h);*/
+    free(h);
 }
 
 struct ccnl_buf_s*
 debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
 {
-  struct ccnl_buf_s *b = (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn,
-							    lno, tstamp);
+    struct ccnl_buf_s *b =
+	 (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn, lno, tstamp);
 
     if (!b)
         return NULL;
@@ -751,8 +751,10 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
     char *prefix_buf = ccnl_malloc(4096);
     int len= 0, i;
+
     if (!pr)
-    return NULL;
+	return NULL;
+
     for (i = 0; i < pr->compcnt; i++) {
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
             len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
