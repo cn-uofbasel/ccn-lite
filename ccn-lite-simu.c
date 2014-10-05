@@ -116,10 +116,46 @@ ccnl_path_to_prefix(const char *path)
 
     if (!pr)
         return NULL;
-    pr->suite = 0;
+    pr->suite = suite;
     pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
+
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+	int cnt = 0;
+	const char *ccp;
+	char *dup;
+	for (ccp = path; *ccp; ccp++)
+	    if (*ccp == '/')
+		cnt++;
+	pr->path = (unsigned char*) ccnl_malloc(strlen(path) + 4*cnt);
+	if (!pr->comp || !pr->complen || !pr->path) {
+	    ccnl_free(pr->comp);
+	    ccnl_free(pr->complen);
+	    ccnl_free(pr->path);
+	    ccnl_free(pr);
+	    return NULL;
+	}
+
+	dup = ccnl_malloc(strlen(path)+1);
+	strcpy(dup, path);
+	cnt = 0;
+	for (cp = strtok(dup, "/"); cp && pr->compcnt < CCNL_MAX_NAME_COMP;
+					     cp = strtok(NULL, "/")) {
+	    pr->complen[pr->compcnt] = 4 + strlen(cp);
+	    pr->comp[pr->compcnt] = pr->path + cnt;
+	    *(unsigned short*)(pr->path + cnt) = htons(CCNX_TLV_N_UTF8);
+	    *(unsigned short*)(pr->path + cnt + 2) = htons(strlen(cp));
+	    strcpy((char*)pr->path + cnt + 4, cp);
+	    cnt += 4 + strlen(cp);
+	    pr->compcnt++;
+	}
+	ccnl_free(dup);
+	return pr;
+    }
+#endif
+
     pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);
     if (!pr->comp || !pr->complen || !pr->path) {
         ccnl_free(pr->comp);
@@ -363,14 +399,25 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char tmp[200], tmp2[10];
     struct ccnl_prefix_s *p = c->name;
 
-    tmp[0] = '\0';
-    for (i = 0; i < p->compcnt-1; i++) {
-	strcat((char*)tmp, "/");
-	tmp[strlen(tmp) + p->complen[i]] = '\0';
-	memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
+    if (suite == CCNL_SUITE_CCNTLV) {
+	tmp[0] = '\0';
+	for (i = 0; i < p->compcnt-1; i++) {
+	    strcat((char*)tmp, "/");
+	    tmp[strlen(tmp) + p->complen[i] - 4] = '\0';
+	    memcpy(tmp + strlen(tmp), p->comp[i]+4, p->complen[i]-4);
+	}
+	memcpy(tmp2, p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
+	tmp2[p->complen[p->compcnt-1]-4] = '\0';
+    } else {
+	tmp[0] = '\0';
+	for (i = 0; i < p->compcnt-1; i++) {
+	    strcat((char*)tmp, "/");
+	    tmp[strlen(tmp) + p->complen[i]] = '\0';
+	    memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
+	}
+	memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+	tmp2[p->complen[p->compcnt-1]] = '\0';
     }
-    memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-    tmp2[p->complen[p->compcnt-1]] = '\0';
 
     DEBUGMSG(10, "app delivery at node %c, name=%s%s\n",
 	     relay2char(ccnl), tmp, tmp2);

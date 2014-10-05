@@ -169,7 +169,7 @@ struct ccnl_ccnb_id_s { // interest details
 };
 
 struct ccnl_ccntlv_id_s { // interest details
-    char dummy; // keep the compiler happy and silent
+    struct ccnl_buf_s *keyid;       // publisher keyID
 };
 
 struct ccnl_ndntlv_id_s { // interest details
@@ -207,7 +207,7 @@ struct ccnl_ccnb_cd_s { // content details
 };
 
 struct ccnl_ccntlv_cd_s { // content details
-    char dummy; // keep the compiler happy and silent
+    struct ccnl_buf_s *keyid;       // publisher keyID
 };
 
 struct ccnl_ndntlv_cd_s { // content details

@@ -749,13 +749,27 @@ debug_memdump()
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    char *prefix_buf = ccnl_malloc(4096);
-    int len= 0, i;
+//    char *prefix_buf = ccnl_malloc(4096);
+    static char prefix_buf[4096];
+    int len = 0, i;
 
     if (!pr)
 	return NULL;
 
     for (i = 0; i < pr->compcnt; i++) {
+#ifdef USE_SUITE_CCNTLV
+	if (pr->suite == CCNL_SUITE_CCNTLV) {
+	    if (ntohs(*(unsigned short*)(pr->comp[i])) == 1) // CCNX_TLV_N_UTF8
+		len += sprintf(prefix_buf + len, "/%.*s",
+			   pr->complen[i]-4, pr->comp[i]+4);
+	    else // TODO: we should dump all bytes in hex
+		len += sprintf(prefix_buf + len,
+			   "/%%x%02x%02x%.*s",
+			   pr->comp[i][0], pr->comp[i][1],
+			   pr->complen[i]-4, pr->comp[i]+4);
+	    continue;
+	}
+#endif
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
             len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
         else
