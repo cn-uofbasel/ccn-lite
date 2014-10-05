@@ -26,7 +26,7 @@
 #include "pkt-ccnb-dec.c"
 
 #ifdef USE_NFN
-#include "krivine-common.h"
+// #include "krivine-common.h"
 #endif
 
 struct ccnl_buf_s*
