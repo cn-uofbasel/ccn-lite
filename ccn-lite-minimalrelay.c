@@ -45,6 +45,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 // ----------------------------------------------------------------------
 
+#undef USE_NFN
+#undef USE_NFN_MONITOR
+
 // #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
 

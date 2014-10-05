@@ -73,6 +73,28 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 # define ccnl_is_fragment(d,l)  0
 #endif // USE_FRAG
 
+#ifdef USE_NFN
+int ccnl_isNFNrequest(struct ccnl_prefix_s *p);
+
+struct ccnl_interest_s* ccnl_nfn_request(struct ccnl_relay_s *ccnl,
+		struct ccnl_face_s *from, int suite, struct ccnl_buf_s *buf,
+		struct ccnl_prefix_s *p, int minsfx, int maxsfx);
+
+int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+	     struct configuration_s *config, struct ccnl_interest_s *interest,
+	     int suite, int start_locally);
+
+void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid,
+				   int continue_from_remove);
+
+void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
+				     struct ccnl_buf_s *orig,
+				     struct ccnl_prefix_s *prefix,
+				     struct ccnl_face_s *from,
+				     struct configuration_s *config, int suite);
+#endif
+
 // ----------------------------------------------------------------------
 
 #ifdef XXX

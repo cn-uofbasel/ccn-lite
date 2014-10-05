@@ -1,6 +1,7 @@
 #ifndef CCNL_OBJECTS_C
 #define CCNL_OBJECTS_C
 
+#ifndef CCNL_LINUXKERNEL
 
 #include "pkt-ccnb-enc.c"
 #include "pkt-ndntlv-enc.c"
@@ -116,4 +117,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     return 0;
 }
+
+#endif // CCNL_LINUXKERNEL
+
 #endif

@@ -56,20 +56,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #endif
 
 #ifdef USE_NFN // prototypes
-int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-	     struct configuration_s *config, struct ccnl_interest_s *interest,
-	     int suite, int start_locally);
-
-void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid,
-				   int continue_from_remove);
-
-void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
-				     struct ccnl_buf_s *orig,
-				     struct ccnl_prefix_s *prefix,
-				     struct ccnl_face_s *from,
-				     struct configuration_s *config, int suite);
-
 #endif // USE_NFN
 
 #ifdef USE_NFN_MONITOR
@@ -565,12 +551,15 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
-#ifdef USE_NFN
-    if(i->propagate == 0) return i->next;
-#endif
     struct ccnl_interest_s *i2;
 //    int it;
+
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
+#ifdef USE_NFN
+    if (i->propagate == 0)
+	return i->next;
+#endif
+
 
 /*
     for(it = 0; it < i->prefix->compcnt; ++it){

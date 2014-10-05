@@ -28,12 +28,12 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
+#define USE_ETHERNET
 //#define USE_FRAG
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_SCHEDULER
-#define USE_ETHERNET
 
 #include "ccnl-includes.h"
 
@@ -41,6 +41,7 @@
 #include "ccnl-core.h"
 
 #include "ccnl-ext-debug.c"
+#include "krivine-common.h"
 #include "ccnl-ext.h"
 #include "ccnl-platform.c"
 
@@ -67,6 +68,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-nfn.c"
 #include "ccnl-ext-sched.c"
 
 #include "ccnl-ext-frag.c"

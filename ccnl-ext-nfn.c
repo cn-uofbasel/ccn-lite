@@ -234,6 +234,34 @@ restart:
     return 0;
 }
 
+int
+ccnl_isNFNrequest(struct ccnl_prefix_s *p)
+{
+    return p && p->compcnt > 0 && !memcmp(p->comp[p->compcnt-1], "NFN", 3);
+}
+
+struct ccnl_interest_s*
+ccnl_nfn_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+		 int suite, struct ccnl_buf_s *buf, struct ccnl_prefix_s *p,
+		 int minsfx, int maxsfx)
+{
+    struct ccnl_interest_s *i;
+    struct ccnl_buf_s *buf2 = buf;
+    struct ccnl_prefix_s *p2 = p;
+
+    if (numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+	return 0;
+
+    i = ccnl_interest_new(ccnl, from, suite,
+			  &buf, &p, minsfx, maxsfx);
+    i->propagate = 0; //do not forward interests for running computations
+    ccnl_interest_append_pending(i, from);
+    if (!i->propagate)
+	ccnl_nfn(ccnl, buf2, p2, from, NULL, i, suite, 0);
+
+    return i;
+}
+
 #endif //USE_NFN
 
 #ifdef USE_NFN_MONITOR
