@@ -20,9 +20,12 @@
  * 2011-03-30 created
  */
 
-#define ETHTYPE_XEROX_PUP		0x0a00
+#define CCNL_VERSION "2014-10-03"
 
-#define CCNL_ETH_TYPE			ETHTYPE_XEROX_PUP
+#define ETHTYPE_XEROX_PUP		0x0a00
+#define ETHTYPE_PARC_CCNX		0x0801
+
+#define CCNL_ETH_TYPE			ETHTYPE_PARC_CCNX
 //#define CCNL_ETH_TYPE			0x88b5
 
 #define CCNL_DEFAULT_UNIXSOCKNAME	"/tmp/.ccnl.sock"

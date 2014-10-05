@@ -24,9 +24,6 @@
 
 #include "ccnl-core.h"
 
-
-#define CCNL_VERSION "2014-10-03"
-
 #ifdef USE_NFN
 #include "krivine-common.h"
 #endif
@@ -55,20 +52,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 }
 #endif
 
-#ifdef USE_NFN // prototypes
-#endif // USE_NFN
-
-#ifdef USE_NFN_MONITOR
-int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
-		     struct ccnl_prefix_s *pr, unsigned char *data, int len);
-#else
-# define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
-#endif // USE_NFN_MONITOR
-
-#ifdef USE_NACK
-void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-			 struct ccnl_face_s *from, int suite);
-#endif // USE_NACK
 
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);

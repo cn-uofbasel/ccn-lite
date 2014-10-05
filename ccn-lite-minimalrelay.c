@@ -83,6 +83,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define ccnl_mgmt(r,b,p,f)		-1
 
+#define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
+
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)
 
@@ -379,6 +381,10 @@ main(int argc, char **argv)
     defaultgw = argv[optind+1];
 #ifdef USE_SUITE_CCNB
     if (theRelay.suite == CCNL_SUITE_CCNB && !udpport)
+	udpport = CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (theRelay.suite == CCNL_SUITE_CCNTLV && !udpport)
 	udpport = CCN_UDP_PORT;
 #endif
 #ifdef USE_SUITE_NDNTLV

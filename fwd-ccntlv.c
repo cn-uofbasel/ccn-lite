@@ -200,7 +200,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-//	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
 	c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV,
 			     &buf, &p, NULL, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)

@@ -73,6 +73,11 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 # define ccnl_is_fragment(d,l)  0
 #endif // USE_FRAG
 
+#ifdef USE_NACK
+void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+			 struct ccnl_face_s *from, int suite);
+#endif // USE_NACK
+
 #ifdef USE_NFN
 int ccnl_isNFNrequest(struct ccnl_prefix_s *p);
 
@@ -94,6 +99,14 @@ void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
 				     struct ccnl_face_s *from,
 				     struct configuration_s *config, int suite);
 #endif
+
+#ifdef USE_NFN_MONITOR
+int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
+		     struct ccnl_prefix_s *pr, unsigned char *data, int len);
+#else
+# define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
+#endif // USE_NFN_MONITOR
+
 
 // ----------------------------------------------------------------------
 
