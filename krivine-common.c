@@ -10,6 +10,8 @@
 #ifndef KRIVINE_COMMON_C
 #define KRIVINE_COMMON_C
 
+#ifndef CCNL_LINUXKERNEL
+
 #include "krivine-common.h"
 
 //#include "ccnl.h"
@@ -406,4 +408,5 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     return NULL;
 }
 #endif //USE_UTIL
+#endif // CCNL_LINUXKERNEL
 #endif //KRIVINE_COMMON_C

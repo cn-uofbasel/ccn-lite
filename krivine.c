@@ -20,6 +20,7 @@
  * 2014-xx-yy created
  */
 
+/*
 #include <ctype.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -27,6 +28,10 @@
 #include <string.h>
 
 #include <arpa/inet.h>
+*/
+
+#ifndef CCNL_LINUXKERNEL
+
 #include "krivine-common.c"
 #include "ccnl-ext-debug.c"
 #include "ccnl-includes.h"
@@ -995,3 +1000,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         return h;
     }
 }
+
+#endif // CCNL_LINUXKERNEL
+
+// eof

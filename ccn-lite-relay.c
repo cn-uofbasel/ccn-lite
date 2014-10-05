@@ -50,6 +50,7 @@
 #include "ccnl-core.h"
 
 #include "ccnl-ext-debug.c"
+#include "krivine-common.h"
 #include "ccnl-ext.h"
 #include "ccnl-platform.c"
 

@@ -25,9 +25,6 @@
 #include "pkt-ccnb.h"
 #include "pkt-ccnb-dec.c"
 
-#ifdef USE_NFN
-// #include "krivine-common.h"
-#endif
 
 struct ccnl_buf_s*
 ccnl_ccnb_extract(unsigned char **data, int *datalen,
@@ -134,39 +131,42 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
 			    &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     if (!buf) {
-	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
+	DEBUGMSG(6, "  parsing error or no prefix\n");
+	goto Done;
     }
     if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
-    DEBUGMSG(6, "  dropped because of duplicate nonce\n"); //goto Skip;
+	DEBUGMSG(6, "  dropped because of duplicate nonce\n");
+	// goto Skip;
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-    ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
-	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1) goto Skip;
-    if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
-        rc = ccnl_mgmt(ccnl, buf, p, from); goto Done;
+	ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
+	if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1)
+	    goto Skip;
+	if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
+	    rc = ccnl_mgmt(ccnl, buf, p, from);
+	    goto Done;
 	}
 	// CONFORM: Step 1:
 	if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
-        for (c = ccnl->contents; c; c = c->next) {
+	    for (c = ccnl->contents; c; c = c->next) {
 		if (c->suite != CCNL_SUITE_CCNB) continue;
 		if (!ccnl_i_prefixof_c(p, minsfx, maxsfx, c)) continue;
 		if (ppkd && !buf_equal(ppkd, c->details.ccnb.ppkd)) continue;
 		// FIXME: should check stale bit in aok here
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-        ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
-        if (from->ifndx >= 0){
-	    ccnl_nfn_monitor(ccnl, from, c->name, c->content, c->contentlen);
-            ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
-        }
-        else{
-            ccnl_app_RX(ccnl, c);
-        }
+		ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
+		if (from->ifndx >= 0) {
+		    ccnl_nfn_monitor(ccnl, from, c->name, c->content, c->contentlen);
+		    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
+		} else {
+		    ccnl_app_RX(ccnl, c);
+		}
 		goto Skip;
 	    }
 	}
 	// CONFORM: Step 2: check whether interest is already known
-    for (i = ccnl->pit; i; i = i->next) {
+	for (i = ccnl->pit; i; i = i->next) {
 	    if (i->suite == CCNL_SUITE_CCNB &&
 		!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
 		i->details.ccnb.minsuffix == minsfx &&
@@ -175,26 +175,16 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		   buf_equal(ppkd, i->details.ccnb.ppkd)) )
 		break;
 	}
-	if (!i) { // this is a new/unknown I request: create and propagate
-        //NFN PLUGIN CALL
+	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-        if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate
-                && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-            struct ccnl_buf_s *buf2 = buf;
-            struct ccnl_prefix_s *p2 = p;
-
-            i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
-                                  &buf, &p, minsfx, maxsfx);
-
-            i->propagate = 0; //do not forward interests for running computations
-            ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB, 0);
-            goto Done;
-        }
-#endif /*USE_NFN*/
-
-
-        i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
+	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	    if (ccnl_nfn_request(ccnl, from, CCNL_SUITE_CCNB,
+				 			buf, p, minsfx, maxsfx))
+		goto Done;
+	}
+#endif
+	if (!i) {
+	    i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
 				  &buf, &p, minsfx, maxsfx);
 	    if (ppkd)
 		i->details.ccnb.ppkd = ppkd, ppkd = NULL;
@@ -205,7 +195,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    }
 	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
-        ccnl_interest_propagate(ccnl, i);
+	    ccnl_interest_propagate(ccnl, i);
 	}
 	if (i) { // store the I request, for the incoming face (Step 3)
 	    DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
@@ -231,18 +221,19 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
         if(debug_level >= 99){
-            fprintf(stderr, "PIT Entries: \n");
             struct ccnl_interest_s *i_it;
+	    int it;
+
+            fprintf(stderr, "PIT Entries: \n");
             for(i_it = ccnl->pit; i_it; i_it = i_it->next){
-                    int it;
                     fprintf(stderr, "    - ");
                     for(it = 0; it < i_it->prefix->compcnt; ++it){
                             fprintf(stderr, "/%s", i_it->prefix->comp[it]);
                     }
                     fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
             }
+
             fprintf(stderr, "Content name: ");
-            int it = 0;
             for(it = 0; it < c->name->compcnt; ++it){
                 fprintf(stderr, "/%s",  c->name->comp[it]);
             }fprintf(stderr, "\n");
@@ -263,18 +254,19 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                  DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
                  if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
                          && i_it->from->faceid < 0){
-                    ccnl_content_add2cache(ccnl, c);
                     int configid = -i_it->from->faceid;
-                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-
                     int faceid = -i_it->from->faceid;
+
+                    ccnl_content_add2cache(ccnl, c);
+                    DEBUGMSG(49, "Continue configuration for configid: %d\n",
+			     configid);
+
                     i_it->propagate = 1;
                     i_it = ccnl_interest_remove(ccnl, i_it);
                     ccnl_nfn_continue_computation(ccnl, faceid, 0);
                     ++found;
                     //goto Done;
-                 }
-                 else{
+                 } else {
                      i_it = i_it->next;
                  }
             }

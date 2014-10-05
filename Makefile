@@ -50,6 +50,7 @@ endif
 ifdef USE_NFN
     $(info *** With NFN ***)
     INST_PROGS += ccn-nfn-relay
+    CCNLCFLAGS += ${NFNFLAGS}
 endif
 
 ifdef USE_NACK

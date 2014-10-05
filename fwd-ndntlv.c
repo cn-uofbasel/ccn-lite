@@ -253,8 +253,10 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
         if(debug_level >= 99){
-            fprintf(stderr, "PIT Entries: \n");
             struct ccnl_interest_s *i_it;
+            int it;
+
+            fprintf(stderr, "PIT Entries: \n");
             for(i_it = relay->pit; i_it; i_it = i_it->next){
                     int it;
                     fprintf(stderr, "    - ");
@@ -263,8 +265,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     }
                     fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
             }
+
             fprintf(stderr, "Content name: ");
-            int it = 0;
             for(it = 0; it < c->name->compcnt; ++it){
                 fprintf(stderr, "/%s",  c->name->comp[it]);
             }fprintf(stderr, "\n");
@@ -285,11 +287,11 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                  DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
                  if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
                          && i_it->from->faceid < 0){
-                    ccnl_content_add2cache(relay, c);
                     int configid = -i_it->from->faceid;
-                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-
                     int faceid = -i_it->from->faceid;
+
+                    ccnl_content_add2cache(relay, c);
+                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
                     i_it->propagate = 1;
                     i_it = ccnl_interest_remove(relay, i_it);
                     ccnl_nfn_continue_computation(relay, faceid, 0);
