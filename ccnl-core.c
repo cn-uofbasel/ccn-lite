@@ -566,13 +566,15 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     if(i->propagate == 0) return i->next;
 #endif
     struct ccnl_interest_s *i2;
-    int it;
+//    int it;
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
 
+/*
     for(it = 0; it < i->prefix->compcnt; ++it){
         fprintf(stderr, "/%s", i->prefix->comp[it]);
     }
     fprintf(stderr, "\n");
+*/
     while (i->pending) {
         struct ccnl_pendint_s *tmp = i->pending->next;		\
         ccnl_free(i->pending);
@@ -583,12 +585,16 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     free_prefix(i->prefix);
     switch (i->suite) {
 #ifdef USE_SUITE_CCNB
-      case CCNL_SUITE_CCNB: ccnl_free(i->details.ccnb.ppkd); break;
+    case CCNL_SUITE_CCNB: ccnl_free(i->details.ccnb.ppkd); break;
 #endif
-//        case CCNL_SUITE_CCNTLV: ccnl_free(i->details.ccntlv.ppkd); break;
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV: ccnl_free(i->details.ccntlv.keyid);	break;
+#endif
 #ifdef USE_SUITE_NDNTLV
-       case CCNL_SUITE_NDNTLV: ccnl_free(i->details.ndntlv.ppkl); break;
+    case CCNL_SUITE_NDNTLV: ccnl_free(i->details.ndntlv.ppkl); break;
 #endif
+    default:
+	break;
     }
     free_2ptr_list(i->pkt, i);
     return i2;
@@ -669,6 +675,9 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
 	switch (suite) {
 #ifdef USE_SUITE_CCNB
 	case CCNL_SUITE_CCNB: c->details.ccnb.ppkd = *ppk; break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+	case CCNL_SUITE_CCNTLV: c->details.ccntlv.keyid = *ppk; break;
 #endif
 #ifdef USE_SUITE_NDNTLV
 	case CCNL_SUITE_NDNTLV: c->details.ndntlv.ppkl = *ppk; break;
