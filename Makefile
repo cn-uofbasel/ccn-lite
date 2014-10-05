@@ -1,7 +1,7 @@
 # ccn-lite Makefile for Linux and OS X
 
 # If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
-# For (experimental) nack set USE_NACKS to something
+# For (experimental) nack set USE_NACK to something
 
 # OS name: Linux or Darwing (OSX) supported
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
@@ -52,8 +52,8 @@ ifdef USE_NFN
     INST_PROGS += ccn-nfn-relay
 endif
 
-ifdef USE_NACKS
-    $(info *** With NFN_NACKS ***)
+ifdef USE_NACK
+    $(info *** With NFN_NACK ***)
     INST_PROGS += ccn-lite-relay-nack 
     ifdef USE_NFN
         INST_PROGS += ccn-nfn-relay-nack

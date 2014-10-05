@@ -20,8 +20,7 @@
  * 2014-02-06 <christopher.scherb@unibas.ch>created 
  */
 
-#ifndef CCNL_EXT_NFN_C
-#define CCNL_EXT_NFN_C
+#ifdef USE_NFN
 
 #include "ccnl-core.h"
 #include "krivine.c"
@@ -235,6 +234,10 @@ restart:
     return 0;
 }
 
+#endif //USE_NFN
+
+#ifdef USE_NFN_MONITOR
+
 int
 ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
 		 struct ccnl_face_s *face,
@@ -251,5 +254,6 @@ ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
     return 0;
 }
 
+#endif // USE_NFN_MONITOR
 
-#endif //CCNL_EXT_NFN_C
+// eof

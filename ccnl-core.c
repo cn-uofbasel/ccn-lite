@@ -55,36 +55,34 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 }
 #endif
 
-#ifdef USE_NFN
-int
-ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-        struct configuration_s *config, struct ccnl_interest_s *interest,
-         int suite, int start_locally);
-#endif
+#ifdef USE_NFN // prototypes
+int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+	     struct configuration_s *config, struct ccnl_interest_s *interest,
+	     int suite, int start_locally);
+
+void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid,
+				   int continue_from_remove);
+
+void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
+				     struct ccnl_buf_s *orig,
+				     struct ccnl_prefix_s *prefix,
+				     struct ccnl_face_s *from,
+				     struct configuration_s *config, int suite);
+
+#endif // USE_NFN
 
 #ifdef USE_NFN_MONITOR
-int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
-		     struct ccnl_forward_s *fwd,
-		     struct ccnl_prefix_s *pr,
-		     unsigned char *data,
-		     int len);
+int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
+		     struct ccnl_prefix_s *pr, unsigned char *data, int len);
 #else
-# define ccnl_nfn_monitor(a,b,c,d,e) do{}while(0)
-#endif
+# define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
+#endif // USE_NFN_MONITOR
 
-void
-ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
-
-#ifdef USE_NFN
-void
-ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-                                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-                                  struct configuration_s *config, int suite);
-#endif
-
+#ifdef USE_NACK
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-                     struct ccnl_face_s *from, int suite);
+			 struct ccnl_face_s *from, int suite);
+#endif // USE_NACK
 
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
@@ -545,7 +543,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
 				(i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
-	    ccnl_nfn_monitor(ccnl, fwd, i->prefix, NULL, 0);
+	    ccnl_nfn_monitor(ccnl, fwd->face, i->prefix, NULL, 0);
 	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
 #ifdef USE_NACK
 	    matching_face = 1;
@@ -796,18 +794,13 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
                 DEBUGMSG(6, "  forwarding content <%s>\n",
-                 ccnl_prefix_to_path(c->name));
-                 ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
+			 ccnl_prefix_to_path(c->name));
+		ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
-            DEBUGMSG(99, "--- Serve to face: %d\n", pi->face->faceid);
-    #ifdef USE_NFN_MONITOR
-                 char monitorpacket[CCNL_MAX_PACKET_SIZE];
-                 int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
-                        ntohs(pi->face->peer.ip4.sin_port),
-                        c->name, (char*)c->content, c->contentlen, monitorpacket);
-                 sendtomonitor(ccnl, monitorpacket, l);
-    #endif
-                 ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
+		DEBUGMSG(99, "--- Serve to face: %d\n", pi->face->faceid);
+		ccnl_nfn_monitor(ccnl, pi->face, c->name,
+				 c->content, c->contentlen);
+		ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
             } else {// upcall to deliver content to local client
                 ccnl_app_RX(ccnl, c);
             }
@@ -973,21 +966,19 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 #ifdef USE_NACK
 #include "ccnl-objects.c"
 
-void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-                     struct ccnl_face_s *from, int suite){
+void
+ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+		    struct ccnl_face_s *from, int suite)
+{
+    struct ccnl_content_s *nack;
     DEBUGMSG(99, "ccnl_nack_reply()\n");
-    if(from->faceid <= 0){
-        return;
+    if (from->faceid <= 0) {
+	return;
     }
-    struct ccnl_content_s *nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
-#ifdef USE_NFN_MONITOR
-     char monitorpacket[CCNL_MAX_PACKET_SIZE];
-     int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
-            ntohs(from->peer.ip4.sin_port),
-            nack->name, (char*)nack->content, nack->contentlen, monitorpacket);
-     sendtomonitor(ccnl, monitorpacket, l);
-#endif
+    nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
+    ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
     ccnl_face_enqueue(ccnl, from, nack->pkt);
 }
-#endif
+#endif // USE_NACK
+
 // eof
