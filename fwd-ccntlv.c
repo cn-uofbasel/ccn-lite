@@ -23,9 +23,6 @@
 #include "pkt-ccntlv.h"
 #include "pkt-ccntlv-dec.c"
 
-#ifdef CCNL_NFN
-#include "krivine-common.h"
-#endif
 
 // we use one extraction routine for both interest and data pkts
 struct ccnl_buf_s*
@@ -73,11 +70,6 @@ ccnl_ccntlv_extract(int hdrlen,
 		    p->comp[p->compcnt] = cp2;
 		    p->complen[p->compcnt] = cp - cp2 + len3;
 		    p->compcnt++;
-/*
-		    p->comp[p->compcnt] = cp + 0* *cp2;
-		    p->complen[p->compcnt] = len3;
-		    p->compcnt++;
-*/
 		}  // else out of name component memory: skip
 		cp += len3;
 		len2 -= len3;
@@ -126,7 +118,7 @@ Bail:
     return NULL;
 }
 
-// work on a message (without the fixed header)
+// work on a message (buffer passed without the fixed header)
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		      struct ccnx_tlvhdr_ccnx201311_s *hdrptr, int hoplimit,

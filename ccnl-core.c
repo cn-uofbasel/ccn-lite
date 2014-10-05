@@ -39,10 +39,11 @@
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    char *prefix_buf = ccnl_malloc(4096);
+    static char prefix_buf[4096];
     int len= 0, i;
+
     if (!pr)
-    return NULL;
+	return NULL;
     for (i = 0; i < pr->compcnt; i++) {
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
             len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
