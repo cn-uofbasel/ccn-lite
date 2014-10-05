@@ -156,13 +156,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
         ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
         if (from->ifndx >= 0){
-#ifdef CCNL_NFN_MONITOR
-            char monitorpacket[CCNL_MAX_PACKET_SIZE];
-            int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
-            ntohs(from->peer.ip4.sin_port),
-            c->name, (char*)c->content, c->contentlen, monitorpacket);
-            sendtomonitor(ccnl, monitorpacket, l);
-#endif
+	    ccnl_nfn_monitor(ccnl, from, c->name, c->content, c->contentlen);
             ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
         }
         else{

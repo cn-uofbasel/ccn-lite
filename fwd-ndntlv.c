@@ -177,14 +177,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             // if (mbf) // honor "answer-from-existing-content-store" flag
             DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
             ccnl_print_stats(relay, STAT_SND_C); //log sent_c
-            if (from->ifndx >= 0){
-#ifdef CCNL_NFN_MONITOR
-                char monitorpacket[CCNL_MAX_PACKET_SIZE];
-                int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
-                ntohs(from->peer.ip4.sin_port),
-                c->name, (char*)c->content, c->contentlen, monitorpacket);
-                sendtomonitor(relay, monitorpacket, l);
-#endif
+            if (from->ifndx >= 0) {
+		ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
             }
             else{

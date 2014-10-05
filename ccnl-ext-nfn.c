@@ -20,8 +20,8 @@
  * 2014-02-06 <christopher.scherb@unibas.ch>created 
  */
 
-#ifndef CCNL_EXT_NFN_H
-#define CCNL_EXT_NFN_H
+#ifndef CCNL_EXT_NFN_C
+#define CCNL_EXT_NFN_C
 
 #include "ccnl-core.h"
 #include "krivine.c"
@@ -235,4 +235,21 @@ restart:
     return 0;
 }
 
-#endif //CCNL_EXT_NFN_H
+int
+ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
+		 struct ccnl_face_s *face,
+		 struct ccnl_prefix_s *pr,
+		 unsigned char *data,
+		 int len)
+{
+    char monitorpacket[CCNL_MAX_PACKET_SIZE];
+    int l = create_packet_log(inet_ntoa(face->peer.ip4.sin_addr),
+			      ntohs(face->peer.ip4.sin_port),
+			      pr, data, len, monitorpacket);
+    sendtomonitor(ccnl, monitorpacket, l);
+
+    return 0;
+}
+
+
+#endif //CCNL_EXT_NFN_C

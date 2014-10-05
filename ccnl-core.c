@@ -63,6 +63,16 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
          int suite, int start_locally);
 #endif
 
+#ifdef CCNL_NFN_MONITOR
+int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
+		     struct ccnl_forward_s *fwd,
+		     struct ccnl_prefix_s *pr,
+		     unsigned char *data,
+		     int len);
+#else
+# define ccnl_nfn_monitor(a,b,c,d,e) do{}while(0)
+#endif
+
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
 
@@ -534,17 +544,11 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         DEBUGMSG(40, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
-            (i->from->flags & CCNL_FACE_FLAGS_REFLECT)){
-#ifdef CCNL_NFN_MONITOR
-                char monitorpacket[CCNL_MAX_PACKET_SIZE];
-                int l = create_packet_log(inet_ntoa(fwd->face->peer.ip4.sin_addr),
-                        ntohs(fwd->face->peer.ip4.sin_port),
-                        i->prefix, NULL, 0, monitorpacket);
-                sendtomonitor(ccnl, monitorpacket, l);
-#endif
-                ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
+				(i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
+	    ccnl_nfn_monitor(ccnl, fwd, i->prefix, NULL, 0);
+	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
 #ifdef CCNL_NACK
-                matching_face = 1;
+	    matching_face = 1;
 #endif
         }
 
