@@ -8,7 +8,7 @@
 static int
 ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen, unsigned char *out);
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 struct ccnl_interest_s *
 mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  struct ccnl_prefix_s *prefix)

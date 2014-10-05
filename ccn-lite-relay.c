@@ -79,7 +79,7 @@
 #ifdef USE_SIGNATURES
 #include "ccnl-ext-crypto.c"
 #endif
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 #include "ccnl-ext-nfn.c"
 #endif
 

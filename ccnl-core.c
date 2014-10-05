@@ -27,11 +27,11 @@
 
 #define CCNL_VERSION "2014-10-03"
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 #include "krivine-common.h"
 #endif
 
-#ifdef CCNL_NFN_MONITOR
+#ifdef USE_NFN_MONITOR
 #include "json.c"
 #endif
 
@@ -55,7 +55,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 }
 #endif
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 int
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
       struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
@@ -63,7 +63,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
          int suite, int start_locally);
 #endif
 
-#ifdef CCNL_NFN_MONITOR
+#ifdef USE_NFN_MONITOR
 int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
 		     struct ccnl_forward_s *fwd,
 		     struct ccnl_prefix_s *pr,
@@ -76,7 +76,7 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 void
 ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                                 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
@@ -467,7 +467,7 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     if (!i){
         return NULL;
     }
-#ifdef CCNL_NFN
+#ifdef USE_NFN
     i->propagate = 1;
 #endif
     i->suite = suite;
@@ -526,7 +526,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
     DEBUGMSG(99, "ccnl_interest_propagate\n");
-#ifdef CCNL_NACK
+#ifdef USE_NACK
     int matching_face = 0;
 #endif
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
@@ -547,14 +547,14 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 				(i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
 	    ccnl_nfn_monitor(ccnl, fwd, i->prefix, NULL, 0);
 	    ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt));
-#ifdef CCNL_NACK
+#ifdef USE_NACK
 	    matching_face = 1;
 #endif
         }
 
     }
 
-#ifdef CCNL_NACK
+#ifdef USE_NACK
     if(!matching_face){
         ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
         ccnl_interest_remove(ccnl, i);
@@ -567,7 +567,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
-#ifdef CCNL_NFN
+#ifdef USE_NFN
     if(i->propagate == 0) return i->next;
 #endif
     struct ccnl_interest_s *i2;
@@ -609,24 +609,24 @@ struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
 		        struct ccnl_interest_s *i){
     struct ccnl_interest_s *interest;
-#if defined(CCNL_NFN) || defined(CCNL_NACK)
+#if defined(USE_NFN) || defined(USE_NACK)
     int faceid = 0;
 #endif
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
     if(i != 0 && i->from != 0){
             faceid = i->from->faceid;
     }
 #endif
-#ifdef CCNL_NACK
+#ifdef USE_NACK
     DEBUGMSG(99, "FROM FACEID: %d\n", faceid);
     if(faceid >= 0){
         ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
     }
 #endif
     interest = ccnl_interest_remove(ccnl, i);
-#ifdef CCNL_NFN
+#ifdef USE_NFN
     if(faceid < 0){
             ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
     }
@@ -716,7 +716,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         //DEBUGMSG(99, "--- Already in cache ---\n");
         if(c == cit) return NULL;
     }
-#ifdef CCNL_NACK
+#ifdef USE_NACK
     if(!strncmp((char*)c->content, ":NACK", 5)){
         return NULL;
     }
@@ -800,7 +800,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                  ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
             DEBUGMSG(99, "--- Serve to face: %d\n", pi->face->faceid);
-    #ifdef CCNL_NFN_MONITOR
+    #ifdef USE_NFN_MONITOR
                  char monitorpacket[CCNL_MAX_PACKET_SIZE];
                  int l = create_packet_log(inet_ntoa(pi->face->peer.ip4.sin_addr),
                         ntohs(pi->face->peer.ip4.sin_port),
@@ -846,7 +846,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
 	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 	    if(i->propagate) ccnl_interest_propagate(relay, i);
 #else
             ccnl_interest_propagate(relay, i);
@@ -970,7 +970,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     }
 }
 
-#ifdef CCNL_NACK
+#ifdef USE_NACK
 #include "ccnl-objects.c"
 
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
@@ -980,7 +980,7 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         return;
     }
     struct ccnl_content_s *nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
-#ifdef CCNL_NFN_MONITOR
+#ifdef USE_NFN_MONITOR
      char monitorpacket[CCNL_MAX_PACKET_SIZE];
      int l = create_packet_log(inet_ntoa(from->peer.ip4.sin_addr),
             ntohs(from->peer.ip4.sin_port),
