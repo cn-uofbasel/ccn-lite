@@ -25,7 +25,7 @@
 #include "pkt-ccnb.h"
 #include "pkt-ccnb-dec.c"
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 #include "krivine-common.h"
 #endif
 
@@ -177,7 +177,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	}
 	if (!i) { // this is a new/unknown I request: create and propagate
         //NFN PLUGIN CALL
-#ifdef CCNL_NFN
+#ifdef USE_NFN
         if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate
                 && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
             struct ccnl_buf_s *buf2 = buf;
@@ -191,7 +191,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if(!i->propagate)ccnl_nfn(ccnl, buf2, p2, from, NULL, i, CCNL_SUITE_CCNB, 0);
             goto Done;
         }
-#endif /*CCNL_NFN*/
+#endif /*USE_NFN*/
 
 
         i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
@@ -229,7 +229,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB,
 			     &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
-#ifdef CCNL_NFN
+#ifdef USE_NFN
         if(debug_level >= 99){
             fprintf(stderr, "PIT Entries: \n");
             struct ccnl_interest_s *i_it;
@@ -249,13 +249,13 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         }
         if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
             struct ccnl_interest_s *i_it = NULL;
-#ifdef CCNL_NACK
+#ifdef USE_NACK
             if(!memcmp(c->content, ":NACK", 5)){
                 DEBUGMSG(99, "Handle NACK packet: local compute!\n");
                 ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from, NULL, CCNL_SUITE_CCNB);
                 goto Done;
             }
-#endif // CCNL_NACK
+#endif // USE_NACK
             int found = 0;
             for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
                  //Check if prefix match and it is a nfn request
@@ -281,7 +281,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if(found) goto Done;
             DEBUGMSG(99, "no running computation found \n");
         }
-#endif //CCNL_NFN
+#endif //USE_NFN
         if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");

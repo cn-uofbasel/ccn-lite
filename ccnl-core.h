@@ -191,7 +191,7 @@ struct ccnl_interest_s {
 	struct ccnl_ndntlv_id_s ndntlv;
     } details;
     char suite;
-#ifdef CCNL_NFN
+#ifdef USE_NFN
     int propagate;                 //set to 0 to not propagate this interest becauses it is in the NFN-engine
 #endif
 };
@@ -277,8 +277,20 @@ compile_string(void)
 #ifdef USE_MGMT
 	"MGMT, "
 #endif
+#ifdef USE_NACK
+	"NACK, "
+#endif
+#ifdef USE_NFN
+	"NFN, "
+#endif
+#ifdef USE_NFN_MONITOR
+	"NFN_MONITOR, "
+#endif
 #ifdef USE_SCHEDULER
 	"SCHEDULER, "
+#endif
+#ifdef USE_SIGNATURES
+	"SIGNATURES, "
 #endif
 #ifdef USE_SUITE_CCNB
 	"SUITE_CCNB, "
@@ -294,18 +306,6 @@ compile_string(void)
 #endif
 #ifdef USE_UNIXSOCKET
 	"UNIXSOCKET, "
-#endif
-#ifdef USE_SIGNATURES
-	"SIGNATURES, "
-#endif
-#ifdef CCNL_NFN
-    "USE_NFN "
-#endif
-#ifdef CCNL_NFN_MONITOR
-    "USE_NFN_MONITOR "
-#endif
-#ifdef CCNL_NACK
-    "USE_NACK "
 #endif
 	;
   return cp;

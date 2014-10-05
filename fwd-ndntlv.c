@@ -23,7 +23,7 @@
 #include "pkt-ndntlv.h"
 #include "pkt-ndntlv-dec.c"
 
-#ifdef CCNL_NFN
+#ifdef USE_NFN
 #include "krivine-common.h"
 #endif
 
@@ -197,7 +197,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             break;
         }
         if (!i) { // this is a new/unknown I request: create and propagate
-#ifdef CCNL_NFN
+#ifdef USE_NFN
         if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate
                 && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
             struct ccnl_buf_s *buf2 = buf;
@@ -211,7 +211,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, NULL, i, CCNL_SUITE_NDNTLV, 0);
             goto Done;
         }
-#endif /*CCNL_NFN*/
+#endif /*USE_NFN*/
             i = ccnl_interest_new(relay, from, CCNL_SUITE_NDNTLV,
                       &buf, &p, minsfx, maxsfx);
             if (ppkl)
@@ -251,7 +251,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	c = ccnl_content_new(relay, CCNL_SUITE_NDNTLV,
 			     &buf, &p, NULL, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
-#ifdef CCNL_NFN
+#ifdef USE_NFN
         if(debug_level >= 99){
             fprintf(stderr, "PIT Entries: \n");
             struct ccnl_interest_s *i_it;
@@ -271,13 +271,13 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
         if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
             struct ccnl_interest_s *i_it = NULL;
-#ifdef CCNL_NACK
+#ifdef USE_NACK
             if(!memcmp(c->content, ":NACK", 5)){
                 DEBUGMSG(99, "Handle NACK packet: local compute!\n");
                 ccnl_nfn_nack_local_computation(relay, c->pkt, c->name, from, NULL, CCNL_SUITE_NDNTLV);
                 goto Done;
             }
-#endif // CCNL_NACK
+#endif // USE_NACK
             int found = 0;
             for(i_it = relay->pit; i_it;/* i_it = i_it->next*/){
                  //Check if prefix match and it is a nfn request

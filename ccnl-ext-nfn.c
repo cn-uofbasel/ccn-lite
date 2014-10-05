@@ -1,8 +1,8 @@
 /*
- * @f ccn-lite-relay.c
- * @b user space CCN relay
+ * @f ccnl-ext-nfn.c
+ * @b CCN-lite, NFN related routines
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2014, Christopher Scherb, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -219,7 +219,7 @@ restart:
 
         DBL_LINKED_LIST_REMOVE(configuration_list, config);
     }
-#ifdef CCNL_NACK
+#ifdef USE_NACK
     else if(config->local_done){
         struct ccnl_content_s *nack = create_content_object(ccnl, config->prefix, (unsigned char*)":NACK", 5, config->suite);
         ccnl_content_serve_pending(ccnl, nack);
