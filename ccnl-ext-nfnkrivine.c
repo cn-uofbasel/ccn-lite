@@ -38,7 +38,7 @@
 
 struct closure_s *
 new_closure(char *term, struct environment_s *env){
-    struct closure_s *ret = malloc(sizeof(struct closure_s));
+    struct closure_s *ret = ccnl_malloc(sizeof(struct closure_s));
     ret->term = term;
     ret->env = env;
     return ret;
@@ -46,7 +46,7 @@ new_closure(char *term, struct environment_s *env){
 
 void 
 push_to_stack(struct stack_s **top, void *content, int type){
-    struct stack_s *h = malloc(sizeof(struct stack_s));
+    struct stack_s *h = ccnl_calloc(1, sizeof(struct stack_s));
     if(top != NULL && *top != NULL){
                 h->next = *top;
         }else{
@@ -94,9 +94,9 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
                 push_to_stack(&config->result_stack, elm->content, elm->type);
                 return NULL;
             }
-            struct stack_s *elm1 = malloc(sizeof(struct stack_s));
+            struct stack_s *elm1 = ccnl_calloc(1, sizeof(struct stack_s));
             if(isdigit(*c->content)){
-                int *integer = malloc(sizeof(int));
+                int *integer = ccnl_malloc(sizeof(int));
                 *integer = (int)strtol((char*)c->content, NULL, 0);
                 elm1->content = (void*)integer;
                 elm1->next = NULL;
@@ -147,7 +147,7 @@ print_argument_stack(struct stack_s *stack){
 
 void 
 add_to_environment(struct environment_s **env, char *name, void *element){
-   struct environment_s *newelement = malloc(sizeof(struct environment_s));
+   struct environment_s *newelement = ccnl_malloc(sizeof(struct environment_s));
    newelement->name = name;
    newelement->element = element;
    if(env == NULL || *env == NULL){
@@ -190,7 +190,7 @@ parse_var(char **cpp)
     while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
 	p++;
     len = p - *cpp;
-    p = malloc(len+1);
+    p = ccnl_malloc(len+1);
     if (!p)
 	return 0;
     memcpy(p, *cpp, len);
@@ -230,20 +230,20 @@ parseKRIVINE(int lev, char **cp)
 		*cp += 1;
 	} else if (**cp == LAMBDA) {
 	    *cp += 1;
-	    s = calloc(1, sizeof(*s));
+	    s = ccnl_calloc(1, sizeof(*s));
 	    s->v = parse_var(cp);
 	    s->m = parseKRIVINE(lev+1, cp);
 //	    printKRIVINE(dummybuf, s->m, 0);
 //	    printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
 	} else {
-	    s = calloc(1, sizeof(*s));
+	    s = ccnl_calloc(1, sizeof(*s));
 	    s->v = parse_var(cp);
 //	    printf("  var: <%s>\n", s->v);
 	}
 	if (t) {
 //	    printKRIVINE(dummybuf, t, 0);
 //	    printf("  old term: <%s>\n", dummybuf);
-	    u = calloc(1, sizeof(*u));
+	    u = ccnl_calloc(1, sizeof(*u));
 	    u->m = t;
 	    u->n = s;
 	    t = u;
@@ -354,7 +354,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
        return add_local_computation_components(config);
     }
     else{ //network search name components
-        unsigned char *comp = malloc(CCNL_MAX_PACKET_SIZE);
+        unsigned char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
         createComputationString(config, parameter_number, comp);
         return add_computation_components(prefix, thunk_request, comp);
     }
@@ -392,7 +392,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             cp = prog + strlen(prog) - 1;
             }
             len = cp - p;
-            cp = malloc(len);
+            cp = ccnl_malloc(len);
             memcpy(cp, p+1, len-1);
             cp[len-1] = '\0';
             DEBUGMSG(2, "---to do: access <%s>\n", cp);
@@ -415,7 +415,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         else
             cp = prog + strlen(prog) - 1;
 	len = cp - p;
-        cp = malloc(len);
+        cp = ccnl_malloc(len);
         memcpy(cp, p+1, len-1);
         cp[len-1] = '\0';
         DEBUGMSG(2, "---to do: closure <%s>\n", cp);
@@ -457,7 +457,7 @@ normal:
 	else
 	    v = prog + strlen(prog) - 1;
 	len = v - p;
-	v = malloc(len);
+	v = ccnl_malloc(len);
 	memcpy(v, p+1, len-1);
 	v[len-1] = '\0';
 	DEBUGMSG(2, "---to do: grab <%s>\n", v);
@@ -493,7 +493,7 @@ normal:
 	else
 	    cp = prog + strlen(prog) - 1;
         len = cp - p;
-        cp = malloc(len);
+        cp = ccnl_malloc(len);
 	memcpy(cp, p+1, len-1);
 	cp[len-1] = '\0';
 	DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
@@ -515,9 +515,9 @@ normal:
             namelength = h - cp;
             
             
-            lambda_expr = malloc(strlen(h));
-            name = malloc(namelength);
-            pending = malloc(pendinglength);
+            lambda_expr = ccnl_malloc(strlen(h));
+            name = ccnl_malloc(namelength);
+            pending = ccnl_malloc(pendinglength);
             
             memset(pending, 0, pendinglength);
             memset(name, 0, namelength);
@@ -531,7 +531,7 @@ normal:
             lambdalen = strlen(h)-strlen(pending)+11-6;
             memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
             trim(lambda_expr);
-            resolveterm = malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
+            resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
             sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
             
             struct closure_s *cl = new_closure(resolveterm, NULL);
@@ -548,7 +548,7 @@ normal:
         cp = t->v;
         if (isdigit(*cp)) {
             // is disgit...
-            int *integer = malloc(sizeof(int));
+            int *integer = ccnl_malloc(sizeof(int));
             *integer = strtol(cp, &end, 0);
             if (end && *end){
                 end = 0;
@@ -586,7 +586,7 @@ normal:
 		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
 	    else
 		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
-	    free(cp);
+	    ccnl_free(cp);
             return strdup(res);
         }
         if (term_is_app(t)) {
@@ -667,7 +667,7 @@ normal:
     }
     if (!strncmp(prog, "OP_ADD", 6)) {
         int i1=0, i2=0, res;
-        int *h = malloc(sizeof(int));
+        int *h = ccnl_malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
         pop2int();
         res = i1+i2;
@@ -677,7 +677,7 @@ normal:
     }
     if (!strncmp(prog, "OP_SUB", 6)) {
         int i1=0, i2=0, res;
-        int *h = malloc(sizeof(int));
+        int *h = ccnl_malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
         pop2int();
         res = i2-i1;
@@ -687,7 +687,7 @@ normal:
         }
     if (!strncmp(prog, "OP_MULT", 7)) {
         int i1=0, i2=0, res;
-        int *h = malloc(sizeof(int));
+        int *h = ccnl_malloc(sizeof(int));
         DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
         pop2int();
         res = i1*i2;
@@ -760,7 +760,7 @@ normal:
         config->fox_state->num_of_params = *(int*)h->content;
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
-        config->fox_state->params = malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
+        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
@@ -769,7 +769,7 @@ normal:
                 char *thunkname = (char*)config->fox_state->params[i]->content;
 
                 struct thunk_s *thunk = ccnl_nfn_get_thunk(ccnl, (unsigned char*)thunkname);
-                struct stack_s *thunk_elm = malloc(sizeof(struct stack_s));
+                struct stack_s *thunk_elm = ccnl_malloc(sizeof(struct stack_s));
                 thunk_elm->type = STACK_TYPE_PREFIX;
                 thunk_elm->content = thunk->reduced_prefix;
                 thunk_elm->next = NULL;
@@ -852,7 +852,7 @@ handlecontent: //if result was found ---> handle it
             }
             else{
                 if(isdigit(*c->content)){
-                    int *integer = malloc(sizeof(int));
+                    int *integer = ccnl_malloc(sizeof(int));
                     *integer = strtol((char*)c->content, 0, 0);
                     push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
                 }
@@ -860,7 +860,7 @@ handlecontent: //if result was found ---> handle it
 
                     struct ccnl_prefix_s *name = create_prefix_for_content_on_result_stack(ccnl, config);
                     push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
-                    struct prefix_mapping_s *mapping = malloc(sizeof(struct prefix_mapping_s));
+                    struct prefix_mapping_s *mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
                     mapping->key = name;
                     mapping->value = c->name;
                     DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
@@ -937,10 +937,10 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
     char *prog;
     struct environment_s *global_dict = NULL;
-    char *dummybuf = malloc(2000);
+    char *dummybuf = ccnl_malloc(2000);
     setup_global_environment(&global_dict);
     if(!*config && strlen(expression) == 0) return 0;
-    prog = malloc(len*sizeof(char));
+    prog = ccnl_malloc(len*sizeof(char));
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
         DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
@@ -966,14 +966,15 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
         return NULL;
     }
     else{ //HALT > 0 means computation finished
-        free(dummybuf);
+        ccnl_free(dummybuf);
         DEBUGMSG(99, "end\n");
         struct stack_s *stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart);//config->result_stack->content;
+        unsigned char *h = NULL;
+
         if(stack == NULL){
             halt = -1;
             return NULL;
         }
-        unsigned char *h = NULL;
         if(stack->type == STACK_TYPE_PREFIX){
             struct ccnl_prefix_s *pref = stack->content;
             struct ccnl_content_s *cont = ccnl_nfn_local_content_search(ccnl, *config, pref);
@@ -983,7 +984,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
             h = cont->content;
         }
         else if(stack->type == STACK_TYPE_INT){
-            h = calloc(0, 10);
+            h = ccnl_calloc(1, 10);
             int integer = *(int*)stack->content;
             sprintf((char*)h,"%d", integer);
         }
