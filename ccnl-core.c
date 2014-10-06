@@ -24,10 +24,6 @@
 
 #include "ccnl-core.h"
 
-#ifdef USE_NFN
-#include "krivine-common.h"
-#endif
-
 #ifdef USE_NFN_MONITOR
 #include "json.c"
 #endif

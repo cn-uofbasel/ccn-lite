@@ -266,8 +266,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_NACK
 		if (ccnl_isNACK(c)) {
 		    ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
-						    from, NULL,
-						    CCNL_SUITE_NDNTLV);
+						    from, CCNL_SUITE_NDNTLV);
 		    goto Done;
 		}
 #endif // USE_NACK
