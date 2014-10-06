@@ -435,7 +435,7 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         return NULL;
     }
 #ifdef USE_NFN
-    i->propagate = 1;
+    i->corePropagates = 1;
 #endif
     i->suite = suite;
     i->from = from;
@@ -539,7 +539,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
     DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
 #ifdef USE_NFN
-    if (i->propagate == 0)
+    if (i->corePropagates == 0)
 	return i->next;
 #endif
 
@@ -812,7 +812,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
 	    // periodically for pending PIT entries."
 	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
 #ifdef USE_NFN
-	    if(i->propagate) ccnl_interest_propagate(relay, i);
+	    if (i->corePropagates)
+		ccnl_interest_propagate(relay, i);
 #else
             ccnl_interest_propagate(relay, i);
 #endif

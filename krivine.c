@@ -20,15 +20,6 @@
  * 2014-xx-yy created
  */
 
-/*
-#include <ctype.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <arpa/inet.h>
-*/
 
 #ifndef CCNL_LINUXKERNEL
 
@@ -778,7 +769,7 @@ normal:
             if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){ //USE NAME OF A THUNK
                 char *thunkname = (char*)config->fox_state->params[i]->content;
 
-                struct thunk_s *thunk = ccnl_nfn_get_thunk((unsigned char*)thunkname);
+                struct thunk_s *thunk = ccnl_nfn_get_thunk(ccnl, (unsigned char*)thunkname);
                 struct stack_s *thunk_elm = malloc(sizeof(struct stack_s));
                 thunk_elm->type = STACK_TYPE_PREFIX;
                 thunk_elm->content = thunk->reduced_prefix;
@@ -954,11 +945,11 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression, int thunk_request
     sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
     if(!*config){
         DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
-        *config = new_config(prog, global_dict, thunk_request,
-                start_locally, num_of_required_thunks, prefix, configid, suite);
-        DBL_LINKED_LIST_ADD(configuration_list, *config);
+        *config = new_config(ccnl, prog, global_dict, thunk_request,
+                start_locally, num_of_required_thunks, prefix, ccnl->km->configid, suite);
+        DBL_LINKED_LIST_ADD(ccnl->km->configuration_list, *config);
         restart = 0;
-        --configid;
+        --ccnl->km->configid;
     }
     if(thunk_request && num_of_required_thunks == 0){
         ccnl_nfn_reply_thunk(ccnl, *config);

@@ -23,6 +23,7 @@
 #ifdef USE_NFN
 
 #include "ccnl-core.h"
+#include "krivine-common.h"
 #include "krivine.c"
 #include "krivine-common.c"
 
@@ -52,7 +53,7 @@ ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
 void 
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
-    struct configuration_s *config = find_configuration(configuration_list, -configid);
+    struct configuration_s *config = find_configuration(ccnl->km->configuration_list, -configid);
     
     if(!config){
         return;
@@ -69,7 +70,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     }
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
-        DBL_LINKED_LIST_REMOVE(configuration_list, config);
+        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
         //Reply error!
         //config->thunk = 0;
         return;
@@ -87,13 +88,14 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *or
 }
 
 int
-ccnl_nfn_thunk_already_computing(struct ccnl_prefix_s *prefix)
+ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
+				 struct ccnl_prefix_s *prefix)
 {
     DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
     int i = 0;
-    for(i = 0; i < -configid; ++i){
+    for(i = 0; i < -ccnl->km->configid; ++i){
         struct ccnl_prefix_s *copy;
-        struct configuration_s *config = find_configuration(configuration_list, -i);
+        struct configuration_s *config = find_configuration(ccnl->km->configuration_list, -i);
         if(!config) continue;
         ccnl_nfn_copy_prefix(config->prefix ,&copy);
         ccnl_nfn_remove_thunk_from_prefix(copy);
@@ -148,9 +150,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
-
-
-    if(ccnl_nfn_thunk_already_computing(prefix)){
+    if (ccnl_nfn_thunk_already_computing(ccnl, prefix)) {
         DEBUGMSG(9, "Computation for this interest is already running\n");
         return -1;
     }
@@ -195,7 +195,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
     }
     
-    ++numOfRunningComputations;
+    ++ccnl->km->numOfRunningComputations;
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
             num_of_required_thunks, &config, original_prefix, suite);
@@ -203,7 +203,7 @@ restart:
     //stores result if computed      
     if(res){
         
-        DEBUGMSG(2,"Computation finshed: %s, running computations: %d\n", res, numOfRunningComputations);
+        DEBUGMSG(2,"Computation finshed: %s, running computations: %d\n", res, ccnl->km->numOfRunningComputations);
         if(config && config->fox_state->thunk_request){      
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
@@ -214,9 +214,9 @@ restart:
         set_propagate_of_interests_to_1(ccnl, c->name);
         ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
-        --numOfRunningComputations;
+        --ccnl->km->numOfRunningComputations;
 
-        DBL_LINKED_LIST_REMOVE(configuration_list, config);
+        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
     }
 #ifdef USE_NACK
     else if(config->local_done){
@@ -235,6 +235,12 @@ restart:
 }
 
 int
+ccnl_isNACK(struct ccnl_content_s *c)
+{
+    return !memcmp(c->content, ":NACK", 5);
+}
+
+int
 ccnl_isNFNrequest(struct ccnl_prefix_s *p)
 {
     return p && p->compcnt > 0 && !memcmp(p->comp[p->compcnt-1], "NFN", 3);
@@ -249,14 +255,14 @@ ccnl_nfn_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_buf_s *buf2 = buf;
     struct ccnl_prefix_s *p2 = p;
 
-    if (numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+    if (ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
 	return 0;
 
     i = ccnl_interest_new(ccnl, from, suite,
 			  &buf, &p, minsfx, maxsfx);
-    i->propagate = 0; //do not forward interests for running computations
+    i->corePropagates = 0; //do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
-    if (!i->propagate)
+    if (!i->corePropagates)
 	ccnl_nfn(ccnl, buf2, p2, from, NULL, i, suite, 0);
 
     return i;

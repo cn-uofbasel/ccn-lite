@@ -40,9 +40,11 @@ new_machine_state(int thunk_request, int num_of_required_thunks){
 }
 
 struct configuration_s *
-new_config(char *prog, struct environment_s *global_dict, int thunk_request,
-           int start_locally, int num_of_required_thunks, struct ccnl_prefix_s *prefix,
-           int configid, int suite){
+new_config(struct ccnl_relay_s *ccnl, char *prog,
+	   struct environment_s *global_dict, int thunk_request,
+           int start_locally, int num_of_required_thunks,
+	   struct ccnl_prefix_s *prefix, int configid, int suite)
+{
     struct configuration_s *ret = malloc(sizeof(struct configuration_s));
     ret->prog = prog;
     ret->result_stack = NULL;
@@ -50,7 +52,7 @@ new_config(char *prog, struct environment_s *global_dict, int thunk_request,
     ret->env = NULL;
     ret->global_dict = global_dict;
     ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
-    ret->configid = configid;
+    ret->configid = ccnl->km->configid;
     ret->start_locally = start_locally;
     ret->prefix = prefix;
     ret->suite = suite;
@@ -224,7 +226,7 @@ set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s 
     struct ccnl_interest_s *interest = NULL;
     for(interest = ccnl->pit; interest; interest = interest->next){
         if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
-            interest->propagate = 1;
+            interest->corePropagates = 1;
         }
     }
 }
@@ -332,17 +334,17 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, st
     struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
     thunk->prefix = new_prefix;
     thunk->reduced_prefix = create_prefix_for_content_on_result_stack(ccnl, config);
-    sprintf(thunk->thunkid, "THUNK%d", thunkid++);
-    DBL_LINKED_LIST_ADD(thunk_list, thunk);
+    sprintf(thunk->thunkid, "THUNK%d", ccnl->km->thunkid++);
+    DBL_LINKED_LIST_ADD(ccnl->km->thunk_list, thunk);
     DEBUGMSG(99, "Created new thunk with id: %s\n", thunk->thunkid);
     return strdup(thunk->thunkid);
 }
 
 struct thunk_s *
-ccnl_nfn_get_thunk(unsigned char *thunkid){
+ccnl_nfn_get_thunk(struct ccnl_relay_s *ccnl, unsigned char *thunkid){
     struct thunk_s *thunk;
-    for(thunk = thunk_list; thunk; thunk = thunk->next){
-        if(!strcmp(thunk->thunkid, (char*)thunkid)){
+    for(thunk = ccnl->km->thunk_list; thunk; thunk = thunk->next){
+	if(!strcmp(thunk->thunkid, (char*)thunkid)){
             DEBUGMSG(49, "Thunk table entry found\n");
             return thunk;
         }
@@ -353,7 +355,7 @@ ccnl_nfn_get_thunk(unsigned char *thunkid){
 struct ccnl_interest_s *
 ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunkid){
     DEBUGMSG(2, "ccnl_nfn_get_interest_for_thunk()\n");
-    struct thunk_s *thunk = ccnl_nfn_get_thunk(thunkid);
+    struct thunk_s *thunk = ccnl_nfn_get_thunk(ccnl, thunkid);
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
@@ -364,15 +366,15 @@ ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_
 }
 
 void
-ccnl_nfn_remove_thunk(char* thunkid){
+ccnl_nfn_remove_thunk(struct ccnl_relay_s *ccnl, char* thunkid){
     DEBUGMSG(2, "ccnl_nfn_remove_thunk()\n");
     struct thunk_s *thunk;
-    for(thunk = thunk_list; thunk; thunk = thunk->next){
+    for(thunk = ccnl->km->thunk_list; thunk; thunk = thunk->next){
         if(!strncmp(thunk->thunkid, thunkid, sizeof(thunk->thunkid))){
             break;
         }
     }
-    DBL_LINKED_LIST_REMOVE(thunk_list, thunk);
+    DBL_LINKED_LIST_REMOVE(ccnl->km->thunk_list, thunk);
 }
 
 int 

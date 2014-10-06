@@ -391,6 +391,11 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     }
 #endif // USE_HTTP_STATUS
 
+#ifdef USE_NFN
+    relay->km = ccnl_calloc(1, sizeof(struct ccnl_krivine_s));
+    relay->km->configid = -1;
+#endif
+
 #ifdef USE_UNIXSOCKET
     if (uxpath) {
 	i = &relay->ifs[relay->ifcount];

@@ -105,6 +105,8 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
+
+    struct ccnl_krivine_s *km;
     
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
@@ -192,7 +194,7 @@ struct ccnl_interest_s {
     } details;
     char suite;
 #ifdef USE_NFN
-    int propagate;                 //set to 0 to not propagate this interest becauses it is in the NFN-engine
+    int corePropagates;  // set to 0 to not propagate this interest becauses it is in the NFN-engine
 #endif
 };
 
@@ -265,11 +267,11 @@ compile_string(void)
 #ifdef USE_DEBUG_MALLOC
 	"DEBUG_MALLOC, "
 #endif
-#ifdef USE_FRAG
-	"FRAG, "
-#endif
 #ifdef USE_ETHERNET
 	"ETHERNET, "
+#endif
+#ifdef USE_FRAG
+	"FRAG, "
 #endif
 #ifdef USE_HTTP_STATUS
 	"HTTP_STATUS, "

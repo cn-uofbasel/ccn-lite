@@ -20,7 +20,6 @@
  * 2014-03-20 created
  */
 
-#include "pkt-ccntlv.h"
 #include "pkt-ccntlv-dec.c"
 
 
