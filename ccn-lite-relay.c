@@ -75,6 +75,7 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-nfn.c"
+#include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
 #ifdef USE_SIGNATURES

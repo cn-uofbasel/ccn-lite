@@ -24,10 +24,6 @@
 
 #include "ccnl-core.h"
 
-#ifdef USE_NFN_MONITOR
-#include "json.c"
-#endif
-
 #ifdef CCNL_LINUXKERNEL
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)

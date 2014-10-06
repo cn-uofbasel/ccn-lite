@@ -1,5 +1,5 @@
 /*
- * @f json.c
+ * @f ccnl-ext-nfnmonitor.c
  * @b CCN lite, logging support
  *
  * Copyright (C) 2014, Christopher Scherb, University of Basel
@@ -20,31 +20,35 @@
  * 2014-04-27 created
  */
 
+#ifdef USE_NFN_MONITOR
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "ccnl-core.h"
-
 #include <time.h>
+
 #include <sys/time.h>
 
 #ifdef __MACH__
-#include <mach/clock.h>
-#include <mach/mach.h>
+# include <mach/clock.h>
+# include <mach/mach.h>
 #endif
 
+#include "ccnl-core.h"
 #include "util/base64.c"
 
 int
-create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
-		  struct ccnl_prefix_s *prefix, unsigned char *data,
-		  int datalen, char *res)
+ccnl_ext_nfnmonitor_record(char* toip, int toport,
+			   struct ccnl_prefix_s *prefix, unsigned char *data,
+			   int datalen, char *res)
 {
     char name[CCNL_MAX_PACKET_SIZE];
-    int len = 0;
-    for(int i = 0; i < prefix->compcnt; ++i){
+    int len = 0, i;
+    struct timespec ts;
+    long timestamp_milli;
+
+    for (i = 0; i < prefix->compcnt; ++i) {
         len += sprintf(name+len, "/%s", prefix->comp[i]);
     }
 
@@ -66,9 +70,7 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
 
     len += sprintf(res + len, "\"isSent\": %s,\n", "true");
 
-    struct timespec ts;
-
-    #ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
     clock_serv_t cclock;
     mach_timespec_t mts;
     host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
@@ -77,12 +79,11 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
     ts.tv_sec = mts.tv_sec;
     ts.tv_nsec = mts.tv_nsec;
 
-    #else
+#else
     clock_gettime(CLOCK_REALTIME, &ts);
-    #endif
+#endif
 
-    long timestamp_milli =
-        ((ts.tv_sec) * 1000000000 + (ts.tv_nsec ));
+    timestamp_milli = ((ts.tv_sec) * 1000000000 + (ts.tv_nsec ));
     len += sprintf(res + len, "\"timestamp\": %lu,\n", timestamp_milli);
 
     len += sprintf(res + len, "\"packet\":{\n");
@@ -103,24 +104,50 @@ create_packet_log(/*long fromip, int fromport,*/ char* toip, int toport,
     return len;
 }
 
-int udp_sendto(int sock, char *address, int port, char *data, int len){
-    int rc;
+int
+ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port,
+			       char *data, int len)
+{
     struct sockaddr_in si_other;
+
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(port);
     if (inet_aton(address, &si_other.sin_addr)==0) {
           fprintf(stderr, "inet_aton() failed\n");
           exit(1);
     }
-    rc = sendto(sock, data, len, 0, (const struct sockaddr *)&si_other, sizeof(si_other));
-    return rc;
+    return sendto(sock, data, len, 0,
+		(const struct sockaddr *)&si_other, sizeof(si_other));
 }
 
 int
-sendtomonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen){
+ccnl_ext_nfnmonitor_sendToMonitor(struct ccnl_relay_s *ccnl,
+				  char *content, int contentlen)
+{
     char *address = "127.0.0.1";
-    int port = 10666;
+    int port = 10666, s = ccnl->ifs[0].sock;
     //int s = socket(PF_INET, SOCK_DGRAM, 0);
-    int s = ccnl->ifs[0].sock;
-    return udp_sendto(s, address, port, content, contentlen);
+
+    return ccnl_ext_nfnmonitor_udpSendTo(s, address, port, content, contentlen);
 }
+
+int
+ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
+		 struct ccnl_face_s *face,
+		 struct ccnl_prefix_s *pr,
+		 unsigned char *data,
+		 int len)
+{
+    char monitorpacket[CCNL_MAX_PACKET_SIZE];
+
+    int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
+			      ntohs(face->peer.ip4.sin_port),
+			      pr, data, len, monitorpacket);
+    ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
+
+    return 0;
+}
+
+#endif // USE_NFN_MONITOR
+
+// eof
