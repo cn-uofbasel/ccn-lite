@@ -20,12 +20,8 @@
  * 2014-03-20 created
  */
 
-#include "pkt-ndntlv.h"
 #include "pkt-ndntlv-dec.c"
 
-#ifdef USE_NFN
-#include "krivine-common.h"
-#endif
 
 // we use one extraction routine for both interest and data pkts
 struct ccnl_buf_s*
@@ -153,7 +149,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 			      &scope, &mbf, &minsfx, &maxsfx,
 			      &p, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
-	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
+	DEBUGMSG(6, "  parsing error or no prefix\n");
+	goto Done;
     }
 
     if (typ == NDN_TLV_Interest) {
@@ -180,8 +177,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (from->ifndx >= 0) {
 		ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
-            }
-            else{
+            } else {
                 ccnl_app_RX(relay, c);
             }
             goto Skip;
@@ -189,37 +185,30 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
             if (i->suite == CCNL_SUITE_NDNTLV &&
-            !ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
-            i->details.ndntlv.minsuffix == minsfx &&
-            i->details.ndntlv.maxsuffix == maxsfx &&
-            ((!ppkl && !i->details.ndntlv.ppkl) ||
-             buf_equal(ppkl, i->details.ndntlv.ppkl)) )
-            break;
+		!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
+		i->details.ndntlv.minsuffix == minsfx &&
+		i->details.ndntlv.maxsuffix == maxsfx &&
+		((!ppkl && !i->details.ndntlv.ppkl) ||
+		 buf_equal(ppkl, i->details.ndntlv.ppkl)) )
+		break;
         }
-        if (!i) { // this is a new/unknown I request: create and propagate
+	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-        if((numOfRunningComputations < NFN_MAX_RUNNING_COMPUTATIONS) //full, do not compute but propagate
-                && !memcmp(p->comp[p->compcnt-1], "NFN", 3)){
-            struct ccnl_buf_s *buf2 = buf;
-            //Create new prefix
-            struct ccnl_prefix_s *p2 = p;
-            i = ccnl_interest_new(relay, from, CCNL_SUITE_NDNTLV,
-                                  &buf, &p, minsfx, maxsfx);
-
-            i->propagate = 0; //do not forward interests for running computations
-            ccnl_interest_append_pending(i, from);
-            if(!i->propagate)ccnl_nfn(relay, buf2, p2, from, NULL, i, CCNL_SUITE_NDNTLV, 0);
-            goto Done;
-        }
-#endif /*USE_NFN*/
+	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	    if (ccnl_nfn_request(relay, from, CCNL_SUITE_NDNTLV,
+							buf, p, minsfx, maxsfx))
+		goto Done;
+	}
+#endif
+        if (!i) {
             i = ccnl_interest_new(relay, from, CCNL_SUITE_NDNTLV,
                       &buf, &p, minsfx, maxsfx);
             if (ppkl)
-            i->details.ndntlv.ppkl = ppkl, ppkl = NULL;
+		i->details.ndntlv.ppkl = ppkl, ppkl = NULL;
             if (i) { // CONFORM: Step 3 (and 4)
-            DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
-            if (scope > 2)
-                ccnl_interest_propagate(relay, i);
+		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
+		if (scope > 2)
+		    ccnl_interest_propagate(relay, i);
             }
         } else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
             DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
@@ -229,11 +218,10 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
-
     } else { // data packet with content -------------------------------------
-	    DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
-	    ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
-        
+	DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
+	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
+
 /*  mgmt messages for NDN?
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
@@ -247,11 +235,11 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         // CONFORM: Step 1:
 	for (c = relay->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-//	c = ccnl_content_new(relay, &buf, &p, &ppkd, content, contlen);
 	c = ccnl_content_new(relay, CCNL_SUITE_NDNTLV,
-			     &buf, &p, NULL, content, contlen);
+			     &buf, &p, NULL /* ppkd */ , content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
+/*
         if(debug_level >= 99){
             struct ccnl_interest_s *i_it;
             int it;
@@ -271,17 +259,19 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 fprintf(stderr, "/%s",  c->name->comp[it]);
             }fprintf(stderr, "\n");
         }
-        if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
-            struct ccnl_interest_s *i_it = NULL;
+*/
+	    if (ccnl_isNFNrequest(c->name)) {
+		struct ccnl_interest_s *i_it = NULL;
+		int found = 0;
 #ifdef USE_NACK
-            if(!memcmp(c->content, ":NACK", 5)){
-                DEBUGMSG(99, "Handle NACK packet: local compute!\n");
-                ccnl_nfn_nack_local_computation(relay, c->pkt, c->name, from, NULL, CCNL_SUITE_NDNTLV);
-                goto Done;
-            }
+		if (ccnl_isNACK(c)) {
+		    ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
+						    from, NULL,
+						    CCNL_SUITE_NDNTLV);
+		    goto Done;
+		}
 #endif // USE_NACK
-            int found = 0;
-            for(i_it = relay->pit; i_it;/* i_it = i_it->next*/){
+            for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
                  //Check if prefix match and it is a nfn request
                  int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
                  DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
@@ -292,7 +282,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
                     ccnl_content_add2cache(relay, c);
                     DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                    i_it->propagate = 1;
+                    i_it->corePropagates = 1;
                     i_it = ccnl_interest_remove(relay, i_it);
                     ccnl_nfn_continue_computation(relay, faceid, 0);
                     ++found;

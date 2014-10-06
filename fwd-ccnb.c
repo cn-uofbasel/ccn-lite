@@ -22,7 +22,6 @@
  * 2014-03-20 extracted forwarding code from ccnl-core.c
  */
 
-#include "pkt-ccnb.h"
 #include "pkt-ccnb-dec.c"
 
 
@@ -191,7 +190,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    if (i) { // CONFORM: Step 3 (and 4)
 		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
 		if (scope > 2)
-            ccnl_interest_propagate(ccnl, i);
+		    ccnl_interest_propagate(ccnl, i);
 	    }
 	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
@@ -203,24 +202,25 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	}
     } else { // content
 	DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
-    ccnl_print_stats(ccnl, STAT_RCV_C); //log count recv_content
+	ccnl_print_stats(ccnl, STAT_RCV_C); //log count recv_content
         
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
                 && !memcmp(p->comp[1], "crypto", 6) &&
                 from == ccnl->crypto_face) {
-        rc = ccnl_crypto(ccnl, buf, p, from); goto Done;
+	    rc = ccnl_crypto(ccnl, buf, p, from);
+	    goto Done;
 	}
 #endif /*USE_SIGNATURES*/
         
         // CONFORM: Step 1:
-    for (c = ccnl->contents; c; c = c->next)
+	for (c = ccnl->contents; c; c = c->next)
 	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-    c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB,
+	c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB,
 			     &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-        if(debug_level >= 99){
+/*        if(debug_level >= 99){
             struct ccnl_interest_s *i_it;
 	    int it;
 
@@ -232,23 +232,23 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     }
                     fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
             }
-
             fprintf(stderr, "Content name: ");
             for(it = 0; it < c->name->compcnt; ++it){
                 fprintf(stderr, "/%s",  c->name->comp[it]);
             }fprintf(stderr, "\n");
         }
-        if(!memcmp(c->name->comp[c->name->compcnt-1], "NFN", 3)){
-            struct ccnl_interest_s *i_it = NULL;
+*/
+	    if (ccnl_isNFNrequest(c->name)) {
+		struct ccnl_interest_s *i_it = NULL;
+		int found = 0;
 #ifdef USE_NACK
-            if(!memcmp(c->content, ":NACK", 5)){
-                DEBUGMSG(99, "Handle NACK packet: local compute!\n");
-                ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from, NULL, CCNL_SUITE_CCNB);
-                goto Done;
-            }
+		if (ccnl_isNACK(c)) {
+		    ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from,
+						    NULL, CCNL_SUITE_CCNB);
+		    goto Done;
+		}
 #endif // USE_NACK
-            int found = 0;
-            for(i_it = ccnl->pit; i_it;/* i_it = i_it->next*/){
+            for (i_it = ccnl->pit; i_it;/* i_it = i_it->next*/) {
                  //Check if prefix match and it is a nfn request
                  int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
                  DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
@@ -261,7 +261,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     DEBUGMSG(49, "Continue configuration for configid: %d\n",
 			     configid);
 
-                    i_it->propagate = 1;
+                    i_it->corePropagates = 1;
                     i_it = ccnl_interest_remove(ccnl, i_it);
                     ccnl_nfn_continue_computation(ccnl, faceid, 0);
                     ++found;
@@ -274,7 +274,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             DEBUGMSG(99, "no running computation found \n");
         }
 #endif //USE_NFN
-        if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
+	    if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");
 		free_content(c);
@@ -282,7 +282,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    }
         if (ccnl->max_cache_entries != 0) { // it's set to -1 or a limit
 		DEBUGMSG(7, "  adding content to cache\n");
-        ccnl_content_add2cache(ccnl, c);
+		ccnl_content_add2cache(ccnl, c);
 	    } else {
 		DEBUGMSG(7, "  content not added to cache\n");
 		free_content(c);

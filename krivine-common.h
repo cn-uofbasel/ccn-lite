@@ -13,7 +13,6 @@
 
 #define NFN_MAX_RUNNING_COMPUTATIONS 10
 #define NFN_DEFAULT_WAITING_TIME 10
-int numOfRunningComputations = 0;
 
 
 #define STACK_TYPE_INT 0
@@ -83,13 +82,14 @@ struct thunk_s{
     struct ccnl_prefix_s *reduced_prefix;
 };
 
-struct thunk_s *thunk_list;
-int thunkid = 0;
 
-struct configuration_s *configuration_list;
-
-int configid = -1;
-
+struct ccnl_krivine_s {
+    struct thunk_s *thunk_list;
+    int thunkid; // = 0;
+    struct configuration_s *configuration_list;
+    int configid; // = -1;
+    int numOfRunningComputations; // = 0;
+};
 
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
