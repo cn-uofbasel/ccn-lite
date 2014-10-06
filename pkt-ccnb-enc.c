@@ -134,7 +134,10 @@ ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
     return len;
 }
 
+
+
 #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(CCNL_NFN) || defined(CCNL_NACK)
+
 
 static int
 ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,

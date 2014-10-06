@@ -48,19 +48,14 @@
 #include "../ccnl-util.c"
 #include "ccnl-crypto.c"
 
-
-
-// ----------------------------------------------------------------------
-
-char *private_key_path; 
-char *witness;
-
 // ----------------------------------------------------------------------
 
 int
-mkContent(char **namecomp,
+ccnl_ccnb_mkContent(char **namecomp,
 	  unsigned char *publisher, int plen,
 	  unsigned char *body, int blen,
+      char *private_key_path,
+      char *witness,
 	  unsigned char *out)
 {
     int len = 0, k;
@@ -125,6 +120,9 @@ mkContent(char **namecomp,
 int
 main(int argc, char *argv[])
 {
+
+    char *private_key_path; 
+    char *witness;
     unsigned char body[64*1024];
     unsigned char out[65*1024];
     unsigned char *publisher = 0;
@@ -198,11 +196,11 @@ Usage:
     close(f);
 
     if(packettype == 0){ //CCNB
-        len = mkContent(prefix, publisher, plen, body, len, out);
+        len = ccnl_ccnb_mkContent(prefix, publisher, plen, body, len, private_key_path, witness, out);
     }
     else if(packettype == 2){ //NDNTLV
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, out);
+        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, NULL, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
     }

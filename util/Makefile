@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations
+CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
@@ -10,7 +10,8 @@ PROGS=	ccn-lite-ctrl \
 	ccn-lite-mkI \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
-	ccn-lite-cryptoserver\
+	ccn-lite-cryptoserver \
+	ccn-lite-produce
 
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
@@ -65,6 +66,9 @@ ccn-lite-mkndnI: Makefile ccn-lite-mkndnI.c ${NDNTLV_LIB}
 
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
+
+ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ../ccnl.h
+	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-pktdump
