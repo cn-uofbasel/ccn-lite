@@ -31,14 +31,14 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num, i;
     struct ccnl_buf_s *buf = 0, *ppkd=0, *nonce=0;
     struct ccnl_prefix_s *p = 0;
-    unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     unsigned char *content;
 
 
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s *));
+    struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
-    from->outq = malloc(sizeof(struct ccnl_buf_s));
+    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s));
     from->outq->data[0] = (long)strdup((char *)prefix->comp[0]);
     from->outq->datalen = strlen((char *)prefix->comp[0]);
 
@@ -87,9 +87,9 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, len, mbf = 0;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
-    unsigned char *content = malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *content = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     int num; int typ;
-    unsigned char *out = malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
 
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
@@ -133,14 +133,16 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 
 struct fox_machine_state_s *
 new_machine_state(int thunk_request, int num_of_required_thunks){
-    struct fox_machine_state_s *ret = malloc(sizeof(struct fox_machine_state_s));
+    struct fox_machine_state_s *ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
     ret->thunk_request = thunk_request;
     ret->num_of_required_thunks = num_of_required_thunks;
+/*
     ret->prefix_mapping = NULL;
     ret->it_routable_param = 0;
     ret->num_of_params = 0;
     ret->num_of_required_thunks = 0;
     ret->thunk = 0;
+*/
     return ret;
 }
 
@@ -150,20 +152,22 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
            int start_locally, int num_of_required_thunks,
 	   struct ccnl_prefix_s *prefix, int configid, int suite)
 {
-    struct configuration_s *ret = malloc(sizeof(struct configuration_s));
+    struct configuration_s *ret = ccnl_calloc(1, sizeof(struct configuration_s));
     ret->prog = prog;
-    ret->result_stack = NULL;
-    ret->argument_stack = NULL;
-    ret->env = NULL;
     ret->global_dict = global_dict;
     ret->fox_state = new_machine_state(thunk_request, num_of_required_thunks);
     ret->configid = ccnl->km->configid;
     ret->start_locally = start_locally;
     ret->prefix = prefix;
     ret->suite = suite;
+    ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
+/*
+    ret->result_stack = NULL;
+    ret->argument_stack = NULL;
+    ret->env = NULL;
     ret->thunk = 0;
     ret->local_done = 0;
-    ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
+*/
     return ret;
 }
 
@@ -206,9 +210,9 @@ add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, unsi
 
     int size = thunk_request ? 3 : 2;
 
-    struct ccnl_prefix_s *ret = malloc(sizeof(struct ccnl_prefix_s));
-    ret->comp = malloc((prefix->compcnt +size) * sizeof(char*));
-    ret->complen = malloc((prefix->compcnt +size) * sizeof(int));
+    struct ccnl_prefix_s *ret = ccnl_malloc(sizeof(struct ccnl_prefix_s));
+    ret->comp = ccnl_malloc((prefix->compcnt +size) * sizeof(char*));
+    ret->complen = ccnl_malloc((prefix->compcnt +size) * sizeof(int));
     ret->compcnt = prefix->compcnt +size;
     ret->path = NULL;
     for(i = 0; i < prefix->compcnt; ++i){
@@ -236,7 +240,7 @@ struct ccnl_prefix_s *
 add_local_computation_components(struct configuration_s *config){
 
     int i = 0;
-    char *comp = malloc(CCNL_MAX_PACKET_SIZE);
+    char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     struct ccnl_prefix_s *ret;
     int complen = sprintf(comp, "call %d", config->fox_state->num_of_params);
     for(i = 0; i < config->fox_state->num_of_params; ++i){
@@ -250,11 +254,11 @@ add_local_computation_components(struct configuration_s *config){
     }
 
     i = 0;
-    ret = malloc(sizeof(struct ccnl_prefix_s));
+    ret = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     int size = config->fox_state->thunk_request ? 4 : 3;
 
-    ret->comp = malloc(sizeof(char*) * size);
-    ret->complen = malloc(sizeof(int) * size);
+    ret->comp = ccnl_malloc(sizeof(char*) * size);
+    ret->complen = ccnl_malloc(sizeof(int) * size);
 
     ret->comp[i] = (unsigned char *)"COMPUTE";
     ret->complen[i] = strlen("COMPUTE");
@@ -306,7 +310,7 @@ create_prefix_from_name(char* namestr)
     int i = 0, j = 0;
     char *cp = NULL;
     char *prefixcomp[CCNL_MAX_NAME_COMP];
-    struct ccnl_prefix_s *prefix = malloc(sizeof(struct ccnl_prefix_s));
+    struct ccnl_prefix_s *prefix = ccnl_malloc(sizeof(struct ccnl_prefix_s));
     cp = strtok(namestr, "/");
     
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
@@ -314,10 +318,10 @@ create_prefix_from_name(char* namestr)
         cp = strtok(NULL, "/");
     }
     prefixcomp[i] = NULL;
-    prefix->comp = (unsigned char **)malloc(i*sizeof(char*));
+    prefix->comp = (unsigned char **)ccnl_malloc(i*sizeof(char*));
     prefix->compcnt = i;
     prefix->path = NULL;
-    prefix->complen = (int *)malloc(i*sizeof(int));
+    prefix->complen = (int *)ccnl_malloc(i*sizeof(int));
     for(j = 0; j < i; ++j){
         prefix->complen[j] = strlen(prefixcomp[j]);
         prefix->comp[j] = (unsigned char *)strdup(prefixcomp[j]);
@@ -338,13 +342,13 @@ set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s 
 
 struct ccnl_prefix_s *
 create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config){
-    struct ccnl_prefix_s *name = malloc(sizeof(struct ccnl_prefix_s));
-    name->comp = malloc(2*sizeof(char*));
-    name->complen = malloc(2*sizeof(int));
+    struct ccnl_prefix_s *name = ccnl_malloc(sizeof(struct ccnl_prefix_s));
+    name->comp = ccnl_malloc(2*sizeof(char*));
+    name->complen = ccnl_malloc(2*sizeof(int));
     name->compcnt = 1;
     name->comp[1] = (unsigned char *)"NFN";
     name->complen[1] = 3;
-    name->comp[0] = malloc(CCNL_MAX_PACKET_SIZE);
+    name->comp[0] = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     memset(name->comp[0], 0, CCNL_MAX_PACKET_SIZE);
     name->path = NULL;
 
@@ -390,9 +394,9 @@ ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
 void
 ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
     int i;
-    if(prefix->complen)free(prefix->complen);
+    if(prefix->complen)ccnl_free(prefix->complen);
     for(i = 0; i < prefix->compcnt; ++i){
-        if(prefix->comp[i])free(prefix->comp[i]);
+        if(prefix->comp[i])ccnl_free(prefix->comp[i]);
     }
     prefix->compcnt = 0;
 }
