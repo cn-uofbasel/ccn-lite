@@ -243,8 +243,8 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 		int found = 0;
 #ifdef USE_NACK
 		if (ccnl_isNACK(c)) {
-		    ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name, from,
-						    NULL, CCNL_SUITE_CCNB);
+		    ccnl_nfn_nack_local_computation(ccnl, c->pkt, c->name,
+						    from, CCNL_SUITE_CCNB);
 		    goto Done;
 		}
 #endif // USE_NACK

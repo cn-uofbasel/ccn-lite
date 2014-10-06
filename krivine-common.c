@@ -12,7 +12,7 @@
 
 #ifndef CCNL_LINUXKERNEL
 
-#include "krivine-common.h"
+#include "ccnl-ext-nfn.h"
 
 //#include "ccnl.h"
 #ifdef USE_SUITE_CCNB

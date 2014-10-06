@@ -23,7 +23,8 @@
 #ifdef USE_NFN
 
 #include "ccnl-core.h"
-#include "krivine-common.h"
+#include "ccnl-ext-nfn.h"
+
 #include "krivine.c"
 #include "krivine-common.c"
 
@@ -79,12 +80,15 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
 }
 
 void
-ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-                                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-                                  struct configuration_s *config, int suite){
+ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
+				struct ccnl_buf_s *orig,
+                                struct ccnl_prefix_s *prefix,
+				struct ccnl_face_s *from,
+                                int suite)
+{
     DEBUGMSG(49, "ccnl_nfn_nack_local_computation\n");
-    struct ccnl_interest_s *interest = NULL;
-    ccnl_nfn(ccnl, orig, prefix, from, config, interest, suite, 1);
+
+    ccnl_nfn(ccnl, orig, prefix, from, NULL, NULL, suite, 1);
 }
 
 int

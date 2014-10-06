@@ -42,7 +42,6 @@
 #include "ccnl.h"
 
 #include "ccnl-core.h"
-#include "krivine-common.h"
 #include "ccnl-ext.h"
 
 #include "pkt-ccnb.h"
