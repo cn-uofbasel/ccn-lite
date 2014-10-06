@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99
+CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
@@ -32,7 +32,6 @@ ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
 
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
-
 
 ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 

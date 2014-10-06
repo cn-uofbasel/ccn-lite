@@ -200,7 +200,7 @@ Usage:
     }
     else if(packettype == 2){ //NDNTLV
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, NULL, out);
+        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, NULL, -1, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
     }
