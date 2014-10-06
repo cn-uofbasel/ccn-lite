@@ -929,7 +929,6 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 }
 
 #ifdef USE_NACK
-#include "ccnl-objects.c"
 
 void
 ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,

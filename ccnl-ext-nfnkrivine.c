@@ -1,8 +1,8 @@
 /*
- * @f krivine.c
- * @b CCN lite, Krivine's lazy Lambda-Calculus reduction engine
+ * @f ccnl-ext-nfnkrivine.c
+ * @b CCN-lite, Krivine's lazy Lambda-Calculus reduction engine
  *
- * Copyright (C) 2014, Christopher Scherb, University of Basel
+ * Copyright (C) 2013, Christopher Scherb, Univerity of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,6 @@
 
 #ifndef CCNL_LINUXKERNEL
 
-#include "krivine-common.c"
 #include "ccnl-ext-debug.c"
 #include "ccnl-includes.h"
 

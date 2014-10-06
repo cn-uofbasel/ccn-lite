@@ -25,8 +25,8 @@
 #include "ccnl-core.h"
 #include "ccnl-ext-nfn.h"
 
-#include "krivine.c"
-#include "krivine-common.c"
+#include "ccnl-ext-nfncommon.c"
+#include "ccnl-ext-nfnkrivine.c"
 
 
 static int
