@@ -117,19 +117,24 @@ ccnl_ccnb_mkContent(char **namecomp,
     return len;
 }
 
+struct chunk {
+    char data[CCNL_MAX_CHUNK_SIZE];
+    int len;
+    struct chunk *next;
+};
 
 int
 main(int argc, char *argv[])
 {
     char *private_key_path; 
     char *witness;
-    unsigned char chunk[64*1024];
     unsigned char out[65*1024];
     unsigned char *publisher = 0;
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char chunkname_with_number[20];
-    int i = 0, f, fdir, fout, chunkSizeOrRest, contentlen, name_prefix_count, opt, plen;
+    char final_chunkname_with_number[20];
+    int i = 0, f, fdir, fout, chunk_len, contentlen, name_prefix_count, opt, plen;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     int packettype = 2;
     int status;
@@ -165,14 +170,16 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-        fprintf(stderr, "usage: %s [options] URI OUTDIR\n"
-    "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+        fprintf(stderr, 
+        "create content object chunks for the input data and writes them "
+        "to the files into the given directory.\n"
+        "usage: %s [options] URI OUTDIR\n"
+        "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
         "  -i FNAME   input file (instead of stdin)\n"
-    "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
         "  -p DIGEST  publisher fingerprint\n"
         "  -k FNAME   publisher private key\n"
-        "  -f packet type [CCNB | NDNTLV | CCNTLV]"
-        "  -w STRING  witness\n"       ,
+        "  -w STRING  witness\n"       
+        ,
         argv[0]);
         exit(1);
         }
@@ -206,11 +213,10 @@ Usage:
     }
 
     if (S_ISREG (st_buf.st_mode)) {
-        printf ("%s is a file and not a directory.\n", argv[optind]);
+        printf ("Error: %s is a file and not a directory.\n", argv[optind]);
         goto Usage;
     }
     if (S_ISDIR (st_buf.st_mode)) {
-        printf ("%s is a directory.\n", argv[optind]);
         fdir = open(outdirname, O_RDWR);
     }
 
@@ -226,37 +232,73 @@ Usage:
     // TODO add flag for var max chunk size (must be smaller than max chunk size)
     chunkSize = CCNL_MAX_CHUNK_SIZE;
     chunkSize = 5;
-    i = 0;
+
 
     char outfilename[255];
+    char chunk_buf[chunkSize];
     int is_last = 0;
-    printf("startchunking...\n");
-
+    struct chunk *first_chunk = NULL;
+    struct chunk *cur_chunk = NULL;
+    struct chunk *chunk = NULL;
+    int num_chunks = 0;
 
     do {
-        chunkSizeOrRest = read(f, chunk, chunkSize);
+        chunk_len = read(f, chunk_buf, chunkSize);
+
         // Remove linefeed, found last chunk
-        if(chunk[chunkSizeOrRest-1] == 10) {
-            chunkSizeOrRest--;
+        if(chunk_buf[chunk_len-1] == 10) {
+            chunk_len--;
             is_last = 1;
         }
-
-        // Did not read anything more from buffer, need empty chunk with finalblockid
-        if(chunkSizeOrRest == 0) {
-            is_last = 1;
+        if(chunk_len <= 0) {
+            break;
         }
 
-        printf("chunk (s=%i): '%.*s'\n", chunkSizeOrRest, chunkSizeOrRest, chunk);
+        num_chunks += 1;
+
+        chunk = malloc(sizeof(struct chunk));
+        strcpy(chunk->data, chunk_buf);
+        chunk->len = chunk_len;
+        chunk->next = NULL;
+
+        if(cur_chunk == NULL) {
+            first_chunk = chunk;
+        } else {
+            cur_chunk->next = chunk;
+        }
+        cur_chunk = chunk;
+    } while(!is_last);
+    close(f);
+
+    cur_chunk = first_chunk;
+
+    strcpy(final_chunkname_with_number, chunkname);
+    sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
+    i = 0;
+    char *chunk_data = NULL;
+    while(cur_chunk != NULL) {
+        chunk_data = cur_chunk->data;
+        chunk_len = cur_chunk->len;
+
         strcpy(chunkname_with_number, chunkname);
         sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
         prefix[name_prefix_count] = chunkname_with_number;
 
         if(packettype == 0){ //CCNB
-            contentlen = ccnl_ccnb_mkContent(prefix, publisher, plen, chunk, chunkSizeOrRest, private_key_path, witness, out);
+            contentlen = ccnl_ccnb_mkContent(prefix, 
+                                             publisher, plen, 
+                                             (unsigned char *)chunk_data, chunk_len, 
+                                             private_key_path, witness, 
+                                             out);
         }
         else if(packettype == 2){ //NDNTLV
             int len2 = CCNL_MAX_PACKET_SIZE;
-            contentlen = ccnl_ndntlv_mkContent(prefix, chunk, chunkSizeOrRest, &len2, (is_last ? (unsigned char *)chunkname_with_number : NULL), out);
+            contentlen = ccnl_ndntlv_mkContent(prefix, 
+                                               (unsigned char *)chunk_data, chunk_len, 
+                                                &len2, 
+                                                (unsigned char *)final_chunkname_with_number, 
+                                                strlen(final_chunkname_with_number), 
+                                                out);
             memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
             contentlen = CCNL_MAX_PACKET_SIZE - len2;
         } else {
@@ -267,29 +309,12 @@ Usage:
         strcat(outfilename, "/");
         strcat(outfilename, chunkname_with_number);
 
-        printf("outfilename '%s': '%s' \n", outfilename, out);
-
-        fout = open(outfilename, O_RDWR);
         fout = creat(outfilename, 0666);
         write(fout, out, contentlen);
         close(fout);
-
         i++;
-    } while(!is_last && chunkSizeOrRest >= 0);
-
-    prefix[name_prefix_count + 1] = NULL;
-
-    close(f);
-
-    // if (outfname) {
-    // f = creat(outfname, 0666);
-    //   if (f < 0)
-    // perror("file open:");
-    // } else
-    //   f = 1;
-    // write(f, out, len);
-    // close(f);
-
+        cur_chunk = cur_chunk->next;
+    }
     return 0;
 }
 
