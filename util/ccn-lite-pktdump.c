@@ -34,7 +34,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
-#define USE_SUITE_CCNNDN
+#define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
 
