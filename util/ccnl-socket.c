@@ -35,6 +35,7 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "pkt-ndntlv-enc.c"
 
 char *unix_path;
 
@@ -161,6 +162,7 @@ request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
     if (rc == 1) {
 	len2 = recv(sock, buf, sizeof(buf), 0);
 	if (len2 > 0) {
+
 	    write(1, buf, len2);
 	    myexit(0);
 	}

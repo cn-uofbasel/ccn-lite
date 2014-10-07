@@ -163,7 +163,7 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 
 int
 ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
-		      int *offset, unsigned char *finalBlockId, unsigned char *buf)
+		      int *offset, unsigned char *finalBlockId, int len_finalBlockId, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt = 0;
 
@@ -173,11 +173,17 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
     }
 
     if(finalBlockId) {
-        unsigned char metaInf[2] = { NDN_TLV_FinalBlockId, 0x00 };
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_MetaInfo, metaInf, 2, offset, buf) < 0) {
+        oldoffset2 = *offset;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
+                                    finalBlockId, len_finalBlockId, 
+                                    offset, buf) < 0) {
             return -1;
         }
-    } 
+        if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, 
+                                  oldoffset2 - *offset, offset, buf) < 0) {
+            return -1;
+        }
+    }
 
     // find component count
     while(namecomp[cnt]) {

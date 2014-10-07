@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-09-01 created
+ * 2014-09-01 created <basil.kohler@unibas.ch>
  */
 
 #define USE_SUITE_CCNB
