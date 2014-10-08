@@ -430,7 +430,7 @@ normal:
         else if(iscontentname(cp)){
             // is content...
             DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
-            struct ccnl_prefix_s *prefix = create_prefix_from_name(cp);
+            struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(cp);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }

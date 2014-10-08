@@ -81,7 +81,5 @@ struct ccnx_tlvhdr_ccnx201311_s {
 #define CCNX_TLV_C_Sigbits			0x000E
 #define CCNX_TLV_C_KeyLocator			0x000F
 
-int unescape_component(unsigned char *comp);
-
 #endif
 // eof
