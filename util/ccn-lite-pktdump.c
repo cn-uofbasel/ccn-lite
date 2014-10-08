@@ -43,6 +43,12 @@
 #include "../pkt-ndntlv-dec.c"
 #include "../pkt-localrpc.h"
 
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
