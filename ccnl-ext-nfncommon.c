@@ -38,9 +38,9 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
-    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s));
-    from->outq->data[0] = (long)strdup((char *)prefix->comp[0]);
+    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)prefix->comp[0]));
     from->outq->datalen = strlen((char *)prefix->comp[0]);
+    memcpy((char *)(from->outq->data), (char *)prefix->comp[0], from->outq->datalen);
 
     char *namecomps[CCNL_MAX_NAME_COMP];
     for(i = 0; i < prefix->compcnt; ++i){
@@ -74,7 +74,8 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
        }
        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
                                  &p, &nonce, &ppkd, &content, &contlen);
-       return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);
+       struct ccnl_interest_s *ret = ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);
+       return ret;
     }
     return 0;
 }
