@@ -224,7 +224,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
        return add_local_computation_components(config);
     }
     else{ //network search name components
-        unsigned char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+        char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
         createComputationString(config, parameter_number, comp);
         return add_computation_components(prefix, thunk_request, comp);
     }

@@ -84,7 +84,7 @@ ccntlv_mkInterest(char **namecomp, int *dummy, unsigned char *out, int outlen)
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_mkInterest(namecomp, -1, &offset, out);
+    len = ccnl_ccntlv_mkInterestWithHdr(namecomp, -1, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
