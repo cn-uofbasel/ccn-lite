@@ -88,18 +88,17 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    int num; int typ;
+    int num, typ;
     unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     memset(out, 0, CCNL_MAX_PACKET_SIZE);
 
     char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
-    for(i = 0; i < prefix->compcnt; ++i)
-    {
+    for (i = 0; i < prefix->compcnt; ++i) {
         prefixcomps[i] = strdup((char *)prefix->comp[i]);
     }
     prefixcomps[prefix->compcnt] = 0;
 
-    if(suite == CCNL_SUITE_CCNB){
+    if (suite == CCNL_SUITE_CCNB) {
         len = ccnl_ccnb_mkContent(prefixcomps, (char*)contentstr, contentlen, out);
         if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
             return NULL;
@@ -108,10 +107,23 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                               &p, &nonce, &ppkd, &content, &contlen);
         return ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &buf, &p, &ppkd, content, contlen);
     }
-    else if(suite == CCNL_SUITE_CCNTLV){
-        // net yet implemeted;
-        return 0;
+#ifdef USE_SUITE_CCNTLV
+    else if (suite == CCNL_SUITE_CCNTLV){
+        int offs = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_ccntlv_mkContent(prefixcomps, contentstr, contentlen,
+				    &offs, out);
+        memmove(out, out+offs, CCNL_MAX_PACKET_SIZE - offs);
+        len = CCNL_MAX_PACKET_SIZE - offs;
+        if (ccnl_ccntlv_dehead(&out, &len, (unsigned int*)&num, (unsigned int*)&typ)){
+            return NULL;
+        }
+	scope = -1;
+        buf = ccnl_ccntlv_extract(0, &out, &len, 0, &p, &scope, NULL, NULL,
+				  &content, &contlen);
+        return ccnl_content_new(ccnl, CCNL_SUITE_CCNTLV, &buf, &p,
+				&ppkd, content, contlen);
     }
+#endif
     else if(suite == CCNL_SUITE_NDNTLV){
         int len2 = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_mkContent(prefixcomps, contentstr, contentlen, &len2, out);
@@ -199,39 +211,51 @@ int trim(char *str){  // inplace, returns len after shrinking
 }
 
 struct ccnl_prefix_s *
-add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, unsigned char *comp){
-    int i = 0;
+add_computation_components(struct ccnl_prefix_s *prefix,
+			   int thunk_request, char *comp)
+{
     /*while(namecomp[i]) ++i;
-
     namecomp[i++] = comp;
     if(thunk_request) namecomp[i++] = (unsigned char *)"THUNK";
     namecomp[i++] = (unsigned char *)"NFN";
     namecomp[i] = NULL;*/
 
-    int size = thunk_request ? 3 : 2;
+    DEBUGMSG(99, "add_computation_component(suite=%d, %s)\n", prefix->suite, comp);
 
+    int incr = thunk_request ? 3 : 2, i, len, l1, l2;
     struct ccnl_prefix_s *ret = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-    ret->comp = ccnl_malloc((prefix->compcnt +size) * sizeof(char*));
-    ret->complen = ccnl_malloc((prefix->compcnt +size) * sizeof(int));
-    ret->compcnt = prefix->compcnt +size;
-    ret->path = NULL;
-    for(i = 0; i < prefix->compcnt; ++i){
-#ifndef USE_UTIL
-        DEBUGMSG(99, "COPY %s\n", prefix->comp[i]);
-#endif
-        ret->comp[i] = (unsigned char*)strdup((char*)prefix->comp[i]);
-        ret->complen[i] = prefix->complen[i];
+    unsigned char buf1[20], buf2[20];
+
+    ret->comp = ccnl_malloc((prefix->compcnt +incr) * sizeof(char*));
+    ret->complen = ccnl_malloc((prefix->compcnt +incr) * sizeof(int));
+    ret->suite = prefix->suite;
+
+    for (i = 0, len = 0; i < prefix->compcnt; i++)
+	len += prefix->complen[i];
+    len += 4 + strlen(comp);
+    if (thunk_request)
+	len += l1 = ccnl_pkt_mkComponent(prefix->suite, buf1, "THUNK");
+    len += l2 = ccnl_pkt_mkComponent(prefix->suite, buf2, "NFN");
+    ret->path = ccnl_malloc(len);
+    for (i = 0, len = 0; i < prefix->compcnt; i++) {
+	ret->comp[i] = ret->path + len;
+	memcpy(ret->comp[i], prefix->comp[i], prefix->complen[i]);
+	len += prefix->complen[i];
     }
-    ret->comp[i] = comp;
-    ret->complen[i] = strlen((char*)comp);
-    ++i;
-    if(thunk_request){
-        ret->comp[i] = (unsigned char *)"THUNK";
-        ret->complen[i] = strlen("THUNK");
-        ++i;
+    ret->comp[i] = ret->path + len;
+    len += ccnl_pkt_mkComponent(prefix->suite, ret->comp[i], comp);
+    i++;
+    if (thunk_request) {
+	ret->comp[i] = ret->path + len;
+	memcpy(ret->comp[i], buf1, l1);
+	len += l1;
+	i++;
     }
-    ret->comp[i] = (unsigned char *)"NFN";
-    ret->complen[i] = strlen("NFN");
+    ret->comp[i] = ret->path + len;
+    memcpy(ret->comp[i], buf2, l2);
+    i++;
+    ret->compcnt = i;
+    free_prefix(prefix);
 
     return ret;
 }
@@ -266,13 +290,24 @@ add_local_computation_components(struct configuration_s *config){
     ret->comp[i] = (unsigned char *)strdup(comp);
     ret->complen[i] = strlen(comp);
     ++i;
-    if(config->fox_state->thunk_request){
-        ret->comp[i] = (unsigned char *)"THUNK";
-        ret->complen[i] = strlen("THUNK");
+
+#ifdef USE_SUITE_CCNTLV
+    if (config->fox_state->thunk_request) {
+        ret->comp[i] = (unsigned char *) "\x00\x01\x00\x05THUNK";
+        ret->complen[i] = 4 + strlen("THUNK");
+        ++i;
+    }
+    ret->comp[i] = (unsigned char *) "\x00\x01\x00\x03NFN";
+    ret->complen[i] = 4 + strlen("NFN");
+#else
+    if (config->fox_state->thunk_request) {
+	ret->comp[i] = (unsigned char *)"THUNK";
+	ret->complen[i] = strlen("THUNK");
         ++i;
     }
     ret->comp[i] = (unsigned char *)"NFN";
     ret->complen[i] = strlen("NFN");
+#endif
 
     ret->compcnt = i+1;
 
@@ -280,27 +315,27 @@ add_local_computation_components(struct configuration_s *config){
 }
 
 int
-createComputationString(struct configuration_s *config, int parameter_num, unsigned char *comp){
+createComputationString(struct configuration_s *config, int parameter_num, char *comp){
 
     int i;
     int complen = sprintf((char*)comp, "(@x call %d", config->fox_state->num_of_params);
     for(i = 0; i < config->fox_state->num_of_params; ++i){
         if(parameter_num == i){
-            complen += sprintf((char*)comp + complen, " x");
+            complen += sprintf(comp + complen, " x");
         }
         else{
             //complen += sprintf((char*)comp + complen, "%s ", config->fox_state->params[j]);
 
             if(config->fox_state->params[i]->type == STACK_TYPE_INT)
-                complen += sprintf((char *)comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
+                complen += sprintf(comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
             else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX)
-                complen += sprintf((char *)comp+complen, " %s", ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
+                complen += sprintf(comp+complen, " %s", ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
 #ifndef USE_UTIL
             else DEBUGMSG(1, "Invalid type in createComputationString() %d\n", config->fox_state->params[i]->type);
 #endif
         }
     }
-    complen += sprintf((char*)comp + complen, ")");
+    complen += sprintf(comp + complen, ")");
     return complen;
 }
 
@@ -408,14 +443,15 @@ char *
 ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
     DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
     struct ccnl_prefix_s *new_prefix;
+    struct thunk_s *thunk;
     ccnl_nfn_copy_prefix(prefix, &new_prefix);
     
-    if(!strncmp((char *)new_prefix->comp[new_prefix->compcnt-2], "THUNK", 5)){
-        new_prefix->comp[new_prefix->compcnt-2] = (unsigned char*)"NFN";
-        new_prefix->comp[new_prefix->compcnt-1] = NULL;
+    if (ccnl_isTHUNK(new_prefix)) {
+        new_prefix->comp[new_prefix->compcnt-2] = new_prefix->comp[new_prefix->compcnt-1];
         --new_prefix->compcnt;
-    }    
-    struct thunk_s *thunk = ccnl_malloc(sizeof(struct thunk_s));
+    }
+
+    thunk = ccnl_calloc(1, sizeof(struct thunk_s));
     thunk->prefix = new_prefix;
     thunk->reduced_prefix = create_prefix_for_content_on_result_stack(ccnl, config);
     sprintf(thunk->thunkid, "THUNK%d", ccnl->km->thunkid++);

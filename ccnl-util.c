@@ -294,6 +294,36 @@ ccnl_lambdaStrToComponents(char **compVector, char *str)
     return ccnl_URItoComponents(compVector, str);
 }
 
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
+{
+    int len = 0;
+
+//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
+
+    switch (suite) {
+#ifdef USE_CCNL_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	len = strlen(src);
+	*(unsigned short*)dst = htons(CCNX_TLV_N_UTF8);
+	dst += sizeof(unsigned short);
+	*(unsigned short*)dst = len;
+	dst += sizeof(unsigned short);
+	memcpy(dst, src, len);
+	len += 2*sizeof(unsigned short);
+	break;
+#endif
+    default:
+	len = strlen(src);
+	memcpy(dst, src, len);
+	break;
+    }
+    return len;
+}
+
 // ----------------------------------------------------------------------
 
 #endif //CCNL_UTIL_C

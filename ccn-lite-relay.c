@@ -350,7 +350,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
 	    relay->ifcount++;
-	    DEBUGMSG(99, "new ETH interface (%s %s) configured\n",
+	    DEBUGMSG(99, "ETH interface (%s %s) configured\n",
 		     ethdev, ccnl_addr2ascii(&i->addr));
 	    if (relay->defaultInterfaceScheduler)
 		i->sched = relay->defaultInterfaceScheduler(relay,
@@ -376,7 +376,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	i->fwdalli = 1;
 	if (i->sock >= 0) {
 	    relay->ifcount++;
-	    DEBUGMSG(99, "new UDP interface (ip4 %s) configured\n",
+	    DEBUGMSG(1, "UDP interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
 	    if (relay->defaultInterfaceScheduler)
 		i->sched = relay->defaultInterfaceScheduler(relay,
@@ -403,7 +403,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 	i->mtu = 4096;
 	if (i->sock >= 0) {
 	    relay->ifcount++;
-	    DEBUGMSG(99, "new UNIX interface (%s) configured\n",
+	    DEBUGMSG(99, "UNIX interface (%s) configured\n",
 		     ccnl_addr2ascii(&i->addr));
 	    if (relay->defaultInterfaceScheduler)
 		i->sched = relay->defaultInterfaceScheduler(relay,
@@ -691,11 +691,16 @@ main(int argc, char **argv)
         case 's':
 	    opt = atoi(optarg);
 	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
-		break;
+		goto usage;
 	    suite = opt;
 	    switch (suite) {
 #ifdef USE_SUITE_CCNB
 	    case CCNL_SUITE_CCNB:
+		udpport = httpport = CCN_UDP_PORT;
+		break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+	    case CCNL_SUITE_CCNTLV:
 		udpport = httpport = CCN_UDP_PORT;
 		break;
 #endif
@@ -725,13 +730,14 @@ main(int argc, char **argv)
             break;
         case 'h':
         default:
+usage:
             fprintf(stderr,
 		    "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
 		    " [-d databasedir]"
 		    " [-e ethdev]"
 		    " [-g MIN_INTER_PACKET_INTERVAL]"
 		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
-		    " [-s SUITE (0=ccnb, 2=ndntlv)"
+		    " [-s SUITE (0=ccnb, 1=ccntlv, 2=ndntlv, resets ports)"
 		    " [-t tcpport (for HTML status page)]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"

@@ -27,9 +27,9 @@ struct ccnx_tlvhdr_ccnx201311_s {
     unsigned char version;
     unsigned char msgtype;
     uint16_t msglen;
-    uint16_t reserved;
     uint16_t hdrlen;
-};
+    uint16_t reserved;
+} __attribute__((packed));
 
 #define CCNX_TLV_V0				0
 
