@@ -1,151 +1,230 @@
-/* 
-Fetches the data for a CCN name.
-The name can either represent a single content object or a chunked content object.
-If the first object is a junk, it checks for a final block id.
-If it is not available, it will sequentially fetch each chunk until 
-a chunk is received with the final block id. If the chunk id is equal to the final block id
-all data is fetched, otherwise windowed mode is entered.
-Window mode will eventually make it possible to implement tcp-like content fetch 
-for congestion control, however currently we simply send out interets for all chunks.
-*/
+
+/*
+ * @f util/ccn-lite-peek.c
+ * @b request content: send an interest, wait for reply, output to stdout
+ *
+ * Copyright (C) 2013-14, Christian Tschudin, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2013-04-06  created
+ * 2014-06-18  added NDNTLV support
+ */
+
 #include <ctype.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
+#define USE_SUITE_CCNB
+#define USE_SUITE_NDNTLV
+
+#include "../ccnl-includes.h"
+
 #include "../ccnl.h"
+#include "../ccnl-core.h"
+
+
+#include "../ccnl-ext-debug.c"
+#include "../ccnl-ext.h"
+#include "../ccnl-platform.c"
+
+#include "../ccnl-util.c"
+#include "../ccnl-core.c"
 
 #include "ccnl-common.c"
-#include "../krivine-common.c"
 
-#include "ccnl-socket.c"
+
+#ifdef USE_SUITE_NDNTLV
+# include "../pkt-ndntlv.h"
+# include "pkt-ndntlv-enc.c"
+#endif
+
+#ifdef USE_SUITE_CCNB
+# include "../pkt-ccnb.h"
+# include "../pkt-ccnb-dec.c"
+# include "../pkt-ccnb-enc.c"
+#endif
+
+
+#include "../ccnl-ext-http.c"
+#include "../ccnl-ext-mgmt.c"
+#include "../ccnl-ext-sched.c"
+#include "../ccnl-ext-frag.c"
+// #include "../fwd-ndntlv.c"
+
+// ----------------------------------------------------------------------
+
+char *unix_path;
+
+void
+myexit(int rc)
+{
+    if (unix_path)
+    unlink(unix_path);
+    exit(rc);
+}
 
 // ----------------------------------------------------------------------
 
 int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
+ndntlv_mkInterest(char **namecomp, int *nonce,
+          unsigned char *out, int outlen)
 {
-    unsigned char tmp[100];
-    int len = 0, i;
+    int len, offset;
 
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
+    offset = outlen;
+    len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
+    memmove(out, out + offset, len);
 
-    while (num > 0) {
-    tmp[len++] = num & 0x7f;
-    num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-    *buf++ = tmp[i];
     return len;
+}
+
+
+
+// ----------------------------------------------------------------------
+
+int
+udp_open()
+{
+    int s;
+    struct sockaddr_in si;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0) {
+    perror("udp socket");
+    exit(1);
+    }
+    si.sin_addr.s_addr = INADDR_ANY;
+    si.sin_port = htons(0);
+    si.sin_family = PF_INET;
+    if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
+        perror("udp sock bind");
+    exit(1);
+    }
+
+    return s;
 }
 
 int
-ccnb_mkInterest(char **namecomp,
-       char *minSuffix, char *maxSuffix,
-       unsigned char *digest, int dlen,
-       unsigned char *publisher, int plen,
-       char *scope,
-       uint32_t *nonce,
-       unsigned char *out)
+ux_open()
 {
-    int len = 0, k;
+static char mysockname[200];
+ int sock, bufsize;
+    struct sockaddr_un name;
 
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
+    unlink(mysockname);
 
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = unescape_component((unsigned char*) *namecomp);
-    len += mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
+    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (sock < 0) {
+    perror("opening datagram socket");
+    exit(1);
     }
-    if (digest) {
-    len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    len += mkHeader(out+len, dlen, CCN_TT_BLOB);
-    memcpy(out+len, digest, dlen);
-    len += dlen;
-    out[len++] = 0; // end-of-component
-    if (!maxSuffix)
-        maxSuffix = "0";
-    }
-    out[len++] = 0; // end-of-name
-
-    if (minSuffix) {
-    k = strlen(minSuffix);
-    len += mkHeader(out+len, CCN_DTAG_MINSUFFCOMP, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, minSuffix, k);
-    len += k;
-    out[len++] = 0; // end-of-minsuffcomp
+    name.sun_family = AF_UNIX;
+    strcpy(name.sun_path, mysockname);
+    if (bind(sock, (struct sockaddr *) &name,
+         sizeof(struct sockaddr_un))) {
+    perror("binding path name to datagram socket");
+    exit(1);
     }
 
-    if (maxSuffix) {
-    k = strlen(maxSuffix);
-    len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, maxSuffix, k);
-    len += k;
-    out[len++] = 0; // end-of-maxsuffcomp
-    }
+    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
-    if (publisher) {
-    len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-    len += mkHeader(out+len, plen, CCN_TT_BLOB);
-    memcpy(out+len, publisher, plen);
-    len += plen;
-    out[len++] = 0; // end-of-component
-    }
-
-    if (scope) {
-    k = strlen(scope);
-    len += mkHeader(out+len, CCN_DTAG_SCOPE, CCN_TT_DTAG);
-    len += mkHeader(out+len, k, CCN_TT_UDATA);
-    memcpy(out + len, (unsigned char*)scope, k);
-    len += k;
-    out[len++] = 0; // end-of-maxsuffcomp
-    }
-
-    if (nonce) {
-    len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-    len += mkHeader(out+len, sizeof(*nonce), CCN_TT_BLOB);
-    memcpy(out+len, (void*)nonce, sizeof(*nonce));
-    len += sizeof(*nonce);
-    out[len++] = 0; // end-of-nonce
-    }
-
-    out[len++] = 0; // end-of-interest
-
-    return len;
+    unix_path = mysockname;
+    return sock;
 }
 
+// ----------------------------------------------------------------------
 
-int main(int argc, char **argv){
+int
+block_on_read(int sock, float wait)
+{
+    fd_set readfs;
+    struct timeval timeout;
+    int rc;
 
-    unsigned char out[CCNL_MAX_PACKET_SIZE];
-    int i = 0, len, opt, sock = 0;
-    char *namecomp[CCNL_MAX_NAME_COMP], *cp, *dest, *comp;
-    char *udp = "127.0.0.1/9695", *ux = NULL;
+    FD_ZERO(&readfs);
+    FD_SET(sock, &readfs);
+    timeout.tv_sec = wait;
+    timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
+    rc = select(sock+1, &readfs, NULL, NULL, &timeout);
+    if (rc < 0)
+    perror("select()");
+    return rc;
+}
+
+#ifdef USE_SUITE_CCNB
+int ccnb_isContent(unsigned char *buf, int len)
+{
+    int num, typ;
+    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
+    return -1;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+    return 0;
+    return 1;
+}
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+int ndntlv_isData(unsigned char *buf, int len)
+{
+    return 1;
+    int typ, vallen;
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+    return -1;
+    if (typ != NDN_TLV_Data)
+    return 0;
+    return 1;
+}
+#endif
+
+
+// ----------------------------------------------------------------------
+
+int
+main(int argc, char *argv[])
+{
+    unsigned char out[64*1024];
+    int cnt, i=0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
+    struct sockaddr sa;
     float wait = 3.0;
-    int (*sendproc)(int,char*,unsigned char*,int);
-    int print = 0;
-    int thunk_request = 0;
-    char *prefix[CCNL_MAX_NAME_COMP];
+    int (*mkInterest)(char**,int*,unsigned char*,int);
+    int (*isContent)(unsigned char*,int);
 
-    while ((opt = getopt(argc, argv, "hptu:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
+        case 's':
+        suite = atoi(optarg);
+        break;
         case 'u':
         udp = optarg;
         break;
@@ -155,64 +234,258 @@ int main(int argc, char **argv){
         case 'x':
         ux = optarg;
         break;
-        case 'p':
-            print = 1;
-            break;
-        case 't':
-            thunk_request = 1;
-            break;
         case 'h':
         default:
 Usage:
         fprintf(stderr, "usage: %s "
-        "[-u host/port] [-x ux_path_name] [-w timeout] COMPUTATION URI\n"
-        "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
+        "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
+        "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
+        "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
         "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
         "  -w timeout       in sec (float)\n"
-        "  -p               print interest on console and exit\n",
+        "Example URI: /ndn/edu/wustl/ping\n",
         argv[0]);
         exit(1);
         }
     }
-    if (!argv[optind]) {
-        goto Usage;
-    }
-    cp = strtok(argv[optind], "|");
 
+    if (!argv[optind]) 
+    goto Usage;
+
+    srandom(time(NULL));
+
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+    mkInterest = ccnl_ccnb_mkInterest;
+    isContent = ccnb_isContent;
+    break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+    mkInterest = ndntlv_mkInterest;
+    isContent = ndntlv_isData;
+    break;
+#endif
+    default:
+    printf("CCNx-TLV not supported at this time, aborting\n");
+    exit(-1);
+    }
+
+    if (ux) { // use UNIX socket
+    struct sockaddr_un *su = (struct sockaddr_un*) &sa;
+    su->sun_family = AF_UNIX;
+    strcpy(su->sun_path, ux);
+    sock = ux_open();
+    } else { // UDP
+    struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+    si->sin_family = PF_INET;
+    si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
+    si->sin_port = htons(atoi(strtok(NULL, "/")));
+    sock = udp_open();
+    }
+
+    for (cnt = 0; cnt < 3; cnt++) {
+    char *uri = strdup(argv[optind]), *cp;
+    int nonce = random();
+
+    cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
         prefix[i++] = cp;
         cp = strtok(NULL, "|");
     }
     prefix[i] = NULL;
-        if(packettype == 0){
-        len = ccnb_mkInterest(prefix,
-             minSuffix, maxSuffix,
-             digest, dlen,
-             publisher, plen,
-             scope, &nonce,
-             out);
-    }
-    else if(packettype ==1){
-        printf("Not Implemented yet\n");
-    }
-    else if(packettype == 2){
-        len = ndntlv_mkInterest(prefix, (int*)&nonce, out, CCNL_MAX_PACKET_SIZE);
+    len = mkInterest(prefix, &nonce, out, sizeof(out));
+
+    free(uri);
+
+
+    if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
+        perror("sendto");
+        myexit(1);
     }
 
-    if(print){
-        fwrite(out, sizeof(char), len, stdout);
-        return 0;
-    }
+    for (;;) { // wait for a content pkt (ignore interests)
+        int rc;
 
-    if (ux) { // use UNIX socket
-        dest = ux;
-        sock = ux_open();
-        sendproc = ux_sendto;
-    } else { // UDP
-        dest = udp;
-        sock = udp_open();
-        sendproc = udp_sendto;
+        if (block_on_read(sock, wait) <= 0) // timeout
+        break;
+        len = recv(sock, out, sizeof(out), 0);
+/*
+        fprintf(stderr, "received %d bytes\n", len);
+        if (len > 0)
+        fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+*/
+
+        // *** parse content ************************
+        unsigned char **data; 
+        int *datalen;
+
+        int len = 0, typ;
+        int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
+        struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
+        unsigned char *content = 0, *cp = *data;
+
+
+        if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
+        return -1;
+        buf = ccnl_ndntlv_extract(*data - cp,
+                      data, datalen,
+                      &scope, &mbf, &minsfx, &maxsfx, 0, 0,
+                      &p, &nonce, &ppkl, &content, &contlen);
+        if (!buf) {
+            DEBUGMSG(6, "parsing error or no prefix\n"); goto Done;
+        } 
+        if (typ == NDN_TLV_Interest) {
+            DEBUGMSG(99, "created new interest entry %p\n", (void *) i);
+        } else { // data packet with content -------------------------------------
+            DEBUGMSG(99, "data[%s -> '%s']\n", ccnl_prefix_to_path(p), data);
+        }
+
+        // *** parse content ***********************
+
+        rc = isContent(out, len);
+        if (rc < 0)
+        goto done;
+        if (rc == 0) { // it's an interest, ignore it
+        fprintf(stderr, "skipping non-data packet\n");
+        continue;
+        }
+        write(1, out, len);
+        myexit(0);
     }
-    request_content(sock, sendproc, dest, out, len, wait);
-    return 0;
+    if (cnt < 2)
+        fprintf(stderr, "re-sending interest\n");
+    }
+    fprintf(stderr, "timeout\n");
+
+done:
+    close(sock);
+    myexit(-1);
+    return 0; // avoid a compiler warning
 }
+
+// eof
+
+
+
+// int main(int argc, char **argv){
+
+//     unsigned char out[CCNL_MAX_PACKET_SIZE];
+//     int i = 0, len, opt, sock = 0;
+//     char *namecomp[CCNL_MAX_NAME_COMP], *cp, *dest, *comp;
+//     char *udp = "127.0.0.1/9695", *ux = NULL;
+//     float wait = 3.0;
+//     int (*sendproc)(int,char*,unsigned char*,int);
+//     int print = 0;
+//     int thunk_request = 0;
+//     char *prefix[CCNL_MAX_NAME_COMP];
+
+//     while ((opt = getopt(argc, argv, "hptu:w:x:")) != -1) {
+//         switch (opt) {
+//         case 'u':
+//         udp = optarg;
+//         break;
+//         case 'w':
+//         wait = atof(optarg);
+//         break;
+//         case 'x':
+//         ux = optarg;
+//         break;
+//         case 't':
+//             thunk_request = 1;
+//             break;
+//         case 'h':
+//         default:
+// Usage:
+//         fprintf(stderr, "usage: %s "
+//         "[-u host/port] [-x ux_path_name] [-w timeout] COMPUTATION URI\n"
+//         "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
+//         "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
+//         "  -w timeout       in sec (float)\n"
+//         argv[0]);
+//         exit(1);
+//         }
+//     }
+//     if (!argv[optind]) {
+//         goto Usage;
+//     }
+//     cp = strtok(argv[optind], "|");
+
+//     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
+//         prefix[i++] = cp;
+//         cp = strtok(NULL, "|");
+//     }
+//     prefix[i] = NULL;
+//         if(packettype == 0){
+//         len = ccnb_mkInterest(prefix,
+//              minSuffix, maxSuffix,
+//              digest, dlen,
+//              publisher, plen,
+//              scope, &nonce,
+//              out);
+//     }
+//     else if(packettype == 1){
+//         printf("Not yet implemented\n");
+//     }
+//     else if(packettype == 2){
+//         len = ndntlv_mkInterest(prefix, (int*)&nonce, out, CCNL_MAX_PACKET_SIZE);
+//     }
+
+//     if (ux) { // use UNIX socket
+//         dest = ux;
+//         sock = ux_open();
+//         sendproc = ux_sendto;
+//     } else { // UDP
+//         dest = udp;
+//         sock = udp_open();
+//         sendproc = udp_sendto;
+//     }
+
+//     //***
+
+//     char *private_key_path; 
+//     char *witness;
+//     unsigned char body[64*1024];
+//     unsigned char out[65*1024];
+//     unsigned char *publisher = 0;
+//     char *infname = 0, *outfname = 0;
+//     int i = 0, f, len, opt, plen;
+//     char *prefix[CCNL_MAX_NAME_COMP], *cp;
+//     int packettype = 2;
+//     private_key_path = 0;
+//     witness = 0;
+
+//     f = 0;
+//     len = read(f, body, sizeof(body));
+
+//     int len2 = CCNL_MAX_PACKET_SIZE;
+//     len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, NULL, -1, out);
+//     memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
+//     len = CCNL_MAX_PACKET_SIZE - len2;
+
+//     //***
+
+
+//     // // request_content
+//     // unsigned char buf[64*1024];
+//     // int len2 = sendproc(sock, dest, out, len), rc;
+
+//     // if (len2 < 0) {
+//     // perror("sendto");
+//     // myexit(1);
+//     // }
+    
+//     // rc = block_on_read(sock, wait);
+//     // if (rc == 1) {
+//     // len2 = recv(sock, buf, sizeof(buf), 0);
+//     // if (len2 > 0) {
+//     //     write(1, buf, len2);
+//     //     myexit(0);
+//     // }
+//     // }
+//     return 0;
+
+//     Error:
+//     return 1;
+// }
