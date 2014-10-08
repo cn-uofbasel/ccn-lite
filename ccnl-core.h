@@ -236,6 +236,14 @@ struct ccnl_content_s {
     char suite;
 };
 
+struct ccnl_lambdaTerm_s {
+    char *v;
+    struct ccnl_lambdaTerm_s *m, *n;
+    // if m is 0, we have a var  v
+    // is both m and n are not 0, we have an application  (M N)
+    // if n is 0, we have a lambda term  @v M
+};
+
 // ----------------------------------------------------------------------
 // macros for double linked lists (these double linked lists are not rings)
 

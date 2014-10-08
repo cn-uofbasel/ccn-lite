@@ -37,7 +37,14 @@
 #include "../pkt-ccnb.h"
 #include "../pkt-ccntlv-enc.c"
 #include "../pkt-ndntlv-enc.c"
+
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------

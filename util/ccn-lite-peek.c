@@ -46,21 +46,21 @@
 
 #include "../ccnl.h"
 
-#ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
-#endif
 
-#ifdef USE_SUITE_CCNTLV
 # include "../pkt-ccntlv-dec.c"
 # include "../pkt-ccntlv-enc.c"
-#endif
 
-#ifdef USE_SUITE_NDNTLV
 # include "../pkt-ndntlv-dec.c"
 # include "../pkt-ndntlv-enc.c"
-#endif
 
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
