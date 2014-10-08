@@ -59,7 +59,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
        if(ccnl_ndntlv_dehead(&out, &len, &typ, &num)){
            return 0;
        }
-       buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+       buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx, 0, 0,
                                  &p, &nonce, &ppkd, &content, &contlen);
        return ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);
     }
@@ -102,7 +102,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     else if(suite == CCNL_SUITE_NDNTLV){
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefixcomps, contentstr, contentlen, &len2, out);
+        len = ccnl_ndntlv_mkContent(prefixcomps, contentstr, contentlen, &len2, 0, 0, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
 
@@ -110,7 +110,7 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         if(ccnl_ndntlv_dehead(&out, &len, &typ, &num)){
             return NULL;
         }
-        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx, 0, 0,
                                   &p, &nonce, &ppkd, &content, &contlen);
         return ccnl_content_new(ccnl, CCNL_SUITE_NDNTLV, &buf, &p, &ppkd, content, contlen);
     }

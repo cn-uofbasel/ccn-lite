@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #include "../pkt-ccnb.h"
 #include "../pkt-ccnb-enc.c"

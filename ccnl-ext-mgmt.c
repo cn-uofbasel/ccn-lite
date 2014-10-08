@@ -1537,7 +1537,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             break;
         case CCNL_SUITE_NDNTLV:
             datalen = datalen - 7;
-            pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen, 0, 0, 0, 0,
+            pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen, 0, 0, 0, 0, 0, 0,
                               &prefix_a, &nonce, &ppkd, &content, &contlen);
             break;
         default:

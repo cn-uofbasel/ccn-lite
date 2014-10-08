@@ -35,7 +35,6 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "pkt-ndntlv-enc.c"
 
 char *unix_path;
 

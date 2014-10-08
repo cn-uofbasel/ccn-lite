@@ -31,7 +31,9 @@
 struct ccnl_buf_s*
 ccnl_ndntlv_extract(int hdrlen,
 		    unsigned char **data, int *datalen,
-		    int *scope, int *mbf, int *min, int *max,
+		    int *scope, int *mbf, int *min, int *max, 
+            unsigned char *finalblockid,
+            int *len_finalblockid,
 		    struct ccnl_prefix_s **prefix,
 		    struct ccnl_buf_s **nonce,
 		    struct ccnl_buf_s **ppkl,
@@ -106,6 +108,24 @@ ccnl_ndntlv_extract(int hdrlen,
             *contlen = len;
 	    }
 	    break;
+    case NDN_TLV_MetaInfo:
+        if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+            goto Bail;
+        if (typ == NDN_TLV_ContentType)
+            // Not used
+            // ccnl_ndntlv_nonNegInt(cp, i);
+        if (typ == NDN_TLV_FreshnessPeriod)
+            // Not used
+            // ccnl_ndntlv_nonNegInt(cp, i);
+        if (typ == NDN_TLV_FinalBlockId) {
+            if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                goto Bail;
+            if (typ == NDN_TLV_NameComponent && finalblockid && len_finalblockid) {
+                finalblockid = cp;
+                *len_finalblockid = i;
+            }  
+        }
+        break;
 	default:
 	    break;
 	}
@@ -149,7 +169,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	return -1;
     buf = ccnl_ndntlv_extract(*data - cp,
 			      data, datalen,
-			      &scope, &mbf, &minsfx, &maxsfx,
+			      &scope, &mbf, &minsfx, &maxsfx, 0, 0,
 			      &p, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
 	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;

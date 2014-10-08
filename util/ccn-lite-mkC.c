@@ -115,6 +115,7 @@ ccnl_ccnb_mkContent(char **namecomp,
     return len;
 }
 
+
 // ----------------------------------------------------------------------
 
 int
@@ -128,6 +129,7 @@ main(int argc, char *argv[])
     unsigned char *publisher = 0;
     char *infname = 0, *outfname = 0;
     int i = 0, f, len, opt, plen;
+    int chunk_num = -1, last_chunk_num = -1;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     int packettype = 2;
     private_key_path = 0;
@@ -160,18 +162,25 @@ main(int argc, char *argv[])
             exit(-1);
             }
             break;
+        case 'c':
+            chunk_num = atoi(optarg);
+            break;
+        case 'l':
+            last_chunk_num = atoi(optarg);
+            break;
         case 'h':
         default:
 Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
-	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+        "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
         "  -i FNAME   input file (instead of stdin)\n"
         "  -o FNAME   output file (instead of stdout)\n"
-	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
         "  -p DIGEST  publisher fingerprint\n"
         "  -k FNAME   publisher private key\n"
         "  -f packet type [CCNB | NDNTLV | CCNTLV]"
-        "  -w STRING  witness\n"       ,
+        "  -w STRING  witness"
+        "  -n CHUNKNUM chunknum"
+        "  -l LASTCHUNKNUM number of last chunk\n"       ,
 	    argv[0]);
 	    exit(1);
         }
@@ -199,8 +208,22 @@ Usage:
         len = ccnl_ccnb_mkContent(prefix, publisher, plen, body, len, private_key_path, witness, out);
     }
     else if(packettype == 2){ //NDNTLV
+        char *chunkname = "c";
+        char chunkname_with_number[20];
+        char last_chunkname_with_number[20];
+        strcpy(final_chunkname_with_number, chunkname);
+        sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", last_chunk_num);
+        strcpy(chunkname_with_number, chunkname);
+        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", chunk_num);
+        prefix[i] = chunkname_with_num;
+        i++;
+        prefix[i] = NULL;
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, NULL, -1, out);
+        len = ccnl_ndntlv_mkContent(prefix, 
+                                    body, len, &len2, 
+                                    (chunk_num >= 0 ? final_chunkname_with_number : 0), 
+                                    (chunk_num >= 0 ? strlen(final_chunkname_with_number) : 0), 
+                                    out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
     }
