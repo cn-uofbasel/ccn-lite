@@ -197,7 +197,9 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
 	    if (ccnl_nfn_request(relay, from, CCNL_SUITE_NDNTLV,
 							buf, p, minsfx, maxsfx))
-		goto Done;
+		    //Since the interest msg may be required in future it is not possible
+		    //to delete the interest/prefix here
+                return rc;
 	}
 #endif
         if (!i) {
