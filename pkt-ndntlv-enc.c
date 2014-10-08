@@ -141,7 +141,7 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
     for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
     while (--cnt >= 0) {
-	int len = unescape_component((unsigned char*) namecomp[cnt]);
+	int len = strlen(namecomp[cnt]);
 	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
 				 (unsigned char*) namecomp[cnt], len,
 				 offset, buf) < 0)
@@ -172,7 +172,7 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
     for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
     while (--cnt >= 0) {
-	int len = unescape_component((unsigned char*) namecomp[cnt]);
+	int len = strlen(namecomp[cnt]);
 	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
 				    (unsigned char*) namecomp[cnt], len,
 				    offset, buf) < 0)

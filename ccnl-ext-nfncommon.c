@@ -304,31 +304,6 @@ createComputationString(struct configuration_s *config, int parameter_num, unsig
     return complen;
 }
 
-struct ccnl_prefix_s *
-create_prefix_from_name(char* namestr)
-{ 
-    int i = 0, j = 0;
-    char *cp = NULL;
-    char *prefixcomp[CCNL_MAX_NAME_COMP];
-    struct ccnl_prefix_s *prefix = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-    cp = strtok(namestr, "/");
-    
-    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-        prefixcomp[i++] = (char *)cp;
-        cp = strtok(NULL, "/");
-    }
-    prefixcomp[i] = NULL;
-    prefix->comp = (unsigned char **)ccnl_malloc(i*sizeof(char*));
-    prefix->compcnt = i;
-    prefix->path = NULL;
-    prefix->complen = (int *)ccnl_malloc(i*sizeof(int));
-    for(j = 0; j < i; ++j){
-        prefix->complen[j] = strlen(prefixcomp[j]);
-        prefix->comp[j] = (unsigned char *)strdup(prefixcomp[j]);
-    }
-    return prefix;
-}
-
 #ifndef USE_UTIL
 void
 set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref){

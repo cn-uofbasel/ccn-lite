@@ -36,9 +36,9 @@ hex2int(char c)
 }
 
 int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
+unescape_component(char *comp) // inplace, returns len after shrinking
 {
-    unsigned char *in = comp, *out = comp;
+    char *in = comp, *out = comp;
     int len;
 
     for (len = 0; *in; len++) {
@@ -50,6 +50,64 @@ unescape_component(unsigned char *comp) // inplace, returns len after shrinking
 	in += 3;
     }
     return len;
+}
+
+int
+ccnl_URItoComponents(char **compVector, char *uri)
+{
+    int i, len;
+
+    if (*uri == '/')
+	uri++;
+
+    for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
+	compVector[i] = uri;
+	while (*uri && *uri != '/')
+	    uri++;
+	if (*uri) {
+	    *uri = '\0';
+	    uri++;
+	}
+	len = unescape_component(compVector[i]);
+	compVector[i][len] = '\0';
+    }
+    compVector[i] = NULL;
+
+    return i;
+}
+
+struct ccnl_prefix_s *
+ccnl_URItoPrefix(char* uri)
+{
+    struct ccnl_prefix_s *prefix = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    char *compvect[CCNL_MAX_NAME_COMP];
+    int i, len;
+
+    if (!prefix)
+	return NULL;
+    prefix->compcnt = ccnl_URItoComponents(compvect, uri);
+    prefix->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
+    prefix->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
+    if (!prefix->comp || !prefix->complen) {
+	free_prefix(prefix);
+	return NULL;
+    }
+    for (i = 0, len = 0; i < prefix->compcnt; i++) {
+	prefix->complen[i] = strlen(compvect[i]);
+	len += prefix->complen[i];
+    }
+    prefix->path = ccnl_malloc(len);
+    if (!prefix->path) {
+	free_prefix(prefix);
+	return NULL;
+    }
+    for (i = 0, len = 0; i < prefix->compcnt; i++) {
+	prefix->comp[i] = prefix->path + len;
+	memcpy(prefix->comp[i], compvect[i], prefix->complen[i]);
+	len += prefix->complen[i];
+    }
+
+    return prefix;
 }
 
 // ----------------------------------------------------------------------
@@ -228,6 +286,12 @@ ccnl_lambdaFreeTerm(struct ccnl_lambdaTerm_s *t)
 	ccnl_lambdaFreeTerm(t->n);
 	ccnl_free(t);
     }
+}
+
+int
+ccnl_lambdaStrToComponents(char **compVector, char *str)
+{
+    return ccnl_URItoComponents(compVector, str);
 }
 
 // ----------------------------------------------------------------------
