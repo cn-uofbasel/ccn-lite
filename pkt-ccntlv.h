@@ -27,9 +27,9 @@ struct ccnx_tlvhdr_ccnx201311_s {
     unsigned char version;
     unsigned char msgtype;
     uint16_t msglen;
-    uint16_t reserved;
     uint16_t hdrlen;
-};
+    uint16_t reserved;
+} __attribute__((packed));
 
 #define CCNX_TLV_V0				0
 
@@ -80,8 +80,6 @@ struct ccnx_tlvhdr_ccnx201311_s {
 #define CCNX_TLV_C_Create 			0x000D
 #define CCNX_TLV_C_Sigbits			0x000E
 #define CCNX_TLV_C_KeyLocator			0x000F
-
-int unescape_component(unsigned char *comp);
 
 #endif
 // eof

@@ -79,7 +79,4 @@
 #define CCN_DTAG_FragP		463
 #define CCN_DTAG_CCNPDU		17702112
 
-// ccnl-util.c
-int unescape_component(unsigned char *comp);
-
 // eof

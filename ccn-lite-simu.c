@@ -219,19 +219,22 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_buf_s *bp;
     struct ccnl_prefix_s *pp;
-    char *name2, tmp[10], *n;
+    char tmp[10], *n;
     char *namecomp[20];
     unsigned char tmp2[8192];
     int cnt, len2;
     struct ccnl_content_s *c;
 
-    cnt = 0;
+    n = strdup(name);
+    cnt = ccnl_URItoComponents(namecomp, n);
+    /*
     n = name2 = strdup(name);
     name2 = strtok(name2, "/");
     while (name2) {
 	namecomp[cnt++] = name2;
 	name2 = strtok(NULL, "/");
     }
+    */
     sprintf(tmp, ".%d", seqn);
     namecomp[cnt++] = tmp;
     namecomp[cnt] = 0;

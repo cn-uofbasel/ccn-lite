@@ -34,7 +34,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
-#define USE_SUITE_CCNNDN
+#define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
 
@@ -43,6 +43,13 @@
 #include "../pkt-ndntlv-dec.c"
 #include "../pkt-localrpc.h"
 
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
+
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------

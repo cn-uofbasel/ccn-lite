@@ -2,7 +2,7 @@
  * @f ccnl-ext-nfnkrivine.c
  * @b CCN-lite, Krivine's lazy Lambda-Calculus reduction engine
  *
- * Copyright (C) 2013, Christopher Scherb, Univerity of Basel
+ * Copyright (C) 2013, Christian Tschudin, Univerity of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-xx-yy created
+ * 2013-05-10 created
+ * 2014-07-31 CCN-lite integration <christopher.scherb@unibas.ch>
  */
 
 
@@ -26,12 +27,6 @@
 #include "ccnl-ext-debug.c"
 #include "ccnl-includes.h"
 
-
-#define LAMBDA '@'
-
-#define term_is_var(t)     (!(t)->m)
-#define term_is_app(t)     ((t)->m && (t)->n)
-#define term_is_lambda(t)  (!(t)->n)
 
 //Machine state functions
 //------------------------------------------------------------------
@@ -169,137 +164,12 @@ search_in_environment(struct environment_s *env, char *name){
   return NULL;
 }
 
-//parse functions
-//------------------------------------------------------------------
-
-struct term_s {
-    char *v;
-    struct term_s *m, *n;
-    // if m is 0, we have a var  v
-    // is both m and n are not 0, we have an application  (M N)
-    // if n is 0, we have a lambda term  @v M
-};
-
-char*
-parse_var(char **cpp)
-{
-    char *p;
-    int len;
-
-    p = *cpp;
-    while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
-	p++;
-    len = p - *cpp;
-    p = ccnl_malloc(len+1);
-    if (!p)
-	return 0;
-    memcpy(p, *cpp, len);
-    p[len] = '\0';
-    *cpp += len;
-    return p;
-}
-
-struct term_s*
-parseKRIVINE(int lev, char **cp)
-{
-/* t = (v, m, n)
-
-   var:     v!=0, m=0, n=0
-   app:     v=0, m=f, n=arg
-   lambda:  v!=0, m=body, n=0
- */
-    struct term_s *t = 0, *s, *u;
-
-    while (**cp) {
-	while (isspace(**cp))
-	    *cp += 1;
-
-//	printf("parseKRIVINE %d %s\n", lev, *cp);
-
-	if (**cp == ')')
-	    return t;
-	if (**cp == '(') {
-	    *cp += 1;
-	    s = parseKRIVINE(lev+1, cp);
-	    if (!s)
-		return 0;
-	    if (**cp != ')') {
-		printf("parseKRIVINE error: missing )\n");
-		return 0;
-	    } else
-		*cp += 1;
-	} else if (**cp == LAMBDA) {
-	    *cp += 1;
-	    s = ccnl_calloc(1, sizeof(*s));
-	    s->v = parse_var(cp);
-	    s->m = parseKRIVINE(lev+1, cp);
-//	    printKRIVINE(dummybuf, s->m, 0);
-//	    printf("  after lambda: /%s %s --> <%s>\n", s->v, dummybuf, *cp);
-	} else {
-	    s = ccnl_calloc(1, sizeof(*s));
-	    s->v = parse_var(cp);
-//	    printf("  var: <%s>\n", s->v);
-	}
-	if (t) {
-//	    printKRIVINE(dummybuf, t, 0);
-//	    printf("  old term: <%s>\n", dummybuf);
-	    u = ccnl_calloc(1, sizeof(*u));
-	    u->m = t;
-	    u->n = s;
-	    t = u;
-	} else
-	    t = s;
-//	printKRIVINE(dummybuf, t, 0);
-//	printf("  new term: <%s>\n", dummybuf);
-    }
-//    printKRIVINE(dummybuf, t, 0);
-//    printf("  we return <%s>\n", dummybuf);
-    return t;
-}
-
 int
-printKRIVINE(char *cfg, struct term_s *t, char last)
+iscontentname(char *cp)
 {
-    int len = 0;
-
-    if (t->v && t->m) { // Lambda (sequence)
-	len += sprintf(cfg + len, "(%c%s", LAMBDA, t->v);
-	len += printKRIVINE(cfg + len, t->m, 'a');
-	len += sprintf(cfg + len, ")");
-	return len;
-    }
-    if (t->v) { // (single) variable
-	if (isalnum(last))
-	    len += sprintf(cfg + len, " %s", t->v);
-	else
-	    len += sprintf(cfg + len, "%s", t->v);
-	return len;
-    }
-    // application (sequence)
-#ifdef CORRECT_PARENTHESES
-    len += sprintf(cfg + len, "(");
-    len += printKRIVINE(cfg + len, t->m, '(');
-    len += printKRIVINE(cfg + len, t->n, 'a');
-    len += sprintf(cfg + len, ")");
-#else
-    if (t->n->v && !t->n->m) {
-	len += printKRIVINE(cfg + len, t->m, last);
-	len += printKRIVINE(cfg + len, t->n, 'a');
-    } else {
-	len += printKRIVINE(cfg + len, t->m, last);
-	len += sprintf(cfg + len, " (");
-	len += printKRIVINE(cfg + len, t->n, '(');
-	len += sprintf(cfg + len, ")");
-    }
-#endif
-    return len;
+    return cp[0] == '/';
 }
 
-int iscontent(char *cp){
-	if(cp[0] == '/')
-		return 1;
-	return 0;
-}
 //------------------------------------------------------------
 
 //choose the it_routable_param
@@ -354,7 +224,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
        return add_local_computation_components(config);
     }
     else{ //network search name components
-        unsigned char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+        char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
         createComputationString(config, parameter_number, comp);
         return add_computation_components(prefix, thunk_request, comp);
     }
@@ -365,7 +235,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int thunk_request, int *num_of_required_thunks,  
         int *halt, char *dummybuf, int *restart)
 {
-    struct term_s *t;
+    struct ccnl_lambdaTerm_s *t;
     char *pending, *p, *cp;
     int len;
     char *prog = config->prog;
@@ -542,7 +412,7 @@ normal:
         
         //check if term can be made available, if yes enter it as a var
 	//try with searching in global env for an added term!
-    t = parseKRIVINE(0, &cp);
+	t = ccnl_lambdaStrToTerm(0, &cp, NULL);
 	if (term_is_var(t)) {
         char *end = 0;
         cp = t->v;
@@ -557,10 +427,10 @@ normal:
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             }
 	    }
-        else if(iscontent(cp)){
+        else if(iscontentname(cp)){
             // is content...
             DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
-            struct ccnl_prefix_s *prefix = create_prefix_from_name(cp);
+            struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(cp);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }
@@ -580,7 +450,7 @@ normal:
 	if (term_is_lambda(t)) {
             char *var;
 	    var = t->v;
-	    printKRIVINE(dummybuf, t->m, 0);
+	    ccnl_lambdaTermToStr(dummybuf, t->m, 0);
 	    cp = strdup(dummybuf);
             if (pending)
 		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
@@ -590,9 +460,9 @@ normal:
             return strdup(res);
         }
         if (term_is_app(t)) {
-            printKRIVINE(dummybuf, t->n, 0);
+            ccnl_lambdaTermToStr(dummybuf, t->n, 0);
 	    p = strdup(dummybuf);
-	    printKRIVINE(dummybuf, t->m, 0);
+	    ccnl_lambdaTermToStr(dummybuf, t->m, 0);
 	    cp = strdup(dummybuf);
             
             if (pending)
