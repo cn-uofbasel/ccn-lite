@@ -161,12 +161,10 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *res = NULL;
     ccnl_nfn_copy_prefix(prefix, &original_prefix);
 
-
    
-    if(!memcmp(prefix->comp[prefix->compcnt-2], "THUNK", 5))
-    {
+    if (ccnl_isTHUNK(prefix))
         thunk_request = 1;
-    }
+
     if(interest && interest->prefix->compcnt > 2 + thunk_request){ // forward interests with outsourced components
         struct ccnl_prefix_s *prefix_name;
         ccnl_nfn_copy_prefix(prefix, &prefix_name);
@@ -185,7 +183,15 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
     
     //put packet together
+#ifdef USE_SUITE_CCNTLV
+    if (prefix->suite == CCNL_SUITE_CCNTLV) {
+	len = prefix->complen[prefix->compcnt-2-thunk_request] - 4;
+	memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request] + 4, len);
+	str[len] = '\0';
+    } else
+#else
     len = sprintf(str, "%s", prefix->comp[prefix->compcnt-2-thunk_request]);
+#endif
     if(prefix->compcnt > 2 + thunk_request){
         len += sprintf(str + len, " ");
     }
@@ -193,7 +199,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
     
-    DEBUGMSG(99, "%s\n", str);
+    DEBUGMSG(99, "expr is <%s>\n", str);
     //search for result here... if found return...
     if(thunk_request){
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
@@ -247,7 +253,47 @@ ccnl_isNACK(struct ccnl_content_s *c)
 int
 ccnl_isNFNrequest(struct ccnl_prefix_s *p)
 {
-    return p && p->compcnt > 0 && !memcmp(p->comp[p->compcnt-1], "NFN", 3);
+    int rc = 0;
+
+    if (!p || p->compcnt < 2)
+	return 0;
+    switch (p->suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	rc = p->complen[p->compcnt-1] > 6 &&
+	    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7);
+	break;
+#endif
+    default:
+	rc = p->complen[p->compcnt-1] == 3 &&
+	    !memcmp(p->comp[p->compcnt-1], "NFN", 3);
+	break;
+    }
+
+    return rc;
+}
+
+int
+ccnl_isTHUNK(struct ccnl_prefix_s *p)
+{
+    int rc = 0;
+
+    if (!p || p->compcnt < 3)
+	return 0;
+    switch (p->suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	rc = p->complen[p->compcnt-2] > 8 &&
+	    !memcmp(p->comp[p->compcnt-2], "\x00\x01\x00\x05THUNK", 9);
+	break;
+#endif
+    default:
+	rc = p->complen[p->compcnt-1] == 5 &&
+	    !memcmp(p->comp[p->compcnt-1], "THUNK", 5);
+	break;
+    }
+
+    return rc;
 }
 
 struct ccnl_interest_s*

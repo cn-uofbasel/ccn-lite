@@ -46,21 +46,22 @@
 
 #include "../ccnl.h"
 
-#ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
-#endif
 
-#ifdef USE_SUITE_CCNTLV
 # include "../pkt-ccntlv-dec.c"
 # include "../pkt-ccntlv-enc.c"
-#endif
 
-#ifdef USE_SUITE_NDNTLV
 # include "../pkt-ndntlv-dec.c"
 # include "../pkt-ndntlv-enc.c"
-#endif
 
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
+
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
@@ -83,7 +84,7 @@ ccntlv_mkInterest(char **namecomp, int *dummy, unsigned char *out, int outlen)
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_mkInterest(namecomp, -1, &offset, out);
+    len = ccnl_ccntlv_mkInterestWithHdr(namecomp, -1, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -235,7 +236,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, i=0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
@@ -263,8 +264,8 @@ Usage:
 	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
-	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n"
+	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "Example URI: /ndn/edu/wustl/ping\n",
 	    argv[0]);
 	    exit(1);
@@ -314,17 +315,11 @@ Usage:
     }
 
     for (cnt = 0; cnt < 3; cnt++) {
-	char *uri = strdup(argv[optind]), *cp;
+	char *uri = strdup(argv[optind]);
 	int nonce = random();
 
-	cp = strtok(argv[optind], "|");
-	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	    prefix[i++] = cp;
-	    cp = strtok(NULL, "|");
-	}
-	prefix[i] = NULL;
+	ccnl_URItoComponents(prefix, uri);
 	len = mkInterest(prefix, &nonce, out, sizeof(out));
-
 	free(uri);
 
 	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {

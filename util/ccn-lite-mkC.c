@@ -45,10 +45,16 @@
 
 #include "../pkt-ndntlv.h"
 #include "../pkt-ndntlv-enc.c"
+
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
+
+#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 #include "ccnl-crypto.c"
-
-
 
 // ----------------------------------------------------------------------
 
@@ -75,7 +81,7 @@ mkContent(char **namecomp,
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
 	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = unescape_component((unsigned char*) *namecomp);
+	k = strlen(*namecomp);
 	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
 	len += k;
@@ -127,10 +133,10 @@ main(int argc, char *argv[])
 {
     unsigned char body[64*1024];
     unsigned char out[65*1024];
-    unsigned char *publisher = 0;
+    char *publisher = 0;
     char *infname = 0, *outfname = 0;
     int i = 0, f, len, opt, plen;
-    char *prefix[CCNL_MAX_NAME_COMP], *cp;
+    char *prefix[CCNL_MAX_NAME_COMP];
     int packettype = 2;
     private_key_path = 0;
     witness = 0;
@@ -153,13 +159,13 @@ main(int argc, char *argv[])
             witness = optarg;
             break;
         case 'p':
-            publisher = (unsigned char*)optarg;
+            publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-            fprintf(stderr,
-             "publisher key digest has wrong length (%d instead of 32)\n",
-             plen);
-            exit(-1);
+		fprintf(stderr,
+		  "publisher key digest has wrong length (%d instead of 32)\n",
+		  plen);
+		exit(-1);
             }
             break;
         case 'h':
@@ -181,12 +187,12 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
-    cp = strtok(argv[optind], "|");
-    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	prefix[i++] = cp;
-    cp = strtok(NULL, "|");
+
+    i = ccnl_URItoComponents(prefix, argv[optind]);
+    if (i <= 0) {
+	fprintf(stderr, "no name components found, aborting\n");
+	return -1;
     }
-    prefix[i] = NULL;
 
     if (infname) {
 	f = open(infname, O_RDONLY);
@@ -197,10 +203,10 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    if(packettype == 0){ //CCNB
-        len = mkContent(prefix, publisher, plen, body, len, out);
-    }
-    else if(packettype == 2){ //NDNTLV
+    if (packettype == 0) { //CCNB
+        len = mkContent(prefix, (unsigned char*) publisher, plen,
+			body, len, out);
+    } else if (packettype == 2) { //NDNTLV
         int len2 = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);

@@ -156,6 +156,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
             ccnl_print_stats(relay, STAT_SND_C); //log sent_c
             if (from->ifndx >= 0){
+		ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
             } else {
                 ccnl_app_RX(relay, c);
@@ -174,7 +175,14 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		// TODO check keyid
 		break;
         }
-        if (!i) { // this is a new/unknown I request: create and propagate
+	// this is a new/unknown I request: create and propagate
+#ifdef USE_NFN
+	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	    if (ccnl_nfn_request(relay, from, CCNL_SUITE_CCNTLV, buf, p, 0, 0))
+		goto Done;
+	}
+#endif
+        if (!i) {
 	    // TODO keyID restriction
 	    // TODO hoplimit
             i = ccnl_interest_new(relay, from, CCNL_SUITE_CCNTLV,
@@ -202,6 +210,42 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV,
 			     &buf, &p, NULL, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
+#ifdef USE_NFN
+	    if (ccnl_isNFNrequest(c->name)) {
+		struct ccnl_interest_s *i_it = NULL;
+		int found = 0;
+#ifdef USE_NACK
+		if (ccnl_isNACK(c)) {
+		    ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
+						    from, CCNL_SUITE_CCNTLV);
+		    goto Done;
+		}
+#endif // USE_NACK
+            for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
+                 //Check if prefix match and it is a nfn request
+                 int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
+                 DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
+                 if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
+                         && i_it->from->faceid < 0){
+                    int configid = -i_it->from->faceid;
+                    int faceid = -i_it->from->faceid;
+
+                    ccnl_content_add2cache(relay, c);
+                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
+                    i_it->corePropagates = 1;
+                    i_it = ccnl_interest_remove(relay, i_it);
+                    ccnl_nfn_continue_computation(relay, faceid, 0);
+                    ++found;
+                    //goto Done;
+                 }
+                 else{
+                     i_it = i_it->next;
+                 }
+            }
+            if(found) goto Done;
+            DEBUGMSG(99, "no running computation found \n");
+        }
+#endif
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
 		DEBUGMSG(7, "  removed because no matching interest\n");

@@ -529,7 +529,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     struct ccnl_interest_s *i2;
 //    int it;
 
-    DEBUGMSG(40, "ccnl_interest_remove %p   ", (void *) i);
+    DEBUGMSG(40, "ccnl_interest_remove %p\n", (void *) i);
 #ifdef USE_NFN
     if (i->corePropagates == 0)
 	return i->next;

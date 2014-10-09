@@ -79,7 +79,4 @@ Values		Designation
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 
-// ccnl-util.c
-int unescape_component(unsigned char *comp);
-
 // eof
