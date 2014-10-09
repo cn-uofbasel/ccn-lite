@@ -25,18 +25,18 @@ ccn-nfn-relay-nack
 krivine
 
 # util binaries
+util/ccn-lite-ccnb2xml
 util/ccn-lite-cryptoserver
 util/ccn-lite-ctrl
-util/ccn-lite-peek
-util/ccn-lite-ccnb2xml
-util/ccn-lite-pktdump
 util/ccn-lite-deF
 util/ccn-lite-mkC
 util/ccn-lite-mkF
 util/ccn-lite-mkI
-util/ccn-lite-cryptoserver
+util/ccn-lite-peek
 util/ccn-lite-peekcomputation
 util/ccn-lite-produce
+util/ccn-lite-pktdump
+util/ccn-lite-rpc
 
 # unit tests
 test/unit/prefix-cmp
