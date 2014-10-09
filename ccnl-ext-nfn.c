@@ -183,22 +183,21 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
     
     //put packet together
-#ifdef USE_SUITE_CCNTLV
     if (prefix->suite == CCNL_SUITE_CCNTLV) {
-	len = prefix->complen[prefix->compcnt-2-thunk_request] - 4;
-	memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request] + 4, len);
-	str[len] = '\0';
-    } else
-#else
-    len = sprintf(str, "%s", prefix->comp[prefix->compcnt-2-thunk_request]);
-#endif
+        len = prefix->complen[prefix->compcnt-2-thunk_request] - 4;
+        memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request] + 4, len);
+        str[len] = '\0';
+    } else {
+        len = prefix->complen[prefix->compcnt-2-thunk_request];
+        memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request], len);
+        str[len] = '\0';
+    }
     if(prefix->compcnt > 2 + thunk_request){
         len += sprintf(str + len, " ");
     }
     for(i = 0; i < prefix->compcnt-2-thunk_request; ++i){
         len += sprintf(str + len, "/%s", prefix->comp[i]);
     }
-    
     DEBUGMSG(99, "expr is <%s>\n", str);
     //search for result here... if found return...
     if(thunk_request){
