@@ -746,6 +746,11 @@ debug_memdump()
     fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
 }
 
+
+static char prefix_buf1[2048];
+static char prefix_buf2[2048];
+static char *buf = prefix_buf1;
+
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
@@ -756,14 +761,19 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     if (!pr)
 	return NULL;
 
+    if (buf == prefix_buf2)
+	buf = prefix_buf1;
+    else
+	buf = prefix_buf2;
+
     for (i = 0; i < pr->compcnt; i++) {
 #ifdef USE_SUITE_CCNTLV
 	if (pr->suite == CCNL_SUITE_CCNTLV) {
 	    if (ntohs(*(unsigned short*)(pr->comp[i])) == 1) // CCNX_TLV_N_UTF8
-		len += sprintf(prefix_buf + len, "/%.*s",
+		len += sprintf(buf + len, "/%.*s",
 			   pr->complen[i]-4, pr->comp[i]+4);
 	    else // TODO: we should dump all bytes in hex
-		len += sprintf(prefix_buf + len,
+		len += sprintf(buf + len,
 			   "/%%x%02x%02x%.*s",
 			   pr->comp[i][0], pr->comp[i][1],
 			   pr->complen[i]-4, pr->comp[i]+4);
@@ -771,12 +781,13 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 	}
 #endif
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+            len += sprintf(buf + len, "%.*s", pr->complen[i], pr->comp[i]);
         else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+            len += sprintf(buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
     }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
+    buf[len] = '\0';
+
+    return buf;
 }
 
 

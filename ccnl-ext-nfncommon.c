@@ -81,27 +81,35 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 }
 
 struct ccnl_content_s *
-create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-        unsigned char *contentstr, int contentlen, int suite){
-    DEBUGMSG(49, "create_content_object()\n");
+ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
+		   unsigned char *resultstr, int resultlen, int suite)
+{
     int i = 0;
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, len, mbf = 0;
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
+    int len, mbf = 0;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     int num, typ;
     unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    memset(out, 0, CCNL_MAX_PACKET_SIZE);
 
-    char **prefixcomps = ccnl_malloc(sizeof(char *) * prefix->compcnt+1);
+    DEBUGMSG(49, "ccnl_nfn_newresult(prefix=%s, suite=%d, content=%s)\n",
+	     ccnl_prefix_to_path(prefix), suite, resultstr);
+
+//    memset(out, 0, CCNL_MAX_PACKET_SIZE);
+
+    char **prefixcomps = ccnl_malloc(sizeof(char *) * (prefix->compcnt+1));
     for (i = 0; i < prefix->compcnt; ++i) {
-        prefixcomps[i] = strdup((char *)prefix->comp[i]);
+	if (prefix->suite == CCNL_SUITE_CCNTLV) 
+	    prefixcomps[i] = strdup((char *)prefix->comp[i] + 4);
+	else
+	    prefixcomps[i] = strdup((char *)prefix->comp[i]);
     }
     prefixcomps[prefix->compcnt] = 0;
 
     if (suite == CCNL_SUITE_CCNB) {
-        len = ccnl_ccnb_mkContent(prefixcomps, (char*)contentstr, contentlen, out);
-        if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
+        len = ccnl_ccnb_mkContent2(prefix, (char*)resultstr, resultlen, out);
+        if (ccnl_ccnb_dehead(&out, &len, &num, &typ)) {
             return NULL;
         }
         buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
@@ -109,25 +117,28 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         return ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &buf, &p, &ppkd, content, contlen);
     }
 #ifdef USE_SUITE_CCNTLV
-    else if (suite == CCNL_SUITE_CCNTLV){
+    else if (suite == CCNL_SUITE_CCNTLV) {
         int offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_mkContent(prefixcomps, contentstr, contentlen,
+        len = ccnl_ccntlv_mkContentWithHdr(prefixcomps, resultstr, resultlen,
 				    &offs, out);
         memmove(out, out+offs, CCNL_MAX_PACKET_SIZE - offs);
         len = CCNL_MAX_PACKET_SIZE - offs;
+	out += 8;
+	len -=  8;
         if (ccnl_ccntlv_dehead(&out, &len, (unsigned int*)&num, (unsigned int*)&typ)){
             return NULL;
         }
 	scope = -1;
-        buf = ccnl_ccntlv_extract(0, &out, &len, 0, &p, &scope, NULL, NULL,
+        buf = ccnl_ccntlv_extract(8+4, &out, &len, 0, &p, &scope, NULL, NULL,
 				  &content, &contlen);
+	DEBUGMSG(99, "  buf=%p, p=%s\n", (void*) buf, ccnl_prefix_to_path(p));
         return ccnl_content_new(ccnl, CCNL_SUITE_CCNTLV, &buf, &p,
 				&ppkd, content, contlen);
     }
 #endif
-    else if(suite == CCNL_SUITE_NDNTLV){
+    else if (suite == CCNL_SUITE_NDNTLV) {
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefixcomps, contentstr, contentlen, &len2, out);
+        len = ccnl_ndntlv_mkContent2(prefix, resultstr, resultlen, &len2, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
 
@@ -386,20 +397,32 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
 }
 
 void
-ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy){
-    DEBUGMSG(2, "ccnl_nfn_copy_prefix()\n");
-    int i = 0;
-    (*copy) = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-    (*copy)->compcnt = prefix->compcnt;
+ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy)
+{
+    int i = 0, len;
+    struct ccnl_prefix_s *p;
 
-    (*copy)->complen = ccnl_malloc(sizeof(int) * prefix->compcnt);
-    (*copy)->comp = ccnl_malloc(sizeof(char *) * prefix->compcnt);
+    if (!copy)
+	return;
 
-    if(prefix->path)(*copy)->path = (unsigned char*)strdup((char *)prefix->path);
-    for(i = 0; i < (*copy)->compcnt; ++i){
-        (*copy)->complen[i] = prefix->complen[i];
-        (*copy)->comp[i] = (unsigned char*)strdup((char*)prefix->comp[i]);
+    p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    p->compcnt = prefix->compcnt;
+    p->suite = prefix->suite;
+
+    p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
+    p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
+
+    for (i = 0, len = 0; i < prefix->compcnt; i++)
+	len += prefix->complen[i];
+    p->path = ccnl_malloc(len);
+    
+    for (i = 0, len = 0; i < prefix->compcnt; i++) {
+        p->complen[i] = prefix->complen[i];
+	p->comp[i] = p->path + len;
+	memcpy(p->path + len, prefix->comp[i], p->complen[i]);
+	len += p->complen[i];
     }
+    *copy = p;
 }
 
 void
@@ -506,8 +529,9 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
     memset(reply_content, 0, 100);
     int thunk_time = (int)config->thunk_time; 
     sprintf(reply_content, "%d", thunk_time);
-    struct ccnl_content_s *c = create_content_object(ccnl, original_prefix, (unsigned char*)reply_content,
-                                                     strlen(reply_content), config->suite);
+    struct ccnl_content_s *c = ccnl_nfn_newresult(ccnl, original_prefix,
+					(unsigned char*)reply_content,
+					strlen(reply_content), config->suite);
     set_propagate_of_interests_to_1(ccnl, c->name);
     ccnl_content_add2cache(ccnl, c);
     ccnl_content_serve_pending(ccnl,c);

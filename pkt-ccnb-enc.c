@@ -138,7 +138,7 @@ ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
 
 #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
 
-static int
+int
 ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
 		    unsigned char *out)
 {
@@ -152,6 +152,36 @@ ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
 	k = strlen(*namecomp);
 	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
 	memcpy(out+len, *namecomp++, k);
+	len += k;
+	out[len++] = 0; // end-of-component
+    }
+    out[len++] = 0; // end-of-name
+
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
+    len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
+    memcpy(out+len, data, datalen);
+    len += datalen;
+    out[len++] = 0; // end-of-content obj
+
+    out[len++] = 0; // end-of-content
+
+    return len;
+}
+
+int
+ccnl_ccnb_mkContent2(struct ccnl_prefix_s *name, char *data, int datalen,
+		    unsigned char *out)
+{
+    int len = 0, i, k;
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    for (i = 0; i < name->compcnt; i++) {
+	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+	k = name->complen[i];
+	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
+	memcpy(out+len, name->comp[i], k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }

@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #include "../pkt-ccnb.h"
 #include "../pkt-ccnb-enc.c"
@@ -52,7 +53,6 @@
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
 
-#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 #include "ccnl-crypto.c"
 

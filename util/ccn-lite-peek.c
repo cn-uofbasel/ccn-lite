@@ -45,6 +45,7 @@
 #define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
@@ -61,7 +62,6 @@
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
 
-#include "../ccnl-core.h"
 #include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
@@ -204,10 +204,10 @@ int ccntlv_isObject(unsigned char *buf, int len)
 	return -1;
     if (hp->version != CCNX_TLV_V0)
 	return -1;
-    if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s)+hp->hdrlen+hp->msglen > len))
+    if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s)+ntohs(hp->hdrlen)+ntohs(hp->msglen) > len))
 	return -1;
-    buf += hp->hdrlen;
-    len -= hp->hdrlen;
+    buf += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
+    len -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
     if (ccnl_ccntlv_dehead(&buf, &len, &typ, &vallen))
 	return -1;
     if (hp->msgtype != CCNX_TLV_TL_Object || typ != CCNX_TLV_TL_Object)
@@ -246,7 +246,27 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
         case 's':
-	    suite = atoi(optarg);
+	    opt = atoi(optarg);
+	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
+		goto usage;
+	    suite = opt;
+	    switch (suite) {
+#ifdef USE_SUITE_CCNB
+	    case CCNL_SUITE_CCNB:
+		udp = "127.0.0.1/9695";
+		break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+	    case CCNL_SUITE_CCNTLV:
+		udp = "127.0.0.1/9695";
+		break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	    case CCNL_SUITE_NDNTLV:
+		udp = "127.0.0.1/6363";
+		break;
+#endif
+	    }
 	    break;
         case 'u':
 	    udp = optarg;
@@ -259,7 +279,7 @@ main(int argc, char *argv[])
 	    break;
         case 'h':
         default:
-Usage:
+usage:
 	    fprintf(stderr, "usage: %s "
 	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
@@ -273,7 +293,7 @@ Usage:
     }
 
     if (!argv[optind]) 
-	goto Usage;
+	goto usage;
 
     srandom(time(NULL));
 
@@ -308,6 +328,7 @@ Usage:
 	sock = ux_open();
     } else { // UDP
 	struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+	udp = strdup(udp);
 	si->sin_family = PF_INET;
 	si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
 	si->sin_port = htons(atoi(strtok(NULL, "/")));
