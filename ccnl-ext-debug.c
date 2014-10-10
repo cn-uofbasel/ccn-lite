@@ -747,21 +747,23 @@ debug_memdump()
 }
 
 
-static char prefix_buf1[2048];
-static char prefix_buf2[2048];
-static char *buf = prefix_buf1;
+static char *prefix_buf1;
+static char *prefix_buf2;
+static char *buf;
 
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    char *prefix_buf = ccnl_malloc(4096);
-//    static char prefix_buf[4096];
     int len = 0, i;
 
     if (!pr)
 	return NULL;
 
-    if (buf == prefix_buf2)
+    if (!buf) {
+	prefix_buf1 = ccnl_malloc(2048);
+	prefix_buf2 = ccnl_malloc(2048);
+	buf = prefix_buf1;
+    } else if (buf == prefix_buf2)
 	buf = prefix_buf1;
     else
 	buf = prefix_buf2;

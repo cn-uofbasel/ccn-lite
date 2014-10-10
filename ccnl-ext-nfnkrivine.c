@@ -451,25 +451,19 @@ normal:
             char *var;
 	    var = t->v;
 	    ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-	    cp = strdup(dummybuf);
             if (pending)
-		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, cp, pending);
+		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, dummybuf, pending);
 	    else
-		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, cp);
-	    ccnl_free(cp);
+		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
             return strdup(res);
         }
         if (term_is_app(t)) {
             ccnl_lambdaTermToStr(dummybuf, t->n, 0);
-	    p = strdup(dummybuf);
+	    len = sprintf(res, "CLOSURE(RESOLVENAME(%s));", dummybuf);
 	    ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-	    cp = strdup(dummybuf);
-            
+	    len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
             if (pending)
-  		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)%s", p, cp, pending);
-	    else
-		sprintf(res, "CLOSURE(RESOLVENAME(%s));RESOLVENAME(%s)", p, cp);
-	   
+		strcpy(res+len, pending);
             return strdup(res);
         }
     }
