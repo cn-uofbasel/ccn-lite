@@ -122,6 +122,8 @@ ccnl_ndntlv_extract(int hdrlen,
 	*content = buf->data + (*content - start);
     for (i = 0; i < p->compcnt; i++)
 	    p->comp[i] = buf->data + (p->comp[i] - start);
+    if (p->path)
+	p->path = buf->data + (p->path - start);
     return buf;
 Bail:
     free_prefix(p);

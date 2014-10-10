@@ -107,6 +107,8 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 	*content = buf->data + (*content - start);
     for (num = 0; num < p->compcnt; num++)
 	    p->comp[num] = buf->data + (p->comp[num] - start);
+    if (p->path)
+	p->path = buf->data + (p->path - start);
     return buf;
 Bail:
     free_prefix(p);

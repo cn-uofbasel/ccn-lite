@@ -110,6 +110,8 @@ ccnl_ccntlv_extract(int hdrlen,
 	*content = buf->data + (*content - start);
     for (i = 0; i < p->compcnt; i++)
 	    p->comp[i] = buf->data + (p->comp[i] - start);
+    if (p->path)
+	p->path = buf->data + (p->path - start);
     return buf;
 Bail:
     free_prefix(p);
@@ -231,7 +233,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     int faceid = -i_it->from->faceid;
 
                     ccnl_content_add2cache(relay, c);
-                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
+                    DEBUGMSG(49, "Continue configuration for configid: %d/%s\n", configid, ccnl_prefix_to_path(c->name));
                     i_it->corePropagates = 1;
                     i_it = ccnl_interest_remove(relay, i_it);
                     ccnl_nfn_continue_computation(relay, faceid, 0);

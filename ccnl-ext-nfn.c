@@ -44,8 +44,11 @@ ccnl_nfn_count_required_thunks(char *str)
 }
 
 static void
-ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix){
+ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix)
+{
     DEBUGMSG(49, "ccnl_nfn_remove_thunk_from_prefix()\n");
+    if (!prefix || prefix->compcnt < 2)
+	return;
     prefix->comp[prefix->compcnt-2] =  prefix->comp[prefix->compcnt-1];
     prefix->complen[prefix->compcnt-2] =  prefix->complen[prefix->compcnt-1];
     --prefix->compcnt;
@@ -95,12 +98,14 @@ int
 ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
 				 struct ccnl_prefix_s *prefix)
 {
-    DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
     int i = 0;
-    for(i = 0; i < -ccnl->km->configid; ++i){
+
+    DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
+    for (i = 0; i < -ccnl->km->configid; ++i) {
         struct ccnl_prefix_s *copy;
         struct configuration_s *config = find_configuration(ccnl->km->configuration_list, -i);
-        if(!config) continue;
+        if (!config)
+	    continue;
         ccnl_nfn_copy_prefix(config->prefix ,&copy);
         ccnl_nfn_remove_thunk_from_prefix(copy);
         if(!ccnl_prefix_cmp(copy, NULL, prefix, CMP_EXACT)){
@@ -110,6 +115,7 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
     return 0;
 }
 
+/*
 struct ccnl_prefix_s *
 ccnl_nfn_create_new_prefix(struct ccnl_prefix_s *p){
     struct ccnl_prefix_s *p2 = ccnl_malloc(sizeof(struct ccnl_prefix_s));
@@ -129,22 +135,34 @@ ccnl_nfn_create_new_prefix(struct ccnl_prefix_s *p){
 
     return p2;
 }
+*/
 
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
-        struct configuration_s *config, struct ccnl_interest_s *interest,
+	 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+	 struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally)
 {
     int num_of_required_thunks = 0;
     int thunk_request = 0;
     struct ccnl_prefix_s *original_prefix = NULL;
-    DEBUGMSG(49, "ccnl_nfn(%p, %p, %p, %p, %p)\n",
-             (void*)ccnl, (void*)orig, (void*)prefix, (void*)from, (void*)config);
 
-    if(suite == CCNL_SUITE_NDNTLV){
+    DEBUGMSG(49, "ccnl_nfn(%p, %p, %s, %p, %p)\n",
+             (void*)ccnl, (void*)orig, ccnl_prefix_to_path(prefix),
+	     (void*)from, (void*)config);
+
+    ccnl_nfn_copy_prefix(prefix, &original_prefix);
+    prefix = original_prefix;
+    original_prefix = 0;
+
+/*
+    if (suite == CCNL_SUITE_CCNTLV){
         prefix = ccnl_nfn_create_new_prefix(prefix);
     }
+    if (suite == CCNL_SUITE_NDNTLV){
+        prefix = ccnl_nfn_create_new_prefix(prefix);
+    }
+*/
     DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
     if(config){
         suite = config->suite;
@@ -195,8 +213,17 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(prefix->compcnt > 2 + thunk_request){
         len += sprintf(str + len, " ");
     }
-    for(i = 0; i < prefix->compcnt-2-thunk_request; ++i){
-        len += sprintf(str + len, "/%s", prefix->comp[i]);
+
+      /*
+    if (prefix->suite == CCNL_SUITE_CCNB || prefix->suite == CCNL_SUITE_NDNTLV)
+	len = sprintf(str, "%.*s",
+		      prefix->complen[prefix->compcnt-2-thunk_request],
+		      prefix->comp[prefix->compcnt-2-thunk_request]);
+    if (prefix->compcnt > 2 + thunk_request){
+      */
+
+    for (i = 0; i < prefix->compcnt-2-thunk_request; ++i) {
+        len += sprintf(str + len, "/%.*s", prefix->complen[i], prefix->comp[i]);
     }
     DEBUGMSG(99, "expr is <%s>\n", str);
     //search for result here... if found return...
@@ -210,14 +237,13 @@ restart:
             num_of_required_thunks, &config, original_prefix, suite);
     
     //stores result if computed      
-    if(res){
-        
-        DEBUGMSG(2,"Computation finshed: %s, running computations: %d\n", res, ccnl->km->numOfRunningComputations);
-        if(config && config->fox_state->thunk_request){      
+    if (res) {
+        DEBUGMSG(2,"Computation finished: %s, running computations: %d\n", res, ccnl->km->numOfRunningComputations);
+        if (config && config->fox_state->thunk_request) {
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
-        struct ccnl_content_s *c = create_content_object(ccnl, config->prefix, res,
-                                                         strlen((char *)res), config->suite);
+        struct ccnl_content_s *c = ccnl_nfn_newresult(ccnl, config->prefix,
+				res, strlen((char *)res), config->suite);
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
 
         set_propagate_of_interests_to_1(ccnl, c->name);

@@ -122,8 +122,9 @@ ccnl_ccntlv_mkInterestWithHdr(char **namecomp, int scope,
 }
 
 int
-ccnl_ccntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
-		      int *offset, unsigned char *buf)
+ccnl_ccntlv_mkContent(char **namecomp, unsigned char *payload,
+// ccnl_ccntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
+		      int paylen, int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt;
 
@@ -141,6 +142,16 @@ ccnl_ccntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 				    offset, buf) < 0)
 	    return -1;
     }
+/*
+    oldoffset2 = *offset;
+    for (cnt = 0; cnt < name->compcnt; cnt++) {
+	if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
+				    name->comp[cnt],
+				    name->complen[cnt],
+				    offset, buf) < 0)
+	    return -1;
+    }
+*/
     if (ccnl_ccntlv_prependTL(CCNX_TLV_G_Name, oldoffset2 - *offset,
 			      offset, buf) < 0)
 	return -1;
@@ -160,8 +171,8 @@ ccnl_ccntlv_mkContentWithHdr(char **namecomp, unsigned char *payload,
 
     len = ccnl_ccntlv_mkContent(namecomp, payload, paylen, offset, buf);
     if (len > 0) {
-	len = ccnl_ccntlv_prependFixedHdr(0, CCNX_TLV_TL_Object, len, 0,
-								offset, buf);
+	len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
+					  len, 0, offset, buf);
     }
 
     return len;
