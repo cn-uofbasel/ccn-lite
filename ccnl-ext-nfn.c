@@ -214,14 +214,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         len += sprintf(str + len, " ");
     }
 
-      /*
-    if (prefix->suite == CCNL_SUITE_CCNB || prefix->suite == CCNL_SUITE_NDNTLV)
-	len = sprintf(str, "%.*s",
-		      prefix->complen[prefix->compcnt-2-thunk_request],
-		      prefix->comp[prefix->compcnt-2-thunk_request]);
-    if (prefix->compcnt > 2 + thunk_request){
-      */
-
     for (i = 0; i < prefix->compcnt-2-thunk_request; ++i) {
         len += sprintf(str + len, "/%.*s", prefix->complen[i], prefix->comp[i]);
     }
