@@ -159,18 +159,30 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 }
 
 int
-ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
-		      int *offset, unsigned char *buf)
+ccnl_ndntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
+		      int paylen, int *offset, int *contentpos,
+		      unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt;
 
+    if (contentpos)
+	*contentpos = *offset - paylen;
+
     // fill in backwards
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
-				offset, buf)< 0)
+				offset, buf) < 0)
 	return -1;
 
-    for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
+    for (cnt = 0; cnt < name->compcnt; cnt++) {
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				    name->comp[cnt],
+				    name->complen[cnt],
+				    offset, buf) < 0)
+	    return -1;
+    }
+    /*
+    for (cnt = 0; namecomp[cnt]; cnt++);
     while (--cnt >= 0) {
 	int len = strlen(namecomp[cnt]);
 	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
@@ -178,6 +190,7 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 				    offset, buf) < 0)
 	    return -1;
     }
+    */
     if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
 			      offset, buf) < 0)
 	return -1;
@@ -186,9 +199,13 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 			      offset, buf) < 0)
 	return -1;
 
+    if (contentpos)
+	*contentpos -= *offset;
+
     return oldoffset - *offset;
 }
 
+#ifdef XXX
 int
 ccnl_ndntlv_mkContent2(struct ccnl_prefix_s *name, unsigned char *payload,
 		       int paylen, int *offset, unsigned char *buf)
@@ -227,6 +244,7 @@ ccnl_ndntlv_mkContent2(struct ccnl_prefix_s *name, unsigned char *payload,
 
     return oldoffset - *offset;
 }
+#endif
 
 #endif
 // eof

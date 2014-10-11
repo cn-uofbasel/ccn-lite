@@ -136,8 +136,9 @@ ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
     return len;
 }
 
-#if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
+// #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
 
+#ifdef XXX
 int
 ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
 		    unsigned char *out)
@@ -167,10 +168,11 @@ ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
 
     return len;
 }
+#endif
 
 int
-ccnl_ccnb_mkContent2(struct ccnl_prefix_s *name, char *data, int datalen,
-		    unsigned char *out)
+ccnl_ccnb_mkContent(struct ccnl_prefix_s *name, unsigned char *data,
+		    int datalen, int *contentpos, unsigned char *out)
 {
     int len = 0, i, k;
 
@@ -189,7 +191,11 @@ ccnl_ccnb_mkContent2(struct ccnl_prefix_s *name, char *data, int datalen,
 
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
     len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
+    if (contentpos)
+	*contentpos = len;
     memcpy(out+len, data, datalen);
+    if (contentpos)
+	*contentpos = len;
     len += datalen;
     out[len++] = 0; // end-of-content obj
 
@@ -198,7 +204,7 @@ ccnl_ccnb_mkContent2(struct ccnl_prefix_s *name, char *data, int datalen,
     return len;
 }
 
-#endif // CCNL_SIMULATION || CCNL_OMNET
+// #endif // CCNL_SIMULATION || CCNL_OMNET
 
 #endif /*CCNL_EN_CCNB*/
 // eof
