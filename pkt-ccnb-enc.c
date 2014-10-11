@@ -101,26 +101,20 @@ ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
     return len;
 }
 
-
-// ----------------------------------------------------------------------
-// (ms): Brought here the following two. I noticed also that some
-// of them are replicated elsewhere in the util/ dir. Should we put them
-// in one place only ?
-
 int
-ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
+ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 		     unsigned char *out, int outlen)
 {
-    int len = 0, k;
+  int len = 0, i, k;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
 
-    while (*namecomp) {
+    for (i = 0; i < name->compcnt; i++) {
 	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
+	k = name->complen[i];
 	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
+	memcpy(out+len, name->comp[i], k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }
@@ -137,38 +131,6 @@ ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
 }
 
 // #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
-
-#ifdef XXX
-int
-ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
-		    unsigned char *out)
-{
-    int len = 0, k;
-
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
-    len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
-    memcpy(out+len, data, datalen);
-    len += datalen;
-    out[len++] = 0; // end-of-content obj
-
-    out[len++] = 0; // end-of-content
-
-    return len;
-}
-#endif
 
 int
 ccnl_ccnb_mkContent(struct ccnl_prefix_s *name, unsigned char *data,

@@ -104,7 +104,7 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
+ccnl_ndntlv_mkInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 		       int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2, cnt;
@@ -133,18 +133,12 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 	    return -1;
     }
 
-/*
-    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
-				offset, buf) < 0)
-	return -1;
-*/
-    for (cnt = 0; namecomp[cnt]; cnt++);
     oldoffset2 = *offset;
-    while (--cnt >= 0) {
-	int len = strlen(namecomp[cnt]);
+    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
 	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				 (unsigned char*) namecomp[cnt], len,
-				 offset, buf) < 0)
+				    name->comp[cnt],
+				    name->complen[cnt],
+				    offset, buf) < 0)
 	    return -1;
     }
     if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,

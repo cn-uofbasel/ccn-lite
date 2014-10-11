@@ -85,24 +85,24 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 }
 
 int
-ccnb_mkInterest(char **namecomp,
-	   char *minSuffix, char *maxSuffix,
-	   unsigned char *digest, int dlen,
-	   unsigned char *publisher, int plen,
-	   char *scope,
-	   uint32_t *nonce,
-	   unsigned char *out)
+ccnb_mkInterest(struct ccnl_prefix_s *name,
+		char *minSuffix, char *maxSuffix,
+		unsigned char *digest, int dlen,
+		unsigned char *publisher, int plen,
+		char *scope,
+		uint32_t *nonce,
+		unsigned char *out)
 {
-    int len = 0, k;
+  int len = 0, i, k;
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
 
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
+    for (i = 0; i < name->compcnt; i++) {
 	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
+	k = name->complen[i];
 	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
+	memcpy(out+len, name->comp[i], k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }
@@ -166,13 +166,14 @@ ccnb_mkInterest(char **namecomp,
 }
 
 int
-ccntlv_mkInterest(char **namecomp, char *scope, unsigned char *out, int outlen)
+ccntlv_mkInterest(struct ccnl_prefix_s *name,
+		  char *scope, unsigned char *out, int outlen)
 {
      int len, offset, oldoffset;
      int s = scope ? atoi(scope) : -1;
 
      offset = oldoffset = outlen;
-     len = ccnl_ccntlv_mkInterest(namecomp, s, &offset, out);
+     len = ccnl_ccntlv_mkInterest(name, s, &offset, out);
      ccnl_ccntlv_prependFixedHdr(0, 1,
 				 len, 0, &offset, out);
      len = oldoffset - offset;
@@ -183,14 +184,14 @@ ccntlv_mkInterest(char **namecomp, char *scope, unsigned char *out, int outlen)
 }
 
 int
-ndntlv_mkInterest(char **namecomp, char *scope, int *nonce,
-                 unsigned char *out, int outlen)
+ndntlv_mkInterest(struct ccnl_prefix_s *name, char *scope, int *nonce,
+		  unsigned char *out, int outlen)
 {
     int len, offset;
     int s = scope ? atoi(scope) : -1;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(namecomp, s, nonce, &offset, out);
+    len = ccnl_ndntlv_mkInterest(name, s, nonce, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -206,10 +207,10 @@ main(int argc, char *argv[])
     char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     char *digest = 0, *publisher = 0;
     char *fname = 0;
-    int i = 0, f, len=0, opt;
+    int f, len=0, opt;
     int dlen = 0, plen = 0;
     int packettype = 2;
-    char *prefix[CCNL_MAX_NAME_COMP];
+    struct ccnl_prefix_s *prefix;
     uint32_t nonce;
     int isLambda = 0;
 
@@ -274,12 +275,14 @@ Usage:
     if (!argv[optind]) 
 	goto Usage;
 
+    /*
     if (isLambda)
 	i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
-	i = ccnl_URItoComponents(prefix, argv[optind]);
-    if (i <= 0) {
-	fprintf(stderr, "no name components found, aborting\n");
+    */
+    prefix = ccnl_URItoPrefix(argv[optind]);
+    if (!prefix) {
+	fprintf(stderr, "no URI found, aborting\n");
 	return -1;
     }
 

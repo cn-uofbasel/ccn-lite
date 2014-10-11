@@ -212,123 +212,29 @@ relay2char(struct ccnl_relay_s *relay)
     return '?';
 }
 
-
 void
 ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 {
-    struct ccnl_relay_s *relay = char2relay(node);
-    struct ccnl_buf_s *bp;
-    struct ccnl_prefix_s *pp;
-    char tmp[100], *n;
-    char *namecomp[20];
-    unsigned char tmp2[8192];
-    int cnt, len2;
+    struct ccnl_relay_s *relay;
+    char tmp[100];
+    struct ccnl_prefix_s *p;
+    struct ccnl_buf_s *buf;
+    int dataoffset;
     struct ccnl_content_s *c;
 
-    n = strdup(name);
-    cnt = ccnl_URItoComponents(namecomp, n);
-    /*
-    n = name2 = strdup(name);
-    name2 = strtok(name2, "/");
-    while (name2) {
-	namecomp[cnt++] = name2;
-	name2 = strtok(NULL, "/");
-    }
-    */
-    sprintf(tmp, ".%d", seqn);
-    namecomp[cnt++] = tmp;
-    namecomp[cnt] = 0;
+    relay = char2relay(node);
+    if (!relay)
+	return;
 
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-    {
-      sprintf(tmp, "%s/.%d", name, seqn);
-      struct ccnl_prefix_s *p = ccnl_path_to_prefix(tmp);
-      struct ccnl_buf_s *buf;
-      int dataoffset;
-      struct ccnl_content_s *c;
-      p->suite = CCNL_SUITE_CCNB;
-      buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
-      c = ccnl_content_new(relay, CCNL_SUITE_CCNB, &buf, &p,
-			   NULL, buf->data + dataoffset, len);
-      if (c)
-	  ccnl_content_add2cache(relay, c);
-      return;
-    }
-//	len2 = ccnl_ccnb_mkContent(namecomp, (char*) data, len, tmp2);
-//	break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-    {
-      sprintf(tmp, "%s/.%d", name, seqn);
-      struct ccnl_prefix_s *p = ccnl_path_to_prefix(tmp);
-      struct ccnl_buf_s *buf;
-      int dataoffset;
-      struct ccnl_content_s *c;
-      p->suite = CCNL_SUITE_CCNTLV;
-      buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
-      c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV, &buf, &p,
-			   NULL, buf->data + dataoffset, len);
-      if (c)
-	  ccnl_content_add2cache(relay, c);
-      return;
-    }
-      /*
-	len2 = sizeof(tmp2);
-	ccnl_ccntlv_mkContentWithHdr(namecomp, data, len, &len2,
-				     (unsigned char*) tmp2);
-	memmove(tmp2, tmp2 + len2, sizeof(tmp2) - len2);
-	len2 = sizeof(tmp2) - len2;
-	break;
-      */
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-    {
-      sprintf(tmp, "%s/.%d", name, seqn);
-      struct ccnl_prefix_s *p = ccnl_path_to_prefix(tmp);
-      struct ccnl_buf_s *buf;
-      int dataoffset;
-      struct ccnl_content_s *c;
-      p->suite = CCNL_SUITE_NDNTLV;
-      buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
-      c = ccnl_content_new(relay, CCNL_SUITE_NDNTLV, &buf, &p,
-			   NULL, buf->data + dataoffset, len);
-      if (c)
-	  ccnl_content_add2cache(relay, c);
-      return;
-    }
-/*
-	len2 = sizeof(tmp2);
-	ccnl_ndntlv_mkContent(namecomp, data, len, &len2,
-			      (unsigned char*) tmp2);
-	memmove(tmp2, tmp2 + len2, sizeof(tmp2) - len2);
-	len2 = sizeof(tmp2) - len2;
-	break;
-*/
-#endif
-    default:
-	len2 = 0;
-	break;
-    }
-    free(n);
-
-    if (len2) {
-	bp = ccnl_buf_new(tmp2, len2);
-
-	strcpy((char*) tmp2, name);
-	sprintf(tmp, "/.%d", seqn);
-	strcat((char*) tmp2, tmp);
-
-	pp = ccnl_path_to_prefix((const char*)tmp2);
-
-	c = ccnl_content_new(relay, suite, &bp, &pp, NULL, 0, 0);
-	if (c)
-	    ccnl_content_add2cache(relay, c);
-    }
-
+    sprintf(tmp, "%s/.%d", name, seqn);
+    p = ccnl_path_to_prefix(tmp);
+    p->suite = suite;
+    buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
+    c = ccnl_content_new(relay, CCNL_SUITE_CCNB, &buf, &p,
+			 NULL, buf->data + dataoffset, len);
+    if (c)
+	ccnl_content_add2cache(relay, c);
+    return;
 }
 
 // ----------------------------------------------------------------------
@@ -336,58 +242,24 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 void
 ccnl_client_TX(char node, char *name, int seqn, int nonce)
 {
-    char *namecomp[20], *n;
-    char tmp[512], tmp2[10];
-    int len, cnt;
+    char tmp[512];
+    struct ccnl_prefix_s *p;
+    struct ccnl_buf_s *buf;
     struct ccnl_relay_s *relay = char2relay(node);
-    if (!relay)	return;
 
     DEBUGMSG(10, "ccnl_client_tx node=%c: request %s #%d\n", node, name, seqn);
 
-    cnt = 0;
-    n = name = strdup(name);
-    name = strtok(name, "/");
-    while (name) {
-	namecomp[cnt++] = name;
-	name = strtok(NULL, "/");
-    }
-    sprintf(tmp2, ".%d", seqn);
-    namecomp[cnt++] = tmp2;
-    namecomp[cnt] = 0;
+    if (!relay)
+	return;
 
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-	len = ccnl_ccnb_mkInterest(namecomp, &nonce,
-				   (unsigned char*) tmp, sizeof(tmp));
-	break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	len = sizeof(tmp);
-	ccnl_ccntlv_mkInterestWithHdr(namecomp, -1, &len, (unsigned char*) tmp);
-	memmove(tmp, tmp + len, sizeof(tmp) - len);
-	len = sizeof(tmp) - len;
-	break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-	len = sizeof(tmp);
-	ccnl_ndntlv_mkInterest(namecomp, -1, &nonce,
-			       &len, (unsigned char*) tmp);
-	memmove(tmp, tmp + len, sizeof(tmp) - len);
-	len = sizeof(tmp) - len;
-	break;
-#endif
-    default:
-	len = 0;
-	break;
-    }
-    free(n);
+    sprintf(tmp, "%s/.%d", name, seqn);
+    p = ccnl_path_to_prefix(tmp);
+    p->suite = suite;
+    buf = ccnl_mkSimpleInterest(p, &nonce);
 
     // inject it into the relay:
-    if (len)
-	ccnl_core_RX(relay, -1, (unsigned char*)tmp, len, 0, 0);
+    if (buf)
+	ccnl_core_RX(relay, -1, buf->data, buf->datalen, 0, 0);
 }
 
 // ----------------------------------------------------------------------

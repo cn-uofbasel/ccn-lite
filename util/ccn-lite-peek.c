@@ -93,12 +93,13 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-ccntlv_mkInterest(char **namecomp, int *dummy, unsigned char *out, int outlen)
+ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+		  unsigned char *out, int outlen)
 {
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_mkInterestWithHdr(namecomp, -1, &offset, out);
+    len = ccnl_ccntlv_mkInterestWithHdr(name, -1, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -106,13 +107,13 @@ ccntlv_mkInterest(char **namecomp, int *dummy, unsigned char *out, int outlen)
 }
 
 int
-ndntlv_mkInterest(char **namecomp, int *nonce,
+ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 		  unsigned char *out, int outlen)
 {
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
+    len = ccnl_ndntlv_mkInterest(name, -1, nonce, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -251,11 +252,12 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
-    char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
+    char *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
+    struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(char**,int*,unsigned char*,int);
-    int (*isContent)(unsigned char*,int);
+    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+    int (*isContent)(unsigned char*, int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
@@ -349,13 +351,11 @@ usage:
 	sock = udp_open();
     }
 
+    prefix = ccnl_URItoPrefix(argv[optind]);
     for (cnt = 0; cnt < 3; cnt++) {
-	char *uri = strdup(argv[optind]);
 	int nonce = random();
 
-	ccnl_URItoComponents(prefix, uri);
 	len = mkInterest(prefix, &nonce, out, sizeof(out));
-	free(uri);
 
 	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
 	    perror("sendto");
