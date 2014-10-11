@@ -211,6 +211,26 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+{
+    static char prefix_buf[4096];
+    int len= 0, i;
+
+    if (!pr)
+	return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
+            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+        else
+            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;
+}
+
+// ----------------------------------------------------------------------
+
 #include "ccnl-platform.c"
 #include "ccnl-ext.h"
 

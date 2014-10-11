@@ -2,7 +2,7 @@
  * @f ccnl-ext-nfnkrivine.c
  * @b CCN-lite, Krivine's lazy Lambda-Calculus reduction engine
  *
- * Copyright (C) 2013, Christian Tschudin, Univerity of Basel
+ * Copyright (C) 2013-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -109,6 +109,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration
     return elm;
 }
 
+#ifdef XXX
 void 
 print_environment(struct environment_s *env){
    struct environment_s *e;
@@ -139,6 +140,7 @@ print_argument_stack(struct stack_s *stack){
 	printf("--End Env\n");      
    }
 }
+#endif
 
 void 
 add_to_environment(struct environment_s **env, char *name, void *element){
@@ -229,6 +231,8 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int 
         return add_computation_components(prefix, thunk_request, comp);
     }
 }
+
+// ----------------------------------------------------------------------
 
 char*
 ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
@@ -675,8 +679,11 @@ recontinue: //loop by reentering after timeout of the interest...
         if(c) goto handlecontent;
 
          //Result not in cache, search over the network
-        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, pref);
-        ccnl_interest_propagate(ccnl, interest);
+	//        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, pref);
+	struct ccnl_prefix_s *copy = ccnl_prefix_dup(pref);
+	struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
+	if (interest)
+	    ccnl_interest_propagate(ccnl, interest);
         //wait for content, return current program to continue later
         *halt = -1; //set halt to -1 for async computations
         if(*halt < 0) return prog;
@@ -687,8 +694,10 @@ local_compute:
         }
         config->local_done = 1;
         pref = add_local_computation_components(config);
-        interest = mkInterestObject(ccnl, config, pref);
-        ccnl_interest_propagate(ccnl, interest);
+//        interest = mkInterestObject(ccnl, config, pref);
+        interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+	if (interest)
+	    ccnl_interest_propagate(ccnl, interest);
 
 handlecontent: //if result was found ---> handle it
         if(c){

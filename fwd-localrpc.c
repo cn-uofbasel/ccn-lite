@@ -20,6 +20,8 @@
  * 2014-05-11 created
  */
 
+#ifdef USE_SUITE_LOCALRPC
+
 #include "pkt-ndntlv.h"
 #include "pkt-localrpc.h"
 #include "pkt-localrpc-enc.c"
@@ -371,5 +373,7 @@ ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     return 0;
 }
+
+#endif // USE_SUITE_LOCALRPC
 
 // eof

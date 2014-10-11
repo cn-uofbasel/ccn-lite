@@ -24,27 +24,6 @@
 
 #include "ccnl-core.h"
 
-#ifdef CCNL_LINUXKERNEL
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
-{
-    static char prefix_buf[4096];
-    int len= 0, i;
-
-    if (!pr)
-	return NULL;
-    for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
-        else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
-    }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
-}
-#endif
-
-
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
@@ -54,8 +33,23 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 static struct ccnl_interest_s* 
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
-static struct ccnl_interest_s* 
-ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+#ifdef USE_NFN
+struct ccnl_interest_s* 
+ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
+					   struct ccnl_interest_s *i);
+
+struct ccnl_interest_s*
+ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+		    int suite, struct ccnl_buf_s *buf, struct ccnl_prefix_s *p,
+		    int minsfx, int maxsfx);
+
+int
+ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+		   struct ccnl_content_s *c);
+
+#else
+# define ccnl_interest_remove_continue_computations(r,i) ccnl_interest_remove(r,i)
+#endif
 
 // ----------------------------------------------------------------------
 // datastructure support functions
@@ -535,13 +529,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 	return i->next;
 #endif
 
-
-/*
-    for(it = 0; it < i->prefix->compcnt; ++it){
-        fprintf(stderr, "/%s", i->prefix->comp[it]);
-    }
-    fprintf(stderr, "\n");
-*/
     while (i->pending) {
         struct ccnl_pendint_s *tmp = i->pending->next;		\
         ccnl_free(i->pending);
@@ -550,6 +537,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
     free_prefix(i->prefix);
+
     switch (i->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB: ccnl_free(i->details.ccnb.ppkd); break;
@@ -567,34 +555,33 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     return i2;
 }
 
+#ifdef USE_NFN
 struct ccnl_interest_s*
 ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
-		        struct ccnl_interest_s *i){
+					   struct ccnl_interest_s *i)
+{
     struct ccnl_interest_s *interest;
-#if defined(USE_NFN) || defined(USE_NACK)
     int faceid = 0;
-#endif
+
     DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
 
-#ifdef USE_NFN
-    if(i != 0 && i->from != 0){
+    if (i != 0 && i->from != 0)
             faceid = i->from->faceid;
-    }
-#endif
+
 #ifdef USE_NACK
     DEBUGMSG(99, "FROM FACEID: %d\n", faceid);
-    if(faceid >= 0){
+    if (faceid >= 0)
         ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
-    }
 #endif
+
     interest = ccnl_interest_remove(ccnl, i);
-#ifdef USE_NFN
-    if(faceid < 0){
+
+    if (faceid < 0)
             ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
-    }
-#endif
+
    return interest;
 }
+#endif
 
 // ----------------------------------------------------------------------
 // handling of content messages
@@ -679,9 +666,9 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if(c == cit) return NULL;
     }
 #ifdef USE_NACK
-    if(!strncmp((char*)c->content, ":NACK", 5)){
+    //    if(!strncmp((char*)c->content, ":NACK", 5)){
+    if (ccnl_isNACK(c))
         return NULL;
-    }
 #endif
     if (ccnl->max_cache_entries > 0 &&
 	ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
@@ -849,6 +836,66 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
     return 0;
 }
 
+// ----------------------------------------------------------------------
+// dispatching the different formats (and respective forwarding semantics):
+
+#include "fwd-ccnb.c"
+#include "fwd-ccntlv.c"
+#include "fwd-ndntlv.c"
+#include "fwd-localrpc.c"
+
+typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
+			   unsigned char**, int*);
+dispatchFct ccnl_core_RX_dispatch[CCNL_SUITE_LAST];
+
+void
+ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
+	     int datalen, struct sockaddr *sa, int addrlen)
+{
+    struct ccnl_face_s *from;
+    int suite;
+    dispatchFct dispatch;
+
+    DEBUGMSG(14, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
+
+    from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
+    if (!from)
+	return;
+
+    suite = ccnl_pkt2suite(data, datalen);
+    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
+		 ifndx, datalen, *data);
+	return;
+    }
+    dispatch = ccnl_core_RX_dispatch[suite];
+    if (dispatch) {
+	dispatch(relay, from, &data, &datalen);
+	if (datalen > 0) {
+	    DEBUGMSG(6, "ccnl_core_RX: %d bytes left\n", datalen);
+	}
+    }
+}
+
+// ----------------------------------------------------------------------
+
+void
+ccnl_core_init(void)
+{
+#ifdef USE_SUITE_CCNB
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_RX_ccnb;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_RX_ccntlv;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_RX_ndntlv;
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_RX_localrpc;
+#endif
+}
+
 void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 {
@@ -869,81 +916,5 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
     for (k = 0; k < ccnl->ifcount; k++)
 	ccnl_interface_cleanup(ccnl->ifs + k);
 }
-
-// ----------------------------------------------------------------------
-// dispatching the different formats (and respective forwarding semantics):
-
-
-#ifdef USE_SUITE_CCNB
-#  include "fwd-ccnb.c"
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-#  include "fwd-ccntlv.c"
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-#  include "fwd-ndntlv.c"
-#endif
-
-#ifdef USE_SUITE_LOCALRPC
-#  include "fwd-localrpc.c"
-#endif
-
-
-
-void
-ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
-	     int datalen, struct sockaddr *sa, int addrlen)
-{
-    struct ccnl_face_s *from;
-    DEBUGMSG(14, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
-
-    from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
-    if (!from) return;
-
-    switch (ccnl_pkt2suite(data, datalen)) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-	ccnl_RX_ccnb(relay, from, &data, &datalen); break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	ccnl_RX_ccntlv(relay, from, &data, &datalen); break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-	ccnl_RX_ndntlv(relay, from, &data, &datalen); break;
-#endif
-#ifdef USE_SUITE_LOCALRPC
-    case CCNL_SUITE_LOCALRPC:
-	ccnl_RX_localrpc(relay, from, &data, &datalen); break;
-#endif
-    default:
-	DEBUGMSG(6, "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
-		 ifndx, datalen, *data);
-	return;
-    }
-    if (datalen > 0) {
-	DEBUGMSG(6, "ccnl_core_RX: %d bytes left\n", datalen);
-    }
-}
-
-#ifdef USE_NACK
-
-void
-ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		    struct ccnl_face_s *from, int suite)
-{
-    struct ccnl_content_s *nack;
-    DEBUGMSG(99, "ccnl_nack_reply()\n");
-    if (from->faceid <= 0) {
-	return;
-    }
-    nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
-    ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
-    ccnl_face_enqueue(ccnl, from, nack->pkt);
-}
-#endif // USE_NACK
 
 // eof
