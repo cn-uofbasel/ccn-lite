@@ -28,6 +28,73 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
 
     DEBUGMSG(2, "mkInterestObject()\n");
+    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num;
+    struct ccnl_buf_s *buf = 0, *ppkd=0, *nonce=0;
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    unsigned char *content;
+
+
+    struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
+    from->faceid = config->configid;
+    from->last_used = CCNL_NOW();
+    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)prefix->comp[0]));
+    from->outq->datalen = strlen((char *)prefix->comp[0]);
+    memcpy((char *)(from->outq->data), (char *)prefix->comp[0], from->outq->datalen);
+
+/*
+    char *namecomps[CCNL_MAX_NAME_COMP];
+    for(i = 0; i < prefix->compcnt; ++i){
+        namecomps[i] = strdup((char *)prefix->comp[i]);
+    }
+    namecomps[prefix->compcnt] = 0;
+*/
+    if(config->suite == CCNL_SUITE_CCNB){
+
+        len = ccnl_ccnb_mkInterest(prefix, NULL, out, 0);
+        if(ccnl_ccnb_dehead(&out, &len, &num, &typ)){
+            return 0;
+        }
+        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
+                                &p, &nonce, &ppkd, &content, &contlen);
+        return ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB, &buf, &p, minsfx, maxsfx);
+    }
+    else if(config->suite == CCNL_SUITE_CCNTLV){
+        //NOT YET IMPLEMETED
+        return 0;
+    }
+    else if(config->suite == CCNL_SUITE_NDNTLV){
+       int tmplen = CCNL_MAX_PACKET_SIZE;
+       int nonce2;
+       len = ccnl_ndntlv_mkInterest(prefix, -1, &nonce2, &tmplen, out);
+       memmove(out, out + tmplen, CCNL_MAX_PACKET_SIZE - tmplen);
+       len = CCNL_MAX_PACKET_SIZE - tmplen;
+       unsigned char *cp = out;
+       if(ccnl_ndntlv_dehead(&out, &len, &typ, &num)){
+           return 0;
+       }
+       buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
+                                 &p, &nonce, &ppkd, &content, &contlen);
+       struct ccnl_interest_s *ret = ccnl_interest_new(ccnl, from, CCNL_SUITE_NDNTLV, &buf, &p, minsfx, maxsfx);
+       return ret;
+    }
+    return 0;
+}
+
+struct ccnl_interest_s *
+ccnl_nfn_newquery(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix,
+		  struct configuration_s *config)
+{
+    struct ccnl_buf_s *buf;
+
+    DEBUGMSG(2, "ccnl_nfn_newquery()\n");
+
+    buf = ccnl_mkSimpleInterest(*prefix, NULL);
+    return ccnl_interest_new(ccnl, NULL, (*prefix)->suite, &buf, prefix, 0, 0);
+//    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
+}
+
+#ifdef XXX
     int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen, mbf=0, len, typ, num, i;
     struct ccnl_buf_s *buf = 0, *ppkd=0, *nonce=0;
     struct ccnl_prefix_s *p = 0;
@@ -79,6 +146,7 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
     return 0;
 }
+#endif
 
 struct ccnl_content_s *
 ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix,
@@ -91,6 +159,8 @@ ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix,
 	     ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultstr);
 
     buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
+    if (!buf)
+	return NULL;
 
     return ccnl_content_new(ccnl, (*prefix)->suite, &buf, prefix,
 			    NULL, buf->data + resultpos, resultlen);
@@ -99,17 +169,15 @@ ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix,
 // ----------------------------------------------------------------------
 
 struct fox_machine_state_s *
-new_machine_state(int thunk_request, int num_of_required_thunks){
-    struct fox_machine_state_s *ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
-    ret->thunk_request = thunk_request;
-    ret->num_of_required_thunks = num_of_required_thunks;
-/*
-    ret->prefix_mapping = NULL;
-    ret->it_routable_param = 0;
-    ret->num_of_params = 0;
-    ret->num_of_required_thunks = 0;
-    ret->thunk = 0;
-*/
+new_machine_state(int thunk_request, int num_of_required_thunks)
+{
+    struct fox_machine_state_s *ret;
+
+    ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
+    if (ret) {
+	ret->thunk_request = thunk_request;
+	ret->num_of_required_thunks = num_of_required_thunks;
+    }
     return ret;
 }
 
@@ -128,13 +196,7 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
     ret->prefix = prefix;
     ret->suite = suite;
     ret->thunk_time = NFN_DEFAULT_WAITING_TIME;
-/*
-    ret->result_stack = NULL;
-    ret->argument_stack = NULL;
-    ret->env = NULL;
-    ret->thunk = 0;
-    ret->local_done = 0;
-*/
+
     return ret;
 }
 
@@ -442,9 +504,11 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     sprintf(reply_content, "%d", thunk_time);
     c = ccnl_nfn_newresult(ccnl, &prefix, (unsigned char*)reply_content,
 			   strlen(reply_content));
-    set_propagate_of_interests_to_1(ccnl, c->name);
-    ccnl_content_add2cache(ccnl, c);
-    ccnl_content_serve_pending(ccnl, c);
+    if (c) {
+	set_propagate_of_interests_to_1(ccnl, c->name);
+	ccnl_content_add2cache(ccnl, c);
+	ccnl_content_serve_pending(ccnl, c);
+    }
     return 0;
 }
 

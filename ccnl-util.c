@@ -2,7 +2,7 @@
  * @f ccnl-util.c
  * @b CCN lite, common utility procedures for applications (not the relays)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,10 +23,6 @@
 #include "pkt-ccnb-enc.c"
 #include "pkt-ccntlv-enc.c"
 #include "pkt-ndntlv-enc.c"
-
-// #ifndef CCNL_UTIL_C
-// #define CCNL_UTIL_C
-// #pragma once
 
 int
 hex2int(char c)
@@ -122,7 +118,7 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
 //    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
 
     switch (suite) {
-#ifdef USE_CCNL_CCNTLV
+#ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
 	len = strlen(src);
 	*(unsigned short*)dst = htons(CCNX_TLV_N_UTF8);
@@ -346,29 +342,73 @@ ccnl_lambdaStrToComponents(char **compVector, char *str)
 // ----------------------------------------------------------------------
 
 struct ccnl_buf_s*
-ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
-		     unsigned char *payload, int paylen, int *payoffset)
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 {
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
-    int len = 0, contentpos, offs;
+    int len = 0, offs;
 
     tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+	len = ccnl_ccnb_mkInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+	offs = 0;
+	break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        len = ccnl_ccntlv_mkInterestWithHdr(name, -1, &offs, tmp);
+	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        len = ccnl_ndntlv_mkInterest(name, -1, NULL, &offs, tmp);
+	break;
+#endif
+    default:
+	break;
+    }
+
+    if (len)
+	buf = ccnl_buf_new(tmp + offs, len);
+    ccnl_free(tmp);
+
+    return buf;
+}
+
+struct ccnl_buf_s*
+ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
+		     unsigned char *payload, int paylen, int *payoffset)
+{
+    struct ccnl_buf_s *buf = NULL;
+    unsigned char *tmp;
+    int len = 0, contentpos = 0, offs;
+
+    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    offs = CCNL_MAX_PACKET_SIZE;
+
+    switch (name->suite) {
+#ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_mkContent(name, payload, paylen, &contentpos, tmp);
 	offs = 0;
 	break;
+#endif
+#ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_mkContentWithHdr(name, payload, paylen,
 					   &offs, &contentpos, tmp);
 	break;
+#endif
+#ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_mkContent(name, payload, paylen,
 				    &offs, &contentpos, tmp);
 	break;
+#endif
     default:
 	break;
     }
@@ -379,10 +419,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 	    *payoffset = contentpos;
     }
     ccnl_free(tmp);
+
     return buf;
 }
 
-
-// ----------------------------------------------------------------------
-
-// #endif //CCNL_UTIL_C
+// eof
