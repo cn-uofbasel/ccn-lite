@@ -103,10 +103,12 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
     DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
     for (i = 0; i < -ccnl->km->configid; ++i) {
         struct ccnl_prefix_s *copy;
-        struct configuration_s *config = find_configuration(ccnl->km->configuration_list, -i);
+        struct configuration_s *config;
+
+	config = find_configuration(ccnl->km->configuration_list, -i);
         if (!config)
 	    continue;
-        ccnl_nfn_copy_prefix(config->prefix ,&copy);
+	copy = ccnl_prefix_dup(config->prefix);
         ccnl_nfn_remove_thunk_from_prefix(copy);
         if(!ccnl_prefix_cmp(copy, NULL, prefix, CMP_EXACT)){
              return 1;
@@ -114,28 +116,6 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
     }
     return 0;
 }
-
-/*
-struct ccnl_prefix_s *
-ccnl_nfn_create_new_prefix(struct ccnl_prefix_s *p){
-    struct ccnl_prefix_s *p2 = ccnl_malloc(sizeof(struct ccnl_prefix_s));
-    p2->compcnt = p->compcnt;
-    p2->complen = ccnl_malloc(sizeof(int) * p->compcnt);
-    p2->comp = ccnl_malloc(sizeof(char *) * p->compcnt);
-    int it1, it2;
-    for(it1 = 0; it1 < p->compcnt; ++it1){
-        int len = 0;
-        p2->complen[it1] = p->complen[it1];
-        p2->comp[it1] = ccnl_malloc(p->complen[it1] + 1);
-        for(it2 = 0; it2 < p->complen[it1]; ++it2){
-            len += sprintf((char*)p2->comp[it1]+it2, "%c", p->comp[it1][it2]);
-        }
-        sprintf((char*)p2->comp[it1]+ len, "%c", '\0');
-    }
-
-    return p2;
-}
-*/
 
 int 
 ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -151,9 +131,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
              (void*)ccnl, (void*)orig, ccnl_prefix_to_path(prefix),
 	     (void*)from, (void*)config);
 
-    ccnl_nfn_copy_prefix(prefix, &original_prefix);
-    prefix = original_prefix;
-    original_prefix = 0;
+    prefix = ccnl_prefix_dup(prefix);
 
 /*
     if (suite == CCNL_SUITE_CCNTLV){
@@ -177,15 +155,13 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         return -1;
     }
     unsigned char *res = NULL;
-    ccnl_nfn_copy_prefix(prefix, &original_prefix);
-
+    original_prefix = ccnl_prefix_dup(prefix);
    
     if (ccnl_isTHUNK(prefix))
         thunk_request = 1;
 
     if(interest && interest->prefix->compcnt > 2 + thunk_request){ // forward interests with outsourced components
-        struct ccnl_prefix_s *prefix_name;
-        ccnl_nfn_copy_prefix(prefix, &prefix_name);
+	struct ccnl_prefix_s *prefix_name = ccnl_prefix_dup(prefix);
         prefix_name->compcnt -= (2 + thunk_request);
         if(ccnl_nfn_local_content_search(ccnl, NULL, prefix_name) == NULL){
             ccnl_interest_propagate(ccnl, interest);
@@ -230,12 +206,14 @@ restart:
     
     //stores result if computed      
     if (res) {
+	struct ccnl_prefix_s *copy;
         DEBUGMSG(2,"Computation finished: %s, running computations: %d\n", res, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
             ccnl_nfn_remove_thunk_from_prefix(config->prefix);
         }
-        struct ccnl_content_s *c = ccnl_nfn_newresult(ccnl, config->prefix,
-				res, strlen((char *)res), config->suite);
+	copy = ccnl_prefix_dup(config->prefix);
+        struct ccnl_content_s *c = ccnl_nfn_newresult(ccnl, &copy,
+				res, strlen((char *)res));
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
 
         set_propagate_of_interests_to_1(ccnl, c->name);
@@ -254,9 +232,8 @@ restart:
 #endif
     
     //TODO: check if really necessary
-    /*if(thunk_request)
-    {
-       ccnl_nfn_delete_prefix(prefix);
+    /*if (thunk_request) {
+       free_prefix(prefix);
     }*/
     return 0;
 }
@@ -325,8 +302,7 @@ ccnl_nfn_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     if (ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
 	return 0;
 
-    i = ccnl_interest_new(ccnl, from, suite,
-			  &buf, &p, minsfx, maxsfx);
+    i = ccnl_interest_new(ccnl, from, p->suite, &buf, &p, minsfx, maxsfx);
     i->corePropagates = 0; //do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
     if (!i->corePropagates)

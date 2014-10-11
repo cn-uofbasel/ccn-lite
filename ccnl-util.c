@@ -20,9 +20,13 @@
  * 2014-06-18 created
  */
 
-#ifndef CCNL_UTIL_C
-#define CCNL_UTIL_C
-#pragma once
+#include "pkt-ccnb-enc.c"
+#include "pkt-ccntlv-enc.c"
+#include "pkt-ndntlv-enc.c"
+
+// #ifndef CCNL_UTIL_C
+// #define CCNL_UTIL_C
+// #pragma once
 
 int
 hex2int(char c)
@@ -108,6 +112,60 @@ ccnl_URItoPrefix(char* uri)
     }
 
     return prefix;
+}
+
+int
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
+{
+    int len = 0;
+
+//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
+
+    switch (suite) {
+#ifdef USE_CCNL_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	len = strlen(src);
+	*(unsigned short*)dst = htons(CCNX_TLV_N_UTF8);
+	dst += sizeof(unsigned short);
+	*(unsigned short*)dst = len;
+	dst += sizeof(unsigned short);
+	memcpy(dst, src, len);
+	len += 2*sizeof(unsigned short);
+	break;
+#endif
+    default:
+	len = strlen(src);
+	memcpy(dst, src, len);
+	break;
+    }
+    return len;
+}
+
+struct ccnl_prefix_s*
+ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
+{
+    int i = 0, len;
+    struct ccnl_prefix_s *p;
+
+    p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    p->compcnt = prefix->compcnt;
+    p->suite = prefix->suite;
+
+    p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
+    p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
+
+    for (i = 0, len = 0; i < prefix->compcnt; i++)
+	len += prefix->complen[i];
+    p->path = ccnl_malloc(len);
+    
+    for (i = 0, len = 0; i < prefix->compcnt; i++) {
+        p->complen[i] = prefix->complen[i];
+	p->comp[i] = p->path + len;
+	memcpy(p->path + len, prefix->comp[i], p->complen[i]);
+	len += p->complen[i];
+    }
+
+    return p;
 }
 
 // ----------------------------------------------------------------------
@@ -271,15 +329,6 @@ ccnl_lambdaTermToStr(char *cfg, struct ccnl_lambdaTerm_s *t, char last)
 void
 ccnl_lambdaFreeTerm(struct ccnl_lambdaTerm_s *t)
 {
-/*
-    if (term_is_var(t) || term_is_lambda)
-	ccnl_free(t->v);
-    if (term_is_app(t) || term_is_lambda(t))
-	ccnl_lambdaFreeTerm(t->m);
-    if (term_is_app(t))
-	ccnl_lambdaFreeTerm(t->n);
-    ccnl_free(t);
-*/
     if (t) {
 	ccnl_free(t->v);
 	ccnl_lambdaFreeTerm(t->m);
@@ -294,36 +343,46 @@ ccnl_lambdaStrToComponents(char **compVector, char *str)
     return ccnl_URItoComponents(compVector, str);
 }
 
-
 // ----------------------------------------------------------------------
 
-int
-ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
+struct ccnl_buf_s*
+ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
+		     unsigned char *payload, int paylen, int *payoffset)
 {
-    int len = 0;
+    struct ccnl_buf_s *buf = NULL;
+    unsigned char *tmp;
+    int len = 0, contentpos, offs;
 
-//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
+    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    offs = CCNL_MAX_PACKET_SIZE;
 
-    switch (suite) {
-#ifdef USE_CCNL_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	len = strlen(src);
-	*(unsigned short*)dst = htons(CCNX_TLV_N_UTF8);
-	dst += sizeof(unsigned short);
-	*(unsigned short*)dst = len;
-	dst += sizeof(unsigned short);
-	memcpy(dst, src, len);
-	len += 2*sizeof(unsigned short);
+    switch (name->suite) {
+    case CCNL_SUITE_CCNB:
+        len = ccnl_ccnb_mkContent(name, payload, paylen, &contentpos, tmp);
+	offs = 0;
 	break;
-#endif
+    case CCNL_SUITE_CCNTLV:
+        len = ccnl_ccntlv_mkContentWithHdr(name, payload, paylen,
+					   &offs, &contentpos, tmp);
+	break;
+    case CCNL_SUITE_NDNTLV:
+        len = ccnl_ndntlv_mkContent(name, payload, paylen,
+				    &offs, &contentpos, tmp);
+	break;
     default:
-	len = strlen(src);
-	memcpy(dst, src, len);
 	break;
     }
-    return len;
+
+    if (len) {
+	buf = ccnl_buf_new(tmp + offs, len);
+	if (payoffset)
+	    *payoffset = contentpos;
+    }
+    ccnl_free(tmp);
+    return buf;
 }
+
 
 // ----------------------------------------------------------------------
 
-#endif //CCNL_UTIL_C
+// #endif //CCNL_UTIL_C

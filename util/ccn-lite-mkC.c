@@ -53,6 +53,21 @@
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
 
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
+
+
 #include "../ccnl-util.c"
 #include "ccnl-crypto.c"
 
@@ -188,12 +203,6 @@ Usage:
     if (!argv[optind]) 
 	goto Usage;
 
-    i = ccnl_URItoComponents(prefix, argv[optind]);
-    if (i <= 0) {
-	fprintf(stderr, "no name components found, aborting\n");
-	return -1;
-    }
-
     if (infname) {
 	f = open(infname, O_RDONLY);
       if (f < 0)
@@ -204,11 +213,17 @@ Usage:
     close(f);
 
     if (packettype == 0) { //CCNB
+	i = ccnl_URItoComponents(prefix, argv[optind]);
+	if (i <= 0) {
+	    fprintf(stderr, "no name components found, aborting\n");
+	    return -1;
+	}
         len = mkContent(prefix, (unsigned char*) publisher, plen,
 			body, len, out);
     } else if (packettype == 2) { //NDNTLV
+	struct ccnl_prefix_s *name = ccnl_URItoPrefix(argv[optind]);
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(prefix, body, len, &len2, out);
+        len = ccnl_ndntlv_mkContent(name, body, len, &len2, NULL, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
     }

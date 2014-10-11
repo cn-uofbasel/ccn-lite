@@ -81,76 +81,19 @@ mkInterestObject(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 }
 
 struct ccnl_content_s *
-ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		   unsigned char *resultstr, int resultlen, int suite)
+ccnl_nfn_newresult(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix,
+		   unsigned char *resultstr, int resultlen)
 {
-    int i = 0;
-    int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    int len, mbf = 0;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    int num, typ;
-    unsigned char *out = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    struct ccnl_buf_s *buf;
+    int resultpos = 0;
 
     DEBUGMSG(49, "ccnl_nfn_newresult(prefix=%s, suite=%d, content=%s)\n",
-	     ccnl_prefix_to_path(prefix), suite, resultstr);
+	     ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultstr);
 
-//    memset(out, 0, CCNL_MAX_PACKET_SIZE);
+    buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
 
-    char **prefixcomps = ccnl_malloc(sizeof(char *) * (prefix->compcnt+1));
-    for (i = 0; i < prefix->compcnt; ++i) {
-	if (prefix->suite == CCNL_SUITE_CCNTLV) 
-	    prefixcomps[i] = strdup((char *)prefix->comp[i] + 4);
-	else
-	    prefixcomps[i] = strdup((char *)prefix->comp[i]);
-    }
-    prefixcomps[prefix->compcnt] = 0;
-
-    if (suite == CCNL_SUITE_CCNB) {
-        len = ccnl_ccnb_mkContent2(prefix, (char*)resultstr, resultlen, out);
-        if (ccnl_ccnb_dehead(&out, &len, &num, &typ)) {
-            return NULL;
-        }
-        buf = ccnl_ccnb_extract(&out, &len, &scope, &aok, &minsfx, &maxsfx,
-                              &p, &nonce, &ppkd, &content, &contlen);
-        return ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &buf, &p, &ppkd, content, contlen);
-    }
-#ifdef USE_SUITE_CCNTLV
-    else if (suite == CCNL_SUITE_CCNTLV) {
-        int offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_mkContentWithHdr(prefixcomps, resultstr, resultlen,
-				    &offs, out);
-        memmove(out, out+offs, CCNL_MAX_PACKET_SIZE - offs);
-        len = CCNL_MAX_PACKET_SIZE - offs;
-	out += 8;
-	len -=  8;
-        if (ccnl_ccntlv_dehead(&out, &len, (unsigned int*)&num, (unsigned int*)&typ)){
-            return NULL;
-        }
-	scope = -1;
-        buf = ccnl_ccntlv_extract(8+4, &out, &len, 0, &p, &scope, NULL, NULL,
-				  &content, &contlen);
-	DEBUGMSG(99, "  buf=%p, p=%s\n", (void*) buf, ccnl_prefix_to_path(p));
-        return ccnl_content_new(ccnl, CCNL_SUITE_CCNTLV, &buf, &p,
-				&ppkd, content, contlen);
-    }
-#endif
-    else if (suite == CCNL_SUITE_NDNTLV) {
-        int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent2(prefix, resultstr, resultlen, &len2, out);
-        memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
-        len = CCNL_MAX_PACKET_SIZE - len2;
-
-        unsigned char *cp = out;
-        if(ccnl_ndntlv_dehead(&out, &len, &typ, &num)){
-            return NULL;
-        }
-        buf = ccnl_ndntlv_extract(out - cp, &out, &len, &scope, &mbf, &minsfx, &maxsfx,
-                                  &p, &nonce, &ppkd, &content, &contlen);
-        return ccnl_content_new(ccnl, CCNL_SUITE_NDNTLV, &buf, &p, &ppkd, content, contlen);
-    }
-    return 0;
+    return ccnl_content_new(ccnl, (*prefix)->suite, &buf, prefix,
+			    NULL, buf->data + resultpos, resultlen);
 }
 
 // ----------------------------------------------------------------------
@@ -396,44 +339,6 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
     return name;
 }
 
-void
-ccnl_nfn_copy_prefix(struct ccnl_prefix_s *prefix, struct ccnl_prefix_s **copy)
-{
-    int i = 0, len;
-    struct ccnl_prefix_s *p;
-
-    if (!copy)
-	return;
-
-    p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    p->compcnt = prefix->compcnt;
-    p->suite = prefix->suite;
-
-    p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
-    p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
-
-    for (i = 0, len = 0; i < prefix->compcnt; i++)
-	len += prefix->complen[i];
-    p->path = ccnl_malloc(len);
-    
-    for (i = 0, len = 0; i < prefix->compcnt; i++) {
-        p->complen[i] = prefix->complen[i];
-	p->comp[i] = p->path + len;
-	memcpy(p->path + len, prefix->comp[i], p->complen[i]);
-	len += p->complen[i];
-    }
-    *copy = p;
-}
-
-void
-ccnl_nfn_delete_prefix(struct ccnl_prefix_s *prefix){
-    int i;
-    if(prefix->complen)ccnl_free(prefix->complen);
-    for(i = 0; i < prefix->compcnt; ++i){
-        if(prefix->comp[i])ccnl_free(prefix->comp[i]);
-    }
-    prefix->compcnt = 0;
-}
 
 struct ccnl_content_s *
 ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
@@ -464,11 +369,13 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s 
 }
 
 char * 
-ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
-    DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
-    struct ccnl_prefix_s *new_prefix;
+ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+		   struct ccnl_prefix_s *prefix)
+{
+    struct ccnl_prefix_s *new_prefix = ccnl_prefix_dup(prefix);
     struct thunk_s *thunk;
-    ccnl_nfn_copy_prefix(prefix, &new_prefix);
+
+    DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
     
     if (ccnl_isTHUNK(new_prefix)) {
         new_prefix->comp[new_prefix->compcnt-2] = new_prefix->comp[new_prefix->compcnt-1];
@@ -522,19 +429,22 @@ ccnl_nfn_remove_thunk(struct ccnl_relay_s *ccnl, char* thunkid){
 }
 
 int 
-ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config){
-    DEBUGMSG(2, "ccnl_nfn_reply_thunk()\n");
-    struct ccnl_prefix_s *original_prefix = config->prefix;
+ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
+{
+    struct ccnl_prefix_s *prefix = ccnl_prefix_dup(config->prefix);
     char reply_content[100];
-    memset(reply_content, 0, 100);
     int thunk_time = (int)config->thunk_time; 
+    struct ccnl_content_s *c;
+
+    DEBUGMSG(2, "ccnl_nfn_reply_thunk()\n");
+
+    memset(reply_content, 0, 100);
     sprintf(reply_content, "%d", thunk_time);
-    struct ccnl_content_s *c = ccnl_nfn_newresult(ccnl, original_prefix,
-					(unsigned char*)reply_content,
-					strlen(reply_content), config->suite);
+    c = ccnl_nfn_newresult(ccnl, &prefix, (unsigned char*)reply_content,
+			   strlen(reply_content));
     set_propagate_of_interests_to_1(ccnl, c->name);
     ccnl_content_add2cache(ccnl, c);
-    ccnl_content_serve_pending(ccnl,c);
+    ccnl_content_serve_pending(ccnl, c);
     return 0;
 }
 

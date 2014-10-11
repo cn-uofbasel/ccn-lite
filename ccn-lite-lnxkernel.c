@@ -50,6 +50,8 @@
 
 // ----------------------------------------------------------------------
 
+struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
+
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)
 
