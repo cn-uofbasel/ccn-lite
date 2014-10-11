@@ -795,6 +795,9 @@ main(int argc, char **argv)
     }
 
     time(&relays[0].startup_time);
+
+    ccnl_core_init();
+
     DEBUGMSG(1, "This is ccn-lite-simu, starting at %s",
 	     ctime(&relays[0].startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);

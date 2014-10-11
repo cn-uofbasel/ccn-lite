@@ -380,6 +380,9 @@ main(int argc, char **argv)
     }
     prefix = argv[optind];
     defaultgw = argv[optind+1];
+
+    ccnl_core_init();
+
 #ifdef USE_SUITE_CCNB
     if (theRelay.suite == CCNL_SUITE_CCNB && !udpport)
 	udpport = CCN_UDP_PORT;
