@@ -62,7 +62,7 @@ ccnl_ccntlv_extract(int hdrlen,
 
 	switch (typ) {
 	case CCNX_TLV_G_Name:
-	    p->path = start + oldpos;
+	    p->nameptr = start + oldpos;
 	    while (len2 > 0) {
 		unsigned int len3;
 		cp2 = cp;
@@ -77,7 +77,7 @@ ccnl_ccntlv_extract(int hdrlen,
 		cp += len3;
 		len2 -= len3;
 	    }
-	    p->pathlen = *data - p->path;
+	    p->namelen = *data - p->nameptr;
 #ifdef USE_NFN
 	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
 		    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
@@ -128,8 +128,8 @@ ccnl_ccntlv_extract(int hdrlen,
 	*content = buf->data + (*content - start);
     for (i = 0; i < p->compcnt; i++)
 	    p->comp[i] = buf->data + (p->comp[i] - start);
-    if (p->path)
-	p->path = buf->data + (p->path - start);
+    if (p->nameptr)
+	p->nameptr = buf->data + (p->nameptr - start);
 
     return buf;
 Bail:
