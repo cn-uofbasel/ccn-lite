@@ -83,8 +83,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
     char *compvect[CCNL_MAX_NAME_COMP];
     int cnt, i, len = 0;
 
-    fprintf(stderr, "URItoPrefix: <%s> <%s>\n", uri, nfnexpr);
- 
     p =  ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p)
 	return NULL;
