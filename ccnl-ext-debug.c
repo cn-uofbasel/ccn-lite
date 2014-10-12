@@ -766,6 +766,15 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     else
 	buf = prefix_buf2;
 
+#ifdef USE_NFN
+    if (pr->nfnflags & CCNL_PREFIX_NFN)
+	len += sprintf(buf + len, "nfn");
+    if (pr->nfnflags & CCNL_PREFIX_THUNK)
+	len += sprintf(buf + len, "thunk");
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "[");
+#endif
+
     for (i = 0; i < pr->compcnt; i++) {
 	if (pr->suite == CCNL_SUITE_CCNTLV) {
 	    if (ntohs(*(unsigned short*)(pr->comp[i])) == 1) // CCNX_TLV_N_UTF8
@@ -787,11 +796,10 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     }
 
 #ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-	len += sprintf(buf + len, "/THUNK");
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
-	len += sprintf(buf + len, "/NFN");
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "]");
 #endif
+
     buf[len] = '\0';
 
     return buf;

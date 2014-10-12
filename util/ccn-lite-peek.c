@@ -296,15 +296,16 @@ main(int argc, char *argv[])
         case 'h':
         default:
 usage:
-	    fprintf(stderr, "usage: %s "
-	    "[-u host/port] [-x ux_path_name] [-w timeout] URI [NFNexpr]\n"
+	    fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 	    "  -w timeout       in sec (float)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
-	    "Example URI: /ndn/edu/wustl/ping\n"
-	    "             \"\" \"add 1 1\"\n"
-	    "             \"\" \"call 1 /test/data\"\n",
+	    "Examples:\n"
+	    "%% peek /ndn/edu/wustl/ping             (classic lookup)\n"
+	    "%% peek /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
+	    "%% peek \"\" \"add 1 1\"                    (lambda expr, local)\n"
+	    "%% peek /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
 	    argv[0]);
 	    exit(1);
         }
