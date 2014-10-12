@@ -221,9 +221,10 @@ Usage:
         len = mkContent(prefix, (unsigned char*) publisher, plen,
 			body, len, out);
     } else if (packettype == 2) { //NDNTLV
-	struct ccnl_prefix_s *name = ccnl_URItoPrefix(argv[optind]);
+	struct ccnl_prefix_s *name;
+	name = ccnl_URItoPrefix(argv[optind], packettype, NULL);
         int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_mkContent(name, body, len, &len2, NULL, out);
+        len = ccnl_ndntlv_fillContent(name, body, len, &len2, NULL, out);
         memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
         len = CCNL_MAX_PACKET_SIZE - len2;
     }

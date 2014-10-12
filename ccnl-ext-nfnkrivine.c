@@ -217,19 +217,18 @@ int choose_parameter(struct configuration_s *config){
 //------------------------------------------------------------
         
 struct ccnl_prefix_s *
-create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request,
+create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+		 int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
 {
-
-    if(config->start_locally || ccnl_nfn_local_content_search(ccnl, config, prefix)){ //local computation name components
+    if (config->start_locally ||
+		ccnl_nfn_local_content_search(ccnl, config, prefix)) {
+	//local computation name components
         DEBUGMSG(99, "content local available\n");
-       return add_local_computation_components(config);
+	return ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
     }
-    else{ //network search name components
-        char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-        createComputationString(config, parameter_number, comp);
-        return add_computation_components(prefix, thunk_request, comp);
-    }
+    return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
+					   config, parameter_number);
 }
 
 // ----------------------------------------------------------------------
@@ -434,7 +433,8 @@ normal:
         else if(iscontentname(cp)){
             // is content...
             DEBUGMSG(99, "VAR IS CONTENT: %s\n", cp);
-            struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(cp);
+            struct ccnl_prefix_s *prefix;
+	    prefix = ccnl_URItoPrefix(cp, config->suite, NULL);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }

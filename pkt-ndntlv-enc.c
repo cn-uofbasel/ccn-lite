@@ -101,13 +101,42 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
     return oldoffset - *offset;
 }
 
+int
+ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
+			int *offset, unsigned char *buf)
+{
+    int oldoffset = *offset, cnt;
+
+#ifdef USE_NFN
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				(unsigned char*) "NFN", 3, offset, buf) < 0)
+	    return -1;
+	if (name->nfnflags & CCNL_PREFIX_THUNK)
+	    if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				(unsigned char*) "THUNK", 5, offset, buf) < 0)
+		return -1;
+    }
+#endif
+    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, name->comp[cnt],
+				    name->complen[cnt], offset, buf) < 0)
+	    return -1;
+    }
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    return 0;
+}
+
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_mkInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
-		       int *offset, unsigned char *buf)
+ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+			 int *offset, unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt;
+    int oldoffset = *offset;
 
     if (scope >= 0) {
 	if (scope > 2)
@@ -133,18 +162,8 @@ ccnl_ndntlv_mkInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 	    return -1;
     }
 
-    oldoffset2 = *offset;
-    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				    name->comp[cnt],
-				    name->complen[cnt],
-				    offset, buf) < 0)
-	    return -1;
-    }
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ndntlv_prependName(name, offset, buf))
 	return -1;
-
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
 			      offset, buf) < 0)
 	return -1;
@@ -153,11 +172,11 @@ ccnl_ndntlv_mkInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 }
 
 int
-ccnl_ndntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
-		      int paylen, int *offset, int *contentpos,
-		      unsigned char *buf)
+ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
+			int paylen, int *offset, int *contentpos,
+			unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt;
+    int oldoffset = *offset;
 
     if (contentpos)
 	*contentpos = *offset - paylen;
@@ -166,29 +185,8 @@ ccnl_ndntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
 				offset, buf) < 0)
 	return -1;
-
-    oldoffset2 = *offset;
-    for (cnt = 0; cnt < name->compcnt; cnt++) {
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				    name->comp[cnt],
-				    name->complen[cnt],
-				    offset, buf) < 0)
-	    return -1;
-    }
-    /*
-    for (cnt = 0; namecomp[cnt]; cnt++);
-    while (--cnt >= 0) {
-	int len = strlen(namecomp[cnt]);
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				    (unsigned char*) namecomp[cnt], len,
-				    offset, buf) < 0)
-	    return -1;
-    }
-    */
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ndntlv_prependName(name, offset, buf))
 	return -1;
-
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
 			      offset, buf) < 0)
 	return -1;
@@ -198,47 +196,6 @@ ccnl_ndntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
 
     return oldoffset - *offset;
 }
-
-#ifdef XXX
-int
-ccnl_ndntlv_mkContent2(struct ccnl_prefix_s *name, unsigned char *payload,
-		       int paylen, int *offset, unsigned char *buf)
-{
-    int oldoffset = *offset, oldoffset2, cnt;
-
-    // fill in backwards
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
-				offset, buf)< 0)
-	return -1;
-
-    oldoffset2 = *offset;
-    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				    name->comp[cnt], name->complen[cnt],
-				    offset, buf) < 0)
-	    return -1;
-    }
-/*
-    for (cnt = 0; namecomp[cnt]; cnt++);
-    while (--cnt >= 0) {
-	int len = strlen(namecomp[cnt]);
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				    (unsigned char*) namecomp[cnt], len,
-				    offset, buf) < 0)
-	    return -1;
-    }
-*/
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
-	return -1;
-
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
-			      offset, buf) < 0)
-	return -1;
-
-    return oldoffset - *offset;
-}
-#endif
 
 #endif
 // eof

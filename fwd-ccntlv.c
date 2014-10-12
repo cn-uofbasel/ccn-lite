@@ -75,6 +75,18 @@ ccnl_ccntlv_extract(int hdrlen,
 		cp += len3;
 		len2 -= len3;
 	    }
+#ifdef USE_NFN
+	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
+		    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
+		p->nfnflags |= CCNL_PREFIX_NFN;
+		p->compcnt--;
+		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
+		   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
+		    p->nfnflags |= CCNL_PREFIX_THUNK;
+		    p->compcnt--;
+		}
+	    }
+#endif
 	    break;
 
 	case CCNX_TLV_C_KeyID:   // same as CCNX_TLV_I_KeyID
@@ -181,7 +193,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
 	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
 	    if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_CCNTLV, buf,
 				    p, 0, 0))
 		goto Done;
@@ -216,7 +228,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 			     &buf, &p, NULL, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-	    if (ccnl_isNFNrequest(c->name)) {
+	    if (ccnl_nfnprefix_isNFN(c->name)) {
 		if (ccnl_nfn_RX_result(relay, from, c))
 		    goto Done;
 		DEBUGMSG(99, "no running computation found \n");

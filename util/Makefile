@@ -23,6 +23,17 @@ CCNTLV_LIB = ../pkt-ccntlv.h ../pkt-ccntlv-dec.c ../pkt-ccntlv-enc.c
 NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
 LOCRPC_LIB = ../pkt-localrpc.h ../pkt-localrpc-dec.c ../pkt-localrpc-enc.c
 
+# CCNL_NFN_MONITOR to log messages to nfn-scala montior
+NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
+NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
+
+ifdef USE_NFN
+    $(info *** With NFN ***)
+    CFLAGS += ${NFNFLAGS}
+endif
+
+# ----------------------------------------------------------------------
+
 all: $(PROGS)
 
 ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\

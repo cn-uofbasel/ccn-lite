@@ -99,7 +99,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_mkInterestWithHdr(name, -1, &offset, out);
+    len = ccnl_ccntlv_fillInterestWithHdr(name, -1, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -113,7 +113,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(name, -1, nonce, &offset, out);
+    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -297,12 +297,14 @@ main(int argc, char *argv[])
         default:
 usage:
 	    fprintf(stderr, "usage: %s "
-	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
+	    "[-u host/port] [-x ux_path_name] [-w timeout] URI [NFNexpr]\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 	    "  -w timeout       in sec (float)\n"
 	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
-	    "Example URI: /ndn/edu/wustl/ping\n",
+	    "Example URI: /ndn/edu/wustl/ping\n"
+	    "             \"\" \"add 1 1\"\n"
+	    "             \"\" \"call 1 /test/data\"\n",
 	    argv[0]);
 	    exit(1);
         }
@@ -316,7 +318,7 @@ usage:
     switch(suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	mkInterest = ccnl_ccnb_mkInterest;
+	mkInterest = ccnl_ccnb_fillInterest;
 	isContent = ccnb_isContent;
 	break;
 #endif
@@ -351,7 +353,7 @@ usage:
 	sock = udp_open();
     }
 
-    prefix = ccnl_URItoPrefix(argv[optind]);
+    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
     for (cnt = 0; cnt < 3; cnt++) {
 	int nonce = random();
 

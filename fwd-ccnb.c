@@ -68,6 +68,18 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 			    goto Bail;
 		    }
 		}
+#ifdef USE_NFN
+		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
+				    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
+		    p->nfnflags |= CCNL_PREFIX_NFN;
+		    p->compcnt--;
+		    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+				   !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
+			p->nfnflags |= CCNL_PREFIX_THUNK;
+			p->compcnt--;
+		    }
+		}
+#endif
 		continue;
 	    }
 	    if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
@@ -180,7 +192,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	}
 	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
 	    if (ccnl_nfn_RX_request(ccnl, from, CCNL_SUITE_CCNB,
 				    buf, p, minsfx, maxsfx))
 	      //Since the interest msg may be required in future it is not possible
@@ -226,7 +238,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 			     &buf, &p, &ppkd, content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-	    if (ccnl_isNFNrequest(c->name)) {
+	    if (ccnl_nfnprefix_isNFN(c->name)) {
 		if (ccnl_nfn_RX_result(ccnl, from, c))
 		    goto Done;
 		DEBUGMSG(99, "no running computation found \n");

@@ -77,37 +77,63 @@ ccnl_URItoComponents(char **compVector, char *uri)
 }
 
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
 {
-    struct ccnl_prefix_s *prefix = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
-    int i, len;
+    int cnt, i, len = 0;
 
-    if (!prefix)
+    fprintf(stderr, "URItoPrefix: <%s> <%s>\n", uri, nfnexpr);
+ 
+    p =  ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    if (!p)
 	return NULL;
-    prefix->compcnt = ccnl_URItoComponents(compvect, uri);
-    prefix->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
-    prefix->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
-    if (!prefix->comp || !prefix->complen) {
-	free_prefix(prefix);
-	return NULL;
-    }
-    for (i = 0, len = 0; i < prefix->compcnt; i++) {
-	prefix->complen[i] = strlen(compvect[i]);
-	len += prefix->complen[i];
-    }
-    prefix->path = ccnl_malloc(len);
-    if (!prefix->path) {
-	free_prefix(prefix);
-	return NULL;
-    }
-    for (i = 0, len = 0; i < prefix->compcnt; i++) {
-	prefix->comp[i] = prefix->path + len;
-	memcpy(prefix->comp[i], compvect[i], prefix->complen[i]);
-	len += prefix->complen[i];
+
+    if (strlen(uri))
+	cnt = ccnl_URItoComponents(compvect, uri);
+    else
+	cnt = 0;
+    p->compcnt = cnt;
+    p->suite = suite;
+
+    if (nfnexpr) {
+	p->compcnt += 1;
+	len = strlen(nfnexpr);
     }
 
-    return prefix;
+    p->comp = ccnl_malloc(p->compcnt * sizeof(char*));
+    p->complen = ccnl_malloc(p->compcnt * sizeof(int));
+    if (!p->comp || !p->complen) {
+	free_prefix(p);
+	return NULL;
+    }
+    for (i = 0; i < cnt; i++) {
+	p->complen[i] = strlen(compvect[i]);
+	len += p->complen[i];
+    }
+    
+    p->path = ccnl_malloc(len);
+    if (!p->path) {
+	free_prefix(p);
+	return NULL;
+    }
+    for (i = 0, len = 0; i < cnt; i++) {
+	p->comp[i] = p->path + len;
+	memcpy(p->comp[i], compvect[i], p->complen[i]);
+	len += p->complen[i];
+    }
+
+    if (nfnexpr) {
+	p->comp[i] = p->path + len;
+	p->complen[i] = strlen(nfnexpr);
+	memcpy(p->comp[i], nfnexpr, p->complen[i]);
+	len += p->complen[i];
+	p->nfnflags |= CCNL_PREFIX_NFN;
+    }
+
+    // realloc path ...
+
+    return p;
 }
 
 int
@@ -146,6 +172,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     p->compcnt = prefix->compcnt;
     p->suite = prefix->suite;
+    p->nfnflags = prefix->nfnflags;
 
     p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
     p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
@@ -354,18 +381,18 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	len = ccnl_ccnb_mkInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+	len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
 	offs = 0;
 	break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_mkInterestWithHdr(name, -1, &offs, tmp);
+        len = ccnl_ccntlv_fillInterestWithHdr(name, -1, &offs, tmp);
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_mkInterest(name, -1, NULL, &offs, tmp);
+        len = ccnl_ndntlv_fillInterest(name, -1, NULL, &offs, tmp);
 	break;
 #endif
     default:
@@ -393,20 +420,20 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_mkContent(name, payload, paylen, &contentpos, tmp);
+        len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
 	offs = 0;
 	break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_mkContentWithHdr(name, payload, paylen,
-					   &offs, &contentpos, tmp);
+        len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen,
+					     &offs, &contentpos, tmp);
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_mkContent(name, payload, paylen,
-				    &offs, &contentpos, tmp);
+        len = ccnl_ndntlv_fillContent(name, payload, paylen,
+				      &offs, &contentpos, tmp);
 	break;
 #endif
     default:

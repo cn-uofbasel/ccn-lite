@@ -218,6 +218,7 @@ add_local_computation_components(struct configuration_s *config){
     return ret;
 }
 
+#ifdef XXX
 int
 createComputationString(struct configuration_s *config, int parameter_num, char *comp){
 
@@ -242,6 +243,8 @@ createComputationString(struct configuration_s *config, int parameter_num, char 
     complen += sprintf(comp + complen, ")");
     return complen;
 }
+
+#endif
 
 #ifndef USE_UTIL
 void
@@ -326,7 +329,7 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     DEBUGMSG(2, "ccnl_nfn_add_thunk()\n");
     
-    if (ccnl_isTHUNK(new_prefix)) {
+    if (ccnl_nfnprefix_isTHUNK(new_prefix)) {
         new_prefix->comp[new_prefix->compcnt-2] = new_prefix->comp[new_prefix->compcnt-1];
         --new_prefix->compcnt;
     }

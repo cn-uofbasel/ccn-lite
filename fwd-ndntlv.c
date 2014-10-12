@@ -61,17 +61,27 @@ ccnl_ndntlv_extract(int hdrlen,
 	    while (len2 > 0) {
 		if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
 		    goto Bail;
-
 		if (typ == NDN_TLV_NameComponent &&
 					p->compcnt < CCNL_MAX_NAME_COMP) {
-            p->comp[p->compcnt] = cp;
-            p->complen[p->compcnt] = i;
-            p->compcnt++;
-
+		    p->comp[p->compcnt] = cp;
+		    p->complen[p->compcnt] = i;
+		    p->compcnt++;
 		}  // else unknown type: skip
 		cp += i;
 		len2 -= i;
 	    }
+#ifdef USE_NFN
+	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
+				!memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
+		p->nfnflags |= CCNL_PREFIX_NFN;
+		p->compcnt--;
+		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+				!memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
+		    p->nfnflags |= CCNL_PREFIX_THUNK;
+		    p->compcnt--;
+		}
+	    }
+#endif
 	    break;
 	case NDN_TLV_Selectors:
 	    while (len2 > 0) {
@@ -198,7 +208,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
 	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-	if (!i && ccnl_isNFNrequest(p)) { // NFN PLUGIN CALL
+	if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
 	    if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_NDNTLV,
 				    buf, p, minsfx, maxsfx))
 		    //Since the interest msg may be required in future it is not possible
@@ -266,7 +276,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }fprintf(stderr, "\n");
         }
 */
-	    if (ccnl_isNFNrequest(c->name)) {
+	    if (ccnl_nfnprefix_isNFN(c->name)) {
 		struct ccnl_interest_s *i_it = NULL;
 		int found = 0;
 #ifdef USE_NACK

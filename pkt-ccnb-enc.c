@@ -102,23 +102,50 @@ ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
 }
 
 int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-		     unsigned char *out, int outlen)
+ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out)
 {
-  int len = 0, i, k;
+    int len;
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+    len += ccnl_ccnb_mkHeader(out+len, vallen, CCN_TT_BLOB);
+    memcpy(out+len, val, vallen);
+    len += vallen;
+    out[len++] = 0; // end-of-component
+
+    return len;
+}
+
+int
+ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
+{
+    int len, i;
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    for (i = 0; i < name->compcnt; i++) {
+	len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
+    }
+#ifdef USE_NFN
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+	if (name->nfnflags & CCNL_PREFIX_THUNK)
+	    len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
+	len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
+    }
+#endif    
+    out[len++] = 0; // end-of-name
+
+    return len;
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
+		       unsigned char *out, int outlen)
+{
+    int len = 0;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    for (i = 0; i < name->compcnt; i++) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = name->complen[i];
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, name->comp[i], k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
+    len += ccnl_ccnb_mkName(name, out+len);
     if (nonce) {
 	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
 	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
@@ -133,25 +160,15 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 // #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
 
 int
-ccnl_ccnb_mkContent(struct ccnl_prefix_s *name, unsigned char *data,
-		    int datalen, int *contentpos, unsigned char *out)
+ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
+		      int datalen, int *contentpos, unsigned char *out)
 {
-    int len = 0, i, k;
+    int len = 0;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
 
-    for (i = 0; i < name->compcnt; i++) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = name->complen[i];
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, name->comp[i], k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
+    len += ccnl_ccnb_mkName(name, out+len);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
     if (contentpos)
 	*contentpos = len;
@@ -159,9 +176,9 @@ ccnl_ccnb_mkContent(struct ccnl_prefix_s *name, unsigned char *data,
     if (contentpos)
 	*contentpos = len;
     len += datalen;
-    out[len++] = 0; // end-of-content obj
-
     out[len++] = 0; // end-of-content
+
+    out[len++] = 0; // end-of-content obj
 
     return len;
 }

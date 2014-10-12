@@ -25,6 +25,7 @@
 #include "ccnl-core.h"
 #include "ccnl-ext-nfn.h"
 
+#include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfncommon.c"
 #include "ccnl-ext-nfnkrivine.c"
 
@@ -52,17 +53,6 @@ ccnl_nfn_count_required_thunks(char *str)
     }
     DEBUGMSG(99, "Number of required Thunks is: %d\n", num);
     return num;
-}
-
-static void
-ccnl_nfn_remove_thunk_from_prefix(struct ccnl_prefix_s *prefix)
-{
-    DEBUGMSG(49, "ccnl_nfn_remove_thunk_from_prefix()\n");
-    if (!prefix || prefix->compcnt < 2)
-	return;
-    prefix->comp[prefix->compcnt-2] =  prefix->comp[prefix->compcnt-1];
-    prefix->complen[prefix->compcnt-2] =  prefix->complen[prefix->compcnt-1];
-    --prefix->compcnt;
 }
 
 void 
@@ -110,21 +100,27 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
 				 struct ccnl_prefix_s *prefix)
 {
     int i = 0;
+    struct ccnl_prefix_s *copy;
 
     DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
+
+    copy = ccnl_prefix_dup(prefix);
+    // ccnl_nfn_remove_thunk_from_prefix(copy);
+    ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
+
     for (i = 0; i < -ccnl->km->configid; ++i) {
-        struct ccnl_prefix_s *copy;
         struct configuration_s *config;
 
 	config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -i);
         if (!config)
 	    continue;
-	copy = ccnl_prefix_dup(config->prefix);
-        ccnl_nfn_remove_thunk_from_prefix(copy);
-        if(!ccnl_prefix_cmp(copy, NULL, prefix, CMP_EXACT)){
-             return 1;
-        }     
+        if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
+	    free_prefix(copy);
+	    return 1;
+        }  
     }
+    free_prefix(copy);
+
     return 0;
 }
 
@@ -136,27 +132,21 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     int num_of_required_thunks = 0;
     int thunk_request = 0;
-    struct ccnl_prefix_s *original_prefix = NULL;
+    unsigned char *res = NULL;
+    char str[CCNL_MAX_PACKET_SIZE];
+    int i, len = 0;
 
     DEBUGMSG(49, "ccnl_nfn(%p, %p, %s, %p, %p)\n",
              (void*)ccnl, (void*)orig, ccnl_prefix_to_path(prefix),
 	     (void*)from, (void*)config);
 
     prefix = ccnl_prefix_dup(prefix);
-
-/*
-    if (suite == CCNL_SUITE_CCNTLV){
-        prefix = ccnl_nfn_create_new_prefix(prefix);
-    }
-    if (suite == CCNL_SUITE_NDNTLV){
-        prefix = ccnl_nfn_create_new_prefix(prefix);
-    }
-*/
     DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
-    if(config){
+
+    if (config){
         suite = config->suite;
         thunk_request = config->fox_state->thunk_request;
-        goto restart; //do not do parsing thinks again
+        goto restart; //do not do parsing thunks again
     }
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
@@ -165,62 +155,55 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(9, "Computation for this interest is already running\n");
         return -1;
     }
-    unsigned char *res = NULL;
-    original_prefix = ccnl_prefix_dup(prefix);
-   
-    if (ccnl_isTHUNK(prefix))
+    if (ccnl_nfnprefix_isTHUNK(prefix))
         thunk_request = 1;
 
-    if(interest && interest->prefix->compcnt > 2 + thunk_request){ // forward interests with outsourced components
-	struct ccnl_prefix_s *prefix_name = ccnl_prefix_dup(prefix);
-        prefix_name->compcnt -= (2 + thunk_request);
-        if(ccnl_nfn_local_content_search(ccnl, NULL, prefix_name) == NULL){
+    if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
+	struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
+	// prefix_name->compcnt -= (2 + thunk_request);
+	ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK); 
+        if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
+	    free_prefix(copy);
             ccnl_interest_propagate(ccnl, interest);
             return 0;
         }
-        else{
-            start_locally = 1;
-        }
+	free_prefix(copy);
+	start_locally = 1;
     }
 
-    char str[CCNL_MAX_PACKET_SIZE];
-    int i, len = 0;
-        
-    
     //put packet together
     if (prefix->suite == CCNL_SUITE_CCNTLV) {
-        len = prefix->complen[prefix->compcnt-2-thunk_request] - 4;
-        memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request] + 4, len);
+        len = prefix->complen[prefix->compcnt-1] - 4;
+        memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
         str[len] = '\0';
     } else {
-        len = prefix->complen[prefix->compcnt-2-thunk_request];
-        memcpy(str, prefix->comp[prefix->compcnt-2-thunk_request], len);
+        len = prefix->complen[prefix->compcnt-1];
+        memcpy(str, prefix->comp[prefix->compcnt-1], len);
         str[len] = '\0';
     }
-    if(prefix->compcnt > 2 + thunk_request){
+    if (prefix->compcnt > 1)
         len += sprintf(str + len, " ");
-    }
-
-    for (i = 0; i < prefix->compcnt-2-thunk_request; ++i) {
+    for (i = 0; i < prefix->compcnt-1; i++)
         len += sprintf(str + len, "/%.*s", prefix->complen[i], prefix->comp[i]);
-    }
+
     DEBUGMSG(99, "expr is <%s>\n", str);
     //search for result here... if found return...
-    if(thunk_request){
+    if (thunk_request)
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
-    }
     
     ++ccnl->km->numOfRunningComputations;
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
-            num_of_required_thunks, &config, original_prefix, suite);
+			    num_of_required_thunks, &config, prefix, suite);
     
     //stores result if computed      
     if (res) {
 	struct ccnl_prefix_s *copy;
-        DEBUGMSG(2,"Computation finished: %s, running computations: %d\n", res, ccnl->km->numOfRunningComputations);
+        DEBUGMSG(2,"Computation finished: %s, running computations: %d\n",
+		 res, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
-            ccnl_nfn_remove_thunk_from_prefix(config->prefix);
+	    // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
+	    ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
         }
 	copy = ccnl_prefix_dup(config->prefix);
         struct ccnl_content_s *c = ccnl_nfn_result2content(ccnl, &copy, res,
@@ -241,64 +224,8 @@ restart:
 
     }
 #endif
-    
-    //TODO: check if really necessary
-    /*if (thunk_request) {
-       free_prefix(prefix);
-    }*/
+
     return 0;
-}
-
-int
-ccnl_isNACK(struct ccnl_content_s *c)
-{
-    return !memcmp(c->content, ":NACK", 5);
-}
-
-int
-ccnl_isNFNrequest(struct ccnl_prefix_s *p)
-{
-    int rc = 0;
-
-    if (!p || p->compcnt < 2)
-	return 0;
-    switch (p->suite) {
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	rc = p->complen[p->compcnt-1] > 6 &&
-	    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7);
-	break;
-#endif
-    default:
-	rc = p->complen[p->compcnt-1] == 3 &&
-	    !memcmp(p->comp[p->compcnt-1], "NFN", 3);
-	break;
-    }
-
-    return rc;
-}
-
-int
-ccnl_isTHUNK(struct ccnl_prefix_s *p)
-{
-    int rc = 0;
-
-    if (!p || p->compcnt < 3)
-	return 0;
-    switch (p->suite) {
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	rc = p->complen[p->compcnt-2] > 8 &&
-	    !memcmp(p->comp[p->compcnt-2], "\x00\x01\x00\x05THUNK", 9);
-	break;
-#endif
-    default:
-	rc = p->complen[p->compcnt-1] == 5 &&
-	    !memcmp(p->comp[p->compcnt-1], "THUNK", 5);
-	break;
-    }
-
-    return rc;
 }
 
 struct ccnl_interest_s*
