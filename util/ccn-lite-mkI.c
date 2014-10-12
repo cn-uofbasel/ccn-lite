@@ -173,7 +173,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name,
      int s = scope ? atoi(scope) : -1;
 
      offset = oldoffset = outlen;
-     len = ccnl_ccntlv_mkInterest(name, s, &offset, out);
+     len = ccnl_ccntlv_fillInterest(name, s, &offset, out);
      ccnl_ccntlv_prependFixedHdr(0, 1,
 				 len, 0, &offset, out);
      len = oldoffset - offset;
@@ -191,7 +191,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, char *scope, int *nonce,
     int s = scope ? atoi(scope) : -1;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(name, s, nonce, &offset, out);
+    len = ccnl_ndntlv_fillInterest(name, s, nonce, &offset, out);
     if (len > 0)
 	memmove(out, out + offset, len);
 
@@ -280,7 +280,7 @@ Usage:
 	i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind]);
+    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL);
     if (!prefix) {
 	fprintf(stderr, "no URI found, aborting\n");
 	return -1;

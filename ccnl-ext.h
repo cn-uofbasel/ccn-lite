@@ -79,8 +79,8 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 #endif // USE_NACK
 
 #ifdef USE_NFN
-int ccnl_isNFNrequest(struct ccnl_prefix_s *p);
-int ccnl_isTHUNK(struct ccnl_prefix_s *p);
+int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
+int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
 
 struct ccnl_interest_s* ccnl_nfn_request(struct ccnl_relay_s *ccnl,
 		struct ccnl_face_s *from, int suite, struct ccnl_buf_s *buf,

@@ -73,10 +73,39 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char msgtype,
 }
 
 int
-ccnl_ccntlv_mkInterest(struct ccnl_prefix_s *name, int scope,
-		       int *offset, unsigned char *buf)
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+			int *offset, unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt;
+    int oldoffset = *offset, cnt;
+
+#ifdef USE_NFN
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+	if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
+				(unsigned char*) "NFN", 3, offset, buf) < 0)
+	    return -1;
+	if (name->nfnflags & CCNL_PREFIX_THUNK)
+	    if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
+				(unsigned char*) "THUNK", 5, offset, buf) < 0)
+		return -1;
+    }
+#endif
+    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
+	if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8, name->comp[cnt],
+				    name->complen[cnt], offset, buf) < 0)
+	    return -1;
+    }
+    if (ccnl_ccntlv_prependTL(CCNX_TLV_G_Name, oldoffset - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    return 0;
+}
+
+int
+ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int scope,
+			 int *offset, unsigned char *buf)
+{
+    int oldoffset = *offset;
 
     if (scope >= 0) {
 	if (scope > 2)
@@ -86,32 +115,22 @@ ccnl_ccntlv_mkInterest(struct ccnl_prefix_s *name, int scope,
 	    return -1;
     }
 
-    oldoffset2 = *offset;
-    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-	if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
-				    name->comp[cnt],
-				    name->complen[cnt],
-				    offset, buf) < 0)
-	    return -1;
-    }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_G_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ccntlv_prependName(name, offset, buf))
 	return -1;
-
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest, oldoffset - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
+					oldoffset - *offset, offset, buf) < 0)
 	return -1;
 
     return oldoffset - *offset;
 }
 
 int
-ccnl_ccntlv_mkInterestWithHdr(struct ccnl_prefix_s *name, int scope,
-			      int *offset, unsigned char *buf)
+ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, int scope,
+				int *offset, unsigned char *buf)
 {
     int len;
 
-    len = ccnl_ccntlv_mkInterest(name, scope, offset, buf);
+    len = ccnl_ccntlv_fillInterest(name, scope, offset, buf);
     if (len > 0) {
 	len = ccnl_ccntlv_prependFixedHdr(0, CCNX_TLV_TL_Interest, len, 0,
 								offset, buf);
@@ -121,10 +140,11 @@ ccnl_ccntlv_mkInterestWithHdr(struct ccnl_prefix_s *name, int scope,
 }
 
 int
-ccnl_ccntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
-		      int paylen, int *offset, int *contentpos, unsigned char *buf)
+ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
+			int paylen, int *offset, int *contentpos,
+			unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt;
+    int oldoffset = *offset;
 
     if (contentpos)
 	*contentpos = *offset - paylen;
@@ -133,21 +153,10 @@ ccnl_ccntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
     if (ccnl_ccntlv_prependBlob(CCNX_TLV_C_Contents, payload, paylen,
 							offset, buf) < 0)
 	return -1;
-
-    oldoffset2 = *offset;
-    for (cnt = 0; cnt < name->compcnt; cnt++) {
-	if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
-				    name->comp[cnt],
-				    name->complen[cnt],
-				    offset, buf) < 0)
-	    return -1;
-    }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_G_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ccntlv_prependName(name, offset, buf))
 	return -1;
-
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object, oldoffset - *offset,
-			      offset, buf) < 0)
+    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
+					oldoffset - *offset, offset, buf) < 0)
 	return -1;
 
     if (contentpos)
@@ -157,13 +166,14 @@ ccnl_ccntlv_mkContent(struct ccnl_prefix_s *name, unsigned char *payload,
 }
 
 int
-ccnl_ccntlv_mkContentWithHdr(struct ccnl_prefix_s *name, unsigned char *payload,
-			     int paylen, int *offset, int *contentpos,
-			     unsigned char *buf)
+ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
+			       unsigned char *payload, int paylen,
+			       int *offset, int *contentpos, unsigned char *buf)
 {
     int len;
 
-    len = ccnl_ccntlv_mkContent(name, payload, paylen, offset, contentpos, buf);
+    len = ccnl_ccntlv_fillContent(name, payload, paylen, offset,
+				  contentpos, buf);
     if (len > 0) {
 	len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
 					  len, 0, offset, buf);

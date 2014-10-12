@@ -82,8 +82,12 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
     int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-    if (mode == CMP_EXACT && nlen != p->compcnt)
-	goto done;
+    if (mode == CMP_EXACT) {
+	if (nlen != p->compcnt)
+	    goto done;
+	if (p->nfnflags != name->nfnflags)
+	    goto done;
+    }
     for (i = 0; i < nlen && i < p->compcnt; ++i) {
         comp = i < name->compcnt ? name->comp[i] : md;
         clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
@@ -563,10 +567,11 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     struct ccnl_interest_s *interest;
     int faceid = 0;
 
-    DEBUGMSG(99, "ccnl_interest_remove_continue_computations()\n");
-
     if (i != 0 && i->from != 0)
             faceid = i->from->faceid;
+
+    DEBUGMSG(99, "ccnl_interest_remove_continue_computations(faceid=%d)\n", faceid);
+
 
 #ifdef USE_NACK
     DEBUGMSG(99, "FROM FACEID: %d\n", faceid);

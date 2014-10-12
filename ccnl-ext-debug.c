@@ -668,7 +668,6 @@ debug_unlink(struct mhdr *hdr)
     return 1;
 }
 
-/*
 void*
 debug_realloc(void *p, int s, const char *fn, int lno)
 {
@@ -685,7 +684,7 @@ debug_realloc(void *p, int s, const char *fn, int lno)
 	if (!h)
 	    return NULL;
     } else
-      h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
+	h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
     h->fname = (char *) fn;
     h->lineno = lno;
     h->size = s;
@@ -693,7 +692,6 @@ debug_realloc(void *p, int s, const char *fn, int lno)
     mem = h;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
-*/
 
 void
 debug_free(void *p, const char *fn, int lno)
@@ -769,7 +767,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 	buf = prefix_buf2;
 
     for (i = 0; i < pr->compcnt; i++) {
-#ifdef USE_SUITE_CCNTLV
 	if (pr->suite == CCNL_SUITE_CCNTLV) {
 	    if (ntohs(*(unsigned short*)(pr->comp[i])) == 1) // CCNX_TLV_N_UTF8
 		len += sprintf(buf + len, "/%.*s",
@@ -780,13 +777,21 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 			   pr->comp[i][0], pr->comp[i][1],
 			   pr->complen[i]-4, pr->comp[i]+4);
 	    continue;
+	} else {
+	    if ((pr->nfnflags & CCNL_PREFIX_NFN) &&
+				!strncmp("call", (char*)pr->comp[i], 4))
+		len += sprintf(buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+	    else
+		len += sprintf(buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
 	}
-#endif
-        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(buf + len, "%.*s", pr->complen[i], pr->comp[i]);
-        else
-            len += sprintf(buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
     }
+
+#ifdef USE_NFN
+    if (pr->nfnflags & CCNL_PREFIX_THUNK)
+	len += sprintf(buf + len, "/THUNK");
+    if (pr->nfnflags & CCNL_PREFIX_NFN)
+	len += sprintf(buf + len, "/NFN");
+#endif
     buf[len] = '\0';
 
     return buf;
