@@ -96,7 +96,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
     p->compcnt = cnt;
     p->suite = suite;
 
-    if (nfnexpr) {
+    if (nfnexpr && strlen(nfnexpr) > 0) {
 	p->compcnt += 1;
 	len = strlen(nfnexpr);
     }
@@ -124,10 +124,12 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
     }
 
     if (nfnexpr) {
-	p->comp[i] = p->path + len;
-	p->complen[i] = strlen(nfnexpr);
-	memcpy(p->comp[i], nfnexpr, p->complen[i]);
-	len += p->complen[i];
+	if (strlen(nfnexpr) > 0) {
+	    p->comp[i] = p->path + len;
+	    p->complen[i] = strlen(nfnexpr);
+	    memcpy(p->comp[i], nfnexpr, p->complen[i]);
+	    len += p->complen[i];
+	}
 	p->nfnflags |= CCNL_PREFIX_NFN;
     }
 

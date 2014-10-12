@@ -176,7 +176,8 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 			int paylen, int *offset, int *contentpos,
 			unsigned char *buf)
 {
-    int oldoffset = *offset;
+    int oldoffset = *offset, oldoffset2;
+    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
 
     if (contentpos)
 	*contentpos = *offset - paylen;
@@ -195,7 +196,6 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
         return -1;
 
     // use NDN_SigTypeVal_SignatureSha256WithRsa because this is default in ndn client libs
-    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
     if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
                 offset, buf)< 0)
         return 1;
