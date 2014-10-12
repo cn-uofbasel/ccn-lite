@@ -131,11 +131,11 @@ ccnl_path_to_prefix(const char *path)
 	for (ccp = path; *ccp; ccp++)
 	    if (*ccp == '/')
 		cnt++;
-	pr->path = (unsigned char*) ccnl_malloc(strlen(path) + 4*cnt);
-	if (!pr->comp || !pr->complen || !pr->path) {
+	pr->bytes = (unsigned char*) ccnl_malloc(strlen(path) + 4*cnt);
+	if (!pr->comp || !pr->complen || !pr->bytes) {
 	    ccnl_free(pr->comp);
 	    ccnl_free(pr->complen);
-	    ccnl_free(pr->path);
+	    ccnl_free(pr->bytes);
 	    ccnl_free(pr);
 	    return NULL;
 	}
@@ -146,10 +146,10 @@ ccnl_path_to_prefix(const char *path)
 	for (cp = strtok(dup, "/"); cp && pr->compcnt < CCNL_MAX_NAME_COMP;
 					     cp = strtok(NULL, "/")) {
 	    pr->complen[pr->compcnt] = 4 + strlen(cp);
-	    pr->comp[pr->compcnt] = pr->path + cnt;
-	    *(unsigned short*)(pr->path + cnt) = htons(CCNX_TLV_N_UTF8);
-	    *(unsigned short*)(pr->path + cnt + 2) = htons(strlen(cp));
-	    strcpy((char*)pr->path + cnt + 4, cp);
+	    pr->comp[pr->compcnt] = pr->bytes + cnt;
+	    *(unsigned short*)(pr->bytes + cnt) = htons(CCNX_TLV_N_UTF8);
+	    *(unsigned short*)(pr->bytes + cnt + 2) = htons(strlen(cp));
+	    strcpy((char*)pr->bytes + cnt + 4, cp);
 	    cnt += 4 + strlen(cp);
 	    pr->compcnt++;
 	}
@@ -158,17 +158,17 @@ ccnl_path_to_prefix(const char *path)
     }
 #endif
 
-    pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->path) {
+    pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);
+    if (!pr->comp || !pr->complen || !pr->bytes) {
         ccnl_free(pr->comp);
         ccnl_free(pr->complen);
-        ccnl_free(pr->path);
+        ccnl_free(pr->bytes);
         ccnl_free(pr);
         return NULL;
     }
 
-    strcpy((char*) pr->path, path);
-    cp = (char*) pr->path;
+    strcpy((char*) pr->bytes, path);
+    cp = (char*) pr->bytes;
 
     for (path = strtok(cp, "/");
 		 path && pr->compcnt < CCNL_MAX_NAME_COMP;

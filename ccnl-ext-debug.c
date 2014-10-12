@@ -823,7 +823,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #define free_4ptr_list(a,b,c,d)	ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 
 #define free_prefix(p)	do{ if(p) \
-			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
+		free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->pkt, c); } while(0)
 

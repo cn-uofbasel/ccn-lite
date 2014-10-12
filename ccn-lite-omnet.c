@@ -396,17 +396,17 @@ ccnl_path_to_prefix(const char *path)
     pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->path) {
+    pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);
+    if (!pr->comp || !pr->complen || !pr->bytes) {
         ccnl_free(pr->comp);
         ccnl_free(pr->complen);
-        ccnl_free(pr->path);
+        ccnl_free(pr->bytes);
         ccnl_free(pr);
         return NULL;
     }
 
-    strcpy((char*) pr->path, path);
-    cp = (char*) pr->path;
+    strcpy((char*) pr->bytes, path);
+    cp = (char*) pr->bytes;
 
     for (path = strtok(cp, "/");
          path && pr->compcnt < CCNL_MAX_NAME_COMP;

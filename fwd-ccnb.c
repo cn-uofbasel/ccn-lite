@@ -36,7 +36,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 		  unsigned char **content, int *contlen)
 {
     unsigned char *start = *data - 2 /* account for outer TAG hdr */, *cp;
-    int num, typ, len;
+    int num, typ, len, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf, *n = 0, *pub = 0;
     DEBUGMSG(99, "ccnl_ccnb_extract\n");
@@ -49,10 +49,12 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
+    oldpos = *data - start;
     while (ccnl_ccnb_dehead(data, datalen, &num, &typ) == 0) {
 	if (num==0 && typ==0) break; // end
 	if (typ == CCN_TT_DTAG) {
 	    if (num == CCN_DTAG_NAME) {
+		p->path = start + oldpos;
 		for (;;) {
 		    if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0)
 			goto Bail;
@@ -68,6 +70,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 			    goto Bail;
 		    }
 		}
+		p->pathlen = *data - p->path;
 #ifdef USE_NFN
 		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
 				    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
@@ -80,6 +83,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 		    }
 		}
 #endif
+		oldpos = *data - start;
 		continue;
 	    }
 	    if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
@@ -100,16 +104,20 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 		    pub = ccnl_buf_new(cp, len);
 		if (num == CCN_DTAG_EXCLUDE) {
 		    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
-		} else
+		} else {
+		    oldpos = *data - start;
 		    continue;
+		}
 	    }
 	    if (num == CCN_DTAG_CONTENT) {
 		if (ccnl_ccnb_consume(typ, num, data, datalen, content, contlen) < 0)
 		    goto Bail;
+		oldpos = *data - start;
 		continue;
 	    }
 	}
 	if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) goto Bail;
+	oldpos = *data - start;
     }
     if (prefix)    *prefix = p;    else free_prefix(p);
     if (nonce)     *nonce = n;     else ccnl_free(n);
@@ -123,6 +131,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 	    p->comp[num] = buf->data + (p->comp[num] - start);
     if (p->path)
 	p->path = buf->data + (p->path - start);
+
     return buf;
 Bail:
     free_prefix(p);

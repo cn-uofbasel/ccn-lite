@@ -110,20 +110,20 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
 	len += p->complen[i];
     }
     
-    p->path = ccnl_malloc(len);
-    if (!p->path) {
+    p->bytes = ccnl_malloc(len);
+    if (!p->bytes) {
 	free_prefix(p);
 	return NULL;
     }
     for (i = 0, len = 0; i < cnt; i++) {
-	p->comp[i] = p->path + len;
+	p->comp[i] = p->bytes + len;
 	memcpy(p->comp[i], compvect[i], p->complen[i]);
 	len += p->complen[i];
     }
 
     if (nfnexpr) {
 	if (strlen(nfnexpr) > 0) {
-	    p->comp[i] = p->path + len;
+	    p->comp[i] = p->bytes + len;
 	    p->complen[i] = strlen(nfnexpr);
 	    memcpy(p->comp[i], nfnexpr, p->complen[i]);
 	    len += p->complen[i];
@@ -179,12 +179,12 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
 	len += prefix->complen[i];
-    p->path = ccnl_malloc(len);
+    p->bytes = ccnl_malloc(len);
     
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
         p->complen[i] = prefix->complen[i];
-	p->comp[i] = p->path + len;
-	memcpy(p->path + len, prefix->comp[i], p->complen[i]);
+	p->comp[i] = p->bytes + len;
+	memcpy(p->bytes + len, prefix->comp[i], p->complen[i]);
 	len += p->complen[i];
     }
 

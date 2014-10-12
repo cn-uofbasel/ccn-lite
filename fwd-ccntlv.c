@@ -36,7 +36,7 @@ ccnl_ccntlv_extract(int hdrlen,
 {
     unsigned char *start = *data - hdrlen;
     int i;
-    unsigned int len, typ;
+    unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
     DEBUGMSG(99, "ccnl_ccntlv_extract\n");
@@ -55,12 +55,14 @@ ccnl_ccntlv_extract(int hdrlen,
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
+    oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
 	unsigned char *cp = *data, *cp2;
 	int len2 = len;
 
 	switch (typ) {
 	case CCNX_TLV_G_Name:
+	    p->path = start + oldpos;
 	    while (len2 > 0) {
 		unsigned int len3;
 		cp2 = cp;
@@ -75,6 +77,7 @@ ccnl_ccntlv_extract(int hdrlen,
 		cp += len3;
 		len2 -= len3;
 	    }
+	    p->pathlen = *data - p->path;
 #ifdef USE_NFN
 	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
 		    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
@@ -112,6 +115,7 @@ ccnl_ccntlv_extract(int hdrlen,
 	}
 	*data += len;
 	*datalen -= len;
+	oldpos = *data - start;
     }
     if (*datalen > 0)
 	goto Bail;
@@ -126,6 +130,7 @@ ccnl_ccntlv_extract(int hdrlen,
 	    p->comp[i] = buf->data + (p->comp[i] - start);
     if (p->path)
 	p->path = buf->data + (p->path - start);
+
     return buf;
 Bail:
     free_prefix(p);

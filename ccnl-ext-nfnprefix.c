@@ -95,7 +95,7 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
 {
     int i, len = 0;
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(*p));
-    char *path = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    char *bytes = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
 
     p->suite = name->suite;
     p->nfnflags = CCNL_PREFIX_NFN;
@@ -107,19 +107,19 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
 
     for (i = 0; i < name->compcnt; i++) {
 	p->complen[i] = name->complen[i];
-	p->comp[i] = (unsigned char*)(path + len);
+	p->comp[i] = (unsigned char*)(bytes + len);
 	memcpy(p->comp[i], name->comp[i], p->complen[i]);
 	len += p->complen[i];
     }
 
-    p->comp[i] = (unsigned char*)(path + len);
-    len += ccnl_nfnprefix_fillCallExpr(path + len, config->fox_state,
+    p->comp[i] = (unsigned char*)(bytes + len);
+    len += ccnl_nfnprefix_fillCallExpr(bytes + len, config->fox_state,
 				       parameter_num);
-    p->complen[i] = (unsigned char*)(path + len) - p->comp[i];
+    p->complen[i] = (unsigned char*)(bytes + len) - p->comp[i];
 
-    p->path = ccnl_realloc(path, len);
+    p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)
-	p->comp[i] = (unsigned char*)(p->path + ((char*)p->comp[i] - path));
+	p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
 
     return p;
 }
@@ -129,7 +129,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
 {
     int i, len = 0;
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(*p));
-    char *path = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    char *bytes = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
 
     p->suite = suite;
     p->nfnflags = CCNL_PREFIX_NFN;
@@ -139,17 +139,17 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     p->comp = ccnl_malloc(p->compcnt * sizeof(char*));
     p->complen = ccnl_malloc(p->compcnt * sizeof(int));
 
-    p->comp[0] = (unsigned char*) path;
-    len = sprintf(path, "COMPUTE");
+    p->comp[0] = (unsigned char*) bytes;
+    len = sprintf(bytes, "COMPUTE");
     p->complen[0] = len;
 
-    p->comp[1] = (unsigned char*) (path + len);
-    len += ccnl_nfnprefix_fillCallExpr(path + len, config->fox_state, -1);
-    p->complen[1] = (unsigned char*)(path + len) - p->comp[1];
+    p->comp[1] = (unsigned char*) (bytes + len);
+    len += ccnl_nfnprefix_fillCallExpr(bytes + len, config->fox_state, -1);
+    p->complen[1] = (unsigned char*)(bytes + len) - p->comp[1];
 
-    p->path = ccnl_realloc(path, len);
+    p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)
-	p->comp[i] = (unsigned char*)(p->path + ((char*)p->comp[i] - path));
+	p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
 
     return p;
 }

@@ -150,14 +150,14 @@ ccnl_prefix_clone(struct ccnl_prefix_s *p)
     p2 = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p2) return NULL;
     for (i = 0, len = 0; i < p->compcnt; len += p->complen[i++]);
-    p2->path = (unsigned char*) ccnl_malloc(len);
+    p2->bytes = (unsigned char*) ccnl_malloc(len);
     p2->comp = (unsigned char**) ccnl_malloc(p->compcnt*sizeof(char *));
     p2->complen = (int*) ccnl_malloc(p->compcnt*sizeof(int));
-    if (!p2->comp || !p2->complen || !p2->path) goto Bail;
+    if (!p2->comp || !p2->complen || !p2->bytes) goto Bail;
     p2->compcnt = p->compcnt;
     for (i = 0, len = 0; i < p->compcnt; len += p2->complen[i++]) {
 	p2->complen[i] = p->complen[i];
-	p2->comp[i] = p2->path + len;
+	p2->comp[i] = p2->bytes + len;
 	memcpy(p2->comp[i], p->comp[i], p2->complen[i]);
     }
     return p2;
