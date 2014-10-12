@@ -54,7 +54,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 	if (num==0 && typ==0) break; // end
 	if (typ == CCN_TT_DTAG) {
 	    if (num == CCN_DTAG_NAME) {
-		p->path = start + oldpos;
+		p->nameptr = start + oldpos;
 		for (;;) {
 		    if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0)
 			goto Bail;
@@ -70,7 +70,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 			    goto Bail;
 		    }
 		}
-		p->pathlen = *data - p->path;
+		p->namelen = *data - p->nameptr;
 #ifdef USE_NFN
 		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
 				    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
@@ -129,8 +129,8 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
 	*content = buf->data + (*content - start);
     for (num = 0; num < p->compcnt; num++)
 	    p->comp[num] = buf->data + (p->comp[num] - start);
-    if (p->path)
-	p->path = buf->data + (p->path - start);
+    if (p->nameptr)
+	p->nameptr = buf->data + (p->nameptr - start);
 
     return buf;
 Bail:

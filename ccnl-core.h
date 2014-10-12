@@ -124,9 +124,9 @@ struct ccnl_prefix_s {
     int *complen;
     int compcnt;
     char suite;
-    unsigned char *path;   // binary name (for fast comparison)
-    unsigned int pathlen;  // length of path memory
-    unsigned char *bytes;  // memory for name component copies
+    unsigned char *nameptr; // binary name (for fast comparison)
+    unsigned int   namelen; // valid length of name memory
+    unsigned char *bytes;   // memory for name component copies
     unsigned int nfnflags;
 #define CCNL_PREFIX_NFN   0x01
 #define CCNL_PREFIX_THUNK 0x02

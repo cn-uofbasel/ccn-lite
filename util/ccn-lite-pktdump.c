@@ -47,7 +47,7 @@
 #define ccnl_calloc(n,s) 		calloc(n,s)
 #define ccnl_realloc(p,s)		realloc(p,s)
 #define ccnl_free(p)			free(p)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->path); free(p); }} while(0)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
 #include "../ccnl-core.h"
 

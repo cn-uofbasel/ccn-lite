@@ -60,7 +60,7 @@ ccnl_ndntlv_extract(int hdrlen,
 
 	switch (typ) {
 	case NDN_TLV_Name:
-	    p->path = start + oldpos;
+	    p->nameptr = start + oldpos;
 	    while (len2 > 0) {
 		if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
 		    goto Bail;
@@ -73,7 +73,7 @@ ccnl_ndntlv_extract(int hdrlen,
 		cp += i;
 		len2 -= i;
 	    }
-	    p->pathlen = *data - p->path;
+	    p->namelen = *data - p->nameptr;
 #ifdef USE_NFN
 	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
 				!memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
@@ -139,8 +139,8 @@ ccnl_ndntlv_extract(int hdrlen,
 	*content = buf->data + (*content - start);
     for (i = 0; i < p->compcnt; i++)
 	    p->comp[i] = buf->data + (p->comp[i] - start);
-    if (p->path)
-	p->path = buf->data + (p->path - start);
+    if (p->nameptr)
+	p->nameptr = buf->data + (p->nameptr - start);
 
     return buf;
 Bail:
