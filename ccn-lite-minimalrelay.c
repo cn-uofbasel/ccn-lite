@@ -69,7 +69,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 
 #define free_prefix(p)	do{ if(p) \
-			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
+		free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->pkt, c); } while(0)
 
@@ -227,17 +227,17 @@ ccnl_path_to_prefix(const char *path)
     pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->path) {
+    pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);
+    if (!pr->comp || !pr->complen || !pr->bytes) {
         ccnl_free(pr->comp);
         ccnl_free(pr->complen);
-        ccnl_free(pr->path);
+        ccnl_free(pr->bytes);
         ccnl_free(pr);
         return NULL;
     }
 
-    strcpy((char*) pr->path, path);
-    cp = (char*) pr->path;
+    strcpy((char*) pr->bytes, path);
+    cp = (char*) pr->bytes;
     for (path = strtok(cp, "/");
 		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
 		 path = strtok(NULL, "/")) {
