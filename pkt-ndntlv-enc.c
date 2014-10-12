@@ -182,14 +182,45 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 	*contentpos = *offset - paylen;
 
     // fill in backwards
+
+    // mandatory (empty for now)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureValue, 0, offset, buf) < 0)
+        return -1;
+
+    // Store the current offset to find length for SignatureInfo
+    oldoffset2 = *offset;
+
+    // optional (empty for now) because ndn client lib also puts it in by default
+    if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocator, 0, offset, buf) < 0)
+        return -1;
+
+    // use NDN_SigTypeVal_SignatureSha256WithRsa because this is default in ndn client libs
+    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
+                offset, buf)< 0)
+        return 1;
+
+    // Groups KeyLocator and Signature Type with stored len
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, oldoffset2 - *offset, offset, buf) < 0)
+        return -1;
+
+    // mandatory
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
 				offset, buf) < 0)
 	return -1;
+
+    // mandatory (empty for now)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, 0, offset, buf) < 0)
+        return -1;
+
+    // mandatory
     if (ccnl_ndntlv_prependName(name, offset, buf))
 	return -1;
+
+    // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
 			      offset, buf) < 0)
-	return -1;
+	   return -1;
 
     if (contentpos)
 	*contentpos -= *offset;

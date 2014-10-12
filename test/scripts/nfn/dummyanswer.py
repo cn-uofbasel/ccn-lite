@@ -2,15 +2,17 @@
 
 import socket
 import time
+import os
 
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9002
 
 
-f_t = open("/home/blacksheeep/ccn-lite/test/ccnb/nfn/computation_dummy_thunk.ccnb")
+env = os.getenv("CCNL_HOME") 
+f_t = open(os.path.join(env, "test/ccnb/nfn/computation_dummy_thunk.ccnb"))
 c_t = f_t.read()
 
-f = open("/home/blacksheeep/ccn-lite/test/ccnb/nfn/computation_dummy_result.ccnb")
+f = open(os.path.join(env, "test/ccnb/nfn/computation_dummy_result.ccnb"))
 c = f.read()
 
 sock = socket.socket(socket.AF_INET, # Internet
