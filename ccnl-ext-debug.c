@@ -639,6 +639,8 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
     h->lineno = lno;
     h->size = s;
     h->tstamp = strdup(tstamp);
+    if (s == 64) fprintf(stderr, "+++ s=64 %p\n",
+			 (void*)(((unsigned char *)h) + sizeof(struct mhdr)));
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -758,8 +760,13 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 	return NULL;
 
     if (!buf) {
-	prefix_buf1 = ccnl_malloc(2048);
-	prefix_buf2 = ccnl_malloc(2048);
+	struct ccnl_buf_s *b;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf1 = (char*) b->data;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf2 = (char*) b->data;
 	buf = prefix_buf1;
     } else if (buf == prefix_buf2)
 	buf = prefix_buf1;

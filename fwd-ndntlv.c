@@ -174,8 +174,12 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     if (typ == NDN_TLV_Interest) {
-        if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
-            DEBUGMSG(6, "  dropped because of duplicate nonce\n"); //goto Skip;
+	if (nonce) {
+	    if (ccnl_nonce_find_or_append(relay, nonce)) {
+		DEBUGMSG(6, "  dropped because of duplicate nonce\n");
+		//goto Skip;
+	    }
+	    ccnl_free(nonce);
         }
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
         ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
@@ -261,61 +265,11 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 			     &buf, &p, NULL /* ppkd */ , content, contlen);
 	if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-/*
-        if(debug_level >= 99){
-            struct ccnl_interest_s *i_it;
-            int it;
-
-            fprintf(stderr, "PIT Entries: \n");
-            for(i_it = relay->pit; i_it; i_it = i_it->next){
-                    int it;
-                    fprintf(stderr, "    - ");
-                    for(it = 0; it < i_it->prefix->compcnt; ++it){
-                            fprintf(stderr, "/%s", i_it->prefix->comp[it]);
-                    }
-                    fprintf(stderr, " --- from-faceid: %d propagate: %d \n", i_it->from->faceid, i_it->propagate);
-            }
-
-            fprintf(stderr, "Content name: ");
-            for(it = 0; it < c->name->compcnt; ++it){
-                fprintf(stderr, "/%s",  c->name->comp[it]);
-            }fprintf(stderr, "\n");
-        }
-*/
 	    if (ccnl_nfnprefix_isNFN(c->name)) {
-		struct ccnl_interest_s *i_it = NULL;
-		int found = 0;
-#ifdef USE_NACK
-		if (ccnl_isNACK(c)) {
-		    ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
-						    from, CCNL_SUITE_NDNTLV);
+		if (ccnl_nfn_RX_result(relay, from, c))
 		    goto Done;
-		}
-#endif // USE_NACK
-            for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
-                 //Check if prefix match and it is a nfn request
-                 int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
-                 DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
-                 if( !ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT)
-                         && i_it->from->faceid < 0){
-                    int configid = -i_it->from->faceid;
-                    int faceid = -i_it->from->faceid;
-
-                    ccnl_content_add2cache(relay, c);
-                    DEBUGMSG(49, "Continue configuration for configid: %d\n", configid);
-                    i_it->corePropagates = 1;
-                    i_it = ccnl_interest_remove(relay, i_it);
-                    ccnl_nfn_continue_computation(relay, faceid, 0);
-                    ++found;
-                    //goto Done;
-                 }
-                 else{
-                     i_it = i_it->next;
-                 }
-            }
-            if(found) goto Done;
-            DEBUGMSG(99, "no running computation found \n");
-        }
+		DEBUGMSG(99, "no running computation found \n");
+	    }
 #endif
 	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"

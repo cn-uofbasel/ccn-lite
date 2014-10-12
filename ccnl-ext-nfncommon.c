@@ -96,6 +96,32 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
     return ret;
 }
 
+void
+ccnl_nfn_freeConfiguration(struct configuration_s* c)
+{
+    if (!c)
+	return;
+    // free both stacks
+    // free both environments
+    ccnl_free(c->fox_state);
+    free_prefix(c->prefix);
+    ccnl_free(c);
+}
+
+void
+ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k)
+{
+    if (!k)
+	return;
+    // free thunk_list;
+    while (k->configuration_list) {
+	struct configuration_s *c = k->configuration_list;
+	DBL_LINKED_LIST_REMOVE(k->configuration_list, c);
+	ccnl_nfn_freeConfiguration(c);
+    }
+    ccnl_free(k);
+}
+
 int trim(char *str){  // inplace, returns len after shrinking
     int i;
     while(str[0] != '\0' && str[0] == ' '){
