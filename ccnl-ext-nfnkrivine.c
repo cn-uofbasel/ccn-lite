@@ -449,6 +449,7 @@ normal:
             else
                 sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
         }
+	ccnl_lambdaFreeTerm(t);
         return strdup(res);
     }
 	if (term_is_lambda(t)) {
@@ -459,6 +460,7 @@ normal:
 		sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, dummybuf, pending);
 	    else
 		sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
+	    ccnl_lambdaFreeTerm(t);
             return strdup(res);
         }
         if (term_is_app(t)) {
@@ -468,6 +470,7 @@ normal:
 	    len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
             if (pending)
 		strcpy(res+len, pending);
+	    ccnl_lambdaFreeTerm(t);
             return strdup(res);
         }
     }

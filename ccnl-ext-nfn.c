@@ -140,7 +140,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
              (void*)ccnl, (void*)orig, ccnl_prefix_to_path(prefix),
 	     (void*)from, (void*)config);
 
-    prefix = ccnl_prefix_dup(prefix);
+    //    prefix = ccnl_prefix_dup(prefix);
     DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
 
     if (config){
