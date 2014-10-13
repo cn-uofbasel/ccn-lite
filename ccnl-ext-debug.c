@@ -639,10 +639,11 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
     h->lineno = lno;
     h->size = s;
     h->tstamp = strdup(tstamp);
-/*
-    if (s == 64) fprintf(stderr, "+++ s=64 %p\n",
-			 (void*)(((unsigned char *)h) + sizeof(struct mhdr)));
-*/
+    /*
+    if (s == 32) fprintf(stderr, "+++ s=%d %p at %s:%d\n", s,
+			 (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
+			 (char*) fn, lno);
+    */
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
