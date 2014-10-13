@@ -7,6 +7,7 @@ import os
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9002
 
+print "dummyanswer server started"
 
 env = os.getenv("CCNL_HOME") 
 f_t = open(os.path.join(env, "test/ccnb/nfn/computation_dummy_thunk.ccnb"))
@@ -20,6 +21,7 @@ sock = socket.socket(socket.AF_INET, # Internet
 sock.bind((UDP_IP, UDP_PORT))
 
 while True:
+    print "dummyanswer server now blocking on recvfrom"
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
     print "received message:", data
     if "THUNK" in data:
