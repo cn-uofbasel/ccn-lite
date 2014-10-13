@@ -78,6 +78,7 @@ char *witness;
 
 // ----------------------------------------------------------------------
 
+#ifdef XXX
 int
 mkContent(char **namecomp,
 	  unsigned char *publisher, int plen,
@@ -141,6 +142,8 @@ mkContent(char **namecomp,
     return len;
 }
 
+#endif
+
 // ----------------------------------------------------------------------
 
 int
@@ -150,28 +153,22 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int i = 0, f, len, opt, plen;
-    char *prefix[CCNL_MAX_NAME_COMP];
+    int f, len, opt, plen, offs = 0;
+    struct ccnl_prefix_s *name;
     int packettype = 2;
     private_key_path = 0;
     witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:k:o:p:s:w:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
             break;
-        case 'o':
-            outfname = optarg;
-            break;
-        case 's':
-            packettype = atoi(optarg);
-            break;
         case 'k':
             private_key_path = optarg;
             break;
-        case 'w':
-            witness = optarg;
+        case 'o':
+            outfname = optarg;
             break;
         case 'p':
             publisher = optarg;
@@ -183,18 +180,27 @@ main(int argc, char *argv[])
 		exit(-1);
             }
             break;
+        case 's':
+            packettype = atoi(optarg);
+            break;
+        case 'w':
+            witness = optarg;
+            break;
         case 'h':
         default:
 Usage:
-	    fprintf(stderr, "usage: %s [options] URI\n"
-	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
+	    fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
         "  -i FNAME   input file (instead of stdin)\n"
+        "  -k FNAME   publisher private key (CCNB)\n"
         "  -o FNAME   output file (instead of stdout)\n"
+        "  -p DIGEST  publisher fingerprint (CCNB)\n"
 	"  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
-        "  -p DIGEST  publisher fingerprint\n"
-        "  -k FNAME   publisher private key\n"
-        "  -f packet type [CCNB | NDNTLV | CCNTLV]"
-        "  -w STRING  witness\n"       ,
+        "  -w STRING  witness\n"
+	"Examples:\n"
+	"%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
+	"%% mkC /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
+	"%% mkC \"\" \"add 1 1\"                    (lambda expr, local)\n"
+	"%% mkC /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
 	    argv[0]);
 	    exit(1);
         }
@@ -205,28 +211,29 @@ Usage:
 
     if (infname) {
 	f = open(infname, O_RDONLY);
-      if (f < 0)
-	perror("file open:");
+	if (f < 0)
+	    perror("file open:");
     } else
-      f = 0;
+	f = 0;
     len = read(f, body, sizeof(body));
     close(f);
 
-    if (packettype == 0) { //CCNB
-	i = ccnl_URItoComponents(prefix, argv[optind]);
-	if (i <= 0) {
-	    fprintf(stderr, "no name components found, aborting\n");
-	    return -1;
-	}
-        len = mkContent(prefix, (unsigned char*) publisher, plen,
-			body, len, out);
-    } else if (packettype == 2) { //NDNTLV
-	struct ccnl_prefix_s *name;
-	name = ccnl_URItoPrefix(argv[optind], packettype, NULL);
-        int len2 = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_fillContent(name, body, len, &len2, NULL, out);
-        memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
-        len = CCNL_MAX_PACKET_SIZE - len2;
+    name = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1]);
+
+    switch (packettype) {
+    case CCNL_SUITE_CCNB:
+	len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
+	break;
+    case CCNL_SUITE_CCNTLV:
+        offs = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_ccntlv_fillContentWithHdr(name, body, len, &offs, NULL, out);
+	break;
+    case CCNL_SUITE_NDNTLV:
+        offs = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, out);
+	break;
+    default:
+	break;
     }
 
     if (outfname) {
@@ -235,7 +242,7 @@ Usage:
 	perror("file open:");
     } else
       f = 1;
-    write(f, out, len);
+    write(f, out + offs, len);
     close(f);
 
     return 0;
