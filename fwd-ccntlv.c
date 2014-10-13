@@ -199,8 +199,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	// this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
 	if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
-	    if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_CCNTLV, buf,
-				    p, 0, 0))
+	    if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_CCNTLV, &buf,
+				    &p, 0, 0))
 		goto Done;
 	}
 #endif

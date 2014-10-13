@@ -80,7 +80,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         //config->thunk = 0;
         return;
     }
-    ccnl_nfn(ccnl, NULL, NULL, NULL, config, NULL, 0, 0);
+    ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
 }
 
 void
@@ -92,7 +92,7 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
 {
     DEBUGMSG(49, "ccnl_nfn_nack_local_computation\n");
 
-    ccnl_nfn(ccnl, orig, prefix, from, NULL, NULL, suite, 1);
+    ccnl_nfn(ccnl, prefix, from, NULL, NULL, suite, 1);
 }
 
 int
@@ -125,19 +125,19 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
 }
 
 int 
-ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 	 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
 	 struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally)
 {
     int num_of_required_thunks = 0;
     int thunk_request = 0;
-    unsigned char *res = NULL;
+    struct ccnl_buf_s *res = NULL;
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
 
-    DEBUGMSG(49, "ccnl_nfn(%p, %p, %s, %p, %p)\n",
-             (void*)ccnl, (void*)orig, ccnl_prefix_to_path(prefix),
+    DEBUGMSG(49, "ccnl_nfn(%p, %s, %p, config=%p)\n",
+             (void*)ccnl, ccnl_prefix_to_path(prefix),
 	     (void*)from, (void*)config);
 
     //    prefix = ccnl_prefix_dup(prefix);
@@ -195,19 +195,20 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
 			    num_of_required_thunks, &config, prefix, suite);
-    
+
     //stores result if computed      
     if (res) {
 	struct ccnl_prefix_s *copy;
-        DEBUGMSG(2,"Computation finished: %s, running computations: %d\n",
-		 res, ccnl->km->numOfRunningComputations);
+        struct ccnl_content_s *c;
+
+        DEBUGMSG(2,"Computation finished: %.*s, running computations: %d\n",
+		 res->datalen, res->data, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
 	    // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
 	    ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
         }
 	copy = ccnl_prefix_dup(config->prefix);
-        struct ccnl_content_s *c = ccnl_nfn_result2content(ccnl, &copy, res,
-							   strlen((char*)res));
+	c = ccnl_nfn_result2content(ccnl, &copy, res->data, res->datalen);
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
 
         set_propagate_of_interests_to_1(ccnl, c->name);
@@ -216,6 +217,8 @@ restart:
         --ccnl->km->numOfRunningComputations;
 
         DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
+	ccnl_nfn_freeConfiguration(config);
+	ccnl_free(res);
     }
 #ifdef USE_NACK
     else if(config->local_done){
@@ -230,22 +233,24 @@ restart:
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-		    int suite, struct ccnl_buf_s *buf, struct ccnl_prefix_s *p,
-		    int minsfx, int maxsfx)
+		    int suite, struct ccnl_buf_s **buf,
+		    struct ccnl_prefix_s **p, int minsfx, int maxsfx)
 {
     struct ccnl_interest_s *i;
-    struct ccnl_buf_s *buf2 = buf;
-    struct ccnl_prefix_s *p2 = p;
+    struct ccnl_prefix_s *p2;
 
     if (ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
 	return 0;
 
-    i = ccnl_interest_new(ccnl, from, p->suite, &buf, &p, minsfx, maxsfx);
+    p2 = ccnl_prefix_dup(*p);
+    i = ccnl_interest_new(ccnl, from, (*p)->suite, buf, p, minsfx, maxsfx);
     i->corePropagates = 0; //do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
     if (!i->corePropagates)
-	ccnl_nfn(ccnl, buf2, p2, from, NULL, i, suite, 0);
-
+	ccnl_nfn(ccnl, p2, from, NULL, i, suite, 0);
+    else {
+	free_prefix(p2);
+    }
     return i;
 }
 
