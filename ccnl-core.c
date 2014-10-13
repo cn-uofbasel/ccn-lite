@@ -40,8 +40,8 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-		    int suite, struct ccnl_buf_s *buf, struct ccnl_prefix_s *p,
-		    int minsfx, int maxsfx);
+		    int suite, struct ccnl_buf_s **buf,
+		    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
 
 int
 ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,

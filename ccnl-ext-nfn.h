@@ -28,7 +28,7 @@ struct stack_s{
 
 struct environment_s{
     char *name;
-    void *element;
+    struct closure_s *closure;
     struct environment_s *next;
 };
 
@@ -91,7 +91,7 @@ struct ccnl_krivine_s {
     int numOfRunningComputations; // = 0;
 };
 
-int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+int ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
 	     struct configuration_s *config, struct ccnl_interest_s *interest,
 	     int suite, int start_locally);

@@ -96,14 +96,87 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
     return ret;
 }
 
+void ccnl_nfn_freeClosure(struct closure_s *c);
+
 void
-ccnl_nfn_freeConfiguration(struct configuration_s* c)
+ccnl_nfn_freeEnvironment(struct environment_s *env)
+{
+    while (env) {
+	struct environment_s *next = env->next;
+	ccnl_free(env->name);
+	ccnl_nfn_freeClosure(env->closure);
+	ccnl_free(env);
+	env = next;
+    }
+}
+
+void
+ccnl_nfn_freeClosure(struct closure_s *c)
 {
     if (!c)
 	return;
-    // free both stacks
-    // free both environments
-    ccnl_free(c->fox_state);
+    ccnl_free(c->term);
+    ccnl_nfn_freeEnvironment(c->env);
+    ccnl_free(c);
+}
+
+void
+ccnl_nfn_freeStack(struct stack_s* s)
+{
+    while (s) {
+	struct stack_s *next = s->next;
+	struct thunk_s *t;
+
+	switch (s->type) {
+	case STACK_TYPE_CLOSURE:
+	    ccnl_nfn_freeClosure((struct closure_s *)s->content);
+	    break;
+	case STACK_TYPE_PREFIX:
+	    free_prefix(((struct ccnl_prefix_s *)s->content));
+	    break;
+	case STACK_TYPE_THUNK:
+	    t = (struct thunk_s *)s->content;
+	    free_prefix(t->prefix);
+	    free_prefix(t->reduced_prefix);
+	    break;
+	case STACK_TYPE_INT:
+	default:
+	    ccnl_free(s->content);
+	    break;
+	}
+	ccnl_free(s);
+	s = next;
+    }
+}
+
+void
+ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
+{
+    if (!f)
+	return;
+    ccnl_free(f->thunk);
+    while (f->prefix_mapping) {
+	struct prefix_mapping_s *m = f->prefix_mapping;
+	DBL_LINKED_LIST_REMOVE(f->prefix_mapping, m);
+	free_prefix(m->key);
+	free_prefix(m->value);
+    }
+    ccnl_free(f);
+}
+
+void
+ccnl_nfn_freeConfiguration(struct configuration_s* c)
+{
+    DEBUGMSG(99, "ccnl_nfn_freeConfiguration(%p)\n", (void*)c);
+
+    if (!c)
+	return;
+    ccnl_free(c->prog);
+    ccnl_nfn_freeStack(c->result_stack);
+    ccnl_nfn_freeStack(c->argument_stack);
+    ccnl_nfn_freeEnvironment(c->env);
+    ccnl_nfn_freeEnvironment(c->global_dict);
+    ccnl_nfn_freeMachineState(c->fox_state);
     free_prefix(c->prefix);
     ccnl_free(c);
 }
@@ -111,8 +184,11 @@ ccnl_nfn_freeConfiguration(struct configuration_s* c)
 void
 ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k)
 {
+    DEBUGMSG(99, "ccnl_nfn_freeKrivine(%p)\n", (void*)k);
+
     if (!k)
 	return;
+    DEBUGMSG(99, "  configuration_list %p\n", (void*)k->configuration_list);
     // free thunk_list;
     while (k->configuration_list) {
 	struct configuration_s *c = k->configuration_list;
