@@ -97,11 +97,12 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
 }
 
 void ccnl_nfn_freeClosure(struct closure_s *c);
+void ccnl_nfn_releaseEnvironment(struct environment_s **env);
 
 void
 ccnl_nfn_freeEnvironment(struct environment_s *env)
 {
-    while (env) {
+    while (env && env->refcount <= 1) {
 	struct environment_s *next = env->next;
 	ccnl_free(env->name);
 	ccnl_nfn_freeClosure(env->closure);
@@ -111,12 +112,32 @@ ccnl_nfn_freeEnvironment(struct environment_s *env)
 }
 
 void
+ccnl_nfn_reserveEnvironment(struct environment_s *env)
+{
+    if (!env)
+	return;
+    env->refcount++;
+}
+
+void
+ccnl_nfn_releaseEnvironment(struct environment_s **env)
+{
+    if (!env | !*env)
+	return;
+    (*env)->refcount--;
+    if ((*env)->refcount <= 0) {
+	ccnl_nfn_freeEnvironment(*env);
+	*env = NULL;
+    }
+}
+
+void
 ccnl_nfn_freeClosure(struct closure_s *c)
 {
     if (!c)
 	return;
     ccnl_free(c->term);
-    ccnl_nfn_freeEnvironment(c->env);
+    ccnl_nfn_releaseEnvironment(&c->env);
     ccnl_free(c);
 }
 
@@ -174,8 +195,8 @@ ccnl_nfn_freeConfiguration(struct configuration_s* c)
     ccnl_free(c->prog);
     ccnl_nfn_freeStack(c->result_stack);
     ccnl_nfn_freeStack(c->argument_stack);
-    ccnl_nfn_freeEnvironment(c->env);
-    ccnl_nfn_freeEnvironment(c->global_dict);
+    ccnl_nfn_releaseEnvironment(&c->env);
+    ccnl_nfn_releaseEnvironment(&c->global_dict);
     ccnl_nfn_freeMachineState(c->fox_state);
     free_prefix(c->prefix);
     ccnl_free(c);
