@@ -36,6 +36,7 @@ new_closure(char *term, struct environment_s *env){
     struct closure_s *ret = ccnl_malloc(sizeof(struct closure_s));
     ret->term = term;
     ret->env = env;
+    ccnl_nfn_reserveEnvironment(env);
     return ret;
 }
 
@@ -117,7 +118,8 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
 void 
 print_environment(struct environment_s *env){
    struct environment_s *e;
-   printf("Environment address is: %p\n", (void *)env);
+   printf("Environment address is: %p (refcount=%d)\n",
+	  (void *)env, env->refcount);
    int num = 0;
    for(e = env; e; e = e->next){
 	printf("Element %d %s %p\n", num++, e->name, e->element);        
@@ -150,15 +152,17 @@ void
 add_to_environment(struct environment_s **env, char *name,
 		   struct closure_s *closure)
 {
-   struct environment_s *newelement = ccnl_malloc(sizeof(struct environment_s));
-   newelement->name = name;
-   newelement->closure = closure;
-   if(env == NULL || *env == NULL){
-          newelement->next = NULL;
-      }else{
-             newelement->next = *env;
-         }
-   *env = newelement;
+    struct environment_s *e;
+
+    if (!env)
+	return;
+
+    e = ccnl_malloc(sizeof(struct environment_s));
+    e->name = name;
+    e->closure = closure;
+    e->next = *env;
+    ccnl_nfn_reserveEnvironment(*env);
+    *env = e;
 }
 
 struct closure_s*

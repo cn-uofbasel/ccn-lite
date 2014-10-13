@@ -27,6 +27,7 @@ struct stack_s{
 };
 
 struct environment_s{
+    int refcount;
     char *name;
     struct closure_s *closure;
     struct environment_s *next;
