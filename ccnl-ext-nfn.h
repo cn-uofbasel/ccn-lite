@@ -1,19 +1,18 @@
 /*
- * krivine-common.h
- * Tools for the "Krivine lambda expression resolver" for CCN
+ * @f ccnl-ext-nfn.h
+ * @b header file for NFN extension ("Krivine lambda expression resolver")
  *
- * (C) 2014 <christian.tschudin@unibas.ch>
+ * (C) 2014 <christopher.scherb@unibas.ch>
  *
- * 2014-04-04 created <christopher.scherb@unibas.ch>
+ * 2014-04-04 created 
  */
 
-#ifndef KRIVINE_COMMON_H
-#define KRIVINE_COMMON_H
+#ifndef CCNL_EXT_NFN_H
+#define CCNL_EXT_NFN_H
 
 
 #define NFN_MAX_RUNNING_COMPUTATIONS 10
 #define NFN_DEFAULT_WAITING_TIME 10
-int numOfRunningComputations = 0;
 
 
 #define STACK_TYPE_INT 0
@@ -28,8 +27,9 @@ struct stack_s{
 };
 
 struct environment_s{
+    int refcount;
     char *name;
-    void *element;
+    struct closure_s *closure;
     struct environment_s *next;
 };
 
@@ -83,13 +83,19 @@ struct thunk_s{
     struct ccnl_prefix_s *reduced_prefix;
 };
 
-struct thunk_s *thunk_list;
-int thunkid = 0;
 
-struct configuration_s *configuration_list;
+struct ccnl_krivine_s {
+    struct thunk_s *thunk_list;
+    int thunkid; // = 0;
+    struct configuration_s *configuration_list;
+    int configid; // = -1;
+    int numOfRunningComputations; // = 0;
+};
 
-int configid = -1;
-
+int ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
+	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+	     struct configuration_s *config, struct ccnl_interest_s *interest,
+	     int suite, int start_locally);
 
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
@@ -98,4 +104,5 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                      struct ccnl_face_s *from, int suite);
 
-#endif //KRIVINE_COMMON_H
+#endif // CCNL_EXT_NFN_H
+

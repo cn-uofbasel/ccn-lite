@@ -29,21 +29,28 @@
 #define USE_FRAG
 #define USE_ETHERNET
 #define USE_MGMT
+#undef USE_NFN
+#undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_SUITE_CCNB
-//#define USE_SUITE_CCNTLV
+#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
 #include "ccnl.h"
-#include "pkt-ccnb.h"
-// #include "pkt-ccntlv.h"
-#include "pkt-ndntlv.h"
+
 #include "ccnl-core.h"
+#include "ccnl-ext.h"
+
+#include "pkt-ccnb.h"
+#include "pkt-ccntlv.h"
+#include "pkt-ndntlv.h"
 
 // ----------------------------------------------------------------------
+
+struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)
@@ -204,6 +211,26 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+{
+    static char prefix_buf[4096];
+    int len= 0, i;
+
+    if (!pr)
+	return NULL;
+    for (i = 0; i < pr->compcnt; i++) {
+        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
+            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
+        else
+            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+    }
+    prefix_buf[len] = '\0';
+    return prefix_buf;
+}
+
+// ----------------------------------------------------------------------
+
 #include "ccnl-platform.c"
 #include "ccnl-ext.h"
 
@@ -215,6 +242,7 @@ ccnl_close_socket(struct socket *s)
 #endif
 
 #include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-nfn.c"
 
 #ifdef USE_SIGNATURES
 #include "ccnl-ext-crypto.c"

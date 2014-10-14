@@ -21,9 +21,8 @@
  * 2014-03-20 extracted from ccnl-core.c
  */
 
-#if defined(USE_SUITE_CCNB) && !defined(PKT_CCNB_DEC_C)
+#ifndef PKT_CCNB_DEC_C
 #define PKT_CCNB_DEC_C
-
 
 #include "pkt-ccnb.h"
 

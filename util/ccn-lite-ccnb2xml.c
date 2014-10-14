@@ -26,6 +26,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <arpa/inet.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -36,6 +38,7 @@
 #define USE_SUITE_CCNB
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #include "ccnl-common.c"
 #include "../pkt-ccnb.h"

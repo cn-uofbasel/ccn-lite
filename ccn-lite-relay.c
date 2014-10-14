@@ -56,8 +56,8 @@ void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
 #include "ccnl-ext.h"
 #include "ccnl-platform.c"
 
-#define ccnl_app_RX(x,y)        do{}while(0)
-#define ccnl_print_stats(x,y)       do{}while(0)
+#define ccnl_app_RX(x,y)		do{}while(0)
+#define ccnl_print_stats(x,y)		do{}while(0)
 
 #ifdef USE_SUITE_CCNB
 # include "pkt-ccnb.h"
@@ -346,20 +346,20 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 #ifdef USE_ETHERNET
     // add (real) eth0 interface with index 0:
     if (ethdev) {
-    i = &relay->ifs[relay->ifcount];
-    i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
-    i->mtu = 1500;
-    i->reflect = 1;
-    i->fwdalli = 1;
-    if (i->sock >= 0) {
-        relay->ifcount++;
-        DEBUGMSG(99, "ETH interface (%s %s) configured\n",
-             ethdev, ccnl_addr2ascii(&i->addr));
-        if (relay->defaultInterfaceScheduler)
-        i->sched = relay->defaultInterfaceScheduler(relay,
-                            ccnl_interface_CTS);
-    } else
-        fprintf(stderr, "sorry, could not open eth device\n");
+	i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
+	i->mtu = 1500;
+	i->reflect = 1;
+	i->fwdalli = 1;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "ETH interface (%s %s) configured\n",
+		     ethdev, ccnl_addr2ascii(&i->addr));
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
+							ccnl_interface_CTS);
+	} else
+	    fprintf(stderr, "sorry, could not open eth device\n");
     }
 #endif // USE_ETHERNET
 
@@ -376,16 +376,16 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     if (suite == CCNL_SUITE_NDNTLV)
         i->mtu = NDN_DEFAULT_MTU;
 #endif
-    i->fwdalli = 1;
-    if (i->sock >= 0) {
-        relay->ifcount++;
-        DEBUGMSG(1, "UDP interface (%s) configured\n",
-             ccnl_addr2ascii(&i->addr));
-        if (relay->defaultInterfaceScheduler)
-        i->sched = relay->defaultInterfaceScheduler(relay,
-                            ccnl_interface_CTS);
-    } else
-        fprintf(stderr, "sorry, could not open udp device\n");
+	i->fwdalli = 1;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(1, "UDP interface (%s) configured\n",
+		     ccnl_addr2ascii(&i->addr));
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
+							ccnl_interface_CTS);
+	} else
+	    fprintf(stderr, "sorry, could not open udp device\n");
     }
 
 #ifdef USE_HTTP_STATUS
@@ -401,18 +401,18 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
 #ifdef USE_UNIXSOCKET
     if (uxpath) {
-    i = &relay->ifs[relay->ifcount];
-    i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
-    i->mtu = 4096;
-    if (i->sock >= 0) {
-        relay->ifcount++;
-        DEBUGMSG(99, "UNIX interface (%s) configured\n",
-             ccnl_addr2ascii(&i->addr));
-        if (relay->defaultInterfaceScheduler)
-        i->sched = relay->defaultInterfaceScheduler(relay,
-                            ccnl_interface_CTS);
-    } else
-        fprintf(stderr, "sorry, could not open unix datagram device\n");
+	i = &relay->ifs[relay->ifcount];
+	i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
+	i->mtu = 4096;
+	if (i->sock >= 0) {
+	    relay->ifcount++;
+	    DEBUGMSG(99, "UNIX interface (%s) configured\n",
+		     ccnl_addr2ascii(&i->addr));
+	    if (relay->defaultInterfaceScheduler)
+		i->sched = relay->defaultInterfaceScheduler(relay,
+							ccnl_interface_CTS);
+	} else
+	    fprintf(stderr, "sorry, could not open unix datagram device\n");
     }
 #ifdef USE_SIGNATURES
     if(crypto_face_path)
@@ -692,11 +692,11 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 's':
-        opt = atoi(optarg);
-        if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
-        goto usage;
-        suite = opt;
-        switch (suite) {
+	    opt = atoi(optarg);
+	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
+		goto usage;
+	    suite = opt;
+	    switch (suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
         udpport = httpport = CCN_UDP_PORT;
@@ -706,6 +706,11 @@ main(int argc, char **argv)
         case CCNL_SUITE_CCNTLV:
         udpport = httpport = CCN_UDP_PORT;
         break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+	    case CCNL_SUITE_CCNTLV:
+		udpport = httpport = CCN_UDP_PORT;
+		break;
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
@@ -735,15 +740,15 @@ main(int argc, char **argv)
         default:
 usage:
             fprintf(stderr,
-            "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
-            " [-d databasedir]"
-            " [-e ethdev]"
-            " [-g MIN_INTER_PACKET_INTERVAL]"
-            " [-i MIN_INTER_CCNMSG_INTERVAL]"
-            " [-s SUITE (0=ccnb, 1=ccntlv, 2=ndntlv, resets ports)"
-            " [-t tcpport (for HTML status page)]"
-            " [-u udpport]"
-            " [-v DEBUG_LEVEL]"
+		    "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
+		    " [-d databasedir]"
+		    " [-e ethdev]"
+		    " [-g MIN_INTER_PACKET_INTERVAL]"
+		    " [-i MIN_INTER_CCNMSG_INTERVAL]"
+		    " [-s SUITE (0=ccnb, 1=ccntlv, 2=ndntlv, resets ports)"
+		    " [-t tcpport (for HTML status page)]"
+		    " [-u udpport]"
+		    " [-v DEBUG_LEVEL]"
 
 #ifdef USE_UNIXSOCKET
                     " [-p crypto_face_ux_socket]"

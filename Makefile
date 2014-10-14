@@ -1,7 +1,7 @@
 # ccn-lite Makefile for Linux and OS X
 
 # If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
-# For (experimental) nack set USE_NACKS to something
+# For (experimental) nack set USE_NACK to something
 
 # OS name: Linux or Darwing (OSX) supported
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
@@ -23,8 +23,8 @@ EXTMAKE=
 EXTMAKECLEAN=
 
 # CCNL_NFN_MONITOR to log messages to nfn-scala montior
-NFNFLAGS += -DCCNL_NFN -DCCNL_NFN_MONITOR
-NACKFLAGS += -DCCNL_NACK -DCCNL_NFN_MONITOR
+NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
+NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 
 INST_PROGS= ccn-lite-relay \
             ccn-lite-minimalrelay 
@@ -50,10 +50,11 @@ endif
 ifdef USE_NFN
     $(info *** With NFN ***)
     INST_PROGS += ccn-nfn-relay
+    CCNLCFLAGS += ${NFNFLAGS}
 endif
 
-ifdef USE_NACKS
-    $(info *** With NFN_NACKS ***)
+ifdef USE_NACK
+    $(info *** With NFN_NACK ***)
     INST_PROGS += ccn-lite-relay-nack 
     ifdef USE_NFN
         INST_PROGS += ccn-nfn-relay-nack
@@ -75,9 +76,10 @@ obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
 CCNB_LIB =   pkt-ccnb.h pkt-ccnb-dec.c pkt-ccnb-enc.c fwd-ccnb.c
+CCNTLV_LIB = pkt-ccntlv.h pkt-ccntlv-dec.c pkt-ccntlv-enc.c fwd-ccntlv.c
 NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv-dec.c pkt-ndntlv-enc.c fwd-ndntlv.c
 LOCRPC_LIB = pkt-localrpc.h pkt-localrpc-enc.c pkt-localrpc-dec.c fwd-localrpc.c
-SUITE_LIBS = ${CCNB_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
+SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
 CCNL_CORE_LIB = ccnl.h ccnl-core.h ccnl-core.c
