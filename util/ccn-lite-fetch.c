@@ -286,7 +286,6 @@ Usage:
 
     free(uri);
 
-
     if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
         perror("sendto");
         myexit(1);
@@ -304,7 +303,7 @@ Usage:
         fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
 
-        // *** parse content ************************
+        // *** parse content *******************************
         unsigned char **data = 0; 
         int *datalen = 0;
 
@@ -312,24 +311,26 @@ Usage:
         int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
         struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
         struct ccnl_prefix_s *prefix;
+        unsigned char *finalBlockId = 0;
+        int finalBlockId_len = 0;
         unsigned char *content = 0, *cp = *data;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
         return -1;
         buf = ccnl_ndntlv_extract(*data - cp,
                       data, datalen,
-                      &scope, &mbf, &minsfx, &maxsfx, 0, 0,
+                      &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
                       &prefix, &nonce, &ppkl, &content, &contlen);
         if (!buf) {
             DEBUGMSG(6, "parsing error or no prefix\n"); goto Done;
         } 
         if (typ == NDN_TLV_Interest) {
-            DEBUGMSG(99, "created new interest entry %p\n", (void *) i);
+            DEBUGMSG(99, "parsed interest %p\n", (void *) i);
         } else { // data packet with content -------------------------------------
-            DEBUGMSG(99, "data[%s -> '%s']\n", ccnl_prefix_to_path(prefix), data);
+            DEBUGMSG(99, "parsed content [%s -> '%s'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), data, );
         }
 
-        // *** parse content ***********************
+        // === parse content ===============================
 
         rc = isContent(out, len);
         if (rc < 0)
