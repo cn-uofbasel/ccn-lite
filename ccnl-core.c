@@ -549,35 +549,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     return i2;
 }
 
-#ifdef XXX // --> now "ccnl_nfn_interest_remove()" in ccnl-ext-nfncommon.c
-struct ccnl_interest_s*
-ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
-					   struct ccnl_interest_s *i)
-{
-    struct ccnl_interest_s *interest;
-    int faceid = 0;
-
-    if (i != 0 && i->from != 0)
-            faceid = i->from->faceid;
-
-    DEBUGMSG(99, "ccnl_interest_remove_continue_computations(faceid=%d, prefix=%s)\n", faceid, ccnl_prefix_to_path(i->prefix));
-
-
-#ifdef USE_NACK
-    DEBUGMSG(99, "FROM FACEID: %d\n", faceid);
-    if (faceid >= 0)
-        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
-#endif
-
-    interest = ccnl_interest_remove(ccnl, i);
-
-    if (faceid < 0)
-            ccnl_nfn_continue_computation(ccnl, -faceid, 1);
-
-   return interest;
-}
-#endif
-
 // ----------------------------------------------------------------------
 // handling of content messages
 
