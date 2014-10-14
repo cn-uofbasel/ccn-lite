@@ -30,16 +30,17 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     struct ccnl_buf_s *buf;
 
     DEBUGMSG(2, "ccnl_nfn_query2interest()\n");
-/*
+
     struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
     from->faceid = config->configid;
+    DEBUGMSG(99, "  Configuration ID: %d\n", config->configid);
     from->last_used = CCNL_NOW();
-    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)prefix->comp[0]));
-    from->outq->datalen = strlen((char *)prefix->comp[0]);
-    memcpy((char *)(from->outq->data), (char *)prefix->comp[0], from->outq->datalen);
-*/
+    //from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)(*prefix)->comp[0]));
+    //from->outq->datalen = strlen((char *)(*prefix)->comp[0]);
+    //memcpy((char *)(from->outq->data), (char *)(*prefix)->comp[0], from->outq->datalen);
+
     buf = ccnl_mkSimpleInterest(*prefix, NULL);
-    return ccnl_interest_new(ccnl, NULL, (*prefix)->suite, &buf, prefix, 0, 0);
+    return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
 //    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
 }
 
@@ -294,6 +295,7 @@ add_local_computation_components(struct configuration_s *config){
     char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     struct ccnl_prefix_s *ret;
     int complen = sprintf(comp, "call %d", config->fox_state->num_of_params);
+    DEBUGMSG(99, "add_local_computation_components\n");
     for(i = 0; i < config->fox_state->num_of_params; ++i){
         if(config->fox_state->params[i]->type == STACK_TYPE_INT)
             complen += sprintf(comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
@@ -318,23 +320,24 @@ add_local_computation_components(struct configuration_s *config){
     ret->complen[i] = strlen(comp);
     ++i;
 
-#ifdef USE_SUITE_CCNTLV
-    if (config->fox_state->thunk_request) {
-        ret->comp[i] = (unsigned char *) "\x00\x01\x00\x05THUNK";
-        ret->complen[i] = 4 + strlen("THUNK");
-        ++i;
+    if(config->suite == CCNL_SUITE_CCNTLV){
+        if (config->fox_state->thunk_request) {
+            ret->comp[i] = (unsigned char *) "\x00\x01\x00\x05THUNK";
+            ret->complen[i] = 4 + strlen("THUNK");
+            ++i;
+        }
+        ret->comp[i] = (unsigned char *) "\x00\x01\x00\x03NFN";
+        ret->complen[i] = 4 + strlen("NFN");
     }
-    ret->comp[i] = (unsigned char *) "\x00\x01\x00\x03NFN";
-    ret->complen[i] = 4 + strlen("NFN");
-#else
-    if (config->fox_state->thunk_request) {
-	ret->comp[i] = (unsigned char *)"THUNK";
-	ret->complen[i] = strlen("THUNK");
-        ++i;
+    else{
+        if (config->fox_state->thunk_request) {
+        ret->comp[i] = (unsigned char *)"THUNK";
+        ret->complen[i] = strlen("THUNK");
+            ++i;
+        }
+        ret->comp[i] = (unsigned char *)"NFN";
+        ret->complen[i] = strlen("NFN");
     }
-    ret->comp[i] = (unsigned char *)"NFN";
-    ret->complen[i] = strlen("NFN");
-#endif
 
     ret->compcnt = i+1;
 

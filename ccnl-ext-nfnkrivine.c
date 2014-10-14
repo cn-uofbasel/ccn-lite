@@ -243,7 +243,9 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 		ccnl_nfn_local_content_search(ccnl, config, prefix)) {
 	//local computation name components
         DEBUGMSG(99, "content local available\n");
-	return ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
+        struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
+        DEBUGMSG(99, "LOCAL PREFIX: %s", ccnl_prefix_to_path(pref));
+        return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
 					   config, parameter_number);
@@ -382,7 +384,7 @@ normal:
 
         struct stack_s *stack = pop_from_stack(&config->argument_stack);
         struct closure_s *closure = (struct closure_s *) stack->content;
-	ccnl_free(stack);
+        ccnl_free(stack);
         code = closure->term;
         if(pending){ //build new term
             sprintf(dummybuf, "%s%s", code, pending);
@@ -723,7 +725,7 @@ normal:
         config->fox_state->num_of_params = *(int*)h->content;
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
-        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_prefix_s *) * config->fox_state->num_of_params);
+        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s **) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
@@ -758,6 +760,7 @@ normal:
         //check if last result is now available
 recontinue: //loop by reentering after timeout of the interest...
         if(local_search){
+            DEBUGMSG(99, "Checking if result was received\n");
             parameter_number = choose_parameter(config);
             struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
             c = ccnl_nfn_local_content_search(ccnl, config, pref); //search for a result
@@ -794,7 +797,8 @@ local_compute:
             return NULL;
         }
         config->local_done = 1;
-        pref = add_local_computation_components(config);
+        pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
+        DEBUGMSG(99, "Prefix local computetion: %s\n", ccnl_prefix_to_path(pref));
 //        interest = mkInterestObject(ccnl, config, pref);
         interest = ccnl_nfn_query2interest(ccnl, &pref, config);
 	if (interest)
