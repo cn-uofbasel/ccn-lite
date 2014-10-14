@@ -62,6 +62,8 @@
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
+#define ccnl_core_addToCleanup(b)	do{}while(0)
+
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
 {

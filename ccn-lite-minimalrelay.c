@@ -56,7 +56,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)		do {} while(0)
-#define ccnl_prefix_to_path(p) 		"null"
+// #define ccnl_prefix_to_path(p) 		"null"
 
 
 #define ccnl_malloc(s)			malloc(s)
@@ -73,7 +73,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->pkt, c); } while(0)
 
-#define ccnl_addr2ascii(sup)		inet_ntoa((sup)->ip4.sin_addr)
+// #define ccnl_addr2ascii(sup)		inet_ntoa((sup)->ip4.sin_addr)
 
 #define ccnl_frag_new(a,b)			NULL
 #define ccnl_frag_destroy(e)			do {} while(0)
@@ -249,6 +249,8 @@ ccnl_path_to_prefix(const char *path)
 }
 
 // ----------------------------------------------------------------------
+
+void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 #include "ccnl-util.c"
 #include "ccnl-core.c"
