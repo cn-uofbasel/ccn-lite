@@ -35,7 +35,7 @@ ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p)
 }
 
 int
-ccnl_nfnprefix_isNACK(struct ccnl_content_s *c)
+ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
     return !memcmp(c->content, ":NACK", 5);
 }

@@ -61,6 +61,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
     
     if(!config){
+	DEBUGMSG(49, "nfn_continue_computation: %d not found\n", configid);
         return;
     }
 
@@ -223,9 +224,10 @@ restart:
     }
 #ifdef USE_NACK
     else if(config->local_done){
-        struct ccnl_content_s *nack = create_content_object(ccnl, config->prefix, (unsigned char*)":NACK", 5, config->suite);
+        struct ccnl_content_s *nack;
+	nack = ccnl_nfn_result2content(ccnl, &config->prefix,
+				       (unsigned char*)":NACK", 5);
         ccnl_content_serve_pending(ccnl, nack);
-
     }
 #endif
 
@@ -263,9 +265,9 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
 
-    DEBUGMSG(99, "");
+    DEBUGMSG(99, "ccnl_nfn_RX_result()");
 #ifdef USE_NACK
-    if (ccnl_isNACK(c)) {
+    if (ccnl_nfnprefix_contentIsNACK(c)) {
 	ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
 					from, c->name->suite);
 	return -1;
