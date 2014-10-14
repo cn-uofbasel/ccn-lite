@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 
+CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ctrl \
@@ -48,13 +48,13 @@ ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
-ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
+ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c 
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
-ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${NDNTLV_LIB} ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ../ccnl.h ccnl-common.c
+ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
 
-ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB}
+ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
 
 ccn-lite-rpc: Makefile ccn-lite-rpc.c ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h ccnl-common.c

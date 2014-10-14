@@ -35,6 +35,7 @@ util/ccn-lite-mkI
 util/ccn-lite-peek
 util/ccn-lite-peekcomputation
 util/ccn-lite-produce
+util/ccn-lite-fetch
 util/ccn-lite-pktdump
 util/ccn-lite-rpc
 
