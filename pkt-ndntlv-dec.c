@@ -20,6 +20,9 @@
  * 2014-03-05 created
  */
 
+#ifndef PKT_NDNTLV_DEC_C
+#define PKT_NDNTLV_DEC_C
+
 #include "pkt-ndntlv.h"
 #include "ccnl-core.h"
 
@@ -200,4 +203,5 @@ Bail:
 
 
 
+#endif
 // eof

@@ -39,6 +39,17 @@ CCNL_PLATFORM_LIB = ../ccnl-includes.h \
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c
 
+# CCNL_NFN_MONITOR to log messages to nfn-scala montior
+NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
+NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
+
+ifdef USE_NFN
+    $(info *** With NFN ***)
+    CFLAGS += ${NFNFLAGS}
+endif
+
+# ----------------------------------------------------------------------
+
 all: $(PROGS)
 
 ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
@@ -48,7 +59,8 @@ ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
-ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c 
+
+ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-util.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
 ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
@@ -63,13 +75,13 @@ ccn-lite-rpc: Makefile ccn-lite-rpc.c ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h ccnl
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
 
-ccn-lite-mkC: Makefile ccn-lite-mkC.c ${CCNB_LIB} ../ccnl.h
+ccn-lite-mkC: Makefile ccn-lite-mkC.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
 
 ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ../ccnl.h ccnl-frag.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
 
-ccn-lite-mkI: Makefile ccn-lite-mkI.c ../pkt-ccnb.h ../ccnl.h
+ccn-lite-mkI: Makefile ccn-lite-mkI.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
 
 #ccn-lite-peekcomputation: Makefile ccn-lite-peekcomputation.c ${CCNB_LIB} ../ccnl.h  ccnl-common.c

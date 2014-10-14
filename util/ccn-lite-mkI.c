@@ -30,12 +30,38 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "arpa/inet.h" // htons()
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "../pkt-ccnb.h"
-#include "../pkt-ndntlv-enc.c"
 #include "../ccnl.h"
+#include "../ccnl-core.h"
+
+#include "../pkt-ccnb.h"
+#include "../pkt-ccntlv-enc.c"
+#include "../pkt-ndntlv-enc.c"
+
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
+
+#include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
 
@@ -57,64 +83,26 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 	*buf++ = tmp[i];
     return len;
 }
-/*
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-	return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-	return c - 'a' + 0x0a;
-    return 0;
-}
 
 int
-unescape_component(unsigned char *comp) // inplace, returns len after shrinking
+ccnb_mkInterest(struct ccnl_prefix_s *name,
+		char *minSuffix, char *maxSuffix,
+		unsigned char *digest, int dlen,
+		unsigned char *publisher, int plen,
+		char *scope,
+		uint32_t *nonce,
+		unsigned char *out)
 {
-    unsigned char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-	if (in[0] != '%' || !in[1] || !in[2]) {
-	    *out++ = *in++;
-	    continue;
-	}
-	*out++ = hex2int(in[1])*16 + hex2int(in[2]);
-	in += 3;
-    }
-    return len;
-}*/
-int
-ndntlv_mkInterest(char **namecomp, int *nonce,
-                 unsigned char *out, int outlen)
-{
-     int len, offset;
-     offset = outlen;
-     len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
-     memmove(out, out + offset, len);
-     return len;
-}
-
-int
-ccnb_mkInterest(char **namecomp,
-	   char *minSuffix, char *maxSuffix,
-	   unsigned char *digest, int dlen,
-	   unsigned char *publisher, int plen,
-	   char *scope,
-	   uint32_t *nonce,
-	   unsigned char *out)
-{
-    int len = 0, k;
+  int len = 0, i, k;
 
     len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
 
     len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
+    for (i = 0; i < name->compcnt; i++) {
 	len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = unescape_component((unsigned char*) *namecomp);
+	k = name->complen[i];
 	len += mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
+	memcpy(out+len, name->comp[i], k);
 	len += k;
 	out[len++] = 0; // end-of-component
     }
@@ -177,6 +165,39 @@ ccnb_mkInterest(char **namecomp,
     return len;
 }
 
+int
+ccntlv_mkInterest(struct ccnl_prefix_s *name,
+		  char *scope, unsigned char *out, int outlen)
+{
+     int len, offset, oldoffset;
+     int s = scope ? atoi(scope) : -1;
+
+     offset = oldoffset = outlen;
+     len = ccnl_ccntlv_fillInterest(name, s, &offset, out);
+     ccnl_ccntlv_prependFixedHdr(0, 1,
+				 len, 0, &offset, out);
+     len = oldoffset - offset;
+     if (len > 0)
+	 memmove(out, out + offset, len);
+
+     return len;
+}
+
+int
+ndntlv_mkInterest(struct ccnl_prefix_s *name, char *scope, int *nonce,
+		  unsigned char *out, int outlen)
+{
+    int len, offset;
+    int s = scope ? atoi(scope) : -1;
+
+    offset = outlen;
+    len = ccnl_ndntlv_fillInterest(name, s, nonce, &offset, out);
+    if (len > 0)
+	memmove(out, out + offset, len);
+
+    return len;
+}
+
 // ----------------------------------------------------------------------
 
 int
@@ -184,26 +205,33 @@ main(int argc, char *argv[])
 {
     unsigned char out[CCNL_MAX_PACKET_SIZE];
     char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
-    unsigned char *digest = 0, *publisher = 0;
+    char *digest = 0, *publisher = 0;
     char *fname = 0;
-    int i = 0, f, len=0, opt;
+    int f, len=0, opt;
     int dlen = 0, plen = 0;
-    int packettype = 0;
-    char *prefix[CCNL_MAX_NAME_COMP], *cp;
+    int packettype = 2;
+    struct ccnl_prefix_s *prefix;
     uint32_t nonce;
+    int isLambda = 0;
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "hd:n:o:p:c:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:ln:o:p:s:x:")) != -1) {
         switch (opt) {
+        case 'c':
+	    scope = optarg;
+	    break;
         case 'd':
-	    digest = (unsigned char*)optarg;
+	    digest = optarg;
 	    dlen = unescape_component(digest);
 	    if (dlen != 32) {
 		fprintf(stderr, "digest has wrong length (%d instead of 32)\n",
 			dlen);
 		exit(-1);
 	    }
+	    break;
+	case 'l':
+	    isLambda = 1 - isLambda;
 	    break;
         case 'n':
 	    minSuffix = optarg;
@@ -212,7 +240,7 @@ main(int argc, char *argv[])
 	    fname = optarg;
 	    break;
         case 'p':
-	    publisher = (unsigned char*)optarg;
+	    publisher = optarg;
 	    plen = unescape_component(publisher);
 	    if (plen != 32) {
 		fprintf(stderr,
@@ -220,9 +248,6 @@ main(int argc, char *argv[])
 		 plen);
 		exit(-1);
 	    }
-	    break;
-        case 'c':
-	    scope = optarg;
 	    break;
         case 's':
 	    packettype = atoi(optarg);
@@ -234,12 +259,13 @@ main(int argc, char *argv[])
         default:
 Usage:
 	    fprintf(stderr, "usage: %s [options] URI\n"
-            "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
-	    "  -c SCOPE"
+	    "  -c SCOPE\n"
 	    "  -d DIGEST  content digest (sets -x to 0)\n"
+	    "  -l         URI is a Lambda expression\n"
 	    "  -n LEN     miN additional components\n"
 	    "  -o FNAME   output file (instead of stdout)\n"
 	    "  -p DIGEST  publisher fingerprint\n"
+            "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
 	    "  -x LEN     maX additional components\n",
 	    argv[0]);
 	    exit(1);
@@ -248,33 +274,51 @@ Usage:
 
     if (!argv[optind]) 
 	goto Usage;
-    cp = strtok(argv[optind], "|");
-    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	prefix[i++] = cp;
-	cp = strtok(NULL, "|");
+
+    /*
+    if (isLambda)
+	i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
+    else
+    */
+    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL);
+    if (!prefix) {
+	fprintf(stderr, "no URI found, aborting\n");
+	return -1;
     }
-    prefix[i] = NULL;
-    if(packettype == 0){
-    	len = ccnb_mkInterest(prefix,
-		     minSuffix, maxSuffix,
-		     digest, dlen,
-		     publisher, plen,
-		     scope, &nonce,
-		     out);
+
+    switch (packettype) {
+    case 0:
+    	len = ccnb_mkInterest(prefix, minSuffix, maxSuffix,
+			      (unsigned char*) digest, dlen,
+			      (unsigned char*) publisher, plen,
+			      scope, &nonce, out);
+	break;
+    case 1:
+        len = ccntlv_mkInterest(prefix, scope, out,
+				CCNL_MAX_PACKET_SIZE);
+	break;
+    case 2:
+        len = ndntlv_mkInterest(prefix, scope, (int*)&nonce, out,
+				CCNL_MAX_PACKET_SIZE);
+	break;
+    default:
+    	fprintf(stderr, "Not Implemented (yet)\n");
+	return -1;
     }
-    else if(packettype ==1){
-    	printf("Not Implemented yet\n");
-    }
-    else if(packettype == 2){
-        len = ndntlv_mkInterest(prefix, (int*)&nonce, out, CCNL_MAX_PACKET_SIZE);
+
+    if (len <= 0) {
+	fprintf(stderr, "internal error: empty packet\n");
+	return -1;
     }
 
     if (fname) {
 	f = creat(fname, 0666);
-      if (f < 0)
-	perror("file open:");
+	if (f < 0) {
+	    perror("file open:");
+	    return -1;
+	}
     } else
-      f = 1;
+	f = 1;
 
     write(f, out, len);
     close(f);

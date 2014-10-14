@@ -22,8 +22,8 @@
 
 #ifndef PKT_NDNTLV_ENC_C
 #define PKT_NDNTLV_ENC_C
+
 #include "pkt-ndntlv.h"
-#include "ccnl-util.c"
 
 int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
@@ -83,7 +83,7 @@ ccnl_ndntlv_prependNonNegInt(int type, unsigned int val,
     }
     if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
 	return -1;
-    return *offset - oldoffset;
+    return oldoffset - *offset;
 }
 
 int
@@ -103,13 +103,42 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
     return oldoffset - *offset;
 }
 
+int
+ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
+			int *offset, unsigned char *buf)
+{
+    int oldoffset = *offset, cnt;
+
+#ifdef USE_NFN
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				(unsigned char*) "NFN", 3, offset, buf) < 0)
+	    return -1;
+	if (name->nfnflags & CCNL_PREFIX_THUNK)
+	    if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+				(unsigned char*) "THUNK", 5, offset, buf) < 0)
+		return -1;
+    }
+#endif
+    for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
+	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, name->comp[cnt],
+				    name->complen[cnt], offset, buf) < 0)
+	    return -1;
+    }
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset - *offset,
+			      offset, buf) < 0)
+	return -1;
+
+    return 0;
+}
+
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
-		       int *offset, unsigned char *buf)
+ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+			 int *offset, unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt;
+    int oldoffset = *offset;
 
     if (scope >= 0) {
 	if (scope > 2)
@@ -136,24 +165,8 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
 	    return -1;
     }
 
-/*
-    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) &nonce, 4,
-				offset, buf) < 0)
+    if (ccnl_ndntlv_prependName(name, offset, buf))
 	return -1;
-*/
-    for (cnt = 0; namecomp[cnt]; cnt++);
-    oldoffset2 = *offset;
-    while (--cnt >= 0) {
-	int len = unescape_component((unsigned char*) namecomp[cnt]);
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				 (unsigned char*) namecomp[cnt], len,
-				 offset, buf) < 0)
-	    return -1;
-    }
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
-			      offset, buf) < 0)
-	return -1;
-
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
 			      offset, buf) < 0)
 	return -1;
@@ -161,11 +174,17 @@ ccnl_ndntlv_mkInterest(char **namecomp, int scope, int *nonce,
     return oldoffset - *offset;
 }
 
-int
-ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
-		      int *offset, unsigned char *finalBlockId, int len_finalBlockId, unsigned char *buf)
+// ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
+// 		      int *offset, unsigned char *finalBlockId, int len_finalBlockId, unsigned char *buf)
+ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
+			int paylen, int *offset, int *contentpos,
+			unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, cnt = 0;
+    int oldoffset = *offset, oldoffset2;
+    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
+
+    if (contentpos)
+	*contentpos = *offset - paylen;
 
     // fill in backwards
 
@@ -181,7 +200,6 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
         return -1;
 
     // use NDN_SigTypeVal_SignatureSha256WithRsa because this is default in ndn client libs
-    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
     if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
                 offset, buf)< 0)
         return 1;
@@ -192,8 +210,8 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 
     // mandatory
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
-				offset, buf)< 0)
-	   return -1;
+				offset, buf) < 0)
+	return -1;
 
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
@@ -210,30 +228,20 @@ ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
     if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)
         return -1;
 
-    for (cnt = 0; namecomp[cnt]; cnt++);
-
-    // store offset to find length of all NameComponents
-    oldoffset2 = *offset;
-    while (--cnt >= 0) {
-    	int len = unescape_component((unsigned char*) namecomp[cnt]);
-    	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-    				    (unsigned char*) namecomp[cnt], len,
-    				    offset, buf) < 0) {
-            return -1;
-        }
-    }
-
     // mandatory
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset2 - *offset,
-			      offset, buf) < 0) 
-        return -1;
+    if (ccnl_ndntlv_prependName(name, offset, buf))
+	return -1;
 
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
 			      offset, buf) < 0)
 	   return -1;
 
+    if (contentpos)
+	*contentpos -= *offset;
+
     return oldoffset - *offset;
 }
+
 #endif
 // eof

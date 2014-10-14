@@ -45,6 +45,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 // ----------------------------------------------------------------------
 
+#undef USE_NFN
+#undef USE_NFN_MONITOR
+
 // #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
 
@@ -66,7 +69,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 
 #define free_prefix(p)	do{ if(p) \
-			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
+		free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->pkt, c); } while(0)
 
@@ -80,12 +83,15 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define ccnl_mgmt(r,b,p,f)		-1
 
+#define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
+
 #define ccnl_print_stats(x,y)		do{}while(0)
 #define ccnl_app_RX(x,y)		do{}while(0)
 
 #define ccnl_ll_TX(r,i,a,b)		sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
 #define ccnl_close_socket(s)		close(s)
 
+struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 
 #include "pkt-ccnb.h"
 #include "pkt-ndntlv.h"
@@ -221,17 +227,17 @@ ccnl_path_to_prefix(const char *path)
     pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->path) {
+    pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);
+    if (!pr->comp || !pr->complen || !pr->bytes) {
         ccnl_free(pr->comp);
         ccnl_free(pr->complen);
-        ccnl_free(pr->path);
+        ccnl_free(pr->bytes);
         ccnl_free(pr);
         return NULL;
     }
 
-    strcpy((char*) pr->path, path);
-    cp = (char*) pr->path;
+    strcpy((char*) pr->bytes, path);
+    cp = (char*) pr->bytes;
     for (path = strtok(cp, "/");
 		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
 		 path = strtok(NULL, "/")) {
@@ -374,8 +380,15 @@ main(int argc, char **argv)
     }
     prefix = argv[optind];
     defaultgw = argv[optind+1];
+
+    ccnl_core_init();
+
 #ifdef USE_SUITE_CCNB
     if (theRelay.suite == CCNL_SUITE_CCNB && !udpport)
+	udpport = CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (theRelay.suite == CCNL_SUITE_CCNTLV && !udpport)
 	udpport = CCN_UDP_PORT;
 #endif
 #ifdef USE_SUITE_NDNTLV

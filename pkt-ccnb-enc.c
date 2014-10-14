@@ -22,8 +22,10 @@
  * 2014-03-17 renamed to prepare for a world with many wire formats
  */
 
-#if defined(USE_SUITE_CCNB) && !defined(PKT_CCNB_ENC_C)
+#ifndef PKT_CCNB_ENC_C
 #define PKT_CCNB_ENC_C
+
+#include "pkt-ccnb.h"
 
 int
 ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
@@ -99,30 +101,51 @@ ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
     return len;
 }
 
+int
+ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out)
+{
+    int len;
 
-// ----------------------------------------------------------------------
-// (ms): Brought here the following two. I noticed also that some
-// of them are replicated elsewhere in the util/ dir. Should we put them
-// in one place only ?
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+    len += ccnl_ccnb_mkHeader(out+len, vallen, CCN_TT_BLOB);
+    memcpy(out+len, val, vallen);
+    len += vallen;
+    out[len++] = 0; // end-of-component
+
+    return len;
+}
 
 int
-ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
-		     unsigned char *out, int outlen)
+ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
 {
-    int len = 0, k;
+    int len, i;
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    for (i = 0; i < name->compcnt; i++) {
+	len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
+    }
+#ifdef USE_NFN
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+	if (name->nfnflags & CCNL_PREFIX_THUNK)
+	    len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
+	len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
+    }
+#endif    
+    out[len++] = 0; // end-of-name
+
+    return len;
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
+		       unsigned char *out, int outlen)
+{
+    int len = 0;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-
-    while (*namecomp) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
+    len += ccnl_ccnb_mkName(name, out+len);
     if (nonce) {
 	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
 	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
@@ -134,42 +157,33 @@ ccnl_ccnb_mkInterest(char **namecomp, int *nonce,
     return len;
 }
 
+// #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
 
-
-#if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(CCNL_NFN) || defined(CCNL_NACK)
-
-
-static int
-ccnl_ccnb_mkContent(char **namecomp, char *data, int datalen,
-		    unsigned char *out)
+int
+ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
+		      int datalen, int *contentpos, unsigned char *out)
 {
-    int len = 0, k;
+    int len = 0;
 
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
 
-    while (*namecomp) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG); // content obj
+    len += ccnl_ccnb_mkName(name, out+len);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
+    if (contentpos)
+	*contentpos = len;
     memcpy(out+len, data, datalen);
+    if (contentpos)
+	*contentpos = len;
     len += datalen;
-    out[len++] = 0; // end-of-content obj
-
     out[len++] = 0; // end-of-content
+
+    out[len++] = 0; // end-of-content obj
 
     return len;
 }
 
-#endif // CCNL_SIMULATION || CCNL_OMNET
+// #endif // CCNL_SIMULATION || CCNL_OMNET
 
 #endif /*CCNL_EN_CCNB*/
 // eof

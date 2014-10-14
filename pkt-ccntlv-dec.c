@@ -20,12 +20,15 @@
  * 2014-03-05 created
  */
 
+#ifndef PKT_CCNTLV_DEC_C
+#define PKT_CCNTLV_DEC_C
+
 #include "pkt-ccntlv.h"
 
 
 int
-ccnl_ccntlv_dehead(int lev, unsigned char *base, unsigned char **buf,
-		   unsigned int *len, unsigned int *typ, unsigned int *vallen)
+ccnl_ccntlv_dehead(unsigned char **buf, int *len,
+		   unsigned int *typ, unsigned int *vallen)
 {
     unsigned short *ip;
 
@@ -40,5 +43,5 @@ ccnl_ccntlv_dehead(int lev, unsigned char *base, unsigned char **buf,
     return 0;
 }
 
-
+#endif
 // eof

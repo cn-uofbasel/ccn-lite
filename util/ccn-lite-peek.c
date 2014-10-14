@@ -41,6 +41,7 @@
 
 
 #define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define CCNL_UNIX
 #define USE_DEBUG_MALLOC
@@ -49,29 +50,38 @@
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-platform.c"
 
+#include "../ccnl-core.h"
 
-#include "ccnl-common.c"
-
-#ifdef USE_SUITE_CCNB
-# include "../pkt-ccnb.h"
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-# include "../pkt-ndntlv.h"
-#endif
-
-#include "../ccnl-util.c"
-
-#ifdef USE_SUITE_CCNB
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
-#endif
 
-#ifdef USE_SUITE_NDNTLV
+# include "../pkt-ccntlv-dec.c"
+# include "../pkt-ccntlv-enc.c"
+
 # include "../pkt-ndntlv-dec.c"
 # include "../pkt-ndntlv-enc.c"
-#endif
 
+#define ccnl_malloc(s)			malloc(s)
+#define ccnl_calloc(n,s) 		calloc(n,s)
+#define ccnl_realloc(p,s)		realloc(p,s)
+#define ccnl_free(p)			free(p)
+#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
+
+#include "../ccnl-util.c"
 
 // ----------------------------------------------------------------------
 
@@ -88,14 +98,29 @@ myexit(int rc)
 // ----------------------------------------------------------------------
 
 int
-ndntlv_mkInterest(char **namecomp, int *nonce,
+ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 		  unsigned char *out, int outlen)
 {
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ndntlv_mkInterest(namecomp, -1, nonce, &offset, out);
-    memmove(out, out + offset, len);
+    len = ccnl_ccntlv_fillInterestWithHdr(name, -1, &offset, out);
+    if (len > 0)
+	memmove(out, out + offset, len);
+
+    return len;
+}
+
+int
+ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
+		  unsigned char *out, int outlen)
+{
+    int len, offset;
+
+    offset = outlen;
+    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
+    if (len > 0)
+	memmove(out, out + offset, len);
 
     return len;
 }
@@ -180,6 +205,7 @@ block_on_read(int sock, float wait)
 int ccnb_isContent(unsigned char *buf, int len)
 {
     int num, typ;
+
     if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
 	return -1;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
@@ -188,11 +214,33 @@ int ccnb_isContent(unsigned char *buf, int len)
 }
 #endif
 
+#ifdef USE_SUITE_CCNTLV
+int ccntlv_isObject(unsigned char *buf, int len)
+{
+    unsigned int typ, vallen;
+    struct ccnx_tlvhdr_ccnx201311_s *hp = (struct ccnx_tlvhdr_ccnx201311_s*)buf;
+
+    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201311_s))
+	return -1;
+    if (hp->version != CCNX_TLV_V0)
+	return -1;
+    if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s)+ntohs(hp->hdrlen)+ntohs(hp->msglen) > len))
+	return -1;
+    buf += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
+    len -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
+    if (ccnl_ccntlv_dehead(&buf, &len, &typ, &vallen))
+	return -1;
+    if (hp->msgtype != CCNX_TLV_TL_Object || typ != CCNX_TLV_TL_Object)
+	return 0;
+    return 1;
+}
+#endif
+
 #ifdef USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len)
 {
-    return 1;
     int typ, vallen;
+
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
 	return -1;
     if (typ != NDN_TLV_Data)
@@ -208,17 +256,38 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, i=0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
-    char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
+    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    char *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
+    struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(char**,int*,unsigned char*,int);
-    int (*isContent)(unsigned char*,int);
+    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+    int (*isContent)(unsigned char*, int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
         case 's':
-	    suite = atoi(optarg);
+	    opt = atoi(optarg);
+	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
+		goto usage;
+	    suite = opt;
+	    switch (suite) {
+#ifdef USE_SUITE_CCNB
+	    case CCNL_SUITE_CCNB:
+		udp = "127.0.0.1/9695";
+		break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+	    case CCNL_SUITE_CCNTLV:
+		udp = "127.0.0.1/9695";
+		break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+	    case CCNL_SUITE_NDNTLV:
+		udp = "127.0.0.1/6363";
+		break;
+#endif
+	    }
 	    break;
         case 'u':
 	    udp = optarg;
@@ -231,29 +300,38 @@ main(int argc, char *argv[])
 	    break;
         case 'h':
         default:
-Usage:
-	    fprintf(stderr, "usage: %s "
-	    "[-u host/port] [-x ux_path_name] [-w timeout] URI\n"
+usage:
+	    fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
 	    "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
 	    "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
-	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
 	    "  -w timeout       in sec (float)\n"
-	    "Example URI: /ndn/edu/wustl/ping\n",
+	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
+	    "Examples:\n"
+	    "%% peek /ndn/edu/wustl/ping             (classic lookup)\n"
+	    "%% peek /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
+	    "%% peek \"\" \"add 1 1\"                    (lambda expr, local)\n"
+	    "%% peek /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
 	    argv[0]);
 	    exit(1);
         }
     }
 
     if (!argv[optind]) 
-	goto Usage;
+	goto usage;
 
     srandom(time(NULL));
 
     switch(suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-	mkInterest = ccnl_ccnb_mkInterest;
+	mkInterest = ccnl_ccnb_fillInterest;
 	isContent = ccnb_isContent;
+	break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	mkInterest = ccntlv_mkInterest;
+	isContent = ccntlv_isObject;
 	break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -263,7 +341,7 @@ Usage:
 	break;
 #endif
     default:
-	printf("CCNx-TLV not supported at this time, aborting\n");
+	printf("unknown suite\n");
 	exit(-1);
     }
 
@@ -274,25 +352,18 @@ Usage:
 	sock = ux_open();
     } else { // UDP
 	struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+	udp = strdup(udp);
 	si->sin_family = PF_INET;
 	si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
 	si->sin_port = htons(atoi(strtok(NULL, "/")));
 	sock = udp_open();
     }
 
+    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
     for (cnt = 0; cnt < 3; cnt++) {
-	char *uri = strdup(argv[optind]), *cp;
 	int nonce = random();
 
-	cp = strtok(argv[optind], "|");
-	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-	    prefix[i++] = cp;
-	    cp = strtok(NULL, "|");
-	}
-	prefix[i] = NULL;
 	len = mkInterest(prefix, &nonce, out, sizeof(out));
-
-	free(uri);
 
 	if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
 	    perror("sendto");

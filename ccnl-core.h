@@ -105,6 +105,8 @@ struct ccnl_relay_s {
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
+
+    struct ccnl_krivine_s *km;
     
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
@@ -121,7 +123,15 @@ struct ccnl_prefix_s {
     unsigned char **comp;
     int *complen;
     int compcnt;
-    unsigned char *path; // memory for name component copies
+    char suite;
+    unsigned char *nameptr; // binary name (for fast comparison)
+    unsigned int   namelen; // valid length of name memory
+    unsigned char *bytes;   // memory for name component copies
+    unsigned int nfnflags;
+#define CCNL_PREFIX_NFN   0x01
+#define CCNL_PREFIX_THUNK 0x02
+#define CCNL_PREFIX_COMPU 0x04
+    unsigned char *nfnexpr;
 };
 
 struct ccnl_frag_s {
@@ -168,7 +178,7 @@ struct ccnl_ccnb_id_s { // interest details
 };
 
 struct ccnl_ccntlv_id_s { // interest details
-    char dummy; // keep the compiler happy and silent
+    struct ccnl_buf_s *keyid;       // publisher keyID
 };
 
 struct ccnl_ndntlv_id_s { // interest details
@@ -190,8 +200,8 @@ struct ccnl_interest_s {
 	struct ccnl_ndntlv_id_s ndntlv;
     } details;
     char suite;
-#ifdef CCNL_NFN
-    int propagate;                 //set to 0 to not propagate this interest becauses it is in the NFN-engine
+#ifdef USE_NFN
+    int corePropagates;  // set to 0 to not propagate this interest becauses it is in the NFN-engine
 #endif
 };
 
@@ -206,7 +216,7 @@ struct ccnl_ccnb_cd_s { // content details
 };
 
 struct ccnl_ccntlv_cd_s { // content details
-    char dummy; // keep the compiler happy and silent
+    struct ccnl_buf_s *keyid;       // publisher keyID
 };
 
 struct ccnl_ndntlv_cd_s { // content details
@@ -231,6 +241,14 @@ struct ccnl_content_s {
 	struct ccnl_ndntlv_cd_s ndntlv;
     } details;
     char suite;
+};
+
+struct ccnl_lambdaTerm_s {
+    char *v;
+    struct ccnl_lambdaTerm_s *m, *n;
+    // if m is 0, we have a var  v
+    // is both m and n are not 0, we have an application  (M N)
+    // if n is 0, we have a lambda term  @v M
 };
 
 // ----------------------------------------------------------------------
@@ -264,11 +282,11 @@ compile_string(void)
 #ifdef USE_DEBUG_MALLOC
 	"DEBUG_MALLOC, "
 #endif
-#ifdef USE_FRAG
-	"FRAG, "
-#endif
 #ifdef USE_ETHERNET
 	"ETHERNET, "
+#endif
+#ifdef USE_FRAG
+	"FRAG, "
 #endif
 #ifdef USE_HTTP_STATUS
 	"HTTP_STATUS, "
@@ -276,8 +294,20 @@ compile_string(void)
 #ifdef USE_MGMT
 	"MGMT, "
 #endif
+#ifdef USE_NACK
+	"NACK, "
+#endif
+#ifdef USE_NFN
+	"NFN, "
+#endif
+#ifdef USE_NFN_MONITOR
+	"NFN_MONITOR, "
+#endif
 #ifdef USE_SCHEDULER
 	"SCHEDULER, "
+#endif
+#ifdef USE_SIGNATURES
+	"SIGNATURES, "
 #endif
 #ifdef USE_SUITE_CCNB
 	"SUITE_CCNB, "
@@ -293,18 +323,6 @@ compile_string(void)
 #endif
 #ifdef USE_UNIXSOCKET
 	"UNIXSOCKET, "
-#endif
-#ifdef USE_SIGNATURES
-	"SIGNATURES, "
-#endif
-#ifdef CCNL_NFN
-    "USE_NFN "
-#endif
-#ifdef CCNL_NFN_MONITOR
-    "USE_NFN_MONITOR "
-#endif
-#ifdef CCNL_NACK
-    "USE_NACK "
 #endif
 	;
   return cp;

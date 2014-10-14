@@ -639,6 +639,11 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
     h->lineno = lno;
     h->size = s;
     h->tstamp = strdup(tstamp);
+    /*
+    if (s == 32) fprintf(stderr, "+++ s=%d %p at %s:%d\n", s,
+			 (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
+			 (char*) fn, lno);
+    */
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -668,7 +673,6 @@ debug_unlink(struct mhdr *hdr)
     return 1;
 }
 
-/*
 void*
 debug_realloc(void *p, int s, const char *fn, int lno)
 {
@@ -685,7 +689,7 @@ debug_realloc(void *p, int s, const char *fn, int lno)
 	if (!h)
 	    return NULL;
     } else
-      h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
+	h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
     h->fname = (char *) fn;
     h->lineno = lno;
     h->size = s;
@@ -693,7 +697,6 @@ debug_realloc(void *p, int s, const char *fn, int lno)
     mem = h;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
-*/
 
 void
 debug_free(void *p, const char *fn, int lno)
@@ -746,23 +749,70 @@ debug_memdump()
     fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
 }
 
+
+static char *prefix_buf1;
+static char *prefix_buf2;
+static char *buf;
+
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    char *prefix_buf = ccnl_malloc(4096);
-    int len= 0, i;
+    int len = 0, i;
 
     if (!pr)
 	return NULL;
 
+    if (!buf) {
+	struct ccnl_buf_s *b;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf1 = (char*) b->data;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf2 = (char*) b->data;
+	buf = prefix_buf1;
+    } else if (buf == prefix_buf2)
+	buf = prefix_buf1;
+    else
+	buf = prefix_buf2;
+
+#ifdef USE_NFN
+    if (pr->nfnflags & CCNL_PREFIX_NFN)
+	len += sprintf(buf + len, "nfn");
+    if (pr->nfnflags & CCNL_PREFIX_THUNK)
+	len += sprintf(buf + len, "thunk");
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "[");
+#endif
+
     for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
-        else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+	int skip = 0;
+	if (pr->suite == CCNL_SUITE_CCNTLV) {
+	    if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
+		len += sprintf(buf + len, "/%%x%02x%02x%.*s",
+			       pr->comp[i][0], pr->comp[i][1],
+			       pr->complen[i]-4, pr->comp[i]+4);
+		continue;
+	    }
+	    skip = 4;
+	}
+	if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
+				    !strncmp("call", (char*)pr->comp[i], 4))
+	    len += sprintf(buf + len, "%.*s",
+			   pr->complen[i]-skip, pr->comp[i]+skip);
+	else
+	    len += sprintf(buf + len, "/%.*s",
+			   pr->complen[i]-skip, pr->comp[i]+skip);
     }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
+
+#ifdef USE_NFN
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "]");
+#endif
+
+    buf[len] = '\0';
+
+    return buf;
 }
 
 
@@ -783,7 +833,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #define free_4ptr_list(a,b,c,d)	ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 
 #define free_prefix(p)	do{ if(p) \
-			free_4ptr_list(p->path,p->comp,p->complen,p); } while(0)
+		free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
 			free_2ptr_list(c->pkt, c); } while(0)
 
