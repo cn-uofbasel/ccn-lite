@@ -570,7 +570,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     if (i != 0 && i->from != 0)
             faceid = i->from->faceid;
 
-    DEBUGMSG(99, "ccnl_interest_remove_continue_computations(faceid=%d)\n", faceid);
+    DEBUGMSG(99, "ccnl_interest_remove_continue_computations(faceid=%d, prefix=%s)\n", faceid, ccnl_prefix_to_path(i->prefix));
 
 
 #ifdef USE_NACK
@@ -582,7 +582,7 @@ ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
     interest = ccnl_interest_remove(ccnl, i);
 
     if (faceid < 0)
-            ccnl_nfn_continue_computation(ccnl, -i->from->faceid, 1);
+            ccnl_nfn_continue_computation(ccnl, -faceid, 1);
 
    return interest;
 }

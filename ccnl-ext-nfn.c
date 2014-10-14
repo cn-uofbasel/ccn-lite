@@ -64,6 +64,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         return;
     }
 
+    /*//update original interest prefix to stay longer...reenable if propagate=0 do not protect interests
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
         if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
@@ -72,7 +73,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             original_interest->from->last_used = CCNL_NOW();
             break;
         }
-    }
+    }*/
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
@@ -262,6 +263,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
 
+    DEBUGMSG(99, "");
 #ifdef USE_NACK
     if (ccnl_isNACK(c)) {
 	ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,

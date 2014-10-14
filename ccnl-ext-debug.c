@@ -667,7 +667,7 @@ debug_unlink(struct mhdr *hdr)
 	    *pp = hdr->next;
 	    return 0;
 	}
-	if (!(*pp)->next)
+    if (!(*pp)->next)
 	    break;
     }
     return 1;
