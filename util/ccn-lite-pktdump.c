@@ -27,6 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+ 
+#include <sys/time.h>
 
 #include "base64.c"
 
@@ -35,6 +38,14 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CCNNDN
+
+#define CCNL_UNIX
+#define USE_DEBUG_MALLOC
+
+#include "../ccnl.h"
+#include "../ccnl-ext-debug.c"
+#include "../ccnl-platform.c"
+
 
 #include "../pkt-ccnb-dec.c"
 #include "../pkt-ccntlv-dec.c"

@@ -40,29 +40,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
+#define USE_DEBUG_MALLOC
 #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
 
-#include "../ccnl-includes.h"
+#define CCNL_UNIX
+#define USE_DEBUG_MALLOC
 
 #include "../ccnl.h"
-#include "../ccnl-core.h"
-
-
 #include "../ccnl-ext-debug.c"
-#include "../ccnl-ext.h"
 #include "../ccnl-platform.c"
-
-#include "../ccnl-util.c"
-#include "../ccnl-core.c"
-
-#include "ccnl-common.c"
-
 
 #ifdef USE_SUITE_NDNTLV
 # include "../pkt-ndntlv.h"
-# include "pkt-ndntlv-enc.c"
+# include "../pkt-ndntlv-enc.c"
+# include "../pkt-ndntlv-dec.c"
 #endif
 
 #ifdef USE_SUITE_CCNB
@@ -72,15 +64,10 @@
 #endif
 
 
-#include "../ccnl-ext-http.c"
-#include "../ccnl-ext-mgmt.c"
-#include "../ccnl-ext-sched.c"
-#include "../ccnl-ext-frag.c"
-// #include "../fwd-ndntlv.c"
-
 // ----------------------------------------------------------------------
 
 char *unix_path;
+
 
 void
 myexit(int rc)
@@ -318,35 +305,35 @@ Usage:
 */
 
         // *** parse content ************************
-        unsigned char **data; 
-        int *datalen;
+        unsigned char **data = 0; 
+        int *datalen = 0;
 
         int len = 0, typ;
         int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
         struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
+        struct ccnl_prefix_s *prefix;
         unsigned char *content = 0, *cp = *data;
-
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
         return -1;
         buf = ccnl_ndntlv_extract(*data - cp,
                       data, datalen,
                       &scope, &mbf, &minsfx, &maxsfx, 0, 0,
-                      &p, &nonce, &ppkl, &content, &contlen);
+                      &prefix, &nonce, &ppkl, &content, &contlen);
         if (!buf) {
             DEBUGMSG(6, "parsing error or no prefix\n"); goto Done;
         } 
         if (typ == NDN_TLV_Interest) {
             DEBUGMSG(99, "created new interest entry %p\n", (void *) i);
         } else { // data packet with content -------------------------------------
-            DEBUGMSG(99, "data[%s -> '%s']\n", ccnl_prefix_to_path(p), data);
+            DEBUGMSG(99, "data[%s -> '%s']\n", ccnl_prefix_to_path(prefix), data);
         }
 
         // *** parse content ***********************
 
         rc = isContent(out, len);
         if (rc < 0)
-        goto done;
+        goto Done;
         if (rc == 0) { // it's an interest, ignore it
         fprintf(stderr, "skipping non-data packet\n");
         continue;
@@ -359,7 +346,7 @@ Usage:
     }
     fprintf(stderr, "timeout\n");
 
-done:
+Done:
     close(sock);
     myexit(-1);
     return 0; // avoid a compiler warning

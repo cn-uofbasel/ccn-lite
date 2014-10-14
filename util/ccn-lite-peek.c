@@ -42,8 +42,13 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
+#define CCNL_UNIX
+#define USE_DEBUG_MALLOC
 
 #include "../ccnl.h"
+#include "../ccnl-ext-debug.c"
+#include "../ccnl-platform.c"
+
 
 #include "ccnl-common.c"
 
