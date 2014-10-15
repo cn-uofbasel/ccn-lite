@@ -25,7 +25,6 @@
 
 #include "pkt-ndntlv.h"
 #include "ccnl-core.h"
-#include "ccnl-ext-debug.c"
 
 
 static int
@@ -79,8 +78,8 @@ struct ccnl_buf_s*
 ccnl_ndntlv_extract(int hdrlen,
             unsigned char **data, int *datalen,
             int *scope, int *mbf, int *min, int *max, 
-            unsigned char *finalblockid,
-            int *len_finalblockid,
+            unsigned char *final_block_id,
+            int *final_block_id_len,
             struct ccnl_prefix_s **prefix,
             struct ccnl_buf_s **nonce,
             struct ccnl_buf_s **ppkl,
@@ -167,9 +166,9 @@ ccnl_ndntlv_extract(int hdrlen,
         if (typ == NDN_TLV_FinalBlockId) {
             if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
                 goto Bail;
-            if (typ == NDN_TLV_NameComponent && finalblockid && len_finalblockid) {
-                finalblockid = cp;
-                *len_finalblockid = i;
+            if (typ == NDN_TLV_NameComponent && final_block_id && final_block_id_len) {
+                final_block_id = cp;
+                *final_block_id_len = i;
             } else if(typ == NDN_TLV_NameComponent) {
                 printf("FinalBlockId is not defined");
             }

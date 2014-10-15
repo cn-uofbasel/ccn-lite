@@ -331,7 +331,9 @@ Usage:
             contentlen = ccnl_ccntlv_fillContentWithHdr(name, (unsigned char *)chunk_data, chunk_len, &offs, NULL, out);
             break;
         case CCNL_SUITE_NDNTLV:
-            contentlen = ccnl_ndntlv_fillContent(name, (unsigned char *) chunk_data, chunk_len, &offs, NULL, out);
+            contentlen = ccnl_ndntlv_fillContent(name, 
+                                                 (unsigned char *) chunk_data, chunk_len, 
+                                                 &offs, NULL, NULL, 0, out);
         default:
             fprintf(stderr, "encoding for suite %i is not implemented\n", packettype);
             break;
