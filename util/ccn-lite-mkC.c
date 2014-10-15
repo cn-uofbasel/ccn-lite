@@ -47,11 +47,11 @@
 #include "../pkt-ndntlv.h"
 #include "../pkt-ndntlv-enc.c"
 
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+#define ccnl_malloc(s)          malloc(s)
+#define ccnl_calloc(n,s)        calloc(n,s)
+#define ccnl_realloc(p,s)       realloc(p,s)
+#define ccnl_free(p)            free(p)
+#define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
@@ -81,11 +81,11 @@ char *witness;
 #ifdef XXX
 int
 ccnl_ccnb_mkContent(char **namecomp,
-	  unsigned char *publisher, int plen,
-	  unsigned char *body, int blen,
+      unsigned char *publisher, int plen,
+      unsigned char *body, int blen,
       char *private_key_path,
       char *witness,
-	  unsigned char *out)
+      unsigned char *out)
 {
     int len = 0, k;
 
@@ -98,39 +98,39 @@ ccnl_ccnb_mkContent(char **namecomp,
 #endif
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-	k = strlen(*namecomp);
-	len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-	memcpy(out+len, *namecomp++, k);
-	len += k;
-	out[len++] = 0; // end-of-component
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
+    k = strlen(*namecomp);
+    len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
+    memcpy(out+len, *namecomp++, k);
+    len += k;
+    out[len++] = 0; // end-of-component
     }
     out[len++] = 0; // end-of-name
 
     if (publisher) {
-	struct timeval t;
-	unsigned char tstamp[6];
-	uint32_t *sec;
-	uint16_t *secfrac;
+    struct timeval t;
+    unsigned char tstamp[6];
+    uint32_t *sec;
+    uint16_t *secfrac;
 
-	gettimeofday(&t, NULL);
-	sec = (uint32_t*)(tstamp + 0); // big endian
-	*sec = htonl(t.tv_sec);
-	secfrac = (uint16_t*)(tstamp + 4);
-	*secfrac = htons(4048L * t.tv_usec / 1000000);
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
-	len += ccnl_ccnb_mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
-	memcpy(out+len, tstamp, sizeof(tstamp));
-	len += sizeof(tstamp);
-	out[len++] = 0; // end-of-timestamp
+    gettimeofday(&t, NULL);
+    sec = (uint32_t*)(tstamp + 0); // big endian
+    *sec = htonl(t.tv_sec);
+    secfrac = (uint16_t*)(tstamp + 4);
+    *secfrac = htons(4048L * t.tv_usec / 1000000);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
+    memcpy(out+len, tstamp, sizeof(tstamp));
+    len += sizeof(tstamp);
+    out[len++] = 0; // end-of-timestamp
 
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-	len += ccnl_ccnb_mkHeader(out+len, plen, CCN_TT_BLOB);
-	memcpy(out+len, publisher, plen);
-	len += plen;
-	out[len++] = 0; // end-of-publisher
-	out[len++] = 0; // end-of-signedinfo
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkHeader(out+len, plen, CCN_TT_BLOB);
+    memcpy(out+len, publisher, plen);
+    len += plen;
+    out[len++] = 0; // end-of-publisher
+    out[len++] = 0; // end-of-signedinfo
     }
 
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -158,14 +158,14 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-<<<<<<< HEAD
-    int i = 0, f, len, opt, plen;
-    char *prefix[CCNL_MAX_NAME_COMP], *cp;
-=======
+// <<<<<<< HEAD
+//     int i = 0, f, len, opt, plen;
+//     char *prefix[CCNL_MAX_NAME_COMP], *cp;
+// =======
     int chunk_num = -1, last_chunk_num = -1;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
->>>>>>> ccntlv
+// >>>>>>> ccntlv
     int packettype = 2;
     private_key_path = 0;
     witness = 0;
@@ -185,10 +185,10 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-		fprintf(stderr,
-		  "publisher key digest has wrong length (%d instead of 32)\n",
-		  plen);
-		exit(-1);
+            fprintf(stderr,
+              "publisher key digest has wrong length (%d instead of 32)\n",
+              plen);
+            exit(-1);
             }
             break;
         case 'c':
@@ -205,7 +205,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-	    fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+        fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
         "  -i FNAME   input file (instead of stdin)\n"
         "  -k FNAME   publisher private key (CCNB)\n"
         "  -o FNAME   output file (instead of stdout)\n"
@@ -213,26 +213,26 @@ Usage:
         "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
         "  -w STRING  witness\n"
         "  -n CHUNKNUM chunknum"
-        "  -l LASTCHUNKNUM number of last chunk\n"       ,
-	"Examples:\n"
-	"%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
-	"%% mkC /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
-	"%% mkC \"\" \"add 1 1\"                    (lambda expr, local)\n"
-	"%% mkC /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
-	    argv[0]);
-	    exit(1);
+        "  -l LASTCHUNKNUM number of last chunk\n"       
+        "Examples:\n"
+        "%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
+        "%% mkC /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"
+        "%% mkC \"\" \"add 1 1\"                    (lambda expr, local)\n"
+        "%% mkC /rpc/site \"call 1 /test/data\"   (lambda RPC, directed)\n",
+        argv[0]);
+        exit(1);
         }
     }
 
     if (!argv[optind]) 
-	goto Usage;
+    goto Usage;
 
     if (infname) {
-	f = open(infname, O_RDONLY);
-	if (f < 0)
-	    perror("file open:");
+    f = open(infname, O_RDONLY);
+    if (f < 0)
+        perror("file open:");
     } else
-	f = 0;
+    f = 0;
     len = read(f, body, sizeof(body));
     close(f);
 
@@ -240,12 +240,12 @@ Usage:
 
     switch (packettype) {
     case CCNL_SUITE_CCNB:
-	len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
-	break;
+    len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
+    break;
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ccntlv_fillContentWithHdr(name, body, len, &offs, NULL, out);
-	break;
+    break;
     case CCNL_SUITE_NDNTLV:
 
         // add chunknum and finalblock id...
@@ -272,15 +272,15 @@ Usage:
 
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, out);
-	break;
+    break;
     default:
-	break;
+    break;
     }
 
     if (outfname) {
-	f = creat(outfname, 0666);
+    f = creat(outfname, 0666);
       if (f < 0)
-	perror("file open:");
+    perror("file open:");
     } else
       f = 1;
     write(f, out + offs, len);

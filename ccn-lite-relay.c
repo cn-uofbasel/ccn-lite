@@ -618,7 +618,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                 typ != NDN_TLV_Data)
                 goto notacontent;
             pkt = ccnl_ndntlv_extract(data - buf->data,
-                          &data, &datalen, 0, 0, 0, 0,
+                          &data, &datalen, 0, 0, 0, 0, 0, 0,
                 &prefix, &nonce, &ppkd, &content, &contlen);
             break;
 #endif
@@ -706,11 +706,6 @@ main(int argc, char **argv)
         case CCNL_SUITE_CCNTLV:
         udpport = httpport = CCN_UDP_PORT;
         break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-	    case CCNL_SUITE_CCNTLV:
-		udpport = httpport = CCN_UDP_PORT;
-		break;
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:

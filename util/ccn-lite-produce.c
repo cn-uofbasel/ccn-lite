@@ -38,6 +38,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+// #include "../ccnl.h"
+// #include "../ccnl-core.h"
+
+// #include "../pkt-ccnb.h"
+// #include "../pkt-ccnb-enc.c"
+
+// #include "../pkt-ndntlv.h"
+// #include "../pkt-ndntlv-enc.c"
+// #include "../ccnl-util.c"
+// #include "ccnl-crypto.c"
+
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
@@ -46,13 +57,34 @@
 
 #include "../pkt-ndntlv.h"
 #include "../pkt-ndntlv-enc.c"
-#include "../ccnl-util.c"
-#include "ccnl-crypto.c"
+
+#define ccnl_malloc(s)          malloc(s)
+#define ccnl_calloc(n,s)        calloc(n,s)
+#define ccnl_realloc(p,s)       realloc(p,s)
+#define ccnl_free(p)            free(p)
+#define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
 
 #define CCNL_MAX_CHUNK_SIZE 4048
 #define CCNL_MIN_CHUNK_SIZE 1
 
+ #include "../ccnl-util.c"
+#include "ccnl-crypto.c"
 
+#ifdef XXX
 int
 ccnl_ccnb_mkContent(char **namecomp,
       unsigned char *publisher, int plen,
@@ -73,7 +105,7 @@ ccnl_ccnb_mkContent(char **namecomp,
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     while (*namecomp) {
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = unescape_component((unsigned char*) *namecomp);
+    k = strlen(*namecomp);
     len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
     memcpy(out+len, *namecomp++, k);
     len += k;
@@ -118,6 +150,8 @@ ccnl_ccnb_mkContent(char **namecomp,
     return len;
 }
 
+#endif
+
 struct chunk {
     char data[CCNL_MAX_CHUNK_SIZE];
     int len;
@@ -130,7 +164,7 @@ main(int argc, char *argv[])
     char *private_key_path; 
     char *witness;
     unsigned char out[65*1024];
-    unsigned char *publisher = 0;
+    char *publisher = 0;
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char chunkname_with_number[20];
@@ -139,6 +173,7 @@ main(int argc, char *argv[])
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     int packettype = 2;
     int status;
+    struct ccnl_prefix_s *name;
     struct stat st_buf;
     int chunkSize = 0;
     private_key_path = 0;
@@ -159,7 +194,7 @@ main(int argc, char *argv[])
             witness = optarg;
             break;
         case 'p':
-            publisher = (unsigned char*)optarg;
+            publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
             fprintf(stderr,
@@ -174,7 +209,7 @@ Usage:
         fprintf(stderr, 
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
-        "usage: %s [options] URI OUTDIR\n"
+        "usage: %s [options] OUTDIR URI [NFNexpr]\n"
         "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
         "  -i FNAME   input file (instead of stdin)\n"
         "  -p DIGEST  publisher fingerprint\n"
@@ -187,9 +222,11 @@ Usage:
     }
 
     // URI required
-    if (!argv[optind]) {
-        goto Usage;
-    }
+    if (!argv[optind])
+    goto Usage;
+
+
+    name = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1]);
 
     cp = strtok(argv[optind], "|");
     while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
@@ -277,6 +314,7 @@ Usage:
     sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
     i = 0;
     char *chunk_data = NULL;
+    int offs = CCNL_MAX_PACKET_SIZE;
     while(cur_chunk != NULL) {
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
@@ -285,25 +323,18 @@ Usage:
         sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
         prefix[name_prefix_count] = chunkname_with_number;
 
-        if(packettype == 0){ //CCNB
-            contentlen = ccnl_ccnb_mkContent(prefix, 
-                                             publisher, plen, 
-                                             (unsigned char *)chunk_data, chunk_len, 
-                                             private_key_path, witness, 
-                                             out);
-        }
-        else if(packettype == 2){ //NDNTLV
-            int len2 = CCNL_MAX_PACKET_SIZE;
-            contentlen = ccnl_ndntlv_mkContent(prefix, 
-                                               (unsigned char *)chunk_data, chunk_len, 
-                                                &len2, 
-                                                (unsigned char *)final_chunkname_with_number, 
-                                                strlen(final_chunkname_with_number), 
-                                                out);
-            memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
-            contentlen = CCNL_MAX_PACKET_SIZE - len2;
-        } else {
+        switch(packettype) {
+        case CCNL_SUITE_CCNB:
+            contentlen = ccnl_ccnb_fillContent(name, (unsigned char *)chunk_data, chunk_len, NULL, out);
+            break;
+        case CCNL_SUITE_CCNTLV: 
+            contentlen = ccnl_ccntlv_fillContentWithHdr(name, (unsigned char *)chunk_data, chunk_len, &offs, NULL, out);
+            break;
+        case CCNL_SUITE_NDNTLV:
+            contentlen = ccnl_ndntlv_fillContent(name, (unsigned char *) chunk_data, chunk_len, &offs, NULL, out);
+        default:
             fprintf(stderr, "encoding for suite %i is not implemented\n", packettype);
+            break;
         }
 
         strcpy(outfilename, outdirname);

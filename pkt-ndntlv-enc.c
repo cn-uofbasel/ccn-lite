@@ -176,6 +176,7 @@ ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 
 // ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
 // 		      int *offset, unsigned char *finalBlockId, int len_finalBlockId, unsigned char *buf)
+int
 ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 			int paylen, int *offset, int *contentpos,
 			unsigned char *buf)
@@ -215,14 +216,14 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
-    if(finalBlockId) {
-        // optional
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
-                                    finalBlockId, len_finalBlockId, 
-                                    offset, buf) < 0) {
-            return -1;
-        }
-    }
+    // if(finalBlockId) {
+    //     // optional
+    //     if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
+    //                                 finalBlockId, len_finalBlockId, 
+    //                                 offset, buf) < 0) {
+    //         return -1;
+    //     }
+    // }
 
     // mandatory (empty for now)
     if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)

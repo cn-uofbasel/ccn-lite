@@ -25,6 +25,7 @@
 
 #include "pkt-ndntlv.h"
 #include "ccnl-core.h"
+#include "ccnl-ext-debug.c"
 
 
 static int
@@ -199,9 +200,6 @@ Bail:
     free_2ptr_list(n, pub);
     return NULL;
 }
-
-
-
 
 #endif
 // eof
