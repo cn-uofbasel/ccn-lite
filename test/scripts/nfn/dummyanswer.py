@@ -27,6 +27,6 @@ while True:
     if "THUNK" in data:
         sock.sendto(c_t, ("127.0.0.1", 9001))
     else:
-        time.sleep(1)
+#        time.sleep(1)
         sock.sendto(c, ("127.0.0.1", 9001))
 
