@@ -33,11 +33,14 @@ struct configuration_s*
 ccnl_nfn_findConfig(struct configuration_s *config_list, int configid)
 {
     struct configuration_s *config;
-
-    for (config = config_list; config; config = config->next)
-        if(config->configid == configid)
+    if(configid == 0) return NULL;
+    DEBUGMSG(99, "  Searching for ConfigID: %d\n", configid);
+    for (config = config_list; config; config = config->next){
+        DEBUGMSG(99, "    Checking ConfigID: %d\n", config->configid);
+        if(config->configid == -configid){
             return config;
-
+        }
+    }
     return NULL;
 }
 
@@ -58,9 +61,10 @@ ccnl_nfn_count_required_thunks(char *str)
 void 
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
     DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
-    struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
+    struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, configid);
     
     if(!config){
+        DEBUGMSG(99, "  No Configuration found\n");
         return;
     }
 
@@ -74,6 +78,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }*/
+
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
@@ -281,7 +286,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 	    int faceid = -i_it->from->faceid;
 
 	    ccnl_content_add2cache(relay, c);
-	    DEBUGMSG(49, "Continue configuration for configid: %d/%s\n",
+        DEBUGMSG(49, "Continue configuration for configid: %d with prefix: %s\n",
 		     configid, ccnl_prefix_to_path(c->name));
 	    i_it->corePropagates = 1;
 	    i_it = ccnl_interest_remove(relay, i_it);

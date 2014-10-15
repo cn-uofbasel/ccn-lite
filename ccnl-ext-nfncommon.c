@@ -31,15 +31,14 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
 
     DEBUGMSG(2, "ccnl_nfn_query2interest()\n");
 
-    struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
     from->faceid = config->configid;
-    DEBUGMSG(99, "  Configuration ID: %d\n", config->configid);
     from->last_used = CCNL_NOW();
-    //from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)(*prefix)->comp[0]));
-    //from->outq->datalen = strlen((char *)(*prefix)->comp[0]);
-    //memcpy((char *)(from->outq->data), (char *)(*prefix)->comp[0], from->outq->datalen);
+    from->outq = NULL;
+    DEBUGMSG(99, "  Configuration ID: %d\n", config->configid);
 
     buf = ccnl_mkSimpleInterest(*prefix, NULL);
+
     return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
 //    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
 }
@@ -379,6 +378,9 @@ set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s 
     for(interest = ccnl->pit; interest; interest = interest->next){
         if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
             interest->corePropagates = 1;
+            /*interest->last_used = CCNL_NOW();
+            interest->retries = 0;
+            interest->from->last_used = CCNL_NOW();*/
         }
     }
 }

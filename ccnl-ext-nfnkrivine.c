@@ -239,6 +239,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 		 int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
 {
+    DEBUGMSG(99, "create_namecomps\n");
     if (config->start_locally ||
 		ccnl_nfn_local_content_search(ccnl, config, prefix)) {
 	//local computation name components
@@ -725,7 +726,7 @@ normal:
         config->fox_state->num_of_params = *(int*)h->content;
         DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
         int i;
-        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s **) * config->fox_state->num_of_params);
+        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) * config->fox_state->num_of_params);
         
         for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
             //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
@@ -780,13 +781,14 @@ recontinue: //loop by reentering after timeout of the interest...
 	//        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, pref);
 	struct ccnl_prefix_s *copy = ccnl_prefix_dup(pref);
 	struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
+    DEBUGMSG(99, "Interest From Face ID: %d\n", interest->from->faceid);
 	if (interest)
-	    ccnl_interest_propagate(ccnl, interest);
+        ccnl_interest_propagate(ccnl, interest);
         //wait for content, return current program to continue later
         *halt = -1; //set halt to -1 for async computations
         if (*halt < 0) {
 	    if (!prog)
-		return NULL;
+            return NULL;
 	    cp = ccnl_malloc(strlen(prog)+1);
 	    strcpy(cp, prog);
 	    return cp;
@@ -954,7 +956,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         restart = 0;
         --ccnl->km->configid;
     }
-
+    DEBUGMSG(99, "Config: %p \n", ccnl->km->configuration_list);
     if(thunk_request && num_of_required_thunks == 0){
         ccnl_nfn_reply_thunk(ccnl, *config);
     }
@@ -971,7 +973,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     }
     if (halt < 0) { //HALT < 0 means pause computation
         DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
-	ccnl_free(dummybuf);
+        ccnl_free(dummybuf);
         return NULL;
     }
 
