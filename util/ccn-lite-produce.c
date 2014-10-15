@@ -49,6 +49,7 @@
 // #include "../ccnl-util.c"
 // #include "ccnl-crypto.c"
 
+
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
@@ -169,8 +170,7 @@ main(int argc, char *argv[])
     char chunkname[10] = "c";
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
-    int i = 0, f, fdir, fout, chunk_len, contentlen, name_prefix_count, opt, plen;
-    char *prefix[CCNL_MAX_NAME_COMP], *cp;
+    int i = 0, f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
     int packettype = 2;
     int status;
     struct ccnl_prefix_s *name;
@@ -223,25 +223,22 @@ Usage:
 
     // URI required
     if (!argv[optind])
-    goto Usage;
+        goto Usage;
 
-
-    name = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1]);
-
-    cp = strtok(argv[optind], "|");
-    while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
-        prefix[i++] = cp;
-        cp = strtok(NULL, "|");
-    }
-    name_prefix_count = i;
-    prefix[i] = NULL;
+    outdirname = argv[optind];
+    printf("outdirname: %s\n", outdirname);
     optind++;
+
+    if (!argv[optind])
+        goto Usage;
+    char uri[strlen(argv[optind]) ];
+    strcpy(uri, argv[optind]);
+    // char uriCopy[strlen(argv[optind])];
 
     // OUTIDR required
     if (!argv[optind]) {
         goto Usage;
     }
-    outdirname = argv[optind];
 
     // Check if outdirname is a directory and open it as a file
     status = stat(outdirname, &st_buf);
@@ -314,15 +311,24 @@ Usage:
     sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
     i = 0;
     char *chunk_data = NULL;
-    int offs = CCNL_MAX_PACKET_SIZE;
+    int offs = -1;
+
+
+
     while(cur_chunk != NULL) {
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        strcpy(chunkname_with_number, chunkname);
-        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
-        prefix[name_prefix_count] = chunkname_with_number;
+        printf("chunk data: %s\n", chunk_data);
 
+        strcpy(chunkname_with_number, uri);
+        strcat(chunkname_with_number, "/");
+        strcat(chunkname_with_number, chunkname);
+        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
+
+        name = ccnl_URItoPrefix(chunkname_with_number, packettype, argv[optind+1]);
+
+        offs = CCNL_MAX_PACKET_SIZE;
         switch(packettype) {
         case CCNL_SUITE_CCNB:
             contentlen = ccnl_ccnb_fillContent(name, (unsigned char *)chunk_data, chunk_len, NULL, out);
@@ -333,7 +339,10 @@ Usage:
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
-                                                 &offs, NULL, NULL, 0, out);
+                                                 &offs, NULL,
+                                                 (unsigned char *) final_chunkname_with_number, strlen(final_chunkname_with_number), 
+                                                 out);
+            break;
         default:
             fprintf(stderr, "encoding for suite %i is not implemented\n", packettype);
             break;
@@ -341,10 +350,11 @@ Usage:
 
         strcpy(outfilename, outdirname);
         strcat(outfilename, "/");
-        strcat(outfilename, chunkname_with_number);
+        strcat(outfilename, chunkname);
+        sprintf(outfilename + strlen(outfilename), "%i", i);
 
         fout = creat(outfilename, 0666);
-        write(fout, out, contentlen);
+        write(fout, out + offs, contentlen);
         close(fout);
         i++;
         cur_chunk = cur_chunk->next;

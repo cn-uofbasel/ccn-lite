@@ -158,14 +158,9 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-// <<<<<<< HEAD
-//     int i = 0, f, len, opt, plen;
-//     char *prefix[CCNL_MAX_NAME_COMP], *cp;
-// =======
     int chunk_num = -1, last_chunk_num = -1;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
-// >>>>>>> ccntlv
     int packettype = 2;
     private_key_path = 0;
     witness = 0;
