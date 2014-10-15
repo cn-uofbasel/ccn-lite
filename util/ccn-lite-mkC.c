@@ -271,7 +271,7 @@ Usage:
 
 
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, out);
+        len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, NULL, 0, out);
     break;
     default:
     break;

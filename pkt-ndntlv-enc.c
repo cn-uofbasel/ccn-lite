@@ -31,19 +31,19 @@ ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
     int len, i, t;
 
     if (val < 253)
-	len = 0, t = val;
+        len = 0, t = val;
     else if (val <= 0xffff)
-	len = 2, t = 253;
+        len = 2, t = 253;
     else if (val <= 0xffffffffL)
-	len = 4, t = 254;
+        len = 4, t = 254;
     else
-	len = 8, t = 255;
+        len = 8, t = 255;
     if (*offset < (len+1))
-	return -1;
+        return -1;
 
     for (i = 0; i < len; i++) {
-    	buf[--(*offset)] = val & 0xff;
-    	val = val >> 8;
+        buf[--(*offset)] = val & 0xff;
+        val = val >> 8;
     }
     buf[--(*offset)] = t;
     return len + 1;
@@ -51,44 +51,44 @@ ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 
 int
 ccnl_ndntlv_prependTL(int type, unsigned int len,
-		      int *offset, unsigned char *buf)
+                      int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
     if (ccnl_ndntlv_prependTLval(len, offset, buf) < 0)
-	return -1;
+        return -1;
     if (ccnl_ndntlv_prependTLval(type, offset, buf) < 0)
-	return -1;
+        return -1;
     return oldoffset - *offset;
 }
 
 int
 ccnl_ndntlv_prependNonNegInt(int type, unsigned int val,
-			     int *offset, unsigned char *buf)
+                             int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, len = 0, i;
     static char fill[] = {1, 0, 0, 1, 0, 3, 2, 1, 0};
 
     while (val) {
-	if ((*offset)-- < 1)
-	    return -1;
-	buf[*offset] = (unsigned char) (val & 0xff);
-	len++;
-	val = val >> 8;
+        if ((*offset)-- < 1)
+            return -1;
+        buf[*offset] = (unsigned char) (val & 0xff);
+        len++;
+        val = val >> 8;
     }
     for (i = fill[len]; i > 0; i--) {
-	if ((*offset)-- < 1)
-	    return -1;
-	buf[*offset] = 0;
-	len++;
+        if ((*offset)-- < 1)
+            return -1;
+        buf[*offset] = 0;
+        len++;
     }
     if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
-	return -1;
+        return -1;
     return oldoffset - *offset;
 }
 
 int
 ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
-			int *offset, unsigned char *buf)
+                        int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
@@ -105,29 +105,29 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 
 int
 ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
-			int *offset, unsigned char *buf)
+                        int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, cnt;
 
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				(unsigned char*) "NFN", 3, offset, buf) < 0)
-	    return -1;
-	if (name->nfnflags & CCNL_PREFIX_THUNK)
-	    if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-				(unsigned char*) "THUNK", 5, offset, buf) < 0)
-		return -1;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) "NFN", 3, offset, buf) < 0)
+            return -1;
+        if (name->nfnflags & CCNL_PREFIX_THUNK)
+            if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
+                return -1;
     }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, name->comp[cnt],
-				    name->complen[cnt], offset, buf) < 0)
-	    return -1;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, name->comp[cnt],
+                                    name->complen[cnt], offset, buf) < 0)
+            return -1;
     }
     if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset - *offset,
-			      offset, buf) < 0)
-	return -1;
+                              offset, buf) < 0)
+        return -1;
 
     return 0;
 }
@@ -136,56 +136,53 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 
 int
 ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
-			 int *offset, unsigned char *buf)
+                         int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
     if (scope >= 0) {
-	if (scope > 2)
-	    return -1;
-	if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
-	    return -1;
+        if (scope > 2)
+            return -1;
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
+            return -1;
     }
-
-    {
 
     unsigned char lifetime[2] = { 0x0f, 0xa0 };
-	unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
+    unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
 
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
-				    offset, buf) < 0)
-	    return -1;
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
+                                offset, buf) < 0)
+        return -1;
 
-	if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) nonce, 4,
-				    offset, buf) < 0)
-	    return -1;
+    if (nonce && ccnl_ndntlv_prependBlob(NDN_TLV_Nonce, (unsigned char*) nonce, 4,
+                                offset, buf) < 0)
+        return -1;
 
-	if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
-				    offset, buf) < 0)
-	    return -1;
-    }
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
+                                offset, buf) < 0)
+        return -1;
 
     if (ccnl_ndntlv_prependName(name, offset, buf))
-	return -1;
+        return -1;
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
-			      offset, buf) < 0)
-	return -1;
+                              offset, buf) < 0)
+        return -1;
 
     return oldoffset - *offset;
 }
 
-// ccnl_ndntlv_mkContent(char **namecomp, unsigned char *payload, int paylen,
-// 		      int *offset, unsigned char *finalBlockId, int len_finalBlockId, unsigned char *buf)
 int
-ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
-			int paylen, int *offset, int *contentpos,
-			unsigned char *buf)
+ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, 
+                        unsigned char *payload, int paylen, 
+                        int *offset, int *contentpos,
+                        unsigned char *final_block_id, int final_block_id_len, 
+                        unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
 
     if (contentpos)
-	*contentpos = *offset - paylen;
+        *contentpos = *offset - paylen;
 
     // fill in backwards
 
@@ -211,19 +208,19 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 
     // mandatory
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
-				offset, buf) < 0)
-	return -1;
+                                offset, buf) < 0)
+        return -1;
 
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
-    // if(finalBlockId) {
-    //     // optional
-    //     if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
-    //                                 finalBlockId, len_finalBlockId, 
-    //                                 offset, buf) < 0) {
-    //         return -1;
-    //     }
-    // }
+    if(final_block_id) {
+        // optional
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
+                                    final_block_id, final_block_id_len, 
+                                    offset, buf) < 0) {
+            return -1;
+        }
+    }
 
     // mandatory (empty for now)
     if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)
@@ -231,15 +228,15 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 
     // mandatory
     if (ccnl_ndntlv_prependName(name, offset, buf))
-	return -1;
+        return -1;
 
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
-			      offset, buf) < 0)
-	   return -1;
+                              offset, buf) < 0)
+           return -1;
 
     if (contentpos)
-	*contentpos -= *offset;
+        *contentpos -= *offset;
 
     return oldoffset - *offset;
 }
