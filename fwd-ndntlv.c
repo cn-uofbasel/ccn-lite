@@ -24,7 +24,6 @@
 
 #include "pkt-ndntlv-dec.c"
 
-
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 		      unsigned char **data, int *datalen)

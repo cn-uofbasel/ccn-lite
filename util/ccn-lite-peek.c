@@ -47,10 +47,16 @@
 #define USE_DEBUG_MALLOC
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
+
+void
+ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
+{
+    return;
+}
+
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-platform.c"
-
-#include "../ccnl-core.h"
 
 # include "../pkt-ccnb-dec.c"
 # include "../pkt-ccnb-enc.c"
@@ -60,26 +66,6 @@
 
 # include "../pkt-ndntlv-dec.c"
 # include "../pkt-ndntlv-enc.c"
-
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 #include "../ccnl-util.c"
 

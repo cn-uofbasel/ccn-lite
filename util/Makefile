@@ -59,12 +59,11 @@ ccn-lite-ctrl: ccn-lite-ctrl.c ${CCNB_LIB} Makefile\
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c ${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
-
 ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-util.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
-ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${NDNTLV_LIB} ../ccnl.h ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
+#ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-util.c ccnl-common.c
+#	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
@@ -96,7 +95,7 @@ ccn-lite-mkndnI: Makefile ccn-lite-mkndnI.c ${NDNTLV_LIB}
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
 
-ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ../ccnl.h
+ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h
 	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
 
 demo: $(PROGS)
