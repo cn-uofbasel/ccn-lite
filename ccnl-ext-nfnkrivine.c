@@ -956,7 +956,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         restart = 0;
         --ccnl->km->configid;
     }
-    DEBUGMSG(99, "Config: %p \n", ccnl->km->configuration_list);
     if(thunk_request && num_of_required_thunks == 0){
         ccnl_nfn_reply_thunk(ccnl, *config);
     }

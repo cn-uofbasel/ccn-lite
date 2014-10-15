@@ -559,10 +559,34 @@ ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     if (from->faceid <= 0) {
 	return;
     }
-    nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
+    nack = ccnl_nfn_result2content(ccnl, &prefix,
+				    (unsigned char*)":NACK", 5);
     ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
+fprintf(stderr, "+++ nack->pkt is %p\n", (void*) nack->pkt);
     ccnl_face_enqueue(ccnl, from, nack->pkt);
 }
 #endif // USE_NACK
+
+struct ccnl_interest_s*
+ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
+{
+    int faceid = 0;
+
+    if (i && i->from)
+	faceid = i->from->faceid;
+    DEBUGMSG(99, "ccnl_nfn_interest_remove %d\n", faceid);
+
+#ifdef USE_NACK
+    if (faceid >= 0)
+        ccnl_nack_reply(relay, i->prefix, i->from, i->suite);
+#endif
+
+    i = ccnl_interest_remove(relay, i);
+
+    if (faceid < 0)
+	ccnl_nfn_continue_computation(relay, -faceid, 1);
+
+    return i;
+}
 
 // eof

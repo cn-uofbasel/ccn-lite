@@ -86,6 +86,7 @@ eth2ascii(unsigned char *eth)
     return buf;
 }
 
+/*
 char*
 ccnl_addr2ascii(sockunion *su)
 {
@@ -117,9 +118,10 @@ ccnl_addr2ascii(sockunion *su)
     }
     return NULL;
 }
+*/
 
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+char* ccnl_addr2ascii(sockunion *su);
+char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 
 // ----------------------------------------------------------------------
 
@@ -611,6 +613,8 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
 
 // -----------------------------------------------------------------
 
+char* timestamp(void);
+
 #ifdef USE_DEBUG_MALLOC
 
 #  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())
@@ -618,8 +622,6 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
 #  define ccnl_realloc(p,s)	debug_realloc(p, s, __FILE__, __LINE__)
 #  define ccnl_free(p)		debug_free(p, __FILE__, __LINE__)
 #  define ccnl_buf_new(p,s)	debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
-
-char* timestamp(void);
 
 struct mhdr {
     struct mhdr *next;
@@ -748,73 +750,6 @@ debug_memdump()
     }
     fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
 }
-
-
-static char *prefix_buf1;
-static char *prefix_buf2;
-static char *buf;
-
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
-{
-    int len = 0, i;
-
-    if (!pr)
-	return NULL;
-
-    if (!buf) {
-	struct ccnl_buf_s *b;
-	b = ccnl_buf_new(NULL, 2048);
-	ccnl_core_addToCleanup(b);
-	prefix_buf1 = (char*) b->data;
-	b = ccnl_buf_new(NULL, 2048);
-	ccnl_core_addToCleanup(b);
-	prefix_buf2 = (char*) b->data;
-	buf = prefix_buf1;
-    } else if (buf == prefix_buf2)
-	buf = prefix_buf1;
-    else
-	buf = prefix_buf2;
-
-#ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
-	len += sprintf(buf + len, "nfn");
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-	len += sprintf(buf + len, "thunk");
-    if (pr->nfnflags)
-	len += sprintf(buf + len, "[");
-#endif
-
-    for (i = 0; i < pr->compcnt; i++) {
-	int skip = 0;
-	if (pr->suite == CCNL_SUITE_CCNTLV) {
-	    if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
-		len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-			       pr->comp[i][0], pr->comp[i][1],
-			       pr->complen[i]-4, pr->comp[i]+4);
-		continue;
-	    }
-	    skip = 4;
-	}
-	if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-				    !strncmp("call", (char*)pr->comp[i], 4))
-	    len += sprintf(buf + len, "%.*s",
-			   pr->complen[i]-skip, pr->comp[i]+skip);
-	else
-	    len += sprintf(buf + len, "/%.*s",
-			   pr->complen[i]-skip, pr->comp[i]+skip);
-    }
-
-#ifdef USE_NFN
-    if (pr->nfnflags)
-	len += sprintf(buf + len, "]");
-#endif
-
-    buf[len] = '\0';
-
-    return buf;
-}
-
 
 #else // !USE_DEBUG_MALLOC
 

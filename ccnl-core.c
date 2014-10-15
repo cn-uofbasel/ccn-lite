@@ -33,26 +33,14 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 static struct ccnl_interest_s* 
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
-#ifdef USE_NFN
-struct ccnl_interest_s* 
-ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl,
-					   struct ccnl_interest_s *i);
-
-struct ccnl_interest_s*
-ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-		    int suite, struct ccnl_buf_s **buf,
-		    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
-
-int
-ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		   struct ccnl_content_s *c);
-
-#else
-# define ccnl_interest_remove_continue_computations(r,i) ccnl_interest_remove(r,i)
+#ifndef USE_NFN
+# define ccnl_nfn_interest_remove(r,i)	ccnl_interest_remove(r,i)
 #endif
 
 // ----------------------------------------------------------------------
 // datastructure support functions
+
+int ccnl_pkt2suite(unsigned char *data, int len);
 
 #ifndef USE_DEBUG_MALLOC
 struct ccnl_buf_s*
@@ -85,8 +73,10 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
     if (mode == CMP_EXACT) {
 	if (nlen != p->compcnt)
 	    goto done;
+#ifdef USE_NFN
 	if (p->nfnflags != name->nfnflags)
 	    goto done;
+#endif
     }
     for (i = 0; i < nlen && i < p->compcnt; ++i) {
         comp = i < name->compcnt ? name->comp[i] : md;
@@ -218,7 +208,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
 	if (pit->pending)
 	    pit = pit->next;
 	else
-	    pit = ccnl_interest_remove_continue_computations(ccnl, pit);
+	    pit = ccnl_nfn_interest_remove(ccnl, pit);
     }
     for (ppfwd = &ccnl->fib; *ppfwd;) {
 	if ((*ppfwd)->face == f) {
@@ -528,11 +518,12 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 //    int it;
 
     DEBUGMSG(40, "ccnl_interest_remove %p\n", (void *) i);
+/*
 #ifdef USE_NFN
     if (i->corePropagates == 0)
 	return i->next;
 #endif
-
+*/
     while (i->pending) {
         struct ccnl_pendint_s *tmp = i->pending->next;		\
         ccnl_free(i->pending);
@@ -558,34 +549,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     free_2ptr_list(i->pkt, i);
     return i2;
 }
-
-#ifdef USE_NFN
-struct ccnl_interest_s*
-ccnl_interest_remove_continue_computations(struct ccnl_relay_s *ccnl, 
-					   struct ccnl_interest_s *i)
-{
-    struct ccnl_interest_s *interest;
-    int faceid = 0;
-
-    if (i != 0 && i->from != 0)
-            faceid = i->from->faceid;
-    DEBUGMSG(99, "ccnl_interest_remove_continue_computations(faceid=%d, prefix=%s)\n", faceid, ccnl_prefix_to_path(i->prefix));
-
-
-#ifdef USE_NACK
-    DEBUGMSG(99, "FROM FACEID: %d\n", faceid);
-    if (faceid >= 0)
-        ccnl_nack_reply(ccnl, i->prefix, i->from, i->suite);
-#endif
-
-    interest = ccnl_interest_remove(ccnl, i);
-
-    if (faceid < 0)
-            ccnl_nfn_continue_computation(ccnl, faceid, 1);
-
-   return interest;
-}
-#endif
 
 // ----------------------------------------------------------------------
 // handling of content messages
@@ -670,8 +633,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if(c == cit) return NULL;
     }
 #ifdef USE_NACK
-    //    if(!strncmp((char*)c->content, ":NACK", 5)){
-    if (ccnl_isNACK(c))
+    if (ccnl_nfnprefix_contentIsNACK(c))
         return NULL;
 #endif
     if (ccnl->max_cache_entries > 0 &&
@@ -788,19 +750,18 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
 		// than being held indefinitely."
 	if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
-				i->retries > CCNL_MAX_INTEREST_RETRANSMIT){
-            i = ccnl_interest_remove_continue_computations(relay, i);
-        }
-	else {
+				i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
+	    i = ccnl_nfn_interest_remove(relay, i);
+        } else {
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
-	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
+	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries,
+		     ccnl_prefix_to_path(i->prefix));
 #ifdef USE_NFN
 	    if (i->corePropagates)
-		ccnl_interest_propagate(relay, i);
-#else
-            ccnl_interest_propagate(relay, i);
 #endif
+		ccnl_interest_propagate(relay, i);
+
 	    i->retries++;
 	    i = i->next;
 	}
@@ -878,7 +839,8 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 	if (datalen > 0) {
 	    DEBUGMSG(6, "ccnl_core_RX: %d bytes left\n", datalen);
 	}
-    }
+    } else
+	fprintf(stderr, "The programer forgot to initialize the forwarder.\n");
 }
 
 // ----------------------------------------------------------------------
