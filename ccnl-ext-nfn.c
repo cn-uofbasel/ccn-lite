@@ -29,6 +29,11 @@
 #include "ccnl-ext-nfncommon.c"
 #include "ccnl-ext-nfnkrivine.c"
 
+void
+ZAM_init(void)
+{
+}
+
 struct configuration_s*
 ccnl_nfn_findConfig(struct configuration_s *config_list, int configid)
 {
