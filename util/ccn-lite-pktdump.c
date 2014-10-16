@@ -889,13 +889,53 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 
 // ----------------------------------------------------------------------
 
+void
+emit_content_only(unsigned char *data, int len, int suite, int format)
+{
+    int contlen;
+    unsigned char *content = 0, *cp;
+    struct ccnl_prefix_s *p;
+
+    switch (suite) {
+    case CCNL_SUITE_CCNB:
+        cp = data + 2;
+        len -= 2;
+        ccnl_ccnb_extract(&cp, &len,
+                          NULL, NULL, NULL, NULL, &p, NULL, NULL,
+                          &content, &contlen);
+        break;
+    case CCNL_SUITE_CCNTLV:
+        cp = data + 12;
+        len -= 12;
+        // FIXME: should read fixed header length, add 4
+        ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL, NULL,
+                            &content, &contlen);
+        break;
+    case CCNL_SUITE_NDNTLV:
+        cp = data + 2;
+        len -= 2;
+        ccnl_ndntlv_extract(2, &cp, &len,
+                            NULL, NULL, NULL, NULL, &p, NULL, NULL,
+                            &content, &contlen);
+        break;
+    default:
+        return;
+    }
+
+    write(1, content, contlen);
+    if (format > 2)
+        write(1, "\n", 1);
+}
+
+// ----------------------------------------------------------------------
+
 #ifndef USE_JNI_LIB
 
 int
 main(int argc, char *argv[])
 {
     int opt, rc;
-    unsigned char data[64*1024], *cp;
+    unsigned char data[64*1024];
     char *forced = "forced";
     int len, maxlen, suite = -1, format = 0;
     FILE *out = stdout;
@@ -938,21 +978,6 @@ help:
 	maxlen -= rc;
     }
 
-    if (format >= 2) {
-        int contlen;
-        unsigned char *content = 0;
-        struct ccnl_prefix_s *p;
-        cp = data + 2;
-        len -= 2;
-        ccnl_ndntlv_extract(2, &cp, &len,
-                            NULL, NULL, NULL, NULL, &p, NULL, NULL,
-			    &content, &contlen);
-        write(1, content, contlen);
-        if (format > 2)
-            write(1, "\n", 1);
-        return 0;
-    }
-
     if (format == 0) {
         printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
     }
@@ -960,10 +985,17 @@ help:
     if (len == 0) {
        goto done;
     }
+
     if (suite == -1) {
         suite = ccnl_pkt2suite(data, len);
         forced = "auto-detected";
     }
+
+    if (format >= 2) {
+        emit_content_only(data, len, suite, format);
+        return 0;
+    }
+
     switch (suite) {
     case CCNL_SUITE_CCNB:
 	if (format == 0) {
