@@ -30,16 +30,16 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     struct ccnl_buf_s *buf;
 
     DEBUGMSG(2, "ccnl_nfn_query2interest()\n");
-/*
-    struct ccnl_face_s * from = ccnl_calloc(1, sizeof(struct ccnl_face_s *));
+
+    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
-    from->outq = ccnl_calloc(1, sizeof(struct ccnl_buf_s) + strlen((char *)prefix->comp[0]));
-    from->outq->datalen = strlen((char *)prefix->comp[0]);
-    memcpy((char *)(from->outq->data), (char *)prefix->comp[0], from->outq->datalen);
-*/
+    from->outq = NULL;
+    DEBUGMSG(99, "  Configuration ID: %d\n", config->configid);
+
     buf = ccnl_mkSimpleInterest(*prefix, NULL);
-    return ccnl_interest_new(ccnl, NULL, (*prefix)->suite, &buf, prefix, 0, 0);
+
+    return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
 //    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
 }
 
@@ -294,6 +294,7 @@ add_local_computation_components(struct configuration_s *config){
     char *comp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     struct ccnl_prefix_s *ret;
     int complen = sprintf(comp, "call %d", config->fox_state->num_of_params);
+    DEBUGMSG(99, "add_local_computation_components\n");
     for(i = 0; i < config->fox_state->num_of_params; ++i){
         if(config->fox_state->params[i]->type == STACK_TYPE_INT)
             complen += sprintf(comp+complen, " %d", *((int*)config->fox_state->params[i]->content));
@@ -318,23 +319,24 @@ add_local_computation_components(struct configuration_s *config){
     ret->complen[i] = strlen(comp);
     ++i;
 
-#ifdef USE_SUITE_CCNTLV
-    if (config->fox_state->thunk_request) {
-        ret->comp[i] = (unsigned char *) "\x00\x01\x00\x05THUNK";
-        ret->complen[i] = 4 + strlen("THUNK");
-        ++i;
+    if(config->suite == CCNL_SUITE_CCNTLV){
+        if (config->fox_state->thunk_request) {
+            ret->comp[i] = (unsigned char *) "\x00\x01\x00\x05THUNK";
+            ret->complen[i] = 4 + strlen("THUNK");
+            ++i;
+        }
+        ret->comp[i] = (unsigned char *) "\x00\x01\x00\x03NFN";
+        ret->complen[i] = 4 + strlen("NFN");
     }
-    ret->comp[i] = (unsigned char *) "\x00\x01\x00\x03NFN";
-    ret->complen[i] = 4 + strlen("NFN");
-#else
-    if (config->fox_state->thunk_request) {
-	ret->comp[i] = (unsigned char *)"THUNK";
-	ret->complen[i] = strlen("THUNK");
-        ++i;
+    else{
+        if (config->fox_state->thunk_request) {
+        ret->comp[i] = (unsigned char *)"THUNK";
+        ret->complen[i] = strlen("THUNK");
+            ++i;
+        }
+        ret->comp[i] = (unsigned char *)"NFN";
+        ret->complen[i] = strlen("NFN");
     }
-    ret->comp[i] = (unsigned char *)"NFN";
-    ret->complen[i] = strlen("NFN");
-#endif
 
     ret->compcnt = i+1;
 
@@ -376,6 +378,9 @@ set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s 
     for(interest = ccnl->pit; interest; interest = interest->next){
         if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
             interest->corePropagates = 1;
+            /*interest->last_used = CCNL_NOW();
+            interest->retries = 0;
+            interest->from->last_used = CCNL_NOW();*/
         }
     }
 }
@@ -554,10 +559,34 @@ ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     if (from->faceid <= 0) {
 	return;
     }
-    nack = create_content_object(ccnl, prefix, (unsigned char*)":NACK", 5, suite);
+    nack = ccnl_nfn_result2content(ccnl, &prefix,
+				    (unsigned char*)":NACK", 5);
     ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
+fprintf(stderr, "+++ nack->pkt is %p\n", (void*) nack->pkt);
     ccnl_face_enqueue(ccnl, from, nack->pkt);
 }
 #endif // USE_NACK
+
+struct ccnl_interest_s*
+ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
+{
+    int faceid = 0;
+
+    if (i && i->from)
+	faceid = i->from->faceid;
+    DEBUGMSG(99, "ccnl_nfn_interest_remove %d\n", faceid);
+
+#ifdef USE_NACK
+    if (faceid >= 0)
+        ccnl_nack_reply(relay, i->prefix, i->from, i->suite);
+#endif
+
+    i = ccnl_interest_remove(relay, i);
+
+    if (faceid < 0)
+	ccnl_nfn_continue_computation(relay, -faceid, 1);
+
+    return i;
+}
 
 // eof

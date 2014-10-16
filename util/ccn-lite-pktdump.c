@@ -37,6 +37,7 @@
 #define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #include "../pkt-ccnb-dec.c"
 #include "../pkt-ccntlv-dec.c"
@@ -49,7 +50,7 @@
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
-#include "../ccnl-core.h"
+#define ccnl_core_addToCleanup(b)	do{}while(0)
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)

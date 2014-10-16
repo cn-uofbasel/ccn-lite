@@ -35,7 +35,7 @@ ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p)
 }
 
 int
-ccnl_nfnprefix_isNACK(struct ccnl_content_s *c)
+ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
     return !memcmp(c->content, ":NACK", 5);
 }
@@ -59,10 +59,12 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
     int len, j;
     struct stack_s *entry;
 
-    if (exclude_param < 0)
-	len = sprintf(buf, "(@x call %d", s->num_of_params);
-    else
-	len = sprintf(buf, "call %d", s->num_of_params);
+    if (exclude_param > 0){
+        len = sprintf(buf, "(@x call %d", s->num_of_params);
+    }
+    else{
+        len = sprintf(buf, "call %d", s->num_of_params);
+    }
 
     for (j = 0; j < s->num_of_params; j++) {
         if (j == exclude_param) {
@@ -84,8 +86,8 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
 	    break;
 	}
     }
-    if (exclude_param < 0)
-	len += sprintf(buf + len, ")");
+    if (exclude_param > 0)
+        len += sprintf(buf + len, ")");
     return len;
 }
 

@@ -34,10 +34,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
+
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
-#include "../pkt-ccnb.h"
+#include "../pkt-ccnb-enc.c"
 #include "../pkt-ccntlv-enc.c"
 #include "../pkt-ndntlv-enc.c"
 
@@ -46,6 +50,8 @@
 #define ccnl_realloc(p,s)		realloc(p,s)
 #define ccnl_free(p)			free(p)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+
+#define ccnl_core_addToCleanup(b)	do{}while(0)
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
