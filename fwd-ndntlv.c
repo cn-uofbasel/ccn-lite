@@ -174,12 +174,9 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     if (typ == NDN_TLV_Interest) {
-	if (nonce) {
-	    if (ccnl_nonce_find_or_append(relay, nonce)) {
-		DEBUGMSG(6, "  dropped because of duplicate nonce\n");
-		//goto Skip;
-	    }
-	    ccnl_free(nonce);
+	if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
+            DEBUGMSG(6, "  dropped because of duplicate nonce\n");
+            goto Skip;
         }
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
         ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest

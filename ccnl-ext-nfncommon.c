@@ -420,7 +420,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
 
 struct ccnl_content_s *
 ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
-    DEBUGMSG(2, "ccnl_nfn_local_content_search()\n");
+    DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%d)\n", ccnl_prefix_to_path(prefix), prefix->suite);
 
     struct ccnl_content_s *content;
     DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
