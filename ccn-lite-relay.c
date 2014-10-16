@@ -30,14 +30,17 @@
 #define CCNL_UNIX
 
 #define USE_CCNxDIGEST
-#define USE_DEBUG
+#define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-#define USE_FRAG
+// #define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
 #define USE_MGMT
-#define USE_SCHEDULER
-#define USE_SUITE_CCNB
+// #define USE_NACK
+// #define USE_NFN
+// #define USE_NFN_MONITOR
+// #define USE_SCHEDULER
+#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
@@ -59,21 +62,12 @@ void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
-#ifdef USE_SUITE_CCNB
-# include "pkt-ccnb.h"
-# include "pkt-ccnb-enc.c"
-#endif
-#ifdef USE_SUITE_CCNTLV
-# include "pkt-ccntlv.h"
-# include "pkt-ccntlv-enc.c"
-#endif
-#ifdef USE_SUITE_NDNTLV
-# include "pkt-ndntlv-enc.c"
-# include "pkt-ndntlv-dec.c"
-#endif
+#include "pkt-ccnb-enc.c"
+#include "pkt-ccntlv-enc.c"
+#include "pkt-ndntlv-dec.c"
 
-#include "ccnl-util.c"
 #include "ccnl-core.c"
+#include "ccnl-util.c"
 
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"
