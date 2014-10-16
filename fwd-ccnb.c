@@ -158,13 +158,9 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	DEBUGMSG(6, "  parsing error or no prefix\n");
 	goto Done;
     }
-    if (nonce) {
-	if (ccnl_nonce_find_or_append(ccnl, nonce)) {
-	    DEBUGMSG(6, "  dropped because of duplicate nonce\n");
-	    // goto Skip;
-	}
-	ccnl_free(nonce);
-	nonce = NULL;
+    if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
+        DEBUGMSG(6, "  dropped because of duplicate nonce\n");
+        goto Skip;
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
 	DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));

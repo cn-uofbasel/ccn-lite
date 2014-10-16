@@ -28,10 +28,14 @@
 #include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfncommon.c"
 #include "ccnl-ext-nfnkrivine.c"
+#include "ccnl-ext-nstrans.c"
 
 void
 ZAM_init(void)
 {
+#ifdef USE_NFN_NSTRANS
+    ZAM_register("OP_NSTRANS", op_builtin_nstrans);
+#endif
 }
 
 struct configuration_s*

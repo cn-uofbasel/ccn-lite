@@ -38,6 +38,7 @@
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
+#define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
@@ -544,10 +545,16 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 
     DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
 
+    suite = CCNL_SUITE_CCNB;
+
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         suffix = "*.ccnb"; break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	suffix = "*.ccntlv"; break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
