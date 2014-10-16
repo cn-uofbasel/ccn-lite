@@ -85,6 +85,7 @@ int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 #ifdef USE_NFN
 int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
+void ZAM_init();
 
 struct ccnl_interest_s* 
 ccnl_nfn_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
