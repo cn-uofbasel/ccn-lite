@@ -22,6 +22,9 @@
 
 // ----------------------------------------------------------------------
 
+// ccnl-util.c
+char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)
 #else
@@ -76,22 +79,29 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 #ifdef USE_NACK
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 			 struct ccnl_face_s *from, int suite);
+int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 #endif // USE_NACK
 
 #ifdef USE_NFN
 int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
+void ZAM_init();
+
+struct ccnl_interest_s* 
+ccnl_nfn_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+
+struct ccnl_interest_s*
+ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+		    int suite, struct ccnl_buf_s **buf,
+		    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
+
+int
+ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+		   struct ccnl_content_s *c);
 
 struct ccnl_interest_s* ccnl_nfn_request(struct ccnl_relay_s *ccnl,
 		struct ccnl_face_s *from, int suite, struct ccnl_buf_s *buf,
 		struct ccnl_prefix_s *p, int minsfx, int maxsfx);
-
-/*
-int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-	     struct configuration_s *config, struct ccnl_interest_s *interest,
-	     int suite, int start_locally);
-*/
 
 void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid,
 				   int continue_from_remove);
@@ -112,22 +122,6 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 
 
 // ----------------------------------------------------------------------
-
-#ifdef XXX
-#ifdef USE_ETHERNET
-
-#if defined(CCNL_UNIX)
-  int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
-  int ccnl_open_udpdev(int port, struct sockaddr_in *si);
-#elif defined(CCNL_LINUXKERNEL)
-  struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll,
-				      int ethtype);
-  struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
-#endif
-
-#endif // USE_ETHERNET
-#endif
-
 
 #ifdef CCNL_LINUXKERNEL
 
@@ -154,9 +148,7 @@ int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
 	      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 #else
-
 # define ccnl_mgmt(r,b, p,f)  0
-
 #endif
 
 // ----------------------------------------------------------------------
@@ -169,10 +161,8 @@ void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
 void ccnl_sched_destroy(struct ccnl_sched_s *s);
 
 #else
-
 # define ccnl_sched_CTS_done(S,C,L)	do{}while(0)
 # define ccnl_sched_destroy(S)		do{}while(0)
-
 #endif
 
 // ----------------------------------------------------------------------
@@ -189,9 +179,11 @@ void ccnl_sched_destroy(struct ccnl_sched_s *s);
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_SIGNATURES
 int
 ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+#endif
 
 // ----------------------------------------------------------------------
 // prototypes for platform and extention independend routines:

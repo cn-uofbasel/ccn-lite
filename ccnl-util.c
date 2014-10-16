@@ -172,7 +172,9 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     p->compcnt = prefix->compcnt;
     p->suite = prefix->suite;
+#ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
+#endif
 
     p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
     p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
@@ -224,6 +226,110 @@ ccnl_pkt2suite(unsigned char *data, int len)
 
     return -1;
 }
+
+// ----------------------------------------------------------------------
+
+char*
+ccnl_addr2ascii(sockunion *su)
+{
+    static char result[130];
+
+    switch (su->sa.sa_family) {
+#ifdef USE_ETHERNET
+	case AF_PACKET:
+	{
+	     struct sockaddr_ll *ll = &su->eth;
+	     strcpy(result, eth2ascii(ll->sll_addr));
+	     sprintf(result+strlen(result), "/0x%04x",
+		     ntohs(ll->sll_protocol));
+	}
+	    return result;
+#endif
+	case AF_INET:
+	    sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
+		    ntohs(su->ip4.sin_port));
+	    return result;
+//	    return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
+#ifdef USE_UNIXSOCKET
+	case AF_UNIX:
+	    strcpy(result, su->ux.sun_path);
+	    return result;
+#endif
+	default:
+	    break;
+    }
+    return NULL;
+}
+
+#ifndef CCNL_LINUXKERNEL
+
+static char *prefix_buf1;
+static char *prefix_buf2;
+static char *buf;
+
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+{
+    int len = 0, i;
+
+    if (!pr)
+	return NULL;
+
+    if (!buf) {
+	struct ccnl_buf_s *b;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf1 = (char*) b->data;
+	b = ccnl_buf_new(NULL, 2048);
+	ccnl_core_addToCleanup(b);
+	prefix_buf2 = (char*) b->data;
+	buf = prefix_buf1;
+    } else if (buf == prefix_buf2)
+	buf = prefix_buf1;
+    else
+	buf = prefix_buf2;
+
+#ifdef USE_NFN
+    if (pr->nfnflags & CCNL_PREFIX_NFN)
+	len += sprintf(buf + len, "nfn");
+    if (pr->nfnflags & CCNL_PREFIX_THUNK)
+	len += sprintf(buf + len, "thunk");
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "[");
+#endif
+
+    for (i = 0; i < pr->compcnt; i++) {
+	int skip = 0;
+	if (pr->suite == CCNL_SUITE_CCNTLV) {
+	    if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
+		len += sprintf(buf + len, "/%%x%02x%02x%.*s",
+			       pr->comp[i][0], pr->comp[i][1],
+			       pr->complen[i]-4, pr->comp[i]+4);
+		continue;
+	    }
+	    skip = 4;
+	}
+#ifdef USE_NFN
+	if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
+				    !strncmp("call", (char*)pr->comp[i], 4))
+	    len += sprintf(buf + len, "%.*s",
+			   pr->complen[i]-skip, pr->comp[i]+skip);
+	else
+#endif
+	    len += sprintf(buf + len, "/%.*s",
+			   pr->complen[i]-skip, pr->comp[i]+skip);
+    }
+
+#ifdef USE_NFN
+    if (pr->nfnflags)
+	len += sprintf(buf + len, "]");
+#endif
+
+    buf[len] = '\0';
+
+    return buf;
+}
+#endif // CCNL_LINUXKERNEL
 
 // ----------------------------------------------------------------------
 

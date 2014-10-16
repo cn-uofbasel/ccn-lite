@@ -40,6 +40,7 @@
 #define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
+#include "../ccnl-core.h"
 
 #define CCNL_UNIX
 #define USE_DEBUG_MALLOC
@@ -48,7 +49,7 @@
 // #include "../ccnl-ext-debug.c"
 // #include "../ccnl-platform.c"
 
-#include "../ccnl-core.h"
+#define ccnl_core_addToCleanup(b)	do{}while(0)
 
 void
 ccnl_core_addToCleanup(struct ccnl_buf_s *buf)

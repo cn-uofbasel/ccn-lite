@@ -243,7 +243,7 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
-    char *udp = "127.0.0.1/6363", *ux = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
@@ -257,23 +257,6 @@ main(int argc, char *argv[])
 	    if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
 		goto usage;
 	    suite = opt;
-	    switch (suite) {
-#ifdef USE_SUITE_CCNB
-	    case CCNL_SUITE_CCNB:
-		udp = "127.0.0.1/9695";
-		break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-	    case CCNL_SUITE_CCNTLV:
-		udp = "127.0.0.1/9695";
-		break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-	    case CCNL_SUITE_NDNTLV:
-		udp = "127.0.0.1/6363";
-		break;
-#endif
-	    }
 	    break;
         case 'u':
 	    udp = optarg;
@@ -301,6 +284,29 @@ usage:
 	    exit(1);
         }
     }
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+        case CCNL_SUITE_CCNB:
+        if(!udp)
+            udp = "127.0.0.1/9695";
+        break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV:
+        if(!udp)
+            udp = "127.0.0.1/9695";
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV:
+        if(!udp)
+            udp = "127.0.0.1/6363";
+        break;
+#endif
+        default:
+            udp = "127.0.0.1/6363";
+        }
+
 
     if (!argv[optind]) 
 	goto usage;
