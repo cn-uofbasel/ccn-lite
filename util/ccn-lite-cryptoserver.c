@@ -20,58 +20,15 @@
  * 2013-07-22 created <christopher.scherb@unibas.ch>
  */
 
-
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <sys/un.h>
-
 #define CCNL_UNIX
 
 #define USE_SUITE_CCNB
 #define USE_SIGNATURES
 
-#include "../ccnl-includes.h"
-#include "../ccnl.h"
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-ext.h"
-#include "../ccnl-platform.c"
-
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
-#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-
-// int debug_level;
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
-
 #include "ccnl-common.c"
-
-#include "../pkt-ccnb.h"
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccnb-enc.c"
-
 #include "ccnl-crypto.c"
 
-#define ccnl_calloc(n,s) calloc(n,s)
-#define ccnl_free(p) free(p)
-
+// ----------------------------------------------------------------------
 
 char *ux_path, *private_key, *ctrl_public_key;
 

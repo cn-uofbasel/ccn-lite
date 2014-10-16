@@ -1,18 +1,3 @@
-#include <ctype.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include "../ccnl.h"
 
 #include "ccnl-common.c"
 #include "../krivine-common.c"
@@ -33,8 +18,7 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
     while (*namecomp) {
     len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
     cp = (unsigned char*) strdup(*namecomp);
-    k = unescape_component(cp);
-    //	k = strlen(*namecomp);
+    k = k = strlen(*namecomp);
     len += mkHeader(out+len, k, CCN_TT_BLOB);
     memcpy(out+len, cp, k);
     len += k;

@@ -22,60 +22,11 @@
  *
  */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "base64.c"
-
-#include <arpa/inet.h>
-
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
-#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
-
-#define DEBUGMSG(LVL, ...) do {       \
-        if ((LVL)>debug_level) break;   \
-        fprintf(stderr, __VA_ARGS__);   \
-    } while (0)
-#define DEBUGSTMT(LVL, ...)             do {} while(0)
-
-int debug_level;
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
-
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccntlv-dec.c"
-#include "../pkt-ndntlv-dec.c"
-#include "../pkt-localrpc.h"
-
-#define ccnl_core_addToCleanup(b)	do{}while(0)
-
-#include "../ccnl-util.c"
+#include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
 
