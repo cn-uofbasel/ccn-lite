@@ -39,18 +39,20 @@
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccntlv-dec.c"
-#include "../pkt-ndntlv-dec.c"
-#include "../pkt-localrpc.h"
-
 #define ccnl_malloc(s)			malloc(s)
 #define ccnl_calloc(n,s) 		calloc(n,s)
 #define ccnl_realloc(p,s)		realloc(p,s)
 #define ccnl_free(p)			free(p)
+#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 #define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
-#define ccnl_core_addToCleanup(b)	do{}while(0)
+#define DEBUGMSG(LVL, ...) do {       \
+        if ((LVL)>debug_level) break;   \
+        fprintf(stderr, __VA_ARGS__);   \
+    } while (0)
+#define DEBUGSTMT(LVL, ...)             do {} while(0)
+
+int debug_level;
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
@@ -65,6 +67,13 @@ ccnl_buf_new(void *data, int len)
         memcpy(b->data, data, len);
     return b;
 }
+
+#include "../pkt-ccnb-dec.c"
+#include "../pkt-ccntlv-dec.c"
+#include "../pkt-ndntlv-dec.c"
+#include "../pkt-localrpc.h"
+
+#define ccnl_core_addToCleanup(b)	do{}while(0)
 
 #include "../ccnl-util.c"
 
@@ -886,9 +895,9 @@ int
 main(int argc, char *argv[])
 {
     int opt, rc;
-    unsigned char data[64*1024];
+    unsigned char data[64*1024], *cp;
     char *forced = "forced";
-    int len, maxlen, suite = -1, rawxml = 0;
+    int len, maxlen, suite = -1, format = 0;
     FILE *out = stdout;
 
     ndn_init();
@@ -898,15 +907,15 @@ main(int argc, char *argv[])
             suite = atoi(optarg);
             break;
         case 'f':
-            rawxml = atoi(optarg);
+            format = atoi(optarg);
             break;
 	default:
 help:
             fprintf(stderr,
 		    "usage: %s [options] <encoded_data\n"
+		    "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
 		    "  -h           this help\n"
-		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n"
-		    "  -f FORMAT    (0=readable, 1=rawxml)\n",
+		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n",
 		    argv[0]);
             exit(1);
 	}
@@ -929,7 +938,22 @@ help:
 	maxlen -= rc;
     }
 
-    if (!rawxml) {
+    if (format >= 2) {
+        int contlen;
+        unsigned char *content = 0;
+        struct ccnl_prefix_s *p;
+        cp = data + 2;
+        len -= 2;
+        ccnl_ndntlv_extract(2, &cp, &len,
+                            NULL, NULL, NULL, NULL, &p, NULL, NULL,
+			    &content, &contlen);
+        write(1, content, contlen);
+        if (format > 2)
+            write(1, "\n", 1);
+        return 0;
+    }
+
+    if (format == 0) {
         printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
     }
 
@@ -942,36 +966,36 @@ help:
     }
     switch (suite) {
     case CCNL_SUITE_CCNB:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s CCNB format\n#\n", forced);
 	}
-	ccnb_parse(data, len, rawxml, out);
+	ccnb_parse(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_CCNTLV:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s CCNx TLV format (as of Mar 2014)\n#\n", forced);
 	}
-	ccntlv_201311(data, len, rawxml, out);
+	ccntlv_201311(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_NDNTLV:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
 	}
-	ndntlv_201311(data, len, rawxml, out);
+	ndntlv_201311(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_LOCALRPC:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s NDN TLV format, local RPC (May 2014)\n#\n", forced);
 	}
-	localrpc_201405(data, len, rawxml, out);
+	localrpc_201405(data, len, format == 1, out);
 	break;
     default:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   unknown pkt format, showing plain hex\n");
 	}
-	hexdump(-1, data, data, len, rawxml, out);
+	hexdump(-1, data, data, len, format == 1, out);
 done:
-        if (!rawxml) {
+        if (format == 0) {
             printf("%04x  pkt.end\n", len);
         }
         break;
