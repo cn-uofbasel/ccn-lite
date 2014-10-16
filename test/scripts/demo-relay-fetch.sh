@@ -23,19 +23,17 @@ killall ccn-lite-relay
 
 echo
 # starting relay A, with a link to relay B
-$CCNL_HOME/ccn-lite-relay -v 99 -u $PORTA -s2 -x $UXA 2>/tmp/a.log &
+$CCNL_HOME/ccn-lite-relay -v 99 -u $PORTA -s 2 -x $UXA 2>/tmp/a.log &
 sleep 1
 FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $UXA newUDPface any 127.0.0.1 $PORTB | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXA prefixreg /ccnx/0.7.1/doc/technical $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
 
-/ndn/ucla.edu/apps/lwndn-test 
-
 # starting relay B, with content loading
-$CCNL_HOME/ccn-lite-relay -v 99 -u $PORTB -x $UXB -d $CCNL_HOME/test/ccnb 2>/tmp/b.log &
+$CCNL_HOME/ccn-lite-relay -v 99 -u $PORTB -s 2 -x $UXB -d $CCNL_HOME/test/ndntlv 2>/tmp/b.log &
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA "ndn|ucla.edu|apps|lwndn-test|numbers.txt" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -u "127.0.0.1/$PORTA" -s 2 "ndn|ucla.edu|apps|lwndn-test|numbers.txt" | $CCNL_HOME/util/ccn-lite-pktdump
 
 
 
