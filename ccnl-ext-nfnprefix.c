@@ -59,7 +59,8 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
     int len, j;
     struct stack_s *entry;
 
-    if (exclude_param > 0){
+    DEBUGMSG(99, "exclude parameter: %d\n", exclude_param);
+    if (exclude_param >= 0){
         len = sprintf(buf, "(@x call %d", s->num_of_params);
     }
     else{
@@ -86,7 +87,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
 	    break;
 	}
     }
-    if (exclude_param > 0)
+    if (exclude_param >= 0)
         len += sprintf(buf + len, ")");
     return len;
 }
