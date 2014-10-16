@@ -314,9 +314,9 @@ usage:
             udp = "127.0.0.1/6363";
         break;
 #endif
-    }
-
-    printf("UDP: %s\n", udp);
+        default:
+            udp = "127.0.0.1/6363";
+        }
 
     if (!argv[optind]) 
         goto usage;
