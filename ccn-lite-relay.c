@@ -666,7 +666,6 @@ main(int argc, char **argv)
 
     time(&theRelay.startup_time);
     srandom(time(NULL));
-    udpport = httpport = NDN_UDP_PORT;
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
         switch (opt) {
@@ -690,7 +689,7 @@ main(int argc, char **argv)
             if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
                 goto usage;
             suite = opt;
-        break;
+            break;
         case 't':
             httpport = atoi(optarg);
             break;
@@ -722,11 +721,42 @@ usage:
 
 #ifdef USE_UNIXSOCKET
                     " [-p crypto_face_ux_socket]"
-            " [-x unixpath]"
+                    " [-x unixpath]"
 #endif
-            "\n", argv[0]);
+                    "\n", argv[0]);
             exit(EXIT_FAILURE);
         }
+    }
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        if(udpport < 0)
+            udpport = CCN_UDP_PORT;
+        if(httpport < 0)
+            httpport = CCN_UDP_PORT;
+        break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        if(udpport < 0)
+            udpport = CCN_UDP_PORT;
+        if(httpport < 0)
+            httpport = CCN_UDP_PORT;
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV:
+        if(udpport < 0)
+            udpport = NDN_UDP_PORT;
+        if(httpport < 0)
+            httpport = NDN_UDP_PORT;
+        break;
+#endif
+    default:
+        if(udpport < 0)
+            udpport = CCN_UDP_PORT;
+        if(httpport < 0)
+            httpport = CCN_UDP_PORT;
     }
 
     switch (suite) {
