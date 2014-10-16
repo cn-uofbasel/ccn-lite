@@ -860,6 +860,10 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_LOCALRPC
     ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_RX_localrpc;
 #endif
+
+#ifdef USE_NFN
+    ZAM_init();
+#endif
 }
 
 struct ccnl_buf_s *bufCleanUpList;
