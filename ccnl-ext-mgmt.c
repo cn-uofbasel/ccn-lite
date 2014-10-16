@@ -937,7 +937,10 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     // should (re)verify that action=="newface"
 
     if (faceid && frag && mtu) {
-	int e = -1, mtuval, fi = strtol((const char*)faceid, NULL, 0);
+#ifdef USE_FRAG
+	int e = -1;
+#endif
+	int mtuval, fi = strtol((const char*)faceid, NULL, 0);
 
 	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
 	if (!f) goto Error;
@@ -960,7 +963,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	f->frag = ccnl_frag_new(e, mtuval);
 	cp = "setfrag cmd worked";
 #else
-	cp = "no fragmentation support" + 0*e*mtuval; // use e*mtuval to silence compiler
+	cp = "no fragmentation support"; 
 #endif
     } else {
 Error:
