@@ -38,6 +38,7 @@
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
+#define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
@@ -549,6 +550,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
     case CCNL_SUITE_CCNB:
         suffix = "*.ccnb"; break;
 #endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+	suffix = "*.ccntlv"; break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         suffix = "*.ndntlv"; break;
@@ -758,35 +763,6 @@ usage:
         if(httpport < 0)
             httpport = CCN_UDP_PORT;
     }
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-    default:
-            break;
-        }
     ccnl_core_init();
 
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);

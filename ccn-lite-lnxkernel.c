@@ -85,8 +85,6 @@ inet_ntoa(struct in_addr in)
     return buf;
 }
 
-#include "ccnl-ext-debug.c"
-
 // ----------------------------------------------------------------------
 
 static inline void*
@@ -106,6 +104,8 @@ ccnl_free(void *ptr)
 {
     kfree(ptr);
 }
+
+#include "ccnl-ext-debug.c"
 
 static void ccnl_lnxkernel_cleanup(void);
 char* ccnl_addr2ascii(sockunion *su);

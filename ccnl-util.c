@@ -348,7 +348,9 @@ ccnl_lambdaParseVar(char **cpp)
     int len;
 
     p = *cpp;
-    while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/'))
+    if (*p && *p == '\'')
+        p++;
+    while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/' || *p == '.'))
 	p++;
     len = p - *cpp;
     p = ccnl_malloc(len+1);

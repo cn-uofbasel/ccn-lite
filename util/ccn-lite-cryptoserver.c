@@ -20,36 +20,15 @@
  * 2013-07-22 created <christopher.scherb@unibas.ch>
  */
 
-
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <sys/un.h>
-
 #define CCNL_UNIX
 
 #define USE_SUITE_CCNB
 #define USE_SIGNATURES
 
-#include "../ccnl-includes.h"
-#include "../ccnl.h"
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-ext.h"
-#include "../ccnl-platform.c"
-
 #include "ccnl-common.c"
-
-#include "../pkt-ccnb.h"
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccnb-enc.c"
-
 #include "ccnl-crypto.c"
 
-#define ccnl_calloc(n,s) calloc(n,s)
-#define ccnl_free(p) free(p)
-
+// ----------------------------------------------------------------------
 
 char *ux_path, *private_key, *ctrl_public_key;
 
