@@ -208,7 +208,6 @@ main(int argc, char *argv[])
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     int (*isContent)(unsigned char*, int);
 
-    printf("started peek\n");
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
         case 's':
@@ -294,7 +293,6 @@ usage:
         printf("unknown suite\n");
         exit(-1);
     }
-    printf("before if(ux) with udp %s\n", udp);
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
@@ -303,18 +301,13 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        printf("strdup\n");
         udp = strdup(udp);
         si->sin_family = PF_INET;
         si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
         si->sin_port = htons(atoi(strtok(NULL, "/")));
-        printf("open\n");
         sock = udp_open();
-        printf("opened\n");
     }
-    printf("after ux\n");
 
-    printf("before making uri: %s\n", argv[optind]);
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
