@@ -620,6 +620,7 @@ char* timestamp(void);
 #  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_calloc(n,s)	debug_calloc(n, s, __FILE__, __LINE__,timestamp())
 #  define ccnl_realloc(p,s)	debug_realloc(p, s, __FILE__, __LINE__)
+#  define ccnl_strdup(s)	debug_strdup(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_free(p)		debug_free(p, __FILE__, __LINE__)
 #  define ccnl_buf_new(p,s)	debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
 
@@ -700,6 +701,19 @@ debug_realloc(void *p, int s, const char *fn, int lno)
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
+void*
+debug_strdup(const char *s, const char *fn, int lno, char *tstamp)
+{
+    char *cp;
+
+    if (!s)
+        return NULL;
+    cp = debug_malloc(strlen(s)+1, fn, lno, tstamp);
+    if (cp)
+        strcpy(cp, s);
+    return cp;
+}
+
 void
 debug_free(void *p, const char *fn, int lno)
 {
@@ -757,8 +771,23 @@ debug_memdump()
 #  define ccnl_malloc(s)	malloc(s)
 #  define ccnl_calloc(n,s) 	calloc(n,s)
 #  define ccnl_realloc(p,s)	realloc(p,s)
+#  define ccnl_strdup(s)	strdup(s)
 #  define ccnl_free(p)		free(p)
 # endif
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
 
 #endif // !USE_DEBUG_MALLOC
 

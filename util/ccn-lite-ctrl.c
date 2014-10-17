@@ -21,39 +21,14 @@
  * 2013-07     <christopher.scherb@unibas.ch> heavy reworking and parsing
  *             of return message
  */
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
 #define CCNL_UNIX
-
 #define USE_SUITE_CCNB
 // #define USE_SUITE_NDNTLV
 #define USE_SIGNATURES
-
-#include "../ccnl-includes.h"
-#include "../ccnl.h"
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-ext.h"
-#include "../ccnl-platform.c"
-
 #include "ccnl-common.c"
-
-#include "../pkt-ccnb.h"
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccnb-enc.c"
-
 #include "ccnl-crypto.c"
+
+// ----------------------------------------------------------------------
 
 int
 split_string(char *in, char c, char *out)

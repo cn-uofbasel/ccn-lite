@@ -20,46 +20,10 @@
  * 2014-05-11  created
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/un.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
 
-#include "../ccnl.h"
-
 #include "ccnl-common.c"
-
-#include "../pkt-ndntlv.h"
-#include "../pkt-localrpc.h"
-
-#include "../ccnl-util.c"
-
-#define ccnl_calloc(n,s) calloc(n,s)
-#define ccnl_free(p) free(p)
-
-#include "../pkt-ndntlv-dec.c"
-#include "../pkt-ndntlv-enc.c"
-#include "../pkt-localrpc-dec.c"
-#include "../pkt-localrpc-enc.c"
-
 
 /*
   use examples:
