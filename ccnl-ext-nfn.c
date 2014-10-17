@@ -28,10 +28,14 @@
 #include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfncommon.c"
 #include "ccnl-ext-nfnkrivine.c"
+#include "ccnl-ext-nstrans.c"
 
 void
 ZAM_init(void)
 {
+#ifdef USE_NFN_NSTRANS
+    ZAM_register("OP_NSTRANS", op_builtin_nstrans);
+#endif
 }
 
 struct configuration_s*
@@ -167,7 +171,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
-        // prefix_name->compcnt -= (2 + thunk_request);
+        copy->compcnt -= (1 + thunk_request);
+        DEBUGMSG(99, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK); 
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);

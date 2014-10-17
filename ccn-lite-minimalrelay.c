@@ -91,12 +91,25 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define ccnl_ll_TX(r,i,a,b)		sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
 #define ccnl_close_socket(s)		close(s)
 
-struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
+#include "ccnl.h"
+#include "ccnl-core.h"
+
+struct ccnl_buf_s*
+ccnl_buf_new(void *data, int len)
+{
+    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+
+    if (!b)
+        return NULL;
+    b->next = NULL;
+    b->datalen = len;
+    if (data)
+        memcpy(b->data, data, len);
+    return b;
+}
 
 #include "pkt-ccnb.h"
 #include "pkt-ndntlv.h"
-#include "ccnl.h"
-#include "ccnl-core.h"
 
 #define compute_ccnx_digest(b) NULL
 

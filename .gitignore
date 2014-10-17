@@ -38,6 +38,10 @@ util/ccn-lite-produce
 util/ccn-lite-fetch
 util/ccn-lite-pktdump
 util/ccn-lite-rpc
+<<<<<<< HEAD
+=======
+util/ccn-lite-simplenfn
+>>>>>>> origin/ccntlv
 
 # unit tests
 test/unit/prefix-cmp

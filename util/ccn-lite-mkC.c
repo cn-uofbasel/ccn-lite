@@ -72,6 +72,7 @@ ccnl_buf_new(void *data, int len)
 }
 
 #include "../ccnl-util.c"
+#include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
 // ----------------------------------------------------------------------

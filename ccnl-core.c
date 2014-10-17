@@ -42,20 +42,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 int ccnl_pkt2suite(unsigned char *data, int len);
 
-#ifndef USE_DEBUG_MALLOC
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*b) + len);
-
-    if (!b) return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data) memcpy(b->data, data, len);
-    return b;
-}
-#endif
-
 #define buf_dup(B)	(B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)	((X) && (Y) && (X->datalen==Y->datalen) &&\
 			 !memcmp(X->data,Y->data,X->datalen))
