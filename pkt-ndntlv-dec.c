@@ -185,9 +185,7 @@ ccnl_ndntlv_extract(int hdrlen,
             if (typ == NDN_TLV_NameComponent && final_block_id && final_block_id_len) {
                 final_block_id = cp;
                 *final_block_id_len = i;
-            } else if(typ == NDN_TLV_NameComponent) {
-                printf("FinalBlockId is not defined");
-            }
+            } 
         }
         break;
 	default:
