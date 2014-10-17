@@ -23,39 +23,41 @@
  */
 
 #include <ctype.h>
+#include <fcntl.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
- 
+#include <unistd.h>
+
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 #include "base64.c"
-
-#include <arpa/inet.h>
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
-
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
 #define CCNL_UNIX
 #define USE_DEBUG_MALLOC
 
-// #include "../ccnl.h"
-// #include "../ccnl-ext-debug.c"
-// #include "../ccnl-platform.c"
-
-#define ccnl_core_addToCleanup(b)	do{}while(0)
+#include "../ccnl.h"
+#include "../ccnl-core.h"
 
 void
 ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
 {
     return;
 }
+
 
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-platform.c"
