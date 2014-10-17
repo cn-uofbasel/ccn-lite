@@ -199,29 +199,6 @@ Usage:
         len = ccnl_ccntlv_fillContentWithHdr(name, body, len, &offs, NULL, out);
     break;
     case CCNL_SUITE_NDNTLV:
-
-        // add chunknum and finalblock id...
-        // char *chunkname = "c";
-        // char chunkname_with_number[20];
-        // char last_chunkname_with_number[20];
-        // strcpy(last_chunkname_with_number, chunkname);
-        // sprintf(last_chunkname_with_number + strlen(last_chunkname_with_number), "%i", last_chunk_num);
-        // strcpy(chunkname_with_number, chunkname);
-        // sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", chunk_num);
-        // prefix[i] = chunkname_with_number;
-        // i++;
-        // prefix[i] = NULL;
-        // int len2 = CCNL_MAX_PACKET_SIZE;
-        // len = ccnl_ndntlv_mkContent(prefix, 
-        //                             body, len, &len2, 
-        //                             (chunk_num >= 0 ? (unsigned char*)last_chunkname_with_number : 0), 
-        //                             (chunk_num >= 0 ? strlen(last_chunkname_with_number) : 0), 
-        //                             out);
-        // memmove(out, out+len2, CCNL_MAX_PACKET_SIZE - len2);
-        // len = CCNL_MAX_PACKET_SIZE - len2;
-
-
-
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, NULL, 0, out);
     break;

@@ -70,8 +70,11 @@ ccn-lite-peek: Makefile ccn-lite-peek.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl.h ../ccnl-util.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
-#ccn-lite-fetch: Makefile ccn-lite-fetch.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-util.c ccnl-common.c
-#	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
+
+ccn-lite-fetch: Makefile ccn-lite-fetch.c \
+		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
+		../ccnl.h ../ccnl-util.c ccnl-common.c
+	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB}
