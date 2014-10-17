@@ -34,15 +34,14 @@
 #include <time.h>
 #include <unistd.h>
 
-/*
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/select.h>
+ 
 #include <sys/socket.h>
-*/
 #include <sys/stat.h>
 #include <sys/un.h>
 
-#include <arpa/inet.h>
 
 #include "base64.c"
 

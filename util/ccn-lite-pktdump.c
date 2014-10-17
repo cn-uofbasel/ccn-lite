@@ -22,54 +22,10 @@
  *
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-
-#include "base64.c"
-
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
-#define CCNL_UNIX
-#define USE_DEBUG_MALLOC
 
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
-{
-    return;
-}
-
-
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-platform.c"
-
-
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccntlv-dec.c"
-#include "../pkt-ndntlv-dec.c"
-#include "../pkt-localrpc.h"
-#include "../ccnl-core.h"
-
-#include "../ccnl-util.c"
 #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
@@ -910,7 +866,8 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
         cp = data + 2;
         len -= 2;
         ccnl_ndntlv_extract(2, &cp, &len,
-                            NULL, NULL, NULL, NULL, &p, NULL, NULL,
+                            NULL, NULL, NULL, NULL, NULL, 0, 
+                            &p, NULL, NULL,
                             &content, &contlen);
         break;
     default:

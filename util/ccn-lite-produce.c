@@ -21,75 +21,15 @@
  */
 
 #define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
+ 
 #define USE_SIGNATURES
-
-#include <ctype.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <arpa/inet.h> // htonl()
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-// #include "../ccnl.h"
-// #include "../ccnl-core.h"
-
-// #include "../pkt-ccnb.h"
-// #include "../pkt-ccnb-enc.c"
-
-// #include "../pkt-ndntlv.h"
-// #include "../pkt-ndntlv-enc.c"
-// #include "../ccnl-util.c"
-// #include "ccnl-crypto.c"
-
-
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-#include "../pkt-ccnb.h"
-#include "../pkt-ccnb-enc.c"
-
-#include "../pkt-ndntlv.h"
-#include "../pkt-ndntlv-enc.c"
-
-#define ccnl_malloc(s)          malloc(s)
-#define ccnl_calloc(n,s)        calloc(n,s)
-#define ccnl_realloc(p,s)       realloc(p,s)
-#define ccnl_free(p)            free(p)
-#define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
-
- void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
-{
-    return;
-}
-
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 #define CCNL_MAX_CHUNK_SIZE 4048
 #define CCNL_MIN_CHUNK_SIZE 1
 
-#include "../ccnl-util.c"
+#include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
 #ifdef XXX
