@@ -24,31 +24,6 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
-#define CCNL_UNIX
-#define USE_DEBUG_MALLOC
-
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
-{
-    return;
-}
-
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-platform.c"
-
-# include "../pkt-ccnb-dec.c"
-# include "../pkt-ccnb-enc.c"
-
-# include "../pkt-ccntlv-dec.c"
-# include "../pkt-ccntlv-enc.c"
-
-# include "../pkt-ndntlv-dec.c"
-# include "../pkt-ndntlv-enc.c"
-
-#include "../ccnl-util.c"
 
 #include "ccnl-common.c"
 

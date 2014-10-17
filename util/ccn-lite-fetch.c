@@ -20,53 +20,11 @@
  * 2014-10-13  created
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
-#define CCNL_UNIX
-#define USE_DEBUG_MALLOC
-
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-void
-ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
-{
-    return;
-}
-
-#include "../ccnl-ext-debug.c"
-#include "../ccnl-platform.c"
-
-# include "../pkt-ccnb-dec.c"
-# include "../pkt-ccnb-enc.c"
-
-# include "../pkt-ccntlv-dec.c"
-# include "../pkt-ccntlv-enc.c"
-
-# include "../pkt-ndntlv-dec.c"
-# include "../pkt-ndntlv-enc.c"
-
-#include "../ccnl-util.c"
+ 
+#include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
 
@@ -254,12 +212,13 @@ findChunkInfo(unsigned char *packetData, int datalen) {
                   &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
                   &prefix, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
-        DEBUGMSG(6, "parsing error or no prefix\n"); return -1;
+        printf("parsing error or no prefix\n"); 
+        return -1;
     } 
     if (typ == NDN_TLV_Interest) {
-        DEBUGMSG(99, "parsed interest %p\n", (void *) i);
+        printf("parsed interest %s\n", ccnl_prefix_to_path(prefix));
     } else { // data packet with content -------------------------------------
-        DEBUGMSG(99, "parsed content [%s -> '%s'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), packetData, "not impl");
+        printf("parsed content [%s -> '%s'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), packetData, "not impl");
     }
 
     return 0;
