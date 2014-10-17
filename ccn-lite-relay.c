@@ -545,8 +545,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 
     DEBUGMSG(99, "ccnl_populate_cache %s\n", path);
 
-    suite = CCNL_SUITE_CCNB;
-
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
@@ -765,35 +763,6 @@ usage:
         if(httpport < 0)
             httpport = CCN_UDP_PORT;
     }
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
-        break;
-#endif
-    default:
-            break;
-        }
     ccnl_core_init();
 
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
