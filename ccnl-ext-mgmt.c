@@ -940,11 +940,11 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_FRAG
 	int e = -1;
 #endif
-	int mtuval, fi = strtol((const char*)faceid, NULL, 0);
+	int fi = strtol((const char*)faceid, NULL, 0);
 
 	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
-	if (!f) goto Error;
-	mtuval = strtol((const char*)mtu, NULL, 0);
+	if (!f)
+            goto Error;
 
 #ifdef USE_FRAG
 	if (f->frag) {
@@ -960,7 +960,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	}
 	if (e < 0)
 	    goto Error;
-	f->frag = ccnl_frag_new(e, mtuval);
+	f->frag = ccnl_frag_new(e, strtol((const char*)mtu, NULL, 0));
 	cp = "setfrag cmd worked";
 #else
 	cp = "no fragmentation support"; 

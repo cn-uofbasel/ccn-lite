@@ -36,7 +36,7 @@ util/ccn-lite-peek
 util/ccn-lite-peekcomputation
 util/ccn-lite-pktdump
 util/ccn-lite-rpc
-
+util/ccn-lite-simplenfn
 
 # unit tests
 test/unit/prefix-cmp

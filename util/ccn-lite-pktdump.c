@@ -22,51 +22,11 @@
  *
  */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "base64.c"
-
-#include <arpa/inet.h>
-
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 
-#include "../ccnl.h"
-#include "../ccnl-core.h"
-
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccntlv-dec.c"
-#include "../pkt-ndntlv-dec.c"
-#include "../pkt-localrpc.h"
-
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
-
-#define ccnl_core_addToCleanup(b)	do{}while(0)
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
-
-#include "../ccnl-util.c"
+#include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
 
@@ -880,6 +840,46 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 
 // ----------------------------------------------------------------------
 
+void
+emit_content_only(unsigned char *data, int len, int suite, int format)
+{
+    int contlen;
+    unsigned char *content = 0, *cp;
+    struct ccnl_prefix_s *p;
+
+    switch (suite) {
+    case CCNL_SUITE_CCNB:
+        cp = data + 2;
+        len -= 2;
+        ccnl_ccnb_extract(&cp, &len,
+                          NULL, NULL, NULL, NULL, &p, NULL, NULL,
+                          &content, &contlen);
+        break;
+    case CCNL_SUITE_CCNTLV:
+        cp = data + 12;
+        len -= 12;
+        // FIXME: should read fixed header length, add 4
+        ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL, NULL,
+                            &content, &contlen);
+        break;
+    case CCNL_SUITE_NDNTLV:
+        cp = data + 2;
+        len -= 2;
+        ccnl_ndntlv_extract(2, &cp, &len,
+                            NULL, NULL, NULL, NULL, &p, NULL, NULL,
+                            &content, &contlen);
+        break;
+    default:
+        return;
+    }
+
+    write(1, content, contlen);
+    if (format > 2)
+        write(1, "\n", 1);
+}
+
+// ----------------------------------------------------------------------
+
 #ifndef USE_JNI_LIB
 
 int
@@ -888,7 +888,7 @@ main(int argc, char *argv[])
     int opt, rc;
     unsigned char data[64*1024];
     char *forced = "forced";
-    int len, maxlen, suite = -1, rawxml = 0;
+    int len, maxlen, suite = -1, format = 0;
     FILE *out = stdout;
 
     ndn_init();
@@ -898,15 +898,15 @@ main(int argc, char *argv[])
             suite = atoi(optarg);
             break;
         case 'f':
-            rawxml = atoi(optarg);
+            format = atoi(optarg);
             break;
 	default:
 help:
             fprintf(stderr,
 		    "usage: %s [options] <encoded_data\n"
+		    "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
 		    "  -h           this help\n"
-		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n"
-		    "  -f FORMAT    (0=readable, 1=rawxml)\n",
+		    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n",
 		    argv[0]);
             exit(1);
 	}
@@ -929,49 +929,56 @@ help:
 	maxlen -= rc;
     }
 
-    if (!rawxml) {
+    if (format == 0) {
         printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
     }
 
     if (len == 0) {
        goto done;
     }
+
     if (suite == -1) {
         suite = ccnl_pkt2suite(data, len);
         forced = "auto-detected";
     }
+
+    if (format >= 2) {
+        emit_content_only(data, len, suite, format);
+        return 0;
+    }
+
     switch (suite) {
     case CCNL_SUITE_CCNB:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s CCNB format\n#\n", forced);
 	}
-	ccnb_parse(data, len, rawxml, out);
+	ccnb_parse(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_CCNTLV:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s CCNx TLV format (as of Mar 2014)\n#\n", forced);
 	}
-	ccntlv_201311(data, len, rawxml, out);
+	ccntlv_201311(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_NDNTLV:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
 	}
-	ndntlv_201311(data, len, rawxml, out);
+	ndntlv_201311(data, len, format == 1, out);
 	break;
     case CCNL_SUITE_LOCALRPC:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   %s NDN TLV format, local RPC (May 2014)\n#\n", forced);
 	}
-	localrpc_201405(data, len, rawxml, out);
+	localrpc_201405(data, len, format == 1, out);
 	break;
     default:
-	if (!rawxml) {
+	if (format == 0) {
 	    printf("#   unknown pkt format, showing plain hex\n");
 	}
-	hexdump(-1, data, data, len, rawxml, out);
+	hexdump(-1, data, data, len, format == 1, out);
 done:
-        if (!rawxml) {
+        if (format == 0) {
             printf("%04x  pkt.end\n", len);
         }
         break;
