@@ -919,9 +919,9 @@ handlecontent: //if result was found ---> handle it
     
     if(!strncmp(prog, "halt", 4)){
         *halt = 1;
-
         if (!pending)
             return NULL;
+
         cp = ccnl_malloc(strlen(pending)+1);
         strcpy(cp, pending);
         return cp;
@@ -1050,29 +1050,35 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     //HALT > 0 means computation finished
     ccnl_free(dummybuf);
     DEBUGMSG(99, "end\n");
-    struct stack_s *stack = pop_or_resolve_from_result_stack(ccnl, 
-                            *config, &restart);//config->result_stack->content;
 
     struct ccnl_buf_s *h = NULL;
+    char res[128]; //TODO longer???
+    int pos = 0;
+    struct stack_s *stack;
+    while((stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart)) != NULL){
 
-    if (stack == NULL) {
-        halt = -1;
-        return NULL;
+        if (stack == NULL) {
+            halt = -1;
+            return NULL;
+        }
+        if (stack->type == STACK_TYPE_PREFIX) {
+            struct ccnl_content_s *cont;
+
+            cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
+            if (cont){
+                strncpy(res+pos, (char*)cont->content, cont->contentlen);
+                pos += cont->contentlen;
+            }
+        } else if (stack->type == STACK_TYPE_INT) {
+            //h = ccnl_buf_new(NULL, 10);
+            //sprintf((char*)h->data, "%d", *(int*)stack->content);
+            //h->datalen = strlen((char*)h->data);
+            pos += sprintf(res + pos, "%d", *(int*)stack->content);
+        }
+        ccnl_free(stack->content);
+        ccnl_free(stack);
     }
-    if (stack->type == STACK_TYPE_PREFIX) {
-        struct ccnl_content_s *cont;
-
-        cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
-        if (cont)
-            h = ccnl_buf_new(cont->content, cont->contentlen);
-    } else if (stack->type == STACK_TYPE_INT) {
-        h = ccnl_buf_new(NULL, 10);
-        sprintf((char*)h->data, "%d", *(int*)stack->content);
-        h->datalen = strlen((char*)h->data);
-    }
-    ccnl_free(stack->content);
-    ccnl_free(stack);
-
+    h = ccnl_buf_new(res, pos);
     return h;
 }
 
