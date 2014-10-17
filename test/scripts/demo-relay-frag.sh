@@ -3,7 +3,7 @@
 # demo-relay-frag.sh -- test/demo for ccn-lite:
 # CCNx relaying via UDP sockets, using fragments of length 600
 
-. ./paths.sh
+echo "WARNING: this script has not been updated for a while..."
 
 PORTA=9998
 PORTB=9999
@@ -43,7 +43,7 @@ $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA "ccnx|0.7.1|doc|technical|NameEnumerationProtocol.txt" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -u 127.0.0.1/$PORTA "ccnx/0.7.1/doc/technical/NameEnumerationProtocol.txt" | $CCNL_HOME/util/ccn-lite-pktdump
 
 # shutdown both relays
 echo "# Config of node A:"

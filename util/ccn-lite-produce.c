@@ -65,6 +65,13 @@
 #define ccnl_free(p)            free(p)
 #define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
+ void
+ccnl_core_addToCleanup(struct ccnl_buf_s *buf)
+{
+    return;
+}
+
+
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
 {
@@ -82,7 +89,7 @@ ccnl_buf_new(void *data, int len)
 #define CCNL_MAX_CHUNK_SIZE 4048
 #define CCNL_MIN_CHUNK_SIZE 1
 
- #include "../ccnl-util.c"
+#include "../ccnl-util.c"
 #include "ccnl-crypto.c"
 
 #ifdef XXX

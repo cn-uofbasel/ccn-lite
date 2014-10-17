@@ -541,7 +541,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_fillContent(name, payload, paylen,
-                      &offs, &contentpos, tmp);
+                      &offs, &contentpos, NULL, 0, tmp);
     break;
 #endif
     default:
