@@ -315,7 +315,7 @@ add_local_computation_components(struct configuration_s *config){
     ret->comp[i] = (unsigned char *)"COMPUTE";
     ret->complen[i] = strlen("COMPUTE");
     ++i;
-    ret->comp[i] = (unsigned char *)strdup(comp);
+    ret->comp[i] = (unsigned char *)ccnl_strdup(comp);
     ret->complen[i] = strlen(comp);
     ++i;
 
@@ -466,7 +466,7 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     sprintf(thunk->thunkid, "THUNK%d", ccnl->km->thunkid++);
     DBL_LINKED_LIST_ADD(ccnl->km->thunk_list, thunk);
     DEBUGMSG(99, "Created new thunk with id: %s\n", thunk->thunkid);
-    return strdup(thunk->thunkid);
+    return ccnl_strdup(thunk->thunkid);
 }
 
 struct thunk_s *
