@@ -21,6 +21,10 @@
  * 2014-06-18  added NDNTLV support
  */
 
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
+
 #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
