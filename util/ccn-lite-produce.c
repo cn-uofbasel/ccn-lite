@@ -274,6 +274,8 @@ Usage:
         sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
 
         name = ccnl_URItoPrefix(chunkname_with_number, packettype, argv[optind+1]);
+        for(int x = 0; x < name->compcnt; x++)
+            printf("c / %s\n", name->comp[x]);
 
         offs = CCNL_MAX_PACKET_SIZE;
         switch(packettype) {
@@ -299,6 +301,7 @@ Usage:
         strcat(outfilename, "/");
         strcat(outfilename, chunkname);
         sprintf(outfilename + strlen(outfilename), "%i", i);
+        strcat(outfilename, ".ndntlv");
 
         fout = creat(outfilename, 0666);
         write(fout, out + offs, contentlen);

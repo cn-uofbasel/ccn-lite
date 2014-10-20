@@ -360,8 +360,10 @@ usage:
 */
 
             // *** parse content *******************************
-            unsigned char **data = 0; 
-            int *datalen = 0;
+            unsigned char *t = (unsigned char*)out; 
+            unsigned char **data = &t;
+            int *datalen = &len;
+            printf("parsed content...\n");
 
             int len = 0, typ;
             int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
@@ -371,12 +373,15 @@ usage:
             int finalBlockId_len = 0;
             unsigned char *content = 0, *cp = *data;
 
+
             if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
             return -1;
+            printf("deahead...\n");
             buf = ccnl_ndntlv_extract(*data - cp,
                           data, datalen,
                           &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
                           &prefix, &nonce, &ppkl, &content, &contlen);
+            printf("deahead...\n");
             if (!buf) {
                 printf("parsing error or no prefix\n"); 
                 goto Done;
