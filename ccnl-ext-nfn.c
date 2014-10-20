@@ -288,22 +288,22 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         //Check if prefix match and it is a nfn request
         int cmp = ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT);
         DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", cmp, i_it->from->faceid);
-	if (!ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT) &&
-						i_it->from->faceid < 0) {
-	    int configid = -i_it->from->faceid;
-	    int faceid = -i_it->from->faceid;
+        if (!ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT) &&
+                                                i_it->from->faceid < 0) {
+            int configid = -i_it->from->faceid;
+            int faceid = -i_it->from->faceid;
 
-	    ccnl_content_add2cache(relay, c);
+            ccnl_content_add2cache(relay, c);
         DEBUGMSG(49, "Continue configuration for configid: %d with prefix: %s\n",
-		     configid, ccnl_prefix_to_path(c->name));
-	    i_it->corePropagates = 1;
-	    i_it = ccnl_interest_remove(relay, i_it);
-	    ccnl_nfn_continue_computation(relay, faceid, 0);
-	    ++found;
-	    //goto Done;
-	}
-	else
-	    i_it = i_it->next;
+                     configid, ccnl_prefix_to_path(c->name));
+            i_it->corePropagates = 1;
+            i_it = ccnl_interest_remove(relay, i_it);
+            ccnl_nfn_continue_computation(relay, faceid, 0);
+            ++found;
+            //goto Done;
+        }
+        else
+            i_it = i_it->next;
     }
     return found > 0;
 }

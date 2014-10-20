@@ -38,11 +38,11 @@ ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
     num = num >> 4;
 
     while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
+        tmp[len++] = num & 0x7f;
+        num = num >> 7;
     }
     for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
+        *buf++ = tmp[i];
     return len;
 }
 
@@ -60,7 +60,7 @@ ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt)
 
 int
 ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-		 char *cp, int cnt)
+                 char *cp, int cnt)
 {
     int len;
 
@@ -73,28 +73,28 @@ ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
 
 int
 ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-		    char *str)
+                    char *str)
 {
     return ccnl_ccnb_mkBlob(out, num, tt, str, strlen(str));
 }
 
 int
 ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt,
-		      unsigned int val, int bytes)
+                      unsigned int val, int bytes)
 {
     int len = ccnl_ccnb_mkHeader(out, num, tt);
 
     if (!bytes) {
-	for (bytes = sizeof(val) - 1; bytes > 0; bytes--)
-	    if (val >> (8*bytes))
-		break;
-	bytes++;
+        for (bytes = sizeof(val) - 1; bytes > 0; bytes--)
+            if (val >> (8*bytes))
+                break;
+        bytes++;
     }
     len += ccnl_ccnb_mkHeader(out+len, bytes, CCN_TT_BLOB);
 
     while (bytes > 0) { // big endian
-	bytes--;
-	out[len++] = 0x0ff & (val >> (8*bytes));
+        bytes--;
+        out[len++] = 0x0ff & (val >> (8*bytes));
     }
 
     out[len++] = 0; // end-of-entry
@@ -122,13 +122,13 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
     for (i = 0; i < name->compcnt; i++) {
-	len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
+        len += ccnl_ccnb_mkComponent(name->comp[i], name->complen[i], out+len);
     }
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
-	if (name->nfnflags & CCNL_PREFIX_THUNK)
-	    len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
-	len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
+        if (name->nfnflags & CCNL_PREFIX_THUNK)
+            len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
+        len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
     }
 #endif    
     out[len++] = 0; // end-of-name
@@ -140,17 +140,17 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
 
 int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
-		       unsigned char *out, int outlen)
+                       unsigned char *out, int outlen)
 {
     int len = 0;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkName(name, out+len);
     if (nonce) {
-	len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-	len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
-	memcpy(out+len, (void*)nonce, sizeof(unsigned int));
-	len += sizeof(unsigned int);
+        len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
+        len += ccnl_ccnb_mkHeader(out+len, sizeof(unsigned int), CCN_TT_BLOB);
+        memcpy(out+len, (void*)nonce, sizeof(unsigned int));
+        len += sizeof(unsigned int);
     }
     out[len++] = 0; // end-of-interest
 
@@ -161,7 +161,7 @@ ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
 
 int
 ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
-		      int datalen, int *contentpos, unsigned char *out)
+                      int datalen, int *contentpos, unsigned char *out)
 {
     int len = 0;
 
@@ -171,10 +171,10 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
     len += ccnl_ccnb_mkHeader(out+len, datalen, CCN_TT_BLOB);
     if (contentpos)
-	*contentpos = len;
+        *contentpos = len;
     memcpy(out+len, data, datalen);
     if (contentpos)
-	*contentpos = len;
+        *contentpos = len;
     len += datalen;
     out[len++] = 0; // end-of-content
 

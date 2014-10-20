@@ -20,7 +20,7 @@
  * 2011-11-22 created
  * 2011-12 simulation scenario and logging support s.braun@stud.unibas.ch
  * 2013-03-19 updated (ms): replacement code after renaming the field
- * 		ccnl_relay_s.client to ccnl_relay_s.aux
+ *              ccnl_relay_s.client to ccnl_relay_s.aux
  */
 
 
@@ -85,10 +85,10 @@ char suite;
 
 // ----------------------------------------------------------------------
 
-#define SIMU_NUMBER_OF_CHUNKS	10
-// #define SIMU_CHUNK_SIZE		4096
-#define SIMU_CHUNK_SIZE		1600
-// #define SIMU_CHUNK_SIZE		1340
+#define SIMU_NUMBER_OF_CHUNKS   10
+// #define SIMU_CHUNK_SIZE              4096
+#define SIMU_CHUNK_SIZE         1600
+// #define SIMU_CHUNK_SIZE              1340
 
 static struct ccnl_relay_s* char2relay(char node);
 static char relay2char(struct ccnl_relay_s *relay);
@@ -98,9 +98,9 @@ void ccnl_simu_phase_two(void *ptr, void *dummy);
 
 
 extern void ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
-				int seqn, char *data, int len);
+                                int seqn, char *data, int len);
 extern void ccnl_simu_ll_TX(struct ccnl_relay_s *relay, unsigned char *dst,
-			   unsigned char *src, unsigned char *data, int len);
+                           unsigned char *src, unsigned char *data, int len);
 extern void ccnl_simu_LOG(struct ccnl_relay_s *relay, char *s);
 
 void ccnl_simu_client(char node); // sending side
@@ -116,7 +116,7 @@ ccnl_path_to_prefix(const char *path)
 {
     char *cp;
     struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1,
-							   sizeof(*pr));
+                                                           sizeof(*pr));
     DEBUGMSG(99, "ccnl_path_to_prefix <%s>\n", path);
 
     if (!pr)
@@ -128,36 +128,36 @@ ccnl_path_to_prefix(const char *path)
 
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV) {
-	int cnt = 0;
-	const char *ccp;
-	char *dup;
-	for (ccp = path; *ccp; ccp++)
-	    if (*ccp == '/')
-		cnt++;
-	pr->bytes = (unsigned char*) ccnl_malloc(strlen(path) + 4*cnt);
-	if (!pr->comp || !pr->complen || !pr->bytes) {
-	    ccnl_free(pr->comp);
-	    ccnl_free(pr->complen);
-	    ccnl_free(pr->bytes);
-	    ccnl_free(pr);
-	    return NULL;
-	}
+        int cnt = 0;
+        const char *ccp;
+        char *dup;
+        for (ccp = path; *ccp; ccp++)
+            if (*ccp == '/')
+                cnt++;
+        pr->bytes = (unsigned char*) ccnl_malloc(strlen(path) + 4*cnt);
+        if (!pr->comp || !pr->complen || !pr->bytes) {
+            ccnl_free(pr->comp);
+            ccnl_free(pr->complen);
+            ccnl_free(pr->bytes);
+            ccnl_free(pr);
+            return NULL;
+        }
 
-	dup = ccnl_malloc(strlen(path)+1);
-	strcpy(dup, path);
-	cnt = 0;
-	for (cp = strtok(dup, "/"); cp && pr->compcnt < CCNL_MAX_NAME_COMP;
-					     cp = strtok(NULL, "/")) {
-	    pr->complen[pr->compcnt] = 4 + strlen(cp);
-	    pr->comp[pr->compcnt] = pr->bytes + cnt;
-	    *(unsigned short*)(pr->bytes + cnt) = htons(CCNX_TLV_N_UTF8);
-	    *(unsigned short*)(pr->bytes + cnt + 2) = htons(strlen(cp));
-	    strcpy((char*)pr->bytes + cnt + 4, cp);
-	    cnt += 4 + strlen(cp);
-	    pr->compcnt++;
-	}
-	ccnl_free(dup);
-	return pr;
+        dup = ccnl_malloc(strlen(path)+1);
+        strcpy(dup, path);
+        cnt = 0;
+        for (cp = strtok(dup, "/"); cp && pr->compcnt < CCNL_MAX_NAME_COMP;
+                                             cp = strtok(NULL, "/")) {
+            pr->complen[pr->compcnt] = 4 + strlen(cp);
+            pr->comp[pr->compcnt] = pr->bytes + cnt;
+            *(unsigned short*)(pr->bytes + cnt) = htons(CCNX_TLV_N_UTF8);
+            *(unsigned short*)(pr->bytes + cnt + 2) = htons(strlen(cp));
+            strcpy((char*)pr->bytes + cnt + 4, cp);
+            cnt += 4 + strlen(cp);
+            pr->compcnt++;
+        }
+        ccnl_free(dup);
+        return pr;
     }
 #endif
 
@@ -174,8 +174,8 @@ ccnl_path_to_prefix(const char *path)
     cp = (char*) pr->bytes;
 
     for (path = strtok(cp, "/");
-		 path && pr->compcnt < CCNL_MAX_NAME_COMP;
-		 path = strtok(NULL, "/")) {
+         path && pr->compcnt < CCNL_MAX_NAME_COMP;
+         path = strtok(NULL, "/")) {
         pr->comp[pr->compcnt] = (unsigned char*) path;
         pr->complen[pr->compcnt] = strlen(path);
         pr->compcnt++;
@@ -195,8 +195,8 @@ char2relay(char node)
     unsigned int i;
 
     for (i = 0; i < strlen(relayChars); i++) {
-	if (node == relayChars[i])
-	    return relays + i;
+        if (node == relayChars[i])
+            return relays + i;
     }
     fprintf(stderr, "unknown node %c\n", node);
     return 0;
@@ -208,8 +208,8 @@ relay2char(struct ccnl_relay_s *relay)
     unsigned int i;
 
     for (i = 0; i < strlen(relayChars); i++) {
-	if (relay == (relays + i))
-	    return relayChars[i];
+        if (relay == (relays + i))
+            return relayChars[i];
     }
     fprintf(stderr, "unknown node %p\n", (void *) relay);
     return '?';
@@ -227,16 +227,16 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 
     relay = char2relay(node);
     if (!relay)
-	return;
+        return;
 
     sprintf(tmp, "%s/.%d", name, seqn);
     p = ccnl_path_to_prefix(tmp);
     p->suite = suite;
     buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
     c = ccnl_content_new(relay, CCNL_SUITE_CCNB, &buf, &p,
-			 NULL, buf->data + dataoffset, len);
+                         NULL, buf->data + dataoffset, len);
     if (c)
-	ccnl_content_add2cache(relay, c);
+        ccnl_content_add2cache(relay, c);
     return;
 }
 
@@ -253,7 +253,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     DEBUGMSG(10, "ccnl_client_tx node=%c: request %s #%d\n", node, name, seqn);
 
     if (!relay)
-	return;
+        return;
 
     sprintf(tmp, "%s/.%d", name, seqn);
     p = ccnl_path_to_prefix(tmp);
@@ -262,7 +262,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
 
     // inject it into the relay:
     if (buf)
-	ccnl_core_RX(relay, -1, buf->data, buf->datalen, 0, 0);
+        ccnl_core_RX(relay, -1, buf->data, buf->datalen, 0, 0);
 }
 
 // ----------------------------------------------------------------------
@@ -281,36 +281,36 @@ void
 ccnl_simu_ethernet(void *dummy, void *dummy2)
 {
     if (etherqueue) {
-	int i, qlen;
-	struct ccnl_ethernet_s **pp, *p;
+        int i, qlen;
+        struct ccnl_ethernet_s **pp, *p;
 
-	// pick the last element in the queue
-	for (qlen = 1, pp = &etherqueue; (*pp)->next; pp = &((*pp)->next))
-	    qlen++;
-	p = *pp;
-	*pp = NULL;
+        // pick the last element in the queue
+        for (qlen = 1, pp = &etherqueue; (*pp)->next; pp = &((*pp)->next))
+            qlen++;
+        p = *pp;
+        *pp = NULL;
 
-	for (i = 0; i < 5; i++) {
-	    if (!memcmp(p->dst, &relays[i].ifs[0].addr.eth.sll_addr, ETH_ALEN)) {
-		break;
-	    }
-	}
-	if (i < 5) {
-	    sockunion sun;
+        for (i = 0; i < 5; i++) {
+            if (!memcmp(p->dst, &relays[i].ifs[0].addr.eth.sll_addr, ETH_ALEN)) {
+                break;
+            }
+        }
+        if (i < 5) {
+            sockunion sun;
 
-	    sun.sa.sa_family = AF_PACKET;
-	    memcpy(sun.eth.sll_addr, p->src, ETH_ALEN);
+            sun.sa.sa_family = AF_PACKET;
+            memcpy(sun.eth.sll_addr, p->src, ETH_ALEN);
 
-	    DEBUGMSG(10, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
-		     p->len, eth2ascii(p->dst), qlen);
+            DEBUGMSG(10, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
+                     p->len, eth2ascii(p->dst), qlen);
 
-	    ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
-			p->len, &sun.sa, sizeof(sun.eth));
-	} else {
-	    DEBUGMSG(10, "simu_ethernet: dest %s not found\n",
-		     eth2ascii(etherqueue->dst));
-	}
-	ccnl_free(p);
+            ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
+                        p->len, &sun.sa, sizeof(sun.eth));
+        } else {
+            DEBUGMSG(10, "simu_ethernet: dest %s not found\n",
+                     eth2ascii(etherqueue->dst));
+        }
+        ccnl_free(p);
     }
     ccnl_set_timer(2000, ccnl_simu_ethernet, dummy, dummy2);
 }
@@ -326,37 +326,37 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     struct ccnl_prefix_s *p = c->name;
 
     if (suite == CCNL_SUITE_CCNTLV) {
-	tmp[0] = '\0';
-	for (i = 0; i < p->compcnt-1; i++) {
-	    strcat((char*)tmp, "/");
-	    tmp[strlen(tmp) + p->complen[i] - 4] = '\0';
-	    memcpy(tmp + strlen(tmp), p->comp[i]+4, p->complen[i]-4);
-	}
-	memcpy(tmp2, p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
-	tmp2[p->complen[p->compcnt-1]-4] = '\0';
+        tmp[0] = '\0';
+        for (i = 0; i < p->compcnt-1; i++) {
+            strcat((char*)tmp, "/");
+            tmp[strlen(tmp) + p->complen[i] - 4] = '\0';
+            memcpy(tmp + strlen(tmp), p->comp[i]+4, p->complen[i]-4);
+        }
+        memcpy(tmp2, p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
+        tmp2[p->complen[p->compcnt-1]-4] = '\0';
     } else {
-	tmp[0] = '\0';
-	for (i = 0; i < p->compcnt-1; i++) {
-	    strcat((char*)tmp, "/");
-	    tmp[strlen(tmp) + p->complen[i]] = '\0';
-	    memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
-	}
-	memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-	tmp2[p->complen[p->compcnt-1]] = '\0';
+        tmp[0] = '\0';
+        for (i = 0; i < p->compcnt-1; i++) {
+            strcat((char*)tmp, "/");
+            tmp[strlen(tmp) + p->complen[i]] = '\0';
+            memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
+        }
+        memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+        tmp2[p->complen[p->compcnt-1]] = '\0';
     }
 
     DEBUGMSG(10, "app delivery at node %c, name=%s%s\n",
-	     relay2char(ccnl), tmp, tmp2);
+             relay2char(ccnl), tmp, tmp2);
 
     ccnl_simu_client_RX(ccnl, tmp, atoi(tmp2+1),
-		       (char*) c->content, c->contentlen);
+                       (char*) c->content, c->contentlen);
     return 0;
 }
 
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
-	   sockunion *dst, struct ccnl_buf_s *buf)
+           sockunion *dst, struct ccnl_buf_s *buf)
 {
     struct ccnl_ethernet_s *p;
     int cnt;
@@ -364,8 +364,8 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     for (cnt = 0, p = etherqueue; p; p = p->next, cnt++);
 
     DEBUGMSG(29, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
-	     ccnl_addr2ascii(dst), buf->datalen, cnt,
-	     buf->data[0], buf->data[1]);
+             ccnl_addr2ascii(dst), buf->datalen, cnt,
+             buf->data[0], buf->data[1]);
     DEBUGMSG(29, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
 
     p = ccnl_calloc(1, sizeof(*p) + 2*ETH_ALEN + buf->datalen);
@@ -399,7 +399,7 @@ ccnl_simu_node_log_start(struct ccnl_relay_s *relay, char node)
     struct ccnl_stats_s *st = relay->stats;
 
     if (!st)
-	return;
+        return;
 
     sprintf(name, "node-%c-sent.log", node);
     st->ofp_s = fopen(name, "w");
@@ -408,7 +408,7 @@ ccnl_simu_node_log_start(struct ccnl_relay_s *relay, char node)
         fprintf(st->ofp_s,"# sent_log Node %c\n", node);
         fprintf(st->ofp_s,"#####################\n");
         fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
-	fflush(st->ofp_s);
+        fflush(st->ofp_s);
     }
     sprintf(name, "node-%c-rcvd.log", node);
     st->ofp_r = fopen(name, "w");
@@ -417,7 +417,7 @@ ccnl_simu_node_log_start(struct ccnl_relay_s *relay, char node)
         fprintf(st->ofp_r,"# rcvd_log Node %c\n", node);
         fprintf(st->ofp_r,"#####################\n");
         fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
-	fflush(st->ofp_r);
+        fflush(st->ofp_r);
     }
     sprintf(name, "node-%c-qlen.log", node);
     st->ofp_q = fopen(name, "w");
@@ -426,7 +426,7 @@ ccnl_simu_node_log_start(struct ccnl_relay_s *relay, char node)
         fprintf(st->ofp_q,"# qlen_log Node %c (relay->ifs[0].qlen)\n", node);
         fprintf(st->ofp_q,"#####################\n");
         fprintf(st->ofp_q,"# time\t qlen\n");
-	fflush(st->ofp_q);
+        fflush(st->ofp_q);
     }
 }
 
@@ -445,62 +445,62 @@ ccnl_print_stats(struct ccnl_relay_s *relay, int code)
     double tmp;
 
     if (!st || !st->ofp_r || !st->ofp_s || !st->ofp_q)
-	    return;
+            return;
 
     switch (code) {
     case STAT_RCV_I:
-	if (st->log_recv_t_i < st->log_recv_t_c) {
-	    tmp = st->log_recv_t_c;
-	} else {
-	    tmp = st->log_recv_t_i;
-	} 
-	fprintf(st->ofp_r, "%.4g\t %f\t %c\t %f\n",
-		t, 1/(t - st->log_recv_t_i), '?', 1/(t-tmp));
-	fflush(st->ofp_r);
-	st->log_recv_t_i = t;
-	break;
+        if (st->log_recv_t_i < st->log_recv_t_c) {
+            tmp = st->log_recv_t_c;
+        } else {
+            tmp = st->log_recv_t_i;
+        } 
+        fprintf(st->ofp_r, "%.4g\t %f\t %c\t %f\n",
+                t, 1/(t - st->log_recv_t_i), '?', 1/(t-tmp));
+        fflush(st->ofp_r);
+        st->log_recv_t_i = t;
+        break;
     case STAT_RCV_C:
-	if (st->log_recv_t_i < st->log_recv_t_c) {
-	    tmp = st->log_recv_t_c;
-	} else {
-	    tmp = st->log_recv_t_i;
-	} 
-	fprintf(st->ofp_r, "%.4g\t %c\t %f\t %f\n",
-		t, '?', 1/(t - st->log_recv_t_c), 1/(t-tmp));
-	fflush(st->ofp_r);
-	st->log_recv_t_c = t;
+        if (st->log_recv_t_i < st->log_recv_t_c) {
+            tmp = st->log_recv_t_c;
+        } else {
+            tmp = st->log_recv_t_i;
+        } 
+        fprintf(st->ofp_r, "%.4g\t %c\t %f\t %f\n",
+                t, '?', 1/(t - st->log_recv_t_c), 1/(t-tmp));
+        fflush(st->ofp_r);
+        st->log_recv_t_c = t;
     case STAT_SND_I:
-	if (st->log_sent_t_i < st->log_sent_t_c) {
-	    tmp = st->log_sent_t_c;
-	} else {
-	    tmp = st->log_sent_t_i;
-	} 
-	fprintf(st->ofp_s, "%.4g\t %f\t %c\t %f\n",
-		t, 1/(t - st->log_sent_t_i), '?', 1/(t-tmp));
-	fflush(st->ofp_s);
-	st->log_sent_t_i = t;
-	break;
+        if (st->log_sent_t_i < st->log_sent_t_c) {
+            tmp = st->log_sent_t_c;
+        } else {
+            tmp = st->log_sent_t_i;
+        } 
+        fprintf(st->ofp_s, "%.4g\t %f\t %c\t %f\n",
+                t, 1/(t - st->log_sent_t_i), '?', 1/(t-tmp));
+        fflush(st->ofp_s);
+        st->log_sent_t_i = t;
+        break;
     case STAT_SND_C:
-	if (st->log_sent_t_i < st->log_sent_t_c) {
-	    tmp = st->log_sent_t_c;
-	} else {
-	    tmp = st->log_sent_t_i;
-	} 
-	fprintf(st->ofp_s, "%.4g\t %c\t %f\t %f\n",
-		t, '?', 1/(t - st->log_sent_t_c), 1/(t-tmp));
-	fflush(st->ofp_s);
-	st->log_sent_t_c = t;
-	break;
+        if (st->log_sent_t_i < st->log_sent_t_c) {
+            tmp = st->log_sent_t_c;
+        } else {
+            tmp = st->log_sent_t_i;
+        } 
+        fprintf(st->ofp_s, "%.4g\t %c\t %f\t %f\n",
+                t, '?', 1/(t - st->log_sent_t_c), 1/(t-tmp));
+        fflush(st->ofp_s);
+        st->log_sent_t_c = t;
+        break;
     case STAT_QLEN:
-	fprintf(st->ofp_q, "%.4g\t %i\n", t, relay->ifs[0].qlen);
-	fflush(st->ofp_q);
-	break;
+        fprintf(st->ofp_q, "%.4g\t %i\n", t, relay->ifs[0].qlen);
+        fflush(st->ofp_q);
+        break;
     case STAT_EOP1: // end of phase 1
-	fprintf(st->ofp_r, "%.4g\t %f\t %f\t %f\n", t, 0.0, 0.0, 0.0);
-	fflush(st->ofp_r);
-	break;
+        fprintf(st->ofp_r, "%.4g\t %f\t %f\t %f\n", t, 0.0, 0.0, 0.0);
+        fflush(st->ofp_r);
+        break;
     default:
-	break;
+        break;
     }
 }
 
@@ -515,7 +515,7 @@ static int inter_packet_interval = 0; // in usec
 #ifdef USE_SCHEDULER
 struct ccnl_sched_s*
 ccnl_simu_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
-				    void(*cb)(void*,void*))
+                                    void(*cb)(void*,void*))
 {
     return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
@@ -529,7 +529,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 void
 ccnl_simu_init_node(char node, const char *addr,
-		    int max_cache_entries)
+                    int max_cache_entries)
 {
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_if_s *i;
@@ -551,21 +551,21 @@ ccnl_simu_init_node(char node, const char *addr,
 
 #ifdef USE_SCHEDULER
     i->sched = ccnl_sched_pktrate_new(ccnl_interface_CTS, relay,
-				      inter_packet_interval);
+                                      inter_packet_interval);
     relay->defaultFaceScheduler = ccnl_simu_defaultFaceScheduler;
 #endif
 
     if (node == 'A' || node == 'B') {
 
-	struct ccnl_client_s *client = ccnl_calloc(1,
-					   sizeof(struct ccnl_client_s));
-	client->lastseq = SIMU_NUMBER_OF_CHUNKS-1;
-	client->last_received = -1;
-	client->name = node == 'A' ?
-	    "/ccnl/simu/movie1" : "/ccnl/simu/movie2";
-	relay->aux = (void *) client;
+        struct ccnl_client_s *client = ccnl_calloc(1,
+                                           sizeof(struct ccnl_client_s));
+        client->lastseq = SIMU_NUMBER_OF_CHUNKS-1;
+        client->last_received = -1;
+        client->name = node == 'A' ?
+            "/ccnl/simu/movie1" : "/ccnl/simu/movie2";
+        relay->aux = (void *) client;
 
-	relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
+        relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     }
 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
@@ -605,7 +605,7 @@ ccnl_simu_init(int max_cache_entries)
     int i;
 
     if (init_was_visited)
-	return 0;
+        return 0;
     init_was_visited = 1;
 
     DEBUGMSG(99, "ccnl_simu_init\n");
@@ -617,15 +617,15 @@ ccnl_simu_init(int max_cache_entries)
 
     // define each node's eth address:
     ccnl_simu_init_node('A', "\x00\x00\x00\x00\x00\x0a",
-		       max_cache_entries);
+                       max_cache_entries);
     ccnl_simu_init_node('B', "\x00\x00\x00\x00\x00\x0b",
-		       max_cache_entries);
+                       max_cache_entries);
     ccnl_simu_init_node('C', "\x00\x00\x00\x00\x00\x0c",
-		       max_cache_entries);
+                       max_cache_entries);
     ccnl_simu_init_node('1', "\x00\x00\x00\x00\x00\x01",
-		       max_cache_entries);
+                       max_cache_entries);
     ccnl_simu_init_node('2', "\x00\x00\x00\x00\x00\x02",
-		       max_cache_entries);
+                       max_cache_entries);
 
     // install the system's forwarding pointers:
     ccnl_simu_add_fwd('A', "/ccnl/simu", '2');
@@ -635,15 +635,15 @@ ccnl_simu_init(int max_cache_entries)
 
 /*
     for (i = 0; i < 5; i++)
-	ccnl_dump(0, CCNL_RELAY, relays+i);
+        ccnl_dump(0, CCNL_RELAY, relays+i);
 */
 
     // turn node 'C' into a repository for three movies
     sprintf(dat, "%d", (int) sizeof(dat));
     for (i = 0; i < SIMU_NUMBER_OF_CHUNKS; i++) {
-	ccnl_simu_add2cache('C', "/ccnl/simu/movie1", i, dat, sizeof(dat));
-	ccnl_simu_add2cache('C', "/ccnl/simu/movie2", i, dat, sizeof(dat));
-	ccnl_simu_add2cache('C', "/ccnl/simu/movie3", i, dat, sizeof(dat));
+        ccnl_simu_add2cache('C', "/ccnl/simu/movie1", i, dat, sizeof(dat));
+        ccnl_simu_add2cache('C', "/ccnl/simu/movie2", i, dat, sizeof(dat));
+        ccnl_simu_add2cache('C', "/ccnl/simu/movie3", i, dat, sizeof(dat));
     }
 
     ccnl_set_timer(5000, ccnl_simu_ethernet, 0, 0);
@@ -677,32 +677,32 @@ simu_eventloop()
     long usec;
 
     while (eventqueue) {
-	struct ccnl_timer_s *t = eventqueue;
-	// printf("  looping now %g\n", CCNL_NOW());
-	gettimeofday(&now, 0);
-	usec = timevaldelta(&(t->timeout), &now);
-	if (usec >= 0) {
-	    // usleep(usec);
-	    struct timespec ts;
-	    ts.tv_sec = usec / 1000000;
-	    ts.tv_nsec = 1000 * (usec % 1000000);
-	    nanosleep(&ts, NULL);
-	}
-	t = eventqueue;
-	eventqueue = t->next;
-	if (t->fct) {
-	    void (*fct)(char,int) = t->fct;
-	    char c = t->node;
-	    int i = t->intarg;
-	    ccnl_free(t);
-	    (fct)(c, i);
-	} else if (t->fct2) {
-	    void (*fct2)(void*,void*) = t->fct2;
-	    void *aux1 = t->aux1;
-	    void *aux2 = t->aux2;
-	    ccnl_free(t);
-	    (fct2)(aux1, aux2);
-	}
+        struct ccnl_timer_s *t = eventqueue;
+        // printf("  looping now %g\n", CCNL_NOW());
+        gettimeofday(&now, 0);
+        usec = timevaldelta(&(t->timeout), &now);
+        if (usec >= 0) {
+            // usleep(usec);
+            struct timespec ts;
+            ts.tv_sec = usec / 1000000;
+            ts.tv_nsec = 1000 * (usec % 1000000);
+            nanosleep(&ts, NULL);
+        }
+        t = eventqueue;
+        eventqueue = t->next;
+        if (t->fct) {
+            void (*fct)(char,int) = t->fct;
+            char c = t->node;
+            int i = t->intarg;
+            ccnl_free(t);
+            (fct)(c, i);
+        } else if (t->fct2) {
+            void (*fct2)(void*,void*) = t->fct2;
+            void *aux1 = t->aux1;
+            void *aux2 = t->aux2;
+            ccnl_free(t);
+            (fct2)(aux1, aux2);
+        }
     }
     DEBUGMSG(0, "simu event loop: no more events to handle\n");
 }
@@ -721,30 +721,30 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
 
     int i;
     for (i = 0; i < 5; i++) {
-	struct ccnl_relay_s *relay = relays + i;
+        struct ccnl_relay_s *relay = relays + i;
 
     if (relay->aux) {
         ccnl_free(relay->aux);
         relay->aux = NULL;
     }
 
-	if (relay->stats) {
-	    end_log(relay->stats->ofp_s);
-	    end_log(relay->stats->ofp_r);
-	    end_log(relay->stats->ofp_q);
-	    ccnl_free(relay->stats);
-	    relay->stats = NULL;
-	}
-	ccnl_core_cleanup(relay);
+        if (relay->stats) {
+            end_log(relay->stats->ofp_s);
+            end_log(relay->stats->ofp_r);
+            end_log(relay->stats->ofp_q);
+            ccnl_free(relay->stats);
+            relay->stats = NULL;
+        }
+        ccnl_core_cleanup(relay);
     }
 
     while(eventqueue)
-	ccnl_rem_timer(eventqueue);
+        ccnl_rem_timer(eventqueue);
 
     while(etherqueue) {
-	struct ccnl_ethernet_s *e = etherqueue->next;
-	ccnl_free(etherqueue);
-	etherqueue = e;
+        struct ccnl_ethernet_s *e = etherqueue->next;
+        ccnl_free(etherqueue);
+        etherqueue = e;
     }
 
 #ifdef USE_SCHEDULER
@@ -786,13 +786,13 @@ main(int argc, char **argv)
         case 'h':
         default:
             fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
-		    "[-g MIN_INTER_PACKET_INTERVAL] "
-		    "[-i MIN_INTER_CCNMSG_INTERVAL] "
+                    "[-g MIN_INTER_PACKET_INTERVAL] "
+                    "[-i MIN_INTER_CCNMSG_INTERVAL] "
 #ifdef USE_SUITE_NDNTLV
-		    "[-s SUITE  0=ccnb, 1=ccntlv, 2=ndntlv (default)] "
+                    "[-s SUITE  0=ccnb, 1=ccntlv, 2=ndntlv (default)] "
 #endif
-		    "[-v DEBUG_LEVEL]\n",
-		    argv[0]);
+                    "[-v DEBUG_LEVEL]\n",
+                    argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -802,7 +802,7 @@ main(int argc, char **argv)
     ccnl_core_init();
 
     DEBUGMSG(1, "This is ccn-lite-simu, starting at %s",
-	     ctime(&relays[0].startup_time) + 4);
+             ctime(&relays[0].startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());

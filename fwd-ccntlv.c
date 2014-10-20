@@ -27,8 +27,8 @@
 // work on a message (buffer passed without the fixed header)
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		      struct ccnx_tlvhdr_ccnx201311_s *hdrptr, int hoplimit,
-		      unsigned char **data, int *datalen)
+                      struct ccnx_tlvhdr_ccnx201311_s *hdrptr, int hoplimit,
+                      unsigned char **data, int *datalen)
 {
     int rc = -1;
     unsigned int typ, len;
@@ -41,12 +41,12 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
 
     if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
-	return -1;
+        return -1;
     buf = ccnl_ccntlv_extract(*data - (unsigned char*)hdrptr, data, datalen,
-			      &p, &scope, &keyid, &keyidlen,
-			      &content, &contlen);
+                              &p, &scope, &keyid, &keyidlen,
+                              &content, &contlen);
     if (!buf) {
-	    DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
+            DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
 
     if (typ == CCNX_TLV_TL_Interest) {
@@ -55,49 +55,49 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         // CONFORM: Step 1: search for matching local content
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_CCNTLV)
-		continue;
-	    // TODO: check keyid
+                continue;
+            // TODO: check keyid
             // TODO: check freshness, kind-of-reply
-	    if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
-		continue;
+            if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
+                continue;
             DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
             ccnl_print_stats(relay, STAT_SND_C); //log sent_c
             if (from->ifndx >= 0){
-		ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
+                ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
             } else {
                 ccnl_app_RX(relay, c);
             }
             goto Skip;
         }
-	if (scope >= 0) // request for local content only, and none was found
-	    goto Skip;
-	DEBUGMSG(7, "  no matching content for interest\n");
+        if (scope >= 0) // request for local content only, and none was found
+            goto Skip;
+        DEBUGMSG(7, "  no matching content for interest\n");
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
-	    if (i->suite != CCNL_SUITE_CCNTLV)
-		continue;
-	    if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT))
-		// TODO check hoplimit
-		// TODO check keyid
-		break;
+            if (i->suite != CCNL_SUITE_CCNTLV)
+                continue;
+            if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT))
+                // TODO check hoplimit
+                // TODO check keyid
+                break;
         }
-	// this is a new/unknown I request: create and propagate
+        // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-	if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
-	    if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_CCNTLV, &buf,
-				    &p, 0, 0))
-		goto Done;
-	}
+        if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
+            if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_CCNTLV, &buf,
+                                    &p, 0, 0))
+                goto Done;
+        }
 #endif
         if (!i) {
-	    // TODO keyID restriction
-	    // TODO hoplimit
+            // TODO keyID restriction
+            // TODO hoplimit
             i = ccnl_interest_new(relay, from, CCNL_SUITE_CCNTLV,
-				  &buf, &p, 0, 0 /* hoplimit */);
+                                  &buf, &p, 0, 0 /* hoplimit */);
             if (i) { // CONFORM: Step 3 (and 4)
-		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
-		ccnl_interest_propagate(relay, i);
+                DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
+                ccnl_interest_propagate(relay, i);
             }
         } else if ((from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
             DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
@@ -109,36 +109,36 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
 
     } else if (typ == CCNX_TLV_TL_Object) { // data packet with content
-	DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
-	ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
+        DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
+        ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 
         // CONFORM: Step 1:
-	for (c = relay->contents; c; c = c->next)
-	    if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
-	c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV,
-			     &buf, &p, NULL, content, contlen);
-	if (c) { // CONFORM: Step 2 (and 3)
+        for (c = relay->contents; c; c = c->next)
+            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+        c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV,
+                             &buf, &p, NULL, content, contlen);
+        if (c) { // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-	    if (ccnl_nfnprefix_isNFN(c->name)) {
-		if (ccnl_nfn_RX_result(relay, from, c))
-		    goto Done;
-		DEBUGMSG(99, "no running computation found \n");
-	    }
+            if (ccnl_nfnprefix_isNFN(c->name)) {
+                if (ccnl_nfn_RX_result(relay, from, c))
+                    goto Done;
+                DEBUGMSG(99, "no running computation found \n");
+            }
 #endif
-	    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
-		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
-		DEBUGMSG(7, "  removed because no matching interest\n");
-		free_content(c);
-		goto Skip;
-	    }
-	    if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-		DEBUGMSG(7, "  adding content to cache\n");
-		ccnl_content_add2cache(relay, c);
-	    } else {
-		DEBUGMSG(7, "  content not added to cache\n");
-		free_content(c);
-	    }
-	}
+            if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
+                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
+                DEBUGMSG(7, "  removed because no matching interest\n");
+                free_content(c);
+                goto Skip;
+            }
+            if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
+                DEBUGMSG(7, "  adding content to cache\n");
+                ccnl_content_add2cache(relay, c);
+            } else {
+                DEBUGMSG(7, "  content not added to cache\n");
+                free_content(c);
+            }
+        }
     }
 
 Skip:
@@ -152,49 +152,49 @@ Done:
 
 int
 ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-	       unsigned char **data, int *datalen)
+               unsigned char **data, int *datalen)
 {
     int rc = 0, opthdrlen, endlen;
     unsigned int typ, len;
     unsigned char *opthdr, *end;
     DEBUGMSG(6, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
-	     *datalen, (void*)from, relay->id, from ? from->faceid : -1);
+             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
 next:
     while (rc >= 0 && **data == CCNX_TLV_V0 &&
-			*datalen > sizeof(struct ccnx_tlvhdr_ccnx201311_s)) {
-	struct ccnx_tlvhdr_ccnx201311_s *hp =
-				(struct ccnx_tlvhdr_ccnx201311_s*) *data;
-	int hoplimit = -1;
+                        *datalen > sizeof(struct ccnx_tlvhdr_ccnx201311_s)) {
+        struct ccnx_tlvhdr_ccnx201311_s *hp =
+                                (struct ccnx_tlvhdr_ccnx201311_s*) *data;
+        int hoplimit = -1;
 
-	if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen)) > *datalen)
-	    return -1;
-	*data += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-	*datalen -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-	if (*datalen < ntohs(hp->msglen)) 
-	    return -1;
-	end = *data + ntohs(hp->msglen);
-	endlen = *datalen - ntohs(hp->msglen);
+        if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen)) > *datalen)
+            return -1;
+        *data += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
+        *datalen -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
+        if (*datalen < ntohs(hp->msglen)) 
+            return -1;
+        end = *data + ntohs(hp->msglen);
+        endlen = *datalen - ntohs(hp->msglen);
 
-	opthdrlen = ntohs(hp->hdrlen);
-	opthdr = (unsigned char*) (hp + 1);
-	while (opthdrlen > 0) {
-	    if (ccnl_ccntlv_dehead(&opthdr, &opthdrlen, &typ, &len))
-		break;
-	    if (opthdrlen > 2 && typ == CCNX_TLV_PH_Hoplimit &&
-				ntohs(hp->msgtype) == CCNX_TLV_TL_Interest) {
-		hoplimit = ntohs(*(unsigned short*)opthdr) - 1;
-		if (hoplimit <= 0) { // drop this interest
-		    *data = end;
-		    *datalen = endlen;
-		    goto next;
-		}
-		*(unsigned short*)opthdr = hoplimit;
-		opthdr += 2;
-		opthdrlen -= 2;
-	    }
-	}
-	rc = ccnl_ccntlv_forwarder(relay, from, hp, hoplimit, data, datalen);
+        opthdrlen = ntohs(hp->hdrlen);
+        opthdr = (unsigned char*) (hp + 1);
+        while (opthdrlen > 0) {
+            if (ccnl_ccntlv_dehead(&opthdr, &opthdrlen, &typ, &len))
+                break;
+            if (opthdrlen > 2 && typ == CCNX_TLV_PH_Hoplimit &&
+                                ntohs(hp->msgtype) == CCNX_TLV_TL_Interest) {
+                hoplimit = ntohs(*(unsigned short*)opthdr) - 1;
+                if (hoplimit <= 0) { // drop this interest
+                    *data = end;
+                    *datalen = endlen;
+                    goto next;
+                }
+                *(unsigned short*)opthdr = hoplimit;
+                opthdr += 2;
+                opthdrlen -= 2;
+            }
+        }
+        rc = ccnl_ccntlv_forwarder(relay, from, hp, hoplimit, data, datalen);
     }
     return rc;
 }

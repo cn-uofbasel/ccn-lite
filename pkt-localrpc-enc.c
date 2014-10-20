@@ -28,29 +28,29 @@
 void ccnl_rdr_free(struct rdr_ds_s *x)
 {
     while (x) {
-	struct rdr_ds_s *y = x->nextinseq;
+        struct rdr_ds_s *y = x->nextinseq;
 
-	switch (x->type) {
-	case NDN_TLV_RPC_APPLICATION:
-	    ccnl_rdr_free(x->u.fct);
-	    ccnl_rdr_free(x->aux);
-	    break;
-	case NDN_TLV_RPC_LAMBDA:
-	    ccnl_rdr_free(x->u.lambdavar);
-	    ccnl_rdr_free(x->aux);
-	    break;
-	case NDN_TLV_RPC_SEQUENCE:
-	    ccnl_rdr_free(x->aux);
-	    break;
-	case NDN_TLV_RPC_NAME:
-	case NDN_TLV_RPC_NONNEGINT:
-	case NDN_TLV_RPC_BIN:
-	case NDN_TLV_RPC_STR:
-	default:
-	    break;
-	}
-	ccnl_free(x);
-	x = y;
+        switch (x->type) {
+        case NDN_TLV_RPC_APPLICATION:
+            ccnl_rdr_free(x->u.fct);
+            ccnl_rdr_free(x->aux);
+            break;
+        case NDN_TLV_RPC_LAMBDA:
+            ccnl_rdr_free(x->u.lambdavar);
+            ccnl_rdr_free(x->aux);
+            break;
+        case NDN_TLV_RPC_SEQUENCE:
+            ccnl_rdr_free(x->aux);
+            break;
+        case NDN_TLV_RPC_NAME:
+        case NDN_TLV_RPC_NONNEGINT:
+        case NDN_TLV_RPC_BIN:
+        case NDN_TLV_RPC_STR:
+        default:
+            break;
+        }
+        ccnl_free(x);
+        x = y;
     }
 }
 
@@ -60,7 +60,7 @@ struct rdr_ds_s* ccnl_rdr_mkApp(struct rdr_ds_s *expr, struct rdr_ds_s *arg)
 
     ds = (struct rdr_ds_s*) ccnl_calloc(1, sizeof(struct rdr_ds_s));
     if (!ds)
-	return 0;
+        return 0;
 
     ds->type = NDN_TLV_RPC_APPLICATION;
     ds->flatlen = -1;
@@ -76,7 +76,7 @@ struct rdr_ds_s* ccnl_rdr_mkSeq(void)
 
     ds = (struct rdr_ds_s*) ccnl_calloc(1, sizeof(struct rdr_ds_s));
     if (!ds)
-	return 0;
+        return 0;
 
     ds->type = NDN_TLV_RPC_SEQUENCE;
     ds->flatlen = -1;
@@ -89,11 +89,11 @@ struct rdr_ds_s* ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el)
     struct rdr_ds_s *p;
 
     if (!seq) // || seq->type != NDN_TLV_RPC_SEQUENCE)
-	return NULL;
+        return NULL;
 
     if (!seq->aux) {
-	seq->aux = el;
-	return seq;
+        seq->aux = el;
+        return seq;
     }
 
     for (p = seq->aux; p->nextinseq; p = p->nextinseq) {}
@@ -101,8 +101,8 @@ struct rdr_ds_s* ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el)
 /*
     p->u.nextinseq = (struct rdr_ds_s*) ccnl_calloc(1, sizeof(struct rdr_ds_s));
     if (!p->u.nextinseq) {
-	// should free old data structures of seq
-	return 0;
+        // should free old data structures of seq
+        return 0;
     }
     p = p->u.nextinseq;
     p->type = NDN_TLV_RPC_SEQUENCE;
@@ -118,14 +118,14 @@ struct rdr_ds_s* ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el)
 struct rdr_ds_s* ccnl_rdr_seqGetNext(struct rdr_ds_s *seq)
 {
     if (!seq || seq->type != NDN_TLV_RPC_SEQUENCE)
-	return NULL;
+        return NULL;
     return seq->u.nextinseq;
 }
 
 struct rdr_ds_s* ccnl_rdr_seqGetEntry(struct rdr_ds_s *seq)
 {
     if (!seq || seq->type != NDN_TLV_RPC_SEQUENCE)
-	return NULL;
+        return NULL;
     return seq->aux;
 }
 */
@@ -184,7 +184,7 @@ struct rdr_ds_s* ccnl_rdr_mkStr(char *s)
     struct rdr_ds_s *ds = ccnl_rdr_mkVar(s);
 
     if (ds)
-	ds->type = NDN_TLV_RPC_STR;
+        ds->type = NDN_TLV_RPC_STR;
     return ds;
 }
 
@@ -209,46 +209,46 @@ int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds) // incl TL header
     struct rdr_ds_s *aux;
 
     if (!ds)
-	return -1;
+        return -1;
     if (ds->flatlen >= 0)
-	return ds->flatlen;
+        return ds->flatlen;
 
     switch(ds->type) {
     case NDN_TLV_RPC_NAME:
-	len = ndn_tlv_len(NDN_TLV_RPC_NAME, ds->u.namelen);
-	goto done;
+        len = ndn_tlv_len(NDN_TLV_RPC_NAME, ds->u.namelen);
+        goto done;
     case NDN_TLV_RPC_NONNEGINT:
-	val = ds->u.nonnegintval;
-	len = 0;
-	do {
-	    val = val >> 8;
-	    len++;
-	} while (val);
-	len = ndn_tlv_len(NDN_TLV_RPC_NONNEGINT, len);
-	goto done;
+        val = ds->u.nonnegintval;
+        len = 0;
+        do {
+            val = val >> 8;
+            len++;
+        } while (val);
+        len = ndn_tlv_len(NDN_TLV_RPC_NONNEGINT, len);
+        goto done;
     case NDN_TLV_RPC_BIN:
-	len = ndn_tlv_len(NDN_TLV_RPC_BIN, ds->u.binlen);
-	goto done;
+        len = ndn_tlv_len(NDN_TLV_RPC_BIN, ds->u.binlen);
+        goto done;
     case NDN_TLV_RPC_STR:
-	len = ndn_tlv_len(NDN_TLV_RPC_NAME, ds->u.strlen);
-	goto done;
+        len = ndn_tlv_len(NDN_TLV_RPC_NAME, ds->u.strlen);
+        goto done;
 
     case NDN_TLV_RPC_APPLICATION:
-	len = ccnl_rdr_getFlatLen(ds->u.fct);
-	break;
+        len = ccnl_rdr_getFlatLen(ds->u.fct);
+        break;
     case NDN_TLV_RPC_LAMBDA:
-	len = ccnl_rdr_getFlatLen(ds->u.lambdavar);
-	break;
+        len = ccnl_rdr_getFlatLen(ds->u.lambdavar);
+        break;
     case NDN_TLV_RPC_SEQUENCE:
-	len = 0;
-	break;
+        len = 0;
+        break;
     default:
-	return -1;
+        return -1;
     }
     aux = ds->aux;
     while (aux) {
-	len += ccnl_rdr_getFlatLen(aux);
-	aux = aux->nextinseq;
+        len += ccnl_rdr_getFlatLen(aux);
+        aux = aux->nextinseq;
     }
     len = ndn_tlv_len(ds->type, len);
 done:
@@ -261,8 +261,8 @@ static int ccnl_rdr_serialize_fillTorL(long val, unsigned char *buf)
     int len, i, t;
 
     if (val < 253) {
-	*buf = val;
-	return 1;
+        *buf = val;
+        return 1;
     }
     if (val <= 0xffff)
         len = 2, t = 253;
@@ -296,70 +296,70 @@ static void ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, unsigned char *at)
     unsigned int val;
 
     if (!ds)
-	return;
+        return;
 
     if (ds->type < NDN_TLV_RPC_APPLICATION) { // user defined code point
-	*at = ds->type;
-	return;
+        *at = ds->type;
+        return;
     }
 
     switch(ds->type) {
     case NDN_TLV_RPC_NAME:
-	len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_NAME, ds->u.namelen, at);
-	memcpy(at + len, ds->aux, ds->u.namelen);
-	return;
+        len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_NAME, ds->u.namelen, at);
+        memcpy(at + len, ds->aux, ds->u.namelen);
+        return;
     case NDN_TLV_RPC_BIN:
-	len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_BIN, ds->u.binlen, at);
-	memcpy(at + len, ds->aux, ds->u.binlen);
-	return;
+        len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_BIN, ds->u.binlen, at);
+        memcpy(at + len, ds->aux, ds->u.binlen);
+        return;
     case NDN_TLV_RPC_STR:
-	len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_STR, ds->u.strlen, at);
-	memcpy(at + len, ds->aux, ds->u.strlen);
-	return;
+        len = ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_STR, ds->u.strlen, at);
+        memcpy(at + len, ds->aux, ds->u.strlen);
+        return;
     case NDN_TLV_RPC_NONNEGINT:
-	len = ds->flatlen;
-	ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_NONNEGINT, len-2, at);
-	at += len - 1;
-	val = ds->u.nonnegintval;
-	for (len -= 2; len > 0; len--) {
-	    *at = val & 0x0ff;
-	    val = val >> 8;
-	    at--;
-	}
-	return;
+        len = ds->flatlen;
+        ccnl_rdr_serialize_fillTandL(NDN_TLV_RPC_NONNEGINT, len-2, at);
+        at += len - 1;
+        val = ds->u.nonnegintval;
+        for (len -= 2; len > 0; len--) {
+            *at = val & 0x0ff;
+            val = val >> 8;
+            at--;
+        }
+        return;
 
     case NDN_TLV_RPC_APPLICATION:
-	len = ccnl_rdr_getFlatLen(ds->u.fct);
-	goesfirst = ds->u.fct;
-	break;
+        len = ccnl_rdr_getFlatLen(ds->u.fct);
+        goesfirst = ds->u.fct;
+        break;
     case NDN_TLV_RPC_SEQUENCE:
-	len = 0;
-	goesfirst = NULL;
-	break;
+        len = 0;
+        goesfirst = NULL;
+        break;
     case NDN_TLV_RPC_LAMBDA:
-	len = ccnl_rdr_getFlatLen(ds->u.lambdavar);
-	goesfirst = ds->u.lambdavar;
-	break;
+        len = ccnl_rdr_getFlatLen(ds->u.lambdavar);
+        goesfirst = ds->u.lambdavar;
+        break;
     default:
-	fprintf(stderr, "serialize_fill() error\n");
-	return;
+        fprintf(stderr, "serialize_fill() error\n");
+        return;
     }
 
     aux = ds->aux;
     while (aux) {
-	len += ccnl_rdr_getFlatLen(aux);
-	aux = aux->nextinseq;
+        len += ccnl_rdr_getFlatLen(aux);
+        aux = aux->nextinseq;
     }
     at += ccnl_rdr_serialize_fillTandL(ds->type, len, at);
     if (goesfirst) {
-	ccnl_rdr_serialize_fill(goesfirst, at);
-	at += goesfirst->flatlen;
+        ccnl_rdr_serialize_fill(goesfirst, at);
+        at += goesfirst->flatlen;
     }
     aux = ds->aux;
     while (aux) {
-	ccnl_rdr_serialize_fill(aux, at);
-	at += aux->flatlen;
-	aux = aux->nextinseq;
+        ccnl_rdr_serialize_fill(aux, at);
+        at += aux->flatlen;
+        aux = aux->nextinseq;
     }
 }
 
@@ -368,11 +368,11 @@ int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen)
     int len;
 
     if (!ds)
-	return -1;
+        return -1;
 
     len = ccnl_rdr_getFlatLen(ds);
     if (len > buflen)
-	return -1;
+        return -1;
     ccnl_rdr_serialize_fill(ds, buf);
 
     return len;

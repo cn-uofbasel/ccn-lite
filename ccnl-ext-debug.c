@@ -51,24 +51,24 @@ struct ccnl_stats_s {
 #endif
 
 #define DEBUGSTMT(LVL, ...) do { \
-	if ((LVL)>debug_level) break; \
-	__VA_ARGS__; \
+        if ((LVL)>debug_level) break; \
+        __VA_ARGS__; \
 } while (0)
 
 #ifndef CCNL_LINUXKERNEL
-#  define DEBUGMSG(LVL, ...) do {	\
-	if ((LVL)>debug_level) break;   \
-	fprintf(stderr, "%s: ", timestamp());	\
-	fprintf(stderr, __VA_ARGS__);	\
+#  define DEBUGMSG(LVL, ...) do {       \
+        if ((LVL)>debug_level) break;   \
+        fprintf(stderr, "%s: ", timestamp());   \
+        fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 
 #else // CCNL_LINUXKERNEL
-#  define DEBUGMSG(LVL, ...) do {	\
-	if ((LVL)>debug_level) break;   \
-	printk("%s: ", THIS_MODULE->name);	\
-	printk(__VA_ARGS__);		\
+#  define DEBUGMSG(LVL, ...) do {       \
+        if ((LVL)>debug_level) break;   \
+        printk("%s: ", THIS_MODULE->name);      \
+        printk(__VA_ARGS__);            \
     } while (0)
-#  define fprintf(fd, ...)	printk(__VA_ARGS__)
+#  define fprintf(fd, ...)      printk(__VA_ARGS__)
 #endif // CCNL_LINUXKERNEL
 
 
@@ -94,27 +94,27 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
-	case AF_PACKET:
-	{
-	     struct sockaddr_ll *ll = &su->eth;
-	     strcpy(result, eth2ascii(ll->sll_addr));
-	     sprintf(result+strlen(result), "/0x%04x",
-		     ntohs(ll->sll_protocol));
-	}
-	    return result;
+        case AF_PACKET:
+        {
+             struct sockaddr_ll *ll = &su->eth;
+             strcpy(result, eth2ascii(ll->sll_addr));
+             sprintf(result+strlen(result), "/0x%04x",
+                     ntohs(ll->sll_protocol));
+        }
+            return result;
 #endif
-	case AF_INET:
-	    sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
-		    ntohs(su->ip4.sin_port));
-	    return result;
-//	    return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
+        case AF_INET:
+            sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
+                    ntohs(su->ip4.sin_port));
+            return result;
+//          return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
 #ifdef USE_UNIXSOCKET
-	case AF_UNIX:
-	    strcpy(result, su->ux.sun_path);
-	    return result;
+        case AF_UNIX:
+            strcpy(result, su->ux.sun_path);
+            return result;
 #endif
-	default:
-	    break;
+        default:
+            break;
     }
     return NULL;
 }
@@ -130,7 +130,7 @@ blob(unsigned char *cp, int len)
 {
     int i;
     for (i = 0; i < len; i++, cp++)
-	fprintf(stderr, "%02x", *cp);
+        fprintf(stderr, "%02x", *cp);
 }
 
 
@@ -140,7 +140,7 @@ frag_protocol(int e)
     static char* names[] = { "none", "sequenced2012", "ccnx2013" };
     static char buf[100];
     if (e >= 0 && e <= 2)
-	return names[e];
+        return names[e];
     sprintf(buf, "%d", e);
     return buf;
 }
@@ -176,156 +176,156 @@ ccnl_dump(int lev, int typ, void *p)
 #define INDENT(lev) for (i = 0; i < lev; i++) fprintf(stderr, "  ")
     switch(typ) {
     case CCNL_BUF:
-	while (buf) {
-	    INDENT(lev);
-	    fprintf(stderr, "%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
-		(void *) buf->next);
-	    buf = buf->next;
-	}
-	break;
+        while (buf) {
+            INDENT(lev);
+            fprintf(stderr, "%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
+                (void *) buf->next);
+            buf = buf->next;
+        }
+        break;
     case CCNL_PREFIX:
-	INDENT(lev);
-	fprintf(stderr, "%p PREFIX len=%d val=%s\n",
-	       (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
-	break;
+        INDENT(lev);
+        fprintf(stderr, "%p PREFIX len=%d val=%s\n",
+               (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+        break;
     case CCNL_RELAY:
-	INDENT(lev);
-	fprintf(stderr, "%p RELAY\n", (void *) top); lev++;
-	INDENT(lev); fprintf(stderr, "interfaces:\n");
-	for (k = 0; k < top->ifcount; k++) {
-	    INDENT(lev+1);
-	    fprintf(stderr, "ifndx=%d addr=%s", k,
-		    ccnl_addr2ascii(&top->ifs[k].addr));
+        INDENT(lev);
+        fprintf(stderr, "%p RELAY\n", (void *) top); lev++;
+        INDENT(lev); fprintf(stderr, "interfaces:\n");
+        for (k = 0; k < top->ifcount; k++) {
+            INDENT(lev+1);
+            fprintf(stderr, "ifndx=%d addr=%s", k,
+                    ccnl_addr2ascii(&top->ifs[k].addr));
 #ifdef CCNL_LINUXKERNEL
-	    if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
-		fprintf(stderr, " netdev=%p", top->ifs[k].netdev);
-	    else
-		fprintf(stderr, " sockstruct=%p", top->ifs[k].sock);
+            if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
+                fprintf(stderr, " netdev=%p", top->ifs[k].netdev);
+            else
+                fprintf(stderr, " sockstruct=%p", top->ifs[k].sock);
 #else
-	    fprintf(stderr, " sock=%d", top->ifs[k].sock);
+            fprintf(stderr, " sock=%d", top->ifs[k].sock);
 #endif
-	    if (top->ifs[k].reflect)
-		fprintf(stderr, " reflect=%d", top->ifs[k].reflect);
-	    fprintf(stderr, "\n");
-	}
-	if (top->faces) {
-	    INDENT(lev); fprintf(stderr, "faces:\n");    ccnl_dump(lev+1, CCNL_FACE, top->faces);
-	}
-	if (top->fib) {
-	    INDENT(lev); fprintf(stderr, "fib:\n");      ccnl_dump(lev+1, CCNL_FWD, top->fib);
-	}
-	if (top->pit) {
-	    INDENT(lev); fprintf(stderr, "pit:\n");      ccnl_dump(lev+1, CCNL_INTEREST, top->pit);
-	}
-	if (top->contents) {
-	    INDENT(lev); fprintf(stderr, "contents:\n"); ccnl_dump(lev+1, CCNL_CONTENT, top->contents);
-	}
-	break;
+            if (top->ifs[k].reflect)
+                fprintf(stderr, " reflect=%d", top->ifs[k].reflect);
+            fprintf(stderr, "\n");
+        }
+        if (top->faces) {
+            INDENT(lev); fprintf(stderr, "faces:\n");    ccnl_dump(lev+1, CCNL_FACE, top->faces);
+        }
+        if (top->fib) {
+            INDENT(lev); fprintf(stderr, "fib:\n");      ccnl_dump(lev+1, CCNL_FWD, top->fib);
+        }
+        if (top->pit) {
+            INDENT(lev); fprintf(stderr, "pit:\n");      ccnl_dump(lev+1, CCNL_INTEREST, top->pit);
+        }
+        if (top->contents) {
+            INDENT(lev); fprintf(stderr, "contents:\n"); ccnl_dump(lev+1, CCNL_CONTENT, top->contents);
+        }
+        break;
     case CCNL_FACE:
-	while (fac) {
-	    INDENT(lev);
-	    fprintf(stderr, "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
-		   (void*) fac, fac->faceid, (void *) fac->next,
-		   (void *) fac->prev, fac->ifndx, fac->flags);
-	    if (fac->peer.sa.sa_family == AF_INET)
-		fprintf(stderr, " ip=%s", ccnl_addr2ascii(&fac->peer));
+        while (fac) {
+            INDENT(lev);
+            fprintf(stderr, "%p FACE id=%d next=%p prev=%p ifndx=%d flags=%02x",
+                   (void*) fac, fac->faceid, (void *) fac->next,
+                   (void *) fac->prev, fac->ifndx, fac->flags);
+            if (fac->peer.sa.sa_family == AF_INET)
+                fprintf(stderr, " ip=%s", ccnl_addr2ascii(&fac->peer));
 #ifdef USE_ETHERNET
-	    else if (fac->peer.sa.sa_family == AF_PACKET)
-		fprintf(stderr, " eth=%s", ccnl_addr2ascii(&fac->peer));
+            else if (fac->peer.sa.sa_family == AF_PACKET)
+                fprintf(stderr, " eth=%s", ccnl_addr2ascii(&fac->peer));
 #endif
-	    else if (fac->peer.sa.sa_family == AF_UNIX)
-		fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
-	    else
-		fprintf(stderr, " peer=?");
-	    if (fac->frag)
-		ccnl_dump(lev+2, CCNL_FRAG, fac->frag);
-	    fprintf(stderr, "\n");
-	    if (fac->outq) {
-		INDENT(lev+1); fprintf(stderr, "outq:\n");
-		ccnl_dump(lev+2, CCNL_BUF, fac->outq);
-	    }
-	    fac = fac->next;
-	}
-	break;
+            else if (fac->peer.sa.sa_family == AF_UNIX)
+                fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
+            else
+                fprintf(stderr, " peer=?");
+            if (fac->frag)
+                ccnl_dump(lev+2, CCNL_FRAG, fac->frag);
+            fprintf(stderr, "\n");
+            if (fac->outq) {
+                INDENT(lev+1); fprintf(stderr, "outq:\n");
+                ccnl_dump(lev+2, CCNL_BUF, fac->outq);
+            }
+            fac = fac->next;
+        }
+        break;
 #ifdef USE_FRAG
     case CCNL_FRAG:
-	fprintf(stderr, " fragproto=%s mtu=%d",
-		frag_protocol(frg->protocol), frg->mtu);
-	break;
+        fprintf(stderr, " fragproto=%s mtu=%d",
+                frag_protocol(frg->protocol), frg->mtu);
+        break;
 #endif
     case CCNL_FWD:
-	while (fwd) {
-	    INDENT(lev);
-	    fprintf(stderr, "%p FWD next=%p face=%p (id=%d)\n",
-		    (void *) fwd, (void *) fwd->next,
-		    (void *) fwd->face, fwd->face->faceid);
-	    ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
-	    fwd = fwd->next;
-	}
-	break;
+        while (fwd) {
+            INDENT(lev);
+            fprintf(stderr, "%p FWD next=%p face=%p (id=%d)\n",
+                    (void *) fwd, (void *) fwd->next,
+                    (void *) fwd->face, fwd->face->faceid);
+            ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
+            fwd = fwd->next;
+        }
+        break;
     case CCNL_INTEREST:
-	while (itr) {
-	    int mi, ma;
-	    struct ccnl_buf_s *ppk;
-	    switch (itr->suite) {
-	    case CCNL_SUITE_CCNB:
-		mi = itr->details.ccnb.minsuffix;
-		ma = itr->details.ccnb.maxsuffix;
-		ppk = itr->details.ccnb.ppkd;
-		break;
-	    case CCNL_SUITE_NDNTLV:
-		mi = itr->details.ndntlv.minsuffix;
-		ma = itr->details.ndntlv.maxsuffix;
-		ppk = itr->details.ndntlv.ppkl;
-		break;
-	    default:
-		mi = ma = -1;
-		ppk = NULL;
-		break;
-	    }
-	    INDENT(lev);
-	    fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
-		   (void *) itr, (void *) itr->next, (void *) itr->prev,
-		    itr->last_used, mi, ma, itr->retries);
-	    ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
-	    ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
-	    if (ppk) {
-		INDENT(lev+1);
-		fprintf(stderr, "%p PUBLISHER=", (void *) ppk);
-		blob(ppk->data, ppk->datalen);
-		fprintf(stderr, "\n");
-	    }
-	    if (itr->pending) {
-		INDENT(lev+1); fprintf(stderr, "pending:\n");
-		ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
-	    }
-	    itr = itr->next;
+        while (itr) {
+            int mi, ma;
+            struct ccnl_buf_s *ppk;
+            switch (itr->suite) {
+            case CCNL_SUITE_CCNB:
+                mi = itr->details.ccnb.minsuffix;
+                ma = itr->details.ccnb.maxsuffix;
+                ppk = itr->details.ccnb.ppkd;
+                break;
+            case CCNL_SUITE_NDNTLV:
+                mi = itr->details.ndntlv.minsuffix;
+                ma = itr->details.ndntlv.maxsuffix;
+                ppk = itr->details.ndntlv.ppkl;
+                break;
+            default:
+                mi = ma = -1;
+                ppk = NULL;
+                break;
+            }
+            INDENT(lev);
+            fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
+                   (void *) itr, (void *) itr->next, (void *) itr->prev,
+                    itr->last_used, mi, ma, itr->retries);
+            ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
+            ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
+            if (ppk) {
+                INDENT(lev+1);
+                fprintf(stderr, "%p PUBLISHER=", (void *) ppk);
+                blob(ppk->data, ppk->datalen);
+                fprintf(stderr, "\n");
+            }
+            if (itr->pending) {
+                INDENT(lev+1); fprintf(stderr, "pending:\n");
+                ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
+            }
+            itr = itr->next;
 
-	}
-	break;
+        }
+        break;
     case CCNL_PENDINT:
-	while (pir) {
-	    INDENT(lev);
-	    fprintf(stderr, "%p PENDINT next=%p face=%p last=%d\n",
-		   (void *) pir, (void *) pir->next,
-		   (void *) pir->face, pir->last_used);
-	    pir = pir->next;
-	}
-	break;
+        while (pir) {
+            INDENT(lev);
+            fprintf(stderr, "%p PENDINT next=%p face=%p last=%d\n",
+                   (void *) pir, (void *) pir->next,
+                   (void *) pir->face, pir->last_used);
+            pir = pir->next;
+        }
+        break;
     case CCNL_CONTENT:
-	while (con) {
-	    INDENT(lev);
-	    fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
-		   (void *) con, (void *) con->next, (void *) con->prev,
-		   con->last_used, con->served_cnt);
-	    ccnl_dump(lev+1, CCNL_PREFIX, con->name);
-	    ccnl_dump(lev+1, CCNL_BUF, con->pkt);
-	    con = con->next;
-	}
-	break;
+        while (con) {
+            INDENT(lev);
+            fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+                   (void *) con, (void *) con->next, (void *) con->prev,
+                   con->last_used, con->served_cnt);
+            ccnl_dump(lev+1, CCNL_PREFIX, con->name);
+            ccnl_dump(lev+1, CCNL_BUF, con->pkt);
+            con = con->next;
+        }
+        break;
     default:
-	INDENT(lev);
-	fprintf(stderr, "unknown data type %d at %p\n", typ, p);
+        INDENT(lev);
+        fprintf(stderr, "unknown data type %d at %p\n", typ, p);
     }
 }
 
@@ -374,7 +374,7 @@ get_num_faces(void *p)
 
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
-	       int *ifndx, int *flags, char **peer, int *type, char **frag)
+               int *ifndx, int *flags, char **peer, int *type, char **frag)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -402,10 +402,10 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         else
             type[line] = 0;
         if (fac->frag)
-	    sprintf(frag[line], "fragproto=%s mtu=%d",
-		    frag_protocol(fac->frag->protocol), fac->frag->mtu);
-	else
-	    frag[line][0] = '\0';
+            sprintf(frag[line], "fragproto=%s mtu=%d",
+                    frag_protocol(fac->frag->protocol), fac->frag->mtu);
+        else
+            frag[line][0] = '\0';
 
         fac = fac->next;
         ++line;
@@ -469,7 +469,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
         INDENT(lev+1);
         
         ifndx[k] = k;
-	//        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
+        //        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
         strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
        
 #ifdef CCNL_LINUXKERNEL
@@ -525,22 +525,22 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         prev[line] = (long)(void *) itr->prev;
         last[line] = itr->last_used;
         retries[line] = itr->retries;
-	switch (itr->suite) {
-	case CCNL_SUITE_CCNB:
-	    min[line] = itr->details.ccnb.minsuffix;
-	    max[line] = itr->details.ccnb.maxsuffix;
-	    publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
-	    break;
-	case CCNL_SUITE_NDNTLV:
-	    min[line] = itr->details.ndntlv.minsuffix;
-	    max[line] = itr->details.ndntlv.maxsuffix;
-	    publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
-	    break;
-	default:
-	    min[line] = max[line] = -1;
-	    publisher[line] = 0L;
-	    break;
-	}
+        switch (itr->suite) {
+        case CCNL_SUITE_CCNB:
+            min[line] = itr->details.ccnb.minsuffix;
+            max[line] = itr->details.ccnb.maxsuffix;
+            publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
+            break;
+        case CCNL_SUITE_NDNTLV:
+            min[line] = itr->details.ndntlv.minsuffix;
+            max[line] = itr->details.ndntlv.maxsuffix;
+            publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
+            break;
+        default:
+            min[line] = max[line] = -1;
+            publisher[line] = 0L;
+            break;
+        }
         get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
@@ -607,8 +607,8 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
 }
 
 #else // !USE_DEBUG
-#  define DEBUGSTMT(LVL, ...)			do {} while(0)
-#  define DEBUGMSG(LVL, ...)			do {} while(0)
+#  define DEBUGSTMT(LVL, ...)                   do {} while(0)
+#  define DEBUGMSG(LVL, ...)                    do {} while(0)
 #endif // !USE_DEBUG
 
 // -----------------------------------------------------------------
@@ -617,12 +617,12 @@ char* timestamp(void);
 
 #ifdef USE_DEBUG_MALLOC
 
-#  define ccnl_malloc(s)	debug_malloc(s, __FILE__, __LINE__,timestamp())
-#  define ccnl_calloc(n,s)	debug_calloc(n, s, __FILE__, __LINE__,timestamp())
-#  define ccnl_realloc(p,s)	debug_realloc(p, s, __FILE__, __LINE__)
-#  define ccnl_strdup(s)	debug_strdup(s, __FILE__, __LINE__,timestamp())
-#  define ccnl_free(p)		debug_free(p, __FILE__, __LINE__)
-#  define ccnl_buf_new(p,s)	debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
+#  define ccnl_malloc(s)        debug_malloc(s, __FILE__, __LINE__,timestamp())
+#  define ccnl_calloc(n,s)      debug_calloc(n, s, __FILE__, __LINE__,timestamp())
+#  define ccnl_realloc(p,s)     debug_realloc(p, s, __FILE__, __LINE__)
+#  define ccnl_strdup(s)        debug_strdup(s, __FILE__, __LINE__,timestamp())
+#  define ccnl_free(p)          debug_free(p, __FILE__, __LINE__)
+#  define ccnl_buf_new(p,s)     debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
 
 struct mhdr {
     struct mhdr *next;
@@ -644,8 +644,8 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
     h->tstamp = strdup(tstamp);
     /*
     if (s == 32) fprintf(stderr, "+++ s=%d %p at %s:%d\n", s,
-			 (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
-			 (char*) fn, lno);
+                         (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
+                         (char*) fn, lno);
     */
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
@@ -655,7 +655,7 @@ debug_calloc(int n, int s, const char *fn, int lno, char *tstamp)
 {
     void *p = debug_malloc(n * s, fn, lno, tstamp);
     if (p)
-	memset(p, 0, n*s);
+        memset(p, 0, n*s);
     return p;
 }
 
@@ -666,12 +666,12 @@ debug_unlink(struct mhdr *hdr)
     struct mhdr **pp = &mem;
 
     for (pp = &mem; pp; pp = &((*pp)->next)) {
-	if (*pp == hdr) {
-	    *pp = hdr->next;
-	    return 0;
-	}
+        if (*pp == hdr) {
+            *pp = hdr->next;
+            return 0;
+        }
     if (!(*pp)->next)
-	    break;
+            break;
     }
     return 1;
 }
@@ -682,17 +682,17 @@ debug_realloc(void *p, int s, const char *fn, int lno)
     struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
 
     if (p) {
-	if (debug_unlink(h)) {
-	    fprintf(stderr,
-		    "%s: @@@ memerror - realloc(%s:%d) at %s:%d does not find memory block\n",
-		    timestamp(), h->fname, h->lineno, fn, lno);
-	    return NULL;
-	}
-	h = (struct mhdr *) realloc(h, s+sizeof(struct mhdr));
-	if (!h)
-	    return NULL;
+        if (debug_unlink(h)) {
+            fprintf(stderr,
+                    "%s: @@@ memerror - realloc(%s:%d) at %s:%d does not find memory block\n",
+                    timestamp(), h->fname, h->lineno, fn, lno);
+            return NULL;
+        }
+        h = (struct mhdr *) realloc(h, s+sizeof(struct mhdr));
+        if (!h)
+            return NULL;
     } else
-	h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
+        h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
     h->fname = (char *) fn;
     h->lineno = lno;
     h->size = s;
@@ -720,18 +720,18 @@ debug_free(void *p, const char *fn, int lno)
     struct mhdr *h = (struct mhdr *) (((unsigned char *)p) - sizeof(struct mhdr));
 
     if (!p) {
-//	fprintf(stderr, "%s: @@@ memerror - free() of NULL ptr at %s:%d\n",
-//	   timestamp(), fn, lno);
-	return;
+//      fprintf(stderr, "%s: @@@ memerror - free() of NULL ptr at %s:%d\n",
+//         timestamp(), fn, lno);
+        return;
     }
     if (debug_unlink(h)) {
-	fprintf(stderr,
-	   "%s: @@@ memerror - free() at %s:%d does not find memory block %p\n",
-		timestamp(), fn, lno, p);
-	return;
+        fprintf(stderr,
+           "%s: @@@ memerror - free() at %s:%d does not find memory block %p\n",
+                timestamp(), fn, lno, p);
+        return;
     }
     if (h->tstamp && *h->tstamp)
-	free(h->tstamp);
+        free(h->tstamp);
     free(h);
 }
 
@@ -739,14 +739,14 @@ struct ccnl_buf_s*
 debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
 {
     struct ccnl_buf_s *b =
-	 (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn, lno, tstamp);
+         (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn, lno, tstamp);
 
     if (!b)
         return NULL;
     b->next = NULL;
     b->datalen = len;
     if (data)
-	memcpy(b->data, data, len);
+        memcpy(b->data, data, len);
     return b;
 }
 
@@ -757,10 +757,10 @@ debug_memdump()
 
     fprintf(stderr, "%s: @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
-	fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
-		timestamp(),
-		(unsigned char *)h + sizeof(struct mhdr),
-		h->size, h->fname, h->lineno, h->tstamp);
+        fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
+                timestamp(),
+                (unsigned char *)h + sizeof(struct mhdr),
+                h->size, h->fname, h->lineno, h->tstamp);
     }
     fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
 }
@@ -768,11 +768,11 @@ debug_memdump()
 #else // !USE_DEBUG_MALLOC
 
 # ifndef CCNL_LINUXKERNEL
-#  define ccnl_malloc(s)	malloc(s)
-#  define ccnl_calloc(n,s) 	calloc(n,s)
-#  define ccnl_realloc(p,s)	realloc(p,s)
-#  define ccnl_strdup(s)	strdup(s)
-#  define ccnl_free(p)		free(p)
+#  define ccnl_malloc(s)        malloc(s)
+#  define ccnl_calloc(n,s)      calloc(n,s)
+#  define ccnl_realloc(p,s)     realloc(p,s)
+#  define ccnl_strdup(s)        strdup(s)
+#  define ccnl_free(p)          free(p)
 # endif
 
 struct ccnl_buf_s*
@@ -792,14 +792,14 @@ ccnl_buf_new(void *data, int len)
 #endif // !USE_DEBUG_MALLOC
 
 
-#define free_2ptr_list(a,b)	ccnl_free(a), ccnl_free(b)
-#define free_3ptr_list(a,b,c)	ccnl_free(a), ccnl_free(b), ccnl_free(c)
-#define free_4ptr_list(a,b,c,d)	ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
+#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
+#define free_3ptr_list(a,b,c)   ccnl_free(a), ccnl_free(b), ccnl_free(c)
+#define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 
-#define free_prefix(p)	do{ if(p) \
-		free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
+#define free_prefix(p)  do{ if(p) \
+                free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
 #define free_content(c) do{ free_prefix(c->name); \
-			free_2ptr_list(c->pkt, c); } while(0)
+                        free_2ptr_list(c->pkt, c); } while(0)
 
 // -----------------------------------------------------------------
 int debug_level;

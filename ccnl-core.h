@@ -31,14 +31,14 @@
 #define CMP_MATCH   1 // used to match interest and content
 #define CMP_LONGEST 2 // used to lookup the FIB
 
-#define CCNL_FACE_FLAGS_STATIC	1
-#define CCNL_FACE_FLAGS_REFLECT	2
-#define CCNL_FACE_FLAGS_SERVED	4
-#define CCNL_FACE_FLAGS_FWDALLI	8 // forward all interests, also known ones
+#define CCNL_FACE_FLAGS_STATIC  1
+#define CCNL_FACE_FLAGS_REFLECT 2
+#define CCNL_FACE_FLAGS_SERVED  4
+#define CCNL_FACE_FLAGS_FWDALLI 8 // forward all interests, also known ones
 
-#define CCNL_FRAG_NONE		0
-#define CCNL_FRAG_SEQUENCED2012	1
-#define CCNL_FRAG_CCNx2013	2
+#define CCNL_FRAG_NONE          0
+#define CCNL_FRAG_SEQUENCED2012 1
+#define CCNL_FRAG_CCNx2013      2
 
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
@@ -93,15 +93,15 @@ struct ccnl_relay_s {
     struct ccnl_interest_s *pit;
     struct ccnl_content_s *contents; //, *contentsend;
     struct ccnl_buf_s *nonces;
-    int contentcnt;		// number of cached items
-    int max_cache_entries;	// -1: unlimited
+    int contentcnt;             // number of cached items
+    int max_cache_entries;      // -1: unlimited
     struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
-    int ifcount;		// number of active interfaces
+    int ifcount;                // number of active interfaces
     char halt_flag;
     struct ccnl_sched_s* (*defaultFaceScheduler)(struct ccnl_relay_s*,
-						 void(*cts_done)(void*,void*));
+                                                 void(*cts_done)(void*,void*));
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
-						 void(*cts_done)(void*,void*));
+                                                 void(*cts_done)(void*,void*));
     struct ccnl_http_s *http;
     struct ccnl_stats_s *stats;
     void *aux;
@@ -197,9 +197,9 @@ struct ccnl_interest_s {
     int last_used;
     int retries;
     union {
-	struct ccnl_ccnb_id_s ccnb;
-	struct ccnl_ccntlv_id_s ccntlv;
-	struct ccnl_ndntlv_id_s ndntlv;
+        struct ccnl_ccnb_id_s ccnb;
+        struct ccnl_ccntlv_id_s ccntlv;
+        struct ccnl_ndntlv_id_s ndntlv;
     } details;
     char suite;
 #ifdef USE_NFN
@@ -238,9 +238,9 @@ struct ccnl_content_s {
     int last_used;
     int served_cnt;
     union {
-	struct ccnl_ccnb_cd_s ccnb;
-	struct ccnl_ccntlv_cd_s ccntlv;
-	struct ccnl_ndntlv_cd_s ndntlv;
+        struct ccnl_ccnb_cd_s ccnb;
+        struct ccnl_ccntlv_cd_s ccntlv;
+        struct ccnl_ndntlv_cd_s ndntlv;
     } details;
     char suite;
 };
@@ -276,57 +276,57 @@ compile_string(void)
 {
     static const char *cp = ""
 #ifdef USE_CCNxDIGEST
-	"CCNxDIGEST, "
+        "CCNxDIGEST, "
 #endif
 #ifdef USE_DEBUG
-	"DEBUG, "
+        "DEBUG, "
 #endif
 #ifdef USE_DEBUG_MALLOC
-	"DEBUG_MALLOC, "
+        "DEBUG_MALLOC, "
 #endif
 #ifdef USE_ETHERNET
-	"ETHERNET, "
+        "ETHERNET, "
 #endif
 #ifdef USE_FRAG
-	"FRAG, "
+        "FRAG, "
 #endif
 #ifdef USE_HTTP_STATUS
-	"HTTP_STATUS, "
+        "HTTP_STATUS, "
 #endif
 #ifdef USE_MGMT
-	"MGMT, "
+        "MGMT, "
 #endif
 #ifdef USE_NACK
-	"NACK, "
+        "NACK, "
 #endif
 #ifdef USE_NFN
-	"NFN, "
+        "NFN, "
 #endif
 #ifdef USE_NFN_MONITOR
-	"NFN_MONITOR, "
+        "NFN_MONITOR, "
 #endif
 #ifdef USE_SCHEDULER
-	"SCHEDULER, "
+        "SCHEDULER, "
 #endif
 #ifdef USE_SIGNATURES
-	"SIGNATURES, "
+        "SIGNATURES, "
 #endif
 #ifdef USE_SUITE_CCNB
-	"SUITE_CCNB, "
+        "SUITE_CCNB, "
 #endif
 #ifdef USE_SUITE_CCNTLV
-	"SUITE_CCNTLV, "
+        "SUITE_CCNTLV, "
 #endif
 #ifdef USE_SUITE_LOCALRPC
-	"SUITE_LOCALRPC, "
+        "SUITE_LOCALRPC, "
 #endif
 #ifdef USE_SUITE_NDNTLV
-	"SUITE_NDNTLV, "
+        "SUITE_NDNTLV, "
 #endif
 #ifdef USE_UNIXSOCKET
-	"UNIXSOCKET, "
+        "UNIXSOCKET, "
 #endif
-	;
+        ;
   return cp;
 }
 
