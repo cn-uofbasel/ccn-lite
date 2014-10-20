@@ -38,10 +38,7 @@ util/ccn-lite-produce
 util/ccn-lite-fetch
 util/ccn-lite-pktdump
 util/ccn-lite-rpc
-<<<<<<< HEAD
-=======
 util/ccn-lite-simplenfn
->>>>>>> origin/ccntlv
 
 # unit tests
 test/unit/prefix-cmp
@@ -49,7 +46,8 @@ test/unit/prefix-cmp
 # OSX:
 
 # contains debug symbols tables for Xcode
-*.dSYM 
+*.dSYM
+.DS_Store
 
 # vim:
 *.swp
@@ -57,7 +55,6 @@ test/unit/prefix-cmp
 # sublime:
 *.sublime-workspace
 *.sublime-project
-
 
 
 # eof
