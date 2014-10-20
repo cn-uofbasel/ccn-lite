@@ -237,11 +237,13 @@ int choose_parameter(struct configuration_s *config){
     for(num = config->fox_state->num_of_params-1; num >=0; --num){
         if(config->fox_state->params[num]->type == STACK_TYPE_PREFIX){
             --param_to_choose;
-            if(param_to_choose <= 0)
+            if(param_to_choose <= 0){
                 return num;
+            }
         }
     }
     return -1;
+
 }
 
 //------------------------------------------------------------
@@ -823,6 +825,8 @@ normal:
             else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX){
                 DEBUGMSG(99, "Parameter %d %s\n", i, ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
             }
+
+
         }
         //as long as there is a routable parameter: try to find a result
         config->fox_state->it_routable_param = 0;
@@ -861,8 +865,9 @@ recontinue: //loop by reentering after timeout of the interest...
             return prog ? ccnl_strdup(prog) : NULL;
 
 local_compute:
-        if(config->local_done)
+        if(config->local_done){
             return NULL;
+        }
         config->local_done = 1;
         pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
         DEBUGMSG(99, "Prefix local computetion: %s\n", ccnl_prefix_to_path(pref));
@@ -1005,6 +1010,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         char *prog = ccnl_malloc(len*sizeof(char));
         struct environment_s *global_dict = NULL;
 
+        prog = ccnl_malloc(len*sizeof(char));
         sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
         setup_global_environment(&global_dict);
         DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
@@ -1015,8 +1021,9 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         restart = 0;
         --ccnl->km->configid;
     }
-    if (thunk_request && num_of_required_thunks == 0)
+    if(thunk_request && num_of_required_thunks == 0){
         ccnl_nfn_reply_thunk(ccnl, *config);
+    }
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
     while ((*config)->prog && !halt && (long)(*config)->prog != 1) {
@@ -1037,29 +1044,35 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     //HALT > 0 means computation finished
     ccnl_free(dummybuf);
     DEBUGMSG(99, "end-of-computation\n");
-    struct stack_s *stack = pop_or_resolve_from_result_stack(ccnl, 
-                            *config, &restart);//config->result_stack->content;
 
     struct ccnl_buf_s *h = NULL;
+    char res[128]; //TODO longer???
+    int pos = 0;
+    struct stack_s *stack = NULL;
+    while((stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart)) != NULL){
 
-    if (stack == NULL) {
-        halt = -1;
-        return NULL;
+        if (stack == NULL) {
+            halt = -1;
+            return NULL;
+        }
+        if (stack->type == STACK_TYPE_PREFIX) {
+            struct ccnl_content_s *cont;
+
+            cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
+            if (cont){
+                strncpy(res+pos, (char*)cont->content, cont->contentlen);
+                pos += cont->contentlen;
+            }
+        } else if (stack->type == STACK_TYPE_INT) {
+            //h = ccnl_buf_new(NULL, 10);
+            //sprintf((char*)h->data, "%d", *(int*)stack->content);
+            //h->datalen = strlen((char*)h->data);
+            pos += sprintf(res + pos, "%d", *(int*)stack->content);
+        }
+        ccnl_free(stack->content);
+        ccnl_free(stack);
     }
-    if (stack->type == STACK_TYPE_PREFIX) {
-        struct ccnl_content_s *cont;
-
-        cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
-        if (cont)
-            h = ccnl_buf_new(cont->content, cont->contentlen);
-    } else if (stack->type == STACK_TYPE_INT) {
-        h = ccnl_buf_new(NULL, 10);
-        sprintf((char*)h->data, "%d", *(int*)stack->content);
-        h->datalen = strlen((char*)h->data);
-    }
-    ccnl_free(stack->content);
-    ccnl_free(stack);
-
+    h = ccnl_buf_new(res, pos);
     return h;
 }
 
