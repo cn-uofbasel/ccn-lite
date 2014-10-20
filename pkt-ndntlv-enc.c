@@ -214,12 +214,15 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name,
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
     if(final_block_id) {
-        // optional
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_FinalBlockId, 
-                                    final_block_id, final_block_id_len, 
-                                    offset, buf) < 0) {
+        printf("finalblockid (s=%d): %s", final_block_id_len, final_block_id);
+
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, final_block_id,
+                                    final_block_id_len, offset, buf) < 0)
             return -1;
-        }
+
+        // optional
+        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset, offset, buf) < 0)
+            return -1;
     }
 
     // mandatory (empty for now)
