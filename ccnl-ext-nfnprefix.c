@@ -54,7 +54,7 @@ ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags)
 
 int
 ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
-			    int exclude_param)
+                            int exclude_param)
 {
     int len, j;
     struct stack_s *entry;
@@ -70,22 +70,22 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
     for (j = 0; j < s->num_of_params; j++) {
         if (j == exclude_param) {
             len += sprintf(buf + len, " x");
-	    continue;
+            continue;
         }
-	entry = s->params[j];
-	switch (entry->type) {
-	case STACK_TYPE_INT:
-	    len += sprintf(buf + len, " %d", *((int*)entry->content));
-	    break;
-	case STACK_TYPE_PREFIX:
-	    len += sprintf(buf + len, " %s",
-			   ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
-	    break;
-	default:
+        entry = s->params[j];
+        switch (entry->type) {
+        case STACK_TYPE_INT:
+            len += sprintf(buf + len, " %d", *((int*)entry->content));
+            break;
+        case STACK_TYPE_PREFIX:
+            len += sprintf(buf + len, " %s",
+                           ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
+            break;
+        default:
             DEBUGMSG(1, "Invalid type in createComputationString() #%d (%d)\n",
-		     j, entry->type);
-	    break;
-	}
+                     j, entry->type);
+            break;
+        }
     }
     if (exclude_param >= 0)
         len += sprintf(buf + len, ")");
@@ -94,7 +94,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
 
 struct ccnl_prefix_s *
 ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
-			    struct configuration_s *config, int parameter_num)
+                            struct configuration_s *config, int parameter_num)
 {
     int i, len = 0;
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(*p));
@@ -103,26 +103,26 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
     p->suite = name->suite;
     p->nfnflags = CCNL_PREFIX_NFN;
     if (thunk_request)
-	p->nfnflags |= CCNL_PREFIX_THUNK;
+        p->nfnflags |= CCNL_PREFIX_THUNK;
     p->compcnt = name->compcnt + 1;
     p->comp = ccnl_malloc(p->compcnt * sizeof(char*));
     p->complen = ccnl_malloc(p->compcnt * sizeof(int));
 
     for (i = 0; i < name->compcnt; i++) {
-	p->complen[i] = name->complen[i];
-	p->comp[i] = (unsigned char*)(bytes + len);
-	memcpy(p->comp[i], name->comp[i], p->complen[i]);
-	len += p->complen[i];
+        p->complen[i] = name->complen[i];
+        p->comp[i] = (unsigned char*)(bytes + len);
+        memcpy(p->comp[i], name->comp[i], p->complen[i]);
+        len += p->complen[i];
     }
 
     p->comp[i] = (unsigned char*)(bytes + len);
     len += ccnl_nfnprefix_fillCallExpr(bytes + len, config->fox_state,
-				       parameter_num);
+                                       parameter_num);
     p->complen[i] = (unsigned char*)(bytes + len) - p->comp[i];
 
     p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)
-	p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
+        p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
 
     return p;
 }
@@ -137,7 +137,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     p->suite = suite;
     p->nfnflags = CCNL_PREFIX_NFN;
     if (config->fox_state->thunk_request)
-	p->nfnflags |= CCNL_PREFIX_THUNK;
+        p->nfnflags |= CCNL_PREFIX_THUNK;
     p->compcnt = 2;
     p->comp = ccnl_malloc(p->compcnt * sizeof(char*));
     p->complen = ccnl_malloc(p->compcnt * sizeof(int));
@@ -152,7 +152,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
 
     p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)
-	p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
+        p->comp[i] = (unsigned char*)(p->bytes + ((char*)p->comp[i] - bytes));
 
     return p;
 }

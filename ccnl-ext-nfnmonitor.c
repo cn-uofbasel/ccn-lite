@@ -40,8 +40,8 @@
 
 int
 ccnl_ext_nfnmonitor_record(char* toip, int toport,
-			   struct ccnl_prefix_s *prefix, unsigned char *data,
-			   int datalen, char *res)
+                           struct ccnl_prefix_s *prefix, unsigned char *data,
+                           int datalen, char *res)
 {
     char name[CCNL_MAX_PACKET_SIZE];
     int len = 0, i;
@@ -56,12 +56,12 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
     len += sprintf(res + len, "{\n");
     len += sprintf(res + len, "\"packetLog\":{\n");
 
-//	len += sprintf(res + len, "\"from\":{\n");
-//	len += sprintf(res + len, "\"host\": %d,\n", fromip);
-//	len += sprintf(res + len, "\"port\": %d\n", fromport);
-//	len += sprintf(res + len, "\"type\": \"NFNNode\", \n");
-//	len += sprintf(res + len, "\"prefix\": \"docrepo1\"\n");
-//	len += sprintf(res + len, "},\n"); //from
+//      len += sprintf(res + len, "\"from\":{\n");
+//      len += sprintf(res + len, "\"host\": %d,\n", fromip);
+//      len += sprintf(res + len, "\"port\": %d\n", fromport);
+//      len += sprintf(res + len, "\"type\": \"NFNNode\", \n");
+//      len += sprintf(res + len, "\"prefix\": \"docrepo1\"\n");
+//      len += sprintf(res + len, "},\n"); //from
 
     len += sprintf(res + len, "\"to\":{\n");
     len += sprintf(res + len, "\"host\": \"%s\",\n", toip);
@@ -106,7 +106,7 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
 
 int
 ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port,
-			       char *data, int len)
+                               char *data, int len)
 {
     struct sockaddr_in si_other;
 
@@ -117,12 +117,12 @@ ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port,
           exit(1);
     }
     return sendto(sock, data, len, 0,
-		(const struct sockaddr *)&si_other, sizeof(si_other));
+                (const struct sockaddr *)&si_other, sizeof(si_other));
 }
 
 int
 ccnl_ext_nfnmonitor_sendToMonitor(struct ccnl_relay_s *ccnl,
-				  char *content, int contentlen)
+                                  char *content, int contentlen)
 {
     char *address = "127.0.0.1";
     int port = 10666, s = ccnl->ifs[0].sock;
@@ -133,16 +133,16 @@ ccnl_ext_nfnmonitor_sendToMonitor(struct ccnl_relay_s *ccnl,
 
 int
 ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
-		 struct ccnl_face_s *face,
-		 struct ccnl_prefix_s *pr,
-		 unsigned char *data,
-		 int len)
+                 struct ccnl_face_s *face,
+                 struct ccnl_prefix_s *pr,
+                 unsigned char *data,
+                 int len)
 {
     char monitorpacket[CCNL_MAX_PACKET_SIZE];
 
     int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
-			      ntohs(face->peer.ip4.sin_port),
-			      pr, data, len, monitorpacket);
+                              ntohs(face->peer.ip4.sin_port),
+                              pr, data, len, monitorpacket);
     ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
 
     return 0;

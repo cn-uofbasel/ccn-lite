@@ -41,17 +41,17 @@ int
 ccnl_is_local_addr(sockunion *su)
 {
     if (!su)
-	return 0;
+        return 0;
     if (su->sa.sa_family == AF_UNIX)
-	return -1;
+        return -1;
     if (su->sa.sa_family == AF_INET)
-	return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+        return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
     return 0;
 }
 
 int 
 ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                 int len, unsigned char *buf)
 {
     
@@ -70,18 +70,18 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             len4 += ccnl_ccnb_mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
         len4 += ccnl_ccnb_mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST,
-				 CCN_TT_DTAG, (char*) buf + it*packetsize,
-				 packetsize);
+                                 CCN_TT_DTAG, (char*) buf + it*packetsize,
+                                 packetsize);
         packet[len4++] = 0;
         
 //#ifdef USE_SIGNATURES
-	//        if(it == 0) id = from->faceid;
+        //        if(it == 0) id = from->faceid;
     
 #ifdef USE_SIGNATURES
         if(!ccnl_is_local_addr(&from->peer))
-	  //                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
-	    ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto",
-			     it ? -it : from->faceid);     
+          //                ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto", id);     
+            ccnl_crypto_sign(ccnl, packet, len4, "ccnl_mgmt_crypto",
+                             it ? -it : from->faceid);     
         else
         {
 #endif
@@ -110,7 +110,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
                 pkt = ccnl_ccnb_extract(&buf2, &len5, 0, 0, 0, 0,
-				&prefix_a, &nonce, &ppkd, &content, &contlen);
+                                &prefix_a, &nonce, &ppkd, &content, &contlen);
 
                 if (!pkt) {
                      //DEBUGMSG(6, " parsing error\n"); goto Done;
@@ -124,7 +124,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen((char*)ht);
                 c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a,
-				     &ppkd, content, contlen);
+                                     &ppkd, content, contlen);
                 //if (!c) goto Done;
 
                 ccnl_content_serve_pending(ccnl, c);
@@ -156,9 +156,9 @@ ccnl_prefix_clone(struct ccnl_prefix_s *p)
     if (!p2->comp || !p2->complen || !p2->bytes) goto Bail;
     p2->compcnt = p->compcnt;
     for (i = 0, len = 0; i < p->compcnt; len += p2->complen[i++]) {
-	p2->complen[i] = p->complen[i];
-	p2->comp[i] = p2->bytes + len;
-	memcpy(p2->comp[i], p->comp[i], p2->complen[i]);
+        p2->complen[i] = p->complen[i];
+        p2->comp[i] = p2->bytes + len;
+        memcpy(p2->comp[i], p->comp[i], p2->complen[i]);
     }
     return p2;
 Bail:
@@ -171,18 +171,18 @@ Bail:
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-	char *s; unsigned char *valptr; int vallen; \
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
-	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
-	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
-	ccnl_free(VAR); \
-	VAR = (unsigned char*) s; \
-	continue; \
+        char *s; unsigned char *valptr; int vallen; \
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) goto Bail; \
+        s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+        memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+        ccnl_free(VAR); \
+        VAR = (unsigned char*) s; \
+        continue; \
     } do {} while(0)
 
 
 void ccnl_mgmt_return_ccn_msg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+                    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                     char *component_type, char* answer)
 {
     int len = 0, len3 = 0;
@@ -249,9 +249,9 @@ ccnl_mgmt_create_interface_stmt(int num_interfaces, int *interfaceifndx, long *i
 
 static int
 ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
-		      long *faceprev, int *faceifndx, int *faceflags,
-		      int *facetype, char **facepeer, char **facefrag,
-		      unsigned char *stmt, int len3)
+                      long *faceprev, int *faceifndx, int *faceflags,
+                      int *facetype, char **facepeer, char **facefrag,
+                      unsigned char *stmt, int len3)
 {
     int it;
     char str[100];
@@ -292,7 +292,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
             sprintf(str,"peer=?");
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
         }
-	// FIXME: dump frag information if present
+        // FIXME: dump frag information if present
 
         stmt[len3++] = 0; //end of faceinstance;    
     }
@@ -424,7 +424,7 @@ ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext
 
 int
 ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf, *action, *debugaction;
     int it;
@@ -547,21 +547,21 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_DEBUGREQUEST) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(debugaction, CCNL_DTAG_DEBUGACTION);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(debugaction, CCNL_DTAG_DEBUGACTION);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="debug"
 
     if (debugaction) {
-	cp = "debug cmd worked";
-	DEBUGMSG(99, "  debugaction is %s\n", debugaction);
-	if (!strcmp((char*) debugaction, "dump")){
-	    ccnl_dump(0, CCNL_RELAY, ccnl);
+        cp = "debug cmd worked";
+        DEBUGMSG(99, "  debugaction is %s\n", debugaction);
+        if (!strcmp((char*) debugaction, "dump")){
+            ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
             get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
@@ -573,11 +573,11 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
         }
-	else if (!strcmp((char*) debugaction, "halt")){
-	    ccnl->halt_flag = 1;
+        else if (!strcmp((char*) debugaction, "halt")){
+            ccnl->halt_flag = 1;
         }
-	else if (!strcmp((char*) debugaction, "dump+halt")) {
-	    ccnl_dump(0, CCNL_RELAY, ccnl);
+        else if (!strcmp((char*) debugaction, "dump+halt")) {
+            ccnl_dump(0, CCNL_RELAY, ccnl);
             
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
             get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
@@ -588,11 +588,11 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             get_content_dump(0, ccnl, content, contentnext, contentprev, 
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
-	    ccnl->halt_flag = 1;
-	} else
-	    cp = "unknown debug action, ignored";
+            ccnl->halt_flag = 1;
+        } else
+            cp = "unknown debug action, ignored";
     } else
-	cp = "no debug action given, ignored";
+        cp = "no debug action given, ignored";
 
     rc = 0;
 
@@ -629,7 +629,7 @@ Bail:
                 interfacedevtype, interfacereflect, interfaceaddr, stmt, len3);
         
         len3 = ccnl_mgmt_create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
-			faceflags, facetype, facepeer, facefrag, stmt, len3);
+                        faceflags, facetype, facepeer, facefrag, stmt, len3);
         
         len3 = ccnl_mgmt_create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, 
                 fwdprefixlen, fwdprefix, stmt, len3);
@@ -645,7 +645,7 @@ Bail:
     stmt[len3++] = 0; //end of debug reply
    
     len += ccnl_ccnb_mkBlob(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) stmt, len3);
+                   (char*) stmt, len3);
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out);
     
@@ -716,12 +716,12 @@ Bail:
 
 int
 ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
     unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
-	*path, *frag, *flags;
+        *path, *frag, *flags;
     char *cp = "newface cmd failed";
     int rc = -1;
     struct ccnl_face_s *f = NULL;
@@ -733,7 +733,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char retstr[200];
 
     DEBUGMSG(99, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
-	     (void*) from, from->ifndx);
+             (void*) from, from->ifndx);
     action = macsrc = ip4src = proto = host = port = NULL;
     path = frag = flags = NULL;
 
@@ -751,87 +751,87 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(macsrc, CCNL_DTAG_MACSRC);
-	extractStr(ip4src, CCNL_DTAG_IP4SRC);
-	extractStr(path, CCNL_DTAG_UNIXSRC);
-	extractStr(proto, CCN_DTAG_IPPROTO);
-	extractStr(host, CCN_DTAG_HOST);
-	extractStr(port, CCN_DTAG_PORT);
-//	extractStr(frag, CCNL_DTAG_FRAG);
-	extractStr(flags, CCNL_DTAG_FACEFLAGS);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(macsrc, CCNL_DTAG_MACSRC);
+        extractStr(ip4src, CCNL_DTAG_IP4SRC);
+        extractStr(path, CCNL_DTAG_UNIXSRC);
+        extractStr(proto, CCN_DTAG_IPPROTO);
+        extractStr(host, CCN_DTAG_HOST);
+        extractStr(port, CCN_DTAG_PORT);
+//      extractStr(frag, CCNL_DTAG_FRAG);
+        extractStr(flags, CCNL_DTAG_FACEFLAGS);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newface"
 
 #ifdef USE_ETHERNET
     if (macsrc && host && port) {
-	sockunion su;
-	DEBUGMSG(99, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
-		 macsrc, host, port);
-	memset(&su, 0, sizeof(su));
-	su.eth.sll_family = AF_PACKET;
-	su.eth.sll_protocol = htons(strtol((const char*)port, NULL, 0));
-	if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-		   su.eth.sll_addr,   su.eth.sll_addr+1,
-		   su.eth.sll_addr+2, su.eth.sll_addr+3,
-		   su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
-	// if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-	    f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
-	}
+        sockunion su;
+        DEBUGMSG(99, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
+                 macsrc, host, port);
+        memset(&su, 0, sizeof(su));
+        su.eth.sll_family = AF_PACKET;
+        su.eth.sll_protocol = htons(strtol((const char*)port, NULL, 0));
+        if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+                   su.eth.sll_addr,   su.eth.sll_addr+1,
+                   su.eth.sll_addr+2, su.eth.sll_addr+3,
+                   su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
+        // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
+            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
+        }
     } else
 #endif
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
-	sockunion su;
-	DEBUGMSG(99, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
-		 ip4src, proto, host, port);
-	su.sa.sa_family = AF_INET;
-	inet_aton((const char*)host, &su.ip4.sin_addr);
-	su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
-	// not implmented yet: honor the requested ip4src parameter
-	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-				    &su.sa, sizeof(struct sockaddr_in));
+        sockunion su;
+        DEBUGMSG(99, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
+                 ip4src, proto, host, port);
+        su.sa.sa_family = AF_INET;
+        inet_aton((const char*)host, &su.ip4.sin_addr);
+        su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
+        // not implmented yet: honor the requested ip4src parameter
+        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+                                    &su.sa, sizeof(struct sockaddr_in));
     }
 #ifdef USE_UNIXSOCKET
     if (path) {
-	sockunion su;
-	DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", path);
-	su.sa.sa_family = AF_UNIX;
-	strcpy(su.ux.sun_path, (char*) path);
-	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-				    &su.sa, sizeof(struct sockaddr_un));
+        sockunion su;
+        DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", path);
+        su.sa.sa_family = AF_UNIX;
+        strcpy(su.ux.sun_path, (char*) path);
+        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+                                    &su.sa, sizeof(struct sockaddr_un));
     }
 #endif
 
     if (f) {
-	int flagval = flags ?
-	    strtol((const char*)flags, NULL, 0) : CCNL_FACE_FLAGS_STATIC;
-	//	printf("  flags=%s %d\n", flags, flagval);
-	DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
-	f->flags = flagval &
-	    (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
+        int flagval = flags ?
+            strtol((const char*)flags, NULL, 0) : CCNL_FACE_FLAGS_STATIC;
+        //      printf("  flags=%s %d\n", flags, flagval);
+        DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
+        f->flags = flagval &
+            (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
 
 #ifdef USE_FRAG
-	if (frag) {
-	    int mtu = 1500;
-	    if (f->frag) {
-		ccnl_frag_destroy(f->frag);
-		f->frag = NULL;
-	    }
-	    if (f->ifndx >= 0 && ccnl->ifs[f->ifndx].mtu > 0)
-		mtu = ccnl->ifs[f->ifndx].mtu;
-	    f->frag = ccnl_frag_new(strtol((const char*)frag, NULL, 0),
-					mtu); 
-	}
+        if (frag) {
+            int mtu = 1500;
+            if (f->frag) {
+                ccnl_frag_destroy(f->frag);
+                f->frag = NULL;
+            }
+            if (f->ifndx >= 0 && ccnl->ifs[f->ifndx].mtu > 0)
+                mtu = ccnl->ifs[f->ifndx].mtu;
+            f->frag = ccnl_frag_new(strtol((const char*)frag, NULL, 0),
+                                        mtu); 
+        }
 #endif
-	cp = "newface cmd worked";
+        cp = "newface cmd worked";
     } else {
-	DEBUGMSG(99, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
-		 macsrc, ip4src, proto, host, port, frag, flags);
+        DEBUGMSG(99, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
+                 macsrc, ip4src, proto, host, port, frag, flags);
     }
     rc = 0;
 
@@ -849,21 +849,21 @@ Bail:
     sprintf((char *)retstr,"newface:  %s", cp);
     len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
     if (macsrc)
-	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
     if (ip4src) {
-	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
     }
     if (host)
-	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_HOST, CCN_TT_DTAG, (char*) host);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_HOST, CCN_TT_DTAG, (char*) host);
     if (port)
-	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_PORT, CCN_TT_DTAG, (char*) port);
     /*
     if (frag)
-	len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_FRAG, CCN_TT_DTAG, frag);
     */
     if (flags)
-	len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
     if (f) {
         sprintf((char *)faceidstr,"%i",f->faceid);
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
@@ -872,7 +872,7 @@ Bail:
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) faceinst_buf, len3);
+                   (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
@@ -896,7 +896,7 @@ Bail:
 
 int
 ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -907,7 +907,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int len = 0, len3;
 
     DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
-	     (void*) from, from->ifndx);
+             (void*) from, from->ifndx);
     action = faceid = frag = mtu = NULL;
 
     buf = prefix->comp[3];
@@ -924,51 +924,51 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(faceid, CCN_DTAG_FACEID);
-	extractStr(frag, CCNL_DTAG_FRAG);
-	extractStr(mtu, CCNL_DTAG_MTU);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(faceid, CCN_DTAG_FACEID);
+        extractStr(frag, CCNL_DTAG_FRAG);
+        extractStr(mtu, CCNL_DTAG_MTU);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newface"
 
     if (faceid && frag && mtu) {
 #ifdef USE_FRAG
-	int e = -1;
+        int e = -1;
 #endif
-	int fi = strtol((const char*)faceid, NULL, 0);
+        int fi = strtol((const char*)faceid, NULL, 0);
 
-	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
-	if (!f)
+        for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
+        if (!f)
             goto Error;
 
 #ifdef USE_FRAG
-	if (f->frag) {
-	    ccnl_frag_destroy(f->frag);
-	    f->frag = 0;
-	}
-	if (!strcmp((const char*)frag, "none"))
-	    e = CCNL_FRAG_NONE;
-	else if (!strcmp((const char*)frag, "seqd2012")) {
-	    e = CCNL_FRAG_SEQUENCED2012;
-	} else if (!strcmp((const char*)frag, "ccnx2013")) {
-	    e = CCNL_FRAG_CCNx2013;
-	}
-	if (e < 0)
-	    goto Error;
-	f->frag = ccnl_frag_new(e, strtol((const char*)mtu, NULL, 0));
-	cp = "setfrag cmd worked";
+        if (f->frag) {
+            ccnl_frag_destroy(f->frag);
+            f->frag = 0;
+        }
+        if (!strcmp((const char*)frag, "none"))
+            e = CCNL_FRAG_NONE;
+        else if (!strcmp((const char*)frag, "seqd2012")) {
+            e = CCNL_FRAG_SEQUENCED2012;
+        } else if (!strcmp((const char*)frag, "ccnx2013")) {
+            e = CCNL_FRAG_CCNx2013;
+        }
+        if (e < 0)
+            goto Error;
+        f->frag = ccnl_frag_new(e, strtol((const char*)mtu, NULL, 0));
+        cp = "setfrag cmd worked";
 #else
-	cp = "no fragmentation support"; 
+        cp = "no fragmentation support"; 
 #endif
     } else {
 Error:
-	DEBUGMSG(99, "  setfrag request for (faceid=%s frag=%s mtu=%s) failed or was ignored\n",
-		 faceid, frag, mtu);
+        DEBUGMSG(99, "  setfrag request for (faceid=%s frag=%s mtu=%s) failed or was ignored\n",
+                 faceid, frag, mtu);
     }
     rc = 0;
 
@@ -990,7 +990,7 @@ Bail:
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) faceinst_buf, len3);
+                   (char*) faceinst_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
@@ -1004,7 +1004,7 @@ Bail:
 
 int
 ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -1033,29 +1033,29 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_FACEINSTANCE) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(faceid, CCN_DTAG_FACEID);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(faceid, CCN_DTAG_FACEID);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="destroyface"
 
     if (faceid) {
-	struct ccnl_face_s *f;
-	int fi = strtol((const char*)faceid, NULL, 0);
-	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
-	if (!f) {
-	    DEBUGMSG(99, "  could not find face=%s\n", faceid);
-	    goto Bail;
-	}
-	ccnl_face_remove(ccnl, f);
-	DEBUGMSG(99, "  face %s destroyed\n", faceid);
-	cp = "facedestroy cmd worked";
+        struct ccnl_face_s *f;
+        int fi = strtol((const char*)faceid, NULL, 0);
+        for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
+        if (!f) {
+            DEBUGMSG(99, "  could not find face=%s\n", faceid);
+            goto Bail;
+        }
+        ccnl_face_remove(ccnl, f);
+        DEBUGMSG(99, "  face %s destroyed\n", faceid);
+        cp = "facedestroy cmd worked";
     } else {
-	DEBUGMSG(99, "  missing faceid\n");
+        DEBUGMSG(99, "  missing faceid\n");
     }
     rc = 0;
 
@@ -1079,7 +1079,7 @@ Bail:
     faceinst_buf[len3++] = 0; // end-of-faceinst
 
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) faceinst_buf, len3);
+                   (char*) faceinst_buf, len3);
     
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
 
@@ -1093,7 +1093,7 @@ Bail:
 
 int
 ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -1125,16 +1125,16 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (typ != CCN_TT_DTAG || num != CCNL_DTAG_DEVINSTANCE) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(devname, CCNL_DTAG_DEVNAME);
-	extractStr(ip4src, CCNL_DTAG_IP4SRC);
-	extractStr(port, CCN_DTAG_PORT);
-	extractStr(frag, CCNL_DTAG_FRAG);
-	extractStr(flags, CCNL_DTAG_DEVFLAGS);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(devname, CCNL_DTAG_DEVNAME);
+        extractStr(ip4src, CCNL_DTAG_IP4SRC);
+        extractStr(port, CCN_DTAG_PORT);
+        extractStr(frag, CCNL_DTAG_FRAG);
+        extractStr(flags, CCNL_DTAG_DEVFLAGS);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="newdev"
@@ -1146,121 +1146,121 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 #if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
-	int portnum;
+        int portnum;
 
         cp = "newETHdev cmd worked";
-	portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
+        portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
 
-	DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
-		 devname, port);
+        DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
+                 devname, port);
 
-	// check if it already exists, bail
+        // check if it already exists, bail
 
-	// create a new ifs-entry
-	i = &ccnl->ifs[ccnl->ifcount];
+        // create a new ifs-entry
+        i = &ccnl->ifs[ccnl->ifcount];
 #ifdef CCNL_LINUXKERNEL
-	{
-	    struct net_device *nd;
-	    int j;
-	    nd = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
-	    if (!nd) {
-		DEBUGMSG(99, "  could not open device %s\n", devname);
-		goto Bail;
-	    }
-	    for (j = 0; j < ccnl->ifcount; j++) {
-		if (ccnl->ifs[j].netdev == nd) {
-		    dev_put(nd);
-		    DEBUGMSG(99, "  device %s already open\n", devname);
-		    goto Bail;
-		}
-	    }
-	    i->netdev = nd;
-	    i->ccnl_packet.type = htons(portnum);
-	    i->ccnl_packet.dev = i->netdev;
-	    i->ccnl_packet.func = ccnl_eth_RX;
-	    dev_add_pack(&i->ccnl_packet);
-	}
+        {
+            struct net_device *nd;
+            int j;
+            nd = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
+            if (!nd) {
+                DEBUGMSG(99, "  could not open device %s\n", devname);
+                goto Bail;
+            }
+            for (j = 0; j < ccnl->ifcount; j++) {
+                if (ccnl->ifs[j].netdev == nd) {
+                    dev_put(nd);
+                    DEBUGMSG(99, "  device %s already open\n", devname);
+                    goto Bail;
+                }
+            }
+            i->netdev = nd;
+            i->ccnl_packet.type = htons(portnum);
+            i->ccnl_packet.dev = i->netdev;
+            i->ccnl_packet.func = ccnl_eth_RX;
+            dev_add_pack(&i->ccnl_packet);
+        }
 #else
-	i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
-	if (!i->sock) {
-	    DEBUGMSG(99, "  could not open device %s\n", devname);
-	    goto Bail;
-	}
+        i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
+        if (!i->sock) {
+            DEBUGMSG(99, "  could not open device %s\n", devname);
+            goto Bail;
+        }
 #endif
-//	i->frag = frag ? atoi(frag) : 0;
-	i->mtu = 1500;
-//	we should analyse and copy flags, here we hardcode some defaults:
-	i->reflect = 1;
-	i->fwdalli = 1;
+//      i->frag = frag ? atoi(frag) : 0;
+        i->mtu = 1500;
+//      we should analyse and copy flags, here we hardcode some defaults:
+        i->reflect = 1;
+        i->fwdalli = 1;
 
-	if (ccnl->defaultInterfaceScheduler)
-	    i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
-	ccnl->ifcount++;
+        if (ccnl->defaultInterfaceScheduler)
+            i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
+        ccnl->ifcount++;
 
-	rc = 0;
-	goto Bail;
+        rc = 0;
+        goto Bail;
     }
 #endif
 
 // #ifdef USE_UDP
     if (ip4src && port) {
         cp = "newUDPdev cmd worked";
-	DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
-		 ip4src, port);
+        DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
+                 ip4src, port);
 
-	// check if it already exists, bail
+        // check if it already exists, bail
 
-	// create a new ifs-entry
-	i = &ccnl->ifs[ccnl->ifcount];
-	i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip4);
-	if (!i->sock) {
-	    DEBUGMSG(99, "  could not open UDP device %s/%s\n", ip4src, port);
-	    goto Bail;
-	}
+        // create a new ifs-entry
+        i = &ccnl->ifs[ccnl->ifcount];
+        i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip4);
+        if (!i->sock) {
+            DEBUGMSG(99, "  could not open UDP device %s/%s\n", ip4src, port);
+            goto Bail;
+        }
 
 #ifdef CCNL_LINUXKERNEL
-	{
-	    int j;
-	    for (j = 0; j < ccnl->ifcount; j++) {
-		if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
-		    sock_release(i->sock);
-		    DEBUGMSG(99, "  UDP device %s/%s already open\n",
-			     ip4src, port);
-		    goto Bail;
-		}
-	    }
-	}
+        {
+            int j;
+            for (j = 0; j < ccnl->ifcount; j++) {
+                if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
+                    sock_release(i->sock);
+                    DEBUGMSG(99, "  UDP device %s/%s already open\n",
+                             ip4src, port);
+                    goto Bail;
+                }
+            }
+        }
 
-	i->wq = create_workqueue(ccnl_addr2ascii(&i->addr));
-	if (!i->wq) {
-	    DEBUGMSG(99, "  could not create work queue (UDP device %s/%s)\n", ip4src, port);
-	    sock_release(i->sock);
-	    goto Bail;
-	}
-	write_lock_bh(&i->sock->sk->sk_callback_lock);
-	i->old_data_ready = i->sock->sk->sk_data_ready;
-	i->sock->sk->sk_data_ready = ccnl_udp_data_ready;
-//	i->sock->sk->sk_user_data = &theRelay;
-	write_unlock_bh(&i->sock->sk->sk_callback_lock);
+        i->wq = create_workqueue(ccnl_addr2ascii(&i->addr));
+        if (!i->wq) {
+            DEBUGMSG(99, "  could not create work queue (UDP device %s/%s)\n", ip4src, port);
+            sock_release(i->sock);
+            goto Bail;
+        }
+        write_lock_bh(&i->sock->sk->sk_callback_lock);
+        i->old_data_ready = i->sock->sk->sk_data_ready;
+        i->sock->sk->sk_data_ready = ccnl_udp_data_ready;
+//      i->sock->sk->sk_user_data = &theRelay;
+        write_unlock_bh(&i->sock->sk->sk_callback_lock);
 #endif
 
-//	i->frag = frag ? atoi(frag) : 0;
-	i->mtu = CCN_DEFAULT_MTU;
-//	we should analyse and copy flags, here we hardcode some defaults:
-	i->reflect = 0;
-	i->fwdalli = 1;
+//      i->frag = frag ? atoi(frag) : 0;
+        i->mtu = CCN_DEFAULT_MTU;
+//      we should analyse and copy flags, here we hardcode some defaults:
+        i->reflect = 0;
+        i->fwdalli = 1;
 
-	if (ccnl->defaultInterfaceScheduler)
-	    i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
-	ccnl->ifcount++;
+        if (ccnl->defaultInterfaceScheduler)
+            i->sched = ccnl->defaultInterfaceScheduler(ccnl, ccnl_interface_CTS);
+        ccnl->ifcount++;
 
-	//cp = "newdevice cmd worked";
-	rc = 0;
-	goto Bail;
+        //cp = "newdevice cmd worked";
+        rc = 0;
+        goto Bail;
     }
 
     DEBUGMSG(99, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
-	     devname, ip4src, port, frag);
+             devname, ip4src, port, frag);
 // #endif // USE_UDP
 
 Bail:
@@ -1316,7 +1316,7 @@ Bail:
 
 int
 ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
 
     DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
@@ -1330,7 +1330,7 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 int
 ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
     int buflen, num, typ;
@@ -1362,62 +1362,62 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p) goto Bail;
     p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-					   sizeof(unsigned char*));
+                                           sizeof(unsigned char*));
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
+        if (num==0 && typ==0)
+            break; // end
 
-	if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
-	    for (;;) {
-		if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-		if (num==0 && typ==0)
-		    break;
-		if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
-		    p->compcnt < CCNL_MAX_NAME_COMP) {
-			// if (ccnl_grow_prefix(p)) goto Bail;
-		    if (ccnl_ccnb_consume(typ, num, &buf, &buflen,
-				p->comp + p->compcnt,
-				p->complen + p->compcnt) < 0) goto Bail;
-		    p->compcnt++;
-		} else {
-		    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
-		}
-	    }
-	    continue;
-	}
+        if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
+            for (;;) {
+                if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+                if (num==0 && typ==0)
+                    break;
+                if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
+                    p->compcnt < CCNL_MAX_NAME_COMP) {
+                        // if (ccnl_grow_prefix(p)) goto Bail;
+                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen,
+                                p->comp + p->compcnt,
+                                p->complen + p->compcnt) < 0) goto Bail;
+                    p->compcnt++;
+                } else {
+                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+                }
+            }
+            continue;
+        }
 
-	extractStr(action, CCN_DTAG_ACTION);
-	extractStr(faceid, CCN_DTAG_FACEID);
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(faceid, CCN_DTAG_FACEID);
 
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
 
     // should (re)verify that action=="prefixreg"
     if (faceid && p->compcnt > 0) {
-	struct ccnl_face_s *f;
-	struct ccnl_forward_s *fwd, **fwd2;
-	int fi = strtol((const char*)faceid, NULL, 0);
-	DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s\n",
-		 ccnl_prefix_to_path(p), faceid);
+        struct ccnl_face_s *f;
+        struct ccnl_forward_s *fwd, **fwd2;
+        int fi = strtol((const char*)faceid, NULL, 0);
+        DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s\n",
+                 ccnl_prefix_to_path(p), faceid);
 
-	for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
-	if (!f) goto Bail;
+        for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
+        if (!f) goto Bail;
 
-//	printf("Face %s found\n", faceid);
-	fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
-	if (!fwd) goto Bail;
-	fwd->prefix = ccnl_prefix_clone(p);
-	fwd->face = f;
-	fwd2 = &ccnl->fib;
-	while (*fwd2)
-	    fwd2 = &((*fwd2)->next);
-	*fwd2 = fwd;
-	cp = "prefixreg cmd worked";
+//      printf("Face %s found\n", faceid);
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd) goto Bail;
+        fwd->prefix = ccnl_prefix_clone(p);
+        fwd->face = f;
+        fwd2 = &ccnl->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        cp = "prefixreg cmd worked";
     } else {
-	DEBUGMSG(99, "mgmt: ignored prefixreg faceid=%s\n", faceid);
+        DEBUGMSG(99, "mgmt: ignored prefixreg faceid=%s\n", faceid);
     }
 
     rc = 0;
@@ -1443,7 +1443,7 @@ Bail:
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) fwdentry_buf, len3);
+                   (char*) fwdentry_buf, len3);
 
     ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
     
@@ -1492,7 +1492,7 @@ pkt2suite(unsigned char *data, int len)
 
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
     unsigned char *data;
@@ -1575,7 +1575,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 int
 ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+                    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     
     unsigned char *buf;
@@ -1610,7 +1610,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         if (num==0 && typ==0)
-	    break; // end
+            break; // end
         ++num_of_components;
         extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
        
@@ -1653,7 +1653,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_SIGNATURES
 int
 ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-		    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
+                    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
 {
     
     unsigned char *buf;
@@ -1677,7 +1677,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         
         if (num==0 && typ==0)
-	    break; // end
+            break; // end
         
         extractStr(sigtype, CCN_DTAG_NAME);
         siglen = buflen;
@@ -1701,7 +1701,7 @@ ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif /*USE_SIGNATURES*/
 
 int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+          struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         char *cmd, int verified)
 {
     DEBUGMSG(99, "ccnl_mgmt_handle \"%s\"\n", cmd);
@@ -1712,44 +1712,44 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
     
     if (!strcmp(cmd, "newdev"))
-	ccnl_mgmt_newdev(ccnl, orig, prefix, from);
+        ccnl_mgmt_newdev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "setfrag"))
-	ccnl_mgmt_setfrag(ccnl, orig, prefix, from);
+        ccnl_mgmt_setfrag(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
-	ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
+        ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "newface"))
-	ccnl_mgmt_newface(ccnl, orig, prefix, from);
+        ccnl_mgmt_newface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroyface"))
-	ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
+        ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "prefixreg"))
-	ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
+        ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
 #ifdef USE_DEBUG
     else if (!strcmp(cmd, "addcacheobject"))
-	ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
+        ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "removecacheobject"))
-	ccnl_mgmt_removecacheobject(ccnl, orig, prefix, from);
+        ccnl_mgmt_removecacheobject(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "debug")) {
       ccnl_mgmt_debug(ccnl, orig, prefix, from);
     }
 #endif
     else {
-	DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
+        DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, "unknown mgmt command");
-	return -1;
+        return -1;
     }
     return 0;
 }
 
 int
 ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+          struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
     if (prefix->complen[2] < sizeof(cmd)) {
         memcpy(cmd, prefix->comp[2], prefix->complen[2]);
         cmd[prefix->complen[2]] = '\0';
     } else
-	strcpy(cmd, "cmd-is-too-long-to-display");
+        strcpy(cmd, "cmd-is-too-long-to-display");
 
     DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
 
@@ -1764,7 +1764,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
                 "refused: origin of mgmt cmd is not local"); 
     return -1;
-	
+        
     MGMT:
     ccnl_mgmt_handle(ccnl, orig, prefix, from, cmd, 1);
 

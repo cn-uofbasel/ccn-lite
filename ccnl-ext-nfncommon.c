@@ -24,8 +24,8 @@
 
 struct ccnl_interest_s *
 ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
-			struct ccnl_prefix_s **prefix,
-			struct configuration_s *config)
+                        struct ccnl_prefix_s **prefix,
+                        struct configuration_s *config)
 {
     struct ccnl_buf_s *buf;
 
@@ -45,21 +45,21 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
 
 struct ccnl_content_s *
 ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
-			struct ccnl_prefix_s **prefix,
-			unsigned char *resultstr, int resultlen)
+                        struct ccnl_prefix_s **prefix,
+                        unsigned char *resultstr, int resultlen)
 {
     struct ccnl_buf_s *buf;
     int resultpos = 0;
 
     DEBUGMSG(49, "ccnl_nfn_result2content(prefix=%s, suite=%d, content=%s)\n",
-	     ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultstr);
+             ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultstr);
 
     buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
     if (!buf)
-	return NULL;
+        return NULL;
 
     return ccnl_content_new(ccnl, (*prefix)->suite, &buf, prefix,
-			    NULL, buf->data + resultpos, resultlen);
+                            NULL, buf->data + resultpos, resultlen);
 }
 
 // ----------------------------------------------------------------------
@@ -71,17 +71,17 @@ new_machine_state(int thunk_request, int num_of_required_thunks)
 
     ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
     if (ret) {
-	ret->thunk_request = thunk_request;
-	ret->num_of_required_thunks = num_of_required_thunks;
+        ret->thunk_request = thunk_request;
+        ret->num_of_required_thunks = num_of_required_thunks;
     }
     return ret;
 }
 
 struct configuration_s *
 new_config(struct ccnl_relay_s *ccnl, char *prog,
-	   struct environment_s *global_dict, int thunk_request,
+           struct environment_s *global_dict, int thunk_request,
            int start_locally, int num_of_required_thunks,
-	   struct ccnl_prefix_s *prefix, int configid, int suite)
+           struct ccnl_prefix_s *prefix, int configid, int suite)
 {
     struct configuration_s *ret = ccnl_calloc(1, sizeof(struct configuration_s));
     ret->prog = prog;
@@ -103,11 +103,11 @@ void
 ccnl_nfn_freeEnvironment(struct environment_s *env)
 {
     while (env && env->refcount <= 1) {
-	struct environment_s *next = env->next;
-	ccnl_free(env->name);
-	ccnl_nfn_freeClosure(env->closure);
-	ccnl_free(env);
-	env = next;
+        struct environment_s *next = env->next;
+        ccnl_free(env->name);
+        ccnl_nfn_freeClosure(env->closure);
+        ccnl_free(env);
+        env = next;
     }
 }
 
@@ -115,7 +115,7 @@ void
 ccnl_nfn_reserveEnvironment(struct environment_s *env)
 {
     if (!env)
-	return;
+        return;
     env->refcount++;
 }
 
@@ -123,11 +123,11 @@ void
 ccnl_nfn_releaseEnvironment(struct environment_s **env)
 {
     if (!env | !*env)
-	return;
+        return;
     (*env)->refcount--;
     if ((*env)->refcount <= 0) {
-	ccnl_nfn_freeEnvironment(*env);
-	*env = NULL;
+        ccnl_nfn_freeEnvironment(*env);
+        *env = NULL;
     }
 }
 
@@ -135,7 +135,7 @@ void
 ccnl_nfn_freeClosure(struct closure_s *c)
 {
     if (!c)
-	return;
+        return;
     ccnl_free(c->term);
     ccnl_nfn_releaseEnvironment(&c->env);
     ccnl_free(c);
@@ -145,28 +145,28 @@ void
 ccnl_nfn_freeStack(struct stack_s* s)
 {
     while (s) {
-	struct stack_s *next = s->next;
-	struct thunk_s *t;
+        struct stack_s *next = s->next;
+        struct thunk_s *t;
 
-	switch (s->type) {
-	case STACK_TYPE_CLOSURE:
-	    ccnl_nfn_freeClosure((struct closure_s *)s->content);
-	    break;
-	case STACK_TYPE_PREFIX:
-	    free_prefix(((struct ccnl_prefix_s *)s->content));
-	    break;
-	case STACK_TYPE_THUNK:
-	    t = (struct thunk_s *)s->content;
-	    free_prefix(t->prefix);
-	    free_prefix(t->reduced_prefix);
-	    break;
-	case STACK_TYPE_INT:
-	default:
-	    ccnl_free(s->content);
-	    break;
-	}
-	ccnl_free(s);
-	s = next;
+        switch (s->type) {
+        case STACK_TYPE_CLOSURE:
+            ccnl_nfn_freeClosure((struct closure_s *)s->content);
+            break;
+        case STACK_TYPE_PREFIX:
+            free_prefix(((struct ccnl_prefix_s *)s->content));
+            break;
+        case STACK_TYPE_THUNK:
+            t = (struct thunk_s *)s->content;
+            free_prefix(t->prefix);
+            free_prefix(t->reduced_prefix);
+            break;
+        case STACK_TYPE_INT:
+        default:
+            ccnl_free(s->content);
+            break;
+        }
+        ccnl_free(s);
+        s = next;
     }
 }
 
@@ -174,13 +174,13 @@ void
 ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
 {
     if (!f)
-	return;
+        return;
     ccnl_free(f->thunk);
     while (f->prefix_mapping) {
-	struct prefix_mapping_s *m = f->prefix_mapping;
-	DBL_LINKED_LIST_REMOVE(f->prefix_mapping, m);
-	free_prefix(m->key);
-	free_prefix(m->value);
+        struct prefix_mapping_s *m = f->prefix_mapping;
+        DBL_LINKED_LIST_REMOVE(f->prefix_mapping, m);
+        free_prefix(m->key);
+        free_prefix(m->value);
     }
     ccnl_free(f);
 }
@@ -191,7 +191,7 @@ ccnl_nfn_freeConfiguration(struct configuration_s* c)
     DEBUGMSG(99, "ccnl_nfn_freeConfiguration(%p)\n", (void*)c);
 
     if (!c)
-	return;
+        return;
     ccnl_free(c->prog);
     ccnl_nfn_freeStack(c->result_stack);
     ccnl_nfn_freeStack(c->argument_stack);
@@ -208,13 +208,13 @@ ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k)
     DEBUGMSG(99, "ccnl_nfn_freeKrivine(%p)\n", (void*)k);
 
     if (!k)
-	return;
+        return;
     DEBUGMSG(99, "  configuration_list %p\n", (void*)k->configuration_list);
     // free thunk_list;
     while (k->configuration_list) {
-	struct configuration_s *c = k->configuration_list;
-	DBL_LINKED_LIST_REMOVE(k->configuration_list, c);
-	ccnl_nfn_freeConfiguration(c);
+        struct configuration_s *c = k->configuration_list;
+        DBL_LINKED_LIST_REMOVE(k->configuration_list, c);
+        ccnl_nfn_freeConfiguration(c);
     }
     ccnl_free(k);
 }
@@ -239,7 +239,7 @@ int trim(char *str){  // inplace, returns len after shrinking
 
 struct ccnl_prefix_s *
 add_computation_components(struct ccnl_prefix_s *prefix,
-			   int thunk_request, char *comp)
+                           int thunk_request, char *comp)
 {
     /*while(namecomp[i]) ++i;
     namecomp[i++] = comp;
@@ -258,25 +258,25 @@ add_computation_components(struct ccnl_prefix_s *prefix,
     ret->suite = prefix->suite;
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
-	len += prefix->complen[i];
+        len += prefix->complen[i];
     len += 4 + strlen(comp);
     if (thunk_request)
-	len += l1 = ccnl_pkt_mkComponent(prefix->suite, buf1, "THUNK");
+        len += l1 = ccnl_pkt_mkComponent(prefix->suite, buf1, "THUNK");
     len += l2 = ccnl_pkt_mkComponent(prefix->suite, buf2, "NFN");
     ret->bytes = ccnl_malloc(len);
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
-	ret->comp[i] = ret->bytes + len;
-	memcpy(ret->comp[i], prefix->comp[i], prefix->complen[i]);
-	len += prefix->complen[i];
+        ret->comp[i] = ret->bytes + len;
+        memcpy(ret->comp[i], prefix->comp[i], prefix->complen[i]);
+        len += prefix->complen[i];
     }
     ret->comp[i] = ret->bytes + len;
     len += ccnl_pkt_mkComponent(prefix->suite, ret->comp[i], comp);
     i++;
     if (thunk_request) {
-	ret->comp[i] = ret->bytes + len;
-	memcpy(ret->comp[i], buf1, l1);
-	len += l1;
-	i++;
+        ret->comp[i] = ret->bytes + len;
+        memcpy(ret->comp[i], buf1, l1);
+        len += l1;
+        i++;
     }
     ret->comp[i] = ret->bytes + len;
     memcpy(ret->comp[i], buf2, l2);
@@ -448,7 +448,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s 
 
 char * 
 ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-		   struct ccnl_prefix_s *prefix)
+                   struct ccnl_prefix_s *prefix)
 {
     struct ccnl_prefix_s *new_prefix = ccnl_prefix_dup(prefix);
     struct thunk_s *thunk;
@@ -473,7 +473,7 @@ struct thunk_s *
 ccnl_nfn_get_thunk(struct ccnl_relay_s *ccnl, unsigned char *thunkid){
     struct thunk_s *thunk;
     for(thunk = ccnl->km->thunk_list; thunk; thunk = thunk->next){
-	if(!strcmp(thunk->thunkid, (char*)thunkid)){
+        if(!strcmp(thunk->thunkid, (char*)thunkid)){
             DEBUGMSG(49, "Thunk table entry found\n");
             return thunk;
         }
@@ -488,9 +488,9 @@ ccnl_nfn_get_interest_for_thunk(struct ccnl_relay_s *ccnl, struct configuration_
     if(thunk){
         char *out = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
         memset(out, 0, CCNL_MAX_PACKET_SIZE);
-	struct ccnl_prefix_s *copy = ccnl_prefix_dup(thunk->prefix);
-	//        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix);
-	struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
+        struct ccnl_prefix_s *copy = ccnl_prefix_dup(thunk->prefix);
+        //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, thunk->prefix);
+        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
         return interest;
     }
     return NULL;
@@ -521,11 +521,11 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     memset(reply_content, 0, 100);
     sprintf(reply_content, "%d", thunk_time);
     c = ccnl_nfn_result2content(ccnl, &prefix, (unsigned char*)reply_content,
-				strlen(reply_content));
+                                strlen(reply_content));
     if (c) {
-	set_propagate_of_interests_to_1(ccnl, c->name);
-	ccnl_content_add2cache(ccnl, c);
-	ccnl_content_serve_pending(ccnl, c);
+        set_propagate_of_interests_to_1(ccnl, c->name);
+        ccnl_content_add2cache(ccnl, c);
+        ccnl_content_serve_pending(ccnl, c);
     }
     return 0;
 }
@@ -552,15 +552,15 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
 #ifdef USE_NACK
 void
 ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-		struct ccnl_face_s *from, int suite)
+                struct ccnl_face_s *from, int suite)
 {
     struct ccnl_content_s *nack;
     DEBUGMSG(99, "ccnl_nack_reply()\n");
     if (from->faceid <= 0) {
-	return;
+        return;
     }
     nack = ccnl_nfn_result2content(ccnl, &prefix,
-				    (unsigned char*)":NACK", 5);
+                                    (unsigned char*)":NACK", 5);
     ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
 fprintf(stderr, "+++ nack->pkt is %p\n", (void*) nack->pkt);
     ccnl_face_enqueue(ccnl, from, nack->pkt);
@@ -573,7 +573,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     int faceid = 0;
 
     if (i && i->from)
-	faceid = i->from->faceid;
+        faceid = i->from->faceid;
     DEBUGMSG(99, "ccnl_nfn_interest_remove %d\n", faceid);
 
 #ifdef USE_NACK
@@ -584,7 +584,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     i = ccnl_interest_remove(relay, i);
 
     if (faceid < 0)
-	ccnl_nfn_continue_computation(relay, -faceid, 1);
+        ccnl_nfn_continue_computation(relay, -faceid, 1);
 
     return i;
 }

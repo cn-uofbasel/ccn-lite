@@ -41,7 +41,7 @@ ccnl_crypto_strtoint(char *str){
 
 static int 
 ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+          struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         char *cmd, int verified);
 
 static int 
@@ -61,14 +61,14 @@ ccnl_crypto_get_tag_content(unsigned char **buf, int *len, int numletters, char 
 
 #define extractStr2(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-	char *s; unsigned char *valptr; int vallen; \
-	if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0)\
-		goto Bail; \
-	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
-	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
-	ccnl_free(VAR); \
-	VAR = (unsigned char*) s; \
-	continue; \
+        char *s; unsigned char *valptr; int vallen; \
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0)\
+                goto Bail; \
+        s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+        memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+        ccnl_free(VAR); \
+        VAR = (unsigned char*) s; \
+        continue; \
     } do {} while(0)
 
 static int 
@@ -110,19 +110,19 @@ ccnl_crypto_create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int 
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, h);
     if(!strcmp(typ, "verify"))
         len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // content
-		   (char*) sig, sig_len);
+                   (char*) sig, sig_len);
     len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG,  // content
-		   (char*) content, content_len);
+                   (char*) content, content_len);
     
     // prepare CONTENTOBJ with CONTENT
     len2 = ccnl_ccnb_mkHeader(contentobj_buf, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
     len2 += ccnl_ccnb_mkBlob(contentobj_buf+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) component_buf, len3);
+                   (char*) component_buf, len3);
     contentobj_buf[len2++] = 0; // end-of-contentobj
 
     // add CONTENTOBJ as the final name component
     len += ccnl_ccnb_mkBlob(msg+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
-		  (char*) contentobj_buf, len2);
+                  (char*) contentobj_buf, len2);
 
     msg[len++] = 0; // end-of-name
     msg[len++] = 0; // end-o
@@ -402,7 +402,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       }
       
       buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
-			 &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
+                         &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
       if (p->complen[2] < sizeof(cmd)) {
             memcpy(cmd, p->comp[2], p->complen[2]);
@@ -449,7 +449,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           char *ht = (char *) ccnl_malloc(sizeof(char)*20);
           int contlen;
           pkt = ccnl_ccnb_extract(&out, &len1, 0, 0, 0, 0,
-				  &prefix_a, &nonce, &ppkd, &content, &contlen);
+                                  &prefix_a, &nonce, &ppkd, &content, &contlen);
           
           if (!pkt) {
                DEBUGMSG(6, " parsing error\n"); goto Done;
@@ -482,7 +482,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
 
 int
 ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	  struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+          struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
       
     unsigned char *buf = orig->data;

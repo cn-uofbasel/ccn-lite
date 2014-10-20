@@ -31,55 +31,55 @@ struct ccnx_tlvhdr_ccnx201311_s {
     uint16_t reserved;
 } __attribute__((packed));
 
-#define CCNX_TLV_V0				0
+#define CCNX_TLV_V0                             0
 
 // global
-#define CCNX_TLV_G_Name				0x0000
-#define CCNX_TLV_G_Pad				0x007F
-// #define CCNX_TLV_G_Expiment 			0xE000 - 0xEFFF
+#define CCNX_TLV_G_Name                         0x0000
+#define CCNX_TLV_G_Pad                          0x007F
+// #define CCNX_TLV_G_Expiment                  0xE000 - 0xEFFF
 
 // top level
-#define CCNX_TLV_TL_Interest			0x0001
-#define CCNX_TLV_TL_Object			0x0002
+#define CCNX_TLV_TL_Interest                    0x0001
+#define CCNX_TLV_TL_Object                      0x0002
 
 // per hop
-#define CCNX_TLV_PH_Nonce			0x0001
-#define CCNX_TLV_PH_Hoplimit			0x0002
-#define CCNX_TLV_PH_Fragment			0x0004
+#define CCNX_TLV_PH_Nonce                       0x0001
+#define CCNX_TLV_PH_Hoplimit                    0x0002
+#define CCNX_TLV_PH_Fragment                    0x0004
 
 // per name
-#define CCNX_TLV_N_UTF8 			0x0001
-#define CCNX_TLV_N_Binary 			0x0002
-#define CCNX_TLV_N_NameNonce 			0x0003
-#define CCNX_TLV_N_NameKey 			0x0004
-#define CCNX_TLV_N_Meta 			0x0006
-#define CCNX_TLV_N_ObjHash 			0x0007
-#define CCNX_TLV_N_PayloadHash 			0x0008
-// #define CCNX_TLV_N_App 			0xF000 - 0xF0FF
+#define CCNX_TLV_N_UTF8                         0x0001
+#define CCNX_TLV_N_Binary                       0x0002
+#define CCNX_TLV_N_NameNonce                    0x0003
+#define CCNX_TLV_N_NameKey                      0x0004
+#define CCNX_TLV_N_Meta                         0x0006
+#define CCNX_TLV_N_ObjHash                      0x0007
+#define CCNX_TLV_N_PayloadHash                  0x0008
+// #define CCNX_TLV_N_App                       0xF000 - 0xF0FF
 
 // per interest
-#define CCNX_TLV_I_KeyID 			0x0001
-#define CCNX_TLV_I_ObjHash 			0x0002
-#define CCNX_TLV_I_Scope 			0x0003
-#define CCNX_TLV_I_Art 				0x0004
-#define CCNX_TLV_I_IntLife 			0x0005
+#define CCNX_TLV_I_KeyID                        0x0001
+#define CCNX_TLV_I_ObjHash                      0x0002
+#define CCNX_TLV_I_Scope                        0x0003
+#define CCNX_TLV_I_Art                          0x0004
+#define CCNX_TLV_I_IntLife                      0x0005
 
 // per content
-#define CCNX_TLV_C_KeyID 			0x0001
-#define CCNX_TLV_C_NameAuth 			0x0002
-#define CCNX_TLV_C_ProtoInfo 			0x0003
-#define CCNX_TLV_C_Contents			0x0004
-#define CCNX_TLV_C_SigBlock 			0x0005
-#define CCNX_TLV_C_Suite 			0x0006
-#define CCNX_TLV_C_PubKeyLoc 			0x0007
-#define CCNX_TLV_C_Key	 			0x0008
-#define CCNX_TLV_C_Cert	 			0x0009
-#define CCNX_TLV_C_KeyNameKeyID			0x000A
-#define CCNX_TLV_C_ObjInfo 			0x000B
-#define CCNX_TLV_C_ObjType			0x000C
-#define CCNX_TLV_C_Create 			0x000D
-#define CCNX_TLV_C_Sigbits			0x000E
-#define CCNX_TLV_C_KeyLocator			0x000F
+#define CCNX_TLV_C_KeyID                        0x0001
+#define CCNX_TLV_C_NameAuth                     0x0002
+#define CCNX_TLV_C_ProtoInfo                    0x0003
+#define CCNX_TLV_C_Contents                     0x0004
+#define CCNX_TLV_C_SigBlock                     0x0005
+#define CCNX_TLV_C_Suite                        0x0006
+#define CCNX_TLV_C_PubKeyLoc                    0x0007
+#define CCNX_TLV_C_Key                          0x0008
+#define CCNX_TLV_C_Cert                         0x0009
+#define CCNX_TLV_C_KeyNameKeyID                 0x000A
+#define CCNX_TLV_C_ObjInfo                      0x000B
+#define CCNX_TLV_C_ObjType                      0x000C
+#define CCNX_TLV_C_Create                       0x000D
+#define CCNX_TLV_C_Sigbits                      0x000E
+#define CCNX_TLV_C_KeyLocator                   0x000F
 
 #endif
 // eof

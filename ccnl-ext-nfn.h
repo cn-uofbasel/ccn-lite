@@ -94,9 +94,9 @@ struct ccnl_krivine_s {
 };
 
 int ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
-	     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
-	     struct configuration_s *config, struct ccnl_interest_s *interest,
-	     int suite, int start_locally);
+             struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
+             struct configuration_s *config, struct ccnl_interest_s *interest,
+             int suite, int start_locally);
 
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,

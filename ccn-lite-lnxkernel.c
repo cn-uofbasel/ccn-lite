@@ -52,13 +52,13 @@
 
 struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 
-#define ccnl_print_stats(x,y)		do{}while(0)
-#define ccnl_app_RX(x,y)		do{}while(0)
+#define ccnl_print_stats(x,y)           do{}while(0)
+#define ccnl_app_RX(x,y)                do{}while(0)
 
 static struct ccnl_relay_s theRelay;
 
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
-		       struct packet_type *pt, struct net_device *outdev);
+                       struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk, int len);
 
@@ -80,7 +80,7 @@ inet_ntoa(struct in_addr in)
     static char buf[16];
     unsigned int i, len = 0, a = ntohl(in.s_addr);
     for (i = 0; i < 4; i++) {
-	len += sprintf(buf+len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
+        len += sprintf(buf+len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
     }
     return buf;
 }
@@ -112,94 +112,94 @@ char* ccnl_addr2ascii(sockunion *su);
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
-	    sockunion *dest, struct ccnl_buf_s *buf)
+            sockunion *dest, struct ccnl_buf_s *buf)
 {
     DEBUGMSG(1, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
-	     ifc, ifc ? ifc->sock : NULL);
+             ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
-	return;
+        return;
 
     if (in_interrupt()) {
-	printk("** uh, must do ll_TX() during interrupt\n");
-//	return;
+        printk("** uh, must do ll_TX() during interrupt\n");
+//      return;
     }
 
     switch (dest->sa.sa_family) {
     case AF_INET:
     {
-	struct iovec iov;
-	struct msghdr msg;
-	int rc;
-	mm_segment_t oldfs;
+        struct iovec iov;
+        struct msghdr msg;
+        int rc;
+        mm_segment_t oldfs;
 
-	iov.iov_base = buf->data;
-	iov.iov_len = buf->datalen;
+        iov.iov_base = buf->data;
+        iov.iov_len = buf->datalen;
 
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_name = &dest->ip4;
-	msg.msg_namelen = sizeof(dest->ip4);
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_name = &dest->ip4;
+        msg.msg_namelen = sizeof(dest->ip4);
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
-	oldfs = get_fs();
-	set_fs(KERNEL_DS);
-	rc = sock_sendmsg(ifc->sock, &msg, buf->datalen);
-	set_fs(oldfs);
-	break;
+        oldfs = get_fs();
+        set_fs(KERNEL_DS);
+        rc = sock_sendmsg(ifc->sock, &msg, buf->datalen);
+        set_fs(oldfs);
+        break;
     }
     case AF_PACKET:
     {
-	struct net_device *dev = ifc->netdev;
-	struct sk_buff *skb;
+        struct net_device *dev = ifc->netdev;
+        struct sk_buff *skb;
 
-	if (!dev)
-	    return;
-	skb = alloc_skb(dev->hard_header_len + buf->datalen, GFP_ATOMIC);
-	if (!skb)
-	    return;
-	skb->dev = dev;
-	skb->protocol = htons(CCNL_ETH_TYPE);
-	skb_reserve(skb, dev->hard_header_len);
-	skb_reset_network_header(skb);
-	skb->len = buf->datalen;
-	memcpy(skb->data, buf->data, skb->len);
-	if (dev_hard_header(skb, dev, CCNL_ETH_TYPE, dest->eth.sll_addr,
-			    ifc->addr.eth.sll_addr, skb->len))
-	    dev_queue_xmit(skb);
-	else
-	    kfree_skb(skb);
-	break;
+        if (!dev)
+            return;
+        skb = alloc_skb(dev->hard_header_len + buf->datalen, GFP_ATOMIC);
+        if (!skb)
+            return;
+        skb->dev = dev;
+        skb->protocol = htons(CCNL_ETH_TYPE);
+        skb_reserve(skb, dev->hard_header_len);
+        skb_reset_network_header(skb);
+        skb->len = buf->datalen;
+        memcpy(skb->data, buf->data, skb->len);
+        if (dev_hard_header(skb, dev, CCNL_ETH_TYPE, dest->eth.sll_addr,
+                            ifc->addr.eth.sll_addr, skb->len))
+            dev_queue_xmit(skb);
+        else
+            kfree_skb(skb);
+        break;
     }
     case AF_UNIX:
     {
-	struct iovec iov;
-	struct msghdr msg;
-	int rc;
-	mm_segment_t oldfs;
+        struct iovec iov;
+        struct msghdr msg;
+        int rc;
+        mm_segment_t oldfs;
 
-	iov.iov_base =  buf->data;
-	iov.iov_len = buf->datalen;
+        iov.iov_base =  buf->data;
+        iov.iov_len = buf->datalen;
 
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_name = dest; //->ux.sun_path;
-	msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
-	    strlen(dest->ux.sun_path) + 1;
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+        memset(&msg, 0, sizeof(msg));
+        msg.msg_name = dest; //->ux.sun_path;
+        msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
+            strlen(dest->ux.sun_path) + 1;
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
-	oldfs = get_fs();
-	set_fs(KERNEL_DS);
-	rc = sock_sendmsg(ifc->sock, &msg, buf->datalen);
-	set_fs(oldfs);
+        oldfs = get_fs();
+        set_fs(KERNEL_DS);
+        rc = sock_sendmsg(ifc->sock, &msg, buf->datalen);
+        set_fs(oldfs);
 
-	//	printk("UNIX sendmsg returned %d\n", rc);
-	break;
+        //      printk("UNIX sendmsg returned %d\n", rc);
+        break;
     }
     default:
-	break;
+        break;
     }
 }
 
@@ -218,7 +218,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     int len= 0, i;
 
     if (!pr)
-	return NULL;
+        return NULL;
     for (i = 0; i < pr->compcnt; i++) {
         if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
             len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
@@ -255,7 +255,7 @@ int inter_ccn_interval = 100;
 
 struct ccnl_sched_s*
 ccnl_lnx_defaultFaceScheduler(struct ccnl_relay_s *ccnl,
-				    void(*cb)(void*,void*))
+                                    void(*cb)(void*,void*))
 {
     return ccnl_sched_pktrate_new(cb, ccnl, inter_ccn_interval);
 }
@@ -281,7 +281,7 @@ ccnl_upcall_RX(struct work_struct *work)
     DEBUGMSG(6, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
 
     ccnl_core_RX(&theRelay, uc->ifndx, uc->data, uc->datalen,
-		 &uc->su.sa, sizeof(uc->su));
+                 &uc->su.sa, sizeof(uc->su));
 
     kfree_skb(uc->skb);
     ccnl_free(uc);
@@ -289,39 +289,39 @@ ccnl_upcall_RX(struct work_struct *work)
 
 void
 ccnl_schedule_upcall_RX(int ifndx, sockunion *su, struct sk_buff *skb,
-			char *data, int datalen)
+                        char *data, int datalen)
 {
     struct ccnl_upcall_s *uc = ccnl_malloc(sizeof(struct ccnl_upcall_s));
     if (uc) {
-	INIT_WORK((struct work_struct*)uc, ccnl_upcall_RX);
-	uc->ifndx = ifndx;
-	memcpy(&uc->su, su, sizeof(*su));
-	uc->skb = skb;
-	uc->data = data;
-	uc->datalen = datalen;
-	schedule_work((struct work_struct*)uc);
+        INIT_WORK((struct work_struct*)uc, ccnl_upcall_RX);
+        uc->ifndx = ifndx;
+        memcpy(&uc->su, su, sizeof(*su));
+        uc->skb = skb;
+        uc->data = data;
+        uc->datalen = datalen;
+        schedule_work((struct work_struct*)uc);
     } else
-	kfree_skb(skb);
+        kfree_skb(skb);
 }
 
 // ----------------------------------------------------------------------
 
 static int
 ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
-	  struct packet_type *pt, struct net_device *outdev){
+          struct packet_type *pt, struct net_device *outdev){
     int i;
     sockunion su;
 
     for (i = 0; i < theRelay.ifcount; i++)
-	if (theRelay.ifs[i].netdev == indev)
-	    break;
+        if (theRelay.ifs[i].netdev == indev)
+            break;
     if (!theRelay.halt_flag &&  i < theRelay.ifcount) {
-	su.sa.sa_family = AF_PACKET;
-	memcpy(su.eth.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
-	su.eth.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
-	ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
+        su.sa.sa_family = AF_PACKET;
+        memcpy(su.eth.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
+        su.eth.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
+        ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
     } else
-	kfree_skb(skb);
+        kfree_skb(skb);
 
     return 1;
 }
@@ -335,21 +335,21 @@ ccnl_udp_data_ready(struct sock *sk, int len)
     DEBUGMSG(99, "ccnl_udp_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
-	goto Bail;
+        goto Bail;
     for (i = 0; i < theRelay.ifcount; i++)
-	if (theRelay.ifs[i].sock->sk == sk)
-	    break;
+        if (theRelay.ifs[i].sock->sk == sk)
+            break;
     if (!theRelay.halt_flag && i < theRelay.ifcount) {
-	sockunion su;
-	su.sa.sa_family = AF_INET;
-	su.ip4.sin_addr.s_addr = ((struct iphdr *)skb_network_header(skb))->saddr;
-	su.ip4.sin_port = udp_hdr(skb)->source;
-	DEBUGMSG(99, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
-		 i, skb->len, ccnl_addr2ascii(&su));
-	ccnl_schedule_upcall_RX(i, &su, skb, skb->data + sizeof(struct udphdr),
-				skb->len - sizeof(struct udphdr));
+        sockunion su;
+        su.sa.sa_family = AF_INET;
+        su.ip4.sin_addr.s_addr = ((struct iphdr *)skb_network_header(skb))->saddr;
+        su.ip4.sin_port = udp_hdr(skb)->source;
+        DEBUGMSG(99, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
+                 i, skb->len, ccnl_addr2ascii(&su));
+        ccnl_schedule_upcall_RX(i, &su, skb, skb->data + sizeof(struct udphdr),
+                                skb->len - sizeof(struct udphdr));
     } else
-	kfree_skb(skb);
+        kfree_skb(skb);
     return;
 Bail:
     return;
@@ -364,23 +364,23 @@ ccnl_ux_data_ready(struct sock *sk, int len)
     DEBUGMSG(99, "ccnl_ux_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
-	goto Bail;
+        goto Bail;
     for (i = 0; i < theRelay.ifcount; i++)
-	if (theRelay.ifs[i].sock->sk == sk)
-	    break;
+        if (theRelay.ifs[i].sock->sk == sk)
+            break;
     if (!theRelay.halt_flag && i < theRelay.ifcount) {
-	struct unix_sock *u = (struct unix_sock *)(skb->sk);
-	sockunion su;
-	if (u && u->addr)
-	    memcpy(&su, u->addr->name, u->addr->len);
-	else
-	    su.sa.sa_family = 0;
-	DEBUGMSG(99, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
-		 i, skb->len, ccnl_addr2ascii(&su));
+        struct unix_sock *u = (struct unix_sock *)(skb->sk);
+        sockunion su;
+        if (u && u->addr)
+            memcpy(&su, u->addr->name, u->addr->len);
+        else
+            su.sa.sa_family = 0;
+        DEBUGMSG(99, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
+                 i, skb->len, ccnl_addr2ascii(&su));
 
-	ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
+        ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
     } else
-	kfree_skb(skb);
+        kfree_skb(skb);
 
     return;
 Bail:
@@ -409,7 +409,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 
     dev = dev_get_by_name(&init_net, devname);
     if (!dev)
-	return NULL;
+        return NULL;
 
     sll->sll_family = AF_PACKET;
     sll->sll_protocol = htons(ethtype);
@@ -417,7 +417,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     sll->sll_ifindex = dev->ifindex;
 
     DEBUGMSG(99, "access to %s with MAC=%s installed\n",
-	     devname, eth2ascii(sll->sll_addr));
+             devname, eth2ascii(sll->sll_addr));
     //    dev_put(dev);
     return dev;
 }
@@ -431,8 +431,8 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
 
     rc = sock_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP, &s);
     if (rc < 0) {
-	DEBUGMSG(1, "Error %d creating UDP socket\n", rc);
-	return NULL;
+        DEBUGMSG(1, "Error %d creating UDP socket\n", rc);
+        return NULL;
     }
 
     DEBUGMSG(99, "UDP socket is %p\n", s);
@@ -442,8 +442,8 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
     sin->sin_port = htons(port);
     rc = s->ops->bind(s, (struct sockaddr*) sin, sizeof(*sin));
     if (rc < 0) {
-	DEBUGMSG(1, "Error %d binding UDP socket\n", rc);
-	goto Bail;
+        DEBUGMSG(1, "Error %d binding UDP socket\n", rc);
+        goto Bail;
     }
 
     return s;
@@ -463,19 +463,19 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
 
     rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
     if (rc < 0) {
-	DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
-	return NULL;
+        DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
+        return NULL;
     }
     DEBUGMSG(9, "UNIX socket is %p\n", (void*)s);
 
     ux->sun_family = AF_UNIX;
     strcpy(ux->sun_path, path);
     rc = s->ops->bind(s, (struct sockaddr*) ux,
-		offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
+                offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {
-	DEBUGMSG(1, "Error %d binding UNIX socket to %s "
-		    "(remove first, check access rights)\n", rc, path);
-	goto Bail;
+        DEBUGMSG(1, "Error %d binding UNIX socket to %s "
+                    "(remove first, check access rights)\n", rc, path);
+        goto Bail;
     }
 
     return s;
@@ -530,7 +530,7 @@ ccnl_init(void)
 {
     struct ccnl_if_s *i;
     if (v >= 0)
-	debug_level = v;
+        debug_level = v;
 
     DEBUGMSG(1, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
@@ -538,19 +538,19 @@ ccnl_init(void)
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
     DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%d,"
-	         "u=%d, v=%d, x=%s\n",
-	     c, e, k, p, s, u, v, x);
+                 "u=%d, v=%d, x=%s\n",
+             c, e, k, p, s, u, v, x);
 
 #ifdef USE_SUITE_CCNB
     if (s == CCNL_SUITE_CCNB) {
-	if (u < 0)
-	    u = CCN_UDP_PORT;
+        if (u < 0)
+            u = CCN_UDP_PORT;
     }
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (s == CCNL_SUITE_NDNTLV) {
-	if (u < 0)
-	    u = NDN_UDP_PORT;
+        if (u < 0)
+            u = NDN_UDP_PORT;
     }
 #endif
 
@@ -563,54 +563,54 @@ ccnl_init(void)
 
 #ifdef USE_UNIXSOCKET
     if (x) {
-	i = &theRelay.ifs[theRelay.ifcount];
-	i->sock = ccnl_open_unixpath(x, &i->addr.ux);
-	if (i->sock) {
-	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
-	    i->mtu = 4048;
-	    i->reflect = 0;
-	    i->fwdalli = 0;
-	    write_lock_bh(&i->sock->sk->sk_callback_lock);
-	    i->old_data_ready = i->sock->sk->sk_data_ready;
-	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
-//	i->sock->sk->sk_user_data = &theRelay;
-	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    theRelay.ifcount++;
-	}
+        i = &theRelay.ifs[theRelay.ifcount];
+        i->sock = ccnl_open_unixpath(x, &i->addr.ux);
+        if (i->sock) {
+            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+//      i->frag = CCNL_DGRAM_FRAG_ETH2011;
+            i->mtu = 4048;
+            i->reflect = 0;
+            i->fwdalli = 0;
+            write_lock_bh(&i->sock->sk->sk_callback_lock);
+            i->old_data_ready = i->sock->sk->sk_data_ready;
+            i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+//      i->sock->sk->sk_user_data = &theRelay;
+            write_unlock_bh(&i->sock->sk->sk_callback_lock);
+            theRelay.ifcount++;
+        }
     }
 #endif
 
     if (u > 0) {
-	i = &theRelay.ifs[theRelay.ifcount];
-	i->sock = ccnl_open_udpdev(u, &i->addr.ip4);
-	if (i->sock != NULL) {
-	    i->mtu = 64000;
-	    i->reflect = 0;
-	    i->fwdalli = 0;
-	    write_lock_bh(&i->sock->sk->sk_callback_lock);
-	    i->old_data_ready = i->sock->sk->sk_data_ready;
-	    i->sock->sk->sk_data_ready = ccnl_udp_data_ready;
-	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    theRelay.ifcount++;
-	}
+        i = &theRelay.ifs[theRelay.ifcount];
+        i->sock = ccnl_open_udpdev(u, &i->addr.ip4);
+        if (i->sock != NULL) {
+            i->mtu = 64000;
+            i->reflect = 0;
+            i->fwdalli = 0;
+            write_lock_bh(&i->sock->sk->sk_callback_lock);
+            i->old_data_ready = i->sock->sk->sk_data_ready;
+            i->sock->sk->sk_data_ready = ccnl_udp_data_ready;
+            write_unlock_bh(&i->sock->sk->sk_callback_lock);
+            theRelay.ifcount++;
+        }
     }
 
 #ifdef USE_ETHERNET
     if (e) {
-	i = &theRelay.ifs[theRelay.ifcount];
-	i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
-	if (i->netdev) {
-//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
-	    i->mtu = 1500;
-	    i->reflect = 1;
-	    i->fwdalli = 1;
-	    i->ccnl_packet.type = htons(CCNL_ETH_TYPE);
-	    i->ccnl_packet.dev = i->netdev;
-	    i->ccnl_packet.func = ccnl_eth_RX;
-	    dev_add_pack(&i->ccnl_packet);
-	    theRelay.ifcount++;
-	}
+        i = &theRelay.ifs[theRelay.ifcount];
+        i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
+        if (i->netdev) {
+//      i->frag = CCNL_DGRAM_FRAG_ETH2011;
+            i->mtu = 1500;
+            i->reflect = 1;
+            i->fwdalli = 1;
+            i->ccnl_packet.type = htons(CCNL_ETH_TYPE);
+            i->ccnl_packet.dev = i->netdev;
+            i->ccnl_packet.func = ccnl_eth_RX;
+            dev_add_pack(&i->ccnl_packet);
+            theRelay.ifcount++;
+        }
     }
 #endif
 #ifdef USE_UNIXSOCKET
@@ -619,39 +619,39 @@ ccnl_init(void)
         char h[100];
         // Socket to Cryptoserver
         i = &theRelay.ifs[theRelay.ifcount];
-	i->sock = ccnl_open_unixpath(p, &i->addr.ux);
-	if (i->sock) {
-	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
-	    i->mtu = 4048;
-	    i->reflect = 0;
-	    i->fwdalli = 0;
-	    write_lock_bh(&i->sock->sk->sk_callback_lock);
-	    i->old_data_ready = i->sock->sk->sk_data_ready;
-	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
-//	i->sock->sk->sk_user_data = &theRelay;
-	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    theRelay.ifcount++;
-	}
+        i->sock = ccnl_open_unixpath(p, &i->addr.ux);
+        if (i->sock) {
+            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+//      i->frag = CCNL_DGRAM_FRAG_ETH2011;
+            i->mtu = 4048;
+            i->reflect = 0;
+            i->fwdalli = 0;
+            write_lock_bh(&i->sock->sk->sk_callback_lock);
+            i->old_data_ready = i->sock->sk->sk_data_ready;
+            i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+//      i->sock->sk->sk_user_data = &theRelay;
+            write_unlock_bh(&i->sock->sk->sk_callback_lock);
+            theRelay.ifcount++;
+        }
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
         theRelay.crypto_path = p;    
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
         sprintf(h, "%s-2", p);
-	i->sock = ccnl_open_unixpath(h, &i->addr.ux);
-	if (i->sock) {
-	    DEBUGMSG(99, "ccnl_open_unixpath worked\n");
-//	i->frag = CCNL_DGRAM_FRAG_ETH2011;
-	    i->mtu = 4048;
-	    i->reflect = 0;
-	    i->fwdalli = 0;
-	    write_lock_bh(&i->sock->sk->sk_callback_lock);
-	    i->old_data_ready = i->sock->sk->sk_data_ready;
-	    i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
-//	i->sock->sk->sk_user_data = &theRelay;
-	    write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    theRelay.ifcount++;
-	}
+        i->sock = ccnl_open_unixpath(h, &i->addr.ux);
+        if (i->sock) {
+            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+//      i->frag = CCNL_DGRAM_FRAG_ETH2011;
+            i->mtu = 4048;
+            i->reflect = 0;
+            i->fwdalli = 0;
+            write_lock_bh(&i->sock->sk->sk_callback_lock);
+            i->old_data_ready = i->sock->sk->sk_data_ready;
+            i->sock->sk->sk_data_ready = ccnl_ux_data_ready;
+//      i->sock->sk->sk_user_data = &theRelay;
+            write_unlock_bh(&i->sock->sk->sk_callback_lock);
+            theRelay.ifcount++;
+        }
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
         theRelay.crypto_path = p;
     }
@@ -669,72 +669,72 @@ ccnl_lnxkernel_cleanup(void)
     printk("%s: ccnl_lnxkernel_cleanup\n", THIS_MODULE->name);
 
     if (ageing_handler) {
-	ccnl_rem_timer(ageing_handler);
-	ageing_handler = 0;
+        ccnl_rem_timer(ageing_handler);
+        ageing_handler = 0;
     }
 
     ccnl_core_cleanup(&theRelay);
 
     for (j = 0; j < theRelay.ifcount; j++) {
-	struct ccnl_if_s *i = &theRelay.ifs[j];
+        struct ccnl_if_s *i = &theRelay.ifs[j];
 
-	if (i->netdev) { // unbind from the ETH packet driver
-	    dev_remove_pack(&i->ccnl_packet);
-	    dev_put(i->netdev);
-	    i->netdev = NULL;
-	}
+        if (i->netdev) { // unbind from the ETH packet driver
+            dev_remove_pack(&i->ccnl_packet);
+            dev_put(i->netdev);
+            i->netdev = NULL;
+        }
 
-	if (i->sock) {
-	    if (i->addr.sa.sa_family == AF_UNIX ||
-		i->addr.sa.sa_family == AF_INET) {
-		write_lock_bh(&i->sock->sk->sk_callback_lock);
-		i->sock->sk->sk_data_ready = i->old_data_ready;
-		write_unlock_bh(&i->sock->sk->sk_callback_lock);
-	    }
-	    sock_release(i->sock);
-	    i->sock = 0;
-	}
+        if (i->sock) {
+            if (i->addr.sa.sa_family == AF_UNIX ||
+                i->addr.sa.sa_family == AF_INET) {
+                write_lock_bh(&i->sock->sk->sk_callback_lock);
+                i->sock->sk->sk_data_ready = i->old_data_ready;
+                write_unlock_bh(&i->sock->sk->sk_callback_lock);
+            }
+            sock_release(i->sock);
+            i->sock = 0;
+        }
     }
     theRelay.ifcount = 0;
 
     if (x) { // also remove the UNIX socket path
-	struct path p;
-	int rc;
+        struct path p;
+        int rc;
 
-	rc = kern_path(x, 0, &p);
-	if (!rc) {
-	    struct dentry *dir = dget_parent(p.dentry);
+        rc = kern_path(x, 0, &p);
+        if (!rc) {
+            struct dentry *dir = dget_parent(p.dentry);
 
-	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
+            mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
             rc = vfs_unlink(dir->d_inode, p.dentry, NULL);                                                                                                                                               
 #else
             rc = vfs_unlink(dir->d_inode, p.dentry);
 #endif
-	    mutex_unlock(&dir->d_inode->i_mutex);
-	    dput(dir);
-	    path_put(&p);
-	}
+            mutex_unlock(&dir->d_inode->i_mutex);
+            dput(dir);
+            path_put(&p);
+        }
     }
     
     if (p) { // also remove the UNIX socket path
-	struct path px;
-	int rc;
+        struct path px;
+        int rc;
 
-	rc = kern_path(x, 0, &px);
-	if (!rc) {
-	    struct dentry *dir = dget_parent(px.dentry);
+        rc = kern_path(x, 0, &px);
+        if (!rc) {
+            struct dentry *dir = dget_parent(px.dentry);
 
-	    mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
+            mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
-	    rc = vfs_unlink(dir->d_inode, px.dentry, NULL);
+            rc = vfs_unlink(dir->d_inode, px.dentry, NULL);
 #else
-	    rc = vfs_unlink(dir->d_inode, px.dentry);
+            rc = vfs_unlink(dir->d_inode, px.dentry);
 #endif
-	    mutex_unlock(&dir->d_inode->i_mutex);
-	    dput(dir);
-	    path_put(&px);
-	}
+            mutex_unlock(&dir->d_inode->i_mutex);
+            dput(dir);
+            path_put(&px);
+        }
     }
     x = NULL;
 }
@@ -745,7 +745,7 @@ ccnl_exit( void )
     DEBUGMSG(1, "%s: exit\n", THIS_MODULE->name);
 
     if (ageing_handler)
-	ccnl_rem_timer(ageing_handler);
+        ccnl_rem_timer(ageing_handler);
 
     flush_scheduled_work();
     ccnl_lnxkernel_cleanup();
