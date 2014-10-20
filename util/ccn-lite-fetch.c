@@ -194,33 +194,80 @@ int ndntlv_isData(unsigned char *buf, int len)
 #endif
 
 int
-findChunkInfo(unsigned char *packetData, int datalen) {
-    int len = 0, typ;
-    int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
-    struct ccnl_prefix_s *prefix;
-    unsigned char *finalBlockId = 0;
-    int finalBlockId_len = 0;
-    unsigned char *content = 0, *cp = packetData;
+fetch_content_object_for_name(char* name, int suite, unsigned char *out, int out_len, int *len, float wait, int sock, struct sockaddr sa) {
 
-    if (ccnl_ndntlv_dehead(&packetData, &datalen, &typ, &len))
-    return -1;
-    buf = ccnl_ndntlv_extract(packetData - cp,
-                  &packetData, &datalen,
-                  &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
-                  &prefix, &nonce, &ppkl, &content, &contlen);
-    if (!buf) {
-        printf("parsing error or no prefix\n"); 
-        return -1;
-    } 
-    if (typ == NDN_TLV_Interest) {
-        printf("parsed interest %s\n", ccnl_prefix_to_path(prefix));
-    } else { // data packet with content -------------------------------------
-        printf("parsed content [%s -> '%s'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), packetData, "not impl");
+    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        mkInterest = ccnl_ccnb_fillInterest;
+        break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        mkInterest = ccntlv_mkInterest;
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        mkInterest = ndntlv_mkInterest;
+        break;
+#endif
+    default:
+        printf("unknown suite\n");
+        exit(-1);
     }
+
+
+    char temp_name[1024];
+    strcpy(temp_name, name);
+    struct ccnl_prefix_s *prefix;
+
+    prefix = ccnl_URItoPrefix(name, suite, NULL);
+    int nonce = random();
+    *len = mkInterest(prefix, &nonce, out, out_len);
+
+    if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
+        perror("sendto");
+        myexit(1);
+    }
+    if (block_on_read(sock, wait) <= 0) {
+        printf("timeout after block_on_read");
+        return -1;
+    }
+    *len = recv(sock, out, out_len, 0);
 
     return 0;
 }
+
+// int
+// findChunkInfo(unsigned char *packetData, int datalen) {
+//     int len = 0, typ;
+//     int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
+//     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
+//     struct ccnl_prefix_s *prefix;
+//     unsigned char *finalBlockId = 0;
+//     int finalBlockId_len = 0;
+//     unsigned char *content = 0, *cp = packetData;
+
+//     if (ccnl_ndntlv_dehead(&packetData, &datalen, &typ, &len))
+//     return -1;
+//     buf = ccnl_ndntlv_extract(packetData - cp,
+//                   &packetData, &datalen,
+//                   &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
+//                   &prefix, &nonce, &ppkl, &content, &contlen);
+//     if (!buf) {
+//         printf("parsing error or no prefix\n"); 
+//         return -1;
+//     } 
+//     if (typ == NDN_TLV_Interest) {
+//         printf("parsed interest %s\n", ccnl_prefix_to_path(prefix));
+//     } else { // data packet with content -------------------------------------
+//         printf("parsed content [%s -> '%s'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), packetData, "not impl");
+//     }
+
+//     return 0;
+// }
 
 // ----------------------------------------------------------------------
 
@@ -228,13 +275,11 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
-    struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    int (*isContent)(unsigned char*, int);
+    // int (*isContent)(unsigned char*, int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
@@ -298,29 +343,6 @@ usage:
 
     srandom(time(NULL));
 
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        mkInterest = ccnl_ccnb_fillInterest;
-        isContent = ccnb_isContent;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isObject;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        isContent = ndntlv_isData;
-        break;
-#endif
-    default:
-        printf("unknown suite\n");
-        exit(-1);
-    }
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
@@ -336,83 +358,106 @@ usage:
         sock = udp_open();
     }
 
-    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
-    for (cnt = 0; cnt < 3; cnt++) {
-        int nonce = random();
+    char urlOrig[1024];
+    strcpy(urlOrig, argv[optind]);
 
-        len = mkInterest(prefix, &nonce, out, sizeof(out));
+    char urlTemp[1024];
 
-        if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
-            perror("sendto");
-            myexit(1);
+    unsigned char *content = 0;
+    int contlen;
+
+
+    unsigned char **dataOfChunks = 0;
+    int *datalenOfChunks = 0;
+    int nChunks = -1;
+
+    int do_fetch_next = 1;
+    while(do_fetch_next) {
+
+        strcpy(urlTemp, urlOrig);
+        if(dataOfChunks) {
+            for(int x = 0; x < nChunks; x++) {
+                if(!dataOfChunks[x]) {
+                    sprintf(urlTemp + strlen(urlTemp), "/c%d",x);
+                    break;
+                } 
+            }
         }
+        if(fetch_content_object_for_name(urlTemp, suite, out, sizeof(out), &len, wait, sock, sa) < 0) {
+            printf("timeout, retry not implemented, exit\n");
+            exit(1);
+        }
+        // *** parse content *******************************
+        unsigned char *t = (unsigned char*)out; 
+        unsigned char **data = &t;
+        int *datalen = &len;
 
-        for (;;) { // wait for a content pkt (ignore interests)
-            int rc;
-
-            if (block_on_read(sock, wait) <= 0) // timeout
-                break;
-            len = recv(sock, out, sizeof(out), 0);
-/*
-            fprintf(stderr, "received %d bytes\n", len);
-            if (len > 0)
-                fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
-*/
-
-            // *** parse content *******************************
-            unsigned char *t = (unsigned char*)out; 
-            unsigned char **data = &t;
-            int *datalen = &len;
-            printf("parsed content...\n");
-
-            int len = 0, typ;
-            int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3, contlen;
-            struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
-            struct ccnl_prefix_s *prefix;
-            unsigned char *finalBlockId = 0;
-            int finalBlockId_len = 0;
-            unsigned char *content = 0, *cp = *data;
+        int typ;
+        int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3;
+        struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
+        struct ccnl_prefix_s *prefix;
+        unsigned char finalBlockId[1*1024];
+        int finalBlockId_len = -1;
+        unsigned char *cp = *data;
 
 
-            if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
+        if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
+            printf("could not dehead\n");
             return -1;
-            printf("deahead...\n");
-            buf = ccnl_ndntlv_extract(*data - cp,
-                          data, datalen,
-                          &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
-                          &prefix, &nonce, &ppkl, &content, &contlen);
-            printf("deahead...\n");
-            if (!buf) {
-                printf("parsing error or no prefix\n"); 
-                goto Done;
-            } 
-            if (typ == NDN_TLV_Interest) {
-                printf("parsed interest %s\n", ccnl_prefix_to_path(prefix));
-            } else { // data packet with content -------------------------------------
-                printf("parsed content [%s -> '%p'] with finalBlockId: %s\n", ccnl_prefix_to_path(prefix), data, finalBlockId);
-            }
-
-            // === parse content ===============================
-
-
-            rc = isContent(out, len);
-            if (rc < 0)
-                goto Done;
-            if (rc == 0) { // it's an interest, ignore it
-                fprintf(stderr, "skipping non-data packet\n");
-                continue;
-            }
-            write(1, out, len);
-            myexit(0);
         }
-        if (cnt < 2)
-            fprintf(stderr, "re-sending interest\n");
+        buf = ccnl_ndntlv_extract(*data - cp,
+                      data, datalen,
+                      &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
+                      &prefix, &nonce, &ppkl, &content, &contlen);
+        if (!buf) {
+            printf("parsing error or no prefix\n"); 
+            goto Done;
+        } 
+        if (typ == NDN_TLV_Interest) {
+            printf("parsed interest %s\n", ccnl_prefix_to_path(prefix));
+        } else { // data packet with content -------------------------------------
+            if(finalBlockId_len > 0) {
+
+                finalBlockId[finalBlockId_len] = 0;
+
+                nChunks = atoi((const char *)&finalBlockId[1]) + 1;
+                if(!dataOfChunks) {
+                    dataOfChunks = calloc(nChunks, sizeof(unsigned char*));
+                    datalenOfChunks = calloc(nChunks, sizeof(int));
+                }
+
+                int cmp_ind = prefix->compcnt-1;
+                int cmp_len = prefix->complen[cmp_ind] - 1;
+                char *buf[cmp_len];
+                memmove(buf, prefix->comp[cmp_ind] + 1, cmp_len);
+
+                int chunkNum = atoi((const char *)buf);
+
+                dataOfChunks[chunkNum] = malloc(contlen * sizeof(unsigned char));
+                memcpy(dataOfChunks[chunkNum], content, contlen);
+                datalenOfChunks[chunkNum] = contlen;
+
+                do_fetch_next = 0;
+                for(int x = 0; x < nChunks; x++) {
+                    if(!dataOfChunks[x]) {
+                        do_fetch_next = 1;
+                    } 
+                }
+            } else {
+                goto Done;
+            }
+        }
     }
-    fprintf(stderr, "timeout\n");
 
 Done:
+    if(!dataOfChunks) {
+        write(1, content, contlen);
+    } else {
+        for(int x = 0; x < nChunks; x++) {
+            write(1, dataOfChunks[x], datalenOfChunks[x]);
+        }
+    }
     close(sock);
-    myexit(-1);
     return 0; // avoid a compiler warning
 }
 

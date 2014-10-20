@@ -31,20 +31,20 @@ static int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
     if (**buf < 253 && *len >= 1) {
-	*val = **buf;
-	*buf += 1;
-	*len -= 1;
+        *val = **buf;
+        *buf += 1;
+        *len -= 1;
     } else if (**buf == 253 && *len >= 3) { // 2 bytes
-	*val = ntohs(*(uint16_t*)(*buf + 1));
-	*buf += 3;
-	*len -= 3;
+        *val = ntohs(*(uint16_t*)(*buf + 1));
+        *buf += 3;
+        *len -= 3;
     } else if (**buf == 254 && *len >= 5) { // 4 bytes
-	*val = ntohl(*(uint32_t*)(*buf + 1));
-	*buf += 5;
-	*len -= 5;
+        *val = ntohl(*(uint32_t*)(*buf + 1));
+        *buf += 5;
+        *len -= 5;
     } else {
-	// not implemented yet (or too short)
-	return -1;
+        // not implemented yet (or too short)
+        return -1;
     }
     return 0;
 }
@@ -56,8 +56,8 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
     unsigned long int val = 0;
 
     while (len-- > 0) {
-	val = (val << 8) | *cp;
-	cp++;
+        val = (val << 8) | *cp;
+        cp++;
     }
     return val;
 }
@@ -65,26 +65,26 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-		   int *typ, int *vallen)
+           int *typ, int *vallen)
 {
     if (ccnl_ndntlv_varlenint(buf, len, typ))
-	return -1;
+        return -1;
     if (ccnl_ndntlv_varlenint(buf, len, vallen))
-	return -1;
+        return -1;
     return 0;
 }
 
 // we use one extraction routine for both interest and data pkts
 struct ccnl_buf_s*
 ccnl_ndntlv_extract(int hdrlen,
-		    unsigned char **data, int *datalen,
-		    int *scope, int *mbf, int *min, int *max,
-            unsigned char *final_block_id,
-            int *final_block_id_len,
-		    struct ccnl_prefix_s **prefix,
-		    struct ccnl_buf_s **nonce,
-		    struct ccnl_buf_s **ppkl,
-		    unsigned char **content, int *contlen)
+                    unsigned char **data, int *datalen,
+                    int *scope, int *mbf, int *min, int *max,
+                    unsigned char *final_block_id,
+                    int *final_block_id_len,
+                    struct ccnl_prefix_s **prefix,
+                    struct ccnl_buf_s **nonce,
+                    struct ccnl_buf_s **ppkl,
+                    unsigned char **content, int *contlen)
 {
     unsigned char *start = *data - hdrlen;
     int i, len, typ, oldpos;
@@ -93,110 +93,118 @@ ccnl_ndntlv_extract(int hdrlen,
     DEBUGMSG(99, "ccnl_ndntlv_extract\n");
 
     if (content)
-	*content = NULL;
+    *content = NULL;
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
     if (!p)
-	return NULL;
+        return NULL;
     p->suite = CCNL_SUITE_NDNTLV;
     p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-					   sizeof(unsigned char**));
+                       sizeof(unsigned char**));
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen) goto Bail;
+    if (!p->comp || !p->complen) 
+    goto Bail;
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
-	unsigned char *cp = *data;
-	int len2 = len;
+        unsigned char *cp = *data;
+        int len2 = len;
 
-	switch (typ) {
-	case NDN_TLV_Name:
-	    p->nameptr = start + oldpos;
-	    while (len2 > 0) {
-		if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-		    goto Bail;
-		if (typ == NDN_TLV_NameComponent &&
-					p->compcnt < CCNL_MAX_NAME_COMP) {
-		    p->comp[p->compcnt] = cp;
-		    p->complen[p->compcnt] = i;
-		    p->compcnt++;
-		}  // else unknown type: skip
-		cp += i;
-		len2 -= i;
-	    }
-	    p->namelen = *data - p->nameptr;
-#ifdef USE_NFN
-	    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-				!memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
-		p->nfnflags |= CCNL_PREFIX_NFN;
-		p->compcnt--;
-		if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-				!memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-		    p->nfnflags |= CCNL_PREFIX_THUNK;
-		    p->compcnt--;
-		}
-	    }
-#endif
-	    break;
-	case NDN_TLV_Selectors:
-	    while (len2 > 0) {
-		if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-		    goto Bail;
+        switch (typ) {
+        case NDN_TLV_Name:
+            p->nameptr = start + oldpos;
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                    goto Bail;
+                if (typ == NDN_TLV_NameComponent &&
+                            p->compcnt < CCNL_MAX_NAME_COMP) {
+                    p->comp[p->compcnt] = cp;
+                    p->complen[p->compcnt] = i;
+                    p->compcnt++;
+                }  // else unknown type: skip
+                cp += i;
+                len2 -= i;
+            }
+            p->namelen = *data - p->nameptr;
+    #ifdef USE_NFN
+            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
+                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
+                p->nfnflags |= CCNL_PREFIX_NFN;
+                p->compcnt--;
+                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+                        !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
+                    p->nfnflags |= CCNL_PREFIX_THUNK;
+                    p->compcnt--;
+                }
+            }
+    #endif
+            break;
+        case NDN_TLV_Selectors:
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                    goto Bail;
 
-		if (typ == NDN_TLV_MinSuffixComponents && min)
-		    *min = ccnl_ndntlv_nonNegInt(cp, i);
-		if (typ == NDN_TLV_MinSuffixComponents && max)
-		    *max = ccnl_ndntlv_nonNegInt(cp, i);
-		if (typ == NDN_TLV_MustBeFresh && mbf)
-		    *mbf = 1;
-		if (typ == NDN_TLV_Exclude) {
-		    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
-		}
-		cp += i;
-		len2 -= i;
-	    }
-	    break;
-	case NDN_TLV_Nonce:
-	    if (!n)
-		n = ccnl_buf_new(*data, len);
-	    break;
-	case NDN_TLV_Scope:
-	    if (scope)
-		*scope = ccnl_ndntlv_nonNegInt(*data, len);
-	    break;
-	case NDN_TLV_Content:
-	    if (content) {
-            *content = *data;
-            *contlen = len;
-	    }
-	    break;
+                if (typ == NDN_TLV_MinSuffixComponents && min)
+                    *min = ccnl_ndntlv_nonNegInt(cp, i);
+                if (typ == NDN_TLV_MinSuffixComponents && max)
+                    *max = ccnl_ndntlv_nonNegInt(cp, i);
+                if (typ == NDN_TLV_MustBeFresh && mbf)
+                    *mbf = 1;
+                if (typ == NDN_TLV_Exclude) {
+                    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
+                }
+                cp += i;
+                len2 -= i;
+            }
+            break;
+        case NDN_TLV_Nonce:
+            if (!n)
+                n = ccnl_buf_new(*data, len);
+            break;
+        case NDN_TLV_Scope:
+            if (scope)
+                *scope = ccnl_ndntlv_nonNegInt(*data, len);
+            break;
+        case NDN_TLV_Content:
+            if (content) {
+                *content = *data;
+                *contlen = len;
+            }
+            break;
         case NDN_TLV_MetaInfo:
-        if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-            goto Bail;
-        if (typ == NDN_TLV_ContentType)
-            // Not used
-            // ccnl_ndntlv_nonNegInt(cp, i);
-        if (typ == NDN_TLV_FreshnessPeriod)
-            // Not used
-            // ccnl_ndntlv_nonNegInt(cp, i);
-        if (typ == NDN_TLV_FinalBlockId) {
-            if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-                goto Bail;
-            if (typ == NDN_TLV_NameComponent && final_block_id && final_block_id_len) {
-                final_block_id = cp;
-                *final_block_id_len = i;
-            } 
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                    goto Bail;
+                if (typ == NDN_TLV_ContentType) {
+                    // Not used
+                    // = ccnl_ndntlv_nonNegInt(cp, i);
+                    DEBUGMSG(49, "warning: 'ContentType' field ignored\n");
+                }
+                if (typ == NDN_TLV_FreshnessPeriod)
+                    // Not used
+                    // = ccnl_ndntlv_nonNegInt(cp, i);
+                    DEBUGMSG(49, "warning: 'FreshnessPeriod' field ignored\n");
+                if (typ == NDN_TLV_FinalBlockId) {
+                    if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                        goto Bail;
+                    if (typ == NDN_TLV_NameComponent && final_block_id && final_block_id_len) {
+                        memcpy(final_block_id, cp, i);
+                        *final_block_id_len = i;
+                    } 
+                }
+                cp += i;
+                len2 -= i;
+            }
+            break;
+        default:
+            break;
         }
-        break;
-	default:
-	    break;
-	}
-	*data += len;
-	*datalen -= len;
-	oldpos = *data - start;
+        *data += len;
+        *datalen -= len;
+        oldpos = *data - start;
     }
     if (*datalen > 0)
-	goto Bail;
+    goto Bail;
 
     if (prefix)    *prefix = p;    else free_prefix(p);
     if (nonce)     *nonce = n;     else ccnl_free(n);
@@ -205,11 +213,11 @@ ccnl_ndntlv_extract(int hdrlen,
     buf = ccnl_buf_new(start, *data - start);
     // carefully rebase ptrs to new buf because of 64bit pointers:
     if (content && *content)
-	*content = buf->data + (*content - start);
+        *content = buf->data + (*content - start);
     for (i = 0; i < p->compcnt; i++)
-	    p->comp[i] = buf->data + (p->comp[i] - start);
+        p->comp[i] = buf->data + (p->comp[i] - start);
     if (p->nameptr)
-	p->nameptr = buf->data + (p->nameptr - start);
+        p->nameptr = buf->data + (p->nameptr - start);
 
     return buf;
 Bail:

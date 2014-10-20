@@ -46,7 +46,8 @@ elif [ $SUITE -eq "2" ]
 then
     DIR="ndntlv"
     FWD="ndn"
-    FNAME="chunked"
+    # FNAME="chunked"
+    FNAME="simple"
 else
     exit_error_msg "'$SUITE' is not a valid SUITE"
 fi
@@ -110,8 +111,9 @@ $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-fetch -s$SUITE $PEEKADDR "$FWD/$FNAME" 
-# | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-fetch -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
+
+RESULT=$?
 
 # shutdown both relays
 echo ""
@@ -126,5 +128,17 @@ $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
 
 sleep 1
 killall ccn-lite-ctrl > /dev/null
+
+if [ $RESULT = '0' ] 
+then
+    echo "=== FETCHED DATA ==="
+    cat /tmp/res
+    echo "\n=== FETCHED DATA ==="
+    rm /tmp/res
+else
+    echo "ERROR (exitcode $RESULT WHEN FETCHING DATA"
+fi
+
+exit $RESULT
 
 # eof
