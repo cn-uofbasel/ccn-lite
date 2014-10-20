@@ -92,14 +92,12 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 {
     int oldoffset = *offset;
 
-    if (*offset < len) {
+    if (*offset < len)
         return -1;
-    }
     memcpy(buf + *offset - len, blob, len);
     *offset -= len;
-    if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0) {
+    if (ccnl_ndntlv_prependTL(type, len, offset, buf) < 0)
         return -1;
-    }
     return oldoffset - *offset;
 }
 
