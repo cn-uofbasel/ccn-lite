@@ -137,6 +137,8 @@ ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
                          int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
+    unsigned char lifetime[2] = { 0x0f, 0xa0 };
+     unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
 
     if (scope >= 0) {
         if (scope > 2)
@@ -145,8 +147,8 @@ ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
             return -1;
     }
 
-    unsigned char lifetime[2] = { 0x0f, 0xa0 };
-    unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
+
+
 
     if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
                                 offset, buf) < 0)
@@ -212,7 +214,6 @@ ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name,
     // to find length of optional MetaInfo fields
     oldoffset2 = *offset;
     if(final_block_id) {
-        printf("finalblockid (s=%d): %s", final_block_id_len, final_block_id);
 
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent, final_block_id,
                                     final_block_id_len, offset, buf) < 0)
