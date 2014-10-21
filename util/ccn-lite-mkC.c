@@ -28,6 +28,7 @@
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
+
 // ----------------------------------------------------------------------
 
 char *private_key_path; 

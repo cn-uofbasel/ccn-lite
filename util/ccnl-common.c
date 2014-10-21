@@ -24,6 +24,9 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
+#define CCNL_UNIX
+#define _BSD_SOURCE
+#define _SVID_SOURCE
 // ----------------------------------------------------------------------
 
 #include <ctype.h>
@@ -33,11 +36,13 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/un.h>
 
