@@ -49,7 +49,6 @@ struct ccnl_buf_s*
 ccnl_ccntlv_extract(int hdrlen,
                     unsigned char **data, int *datalen,
                     struct ccnl_prefix_s **prefix,
-                    int *scope,
                     unsigned char **keyid, int *keyidlen,
                     unsigned char **content, int *contlen)
 {
@@ -80,7 +79,7 @@ ccnl_ccntlv_extract(int hdrlen,
         int len2 = len;
 
         switch (typ) {
-        case CCNX_TLV_G_Name:
+        case CCNX_TLV_M_Name:
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 unsigned int len3;
@@ -111,19 +110,16 @@ ccnl_ccntlv_extract(int hdrlen,
 #endif
             break;
 
-        case CCNX_TLV_C_KeyID:   // same as CCNX_TLV_I_KeyID
-            if (keyid && keyidlen) {
-                *keyid = *data;
-                *keyidlen = len;
-            }
-            break;
+        case CCNX_TLV_M_MetaData:
 
-        case CCNX_TLV_I_Scope:
-            if (scope)
-                *scope = **data;
+        // case CCNX_TLV_I_KeyID:   // same as CCNX_TLV_I_KeyID
+        //     if (keyid && keyidlen) {
+        //         *keyid = *data;
+        //         *keyidlen = len;
+        //     }
+        //     break;
             break;
-
-        case CCNX_TLV_C_Contents:
+        case CCNX_TLV_M_Payload:
             if (content) {
                 *content = *data;
                 *contlen = len;

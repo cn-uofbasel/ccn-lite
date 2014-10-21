@@ -52,24 +52,51 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
     return len + 4;
 }
 
+
+// int
+// ccnl_ccntlv_prependFixedHdr_ccnx201311(unsigned char ver, unsigned char msgtype,
+//                                        unsigned short msglen,
+//                                        int *offset, unsigned char *buf)
+// {
+//     struct ccnx_tlvhdr_ccnx201311_s *hp;
+
+//     if (*offset < 8)
+//         return -1;
+//     *offset -= 8;
+//     hp = (struct ccnx_tlvhdr_ccnx201311_s *)(buf + *offset);
+//     hp->version = ver;
+//     hp->msgtype = msgtype;
+//     hp->msglen = htons(msglen);
+//     hp->hdrlen = htons(hdrlen);
+//     hp->reserved = 0;
+
+//     return 8 + hdrlen + msglen;
+// }
+
 int
-ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char msgtype,
-                            unsigned short msglen, unsigned short hdrlen,
+ccnl_ccntlv_prependFixedHdr(unsigned char ver, 
+                            unsigned char packettype, 
+                            unsigned short payloadlen, 
+                            unsigned char hoplimit, 
                             int *offset, unsigned char *buf)
 {
-    struct ccnx_tlvhdr_ccnx201311_s *hp;
+    struct ccnx_tlvhdr_ccnx201409_s *hp;
 
-    if (*offset < 8)
+    // Currently there are no optional headers, only fixed header of size 8
+    unsigned char hdrlen = 8;
+
+    if (*offset < 8 || payloadlen < 0)
         return -1;
     *offset -= 8;
-    hp = (struct ccnx_tlvhdr_ccnx201311_s *)(buf + *offset);
+    hp = (struct ccnx_tlvhdr_ccnx201409_s *)(buf + *offset);
     hp->version = ver;
-    hp->msgtype = msgtype;
-    hp->msglen = htons(msglen);
+    hp->packettype = packettype;
+    hp->payloadlen = htons(payloadlen);
+    hp->hoplimit = hoplimit;
     hp->hdrlen = htons(hdrlen);
     hp->reserved = 0;
 
-    return 8 + hdrlen + msglen;
+    return hdrlen + payloadlen;
 }
 
 int
@@ -78,23 +105,29 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset, cnt;
 
+    //TODO
+    // CCNX_TLV_N_CHUNK
+
+    // optional: (not used)
+    // CCNX_TLV_N_MetaData
+
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
-        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
+        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment,
                                 (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
         if (name->nfnflags & CCNL_PREFIX_THUNK)
-            if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8,
+            if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment,
                                 (unsigned char*) "THUNK", 5, offset, buf) < 0)
                 return -1;
     }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_UTF8, name->comp[cnt],
+        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment, name->comp[cnt],
                                     name->complen[cnt], offset, buf) < 0)
             return -1;
     }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_G_Name, oldoffset - *offset,
+    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, oldoffset - *offset,
                               offset, buf) < 0)
         return -1;
 
@@ -102,18 +135,10 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 }
 
 int
-ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int scope,
+ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
                          int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
-
-    if (scope >= 0) {
-        if (scope > 2)
-            return -1;
-        buf[--(*offset)] = scope;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_I_Scope, 1, offset, buf) < 0)
-            return -1;
-    }
 
     if (ccnl_ccntlv_prependName(name, offset, buf))
         return -1;
@@ -125,16 +150,18 @@ ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int scope,
 }
 
 int
-ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, int scope,
+ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
     int len;
+    // setting hoplimit to max valid value
+    unsigned char hoplimit = 255;
 
-    len = ccnl_ccntlv_fillInterest(name, scope, offset, buf);
-    if (len > 0) {
-        len = ccnl_ccntlv_prependFixedHdr(0, CCNX_TLV_TL_Interest, len, 0,
-                                                                offset, buf);
-    }
+    len = ccnl_ccntlv_fillInterest(name, offset, buf);
+    if(len >= 65536)
+        return -1;
+    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, len, hoplimit,
+                                      offset, buf);
 
     return len;
 }
@@ -150,9 +177,12 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
         *contentpos = *offset - paylen;
 
     // fill in backwards
-    if (ccnl_ccntlv_prependBlob(CCNX_TLV_C_Contents, payload, paylen,
+    if (ccnl_ccntlv_prependBlob(CCNX_TLV_M_Payload, payload, paylen,
                                                         offset, buf) < 0)
         return -1;
+
+    // TODO: CCNX_TLV_TL_MetaData
+
     if (ccnl_ccntlv_prependName(name, offset, buf))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
@@ -170,14 +200,21 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
                                unsigned char *payload, int paylen,
                                int *offset, int *contentpos, unsigned char *buf)
 {
-    int len;
+    int len; // PayloadLengnth 
+
+    // hoplimit unused for a content object
+    // setting it to max to be sure
+    unsigned char hoplimit = 255;
+
 
     len = ccnl_ccntlv_fillContent(name, payload, paylen, offset,
                                   contentpos, buf);
-    if (len > 0) {
-        len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
-                                          len, 0, offset, buf);
-    }
+
+    if(len >= 65536)
+        return -1;
+
+    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
+                                      len, hoplimit, offset, buf);
 
     return len;
 }

@@ -149,7 +149,7 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = strlen(src);
-        *(unsigned short*)dst = htons(CCNX_TLV_N_UTF8);
+        *(unsigned short*)dst = htons(CCNX_TLV_N_NameSegment);
         dst += sizeof(unsigned short);
         *(unsigned short*)dst = len;
         dst += sizeof(unsigned short);
@@ -500,7 +500,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_fillInterestWithHdr(name, -1, &offs, tmp);
+        len = ccnl_ccntlv_fillInterestWithHdr(name, &offs, tmp);
     break;
 #endif
 #ifdef USE_SUITE_NDNTLV

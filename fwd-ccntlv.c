@@ -27,12 +27,12 @@
 // work on a message (buffer passed without the fixed header)
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      struct ccnx_tlvhdr_ccnx201311_s *hdrptr, int hoplimit,
+                      struct ccnx_tlvhdr_ccnx201409_s *hdrptr, int hoplimit,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
     unsigned int typ, len;
-    int scope = -1, keyidlen, contlen;
+    int keyidlen, contlen;
     struct ccnl_buf_s *buf = 0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
@@ -43,7 +43,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
         return -1;
     buf = ccnl_ccntlv_extract(*data - (unsigned char*)hdrptr, data, datalen,
-                              &p, &scope, &keyid, &keyidlen,
+                              &p, &keyid, &keyidlen,
                               &content, &contlen);
     if (!buf) {
             DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
@@ -70,8 +70,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
             goto Skip;
         }
-        if (scope >= 0) // request for local content only, and none was found
-            goto Skip;
         DEBUGMSG(7, "  no matching content for interest\n");
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
@@ -154,45 +152,39 @@ int
 ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                unsigned char **data, int *datalen)
 {
-    int rc = 0, opthdrlen, endlen;
-    unsigned int typ, len;
-    unsigned char *opthdr, *end;
+    int rc = 0, endlen;
+    unsigned char *end;
     DEBUGMSG(6, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
 next:
     while (rc >= 0 && **data == CCNX_TLV_V0 &&
-                        *datalen > sizeof(struct ccnx_tlvhdr_ccnx201311_s)) {
-        struct ccnx_tlvhdr_ccnx201311_s *hp =
-                                (struct ccnx_tlvhdr_ccnx201311_s*) *data;
+                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
+        struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*) *data;
         int hoplimit = -1;
 
-        if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen)) > *datalen)
-            return -1;
-        *data += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-        *datalen -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-        if (*datalen < ntohs(hp->msglen)) 
-            return -1;
-        end = *data + ntohs(hp->msglen);
-        endlen = *datalen - ntohs(hp->msglen);
+        unsigned short hdrlen = ntohs(hp->hdrlen);
+        unsigned short payloadlen = ntohs(hp->payloadlen);
 
-        opthdrlen = ntohs(hp->hdrlen);
-        opthdr = (unsigned char*) (hp + 1);
-        while (opthdrlen > 0) {
-            if (ccnl_ccntlv_dehead(&opthdr, &opthdrlen, &typ, &len))
-                break;
-            if (opthdrlen > 2 && typ == CCNX_TLV_PH_Hoplimit &&
-                                ntohs(hp->msgtype) == CCNX_TLV_TL_Interest) {
-                hoplimit = ntohs(*(unsigned short*)opthdr) - 1;
-                if (hoplimit <= 0) { // drop this interest
-                    *data = end;
-                    *datalen = endlen;
-                    goto next;
-                }
-                *(unsigned short*)opthdr = hoplimit;
-                opthdr += 2;
-                opthdrlen -= 2;
-            }
+        // check if info data to construct packet header
+        if (hdrlen > *datalen)
+            return -1;
+
+        *data += hdrlen;
+        *datalen -= hdrlen;
+
+        // check if enough data to reconstruct message
+        if (payloadlen > *datalen)
+            return -1;
+
+        end = *data + payloadlen;
+        endlen = *datalen - payloadlen;
+
+        hoplimit = hp->hoplimit - 1;
+        if (hp->packettype == CCNX_PT_Interest && hoplimit <= 0) { // drop this interest
+            *data = end;
+            *datalen = endlen;
+            goto next;
         }
         rc = ccnl_ccntlv_forwarder(relay, from, hp, hoplimit, data, datalen);
     }

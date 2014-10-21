@@ -133,10 +133,9 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name,
 		  char *scope, unsigned char *out, int outlen)
 {
      int len, offset, oldoffset;
-     int s = scope ? atoi(scope) : -1;
 
      offset = oldoffset = outlen;
-     len = ccnl_ccntlv_fillInterest(name, s, &offset, out);
+     len = ccnl_ccntlv_fillInterest(name, &offset, out);
      ccnl_ccntlv_prependFixedHdr(0, 1,
 				 len, 0, &offset, out);
      len = oldoffset - offset;
@@ -250,17 +249,17 @@ Usage:
     }
 
     switch (packettype) {
-    case 0:
+   	case CCNL_SUITE_CCNB:
     	len = ccnb_mkInterest(prefix, minSuffix, maxSuffix,
 			      (unsigned char*) digest, dlen,
 			      (unsigned char*) publisher, plen,
 			      scope, &nonce, out);
 	break;
-    case 1:
+    case CCNL_SUITE_CCNTLV:
         len = ccntlv_mkInterest(prefix, scope, out,
 				CCNL_MAX_PACKET_SIZE);
 	break;
-    case 2:
+    case CCNL_SUITE_NDNTLV:
         len = ndntlv_mkInterest(prefix, scope, (int*)&nonce, out,
 				CCNL_MAX_PACKET_SIZE);
 	break;

@@ -48,7 +48,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_fillInterestWithHdr(name, -1, &offset, out);
+    len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
 
@@ -161,22 +161,26 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef USE_SUITE_CCNTLV
 int ccntlv_isObject(unsigned char *buf, int len)
 {
-    unsigned int typ, vallen;
-    struct ccnx_tlvhdr_ccnx201311_s *hp = (struct ccnx_tlvhdr_ccnx201311_s*)buf;
-
-    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201311_s))
+    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s))
         return -1;
+    struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
+
     if (hp->version != CCNX_TLV_V0)
         return -1;
-    if ((sizeof(struct ccnx_tlvhdr_ccnx201311_s)+ntohs(hp->hdrlen)+ntohs(hp->msglen) > len))
+
+    unsigned short hdrlen = ntohs(hp->hdrlen);
+    unsigned short payloadlen = ntohs(hp->payloadlen);
+
+    if (hdrlen + payloadlen > len)
         return -1;
-    buf += sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-    len -= sizeof(struct ccnx_tlvhdr_ccnx201311_s) + ntohs(hp->hdrlen);
-    if (ccnl_ccntlv_dehead(&buf, &len, &typ, &vallen))
-        return -1;
-    if (hp->msgtype != CCNX_TLV_TL_Object || typ != CCNX_TLV_TL_Object)
+    buf += hdrlen;
+    len -= hp->hdrlen;
+
+
+    if(hp->packettype == CCNX_PT_ContentObject)
+        return 1;
+    else
         return 0;
-    return 1;
 }
 #endif
 
