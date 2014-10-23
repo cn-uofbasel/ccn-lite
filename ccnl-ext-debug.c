@@ -429,7 +429,7 @@ get_num_fwds(void *p)
 
 int
 get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, 
-        int *prefixlen, char **prefix)
+        int *suite, int *prefixlen, char **prefix)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
@@ -443,6 +443,7 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
         next[line] = (long)(void *) fwd->next;
         face[line] = (long)(void *) fwd->face;
         faceid[line] = fwd->face->faceid;
+        suite[line] = fwd->suite;
         
         get_prefix_dump(lev, fwd->prefix, &prefixlen[line], &prefix[line]);
         fwd = fwd->next;

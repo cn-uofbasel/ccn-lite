@@ -110,6 +110,10 @@ handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* t
                print_offset(offset+4); 
                print_tag_content_with_tag(buf, len, "FACEID", stream);
                break;   
+            case CCNL_DTAG_SUITE:
+               print_offset(offset+4);
+               print_tag_content_with_tag(buf, len, "SUITE", stream);
+               break;
             case CCNL_DTAG_NEXT:
                print_offset(offset+4); 
                print_tag_content_with_tag(buf, len, "NEXT", stream);
