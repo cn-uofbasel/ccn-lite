@@ -1335,7 +1335,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *buf;
     int buflen, num, typ;
     struct ccnl_prefix_s *p = NULL;
-    unsigned char *action, *faceid;
+    unsigned char *action, *faceid, *suite=0;
     char *cp = "prefixreg cmd failed";
     int rc = -1;
 
@@ -1391,6 +1391,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         extractStr(action, CCN_DTAG_ACTION);
         extractStr(faceid, CCN_DTAG_FACEID);
+        extractStr(suite, CCNL_DTAG_SUITE);
 
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
@@ -1411,6 +1412,11 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (!fwd) goto Bail;
         fwd->prefix = ccnl_prefix_clone(p);
         fwd->face = f;
+        if(suite){
+            fwd->suite = suite[0];
+        }
+
+
         fwd2 = &ccnl->fib;
         while (*fwd2)
             fwd2 = &((*fwd2)->next);
