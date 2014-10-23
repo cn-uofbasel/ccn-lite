@@ -42,7 +42,7 @@ void
 myexit(int rc)
 {
     if (unix_path)
-	unlink(unix_path);
+        unlink(unix_path);
     exit(rc);
 }
 
@@ -54,15 +54,15 @@ udp_open()
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0) {
-	perror("udp socket");
-	exit(1);
+        perror("udp socket");
+        exit(1);
     }
     si.sin_addr.s_addr = INADDR_ANY;
     si.sin_port = htons(0);
     si.sin_family = PF_INET;
     if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
         perror("udp sock bind");
-	exit(1);
+        exit(1);
     }
 
     return s;
@@ -96,15 +96,15 @@ static char mysockname[200];
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
-	perror("opening datagram socket");
-	exit(1);
+        perror("opening datagram socket");
+        exit(1);
     }
     name.sun_family = AF_UNIX;
     strcpy(name.sun_path, mysockname);
     if (bind(sock, (struct sockaddr *) &name,
-	     sizeof(struct sockaddr_un))) {
-	perror("binding path name to datagram socket");
-	exit(1);
+             sizeof(struct sockaddr_un))) {
+        perror("binding path name to datagram socket");
+        exit(1);
     }
 
     bufsize = 4 * CCNL_MAX_PACKET_SIZE;
@@ -123,7 +123,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     strcpy(name.sun_path, topath);
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &name,
-		  sizeof(struct sockaddr_un));
+                  sizeof(struct sockaddr_un));
 }
 
 // ----------------------------------------------------------------------
@@ -141,29 +141,29 @@ block_on_read(int sock, float wait)
     timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
     rc = select(sock+1, &readfs, NULL, NULL, &timeout);
     if (rc < 0)
-	perror("select()");
+        perror("select()");
     return rc;
 }
 
 void
 request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
-		char *dest, unsigned char *out, int len, float wait)
+                char *dest, unsigned char *out, int len, float wait)
 {
     unsigned char buf[64*1024];
     int len2 = sendproc(sock, dest, out, len), rc;
 
     if (len2 < 0) {
-	perror("sendto");
-	myexit(1);
+        perror("sendto");
+        myexit(1);
     }
     
     rc = block_on_read(sock, wait);
     if (rc == 1) {
-	len2 = recv(sock, buf, sizeof(buf), 0);
-	if (len2 > 0) {
+        len2 = recv(sock, buf, sizeof(buf), 0);
+        if (len2 > 0) {
 
-	    write(1, buf, len2);
-	    myexit(0);
-	}
+            write(1, buf, len2);
+            myexit(0);
+        }
     }
 }

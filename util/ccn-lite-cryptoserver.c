@@ -43,7 +43,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
-		sizeof(struct sockaddr_un));
+                sizeof(struct sockaddr_un));
     if (rc < 0) {
       fprintf(stderr, "\tnamed pipe \'%s\'\n", topath);
       perror("\tsending datagram message");
@@ -60,16 +60,16 @@ ccnl_crypto_ux_open(char *frompath)
     /* Create socket for sending */
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
-	perror("\topening datagram socket");
-	exit(1);
+        perror("\topening datagram socket");
+        exit(1);
     }
     unlink(frompath);
     name.sun_family = AF_UNIX;
     strcpy(name.sun_path, frompath);
     if (bind(sock, (struct sockaddr *) &name,
-	     sizeof(struct sockaddr_un))) {
-	perror("\tbinding name to datagram socket");
-	exit(1);
+             sizeof(struct sockaddr_un))) {
+        perror("\tbinding name to datagram socket");
+        exit(1);
     }
 //    printf("socket -->%s\n", NAME);
 
@@ -105,16 +105,16 @@ handle_verify(unsigned char **buf, int *buflen, int sock, char *callback){
     char h[1024];
     
     while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr2(txid_s, CCN_DTAG_SEQNO);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr2(txid_s, CCN_DTAG_SEQNO);
         if(!siglen)siglen = *buflen;
-	extractStr2(sig, CCN_DTAG_SIGNATURE);
+        extractStr2(sig, CCN_DTAG_SIGNATURE);
         siglen = siglen - (*buflen + 5);
         contentlen = *buflen;
         extractStr2(content, CCN_DTAG_CONTENTDIGEST);
 
-	if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
     contentlen = contentlen - (*buflen + 4);    
     
@@ -144,7 +144,7 @@ handle_verify(unsigned char **buf, int *buflen, int sock, char *callback){
     len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, (char*) content, contentlen);
     
     len += ccnl_ccnb_mkBlob(msg+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-		   (char*) component_buf, len3);
+                            (char*) component_buf, len3);
     
     msg[len++] = 0; // end-of contentobj
     
@@ -171,13 +171,13 @@ handle_sign(unsigned char **buf, int *buflen, int sock, char *callback){
     char h[1024];
 
     while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
-	if (num==0 && typ==0)
-	    break; // end
-	extractStr2(txid_s, CCN_DTAG_SEQNO);
+        if (num==0 && typ==0)
+            break; // end
+        extractStr2(txid_s, CCN_DTAG_SEQNO);
         contentlen = *buflen;
         extractStr2(content, CCN_DTAG_CONTENTDIGEST);
 
-	if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, 0, 0) < 0) goto Bail;
     }
     contentlen = contentlen - (*buflen + 4);
     
@@ -208,12 +208,12 @@ handle_sign(unsigned char **buf, int *buflen, int sock, char *callback){
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s);
 
     len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // signature
-		   (char*) sig, siglen);
+                   (char*) sig, siglen);
     len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST,
-			     CCN_TT_DTAG, (char*) content, contentlen);
+                             CCN_TT_DTAG, (char*) content, contentlen);
     
     len += ccnl_ccnb_mkBlob(msg+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
-			    (char*) component_buf, len3);
+                            (char*) component_buf, len3);
 
 
     

@@ -310,7 +310,7 @@ err_out:
 
 struct ccnl_sched_s*
 ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2),
-		     struct ccnl_relay_s *ccnl)
+                     struct ccnl_relay_s *ccnl)
 {
     struct ccnl_sched_s *s;
 
@@ -326,7 +326,7 @@ ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2),
 
 struct ccnl_sched_s*
 ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2),
-		       struct ccnl_relay_s *ccnl, int inter_packet_interval)
+                       struct ccnl_relay_s *ccnl, int inter_packet_interval)
 {
     struct ccnl_sched_s *s;
 
@@ -373,7 +373,7 @@ ccnl_sched_destroy(struct ccnl_sched_s *s)
 
 void
 ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
-		   void *aux1, void *aux2)
+               void *aux1, void *aux2)
 {
 #ifdef USE_CHEMFLOW
     cf_time now = ccnl_cf_now();
@@ -383,20 +383,20 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 #endif
 
     if (!s) {
-	DEBUGMSG(30, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
-	     (void*)s, len, (void*)aux1, (void*)aux2);
-	return;
+        DEBUGMSG(30, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
+             (void*)s, len, (void*)aux1, (void*)aux2);
+        return;
     }
     DEBUGMSG(30, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
-	     (void*)s, s->mode, len, (void*)aux1, (void*)aux2);
+             (void*)s, s->mode, len, (void*)aux1, (void*)aux2);
 
     s->cnt += cnt;
     s->aux1 = aux1;
     s->aux2 = aux2;
 
     if (s->mode == 0) {
-	s->cts(aux1, aux2);
-	return;
+        s->cts(aux1, aux2);
+        return;
     }
 
 #ifdef USE_CHEMFLOW
@@ -411,11 +411,11 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
     ccnl_get_timeval(&now);
     since = timevaldelta(&(s->nextTX), &now);
     if (since <= 0) {
-	now.tv_sec += s->ipi / 1000000;
-	now.tv_usec += s->ipi % 1000000;
-	memcpy(&(s->nextTX), &now, sizeof(now));
-	s->cts(aux1, aux2);
-	return;
+        now.tv_sec += s->ipi / 1000000;
+        now.tv_usec += s->ipi % 1000000;
+        memcpy(&(s->nextTX), &now, sizeof(now));
+        s->cts(aux1, aux2);
+        return;
     }
     DEBUGMSG(30, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
@@ -436,20 +436,20 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 #endif
 
     if (!s) {
-	DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
-	     (void*)s, cnt, len);
-	return;
+        DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
+             (void*)s, cnt, len);
+        return;
     }
     DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
-	     (void*)s, s->mode, cnt, len, s->cnt);
+             (void*)s, s->mode, cnt, len, s->cnt);
 
     s->cnt -= cnt;
     if (s->cnt <= 0)
-	return;
+        return;
 
     if (s->mode == 0) {
-	s->cts(s->aux1, s->aux2);
-	return;
+        s->cts(s->aux1, s->aux2);
+        return;
     }
 
 #ifdef USE_CHEMFLOW
@@ -464,11 +464,11 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 
     since = timevaldelta(&(s->nextTX), &now);
     if (since <= 0) {
-	now.tv_sec += s->ipi / 1000000;
-	now.tv_usec += s->ipi % 1000000;
-	memcpy(&(s->nextTX), &now, sizeof(now));
-	s->cts(s->aux1, s->aux2);
-	return;
+        now.tv_sec += s->ipi / 1000000;
+        now.tv_usec += s->ipi % 1000000;
+        memcpy(&(s->nextTX), &now, sizeof(now));
+        s->cts(s->aux1, s->aux2);
+        return;
     }
     DEBUGMSG(30, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
@@ -499,8 +499,8 @@ ccnl_sched_RX_loss(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 
 struct ccnl_sched_s*
 ccnl_sched_packetratelimiter_new(int inter_packet_interval,
-		      void (*cts)(void *aux1, void *aux2),
-		      void *aux1, void *aux2)
+                                 void (*cts)(void *aux1, void *aux2),
+                                 void *aux1, void *aux2)
 {
     struct ccnl_sched_s *s;
     DEBUGMSG(99, "ccnl_rate:limiter_new()\n");
@@ -511,8 +511,8 @@ ccnl_sched_packetratelimiter_new(int inter_packet_interval,
         s->aux1 = aux1;
         s->aux2 = aux2;
 #ifndef USE_CHEMFLOW
-	ccnl_get_timeval(&s->nextTX);
-	s->ipi = inter_packet_interval;
+        ccnl_get_timeval(&s->nextTX);
+        s->ipi = inter_packet_interval;
 #endif
     }
     return s;

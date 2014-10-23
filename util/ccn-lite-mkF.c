@@ -37,7 +37,7 @@ ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 void 
 file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
-	   unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
+           unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
 {
     struct ccnl_buf_s *fragbuf;
     struct ccnl_frag_s fr;
@@ -55,24 +55,24 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
     //    fragbuf = ccnl_frag_getnext(&fr);
     fragbuf = ccnl_frag_getnext(&fr, NULL, NULL);
     while (fragbuf) {
-	sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
-	if (noclobber && !access(fname, F_OK)) {
-	    printf("file %s already exists, skipping this name\n", fname);
-	} else {
-	    printf("new fragment, len=%d / %d --> %s\n",
-		   fragbuf->datalen, fr.sendseq, fname);
-	    f = creat(fname, 0666);
-	    if (f < 0)
-		perror("open");
-	    else {
-		if (write(f, fragbuf->data, fragbuf->datalen) < 0)
-		    perror("write");
-		close(f);
-	    }
-	    ccnl_free(fragbuf);
-	    fragbuf = ccnl_frag_getnext(&fr, NULL, NULL); //ccnl_frag_getnext(&fr);
-	}
-	cnt++;
+        sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
+        if (noclobber && !access(fname, F_OK)) {
+            printf("file %s already exists, skipping this name\n", fname);
+        } else {
+            printf("new fragment, len=%d / %d --> %s\n",
+                   fragbuf->datalen, fr.sendseq, fname);
+            f = creat(fname, 0666);
+            if (f < 0)
+                perror("open");
+            else {
+                if (write(f, fragbuf->data, fragbuf->datalen) < 0)
+                    perror("write");
+                close(f);
+            }
+            ccnl_free(fragbuf);
+            fragbuf = ccnl_frag_getnext(&fr, NULL, NULL); //ccnl_frag_getnext(&fr);
+        }
+        cnt++;
     }
     *seqnr = fr.sendseq;
 }
@@ -90,57 +90,57 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "b:f:hns:")) != -1) {
         switch (opt) {
         case 'b':
-	    bytelimit = atoi((char*) optarg);
-	    break;
+            bytelimit = atoi((char*) optarg);
+            break;
         case 'f':
-	    fileprefix = optarg;
-	    break;
-	case 'n':
-	    noclobber = ! noclobber;
-	    break;
+            fileprefix = optarg;
+            break;
+        case 'n':
+            noclobber = ! noclobber;
+            break;
         case 's':
-	    seqnr = strtol(optarg, &cp, 0);
-	    if (cp && cp[0]== '/' && isdigit(cp[1]))
-		seqnrlen = atoi(cp+1);
-	    break;
+            seqnr = strtol(optarg, &cp, 0);
+            if (cp && cp[0]== '/' && isdigit(cp[1]))
+                seqnrlen = atoi(cp+1);
+            break;
         case 'h':
-	default:
-	    fprintf(stderr, "usage: %s [options] FILE(S)\n"
-	    "  -b LIMIT    MTU limit (default is 1500)\n"
-	    "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
-	    "  -n          no-clobber\n"
-	    "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n",
-	    cmdname);
-	    exit(1);
-	}
+        default:
+            fprintf(stderr, "usage: %s [options] FILE(S)\n"
+            "  -b LIMIT    MTU limit (default is 1500)\n"
+            "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
+            "  -n          no-clobber\n"
+            "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n",
+            cmdname);
+            exit(1);
+        }
     }
 
     fname = argv[optind] ? argv[optind++] : "-";
     do {
-	unsigned char in[64*1024];
-	fd = strcmp(fname, "-") ? open(fname, O_RDONLY) : 0;
-	if (fd < 0) {
-	    fprintf(stderr, "error opening file %s\n", fname);
-	    exit(-1);
-	}
-	len = read(fd, in, sizeof(in));
-	if (len < 0) {
-	    fprintf(stderr, "error reading file %s\n", fname);
-	    exit(-1);
-	}
-	if (len == sizeof(in)) {
-	    char tmp;
-	    len = read(fd, &tmp, 1);
-	    if (len > 0) {
-		fprintf(stderr, "error: input file %s larger than %d KB\n",
-			fname, (int)(sizeof(in)/1024));
-		exit(-1);
-	    }
-	}
-	close(fd);
+        unsigned char in[64*1024];
+        fd = strcmp(fname, "-") ? open(fname, O_RDONLY) : 0;
+        if (fd < 0) {
+            fprintf(stderr, "error opening file %s\n", fname);
+            exit(-1);
+        }
+        len = read(fd, in, sizeof(in));
+        if (len < 0) {
+            fprintf(stderr, "error reading file %s\n", fname);
+            exit(-1);
+        }
+        if (len == sizeof(in)) {
+            char tmp;
+            len = read(fd, &tmp, 1);
+            if (len > 0) {
+                fprintf(stderr, "error: input file %s larger than %d KB\n",
+                        fname, (int)(sizeof(in)/1024));
+                exit(-1);
+            }
+        }
+        close(fd);
 
-	file2frags(in, len, fileprefix, bytelimit, &seqnr, seqnrlen, noclobber);
-	fname = argv[optind] ? argv[optind++] : NULL;
+        file2frags(in, len, fileprefix, bytelimit, &seqnr, seqnrlen, noclobber);
+        fname = argv[optind] ? argv[optind++] : NULL;
     } while (fname);
 
     return 0;
