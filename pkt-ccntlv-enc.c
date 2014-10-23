@@ -153,16 +153,19 @@ int
 ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
-    int len;
+    int len, oldoffset;
     // setting hoplimit to max valid value
     unsigned char hoplimit = 255;
 
+    oldoffset = *offset;
     len = ccnl_ccntlv_fillInterest(name, offset, buf);
     if(len >= 65536)
         return -1;
-    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, len, hoplimit,
-                                      offset, buf);
-
+    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
+                                len, hoplimit, offset, buf);
+    len = oldoffset - *offset;
+    if (len > 0)
+        memmove(buf, buf + *offset, len);
     return len;
 }
 
@@ -200,22 +203,28 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
                                unsigned char *payload, int paylen,
                                int *offset, int *contentpos, unsigned char *buf)
 {
-    int len; // PayloadLengnth 
+    int len, oldoffset; // PayloadLengnth 
 
     // hoplimit unused for a content object
     // setting it to max to be sure
     unsigned char hoplimit = 255;
 
 
+    oldoffset = *offset;
     len = ccnl_ccntlv_fillContent(name, payload, paylen, offset,
                                   contentpos, buf);
 
     if(len >= 65536)
         return -1;
 
-    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
-                                      len, hoplimit, offset, buf);
-
+    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
+                                len, hoplimit, offset, buf);
+    len = oldoffset - *offset;
+    fprintf(stderr, "with header:\n");
+    for(int x = *offset; x < len + *offset; x++) {
+        fprintf(stderr, "%02x ", buf[x]);
+    }
+    fprintf(stderr, "\n");
     return len;
 }
 

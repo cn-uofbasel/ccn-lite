@@ -63,10 +63,6 @@ void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
-#include "pkt-ccnb-enc.c"
-#include "pkt-ccntlv-enc.c"
-#include "pkt-ndntlv-dec.c"
-
 #include "ccnl-core.c"
 #include "ccnl-util.c"
 
@@ -610,6 +606,22 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                                 &prefix, &nonce, &ppkd, &content, &contlen);
                         break;
 #endif
+#ifdef USE_SUITE_CCNTLV
+                    case CCNL_SUITE_CCNTLV:
+                        data = buf->data;
+
+                        // ccntlv_extract expects the data pointer 
+                        // at the start of the message. Move past the fixed header.
+                        datalen -= 8;
+                        data += 8;
+                        int hdrlen = 8;
+                        pkt = ccnl_ccntlv_extract(hdrlen, 
+                                                  &data, &datalen,
+                                                  &prefix, 0, 0,
+                                                  &content, &contlen);
+
+                    break;
+#endif 
 #ifdef USE_SUITE_NDNTLV
                     case CCNL_SUITE_NDNTLV:
                         data = buf->data;
@@ -622,6 +634,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                         break;
 #endif
                     default:
+                        DEBUGMSG(6, "error: suite not implemented %d\n", suite);
                         goto Done;
                     }
                     if (!pkt) {
@@ -767,6 +780,7 @@ usage:
 
     DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(1, "  suite: %d\n", suite);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 

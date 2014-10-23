@@ -42,6 +42,12 @@ then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
+
+elif [ $SUITE -eq "1" ] 
+then
+    DIR="ccntlv"
+    FWD="ccntlv"
+    FNAME="test"
 elif [ $SUITE -eq "2" ] 
 then
     DIR="ndntlv"
@@ -98,7 +104,7 @@ if [ '$USEKRNL' = true ]
 then
     insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
 else
-    $CCNL_HOME/ccn-lite-relay -v 99  -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 sleep 1
 FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
@@ -110,18 +116,30 @@ $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/util/ccn-lite-peek -s$SUITE $PEEKADDR "$FWD/$FNAME" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
+
+RESULT=$?
 
 # shutdown both relays
-echo ""
-echo "# Config of relay A:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
-echo ""
-echo "# Config of relay B:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+# echo ""
+# echo "# Config of relay A:"
+# $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+# echo ""
+# echo "# Config of relay B:"
+# $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
+
+if [ $RESULT = '0' ] 
+then
+    echo "=== PKTDUMP ==="
+    $CCNL_HOME/util/ccn-lite-pktdump < /tmp/res
+    echo "\n=== PKTDUMP ==="
+    # rm /tmp/res
+else
+    echo "ERROR exitcode $RESULT WHEN FETCHING DATA"
+fi
 
 sleep 1
 killall ccn-lite-ctrl > /dev/null

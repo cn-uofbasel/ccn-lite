@@ -57,7 +57,11 @@ ccnl_ccntlv_extract(int hdrlen,
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
-    DEBUGMSG(99, "ccnl_ccntlv_extract\n");
+    DEBUGMSG(99, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
+    // for(int x = 0; x < *datalen; x++) {
+    //     fprintf(stderr, "%02x \n", start[x]);
+    // }
+    // fprintf(stderr, "\n");
 
     if (content)
         *content = NULL;
@@ -73,13 +77,22 @@ ccnl_ccntlv_extract(int hdrlen,
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
     if (!p->comp || !p->complen) goto Bail;
 
+    // We ignore the TL types of the message for now
+    // content and interests are filled in both cases (and only one exists)
+    // validation is ignored
+    if(ccnl_ccntlv_dehead(data, datalen, &typ, &len)) {
+        goto Bail;
+    }
+
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
         int len2 = len;
-
+        DEBUGMSG(99, "typ %d\n",typ);
         switch (typ) {
+
         case CCNX_TLV_M_Name:
+            DEBUGMSG(99, "M_NAME\n");
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 unsigned int len3;
@@ -91,6 +104,7 @@ ccnl_ccntlv_extract(int hdrlen,
                     p->comp[p->compcnt] = cp2;
                     p->complen[p->compcnt] = cp - cp2 + len3;
                     p->compcnt++;
+                    DEBUGMSG(99, "N_NameSegment %s\n", cp2);
                 }  // else out of name component memory: skip
                 cp += len3;
                 len2 -= len3;
@@ -111,15 +125,11 @@ ccnl_ccntlv_extract(int hdrlen,
             break;
 
         case CCNX_TLV_M_MetaData:
+            DEBUGMSG(99, "M_METADATA\n");
 
-        // case CCNX_TLV_I_KeyID:   // same as CCNX_TLV_I_KeyID
-        //     if (keyid && keyidlen) {
-        //         *keyid = *data;
-        //         *keyidlen = len;
-        //     }
-        //     break;
             break;
         case CCNX_TLV_M_Payload:
+            DEBUGMSG(99, "M_PAYLOAD\n");
             if (content) {
                 *content = *data;
                 *contlen = len;

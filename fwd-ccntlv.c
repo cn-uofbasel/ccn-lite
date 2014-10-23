@@ -31,7 +31,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
-    unsigned int typ, len;
     int keyidlen, contlen;
     struct ccnl_buf_s *buf = 0;
     struct ccnl_interest_s *i = 0;
@@ -40,16 +39,20 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *content = 0, *keyid = 0;
     DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
 
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
-        return -1;
-    buf = ccnl_ccntlv_extract(*data - (unsigned char*)hdrptr, data, datalen,
+    // if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
+    //     return -1;
+
+    unsigned char typ = hdrptr->packettype;
+    unsigned char hdrlen = *data - (unsigned char*)hdrptr;
+    DEBUGMSG(99, "hdrlen=%d", hdrlen);
+    buf = ccnl_ccntlv_extract(hdrlen, data, datalen,
                               &p, &keyid, &keyidlen,
                               &content, &contlen);
     if (!buf) {
             DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
     }
 
-    if (typ == CCNX_TLV_TL_Interest) {
+    if (typ == CCNX_PT_Interest) {
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
         ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
         // CONFORM: Step 1: search for matching local content
@@ -106,7 +109,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_interest_append_pending(i, from);
         }
 
-    } else if (typ == CCNX_TLV_TL_Object) { // data packet with content
+    } else if (typ == CCNX_PT_ContentObject) { // data packet with content
         DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
         ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 
