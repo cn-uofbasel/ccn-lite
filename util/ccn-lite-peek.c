@@ -45,14 +45,10 @@ int
 ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
                   unsigned char *out, int outlen)
 {
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
+     int len, offset;
+     offset = outlen;
+     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
+     return len;
 }
 
 int
@@ -161,20 +157,25 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef USE_SUITE_CCNTLV
 int ccntlv_isObject(unsigned char *buf, int len)
 {
-    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s))
+    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
+        fprintf(stderr, "ccntlv header not large enough");
         return -1;
+    }
     struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
-
-    if (hp->version != CCNX_TLV_V0)
-        return -1;
-
     unsigned short hdrlen = ntohs(hp->hdrlen);
     unsigned short payloadlen = ntohs(hp->payloadlen);
 
-    if (hdrlen + payloadlen > len)
+    if (hp->version != CCNX_TLV_V0) {
+        fprintf(stderr, "ccntlv version %d not supported\n", hp->version);
         return -1;
+    }
+
+    if (hdrlen + payloadlen < len) {
+        fprintf(stderr, "ccntlv hdr + payload do not fit into received buf\n");
+        return -1;
+    }
     buf += hdrlen;
-    len -= hp->hdrlen;
+    len -= hdrlen;
 
 
     if(hp->packettype == CCNX_PT_ContentObject)
@@ -329,14 +330,16 @@ usage:
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;
             len = recv(sock, out, sizeof(out), 0);
-/*
+
             fprintf(stderr, "received %d bytes\n", len);
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
-*/
+
             rc = isContent(out, len);
-            if (rc < 0)
+            if (rc < 0) {
+                fprintf(stderr, "error when checking type of packet\n");
                 goto done;
+            }
             if (rc == 0) { // it's an interest, ignore it
                 fprintf(stderr, "skipping non-data packet\n");
                 continue;

@@ -137,7 +137,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name,
      offset = oldoffset = outlen;
      len = ccnl_ccntlv_fillInterest(name, &offset, out);
      ccnl_ccntlv_prependFixedHdr(0, 1,
-                                 len, 0, &offset, out);
+				 len, 255, &offset, out);
      len = oldoffset - offset;
      if (len > 0)
          memmove(out, out + offset, len);
