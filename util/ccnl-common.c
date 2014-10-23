@@ -52,12 +52,12 @@
 #include "../ccnl.h"
 #include "../ccnl-core.h"
 
-#define ccnl_malloc(s)			malloc(s)
-#define ccnl_calloc(n,s) 		calloc(n,s)
-#define ccnl_realloc(p,s)		realloc(p,s)
-#define ccnl_free(p)			free(p)
+#define ccnl_malloc(s)                  malloc(s)
+#define ccnl_calloc(n,s)                calloc(n,s)
+#define ccnl_realloc(p,s)               realloc(p,s)
+#define ccnl_free(p)                    free(p)
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-#define free_prefix(p)	do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
+#define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
@@ -86,7 +86,7 @@ ccnl_buf_new(void *data, int len)
 #include "../pkt-ndntlv-dec.c"
 #include "../pkt-localrpc.h"
 
-#define ccnl_core_addToCleanup(b)	do{}while(0)
+#define ccnl_core_addToCleanup(b)       do{}while(0)
 
 #include "../ccnl-util.c"
 
@@ -94,26 +94,26 @@ ccnl_buf_new(void *data, int len)
 
 #define extractStr(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-	char *s; unsigned char *valptr; int vallen; \
-	if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) \
-		goto Bail; \
-	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
-	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
-	ccnl_free(VAR); \
-	VAR = (unsigned char*) s; \
-	continue; \
+        char *s; unsigned char *valptr; int vallen; \
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, &valptr, &vallen) < 0) \
+                goto Bail; \
+        s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+        memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+        ccnl_free(VAR); \
+        VAR = (unsigned char*) s; \
+        continue; \
     } do {} while(0)
 
 #define extractStr2(VAR,DTAG) \
     if (typ == CCN_TT_DTAG && num == DTAG) { \
-	char *s; unsigned char *valptr; int vallen; \
-	if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0) \
-		goto Bail; \
-	s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
-	memcpy(s, valptr, vallen); s[vallen] = '\0'; \
-	ccnl_free(VAR); \
+        char *s; unsigned char *valptr; int vallen; \
+        if (ccnl_ccnb_consume(typ, num, buf, buflen, &valptr, &vallen) < 0) \
+                goto Bail; \
+        s = ccnl_malloc(vallen+1); if (!s) goto Bail; \
+        memcpy(s, valptr, vallen); s[vallen] = '\0'; \
+        ccnl_free(VAR); \
     VAR = (unsigned char*) s; \
-	continue; \
+        continue; \
     } do {} while(0)
 
 

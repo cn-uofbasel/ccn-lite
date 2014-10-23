@@ -481,8 +481,8 @@ main(int argc, char *argv[])
 
     len = read(0, out, sizeof(out));
     if (len < 0) {
-	perror("read");
-	exit(-1);
+        perror("read");
+        exit(-1);
     }
     handle_ccn_packet(out, len, 0, stdout);
     printf("\n");
@@ -494,6 +494,6 @@ main(int argc, char *argv[])
     " Parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml.\n"
     " To check the status of the signatures, use the ccn-lite-ctrl with publickey.\n"
     " %s -h print this message.\n",
-	    argv[0]);
+            argv[0]);
     return 0;
 }

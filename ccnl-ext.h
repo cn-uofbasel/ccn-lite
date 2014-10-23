@@ -36,37 +36,37 @@ char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 struct ccnl_frag_s* ccnl_frag_new(int protocol, int mtu);
 
 void ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
-		       int ifndx, sockunion *su);
+                     int ifndx, sockunion *su);
 
 int ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen,
-			     int *totallen);
+                           int *totallen);
 
 struct ccnl_buf_s* ccnl_frag_getnext(struct ccnl_frag_s *e,
-					      int *ifndx, sockunion *su);
+                                     int *ifndx, sockunion *su);
 
 /*
 struct ccnl_buf_s* ccnl_frag_handle_fragment(struct ccnl_relay_s *r,
-		struct ccnl_face_s *f, unsigned char *data, int datalen);
+                struct ccnl_face_s *f, unsigned char *data, int datalen);
 */
 
 void ccnl_frag_destroy(struct ccnl_frag_s *e);
 
 /*
 struct ccnl_buf_s* ccnl_frag_fragment(struct ccnl_relay_s *ccnl,
-					struct ccnl_frag_s *frag,
-					struct ccnl_buf_s *buf);
+                                        struct ccnl_frag_s *frag,
+                                        struct ccnl_buf_s *buf);
 */
 
 typedef int (RX_datagram)(struct ccnl_relay_s*, struct ccnl_face_s*,
-			  unsigned char**, int*);
+                          unsigned char**, int*);
 
 int ccnl_frag_RX_frag2012(RX_datagram callback, struct ccnl_relay_s *relay,
-			    struct ccnl_face_s *from,
-			    unsigned char **data, int *datalen);
+                          struct ccnl_face_s *from,
+                          unsigned char **data, int *datalen);
 
 int ccnl_frag_RX_CCNx2013(RX_datagram callback, struct ccnl_relay_s *relay,
-			   struct ccnl_face_s *from,
-			   unsigned char **data, int *datalen);
+                          struct ccnl_face_s *from,
+                          unsigned char **data, int *datalen);
 
 int ccnl_is_fragment(unsigned char *data, int datalen);
 #else
@@ -78,7 +78,7 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 
 #ifdef USE_NACK
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
-			 struct ccnl_face_s *from, int suite);
+                         struct ccnl_face_s *from, int suite);
 int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 #endif // USE_NACK
 
@@ -92,32 +92,32 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-		    int suite, struct ccnl_buf_s **buf,
-		    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
+                    int suite, struct ccnl_buf_s **buf,
+                    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
 
 int
 ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		   struct ccnl_content_s *c);
+                   struct ccnl_content_s *c);
 
 struct ccnl_interest_s* ccnl_nfn_request(struct ccnl_relay_s *ccnl,
-		struct ccnl_face_s *from, int suite, struct ccnl_buf_s *buf,
-		struct ccnl_prefix_s *p, int minsfx, int maxsfx);
+                                         struct ccnl_face_s *from, int suite, struct ccnl_buf_s *buf,
+                                         struct ccnl_prefix_s *p, int minsfx, int maxsfx);
 
 void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid,
-				   int continue_from_remove);
+                                   int continue_from_remove);
 
 void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
-				     struct ccnl_buf_s *orig,
-				     struct ccnl_prefix_s *prefix,
-				     struct ccnl_face_s *from,
-				     int suite);
+                                     struct ccnl_buf_s *orig,
+                                     struct ccnl_prefix_s *prefix,
+                                     struct ccnl_face_s *from,
+                                     int suite);
 #endif
 
 #ifdef USE_NFN_MONITOR
 int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
-		     struct ccnl_prefix_s *pr, unsigned char *data, int len);
+                     struct ccnl_prefix_s *pr, unsigned char *data, int len);
 #else
-# define ccnl_nfn_monitor(a,b,c,d,e)	do{}while(0)
+# define ccnl_nfn_monitor(a,b,c,d,e)    do{}while(0)
 #endif // USE_NFN_MONITOR
 
 
@@ -128,7 +128,7 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
   struct socket* ccnl_open_udpdev(int port, struct sockaddr_in *sin);
 # ifdef USE_ETHERNET
   struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll,
-				      int ethtype);
+                                      int ethtype);
 # endif
 
 #elif defined(CCNL_UNIX)
@@ -145,7 +145,7 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 #ifdef USE_MGMT
 
 int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
-	      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+              struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 #else
 # define ccnl_mgmt(r,b, p,f)  0
@@ -156,13 +156,13 @@ int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
 #ifdef USE_SCHEDULER
 
 void ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
-		    void *aux1, void *aux2);
+                    void *aux1, void *aux2);
 void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
 void ccnl_sched_destroy(struct ccnl_sched_s *s);
 
 #else
-# define ccnl_sched_CTS_done(S,C,L)	do{}while(0)
-# define ccnl_sched_destroy(S)		do{}while(0)
+# define ccnl_sched_CTS_done(S,C,L)     do{}while(0)
+# define ccnl_sched_destroy(S)          do{}while(0)
 #endif
 
 // ----------------------------------------------------------------------
@@ -182,7 +182,7 @@ void ccnl_sched_destroy(struct ccnl_sched_s *s);
 #ifdef USE_SIGNATURES
 int
 ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
-	    struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
+            struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 #endif
 
 // ----------------------------------------------------------------------
@@ -191,7 +191,7 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 int ccnl_is_local_addr(sockunion *su);
 
 void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
-		sockunion *dest, struct ccnl_buf_s *buf);
+                sockunion *dest, struct ccnl_buf_s *buf);
 
 #ifndef CCNL_LINUXKERNEL
 void ccnl_close_socket(int s);

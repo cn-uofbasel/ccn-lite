@@ -22,29 +22,29 @@
 
 #define CCNL_VERSION "2014-10-03"
 
-#define ETHTYPE_XEROX_PUP		0x0a00
-#define ETHTYPE_PARC_CCNX		0x0801
+#define ETHTYPE_XEROX_PUP               0x0a00
+#define ETHTYPE_PARC_CCNX               0x0801
 
-#define CCNL_ETH_TYPE			ETHTYPE_PARC_CCNX
-//#define CCNL_ETH_TYPE			0x88b5
+#define CCNL_ETH_TYPE                   ETHTYPE_PARC_CCNX
+//#define CCNL_ETH_TYPE                 0x88b5
 
-#define CCNL_DEFAULT_UNIXSOCKNAME	"/tmp/.ccnl.sock"
+#define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
-#define CCNL_MAX_INTERFACES		10
-#define CCNL_MAX_PACKET_SIZE		8096
+#define CCNL_MAX_INTERFACES             10
+#define CCNL_MAX_PACKET_SIZE            8096
 
-#define CCNL_CONTENT_TIMEOUT		30 // sec
-#define CCNL_INTEREST_TIMEOUT		4  // sec
-#define CCNL_MAX_INTEREST_RETRANSMIT	2
+#define CCNL_CONTENT_TIMEOUT            30 // sec
+#define CCNL_INTEREST_TIMEOUT           4  // sec
+#define CCNL_MAX_INTEREST_RETRANSMIT    2
 
-// #define CCNL_FACE_TIMEOUT	60 // sec
-#define CCNL_FACE_TIMEOUT	15 // sec
+// #define CCNL_FACE_TIMEOUT    60 // sec
+#define CCNL_FACE_TIMEOUT       15 // sec
 
-#define CCNL_MAX_NAME_COMP	64
-#define CCNL_MAX_IF_QLEN	64
+#define CCNL_MAX_NAME_COMP      64
+#define CCNL_MAX_IF_QLEN        64
 
-#define CCNL_DEFAULT_MAX_CACHE_ENTRIES	0   // means: no content caching
-#define CCNL_MAX_NONCES			256 // for detected dups
+#define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
+#define CCNL_MAX_NONCES                 256 // for detected dups
 
 enum {
   CCNL_SUITE_CCNB,
@@ -58,15 +58,15 @@ enum {
 // our own CCN-lite extensions for the ccnb encoding:
 
 // management protocol: (ccnl-ext-mgmt.c)
-#define CCNL_DTAG_MACSRC	99001 // newface: which L2 interface
-#define CCNL_DTAG_IP4SRC	99002 // newface: which L3 interface
-#define CCNL_DTAG_UNIXSRC	99003 // newface: which UNIX path
-#define CCNL_DTAG_FRAG		99004 // fragmentation protocol, see core.h
-#define CCNL_DTAG_FACEFLAGS	99005 //
-#define CCNL_DTAG_DEVINSTANCE	99006 // adding/removing a device/interface
-#define CCNL_DTAG_DEVNAME	99007 // name of interface (eth0, wlan0)
-#define CCNL_DTAG_DEVFLAGS	99008 //
-#define CCNL_DTAG_MTU		99009 //
+#define CCNL_DTAG_MACSRC        99001 // newface: which L2 interface
+#define CCNL_DTAG_IP4SRC        99002 // newface: which L3 interface
+#define CCNL_DTAG_UNIXSRC       99003 // newface: which UNIX path
+#define CCNL_DTAG_FRAG          99004 // fragmentation protocol, see core.h
+#define CCNL_DTAG_FACEFLAGS     99005 //
+#define CCNL_DTAG_DEVINSTANCE   99006 // adding/removing a device/interface
+#define CCNL_DTAG_DEVNAME       99007 // name of interface (eth0, wlan0)
+#define CCNL_DTAG_DEVFLAGS      99008 //
+#define CCNL_DTAG_MTU           99009 //
 
 #define CCNL_DTAG_DEBUGREQUEST  99100 //
 #define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt
@@ -102,38 +102,38 @@ enum {
 
 // ----------------------------------------------------------------------
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_SEQUENCED2012)
-#define CCNL_DTAG_FRAGMENT2012	144144 // http://redmine.ccnx.org/issues/100803
+#define CCNL_DTAG_FRAGMENT2012  144144 // http://redmine.ccnx.org/issues/100803
 
-#define CCNL_DTAG_FRAG2012_TYPE		(CCNL_DTAG_FRAGMENT2012+1)
-#define CCNL_DTAG_FRAG2012_FLAGS	(CCNL_DTAG_FRAGMENT2012+2)
-#define CCNL_DTAG_FRAG2012_SEQNR	(CCNL_DTAG_FRAGMENT2012+3)  // our seq number
+#define CCNL_DTAG_FRAG2012_TYPE         (CCNL_DTAG_FRAGMENT2012+1)
+#define CCNL_DTAG_FRAG2012_FLAGS        (CCNL_DTAG_FRAGMENT2012+2)
+#define CCNL_DTAG_FRAG2012_SEQNR        (CCNL_DTAG_FRAGMENT2012+3)  // our seq number
 
-#define CCNL_DTAG_FRAG2012_OLOSS	(CCNL_DTAG_FRAGMENT2012+5)  // our loss count
-#define CCNL_DTAG_FRAG2012_YSEQN	(CCNL_DTAG_FRAGMENT2012+6)  // your (highest) seq no
+#define CCNL_DTAG_FRAG2012_OLOSS        (CCNL_DTAG_FRAGMENT2012+5)  // our loss count
+#define CCNL_DTAG_FRAG2012_YSEQN        (CCNL_DTAG_FRAGMENT2012+6)  // your (highest) seq no
 
 // fragmentation protocol: (ccnl-ext-frag.c, FRAG_CCNx2013)
-#define CCNL_DTAG_FRAGMENT2013		CCN_DTAG_FragP // requested 2013-07-24, assigned 2013-08-12
+#define CCNL_DTAG_FRAGMENT2013          CCN_DTAG_FragP // requested 2013-07-24, assigned 2013-08-12
 
-#define CCNL_DTAG_FRAG2013_TYPE		CCN_DTAG_FragA
-#define CCNL_DTAG_FRAG2013_SEQNR	CCN_DTAG_FragB  // our seq number
-#define CCNL_DTAG_FRAG2013_FLAGS	CCN_DTAG_FragC
+#define CCNL_DTAG_FRAG2013_TYPE         CCN_DTAG_FragA
+#define CCNL_DTAG_FRAG2013_SEQNR        CCN_DTAG_FragB  // our seq number
+#define CCNL_DTAG_FRAG2013_FLAGS        CCN_DTAG_FragC
 
-#define CCNL_DTAG_FRAG2013_OLOSS	CCNL_DTAG_FRAG2012_OLOSS  // our loss count
-#define CCNL_DTAG_FRAG2013_YSEQN	CCNL_DTAG_FRAG2012_YSEQN  // your (highest) seq no
+#define CCNL_DTAG_FRAG2013_OLOSS        CCNL_DTAG_FRAG2012_OLOSS  // our loss count
+#define CCNL_DTAG_FRAG2013_YSEQN        CCNL_DTAG_FRAG2012_YSEQN  // your (highest) seq no
 
 
-#define CCNL_DTAG_FRAG_FLAG_MASK	0x03
-#define CCNL_DTAG_FRAG_FLAG_FIRST	0x01
-#define CCNL_DTAG_FRAG_FLAG_MID		0x00
-#define CCNL_DTAG_FRAG_FLAG_LAST	0x02
-#define CCNL_DTAG_FRAG_FLAG_SINGLE	0x03
+#define CCNL_DTAG_FRAG_FLAG_MASK        0x03
+#define CCNL_DTAG_FRAG_FLAG_FIRST       0x01
+#define CCNL_DTAG_FRAG_FLAG_MID         0x00
+#define CCNL_DTAG_FRAG_FLAG_LAST        0x02
+#define CCNL_DTAG_FRAG_FLAG_SINGLE      0x03
 
 // echo "FHBH" | base64 -d | hexdump -v -e '/1 "@x%02x"'| tr @ '\\'; echo
 #define CCNL_FRAG_TYPE_CCNx2013_VAL     "\x14\x70\x47"
 
 // ----------------------------------------------------------------------
 // face mgmt protocol:
-#define CCNL_DTAG_FRAG_FLAG_STATUSREQ	0x04
+#define CCNL_DTAG_FRAG_FLAG_STATUSREQ   0x04
 
 //#define USE_SIGNATURES
 
