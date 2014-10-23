@@ -49,7 +49,7 @@ void
 myexit(int rc)
 {
     if (unix_path)
-	unlink(unix_path);
+        unlink(unix_path);
     exit(rc);
 }
 
@@ -63,15 +63,15 @@ udp_open()
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0) {
-	perror("udp socket");
-	exit(1);
+        perror("udp socket");
+        exit(1);
     }
     si.sin_addr.s_addr = INADDR_ANY;
     si.sin_port = htons(0);
     si.sin_family = PF_INET;
     if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
         perror("udp sock bind");
-	exit(1);
+        exit(1);
     }
 
     return s;
@@ -89,15 +89,15 @@ static char mysockname[200];
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
-	perror("opening datagram socket");
-	exit(1);
+        perror("opening datagram socket");
+        exit(1);
     }
     name.sun_family = AF_UNIX;
     strcpy(name.sun_path, mysockname);
     if (bind(sock, (struct sockaddr *) &name,
-	     sizeof(struct sockaddr_un))) {
-	perror("binding path name to datagram socket");
-	exit(1);
+             sizeof(struct sockaddr_un))) {
+        perror("binding path name to datagram socket");
+        exit(1);
     }
 
     bufsize = 4 * CCNL_MAX_PACKET_SIZE;
@@ -123,7 +123,7 @@ block_on_read(int sock, float wait)
     timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
     rc = select(sock+1, &readfs, NULL, NULL, &timeout);
     if (rc < 0)
-	perror("select()");
+        perror("select()");
     return rc;
 }
 
@@ -133,9 +133,9 @@ ndntlv_isData(unsigned char *buf, int len)
 {
     int typ, vallen;
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
-	return -1;
+        return -1;
     if (typ != NDN_TLV_Data)
-	return 0;
+        return 0;
     return 1;
 }
 
@@ -148,50 +148,50 @@ loadFile(char **cpp)
     (*cpp)++;
     n = atoi(*cpp);
     while (isdigit(**cpp))
-	(*cpp)++;
+        (*cpp)++;
     if (n < 1 || n >= filecnt) {
-	fprintf(stderr, "parse error, no file at position %d\n", n);
-	return 0;
+        fprintf(stderr, "parse error, no file at position %d\n", n);
+        return 0;
     }
     if (!n) {  // should read stdin
-	fd = 0;
-	maxlen = 64*1024;
+        fd = 0;
+        maxlen = 64*1024;
     } else {
-	struct stat st;
-	if (stat(fileargs[n-1], &st)) {
-	    fprintf(stderr, "cannot access file %s\n", fileargs[n-1]);
-	    return 0;
-	}
-	maxlen = st.st_size;
-	fd = open(fileargs[n-1], O_RDONLY);
-	if (fd < 0) {
-	    perror("open file");
-	    return 0;
-	}
+        struct stat st;
+        if (stat(fileargs[n-1], &st)) {
+            fprintf(stderr, "cannot access file %s\n", fileargs[n-1]);
+            return 0;
+        }
+        maxlen = st.st_size;
+        fd = open(fileargs[n-1], O_RDONLY);
+        if (fd < 0) {
+            perror("open file");
+            return 0;
+        }
     }
     c = calloc(1, sizeof(*c) + maxlen);
     if (!c) {
-	fprintf(stderr, "read file: malloc problem");
-	return 0;
+        fprintf(stderr, "read file: malloc problem");
+        return 0;
     }
     c->type = NDN_TLV_RPC_BIN;
     c->flatlen = -1;
     c->aux = c + 1;
 
     while (maxlen > 0) {
-	len = read(fd, (char*)(c+1) + c->u.binlen, maxlen);
-	if (len < 0) {
-	    free(c);
-	    perror("reading file");
-	    return 0;
-	}
-	if (len == 0)
-	    break;
-	maxlen -= len;
-	c->u.binlen += len;
+        len = read(fd, (char*)(c+1) + c->u.binlen, maxlen);
+        if (len < 0) {
+            free(c);
+            perror("reading file");
+            return 0;
+        }
+        if (len == 0)
+            break;
+        maxlen -= len;
+        c->u.binlen += len;
     }
     if (fd > 0)
-	close(fd);
+        close(fd);
 
     return c;
 }
@@ -204,40 +204,40 @@ parseConst(char **cpp)
     int len;
 
     if (**cpp == '&') // load file as BIN
-	return loadFile(cpp);
+        return loadFile(cpp);
 
     c = calloc(1, sizeof(*c));
     if (!c)
-	return 0;
+        return 0;
     c->flatlen = -1;
     c->aux = (struct rdr_ds_s*) *cpp;
 
     p = *cpp;
     if (isalpha(*p) || *p == '/') {
-	c->type = NDN_TLV_RPC_NAME;
-	while (*p == '/' || isalnum(*p) || *p == '_')
-	    p++;
-	c->u.namelen = p - *cpp;
+        c->type = NDN_TLV_RPC_NAME;
+        while (*p == '/' || isalnum(*p) || *p == '_')
+            p++;
+        c->u.namelen = p - *cpp;
     } else if (isdigit(*p)) {
-	c->type = NDN_TLV_RPC_NONNEGINT;
-	c->u.nonnegintval = 0;
-	while (isdigit(*p)) {
-	    c->u.nonnegintval = 10 * c->u.nonnegintval + (*p - '0');
-	    p++;
-	}
+        c->type = NDN_TLV_RPC_NONNEGINT;
+        c->u.nonnegintval = 0;
+        while (isdigit(*p)) {
+            c->u.nonnegintval = 10 * c->u.nonnegintval + (*p - '0');
+            p++;
+        }
     } else if (*p == '\"') {
-	c->type = NDN_TLV_RPC_STR;
-	p++;
-	c->aux = (struct rdr_ds_s*) p;
-	while (*p && *p != '\"')
-	    p++;
-	if (*p)
-	    p++;
-	c->u.strlen = p - *cpp - 2;
+        c->type = NDN_TLV_RPC_STR;
+        p++;
+        c->aux = (struct rdr_ds_s*) p;
+        while (*p && *p != '\"')
+            p++;
+        if (*p)
+            p++;
+        c->u.strlen = p - *cpp - 2;
     } else {
-	fprintf(stderr, "parse error, unknown constant format %s\n", *cpp);
-	free(c);
-	return 0;
+        fprintf(stderr, "parse error, unknown constant format %s\n", *cpp);
+        free(c);
+        return 0;
     }
     len = p - *cpp;
     *cpp += len;
@@ -251,11 +251,11 @@ parsePrefixTerm(int lev, char **cpp)
     struct rdr_ds_s *term = NULL, *end = 0, *t2;
 
     while (**cpp) {
-	while (isspace(**cpp))
-	    *cpp += 1;
+        while (isspace(**cpp))
+            *cpp += 1;
 
-	if (**cpp == ')')
-	    return term;
+        if (**cpp == ')')
+            return term;
         if (**cpp == '(') {
             *cpp += 1;
             t2 = parsePrefixTerm(lev+1, cpp);
@@ -265,37 +265,37 @@ parsePrefixTerm(int lev, char **cpp)
                 fprintf(stderr, "parsePrefixTerm error: missing )\n");
                 return 0;
             }
-	    *cpp += 1;
-	    if (!term) {
-		term = t2;
-		continue;
-	    }
-	} else if (**cpp == '\\') { // lambda
-	    *cpp += 1;
-	    t2 = calloc(1, sizeof(*t2));
-	    t2->type = NDN_TLV_RPC_LAMBDA;
-	    t2->flatlen = -1;
-	    t2->u.lambdavar = parseConst(cpp);
-	    t2->aux = parsePrefixTerm(lev+1, cpp);
-	    if (!term) {
-		term = t2;
-		continue;
-	    }
-	} else {
-	    t2 = parseConst(cpp);
-	    if (!term) {
-		term = calloc(1, sizeof(*t2));
-		term->type = NDN_TLV_RPC_APPLICATION;
-		term->flatlen = -1;
-		term->u.fct = t2;
-		continue;
-	    }
-	}
-	if (!end)
-	    term->aux = t2;
-	else
-	    end->nextinseq = t2;
-	end = t2;
+            *cpp += 1;
+            if (!term) {
+                term = t2;
+                continue;
+            }
+        } else if (**cpp == '\\') { // lambda
+            *cpp += 1;
+            t2 = calloc(1, sizeof(*t2));
+            t2->type = NDN_TLV_RPC_LAMBDA;
+            t2->flatlen = -1;
+            t2->u.lambdavar = parseConst(cpp);
+            t2->aux = parsePrefixTerm(lev+1, cpp);
+            if (!term) {
+                term = t2;
+                continue;
+            }
+        } else {
+            t2 = parseConst(cpp);
+            if (!term) {
+                term = calloc(1, sizeof(*t2));
+                term->type = NDN_TLV_RPC_APPLICATION;
+                term->flatlen = -1;
+                term->u.fct = t2;
+                continue;
+            }
+        }
+        if (!end)
+            term->aux = t2;
+        else
+            end->nextinseq = t2;
+        end = t2;
     }
     return term;
 }
@@ -307,52 +307,52 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 
     t = ccnl_rdr_getType(x);
     if (t < NDN_TLV_RPC_SERIALIZED)
-	return t;
+        return t;
     if (t < NDN_TLV_RPC_APPLICATION) {
-	sprintf(tmp, "v%02x", t);
-	n = tmp;
+        sprintf(tmp, "v%02x", t);
+        n = tmp;
     } else switch (t) {
     case NDN_TLV_RPC_APPLICATION:
-	n = "APP"; break;
+        n = "APP"; break;
     case NDN_TLV_RPC_LAMBDA:
-	n = "LBD"; break;
+        n = "LBD"; break;
     case NDN_TLV_RPC_SEQUENCE:
-	n = "SEQ"; break;
+        n = "SEQ"; break;
     case NDN_TLV_RPC_NAME:
-	n = "VAR"; break;
+        n = "VAR"; break;
     case NDN_TLV_RPC_NONNEGINT:
-	n = "INT"; break;
+        n = "INT"; break;
     case NDN_TLV_RPC_BIN:
-	n = "BIN"; break;
+        n = "BIN"; break;
     case NDN_TLV_RPC_STR:
-	n = "STR"; break;
+        n = "STR"; break;
     default:
-	n = "???"; break;
+        n = "???"; break;
     }
     for (i = 0; i < lev; i++)
-	fprintf(stderr, "  ");
+        fprintf(stderr, "  ");
     fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->flatlen);
 
     switch (t) {
     case NDN_TLV_RPC_APPLICATION:
-	ccnl_rdr_dump(lev+1, x->u.fct);
-	break;
+        ccnl_rdr_dump(lev+1, x->u.fct);
+        break;
     case NDN_TLV_RPC_LAMBDA:
-	ccnl_rdr_dump(lev+1, x->u.lambdavar);
-	break;
+        ccnl_rdr_dump(lev+1, x->u.lambdavar);
+        break;
     case NDN_TLV_RPC_SEQUENCE:
-	break;
+        break;
     case NDN_TLV_RPC_NAME:
     case NDN_TLV_RPC_NONNEGINT:
     case NDN_TLV_RPC_BIN:
     case NDN_TLV_RPC_STR:
     default:
-	return 0;
+        return 0;
     }
     x = x->aux;
     while (x) {
-	ccnl_rdr_dump(lev+1, x);
-	x = x->nextinseq;
+        ccnl_rdr_dump(lev+1, x);
+        x = x->nextinseq;
     }
     return 0;
 }
@@ -389,43 +389,43 @@ main(int argc, char *argv[])
 
     while ((opt = getopt(argc, argv, "hnu:w:x:")) != -1) {
         switch (opt) {
-	case 'n':
-	    noreply = 1 - noreply;
-	    break;
+        case 'n':
+            noreply = 1 - noreply;
+            break;
         case 'u':
-	    udp = optarg;
-	    break;
+            udp = optarg;
+            break;
         case 'w':
-	    wait = atof(optarg);
-	    break;
+            wait = atof(optarg);
+            break;
         case 'x':
-	    ux = optarg;
-	    break;
+            ux = optarg;
+            break;
         case 'h':
         default:
 Usage:
-	    fprintf(stderr, "usage: %s "
-	    "[-u host:port] [-x ux_path_name] [-w timeout] EXPRESSION [filenames]\n"
-	    "  -n               no-reply (just send)\n"
-	    "  -u a.b.c.d:port  UDP destination (default is 127.0.0.1/6363)\n"
-	    "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
-	    "  -w timeout       in sec (float)\n"
-	    "EXPRESSION examples:\n"
-	    "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n"
-	    "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n",
-	    argv[0]);
-	    exit(1);
+            fprintf(stderr, "usage: %s "
+            "[-u host:port] [-x ux_path_name] [-w timeout] EXPRESSION [filenames]\n"
+            "  -n               no-reply (just send)\n"
+            "  -u a.b.c.d:port  UDP destination (default is 127.0.0.1/6363)\n"
+            "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
+            "  -w timeout       in sec (float)\n"
+            "EXPRESSION examples:\n"
+            "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n"
+            "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n",
+            argv[0]);
+            exit(1);
         }
     }
 
     if (!argv[optind]) 
-	goto Usage;
+        goto Usage;
 
     fileargs = argv + optind + 1;
     filecnt = argc - optind;
     expr = rpc_cli2rdr(argv[optind]);
     if (!expr)
-	return -1;
+        return -1;
 
     reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
@@ -434,48 +434,48 @@ Usage:
     srandom(time(NULL));
 
     if (ux) { // use UNIX socket
-	struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-	su->sun_family = AF_UNIX;
-	strcpy(su->sun_path, ux);
-	sock = ux_open();
+        struct sockaddr_un *su = (struct sockaddr_un*) &sa;
+        su->sun_family = AF_UNIX;
+        strcpy(su->sun_path, ux);
+        sock = ux_open();
     } else { // UDP
-	struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-	char *cp = strdup(udp);
-	si->sin_family = PF_INET;
-	si->sin_addr.s_addr = inet_addr(strtok(cp, ":"));
-	si->sin_port = htons(atoi(strtok(NULL, ":")));
-	sock = udp_open();
-	free(cp);
+        struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+        char *cp = strdup(udp);
+        si->sin_family = PF_INET;
+        si->sin_addr.s_addr = inet_addr(strtok(cp, ":"));
+        si->sin_port = htons(atoi(strtok(NULL, ":")));
+        sock = udp_open();
+        free(cp);
     }
 
     for (cnt = 0; cnt < 3; cnt++) {
-	if (sendto(sock, request, reqlen, 0, &sa, sizeof(sa)) < 0) {
-	    perror("sendto");
-	    myexit(1);
-	}
-	if (noreply)
-	    goto done;
+        if (sendto(sock, request, reqlen, 0, &sa, sizeof(sa)) < 0) {
+            perror("sendto");
+            myexit(1);
+        }
+        if (noreply)
+            goto done;
 
-	for (;;) { // wait for a content pkt (ignore interests)
-	    if (block_on_read(sock, wait) <= 0) // timeout
-		break;
-	    replen = recv(sock, reply, sizeof(reply), 0);
+        for (;;) { // wait for a content pkt (ignore interests)
+            if (block_on_read(sock, wait) <= 0) // timeout
+                break;
+            replen = recv(sock, reply, sizeof(reply), 0);
 /*
-	    fprintf(stderr, "received %d bytes\n", len);
-	    if (len > 0)
-		fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+            fprintf(stderr, "received %d bytes\n", len);
+            if (len > 0)
+                fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
-	    if (replen <= 0)
-		goto done;
-	    if (*reply != NDN_TLV_RPC_APPLICATION) { // not a RPC pkt
-		fprintf(stderr, "skipping non-RPC packet\n");
-		continue;
-	    }
-	    write(1, reply, replen);
-	    myexit(0);
-	}
-	if (cnt < 2)
-	    fprintf(stderr, "re-sending RPC request\n");
+            if (replen <= 0)
+                goto done;
+            if (*reply != NDN_TLV_RPC_APPLICATION) { // not a RPC pkt
+                fprintf(stderr, "skipping non-RPC packet\n");
+                continue;
+            }
+            write(1, reply, replen);
+            myexit(0);
+        }
+        if (cnt < 2)
+            fprintf(stderr, "re-sending RPC request\n");
     }
     fprintf(stderr, "timeout (no RPC reply received so far)\n");
 

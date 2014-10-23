@@ -45,11 +45,11 @@ mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
     num = num >> 4;
 
     while (num > 0) {
-	tmp[len++] = num & 0x7f;
-	num = num >> 7;
+        tmp[len++] = num & 0x7f;
+        num = num >> 7;
     }
     for (i = len-1; i >= 0; i--)
-	*buf++ = tmp[i];
+        *buf++ = tmp[i];
     return len;
 }
 
@@ -80,7 +80,7 @@ mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
 
 int
 mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
-	  char *str)
+          char *str)
 {
     return mkBlob(out, num, tt, str, strlen(str));
 }
@@ -158,7 +158,7 @@ verify(char* public_key_path, unsigned char *msg, int msg_len,
 
 int
 add_signature(unsigned char *out, char *private_key_path,
-	      unsigned char *file, unsigned int fsize)
+              unsigned char *file, unsigned int fsize)
 {
     int len;
     
