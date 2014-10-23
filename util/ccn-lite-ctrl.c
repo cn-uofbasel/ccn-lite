@@ -434,12 +434,13 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
 // ----------------------------------------------------------------------
 
 int
-mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char *private_key_path)
+mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int suite ,char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char fwdentry[2000];
+    char suite_s[1];
     char *cp;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
@@ -464,6 +465,9 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, char 
     }
     fwdentry[len3++] = 0; // end-of-prefix
     len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, faceid);
+
+    suite_s[0] = suite;
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s);
     fwdentry[len3++] = 0; // end-of-fwdentry
 
     // prepare CONTENTOBJ with CONTENT
@@ -814,28 +818,28 @@ main(int argc, char *argv[])
     struct sockaddr_in si;
 
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
-    ux = argv[2];
-    argv += 2;
-    argc -= 2;
+        ux = argv[2];
+        argv += 2;
+        argc -= 2;
     }
     else if (argv[1] && !strcmp(argv[1], "-u") && argc > 3) {
     udp = argv[2];
         port = strtol(argv[3], NULL, 0);
-    argv += 3;
-    argc -= 3;
+        argv += 3;
+        argc -= 3;
         use_udp = 1;
     }
     if(argv[1] && !strcmp(argv[1], "-p") && argc > 2)
     {
         private_key_path = argv[2];
         argv += 2;
-    argc -= 2;
+        argc -= 2;
     }
      if(argv[1] && !strcmp(argv[1], "-k") && argc > 2)
     {
         relay_public_key = argv[2];
         argv += 2;
-    argc -= 2;
+        argc -= 2;
     }
     if(argv[1] && !strcmp(argv[1], "-m") && argc > 1)
     {
@@ -848,14 +852,14 @@ main(int argc, char *argv[])
 
 
     if (!strcmp(argv[1], "debug")) {
-    if (argc < 3)  goto Usage;
-    len = mkDebugRequest(out, argv[2], private_key_path);
+        if (argc < 3)  goto Usage;
+        len = mkDebugRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "newETHdev")) {
-    if (argc < 3)  goto Usage;
-    len = mkNewEthDevRequest(out, argv[2],
-                 argc > 3 ? argv[3] : "0x88b5",
-                 argc > 4 ? argv[4] : "0",
-                 argc > 5 ? argv[5] : "0", private_key_path);
+        if (argc < 3)  goto Usage;
+        len = mkNewEthDevRequest(out, argv[2],
+                     argc > 3 ? argv[3] : "0x88b5",
+                     argc > 4 ? argv[4] : "0",
+                     argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "newUDPdev")) {
     if (argc < 3)  goto Usage;
     len = mkNewUDPDevRequest(out, argv[2],
@@ -863,32 +867,34 @@ main(int argc, char *argv[])
                  argc > 4 ? argv[4] : "0",
                  argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "destroydev")) {
-    if (argc < 3) goto Usage;
-    len = mkDestroyDevRequest(out, argv[2], private_key_path);
+        if (argc < 3) goto Usage;
+        len = mkDestroyDevRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1], "newUDPface")) {
-    if (argc < 5)  goto Usage;
-    len = mkNewFaceRequest(out,
-                   !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
-                   !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
-                   argv[3], argv[4],
-                   argc > 5 ? argv[5] : "0x0001", private_key_path);
+        if (argc < 5)  goto Usage;
+        len = mkNewFaceRequest(out,
+                       !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
+                       !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
+                       argv[3], argv[4],
+                       argc > 5 ? argv[5] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "newUNIXface")) {
-    if (argc < 3)  goto Usage;
+        if (argc < 3)  goto Usage;
     len = mkNewUNIXFaceRequest(out, argv[2],
                    argc > 3 ? argv[3] : "0x0001",
                                    private_key_path);
     } else if (!strcmp(argv[1], "setfrag")) {
-    if (argc < 5)  goto Usage;
-    len = mkSetfragRequest(out, argv[2], argv[3], argv[4], private_key_path);
+        if (argc < 5)  goto Usage;
+        len = mkSetfragRequest(out, argv[2], argv[3], argv[4], private_key_path);
     } else if (!strcmp(argv[1], "destroyface")) {
-    if (argc < 3) goto Usage;
+        if (argc < 3) goto Usage;
     len = mkDestroyFaceRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "prefixreg")) {
-    if (argc < 4) goto Usage;
-    len = mkPrefixregRequest(out, 1, argv[2], argv[3], private_key_path);
+        int suite = atoi(argv[4]);
+        if (argc < 4) goto Usage;
+        len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
-    if (argc < 4) goto Usage;
-    len = mkPrefixregRequest(out, 0, argv[2], argv[3], private_key_path);
+        int suite = atoi(argv[4]);
+        if (argc < 4) goto Usage;
+        len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
         if(argc < 3) goto Usage;
         file_uri = argv[2];
@@ -995,10 +1001,10 @@ Usage:
        "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
        "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
        "  newUNIXface   PATH [FACEFLAGS]\n"
-           "  setfrag       FACEID FRAG MTU\n"
+       "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID\n"
-       "  prefixunreg   PREFIX FACEID\n"
+       "  prefixreg     PREFIX FACEID SUITE\n"
+       "  prefixunreg   PREFIX FACEID SUITE\n"
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"

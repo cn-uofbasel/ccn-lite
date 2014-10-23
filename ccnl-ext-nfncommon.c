@@ -312,7 +312,7 @@ add_local_computation_components(struct configuration_s *config){
     ret->comp = ccnl_malloc(sizeof(char*) * size);
     ret->complen = ccnl_malloc(sizeof(int) * size);
 
-    ret->comp[i] = (unsigned char *)"COMPUTE";
+    ret->comp[i] = (unsigned char *)"COMPUTE"; //FOR CCNTLV???
     ret->complen[i] = strlen("COMPUTE");
     ++i;
     ret->comp[i] = (unsigned char *)ccnl_strdup(comp);
