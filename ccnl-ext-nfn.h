@@ -11,15 +11,15 @@
 #define CCNL_EXT_NFN_H
 
 
-#define NFN_MAX_RUNNING_COMPUTATIONS 10
-#define NFN_DEFAULT_WAITING_TIME 10
+#define NFN_MAX_RUNNING_COMPUTATIONS    10
+#define NFN_DEFAULT_WAITING_TIME        10
 
 
-#define STACK_TYPE_INT 0
-#define STACK_TYPE_CONST 1
-#define STACK_TYPE_PREFIX 2
-#define STACK_TYPE_THUNK 3
-#define STACK_TYPE_CLOSURE 4
+#define STACK_TYPE_INT                  0
+#define STACK_TYPE_CONST                1
+#define STACK_TYPE_PREFIX               2
+#define STACK_TYPE_THUNK                3
+#define STACK_TYPE_CLOSURE              4
 
 struct stack_s{
     void *content;

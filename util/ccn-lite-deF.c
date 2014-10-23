@@ -41,26 +41,26 @@ static int cnt;
 
 int
 reassembly_done(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-		unsigned char **data, int *len)
+                unsigned char **data, int *len)
 {
     char fname[512];
     int f;
 
     sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
     if (noclobber && !access(fname, F_OK)) {
-	printf("file %s already exists, exiting\n", fname);
-	exit(-1);
+        printf("file %s already exists, exiting\n", fname);
+        exit(-1);
     }
 
     printf("new file %s, %d bytes\n", fname, *len);
 
     f = creat(fname, 0666);
     if (f < 0)
-	perror("open");
+        perror("open");
     else {
-	if (write(f, *data, *len) < 0)
-	    perror("write");
-	close(f);
+        if (write(f, *data, *len) < 0)
+            perror("write");
+        close(f);
     }
 
     return 0;
@@ -73,9 +73,9 @@ parseFrag(char *fname, unsigned char *data, int datalen, struct ccnl_face_s *f)
     int num, typ;
 
     if (dehead(&data, &datalen, &num, &typ)
-		|| typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT2013) {
-	fprintf(stderr, "** file %s not a CCNx2013 fragment, ignored\n", fname);
-	return;
+                || typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT2013) {
+        fprintf(stderr, "** file %s not a CCNx2013 fragment, ignored\n", fname);
+        return;
     }
 
     ccnl_frag_RX_CCNx2013(reassembly_done, NULL, f, &data, &datalen);
@@ -93,24 +93,24 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "f:hn:")) != -1) {
         switch (opt) {
         case 'f':
-	    fileprefix = optarg;
-	    break;
-	case 'n':
-	    noclobber = ! noclobber;
-	    break;
+            fileprefix = optarg;
+            break;
+        case 'n':
+            noclobber = ! noclobber;
+            break;
         case 'h':
-	default:
+        default:
 usage:
-	    fprintf(stderr, "usage: %s [options] FILE(S)\n"
-	    "  -f PREFIX   use PREFIX for output file names (default: defrag)\n"
-	    "  -n          no-clobber\n",
-	    cmdname);
-	    exit(1);
-	}
+            fprintf(stderr, "usage: %s [options] FILE(S)\n"
+            "  -f PREFIX   use PREFIX for output file names (default: defrag)\n"
+            "  -n          no-clobber\n",
+            cmdname);
+            exit(1);
+        }
     }
 
     if (!argv[optind])
-	goto usage;
+        goto usage;
 
 
     memset(&f, 0, sizeof(f));
@@ -118,25 +118,25 @@ usage:
 
     fname = argv[optind++];
     do {
-	unsigned char in[64*1024];
-	int len, fd = open(fname, O_RDONLY);
+        unsigned char in[64*1024];
+        int len, fd = open(fname, O_RDONLY);
 
-	printf("** file %s\n", fname);
+        printf("** file %s\n", fname);
 
-	if (fd < 0) {
-	    fprintf(stderr, "error opening file %s\n", fname);
-	    exit(-1);
-	}
-	len = read(fd, in, sizeof(in));
-	if (len < 0) {
-	    fprintf(stderr, "error reading file %s\n", fname);
-	    exit(-1);
-	}
-	close(fd);
+        if (fd < 0) {
+            fprintf(stderr, "error opening file %s\n", fname);
+            exit(-1);
+        }
+        len = read(fd, in, sizeof(in));
+        if (len < 0) {
+            fprintf(stderr, "error reading file %s\n", fname);
+            exit(-1);
+        }
+        close(fd);
 
-	parseFrag(fname, in, len, &f);
+        parseFrag(fname, in, len, &f);
 
-	fname = argv[optind] ? argv[optind++] : NULL;
+        fname = argv[optind] ? argv[optind++] : NULL;
     } while (fname);
 
     return 0;
