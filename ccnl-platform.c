@@ -28,7 +28,7 @@ timevaldelta(struct timeval *a, struct timeval *b) {
 }
 
 #ifndef CCNL_OMNET
-#  define CCNL_NOW()			current_time()
+#  define CCNL_NOW()                    current_time()
 #endif
 // ----------------------------------------------------------------------
 
@@ -65,9 +65,9 @@ ccnl_timer_callback(unsigned long data)
     void *ptr = t->ptr, *aux = t->aux;
 
     if (!spare_timer)
-	spare_timer = t;
+        spare_timer = t;
     else
-	kfree(t);
+        kfree(t);
     (fct)(ptr, aux);
 }
 
@@ -77,12 +77,12 @@ ccnl_set_timer(int usec, void(*fct)(void*,void*), void *ptr, void *aux)
     struct ccnl_timerlist_s *t;
 
     if (spare_timer) {
-	t = spare_timer;
-	spare_timer = NULL;
+        t = spare_timer;
+        spare_timer = NULL;
     } else {
-	t = kmalloc(sizeof(struct ccnl_timerlist_s), GFP_ATOMIC);
-	if (!t)
-	    return NULL;
+        t = kmalloc(sizeof(struct ccnl_timerlist_s), GFP_ATOMIC);
+        if (!t)
+            return NULL;
     }
     init_timer(&t->tl);
     t->tl.function = ccnl_timer_callback;
@@ -101,12 +101,12 @@ ccnl_rem_timer(void *p)
     struct ccnl_timerlist_s *t = (struct ccnl_timerlist_s*) p;
 
     if (!p)
-	return;
+        return;
     del_timer(&t->tl);
     if (!spare_timer)
-	spare_timer = t;
+        spare_timer = t;
     else
-	kfree(t);
+        kfree(t);
 }
 
 // ----------------------------------------------------------------------
@@ -142,14 +142,14 @@ ccnl_get_timeval(struct timeval *tv)
 
 void*
 ccnl_set_timer(int usec, void (*fct)(void *aux1, void *aux2),
-		 void *aux1, void *aux2)
+                 void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
     static int handlercnt;
 
     t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
     if (!t)
-	return 0;
+        return 0;
     t->fct2 = fct;
     gettimeofday(&t->timeout, NULL);
     usec += t->timeout.tv_usec;
@@ -207,12 +207,12 @@ ccnl_rem_timer(void *h)
     DEBUGMSG(99, "removing time handler %p\n", h);
 
     for (pp = &eventqueue; *pp; pp = &((*pp)->next)) {
-	if ((void*)*pp == h) {
-	    struct ccnl_timer_s *e = *pp;
-	    *pp = e->next;
-	    ccnl_free(e);
-	    break;
-	}
+        if ((void*)*pp == h) {
+            struct ccnl_timer_s *e = *pp;
+            *pp = e->next;
+            ccnl_free(e);
+            break;
+        }
     }
 }
 
@@ -229,12 +229,12 @@ current_time()
     ccnl_get_timeval(&tv);
 
     if (!start) {
-	start = tv.tv_sec;
-	start_usec = tv.tv_usec;
+        start = tv.tv_sec;
+        start_usec = tv.tv_usec;
     }
 
     return (double)(tv.tv_sec) - start +
-		((double)(tv.tv_usec) - start_usec) / 1000000;
+                ((double)(tv.tv_usec) - start_usec) / 1000000;
 }
 
 char*
@@ -245,11 +245,11 @@ timestamp(void)
     sprintf(ts, "%.4g", CCNL_NOW());
     cp = strchr(ts, '.');
     if (!cp)
-	strcat(ts, ".0000");
+        strcat(ts, ".0000");
     else if (strlen(cp) > 5)
-	cp[5] = '\0';
+        cp[5] = '\0';
     else while (strlen(cp) < 5)
-	strcat(cp, "0");
+        strcat(cp, "0");
     return ts;
 }
 
