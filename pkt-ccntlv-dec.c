@@ -58,10 +58,6 @@ ccnl_ccntlv_extract(int hdrlen,
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
     DEBUGMSG(99, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
-    // for(int x = 0; x < *datalen; x++) {
-    //     fprintf(stderr, "%02x \n", start[x]);
-    // }
-    // fprintf(stderr, "\n");
 
     if (content)
         *content = NULL;
@@ -88,11 +84,9 @@ ccnl_ccntlv_extract(int hdrlen,
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
         int len2 = len;
-        DEBUGMSG(99, "typ %d\n",typ);
         switch (typ) {
 
         case CCNX_TLV_M_Name:
-            DEBUGMSG(99, "M_NAME\n");
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 unsigned int len3;
@@ -125,11 +119,8 @@ ccnl_ccntlv_extract(int hdrlen,
             break;
 
         case CCNX_TLV_M_MetaData:
-            DEBUGMSG(99, "M_METADATA\n");
-
             break;
         case CCNX_TLV_M_Payload:
-            DEBUGMSG(99, "M_PAYLOAD\n");
             if (content) {
                 *content = *data;
                 *contlen = len;
