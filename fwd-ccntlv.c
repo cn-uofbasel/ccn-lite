@@ -37,13 +37,14 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = 0, *keyid = 0;
-    DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
+
 
     // if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
     //     return -1;
 
     unsigned char typ = hdrptr->packettype;
     unsigned char hdrlen = *data - (unsigned char*)hdrptr;
+    DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
     DEBUGMSG(99, "hdrlen=%d", hdrlen);
     buf = ccnl_ccntlv_extract(hdrlen, data, datalen,
                               &p, &keyid, &keyidlen,
