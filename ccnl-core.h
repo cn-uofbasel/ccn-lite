@@ -172,6 +172,7 @@ struct ccnl_forward_s {
     struct ccnl_forward_s *next;
     struct ccnl_prefix_s *prefix;
     struct ccnl_face_s *face;
+    char suite;
 };
 
 struct ccnl_ccnb_id_s { // interest details
