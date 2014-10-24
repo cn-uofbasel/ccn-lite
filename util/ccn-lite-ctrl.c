@@ -811,7 +811,7 @@ main(int argc, char *argv[])
     int verified = 1;
     int numOfParts = 1;
     int msgOnly = 0;
-    int suite;
+    int suite = 0;
     char *file_uri;
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
