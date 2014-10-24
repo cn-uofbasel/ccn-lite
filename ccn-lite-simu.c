@@ -150,7 +150,7 @@ ccnl_path_to_prefix(const char *path)
                                              cp = strtok(NULL, "/")) {
             pr->complen[pr->compcnt] = 4 + strlen(cp);
             pr->comp[pr->compcnt] = pr->bytes + cnt;
-            *(unsigned short*)(pr->bytes + cnt) = htons(CCNX_TLV_N_UTF8);
+            *(unsigned short*)(pr->bytes + cnt) = htons(CCNX_TLV_N_NameSegment);
             *(unsigned short*)(pr->bytes + cnt + 2) = htons(strlen(cp));
             strcpy((char*)pr->bytes + cnt + 4, cp);
             cnt += 4 + strlen(cp);

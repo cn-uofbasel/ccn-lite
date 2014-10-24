@@ -811,7 +811,7 @@ main(int argc, char *argv[])
     int verified = 1;
     int numOfParts = 1;
     int msgOnly = 0;
-
+    int suite = 0;
     char *file_uri;
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
@@ -888,11 +888,11 @@ main(int argc, char *argv[])
         if (argc < 3) goto Usage;
     len = mkDestroyFaceRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "prefixreg")) {
-        int suite = atoi(argv[4]);
+        if(argc > 4) suite = atoi(argv[4]);
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
-        int suite = atoi(argv[4]);
+        if(argc > 4) suite = atoi(argv[4]);
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
