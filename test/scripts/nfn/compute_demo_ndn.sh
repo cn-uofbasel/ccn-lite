@@ -12,8 +12,8 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock newUDPface any 127.0.0.1 9002  
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2  | $CCNL_HOME/util/ccn-lite-ccnb2xml
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2  | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 2 | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 2 | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 sleep 3
 

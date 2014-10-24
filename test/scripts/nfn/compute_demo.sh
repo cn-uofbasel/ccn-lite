@@ -19,8 +19,8 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock newUDPface any 127.0.0.1 9002  
 echo "** in 3 seconds, registering a prefix, twice"
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2  | $CCNL_HOME/util/ccn-lite-ccnb2xml
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2  | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 0 | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 0 | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 echo "** in 3 seconds, adding content"
 sleep 3

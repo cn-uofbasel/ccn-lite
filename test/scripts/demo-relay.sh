@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
 USAGE="usage: sh demo-relay.sh <SUITE[0,2]> <CON[udp, ux]> <USEKRNL[true,false]"
