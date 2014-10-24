@@ -109,7 +109,7 @@ fi
 sleep 1
 FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 echo $FACEID
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep ACTION
 
 # starting relay B, with content loading
 $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
