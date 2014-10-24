@@ -52,26 +52,18 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
     return len + 4;
 }
 
-
-// int
-// ccnl_ccntlv_prependFixedHdr_ccnx201311(unsigned char ver, unsigned char msgtype,
-//                                        unsigned short msglen,
-//                                        int *offset, unsigned char *buf)
-// {
-//     struct ccnx_tlvhdr_ccnx201311_s *hp;
-
-//     if (*offset < 8)
-//         return -1;
-//     *offset -= 8;
-//     hp = (struct ccnx_tlvhdr_ccnx201311_s *)(buf + *offset);
-//     hp->version = ver;
-//     hp->msgtype = msgtype;
-//     hp->msglen = htons(msglen);
-//     hp->hdrlen = htons(hdrlen);
-//     hp->reserved = 0;
-
-//     return 8 + hdrlen + msglen;
-// }
+int
+ccnl_ccntlv_prependInt(unsigned short type, unsigned char *blob,
+                       unsigned short len, int *offset, unsigned char *buf)
+{
+    if (*offset < (len + 4))
+        return -1;
+    memcpy(buf + *offset - len, blob, len);
+    *offset -= len;
+    if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
+        return -1;
+    return len + 4;
+}
 
 int
 ccnl_ccntlv_prependFixedHdr(unsigned char ver, 
@@ -100,13 +92,21 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 }
 
 int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf)
-{
+ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name,
+                             int *chunknum, 
+                             int *offset, unsigned char *buf) {
+
     int oldoffset = *offset, cnt;
 
-    //TODO
-    // CCNX_TLV_N_CHUNK
+    if(chunknum && *chunknum > 0) {
+        // CCNX_TLV_N_CHUNK
+        char chunknumBuf[10];
+        snprintf(chunknumBuf, 10, "%d", *chunknum);
+        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_Chunk,
+                                    (unsigned char*) chunknumBuf, strlen(chunknumBuf), offset, buf) < 0) {
+            return -1;
+        }
+    }
 
     // optional: (not used)
     // CCNX_TLV_N_MetaData
@@ -132,6 +132,13 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
         return -1;
 
     return 0;
+}
+
+int
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf)
+{
+    return ccnl_ccntlv_prependChunkName(name, NULL, offset, buf);
 }
 
 int
@@ -172,6 +179,7 @@ ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
                         int paylen, int *offset, int *contentpos,
+                        int *chunknum, 
                         unsigned char *buf)
 {
     int oldoffset = *offset;
@@ -201,6 +209,7 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload,
 int
 ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
                                unsigned char *payload, int paylen,
+                               int *chunknum, 
                                int *offset, int *contentpos, unsigned char *buf)
 {
     int len, oldoffset; // PayloadLengnth 
@@ -211,7 +220,7 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
 
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillContent(name, payload, paylen, offset,
+    len = ccnl_ccntlv_fillContent(name, payload, paylen, offset, chunknum,
                                   contentpos, buf);
 
     if(len >= 65536)

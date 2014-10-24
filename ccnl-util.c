@@ -539,7 +539,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen,
+        len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen, 
+                                             NULL, // int* chunknum
                                              &offs, &contentpos, tmp);
     break;
 #endif

@@ -197,7 +197,11 @@ Usage:
     break;
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_fillContentWithHdr(name, body, len, &offs, NULL, out);
+        len = ccnl_ccntlv_fillContentWithHdr(name, body, len, 
+            NULL, // int *chunknum
+            &offs, 
+            NULL, // Int *contentpos
+            out);
     break;
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
