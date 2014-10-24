@@ -229,11 +229,6 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
                                 len, hoplimit, offset, buf);
     len = oldoffset - *offset;
-    fprintf(stderr, "with header:\n");
-    for(int x = *offset; x < len + *offset; x++) {
-        fprintf(stderr, "%02x ", buf[x]);
-    }
-    fprintf(stderr, "\n");
     return len;
 }
 
