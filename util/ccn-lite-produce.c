@@ -117,7 +117,7 @@ main(int argc, char *argv[])
     char chunkname[10] = "c";
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
-    int i = 0, f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
+    int f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
     int packettype = 2;
     int status;
     struct ccnl_prefix_s *name;
@@ -256,8 +256,8 @@ Usage:
 
     strcpy(final_chunkname_with_number, chunkname);
     sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
-    i = 0;
     char *chunk_data = NULL;
+    int chunknum = 0;
     int offs = -1;
 
 
@@ -271,7 +271,7 @@ Usage:
         strcpy(chunkname_with_number, uri);
         strcat(chunkname_with_number, "/");
         strcat(chunkname_with_number, chunkname);
-        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%i", i);
+        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%d", chunknum);
 
         name = ccnl_URItoPrefix(chunkname_with_number, packettype, argv[optind+1]);
         for(int x = 0; x < name->compcnt; x++)
@@ -280,10 +280,17 @@ Usage:
         offs = CCNL_MAX_PACKET_SIZE;
         switch(packettype) {
         case CCNL_SUITE_CCNB:
-            contentlen = ccnl_ccnb_fillContent(name, (unsigned char *)chunk_data, chunk_len, NULL, out);
+            // contentlen = ccnl_ccnb_fillContent(name, (unsigned char *)chunk_data, chunk_len, NULL, out);
+            fprintf(stderr, "CCNB chunking not implemented!");
+            goto Error;
             break;
         case CCNL_SUITE_CCNTLV: 
-            contentlen = ccnl_ccntlv_fillContentWithHdr(name, (unsigned char *)chunk_data, chunk_len, &offs, NULL, out);
+            contentlen = ccnl_ccntlv_fillContentWithHdr(name, 
+                                                        (unsigned char *)chunk_data, chunk_len, 
+                                                        &chunknum, 
+                                                        &offs, 
+                                                        NULL, // int *contentpos
+                                                        out);
             break;
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_fillContent(name, 
@@ -300,16 +307,20 @@ Usage:
         strcpy(outfilename, outdirname);
         strcat(outfilename, "/");
         strcat(outfilename, chunkname);
-        sprintf(outfilename + strlen(outfilename), "%i", i);
+        sprintf(outfilename + strlen(outfilename), "%d", chunknum);
         strcat(outfilename, ".ndntlv");
 
         fout = creat(outfilename, 0666);
         write(fout, out + offs, contentlen);
         close(fout);
-        i++;
+        chunknum++;
         cur_chunk = cur_chunk->next;
     }
     return 0;
+
+Error:
+    return 1;
+
 }
 
 // eof

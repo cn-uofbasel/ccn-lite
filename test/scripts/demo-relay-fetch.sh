@@ -42,6 +42,11 @@ then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
+elif [ $SUITE -eq "1" ] 
+then
+    DIR="ccntlv"
+    FWD="ccntlv"
+    FNAME="chunked"
 elif [ $SUITE -eq "2" ] 
 then
     DIR="ndntlv"
