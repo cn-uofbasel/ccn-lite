@@ -300,7 +300,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
 }
 
 static int
-ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid,
+ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface, int *fwdfaceid, int *suite,
         int *fwdprefixlen, char **fwdprefix, unsigned char *stmt, int len3)
 {
     int it;
@@ -324,6 +324,10 @@ ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface
          memset(str, 0, 100);
          sprintf(str, "%d", fwdfaceid[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
+
+         memset(str, 0, 100);
+         sprintf(str, "%d", suite[it]);
+         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, str);
          
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it]);
 
@@ -432,7 +436,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     long *facenext, *faceprev;
     char **facepeer, **facefrag;
     
-    int *fwdfaceid ,*fwdprefixlen; 
+    int *fwdfaceid, *suite ,*fwdprefixlen;
     long *fwd, *fwdnext, *fwdface;
     char **fwdprefix;
     
@@ -481,6 +485,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     fwdnext = (long*)ccnl_malloc(num_fwds*sizeof(long));
     fwdface = (long*)ccnl_malloc(num_fwds*sizeof(long));
     fwdfaceid = (int*)ccnl_malloc(num_fwds*sizeof(int));
+    suite = (int*)ccnl_malloc(num_fwds*sizeof(int));
     fwdprefixlen = (int*)ccnl_malloc(num_fwds*sizeof(int));
     fwdprefix = (char**)ccnl_malloc(num_faces*sizeof(char*));
     for(it = 0; it <num_fwds; ++it)
@@ -564,7 +569,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
-            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
+            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite, fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
@@ -580,7 +585,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
             
             get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
-            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, fwdprefixlen, fwdprefix);
+            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite, fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, 
                     interestprev, interestlast, interestmin,
@@ -631,7 +636,7 @@ Bail:
         len3 = ccnl_mgmt_create_faces_stmt(num_faces, faceid, facenext, faceprev, faceifndx,
                         faceflags, facetype, facepeer, facefrag, stmt, len3);
         
-        len3 = ccnl_mgmt_create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, 
+        len3 = ccnl_mgmt_create_fwds_stmt(num_fwds, fwd, fwdnext, fwdface, fwdfaceid, suite,
                 fwdprefixlen, fwdprefix, stmt, len3);
         
         len3 = ccnl_mgmt_create_interest_stmt(num_interests, interest, interestnext, interestprev,
@@ -1335,7 +1340,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *buf;
     int buflen, num, typ;
     struct ccnl_prefix_s *p = NULL;
-    unsigned char *action, *faceid;
+    unsigned char *action, *faceid, *suite=0, h[10];
     char *cp = "prefixreg cmd failed";
     int rc = -1;
 
@@ -1391,6 +1396,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         extractStr(action, CCN_DTAG_ACTION);
         extractStr(faceid, CCN_DTAG_FACEID);
+        extractStr(suite, CCNL_DTAG_SUITE);
 
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
@@ -1411,6 +1417,11 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (!fwd) goto Bail;
         fwd->prefix = ccnl_prefix_clone(p);
         fwd->face = f;
+        if(suite){
+            fwd->suite = suite[0];
+        }
+
+
         fwd2 = &ccnl->fib;
         while (*fwd2)
             fwd2 = &((*fwd2)->next);
@@ -1440,6 +1451,9 @@ Bail:
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
 
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    memset(h,0,sizeof(h));
+    sprintf((char*)h, "%d", (int)suite[0]);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
     len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content

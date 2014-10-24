@@ -458,10 +458,12 @@ void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
-    DEBUGMSG(99, "ccnl_interest_propagate\n");
+    int rc = 0;
 #ifdef USE_NACK
     int matching_face = 0;
 #endif
+    DEBUGMSG(99, "ccnl_interest_propagate\n");
+
     ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
 
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
@@ -469,7 +471,13 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // CCNL strategy: we forward on all FWD entries with a prefix match
 
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
-        int rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->prefix, CMP_LONGEST);
+
+        //Only for matching suite
+        if(fwd->suite != i->suite) {
+            continue;
+        }
+
+        rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->prefix, CMP_LONGEST);
 
         DEBUGMSG(40, "  ccnl_interest_propagate, rc=%d/%d\n", rc, fwd->prefix->compcnt);
         if (rc < fwd->prefix->compcnt)
