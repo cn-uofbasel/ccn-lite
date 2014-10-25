@@ -110,13 +110,13 @@ int
 main(int argc, char *argv[])
 {
 
-    char *private_key_path; 
-    char *witness;
+    // char *private_key_path; 
+    // char *witness;
     unsigned char body[64*1024];
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int chunk_num = -1, last_chunk_num = -1;
+    // int chunk_num = -1, last_chunk_num = -1;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int packettype = 2;
@@ -144,11 +144,13 @@ main(int argc, char *argv[])
             exit(-1);
             }
             break;
+/*
         case 'c':
             chunk_num = atoi(optarg);
             break;
         case 'l':
             last_chunk_num = atoi(optarg);
+*/
         case 's':
             packettype = atoi(optarg);
             break;

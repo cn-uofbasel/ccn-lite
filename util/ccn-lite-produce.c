@@ -109,22 +109,20 @@ struct chunk {
 int
 main(int argc, char *argv[])
 {
-    char *private_key_path; 
-    char *witness;
+    // char *private_key_path = 0;
+    //    char *witness = 0;
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
-    int f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
+    int f, fout, chunk_len, contentlen = 0, opt, plen; // fdir, 
     int packettype = 2;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
     int chunkSize = 0;
-    private_key_path = 0;
-    witness = 0;
 
     while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
         switch (opt) {
@@ -134,12 +132,14 @@ main(int argc, char *argv[])
         case 's':
             packettype = atoi(optarg);
             break;
+/*
         case 'k':
             private_key_path = optarg;
             break;
         case 'w':
             witness = optarg;
             break;
+*/
         case 'p':
             publisher = optarg;
             plen = unescape_component(publisher);
@@ -198,10 +198,11 @@ Usage:
         printf ("Error: %s is a file and not a directory.\n", argv[optind]);
         goto Usage;
     }
+/*
     if (S_ISDIR (st_buf.st_mode)) {
         fdir = open(outdirname, O_RDWR);
     }
-
+*/
     if (infname) {
         f = open(infname, O_RDONLY);
         if (f < 0) {
