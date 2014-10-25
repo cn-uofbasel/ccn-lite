@@ -278,9 +278,9 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
     p2 = ccnl_prefix_dup(*p);
     i = ccnl_interest_new(ccnl, from, (*p)->suite, buf, p, minsfx, maxsfx);
-    i->corePropagates = 0; //do not forward interests for running computations
+    i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
-    if (!i->corePropagates)
+    if (!(i->flags & CCNL_PIT_COREPROPAGATES))
         ccnl_nfn(ccnl, p2, from, NULL, i, suite, 0);
     else {
         free_prefix(p2);
@@ -316,7 +316,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_content_add2cache(relay, c);
 	    DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                      -i_it->from->faceid, ccnl_prefix_to_path(c->name));
-            i_it->corePropagates = 1;
+            i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it = ccnl_interest_remove(relay, i_it);
             ccnl_nfn_continue_computation(relay, faceid, 0);
             ++found;

@@ -287,7 +287,7 @@ set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s 
     struct ccnl_interest_s *interest = NULL;
     for(interest = ccnl->pit; interest; interest = interest->next){
         if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
-            interest->corePropagates = 1;
+            interest->flags |= CCNL_PIT_COREPROPAGATES;
             /*interest->last_used = CCNL_NOW();
             interest->retries = 0;
             interest->from->last_used = CCNL_NOW();*/

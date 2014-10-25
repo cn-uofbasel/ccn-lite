@@ -188,12 +188,16 @@ struct ccnl_ndntlv_id_s { // interest details
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
 
+#define CCNL_PIT_COREPROPAGATES    0x01
+#define CCNL_PIT_TRACED            0x02
+
 struct ccnl_interest_s {
     struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_interest_s *next, *prev;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
     struct ccnl_prefix_s *prefix;
+    int flags;
     int last_used;
     int retries;
     union {
@@ -202,9 +206,6 @@ struct ccnl_interest_s {
         struct ccnl_ndntlv_id_s ndntlv;
     } details;
     char suite;
-#ifdef USE_NFN
-    int corePropagates;  // set to 0 to not propagate this interest becauses it is in the NFN-engine
-#endif
 };
 
 struct ccnl_pendint_s { // pending interest
