@@ -537,10 +537,11 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
     DIR *dir;
     struct dirent *de;
     int datalen;
-    char *suffix;
+//    char *suffix;
 
     DEBUGMSG(99, "ccnl_populate_cache for suite %d in %s\n", suite, path);
 
+/*
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
@@ -558,14 +559,16 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
         fprintf(stderr, "unknown suite and encoding, cannot populate cache.\n");
         return;
     }
-
+*/
     dir = opendir(path);
     if (!dir)
         return;
     while ((de = readdir(dir))) {
-        if (!fnmatch(suffix, de->d_name, FNM_NOESCAPE)) {
+//        if (!fnmatch(suffix, de->d_name, FNM_NOESCAPE)) {
+        if (de->d_name[0] != '.') {
             char fname[1000];
             struct stat s;
+
             strcpy(fname, path);
             strcat(fname, "/");
             strcat(fname, de->d_name);
@@ -595,6 +598,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                     int contlen, typ, len;
 
                     buf->datalen = datalen;
+
+                    suite = pkt2suite(buf->data, buf->datalen);
                     switch (suite) {
 #ifdef USE_SUITE_CCNB
                     case CCNL_SUITE_CCNB:
@@ -638,10 +643,12 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                         goto Done;
                     }
                     if (!pkt) {
-                        DEBUGMSG(6, "  parsing error\n"); goto Done;
+                        DEBUGMSG(6, "  parsing error\n");
+                        goto Done;
                     }
                     if (!prefix) {
-                        DEBUGMSG(6, "  no prefix error\n"); goto Done;
+                        DEBUGMSG(6, "  no prefix error\n");
+                        goto Done;
                     }
                     c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
                                          &ppkd, content, contlen);

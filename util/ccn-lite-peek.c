@@ -331,9 +331,11 @@ usage:
                 break;
             len = recv(sock, out, sizeof(out), 0);
 
+/*
             fprintf(stderr, "received %d bytes\n", len);
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+*/
 
             rc = isContent(out, len);
             if (rc < 0) {

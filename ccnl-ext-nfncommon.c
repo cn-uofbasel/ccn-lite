@@ -51,8 +51,8 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     struct ccnl_buf_s *buf;
     int resultpos = 0;
 
-    DEBUGMSG(49, "ccnl_nfn_result2content(prefix=%s, suite=%d, content=%s)\n",
-             ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultstr);
+    DEBUGMSG(49, "ccnl_nfn_result2content(prefix=%s, suite=%d, contlen=%d)\n",
+             ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultlen);
 
     buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
     if (!buf)
@@ -419,26 +419,29 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct conf
 
 
 struct ccnl_content_s *
-ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix){
-    DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%d)\n", ccnl_prefix_to_path(prefix), prefix->suite);
-
-    struct ccnl_content_s *content;
-    DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
-    for(content = ccnl->contents; content; content = content->next){
-        if(!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)){
-            return content;
-        }
-    }
+ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
+                              struct configuration_s *config,
+                              struct ccnl_prefix_s *prefix)
+{
     struct prefix_mapping_s *iter;
-    if(!config || !config->fox_state || !config->fox_state->prefix_mapping){
-        return NULL;
+    struct ccnl_content_s *content;
+
+    DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%d)\n",
+             ccnl_prefix_to_path(prefix), prefix->suite);
+
+    DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
+    for (content = ccnl->contents; content; content = content->next) {
+        if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT))
+            return content;
     }
-    for(iter = config->fox_state->prefix_mapping; iter; iter = iter->next){
-        if(!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)){
-            for(content = ccnl->contents; content; content = content->next){
-                if(!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT)){
+    if (!config || !config->fox_state || !config->fox_state->prefix_mapping)
+        return NULL;
+
+    for (iter = config->fox_state->prefix_mapping; iter; iter = iter->next) {
+        if (!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)) {
+            for (content = ccnl->contents; content; content = content->next) {
+                if (!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT))
                     return content;
-                }
             }
         }
     }

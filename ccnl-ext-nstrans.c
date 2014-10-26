@@ -52,7 +52,6 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (s2->type == STACK_TYPE_CONST && s1->type == STACK_TYPE_PREFIX) {
         struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
         int suite = -1;
-        int *h;
 
         if (!strcmp(s2->content, "ccnb"))
             suite = CCNL_SUITE_CCNB;
@@ -66,9 +65,6 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
         p->nfnflags = 0;
         p->suite = suite;
-        h = ccnl_malloc(sizeof(int));
-        *h = suite;
-        push_to_stack(stack, h, STACK_TYPE_INT);
         push_to_stack(stack, s1->content, STACK_TYPE_PREFIX);
 
         ccnl_free(s1);
