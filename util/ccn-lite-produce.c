@@ -118,7 +118,7 @@ main(int argc, char *argv[])
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
     int f, fout, chunk_len, contentlen = 0, opt, plen; // fdir, 
-    int packettype = 2;
+    int packettype = CCNL_SUITE_NDNTLV;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
@@ -128,9 +128,6 @@ main(int argc, char *argv[])
         switch (opt) {
         case 'i':
             infname = optarg;
-            break;
-        case 's':
-            packettype = atoi(optarg);
             break;
 /*
         case 'k':
@@ -150,6 +147,10 @@ main(int argc, char *argv[])
             exit(-1);
             }
             break;
+        case 's':
+            packettype = ccnl_str2suite(optarg);
+            if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
+                break;
         case 'h':
         default:
 Usage:
@@ -157,10 +158,10 @@ Usage:
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
         "usage: %s [options] OUTDIR URI [NFNexpr]\n"
-        "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
         "  -i FNAME   input file (instead of stdin)\n"
-        "  -p DIGEST  publisher fingerprint\n"
         "  -k FNAME   publisher private key\n"
+        "  -p DIGEST  publisher fingerprint\n"
+        "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
         "  -w STRING  witness\n"       
         ,
         argv[0]);

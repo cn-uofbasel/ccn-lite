@@ -35,5 +35,5 @@ python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
 echo "** in 3 seconds, probing the NFN system"
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-peek -s 0 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -s ccnb -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
 

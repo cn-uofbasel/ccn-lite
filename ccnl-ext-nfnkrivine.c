@@ -37,9 +37,10 @@ typedef char* (*BIF)(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         char *prog, char *pending, struct stack_s **stack);
 
 A_BIF(op_builtin_add)
+A_BIF(op_builtin_find)
 A_BIF(op_builtin_mult)
-A_BIF(op_builtin_sub)
 A_BIF(op_builtin_raw)
+A_BIF(op_builtin_sub)
 
 struct builtin_s {
     char *name;
@@ -47,6 +48,7 @@ struct builtin_s {
     struct builtin_s *next;
 } bifs[] = {
     {"OP_ADD",  op_builtin_add,  NULL},
+    {"OP_FIND", op_builtin_find, NULL},
     {"OP_MULT", op_builtin_mult, NULL},
     {"OP_RAW",  op_builtin_raw,  NULL},
     {"OP_SUB",  op_builtin_sub,  NULL},
@@ -867,12 +869,6 @@ normal:
         sprintf(dummybuf + offset, "%s", pending);
         return ccnl_strdup(dummybuf);
     }
-
-    if (!strncmp(prog, "OP_FIND", 7)) {
-        DEBUGMSG(99, "OP_FIND %s %s\n", prog, pending);
-        return op_builtin_find(ccnl, config, restart, halt, prog,
-                               pending, &config->result_stack);
-    }
     
     if(!strncmp(prog, "OP_FOX", 6)){
         int local_search = 0;
@@ -1014,9 +1010,11 @@ handlecontent: //if result was found ---> handle it
     }
 
     for (len = 0, bp = bifs; bp->name; len++, bp++)
-        if (!strncmp(prog, bp->name, strlen(bp->name)))
+        if (!strncmp(prog, bp->name, strlen(bp->name))) {
+            DEBUGMSG(99, "%s %s %s\n", bp->name, prog, pending);
             return bp->fct(ccnl, config, restart, halt, prog,
                            pending, &config->result_stack);
+        }
     for (bp = extensions; bp; bp = bp->next)
         if (!strncmp(prog, bp->name, strlen(bp->name)))
             return (bp->fct)(ccnl, config, restart, halt, prog,

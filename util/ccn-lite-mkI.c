@@ -211,12 +211,13 @@ main(int argc, char *argv[])
                 exit(-1);
             }
             break;
-        case 's':
-            packettype = atoi(optarg);
-            break;
         case 'x':
             maxSuffix = optarg;
             break;
+        case 's':
+            packettype = ccnl_str2suite(optarg);
+            if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
+                break;
         case 'h':
         default:
 Usage:
@@ -227,7 +228,7 @@ Usage:
             "  -n LEN     miN additional components\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
-            "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
+            "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
             "  -x LEN     maX additional components\n",
             argv[0]);
             exit(1);
