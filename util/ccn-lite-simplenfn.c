@@ -261,8 +261,8 @@ main(int argc, char *argv[])
             defaultNFNpath = optarg;
             break;
         case 's':
-            opt = atoi(optarg);
-            if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
+            opt = ccnl_str2suite(optarg);
+            if (opt < 0 || opt >= CCNL_SUITE_LAST)
                 goto usage;
             suite = opt;
             switch (suite) {
@@ -296,8 +296,8 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] NFNexpr\n"
-            "  -s SUITE         0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
             "  -n NFNPATH       default prefix towards some NFN node(s)\n"
+            "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"

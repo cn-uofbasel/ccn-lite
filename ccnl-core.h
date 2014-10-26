@@ -306,6 +306,9 @@ compile_string(void)
 #ifdef USE_NFN_MONITOR
         "NFN_MONITOR, "
 #endif
+#ifdef USE_NFN_NSTRANS
+        "NFN_NSTRANS, "
+#endif
 #ifdef USE_SCHEDULER
         "SCHEDULER, "
 #endif

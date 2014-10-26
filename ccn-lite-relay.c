@@ -710,10 +710,16 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 's':
+          /*
             opt = atoi(optarg);
             if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
                 goto usage;
             suite = opt;
+            break;
+          */
+            suite = ccnl_str2suite(optarg);
+            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+                goto usage;
             break;
         case 't':
             httpport = atoi(optarg);
@@ -739,7 +745,7 @@ usage:
                     " [-e ethdev]"
                     " [-g MIN_INTER_PACKET_INTERVAL]"
                     " [-i MIN_INTER_CCNMSG_INTERVAL]"
-                    " [-s SUITE (0=ccnb, 1=ccntlv, 2=ndntlv, resets ports)"
+                    " [-s SUITE   (ccnb, ccnx2014, ndn2013 - resets ports)"
                     " [-t tcpport (for HTML status page)]"
                     " [-u udpport]"
                     " [-v DEBUG_LEVEL]"
