@@ -51,7 +51,7 @@ main(int argc, char *argv[])
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
-    int suite = CCNL_SUITE_NDNTLV;
+    int suite = CCNL_SUITE_DEFAULT;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
