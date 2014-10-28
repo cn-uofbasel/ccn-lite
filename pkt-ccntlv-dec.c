@@ -27,6 +27,17 @@
 
 
 int
+ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval) {
+
+    int nintval;
+    memcpy((unsigned char *)&nintval, buf, len);
+
+    *intval = ntohl(nintval);
+
+    return 0;
+}
+
+int
 ccnl_ccntlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
 {
@@ -50,6 +61,7 @@ ccnl_ccntlv_extract(int hdrlen,
                     unsigned char **data, int *datalen,
                     struct ccnl_prefix_s **prefix,
                     unsigned char **keyid, int *keyidlen,
+                    int *chunknum, int *lastchunknum,
                     unsigned char **content, int *contlen)
 {
     unsigned char *start = *data - hdrlen;
@@ -85,7 +97,6 @@ ccnl_ccntlv_extract(int hdrlen,
         unsigned char *cp = *data, *cp2;
         int len2 = len;
         switch (typ) {
-
         case CCNX_TLV_M_Name:
             p->nameptr = start + oldpos;
             while (len2 > 0) {
@@ -94,11 +105,15 @@ ccnl_ccntlv_extract(int hdrlen,
                 if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
 
+                if(chunknum && typ == CCNX_TLV_N_Chunk && ccnl_ccnltv_extractNetworkVarInt(cp, len2, chunknum) < 0) {
+                    DEBUGMSG(99, "Error extracting NetworkVarInt for Chunk\n");
+                    goto Bail;
+                } 
+
                 if (p->compcnt < CCNL_MAX_NAME_COMP) {
                     p->comp[p->compcnt] = cp2;
                     p->complen[p->compcnt] = cp - cp2 + len3;
                     p->compcnt++;
-                    DEBUGMSG(99, "N_NameSegment %s\n", cp2);
                 }  // else out of name component memory: skip
                 cp += len3;
                 len2 -= len3;
@@ -118,7 +133,21 @@ ccnl_ccntlv_extract(int hdrlen,
 #endif
             break;
 
-        case CCNX_TLV_M_MetaData:
+        case CCNX_TLV_M_MetaData: {
+                unsigned int len3;
+                if(ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
+                    DEBUGMSG(99, "error when extracting CCNX_TLV_M_MetaData\n");
+                    goto Bail;
+                }
+                if(lastchunknum && typ == CCNX_TLV_M_ENDChunk) {
+                    if(ccnl_ccnltv_extractNetworkVarInt(cp, len2, lastchunknum) < 0) {
+                        DEBUGMSG(99, "error when extracting CCNX_TLV_M_ENDChunk\n");
+                        goto Bail;
+                    } 
+                }  
+                cp += len3;
+                len2 -= len3;
+            }
             break;
         case CCNX_TLV_M_Payload:
             if (content) {

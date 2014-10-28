@@ -617,7 +617,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                         int hdrlen = 8;
                         pkt = ccnl_ccntlv_extract(hdrlen, 
                                                   &data, &datalen,
-                                                  &prefix, 0, 0,
+                                                  &prefix, 0, 0, 0, 0,
                                                   &content, &contlen);
 
                     break;
