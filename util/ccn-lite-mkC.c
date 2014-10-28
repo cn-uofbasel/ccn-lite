@@ -156,8 +156,10 @@ main(int argc, char *argv[])
             break;
         case 's':
             packettype = ccnl_str2suite(optarg);
-            if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
-                break;
+            if (packettype < 0 || packettype >= CCNL_SUITE_LAST) {
+                goto Usage;
+            }
+            break;
         case 'h':
         default:
 Usage:

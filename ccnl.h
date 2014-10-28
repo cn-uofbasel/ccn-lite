@@ -46,6 +46,7 @@
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #define CCNL_MAX_NONCES                 256 // for detected dups
 
+
 enum {
   CCNL_SUITE_CCNB,
   CCNL_SUITE_CCNTLV,
@@ -53,6 +54,8 @@ enum {
   CCNL_SUITE_LOCALRPC,
   CCNL_SUITE_LAST
 };
+
+#define CCNL_SUITE_DEFAULT CCNL_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
 // our own CCN-lite extensions for the ccnb encoding:
