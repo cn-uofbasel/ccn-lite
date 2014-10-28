@@ -45,7 +45,7 @@ then
 elif [ $SUITE = "ccnx2014" ] 
 then
     DIR="ccntlv"
-    FWD="ccn"
+    FWD="ccnx"
     FNAME="chunked"
 elif [ $SUITE = "ndn2013" ] 
 then
