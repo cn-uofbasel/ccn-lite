@@ -41,8 +41,8 @@ struct chunk {
 int
 main(int argc, char *argv[])
 {
-    char *private_key_path; 
-    char *witness;
+    // char *private_key_path = 0;
+    //    char *witness = 0;
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outdirname = 0;
@@ -50,29 +50,26 @@ main(int argc, char *argv[])
     char fileext[10];
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
-    int f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
-    int suite = 2;
+    int f, fout, chunk_len, contentlen = 0, opt, plen;
+    int suite = CCNL_SUITE_NDNTLV;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
     int chunkSize = 0;
-    private_key_path = 0;
-    witness = 0;
 
     while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
             break;
-        case 's':
-            suite = atoi(optarg);
-            break;
+/*
         case 'k':
             private_key_path = optarg;
             break;
         case 'w':
             witness = optarg;
             break;
+*/
         case 'p':
             publisher = optarg;
             plen = unescape_component(publisher);
@@ -83,6 +80,10 @@ main(int argc, char *argv[])
             exit(-1);
             }
             break;
+        case 's':
+            suite = ccnl_str2suite(optarg);
+            if (suite >= 0 && suite < CCNL_SUITE_LAST)
+                break;
         case 'h':
         default:
 Usage:
@@ -90,10 +91,10 @@ Usage:
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
         "usage: %s [options] OUTDIR URI [NFNexpr]\n"
-        "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)\n"
         "  -i FNAME   input file (instead of stdin)\n"
-        "  -p DIGEST  publisher fingerprint\n"
         "  -k FNAME   publisher private key\n"
+        "  -p DIGEST  publisher fingerprint\n"
+        "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
         "  -w STRING  witness\n"       
         ,
         argv[0]);
@@ -132,10 +133,11 @@ Usage:
         DEBUGMSG (99, "Error: %s is a file and not a directory.\n", argv[optind]);
         goto Usage;
     }
+/*
     if (S_ISDIR (st_buf.st_mode)) {
         fdir = open(outdirname, O_RDWR);
     }
-
+*/
     if (infname) {
         f = open(infname, O_RDONLY);
         if (f < 0) {

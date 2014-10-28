@@ -869,7 +869,9 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hs:f:")) != -1) {
         switch (opt) {
         case 's':
-            suite = atoi(optarg);
+            suite = ccnl_str2suite(optarg);
+            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+                goto help;
             break;
         case 'f':
             format = atoi(optarg);
@@ -880,7 +882,7 @@ help:
                     "usage: %s [options] <encoded_data\n"
                     "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
                     "  -h           this help\n"
-                    "  -s SUITE     (0=ccnb, 1=ccntlv, 2=ndntlv)\n",
+                    "  -s SUITE     (ccnb, ccnx2014, ndn2013)\n",
                     argv[0]);
             exit(1);
         }

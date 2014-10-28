@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
-USAGE="usage: sh demo-relay.sh <SUITE[0,1,2]> <CON[udp, ux]> <USEKRNL[true,false]"
+USAGE="usage: sh demo-relay.sh <SUITE[ccnb,ccnx2014,ndn2013]> <CON[udp,ux]> <USEKRNL[true,false]"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all'"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME"
 
@@ -37,17 +37,17 @@ CON=$2
 USEKRNL=$3
 
 # suite setup
-if [ $SUITE -eq "0" ] 
+if [ $SUITE = "ccnb" ] 
 then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
-elif [ $SUITE -eq "1" ] 
+elif [ $SUITE = "ccnx2014" ] 
 then
     DIR="ccntlv"
     FWD="ccn"
     FNAME="chunked"
-elif [ $SUITE -eq "2" ] 
+elif [ $SUITE = "ndn2013" ] 
 then
     DIR="ndntlv"
     FWD="ndn"
@@ -103,7 +103,8 @@ if [ '$USEKRNL' = true ]
 then
     insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
 else
-    $CCNL_HOME/ccn-lite-relay -v 99  -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    echo "started relay"
+    $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 sleep 1
 FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`

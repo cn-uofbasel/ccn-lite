@@ -564,4 +564,22 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     return buf;
 }
 
+int
+ccnl_str2suite(char *cp)
+{
+#ifdef USE_SUITE_CCNB
+    if (!strcmp(cp, "ccnb"))
+        return CCNL_SUITE_CCNB;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (!strcmp(cp, "ccnx2014"))
+        return CCNL_SUITE_CCNTLV;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (!strcmp(cp, "ndn2013"))
+        return CCNL_SUITE_NDNTLV;
+#endif
+    return -1;
+}
+
 // eof

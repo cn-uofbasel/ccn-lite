@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
-USAGE="usage: sh demo-relay.sh <SUITE[0,2]> <CON[udp, ux]> <USEKRNL[true,false]"
+USAGE="usage: sh demo-relay.sh <SUITE[ccnb,ccnx2014,ndn2013]> <CON[udp,ux]> <USEKRNL[true,false]"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all'"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME"
 
@@ -37,18 +37,18 @@ CON=$2
 USEKRNL=$3
 
 # suite setup
-if [ $SUITE -eq "0" ] 
+if [ $SUITE = "ccnb" ] 
 then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
 
-elif [ $SUITE -eq "1" ] 
+elif [ $SUITE = "ccnx2014" ] 
 then
     DIR="ccntlv"
     FWD="ccntlv"
     FNAME="test"
-elif [ $SUITE -eq "2" ] 
+elif [ $SUITE = "ndn2013" ] 
 then
     DIR="ndntlv"
     FWD="ndn"

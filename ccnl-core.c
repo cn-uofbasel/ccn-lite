@@ -575,8 +575,9 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
                  unsigned char *content, int contlen)
 {
     struct ccnl_content_s *c;
-    DEBUGMSG(99, "ccnl_content_new <%s>\n",
-         prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix));
+    DEBUGMSG(99, "ccnl_content_new <%s>, %d bytes (pktlen=%d)\n",
+             prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix),
+             contlen, *pkt ? (*pkt)->datalen : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c) return NULL;
