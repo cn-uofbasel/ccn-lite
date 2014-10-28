@@ -351,7 +351,6 @@ main(int argc, char *argv[])
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
-    // int (*isContent)(unsigned char*, int);
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
@@ -478,6 +477,8 @@ usage:
                                       &content, &contlen) < 0) {
             DEBUGMSG(99, "Could not extract data and chunkinfo\n");
             goto Done;
+        } else {
+            DEBUGMSG(99, "extracted chunknum %d lastchunknum %d \n", chunknum, lastchunknum);
         }
 
         if(lastchunknum >= 0) {

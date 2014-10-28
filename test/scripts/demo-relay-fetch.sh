@@ -103,7 +103,6 @@ if [ '$USEKRNL' = true ]
 then
     insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
 else
-    echo "started relay"
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 sleep 1
@@ -121,12 +120,12 @@ $CCNL_HOME/util/ccn-lite-fetch -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
 RESULT=$?
 
 # shutdown both relays
-echo ""
-echo "# Config of relay A:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
-echo ""
-echo "# Config of relay B:"
-$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+# echo ""
+# echo "# Config of relay A:"
+# $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+# echo ""
+# echo "# Config of relay B:"
+# $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &

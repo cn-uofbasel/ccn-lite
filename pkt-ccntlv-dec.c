@@ -29,9 +29,9 @@
 int
 ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval) {
 
-    int nintval;
-    memcpy((unsigned char *)&nintval, buf, len);
+    int nintval = 0;
 
+    memcpy((unsigned char *)&nintval + 4 - len, buf, len);
     *intval = ntohl(nintval);
 
     return 0;

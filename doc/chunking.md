@@ -1,6 +1,6 @@
 # CCN-Lite Content Object Chunking Protocol
 
-If data for a name does exceed the maximum size of a content object (usually restricted by the network mtu size) the data has to be split up into several chunks of content objects. The util/ccn-lite-produce client application implements protocol-compatible chunking protocols for CCNTLV and NDNTLV respectively.  The util/ccn-lite-fetch application, similar to util/ccn-lite-peek, gets the data for a name. The difference to peek is that fetch only returns the final data instead of the full content object.
+If data for a name does exceed the maximum size of a content object (usually restricted by the network MTU size) the data has to be split up into several chunks of content objects. The util/ccn-lite-produce client application implements protocol-compatible chunking protocols for CCNTLV and NDNTLV respectively.  The util/ccn-lite-fetch application, similar to util/ccn-lite-peek, gets the data for a name. The difference to peek is that fetch only returns the final data instead of the full content object.
 
 In the following the chunking protocols for both CCNTLV and NDNTLV is discussed, as well as the fetch application collects the chunks from the network and reconstructs them to the final data.
 
