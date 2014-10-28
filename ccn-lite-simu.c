@@ -52,19 +52,9 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
-#ifdef USE_SUITE_CCNB
 # include "pkt-ccnb-enc.c"
-#endif
-
-#ifdef USE_SUITE_CCNTLV
 # include "pkt-ccntlv-enc.c"
-#endif
-
-#ifdef USE_SUITE_NDNTLV
 # include "pkt-ndntlv-enc.c"
-// # include "pkt-ndntlv-enc.c"
-#endif
-
 
 #include "ccnl-util.c"
 #include "ccnl-core.c"
@@ -777,19 +767,20 @@ main(int argc, char **argv)
         case 'i':
             inter_ccn_interval = atoi(optarg);
             break;
-        case 's':
-            suite = atoi(optarg);
-            break;
         case 'v':
             debug_level = atoi(optarg);
             break;
+        case 's':
+            suite = ccnl_str2suite(optarg);
+            if (suite >= 0 && suite < CCNL_SUITE_LAST)
+                break;
         case 'h':
         default:
             fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
                     "[-g MIN_INTER_PACKET_INTERVAL] "
                     "[-i MIN_INTER_CCNMSG_INTERVAL] "
 #ifdef USE_SUITE_NDNTLV
-                    "[-s SUITE  0=ccnb, 1=ccntlv, 2=ndntlv (default)] "
+                    "[-s SUITE (ccnb, ccnx2014, ndn2013)] "
 #endif
                     "[-v DEBUG_LEVEL]\n",
                     argv[0]);

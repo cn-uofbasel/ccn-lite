@@ -110,13 +110,13 @@ int
 main(int argc, char *argv[])
 {
 
-    char *private_key_path; 
-    char *witness;
+    // char *private_key_path; 
+    // char *witness;
     unsigned char body[64*1024];
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int chunk_num = -1, last_chunk_num = -1;
+    // int chunk_num = -1, last_chunk_num = -1;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int packettype = 2;
@@ -144,29 +144,32 @@ main(int argc, char *argv[])
             exit(-1);
             }
             break;
+/*
         case 'c':
             chunk_num = atoi(optarg);
             break;
         case 'l':
             last_chunk_num = atoi(optarg);
-        case 's':
-            packettype = atoi(optarg);
-            break;
+*/
         case 'w':
             witness = optarg;
             break;
+        case 's':
+            packettype = ccnl_str2suite(optarg);
+            if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
+                break;
         case 'h':
         default:
 Usage:
         fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-        "  -i FNAME   input file (instead of stdin)\n"
-        "  -k FNAME   publisher private key (CCNB)\n"
-        "  -o FNAME   output file (instead of stdout)\n"
-        "  -p DIGEST  publisher fingerprint\n"
-        "  -s SUITE   0=ccnb, 1=ccntlv, 2=ndntlv (default)"
-        "  -w STRING  witness\n"
-        "  -n CHUNKNUM chunknum"
+        "  -i FNAME    input file (instead of stdin)\n"
+        "  -k FNAME    publisher private key (CCNB)\n"
         "  -l LASTCHUNKNUM number of last chunk\n"       
+        "  -n CHUNKNUM chunknum\n"
+        "  -o FNAME    output file (instead of stdout)\n"
+        "  -p DIGEST   publisher fingerprint\n"
+        "  -s SUITE    (ccnb, ccnx2014, ndn2013)"
+        "  -w STRING   witness\n"
         "Examples:\n"
         "%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
         "%% mkC /th/ere  \"lambda expr\"          (lambda expr, in-net)\n"

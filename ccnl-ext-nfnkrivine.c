@@ -37,7 +37,9 @@ typedef char* (*BIF)(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         char *prog, char *pending, struct stack_s **stack);
 
 A_BIF(op_builtin_add)
+A_BIF(op_builtin_find)
 A_BIF(op_builtin_mult)
+A_BIF(op_builtin_raw)
 A_BIF(op_builtin_sub)
 
 struct builtin_s {
@@ -46,7 +48,9 @@ struct builtin_s {
     struct builtin_s *next;
 } bifs[] = {
     {"OP_ADD",  op_builtin_add,  NULL},
+    {"OP_FIND", op_builtin_find, NULL},
     {"OP_MULT", op_builtin_mult, NULL},
+    {"OP_RAW",  op_builtin_raw,  NULL},
     {"OP_SUB",  op_builtin_sub,  NULL},
     {NULL, NULL, NULL}
 };
@@ -90,14 +94,25 @@ new_closure(char *term, struct environment_s *env)
 void 
 push_to_stack(struct stack_s **top, void *content, int type)
 {
-    struct stack_s *h = ccnl_calloc(1, sizeof(struct stack_s));
+    struct stack_s *h;
 
     if (!top)
         return;
-    h->next = *top;
-    h->content = content;
-    h->type = type;
-    *top = h;
+/*
+    {
+        int cnt;
+        for (cnt = 0, h = *top; h; h = h->next)
+            cnt++;
+        DEBUGMSG(99, "  push: stack was %d element(s) deep\n", cnt);
+    }
+*/
+    h = ccnl_calloc(1, sizeof(struct stack_s));
+    if (h) {
+        h->next = *top;
+        h->content = content;
+        h->type = type;
+        *top = h;
+    }
 }
 
 struct stack_s *
@@ -307,7 +322,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         *restart = 0;
         local_search = 1;
     } else {
-        DEBUGMSG(2, "---to do: OP_FIND <%s> (restart = %d)\n", prog+7, *restart);
+        DEBUGMSG(2, "---to do: OP_FIND <%s>\n", prog+7);
         h = pop_from_stack(&config->result_stack);
         //    if (h->type != STACK_TYPE_PREFIX)  ...
         config->fox_state->num_of_params = 1;
@@ -374,6 +389,79 @@ op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     push_to_stack(stack, h, STACK_TYPE_INT);
 
     return pending ? ccnl_strdup(pending+1) : NULL;
+}
+
+char*
+op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+               int *restart, int *halt, char *prog, char *pending,
+               struct stack_s **stack)
+{
+    int local_search = 0;
+    struct stack_s *h;
+    char *cp = NULL;
+    struct ccnl_prefix_s *prefix;
+    struct ccnl_content_s *c = NULL;
+
+    if (*restart) {
+        DEBUGMSG(2, "---to do: OP_RAW restart\n");
+        *restart = 0;
+        local_search = 1;
+    } else {
+        DEBUGMSG(2, "---to do: OP_RAW <%s>\n", prog+7);
+        h = pop_from_stack(&config->result_stack);
+        if (!h || h->type != STACK_TYPE_PREFIX) {
+            DEBUGMSG(99, "  stack empty or has no prefix %p\n", (void*) h);
+        } else {
+            DEBUGMSG(99, "  found a prefix!\n");
+        }
+        config->fox_state->num_of_params = 1;
+        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *));
+        config->fox_state->params[0] = h;
+        config->fox_state->it_routable_param = 0;
+    }
+    prefix = config->fox_state->params[0]->content;
+
+    //check if result is now available
+    //loop by reentering (with local_search) after timeout of the interest...
+    DEBUGMSG(99, "RAW: Checking if result was received\n");
+    c = ccnl_nfn_local_content_search(ccnl, config, prefix);
+    if (!c) {
+        if (local_search) {
+            DEBUGMSG(99, "RAW: no content\n");
+            return NULL;
+        }
+        //Result not in cache, search over the network
+        //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
+        struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
+        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
+        DEBUGMSG(99, "RAW: sending new interest from Face ID: %d\n", interest->from->faceid);
+        if (interest)
+            ccnl_interest_propagate(ccnl, interest);
+        //wait for content, return current program to continue later
+        *halt = -1; //set halt to -1 for async computations
+        return prog ? ccnl_strdup(prog) : NULL;
+    }
+
+    DEBUGMSG(99, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+#ifdef USE_NACK
+/*
+    if (!strncmp((char*)c->content, ":NACK", 5)) {
+        DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+        ++config->fox_state->it_routable_param;
+        
+        return prog ? ccnl_strdup(prog) : NULL;
+    }
+*/
+#endif
+    prefix = ccnl_prefix_dup(prefix);
+    push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIXRAW);
+
+    if (pending) {
+        DEBUGMSG(99, "Pending: %s\n", pending+1);
+
+        cp = ccnl_strdup(pending+1);
+    }
+    return cp;
 }
 
 char*
@@ -781,12 +869,6 @@ normal:
         sprintf(dummybuf + offset, "%s", pending);
         return ccnl_strdup(dummybuf);
     }
-
-    if (!strncmp(prog, "OP_FIND", 7)) {
-        DEBUGMSG(99, "OP_FIND %s %s\n", prog, pending);
-        return op_builtin_find(ccnl, config, restart, halt, prog,
-                               pending, &config->result_stack);
-    }
     
     if(!strncmp(prog, "OP_FOX", 6)){
         int local_search = 0;
@@ -928,9 +1010,11 @@ handlecontent: //if result was found ---> handle it
     }
 
     for (len = 0, bp = bifs; bp->name; len++, bp++)
-        if (!strncmp(prog, bp->name, strlen(bp->name)))
+        if (!strncmp(prog, bp->name, strlen(bp->name))) {
+            DEBUGMSG(99, "%s %s %s\n", bp->name, prog, pending);
             return bp->fct(ccnl, config, restart, halt, prog,
                            pending, &config->result_stack);
+        }
     for (bp = extensions; bp; bp = bp->next)
         if (!strncmp(prog, bp->name, strlen(bp->name)))
             return (bp->fct)(ccnl, config, restart, halt, prog,
@@ -984,8 +1068,11 @@ setup_global_environment(struct environment_s **env)
     allocAndAdd(env, "call",
                 "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
+    allocAndAdd(env, "_getAllBytes",
+                "CLOSURE(OP_RAW);RESOLVENAME(@op(@x x op));TAILAPPLY");
+
 #ifdef USE_NFN_NSTRANS
-    allocAndAdd(env, "getFromNameSpace",
+    allocAndAdd(env, "_getFromNameSpace",
                 "CLOSURE(OP_NSTRANS);CLOSURE(OP_FIND);"
                 "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY");
 #endif
@@ -1046,22 +1133,29 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     DEBUGMSG(99, "end-of-computation\n");
 
     struct ccnl_buf_s *h = NULL;
-    char res[128]; //TODO longer???
+    char res[64000]; //TODO longer???
     int pos = 0;
     struct stack_s *stack = NULL;
-    while((stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart)) != NULL){
-
-        if (stack == NULL) {
-            halt = -1;
-            return NULL;
-        }
+    while ((stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart))) {
         if (stack->type == STACK_TYPE_PREFIX) {
             struct ccnl_content_s *cont;
 
             cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
-            if (cont){
-                strncpy(res+pos, (char*)cont->content, cont->contentlen);
+            if (cont) {
+                memcpy(res+pos, (char*)cont->content, cont->contentlen);
                 pos += cont->contentlen;
+            }
+        } else if (stack->type == STACK_TYPE_PREFIXRAW) {
+            struct ccnl_content_s *cont;
+
+            cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
+            if (cont) {
+/*
+                DEBUGMSG(99, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
+                         cont->pkt ? cont->pkt->datalen : -1);
+*/
+                memcpy(res+pos, (char*)cont->pkt->data, cont->pkt->datalen);
+                pos += cont->pkt->datalen;
             }
         } else if (stack->type == STACK_TYPE_INT) {
             //h = ccnl_buf_new(NULL, 10);
@@ -1072,10 +1166,11 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         ccnl_free(stack->content);
         ccnl_free(stack);
     }
+
     h = ccnl_buf_new(res, pos);
     return h;
 }
 
-#endif // CCNL_LINUXKERNEL
+#endif // !CCNL_LINUXKERNEL
 
 // eof

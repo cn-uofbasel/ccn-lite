@@ -18,8 +18,9 @@
 #define STACK_TYPE_INT                  0
 #define STACK_TYPE_CONST                1
 #define STACK_TYPE_PREFIX               2
-#define STACK_TYPE_THUNK                3
-#define STACK_TYPE_CLOSURE              4
+#define STACK_TYPE_PREFIXRAW            3
+#define STACK_TYPE_THUNK                4
+#define STACK_TYPE_CLOSURE              5
 
 struct stack_s{
     void *content;
