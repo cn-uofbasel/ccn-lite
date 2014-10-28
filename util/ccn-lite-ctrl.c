@@ -811,7 +811,7 @@ main(int argc, char *argv[])
     int verified = 1;
     int numOfParts = 1;
     int msgOnly = 0;
-    int suite = 0;
+    int suite = CCNL_SUITE_DEFAULT;
     char *file_uri;
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
@@ -888,7 +888,12 @@ main(int argc, char *argv[])
         if (argc < 3) goto Usage;
     len = mkDestroyFaceRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "prefixreg")) {
-        if(argc > 4) suite = atoi(argv[4]);
+        if(argc > 4) {
+            suite = ccnl_str2suite(argv[4]);
+            if (suite >= 0 && suite < CCNL_SUITE_LAST) {
+                goto Usage;
+            }
+        } 
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
@@ -1003,8 +1008,8 @@ Usage:
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID SUITE, (CCNB=0, CCNTLV=1, NDNTLV=2, LOCALRPC=3)\n"
-       "  prefixunreg   PREFIX FACEID SUITE, (CCNB=0, CCNTLV=1, NDNTLV=2, LOCALRPC=3)\n"
+       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, ndn2013)] \n"
+       "  prefixunreg   PREFIX FACEID [SUITE (ccnb, ccnx2014, ndn2013)]\n"
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
