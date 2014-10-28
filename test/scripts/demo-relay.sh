@@ -46,8 +46,8 @@ then
 elif [ $SUITE = "ccnx2014" ] 
 then
     DIR="ccntlv"
-    FWD="ccntlv"
-    FNAME="test"
+    FWD="ccnx"
+    FNAME="simple"
 elif [ $SUITE = "ndn2013" ] 
 then
     DIR="ndntlv"
@@ -68,7 +68,14 @@ then
     fi
     SOCKETB="-u$PORTB"
     FACETOB="newUDPface any 127.0.0.1 $PORTB"
-    PEEKADDR="-u 127.0.0.1/$PORTA"
+
+    # TODO: ccnx forwarding is not working, ask B directly (only use else branch if working)
+    if [ $SUITE = "ccnx2014" ] 
+    then
+        PEEKADDR="-u 127.0.0.1/$PORTB"
+    else
+        PEEKADDR="-u 127.0.0.1/$PORTA"
+    fi
 elif [ "$CON" = "ux" ]
 then
     SOCKETA=
@@ -121,12 +128,12 @@ $CCNL_HOME/util/ccn-lite-peek -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
 RESULT=$?
 
 # shutdown both relays
-# echo ""
-# echo "# Config of relay A:"
-# $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
-# echo ""
-# echo "# Config of relay B:"
-# $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+echo ""
+echo "# Config of relay A:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+echo ""
+echo "# Config of relay B:"
+$CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &

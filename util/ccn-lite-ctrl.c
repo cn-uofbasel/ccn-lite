@@ -23,7 +23,9 @@
  */
 #define CCNL_UNIX
 #define USE_SUITE_CCNB
-// #define USE_SUITE_NDNTLV
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_NDNTLV
+
 #define USE_SIGNATURES
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
@@ -890,7 +892,7 @@ main(int argc, char *argv[])
     } else if (!strcmp(argv[1], "prefixreg")) {
         if(argc > 4) {
             suite = ccnl_str2suite(argv[4]);
-            if (suite >= 0 && suite < CCNL_SUITE_LAST) {
+            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
                 goto Usage;
             }
         } 
@@ -1008,7 +1010,7 @@ Usage:
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, ndn2013)] \n"
+       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, ndn2013)]\n"
        "  prefixunreg   PREFIX FACEID [SUITE (ccnb, ccnx2014, ndn2013)]\n"
        "  debug         dump\n"
        "  debug         halt\n"

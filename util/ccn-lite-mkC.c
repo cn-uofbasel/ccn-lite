@@ -138,10 +138,10 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-            fprintf(stderr,
-              "publisher key digest has wrong length (%d instead of 32)\n",
-              plen);
-            exit(-1);
+                fprintf(stderr,
+                  "publisher key digest has wrong length (%d instead of 32)\n",
+                  plen);
+                exit(-1);
             }
             break;
 /*
@@ -157,6 +157,7 @@ main(int argc, char *argv[])
         case 's':
             packettype = ccnl_str2suite(optarg);
             if (packettype < 0 || packettype >= CCNL_SUITE_LAST) {
+                fprintf(stderr, "Unsupported suite %d\n", packettype);
                 goto Usage;
             }
             break;
@@ -170,7 +171,7 @@ Usage:
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
-        "  -s SUITE    (ccnb, ccnx2014, ndn2013)"
+        "  -s SUITE    (ccnb, ccnx2014, ndn2013)\n"
         "  -w STRING   witness\n"
         "Examples:\n"
         "%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"
