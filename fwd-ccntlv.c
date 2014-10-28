@@ -31,7 +31,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
-    int keyidlen, contlen;
+    int keyidlen, contlen, chunknum, lastchunknum;
     struct ccnl_buf_s *buf = 0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
@@ -46,8 +46,11 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char hdrlen = *data - (unsigned char*)hdrptr;
     DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
     DEBUGMSG(99, "hdrlen=%d", hdrlen);
-    buf = ccnl_ccntlv_extract(hdrlen, data, datalen,
-                              &p, &keyid, &keyidlen,
+    buf = ccnl_ccntlv_extract(hdrlen, 
+                              data, datalen,
+                              &p, 
+                              &keyid, &keyidlen,
+                              &chunknum, &lastchunknum,
                               &content, &contlen);
     if (!buf) {
             DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;

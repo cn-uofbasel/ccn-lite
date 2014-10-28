@@ -198,7 +198,7 @@ Usage:
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ccntlv_fillContentWithHdr(name, body, len, 
-            NULL, // int *chunknum
+            NULL, NULL, // chunknum/lastchunknum
             &offs, 
             NULL, // Int *contentpos
             out);

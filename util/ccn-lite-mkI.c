@@ -130,17 +130,12 @@ ccnb_mkInterest(struct ccnl_prefix_s *name,
 
 int
 ccntlv_mkInterest(struct ccnl_prefix_s *name,
-                  char *scope, unsigned char *out, int outlen)
+                  unsigned char *out, int outlen)
 {
-     int len, offset, oldoffset;
+     int len, offset;
 
-     offset = oldoffset = outlen;
-     len = ccnl_ccntlv_fillInterest(name, &offset, out);
-     ccnl_ccntlv_prependFixedHdr(0, 1,
-				 len, 255, &offset, out);
-     len = oldoffset - offset;
-     if (len > 0)
-         memmove(out, out + offset, len);
+     offset = outlen;
+     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
 
      return len;
 }
@@ -256,8 +251,7 @@ Usage:
 			      scope, &nonce, out);
 	break;
     case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix, scope, out,
-				CCNL_MAX_PACKET_SIZE);
+        len = ccntlv_mkInterest(prefix, out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_NDNTLV:
         len = ndntlv_mkInterest(prefix, scope, (int*)&nonce, out,

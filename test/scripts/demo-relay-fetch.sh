@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
-USAGE="usage: sh demo-relay.sh <SUITE[0,2]> <CON[udp, ux]> <USEKRNL[true,false]"
+USAGE="usage: sh demo-relay.sh <SUITE[0,1,2]> <CON[udp, ux]> <USEKRNL[true,false]"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all'"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME"
 
@@ -45,14 +45,13 @@ then
 elif [ $SUITE -eq "1" ] 
 then
     DIR="ccntlv"
-    FWD="ccntlv"
+    FWD="ccn"
     FNAME="chunked"
 elif [ $SUITE -eq "2" ] 
 then
     DIR="ndntlv"
     FWD="ndn"
-    # FNAME="chunked"
-    FNAME="simple"
+    FNAME="chunked"
 else
     exit_error_msg "'$SUITE' is not a valid SUITE"
 fi
@@ -139,9 +138,8 @@ then
     echo "=== FETCHED DATA ==="
     cat /tmp/res
     echo "\n=== FETCHED DATA ==="
-    rm /tmp/res
 else
-    echo "ERROR (exitcode $RESULT WHEN FETCHING DATA"
+    echo "ERROR exitcode $RESULT WHEN FETCHING DATA"
 fi
 
 exit $RESULT

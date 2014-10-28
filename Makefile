@@ -9,7 +9,7 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 CC?=gcc
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-O3 -Wall -Werror -pedantic -std=c99 -g
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g
 
 
 # Linux flags with support to compile kernel module

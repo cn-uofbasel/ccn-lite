@@ -32,74 +32,6 @@
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
-#ifdef XXX
-int
-ccnl_ccnb_mkContent(char **namecomp,
-      unsigned char *publisher, int plen,
-      unsigned char *body, int blen,
-      char *private_key_path,
-      char *witness,
-      unsigned char *out)
-{
-    int len = 0, k;
-
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-
-    // add signature
-#ifdef USE_SIGNATURES
-    if(private_key_path)
-        len += add_signature(out+len, private_key_path, body, blen);  
-#endif
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = strlen(*namecomp);
-    len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    if (publisher) {
-    struct timeval t;
-    unsigned char tstamp[6];
-    uint32_t *sec;
-    uint16_t *secfrac;
-
-    gettimeofday(&t, NULL);
-    sec = (uint32_t*)(tstamp + 0); // big endian
-    *sec = htonl(t.tv_sec);
-    secfrac = (uint16_t*)(tstamp + 4);
-    *secfrac = htons(4048L * t.tv_usec / 1000000);
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
-    memcpy(out+len, tstamp, sizeof(tstamp));
-    len += sizeof(tstamp);
-    out[len++] = 0; // end-of-timestamp
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, plen, CCN_TT_BLOB);
-    memcpy(out+len, publisher, plen);
-    len += plen;
-    out[len++] = 0; // end-of-publisher
-    out[len++] = 0; // end-of-signedinfo
-    }
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, blen, CCN_TT_BLOB);
-    memcpy(out + len, body, blen);
-    len += blen;
-    out[len++] = 0; // end-of-content
-
-    out[len++] = 0; // end-of-contentobj
-
-    return len;
-}
-
-#endif
-
 struct chunk {
     char data[CCNL_MAX_CHUNK_SIZE];
     int len;
@@ -115,10 +47,11 @@ main(int argc, char *argv[])
     char *publisher = 0;
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
+    char fileext[10];
     char chunkname_with_number[20];
     char final_chunkname_with_number[20];
     int f, fdir, fout, chunk_len, contentlen = 0, opt, plen;
-    int packettype = 2;
+    int suite = 2;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
@@ -132,7 +65,7 @@ main(int argc, char *argv[])
             infname = optarg;
             break;
         case 's':
-            packettype = atoi(optarg);
+            suite = atoi(optarg);
             break;
         case 'k':
             private_key_path = optarg;
@@ -173,14 +106,15 @@ Usage:
         goto Usage;
 
     outdirname = argv[optind];
-    printf("outdirname: %s\n", outdirname);
     optind++;
 
     if (!argv[optind])
         goto Usage;
-    char uri[strlen(argv[optind]) ];
-    strcpy(uri, argv[optind]);
-    // char uriCopy[strlen(argv[optind])];
+
+    int urilen = strlen(argv[optind]) + 2;
+    char uriOrig[urilen];
+    char uri[urilen];
+    strcpy(uriOrig, argv[optind]);
 
     // OUTIDR required
     if (!argv[optind]) {
@@ -190,12 +124,12 @@ Usage:
     // Check if outdirname is a directory and open it as a file
     status = stat(outdirname, &st_buf);
     if (status != 0) {
-        printf ("Error (%d) when opening file %s\n", errno, outdirname);
+        DEBUGMSG (99, "Error (%d) when opening file %s\n", errno, outdirname);
         return 1;
     }
 
     if (S_ISREG (st_buf.st_mode)) {
-        printf ("Error: %s is a file and not a directory.\n", argv[optind]);
+        DEBUGMSG (99, "Error: %s is a file and not a directory.\n", argv[optind]);
         goto Usage;
     }
     if (S_ISDIR (st_buf.st_mode)) {
@@ -258,41 +192,51 @@ Usage:
     sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
     char *chunk_data = NULL;
     int chunknum = 0;
+    int lastchunknum = num_chunks - 1;
     int offs = -1;
 
+
+    switch(suite) {
+        case CCNL_SUITE_CCNB:
+            strcpy(fileext, "ccnb");
+            break;
+        case CCNL_SUITE_CCNTLV: 
+            strcpy(fileext, "ccntlv");
+            break;
+        case CCNL_SUITE_NDNTLV:
+            strcpy(fileext, "ndntlv");
+            break;
+        default:
+            DEBUGMSG(99, "fileext for suite %d not implemented", suite);
+    }
 
 
     while(cur_chunk != NULL) {
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        printf("chunk data: %s\n", chunk_data);
-
-        strcpy(chunkname_with_number, uri);
-        strcat(chunkname_with_number, "/");
-        strcat(chunkname_with_number, chunkname);
-        sprintf(chunkname_with_number + strlen(chunkname_with_number), "%d", chunknum);
-
-        name = ccnl_URItoPrefix(chunkname_with_number, packettype, argv[optind+1]);
-        for(int x = 0; x < name->compcnt; x++)
-            printf("c / %s\n", name->comp[x]);
-
+        strcpy(uri, uriOrig);
         offs = CCNL_MAX_PACKET_SIZE;
-        switch(packettype) {
-        case CCNL_SUITE_CCNB:
-            // contentlen = ccnl_ccnb_fillContent(name, (unsigned char *)chunk_data, chunk_len, NULL, out);
-            fprintf(stderr, "CCNB chunking not implemented!");
-            goto Error;
-            break;
+        switch(suite) {
         case CCNL_SUITE_CCNTLV: 
+
+            name = ccnl_URItoPrefix(uri, suite, argv[optind+1]);
+
+            DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
+
             contentlen = ccnl_ccntlv_fillContentWithHdr(name, 
                                                         (unsigned char *)chunk_data, chunk_len, 
-                                                        &chunknum, 
+                                                        &chunknum, &lastchunknum,
                                                         &offs, 
                                                         NULL, // int *contentpos
                                                         out);
             break;
         case CCNL_SUITE_NDNTLV:
+            strcpy(chunkname_with_number, uri);
+            strcat(chunkname_with_number, "/");
+            strcat(chunkname_with_number, chunkname);
+            sprintf(chunkname_with_number + strlen(chunkname_with_number), "%d", chunknum);
+            name = ccnl_URItoPrefix(chunkname_with_number, suite, argv[optind+1]);
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
                                                  &offs, NULL,
@@ -300,15 +244,18 @@ Usage:
                                                  out);
             break;
         default:
-            fprintf(stderr, "encoding for suite %i is not implemented\n", packettype);
+            DEBUGMSG(99, "encoding for suite %i is not implemented\n", suite);
+            goto Error;
             break;
         }
 
         strcpy(outfilename, outdirname);
         strcat(outfilename, "/");
         strcat(outfilename, chunkname);
-        sprintf(outfilename + strlen(outfilename), "%d", chunknum);
-        strcat(outfilename, ".ndntlv");
+        sprintf(outfilename + strlen(outfilename), "%d.", chunknum);
+        strcat(outfilename, fileext);
+
+        DEBUGMSG(99, "writing to %s for chunk %d\n", outfilename, chunknum);
 
         fout = creat(outfilename, 0666);
         write(fout, out + offs, contentlen);
@@ -319,8 +266,7 @@ Usage:
     return 0;
 
 Error:
-    return 1;
-
+    return -1;
 }
 
 // eof
