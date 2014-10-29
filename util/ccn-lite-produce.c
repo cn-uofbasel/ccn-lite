@@ -52,7 +52,7 @@ main(int argc, char *argv[])
     char final_chunkname_with_number[20];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
     int suite = CCNL_SUITE_DEFAULT;
-    int chunkSize = CCNL_MAX_CHUNK_SIZE;
+    int chunk_size = CCNL_MAX_CHUNK_SIZE;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
@@ -60,8 +60,8 @@ main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hc:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'c':
-            chunkSize = atoi(optarg);
-            if(chunkSize > CCNL_MAX_CHUNK_SIZE) chunkSize = CCNL_MAX_CHUNK_SIZE;
+            chunk_size = atoi(optarg);
+            if(chunk_size > CCNL_MAX_CHUNK_SIZE) chunk_size = CCNL_MAX_CHUNK_SIZE;
             break;
         case 'i':
             infname = optarg;
@@ -94,8 +94,8 @@ Usage:
         fprintf(stderr, 
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
-        "usage: %s [options] OUTDIR URI [NFNexpr]\n"
-        "  -c CHUNKSIZE size for each chunk (max %d)\n"
+        "usage: %s [options] OUTDIR URL [NFNexpr]\n"
+        "  -c chunk_size size for each chunk (max %d)\n"
         "  -i FNAME   input file (instead of stdin)\n"
         // "  -k FNAME   publisher private key\n"
         "  -p DIGEST  publisher fingerprint\n"
@@ -114,13 +114,13 @@ Usage:
     outdirname = argv[optind];
     optind++;
 
-    // URI required
+    // url required
     if (!argv[optind])
         goto Usage;
     int urilen = strlen(argv[optind]);
-    char uriOrig[urilen];
-    char uri[urilen];
-    strcpy(uriOrig, argv[optind]);
+    char url_orig[urilen];
+    char url[urilen];
+    strcpy(url_orig, argv[optind]);
 
     // OUTIDR required
     if (!argv[optind]) {
@@ -155,7 +155,7 @@ Usage:
 
 
     char outfilename[255];
-    char chunk_buf[chunkSize];
+    char chunk_buf[chunk_size];
     int is_last = 0;
     struct chunk *first_chunk = NULL;
     struct chunk *cur_chunk = NULL;
@@ -163,7 +163,7 @@ Usage:
     int num_chunks = 0;
 
     do {
-        chunk_len = read(f, chunk_buf, chunkSize);
+        chunk_len = read(f, chunk_buf, chunk_size);
 
         // Remove linefeed, found last chunk
         if(chunk_buf[chunk_len-1] == 10) {
@@ -219,12 +219,12 @@ Usage:
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        strcpy(uri, uriOrig);
+        strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 
 
-            name = ccnl_URItoPrefix(uri, suite, argv[optind+1]);
+            name = ccnl_URItoPrefix(url, suite, argv[optind+1]);
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
@@ -236,7 +236,7 @@ Usage:
                                                         out);
             break;
         case CCNL_SUITE_NDNTLV:
-            strcpy(chunkname_with_number, uri);
+            strcpy(chunkname_with_number, url);
             strcat(chunkname_with_number, "/");
             strcat(chunkname_with_number, chunkname);
             sprintf(chunkname_with_number + strlen(chunkname_with_number), "%d", chunknum);
