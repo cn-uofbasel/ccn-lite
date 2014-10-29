@@ -5,7 +5,7 @@ USAGE="usage: sh demo-relay.sh <SUITE[ccnb,ccnx2014,ndn2013]> <CON[udp,ux]> <USE
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all'"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME"
 
-function exit_error_msg {
+exit_error_msg () {
     echo $1
     echo $USAGE
     exit 1
