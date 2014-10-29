@@ -347,7 +347,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int i, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int i, len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;

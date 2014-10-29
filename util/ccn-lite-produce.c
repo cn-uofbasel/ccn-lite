@@ -52,13 +52,17 @@ main(int argc, char *argv[])
     char final_chunkname_with_number[20];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
     int suite = CCNL_SUITE_DEFAULT;
+    int chunkSize = CCNL_MAX_CHUNK_SIZE;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
-    int chunkSize = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
+        case 'c':
+            chunkSize = atoi(optarg);
+            if(chunkSize > CCNL_MAX_CHUNK_SIZE) chunkSize = CCNL_MAX_CHUNK_SIZE;
+            break;
         case 'i':
             infname = optarg;
             break;
@@ -91,28 +95,29 @@ Usage:
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
         "usage: %s [options] OUTDIR URI [NFNexpr]\n"
+        "  -c CHUNKSIZE size for each chunk (max %d)\n"
         "  -i FNAME   input file (instead of stdin)\n"
-        "  -k FNAME   publisher private key\n"
+        // "  -k FNAME   publisher private key\n"
         "  -p DIGEST  publisher fingerprint\n"
         "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
-        "  -w STRING  witness\n"       
+        // "  -w STRING  witness\n"       
         ,
-        argv[0]);
+        argv[0],
+        CCNL_MAX_CHUNK_SIZE);
         exit(1);
         }
     }
 
-    // URI required
+
     if (!argv[optind])
         goto Usage;
-
     outdirname = argv[optind];
     optind++;
 
+    // URI required
     if (!argv[optind])
         goto Usage;
-
-    int urilen = strlen(argv[optind]) + 2;
+    int urilen = strlen(argv[optind]);
     char uriOrig[urilen];
     char uri[urilen];
     strcpy(uriOrig, argv[optind]);
@@ -147,9 +152,6 @@ Usage:
       f = 0;
     }
 
-    // TODO add flag for var max chunk size (must be smaller than max chunk size)
-    chunkSize = CCNL_MAX_CHUNK_SIZE;
-    chunkSize = 5;
 
 
     char outfilename[255];
