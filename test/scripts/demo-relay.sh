@@ -99,18 +99,12 @@ fi
 echo -n "killing all ccn-lite-relay instances... "
 killall ccn-lite-relay
 
-if [ "$USEKRNL" = true ]
-then
-    rmmod ccn-lite-lnxkernel 2>/dev/null
-fi
-
-echo
 # starting relay A, with a link to relay B
 
 if [ "$USEKRNL" = true ]
 then
     rmmod ccn_lite_lnxkernel
-    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 s="ndn2013" $SOCKETA x=$UXA
+    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA
 else
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
