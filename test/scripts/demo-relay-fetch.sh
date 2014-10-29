@@ -59,7 +59,7 @@ fi
 # face setup
 if [ "$CON" = "udp" ]
 then
-    if [ '$USEKRNL' = true ]
+    if [ "$USEKRNL" = true ]
     then
         SOCKETA="u=$PORTA"
     else
@@ -91,7 +91,7 @@ fi
 echo -n "killing all ccn-lite-relay instances... "
 killall ccn-lite-relay
 
-if [ '$USEKRNL' = true ]
+if [ "$USEKRNL" = true ]
 then
     rmmod ccn-lite-lnxkernel 2>/dev/null
 fi
@@ -99,9 +99,9 @@ fi
 echo
 # starting relay A, with a link to relay B
 
-if [ '$USEKRNL' = true ]
+if [ "$USEKRNL" = true ]
 then
-    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
+    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA 2>/dev/null
 else
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
@@ -131,7 +131,7 @@ $CCNL_HOME/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
 $CCNL_HOME/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
 
 sleep 1
-killall ccn-lite-ctrl > /dev/null
+killall ccn-lite-relay > /dev/null
 
 if [ $RESULT = '0' ] 
 then
@@ -140,6 +140,11 @@ then
     echo "\n=== FETCHED DATA ==="
 else
     echo "ERROR exitcode $RESULT WHEN FETCHING DATA"
+fi
+
+if [ "$USEKRNL" = true]
+then
+    rmmod ccn_lite_lnxkernel
 fi
 
 exit $RESULT

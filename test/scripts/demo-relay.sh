@@ -60,7 +60,7 @@ fi
 # face setup
 if [ "$CON" = "udp" ]
 then
-    if [ '$USEKRNL' = true ]
+    if [ "$USEKRNL" = true ]
     then
         SOCKETA="u=$PORTA"
     else
@@ -99,7 +99,7 @@ fi
 echo -n "killing all ccn-lite-relay instances... "
 killall ccn-lite-relay
 
-if [ '$USEKRNL' = true ]
+if [ "$USEKRNL" = true ]
 then
     rmmod ccn-lite-lnxkernel 2>/dev/null
 fi
@@ -107,7 +107,7 @@ fi
 echo
 # starting relay A, with a link to relay B
 
-if [ '$USEKRNL' = true ]
+if [ "$USEKRNL" = true ]
 then
     insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
 else
@@ -149,6 +149,12 @@ else
 fi
 
 sleep 1
-killall ccn-lite-ctrl > /dev/null
+killall ccn-lite-relay > /dev/null
+if [ "$USEKRNL" = true]
+then
+    rmmod ccn_lite_lnxkernel
+fi
+
+exit $RESULT
 
 # eof
