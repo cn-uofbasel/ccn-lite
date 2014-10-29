@@ -109,7 +109,7 @@ echo
 
 if [ "$USEKRNL" = true ]
 then
-    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
+    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 u=$SUITE $SOCKETA x=$UXA
 else
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
