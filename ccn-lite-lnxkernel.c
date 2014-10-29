@@ -490,11 +490,12 @@ Bail:
 static char *e = NULL;
 static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
-static int s = CCNL_SUITE_CCNB; // or CCNL_SUITE_NDNTLV
+static int suite = CCNL_SUITE_DEFAULT;
 static int u = 0; // u = CCN_UDP_PORT?
 static int v = 0;
 static char *p = NULL;
 static char *k = NULL;
+static char *s = NULL;
 static void *ageing_handler = NULL;
 
 
@@ -504,8 +505,8 @@ MODULE_PARM_DESC(ethdevname, "name of ethernet device to serve");
 module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
 
-module_param(s, int, 0);
-MODULE_PARM_DESC(s, "suite (0=ccnb, 2=ndntlv)");
+module_param(s, charp, 0);
+MODULE_PARM_DESC(s, "suite (0=ccnb, 1=ccntlv, 2=ndntlv)");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
@@ -537,23 +538,30 @@ ccnl_init(void)
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
-    DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%d,"
+    DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
                  "u=%d, v=%d, x=%s\n",
              c, e, k, p, s, u, v, x);
 
+    suite = ccnl_str2suite(s);
+    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+        suite = CCNL_SUITE_DEFAULT;
+    }
+
 #ifdef USE_SUITE_CCNB
-    if (s == CCNL_SUITE_CCNB) {
+    if (suite == CCNL_SUITE_CCNB) {
         if (u < 0)
             u = CCN_UDP_PORT;
     }
 #endif
 #ifdef USE_SUITE_NDNTLV
-    if (s == CCNL_SUITE_NDNTLV) {
+    if (suite == CCNL_SUITE_NDNTLV) {
         if (u < 0)
             u = NDN_UDP_PORT;
     }
 #endif
 
+
+    ccnl_core_init();
     theRelay.max_cache_entries = c;
 #ifdef USE_SCHEDULER
     theRelay.defaultFaceScheduler = ccnl_lnx_defaultFaceScheduler;

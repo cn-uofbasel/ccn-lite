@@ -109,7 +109,8 @@ echo
 
 if [ "$USEKRNL" = true ]
 then
-    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 u=$SUITE $SOCKETA x=$UXA
+    rmmod ccn_lite_lnxkernel
+    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 s="ndn2013" $SOCKETA x=$UXA
 else
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
@@ -150,7 +151,8 @@ fi
 
 sleep 1
 killall ccn-lite-relay > /dev/null
-if [ "$USEKRNL" = true]
+
+if [ "$USEKRNL" = true ]
 then
     rmmod ccn_lite_lnxkernel
 fi
