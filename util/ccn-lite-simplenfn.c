@@ -78,7 +78,7 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
     fprintf(stderr, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
 */
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
-                            suite, (expr && *expr) ? expr : NULL);
+                            suite, (expr && *expr) ? expr : NULL, NULL);
 }
 
 // ----------------------------------------------------------------------

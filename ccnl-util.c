@@ -77,7 +77,7 @@ ccnl_URItoComponents(char **compVector, char *uri)
 }
 
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
@@ -133,7 +133,11 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
 #endif
     }
 
-    // realloc path ...
+    if(chunknum) {
+        p->chunknum = chunknum;
+    } else {
+        p->chunknum = 0;
+    }
 
     return p;
 }
@@ -540,7 +544,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen, 
-                                             NULL, NULL, // chunknum/lastchunknum
+                                             NULL, // lastchunknum
                                              &offs, &contentpos, tmp);
     break;
 #endif
