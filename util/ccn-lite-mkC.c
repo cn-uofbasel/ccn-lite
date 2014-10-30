@@ -119,7 +119,7 @@ main(int argc, char *argv[])
     // int chunk_num = -1, last_chunk_num = -1;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
-    int packettype = 2;
+    int suite = CCNL_SUITE_DEFAULT;
     private_key_path = 0;
     witness = 0;
 
@@ -155,9 +155,9 @@ main(int argc, char *argv[])
             witness = optarg;
             break;
         case 's':
-            packettype = ccnl_str2suite(optarg);
-            if (packettype < 0 || packettype >= CCNL_SUITE_LAST) {
-                fprintf(stderr, "Unsupported suite %d\n", packettype);
+            suite = ccnl_str2suite(optarg);
+            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+                fprintf(stderr, "Unsupported suite %d\n", suite);
                 goto Usage;
             }
             break;
@@ -195,9 +195,9 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    name = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1]);
+    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
 
-    switch (packettype) {
+    switch (suite) {
     case CCNL_SUITE_CCNB:
     len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
     break;
