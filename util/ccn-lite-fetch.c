@@ -113,7 +113,7 @@ int ndntlv_isData(unsigned char *buf, int len)
 #endif
 
 int
-fetch_content_object_for_name_chunk(char* name, 
+ccnl_fetchContentForChunkName(char* name, 
                                     int *chunknum,
                                     int suite, 
                                     unsigned char *out, int out_len, 
@@ -170,7 +170,7 @@ fetch_content_object_for_name_chunk(char* name,
     return 0;
 }
 
-int ndntlv_extract_data_and_chunkinfo(unsigned char **data, int *datalen, 
+int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
                                       int *chunknum, int *lastchunknum,
                                       unsigned char **content, int *contentlen) {
     int typ, len;
@@ -213,7 +213,7 @@ int ndntlv_extract_data_and_chunkinfo(unsigned char **data, int *datalen,
     }
     return 0;
 }
-int ccntlv_extract_data_and_chunkinfo(unsigned char **data, int *datalen, 
+int ccnl_ccntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
                                       int *chunknum, int *lastchunknum,
                                       unsigned char **content, int *contentlen) {
 
@@ -234,7 +234,7 @@ int ccntlv_extract_data_and_chunkinfo(unsigned char **data, int *datalen,
     } 
     return 0;
 }
-int extract_data_and_chunkinfo(unsigned char **data, int *datalen, 
+int ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
                                int suite, 
                                int *chunknum, int *lastchunknum,
                                unsigned char **content, int *contentlen) {
@@ -242,12 +242,12 @@ int extract_data_and_chunkinfo(unsigned char **data, int *datalen,
     switch(suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        result = ccntlv_extract_data_and_chunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
+        result = ccnl_ccntlv_extractDataAndChunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
     break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        result = ndntlv_extract_data_and_chunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
+        result = ccnl_ndntlv_extractDataAndChunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
     break;
 #endif
     default:
@@ -377,7 +377,7 @@ usage:
         }
 
         strcpy(url, origUrl);
-        if(fetch_content_object_for_name_chunk(url, 
+        if(ccnl_fetchContentForChunkName(url, 
                                                curchunknum >= 0 ? &curchunknum : NULL, 
                                                suite, 
                                                out, sizeof(out), 
@@ -389,7 +389,7 @@ usage:
 
         int chunknum = -1, lastchunknum = -1;
         unsigned char *t = &out[0];
-        if(extract_data_and_chunkinfo(&t, &len, suite, 
+        if(ccnl_extractDataAndChunkInfo(&t, &len, suite, 
                                       &chunknum, &lastchunknum, 
                                       &content, &contlen) < 0) {
             DEBUGMSG(99, "Could not extract data and chunkinfo\n");
