@@ -67,11 +67,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #include "ccnl-ext-frag.c"
 
 
-#ifdef CCNL_SUITE_NDNTLV
-char suite = CCNL_SUITE_NDNTLV;
-#else
-char suite;
-#endif
+char suite = CCNL_SUITE_DEFAULT;
 
 // ----------------------------------------------------------------------
 
