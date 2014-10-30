@@ -64,11 +64,10 @@ ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval,
     int nintval = htonl(intval);
     char *intdata = (char *) &nintval;
 
-    // TODO: cut trailing 0's
-    // while(len > 1 && intdata[0] == 0) {
-    //     len--;
-    //     intdata++;
-    // }
+    while(len > 1 && *intdata == 0) {
+        len--;
+        intdata++;
+    }
 
     if (*offset < (len + 4))
         return -1;

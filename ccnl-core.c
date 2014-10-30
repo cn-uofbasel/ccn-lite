@@ -835,7 +835,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
             DEBUGMSG(6, "ccnl_core_RX: %d bytes left\n", datalen);
         }
     } else
-        fprintf(stderr, "The programer forgot to initialize the forwarder.\n");
+        fprintf(stderr, "Forwarder not initialized or dispatcher for suite %d does not exist.\n", suite);
 }
 
 // ----------------------------------------------------------------------

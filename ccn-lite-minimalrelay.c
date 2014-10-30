@@ -366,7 +366,7 @@ main(int argc, char **argv)
 
     srandom(time(NULL));
 
-    theRelay.suite = CCNL_SUITE_NDNTLV;
+    theRelay.suite = CCNL_SUITE_DEFAULT;
 
     while ((opt = getopt(argc, argv, "hs:u:v:")) != -1) {
         switch (opt) {

@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/bin/sh
 
 # demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
 USAGE="usage: sh demo-relay.sh <SUITE[ccnb,ccnx2014,ndn2013]> <CON[udp,ux]> <USEKRNL[true,false]"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all'"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME"
 
-function exit_error_msg {
+exit_error_msg () {
     echo $1
     echo $USAGE
     exit 1
@@ -60,7 +60,7 @@ fi
 # face setup
 if [ "$CON" = "udp" ]
 then
-    if [ '$USEKRNL' = true ]
+    if [ "$USEKRNL" = true ]
     then
         SOCKETA="u=$PORTA"
     else
@@ -99,17 +99,12 @@ fi
 echo -n "killing all ccn-lite-relay instances... "
 killall ccn-lite-relay
 
-if [ '$USEKRNL' = true ]
-then
-    rmmod ccn-lite-lnxkernel 2>/dev/null
-fi
-
-echo
 # starting relay A, with a link to relay B
 
-if [ '$USEKRNL' = true ]
+if [ "$USEKRNL" = true ]
 then
-    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 $SOCKETA x=$UXA
+    rmmod ccn_lite_lnxkernel
+    insmod $CCNL_HOME/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA
 else
     $CCNL_HOME/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
@@ -149,6 +144,13 @@ else
 fi
 
 sleep 1
-killall ccn-lite-ctrl > /dev/null
+killall ccn-lite-relay > /dev/null
+
+if [ "$USEKRNL" = true ]
+then
+    rmmod ccn_lite_lnxkernel
+fi
+
+exit $RESULT
 
 # eof

@@ -48,17 +48,21 @@ main(int argc, char *argv[])
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char fileext[10];
-    char chunkname_with_number[20];
-    char final_chunkname_with_number[20];
+    char chunkname_with_number[1024];
+    char final_chunkname_with_number[1024];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
-    int suite = CCNL_SUITE_NDNTLV;
+    int suite = CCNL_SUITE_DEFAULT;
+    int chunk_size = CCNL_MAX_CHUNK_SIZE;
     int status;
     struct ccnl_prefix_s *name;
     struct stat st_buf;
-    int chunkSize = 0;
 
-    while ((opt = getopt(argc, argv, "hi:o:p:k:w:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
+        case 'c':
+            chunk_size = atoi(optarg);
+            if(chunk_size > CCNL_MAX_CHUNK_SIZE) chunk_size = CCNL_MAX_CHUNK_SIZE;
+            break;
         case 'i':
             infname = optarg;
             break;
@@ -90,32 +94,31 @@ Usage:
         fprintf(stderr, 
         "create content object chunks for the input data and writes them "
         "to the files into the given directory.\n"
-        "usage: %s [options] OUTDIR URI [NFNexpr]\n"
+        "usage: %s [options] OUTDIR URL [NFNexpr]\n"
+        "  -c chunk_size size for each chunk (max %d)\n"
         "  -i FNAME   input file (instead of stdin)\n"
-        "  -k FNAME   publisher private key\n"
+        // "  -k FNAME   publisher private key\n"
         "  -p DIGEST  publisher fingerprint\n"
         "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
-        "  -w STRING  witness\n"       
+        // "  -w STRING  witness\n"       
         ,
-        argv[0]);
+        argv[0],
+        CCNL_MAX_CHUNK_SIZE);
         exit(1);
         }
     }
 
-    // URI required
+
     if (!argv[optind])
         goto Usage;
-
     outdirname = argv[optind];
     optind++;
 
+    // url required
     if (!argv[optind])
         goto Usage;
-
-    int urilen = strlen(argv[optind]) + 2;
-    char uriOrig[urilen];
-    char uri[urilen];
-    strcpy(uriOrig, argv[optind]);
+    char url[strlen(argv[optind])];
+    strcpy(url, argv[optind]);
 
     // OUTIDR required
     if (!argv[optind]) {
@@ -147,13 +150,10 @@ Usage:
       f = 0;
     }
 
-    // TODO add flag for var max chunk size (must be smaller than max chunk size)
-    chunkSize = CCNL_MAX_CHUNK_SIZE;
-    chunkSize = 5;
 
 
     char outfilename[255];
-    char chunk_buf[chunkSize];
+    char chunk_buf[chunk_size];
     int is_last = 0;
     struct chunk *first_chunk = NULL;
     struct chunk *cur_chunk = NULL;
@@ -161,7 +161,7 @@ Usage:
     int num_chunks = 0;
 
     do {
-        chunk_len = read(f, chunk_buf, chunkSize);
+        chunk_len = read(f, chunk_buf, chunk_size);
 
         // Remove linefeed, found last chunk
         if(chunk_buf[chunk_len-1] == 10) {
@@ -190,13 +190,11 @@ Usage:
 
     cur_chunk = first_chunk;
 
-    strcpy(final_chunkname_with_number, chunkname);
-    sprintf(final_chunkname_with_number + strlen(final_chunkname_with_number), "%i", num_chunks - 1);
+    sprintf(final_chunkname_with_number, "%s%i", chunkname, num_chunks - 1);
     char *chunk_data = NULL;
     int chunknum = 0;
     int lastchunknum = num_chunks - 1;
     int offs = -1;
-
 
     switch(suite) {
         case CCNL_SUITE_CCNB:
@@ -217,12 +215,12 @@ Usage:
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        strcpy(uri, uriOrig);
+        // strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 
 
-            name = ccnl_URItoPrefix(uri, suite, argv[optind+1]);
+            name = ccnl_URItoPrefix(url, suite, argv[optind+1]);
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
@@ -234,10 +232,7 @@ Usage:
                                                         out);
             break;
         case CCNL_SUITE_NDNTLV:
-            strcpy(chunkname_with_number, uri);
-            strcat(chunkname_with_number, "/");
-            strcat(chunkname_with_number, chunkname);
-            sprintf(chunkname_with_number + strlen(chunkname_with_number), "%d", chunknum);
+            sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
             name = ccnl_URItoPrefix(chunkname_with_number, suite, argv[optind+1]);
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
@@ -246,16 +241,12 @@ Usage:
                                                  out);
             break;
         default:
-            DEBUGMSG(99, "encoding for suite %i is not implemented\n", suite);
+            DEBUGMSG(99, "produce for suite %i is not implemented\n", suite);
             goto Error;
             break;
         }
 
-        strcpy(outfilename, outdirname);
-        strcat(outfilename, "/");
-        strcat(outfilename, chunkname);
-        sprintf(outfilename + strlen(outfilename), "%d.", chunknum);
-        strcat(outfilename, fileext);
+        sprintf(outfilename, "%s/%s%d.%s", outdirname, chunkname, chunknum, fileext);
 
         DEBUGMSG(99, "writing to %s for chunk %d\n", outfilename, chunknum);
 
