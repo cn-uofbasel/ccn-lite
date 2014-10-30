@@ -109,21 +109,21 @@ Usage:
     }
 
 
+    // mandatory out dir
     if (!argv[optind])
         goto Usage;
     outdirname = argv[optind];
     optind++;
 
-    // url required
+    // mandatory url 
     if (!argv[optind])
         goto Usage;
-    char url[strlen(argv[optind])];
-    strcpy(url, argv[optind]);
+    char *url = argv[optind];
+    optind++;
 
-    // OUTIDR required
-    if (!argv[optind]) {
-        goto Usage;
-    }
+
+    // optional nfn 
+    char *nfnexpr = argv[optind];
 
     // Check if outdirname is a directory and open it as a file
     status = stat(outdirname, &st_buf);
@@ -220,7 +220,7 @@ Usage:
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 
 
-            name = ccnl_URItoPrefix(url, suite, argv[optind+1]);
+            name = ccnl_URItoPrefix(url, suite, nfnexpr);
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
@@ -233,7 +233,7 @@ Usage:
             break;
         case CCNL_SUITE_NDNTLV:
             sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
-            name = ccnl_URItoPrefix(chunkname_with_number, suite, argv[optind+1]);
+            name = ccnl_URItoPrefix(chunkname_with_number, suite, nfnexpr);
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
                                                  &offs, NULL,

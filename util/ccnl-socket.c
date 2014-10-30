@@ -87,8 +87,8 @@ udp_sendto(int sock, char *dest, unsigned char *data, int len)
 int
 ux_open()
 {
-static char mysockname[200];
- int sock, bufsize;
+    static char mysockname[200];
+    int sock, bufsize;
     struct sockaddr_un name;
 
     sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());

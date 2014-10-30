@@ -112,13 +112,16 @@ int ndntlv_isData(unsigned char *buf, int len)
 }
 #endif
 
+// debug_level = 1;
+
 int
 ccnl_fetchContentForChunkName(char* name, 
-                                    int *chunknum,
-                                    int suite, 
-                                    unsigned char *out, int out_len, 
-                                    int *len, 
-                                    float wait, int sock, struct sockaddr sa) {
+                              char* nfnexpr,
+                              int *chunknum,
+                              int suite, 
+                              unsigned char *out, int out_len, 
+                              int *len, 
+                              float wait, int sock, struct sockaddr sa) {
 
     struct ccnl_prefix_s *prefix;
     int (*mkInterest)(struct ccnl_prefix_s*, int*, int*, unsigned char*, int);
@@ -131,17 +134,18 @@ ccnl_fetchContentForChunkName(char* name,
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        prefix = ccnl_URItoPrefix(name, suite, NULL);
+        prefix = ccnl_URItoPrefix(name, suite, nfnexpr);
         mkInterest = ccntlv_mkInterest;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
 
+        fprintf(stderr, "%s\n", nfnexpr);
         if(chunknum) {
             sprintf(name + strlen(name), "/c%d", *chunknum);
         } 
-        prefix = ccnl_URItoPrefix(name, suite, NULL);
+        prefix = ccnl_URItoPrefix(name, suite, nfnexpr);
         mkInterest = ndntlv_mkInterest;
         break;
 #endif
@@ -345,9 +349,17 @@ usage:
         sock = udp_open();
     }
 
-    char url[1024];
-    char origUrl[1024];
-    strcpy(origUrl, argv[optind]);
+    char *origUrl = argv[optind];
+    char url[strlen(origUrl)];
+
+    // char url[1024];
+    // char origUrl[1024];
+    // strcpy(origUrl, argv[optind]);
+    char *nfnexprOrig = 0;
+    char nfnexpr[1024];
+    if(argv[optind+1]) {
+        nfnexprOrig = argv[optind+1];
+    }
 
     unsigned char *content = 0;
     int contlen;
@@ -377,12 +389,16 @@ usage:
         }
 
         strcpy(url, origUrl);
+        if(nfnexprOrig) {
+            strcpy(nfnexpr, nfnexprOrig);
+        }
         if(ccnl_fetchContentForChunkName(url, 
-                                               curchunknum >= 0 ? &curchunknum : NULL, 
-                                               suite, 
-                                               out, sizeof(out), 
-                                               &len, 
-                                               wait, sock, sa) < 0) {
+                                         nfnexpr,
+                                         curchunknum >= 0 ? &curchunknum : NULL, 
+                                         suite, 
+                                         out, sizeof(out), 
+                                         &len, 
+                                         wait, sock, sa) < 0) {
             fprintf(stderr, "timeout, retry not implemented, exit\n");
             exit(1);
         }
@@ -390,8 +406,8 @@ usage:
         int chunknum = -1, lastchunknum = -1;
         unsigned char *t = &out[0];
         if(ccnl_extractDataAndChunkInfo(&t, &len, suite, 
-                                      &chunknum, &lastchunknum, 
-                                      &content, &contlen) < 0) {
+                                        &chunknum, &lastchunknum, 
+                                        &content, &contlen) < 0) {
             DEBUGMSG(99, "Could not extract data and chunkinfo\n");
             goto Done;
         } else {
