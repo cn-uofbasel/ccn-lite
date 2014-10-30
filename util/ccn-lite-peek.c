@@ -26,18 +26,8 @@
 #define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
+#include "ccnl-socket.c"
 
-// ----------------------------------------------------------------------
-
-char *unix_path;
-
-void
-myexit(int rc)
-{
-    if (unix_path)
-        unlink(unix_path);
-    exit(rc);
-}
 
 // ----------------------------------------------------------------------
 
@@ -66,80 +56,6 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 }
 
 
-
-// ----------------------------------------------------------------------
-
-int
-udp_open()
-{
-    int s;
-    struct sockaddr_in si;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
-        perror("udp socket");
-        exit(1);
-    }
-    si.sin_addr.s_addr = INADDR_ANY;
-    si.sin_port = htons(0);
-    si.sin_family = PF_INET;
-    if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
-        perror("udp sock bind");
-        exit(1);
-    }
-
-    return s;
-}
-
-int
-ux_open()
-{
-static char mysockname[200];
- int sock, bufsize;
-    struct sockaddr_un name;
-
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
-    unlink(mysockname);
-
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("opening datagram socket");
-        exit(1);
-    }
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
-    if (bind(sock, (struct sockaddr *) &name,
-             sizeof(struct sockaddr_un))) {
-        perror("binding path name to datagram socket");
-        exit(1);
-    }
-
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
-    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-
-    unix_path = mysockname;
-    return sock;
-}
-
-// ----------------------------------------------------------------------
-
-int
-block_on_read(int sock, float wait)
-{
-    fd_set readfs;
-    struct timeval timeout;
-    int rc;
-
-    FD_ZERO(&readfs);
-    FD_SET(sock, &readfs);
-    timeout.tv_sec = wait;
-    timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
-    rc = select(sock+1, &readfs, NULL, NULL, &timeout);
-    if (rc < 0)
-        perror("select()");
-    return rc;
-}
 
 #ifdef USE_SUITE_CCNB
 int ccnb_isContent(unsigned char *buf, int len)
