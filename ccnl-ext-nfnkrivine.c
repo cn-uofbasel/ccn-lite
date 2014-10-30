@@ -26,36 +26,11 @@
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-includes.h"
+#include "ccnl-ext-nfnkrivine.h"
 
-// built in function
-typedef char* (*BIF)(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-               int *restart, int *halt, char *prog, char *pending,
-                      struct stack_s **stack);
 
-#define A_BIF(FCT) char* FCT(struct ccnl_relay_s *ccnl,\
-        struct configuration_s *config, int *restart, int *halt,\
-        char *prog, char *pending, struct stack_s **stack);
 
-A_BIF(op_builtin_add)
-A_BIF(op_builtin_find)
-A_BIF(op_builtin_mult)
-A_BIF(op_builtin_raw)
-A_BIF(op_builtin_sub)
 
-struct builtin_s {
-    char *name;
-    BIF fct;
-    struct builtin_s *next;
-} bifs[] = {
-    {"OP_ADD",  op_builtin_add,  NULL},
-    {"OP_FIND", op_builtin_find, NULL},
-    {"OP_MULT", op_builtin_mult, NULL},
-    {"OP_RAW",  op_builtin_raw,  NULL},
-    {"OP_SUB",  op_builtin_sub,  NULL},
-    {NULL, NULL, NULL}
-};
-
-struct builtin_s *extensions;
 
 // ----------------------------------------------------------------------
 

@@ -26,29 +26,8 @@
 #define CCNL_EXT_DEBUG
 
 #include "ccnl-core.h"
-
+#include "ccnl-ext-debug.h"
 #ifdef USE_DEBUG
-
-#ifndef CCNL_LINUXKERNEL
-struct ccnl_stats_s {
-    void* log_handler;
-    FILE *ofp;
-    int log_sent;
-    int log_recv;
-    int log_recv_old;
-    int log_sent_old;
-    int log_need_rt_seqn;
-    int log_content_delivery_rate_per_s;
-    double log_start_t;
-    double log_cdr_t;
-    //
-    FILE *ofp_r, *ofp_s, *ofp_q;
-    double log_recv_t_i;
-    double log_recv_t_c;
-    double log_sent_t_i;
-    double log_sent_t_c;
-};
-#endif
 
 #define DEBUGSTMT(LVL, ...) do { \
         if ((LVL)>debug_level) break; \
@@ -624,13 +603,6 @@ char* timestamp(void);
 #  define ccnl_strdup(s)        debug_strdup(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_free(p)          debug_free(p, __FILE__, __LINE__)
 #  define ccnl_buf_new(p,s)     debug_buf_new(p, s, __FILE__, __LINE__,timestamp())
-
-struct mhdr {
-    struct mhdr *next;
-    char *fname;
-    int lineno, size;
-    char *tstamp;
-} *mem;
 
 void*
 debug_malloc(int s, const char *fn, int lno, char *tstamp)
