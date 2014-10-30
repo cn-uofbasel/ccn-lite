@@ -195,7 +195,7 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
+    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], NULL);
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
@@ -204,7 +204,7 @@ Usage:
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ccntlv_fillContentWithHdr(name, body, len, 
-            NULL, NULL, // chunknum/lastchunknum
+            NULL, // chunknum/lastchunknum
             &offs, 
             NULL, // Int *contentpos
             out);

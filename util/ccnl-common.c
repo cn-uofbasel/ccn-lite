@@ -65,7 +65,7 @@
     } while (0)
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
 
-int debug_level;
+int debug_level = 99;
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)

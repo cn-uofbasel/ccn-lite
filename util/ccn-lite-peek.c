@@ -234,7 +234,7 @@ usage:
         sock = udp_open();
     }
 
-    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1]);
+    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], NULL);
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 

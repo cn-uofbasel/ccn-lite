@@ -48,7 +48,6 @@ main(int argc, char *argv[])
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char fileext[10];
-    char chunkname_with_number[1024];
     char final_chunkname_with_number[1024];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
     int suite = CCNL_SUITE_DEFAULT;
@@ -220,20 +219,20 @@ Usage:
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 
 
-            name = ccnl_URItoPrefix(url, suite, nfnexpr);
+            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
             contentlen = ccnl_ccntlv_fillContentWithHdr(name, 
                                                         (unsigned char *)chunk_data, chunk_len, 
-                                                        &chunknum, &lastchunknum,
+                                                        &lastchunknum,
                                                         &offs, 
                                                         NULL, // int *contentpos
                                                         out);
             break;
         case CCNL_SUITE_NDNTLV:
-            sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
-            name = ccnl_URItoPrefix(chunkname_with_number, suite, nfnexpr);
+            // sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
+            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
                                                  &offs, NULL,

@@ -106,16 +106,14 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 }
 
 int
-ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name,
-                             int *chunknum, 
-                             int *offset, unsigned char *buf) {
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf) {
 
     int oldoffset = *offset, cnt;
 
-    if(chunknum && *chunknum >= 0) {
-
+    if(name->chunknum && *name->chunknum >= 0) {
         // CCNX_TLV_N_CHUNK
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk, *chunknum, offset, buf) < 0) {
+        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk, *name->chunknum, offset, buf) < 0) {
             return -1;
         }
     }
@@ -147,20 +145,12 @@ ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name,
 }
 
 int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf)
-{
-    return ccnl_ccntlv_prependChunkName(name, NULL, offset, buf);
-}
-
-int
 ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
-                         int *chunknum, 
                          int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependChunkName(name, chunknum, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -172,7 +162,6 @@ ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
 
 int
 ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, 
-                                     int *chunknum, 
                                      int *offset, unsigned char *buf)
 {
     int len, oldoffset;
@@ -180,7 +169,7 @@ ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name,
     unsigned char hoplimit = 255;
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillInterest(name, chunknum, offset, buf);
+    len = ccnl_ccntlv_fillInterest(name, offset, buf);
     if(len >= 65536)
         return -1;
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
@@ -195,13 +184,13 @@ int
 ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
-    return ccnl_ccntlv_fillChunkInterestWithHdr(name, NULL, offset, buf);
+    return ccnl_ccntlv_fillChunkInterestWithHdr(name, offset, buf);
 }
 
 int
 ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, 
                         unsigned char *payload, int paylen, 
-                        int *chunknum, int *lastchunknum,
+                        int *lastchunknum,
                         int *offset, int *contentpos,
                         unsigned char *buf)
 {
@@ -224,13 +213,8 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name,
     }
 
 
-    if(chunknum) {
-        if (ccnl_ccntlv_prependChunkName(name, chunknum, offset, buf))
-            return -1;
-    } else {
-        if (ccnl_ccntlv_prependName(name, offset, buf))
-            return -1;
-    }
+    if (ccnl_ccntlv_prependName(name, offset, buf))
+        return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
                                         tloffset - *offset, offset, buf) < 0)
@@ -245,7 +229,7 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
                                unsigned char *payload, int paylen,
-                               int *chunknum, int *lastchunknum,
+                               int *lastchunknum,
                                int *offset, int *contentpos, unsigned char *buf)
 {
     int len, oldoffset; // PayloadLengnth 
@@ -256,7 +240,7 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
 
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillContent(name, payload, paylen, chunknum, lastchunknum, offset,
+    len = ccnl_ccntlv_fillContent(name, payload, paylen, lastchunknum, offset,
                                   contentpos, buf);
 
     if(len >= 65536)

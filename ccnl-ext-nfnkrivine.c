@@ -716,7 +716,7 @@ normal:
             // is content...
             DEBUGMSG(99, "VAR IS NAME: %s\n", cp);
             struct ccnl_prefix_s *prefix;
-            prefix = ccnl_URItoPrefix(cp, config->suite, NULL);
+            prefix = ccnl_URItoPrefix(cp, config->suite, NULL, NULL);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }

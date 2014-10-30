@@ -107,6 +107,15 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset, cnt;
 
+    if(name->chunknum && *name->chunknum >=0) {
+        char *chunk_name_component = ccnl_malloc(12 * sizeof(char));
+        sprintf(chunk_name_component, "c%i", *name->chunknum);
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                    (unsigned char*)chunk_name_component, strlen(chunk_name_component), 
+                                    offset, buf) < 0)
+            return -1;
+    }
+
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
@@ -146,9 +155,6 @@ ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
         if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_Scope, scope, offset, buf) < 0)
             return -1;
     }
-
-
-
 
     if (ccnl_ndntlv_prependBlob(NDN_TLV_InterestLifetime, lifetime, 2,
                                 offset, buf) < 0)

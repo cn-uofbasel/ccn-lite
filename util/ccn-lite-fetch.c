@@ -31,19 +31,19 @@
 // ----------------------------------------------------------------------
 
 int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *chunknum, int *nonce,
+ccntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
                   unsigned char *out, int outlen)
 {
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ccntlv_fillChunkInterestWithHdr(name, chunknum, &offset, out);
+    len = ccnl_ccntlv_fillChunkInterestWithHdr(name, &offset, out);
 
     return len;
 }
 
 int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *chunknum, int *nonce,
+ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
                   unsigned char *out, int outlen)
 {
     int len, offset;
@@ -123,8 +123,8 @@ ccnl_fetchContentForChunkName(char* name,
                               int *len, 
                               float wait, int sock, struct sockaddr sa) {
 
-    struct ccnl_prefix_s *prefix;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, int*, unsigned char*, int);
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, suite, nfnexpr, chunknum);
+    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     switch(suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
@@ -134,18 +134,11 @@ ccnl_fetchContentForChunkName(char* name,
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        prefix = ccnl_URItoPrefix(name, suite, nfnexpr);
         mkInterest = ccntlv_mkInterest;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-
-        fprintf(stderr, "%s\n", nfnexpr);
-        if(chunknum) {
-            sprintf(name + strlen(name), "/c%d", *chunknum);
-        } 
-        prefix = ccnl_URItoPrefix(name, suite, nfnexpr);
         mkInterest = ndntlv_mkInterest;
         break;
 #endif
@@ -159,14 +152,14 @@ ccnl_fetchContentForChunkName(char* name,
 
     int nonce = random();
 
-    *len = mkInterest(prefix, chunknum, &nonce, out, out_len);
+    *len = mkInterest(prefix, &nonce, out, out_len);
 
     if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
         perror("sendto");
         myexit(1);
     }
     if (block_on_read(sock, wait) <= 0) {
-        DEBUGMSG(99, "timeout after block_on_read");
+        DEBUGMSG(99, "timeout after block_on_read\n");
         return -1;
     }
     *len = recv(sock, out, out_len, 0);
@@ -351,14 +344,12 @@ usage:
 
     char *origUrl = argv[optind];
     char url[strlen(origUrl)];
+    strcpy(origUrl, argv[optind]);
 
-    // char url[1024];
-    // char origUrl[1024];
-    // strcpy(origUrl, argv[optind]);
-    char *nfnexprOrig = 0;
-    char nfnexpr[1024];
+    char *nfnexpr = 0;
+    
     if(argv[optind+1]) {
-        nfnexprOrig = argv[optind+1];
+        nfnexpr = argv[optind+1];
     }
 
     unsigned char *content = 0;
@@ -389,9 +380,6 @@ usage:
         }
 
         strcpy(url, origUrl);
-        if(nfnexprOrig) {
-            strcpy(nfnexpr, nfnexprOrig);
-        }
         if(ccnl_fetchContentForChunkName(url, 
                                          nfnexpr,
                                          curchunknum >= 0 ? &curchunknum : NULL, 
@@ -451,7 +439,7 @@ Done:
         }
     }
     close(sock);
-    return 0; // avoid a compiler warning
+    return 0; 
 }
 
 // eof
