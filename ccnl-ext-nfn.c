@@ -183,6 +183,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         start_locally = 1;
     }
     */
+
     //put packet together
     if (prefix->suite == CCNL_SUITE_CCNTLV) {
         len = prefix->complen[prefix->compcnt-1] - 4;
