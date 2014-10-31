@@ -76,9 +76,8 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 #define NDN_TLV_RPC_SERIALIZED          -1
 
 // prototypes for fwd-localrpc.c:
-int ccnl_localrpc_RX_rpcreturn();
-int ccnl_localrpc_RX_rpc();
-
+int ccnl_localrpc_RX_rpcreturn(void);
+int ccnl_localrpc_RX_rpc(void);
 
 #endif //PKT_LOCAL_RPC_H
 // eof

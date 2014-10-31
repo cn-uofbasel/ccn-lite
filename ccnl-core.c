@@ -23,15 +23,8 @@
  */
 
 #include "ccnl-core.h"
+#include "ccnl-headers.h"
 
-int
-ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
-
-struct ccnl_content_s*
-ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
-
-struct ccnl_interest_s* 
-ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 #ifndef USE_NFN
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
@@ -40,7 +33,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 // ----------------------------------------------------------------------
 // datastructure support functions
 
-int ccnl_pkt2suite(unsigned char *data, int len);
 
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
@@ -82,8 +74,6 @@ done:
 
 // ----------------------------------------------------------------------
 // addresses, interfaces and faces
-
-void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 
 int
 ccnl_addr_cmp(sockunion *s1, sockunion *s2)

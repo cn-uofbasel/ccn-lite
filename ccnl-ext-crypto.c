@@ -25,6 +25,7 @@
 
 #ifdef USE_SIGNATURES
 
+
 char buf[64000];
 int plen;
 int received;
@@ -39,7 +40,7 @@ ccnl_crypto_strtoint(char *str){
 }
 
 
-static int 
+int 
 ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
           struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         char *cmd, int verified);
