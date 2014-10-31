@@ -29,6 +29,14 @@
 #include "ccnl-ext-nfnkrivine.h"
 
 
+struct builtin_s bifs[] = {
+    {"OP_ADD",  op_builtin_add,  NULL},
+    {"OP_FIND", op_builtin_find, NULL},
+    {"OP_MULT", op_builtin_mult, NULL},
+    {"OP_RAW",  op_builtin_raw,  NULL},
+    {"OP_SUB",  op_builtin_sub,  NULL},
+    {NULL, NULL, NULL}
+};
 
 
 
@@ -73,14 +81,7 @@ push_to_stack(struct stack_s **top, void *content, int type)
 
     if (!top)
         return;
-/*
-    {
-        int cnt;
-        for (cnt = 0, h = *top; h; h = h->next)
-            cnt++;
-        DEBUGMSG(99, "  push: stack was %d element(s) deep\n", cnt);
-    }
-*/
+
     h = ccnl_calloc(1, sizeof(struct stack_s));
     if (h) {
         h->next = *top;
@@ -149,39 +150,55 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
     return elm;
 }
 
-#ifdef XXX
+int
+stack_len(struct stack_s *s)
+{
+    int cnt;
+
+    for (cnt = 0; s; s = s->next)
+            cnt++;
+    return cnt;
+}
+
+// #ifdef XXX
 void 
-print_environment(struct environment_s *env){
-   struct environment_s *e;
-   printf("Environment address is: %p (refcount=%d)\n",
-          (void *)env, env->refcount);
+print_environment(struct environment_s *env)
+{
    int num = 0;
-   for(e = env; e; e = e->next){
-        printf("Element %d %s %p\n", num++, e->name, e->element);        
+
+   printf("  env addr %p (refcount=%d)\n",
+          (void*) env, env ? env->refcount : -1);
+   while (env) {
+       printf("  #%d %s %p\n", num++, env->name, (void*) env->closure);
+       env = env->next;
    }
 }
 
 void 
-print_result_stack(struct stack_s *stack){
-   struct stack_s *s;
+print_result_stack(struct stack_s *stack)
+{
    int num = 0;
-   for(s = stack; s; s = s->next){
-       printf("Element %d %s\n", num++, (char *)s->content);
+
+   while (stack) {
+       printf("Res element #%d: type=%d\n", num++, stack->type);
+       stack = stack -> next;
    }
 }
 
 void 
-print_argument_stack(struct stack_s *stack){
-   struct stack_s *s;
+print_argument_stack(struct stack_s *stack)
+{
    int num = 0;
-   for(s = stack; s; s = s->next){
-        struct closure_s *c = s->content;
-        printf("Element %d %s\n ---Env: \n", num++, c->term);  
-        print_environment(c->env);
-        printf("--End Env\n");      
+
+   while (stack){
+        struct closure_s *c = stack->content;
+        printf("Arg element #%d: %s\n", num++, c ? c->term : "<mark>");
+        if (c)
+            print_environment(c->env);
+        stack = stack->next;
    }
 }
-#endif
+// #endif
 
 void 
 add_to_environment(struct environment_s **env, char *name,
@@ -377,6 +394,8 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
 
+    print_argument_stack(config->argument_stack);
+    print_result_stack(config->result_stack);
     if (*restart) {
         DEBUGMSG(2, "---to do: OP_RAW restart\n");
         *restart = 0;
@@ -514,6 +533,8 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
         struct closure_s *closure = search_in_environment(config->env, cp);
         if (!closure) {
+            // TODO: is the following needed? Above search should have
+            // visited global_dict, already!
             closure = search_in_environment(config->global_dict, cp);
             if(!closure){
                 DEBUGMSG(2, "?? could not lookup var %s\n", cp);
@@ -526,6 +547,54 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
         return ccnl_strdup(pending+1);
     }
+
+    if (!strncmp(prog, "APPLY", 5)) {
+        char *code;
+        DEBUGMSG(2, "---to do: apply\n");
+
+        struct stack_s *fct = pop_from_stack(&config->argument_stack);
+        struct stack_s *arg = pop_from_stack(&config->argument_stack);
+        struct closure_s *fclosure, *aclosure;
+
+        if (!fct || !arg)
+            return NULL;
+        fclosure = (struct closure_s *) fct->content;
+        aclosure = (struct closure_s *) arg->content;
+        if (!fclosure || !aclosure)
+            return NULL;
+        ccnl_free(fct);
+        ccnl_free(arg);
+
+        code = aclosure->term;
+        if (config->env)
+            ccnl_nfn_releaseEnvironment(&config->env);
+        config->env = aclosure->env;
+        ccnl_free(aclosure);
+        push_to_stack(&config->argument_stack, fclosure, STACK_TYPE_CLOSURE);
+
+        if (pending)
+            sprintf(dummybuf, "%s;%s", code, pending+1);
+        else
+            sprintf(dummybuf, "%s", code);
+        ccnl_free(code);
+        return ccnl_strdup(dummybuf);
+
+/*
+        if(pending){ //build new term
+            sprintf(dummybuf, "%s%s", code, pending);
+        }else{
+            sprintf(dummybuf, "%s", code);
+        }
+        ccnl_free(code);
+        if (config->env)
+            ccnl_nfn_releaseEnvironment(&config->env);
+        config->env = closure->env; //set environment from closure
+        ccnl_free(closure);
+
+        return ccnl_strdup(dummybuf);
+*/
+    }
+
     if (!strncmp(prog, "CLOSURE(", 8)) {
         if (pending)
             cp = pending-1;
@@ -927,7 +996,7 @@ local_compute:
         }
         config->local_done = 1;
         pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
-        DEBUGMSG(99, "Prefix local computetion: %s\n", ccnl_prefix_to_path(pref));
+        DEBUGMSG(99, "Prefix local computation: %s\n", ccnl_prefix_to_path(pref));
 //        interest = mkInterestObject(ccnl, config, pref);
         interest = ccnl_nfn_query2interest(ccnl, &pref, config);
         if (interest)
@@ -1044,12 +1113,14 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
     allocAndAdd(env, "_getAllBytes",
-                "CLOSURE(OP_RAW);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                  "CLOSURE(OP_RAW);APPLY");
+//                  "CLOSURE(OP_RAW);RESOLVENAME(2);CLOSURE(OP_CALL);TAILAPPLY");
+//                "CLOSURE(OP_RAW);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
 #ifdef USE_NFN_NSTRANS
     allocAndAdd(env, "_getFromNameSpace",
                 "CLOSURE(OP_NSTRANS);CLOSURE(OP_FIND);"
-                "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY");
+                "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY;TAILAPPLY");
 #endif
 }
 
@@ -1091,7 +1162,9 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     while ((*config)->prog && !halt && (long)(*config)->prog != 1) {
         char *oldprog = (*config)->prog;
         steps++;
-        DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
+        DEBUGMSG(1, "Step %d (%d/%d): %s\n", steps,
+                 stack_len((*config)->argument_stack),
+                 stack_len((*config)->result_stack), (*config)->prog);
         (*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
                 &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
 //      if (oldprog != (*config)->prog)
@@ -1105,7 +1178,11 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
 
     //HALT > 0 means computation finished
     ccnl_free(dummybuf);
-    DEBUGMSG(99, "end-of-computation\n");
+    DEBUGMSG(99, "end-of-computation (%d/%d)\n",
+             stack_len((*config)->argument_stack),
+             stack_len((*config)->result_stack));
+    print_argument_stack((*config)->argument_stack);
+    print_result_stack((*config)->result_stack);
 
     struct ccnl_buf_s *h = NULL;
     char res[64000]; //TODO longer???

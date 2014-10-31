@@ -41,13 +41,6 @@ struct builtin_s {
     char *name;
     BIF fct;
     struct builtin_s *next;
-} bifs[] = {
-    {"OP_ADD",  op_builtin_add,  NULL},
-    {"OP_FIND", op_builtin_find, NULL},
-    {"OP_MULT", op_builtin_mult, NULL},
-    {"OP_RAW",  op_builtin_raw,  NULL},
-    {"OP_SUB",  op_builtin_sub,  NULL},
-    {NULL, NULL, NULL}
 };
 
 struct builtin_s *extensions;
