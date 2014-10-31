@@ -378,7 +378,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
                 i->sched = relay->defaultInterfaceScheduler(relay,
                                                         ccnl_interface_CTS);
         } else
-            fprintf(stderr, "sorry, could not open udp device\n");
+            fprintf(stderr, "sorry, could not open udp device (port %d)\n",
+                udpport);
     }
 
 #ifdef USE_HTTP_STATUS
