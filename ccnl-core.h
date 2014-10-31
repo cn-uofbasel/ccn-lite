@@ -294,6 +294,9 @@ compile_string(void)
 #ifdef USE_HTTP_STATUS
         "HTTP_STATUS, "
 #endif
+#ifdef USE_KITE
+        "KITE, "
+#endif
 #ifdef USE_MGMT
         "MGMT, "
 #endif

@@ -33,7 +33,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
-    struct ccnl_prefix_s *p = 0;
+    struct ccnl_prefix_s *p = 0, *tracing = 0;
     unsigned char *content = 0, *cp = *data;
     DEBUGMSG(99, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
@@ -42,7 +42,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     buf = ccnl_ndntlv_extract(*data - cp,
                               data, datalen,
                               &scope, &mbf, &minsfx, &maxsfx, 0, 0,
-                              &p, &nonce, &ppkl, &content, &contlen);
+                              &p, &tracing, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
         DEBUGMSG(6, "  parsing error or no prefix\n");
         goto Done;
@@ -79,6 +79,12 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             goto Skip;
         }
         // CONFORM: Step 2: check whether interest is already known
+#ifdef USE_KITE
+        if (tracing) { // is a tracing interest
+            for (i = relay->pit; i; i = i->next) {
+            }
+        }
+#endif
         for (i = relay->pit; i; i = i->next) {
             if (i->suite == CCNL_SUITE_NDNTLV &&
                 !ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
