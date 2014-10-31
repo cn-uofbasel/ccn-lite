@@ -348,7 +348,6 @@ int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *pa
 const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
-struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned char *final_block_id, int *final_block_id_len, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
 int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 int ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 #endif
@@ -359,7 +358,7 @@ int ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigne
 const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
-struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned char *final_block_id, int *final_block_id_len, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
+struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned char *final_block_id, int *final_block_id_len, struct ccnl_prefix_s **prefix, struct ccnl_prefix_s **tracing, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
