@@ -40,10 +40,19 @@ myexit(int rc)
 
 // ----------------------------------------------------------------------
 
+int
+myprint(char *str, ...)
+{
+    return printf("Parse error: %s\n", str);
+}
+
+// ----------------------------------------------------------------------
+
 struct ccnl_prefix_s*
 expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
 {
     char *cp = expr, *name = 0;
+    char tmp[1024];
 
     // trim
     while (isblank(*expr))
@@ -73,10 +82,26 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
     if (name == expr)
         expr = NULL;
 
+    if (!name) {
+        name = defaultNFNpath;
 /*
-    fprintf(stderr, "route hint is <%s>\n", name ? name : defaultNFNpath);
-    fprintf(stderr, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
+        // if expr has not the form (@x ...) then add it
+        if (expr && !strchr(expr, '@')) {
+            sprintf(tmp, "@x (%s)", expr);
+            expr = tmp;
+        }
 */
+    }
+    if (expr) {
+        struct ccnl_lambdaTerm_s *lt;
+//            char *cp = expr;
+        lt = ccnl_lambdaStrToTerm(1, &expr, myprint);
+        ccnl_lambdaTermToStr(tmp, lt, ' ');
+        expr = tmp;
+    }
+
+    fprintf(stderr, "route target is <%s>\n", name);
+    fprintf(stderr, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
                             suite, (expr && *expr) ? expr : NULL);
 }
