@@ -111,6 +111,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
     }
     
     p->bytes = ccnl_malloc(len);
+    fprintf(stderr, "// %p\n", (void*) p->bytes);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;

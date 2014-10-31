@@ -611,19 +611,17 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 #endif
 #ifdef USE_SUITE_CCNTLV
                     case CCNL_SUITE_CCNTLV:
-                        data = buf->data;
-
                         // ccntlv_extract expects the data pointer 
                         // at the start of the message. Move past the fixed header.
+                        data = buf->data;
                         datalen -= 8;
                         data += 8;
-                        int hdrlen = 8;
-                        pkt = ccnl_ccntlv_extract(hdrlen, 
+                        pkt = ccnl_ccntlv_extract(8, // hdrlen
                                                   &data, &datalen,
                                                   &prefix, 0, 0, 0, 0,
                                                   &content, &contlen);
 
-                    break;
+                        break;
 #endif 
 #ifdef USE_SUITE_NDNTLV
                     case CCNL_SUITE_NDNTLV:
