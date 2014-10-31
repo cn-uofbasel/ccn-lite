@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99
+CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ccnb2xml \

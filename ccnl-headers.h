@@ -292,11 +292,11 @@ struct ccnl_buf_s *ccnl_ccnb_extract(unsigned char **data, int *datalen, int *sc
 int ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen, unsigned int *result, unsigned char *width);
 int ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 int ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-#endif
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* pkt-ccnb-dec.c */
+static int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,unsigned char **valptr, int *vallen);
 int ccnl_ccnb_data2uint(unsigned char *cp, int len);
 struct ccnl_buf_s *ccnl_ccnb_extract(unsigned char **data, int *datalen, int *scope, int *aok, int *min, int *max, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkd, unsigned char **content, int *contlen);
 int ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen, unsigned int *result, unsigned char *width);
@@ -313,7 +313,7 @@ int ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out);
 int ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out);
 int ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *out, int outlen);
 int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int datalen, int *contentpos, unsigned char *out);
-
+#endif // USE_SUITE_CCNB
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */

@@ -55,8 +55,6 @@
 #include "ccnl.h"
 #include "ccnl-core.h"
 
-void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
