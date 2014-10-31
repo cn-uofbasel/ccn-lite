@@ -48,7 +48,7 @@ ccnl_get_timeval(struct timeval *tv)
     jiffies_to_timeval(jiffies, tv);
 }
 
-static int
+int
 current_time(void)
 {
     struct timeval tv;
@@ -220,7 +220,7 @@ ccnl_rem_timer(void *h)
 
 
 double
-current_time()
+current_time(void)
 {
     struct timeval tv;
     static time_t start;

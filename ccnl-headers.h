@@ -6,8 +6,10 @@
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.h"
+#ifdef USE_NFN
 #include "ccnl-ext-nfn.h"
 #include "ccnl-ext-nfnkrivine.h"
+#endif
 
 //FWD INCLUDES
 #include "fwd-localrpc.h"
@@ -50,7 +52,7 @@ void ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-debug.c */
 const char *compile_string(void);
-struct ccnl_buf_s *ccnl_buf_new(void *data, int len);
+//struct ccnl_buf_s *ccnl_buf_new(void *data, int len);
 
 #ifdef USE_DEBUG
 char *eth2ascii(unsigned char *eth);
@@ -166,7 +168,7 @@ void ccnl_nfn_remove_thunk(struct ccnl_relay_s *ccnl, char *thunkid);
 int ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config);
 struct ccnl_content_s *ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunk);
 struct ccnl_interest_s *ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i);
-struct ccnl_buf_s *ccnl_buf_new(void *data, int len);
+//struct ccnl_buf_s *ccnl_buf_new(void *data, int len);
 void ZAM_register(char *name, BIF fct);
 struct closure_s *new_closure(char *term, struct environment_s *env);
 void push_to_stack(struct stack_s **top, void *content, int type);
@@ -221,7 +223,11 @@ struct ccnl_content_s *create_content_object(struct ccnl_relay_s *ccnl, struct c
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-platform.c */
 long timevaldelta(struct timeval *a, struct timeval *b);
+#ifdef CCNL_LINUXKERNEL
+int current_time(void);
+#else 
 double current_time(void);
+#endif
 char *timestamp(void);
 #if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
 void ccnl_get_timeval(struct timeval *tv);
