@@ -25,6 +25,7 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
+#undef USE_NFN
 
 #include "ccnl-common.c"
 

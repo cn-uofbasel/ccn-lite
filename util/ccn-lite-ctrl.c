@@ -25,6 +25,7 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
+#undef USE_NFN
 
 #define USE_SIGNATURES
 #include "ccnl-common.c"

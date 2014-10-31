@@ -24,6 +24,7 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
+#undef USE_NFN
 #define CCNL_UNIX
 #define _BSD_SOURCE
 #define _SVID_SOURCE
