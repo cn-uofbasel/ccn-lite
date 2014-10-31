@@ -100,7 +100,7 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
         expr = tmp;
     }
 
-    fprintf(stderr, "route target is <%s>\n", name);
+    fprintf(stderr, "route hint is <%s>\n", name);
     fprintf(stderr, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
                             suite, (expr && *expr) ? expr : NULL);
