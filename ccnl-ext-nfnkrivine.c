@@ -1049,6 +1049,9 @@ handlecontent: //if result was found ---> handle it
     }
     
     if (!strncmp(prog, "halt", 4)) {
+        ccnl_nfn_freeStack(config->argument_stack);
+        ccnl_nfn_freeStack(config->result_stack);
+        config->argument_stack = config->result_stack = NULL;
         *halt = 1;
         return pending ? ccnl_strdup(pending) : NULL;
     }
@@ -1140,7 +1143,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         return 0;
     dummybuf = ccnl_malloc(2000);
     if (!*config) {
-        char *prog = ccnl_malloc(len*sizeof(char));
+        char *prog;
         struct environment_s *global_dict = NULL;
 
         prog = ccnl_malloc(len*sizeof(char));

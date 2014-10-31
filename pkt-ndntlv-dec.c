@@ -205,7 +205,7 @@ ccnl_ndntlv_extract(int hdrlen,
         oldpos = *data - start;
     }
     if (*datalen > 0)
-    goto Bail;
+        goto Bail;
 
     if (prefix)    *prefix = p;    else free_prefix(p);
     if (nonce)     *nonce = n;     else ccnl_free(n);

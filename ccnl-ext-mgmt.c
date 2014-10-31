@@ -690,6 +690,7 @@ Bail:
     ccnl_free(out);
     ccnl_free(contentobj);
     ccnl_free(stmt);
+    ccnl_free(suite);
     ccnl_free(action);
     ccnl_free(debugaction);
     
