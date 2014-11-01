@@ -30,7 +30,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
-static struct ccnl_interest_s* 
+struct ccnl_interest_s* 
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 #ifndef USE_NFN
@@ -83,7 +83,7 @@ done:
 // ----------------------------------------------------------------------
 // addresses, interfaces and faces
 
-static void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 
 int
 ccnl_addr_cmp(sockunion *s1, sockunion *s2)

@@ -244,14 +244,13 @@ ccnl_addr2ascii(sockunion *su)
         strcpy(result, eth2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
+        return result;
     }
-    return result;
 #endif
     case AF_INET:
         sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
         return result;
-//      return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
         strcpy(result, su->ux.sun_path);
@@ -275,7 +274,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     int len = 0, i;
 
     if (!pr)
-    return NULL;
+        return NULL;
 
     if (!buf) {
         struct ccnl_buf_s *b;
@@ -496,20 +495,20 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_fillInterestWithHdr(name, &offs, tmp);
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_fillInterest(name, -1, NULL, &offs, tmp);
-    break;
+        break;
 #endif
     default:
-    break;
+        break;
     }
 
     if (len)
@@ -535,23 +534,23 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
         offs = 0;
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen, 
                                              NULL, NULL, // chunknum/lastchunknum
                                              &offs, &contentpos, tmp);
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_fillContent(name, payload, paylen,
                                       &offs, &contentpos, NULL, 0, tmp);
-    break;
+        break;
 #endif
     default:
-    break;
+        break;
     }
 
     if (len) {

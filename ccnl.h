@@ -22,6 +22,9 @@
 
 #define CCNL_VERSION "2014-10-03"
 
+#ifndef CCNL_H
+#define CCNL_H
+
 #define ETHTYPE_XEROX_PUP               0x0a00
 #define ETHTYPE_PARC_CCNX               0x0801
 
@@ -141,5 +144,5 @@ enum {
 
 //#define USE_SIGNATURES
 
-
+#endif //CCNL_H
 // eof
