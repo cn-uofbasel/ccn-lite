@@ -50,6 +50,8 @@
 
 #include "ccnl-includes.h"
 
+#include "ccnl-headers.h"
+
 #include "ccnl.h"
 #include "ccnl-core.h"
 
@@ -376,7 +378,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
                 i->sched = relay->defaultInterfaceScheduler(relay,
                                                         ccnl_interface_CTS);
         } else
-            fprintf(stderr, "sorry, could not open udp device\n");
+            fprintf(stderr, "sorry, could not open udp device (port %d)\n",
+                udpport);
     }
 
 #ifdef USE_HTTP_STATUS
@@ -608,19 +611,17 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 #endif
 #ifdef USE_SUITE_CCNTLV
                     case CCNL_SUITE_CCNTLV:
-                        data = buf->data;
-
                         // ccntlv_extract expects the data pointer 
                         // at the start of the message. Move past the fixed header.
+                        data = buf->data;
                         datalen -= 8;
                         data += 8;
-                        int hdrlen = 8;
-                        pkt = ccnl_ccntlv_extract(hdrlen, 
+                        pkt = ccnl_ccntlv_extract(8, // hdrlen
                                                   &data, &datalen,
                                                   &prefix, 0, 0, 0, 0,
                                                   &content, &contlen);
 
-                    break;
+                        break;
 #endif 
 #ifdef USE_SUITE_NDNTLV
                     case CCNL_SUITE_NDNTLV:
@@ -629,8 +630,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
                             typ != NDN_TLV_Data)
                             goto notacontent;
                         pkt = ccnl_ndntlv_extract(data - buf->data,
-                                                  &data, &datalen, 0, 0, 0, 0, NULL, 0,
-                                &prefix, &nonce, &ppkd, &content, &contlen);
+                                                  &data, &datalen, 0, 0, 0, 0,
+                                                  NULL, 0, &prefix, NULL,
+                                                  &nonce, &ppkd,
+                                                  &content, &contlen);
                         break;
 #endif
                     default:

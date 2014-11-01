@@ -168,7 +168,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
     if (ccnl_nfnprefix_isTHUNK(prefix))
         thunk_request = 1;
-
+    /*
     if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
@@ -182,6 +182,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         free_prefix(copy);
         start_locally = 1;
     }
+    */
 
     //put packet together
     if (prefix->suite == CCNL_SUITE_CCNTLV) {

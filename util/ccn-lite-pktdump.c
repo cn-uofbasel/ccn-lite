@@ -840,7 +840,7 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
         len -= 2;
         ccnl_ndntlv_extract(2, &cp, &len,
                             NULL, NULL, NULL, NULL, NULL, 0, 
-                            &p, NULL, NULL,
+                            &p, NULL, NULL, NULL,
                             &content, &contlen);
         break;
     default:

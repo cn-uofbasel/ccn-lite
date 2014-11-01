@@ -188,7 +188,7 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     buf = ccnl_ndntlv_extract(*data - cp,
                   data, datalen,
                   &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
-                  &prefix, 
+                  &prefix, NULL,
                   &nonce, // nonce
                   &ppkl, //ppkl
                   content, contentlen);
