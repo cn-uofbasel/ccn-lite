@@ -683,12 +683,12 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         ccnl_free(aclosure);
         push_to_stack(&config->argument_stack, fclosure, STACK_TYPE_CLOSURE);
 
-        if (contd) {
+        if (contd)
             sprintf(dummybuf, "%s;%s", code, contd);
-            contd = dummybuf;
-        }
+        else
+            strcat(dummybuf, code);
         ccnl_free(code);
-        return ccnl_strdup(contd);
+        return ccnl_strdup(dummybuf);
     }
     case ZAM_CALL:
     {
@@ -853,8 +853,10 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY");
     allocAndAdd(env, "mult",
                 "CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY");
+
     allocAndAdd(env, "call",
-                "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                  "CLOSURE(OP_CALL);APPLY");
+//                "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
     allocAndAdd(env, "_getAllBytes",
                   "CLOSURE(OP_RAW);APPLY");
@@ -918,7 +920,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
                   struct ccnl_prefix_s *prefix, int suite)
 {
     int steps = 0, halt = 0, restart = 1;
-    int len = strlen("CLOSURE(HALT);RESOLVENAME()") + strlen(expression);
+    int len = strlen("CLOSURE(HALT);RESOLVENAME()") + strlen(expression) + 1;
     char *dummybuf;
 
     DEBUGMSG(99, "Krivine_reduction()\n");
@@ -946,32 +948,33 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
 
     DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
 
-    while ((*config)->prog && !halt && (long)(*config)->prog != 1) {
+    while ((*config)->prog && !halt) {
         char *oldprog = (*config)->prog;
         steps++;
         DEBUGMSG(1, "Step %d (%d/%d): %s\n", steps,
                  stack_len((*config)->argument_stack),
                  stack_len((*config)->result_stack), (*config)->prog);
-        (*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
-                &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
-//      if (oldprog != (*config)->prog)
-            ccnl_free(oldprog);
-    }
-    if (halt < 0) { //HALT < 0 means pause computation
-        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
-        ccnl_free(dummybuf);
-        return NULL;
+        (*config)->prog = ZAM_term(ccnl, *config,
+                                (*config)->fox_state->thunk_request, 
+                                &(*config)->fox_state->num_of_required_thunks,
+                                &halt, dummybuf, &restart);
+        ccnl_free(oldprog);
     }
     ccnl_free(dummybuf);
+
+    if (halt < 0) { //HALT < 0 means pause computation
+        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
+        return NULL;
+    }
 
     //HALT > 0 means computation finished
     DEBUGMSG(99, "end-of-computation (%d/%d)\n",
              stack_len((*config)->argument_stack),
              stack_len((*config)->result_stack));
-
+/*
     print_argument_stack((*config)->argument_stack);
     print_result_stack((*config)->result_stack);
-
+*/
 
     return Krivine_exportResultStack(ccnl, *config);
 }

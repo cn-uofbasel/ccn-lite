@@ -31,32 +31,6 @@
 
 // ----------------------------------------------------------------------
 
-int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen)
-{
-     int len, offset;
-     offset = outlen;
-     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
-     return len;
-}
-
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-
-
-
 #ifdef USE_SUITE_CCNB
 int ccnb_isContent(unsigned char *buf, int len)
 {
@@ -71,6 +45,20 @@ int ccnb_isContent(unsigned char *buf, int len)
 #endif
 
 #ifdef USE_SUITE_CCNTLV
+int
+ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *out, int outlen)
+{
+     int len, offset;
+
+     offset = outlen;
+     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
+     if (len > 0)
+         memmove(out, out + offset, len);
+
+     return len;
+}
+
 int ccntlv_isObject(unsigned char *buf, int len)
 {
     if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
@@ -102,6 +90,20 @@ int ccntlv_isObject(unsigned char *buf, int len)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
+int
+ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
+                  unsigned char *out, int outlen)
+{
+    int len, offset;
+
+    offset = outlen;
+    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
+    if (len > 0)
+        memmove(out, out + offset, len);
+
+    return len;
+}
+
 int ndntlv_isData(unsigned char *buf, int len)
 {
     int typ, vallen;
@@ -240,6 +242,12 @@ usage:
 
         len = mkInterest(prefix, &nonce, out, sizeof(out));
 
+        {
+            int f = open("x.bin", O_CREAT | O_WRONLY);
+            write(f, out, len);
+            close(f);
+        }
+            
         if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");
             myexit(1);
