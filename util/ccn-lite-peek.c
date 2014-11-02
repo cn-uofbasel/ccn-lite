@@ -242,12 +242,6 @@ usage:
 
         len = mkInterest(prefix, &nonce, out, sizeof(out));
 
-        {
-            int f = open("x.bin", O_CREAT | O_WRONLY);
-            write(f, out, len);
-            close(f);
-        }
-            
         if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");
             myexit(1);
