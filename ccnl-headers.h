@@ -191,28 +191,6 @@ struct ccnl_interest_s *ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct cc
 int ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_content_s *c);
 #endif
 
-
-//---------------------------------------------------------------------------------------------------------------------------------------
-/* ccnl-objects.c */
-int ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
-int ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt);
-int ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt, char *cp, int cnt);
-int ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt, char *str);
-int ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt, unsigned int val, int bytes);
-int ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out);
-int ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out);
-int ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *out, int outlen);
-int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int datalen, int *contentpos, unsigned char *out);
-int ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependTL(int type, unsigned int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependNonNegInt(int type, unsigned int val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *offset, int *contentpos, unsigned char *final_block_id, int final_block_id_len, unsigned char *buf);
-struct ccnl_content_s *create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, unsigned char *contentstr, int contentlen, int suite);
-
-
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-platform.c */
 long timevaldelta(struct timeval *a, struct timeval *b);
