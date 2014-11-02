@@ -43,5 +43,7 @@ struct builtin_s {
     struct builtin_s *next;
 };
 
+struct builtin_s bifs[];
 struct builtin_s *extensions;
+
 #endif //CCNL_EXT_NFNKRIVINE_H

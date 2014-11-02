@@ -37,12 +37,12 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     DEBUGMSG(99, "---to do: OP_NSTRANS\n");
 
-    s1 = pop_or_resolve_from_result_stack(ccnl, config, restart);
+    s1 = pop_or_resolve_from_result_stack(ccnl, config);
     if (!s1) {
         *halt = -1;
         return prog;
     }
-    s2 = pop_or_resolve_from_result_stack(ccnl, config, restart);
+    s2 = pop_or_resolve_from_result_stack(ccnl, config);
     if (!s2) {
         ccnl_nfn_freeStack(s1);
         *halt = -1;
