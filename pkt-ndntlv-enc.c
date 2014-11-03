@@ -107,9 +107,9 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset, cnt;
 
-    if(name->chunknum && *name->chunknum >=0) {
+    if(name->chunknum >=0) {
         char *chunk_name_component = ccnl_malloc(12 * sizeof(char));
-        sprintf(chunk_name_component, "c%i", *name->chunknum);
+        sprintf(chunk_name_component, "c%i", name->chunknum);
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                     (unsigned char*)chunk_name_component, strlen(chunk_name_component), 
                                     offset, buf) < 0)

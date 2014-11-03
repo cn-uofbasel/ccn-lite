@@ -82,6 +82,7 @@ ccnl_ndntlv_extract(int hdrlen,
                     unsigned char *final_block_id,
                     int *final_block_id_len,
                     struct ccnl_prefix_s **prefix,
+                    struct ccnl_prefix_s **tracing,
                     struct ccnl_buf_s **nonce,
                     struct ccnl_buf_s **ppkl,
                     unsigned char **content, int *contlen)
@@ -204,7 +205,7 @@ ccnl_ndntlv_extract(int hdrlen,
         oldpos = *data - start;
     }
     if (*datalen > 0)
-    goto Bail;
+        goto Bail;
 
     if (prefix)    *prefix = p;    else free_prefix(p);
     if (nonce)     *nonce = n;     else ccnl_free(n);

@@ -116,6 +116,92 @@ ccnl_buf_new(void *data, int len)
         continue; \
     } do {} while(0)
 
+// ----------------------------------------------------------------------
+
+#ifdef USE_SUITE_CCNB
+int ccnb_isContent(unsigned char *buf, int len)
+{
+    int num, typ;
+
+    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
+        return -1;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+        return 0;
+    return 1;
+}
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+int
+ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *out, int outlen)
+{
+     int len, offset;
+
+     offset = outlen;
+     len = ccnl_ccntlv_fillChunkInterestWithHdr(name, &offset, out);
+     if (len > 0)
+         memmove(out, out + offset, len);
+
+     return len;
+}
+
+int ccntlv_isObject(unsigned char *buf, int len)
+{
+    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
+        fprintf(stderr, "ccntlv header not large enough");
+        return -1;
+    }
+    struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
+    unsigned short hdrlen = ntohs(hp->hdrlen);
+    unsigned short payloadlen = ntohs(hp->payloadlen);
+
+    if (hp->version != CCNX_TLV_V0) {
+        fprintf(stderr, "ccntlv version %d not supported\n", hp->version);
+        return -1;
+    }
+
+    if (hdrlen + payloadlen < len) {
+        fprintf(stderr, "ccntlv hdr + payload do not fit into received buf\n");
+        return -1;
+    }
+    buf += hdrlen;
+    len -= hdrlen;
+
+
+    if(hp->packettype == CCNX_PT_ContentObject)
+        return 1;
+    else
+        return 0;
+}
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+int
+ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
+                  unsigned char *out, int outlen)
+{
+    int len, offset;
+
+    offset = outlen;
+    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
+    if (len > 0)
+        memmove(out, out + offset, len);
+
+    return len;
+}
+
+int ndntlv_isData(unsigned char *buf, int len)
+{
+    int typ, vallen;
+
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+        return -1;
+    if (typ != NDN_TLV_Data)
+        return 0;
+    return 1;
+}
+#endif
 
 #endif //CCNL_COMMON_C
 // eof
