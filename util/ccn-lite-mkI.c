@@ -132,10 +132,12 @@ int
 ccntlv_mkInterest(struct ccnl_prefix_s *name,
                   unsigned char *out, int outlen)
 {
-     int len, offset;
+    int len, offset;
 
-     offset = outlen;
-     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
+    offset = outlen;
+    len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
+    if (len > 0)
+        memmove(out, out + offset, len);
 
      return len;
 }
