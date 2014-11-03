@@ -73,7 +73,6 @@ op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                struct stack_s **stack)
 {
     int i1=0, i2=0, *h;
-    char *cp = NULL;
 
     DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
     pop2int();
@@ -81,7 +80,7 @@ op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     *h = i1 + i2;
     push_to_stack(stack, h, STACK_TYPE_INT);
 
-    return pending ? ccnl_strdup(pending+1) : cp;
+    return pending ? ccnl_strdup(pending+1) : NULL;
 }
 
 char*
@@ -100,7 +99,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         *restart = 0;
         local_search = 1;
     } else {
-        DEBUGMSG(2, "---to do: OP_FIND <%s>\n", prog+7);
+        DEBUGMSG(2, "---to do: OP_FIND <%s> <%s>\n", prog+7, pending);
         h = pop_from_stack(&config->result_stack);
         //    if (h->type != STACK_TYPE_PREFIX)  ...
         config->fox_state->num_of_params = 1;
@@ -115,20 +114,23 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     DEBUGMSG(99, "FIND: Checking if result was received\n");
     c = ccnl_nfn_local_content_search(ccnl, config, prefix);
     if (!c) {
+        struct ccnl_prefix_s *copy;
+        struct ccnl_interest_s *interest;
         if (local_search) {
             DEBUGMSG(99, "FIND: no content\n");
             return NULL;
         }
         //Result not in cache, search over the network
         //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
-        struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
-        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-        DEBUGMSG(99, "FIND: sending new interest from Face ID: %d\n", interest->from->faceid);
+        copy = ccnl_prefix_dup(prefix);
+        interest = ccnl_nfn_query2interest(ccnl, &copy, config);
+        DEBUGMSG(99, "FIND: sending new interest from Face ID: %d\n",
+                 interest->from->faceid);
         if (interest)
             ccnl_interest_propagate(ccnl, interest);
         //wait for content, return current program to continue later
         *halt = -1; //set halt to -1 for async computations
-        return prog ? ccnl_strdup(prog) : NULL;
+        return ccnl_strdup(prog);
     }
 
     DEBUGMSG(99, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
@@ -146,9 +148,9 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
 
     if (pending) {
-        DEBUGMSG(99, "Pending: %s\n", pending+1);
+        DEBUGMSG(99, "Pending: %s\n", pending);
 
-        cp = ccnl_strdup(pending+1);
+        cp = ccnl_strdup(pending);
     }
     return cp;
 }
@@ -369,6 +371,75 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_NFN_NSTRANS
+
+// NFN example: "getFromNameSpace NS /some/uri/to/fetch"
+// where NS is a constant: 'ccnb, 'ccnx2014, 'ndn2013
+
+char*
+op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+                   int *restart, int *halt, char *prog, char *pending,
+                   struct stack_s **stack)
+{
+    char *cp = NULL;
+    struct stack_s *s1, *s2;
+
+    DEBUGMSG(99, "---to do: OP_NSTRANS\n");
+
+    s1 = pop_or_resolve_from_result_stack(ccnl, config);
+    if (!s1) {
+        *halt = -1;
+        return prog;
+    }
+    s2 = pop_or_resolve_from_result_stack(ccnl, config);
+    if (!s2) {
+        ccnl_nfn_freeStack(s1);
+        *halt = -1;
+        return prog;
+    }
+
+    if (s2->type == STACK_TYPE_CONST && s1->type == STACK_TYPE_PREFIX) {
+        struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
+        int suite = -1;
+
+        if (!strcmp(s2->content, "ccnb"))
+            suite = CCNL_SUITE_CCNB;
+        else if (!strcmp(s2->content, "ccnx2014"))
+            suite = CCNL_SUITE_CCNTLV;
+        else if (!strcmp(s2->content, "ndn2013"))
+            suite = CCNL_SUITE_NDNTLV;
+        if (suite < 0)
+            goto out;
+        DEBUGMSG(99, " >> changing PREFIX suite from %d to %d\n",
+                 p->suite, suite);
+
+        p->nfnflags = 0;
+        p->suite = suite;
+        push_to_stack(stack, s1->content, STACK_TYPE_PREFIX);
+
+        ccnl_free(s1);
+        s1 = NULL;
+
+        if (pending) {
+            cp = ccnl_malloc(strlen(pending)+1);
+            strcpy(cp, pending);
+        }
+    } else {
+out:
+        *halt = -1;
+        cp = prog;
+    }
+    if (s1)
+        ccnl_nfn_freeStack(s1);
+    ccnl_nfn_freeStack(s2);
+
+    return cp;
+}
+
+#endif // USE_NFN_NSTRANS
+
+// ----------------------------------------------------------------------
+
 struct builtin_s bifs[] = {
     {"OP_ADD",           op_builtin_add,  NULL},
     {"OP_FIND",          op_builtin_find, NULL},
@@ -381,6 +452,10 @@ struct builtin_s bifs[] = {
     {"OP_CMPEQ",         op_builtin_cmpeq, NULL},
     {"OP_CMPLEQ",        op_builtin_cmpleq, NULL},
     {"OP_IFELSE",        op_builtin_ifelse, NULL},
+
+#ifdef USE_NFN_NSTRANS
+    {"OP_NSTRANS",       op_builtin_nstrans, NULL},
+#endif
 
     {NULL, NULL, NULL}
 };

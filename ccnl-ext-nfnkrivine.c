@@ -335,7 +335,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_prefix_s *pref, *pref2;
     struct ccnl_interest_s *interest;
 
-    DEBUGMSG(2, "---to do: OP_FOX <%s>\n", arg);
+    DEBUGMSG(2, "---to do: FOX <%s>\n", arg);
     ccnl_free(arg);
     if (*restart) {
         *restart = 0;
@@ -598,7 +598,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         ccnl_lambdaTermToStr(dummybuf, t->m, 0);
         len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
         if (contd)
-            strcpy(res+len, contd);
+            len += sprintf(res+len, ";%s", contd);
         ccnl_lambdaFreeTerm(t);
         return ccnl_strdup(res);
     }
@@ -696,10 +696,10 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int i, offset, num_params = *(int *)h->content;
         char name[5];
 
-        DEBUGMSG(2, "---to do: OP_CALL <%s>\n", arg);
+        DEBUGMSG(2, "---to do: CALL <%s>\n", arg);
         ccnl_free(h->content);
         ccnl_free(h);
-        sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");
+        sprintf(dummybuf, "CLOSURE(FOX);RESOLVENAME(@op(");
 	// ... @x(@y y x 2 op)));TAILAPPLY";
         offset = strlen(dummybuf);
         for (i = 0; i < num_params; ++i) {
@@ -795,7 +795,7 @@ normal:
     case ZAM_UNKNOWN:
         break;
     default:
-        DEBUGMSG(99, "builtin: %s %s %s\n", bifs[-tok - 1].name, prog, contd);
+        DEBUGMSG(99, "builtin: %s (%s/%s)\n", bifs[-tok - 1].name, prog, contd);
         return bifs[-tok - 1].fct(ccnl, config, restart, halt, prog,
                                   contd, &config->result_stack);
     }
@@ -855,18 +855,15 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY");
 
     allocAndAdd(env, "call",
-                  "CLOSURE(OP_CALL);APPLY");
-//                "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                "CLOSURE(CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
     allocAndAdd(env, "_getAllBytes",
-                  "CLOSURE(OP_RAW);APPLY");
-//                  "CLOSURE(OP_RAW);RESOLVENAME(2);CLOSURE(OP_CALL);TAILAPPLY");
-//                "CLOSURE(OP_RAW);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                "TAILAPPLY;OP_RAW");
 
 #ifdef USE_NFN_NSTRANS
     allocAndAdd(env, "_getFromNameSpace",
                 "CLOSURE(OP_NSTRANS);CLOSURE(OP_FIND);"
-                "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY;TAILAPPLY");
+                "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY");
 #endif
 }
 
