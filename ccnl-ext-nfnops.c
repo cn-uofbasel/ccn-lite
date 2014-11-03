@@ -269,7 +269,7 @@ op_builtin_cmpeqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                   int *restart, int *halt, char *prog, char *pending,
                   struct stack_s **stack)
 {
-    int i1, i2;
+    int i1=0, i2=0;
     char res[1000], *cp;
 
     pop2int();
@@ -287,7 +287,7 @@ op_builtin_cmpleqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                   int *restart, int *halt, char *prog, char *pending,
                   struct stack_s **stack)
 {
-    int i1, i2;
+    int i1=0, i2=0;
     char res[1000], *cp;
 
     pop2int();
@@ -305,7 +305,7 @@ op_builtin_cmpeq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  int *restart, int *halt, char *prog, char *pending,
                  struct stack_s **stack)
 {
-    int i1, i2;
+    int i1=0, i2=0;
     char res[1000], *cp;
 
     DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
@@ -323,7 +323,7 @@ op_builtin_cmpleq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                   int *restart, int *halt, char *prog, char *pending,
                   struct stack_s **stack)
 {
-    int i1, i2;
+    int i1=0, i2=0;
     char res[1000], *cp;
 
     DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>\n", pending);
