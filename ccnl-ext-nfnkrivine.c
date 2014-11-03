@@ -246,7 +246,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         //local computation name components
         DEBUGMSG(99, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
-        DEBUGMSG(99, "LOCAL PREFIX: %s", ccnl_prefix_to_path(pref));
+        DEBUGMSG(99, "LOCAL PREFIX: %s\n", ccnl_prefix_to_path(pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -766,8 +766,8 @@ normal:
     }
     case ZAM_HALT:
         ccnl_nfn_freeStack(config->argument_stack);
-        ccnl_nfn_freeStack(config->result_stack);
-        config->argument_stack = config->result_stack = NULL;
+        //ccnl_nfn_freeStack(config->result_stack);
+        config->argument_stack = /*config->result_stack =*/ NULL;
         *halt = 1;
         return ccnl_strdup(contd);
     case ZAM_RESOLVENAME:
@@ -972,6 +972,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     print_result_stack((*config)->result_stack);
 */
 
+    print_result_stack((*config)->result_stack);
     return Krivine_exportResultStack(ccnl, *config);
 }
 
