@@ -117,9 +117,10 @@ Usage:
     // mandatory url 
     if (!argv[optind])
         goto Usage;
-    char *url = argv[optind];
-    optind++;
 
+    char *url_orig = argv[optind];
+    char url[strlen(url_orig)];
+    optind++;
 
     // optional nfn 
     char *nfnexpr = argv[optind];
@@ -214,7 +215,7 @@ Usage:
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        // strcpy(url, url_orig);
+        strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 

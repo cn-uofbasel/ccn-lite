@@ -31,90 +31,6 @@
 // ----------------------------------------------------------------------
 
 int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ccntlv_fillChunkInterestWithHdr(name, &offset, out);
-
-    return len;
-}
-
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-
-    offset = outlen;
-    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-
-
-// ----------------------------------------------------------------------
-
-#ifdef USE_SUITE_CCNB
-int ccnb_isContent(unsigned char *buf, int len)
-{
-    int num, typ;
-
-    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
-        return -1;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
-        return 0;
-    return 1;
-}
-#endif
-
-#ifdef USE_SUITE_CCNTLV
-int ccntlv_isObject(unsigned char *buf, int len)
-{
-    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s))
-        return -1;
-    struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
-
-    if (hp->version != CCNX_TLV_V0)
-        return -1;
-
-    unsigned short hdrlen = ntohs(hp->hdrlen);
-    unsigned short payloadlen = ntohs(hp->payloadlen);
-
-    if (hdrlen + payloadlen > len)
-        return -1;
-    buf += hdrlen;
-    len -= hp->hdrlen;
-
-
-    if(hp->packettype == CCNX_PT_ContentObject)
-        return 1;
-    else
-        return 0;
-}
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-int ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ, vallen;
-
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
-#endif
-
-// debug_level = 1;
-
-int
 ccnl_fetchContentForChunkName(char* name, 
                               char* nfnexpr,
                               int *chunknum,
@@ -185,7 +101,7 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     buf = ccnl_ndntlv_extract(*data - cp,
                   data, datalen,
                   &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
-                  &prefix, 
+                  &prefix, NULL,
                   &nonce, // nonce
                   &ppkl, //ppkl
                   content, contentlen);
@@ -266,6 +182,8 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     float wait = 3.0;
 
+    debug_level = 99;
+
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
         case 's':
@@ -328,6 +246,7 @@ usage:
     srandom(time(NULL));
 
 
+
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
         su->sun_family = AF_UNIX;
@@ -344,7 +263,6 @@ usage:
 
     char *origUrl = argv[optind];
     char url[strlen(origUrl)];
-    strcpy(origUrl, argv[optind]);
 
     char *nfnexpr = 0;
     

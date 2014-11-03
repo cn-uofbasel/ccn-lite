@@ -24,6 +24,7 @@
 
 #include "pkt-ndntlv.h"
 #include "pkt-localrpc.h"
+#include "fwd-localrpc.h"
 #include "pkt-localrpc-enc.c"
 #include "pkt-localrpc-dec.c"
 
@@ -129,9 +130,6 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // ----------------------------------------------------------------------
 
-struct rpc_exec_s { // execution context
-    struct rdr_ds_s *ostack; // operands
-};
 
 struct rpc_exec_s* rpc_exec_new(void)
 {
@@ -260,8 +258,6 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return 0;
 }
 
-typedef int(builtinFct)(struct ccnl_relay_s *, struct ccnl_face_s *,
-                        struct rpc_exec_s *, struct rdr_ds_s *);
 
 struct x_s {
     char *name;
