@@ -49,10 +49,8 @@
 #include "pkt-ccntlv.h"
 #include "pkt-ndntlv.h"
 
-
 // ----------------------------------------------------------------------
 
-struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 
 #define ccnl_print_stats(x,y)           do{}while(0)
 #define ccnl_app_RX(x,y)                do{}while(0)
@@ -60,7 +58,7 @@ struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 static struct ccnl_relay_s theRelay;
 
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
-                       struct packet_type *pt, struct net_device *outdev);
+                      struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk, int len);
 
