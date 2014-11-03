@@ -38,6 +38,8 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *chunknum, int *nonce,
 
     offset = outlen;
     len = ccnl_ccntlv_fillChunkInterestWithHdr(name, chunknum, &offset, out);
+    if (len > 0)
+        memmove(out, out + offset, len);
 
     return len;
 }
@@ -268,6 +270,8 @@ main(int argc, char *argv[])
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
+
+    debug_level = 99;
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {

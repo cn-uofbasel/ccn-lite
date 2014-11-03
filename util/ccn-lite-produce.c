@@ -117,8 +117,10 @@ Usage:
     // url required
     if (!argv[optind])
         goto Usage;
-    char url[strlen(argv[optind])];
-    strcpy(url, argv[optind]);
+    int urllen = strlen(argv[optind]);
+    char url_orig[urllen];
+    char url[urllen];
+    strcpy(url_orig, argv[optind]);
 
     // OUTIDR required
     if (!argv[optind]) {
@@ -215,7 +217,7 @@ Usage:
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        // strcpy(url, url_orig);
+        strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 

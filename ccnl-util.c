@@ -200,7 +200,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 int
 ccnl_pkt2suite(unsigned char *data, int len)
 {
-    if (len <= 0)
+
+    if (len <= 0) 
         return -1;
 
 #ifdef USE_SUITE_CCNB
@@ -210,10 +211,10 @@ ccnl_pkt2suite(unsigned char *data, int len)
 
 #ifdef USE_SUITE_CCNTLV
     if (data[0] == CCNX_TLV_V0 && len > 1) {
-        if (data[1] == CCNX_TLV_TL_Interest ||
-            data[1] == CCNX_TLV_TL_Object)
+        if (data[1] == CCNX_PT_Interest ||
+            data[1] == CCNX_PT_ContentObject) 
             return CCNL_SUITE_CCNTLV;
-    }
+    } 
 #endif
 
 #ifdef USE_SUITE_NDNTLV
@@ -225,7 +226,6 @@ ccnl_pkt2suite(unsigned char *data, int len)
     if (*data == 0x80)
         return CCNL_SUITE_LOCALRPC;
 #endif
-
     return -1;
 }
 
