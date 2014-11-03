@@ -22,6 +22,9 @@
 
 // #define NDN_TLV_RPC_USERDEFINEDNAME  0x00..0x7f
 
+#ifndef PKT_LOCAL_RPC_H
+#define PKT_LOCAL_RPC_H
+
 #define NDN_TLV_RPC_APPLICATION         0x80
 #define NDN_TLV_RPC_LAMBDA              0x81
 
@@ -76,4 +79,6 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 int ccnl_localrpc_RX_rpcreturn();
 int ccnl_localrpc_RX_rpc();
 
+
+#endif //PKT_LOCAL_RPC_H
 // eof
