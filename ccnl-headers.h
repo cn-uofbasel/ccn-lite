@@ -171,16 +171,11 @@ void ZAM_register(char *name, BIF fct);
 struct closure_s *new_closure(char *term, struct environment_s *env);
 void push_to_stack(struct stack_s **top, void *content, int type);
 struct stack_s *pop_from_stack(struct stack_s **top);
-struct stack_s *pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart);
+struct stack_s *pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config);
 void add_to_environment(struct environment_s **env, char *name, struct closure_s *closure);
 struct closure_s *search_in_environment(struct environment_s *env, char *name);
 int iscontentname(char *cp);
 int choose_parameter(struct configuration_s *config);
-char *op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart, int *halt, char *prog, char *pending, struct stack_s **stack);
-char *op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart, int *halt, char *prog, char *pending, struct stack_s **stack);
-char *op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart, int *halt, char *prog, char *pending, struct stack_s **stack);
-char *op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart, int *halt, char *prog, char *pending, struct stack_s **stack);
-char *op_builtin_sub(struct ccnl_relay_s *ccnl, struct configuration_s *config, int *restart, int *halt, char *prog, char *pending, struct stack_s **stack);
 struct ccnl_prefix_s *create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config, int parameter_number, int thunk_request, struct ccnl_prefix_s *prefix);
 char *ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, int thunk_request, int *num_of_required_thunks, int *halt, char *dummybuf, int *restart);
 void allocAndAdd(struct environment_s **env, char *name, char *cmd);
@@ -195,28 +190,6 @@ int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, struct ccn
 struct ccnl_interest_s *ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, int suite, struct ccnl_buf_s **buf, struct ccnl_prefix_s **p, int minsfx, int maxsfx);
 int ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_content_s *c);
 #endif
-
-
-//---------------------------------------------------------------------------------------------------------------------------------------
-/* ccnl-objects.c */
-int ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
-int ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt);
-int ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt, char *cp, int cnt);
-int ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt, char *str);
-int ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt, unsigned int val, int bytes);
-int ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out);
-int ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out);
-int ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *out, int outlen);
-int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int datalen, int *contentpos, unsigned char *out);
-int ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependTL(int type, unsigned int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependNonNegInt(int type, unsigned int val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *offset, int *contentpos, unsigned char *final_block_id, int final_block_id_len, unsigned char *buf);
-struct ccnl_content_s *create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, unsigned char *contentstr, int contentlen, int suite);
-
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-platform.c */
