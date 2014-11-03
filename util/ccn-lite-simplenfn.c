@@ -25,20 +25,7 @@
 #define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
-
-// ----------------------------------------------------------------------
-
-char *unix_path;
-
-void
-myexit(int rc)
-{
-    if (unix_path)
-        unlink(unix_path);
-    exit(rc);
-}
-
-// ----------------------------------------------------------------------
+#include "ccnl-socket.c"
 
 int
 myprint(char *str, ...)
@@ -109,165 +96,6 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
 // ----------------------------------------------------------------------
 
 int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-
-
-
-// ----------------------------------------------------------------------
-
-int
-udp_open()
-{
-    int s;
-    struct sockaddr_in si;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
-        perror("udp socket");
-        exit(1);
-    }
-    si.sin_addr.s_addr = INADDR_ANY;
-    si.sin_port = htons(0);
-    si.sin_family = PF_INET;
-    if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
-        perror("udp sock bind");
-        exit(1);
-    }
-
-    return s;
-}
-
-int
-ux_open()
-{
-static char mysockname[200];
- int sock, bufsize;
-    struct sockaddr_un name;
-
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
-    unlink(mysockname);
-
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("opening datagram socket");
-        exit(1);
-    }
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
-    if (bind(sock, (struct sockaddr *) &name,
-             sizeof(struct sockaddr_un))) {
-        perror("binding path name to datagram socket");
-        exit(1);
-    }
-
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
-    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-
-    unix_path = mysockname;
-    return sock;
-}
-
-// ----------------------------------------------------------------------
-
-int
-block_on_read(int sock, float wait)
-{
-    fd_set readfs;
-    struct timeval timeout;
-    int rc;
-
-    FD_ZERO(&readfs);
-    FD_SET(sock, &readfs);
-    timeout.tv_sec = wait;
-    timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
-    rc = select(sock+1, &readfs, NULL, NULL, &timeout);
-    if (rc < 0)
-        perror("select()");
-    return rc;
-}
-
-#ifdef USE_SUITE_CCNB
-int ccnb_isContent(unsigned char *buf, int len)
-{
-    int num, typ;
-
-    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
-        return -1;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
-        return 0;
-    return 1;
-}
-#endif
-
-#ifdef USE_SUITE_CCNTLV
-int ccntlv_isObject(unsigned char *buf, int len)
-{
-    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s))
-        return -1;
-    struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
-
-    if (hp->version != CCNX_TLV_V0)
-        return -1;
-
-    unsigned short hdrlen = ntohs(hp->hdrlen);
-    unsigned short payloadlen = ntohs(hp->payloadlen);
-
-    if (hdrlen + payloadlen > len)
-        return -1;
-    buf += hdrlen;
-    len -= hp->hdrlen;
-
-
-    if(hp->packettype == CCNX_PT_ContentObject)
-        return 1;
-    else
-        return 0;
-}
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-int ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ, vallen;
-
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
-#endif
-
-
-// ----------------------------------------------------------------------
-
-int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
@@ -277,7 +105,7 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+    int (*mkInterest)(struct ccnl_prefix_s*, int*, int*, unsigned char*, int);
     int (*isContent)(unsigned char*, int);
 
     while ((opt = getopt(argc, argv, "hn:s:u:w:x:")) != -1) {
@@ -385,7 +213,10 @@ usage:
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
-        len = mkInterest(prefix, &nonce, out, sizeof(out));
+        len = mkInterest(prefix, 
+                         NULL, // chunknum
+                         &nonce, 
+                         out, sizeof(out));
 
         if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");

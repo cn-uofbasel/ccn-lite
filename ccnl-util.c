@@ -493,7 +493,10 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+        len = ccnl_ccnb_fillInterest(name, 
+                                     NULL, // chunknum
+                                     NULL, // nonce
+                                     tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
         break;
 #endif
