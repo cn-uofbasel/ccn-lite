@@ -3,6 +3,7 @@
 
 
 //CCNL INCLUDES
+#include "ccnl-includes.h"
 #include "ccnl.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.h"
@@ -238,6 +239,21 @@ void ccnl_rem_timer(void *h);
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
+/* ccnl-ext-sched.c */
+#ifdef USE_SCHEDULER
+int ccnl_sched_init(void);
+void ccnl_sched_cleanup(void);
+struct ccnl_sched_s *ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2), struct ccnl_relay_s *ccnl);
+struct ccnl_sched_s *ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2), struct ccnl_relay_s *ccnl, int inter_packet_interval);
+void ccnl_sched_destroy(struct ccnl_sched_s *s);
+void ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len, void *aux1, void *aux2);
+void ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len);
+void ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt);
+void ccnl_sched_RX_loss(struct ccnl_relay_s *ccnl, int ifndx, int cnt);
+struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval, void (*cts)(void *aux1, void *aux2), void *aux1, void *aux2);
+#endif
+
+//---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-util.c */
 int ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
 int ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt);
@@ -323,7 +339,6 @@ int ccnl_ccntlv_dehead(unsigned char **buf, int *len, unsigned int *typ, unsigne
 struct ccnl_buf_s *ccnl_ccntlv_extract(int hdrlen, unsigned char **data, int *datalen, struct ccnl_prefix_s **prefix, unsigned char **keyid, int *keyidlen, int *chunknum, int *lastchunknum, unsigned char **content, int *contlen);
 int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201409_s *hdrptr, int hoplimit, unsigned char **data, int *datalen);
 int ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-#endif
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -346,6 +361,7 @@ int ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, int *chunkn
 int ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
 int ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
 int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
+#endif // USE_SUITE_CCNTLV
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -357,7 +373,6 @@ int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned char *final_block_id, int *final_block_id_len, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
 int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 int ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-#endif
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -377,6 +392,7 @@ int ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len, int *offset,
 int ccnl_ndntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
 int ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
 int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *offset, int *contentpos, unsigned char *final_block_id, int final_block_id_len, unsigned char *buf);
+#endif //USE_SUITE_NDNTLV
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-localrpc.c */
@@ -406,7 +422,6 @@ builtinFct *rpc_getBuiltinFct(struct rdr_ds_s *var);
 int ccnl_localrpc_handleReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *rc, struct rdr_ds_s *aux);
 int ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *fexpr, struct rdr_ds_s *args);
 int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);
-#endif
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -429,5 +444,20 @@ struct rdr_ds_s *ccnl_rdr_mkStr(char *s);
 int ndn_tlv_fieldlen(unsigned long val);
 int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds);
 int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen);
+#endif //USE_SUITE_LOCALRPC
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+/* ccnl-ext-nfnmonitor.c */
+#ifdef USE_NFN_MONITOR
+const char *compile_string(void);
+void build_decoding_table(void);
+char *base64_encode(const char *data, size_t input_length, size_t *output_length);
+unsigned char *base64_decode(const char *data, size_t input_length, size_t *output_length);
+void base64_cleanup(void);
+int ccnl_ext_nfnmonitor_record(char *toip, int toport, struct ccnl_prefix_s *prefix, unsigned char *data, int datalen, char *res);
+int ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port, char *data, int len);
+int ccnl_ext_nfnmonitor_sendToMonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen);
+int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face, struct ccnl_prefix_s *pr, unsigned char *data, int len);
+#endif //USE_NFN_MONITOR
 
 #endif //CCNL_HEADERS_H
