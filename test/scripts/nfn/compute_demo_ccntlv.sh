@@ -1,3 +1,5 @@
+#!/bin/bash
+
 killall ccn-lite-relay
 killall ccn-nfn-relay
 killall python

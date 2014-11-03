@@ -300,25 +300,25 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #endif
 
     for (i = 0; i < pr->compcnt; i++) {
-    int skip = 0;
-    if (pr->suite == CCNL_SUITE_CCNTLV) {
-        if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
-            len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-                       pr->comp[i][0], pr->comp[i][1],
-                       pr->complen[i]-4, pr->comp[i]+4);
-            continue;
+        int skip = 0;
+        if (pr->suite == CCNL_SUITE_CCNTLV) {
+            if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
+                len += sprintf(buf + len, "/%%x%02x%02x%.*s",
+                               pr->comp[i][0], pr->comp[i][1],
+                               pr->complen[i]-4, pr->comp[i]+4);
+                continue;
+            }
+            skip = 4;
         }
-        skip = 4;
-    }
 #ifdef USE_NFN
-    if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-                    !strncmp("call", (char*)pr->comp[i], 4))
-        len += sprintf(buf + len, "%.*s",
-               pr->complen[i]-skip, pr->comp[i]+skip);
-    else
+        if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
+            !strncmp("call", (char*)pr->comp[i], 4))
+            len += sprintf(buf + len, "%.*s",
+                           pr->complen[i]-skip, pr->comp[i]+skip);
+        else
 #endif
         len += sprintf(buf + len, "/%.*s",
-               pr->complen[i]-skip, pr->comp[i]+skip);
+                       pr->complen[i]-skip, pr->comp[i]+skip);
     }
 
 #ifdef USE_NFN
