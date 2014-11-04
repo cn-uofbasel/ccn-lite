@@ -13,14 +13,10 @@ CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g
 
 
 # Linux flags
-LINUX_CFLAGS=
+LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
-
-
-# Kernel compile flags
-KRNL_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 
 EXTLIBS=  -lcrypto 
 EXTMAKE=
@@ -36,14 +32,13 @@ INST_PROGS= ccn-lite-relay \
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)
     $(info *** Configuring for Linux ***)
-    EXTLIBS += -lrt
-
-    INST_PROGS += ccn-lite-simu
-
     ifdef USE_KRNL
+    	$(info *** With Linux Kernel ***)
+	    EXTLIBS += -lrt
+	    INST_PROGS += ccn-lite-simu
     	PROGS += ccn-lite-lnxkernel 
     endif
-    
+
     CCNLCFLAGS += ${LINUX_CFLAGS}
 endif
 
