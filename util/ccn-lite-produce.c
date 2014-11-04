@@ -48,7 +48,6 @@ main(int argc, char *argv[])
     char *infname = 0, *outdirname = 0;
     char chunkname[10] = "c";
     char fileext[10];
-    char chunkname_with_number[1024];
     char final_chunkname_with_number[1024];
     int f, fout, chunk_len, contentlen = 0, opt, plen;
     int suite = CCNL_SUITE_DEFAULT;
@@ -109,21 +108,22 @@ Usage:
     }
 
 
+    // mandatory out dir
     if (!argv[optind])
         goto Usage;
     outdirname = argv[optind];
     optind++;
 
-    // url required
+    // mandatory url 
     if (!argv[optind])
         goto Usage;
-    char url[strlen(argv[optind])];
-    strcpy(url, argv[optind]);
 
-    // OUTIDR required
-    if (!argv[optind]) {
-        goto Usage;
-    }
+    char *url_orig = argv[optind];
+    char url[strlen(url_orig)];
+    optind++;
+
+    // optional nfn 
+    char *nfnexpr = argv[optind];
 
     // Check if outdirname is a directory and open it as a file
     status = stat(outdirname, &st_buf);
@@ -215,25 +215,25 @@ Usage:
         chunk_data = cur_chunk->data;
         chunk_len = cur_chunk->len;
 
-        // strcpy(url, url_orig);
+        strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         switch(suite) {
         case CCNL_SUITE_CCNTLV: 
 
-            name = ccnl_URItoPrefix(url, suite, argv[optind+1]);
+            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
             contentlen = ccnl_ccntlv_fillContentWithHdr(name, 
                                                         (unsigned char *)chunk_data, chunk_len, 
-                                                        &chunknum, &lastchunknum,
+                                                        &lastchunknum,
                                                         &offs, 
                                                         NULL, // int *contentpos
                                                         out);
             break;
         case CCNL_SUITE_NDNTLV:
-            sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
-            name = ccnl_URItoPrefix(chunkname_with_number, suite, argv[optind+1]);
+            // sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
+            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
             contentlen = ccnl_ndntlv_fillContent(name, 
                                                  (unsigned char *) chunk_data, chunk_len, 
                                                  &offs, NULL,

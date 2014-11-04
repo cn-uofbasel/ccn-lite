@@ -431,7 +431,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
 
     DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
     for (content = ccnl->contents; content; content = content->next) {
-        if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT))
+        if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)
+                                            && content->suite == prefix->suite)
             return content;
     }
     if (!config || !config->fox_state || !config->fox_state->prefix_mapping)
@@ -440,7 +441,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     for (iter = config->fox_state->prefix_mapping; iter; iter = iter->next) {
         if (!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)) {
             for (content = ccnl->contents; content; content = content->next) {
-                if (!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT))
+                if (!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT)
+                                            && content->suite == prefix->suite)
                     return content;
             }
         }

@@ -127,6 +127,7 @@ struct ccnl_prefix_s {
     unsigned char *nameptr; // binary name (for fast comparison)
     unsigned int   namelen; // valid length of name memory
     unsigned char *bytes;   // memory for name component copies
+    int chunknum;
 #ifdef USE_NFN
     unsigned int nfnflags;
 # define CCNL_PREFIX_NFN   0x01
@@ -293,6 +294,9 @@ compile_string(void)
 #endif
 #ifdef USE_HTTP_STATUS
         "HTTP_STATUS, "
+#endif
+#ifdef USE_KITE
+        "KITE, "
 #endif
 #ifdef USE_MGMT
         "MGMT, "
