@@ -7,11 +7,11 @@ int ccnl_test_prepare_prefix_to_path_1(void **prefix, void **out){
 	p->compcnt = 3;
 	p->comp = ccnl_malloc(sizeof(char*) * p->compcnt);
 	p->complen = ccnl_malloc(sizeof(int) * p->compcnt);
-	p->comp[0] = "path";
+	p->comp[0] = (unsigned char*)"path";
 	p->complen[0] = 4;
-	p->comp[1] = "to";
+	p->comp[1] = (unsigned char*)"to";
 	p->complen[1] = 2;
-	p->comp[2] = "data";
+	p->comp[2] = (unsigned char*)"data";
 	p->complen[2] = 4;
 
 	p->nfnflags = 0;
@@ -26,20 +26,20 @@ int ccnl_test_prepare_prefix_to_path_2(void **prefix, void **out){
 	p->compcnt = 4;
 	p->comp = ccnl_malloc(sizeof(char*) * p->compcnt);
 	p->complen = ccnl_malloc(sizeof(int) * p->compcnt);
-	p->comp[0] = "path";
+	p->comp[0] = (unsigned char*)"path";
 	p->complen[0] = 4;
-	p->comp[1] = "to";
+	p->comp[1] = (unsigned char*)"to";
 	p->complen[1] = 2;
-	p->comp[2] = "data";
+	p->comp[2] = (unsigned char*)"data";
 	p->complen[2] = 4;
-	p->comp[3] = "(@x call 2 /fun/func x)";
-	p->complen[3] = strlen(p->comp[3]);
+	p->comp[3] = (unsigned char*)"(@x call 2 /fun/func x)";
+	p->complen[3] = strlen((const char *)p->comp[3]);
 
 	p->nfnflags = 0;
 	p->nfnflags |= 0x01;
 
 
-	*out = "nfn[/path/to/data/(@x call 2 /fun/func x)]";
+	*out = (unsigned char*)"nfn[/path/to/data/(@x call 2 /fun/func x)]";
 	return 1;
 }
 
