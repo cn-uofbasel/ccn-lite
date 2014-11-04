@@ -67,7 +67,7 @@ then
     fi
     SOCKETB="-u$PORTB"
     FACETOB="newUDPface any 127.0.0.1 $PORTB"
-    PEEKADDR="-u 127.0.0.1/$PORTB"
+    PEEKADDR="-u 127.0.0.1/$PORTA"
 elif [ "$CON" = "ux" ]
 then
     SOCKETA=
