@@ -1,5 +1,6 @@
 # ccn-lite Makefile for Linux and OS X
 
+# For Linux Kernel module export USE_KERNEL=1
 # If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
 # For (experimental) nack set USE_NACK to something
 
