@@ -1,15 +1,17 @@
-# ccnl/test/unit/Makefile
+# ccnl^/test/unit/Makefile
 
 CC?=gcc
-MYCFLAGS= -Wall -g -O0 -I../..
+MYCFLAGS= -Wall -g -O0 
 EXTLIBS=  -lcrypto
 
-PROGS=	prefix-cmp
+PROGS= $(wildcard *.c) 
 
-all: $(PROGS)
 
-prefix-cmp: Makefile prefix-cmp.c ../../ccnx.h ../../ccnl.h ../../ccnl-core.h ../../ccnl-core.c
-	$(CC) $(MYCFLAGS) prefix-cmp.c -o $@ $(EXTLIBS)
+all: unit
+
+unit: unit.c
+	$(CC) $(MYCFLAGS) -o $@ $<  $(EXTLIBS)
+
 
 clean:
-	rm -rf *~ $(PROGS)
+	rm -f unit
