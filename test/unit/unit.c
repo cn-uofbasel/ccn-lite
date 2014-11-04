@@ -29,6 +29,12 @@ int main(int argc, char **argv){
 	++testnum;
 	struct ccn_prefix_s *p1_t3;
 	struct ccn_prefix_s *p2_t3;
-	RUN_TEST(testnum, "testing prefix cmp with an exact match", ccnl_test_prepare_prefix_cmp_exact_match, ccnl_test_run_prefix_cmp_exact_match, ccnl_test_cleanup_prefix_cmp_exact_match, p1_t3, p2_t3);
+	RUN_TEST(testnum, "testing prefix cmp exact match with a match", ccnl_test_prepare_prefix_cmp_exact_match, ccnl_test_run_prefix_cmp_exact_match, ccnl_test_cleanup_prefix_cmp_exact_match, p1_t3, p2_t3);
+
+	//Test 4: PREFIX CMP EXACT MISMATCH
+	++testnum;
+	struct ccn_prefix_s *p1_t4;
+	struct ccn_prefix_s *p2_t4;
+	RUN_TEST(testnum, "testing prefix cmp exact match with a mismatch", ccnl_test_prepare_prefix_cmp_exact_mismatch, ccnl_test_run_prefix_cmp_exact_mismatch, ccnl_test_cleanup_prefix_cmp_exact_mismatch, p1_t4, p2_t4);
 }
 
