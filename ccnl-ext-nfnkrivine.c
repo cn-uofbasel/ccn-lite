@@ -28,31 +28,21 @@
 #include "ccnl-includes.h"
 #include "ccnl-ext-nfnkrivine.h"
 
+enum { // abstract machine instruction set
+    ZAM_UNKNOWN,
+    ZAM_ACCESS,
+    ZAM_APPLY,
+    ZAM_CALL,
+    ZAM_CLOSURE,
+    ZAM_FOX,
+    ZAM_GRAB,
+    ZAM_HALT,
+    ZAM_RESOLVENAME,
+    ZAM_TAILAPPLY
+};
 
-
-
-
-// ----------------------------------------------------------------------
-
-void
-ZAM_register(char *name, BIF fct)
-{
-    struct builtin_s *b;
-    struct ccnl_buf_s *buf;
-
-    buf = ccnl_calloc(1, sizeof(*buf) + sizeof(*b));
-    ccnl_core_addToCleanup(buf);
-
-    b = (struct builtin_s*) buf->data;
-    b->name = name;
-    b->fct = fct;
-    b->next = extensions;
-
-    extensions = b;
-}
-
-//Machine state functions
-//------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Machine state functions
 
 struct closure_s *
 new_closure(char *term, struct environment_s *env)
@@ -73,14 +63,7 @@ push_to_stack(struct stack_s **top, void *content, int type)
 
     if (!top)
         return;
-/*
-    {
-        int cnt;
-        for (cnt = 0, h = *top; h; h = h->next)
-            cnt++;
-        DEBUGMSG(99, "  push: stack was %d element(s) deep\n", cnt);
-    }
-*/
+
     h = ccnl_calloc(1, sizeof(struct stack_s));
     if (h) {
         h->next = *top;
@@ -105,19 +88,19 @@ pop_from_stack(struct stack_s **top)
 
 struct stack_s *
 pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
-                                 struct configuration_s *config, int *restart)
+                                 struct configuration_s *config) // , int *restart)
 {
     unsigned char *res = NULL;
     struct stack_s *elm = pop_from_stack(&config->result_stack);
-    if(!elm){
-        return NULL;
-    }
     struct ccnl_content_s *c;
-    if(elm->type == STACK_TYPE_THUNK){
+
+    if (!elm)
+        return NULL;
+    if (elm->type == STACK_TYPE_THUNK) {
         res = (unsigned char *)elm->content;
-        if(res && !strncmp((char *)res, "THUNK", 5)){
+        if (res && !strncmp((char *)res, "THUNK", 5)) {
             DEBUGMSG(49, "Resolve Thunk: %s \n", res);
-            if(!config->thunk){
+            if (!config->thunk) {
                 config->thunk = 1;
                 config->starttime = CCNL_NOW();
                 config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
@@ -149,39 +132,55 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
     return elm;
 }
 
-#ifdef XXX
+int
+stack_len(struct stack_s *s)
+{
+    int cnt;
+
+    for (cnt = 0; s; s = s->next)
+            cnt++;
+    return cnt;
+}
+
+// #ifdef XXX
 void 
-print_environment(struct environment_s *env){
-   struct environment_s *e;
-   printf("Environment address is: %p (refcount=%d)\n",
-          (void *)env, env->refcount);
+print_environment(struct environment_s *env)
+{
    int num = 0;
-   for(e = env; e; e = e->next){
-        printf("Element %d %s %p\n", num++, e->name, e->element);        
+
+   printf("  env addr %p (refcount=%d)\n",
+          (void*) env, env ? env->refcount : -1);
+   while (env) {
+       printf("  #%d %s %p\n", num++, env->name, (void*) env->closure);
+       env = env->next;
    }
 }
 
 void 
-print_result_stack(struct stack_s *stack){
-   struct stack_s *s;
+print_result_stack(struct stack_s *stack)
+{
    int num = 0;
-   for(s = stack; s; s = s->next){
-       printf("Element %d %s\n", num++, (char *)s->content);
+
+   while (stack) {
+       printf("Res element #%d: type=%d\n", num++, stack->type);
+       stack = stack -> next;
    }
 }
 
 void 
-print_argument_stack(struct stack_s *stack){
-   struct stack_s *s;
+print_argument_stack(struct stack_s *stack)
+{
    int num = 0;
-   for(s = stack; s; s = s->next){
-        struct closure_s *c = s->content;
-        printf("Element %d %s\n ---Env: \n", num++, c->term);  
-        print_environment(c->env);
-        printf("--End Env\n");      
+
+   while (stack){
+        struct closure_s *c = stack->content;
+        printf("Arg element #%d: %s\n", num++, c ? c->term : "<mark>");
+        if (c)
+            print_environment(c->env);
+        stack = stack->next;
    }
 }
-#endif
+// #endif
 
 void 
 add_to_environment(struct environment_s **env, char *name,
@@ -236,227 +235,6 @@ int choose_parameter(struct configuration_s *config){
 
 }
 
-//------------------------------------------------------------
-/**
- * used to avoid code duplication for popping two integer values from result stack asynchronous
- * requires to define i1 and i2 before calling to store the results.
- */
-#define pop2int() \
-        do{     \
-            struct stack_s *h1, *h2; \
-            h1 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
-            if(h1 == NULL){ \
-                *halt = -1; \
-                return prog; \
-            } \
-            if(h1->type == STACK_TYPE_INT) i1 = *(int*)h1->content;\
-            h2 = pop_or_resolve_from_result_stack(ccnl, config, restart); \
-            if(h2 == NULL){ \
-                *halt = -1; \
-                push_to_stack(&config->result_stack, h1->content, h1->type); \
-                ccnl_free(h1); \
-                return prog; \
-            } \
-            if(h1->type == STACK_TYPE_INT) i2 = *(int*)h2->content;\
-            ccnl_nfn_freeStack(h1); ccnl_nfn_freeStack(h2); \
-        }while(0)
-
-// ----------------------------------------------------------------------
-// builtin operations
-
-char*
-op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-               int *restart, int *halt, char *prog, char *pending,
-               struct stack_s **stack)
-{
-    int i1=0, i2=0, *h;
-    char *cp = NULL;
-
-    DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
-    pop2int();
-    h = ccnl_malloc(sizeof(int));
-    *h = i1 + i2;
-    push_to_stack(stack, h, STACK_TYPE_INT);
-
-    return pending ? ccnl_strdup(pending+1) : cp;
-}
-
-char*
-op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-                int *restart, int *halt, char *prog, char *pending,
-                struct stack_s **stack)
-{
-    int local_search = 0;
-    struct stack_s *h;
-    char *cp = NULL;
-    struct ccnl_prefix_s *prefix;
-    struct ccnl_content_s *c = NULL;
-
-    if (*restart) {
-        DEBUGMSG(2, "---to do: OP_FIND restart\n");
-        *restart = 0;
-        local_search = 1;
-    } else {
-        DEBUGMSG(2, "---to do: OP_FIND <%s>\n", prog+7);
-        h = pop_from_stack(&config->result_stack);
-        //    if (h->type != STACK_TYPE_PREFIX)  ...
-        config->fox_state->num_of_params = 1;
-        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *));
-        config->fox_state->params[0] = h;
-        config->fox_state->it_routable_param = 0;
-    }
-    prefix = config->fox_state->params[0]->content;
-
-    //check if result is now available
-    //loop by reentering (with local_search) after timeout of the interest...
-    DEBUGMSG(99, "FIND: Checking if result was received\n");
-    c = ccnl_nfn_local_content_search(ccnl, config, prefix);
-    if (!c) {
-        if (local_search) {
-            DEBUGMSG(99, "FIND: no content\n");
-            return NULL;
-        }
-        //Result not in cache, search over the network
-        //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
-        struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
-        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-        DEBUGMSG(99, "FIND: sending new interest from Face ID: %d\n", interest->from->faceid);
-        if (interest)
-            ccnl_interest_propagate(ccnl, interest);
-        //wait for content, return current program to continue later
-        *halt = -1; //set halt to -1 for async computations
-        return prog ? ccnl_strdup(prog) : NULL;
-    }
-
-    DEBUGMSG(99, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
-#ifdef USE_NACK
-/*
-    if (!strncmp((char*)c->content, ":NACK", 5)) {
-        DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
-        ++config->fox_state->it_routable_param;
-        
-        return prog ? ccnl_strdup(prog) : NULL;
-    }
-*/
-#endif
-    prefix = ccnl_prefix_dup(prefix);
-    push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
-
-    if (pending) {
-        DEBUGMSG(99, "Pending: %s\n", pending+1);
-
-        cp = ccnl_strdup(pending+1);
-    }
-    return cp;
-}
-
-char*
-op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-                int *restart, int *halt, char *prog, char *pending,
-                struct stack_s **stack)
-{
-    int i1=0, i2=0, *h;
-
-    DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
-    pop2int();
-    h = ccnl_malloc(sizeof(int));
-    *h = i2 * i1;
-    push_to_stack(stack, h, STACK_TYPE_INT);
-
-    return pending ? ccnl_strdup(pending+1) : NULL;
-}
-
-char*
-op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-               int *restart, int *halt, char *prog, char *pending,
-               struct stack_s **stack)
-{
-    int local_search = 0;
-    struct stack_s *h;
-    char *cp = NULL;
-    struct ccnl_prefix_s *prefix;
-    struct ccnl_content_s *c = NULL;
-
-    if (*restart) {
-        DEBUGMSG(2, "---to do: OP_RAW restart\n");
-        *restart = 0;
-        local_search = 1;
-    } else {
-        DEBUGMSG(2, "---to do: OP_RAW <%s>\n", prog+7);
-        h = pop_from_stack(&config->result_stack);
-        if (!h || h->type != STACK_TYPE_PREFIX) {
-            DEBUGMSG(99, "  stack empty or has no prefix %p\n", (void*) h);
-        } else {
-            DEBUGMSG(99, "  found a prefix!\n");
-        }
-        config->fox_state->num_of_params = 1;
-        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *));
-        config->fox_state->params[0] = h;
-        config->fox_state->it_routable_param = 0;
-    }
-    prefix = config->fox_state->params[0]->content;
-
-    //check if result is now available
-    //loop by reentering (with local_search) after timeout of the interest...
-    DEBUGMSG(99, "RAW: Checking if result was received\n");
-    c = ccnl_nfn_local_content_search(ccnl, config, prefix);
-    if (!c) {
-        if (local_search) {
-            DEBUGMSG(99, "RAW: no content\n");
-            return NULL;
-        }
-        //Result not in cache, search over the network
-        //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
-        struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
-        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-        DEBUGMSG(99, "RAW: sending new interest from Face ID: %d\n", interest->from->faceid);
-        if (interest)
-            ccnl_interest_propagate(ccnl, interest);
-        //wait for content, return current program to continue later
-        *halt = -1; //set halt to -1 for async computations
-        return prog ? ccnl_strdup(prog) : NULL;
-    }
-
-    DEBUGMSG(99, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
-#ifdef USE_NACK
-/*
-    if (!strncmp((char*)c->content, ":NACK", 5)) {
-        DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
-        ++config->fox_state->it_routable_param;
-        
-        return prog ? ccnl_strdup(prog) : NULL;
-    }
-*/
-#endif
-    prefix = ccnl_prefix_dup(prefix);
-    push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIXRAW);
-
-    if (pending) {
-        DEBUGMSG(99, "Pending: %s\n", pending+1);
-
-        cp = ccnl_strdup(pending+1);
-    }
-    return cp;
-}
-
-char*
-op_builtin_sub(struct ccnl_relay_s *ccnl, struct configuration_s *config,
-               int *restart, int *halt, char *prog, char *pending,
-               struct stack_s **stack)
-{
-    int i1=0, i2=0, *h;
-
-    DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
-    pop2int();
-    h = ccnl_malloc(sizeof(int));
-    *h = i2 - i1;
-    push_to_stack(stack, h, STACK_TYPE_INT);
-
-    return pending ? ccnl_strdup(pending+1) : NULL;
-}
-
-// ----------------------------------------------------------------------
-        
 struct ccnl_prefix_s *
 create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  int parameter_number, int thunk_request,
@@ -468,7 +246,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         //local computation name components
         DEBUGMSG(99, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
-        DEBUGMSG(99, "LOCAL PREFIX: %s", ccnl_prefix_to_path(pref));
+        DEBUGMSG(99, "LOCAL PREFIX: %s\n", ccnl_prefix_to_path(pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -477,198 +255,293 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
 // ----------------------------------------------------------------------
 
+// return a positive integer if ZAM instuction, or
+// return a negative integer if a builtin op, otherwise return 0
+int
+ZAM_nextToken(char *prog, char **argdup, char **cont)
+{
+    char *cp = prog, *cp2;
+    int len;
+    int token = ZAM_UNKNOWN;
+
+    // TODO: count opening/closing parentheses when hunting for ';' ?
+    while (*cp && *cp != '(' && *cp != ';')
+        cp++;
+    len = cp - prog;
+
+    if (!strncmp(prog, "ACCESS", len))
+        token = ZAM_ACCESS;
+    else if (!strncmp(prog, "APPLY", len))
+        token = ZAM_APPLY;
+    else if (!strncmp(prog, "CALL", len))
+        token = ZAM_CALL;
+    else if (!strncmp(prog, "CLOSURE", len))
+        token = ZAM_CLOSURE;
+    else if (!strncmp(prog, "FOX", len))
+        token = ZAM_FOX;
+    else if (!strncmp(prog, "GRAB", len))
+        token = ZAM_GRAB;
+    else if (!strncmp(prog, "HALT", len))
+        token = ZAM_HALT;
+    else if (!strncmp(prog, "RESOLVENAME", len))
+        token = ZAM_RESOLVENAME;
+    else if (!strncmp(prog, "TAILAPPLY", len))
+        token = ZAM_TAILAPPLY;
+    else {
+        for (len = 0; bifs[len].name; len++)
+            if (!strncmp(prog, bifs[len].name, strlen(bifs[len].name))) {
+                token = -(len+1);
+                break;
+            }
+        if (token == ZAM_UNKNOWN)
+            DEBUGMSG(99, "  ** DID NOT find %s\n", prog);
+    }
+
+    if (*cp == '(') {
+        int nesting = 0;
+        cp2 = ++cp;
+        while (*cp2 && (*cp2 != ')' || nesting > 0)) {
+            if (*cp2 == '(')
+                nesting++;
+            else if (*cp2 == ')')
+                nesting--;
+            cp2++;
+        }
+        len = cp2 - cp;
+        *argdup = ccnl_malloc(len + 1);
+        memcpy(*argdup, cp, len);
+        (*argdup)[len] = '\0';
+        if (*cp2)
+            cp = cp2 + 1;
+    } else
+        *argdup = NULL;
+
+    if (*cp == ';')
+        *cont = cp + 1;
+    else
+        *cont = NULL;
+    return token;
+}
+
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
-        int thunk_request, int *num_of_required_thunks,  
-        int *halt, char *dummybuf, int *restart)
+ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
+        int thunk_request, int *restart, int *halt,
+        int *num_of_required_thunks, char *prog, char *arg, char *contd)
+{
+    struct stack_s *h;
+    int local_search = 0, i;
+    int parameter_number = 0;
+    struct ccnl_content_s *c = NULL;
+    struct ccnl_prefix_s *pref, *pref2;
+    struct ccnl_interest_s *interest;
+
+    DEBUGMSG(2, "---to do: FOX <%s>\n", arg);
+    ccnl_free(arg);
+    if (*restart) {
+        *restart = 0;
+        local_search = 1;
+        goto recontinue;
+    }
+
+    h = pop_or_resolve_from_result_stack(ccnl, config);
+    //TODO CHECK IF INT
+    config->fox_state->num_of_params = *(int*)h->content;
+    DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
+
+    config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) *
+                                            config->fox_state->num_of_params);
+        
+    for (i = 0; i < config->fox_state->num_of_params; ++i) {
+        //pop parameter from stack
+        config->fox_state->params[i] = pop_from_stack(&config->result_stack);
+        switch (config->fox_state->params[i]->type) {
+        case STACK_TYPE_THUNK:
+        {
+            //USE NAME OF A THUNK
+            char *thunkname = (char*)config->fox_state->params[i]->content;
+
+            struct thunk_s *thunk = ccnl_nfn_get_thunk(ccnl, (unsigned char*)thunkname);
+            struct stack_s *thunk_elm = ccnl_malloc(sizeof(struct stack_s));
+            thunk_elm->type = STACK_TYPE_PREFIX;
+            thunk_elm->content = thunk->reduced_prefix;
+            thunk_elm->next = NULL;
+            config->fox_state->params[i] = thunk_elm;
+            break;
+        }
+        case STACK_TYPE_INT:
+            DEBUGMSG(99, "  info: Parameter %d %d\n", i,
+                     *(int *)config->fox_state->params[i]->content);
+            break;
+        case STACK_TYPE_PREFIX:
+            DEBUGMSG(99, "  info: Parameter %d %s\n", i,
+                     ccnl_prefix_to_path((struct ccnl_prefix_s*)
+                                      config->fox_state->params[i]->content));
+            break;
+        default:
+            break;
+        }
+    }
+    //as long as there is a routable parameter: try to find a result
+    config->fox_state->it_routable_param = 0;
+
+    //check if last result is now available
+recontinue: //loop by reentering after timeout of the interest...
+    if (local_search) {
+        DEBUGMSG(99, "Checking if result was received\n");
+        parameter_number = choose_parameter(config);
+        pref = create_namecomps(ccnl, config, parameter_number, thunk_request,
+                        config->fox_state->params[parameter_number]->content);
+        // search for a result
+        c = ccnl_nfn_local_content_search(ccnl, config, pref);
+        set_propagate_of_interests_to_1(ccnl, pref);
+        //TODO Check? //TODO remove interest here?
+        if (c)
+            goto handlecontent;
+    }
+
+    //result was not delivered --> choose next parameter
+    ++config->fox_state->it_routable_param;
+    parameter_number = choose_parameter(config);
+    if (parameter_number < 0)
+        //no more parameter --> no result found, can try a local computation
+        goto local_compute;
+    // create new prefix with name components!!!!
+    pref = create_namecomps(ccnl, config, parameter_number, thunk_request,
+                        config->fox_state->params[parameter_number]->content);
+    c = ccnl_nfn_local_content_search(ccnl, config, pref);
+    if (c)
+        goto handlecontent;
+
+    // Result not in cache, search over the network
+    pref2 = ccnl_prefix_dup(pref);
+    interest = ccnl_nfn_query2interest(ccnl, &pref2, config);
+    if (interest) {
+        ccnl_interest_propagate(ccnl, interest);
+        DEBUGMSG(99, "  new interest's face is %d\n", interest->from->faceid);
+    }
+    // wait for content, return current program to continue later
+    *halt = -1; //set halt to -1 for async computations
+    return ccnl_strdup(prog);
+
+local_compute:
+    if (config->local_done)
+        return NULL;
+
+    config->local_done = 1;
+    pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
+    DEBUGMSG(99, "Prefix local computation: %s\n",
+             ccnl_prefix_to_path(pref));
+    interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+    if (interest)
+        ccnl_interest_propagate(ccnl, interest);
+
+handlecontent: //if result was found ---> handle it
+    if (c) {
+#ifdef USE_NACK
+        if (!strncmp((char*)c->content, ":NACK", 5)) {
+            DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+            ++config->fox_state->it_routable_param;
+            return prog ? ccnl_strdup(prog) : NULL;
+        }
+#endif
+        if (thunk_request) { //if thunk_request push thunkid on the stack
+
+            --(*num_of_required_thunks);
+            char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
+            char *time_required = (char *)c->content;
+            int thunk_time = strtol(time_required, NULL, 10);
+            thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
+            config->thunk_time = config->thunk_time > thunk_time ?
+                                 config->thunk_time : thunk_time;
+            DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n",
+                     thunkid, *num_of_required_thunks);
+            push_to_stack(&config->result_stack, thunkid, STACK_TYPE_THUNK);
+            if (*num_of_required_thunks <= 0) {
+                DEBUGMSG(99, "All thunks are available\n");
+                ccnl_nfn_reply_thunk(ccnl, config);
+            }
+        } else {
+            if (isdigit(*c->content)) {
+                int *integer = ccnl_malloc(sizeof(int));
+                *integer = strtol((char*)c->content, 0, 0);
+                push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
+            } else {
+                struct prefix_mapping_s *mapping;
+                struct ccnl_prefix_s *name =
+                    create_prefix_for_content_on_result_stack(ccnl, config);
+                push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
+                mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
+                mapping->key = name;
+                mapping->value = c->name;
+                DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
+                DEBUGMSG(99, "Created a mapping %s - %s\n",
+                         ccnl_prefix_to_path(mapping->key),
+                         ccnl_prefix_to_path(mapping->value));
+            }
+        }
+    }        
+    DEBUGMSG(99, " FOX continuation: %s\n", contd);
+    return ccnl_strdup(contd);
+}
+
+char*
+ZAM_resolvename(struct configuration_s *config, char *dummybuf,
+                char *arg, char *contd)
 {
     struct ccnl_lambdaTerm_s *t;
-    char *pending, *p, *cp, *prog = config->prog;
+    char res[1000], *cp = arg;
     int len;
-    struct builtin_s *bp;
-    
-    //pop closure
-    if (!prog || strlen(prog) == 0) {
-         if (config->result_stack) {
-             prog = ccnl_malloc(strlen((char*)config->result_stack->content)+1);
-             strcpy(prog, config->result_stack->content);
-             return prog;
-         }
-         DEBUGMSG(2, "no result returned\n");
-         return NULL;
-    }
 
-    pending = strchr(prog, ';');
-    p = strchr(prog, '(');
+    DEBUGMSG(2, "---to do: resolveNAME <%s>\n", arg);
 
-    if (!strncmp(prog, "ACCESS(", 7)) {
-        if (pending)
-            cp = pending-1;
-        else
-            cp = prog + strlen(prog) - 1;
-        len = cp - p;
-        cp = ccnl_malloc(len);
-        memcpy(cp, p+1, len-1);
-        cp[len-1] = '\0';
-        DEBUGMSG(2, "---to do: access <%s>\n", cp);
+    //function definition
+    if (!strncmp(cp, "let", 3)) {
+        int i, end = 0, cp2len, namelength, lambdalen;
+        char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
-        struct closure_s *closure = search_in_environment(config->env, cp);
-        if (!closure) {
-            closure = search_in_environment(config->global_dict, cp);
-            if(!closure){
-                DEBUGMSG(2, "?? could not lookup var %s\n", cp);
-                return 0;
+        DEBUGMSG(99, " fct definition: %s\n", cp);
+        strcpy(res, cp+3);
+        for (i = 0; i < strlen(res); ++i) {
+            if (!strncmp(res+i, "endlet", 6)) {
+                end = i;
+                break;
             }
         }
-        ccnl_free(cp);
-        closure = new_closure(ccnl_strdup(closure->term), closure->env);
-        push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
-
-        return ccnl_strdup(pending+1);
-    }
-    if (!strncmp(prog, "CLOSURE(", 8)) {
-        if (pending)
-            cp = pending-1;
-        else
-            cp = prog + strlen(prog) - 1;
-        len = cp - p;
-
-        cp = ccnl_malloc(len);
-        memcpy(cp, p+1, len-1);
-        cp[len-1] = '\0';
-        DEBUGMSG(2, "---to do: closure <%s>\n", cp);
-
-        if (!config->argument_stack && !strncmp(cp, "RESOLVENAME(", 12)) {
-            char v[500], *c;
-            int len;
-            c = strchr(cp+12, ')'); if (!c) goto normal;
-            len = c - (cp+12);
-            memcpy(v, cp+12, len);
-            v[len] = '\0';
-            struct closure_s *closure = search_in_environment(config->env, v);
-            if (!closure)
-                goto normal;
-            if (!strcmp(closure->term, cp)) {
-                DEBUGMSG(2, "** detected tail recursion case %s\n", closure->term);
-            } else
-                goto normal;
-        } else {
-            struct closure_s *closure;
-normal:
-            closure = new_closure(ccnl_strdup(cp), config->env); 
-            //configuration->env = NULL;//FIXME new environment?
-            push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
-        }
-        if (pending) {
-            ccnl_free(cp);
-            return ccnl_strdup(pending+1);
-        }
-        printf("** not implemented, see line %d\n", __LINE__);
-        return cp;
-    }
-    if (!strncmp(prog, "GRAB(", 5)) {
-        char *v;
-        struct stack_s *stack;
-
-        if (pending)
-            v = pending-1;
-        else
-            v = prog + strlen(prog) - 1;
-        len = v - p;
-        v = ccnl_malloc(len);
-        memcpy(v, p+1, len-1);
-        v[len-1] = '\0';
-        DEBUGMSG(2, "---to do: grab <%s>\n", v);
-
-        stack = pop_from_stack(&config->argument_stack);
-        add_to_environment(&config->env, v, stack->content);
-        ccnl_free(stack);
-        return pending ? ccnl_strdup(pending+1) : NULL;
-    }
-    if (!strncmp(prog, "TAILAPPLY", 9)) {
-        char *code;
-        DEBUGMSG(2, "---to do: tailapply\n");
-
-        struct stack_s *stack = pop_from_stack(&config->argument_stack);
-        struct closure_s *closure = (struct closure_s *) stack->content;
-        ccnl_free(stack);
-        code = closure->term;
-        if(pending){ //build new term
-            sprintf(dummybuf, "%s%s", code, pending);
-        }else{
-            sprintf(dummybuf, "%s", code);
-        }
-        ccnl_free(code);
-        if (config->env)
-            ccnl_nfn_releaseEnvironment(&config->env);
-        config->env = closure->env; //set environment from closure
-        ccnl_free(closure);
-
-        return ccnl_strdup(dummybuf);
-    }
-    if (!strncmp(prog, "RESOLVENAME(", 12)) {
-        char res[1000];
-        memset(res,0,sizeof(res));
-        if (pending)
-            cp = pending-1;
-        else
-            cp = prog + strlen(prog) - 1;
-        len = cp - p;
-
-        cp = ccnl_malloc(len);
-        memcpy(cp, p+1, len-1);
-        cp[len-1] = '\0';
-        DEBUGMSG(2, "---to do: resolveNAME <%s>\n", cp);
-
-        //function definition
-        if(!strncmp(cp, "let", 3)){
-            DEBUGMSG(99, "Function definition: %s\n", cp);
-            strcpy(res, cp+3);
-            int i, end = 0, pendinglength, namelength, lambdalen;
-            char *h, *name, *lambda_expr, *resolveterm;
-            for(i = 0; i < strlen(res); ++i){
-                if(!strncmp(res+i, "endlet", 6)){
-                    end = i;
-                    break;
-                }
-            }
-            pendinglength = strlen(res+end) + strlen("RESOLVENAME()");
-            h = strchr(cp, '=');
-            namelength = h - cp;
+        cp2len = strlen(res+end) + strlen("RESOLVENAME()");
+        h = strchr(cp, '=');
+        namelength = h - cp;
             
-            lambda_expr = ccnl_malloc(strlen(h));
-            name = ccnl_malloc(namelength);
-            pending = ccnl_malloc(pendinglength);
+        lambda_expr = ccnl_malloc(strlen(h));
+        name = ccnl_malloc(namelength);
+        cp2 = ccnl_malloc(cp2len);
             
-            memset(pending, 0, pendinglength);
-            memset(name, 0, namelength);
-            memset(lambda_expr, 0, strlen(h));
+        memset(cp2, 0, cp2len);
+        memset(name, 0, namelength);
+        memset(lambda_expr, 0, strlen(h));
             
-            sprintf(pending, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
-            memcpy(name, cp+3, namelength-3); //copy name without let and endlet
-            trim(name);
+        sprintf(cp2, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
+        memcpy(name, cp+3, namelength-3); //copy name without let and endlet
+        trim(name);
    
-            lambdalen = strlen(h)-strlen(pending)+11-6;
-            memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
-            trim(lambda_expr);
-            resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
-            sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
+        lambdalen = strlen(h)-strlen(cp2)+11-6;
+        memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
+        trim(lambda_expr);
+        resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
+        sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
             
-            struct closure_s *cl = new_closure(resolveterm, NULL);
-            add_to_environment(&config->env, name, cl);
+        add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
-            ccnl_free(cp);
-            return pending ? ccnl_strdup(pending) : NULL;
-        }
+        ccnl_free(cp);
+        return strdup(contd);
+    }
         
-        //check if term can be made available, if yes enter it as a var
-        //try with searching in global env for an added term!
-        {
-            char *cp2 = cp;
-            t = ccnl_lambdaStrToTerm(0, &cp2, NULL);
-            ccnl_free(cp);
-        }
-        if (term_is_var(t)) {
+    //check if term can be made available, if yes enter it as a var
+    //try with searching in global env for an added term!
+
+    t = ccnl_lambdaStrToTerm(0, &cp, NULL);
+    ccnl_free(arg);
+
+    if (term_is_var(t)) {
         char *end = 0;
         cp = t->v;
         if (isdigit(*cp)) {
@@ -687,315 +560,254 @@ normal:
             strcpy(cp, t->v + 1);
             push_to_stack(&config->result_stack, cp, STACK_TYPE_CONST);
             end = (char*)1;
-        } else if(iscontentname(cp)) {
-            // is content...
-            DEBUGMSG(99, "VAR IS NAME: %s\n", cp);
+        } else if (iscontentname(cp)) { // is content...
             struct ccnl_prefix_s *prefix;
-            prefix = ccnl_URItoPrefix(cp, config->suite, NULL);
+            prefix = ccnl_URItoPrefix(cp, config->suite, NULL, NULL);
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }
         if (end) {
-            if (pending)
-                sprintf(res, "TAILAPPLY%s", pending);
+            if (contd)
+                sprintf(res, "TAILAPPLY;%s", contd);
             else
                 sprintf(res, "TAILAPPLY");
-        }else{
-            if (pending)
-                sprintf(res, "ACCESS(%s);TAILAPPLY%s", t->v, pending);
+        } else {
+            if (contd)
+                sprintf(res, "ACCESS(%s);TAILAPPLY;%s", t->v, contd);
             else
                 sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
         }
         ccnl_lambdaFreeTerm(t);
         return ccnl_strdup(res);
     }
-        if (term_is_lambda(t)) {
-            char *var;
-            var = t->v;
-            ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-            if (pending)
-                sprintf(res, "GRAB(%s);RESOLVENAME(%s)%s", var, dummybuf, pending);
-            else
-                sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
-            ccnl_lambdaFreeTerm(t);
-            return ccnl_strdup(res);
+    if (term_is_lambda(t)) {
+        char *var;
+        var = t->v;
+        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
+        if (contd)
+            sprintf(res, "GRAB(%s);RESOLVENAME(%s);%s", var, dummybuf, contd);
+        else
+            sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
+        ccnl_lambdaFreeTerm(t);
+        return ccnl_strdup(res);
+    }
+    if (term_is_app(t)) {
+        ccnl_lambdaTermToStr(dummybuf, t->n, 0);
+        len = sprintf(res, "CLOSURE(RESOLVENAME(%s));", dummybuf);
+        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
+        len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
+        if (contd)
+            len += sprintf(res+len, ";%s", contd);
+        ccnl_lambdaFreeTerm(t);
+        return ccnl_strdup(res);
+    }
+    return NULL;
+}
+
+// executes a ZAM instruction, returns the term to continue working on
+char*
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+        int thunk_request, int *num_of_required_thunks,
+        int *halt, char *dummybuf, int *restart)
+{
+//    struct ccnl_lambdaTerm_s *t;
+//    char *pending, *p, *cp, *prog = config->prog;
+//    int len;
+
+    char *prog = config->prog;
+    struct builtin_s *bp;
+    char *arg, *contd;
+    int tok;
+    
+    //pop closure
+    if (!prog || strlen(prog) == 0) {
+         if (config->result_stack) {
+             prog = ccnl_malloc(strlen((char*)config->result_stack->content)+1);
+             strcpy(prog, config->result_stack->content);
+             return prog;
+         }
+         DEBUGMSG(2, "no result returned\n");
+         return NULL;
+    }
+
+    tok = ZAM_nextToken(prog, &arg, &contd);
+
+    // TODO: count opening/closing parentheses when hunting for ';' ?
+/*
+    pending = strchr(prog, ';');
+    p = strchr(prog, '(');
+*/
+
+    switch (tok) {
+    case ZAM_ACCESS:
+    {
+        struct closure_s *closure = search_in_environment(config->env, arg);
+        DEBUGMSG(2, "---to do: access <%s>\n", arg);
+        if (!closure) {
+            // TODO: is the following needed? Above search should have
+            // visited global_dict, already!
+            closure = search_in_environment(config->global_dict, arg);
+            if (!closure) {
+                DEBUGMSG(2, "?? could not lookup var %s\n", arg);
+                ccnl_free(arg);
+                return NULL;
+            }
         }
-        if (term_is_app(t)) {
-            ccnl_lambdaTermToStr(dummybuf, t->n, 0);
-            len = sprintf(res, "CLOSURE(RESOLVENAME(%s));", dummybuf);
-            ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-            len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
-            if (pending)
-                strcpy(res+len, pending);
-            ccnl_lambdaFreeTerm(t);
-            return ccnl_strdup(res);
-        }
+        ccnl_free(arg);
+        closure = new_closure(ccnl_strdup(closure->term), closure->env);
+        push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
+        return ccnl_strdup(contd);
     }
-    if (!strncmp(prog, "OP_CMPEQ_CHURCH", 15)) {
-        int i1=0, i2=0, acc;
-        char res[1000];
-        memset(res, 0, sizeof(res));
-        DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
-        pop2int();
-        acc = i1 == i2;
-        cp =  acc ? "@x@y x" : "@x@y y";
-        if (pending)
-            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-        else
-            sprintf(res, "RESOLVENAME(%s)", cp);
-        return ccnl_strdup(res);
-    }
-    if (!strncmp(prog, "OP_CMPLEQ_CHURCH", 16)) {
-        int i1=0, i2=0, acc;
-        char res[1000];
-        memset(res, 0, sizeof(res));
-        DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
-        pop2int();
-        acc = i2 <= i1;
-        cp =  acc ? "@x@y x" : "@x@y y";
-        if (pending)
-            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-        else
-            sprintf(res, "RESOLVENAME(%s)", cp);
-        return ccnl_strdup(res);
-    }
-    if (!strncmp(prog, "OP_CMPEQ", 8)) {
-        int i1=0, i2=0, acc;
-        char res[1000];
-        memset(res, 0, sizeof(res));
-        DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
-        pop2int();
-        acc = i1 == i2;
-        if(acc)
-            cp = "1";
-        else
-            cp = "0";
-        if (pending)
-            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-        else
-            sprintf(res, "RESOLVENAME(%s)", cp);
-        return ccnl_strdup(res);
-    }
-    if (!strncmp(prog, "OP_CMPLEQ", 9)) {
-        int i1=0, i2=0, acc;
-        char res[1000];
-        memset(res, 0, sizeof(res));
-        DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>\n", pending);
-        pop2int();
-        acc = i2 <= i1;
-        if(acc)
-            cp = "1";
-        else
-            cp = "0";
-        if (pending)
-            sprintf(res, "RESOLVENAME(%s)%s", cp, pending);
-        else
-            sprintf(res, "RESOLVENAME(%s)", cp);
-        return ccnl_strdup(res);
-    }
-    if(!strncmp(prog, "OP_IFELSE", 9)){
-        struct stack_s *h;
-        int i1=0;
-        h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
-        if (h == NULL) {
-            *halt = -1;
-            return ccnl_strdup(prog);
-        }
-        if(h->type != STACK_TYPE_INT){
-            DEBUGMSG(99, "ifelse requires int as condition");
-            ccnl_nfn_freeStack(h);
+    case ZAM_APPLY:
+    {
+        struct stack_s *fct = pop_from_stack(&config->argument_stack);
+        struct stack_s *par = pop_from_stack(&config->argument_stack);
+        struct closure_s *fclosure, *aclosure;
+        char *code;
+        DEBUGMSG(2, "---to do: apply\n");
+
+        if (!fct || !par)
             return NULL;
-        }
-        i1 = *(int *)h->content;
-        if(i1){
-            DEBUGMSG(99, "Execute if\n");
-            struct stack_s *stack = pop_from_stack(&config->argument_stack);
-            pop_from_stack(&config->argument_stack);
-            push_to_stack(&config->argument_stack, stack->content, STACK_TYPE_CLOSURE);
-        }
-        else{
-            DEBUGMSG(99, "Execute else\n");
-            pop_from_stack(&config->argument_stack);
-        }
-        return ccnl_strdup(pending+1);
+        fclosure = (struct closure_s *) fct->content;
+        aclosure = (struct closure_s *) par->content;
+        if (!fclosure || !aclosure)
+            return NULL;
+        ccnl_free(fct);
+        ccnl_free(par);
+
+        code = aclosure->term;
+        if (config->env)
+            ccnl_nfn_releaseEnvironment(&config->env);
+        config->env = aclosure->env;
+        ccnl_free(aclosure);
+        push_to_stack(&config->argument_stack, fclosure, STACK_TYPE_CLOSURE);
+
+        if (contd)
+            sprintf(dummybuf, "%s;%s", code, contd);
+        else
+            strcat(dummybuf, code);
+        ccnl_free(code);
+        return ccnl_strdup(dummybuf);
     }
-    if(!strncmp(prog, "OP_CALL", 7)){
-        struct stack_s *h;
-        int i, offset, num_params;
+    case ZAM_CALL:
+    {
+        struct stack_s *h = pop_or_resolve_from_result_stack(ccnl, config);
+        int i, offset, num_params = *(int *)h->content;
         char name[5];
-        DEBUGMSG(2, "---to do: OP_CALL <%s>\n", prog+7);
-        h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        num_params = *(int *)h->content;
-        sprintf(dummybuf, "CLOSURE(OP_FOX);RESOLVENAME(@op(");///x(/y y x 2 op)));TAILAPPLY";
+
+        DEBUGMSG(2, "---to do: CALL <%s>\n", arg);
+        ccnl_free(h->content);
+        ccnl_free(h);
+        sprintf(dummybuf, "CLOSURE(FOX);RESOLVENAME(@op(");
+	// ... @x(@y y x 2 op)));TAILAPPLY";
         offset = strlen(dummybuf);
-        for(i = 0; i < num_params; ++i){
+        for (i = 0; i < num_params; ++i) {
             sprintf(name, "x%d", i);
             offset += sprintf(dummybuf+offset, "@%s(", name);
         }
-        for(i =  num_params - 1; i >= 0; --i){
+        for (i = num_params - 1; i >= 0; --i) {
             sprintf(name, "x%d", i);
             offset += sprintf(dummybuf+offset, " %s", name);
         }
         offset += sprintf(dummybuf + offset, " %d", num_params);
         offset += sprintf(dummybuf+offset, " op");
-        for(i = 0; i < num_params+2; ++i)
+        for (i = 0; i < num_params+2; ++i)
             offset += sprintf(dummybuf + offset, ")");
-        sprintf(dummybuf + offset, "%s", pending);
+        if (contd)
+            sprintf(dummybuf + offset, ";%s", contd);
         return ccnl_strdup(dummybuf);
     }
-    
-    if(!strncmp(prog, "OP_FOX", 6)){
-        int local_search = 0;
-        if(*restart) {
-            *restart = 0;
-            local_search = 1;
-            goto recontinue;
+    case ZAM_CLOSURE:
+    {
+        struct closure_s *closure;
+        DEBUGMSG(2, "---to do: closure <%s> (contd=%s)\n", arg, contd);
+
+        if (!config->argument_stack && !strncmp(arg, "RESOLVENAME(", 12)) {
+            char v[500], *c;
+            int len;
+            c = strchr(arg+12, ')');
+            if (!c)
+                goto normal;
+            len = c - (arg+12);
+            memcpy(v, arg+12, len);
+            v[len] = '\0';
+            closure = search_in_environment(config->env, v);
+            if (!closure)
+                goto normal;
+            if (!strcmp(closure->term, arg)) {
+                DEBUGMSG(2, "** detected tail recursion case %s/%s\n",
+                         closure->term, arg);
+            } else
+                goto normal;
+        } else {
+normal:
+            closure = new_closure(arg, config->env); 
+            //configuration->env = NULL;//FIXME new environment?
+            push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
+            arg = NULL;
         }
-        DEBUGMSG(2, "---to do: OP_FOX <%s>\n", prog+7);
-        struct stack_s *h = pop_or_resolve_from_result_stack(ccnl, config, restart);
-        //TODO CHECK IF INT
-        config->fox_state->num_of_params = *(int*)h->content;
-        DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
-        int i;
-        config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) * config->fox_state->num_of_params);
-        
-        for(i = 0; i < config->fox_state->num_of_params; ++i){ //pop parameter from stack
-            //config->fox_state->params[i] = pop_or_resolve_from_result_stack(ccnl, config, restart);
-            config->fox_state->params[i] = pop_from_stack(&config->result_stack);
-            if(config->fox_state->params[i]->type == STACK_TYPE_THUNK){ //USE NAME OF A THUNK
-                char *thunkname = (char*)config->fox_state->params[i]->content;
-
-                struct thunk_s *thunk = ccnl_nfn_get_thunk(ccnl, (unsigned char*)thunkname);
-                struct stack_s *thunk_elm = ccnl_malloc(sizeof(struct stack_s));
-                thunk_elm->type = STACK_TYPE_PREFIX;
-                thunk_elm->content = thunk->reduced_prefix;
-                thunk_elm->next = NULL;
-                config->fox_state->params[i] = thunk_elm;
-
-            }
-
-            if(config->fox_state->params[i]->type == STACK_TYPE_INT){
-                int p = *(int *)config->fox_state->params[i]->content;
-                DEBUGMSG(99, "Parameter %d %d\n", i, p);
-            }
-            else if(config->fox_state->params[i]->type == STACK_TYPE_PREFIX){
-                DEBUGMSG(99, "Parameter %d %s\n", i, ccnl_prefix_to_path((struct ccnl_prefix_s*)config->fox_state->params[i]->content));
-            }
-
-
+        if (contd) {
+            ccnl_free(arg);
+            return ccnl_strdup(contd);
         }
-        //as long as there is a routable parameter: try to find a result
-        config->fox_state->it_routable_param = 0;
-        int parameter_number = 0;
-        struct ccnl_content_s *c = NULL;
-
-        //check if last result is now available
-recontinue: //loop by reentering after timeout of the interest...
-        if(local_search){
-            DEBUGMSG(99, "Checking if result was received\n");
-            parameter_number = choose_parameter(config);
-            struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
-            c = ccnl_nfn_local_content_search(ccnl, config, pref); //search for a result
-            set_propagate_of_interests_to_1(ccnl, pref); //TODO Check? //TODO remove interest here?
-            if(c) goto handlecontent;
-        }
-        //result was not delivered --> choose next parameter
-        ++config->fox_state->it_routable_param;
-        parameter_number = choose_parameter(config);
-        if(parameter_number < 0) goto local_compute; //no more parameter --> no result found, can try a local computation
-        //create new prefix with name components!!!!
-        struct ccnl_prefix_s *pref = create_namecomps(ccnl, config, parameter_number, thunk_request, config->fox_state->params[parameter_number]->content);
-        c = ccnl_nfn_local_content_search(ccnl, config, pref);
-        if(c) goto handlecontent;
-
-         //Result not in cache, search over the network
-        //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, pref);
-        struct ccnl_prefix_s *copy = ccnl_prefix_dup(pref);
-        struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-    DEBUGMSG(99, "Interest From Face ID: %d\n", interest->from->faceid);
-        if (interest)
-        ccnl_interest_propagate(ccnl, interest);
-        //wait for content, return current program to continue later
-        *halt = -1; //set halt to -1 for async computations
-        if (*halt < 0)
-            return prog ? ccnl_strdup(prog) : NULL;
-
-local_compute:
-        if(config->local_done){
-            return NULL;
-        }
-        config->local_done = 1;
-        pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
-        DEBUGMSG(99, "Prefix local computetion: %s\n", ccnl_prefix_to_path(pref));
-//        interest = mkInterestObject(ccnl, config, pref);
-        interest = ccnl_nfn_query2interest(ccnl, &pref, config);
-        if (interest)
-            ccnl_interest_propagate(ccnl, interest);
-
-handlecontent: //if result was found ---> handle it
-        if(c){
-#ifdef USE_NACK
-            if(!strncmp((char*)c->content, ":NACK", 5)){
-                DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
-                 ++config->fox_state->it_routable_param;
-                 return prog ? ccnl_strdup(prog) : NULL;
-            }
-#endif
-            if(thunk_request){ //if thunk_request push thunkid on the stack
-
-                --(*num_of_required_thunks);
-                char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
-                char *time_required = (char *)c->content;
-                int thunk_time = strtol(time_required, NULL, 10);
-                thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
-                config->thunk_time = config->thunk_time > thunk_time ? config->thunk_time : thunk_time;
-                DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n", thunkid, *num_of_required_thunks);
-                push_to_stack(&config->result_stack, thunkid, STACK_TYPE_THUNK);
-                if( *num_of_required_thunks <= 0){
-                    DEBUGMSG(99, "All thunks are available\n");
-                    ccnl_nfn_reply_thunk(ccnl, config);
-                }
-            }
-            else{
-                if(isdigit(*c->content)){
-                    int *integer = ccnl_malloc(sizeof(int));
-                    *integer = strtol((char*)c->content, 0, 0);
-                    push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
-                }
-                else{
-
-                    struct ccnl_prefix_s *name = create_prefix_for_content_on_result_stack(ccnl, config);
-                    push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
-                    struct prefix_mapping_s *mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
-                    mapping->key = name;
-                    mapping->value = c->name;
-                    DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
-                    DEBUGMSG(99, "Created a mapping %s - %s\n", ccnl_prefix_to_path(mapping->key), ccnl_prefix_to_path(mapping->value));
-                }
-            }
-        }        
-        DEBUGMSG(99, "Pending: %s\n", pending+1);
-        return ccnl_strdup(pending+1);
+        printf("** not implemented, see line %d\n", __LINE__);
+        return arg;
     }
-    
-    if (!strncmp(prog, "halt", 4)) {
+    case ZAM_FOX:
+        return ZAM_fox(ccnl, config, thunk_request, restart, halt,
+                       num_of_required_thunks, prog, arg, contd);
+    case ZAM_GRAB:
+    {
+        struct stack_s *stack = pop_from_stack(&config->argument_stack);
+        DEBUGMSG(2, "---to do: grab <%s>\n", arg);
+        add_to_environment(&config->env, arg, stack->content);
+        ccnl_free(stack);
+        return ccnl_strdup(contd);
+    }
+    case ZAM_HALT:
+        ccnl_nfn_freeStack(config->argument_stack);
+        //ccnl_nfn_freeStack(config->result_stack);
+        config->argument_stack = /*config->result_stack =*/ NULL;
         *halt = 1;
-        return pending ? ccnl_strdup(pending) : NULL;
+        return ccnl_strdup(contd);
+    case ZAM_RESOLVENAME:
+        return ZAM_resolvename(config, dummybuf, arg, contd);
+    case ZAM_TAILAPPLY:
+    {
+        struct stack_s *stack = pop_from_stack(&config->argument_stack);
+        struct closure_s *closure = (struct closure_s *) stack->content;
+        char *code = closure->term;
+        DEBUGMSG(2, "---to do: tailapply\n");
+
+        ccnl_free(stack);
+        if (contd) //build new term
+            sprintf(dummybuf, "%s;%s", code, contd);
+        else
+            strcpy(dummybuf, code);
+        if (config->env)
+            ccnl_nfn_releaseEnvironment(&config->env);
+        config->env = closure->env; //set environment from closure
+        ccnl_free(code);
+        ccnl_free(closure);
+        return ccnl_strdup(dummybuf);
+    }
+    case ZAM_UNKNOWN:
+        break;
+    default:
+        DEBUGMSG(99, "builtin: %s (%s/%s)\n", bifs[-tok - 1].name, prog, contd);
+        return bifs[-tok - 1].fct(ccnl, config, restart, halt, prog,
+                                  contd, &config->result_stack);
     }
 
-    for (len = 0, bp = bifs; bp->name; len++, bp++)
-        if (!strncmp(prog, bp->name, strlen(bp->name))) {
-            DEBUGMSG(99, "%s %s %s\n", bp->name, prog, pending);
-            return bp->fct(ccnl, config, restart, halt, prog,
-                           pending, &config->result_stack);
-        }
+    ccnl_free(arg);
+
+    // iterate through all extension operations
     for (bp = extensions; bp; bp = bp->next)
         if (!strncmp(prog, bp->name, strlen(bp->name)))
             return (bp->fct)(ccnl, config, restart, halt, prog,
-                             pending, &config->result_stack);
+                             contd, &config->result_stack);
 
-    DEBUGMSG(2, "unknown built-in command <%s>\n", prog);
+    DEBUGMSG(2, "unknown (built-in) command <%s>\n", prog);
 
     return NULL;
 }
@@ -1040,11 +852,12 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_SUB);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY");
     allocAndAdd(env, "mult",
                 "CLOSURE(OP_MULT);RESOLVENAME(@op(@x(@y x y op)));TAILAPPLY");
+
     allocAndAdd(env, "call",
-                "CLOSURE(OP_CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                "CLOSURE(CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
     allocAndAdd(env, "_getAllBytes",
-                "CLOSURE(OP_RAW);RESOLVENAME(@op(@x x op));TAILAPPLY");
+                "TAILAPPLY;OP_RAW");
 
 #ifdef USE_NFN_NSTRANS
     allocAndAdd(env, "_getFromNameSpace",
@@ -1053,77 +866,25 @@ setup_global_environment(struct environment_s **env)
 #endif
 }
 
+// consumes the result stack, exports its content to a buffer
 struct ccnl_buf_s*
-Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
-                  int thunk_request, int start_locally,
-                  int num_of_required_thunks, struct configuration_s **config,
-                  struct ccnl_prefix_s *prefix, int suite)
+Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
+                          struct configuration_s *config)
 {
-    int steps = 0, halt = 0, restart = 1;
-    int len = strlen("CLOSURE(halt);RESOLVENAME()") + strlen(expression);
-    char *dummybuf;
-
-    DEBUGMSG(99, "Krivine_reduction()\n");
-
-    if (!*config && strlen(expression) == 0)
-        return 0;
-    dummybuf = ccnl_malloc(2000);
-    if (!*config) {
-        char *prog = ccnl_malloc(len*sizeof(char));
-        struct environment_s *global_dict = NULL;
-
-        prog = ccnl_malloc(len*sizeof(char));
-        sprintf(prog, "CLOSURE(halt);RESOLVENAME(%s)", expression);
-        setup_global_environment(&global_dict);
-        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
-        *config = new_config(ccnl, prog, global_dict, thunk_request,
-                             start_locally, num_of_required_thunks,
-                             prefix, ccnl->km->configid, suite);
-        DBL_LINKED_LIST_ADD(ccnl->km->configuration_list, (*config));
-        restart = 0;
-        --ccnl->km->configid;
-    }
-    if(thunk_request && num_of_required_thunks == 0){
-        ccnl_nfn_reply_thunk(ccnl, *config);
-    }
-    DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
-
-    while ((*config)->prog && !halt && (long)(*config)->prog != 1) {
-        char *oldprog = (*config)->prog;
-        steps++;
-        DEBUGMSG(1, "Step %d: %s\n", steps, (*config)->prog);
-        (*config)->prog = ZAM_term(ccnl, (*config), (*config)->fox_state->thunk_request, 
-                &(*config)->fox_state->num_of_required_thunks, &halt, dummybuf, &restart);
-//      if (oldprog != (*config)->prog)
-            ccnl_free(oldprog);
-    }
-    if (halt < 0) { //HALT < 0 means pause computation
-        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
-        ccnl_free(dummybuf);
-        return NULL;
-    }
-
-    //HALT > 0 means computation finished
-    ccnl_free(dummybuf);
-    DEBUGMSG(99, "end-of-computation\n");
-
-    struct ccnl_buf_s *h = NULL;
     char res[64000]; //TODO longer???
     int pos = 0;
-    struct stack_s *stack = NULL;
-    while ((stack = pop_or_resolve_from_result_stack(ccnl, *config, &restart))) {
-        if (stack->type == STACK_TYPE_PREFIX) {
-            struct ccnl_content_s *cont;
+    struct stack_s *stack;
+    struct ccnl_content_s *cont;
 
-            cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
+    while ((stack = pop_or_resolve_from_result_stack(ccnl, config))) {
+        if (stack->type == STACK_TYPE_PREFIX) {
+            cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
                 memcpy(res+pos, (char*)cont->content, cont->contentlen);
                 pos += cont->contentlen;
             }
         } else if (stack->type == STACK_TYPE_PREFIXRAW) {
-            struct ccnl_content_s *cont;
-
-            cont = ccnl_nfn_local_content_search(ccnl, *config, stack->content);
+            cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
 /*
                 DEBUGMSG(99, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
@@ -1142,8 +903,77 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         ccnl_free(stack);
     }
 
-    h = ccnl_buf_new(res, pos);
-    return h;
+    return ccnl_buf_new(res, pos);
+}
+
+// executes (loops over) a Lambda expression: tries to run to termination,
+// or returns after having emitted further remote lookup/reduction requests
+// the return val is a buffer with the result stack's (concatenated) content
+struct ccnl_buf_s*
+Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
+                  int thunk_request, int start_locally,
+                  int num_of_required_thunks, struct configuration_s **config,
+                  struct ccnl_prefix_s *prefix, int suite)
+{
+    int steps = 0, halt = 0, restart = 1;
+    int len = strlen("CLOSURE(HALT);RESOLVENAME()") + strlen(expression) + 1;
+    char *dummybuf;
+
+    DEBUGMSG(99, "Krivine_reduction()\n");
+
+    if (!*config && strlen(expression) == 0)
+        return 0;
+    dummybuf = ccnl_malloc(2000);
+    if (!*config) {
+        char *prog;
+        struct environment_s *global_dict = NULL;
+
+        prog = ccnl_malloc(len*sizeof(char));
+        sprintf(prog, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
+        setup_global_environment(&global_dict);
+        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
+        *config = new_config(ccnl, prog, global_dict, thunk_request,
+                             start_locally, num_of_required_thunks,
+                             prefix, ccnl->km->configid, suite);
+        DBL_LINKED_LIST_ADD(ccnl->km->configuration_list, (*config));
+        restart = 0;
+        --ccnl->km->configid;
+    }
+    if (thunk_request && num_of_required_thunks == 0)
+        ccnl_nfn_reply_thunk(ccnl, *config);
+
+    DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
+
+    while ((*config)->prog && !halt) {
+        char *oldprog = (*config)->prog;
+        steps++;
+        DEBUGMSG(1, "Step %d (%d/%d): %s\n", steps,
+                 stack_len((*config)->argument_stack),
+                 stack_len((*config)->result_stack), (*config)->prog);
+        (*config)->prog = ZAM_term(ccnl, *config,
+                                (*config)->fox_state->thunk_request, 
+                                &(*config)->fox_state->num_of_required_thunks,
+                                &halt, dummybuf, &restart);
+        ccnl_free(oldprog);
+    }
+    ccnl_free(dummybuf);
+
+    if (halt < 0) { //HALT < 0 means pause computation
+        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
+        return NULL;
+    }
+
+    //HALT > 0 means computation finished
+    DEBUGMSG(99, "end-of-computation (%d/%d)\n",
+             stack_len((*config)->argument_stack),
+             stack_len((*config)->result_stack));
+/*
+    print_argument_stack((*config)->argument_stack);
+    print_result_stack((*config)->result_stack);
+*/
+
+    print_result_stack((*config)->result_stack);
+    return Krivine_exportResultStack(ccnl, *config);
 }
 
 #endif // !CCNL_LINUXKERNEL

@@ -77,7 +77,7 @@ ccnl_URItoComponents(char **compVector, char *uri)
 }
 
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
@@ -133,7 +133,11 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr)
 #endif
     }
 
-    // realloc path ...
+    if(chunknum) {
+        p->chunknum = *chunknum;
+    } else {
+        p->chunknum = -1;
+    }
 
     return p;
 }
@@ -200,7 +204,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 int
 ccnl_pkt2suite(unsigned char *data, int len)
 {
-    if (len <= 0)
+
+    if (len <= 0) 
         return -1;
 
 #ifdef USE_SUITE_CCNB
@@ -210,10 +215,10 @@ ccnl_pkt2suite(unsigned char *data, int len)
 
 #ifdef USE_SUITE_CCNTLV
     if (data[0] == CCNX_TLV_V0 && len > 1) {
-        if (data[1] == CCNX_TLV_TL_Interest ||
-            data[1] == CCNX_TLV_TL_Object)
+        if (data[1] == CCNX_PT_Interest ||
+            data[1] == CCNX_PT_ContentObject) 
             return CCNL_SUITE_CCNTLV;
-    }
+    } 
 #endif
 
 #ifdef USE_SUITE_NDNTLV
@@ -225,7 +230,6 @@ ccnl_pkt2suite(unsigned char *data, int len)
     if (*data == 0x80)
         return CCNL_SUITE_LOCALRPC;
 #endif
-
     return -1;
 }
 
@@ -244,14 +248,13 @@ ccnl_addr2ascii(sockunion *su)
         strcpy(result, eth2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
+        return result;
     }
-    return result;
 #endif
     case AF_INET:
         sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
         return result;
-//      return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
         strcpy(result, su->ux.sun_path);
@@ -275,7 +278,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     int len = 0, i;
 
     if (!pr)
-    return NULL;
+        return NULL;
 
     if (!buf) {
         struct ccnl_buf_s *b;
@@ -301,25 +304,25 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #endif
 
     for (i = 0; i < pr->compcnt; i++) {
-    int skip = 0;
-    if (pr->suite == CCNL_SUITE_CCNTLV) {
-        if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
-            len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-                       pr->comp[i][0], pr->comp[i][1],
-                       pr->complen[i]-4, pr->comp[i]+4);
-            continue;
+        int skip = 0;
+        if (pr->suite == CCNL_SUITE_CCNTLV) {
+            if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
+                len += sprintf(buf + len, "/%%x%02x%02x%.*s",
+                               pr->comp[i][0], pr->comp[i][1],
+                               pr->complen[i]-4, pr->comp[i]+4);
+                continue;
+            }
+            skip = 4;
         }
-        skip = 4;
-    }
 #ifdef USE_NFN
-    if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-                    !strncmp("call", (char*)pr->comp[i], 4))
-        len += sprintf(buf + len, "%.*s",
-               pr->complen[i]-skip, pr->comp[i]+skip);
-    else
+        if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
+            !strncmp("call", (char*)pr->comp[i], 4))
+            len += sprintf(buf + len, "%.*s",
+                           pr->complen[i]-skip, pr->comp[i]+skip);
+        else
 #endif
         len += sprintf(buf + len, "/%.*s",
-               pr->complen[i]-skip, pr->comp[i]+skip);
+                       pr->complen[i]-skip, pr->comp[i]+skip);
     }
 
 #ifdef USE_NFN
@@ -494,22 +497,24 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+        len = ccnl_ccnb_fillInterest(name, 
+                                     NULL, // nonce
+                                     tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_fillInterestWithHdr(name, &offs, tmp);
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_fillInterest(name, -1, NULL, &offs, tmp);
-    break;
+        break;
 #endif
     default:
-    break;
+        break;
     }
 
     if (len)
@@ -535,23 +540,23 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
         offs = 0;
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen, 
-                                             NULL, NULL, // chunknum/lastchunknum
+                                             NULL, // lastchunknum
                                              &offs, &contentpos, tmp);
-    break;
+        break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_fillContent(name, payload, paylen,
                                       &offs, &contentpos, NULL, 0, tmp);
-    break;
+        break;
 #endif
     default:
-    break;
+        break;
     }
 
     if (len) {

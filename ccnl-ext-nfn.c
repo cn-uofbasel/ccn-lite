@@ -28,14 +28,12 @@
 #include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfncommon.c"
 #include "ccnl-ext-nfnkrivine.c"
-#include "ccnl-ext-nstrans.c"
+#include "ccnl-ext-nfnops.c"
+// #include "ccnl-ext-nstrans.c"
 
 void
 ZAM_init(void)
 {
-#ifdef USE_NFN_NSTRANS
-    ZAM_register("OP_NSTRANS", op_builtin_nstrans);
-#endif
 }
 
 struct configuration_s*
@@ -168,7 +166,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
     if (ccnl_nfnprefix_isTHUNK(prefix))
         thunk_request = 1;
-
+/*
     if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
@@ -182,21 +180,31 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         free_prefix(copy);
         start_locally = 1;
     }
-
+*/
+   
     //put packet together
+#ifdef USE_SUITE_CCNTLV
     if (prefix->suite == CCNL_SUITE_CCNTLV) {
         len = prefix->complen[prefix->compcnt-1] - 4;
         memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
         str[len] = '\0';
-    } else {
+    } else
+#endif
+    {
         len = prefix->complen[prefix->compcnt-1];
         memcpy(str, prefix->comp[prefix->compcnt-1], len);
         str[len] = '\0';
     }
     if (prefix->compcnt > 1)
         len += sprintf(str + len, " ");
-    for (i = 0; i < prefix->compcnt-1; i++)
-        len += sprintf(str + len, "/%.*s", prefix->complen[i], prefix->comp[i]);
+    for (i = 0; i < prefix->compcnt-1; i++) {
+#ifdef USE_SUITE_CCNTLV
+        if (prefix->suite == CCNL_SUITE_CCNTLV)
+            len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
+        else
+#endif
+            len += sprintf(str+len,"/%.*s",prefix->complen[i],prefix->comp[i]);
+    }
 
     DEBUGMSG(99, "expr is <%s>\n", str);
     //search for result here... if found return...
@@ -213,8 +221,8 @@ restart:
         struct ccnl_prefix_s *copy;
         struct ccnl_content_s *c;
 
-        DEBUGMSG(2,"Computation finished: %d bytes. Running computations: %d\n",
-                 res->datalen, ccnl->km->numOfRunningComputations);
+        DEBUGMSG(2,"Computation finished: res: %s size: %d bytes. Running computations: %d\n",
+                 res->data, res->datalen, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
             // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
             ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);

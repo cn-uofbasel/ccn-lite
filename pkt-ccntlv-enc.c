@@ -1,6 +1,6 @@
 /*
  * @f pkt-ccntlv-enc.c
- * @b CCN lite - CCNx pkt composing routines (TLV pkt format Nov 2013)
+ * @b CCN lite - CCNx pkt composing routines (TLV pkt format Sep 22, 2014)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -25,20 +25,23 @@
 
 #include "pkt-ccntlv.h"
 
+// write given TL *before* position buf+offset, adjust offset and return len
 int
-ccnl_ccntlv_prependTL(unsigned int type, unsigned short len, int *offset, unsigned char *buf)
+ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
+                      int *offset, unsigned char *buf)
 {
-/*
+    unsigned short *ip;
+
     if (*offset < 4)
         return -1;
-*/
-    unsigned short *ip = (unsigned short*) (buf + *offset - 2);
+    ip = (unsigned short*) (buf + *offset - 2);
     *ip-- = htons(len);
     *ip = htons(type);
     *offset -= 4;
     return 4;
 }
 
+// write len bytes *before* position buf[offset], adjust offset
 int
 ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
                         unsigned short len, int *offset, unsigned char *buf)
@@ -53,32 +56,34 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 }
 
 
-// Integer to network byteorder without trailing 0.
-// 0 is represented as %x00
+// write (in network order and with the minimal number of bytes)
+// the given integer val *before* position buf[offset], adjust offset
+// and return number of bytes prepended. 0 is represented as %x00
 int
 ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval,
-                       int *offset, unsigned char *buf)
+                                 int *offset, unsigned char *buf)
 {
+    int offs = *offset;
+    int len = 0;
 
-    int len = sizeof(int);
-    int nintval = htonl(intval);
-    char *intdata = (char *) &nintval;
+    if (intval >= 0) {
+        while (offs > 0) {
+            buf[--offs] = intval & 0xff;
+            len++;
+            if (intval < 128)
+                break;
+            intval = intval >> 8;
+        }
+        *offset = offs;
+    } // else TODO: negative values
 
-    while(len > 1 && *intdata == 0) {
-        len--;
-        intdata++;
-    }
-
-    if (*offset < (len + 4))
-        return -1;
-
-    memcpy(buf + *offset - len, intdata, len);
-    *offset -= len;
     if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
         return -1;
     return len + 4;
 }
 
+// write *before* position buf[offset] the CCNx1.0 fixed header,
+// returns total packet len
 int
 ccnl_ccntlv_prependFixedHdr(unsigned char ver, 
                             unsigned char packettype, 
@@ -86,10 +91,9 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
                             unsigned char hoplimit, 
                             int *offset, unsigned char *buf)
 {
-    struct ccnx_tlvhdr_ccnx201409_s *hp;
-
     // Currently there are no optional headers, only fixed header of size 8
     unsigned char hdrlen = 8;
+    struct ccnx_tlvhdr_ccnx201409_s *hp;
 
     if (*offset < 8 || payloadlen < 0)
         return -1;
@@ -105,20 +109,17 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     return hdrlen + payloadlen;
 }
 
+// write given prefix and chunknum *before* buf[offs], adjust offset
+// and return bytes used
 int
-ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name,
-                             int *chunknum, 
-                             int *offset, unsigned char *buf) {
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf) {
 
     int oldoffset = *offset, cnt;
 
-    if(chunknum && *chunknum >= 0) {
-
-        // CCNX_TLV_N_CHUNK
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk, *chunknum, offset, buf) < 0) {
+    if (name->chunknum >= 0 &&
+        ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk, name->chunknum, offset, buf) < 0)
             return -1;
-        }
-    }
 
     // optional: (not used)
     // CCNX_TLV_N_MetaData
@@ -146,21 +147,14 @@ ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name,
     return 0;
 }
 
-int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf)
-{
-    return ccnl_ccntlv_prependChunkName(name, NULL, offset, buf);
-}
-
+// write Interest payload *before* buf[offs], adjust offs and return bytes used
 int
 ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
-                         int *chunknum, 
                          int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependChunkName(name, chunknum, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -169,43 +163,42 @@ ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
-
+// write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
 ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, 
-                                     int *chunknum, 
                                      int *offset, unsigned char *buf)
 {
     int len, oldoffset;
-    // setting hoplimit to max valid value
-    unsigned char hoplimit = 255;
+    unsigned char hoplimit = 255; // setting hoplimit to max valid value
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillInterest(name, chunknum, offset, buf);
-    if(len >= 65536)
+    len = ccnl_ccntlv_fillInterest(name, offset, buf);
+    if (len >= ((1 << 16)-8))
         return -1;
-    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
-                                len, hoplimit, offset, buf);
-    len = oldoffset - *offset;
-    if (len > 0)
-        memmove(buf, buf + *offset, len);
-    return len;
+    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
+                                    len, hoplimit, offset, buf) < 0)
+        return -1;
+
+    return oldoffset - *offset;
 }
 
+// write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
 ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
-    return ccnl_ccntlv_fillChunkInterestWithHdr(name, NULL, offset, buf);
+    return ccnl_ccntlv_fillChunkInterestWithHdr(name, offset, buf);
 }
 
+// write Content payload *before* buf[offs], adjust offs and return bytes used
 int
 ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, 
                         unsigned char *payload, int paylen, 
-                        int *chunknum, int *lastchunknum,
+                        int *lastchunknum,
                         int *offset, int *contentpos,
                         unsigned char *buf)
 {
-    int oldoffset, tloffset = *offset;
+    int tloffset = *offset;
 
     if (contentpos)
         *contentpos = *offset - paylen;
@@ -215,22 +208,18 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if(lastchunknum) {
-        oldoffset = *offset;
-        if(ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_M_ENDChunk, *lastchunknum, offset, buf) < 0)
+    if (lastchunknum) {
+        int oldoffset = *offset;
+        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_M_ENDChunk,
+                                             *lastchunknum, offset, buf) < 0)
             return -1;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_M_MetaData, oldoffset - *offset, offset, buf) < 0)
+        if (ccnl_ccntlv_prependTL(CCNX_TLV_M_MetaData,
+                                  oldoffset - *offset, offset, buf) < 0)
             return -1;
     }
 
-
-    if(chunknum) {
-        if (ccnl_ccntlv_prependChunkName(name, chunknum, offset, buf))
-            return -1;
-    } else {
-        if (ccnl_ccntlv_prependName(name, offset, buf))
-            return -1;
-    }
+    if (ccnl_ccntlv_prependName(name, offset, buf))
+        return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
                                         tloffset - *offset, offset, buf) < 0)
@@ -242,30 +231,27 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name,
     return tloffset - *offset;
 }
 
+// write Content packet *before* buf[offs], adjust offs and return bytes used
 int
 ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
                                unsigned char *payload, int paylen,
-                               int *chunknum, int *lastchunknum,
+                               int *lastchunknum,
                                int *offset, int *contentpos, unsigned char *buf)
 {
-    int len, oldoffset; // PayloadLengnth 
-
-    // hoplimit unused for a content object
-    // setting it to max to be sure
-    unsigned char hoplimit = 255;
-
+    int len, oldoffset;
+    unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillContent(name, payload, paylen, chunknum, lastchunknum, offset,
+
+    len = ccnl_ccntlv_fillContent(name, payload, paylen, lastchunknum, offset,
                                   contentpos, buf);
 
-    if(len >= 65536)
+    if (len >= ((1 << 16) - 4))
         return -1;
 
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
                                 len, hoplimit, offset, buf);
-    len = oldoffset - *offset;
-    return len;
+    return oldoffset - *offset;
 }
 
 #endif

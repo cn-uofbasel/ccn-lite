@@ -129,33 +129,6 @@ ccnb_mkInterest(struct ccnl_prefix_s *name,
     return len;
 }
 
-int
-ccntlv_mkInterest(struct ccnl_prefix_s *name,
-                  unsigned char *out, int outlen)
-{
-     int len, offset;
-
-     offset = outlen;
-     len = ccnl_ccntlv_fillInterestWithHdr(name, &offset, out);
-
-     return len;
-}
-
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, char *scope, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-    int s = scope ? atoi(scope) : -1;
-
-    offset = outlen;
-    len = ccnl_ndntlv_fillInterest(name, s, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-
 // ----------------------------------------------------------------------
 
 int
@@ -239,7 +212,7 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL);
+    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL, NULL);
     if (!prefix) {
         fprintf(stderr, "no URI found, aborting\n");
         return -1;
@@ -253,10 +226,14 @@ Usage:
 			      scope, &nonce, out);
 	break;
     case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix, out, CCNL_MAX_PACKET_SIZE);
+        len = ccntlv_mkInterest(prefix, 
+                                (int*)&nonce, 
+                                out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_NDNTLV:
-        len = ndntlv_mkInterest(prefix, scope, (int*)&nonce, out,
+        len = ndntlv_mkInterest(prefix, 
+                                NULL, // chunknum
+                                out,
                                 CCNL_MAX_PACKET_SIZE);
         break;
     default:
