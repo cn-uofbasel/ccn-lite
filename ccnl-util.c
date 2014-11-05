@@ -20,7 +20,7 @@
  * 2014-06-18 created
  */
 
-#include "pkt-ccnb-enc.c"
+#include "pkt-ccnb.c"
 #include "pkt-ccntlv-enc.c"
 #include "pkt-ndntlv-enc.c"
 

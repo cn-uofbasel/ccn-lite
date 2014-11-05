@@ -52,7 +52,7 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
-# include "pkt-ccnb-enc.c"
+# include "pkt-ccnb.c"
 # include "pkt-ccntlv-enc.c"
 # include "pkt-ndntlv-enc.c"
 
