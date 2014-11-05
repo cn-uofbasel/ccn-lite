@@ -83,7 +83,7 @@ ccnl_buf_new(void *data, int len)
 
 #include "../pkt-ccnb.c"
 #include "../pkt-ccntlv.c"
-#include "../pkt-ndntlv-dec.c"
+#include "../pkt-ndntlv.c"
 #include "../pkt-localrpc.h"
 
 #define ccnl_core_addToCleanup(b)       do{}while(0)

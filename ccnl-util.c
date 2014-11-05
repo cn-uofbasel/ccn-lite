@@ -22,7 +22,7 @@
 
 #include "pkt-ccnb.c"
 #include "pkt-ccntlv.c"
-#include "pkt-ndntlv-enc.c"
+#include "pkt-ndntlv.c"
 
 int
 hex2int(char c)

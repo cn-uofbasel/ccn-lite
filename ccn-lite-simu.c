@@ -54,7 +54,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 # include "pkt-ccnb.c"
 # include "pkt-ccntlv.c"
-# include "pkt-ndntlv-enc.c"
+# include "pkt-ndntlv.c"
 
 #include "ccnl-util.c"
 #include "ccnl-core.c"
