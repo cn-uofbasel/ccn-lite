@@ -1,8 +1,15 @@
 # ccn-lite Makefile for Linux and OS X
 
+# All variables can either be exported or set with: make <target> <VAR>=<val> 
+# If no specific value is specified, it means the variable should be set to 1
 # For Linux Kernel module export USE_KERNEL=1
-# If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
-# For (experimental) nack set USE_NACK to something
+
+# If NFN targets should be compiled set USE_NFN 
+# For (experimental) nack set USE_NACK 
+
+# Example: make clean all USE_NFN=1
+
+
 
 # OS name: Linux or Darwing (OSX) supported
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
