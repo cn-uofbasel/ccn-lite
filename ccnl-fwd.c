@@ -223,8 +223,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     unsigned char typ = hdrptr->packettype;
     unsigned char hdrlen = *data - (unsigned char*)hdrptr;
-    DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left)\n", *datalen);
-    DEBUGMSG(99, "hdrlen=%d", hdrlen);
+    DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
+             *datalen, hdrlen);
     buf = ccnl_ccntlv_extract(hdrlen, 
                               data, datalen,
                               &p, 
@@ -232,7 +232,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                               &chunknum, &lastchunknum,
                               &content, &contlen);
     if (!buf) {
-            DEBUGMSG(6, "  parsing error or no prefix\n"); goto Done;
+            DEBUGMSG(6, "  parsing error or no prefix\n");
+            goto Done;
     }
 
     if (typ == CCNX_PT_Interest) {

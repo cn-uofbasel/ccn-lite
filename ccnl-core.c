@@ -473,7 +473,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
 
         //Only for matching suite
-        if(fwd->suite != i->suite) {
+        if (fwd->suite != i->suite) {
+            DEBUGMSG(99, "  not same suite (%d/%d)\n", fwd->suite, i->suite);
             continue;
         }
 
