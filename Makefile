@@ -85,7 +85,7 @@ obj-m += ccn-lite-lnxkernel.o
 CCNB_LIB =   pkt-ccnb.h pkt-ccnb.c
 CCNTLV_LIB = pkt-ccntlv.h pkt-ccntlv.c
 NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv.c
-LOCRPC_LIB = pkt-localrpc.h pkt-localrpc-enc.c pkt-localrpc-dec.c fwd-localrpc.c
+LOCRPC_LIB = pkt-localrpc.h pkt-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 

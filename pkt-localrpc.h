@@ -20,10 +20,19 @@
  * 2014-05-11 created
  */
 
-// #define NDN_TLV_RPC_USERDEFINEDNAME  0x00..0x7f
+#ifndef PKT_LOCALRPC_H
+#define PKT_LOCALRPC_H
 
-#ifndef PKT_LOCAL_RPC_H
-#define PKT_LOCAL_RPC_H
+
+struct rpc_exec_s { // execution context
+    struct rdr_ds_s *ostack; // operands
+};
+
+typedef int(rpcBuiltinFct)(struct ccnl_relay_s *, struct ccnl_face_s *,
+                           struct rpc_exec_s *, struct rdr_ds_s *);
+
+
+// #define NDN_TLV_RPC_USERDEFINEDNAME  0x00..0x7f
 
 #define NDN_TLV_RPC_APPLICATION         0x80
 #define NDN_TLV_RPC_LAMBDA              0x81
@@ -75,6 +84,6 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 
 #define NDN_TLV_RPC_SERIALIZED          -1
 
-#endif //PKT_LOCAL_RPC_H
+#endif //PKT_LOCALRPC_H
 
 // eof
