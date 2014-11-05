@@ -228,37 +228,10 @@ struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-util.c */
-int ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
-int ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt);
-int ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt, char *cp, int cnt);
-int ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt, char *str);
-int ccnl_ccnb_mkBinaryInt(unsigned char *out, unsigned int num, unsigned int tt, unsigned int val, int bytes);
-int ccnl_ccnb_mkComponent(unsigned char *val, int vallen, unsigned char *out);
-int ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out);
-int ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *out, int outlen);
-int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int datalen, int *contentpos, unsigned char *out);
-int ccnl_ccntlv_prependTL(unsigned int type, unsigned short len, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob, unsigned short len, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char packettype, unsigned short payloadlen, unsigned char hoplimit, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
-int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
-int ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependTL(int type, unsigned int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependNonNegInt(int type, unsigned int val, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len, int *offset, unsigned char *buf);
-int ccnl_ndntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
-int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *offset, int *contentpos, unsigned char *final_block_id, int final_block_id_len, unsigned char *buf);
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, char *uri);
-struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr);
+struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, int *chunknum);
 int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
 int ccnl_pkt2suite(unsigned char *data, int len);
@@ -329,11 +302,11 @@ int ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval, int *offse
 int ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char packettype, unsigned short payloadlen, unsigned char hoplimit, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
+int ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
+int ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
 int ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
-int ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
-int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *chunknum, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
+int ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
+int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *lastchunknum, int *offset, int *contentpos, unsigned char *buf);
 #endif // USE_SUITE_CCNTLV
 
 
