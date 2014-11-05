@@ -21,7 +21,7 @@
  */
 
 #include "pkt-ccnb.c"
-#include "pkt-ccntlv-enc.c"
+#include "pkt-ccntlv.c"
 #include "pkt-ndntlv-enc.c"
 
 int

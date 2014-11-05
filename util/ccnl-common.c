@@ -82,7 +82,7 @@ ccnl_buf_new(void *data, int len)
 }
 
 #include "../pkt-ccnb.c"
-#include "../pkt-ccntlv-dec.c"
+#include "../pkt-ccntlv.c"
 #include "../pkt-ndntlv-dec.c"
 #include "../pkt-localrpc.h"
 
