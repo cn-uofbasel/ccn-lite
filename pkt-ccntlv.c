@@ -26,6 +26,15 @@
 
 #include "pkt-ccntlv.h"
 
+/* ----------------------------------------------------------------------
+Note:
+  For a CCNTLV prefix, we store the name components INCLUDING
+  the TL. This is different for CCNB and NDNTLV where we only keep
+  a components value bytes, as there is only one "type" of name
+  component.
+  This might change in the future (on the side of CCNB and NDNTLV prefixes).
+*/
+
 // ----------------------------------------------------------------------
 // packet decomposition
 
@@ -125,7 +134,6 @@ ccnl_ccntlv_extract(int hdrlen,
                     DEBUGMSG(99, "Error extracting NetworkVarInt for Chunk\n");
                     goto Bail;
                 } 
-
                 if (p->compcnt < CCNL_MAX_NAME_COMP) {
                     p->comp[p->compcnt] = cp2;
                     p->complen[p->compcnt] = cp - cp2 + len3;
@@ -308,9 +316,10 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment, name->comp[cnt],
-                                    name->complen[cnt], offset, buf) < 0)
+        if (*offset < name->complen[cnt])
             return -1;
+        *offset -= name->complen[cnt];
+        memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
     if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, oldoffset - *offset,
                               offset, buf) < 0)
