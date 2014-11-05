@@ -1,6 +1,6 @@
 /*
  * @f ccn-lite-minimalrelay.c
- * @b user space CCN relay, minimalist version
+ * @b user space NDN relay, minimalist version
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
@@ -18,6 +18,7 @@
  *
  * File history:
  * 2012-08-02 created
+ * 2014-11-05 small code cleanups, now using NDNTLV as default encoding
  */
 
 #include <ctype.h>
@@ -48,16 +49,16 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 
-// #define USE_SUITE_CCNB
 #define USE_SUITE_NDNTLV
+
+// ----------------------------------------------------------------------
+// "replacement lib"
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
-// #define ccnl_prefix_to_path(p)               "null"
-
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
@@ -73,12 +74,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define free_content(c) do{ free_prefix(c->name); \
                         free_2ptr_list(c->pkt, c); } while(0)
 
-// #define ccnl_addr2ascii(sup)         inet_ntoa((sup)->ip4.sin_addr)
-
 #define ccnl_frag_new(a,b)                      NULL
 #define ccnl_frag_destroy(e)                    do {} while(0)
 
-// #define ccnl_face_CTS_done           NULL
 #define ccnl_sched_destroy(s)           do {} while(0)
 
 #define ccnl_mgmt(r,b,p,f)              -1
@@ -91,8 +89,17 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define ccnl_ll_TX(r,i,a,b)             sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
 #define ccnl_close_socket(s)            close(s)
 
+#define compute_ccnx_digest(b) NULL
+
+//----------------------------------------------------------------------
+
 #include "ccnl.h"
 #include "ccnl-core.h"
+#include "pkt-ndntlv.h"
+
+//----------------------------------------------------------------------
+
+void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
@@ -108,14 +115,8 @@ ccnl_buf_new(void *data, int len)
     return b;
 }
 
-#include "pkt-ccnb.h"
-#include "pkt-ndntlv.h"
-
-#define compute_ccnx_digest(b) NULL
-
 // ----------------------------------------------------------------------
-
-int debug_level;
+// timer support and event server
 
 void
 ccnl_get_timeval(struct timeval *tv)
@@ -229,48 +230,16 @@ ccnl_run_events()
     return NULL;
 }
 
-static struct ccnl_prefix_s*
-ccnl_path_to_prefix(const char *path)
-{
-    char *cp;
-    struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(*pr));
-
-    if (!pr)
-        return NULL;
-    pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-                                           sizeof(unsigned char**));
-    pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);
-    if (!pr->comp || !pr->complen || !pr->bytes) {
-        ccnl_free(pr->comp);
-        ccnl_free(pr->complen);
-        ccnl_free(pr->bytes);
-        ccnl_free(pr);
-        return NULL;
-    }
-
-    strcpy((char*) pr->bytes, path);
-    cp = (char*) pr->bytes;
-    for (path = strtok(cp, "/");
-                 path && pr->compcnt < CCNL_MAX_NAME_COMP;
-                 path = strtok(NULL, "/")) {
-        pr->comp[pr->compcnt] = (unsigned char*) path;
-        pr->complen[pr->compcnt] = strlen(path);
-        pr->compcnt++;
-    }
-    return pr;
-}
-
 // ----------------------------------------------------------------------
 
-void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
+int debug_level;
+struct ccnl_relay_s theRelay;
 
 #include "ccnl-util.c"
 #include "ccnl-core.c"
 
 // ----------------------------------------------------------------------
-
-struct ccnl_relay_s theRelay;
+// UDP socket, main event loop
 
 int
 ccnl_open_udpdev(int port)
@@ -295,10 +264,10 @@ ccnl_open_udpdev(int port)
     return s;
 }
 
-void ccnl_ageing(void *relay, void *aux)
+void ccnl_minimalrelay_ageing(void *relay, void *aux)
 {
     ccnl_do_ageing(relay, aux);
-    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+    ccnl_set_timer(1000000, ccnl_minimalrelay_ageing, relay, 0);
 }
 
 void
@@ -366,14 +335,16 @@ main(int argc, char **argv)
 
     srandom(time(NULL));
 
-    theRelay.suite = CCNL_SUITE_DEFAULT;
+    theRelay.suite = CCNL_SUITE_NDNTLV;
 
     while ((opt = getopt(argc, argv, "hs:u:v:")) != -1) {
         switch (opt) {
         case 's':
-            opt = atoi(optarg);
+            opt = ccnl_str2suite(optarg);
             if (opt >= CCNL_SUITE_CCNB && opt < CCNL_SUITE_LAST)
                 theRelay.suite = opt;
+            else
+                fprintf(stderr, "Suite parameter <%s> ignored.\n", optarg);
             break;
         case 'u':
             udpport = atoi(optarg);
@@ -383,33 +354,25 @@ main(int argc, char **argv)
             break;
         case 'h':
         default:
+usage:
             fprintf(stderr,
-                    "usage:\n%s [-h] [-s SUITE] [-u udpport] [-v debuglevel] PREFIX DGWIP/DGWUDPPORT\n", argv[0]);
+                    "usage:    %s [options] PREFIX DGWIP/DGWUDPPORT\n"
+                    "options:  [-h] [-s SUITE] [-u udpport] [-v debuglevel]\n"
+                    "example:  %s /ndn 128.252.153.194/6363\n",
+                    argv[0], argv[0]);
             exit(EXIT_FAILURE);
         }
     }
 
-    if ((optind+1) >= argc) {
-        fprintf(stderr, "Expected two arguments (e.g. /a/b/c 1.2.3.4:6363) after options\n");
-        exit(EXIT_FAILURE);
-    }
+    if ((optind+1) >= argc)
+        goto usage;
     prefix = argv[optind];
     defaultgw = argv[optind+1];
 
     ccnl_core_init();
 
-#ifdef USE_SUITE_CCNB
-    if (theRelay.suite == CCNL_SUITE_CCNB && !udpport)
-        udpport = CCN_UDP_PORT;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    if (theRelay.suite == CCNL_SUITE_CCNTLV && !udpport)
-        udpport = CCN_UDP_PORT;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    if (theRelay.suite == CCNL_SUITE_NDNTLV && !udpport)
+//    if (theRelay.suite == CCNL_SUITE_NDNTLV && !udpport)
         udpport = NDN_UDP_PORT;
-#endif
 
     i = &theRelay.ifs[0];
     i->mtu = NDN_DEFAULT_MTU;
@@ -418,20 +381,22 @@ main(int argc, char **argv)
     if (i->sock < 0)
         exit(-1);
     theRelay.ifcount++;
+    fprintf(stderr, "NDN minimalrelay started, listening on UDP port %d\n",
+            udpport);
 
     inet_aton(strtok(defaultgw,"/"), &sun.ip4.sin_addr);
     sun.ip4.sin_port = atoi(strtok(NULL, ""));
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
-    fwd->prefix = ccnl_path_to_prefix(prefix);
+    fwd->prefix = ccnl_URItoPrefix(prefix, theRelay.suite, NULL, NULL);
+    fwd->suite = theRelay.suite;
     fwd->face = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.ip4));
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     theRelay.fib = fwd;
 
-    ccnl_set_timer(1000000, ccnl_ageing, &theRelay, 0);
+    ccnl_set_timer(1000000, ccnl_minimalrelay_ageing, &theRelay, 0);
     ccnl_io_loop(&theRelay);
 
     return 0;
 }
-
 
 // eof
