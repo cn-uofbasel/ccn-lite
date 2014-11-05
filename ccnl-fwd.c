@@ -569,9 +569,8 @@ ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_SUITE_LOCALRPC
 
 #include "pkt-localrpc.h"
-#include "fwd-localrpc.h"
-#include "pkt-localrpc-enc.c"
-#include "pkt-localrpc-dec.c"
+// #include "fwd-localrpc.h"
+#include "pkt-localrpc.c"
 
 int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 {
@@ -806,7 +805,7 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 struct x_s {
     char *name;
-    builtinFct *fct;
+    rpcBuiltinFct *fct;
 } builtin[] = {
     {"/rpc/builtin/lookup",  rpc_lookup},
     {"/rpc/builtin/forward", rpc_forward},
@@ -814,7 +813,7 @@ struct x_s {
     {NULL, NULL}
 };
 
-builtinFct* rpc_getBuiltinFct(struct rdr_ds_s *var)
+rpcBuiltinFct* rpc_getBuiltinFct(struct rdr_ds_s *var)
 {
     struct x_s *x = builtin;
 
@@ -845,7 +844,7 @@ ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay,
                                 struct rdr_ds_s *fexpr, struct rdr_ds_s *args)
 {
     int ftype, rc;
-    builtinFct *fct;
+    rpcBuiltinFct *fct;
     struct rpc_exec_s *exec;
 
     DEBUGMSG(10, "ccnl_RX_handleApplication face=%p\n", (void*) from);
@@ -859,7 +858,7 @@ ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay,
     }
     fct = rpc_getBuiltinFct(fexpr);
     if (!fct) {
-        DEBUGMSG(11, "  unknown builtin function (type=0x%02x)\n", ftype);
+        DEBUGMSG(11, "  unknown RPC builtin function (type=0x%02x)\n", ftype);
         ccnl_emit_RpcReturn(relay, from, 501, "unknown function", NULL);
         return -1;
     }
