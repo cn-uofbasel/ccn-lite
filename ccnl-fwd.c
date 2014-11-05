@@ -22,7 +22,7 @@
 
 #include "pkt-ccnb.c"
 #include "pkt-ccntlv.c"
-#include "pkt-ndntlv-dec.c"
+#include "pkt-ndntlv.c"
 
 // ----------------------------------------------------------------------
 
