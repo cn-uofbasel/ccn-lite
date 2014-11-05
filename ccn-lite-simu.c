@@ -53,7 +53,7 @@ void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 # include "pkt-ccnb.c"
-# include "pkt-ccntlv-enc.c"
+# include "pkt-ccntlv.c"
 # include "pkt-ndntlv-enc.c"
 
 #include "ccnl-util.c"
