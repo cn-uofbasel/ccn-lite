@@ -20,7 +20,7 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-#include "pkt-ccnb-dec.c"
+#include "pkt-ccnb.c"
 #include "pkt-ccntlv-dec.c"
 #include "pkt-ndntlv-dec.c"
 

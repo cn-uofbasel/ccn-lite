@@ -20,7 +20,7 @@ PROGS=	ccn-lite-ccnb2xml \
 #	ccn-lite-deF \
 #	ccn-lite-mkF \
 
-CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c
+CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb.c
 NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c
 LOCRPC_LIB = ../pkt-localrpc.h ../pkt-localrpc-enc.c ../pkt-localrpc-dec.c
 SUITE_LIBS = ${CCNB_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}

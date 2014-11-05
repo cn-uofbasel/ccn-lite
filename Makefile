@@ -82,7 +82,7 @@ EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
-CCNB_LIB =   pkt-ccnb.h pkt-ccnb-dec.c pkt-ccnb-enc.c
+CCNB_LIB =   pkt-ccnb.h pkt-ccnb.c
 CCNTLV_LIB = pkt-ccntlv.h pkt-ccntlv-dec.c pkt-ccntlv-enc.c
 NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv-dec.c pkt-ndntlv-enc.c
 LOCRPC_LIB = pkt-localrpc.h pkt-localrpc-enc.c pkt-localrpc-dec.c fwd-localrpc.c
