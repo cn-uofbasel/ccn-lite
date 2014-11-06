@@ -25,7 +25,6 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
-#undef USE_NFN
 
 #define USE_SIGNATURES
 #include "ccnl-common.c"
@@ -462,8 +461,22 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
 
     cp = strtok(path, "/");
     while (cp) {
+
+        unsigned short cmplen = strlen(cp);
+        if (suite == CCNL_SUITE_CCNTLV) {
+            char* oldcp = cp;
+            cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            cp[0] = CCNX_TLV_N_NameSegment >> 8;
+            cp[1] = CCNX_TLV_N_NameSegment;
+            cp[2] = cmplen >> 8;
+            cp[3] = cmplen;
+            memcpy(cp + 4, oldcp, cmplen);
+            cmplen += 4;
+        } 
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
-                       cp, strlen(cp));
+                       cp, cmplen);
+        if (suite == CCNL_SUITE_CCNTLV)
+            free(cp);
         cp = strtok(NULL, "/");
     }
     fwdentry[len3++] = 0; // end-of-prefix

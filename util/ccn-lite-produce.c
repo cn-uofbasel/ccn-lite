@@ -60,7 +60,8 @@ main(int argc, char *argv[])
         switch (opt) {
         case 'c':
             chunk_size = atoi(optarg);
-            if(chunk_size > CCNL_MAX_CHUNK_SIZE) chunk_size = CCNL_MAX_CHUNK_SIZE;
+            if (chunk_size > CCNL_MAX_CHUNK_SIZE) 
+                chunk_size = CCNL_MAX_CHUNK_SIZE;
             break;
         case 'i':
             infname = optarg;
@@ -164,13 +165,12 @@ Usage:
         chunk_len = read(f, chunk_buf, chunk_size);
 
         // Remove linefeed, found last chunk
-        if(chunk_buf[chunk_len-1] == 10) {
+        if (chunk_buf[chunk_len-1] == 10) {
             chunk_len--;
             is_last = 1;
         }
-        if(chunk_len <= 0) {
+        if (chunk_len <= 0)
             break;
-        }
 
         num_chunks += 1;
 
@@ -179,11 +179,10 @@ Usage:
         chunk->len = chunk_len;
         chunk->next = NULL;
 
-        if(cur_chunk == NULL) {
+        if (cur_chunk == NULL)
             first_chunk = chunk;
-        } else {
+        else
             cur_chunk->next = chunk;
-        }
         cur_chunk = chunk;
     } while(!is_last);
     close(f);
@@ -196,7 +195,7 @@ Usage:
     int lastchunknum = num_chunks - 1;
     int offs = -1;
 
-    switch(suite) {
+    switch (suite) {
         case CCNL_SUITE_CCNB:
             strcpy(fileext, "ccnb");
             break;
@@ -217,7 +216,7 @@ Usage:
 
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
-        switch(suite) {
+        switch (suite) {
         case CCNL_SUITE_CCNTLV: 
 
             name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);

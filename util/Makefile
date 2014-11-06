@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -Werror -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 
+CFLAGS=-Wall -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 
 EXTLIBS=-lcrypto
 
 PROGS=	ccn-lite-ccnb2xml \
@@ -20,10 +20,11 @@ PROGS=	ccn-lite-ccnb2xml \
 #	ccn-lite-deF \
 #	ccn-lite-mkF \
 
-CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb-dec.c ../pkt-ccnb-enc.c ../fwd-ccnb.c
-NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv-dec.c ../pkt-ndntlv-enc.c ../fwd-ndntlv.c
-LOCRPC_LIB = ../pkt-localrpc.h ../pkt-localrpc-enc.c ../pkt-localrpc-dec.c ../fwd-localrpc.c
-SUITE_LIBS = ${CCNB_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
+CCNB_LIB =   ../pkt-ccnb.h ../pkt-ccnb.c
+CCNTLV_LIB = ../pkt-ccntlv.h ../pkt-ccntlv.c
+NDNTLV_LIB = ../pkt-ndntlv.h ../pkt-ndntlv.c
+LOCRPC_LIB = ../pkt-localrpc.h ../pkt-localrpc.c
+SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
 
 
 CCNL_CORE_LIB = ../ccnl.h ../ccnl-core.h ../ccnl-core.c
