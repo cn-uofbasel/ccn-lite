@@ -20,6 +20,8 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
+int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
+
 #include "pkt-ccnb.c"
 #include "pkt-ccntlv.c"
 #include "pkt-ndntlv.c"

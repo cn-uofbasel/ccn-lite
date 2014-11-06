@@ -149,12 +149,24 @@ usage:
     }
 
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], NULL);
+/*
+    fprintf(stderr, "prefix <%s><%s> became is %s\n",
+            argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
+*/
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
         len = mkInterest(prefix, 
                          &nonce, 
                          out, sizeof(out));
+
+/*
+        {
+            int fd = open("pkt.bin", O_CREAT | O_WRONLY);
+            write(fd, out, len);
+            close(fd);
+        }
+*/
 
         if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");

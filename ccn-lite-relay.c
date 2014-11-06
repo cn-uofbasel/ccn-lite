@@ -49,8 +49,7 @@
 // #define USE_SIGNATURES
 
 #include "ccnl-includes.h"
-
-// #include "ccnl-headers.h"
+#include "ccnl-headers.h"
 
 #include "ccnl.h"
 #include "ccnl-core.h"

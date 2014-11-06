@@ -439,7 +439,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         if (vallen > *len) {
           fprintf(stderr, "\n%04zx ** CCNTLV length problem:\n"
-              "  type=%hu, len=%hu larger than %d available bytes\n",
+              "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
           exit(-1);
         }

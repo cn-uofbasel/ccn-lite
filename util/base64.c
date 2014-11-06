@@ -20,7 +20,7 @@ static char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
 
 void
-build_decoding_table() {
+build_decoding_table(void) {
 
     decoding_table = malloc(256);
     int i;
@@ -97,6 +97,6 @@ unsigned char
 }
 
 void
-base64_cleanup() {
+base64_cleanup(void) {
     free(decoding_table);
 }
