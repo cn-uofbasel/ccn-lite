@@ -2,6 +2,7 @@
 
 # All variables can either be exported or set with: make <target> <VAR>=<val> 
 # If no specific value is specified, it means the variable should be set to 1
+# For Linux Kernel module export USE_KERNEL=1
 
 # If NFN targets should be compiled set USE_NFN 
 # For (experimental) nack set USE_NACK 
@@ -19,7 +20,7 @@ CC?=gcc
 CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g
 
 
-# Linux flags with support to compile kernel module
+# Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
 
 # OSX, ignore deprecated warnings for libssl
@@ -38,10 +39,14 @@ INST_PROGS= ccn-lite-relay \
 
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)
-    $(info *** Configuring for Linux (with kernel module) ***)
-    EXTLIBS += -lrt
-    INST_PROGS += ccn-lite-simu
-    PROGS += ccn-lite-lnxkernel 
+    $(info *** Configuring for Linux ***)
+    ifdef USE_KRNL
+    	$(info *** With Linux Kernel ***)
+	    EXTLIBS += -lrt
+	    INST_PROGS += ccn-lite-simu
+    	PROGS += ccn-lite-lnxkernel 
+    endif
+
     CCNLCFLAGS += ${LINUX_CFLAGS}
 endif
 
