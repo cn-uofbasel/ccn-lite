@@ -159,7 +159,7 @@ $CCNL_HOME/ccn-nfn-relay -v 99 -u 9998 -x /tmp/mgmt-nfn-relay-A.sock
 ### Send a NFN request
 To send a NFN the tool ccn-lite-peek can be used:
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "" "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 There is no name to request, so the name parameter is empty. 
 After the name parameter there is another parameter which contains the expression.
@@ -191,11 +191,17 @@ For complexer functions you have to setup the nfn-scala computation environment.
 ###Add a compute face
 To interact with the Computation server which runs on Port 9002 it is required to setup a new interface.
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 And to register the name "COMPUTE" to this interface. This name is reserved in NFN networks for the interaction with a Compute Server:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+```
+
+###Add dummy function to the cache of the relay
+Add a dummy function to the cache of the relay to invoke the computatin locally:
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 
 ###Send a request for a function call:
