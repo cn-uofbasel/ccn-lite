@@ -1,6 +1,40 @@
-# CCN-Lite Tutorial
+# CCN-Lite and NFN Tutorial
 
-## Installing CCN-Lite
+## Introduction
+
+This Tutorial explains and demonstrates two different scenarios. The first scenario is static content lookup in a CCN network. The second scenario is a function call and dynamic content creation in a NFN network.
+
+![alt text](scenario-content-lookup.png)
+
+This scenario involves a client sending an interest to a network, consisting of heterogeneous CCN implementations. The interest will be fulfilled by either a content store within the network or a producer of content.
+
+For CCN, there exist mainly three different implementations and packet formats. The original CCNb encoding and the currently evolving NDN and CCNx implementations. CCN-Lite is a lightweight, cross-compatible implementation of CCN. It is written in C and (optionally) runs in the kernel space.
+
+The second scenario is dynamic content creation with NFN by calling and chaining functions.
+
+![scenario function call](scenario-function-call.png)
+
+This scenario shows both the extendend CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
+
+## Scenario 1: Simple Content Lookup
+
+![content-lookup-simple](demo-content-lookup-simple.png)
+This scenario consists of a topology of two nodes `A` and `B` each running an instance of the CCN-Lite relay. The cache of relay `B` is populated with some content and a forwarding rule is setup from node `A` to node `B`. Interests are send to node `A`.
+
+## Scenario 2: Content Lookup from NDN Testbed
+![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
+Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
+
+## Scenario 3: Connecting CCNL with NDNTestbed
+![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
+Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests two it. The relay will forward the interests to the testbed.
+
+
+## Demo 1: Simple Content-lookup
+
+This demo shows all the steps necessary to recreate Scenario 1.
+
+### 0. Installing CCN-Lite
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
 2. Set the CCN-Lite env: `export CCNL_HOME=".../.../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
@@ -8,20 +42,9 @@
 	* Ubuntu: `sudo apt-get install libssl-dev`
 	* OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
 
-3. `make clean all` in `$CCNL_HOME`
+4. `make clean all` in `$CCNL_HOME`
 
-## Running Simple Demo Script `demo-relay.sh`
-
-This script buidls a simple topology. It starts two relays `A` and `B`, connects `A` to `B` and fills the content store of relay `B` (`A[] ---> B[/ndn/abc]`). An interest for the a content object named `/ndn/abc` is send to node `A`, which will be forwarded to `B` sending the result back. 
-The returned data transformed to a readable format and printed to stdout.
-
-To test it out, first run `sh $CCNL_HOME/test/script/demo-relay.sh` to see the usage. A valid command is `sh $CCNL_HOME/test/script/demo-relay.sh ndn2013 udp false`. 
-
-## Explanation of the Demo Script
-
-Since the script uses several variables for the setup and the content object already exist, we are going to explain every step in the following. This should help you to get a simple CCN-Lite environment setup.
-
-### Producing content
+### 1. Producing Content
 
 `ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
@@ -30,7 +53,7 @@ $CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/
 ```
 Type something, your text will be used as the data for the content object.
 
-### Starting ccn-lite-relay `A` 
+### 2. Starting ccn-lite-relay `A` 
 
 `ccn-lite-relay` is a ccn network router (or forwarder).
 
@@ -44,7 +67,7 @@ Type something, your text will be used as the data for the content object.
 $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/ccn-lite-relay-a.sock
 ```
 
-### Starting ccn-lite-relay `B`
+### 3. Starting ccn-lite-relay `B`
 Similar to starting relay `A`, but on a different port. Additional, with `-d` we add all content objects from a directory to the cache of the relay. Currently the relay expects all files to have the file extension `.ndntlv` (and `.ccntlv`/`.ccnb` respectively).
 Open a new terminal window for relay `B`.
 
@@ -52,7 +75,7 @@ Open a new terminal window for relay `B`.
 $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/ccn-lite-relay-b.sock -d $CCNL_HOME/test/ndntlv
 ```
 
-### Add a forwarding rule
+### 4. Add a Forwarding Rule
 The two relays are not yet connected to each other. We need a forwarding rule from node `A` to node `B`.
 `ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay.
 On node `A`, we first add a new face. In this case, the face should point to a UDP socket (address of node `B`).
@@ -65,15 +88,36 @@ Next, we need to define the namespace of the face. We choose `/ndn` because our 
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
-### Send interest for name `/ndn/test/mycontent/` to node `A`
+### 5. Send Interest for Name `/ndn/test/mycontent/` to `A`
 The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want it to send the interst to the the relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initally created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we also pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a readable format.
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
+## Demo 2: Content Lookup from NDN Testbed
 
 
+## Demo 3: Connecting CCNL with NDNTestbed
 
+### 1. Shutdown relay `B`
+To shutdown a relay we can use the ctrl tool.
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-b.sock debug halt 
+```
 
+### 2. Remove Face to `B`
+To see the current configuration of the face, use:
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+```
+Now we can destroy the face:
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock destoryface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+```
+And check again if the face was actually removed.
+
+### 2. Connecting `A` to Testbed
+
+### 3. Send interest to `A`
 
 
 
