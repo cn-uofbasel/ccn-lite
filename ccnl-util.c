@@ -125,16 +125,15 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     for (i = 0, len = 0; i < cnt; i++) {
         p->comp[i] = p->bytes + len;
 #ifdef USE_SUITE_CCNTLV
-        {
+        if (suite == CCNL_SUITE_CCNTLV) {
             int offset = 4;
             memcpy(p->comp[i] + offset, compvect[i], p->complen[i]);
             ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
                                   &offset, p->comp[i]);
             p->complen[i] += 4;
-        }
-#else
-        memcpy(p->comp[i], compvect[i], p->complen[i]);
+        } else
 #endif
+            memcpy(p->comp[i], compvect[i], p->complen[i]);
         len += p->complen[i];
     }
 
