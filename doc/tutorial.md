@@ -14,7 +14,7 @@
 
 This script starts, connects and fills the content store for two relays A and B (`A[] ---> B[/ndn/abc]`). With the help of the `ccn-lite-peek` tool an interest for a content object (`f1`) in the cache of node `B` is send to node `A`. The returned data is piped to the `ccn-lite-pktdump` tool which detects the packet format and converts the packet to a readable format. To test it out, first run `sh $CCNL_HOME/test/script/demo-relay.sh` to see the usage. A valid command is `sh $CCNL_HOME/test/script/demo-relay.sh ndn2013 udp false`. 
 
-## Recreating the Demo Script
+## Explanation of the Demo Script
 
 Since the script uses several variables for the setup and the content object already exist, we are going to explain every step in the following. This should help you to get a simple CCN-Lite environment setup.
 
@@ -23,7 +23,7 @@ Since the script uses several variables for the setup and the content object alr
 `ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following. `ccnb` and `ccnx2014` are also available. 
 
 ```bash
-$CCNL_HOME/util/ccn-lite-mC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
+$CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
 ```
 type something, your text will be used as data
 
