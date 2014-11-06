@@ -15,25 +15,11 @@ The second scenario is dynamic content creation with NFN by calling and chaining
 
 ![scenario function call](scenario-function-call.png)
 
-This scenario shows both the extendend CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
+This scenario shows both the extended CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
 
-## Scenario 1: Simple Content Lookup
-
+## Scenario 1: Simple Content-lookup
 ![content-lookup-simple](demo-content-lookup-simple.png)
 This scenario consists of a topology of two nodes `A` and `B` each running an instance of the CCN-Lite relay. The cache of relay `B` is populated with some content and a forwarding rule is setup from node `A` to node `B`. Interests are send to node `A`.
-
-## Scenario 2: Content Lookup from NDN Testbed
-![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
-Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
-
-## Scenario 3: Connecting CCNL with NDNTestbed
-![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
-Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests two it. The relay will forward the interests to the testbed.
-
-
-## Demo 1: Simple Content-lookup
-
-This demo shows all the steps necessary to recreate Scenario 1.
 
 ### 0. Installing CCN-Lite
 
@@ -62,7 +48,7 @@ Type something, your text will be used as the data for the content object.
 
 `-u` sets the relay to listen on UDP port `9998`.
 
-`-x` sets up a unix socket, we will use that port later to send management commands. 
+`-x` sets up a Unix socket, we will use that port later to send management commands. 
 
 ```bash
 $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
@@ -90,16 +76,24 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID n
 ```
 
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A`
-The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want it to send the interst to the the relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initally created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we also pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a readable format.
+The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want it to send the interest to the the relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we also pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a readable format.
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 ## Demo 2: Content Lookup from NDN Testbed
+![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
+Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
+
+
+Peek sends the command directly to a node in the NDN Testbed. `-w` sets the timeout of peek to 10 seconds.
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 
-## Demo 3: Connecting CCNL with NDNTestbed
+## Scenario 3: Connecting CCNL with NDNTestbed
+![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
+Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests to it. The relay will forward the interests to the testbed.
+
 
 ### 1. Shutdown relay `B`
 To shutdown a relay we can use the ctrl tool.
