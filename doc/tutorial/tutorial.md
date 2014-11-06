@@ -172,13 +172,13 @@ A compute server is an externel application which can execute functions written 
 Instead of a complex Compute Server a simple dummyserver is used in this scenario.
 The function "/test/data" should be called.
 
-##Start a NFN-relay
+###Start a NFN-relay
 A NFN-relay is started on the same way as shown in the previous scenario:
 ```bash
 $CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
-#Start the computation dummy server
+###Start the computation dummy server
 The dummy server is written in python and can only handle the function "/test/data". 
 Start it with:
 ```bash
@@ -188,7 +188,7 @@ For complexer functions you have to setup the nfn-scala computation environment.
 
 
 
-#Add a compute face
+###Add a compute face
 To interact with the Computation server which runs on Port 9002 it is required to setup a new interface.
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
@@ -198,7 +198,7 @@ And to register the name "COMPUTE" to this interface. This name is reserved in N
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
-#Send a request for a function call:
+###Send a request for a function call:
 To invoke the function call the user can issue the request:
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
