@@ -6,6 +6,7 @@ In the following the chunking protocols for both CCNTLV and NDNTLV is discussed,
 
 ## CCNTLV
 In CCNx each packet has optional TLV MetaData fields. On of these fields is called ENDChunk representing an integer. This integer is the number of the last chunk of a chunked object. In the CCNx Name representation exists one field called `Chunk` containing the chunk index of the content object the name belongs to. This means each content object is clearly identified by the chunk number as well as the number of the last chunk.
+For more details see [CCNx Content Object Chunking](http://www.ccnx.org/pubs/ccnx-mosko-chunking-01.txt)
 
 
 ## NDNTLV
@@ -13,6 +14,7 @@ In CCNx each packet has optional TLV MetaData fields. On of these fields is call
 Each content object has a optional field in MetaInfo called FinalBlockId. A FinalBlockId contains a single NameComponent. This component represents the id of the last chunk of a chunked object. According to the NDNTLV specification, not each chunk of a chunked object requires a FinalBlockId, but we have decided to add it to each chunk to make it very clear if a content object is a chunk or not. This does also not require CCN-Lite to have a sorted content store (the first content object returned for a name could be the first or the last or any other chunk, because each chunks has a FinalBlockId). 
 The name of a chunked object is appended to the name as a name component by a chunk identifier. Both the FinalBlockId as well as the chunk identifier could be any kind of data. We have decided for the following. A chunk starts with the character `c` followed by a signed integer starting from 0. The chunks must be ordered and continuous without any missing number. This means the FinalBlockId represents the total number of chunks. 
 This would have to be changed for a streaming like chunking protocol where the number of chunks is not known beforehand. If size is of any concern, the character `c` is also not required at all, but increases legibility of names of chunked content objects.
+For more details see [NDN Packet Spec for Content Objects](http://named-data.net/doc/ndn-tlv/data.html).
 
 
 ## Produce
