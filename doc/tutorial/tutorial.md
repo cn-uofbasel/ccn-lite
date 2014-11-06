@@ -1,3 +1,4 @@
+A
 # CCN-Lite and NFN Tutorial
 
 ## Introduction
@@ -64,7 +65,7 @@ Type something, your text will be used as the data for the content object.
 `-x` sets up a unix socket, we will use that port later to send management commands. 
 
 ```bash
-$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/ccn-lite-relay-a.sock
+$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
 ```
 
 ### 3. Starting ccn-lite-relay `B`
@@ -72,7 +73,7 @@ Similar to starting relay `A`, but on a different port. Additional, with `-d` we
 Open a new terminal window for relay `B`.
 
 ```bash
-$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/ccn-lite-relay-b.sock -d $CCNL_HOME/test/ndntlv
+$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d $CCNL_HOME/test/ndntlv
 ```
 
 ### 4. Add a Forwarding Rule
@@ -81,11 +82,11 @@ The two relays are not yet connected to each other. We need a forwarding rule fr
 On node `A`, we first add a new face. In this case, the face should point to a UDP socket (address of node `B`).
 We need to remember the ID of this face for the next step. Again, open a new terminal window.
 ```bash
-FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 Next, we need to define the namespace of the face. We choose `/ndn` because our test content as well as all objects in `./test/ndntlv` have a name starting with `/ndn`. Later, all interest which match with the longest prefix on this name will be forwarded to this face. Relay `A` is now connected to relay `B` but relay `B` does not have a forwarding rule to node `B` (`A ---> B`).
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A`
@@ -94,31 +95,38 @@ The `ccn-lite-peek` utility encodes the specified name in a interest with the ac
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 ## Demo 2: Content Lookup from NDN Testbed
-
+```bash
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
+```
 
 ## Demo 3: Connecting CCNL with NDNTestbed
 
 ### 1. Shutdown relay `B`
 To shutdown a relay we can use the ctrl tool.
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-b.sock debug halt 
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt 
 ```
 
 ### 2. Remove Face to `B`
 To see the current configuration of the face, use:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 Now we can destroy the face:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/ccn-lite-relay-a.sock destoryface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destoryface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 And check again if the face was actually removed.
 
 ### 2. Connecting `A` to Testbed
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
+```
 
 ### 3. Send interest to `A`
-
+```bash
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
+```
 
 
 
