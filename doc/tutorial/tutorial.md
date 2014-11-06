@@ -1,20 +1,33 @@
 # CCN-Lite and NFN Tutorial
 
+Table Of Contents:
+<!-- MarkdownTOC -->
+
+- Introduction
+- Scenario 1: Simple Content-lookup
+- Scenario 2: Content Lookup from NDN Testbed
+- Scenario 3: Connecting CCNL with NDNTestbed
+- Scenario 4: Local NFN Relay
+- Scenario 5: NFN request with external Named Function / Service
+
+<!-- /MarkdownTOC -->
+
+
 ## Introduction
 
-This Tutorial explains and demonstrates two different scenarios. The first scenario is static content lookup in a CCN network. The second scenario is a function call and dynamic content creation in a NFN network.
+This Tutorial explains and demonstrates 5 scenarios for both CCN as well as NFN use cases. The first three scenarios demonstrate static content lookup in a CCN network. 
 
 ![alt text](scenario-content-lookup.png)
 
-This scenario involves a client sending an interest to a network, consisting of heterogeneous CCN implementations. The interest will be fulfilled by either a content store within the network or a producer of content.
+For static content lookup a client sends an interest network, consisting of heterogeneous CCN implementations. The interest will be fulfilled by either a content store within the network or a producer of content.
 
 For CCN, there exist mainly three different implementations and packet formats. The original CCNb encoding and the currently evolving NDN and CCNx implementations. CCN-Lite is a lightweight, cross-compatible implementation of CCN. It is written in C and (optionally) runs in the kernel space.
 
-The second scenario is dynamic content creation with NFN by calling and chaining functions.
+Scenario 4 and 5 issue function calls to the network for  dynamic content creation in a NFN network.
 
 ![scenario function call](scenario-function-call.png)
 
-This scenario shows both the extended CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
+These scenarios show both the extended CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
 
 ## Scenario 1: Simple Content-lookup
 ![content-lookup-simple](demo-content-lookup-simple.png)
@@ -79,7 +92,7 @@ The `ccn-lite-peek` utility encodes the specified name in a interest with the ac
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
-## Demo 2: Content Lookup from NDN Testbed
+## Scenario 2: Content Lookup from NDN Testbed
 ![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
 Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
 
