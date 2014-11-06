@@ -1,20 +1,23 @@
-A
 # CCN-Lite and NFN Tutorial
 
 Table Of Contents:
 <!-- MarkdownTOC -->
 
-- Introduction
-- Scenario 1: Simple Content-lookup
-- Scenario 2: Content Lookup from NDN Testbed
-- Scenario 3: Connecting CCNL with NDNTestbed
-- Scenario 4: Local NFN Relay
-- Scenario 5: NFN request with external Named Function / Service
+- [Introduction][introduction]
+	- [Scenario 1: Simple Content-lookup][scenario1]
+	- [Scenario 2: Content Lookup from NDN Testbed][scenario2]
+	- [Scenario 3: Connecting CCNL with NDNTestbed][scenario2]
+	- [Scenario 4: Simple NFN request][scenario4]
+	- [Scenario 5: NFN request with Compute Server Interaction][scenario5]
+	- tart a NFN-relay
+- tart the computation dummy server
+- dd a compute face
+- end a request for a function call:
 
 <!-- /MarkdownTOC -->
 
 
-## Introduction
+## Introduction [introduction]
 
 This Tutorial explains and demonstrates 5 scenarios for both CCN as well as NFN use cases. The first three scenarios demonstrate static content lookup in a CCN network. 
 
@@ -30,11 +33,11 @@ Scenario 4 and 5 issue function calls to the network for  dynamic content creati
 
 These scenarios show both the extended CCN-Lite router with NFN capabilities to manipulate computation names as well as distribute computation and it shows the external compute environment which is responsible to carry out the actual computations.
 
-## Scenario 1: Simple Content-lookup
+## Scenario 1: Simple Content-lookup [scenario1]
 ![content-lookup-simple](demo-content-lookup-simple.png)
 This scenario consists of a topology of two nodes `A` and `B` each running an instance of the CCN-Lite relay. The cache of relay `B` is populated with some content and a forwarding rule is setup from node `A` to node `B`. Interests are send to node `A`.
 
-### 0. Installing CCN-Lite
+### 0. Installing CCN-Lite [scen1_0]
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
 2. Set the CCN-Lite env: `export CCNL_HOME=".../.../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
@@ -44,7 +47,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 
 4. `make clean all` in `$CCNL_HOME`
 
-### 1. Producing Content
+### 1. Producing Content [scen1_1]
 
 `ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
@@ -53,7 +56,7 @@ $CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/
 ```
 Type something, your text will be used as the data for the content object.
 
-### 2. Starting ccn-lite-relay `A` 
+### 2. Starting ccn-lite-relay `A`  [scen1_2]
 
 `ccn-lite-relay` is a ccn network router (or forwarder).
 
@@ -67,7 +70,7 @@ Type something, your text will be used as the data for the content object.
 $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
 ```
 
-### 3. Starting ccn-lite-relay `B`
+### 3. Starting ccn-lite-relay `B` [scen1_3]
 Similar to starting relay `A`, but on a different port. Additional, with `-d` we add all content objects from a directory to the cache of the relay. Currently the relay expects all files to have the file extension `.ndntlv` (and `.ccntlv`/`.ccnb` respectively).
 Open a new terminal window for relay `B`.
 
@@ -75,7 +78,7 @@ Open a new terminal window for relay `B`.
 $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d $CCNL_HOME/test/ndntlv
 ```
 
-### 4. Add a Forwarding Rule
+### 4. Add a Forwarding Rule [scen1_4]
 The two relays are not yet connected to each other. We need a forwarding rule from node `A` to node `B`.
 `ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay.
 On node `A`, we first add a new face. In this case, the face should point to a UDP socket (address of node `B`).
@@ -88,12 +91,12 @@ Next, we need to define the namespace of the face. We choose `/ndn` because our 
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
-### 5. Send Interest for Name `/ndn/test/mycontent/` to `A`
+### 5. Send Interest for Name `/ndn/test/mycontent/` to `A` [scen1_5]
 The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want it to send the interest to the the relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we also pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a readable format.
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
-## Scenario 2: Content Lookup from NDN Testbed
+## Scenario 2: Content Lookup from NDN Testbed [scenario2]
 ![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
 Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
 
@@ -103,18 +106,18 @@ Peek sends the command directly to a node in the NDN Testbed. `-w` sets the time
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 
-## Scenario 3: Connecting CCNL with NDNTestbed
+## Scenario 3: Connecting CCNL with NDNTestbed [scenario2]
 ![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
 Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests to it. The relay will forward the interests to the testbed.
 
 
-### 1. Shutdown relay `B`
+### 1. Shutdown relay `B` [scen3_1]
 To shutdown a relay we can use the ctrl tool.
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt 
 ```
 
-### 2. Remove Face to `B`
+### 2. Remove Face to `B` [scen3_2]
 To see the current configuration of the face, use:
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
@@ -125,38 +128,44 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destoryface $FACEID | $C
 ```
 And check again if the face was actually removed.
 
-### 2. Connecting `A` to Testbed
+### 3. Connecting `A` to Testbed [scen3_3]
 Connect to the Testbed server of the University of Basel:
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 
-### 3. Send interest to `A`
+### 4. Send interest to `A` [scen3_4]
 Request data from the Testbed system of the UCLA. The Interest will be transmitted over the Testbed server of the University of Basel to the Testbed system of the UCLA:
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 
 
-## Scenario 4: Simple NFN request 
+## Scenario 4: Simple NFN request [scenario4]
+
 ![](demo-function-call-simple.png)
-This scenario consists of a single NFN node 'A'. A user request the result of a simple buildin operation: add 1 2
+This scenario consists of a single NFN node `A`. A user request the result of a simple built-in operation: `add 1 2`
+
 ### Start a NFN-relay
+
 To build CCN-lite with NFN, export the variable:
 ```bash
 export USE_NFN=1
 ```
 and rebuild the project
 or build:
+
 ```bash
 make ccn-nfn-relay
 ```
+
 The ccn-nfn-relay can be started similar to the ccn-lite-relay:
 ```bash
 $CCNL_HOME/ccn-nfn-relay -v 99 -u 9998 -x /tmp/mgmt-nfn-relay-A.sock
 ```
 
 ### Send a NFN request
+
 To send a NFN the tool ccn-lite-peek can be used:
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "" "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
@@ -165,7 +174,7 @@ There is no name to request, so the name parameter is empty.
 After the name parameter there is another parameter which contains the expression.
 
 
-## Scenario 5: NFN request with Compute Server Interaction
+## Scenario 5: NFN request with Compute Server Interaction [scenario5]
 ![](demo-function-call-ext.png)
 This scenario explains how to setup an NFN-node which can interact with an Compute Server. 
 A compute server is an externel application which can execute functions written in a high level programming language.
