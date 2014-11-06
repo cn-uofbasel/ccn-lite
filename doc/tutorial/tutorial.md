@@ -126,6 +126,7 @@ $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla"
 
 
 ## Scenario 4: Simple NFN request 
+![](demo-function-call-simple.png)
 This scenario consists of a single NFN node 'A'. A user request the result of a simple buildin operation: add 1 2
 ### Start a NFN-relay
 To build CCN-lite with NFN, export the variable:
@@ -152,6 +153,7 @@ After the name parameter there is another parameter which contains the expressio
 
 
 ## Scenario 5: NFN request with Compute Server Interaction
+![](demo-function-call-ext.png)
 This scenario explains how to setup an NFN-node which can interact with an Compute Server. 
 A compute server is an externel application which can execute functions written in a high level programming language.
 Instead of a complex Compute Server a simple dummyserver is used in this scenario.
