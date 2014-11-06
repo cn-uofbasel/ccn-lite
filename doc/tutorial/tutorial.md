@@ -1,4 +1,3 @@
-A
 # CCN-Lite and NFN Tutorial
 
 ## Introduction
@@ -126,11 +125,11 @@ $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla"
 
 ## Scenario 4: Local NFN Relay
 
-![](demo-function-call-simple)
+![](demo-function-call-simple.png)
 Scenario 4 represents a simple NFN example with only one node. The node runs CCN-Lite with NFN enabled capabilities. A simple computation which is executed directly in the abstract machine in the network is send to this node.
 
 ### Scenario 5: Sending a Computation request for an Abstract Machine
-![](demo-function-call-ext)
+![](demo-function-call-ext.png)
 This Scenario is similar to Scenario 4, but additionally there is an external compute environment connected to the NFN enabled CCN-Lite relay. The compute environment hosts a single Named Function called `WordCount` which counts the number of words in a document.
 
 ## Scenario 5: NFN request with external Named Function / Service 
