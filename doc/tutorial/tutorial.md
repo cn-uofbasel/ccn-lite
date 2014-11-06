@@ -113,13 +113,13 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destoryface $FACEID | $C
 And check again if the face was actually removed.
 
 ### 2. Connecting `A` to Testbed
-Connect to the Testbed server of the University of Basel
+Connect to the Testbed server of the University of Basel:
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 
 ### 3. Send interest to `A`
-Request data from the Testbed system of the UCLA. The Interest will be transmitted over the Testbed server of the University of Basel to the Testbed system of the UCLA
+Request data from the Testbed system of the UCLA. The Interest will be transmitted over the Testbed server of the University of Basel to the Testbed system of the UCLA:
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
