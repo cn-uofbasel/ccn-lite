@@ -2,7 +2,6 @@ FROM ubuntu:14.04
 MAINTAINER Basil Kohler<basil.kohler@gmail.com>
 
 ENV CCNL_HOME /ccn-lite
-ENV CCNL_PATH /ccn-lite
 ENV CCNL_PORT 9999
 
 RUN apt-get update && apt-get install -y libssl-dev build-essential
