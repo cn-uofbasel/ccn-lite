@@ -1,6 +1,6 @@
 /*
- * @f pkt-ccntlv-enc.c
- * @b CCN lite - CCNx pkt composing routines (TLV pkt format Sep 22, 2014)
+ * @f pkt-ccntlv.c
+ * @b CCN lite - CCNx pkt parsing and composing (TLV pkt format Sep 22, 2014)
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -18,12 +18,192 @@
  *
  * File history:
  * 2014-03-05 created
+ * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
  */
 
-#ifndef PKT_CCNTLV_ENC_C
-#define PKT_CCNTLV_ENC_C
+#ifndef PKT_CCNTLV_C
+#define PKT_CCNTLV_C
 
 #include "pkt-ccntlv.h"
+
+/* ----------------------------------------------------------------------
+Note:
+  For a CCNTLV prefix, we store the name components INCLUDING
+  the TL. This is different for CCNB and NDNTLV where we only keep
+  a components value bytes, as there is only one "type" of name
+  component.
+  This might change in the future (on the side of CCNB and NDNTLV prefixes).
+*/
+
+// ----------------------------------------------------------------------
+// packet decomposition
+
+// convert network order byte array into local integer value
+int
+ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval)
+{
+    int val = 0;
+    
+    while (len-- > 0) {
+        val = (val << 8) | *buf;
+        buf++;
+    }
+    *intval = val;
+    return 0;
+/*
+    int nintval = 0;
+
+    memcpy((unsigned char *)&nintval + 4 - len, buf, len);
+    *intval = ntohl(nintval);
+    return 0;
+*/
+}
+
+// parse TL (returned in typ and vallen) and adjust buf and len
+int
+ccnl_ccntlv_dehead(unsigned char **buf, int *len,
+                   unsigned int *typ, unsigned int *vallen)
+{
+    unsigned short *ip;
+
+    if (*len < 4)
+        return -1;
+    ip = (unsigned short*) *buf;
+    *typ = ntohs(*ip);
+    ip++;
+    *vallen = ntohs(*ip);
+    *len -= 4;
+    *buf += 4;
+    return 0;
+}
+
+// we use one extraction routine for both interest and data pkts
+struct ccnl_buf_s*
+ccnl_ccntlv_extract(int hdrlen,
+                    unsigned char **data, int *datalen,
+                    struct ccnl_prefix_s **prefix,
+                    unsigned char **keyid, int *keyidlen,
+                    int *chunknum, int *lastchunknum,
+                    unsigned char **content, int *contlen)
+{
+    unsigned char *start = *data - hdrlen;
+    int i;
+    unsigned int len, typ, oldpos;
+    struct ccnl_prefix_s *p;
+    struct ccnl_buf_s *buf;
+
+    DEBUGMSG(99, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
+
+    if (content)
+        *content = NULL;
+    if (keyid)
+        *keyid = NULL;
+
+    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    if (!p)
+        return NULL;
+    p->suite = CCNL_SUITE_CCNTLV;
+    p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
+                                           sizeof(unsigned char**));
+    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
+    if (!p->comp || !p->complen)
+        goto Bail;
+
+    // We ignore the TL types of the message for now
+    // content and interests are filled in both cases (and only one exists)
+    // validation is ignored
+    if(ccnl_ccntlv_dehead(data, datalen, &typ, &len))
+        goto Bail;
+
+    oldpos = *data - start;
+    while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
+        unsigned char *cp = *data, *cp2;
+        int len2 = len;
+        unsigned int len3;
+
+        switch (typ) {
+        case CCNX_TLV_M_Name:
+            p->nameptr = start + oldpos;
+            while (len2 > 0) {
+                cp2 = cp;
+                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
+                    goto Bail;
+
+                if (chunknum && typ == CCNX_TLV_N_Chunk &&
+                    ccnl_ccnltv_extractNetworkVarInt(cp, len2, chunknum) < 0) {
+                    DEBUGMSG(99, "Error extracting NetworkVarInt for Chunk\n");
+                    goto Bail;
+                } 
+                if (p->compcnt < CCNL_MAX_NAME_COMP) {
+                    p->comp[p->compcnt] = cp2;
+                    p->complen[p->compcnt] = cp - cp2 + len3;
+                    p->compcnt++;
+                }  // else out of name component memory: skip
+                cp += len3;
+                len2 -= len3;
+            }
+            p->namelen = *data - p->nameptr;
+#ifdef USE_NFN
+            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
+                    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
+                p->nfnflags |= CCNL_PREFIX_NFN;
+                p->compcnt--;
+                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
+                   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
+                    p->nfnflags |= CCNL_PREFIX_THUNK;
+                    p->compcnt--;
+                }
+            }
+#endif
+            break;
+        case CCNX_TLV_M_MetaData:
+            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
+                DEBUGMSG(99, "error when extracting CCNX_TLV_M_MetaData\n");
+                goto Bail;
+            }
+            if (lastchunknum && typ == CCNX_TLV_M_ENDChunk &&
+                ccnl_ccnltv_extractNetworkVarInt(cp, len2, lastchunknum) < 0) {
+                DEBUGMSG(99, "error when extracting CCNX_TLV_M_ENDChunk\n");
+                goto Bail;
+            }  
+            cp += len3;
+            len2 -= len3;
+            break;
+        case CCNX_TLV_M_Payload:
+            if (content) {
+                *content = *data;
+                *contlen = len;
+            }
+            break;
+        default:
+            break;
+        }
+        *data += len;
+        *datalen -= len;
+        oldpos = *data - start;
+    }
+    if (*datalen > 0)
+        goto Bail;
+
+    if (prefix)    *prefix = p;    else free_prefix(p);
+
+    buf = ccnl_buf_new(start, *data - start);
+    // carefully rebase ptrs to new buf because of 64bit pointers:
+    if (content && *content)
+        *content = buf->data + (*content - start);
+    for (i = 0; i < p->compcnt; i++)
+            p->comp[i] = buf->data + (p->comp[i] - start);
+    if (p->nameptr)
+        p->nameptr = buf->data + (p->nameptr - start);
+
+    return buf;
+Bail:
+    free_prefix(p);
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
+// packet composition
 
 // write given TL *before* position buf+offset, adjust offset and return len
 int
@@ -136,9 +316,10 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment, name->comp[cnt],
-                                    name->complen[cnt], offset, buf) < 0)
+        if (*offset < name->complen[cnt])
             return -1;
+        *offset -= name->complen[cnt];
+        memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
     if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, oldoffset - *offset,
                               offset, buf) < 0)
@@ -254,5 +435,6 @@ ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
-#endif
+#endif // PKT_CCNTLV_C
+
 // eof

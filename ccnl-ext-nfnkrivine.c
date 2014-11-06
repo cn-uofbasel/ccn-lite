@@ -395,8 +395,10 @@ recontinue: //loop by reentering after timeout of the interest...
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
         set_propagate_of_interests_to_1(ccnl, pref);
         //TODO Check? //TODO remove interest here?
-        if (c)
+        if (c){
+	    DEBUGMSG(99, "Result was found\n");
             goto handlecontent;
+	}
     }
 
     //result was not delivered --> choose next parameter

@@ -68,14 +68,7 @@ then
     fi
     SOCKETB="-u$PORTB"
     FACETOB="newUDPface any 127.0.0.1 $PORTB"
-
-    # TODO: ccnx forwarding is not working, ask B directly (only use else branch if working)
-    if [ $SUITE = "ccnx2014" ] 
-    then
-        PEEKADDR="-u 127.0.0.1/$PORTB"
-    else
-        PEEKADDR="-u 127.0.0.1/$PORTA"
-    fi
+    PEEKADDR="-u 127.0.0.1/$PORTA"
 elif [ "$CON" = "ux" ]
 then
     SOCKETA=

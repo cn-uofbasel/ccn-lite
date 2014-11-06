@@ -19,11 +19,11 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ndn2013 | 
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ccnb/nfn/computation_content.ccnb | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 sleep 3
 
-python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
+python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py & > /dev/null
 
 sleep 3
 

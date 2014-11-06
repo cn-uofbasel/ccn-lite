@@ -20,9 +20,9 @@
  * 2014-06-18 created
  */
 
-#include "pkt-ccnb-enc.c"
-#include "pkt-ccntlv-enc.c"
-#include "pkt-ndntlv-enc.c"
+#include "pkt-ccnb.c"
+#include "pkt-ccntlv.c"
+#include "pkt-ndntlv.c"
 
 int
 hex2int(char c)
@@ -52,6 +52,7 @@ unescape_component(char *comp) // inplace, returns len after shrinking
     return len;
 }
 
+// fill in the compVector (watch out: this modifies the uri string)
 int
 ccnl_URItoComponents(char **compVector, char *uri)
 {
@@ -76,6 +77,7 @@ ccnl_URItoComponents(char **compVector, char *uri)
     return i;
 }
 
+// turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
 ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
 {
@@ -107,6 +109,11 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     }
     for (i = 0; i < cnt; i++) {
         p->complen[i] = strlen(compvect[i]);
+#ifdef USE_SUITE_CCNTLV
+        if (suite == CCNL_SUITE_CCNTLV)
+            len += p->complen[i] + 4; // add TL size
+        else
+#endif
         len += p->complen[i];
     }
     
@@ -117,7 +124,16 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     }
     for (i = 0, len = 0; i < cnt; i++) {
         p->comp[i] = p->bytes + len;
-        memcpy(p->comp[i], compvect[i], p->complen[i]);
+#ifdef USE_SUITE_CCNTLV
+        if (suite == CCNL_SUITE_CCNTLV) {
+            int offset = 4;
+            memcpy(p->comp[i] + offset, compvect[i], p->complen[i]);
+            ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
+                                  &offset, p->comp[i]);
+            p->complen[i] += 4;
+        } else
+#endif
+            memcpy(p->comp[i], compvect[i], p->complen[i]);
         len += p->complen[i];
     }
 
@@ -305,24 +321,26 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 
     for (i = 0; i < pr->compcnt; i++) {
         int skip = 0;
-        if (pr->suite == CCNL_SUITE_CCNTLV) {
-            if (ntohs(*(unsigned short*)(pr->comp[i])) != 1) {// !CCNX_TLV_N_UTF8
-                len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-                               pr->comp[i][0], pr->comp[i][1],
-                               pr->complen[i]-4, pr->comp[i]+4);
-                continue;
-            }
+
+#ifdef USE_SUITE_CCNTLV
+        if (pr->suite == CCNL_SUITE_CCNTLV)
             skip = 4;
-        }
+/*
+            len += sprintf(buf + len, "/%%x%02x%02x%.*s",
+                           pr->comp[i][0], pr->comp[i][1],
+                           pr->complen[i]-4, pr->comp[i]+4);
+*/
+#endif
+
 #ifdef USE_NFN
         if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-            !strncmp("call", (char*)pr->comp[i], 4))
+            !strncmp("call", (char*)pr->comp[i], 4)) {
             len += sprintf(buf + len, "%.*s",
                            pr->complen[i]-skip, pr->comp[i]+skip);
-        else
+        } else
 #endif
-        len += sprintf(buf + len, "/%.*s",
-                       pr->complen[i]-skip, pr->comp[i]+skip);
+            len += sprintf(buf + len, "/%.*s",
+                           pr->complen[i]-skip, pr->comp[i]+skip);
     }
 
 #ifdef USE_NFN

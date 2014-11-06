@@ -12,9 +12,6 @@
 #include "ccnl-ext-nfnkrivine.h"
 #endif
 
-//FWD INCLUDES
-#include "fwd-localrpc.h"
-
 //PACKET INCLUDES
 #include "pkt-ccnb.h"
 #include "pkt-ccntlv.h"
@@ -258,7 +255,7 @@ int ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* pkt-ccnb-dec.c */
-static int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,unsigned char **valptr, int *vallen);
+static int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len, unsigned char **valptr, int *vallen);
 int ccnl_ccnb_data2uint(unsigned char *cp, int len);
 struct ccnl_buf_s *ccnl_ccnb_extract(unsigned char **data, int *datalen, int *scope, int *aok, int *min, int *max, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkd, unsigned char **content, int *contlen);
 int ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen, unsigned int *result, unsigned char *width);
@@ -276,6 +273,7 @@ int ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out);
 int ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *out, int outlen);
 int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int datalen, int *contentpos, unsigned char *out);
 #endif // USE_SUITE_CCNB
+
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */
@@ -363,7 +361,6 @@ void rpc_exec_free(struct rpc_exec_s *exec);
 int rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
 int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
 int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
-builtinFct *rpc_getBuiltinFct(struct rdr_ds_s *var);
 int ccnl_localrpc_handleReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *rc, struct rdr_ds_s *aux);
 int ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *fexpr, struct rdr_ds_s *args);
 int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);

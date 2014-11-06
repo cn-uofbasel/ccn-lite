@@ -1,7 +1,14 @@
 # ccn-lite Makefile for Linux and OS X
 
-# If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
-# For (experimental) nack set USE_NACK to something
+# All variables can either be exported or set with: make <target> <VAR>=<val> 
+# If no specific value is specified, it means the variable should be set to 1
+
+# If NFN targets should be compiled set USE_NFN 
+# For (experimental) nack set USE_NACK 
+
+# Example: make clean all USE_NFN=1
+
+
 
 # OS name: Linux or Darwing (OSX) supported
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
@@ -74,14 +81,14 @@ EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
-CCNB_LIB =   pkt-ccnb.h pkt-ccnb-dec.c pkt-ccnb-enc.c fwd-ccnb.c
-CCNTLV_LIB = pkt-ccntlv.h pkt-ccntlv-dec.c pkt-ccntlv-enc.c fwd-ccntlv.c
-NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv-dec.c pkt-ndntlv-enc.c fwd-ndntlv.c
-LOCRPC_LIB = pkt-localrpc.h pkt-localrpc-enc.c pkt-localrpc-dec.c fwd-localrpc.c
+CCNB_LIB =   pkt-ccnb.h pkt-ccnb.c
+CCNTLV_LIB = pkt-ccntlv.h pkt-ccntlv.c
+NDNTLV_LIB = pkt-ndntlv.h pkt-ndntlv.c
+LOCRPC_LIB = pkt-localrpc.h pkt-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
-CCNL_CORE_LIB = ccnl.h ccnl-core.h ccnl-core.c
+CCNL_CORE_LIB = ccnl.h ccnl-core.h ccnl-core.c ccnl-fwd.c
 
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \

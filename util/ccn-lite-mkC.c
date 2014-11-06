@@ -24,7 +24,6 @@
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_SIGNATURES
-#undef USE_NFN
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"

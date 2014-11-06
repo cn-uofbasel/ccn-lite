@@ -24,7 +24,6 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
-#undef USE_NFN
 #define CCNL_UNIX
 #define _BSD_SOURCE
 #define _SVID_SOURCE
@@ -82,9 +81,9 @@ ccnl_buf_new(void *data, int len)
     return b;
 }
 
-#include "../pkt-ccnb-dec.c"
-#include "../pkt-ccntlv-dec.c"
-#include "../pkt-ndntlv-dec.c"
+#include "../pkt-ccnb.c"
+#include "../pkt-ccntlv.c"
+#include "../pkt-ndntlv.c"
 #include "../pkt-localrpc.h"
 
 #define ccnl_core_addToCleanup(b)       do{}while(0)

@@ -463,7 +463,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
 
         //Only for matching suite
-        if(fwd->suite != i->suite) {
+        if (fwd->suite != i->suite) {
+            DEBUGMSG(99, "  not same suite (%d/%d)\n", fwd->suite, i->suite);
             continue;
         }
 
@@ -789,10 +790,7 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
-#include "fwd-ccnb.c"
-#include "fwd-ccntlv.c"
-#include "fwd-ndntlv.c"
-#include "fwd-localrpc.c"
+#include "ccnl-fwd.c"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
                            unsigned char**, int*);
