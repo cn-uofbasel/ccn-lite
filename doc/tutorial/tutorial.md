@@ -125,8 +125,76 @@ $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla"
 ```
 
 
+## Scenario 4: Simple NFN request 
+This scenario consists of a single NFN node 'A'. A user request the result of a simple buildin operation: add 1 2
+### Start a NFN-relay
+To build CCN-lite with NFN, export the variable:
+```bash
+export USE_NFN=1
+```
+and rebuild the project
+or build:
+```bash
+make ccn-nfn-relay
+```
+The ccn-nfn-relay can be started similar to the ccn-lite-relay:
+```bash
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9998 -x /tmp/mgmt-nfn-relay-A.sock
+```
+
+### Send a NFN request
+To send a NFN the tool ccn-lite-peek can be used:
+```bash
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "" "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+There is no name to request, so the name parameter is empty. 
+After the name parameter there is another parameter which contains the expression.
 
 
+## Scenario 5: NFN request with Compute Server Interaction
+This scenario explains how to setup an NFN-node which can interact with an Compute Server. 
+A compute server is an externel application which can execute functions written in a high level programming language.
+Instead of a complex Compute Server a simple dummyserver is used in this scenario.
+The function "/test/data" should be called.
+
+##Start a NFN-relay
+A NFN-relay is started on the same way as shown in the previous scenario:
+```bash
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
+```
+
+#Start the computation dummy server
+The dummy server is written in python and can only handle the function "/test/data". 
+Start it with:
+```bash
+python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py
+```
+For complexer functions you have to setup the nfn-scala computation environment.
+
+
+
+#Add a compute face
+To interact with the Computation server which runs on Port 9002 it is required to setup a new interface.
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
+```
+And to register the name "COMPUTE" to this interface. This name is reserved in NFN networks for the interaction with a Compute Server:
+```bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+```
+
+#Send a request for a function call:
+To invoke the function call the user can issue the request:
+```bash
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+The result of the computation is 10.
+
+One can also combine build in operators and function calls:
+```bash
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+Now the result will be 11.
 
 
 
