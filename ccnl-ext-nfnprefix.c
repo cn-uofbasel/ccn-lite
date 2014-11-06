@@ -96,7 +96,7 @@ struct ccnl_prefix_s *
 ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
                             struct configuration_s *config, int parameter_num)
 {
-    int i, len = 0;
+    int i, len = 0, offset = 0;
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(*p));
     char *bytes = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
 
@@ -115,10 +115,22 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
         len += p->complen[i];
     }
 
+#ifdef USE_SUITE_CCNTLV
+    if (p->suite == CCNL_SUITE_CCNTLV)
+        offset = 4;
+#endif
     p->comp[i] = (unsigned char*)(bytes + len);
-    len += ccnl_nfnprefix_fillCallExpr(bytes + len, config->fox_state,
-                                       parameter_num);
-    p->complen[i] = (unsigned char*)(bytes + len) - p->comp[i];
+    p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                config->fox_state,
+                                                parameter_num);
+#ifdef USE_SUITE_CCNTLV
+    if (p->suite == CCNL_SUITE_CCNTLV) {
+        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
+                              &offset, (unsigned char*) bytes + len);
+        p->complen[i] += 4;
+    }
+#endif
+    len += p->complen[i];
 
     p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)
@@ -130,7 +142,7 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
 struct ccnl_prefix_s*
 ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
 {
-    int i, len = 0;
+    int i, len = 0, offset = 0;
     struct ccnl_prefix_s *p = ccnl_malloc(sizeof(*p));
     char *bytes = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
 
@@ -143,12 +155,31 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     p->complen = ccnl_malloc(p->compcnt * sizeof(int));
 
     p->comp[0] = (unsigned char*) bytes;
-    len = sprintf(bytes, "COMPUTE");
-    p->complen[0] = len;
+    p->complen[0] = len = strlen("COMPUTE");
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+        offset = 4;
+        memcpy(bytes + offset, "COMPUTE", len);
+        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len,
+                              &offset, (unsigned char*) bytes);
+        len += 4;
+        p->complen[0] = len;
+        offset = 4;
+    } else
+#endif
+        memcpy(p->comp[0], "COMPUTE", len);
 
     p->comp[1] = (unsigned char*) (bytes + len);
-    len += ccnl_nfnprefix_fillCallExpr(bytes + len, config->fox_state, -1);
-    p->complen[1] = (unsigned char*)(bytes + len) - p->comp[1];
+    p->complen[1] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                config->fox_state, -1);
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[1],
+                              &offset, (unsigned char*) bytes + len);
+        p->complen[1] += 4;
+    }
+#endif
+    len += p->complen[1];
 
     p->bytes = ccnl_realloc(bytes, len);
     for (i = 0; i < p->compcnt; i++)

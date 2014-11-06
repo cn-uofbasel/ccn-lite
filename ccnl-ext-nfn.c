@@ -27,8 +27,8 @@
 
 #include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfncommon.c"
-#include "ccnl-ext-nfnkrivine.c"
 #include "ccnl-ext-nfnops.c"
+#include "ccnl-ext-nfnkrivine.c"
 // #include "ccnl-ext-nstrans.c"
 
 void

@@ -23,7 +23,7 @@
  */
 
 #include "ccnl-core.h"
-#include "ccnl-headers.h"
+//#include "ccnl-headers.h"
 
 
 #ifndef USE_NFN
@@ -37,6 +37,8 @@
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
                          !memcmp(X->data,Y->data,X->datalen))
+
+struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
