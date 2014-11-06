@@ -1,18 +1,21 @@
-# Start CCN-Lite
+# CCN-Lite Tutorial
 
-## Installation CCN-Lite
+## Installing CCN-Lite
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
-2. Set the ccn-lite env: `export CCNL_HOME=".../.../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
-3. Ubuntu: `sudo apt-get install libssl-dev`
-
-   OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
+2. Set the CCN-Lite env: `export CCNL_HOME=".../.../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
+3. Dependencies:
+	* Ubuntu: `sudo apt-get install libssl-dev`
+	* OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
 
 3. `make clean all` in `$CCNL_HOME`
 
 ## Running Simple Demo Script `demo-relay.sh`
 
-This script starts, connects and fills the content store for two relays A and B (`A[] ---> B[/ndn/abc]`). With the help of the `ccn-lite-peek` tool an interest for a content object (`f1`) in the cache of node `B` is send to node `A`. The returned data is piped to the `ccn-lite-pktdump` tool which detects the packet format and converts the packet to a readable format. To test it out, first run `sh $CCNL_HOME/test/script/demo-relay.sh` to see the usage. A valid command is `sh $CCNL_HOME/test/script/demo-relay.sh ndn2013 udp false`. 
+This script buidls a simple topology. It starts two relays `A` and `B`, connects `A` to `B` and fills the content store of relay `B` (`A[] ---> B[/ndn/abc]`). An interest for the a content object named `/ndn/abc` is send to node `A`, which will be forwarded to `B` sending the result back. 
+The returned data transformed to a readable format and printed to stdout.
+
+To test it out, first run `sh $CCNL_HOME/test/script/demo-relay.sh` to see the usage. A valid command is `sh $CCNL_HOME/test/script/demo-relay.sh ndn2013 udp false`. 
 
 ## Explanation of the Demo Script
 
@@ -20,19 +23,21 @@ Since the script uses several variables for the setup and the content object alr
 
 ### Producing content
 
-`ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following. `ccnb` and `ccnx2014` are also available. 
+`ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
 ```bash
 $CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
 ```
-type something, your text will be used as data
+Type something, your text will be used as the data for the content object.
 
 ### Starting ccn-lite-relay `A` 
 
 `ccn-lite-relay` is a ccn network router (or forwarder).
 
-`-v` indicates the loglevel (will change in the future). 
+`-v` indicates the loglevel. 
+
 `-u` sets the relay to listen on UDP port `9998`.
+
 `-x` sets up a unix socket, we will use that port later to send management commands. 
 
 ```bash
@@ -49,6 +54,7 @@ $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/ccn-lite-relay-b.sock
 
 ### Add a forwarding rule
 The two relays are not yet connected to each other. We need a forwarding rule from node `A` to node `B`.
+`ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay.
 On node `A`, we first add a new face. In this case, the face should point to a UDP socket (address of node `B`).
 We need to remember the ID of this face for the next step. Again, open a new terminal window.
 ```bash
