@@ -180,8 +180,6 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     float wait = 3.0;
 
-    debug_level = 99;
-
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
         case 's':
