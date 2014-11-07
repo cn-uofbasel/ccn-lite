@@ -223,7 +223,7 @@ struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 #endif
 
 //---------------------------------------------------------------------------------------------------------------------------------------
-/* ccnl-util.c */
+/* ccnl-core-util.c */
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, char *uri);

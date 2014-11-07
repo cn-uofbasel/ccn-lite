@@ -91,7 +91,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 #define ccnl_core_addToCleanup(b)       do{}while(0)
 
-#include "../ccnl-util.c"
+#include "../ccnl-core-util.c"
 
 // ----------------------------------------------------------------------
 

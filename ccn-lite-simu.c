@@ -59,7 +59,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 # include "pkt-ccntlv.c"
 # include "pkt-ndntlv.c"
 
-#include "ccnl-util.c"
+#include "ccnl-core-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
