@@ -189,7 +189,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-            fprintf(stderr, "usage: %s [options] URI\n"
+            fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -c SCOPE\n"
             "  -d DIGEST  content digest (sets -x to 0)\n"
             "  -l         URI is a Lambda expression\n"
@@ -211,7 +211,7 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL, NULL);
+    prefix = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1], NULL);
     if (!prefix) {
         fprintf(stderr, "no URI found, aborting\n");
         return -1;
