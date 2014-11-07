@@ -52,6 +52,9 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
 enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
+struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
+int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
+
 # include "pkt-ccnb.c"
 # include "pkt-ccntlv.c"
 # include "pkt-ndntlv.c"
