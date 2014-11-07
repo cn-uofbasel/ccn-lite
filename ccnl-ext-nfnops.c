@@ -20,6 +20,7 @@
  * 2014-11-01: created
  */
 
+struct builtin_s *op_extensions;
 
 // binds the name to the given fct in ZAM's list of known operations
 void
@@ -34,9 +35,9 @@ ZAM_registerOp(char *name, BIF fct)
     b = (struct builtin_s*) buf->data;
     b->name = name;
     b->fct = fct;
-    b->next = extensions;
+    b->next = op_extensions;
 
-    extensions = b;
+    op_extensions = b;
 }
 
 //------------------------------------------------------------
