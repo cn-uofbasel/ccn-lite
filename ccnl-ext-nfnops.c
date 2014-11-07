@@ -20,8 +20,6 @@
  * 2014-11-01: created
  */
 
-struct builtin_s *op_extensions;
-
 // binds the name to the given fct in ZAM's list of known operations
 void
 ZAM_registerOp(char *name, BIF fct)

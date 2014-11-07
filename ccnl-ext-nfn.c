@@ -25,10 +25,13 @@
 #include "ccnl-core.h"
 #include "ccnl-ext-nfn.h"
 
-#include "ccnl-ext-nfnprefix.c"
+struct builtin_s *op_extensions;
+struct builtin_s bifs[];
+
 #include "ccnl-ext-nfncommon.c"
-#include "ccnl-ext-nfnops.c"
+#include "ccnl-ext-nfnprefix.c"
 #include "ccnl-ext-nfnkrivine.c"
+#include "ccnl-ext-nfnops.c"
 // #include "ccnl-ext-nstrans.c"
 
 void

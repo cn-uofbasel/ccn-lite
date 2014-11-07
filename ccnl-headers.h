@@ -11,12 +11,6 @@
 #include "ccnl-ext-nfn.h"
 #endif
 
-//PACKET INCLUDES
-#include "pkt-ccnb.h"
-#include "pkt-ccntlv.h"
-#include "pkt-ndntlv.h"
-#include "pkt-localrpc.h"
-
 /* ccnl-core.c */
 int ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md, struct ccnl_prefix_s *p, int mode);
 int ccnl_addr_cmp(sockunion *s1, sockunion *s2);

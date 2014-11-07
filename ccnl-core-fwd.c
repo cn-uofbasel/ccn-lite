@@ -20,12 +20,6 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
-
-#include "pkt-ccnb.c"
-#include "pkt-ccntlv.c"
-#include "pkt-ndntlv.c"
-
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_CCNB
@@ -570,10 +564,6 @@ ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_LOCALRPC
-
-#include "pkt-localrpc.h"
-// #include "fwd-localrpc.h"
-#include "pkt-localrpc.c"
 
 int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 {

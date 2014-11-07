@@ -24,7 +24,7 @@
 #ifndef PKT_CCNTLV_C
 #define PKT_CCNTLV_C
 
-#include "pkt-ccntlv.h"
+#include "ccnl-pkt-ccntlv.h"
 
 /* ----------------------------------------------------------------------
 Note:

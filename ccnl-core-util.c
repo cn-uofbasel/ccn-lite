@@ -20,12 +20,6 @@
  * 2014-06-18 created
  */
 
-struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
-
-#include "pkt-ccnb.c"
-#include "pkt-ccntlv.c"
-#include "pkt-ndntlv.c"
-
 
 struct ccnl_prefix_s*
 ccnl_prefix_new(int suite, int cnt)

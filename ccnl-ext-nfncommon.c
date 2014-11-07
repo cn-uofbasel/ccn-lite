@@ -205,20 +205,22 @@ ccnl_nfn_freeConfiguration(struct configuration_s* c)
 }
 
 void
-ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k)
+ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl)
 {
-    DEBUGMSG(99, "ccnl_nfn_freeKrivine(%p)\n", (void*)k);
+    DEBUGMSG(99, "ccnl_nfn_freeKrivine(%p)\n", ccnl ? (void*)ccnl->km : NULL);
 
-    if (!k)
+    if (!ccnl || !ccnl->km)
         return;
-    DEBUGMSG(99, "  configuration_list %p\n", (void*)k->configuration_list);
+
+    DEBUGMSG(99, "  configuration_list %p\n",
+             (void*)ccnl->km->configuration_list);
     // free thunk_list;
-    while (k->configuration_list) {
-        struct configuration_s *c = k->configuration_list;
-        DBL_LINKED_LIST_REMOVE(k->configuration_list, c);
+    while (ccnl->km->configuration_list) {
+        struct configuration_s *c = ccnl->km->configuration_list;
+        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, c);
         ccnl_nfn_freeConfiguration(c);
     }
-    ccnl_free(k);
+    ccnl_free(ccnl->km);
 }
 
 int trim(char *str){  // inplace, returns len after shrinking

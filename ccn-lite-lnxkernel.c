@@ -45,9 +45,9 @@
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "pkt-ccnb.h"
-#include "pkt-ccntlv.h"
-#include "pkt-ndntlv.h"
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-ndntlv.h"
 
 // ----------------------------------------------------------------------
 
