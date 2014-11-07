@@ -2,15 +2,21 @@
 
 # history:
 # 2012-10-12 created (christian.tschudin@unibas.ch)
-# 2013-07-27 this version
+# 2013-07-27 ccn-lite released on Github
+# 2014-11-02 this version
 
 
 Abstract:
 
     CCN-lite is a reduced and lightweight, yet
     functionally interoperable, implementation
-    of the CCNx protocol. It runs in UNIX user
-    space as well as a Linux kernel module,
+    of the CCNx protocol (both the classic ccnb
+    version as well as v1.0), the Named-Data-
+    Networking protocol (as of Nov 2013) and
+    the novel Named-Function approach.
+
+    CCN-lite runs in UNIX user space, as well
+    (most of it) as a Linux kernel module,
     making it suitable for resource constraint
     devices like the Raspberry Pi. The same,
     unchanged, code runs in the OMNet simulator.

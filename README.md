@@ -1,21 +1,27 @@
-ccn-lite
-========
+# ccn-lite
+- - -
 
-CCN-lite is a lightweight implementation of Name Based Networking,
-in particular:
+CCN-lite (http://ccn-lite.net/) is a lightweight and cross-compatible
+implementation of Name Based Networking. In particular, it supports
 
-- PARC's Content Centric Networking Protocol
+- PARC's Content Centric Networking Protocol,
+  both the old (v0.8) and new (v1.0) variant,
   http://www.ccnx.org/
 
-- the Named-Data Networking project (to come soon)
+- the Named-Data Networking project,
   http://named-data.net/
 
-- the Named-Function Networking project (to come soon)
+- the Named-Function Networking project,
   http://named-function.net/
 
-CCN-lite has been included in the RIOT operating system
-for the Internet of Things (IoT):
+To learn more about CCN-lite, visit the tutorial (doc/tutorial/tutorial.md)
+or read the technical README.txt.
+
+CCN-lite has been included in the RIOT operating system for the
+Internet of Things (IoT):
 http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF
 https://irtf.org/icnrg
+
+![alt text](doc/ccn-lite-logo-256x66.jpg)
