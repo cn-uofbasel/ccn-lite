@@ -2,7 +2,7 @@
  * @f ccn-lite-relay.c
  * @b user space CCN relay
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -444,6 +444,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     }
 #endif //USE_SIGNATURES
 #endif // USE_UNIXSOCKET
+
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
@@ -453,10 +454,9 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 int
 ccnl_io_loop(struct ccnl_relay_s *ccnl)
 {
-    int i, maxfd = -1, rc;
+    int i, len, maxfd = -1, rc;
     fd_set readfs, writefs;
     unsigned char buf[CCNL_MAX_PACKET_SIZE];
-    int len;
     
     if (ccnl->ifcount == 0) {
         fprintf(stderr, "no socket to work with, not good, quitting\n");
@@ -532,137 +532,119 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 
 void
-ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
+ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 {
     DIR *dir;
     struct dirent *de;
-    int datalen;
-    char *suffix;
 
-    DEBUGMSG(99, "ccnl_populate_cache for suite %d in %s\n", suite, path);
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        suffix = "*.ccnb"; break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-	suffix = "*.ccntlv"; break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        suffix = "*.ndntlv"; break;
-#endif
-    default:
-        fprintf(stderr, "unknown suite and encoding, cannot populate cache.\n");
-        return;
-    }
+    DEBUGMSG(99, "ccnl_populate_cache from directory %s\n", path);
 
     dir = opendir(path);
-    if (!dir)
-        return;
+    if (!dir) {
+        DEBUGMSG(1, "could not open directory %s\n", path); return;
+    }
+
     while ((de = readdir(dir))) {
-        if (!fnmatch(suffix, de->d_name, FNM_NOESCAPE)) {
-            char fname[1000];
-            struct stat s;
-            strcpy(fname, path);
-            strcat(fname, "/");
-            strcat(fname, de->d_name);
-            if (stat(fname, &s)) {
-                perror("stat");
-            } else {
-                struct ccnl_buf_s *buf = 0;
-                int fd;
-                DEBUGMSG(6, "loading file %s, %d bytes\n",
-                         de->d_name, (int) s.st_size);
+        char fname[1000];
+        struct stat s;
+        struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0, *pkt = 0;
+        struct ccnl_prefix_s *prefix = 0;
+        struct ccnl_content_s *c = 0;
+        unsigned char *content, *data;
+        int fd, contlen, datalen, typ, len, suite;
 
-                fd = open(fname, O_RDONLY);
-                if (!fd) {
-                    perror("open");
-                    continue;
-                }
-               
-                buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) +
-                                                        s.st_size);
-                datalen = read(fd, buf->data, s.st_size);
-                close(fd);
-                if (datalen == s.st_size && datalen >= 2) {
-                    struct ccnl_prefix_s *prefix = 0;
-                    struct ccnl_content_s *c = 0;
-                    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-                    unsigned char *content, *data;
-                    int contlen, typ, len;
+        if (de->d_name[0] == '.')
+            continue;
 
-                    buf->datalen = datalen;
-                    switch (suite) {
+        strcpy(fname, path);
+        strcat(fname, "/");
+        strcat(fname, de->d_name);
+
+        if (stat(fname, &s))
+            { perror("stat"); continue; }
+
+        DEBUGMSG(6, "loading file %s, %d bytes\n", de->d_name, (int) s.st_size);
+
+        fd = open(fname, O_RDONLY);
+        if (!fd)
+            { perror("open"); continue; }
+        buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) + s.st_size);
+        if (buf)
+            datalen = read(fd, buf->data, s.st_size);
+        else
+            datalen = -1;
+        close(fd);
+
+        if (!buf || datalen != s.st_size || datalen < 2) {
+            DEBUGMSG(6, "size mismatch for file %s, %d/%d bytes\n",
+                     de->d_name, datalen, (int) s.st_size);
+            continue;
+        }
+        buf->datalen = datalen;
+        suite = ccnl_pkt2suite(buf->data, datalen);
+
+        switch (suite) {
 #ifdef USE_SUITE_CCNB
-                    case CCNL_SUITE_CCNB:
-                        if (buf->data[0] != 0x04 || buf->data[1] != 0x82)
-                            goto notacontent;
-                        data = buf->data + 2;
-                        datalen -= 2;
-                        pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-                                &prefix, &nonce, &ppkd, &content, &contlen);
-                        break;
+        case CCNL_SUITE_CCNB:
+            if (buf->data[0] != 0x04 || buf->data[1] != 0x82)
+                goto notacontent;
+            data = buf->data + 2;
+            datalen -= 2;
+            pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+                                    &prefix, &nonce, &ppkd, &content, &contlen);
+            break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-                    case CCNL_SUITE_CCNTLV:
-                        // ccntlv_extract expects the data pointer 
-                        // at the start of the message. Move past the fixed header.
-                        data = buf->data;
-                        datalen -= 8;
-                        data += 8;
-                        pkt = ccnl_ccntlv_extract(8, // hdrlen
-                                                  &data, &datalen,
-                                                  &prefix, 0, 0, 0, 0,
-                                                  &content, &contlen);
-
-                        break;
+        case CCNL_SUITE_CCNTLV:
+            // ccntlv_extract expects the data pointer 
+            // at the start of the message. Move past the fixed header.
+            data = buf->data;
+            datalen -= 8;
+            data += 8;
+            pkt = ccnl_ccntlv_extract(8, // hdrlen
+                                      &data, &datalen, &prefix, 0, 0, 0, 0,
+                                      &content, &contlen);
+            break;
 #endif 
 #ifdef USE_SUITE_NDNTLV
-                    case CCNL_SUITE_NDNTLV:
-                        data = buf->data;
-                        if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
-                            typ != NDN_TLV_Data)
-                            goto notacontent;
-                        pkt = ccnl_ndntlv_extract(data - buf->data,
-                                                  &data, &datalen, 0, 0, 0, 0,
-                                                  NULL, 0, &prefix, NULL,
-                                                  &nonce, &ppkd,
-                                                  &content, &contlen);
-                        break;
+        case CCNL_SUITE_NDNTLV:
+            data = buf->data;
+            if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
+                                                       typ != NDN_TLV_Data)
+                goto notacontent;
+            pkt = ccnl_ndntlv_extract(data - buf->data, &data, &datalen,
+                                      0, 0, 0, 0, NULL, 0, &prefix, NULL,
+                                      &nonce, &ppkd, &content, &contlen);
+            break;
 #endif
-                    default:
-                        DEBUGMSG(6, "error: suite not implemented %d\n", suite);
-                        goto Done;
-                    }
-                    if (!pkt) {
-                        DEBUGMSG(6, "  parsing error\n"); goto Done;
-                    }
-                    if (!prefix) {
-                        DEBUGMSG(6, "  no prefix error\n"); goto Done;
-                    }
-                    c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
-                                         &ppkd, content, contlen);
-                    if (!c)
-                        goto Done;
-                    ccnl_content_add2cache(ccnl, c);
-                    c->flags |= CCNL_CONTENT_FLAGS_STATIC;
-Done:
-                    free_prefix(prefix);
-                    ccnl_free(buf);
-                    ccnl_free(pkt);
-                    ccnl_free(nonce);
-                    ccnl_free(ppkd);
-                } else {
-notacontent:
-                    DEBUGMSG(6, "  not a content object\n");
-                    ccnl_free(buf);
-                }
-            }
+        default:
+            DEBUGMSG(6, "error: unknown packet format (%s)\n", de->d_name);
+            goto Done;
         }
+        if (!pkt)
+            { DEBUGMSG(6, "  parsing error (%s)\n", de->d_name); goto Done; }
+        if (!prefix)
+            { DEBUGMSG(6, "  missing prefix (%s)\n", de->d_name); goto Done; }
+
+        c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
+                             &ppkd, content, contlen);
+        if (!c)
+            { DEBUGMSG(6, "  could not create content (%s)\n", de->d_name); goto Done; }
+        ccnl_content_add2cache(ccnl, c);
+        c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+Done:
+        free_prefix(prefix);
+        ccnl_free(buf);
+        ccnl_free(pkt);
+        ccnl_free(nonce);
+        ccnl_free(ppkd);
+        continue;
+notacontent:
+        DEBUGMSG(6, "  not a content object (%s)\n", de->d_name);
+        ccnl_free(buf);
     }
+
+    closedir(dir);
 }
 
 // ----------------------------------------------------------------------
@@ -670,12 +652,8 @@ notacontent:
 int
 main(int argc, char **argv)
 {
-    int opt;
-    int max_cache_entries = -1;
-    int udpport = -1, httpport = -1;
-    char *datadir = NULL;
-    char *ethdev = NULL;
-    char *crypto_sock_path = 0;
+    int opt, max_cache_entries = -1, udpport = -1, httpport = -1;
+    char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -745,40 +723,33 @@ usage:
             exit(EXIT_FAILURE);
         }
     }
+
+#define setPorts(PORT)  if (udpport < 0) udpport = PORT; \
+                        if (httpport < 0) httpport = PORT
+
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
+        setPorts(CCN_UDP_PORT);
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
+        setPorts(CCN_UDP_PORT);
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV:
-        if(udpport < 0)
-            udpport = NDN_UDP_PORT;
-        if(httpport < 0)
-            httpport = NDN_UDP_PORT;
-        break;
+    case CCNL_SUITE_NDNTLV:
 #endif
     default:
-        if(udpport < 0)
-            udpport = CCN_UDP_PORT;
-        if(httpport < 0)
-            httpport = CCN_UDP_PORT;
+        setPorts(NDN_UDP_PORT);
+        break;
     }
+
     ccnl_core_init();
 
-    DEBUGMSG(1, "This is ccn-lite-relay, starting at %s", ctime(&theRelay.startup_time) + 4);
+    DEBUGMSG(1, "This is ccn-lite-relay, starting at %s",
+             ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
@@ -786,7 +757,7 @@ usage:
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
-        ccnl_populate_cache(&theRelay, datadir, suite);
+        ccnl_populate_cache(&theRelay, datadir);
     
     ccnl_io_loop(&theRelay);
 
@@ -803,6 +774,5 @@ usage:
 
     return 0;
 }
-
 
 // eof
