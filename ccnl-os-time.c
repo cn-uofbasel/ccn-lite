@@ -1,5 +1,5 @@
 /*
- * @f ccnl-platform.c
+ * @f ccnl-os-time.c
  * @b routines for uniform time handling
  *
  * Copyright (C) 2011-13, Christian Tschudin, University of Basel

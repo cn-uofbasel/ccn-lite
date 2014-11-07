@@ -125,7 +125,7 @@ int     ccnl_lnk2relay(                     /* data */
  *
  *****************************************************************************/
 
-//#include "ccnl-includes.h"  // generic platform includes - included in CcnCore.cc
+//#include "ccnl-os-includes.h"  // generic platform includes - included in CcnCore.cc
 #include "ccnx.h"
 #include "ccnl.h"
 #include "ccnl-core.h"      // core ccnl structs
@@ -224,7 +224,7 @@ void    ccnl_close_socket (int s);
  *
  *****************************************************************************/
 
-#include "ccnl-platform.c"
+#include "ccnl-os-platform.c"
 #include "ccnl-core.c"
 //#include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-sched.c"

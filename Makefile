@@ -99,8 +99,8 @@ CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
                  ccnl-ext-mgmt.c ccnl-ext-http.c ccnl-ext-crypto.c 
 
-CCNL_PLATFORM_LIB = ccnl-includes.h \
-                    ccnl-ext-debug.c ccnl-ext.h ccnl-platform.c  \
+CCNL_PLATFORM_LIB = ccnl-os-includes.h \
+                    ccnl-ext-debug.c ccnl-ext.h ccnl-os-time.c  \
                     ccnl-ext-frag.c ccnl-ext-sched.c\
 
 

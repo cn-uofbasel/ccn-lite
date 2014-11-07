@@ -35,7 +35,7 @@
 #define USE_SUITE_NDNTLV
 #define USE_SCHEDULER
 
-#include "ccnl-includes.h"
+#include "ccnl-os-includes.h"
 
 #include "ccnl.h"
 #include "ccnl-core.h"
@@ -45,7 +45,7 @@ void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
-#include "ccnl-platform.c"
+#include "ccnl-os-time.c"
 
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 

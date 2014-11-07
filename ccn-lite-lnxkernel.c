@@ -39,7 +39,7 @@
 #define USE_SIGNATURES
 
 
-#include "ccnl-includes.h"
+#include "ccnl-os-includes.h"
 #include "ccnl.h"
 
 #include "ccnl-core.h"
@@ -231,7 +231,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 
 // ----------------------------------------------------------------------
 
-#include "ccnl-platform.c"
+#include "ccnl-os-time.c"
 #include "ccnl-ext.h"
 
 #include "ccnl-core-util.c"
