@@ -97,17 +97,11 @@ ccnl_ndntlv_extract(int hdrlen,
     DEBUGMSG(99, "ccnl_ndntlv_extract\n");
 
     if (content)
-    *content = NULL;
+        *content = NULL;
 
-    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
     if (!p)
         return NULL;
-    p->suite = CCNL_SUITE_NDNTLV;
-    p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-                       sizeof(unsigned char**));
-    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen) 
-    goto Bail;
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
