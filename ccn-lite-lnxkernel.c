@@ -40,7 +40,7 @@
 
 
 #include "ccnl-os-includes.h"
-#include "ccnl.h"
+#include "ccnl-const.h"
 
 #include "ccnl-core.h"
 #include "ccnl-ext.h"

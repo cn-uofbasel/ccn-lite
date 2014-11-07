@@ -93,7 +93,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 //----------------------------------------------------------------------
 
-#include "ccnl.h"
+#include "ccnl-const.h"
 #include "ccnl-core.h"
 #include "pkt-ndntlv.h"
 
