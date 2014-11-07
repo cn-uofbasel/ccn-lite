@@ -33,7 +33,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 ### 0. Installing CCN-Lite 
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
-2. Set the CCN-Lite env: `export CCNL_HOME=".../.../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
+2. Set the CCN-Lite env: `export CCNL_HOME=".../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
 3. Dependencies:
 	* Ubuntu: `sudo apt-get install libssl-dev`
 	* OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
@@ -42,7 +42,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 
 ### 1. Producing Content 
 
-`ccn-lite-mkC` creates a content object in a specified wireformat. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
+`ccn-lite-mkC` creates an (unsigned) content object in a specified wireformat, subject to the maximum packet size of 4kB. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
 ```bash
 $CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
@@ -72,10 +72,14 @@ $CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d 
 ```
 
 ### 4. Add a Forwarding Rule
-The two relays are not yet connected to each other. We need a forwarding rule from node `A` to node `B`.
-`ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay.
-On node `A`, we first add a new face. In this case, the face should point to a UDP socket (address of node `B`).
-We need to remember the ID of this face for the next step. Again, open a new terminal window.
+The two relays are not yet connected to each other. We want to add a forwarding rule from node `A` to node `B` which is a mapping of a prefix to an outgoing face. Thus, we first need to create the face on relay `A` followed by defining the forwarding rule for `/ndn`.
+
+`ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay. These management commands are based on a request-reply protocol using interest and content objects. Currently the ctrl tool is hardwired for the `ccnb` format. 
+To decode the reply of the ctrl tool we use the `ccn-lite-ccnb2xml` tool.
+
+Finally, because faces are identified by dynamically asigned numbers,  we need to extract the FACEID from the reply of the create face command. When defining the forwarding rule we can refer to this FACEID. 
+
+Again, open a new terminal window.
 ```bash
 FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
@@ -93,17 +97,22 @@ $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent"
 <a name="scenario2"/>
 ## Scenario 2: Content Lookup from NDN Testbed 
 ![content-lookup-NDNTestbed](demo-content-lookup-NDNTestbed.png)
+
 Similar to Scenario 1, but this time the network consists of the NDN Testbed instead of a set of CCN-Lite relays. 
 
 
-Peek sends the command directly to a node in the NDN Testbed. `-w` sets the timeout of peek to 10 seconds.
+Peek sends the interest directly to a node in the NDN Testbed. `-w` sets the timeout of peek to 10 seconds.
+
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla/ping" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
+
+Note: `/ndn/edu/ucla/ping` creates dynamically a new content packet with a limited lifetime and random name extension. Repeating the above command might return the cached copy instead of triggering a new response.
 
 <a name="scenario3"/>
 ## Scenario 3: Connecting CCNL with NDNTestbed 
 ![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
+
 Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests to it. The relay will forward the interests to the testbed.
 
 
@@ -120,7 +129,7 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/
 ```
 Now we can destroy the face:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destoryface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 And check again if the face was actually removed.
 
@@ -130,7 +139,7 @@ Connect to the Testbed server of the University of Basel by creating a new UDP f
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 
-``bash
+```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
@@ -167,13 +176,10 @@ $CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 
 ### 2. Send a NFN request
 
-To send a NFN the tool ccn-lite-peek can be used:
+To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of `ccn-lite-peek`. This tool is very similar, but instead of fetching the content for a static name it returns the result of a dynamic NFN computation.
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
-There is no name to request, so the name parameter is empty. 
-After the name parameter there is another parameter which contains the expression.
-
 
 ## Scenario 5: NFN request with Compute Server Interaction 
 ![](demo-function-call-ext.png)
@@ -217,13 +223,13 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $C
 ### 5. Send a request for a function call:
 To invoke the function call the user can issue the request:
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 The result of the computation is 10.
 
 One can also combine build in operators and function calls:
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 Now the result will be 11.
 
