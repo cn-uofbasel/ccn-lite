@@ -93,7 +93,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 //----------------------------------------------------------------------
 
-#include "ccnl-const.h"
+#include "ccnl-defs.h"
 #include "ccnl-core.h"
 
 char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);

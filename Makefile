@@ -93,7 +93,7 @@ LOCRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
-CCNL_CORE_LIB = ccnl-const.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c
+CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c
 
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \

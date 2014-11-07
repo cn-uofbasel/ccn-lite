@@ -49,7 +49,7 @@
 
 #include "base64.c"
 
-#include "../ccnl-const.h"
+#include "../ccnl-defs.h"
 #include "../ccnl-core.h"
 
 #define ccnl_malloc(s)                  malloc(s)

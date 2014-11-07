@@ -51,7 +51,7 @@
 #include "ccnl-os-includes.h"
 // #include "ccnl-headers.h"
 
-#include "ccnl-const.h"
+#include "ccnl-defs.h"
 #include "ccnl-core.h"
 
 

@@ -127,7 +127,7 @@ int     ccnl_lnk2relay(                     /* data */
 
 //#include "ccnl-os-includes.h"  // generic platform includes - included in CcnCore.cc
 #include "ccnx.h"
-#include "ccnl-const.h"
+#include "ccnl-defs.h"
 #include "ccnl-core.h"      // core ccnl structs
 #include "ccnl-ext.h"       // forward declarations
 #include "ccnl-ext-debug.c" // debug funcs and some macros that I redeclare below

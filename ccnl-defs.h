@@ -1,5 +1,5 @@
 /*
- * @f ccnl-const.h
+ * @f ccnl-defs.h
  * @b header file with constants for CCN lite (CCNL)
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
@@ -22,8 +22,8 @@
 
 #define CCNL_VERSION "2014-11-07"
 
-#ifndef CCNL_H
-#define CCNL_H
+#ifndef CCNL_DEFS_H
+#define CCNL_DEFS_H
 
 #define ETHTYPE_XEROX_PUP               0x0a00
 #define ETHTYPE_PARC_CCNX               0x0801
@@ -144,5 +144,6 @@ enum {
 
 //#define USE_SIGNATURES
 
-#endif //CCNL_H
+#endif //CCNL_DEFS_H
+
 // eof
