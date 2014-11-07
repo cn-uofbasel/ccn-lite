@@ -26,7 +26,6 @@
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-includes.h"
-#include "ccnl-ext-nfnkrivine.h"
 
 enum { // abstract machine instruction set
     ZAM_UNKNOWN,
@@ -804,7 +803,7 @@ normal:
     ccnl_free(arg);
 
     // iterate through all extension operations
-    for (bp = extensions; bp; bp = bp->next)
+    for (bp = op_extensions; bp; bp = bp->next)
         if (!strncmp(prog, bp->name, strlen(bp->name)))
             return (bp->fct)(ccnl, config, restart, halt, prog,
                              contd, &config->result_stack);

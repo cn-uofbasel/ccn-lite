@@ -9,7 +9,6 @@
 #include "ccnl-ext-debug.h"
 #ifdef USE_NFN
 #include "ccnl-ext-nfn.h"
-#include "ccnl-ext-nfnkrivine.h"
 #endif
 
 //PACKET INCLUDES
