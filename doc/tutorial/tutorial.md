@@ -87,7 +87,7 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID n
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A` 
 The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want it to send the interest to the the relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we also pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a readable format.
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent/" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 
 <a name="scenario2"/>
@@ -125,9 +125,13 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destoryface $FACEID | $C
 And check again if the face was actually removed.
 
 ### 3. Connecting `A` to Testbed 
-Connect to the Testbed server of the University of Basel:
+Connect to the Testbed server of the University of Basel by creating a new UDP face to the NFD of Basel and then registring the prefix `/ndn`
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
+```
+
+``bash
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Send interest to `A` 
@@ -143,7 +147,7 @@ $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla"
 ![](demo-function-call-simple.png)
 This scenario consists of a single NFN node `A`. A user request the result of a simple built-in operation: `add 1 2`
 
-### Start a NFN-relay
+### 1. Start a NFN-relay
 
 To build CCN-lite with NFN, export the variable:
 ```bash
@@ -158,10 +162,10 @@ make ccn-nfn-relay
 
 The ccn-nfn-relay can be started similar to the ccn-lite-relay:
 ```bash
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9998 -x /tmp/mgmt-nfn-relay-A.sock
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
-### Send a NFN request
+### 2. Send a NFN request
 
 To send a NFN the tool ccn-lite-peek can be used:
 ```bash
@@ -178,13 +182,13 @@ A compute server is an externel application which can execute functions written 
 Instead of a complex Compute Server a simple dummyserver is used in this scenario.
 The function "/test/data" should be called.
 
-###Start a NFN-relay
+### 1. Start a NFN-relay
 A NFN-relay is started on the same way as shown in the previous scenario:
 ```bash
 $CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
-###Start the computation dummy server
+### 2. Start the computation dummy server
 The dummy server is written in python and can only handle the function "/test/data". 
 Start it with:
 ```bash
@@ -194,7 +198,7 @@ For complexer functions you have to setup the nfn-scala computation environment.
 
 
 
-###Add a compute face
+### 3. Add a compute face
 To interact with the Computation server which runs on Port 9002 it is required to setup a new interface.
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
@@ -204,13 +208,13 @@ And to register the name "COMPUTE" to this interface. This name is reserved in N
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
 ```
 
-###Add dummy function to the cache of the relay
+### 4. Add dummy function to the cache of the relay
 Add a dummy function to the cache of the relay to invoke the computatin locally:
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
 
-###Send a request for a function call:
+### 5. Send a request for a function call:
 To invoke the function call the user can issue the request:
 ```bash
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump
