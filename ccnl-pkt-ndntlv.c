@@ -24,7 +24,7 @@
 #ifndef PKT_NDNTLV_C
 #define PKT_NDNTLV_C
 
-#include "pkt-ndntlv.h"
+#include "ccnl-pkt-ndntlv.h"
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------

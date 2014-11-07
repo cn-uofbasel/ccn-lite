@@ -47,9 +47,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 // ----------------------------------------------------------------------
 
 #undef USE_NFN
-#undef USE_NFN_MONITOR
 
 #define USE_SUITE_NDNTLV
+#include "ccnl-pkt-ndntlv.h"
 
 // ----------------------------------------------------------------------
 // "replacement lib"
@@ -95,11 +95,12 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #include "ccnl-const.h"
 #include "ccnl-core.h"
-#include "pkt-ndntlv.h"
+
+char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+char* ccnl_addr2ascii(sockunion *su);
+void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 //----------------------------------------------------------------------
-
-void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
@@ -235,11 +236,8 @@ ccnl_run_events()
 int debug_level;
 struct ccnl_relay_s theRelay;
 
-#define USE_SUITE_CCNB
-#include "ccnl-core-util.c"
-
-#undef USE_SUITE_CCNB
 #include "ccnl-core.c"
+#include "ccnl-core-util.c"
 
 // ----------------------------------------------------------------------
 // UDP socket, main event loop

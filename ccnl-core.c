@@ -23,12 +23,17 @@
  */
 
 #include "ccnl-core.h"
-//#include "ccnl-headers.h"
-
 
 #ifndef USE_NFN
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
+
+int ccnl_pkt2suite(unsigned char *data, int len);
+struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
+
+void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+void ccnl_face_CTS_done(void *ptr, int cnt, int len);
 
 // ----------------------------------------------------------------------
 // datastructure support functions
@@ -792,6 +797,11 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
+#include "ccnl-pkt-ccnb.c"
+#include "ccnl-pkt-ccntlv.c"
+#include "ccnl-pkt-ndntlv.c"
+#include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
+
 #include "ccnl-core-fwd.c"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
@@ -887,7 +897,7 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
     }
 
 #ifdef USE_NFN
-    ccnl_nfn_freeKrivine(ccnl->km);
+    ccnl_nfn_freeKrivine(ccnl);
 #endif
 
 }

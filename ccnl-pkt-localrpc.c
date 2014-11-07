@@ -21,6 +21,9 @@
  * 2014-11-05 merged from pkt-localrpc-dec.c and pkt-localrpc-enc.c
  */
 
+#ifdef USE_SUITE_LOCALRPC
+
+#include "ccnl-pkt-localrpc.h"
 
 // ----------------------------------------------------------------------
 // RDR decoding library
@@ -509,5 +512,7 @@ int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen)
 
     return len;
 }
+
+#endif // USE_SUITE_LOCALRPC
 
 // eof
