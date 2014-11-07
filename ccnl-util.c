@@ -164,7 +164,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     char *compvect[CCNL_MAX_NAME_COMP];
     int cnt, i, len = 0;
 
-    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%d, uri=%s, nfn=%s\n",
+    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%d, uri=%s, nfn=%s)\n",
              suite, uri, nfnexpr);
 
     if (strlen(uri))
