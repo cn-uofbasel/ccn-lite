@@ -234,7 +234,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #include "ccnl-platform.c"
 #include "ccnl-ext.h"
 
-#include "ccnl-util.c"
+#include "ccnl-core-util.c"
 #include "ccnl-core.c"
 
 #ifdef USE_FRAG

@@ -1,5 +1,5 @@
 /*
- * @f ccnl-util.c
+ * @f ccnl-core-util.c
  * @b CCN lite, common utility procedures (used by utils as well as relays)
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel

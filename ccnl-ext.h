@@ -22,7 +22,7 @@
 
 // ----------------------------------------------------------------------
 
-// ccnl-util.c
+// ccnl-core-util.c
 char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 
 #ifdef USE_CCNxDIGEST

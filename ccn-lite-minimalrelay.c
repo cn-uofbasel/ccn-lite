@@ -236,7 +236,8 @@ int debug_level;
 struct ccnl_relay_s theRelay;
 
 #define USE_SUITE_CCNB
-#include "ccnl-util.c"
+#include "ccnl-core-util.c"
+
 #undef USE_SUITE_CCNB
 #include "ccnl-core.c"
 

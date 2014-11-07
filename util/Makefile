@@ -57,7 +57,7 @@ ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c \
 		${CCNB_LIB} ../ccnl.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
 
-# ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-util.c
+# ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-core-util.c
 # 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
 
@@ -69,12 +69,12 @@ ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ${CCNB_LIB} \
 
 ccn-lite-peek: Makefile ccn-lite-peek.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
-		../ccnl.h ../ccnl-util.c
+		../ccnl.h ../ccnl-core-util.c
 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
 ccn-lite-fetch: Makefile ccn-lite-fetch.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
-		../ccnl.h ../ccnl-util.c ccnl-common.c
+		../ccnl.h ../ccnl-core-util.c ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
@@ -83,7 +83,7 @@ ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
 
 ccn-lite-simplenfn: Makefile ccn-lite-simplenfn.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
-		../ccnl.h ../ccnl-util.c
+		../ccnl.h ../ccnl-core-util.c
 	$(CC) $(CFLAGS) ccn-lite-simplenfn.c -o $@ 
 
 ccn-lite-rpc: Makefile ccn-lite-rpc.c \

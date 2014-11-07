@@ -1,5 +1,5 @@
 /*
- * @f ccnl-fwd.c
+ * @f ccnl-core-fwd.c
  * @b CCN lite, the collection of suite specific forwarding logics
  *
  * Copyright (C) 2011-13, Christian Tschudin, University of Basel
