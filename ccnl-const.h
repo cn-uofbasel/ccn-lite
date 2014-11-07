@@ -1,8 +1,8 @@
 /*
- * @f ccnl.h
- * @b header file for CCN lite (CCNL)
+ * @f ccnl-const.h
+ * @b header file with constants for CCN lite (CCNL)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2014-10-03"
+#define CCNL_VERSION "2014-11-07"
 
 #ifndef CCNL_H
 #define CCNL_H

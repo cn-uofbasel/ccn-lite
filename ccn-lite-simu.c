@@ -37,7 +37,7 @@
 
 #include "ccnl-os-includes.h"
 
-#include "ccnl.h"
+#include "ccnl-const.h"
 #include "ccnl-core.h"
 
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
