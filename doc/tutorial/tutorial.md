@@ -183,7 +183,7 @@ $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCN
 
 ## Scenario 5: NFN request with Compute Server Interaction 
 ![](demo-function-call-ext.png)
-This scenario explains how to setup an NFN-node which can interact with an Compute Server. 
+This scenario explains how to setup an NFN-node which can interact with a Compute Server. 
 A compute server is an externel application which can execute functions written in a high level programming language.
 Instead of a complex Compute Server a simple dummyserver is used in this scenario.
 The function "/test/data" should be called.
