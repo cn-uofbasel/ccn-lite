@@ -161,7 +161,7 @@ make ccn-nfn-relay
 
 The ccn-nfn-relay can be started similar to the ccn-lite-relay:
 ```bash
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9998 -x /tmp/mgmt-nfn-relay-A.sock
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-A.sock
 ```
 
 ### Send a NFN request
@@ -176,7 +176,7 @@ After the name parameter there is another parameter which contains the expressio
 
 ## Scenario 5: NFN request with Compute Server Interaction [scenario5]
 ![](demo-function-call-ext.png)
-This scenario explains how to setup an NFN-node which can interact with an Compute Server. 
+This scenario explains how to setup an NFN-node which can interact with a Compute Server. 
 A compute server is an externel application which can execute functions written in a high level programming language.
 Instead of a complex Compute Server a simple dummyserver is used in this scenario.
 The function "/test/data" should be called.
@@ -193,7 +193,7 @@ Start it with:
 ```bash
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py
 ```
-For complexer functions you have to setup the nfn-scala computation environment.
+For more complex functions you have to setup the nfn-scala computation environment.
 
 
 
@@ -225,10 +225,3 @@ One can also combine build in operators and function calls:
 $CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9001 "" "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
 Now the result will be 11.
-
-
-
-
-
-
-
