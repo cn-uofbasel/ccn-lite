@@ -4,7 +4,7 @@
 
 //CCNL INCLUDES
 #include "ccnl-os-includes.h"
-#include "ccnl-const.h"
+#include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext-debug.h"
 #ifdef USE_NFN
