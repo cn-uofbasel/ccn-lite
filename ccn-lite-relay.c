@@ -48,7 +48,7 @@
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
 
-#include "ccnl-includes.h"
+#include "ccnl-os-includes.h"
 #include "ccnl-headers.h"
 
 #include "ccnl.h"
@@ -57,7 +57,7 @@
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
-#include "ccnl-platform.c"
+#include "ccnl-os-time.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
