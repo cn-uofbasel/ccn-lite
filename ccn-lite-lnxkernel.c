@@ -45,10 +45,6 @@
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "ccnl-pkt-ccnb.h"
-#include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-ndntlv.h"
-
 // ----------------------------------------------------------------------
 
 
@@ -234,19 +230,17 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #include "ccnl-os-time.c"
 #include "ccnl-ext.h"
 
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-ndntlv.h"
+
 #include "ccnl-core-util.c"
 #include "ccnl-core.c"
 
-#ifdef USE_FRAG
-#  include "ccnl-ext-frag.c"
-#endif
-
+#include "ccnl-ext-frag.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-nfn.c"
-
-#ifdef USE_SIGNATURES
 #include "ccnl-ext-crypto.c"
-#endif
 
 #ifdef USE_SCHEDULER
 #  include "ccnl-ext-sched.c"
@@ -559,7 +553,6 @@ ccnl_init(void)
             u = NDN_UDP_PORT;
     }
 #endif
-
 
     ccnl_core_init();
     theRelay.max_cache_entries = c;

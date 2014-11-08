@@ -307,6 +307,8 @@ ccnl_addr2ascii(sockunion *su)
     return NULL;
 }
 
+// ----------------------------------------------------------------------
+
 #ifndef CCNL_LINUXKERNEL
 
 static char *prefix_buf1;
@@ -377,6 +379,90 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 
     return buf;
 }
+
+struct ccnl_buf_s*
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
+{
+    struct ccnl_buf_s *buf = NULL;
+    unsigned char *tmp;
+    int len = 0, offs;
+
+    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    offs = CCNL_MAX_PACKET_SIZE;
+
+    switch (name->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+        offs = 0;
+        break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        len = ccnl_ndntlv_prependInterest(name, -1, NULL, &offs, tmp);
+        break;
+#endif
+    default:
+        break;
+    }
+
+    if (len)
+        buf = ccnl_buf_new(tmp + offs, len);
+    ccnl_free(tmp);
+
+    return buf;
+}
+
+struct ccnl_buf_s*
+ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
+                     unsigned char *payload, int paylen, int *payoffset)
+{
+    struct ccnl_buf_s *buf = NULL;
+    unsigned char *tmp;
+    int len = 0, contentpos = 0, offs;
+
+    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    offs = CCNL_MAX_PACKET_SIZE;
+
+    switch (name->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
+        offs = 0;
+        break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
+                                                NULL, // lastchunknum
+                                                &offs, &contentpos, tmp);
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        len = ccnl_ndntlv_prependContent(name, payload, paylen,
+                                         &offs, &contentpos, NULL, 0, tmp);
+        break;
+#endif
+    default:
+        break;
+    }
+
+    if (len) {
+        buf = ccnl_buf_new(tmp + offs, len);
+        if (payoffset)
+            *payoffset = contentpos;
+    }
+    ccnl_free(tmp);
+
+    return buf;
+}
+
 #endif // CCNL_LINUXKERNEL
 
 // ----------------------------------------------------------------------
@@ -526,89 +612,6 @@ ccnl_lambdaStrToComponents(char **compVector, char *str)
 }
 
 // ----------------------------------------------------------------------
-
-struct ccnl_buf_s*
-ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
-{
-    struct ccnl_buf_s *buf = NULL;
-    unsigned char *tmp;
-    int len = 0, offs;
-
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    offs = CCNL_MAX_PACKET_SIZE;
-
-    switch (name->suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
-        offs = 0;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_prependInterest(name, -1, NULL, &offs, tmp);
-        break;
-#endif
-    default:
-        break;
-    }
-
-    if (len)
-        buf = ccnl_buf_new(tmp + offs, len);
-    ccnl_free(tmp);
-
-    return buf;
-}
-
-struct ccnl_buf_s*
-ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
-                     unsigned char *payload, int paylen, int *payoffset)
-{
-    struct ccnl_buf_s *buf = NULL;
-    unsigned char *tmp;
-    int len = 0, contentpos = 0, offs;
-
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
-    offs = CCNL_MAX_PACKET_SIZE;
-
-    switch (name->suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
-        offs = 0;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
-                                                NULL, // lastchunknum
-                                                &offs, &contentpos, tmp);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &offs, &contentpos, NULL, 0, tmp);
-        break;
-#endif
-    default:
-        break;
-    }
-
-    if (len) {
-        buf = ccnl_buf_new(tmp + offs, len);
-        if (payoffset)
-            *payoffset = contentpos;
-    }
-    ccnl_free(tmp);
-
-    return buf;
-}
 
 int
 ccnl_str2suite(char *cp)
