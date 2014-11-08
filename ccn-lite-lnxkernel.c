@@ -527,19 +527,19 @@ ccnl_init(void)
     if (v >= 0)
         debug_level = v;
 
+    suite = ccnl_str2suite(s);
+    if (suite < 0 || suite >= CCNL_SUITE_LAST)
+        suite = CCNL_SUITE_DEFAULT;
+
     DEBUGMSG(1, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
+    DEBUGMSG(1, "using suite %s\n", ccnl_suite2str(suite));
 
     DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
                  "u=%d, v=%d, x=%s\n",
              c, e, k, p, s, u, v, x);
-
-    suite = ccnl_str2suite(s);
-    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-        suite = CCNL_SUITE_DEFAULT;
-    }
 
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB) {

@@ -753,6 +753,7 @@ usage:
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
+    DEBUGMSG(1, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);

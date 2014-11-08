@@ -631,4 +631,22 @@ ccnl_str2suite(char *cp)
     return -1;
 }
 
+char*
+ccnl_suite2str(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return "ccnb";
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return "ccnx2014";
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return "ndn2013";
+#endif
+    return "?";
+}
+
 // eof
