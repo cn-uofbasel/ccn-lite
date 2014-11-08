@@ -372,7 +372,7 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
 #ifdef USE_NFN_NSTRANS
 
-// NFN example: "getFromNameSpace NS /some/uri/to/fetch"
+// NFN namespace translation example: "translate NS /some/uri/to/fetch"
 // where NS is a constant: 'ccnb, 'ccnx2014, 'ndn2013
 
 char*

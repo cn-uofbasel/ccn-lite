@@ -857,11 +857,10 @@ setup_global_environment(struct environment_s **env)
     allocAndAdd(env, "call",
                 "CLOSURE(CALL);RESOLVENAME(@op(@x x op));TAILAPPLY");
 
-    allocAndAdd(env, "_getAllBytes",
-                "TAILAPPLY;OP_RAW");
+    allocAndAdd(env, "raw", "TAILAPPLY;OP_RAW");
 
 #ifdef USE_NFN_NSTRANS
-    allocAndAdd(env, "_getFromNameSpace",
+    allocAndAdd(env, "translate",
                 "CLOSURE(OP_NSTRANS);CLOSURE(OP_FIND);"
                 "RESOLVENAME(@of(@o1(@x(@y x y o1 of))));TAILAPPLY");
 #endif
