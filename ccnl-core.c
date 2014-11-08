@@ -22,8 +22,6 @@
  * 2014-03-20 started to move ccnx (pre 2014) specific routines to "fwd-ccnb.c"
  */
 
-#include "ccnl-core.h"
-
 #ifndef USE_NFN
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
@@ -901,5 +899,7 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #endif
 
 }
+
+#include "ccnl-core-util.c"
 
 // eof

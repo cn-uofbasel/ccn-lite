@@ -49,7 +49,6 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #undef USE_NFN
 
 #define USE_SUITE_NDNTLV
-#include "ccnl-pkt-ndntlv.h"
 
 // ----------------------------------------------------------------------
 // "replacement lib"
@@ -237,7 +236,6 @@ int debug_level;
 struct ccnl_relay_s theRelay;
 
 #include "ccnl-core.c"
-#include "ccnl-core-util.c"
 
 // ----------------------------------------------------------------------
 // UDP socket, main event loop
