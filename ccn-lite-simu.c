@@ -711,9 +711,7 @@ main(int argc, char **argv)
             fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
                     "[-g MIN_INTER_PACKET_INTERVAL] "
                     "[-i MIN_INTER_CCNMSG_INTERVAL] "
-#ifdef USE_SUITE_NDNTLV
                     "[-s SUITE (ccnb, ccnx2014, ndn2013)] "
-#endif
                     "[-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

@@ -26,7 +26,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-
 #define CCNL_UNIX
 
 #define USE_CCNxDIGEST
@@ -54,9 +53,8 @@
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 
-
-#include "ccnl-ext-debug.c"
 #include "ccnl-ext.h"
+#include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
@@ -70,10 +68,7 @@
 #include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
-#ifdef USE_SIGNATURES
 #include "ccnl-ext-crypto.c"
-#endif
-
 
 // ----------------------------------------------------------------------
 
