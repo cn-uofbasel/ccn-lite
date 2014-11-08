@@ -202,6 +202,8 @@ Bail:
 // ----------------------------------------------------------------------
 // packet composition
 
+#ifdef NEEDS_PACKET_CRAFTING
+
 // write given TL *before* position buf+offset, adjust offset and return len
 int
 ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
@@ -428,6 +430,8 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                 len, hoplimit, offset, buf);
     return oldoffset - *offset;
 }
+
+#endif // NEEDS_PACKET_CRAFTING
 
 #endif // PKT_CCNTLV_C
 

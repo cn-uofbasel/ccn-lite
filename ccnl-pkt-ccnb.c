@@ -248,6 +248,8 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
 // ----------------------------------------------------------------------
 // ccnb encoding support
 
+#ifdef NEEDS_PACKET_CRAFTING
+
 int
 ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
 {
@@ -416,6 +418,7 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
 }
 
 // #endif // CCNL_SIMULATION || CCNL_OMNET
+#endif // NEEDS_PACKET_CRAFTING
 
 #endif // PKT_CCNB_C
 

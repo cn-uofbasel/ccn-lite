@@ -20,6 +20,10 @@
  * 2013-03-30 created
  */
 
+#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES)
+# define NEEDS_PACKET_CRAFTING
+#endif
+
 // ----------------------------------------------------------------------
 
 // ccnl-core-util.c

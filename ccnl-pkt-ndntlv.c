@@ -226,6 +226,8 @@ Bail:
 // ----------------------------------------------------------------------
 // packet composition
 
+#ifdef NEEDS_PACKET_CRAFTING
+
 int
 ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 {
@@ -448,6 +450,8 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
 
     return oldoffset - *offset;
 }
+
+#endif // NEEDS_PACKET_CRAFTING
 
 #endif // PKT_NDNTLV_C
 
