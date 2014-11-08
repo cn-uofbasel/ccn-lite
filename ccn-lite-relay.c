@@ -63,7 +63,6 @@
 #define ccnl_print_stats(x,y)           do{}while(0)
 
 #include "ccnl-core.c"
-#include "ccnl-core-util.c"
 
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-mgmt.c"

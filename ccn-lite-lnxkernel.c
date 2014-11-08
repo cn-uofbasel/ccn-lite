@@ -40,9 +40,7 @@
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
-
 #include "ccnl-core.h"
-#include "ccnl-ext.h"
 
 // ----------------------------------------------------------------------
 
@@ -233,7 +231,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-ndntlv.h"
 
-#include "ccnl-core-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-frag.c"

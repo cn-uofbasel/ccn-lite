@@ -96,6 +96,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 #define ccnl_core_addToCleanup(b)       do{}while(0)
 
+// include only the utils, not the core routines:
 #include "../ccnl-core-util.c"
 
 // ----------------------------------------------------------------------

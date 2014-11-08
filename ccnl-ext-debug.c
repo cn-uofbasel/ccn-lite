@@ -25,7 +25,6 @@
 #ifndef CCNL_EXT_DEBUG
 #define CCNL_EXT_DEBUG
 
-#include "ccnl-core.h"
 #include "ccnl-ext-debug.h"
 #ifdef USE_DEBUG
 

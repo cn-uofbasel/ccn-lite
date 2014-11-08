@@ -54,11 +54,6 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
-# include "ccnl-pkt-ccnb.c"
-# include "ccnl-pkt-ccntlv.c"
-# include "ccnl-pkt-ndntlv.c"
-
-#include "ccnl-core-util.c"
 #include "ccnl-core.c"
 
 #include "ccnl-ext-mgmt.c"
