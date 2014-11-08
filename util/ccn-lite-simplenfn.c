@@ -157,7 +157,7 @@ usage:
             "Examples:\n"
             "%% simplenfn /ndn/edu/wustl/ping\n"
             "%% simplenfn \"echo hello world\"\n"
-            "%% simplenfn \"getFromNameSpace 'ccnx2014 /ccnx/parc/info.txt\"\n"
+            "%% simplenfn \"translate 'ccnx2014 /ccnx/parc/info.txt\"\n"
             "%% simplenfn \"add 1 1\"\n",
             argv[0]);
             exit(1);
