@@ -20,6 +20,45 @@
  * 2014-06-18 created
  */
 
+// ----------------------------------------------------------------------
+
+int
+ccnl_str2suite(char *cp)
+{
+#ifdef USE_SUITE_CCNB
+    if (!strcmp(cp, "ccnb"))
+        return CCNL_SUITE_CCNB;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (!strcmp(cp, "ccnx2014"))
+        return CCNL_SUITE_CCNTLV;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (!strcmp(cp, "ndn2013"))
+        return CCNL_SUITE_NDNTLV;
+#endif
+    return -1;
+}
+
+char*
+ccnl_suite2str(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return "ccnb";
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return "ccnx2014";
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return "ndn2013";
+#endif
+    return "?";
+}
+
+// ----------------------------------------------------------------------
 
 struct ccnl_prefix_s*
 ccnl_prefix_new(int suite, int cnt)
@@ -158,8 +197,8 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     char *compvect[CCNL_MAX_NAME_COMP];
     int cnt, i, len = 0;
 
-    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%d, uri=%s, nfn=%s)\n",
-             suite, uri, nfnexpr);
+    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+             ccnl_suite2str(suite), uri, nfnexpr);
 
     if (strlen(uri))
         cnt = ccnl_URItoComponents(compvect, uri);
@@ -470,43 +509,5 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // CCNL_LINUXKERNEL
-
-// ----------------------------------------------------------------------
-
-int
-ccnl_str2suite(char *cp)
-{
-#ifdef USE_SUITE_CCNB
-    if (!strcmp(cp, "ccnb"))
-        return CCNL_SUITE_CCNB;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    if (!strcmp(cp, "ccnx2014"))
-        return CCNL_SUITE_CCNTLV;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    if (!strcmp(cp, "ndn2013"))
-        return CCNL_SUITE_NDNTLV;
-#endif
-    return -1;
-}
-
-char*
-ccnl_suite2str(int suite)
-{
-#ifdef USE_SUITE_CCNB
-    if (suite == CCNL_SUITE_CCNB)
-        return "ccnb";
-#endif
-#ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV)
-        return "ccnx2014";
-#endif
-#ifdef USE_SUITE_NDNTLV
-    if (suite == CCNL_SUITE_NDNTLV)
-        return "ndn2013";
-#endif
-    return "?";
-}
 
 // eof

@@ -227,10 +227,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #include "ccnl-os-time.c"
 #include "ccnl-ext.h"
 
-#include "ccnl-pkt-ccnb.h"
-#include "ccnl-pkt-ccntlv.h"
-#include "ccnl-pkt-ndntlv.h"
-
 #include "ccnl-core.c"
 
 #include "ccnl-ext-frag.c"

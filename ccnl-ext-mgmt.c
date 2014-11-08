@@ -1407,8 +1407,8 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct ccnl_face_s *f;
         struct ccnl_forward_s *fwd, **fwd2;
         int fi = strtol((const char*)faceid, NULL, 0);
-        DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s, suite=%d\n",
-                 ccnl_prefix_to_path(p), faceid, suite[0]);
+        DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
+                 ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
 
         for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
         if (!f) goto Bail;
@@ -1418,10 +1418,8 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (!fwd) goto Bail;
         fwd->prefix = ccnl_prefix_clone(p);
         fwd->face = f;
-        if(suite){
+        if (suite)
             fwd->suite = suite[0];
-        }
-
 
         fwd2 = &ccnl->fib;
         while (*fwd2)
@@ -1473,6 +1471,7 @@ Bail:
     return rc;
 }
 
+#ifdef XXX
 int
 pkt2suite(unsigned char *data, int len)
 {
@@ -1504,6 +1503,7 @@ pkt2suite(unsigned char *data, int len)
 
     return -1;
 }
+#endif
 
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -1544,7 +1544,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     data = buf + 2;
 
-    suite = pkt2suite(buf, buflen);
+    suite = ccnl_pkt2suite(buf, buflen);
     //add object to cache here...
 
     switch(suite){

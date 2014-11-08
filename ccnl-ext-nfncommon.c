@@ -51,8 +51,9 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     struct ccnl_buf_s *buf;
     int resultpos = 0;
 
-    DEBUGMSG(49, "ccnl_nfn_result2content(prefix=%s, suite=%d, contlen=%d)\n",
-             ccnl_prefix_to_path(*prefix), (*prefix)->suite, resultlen);
+    DEBUGMSG(49, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
+             ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
+             resultlen);
 
     buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
     if (!buf)
@@ -249,8 +250,8 @@ add_computation_components(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *ret;
     unsigned char buf1[20], buf2[20];
 
-    DEBUGMSG(99, "add_computation_component(suite=%d, %s)\n",
-             prefix->suite, comp);
+    DEBUGMSG(99, "add_computation_component(suite=%s, %s)\n",
+             ccnl_suite2str(prefix->suite), comp);
 
     ret = ccnl_prefix_new(prefix->suite, prefix->compcnt + incr);
     if (!ret)
@@ -414,8 +415,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     struct prefix_mapping_s *iter;
     struct ccnl_content_s *content;
 
-    DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%d)\n",
-             ccnl_prefix_to_path(prefix), prefix->suite);
+    DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
+             ccnl_prefix_to_path(prefix), ccnl_suite2str(prefix->suite));
 
     DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
     for (content = ccnl->contents; content; content = content->next) {
