@@ -25,6 +25,7 @@
 #define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
+#include "../ccnl-ext-nfnparse.c"
 #include "ccnl-socket.c"
 
 int
@@ -79,7 +80,7 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
         }
 */
     }
-    if (expr) {
+    if (expr) { // cleanup parentheses by parsing and rendering again
         struct ccnl_lambdaTerm_s *lt;
 //            char *cp = expr;
         lt = ccnl_lambdaStrToTerm(1, &expr, myprint);

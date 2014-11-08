@@ -29,6 +29,7 @@ struct builtin_s *op_extensions;
 struct builtin_s bifs[];
 
 #include "ccnl-ext-nfncommon.c"
+#include "ccnl-ext-nfnparse.c"
 #include "ccnl-ext-nfnkrivine.c"
 #include "ccnl-ext-nfnops.c"
 
