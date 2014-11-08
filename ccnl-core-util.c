@@ -540,9 +540,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, 
-                                     NULL, // nonce
-                                     tmp, CCNL_MAX_PACKET_SIZE);
+        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
         break;
 #endif
@@ -553,7 +551,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_fillInterest(name, -1, NULL, &offs, tmp);
+        len = ccnl_ndntlv_prependInterest(name, -1, NULL, &offs, tmp);
         break;
 #endif
     default:
@@ -587,15 +585,15 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_fillContentWithHdr(name, payload, paylen, 
-                                             NULL, // lastchunknum
-                                             &offs, &contentpos, tmp);
+        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
+                                                NULL, // lastchunknum
+                                                &offs, &contentpos, tmp);
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_fillContent(name, payload, paylen,
-                                      &offs, &contentpos, NULL, 0, tmp);
+        len = ccnl_ndntlv_prependContent(name, payload, paylen,
+                                         &offs, &contentpos, NULL, 0, tmp);
         break;
 #endif
     default:

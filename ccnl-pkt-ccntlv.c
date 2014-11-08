@@ -368,11 +368,10 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name, 
-                        unsigned char *payload, int paylen, 
-                        int *lastchunknum,
-                        int *offset, int *contentpos,
-                        unsigned char *buf)
+ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
+                           unsigned char *payload, int paylen,
+                           int *lastchunknum, int *offset, int *contentpos,
+                           unsigned char *buf)
 {
     int tloffset = *offset;
 
@@ -409,18 +408,18 @@ ccnl_ccntlv_fillContent(struct ccnl_prefix_s *name,
 
 // write Content packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name,
-                               unsigned char *payload, int paylen,
-                               int *lastchunknum,
-                               int *offset, int *contentpos, unsigned char *buf)
+ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
+                                  unsigned char *payload, int paylen,
+                                  int *lastchunknum, int *offset,
+                                  int *contentpos, unsigned char *buf)
 {
     int len, oldoffset;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
 
     oldoffset = *offset;
 
-    len = ccnl_ccntlv_fillContent(name, payload, paylen, lastchunknum, offset,
-                                  contentpos, buf);
+    len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
+                                     offset, contentpos, buf);
 
     if (len >= ((1 << 16) - 4))
         return -1;

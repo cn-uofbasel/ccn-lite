@@ -122,6 +122,59 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_CCNB
+
+int
+ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
+                     char *maxSuffix, unsigned char *digest, int dlen,
+                     unsigned char *publisher, int plen, char *scope,
+                     uint32_t *nonce, unsigned char *out)
+{
+    int len, i, k;
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    for (i = 0; i < name->compcnt; i++) {
+        len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG); // comp
+        k = name->complen[i];
+        len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
+        memcpy(out+len, name->comp[i], k);
+        len += k;
+        out[len++] = 0; // end-of-component
+    }
+    if (digest) {
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_COMPONENT,
+                                 CCN_TT_BLOB, digest, dlen);
+        if (!maxSuffix)
+            maxSuffix = "0";
+    }
+    out[len++] = 0; // end-of-name
+
+    if (minSuffix)
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MINSUFFCOMP,
+                                 CCN_TT_UDATA, (unsigned char*) minSuffix,
+                                 strlen(minSuffix));
+    if (maxSuffix)
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MAXSUFFCOMP,
+                                 CCN_TT_UDATA, (unsigned char*) maxSuffix,
+                                 strlen(maxSuffix));
+    if (publisher)
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_PUBPUBKDIGEST,
+                                 CCN_TT_BLOB, publisher, plen);
+    if (scope)
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_SCOPE,
+                                 CCN_TT_UDATA, (unsigned char*) scope,
+                                 strlen(scope));
+    if (nonce)
+        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_NONCE,
+                                 CCN_TT_UDATA, (unsigned char*) nonce,
+                                 sizeof(*nonce));
+
+    out[len++] = 0; // end-of-interest
+
+    return len;
+}
+
 int ccnb_isContent(unsigned char *buf, int len)
 {
     int num, typ;
@@ -187,7 +240,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
     int len, offset;
 
     offset = outlen;
-    len = ccnl_ndntlv_fillInterest(name, -1, nonce, &offset, out);
+    len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
 
