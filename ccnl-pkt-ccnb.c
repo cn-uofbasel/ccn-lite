@@ -280,23 +280,34 @@ ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt)
 }
 
 int
-ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
-                 char *cp, int cnt)
+ccnl_ccnb_mkField(unsigned char *out, unsigned int num, int typ,
+                  unsigned char *data, int datalen)
 {
     int len;
 
-    len = ccnl_ccnb_mkHeader(out, num, tt);
-    len += ccnl_ccnb_addBlob(out+len, cp, cnt);
-    out[len++] = 0;
+    len = ccnl_ccnb_mkHeader(out, num, CCN_TT_DTAG);
+    len += ccnl_ccnb_mkHeader(out + len, datalen, typ);
+    memcpy(out + len, data, datalen);
+    len += datalen;
+    out[len++] = 0; // end-of-field
 
     return len;
+}
+
+int
+ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
+                 char *cp, int cnt)
+{
+    return ccnl_ccnb_mkField(out, num, CCN_TT_BLOB,
+                             (unsigned char*) cp, cnt);
 }
 
 int
 ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
                     char *str)
 {
-    return ccnl_ccnb_mkBlob(out, num, tt, str, strlen(str));
+    return ccnl_ccnb_mkField(out, num, CCN_TT_BLOB,
+                             (unsigned char*) str, strlen(str));
 }
 
 int

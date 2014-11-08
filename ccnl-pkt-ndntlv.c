@@ -25,7 +25,6 @@
 #define PKT_NDNTLV_C
 
 #include "ccnl-pkt-ndntlv.h"
-#include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 // packet parsing
@@ -344,8 +343,8 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
-                         int *offset, unsigned char *buf)
+ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
     unsigned char lifetime[2] = { 0x0f, 0xa0 };
@@ -380,11 +379,10 @@ ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 }
 
 int
-ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, 
-                        unsigned char *payload, int paylen, 
-                        int *offset, int *contentpos,
-                        unsigned char *final_block_id, int final_block_id_len, 
-                        unsigned char *buf)
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
+                           unsigned char *payload, int paylen,  int *offset,
+                           int *contentpos, unsigned char *final_block_id,
+                           int final_block_id_len, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };

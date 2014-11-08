@@ -184,14 +184,14 @@ Usage:
     }
 
     if (!argv[optind]) 
-    goto Usage;
+        goto Usage;
 
     if (infname) {
-    f = open(infname, O_RDONLY);
-    if (f < 0)
-        perror("file open:");
+        f = open(infname, O_RDONLY);
+        if (f < 0)
+            perror("file open:");
     } else
-    f = 0;
+        f = 0;
     len = read(f, body, sizeof(body));
     close(f);
 
@@ -199,30 +199,31 @@ Usage:
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
-    len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
-    break;
+        len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
+        break;
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_fillContentWithHdr(name, body, len, 
+        len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
             NULL, // chunknum/lastchunknum
             &offs, 
             NULL, // Int *contentpos
             out);
-    break;
+        break;
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_fillContent(name, body, len, &offs, NULL, NULL, 0, out);
-    break;
+        len = ccnl_ndntlv_prependContent(name, body, len, &offs,
+                                         NULL, NULL, 0, out);
+        break;
     default:
-    break;
+        break;
     }
 
     if (outfname) {
-    f = creat(outfname, 0666);
-      if (f < 0)
-    perror("file open:");
+        f = creat(outfname, 0666);
+        if (f < 0)
+            perror("file open:");
     } else
-      f = 1;
+        f = 1;
     write(f, out + offs, len);
     close(f);
 

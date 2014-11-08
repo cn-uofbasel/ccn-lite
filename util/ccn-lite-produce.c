@@ -223,21 +223,20 @@ Usage:
 
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
-            contentlen = ccnl_ccntlv_fillContentWithHdr(name, 
-                                                        (unsigned char *)chunk_data, chunk_len, 
-                                                        &lastchunknum,
-                                                        &offs, 
-                                                        NULL, // int *contentpos
-                                                        out);
+            contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
+                                (unsigned char *)chunk_data, chunk_len, 
+                                &lastchunknum, &offs, 
+                                NULL, // int *contentpos
+                                out);
             break;
         case CCNL_SUITE_NDNTLV:
             // sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
             name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
-            contentlen = ccnl_ndntlv_fillContent(name, 
-                                                 (unsigned char *) chunk_data, chunk_len, 
-                                                 &offs, NULL,
-                                                 (unsigned char *) final_chunkname_with_number, strlen(final_chunkname_with_number), 
-                                                 out);
+            contentlen = ccnl_ndntlv_prependContent(name, 
+                                (unsigned char *) chunk_data, chunk_len, 
+                                &offs, NULL,
+                                (unsigned char *) final_chunkname_with_number,
+                                strlen(final_chunkname_with_number), out);
             break;
         default:
             DEBUGMSG(99, "produce for suite %i is not implemented\n", suite);

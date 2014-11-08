@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkI.c
  * @b CLI mkInterest, write to Stdout
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,108 +25,6 @@
 #define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
-
-// ----------------------------------------------------------------------
-
-int
-mkHeader(unsigned char *buf, unsigned int num, unsigned int tt)
-{
-    unsigned char tmp[100];
-    int len = 0, i;
-
-    *tmp = 0x80 | ((num & 0x0f) << 3) | tt;
-    len = 1;
-    num = num >> 4;
-
-    while (num > 0) {
-        tmp[len++] = num & 0x7f;
-        num = num >> 7;
-    }
-    for (i = len-1; i >= 0; i--)
-        *buf++ = tmp[i];
-    return len;
-}
-
-int
-ccnb_mkInterest(struct ccnl_prefix_s *name,
-                char *minSuffix, char *maxSuffix,
-                unsigned char *digest, int dlen,
-                unsigned char *publisher, int plen,
-                char *scope,
-                uint32_t *nonce,
-                unsigned char *out)
-{
-  int len = 0, i, k;
-
-    len = mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-
-    len += mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    for (i = 0; i < name->compcnt; i++) {
-        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-        k = name->complen[i];
-        len += mkHeader(out+len, k, CCN_TT_BLOB);
-        memcpy(out+len, name->comp[i], k);
-        len += k;
-        out[len++] = 0; // end-of-component
-    }
-    if (digest) {
-        len += mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-        len += mkHeader(out+len, dlen, CCN_TT_BLOB);
-        memcpy(out+len, digest, dlen);
-        len += dlen;
-        out[len++] = 0; // end-of-component
-        if (!maxSuffix)
-            maxSuffix = "0";
-    }
-    out[len++] = 0; // end-of-name
-
-    if (minSuffix) {
-        k = strlen(minSuffix);
-        len += mkHeader(out+len, CCN_DTAG_MINSUFFCOMP, CCN_TT_DTAG);
-        len += mkHeader(out+len, k, CCN_TT_UDATA);
-        memcpy(out + len, minSuffix, k);
-        len += k;
-        out[len++] = 0; // end-of-minsuffcomp
-    }
-
-    if (maxSuffix) {
-        k = strlen(maxSuffix);
-        len += mkHeader(out+len, CCN_DTAG_MAXSUFFCOMP, CCN_TT_DTAG);
-        len += mkHeader(out+len, k, CCN_TT_UDATA);
-        memcpy(out + len, maxSuffix, k);
-        len += k;
-        out[len++] = 0; // end-of-maxsuffcomp
-    }
-
-    if (publisher) {
-        len += mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-        len += mkHeader(out+len, plen, CCN_TT_BLOB);
-        memcpy(out+len, publisher, plen);
-        len += plen;
-        out[len++] = 0; // end-of-component
-    }
-
-    if (scope) {
-        k = strlen(scope);
-        len += mkHeader(out+len, CCN_DTAG_SCOPE, CCN_TT_DTAG);
-        len += mkHeader(out+len, k, CCN_TT_UDATA);
-        memcpy(out + len, (unsigned char*)scope, k);
-        len += k;
-        out[len++] = 0; // end-of-maxsuffcomp
-    }
-
-    if (nonce) {
-        len += mkHeader(out+len, CCN_DTAG_NONCE, CCN_TT_DTAG);
-        len += mkHeader(out+len, sizeof(*nonce), CCN_TT_BLOB);
-        memcpy(out+len, (void*)nonce, sizeof(*nonce));
-        len += sizeof(*nonce);
-        out[len++] = 0; // end-of-nonce
-    }
-
-    out[len++] = 0; // end-of-interest
-
-    return len;
-}
 
 // ----------------------------------------------------------------------
 
@@ -218,11 +116,11 @@ Usage:
     }
 
     switch (packettype) {
-   	case CCNL_SUITE_CCNB:
-    	len = ccnb_mkInterest(prefix, minSuffix, maxSuffix,
-			      (unsigned char*) digest, dlen,
-			      (unsigned char*) publisher, plen,
-			      scope, &nonce, out);
+    case CCNL_SUITE_CCNB:
+    	len = ccnl_ccnb_mkInterest(prefix, minSuffix, maxSuffix,
+                                   (unsigned char*) digest, dlen,
+                                   (unsigned char*) publisher, plen,
+                                   scope, &nonce, out);
 	break;
     case CCNL_SUITE_CCNTLV:
         len = ccntlv_mkInterest(prefix, 
