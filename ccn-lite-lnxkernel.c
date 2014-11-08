@@ -26,9 +26,9 @@
 
 #define USE_DEBUG
 // #define USE_DEBUG_MALLOC
-#define USE_FRAG
+// #define USE_FRAG
 #define USE_ETHERNET
-#define USE_MGMT
+// #define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
@@ -36,8 +36,7 @@
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
-#define USE_SIGNATURES
-
+// #define USE_SIGNATURES
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"

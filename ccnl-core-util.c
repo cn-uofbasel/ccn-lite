@@ -380,6 +380,10 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
     return buf;
 }
 
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PACKET_CRAFTING
+
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 {
@@ -462,6 +466,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
     return buf;
 }
+
+#endif // NEEDS_PACKET_CRAFTING
 
 #endif // CCNL_LINUXKERNEL
 
