@@ -734,7 +734,7 @@ main(int argc, char **argv)
     DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
-    DEBUGMSG(1, "  using suite %d\n", theSuite);
+    DEBUGMSG(1, "using suite %s\n", ccnl_suite2str(theSuite));
 
     ccnl_simu_init(max_cache_entries);
 
