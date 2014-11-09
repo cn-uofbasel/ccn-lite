@@ -1,48 +1,44 @@
-# ccn-lite/README.txt
+# README-ccn-lite.md5
 
-# history:
-# 2012-10-12 created (christian.tschudin@unibas.ch)
-# 2013-07-27 ccn-lite released on Github
-# 2014-11-02 this version
+http://www.ccn-lite.net
 
+https://github.com/cn-uofbasel/ccn-lite
 
-Abstract:
+This is outdated (Nov 2014), needs updateing.
 
-    CCN-lite is a reduced and lightweight, yet
-    functionally interoperable, implementation
-    of the CCNx protocol (both the classic ccnb
-    version as well as v1.0), the Named-Data-
-    Networking protocol (as of Nov 2013) and
-    the novel Named-Function approach.
+[test link to tutorial](tutorial/tutorial.md)
 
-    CCN-lite runs in UNIX user space, as well
-    (most of it) as a Linux kernel module,
-    making it suitable for resource constraint
-    devices like the Raspberry Pi. The same,
-    unchanged, code runs in the OMNet simulator.
+### Abstract
 
-    CCN-lite is meant as a code base for class
-    room work, experimental extensions and
-    simulation experiments. The ISC license makes
-    it an excellent starting point for commercial
-    products.
+CCN-lite is a reduced and lightweight --yet functionally
+interoperable-- implementation of the CCNx protocol. It covers:
+-  the classic CCNx ccnb version (Nov 2013)
+-  CCNx1.0 (Sep 2014)
+-  the Named-Data-Networking protocol (as of Nov 2013), and
+-  the novel Named-Function-networking approach.
 
-    Web page: http://www.ccn-lite.net
-    Github:   https://github.com/cn-uofbasel/ccn-lite
+CCN-lite runs in UNIX user space, as well (most of it) as a Linux
+kernel module, making it suitable for resource constraint devices like
+the Raspberry Pi, sensor nodes and the Internet of Things (IoT). The
+same, unchanged, code runs in the OMNeT simulator.
+
+CCN-lite is meant as a code base for class room work, experimental
+extensions and simulation experiments. The ISC license makes it an
+excellent starting point for commercial products.
 
 
-Table of Contents:
+### Table of Contents
+1. [Rationale for CCN-lite, what you get (and what is missing)](#rationale)
+2. [Extensions to CCNx](#extensions)
+3. [CCN-lite supported platforms and how to compile](#platforms)
+4. [List of files](#lof)
+5. [How to start](#start)
+6. [Useful links](#links)
 
-    1) Rationale for CCN-lite, what you get (and what is missing)
-    2) Extensions to CCNx
-    3) CCN-lite supported platforms and how to compile
-    4) List of files
-    5) How to start
-    6) Useful links
+- - -
 
----
-
-1) Rationale for CCN-lite, what you get (and what is missing)
+<a name="rationale"></a>
+## 1. Rationale for CCN-lite, what you get (and what is missing)
 
 The original motivation for creating CCN-lite was that PARC's CCNx
 router software has grown huge. CCN-lite provides a lean alternative
@@ -75,9 +71,11 @@ fully fledged CCNx daemons so that one can successfully run
 applications such as PARC's SYNC protocol over a heterogeneous
 CCNx network:
 
+```
   sync (ccnr)                                             sync (ccnr)
      |                                                       |
    ccnd <--> ccn-lite-relay <-- eth --> ccn-lite-relay <--> ccnd
+```
 
 See the script test/script/interop-SYNCoEth-a.sh how this is done.
 
@@ -109,9 +107,11 @@ So what you get with CCN-lite is:
 We are running CCN-lite on PCs, but also on the Raspberry Pi, both the
 user space version as well as the kernel module.
 
----
 
-2) Extensions to CCNx
+- - -
+
+<a name="extensions"></a>
+## 2. Extensions to CCNx
 
   In two selected areas we have started our own "experiments",
   resulting in contributions that are now part of CCN-lite:
@@ -135,9 +135,11 @@ user space version as well as the kernel module.
     USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
     USE_CHEMFLOW          // experimental scheduler, src not included
 
----
 
-3) CCN-lite supported platforms and how to compile
+- - -
+
+<a name="platforms"></a>
+## 3. CCN-lite supported platforms and how to compile
 
   The CCN-lite code currently supports three platforms, defined in
   corresponding main source files. In these main files, a symbol is
@@ -180,11 +182,14 @@ user space version as well as the kernel module.
     libssl-dev
   (load them with "sudo apt-get install ...")
 
----
 
-4) List of Files
+- - -
+
+<a name="lof"></a>
+## 4. List of Files
 
 CCN-lite main logic and extensions:
+```
    ccnl-core.c
    ccnl-core.h
    ccnl-ext-debug.c
@@ -195,20 +200,26 @@ CCN-lite main logic and extensions:
    ccnl-ext.h
    ccnl.h
    ccnx.h
+```
 
 CCN-lite portability:
+```
    ccnl-includes.h
    ccnl-platform.c
+```
 
 CCN-lite main files for binaries: (= "platforms")
+```
    ccn-lite-relay.c              CCN-lite user space
    ccn-lite-lnxkernel.c          CCN-lite Linux kernel module
 
    ccn-lite-minimalrelay.c       minimal user space prog for CCNx over UDP
    ccn-lite-simu.c               CCN-lite standalone simulation (as a unit test)
    ccnl-simu-client.c            used in the unit test above
+```
 
 Utilities:
+```
    util/ccn-lite-ctrl.c          cmd line program running the CCNx mgmt
                                  protocol (over UNIX sockets). Used for
                                  configuring a running relay either running
@@ -222,35 +233,46 @@ Utilities:
    util/ccn-lite-mkC.c           simple content composer (to stdout, no crypto)
    util/ccn-lite-mkF.c           turns a ccnb object info fragments (files)
    util/ccn-lite-deF.c           reassemble fragment files
+```
 
 OMNeT:
+```
    ccn-lite-omnet/               directory with OMNeT specific code
    ccn-lite-omnet.c              wrapper for CCN-lite inclusion into OMNet++
+```
 
 Documentation:
+```
    ccnl-datastruct.pdf           diagram of CCN-lite's internal data structures
    ccnl-datastruct.dot           source file of above
    ccn-lite-logo-712x184.jpg     logo
    rts-cts-20120802.txt          MSC of the scheduler interactions
    Nice2012-poster.pdf           poster from the CCNxCon meeting in Nice, 2012
+```
 
 Test Scripts
+```
    test/scripts/*.sh             consult these files for learning how to use
                                  CCN-lite, the mgmt protocol, and how to test
                                  interopability with PARC's ccnd
+```
 
 Misc:
+```
    BSDmakefile
    Makefile                      
    README.txt                    this file
    README-OMNeT.txt              OMNeT-specific instructions
+```
 
----
+- - -
 
-5) How to start
+<a name="start"></a>
+## 5. How to start
 
-5.a) A simple hello-world config (user space relay)
+### 5.a) A simple hello-world config (user space relay)
 
+```
   % cd the_ccn-lite_directory
 
   #-- start a CCNx relay in the background, preload the content store:
@@ -265,10 +287,12 @@ Misc:
   #-- retrieve content, parse the fields
   % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt \
     | ./util/ccn-lite-ccnb2hex
+```
 
 
-5.b) Advanced configurations via the mgmt protocol
+### 5.b) Advanced configurations via the mgmt protocol
 
+```
   #-- start the relay with sudo (if you want to access eth devices)
   % sudo ./ccn-lite-relay
 
@@ -291,10 +315,12 @@ Misc:
 
   #-- have a look at the internal state, repeatedly during the previous steps
   % firefox 127.0.0.1:9695
+```
 
 
-5.c) Starting (and controlling) the Linux kernel module
+### 5.c) Starting (and controlling) the Linux kernel module
 
+```
   #-- insert the module, enabeling eth0, debug msgs
   % sudo insmod ./ccn-lite-lnxkernel.ko e=eth0 v=99
 
@@ -306,18 +332,32 @@ Misc:
 
   #-- remove the module
   % sudo rmmod ccn-lite-lnxkernel
+```
 
----
+- - -
 
-6) Links:
+<a name="links"></a>
+## 6. Links:
 
-   Source code repository:
-   https://github.com/cn-uofbasel/ccn-lite
+- Source code repository:
+  https://github.com/cn-uofbasel/ccn-lite
 
-   CCN-lite web site:
-   http://www.ccn-lite.net/
+- CCN-lite web site:
+  http://www.ccn-lite.net/
 
-   CCNx site: (including access to PARC's reference implementation)
-   http://www.ccnx.org/
+- CCNx site:
+  http://www.ccnx.org/
 
-# eof
+- NDN site:
+  http://named-data.net/
+
+- NFN site:
+  http://named-function.net/
+
+- - -
+history:
+
+* 2012-10-12 created (christian.tschudin@unibas.ch)
+* 2013-07-27 ccn-lite released on Github
+* 2014-11-02 this version
+- - -
