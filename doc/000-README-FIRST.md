@@ -1,8 +1,8 @@
 ## CCN-lite documents
 
 ### General READMEs
-* [_README-FIRST.md](_README-FIRST.md)
-* [README-ccn-lite.md](README-ccn-lite.md)
+* [000-README-FIRST.md](000-README-FIRST.md) (this file)
+* [README-ccn-lite.md](README-ccn-lite.md) (project description, first steps)
 
 ### Technical READMEs
 * [README-chunking.md](README-chunking.md)
@@ -10,7 +10,7 @@
 * [README-OMNeT.txt](README-OMNeT.txt)
 
 ### Tutorial
-* [Link](tutorial/tutorial.md)
+* [How to connect to NDN, run a named-function demo](tutorial/tutorial.md)
 
 ### Technical (internal) docs
 * [ccnl_crypto_system.txt](ccnl_crypto_system.txt)
