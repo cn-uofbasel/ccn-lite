@@ -99,15 +99,9 @@ ccnl_ccntlv_extract(int hdrlen,
     if (keyid)
         *keyid = NULL;
 
-    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
     if (!p)
         return NULL;
-    p->suite = CCNL_SUITE_CCNTLV;
-    p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
-                                           sizeof(unsigned char**));
-    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen)
-        goto Bail;
 
     // We ignore the TL types of the message for now
     // content and interests are filled in both cases (and only one exists)
@@ -129,16 +123,19 @@ ccnl_ccntlv_extract(int hdrlen,
                 if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
 
-                if (chunknum && typ == CCNX_TLV_N_Chunk &&
-                    ccnl_ccnltv_extractNetworkVarInt(cp, len2, chunknum) < 0) {
-                    DEBUGMSG(99, "Error extracting NetworkVarInt for Chunk\n");
-                    goto Bail;
-                } 
-                if (p->compcnt < CCNL_MAX_NAME_COMP) {
-                    p->comp[p->compcnt] = cp2;
-                    p->complen[p->compcnt] = cp - cp2 + len3;
-                    p->compcnt++;
-                }  // else out of name component memory: skip
+                if (typ == CCNX_TLV_N_Chunk) {
+                    if (chunknum && ccnl_ccnltv_extractNetworkVarInt(cp,
+                                                         len2, chunknum) < 0) {
+                        DEBUGMSG(99, "Error in NetworkVarInt for chunk\n");
+                        goto Bail;
+                    }
+                } else if (typ == CCNX_TLV_N_NameSegment) {
+                    if (p->compcnt < CCNL_MAX_NAME_COMP) {
+                        p->comp[p->compcnt] = cp2;
+                        p->complen[p->compcnt] = cp - cp2 + len3;
+                        p->compcnt++;
+                    } // else out of name component memory: skip
+                }
                 cp += len3;
                 len2 -= len3;
             }
@@ -298,22 +295,20 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     int oldoffset = *offset, cnt;
 
     if (name->chunknum >= 0 &&
-        ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk, name->chunknum, offset, buf) < 0)
+        ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
+                                         name->chunknum, offset, buf) < 0)
             return -1;
 
     // optional: (not used)
     // CCNX_TLV_N_MetaData
 
 #ifdef USE_NFN
-    if (name->nfnflags & CCNL_PREFIX_NFN) {
-        if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment,
-                                (unsigned char*) "NFN", 3, offset, buf) < 0)
+    if (name->nfnflags & CCNL_PREFIX_NFN)
+        if (ccnl_pkt_prependComponent(name->suite, "NFN", offset, buf) < 0)
             return -1;
-        if (name->nfnflags & CCNL_PREFIX_THUNK)
-            if (ccnl_ccntlv_prependBlob(CCNX_TLV_N_NameSegment,
-                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
-                return -1;
-    }
+    if (name->nfnflags & CCNL_PREFIX_THUNK)
+        if (ccnl_pkt_prependComponent(name->suite, "THUNK", offset, buf) < 0)
+            return -1;
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
         if (*offset < name->complen[cnt])
@@ -330,8 +325,8 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 
 // write Interest payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
-                         int *offset, unsigned char *buf)
+ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
+                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
@@ -346,14 +341,14 @@ ccnl_ccntlv_fillInterest(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name, 
-                                     int *offset, unsigned char *buf)
+ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name, 
+                                        int *offset, unsigned char *buf)
 {
     int len, oldoffset;
     unsigned char hoplimit = 255; // setting hoplimit to max valid value
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_fillInterest(name, offset, buf);
+    len = ccnl_ccntlv_prependInterest(name, offset, buf);
     if (len >= ((1 << 16)-8))
         return -1;
     if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
@@ -365,10 +360,10 @@ ccnl_ccntlv_fillChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_fillInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
-    return ccnl_ccntlv_fillChunkInterestWithHdr(name, offset, buf);
+    return ccnl_ccntlv_prependChunkInterestWithHdr(name, offset, buf);
 }
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used

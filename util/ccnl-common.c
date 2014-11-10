@@ -81,6 +81,9 @@ ccnl_buf_new(void *data, int len)
     return b;
 }
 
+struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
+int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
+
 #include "../pkt-ccnb.c"
 #include "../pkt-ccntlv.c"
 #include "../pkt-ndntlv.c"
@@ -139,7 +142,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
      int len, offset;
 
      offset = outlen;
-     len = ccnl_ccntlv_fillChunkInterestWithHdr(name, &offset, out);
+     len = ccnl_ccntlv_prependChunkInterestWithHdr(name, &offset, out);
      if (len > 0)
          memmove(out, out + offset, len);
 

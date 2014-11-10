@@ -1,6 +1,6 @@
 /*
  * @f ccnl-util.c
- * @b CCN lite, common utility procedures for applications (not the relays)
+ * @b CCN lite, common utility procedures (used by utils as well as relays)
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
@@ -20,9 +20,33 @@
  * 2014-06-18 created
  */
 
+struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
+
 #include "pkt-ccnb.c"
 #include "pkt-ccntlv.c"
 #include "pkt-ndntlv.c"
+
+
+struct ccnl_prefix_s*
+ccnl_prefix_new(int suite, int cnt)
+{
+    struct ccnl_prefix_s *p;
+
+    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    if (!p)
+        return NULL;
+    p->comp = (unsigned char**) ccnl_malloc(cnt * sizeof(unsigned char*));
+    p->complen = (int*) ccnl_malloc(cnt * sizeof(int));
+    if (!p->comp || !p->complen) {
+        free_prefix(p);
+        return NULL;
+    }
+    p->compcnt = 0;
+    p->suite = suite;
+    p->chunknum = -1;
+
+    return p;
+}
 
 int
 hex2int(char c)
@@ -49,6 +73,61 @@ unescape_component(char *comp) // inplace, returns len after shrinking
         *out++ = hex2int(in[1])*16 + hex2int(in[2]);
         in += 3;
     }
+    return len;
+}
+
+int
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
+{
+    int len = 0;
+
+//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
+
+    switch (suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+    {
+        unsigned short *sp = (unsigned short*) dst;
+        *sp++ = htons(CCNX_TLV_N_NameSegment);
+        len = strlen(src);
+        *sp++ = htons(len);
+        memcpy(sp, src, len);
+        len += 2*sizeof(unsigned short);
+        break;
+    }
+#endif
+    default:
+        len = strlen(src);
+        memcpy(dst, src, len);
+        break;
+    }
+    return len;
+}
+
+int
+ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
+{
+    int len = strlen(src);
+
+//    DEBUGMSG(99, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+
+    if (*offset < len)
+        return -1;
+    memcpy(buf + *offset - len, src, len);
+    *offset -= len;
+
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
+        if (*offset < 4)
+            return -1;
+        *sp-- = htons(len);
+        *sp = htons(CCNX_TLV_N_NameSegment);
+        len += 2*sizeof(unsigned short);
+        *offset -= 2*sizeof(unsigned short);
+    }
+#endif
+
     return len;
 }
 
@@ -85,37 +164,30 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     char *compvect[CCNL_MAX_NAME_COMP];
     int cnt, i, len = 0;
 
-    p =  ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    if (!p)
-        return NULL;
+    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%d, uri=%s, nfn=%s)\n",
+             suite, uri, nfnexpr);
 
     if (strlen(uri))
         cnt = ccnl_URItoComponents(compvect, uri);
     else
         cnt = 0;
-    p->compcnt = cnt;
-    p->suite = suite;
+    if (nfnexpr && *nfnexpr)
+        cnt += 1;
 
-    if (nfnexpr && strlen(nfnexpr) > 0) {
-        p->compcnt += 1;
-        len = strlen(nfnexpr);
-    }
-
-    p->comp = ccnl_malloc(p->compcnt * sizeof(char*));
-    p->complen = ccnl_malloc(p->compcnt * sizeof(int));
-    if (!p->comp || !p->complen) {
-        free_prefix(p);
+    p = ccnl_prefix_new(suite, cnt);
+    if (!p)
         return NULL;
-    }
-    for (i = 0; i < cnt; i++) {
-        p->complen[i] = strlen(compvect[i]);
-#ifdef USE_SUITE_CCNTLV
-        if (suite == CCNL_SUITE_CCNTLV)
-            len += p->complen[i] + 4; // add TL size
+
+    for (i = 0, len = 0; i < cnt; i++) {
+        if (i == (cnt-1) && nfnexpr && *nfnexpr)
+            len += strlen(nfnexpr);
         else
-#endif
-        len += p->complen[i];
+            len += strlen(compvect[i]);
     }
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        len += cnt * 4; // add TL size
+#endif
     
     p->bytes = ccnl_malloc(len);
     if (!p->bytes) {
@@ -123,66 +195,21 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
         return NULL;
     }
     for (i = 0, len = 0; i < cnt; i++) {
+        char *cp = (i == (cnt-1) && nfnexpr && *nfnexpr) ?
+                                              nfnexpr : (char*) compvect[i];
         p->comp[i] = p->bytes + len;
-#ifdef USE_SUITE_CCNTLV
-        if (suite == CCNL_SUITE_CCNTLV) {
-            int offset = 4;
-            memcpy(p->comp[i] + offset, compvect[i], p->complen[i]);
-            ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
-                                  &offset, p->comp[i]);
-            p->complen[i] += 4;
-        } else
-#endif
-            memcpy(p->comp[i], compvect[i], p->complen[i]);
+        p->complen[i] = ccnl_pkt_mkComponent(suite, p->comp[i], cp);
         len += p->complen[i];
     }
 
-    if (nfnexpr) {
-        if (strlen(nfnexpr) > 0) {
-            p->comp[i] = p->bytes + len;
-            p->complen[i] = strlen(nfnexpr);
-            memcpy(p->comp[i], nfnexpr, p->complen[i]);
-            len += p->complen[i];
-        }
+    p->compcnt = cnt;
 #ifdef USE_NFN
+    if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
-    }
-
-    if(chunknum) {
-        p->chunknum = *chunknum;
-    } else {
-        p->chunknum = -1;
-    }
+    p->chunknum = chunknum ? *chunknum : -1;
 
     return p;
-}
-
-int
-ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
-{
-    int len = 0;
-
-//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        len = strlen(src);
-        *(unsigned short*)dst = htons(CCNX_TLV_N_NameSegment);
-        dst += sizeof(unsigned short);
-        *(unsigned short*)dst = len;
-        dst += sizeof(unsigned short);
-        memcpy(dst, src, len);
-        len += 2*sizeof(unsigned short);
-        break;
-#endif
-    default:
-        len = strlen(src);
-        memcpy(dst, src, len);
-        break;
-    }
-    return len;
 }
 
 struct ccnl_prefix_s*
@@ -191,19 +218,23 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     int i = 0, len;
     struct ccnl_prefix_s *p;
 
-    p = ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    p = ccnl_prefix_new(prefix->suite, prefix->compcnt);
+    if (!p)
+        return p;
+
     p->compcnt = prefix->compcnt;
-    p->suite = prefix->suite;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
 #endif
-
-    p->complen = ccnl_malloc(prefix->compcnt * sizeof(int));
-    p->comp = ccnl_malloc(prefix->compcnt * sizeof(char*));
+    p->chunknum = prefix->chunknum;
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
     p->bytes = ccnl_malloc(len);
+    if (!p->bytes) {
+        free_prefix(p);
+        return NULL;
+    }
     
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
         p->complen[i] = prefix->complen[i];
@@ -334,7 +365,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 
 #ifdef USE_NFN
         if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-            !strncmp("call", (char*)pr->comp[i], 4)) {
+            !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
             len += sprintf(buf + len, "%.*s",
                            pr->complen[i]-skip, pr->comp[i]+skip);
         } else
@@ -523,7 +554,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_fillInterestWithHdr(name, &offs, tmp);
+        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
