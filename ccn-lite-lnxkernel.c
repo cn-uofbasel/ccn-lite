@@ -41,6 +41,9 @@
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
+#include "ccnl-ext.h"
+
+#include "ccnl-os-time.c"
 
 // ----------------------------------------------------------------------
 
@@ -223,9 +226,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 }
 
 // ----------------------------------------------------------------------
-
-#include "ccnl-os-time.c"
-#include "ccnl-ext.h"
 
 #include "ccnl-core.c"
 

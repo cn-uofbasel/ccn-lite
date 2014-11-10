@@ -29,6 +29,7 @@
 // ccnl-core-util.c
 char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 char* ccnl_suite2str(int suite);
+int ccnl_str2suite(char *str);
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)

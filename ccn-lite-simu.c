@@ -39,11 +39,11 @@
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
+#include "ccnl-ext.h"
 
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 #include "ccnl-ext-debug.c"
-#include "ccnl-ext.h"
 #include "ccnl-os-time.c"
 
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
