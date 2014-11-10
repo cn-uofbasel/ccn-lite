@@ -28,16 +28,49 @@
 #include "ccnl-ext-debug.h"
 #ifdef USE_DEBUG
 
+#define FATAL   1001 // FATAL
+#define ERROR   1002 // ERROR
+#define WARNING 1003 // WARNING 
+#define INFO    1004 // INFO 
+#define DEBUG   1005 // DEBUG 
+#define TRACE   1006 // TRACE 
+#define VERBOSE 1007 // VERBOSE 
+
+char
+ccnl_debugLevelToChar(int level) {
+    switch(level) {
+        case FATAL:     return 'F';
+        case ERROR:     return 'E';
+        case WARNING:   return 'W';
+        case INFO:      return 'I';
+        case DEBUG:     return 'D';
+        case TRACE:     return 'T';
+        case VERBOSE:   return 'V';
+        default:        return '?';
+    }
+}
+
 #define DEBUGSTMT(LVL, ...) do { \
         if ((LVL)>debug_level) break; \
         __VA_ARGS__; \
 } while (0)
 
+/*
+this would allow to print trace for every debug msg, probalby only works for c99...
+*/
+
 #ifndef CCNL_LINUXKERNEL
-#  define DEBUGMSG(LVL, ...) do {       \
-        if ((LVL)>debug_level) break;   \
-        fprintf(stderr, "%s: ", timestamp());   \
-        fprintf(stderr, __VA_ARGS__);   \
+#  define DEBUGMSG(LVL, ...) do {               \
+        if ((LVL)>debug_level) break;           \
+        ccnl_debugLevelToChar(LVL);             \
+        fprintf(stderr, "[%c] %s",             \
+            ccnl_debugLevelToChar(LVL),         \
+            timestamp());                       \
+        if (debug_level >= TRACE) {                   \
+            fprintf(stderr, " <%s>", __func__);  \
+        }                                       \
+        fprintf(stderr, ": ");                  \
+        fprintf(stderr, __VA_ARGS__);           \
     } while (0)
 
 #else // CCNL_LINUXKERNEL
