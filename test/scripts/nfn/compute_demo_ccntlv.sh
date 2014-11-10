@@ -5,7 +5,7 @@ killall ccn-nfn-relay
 killall python
 
 $CCNL_HOME/ccn-nfn-relay -v 999 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
-$CCNL_HOME/ccn-nfn-relay -v 999 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
+$CCNL_HOME/ccn-nfn-relay -s ccnx2014 -d $CCNL_HOME/test/ccntlv/nfn/content -v 999 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
 
 sleep 3
 
@@ -19,11 +19,11 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ccnx2014 |
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ccnb/nfn/computation_content.ccnb | $CCNL_HOME/util/ccn-lite-ccnb2xml
+#$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ccnb/nfn/computation_content.ccntlv | $CCNL_HOME/util/ccn-lite-ccnb2xml
 
 sleep 3
 
-python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
+python $CCNL_HOME/test/scripts/nfn/dummyanswer_ccntlv.py & > /dev/null
 
 sleep 3
 
