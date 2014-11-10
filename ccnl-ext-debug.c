@@ -84,8 +84,6 @@ ccnl_debugLevelToChar(int level)
         printk(__VA_ARGS__);            \
     } while (0)
 #  define fprintf(fd, ...)      printk(__VA_ARGS__)
-#  undef _TRACE
-#  define _TRACE(F,P)  do {} while (0)
 #endif // CCNL_LINUXKERNEL
 
 
