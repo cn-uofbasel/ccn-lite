@@ -680,21 +680,21 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
         len += p->complen[i];
     }
 
-/*#ifdef USE_SUITE_CCNTLV
+#ifdef USE_SUITE_CCNTLV
     if (p->suite == CCNL_SUITE_CCNTLV)
         offset = 4;
-#endif*/
+#endif
     p->comp[i] = (unsigned char*)(bytes + len);
     p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
                                                 config->fox_state,
                                                 parameter_num);
-/*#ifdef USE_SUITE_CCNTLV
+#ifdef USE_SUITE_CCNTLV
     if (p->suite == CCNL_SUITE_CCNTLV) {
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
                               &offset, (unsigned char*) bytes + len);
         p->complen[i] += 4;
     }
-#endif*/
+#endif
     len += p->complen[i];
 
     p->bytes = ccnl_realloc(bytes, len);
