@@ -8,8 +8,9 @@ implementation of Name Based Networking. In particular, it supports
 - the Named-Function Networking project, http://named-function.net/
 
 To learn more about CCN-lite,
-* visit the [tutorial](doc/tutorial/tutorial.md) page, or
-* read the other [documents in the /doc directory](doc/000-README-FIRST.md).
+* visit the [tutorial](doc/tutorial/tutorial.md) page,
+* read the other [documents in the /doc directory](doc/000-README-FIRST.md),
+* and read the source code on [GitHub](https://github.com/cn-uofbasel/ccn-lite/).
 
 CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
