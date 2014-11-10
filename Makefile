@@ -1,14 +1,12 @@
 # ccn-lite Makefile for Linux and OS X
 
-# All variables can either be exported or set with: make <target> <VAR>=<val> 
-# If no specific value is specified, it means the variable should be set to 1
-# For Linux Kernel module export USE_KERNEL=1
+# Compile time options: variables can either be exported at the
+# shell level (% export USE_NFN=1) or be given as parameter to
+# make (% make <target> <VAR>=<val>)
 
-# If NFN targets should be compiled set USE_NFN 
-# For (experimental) nack set USE_NACK 
-
-# Example: make clean all USE_NFN=1
-
+#  for compiling the Linux Kernel module, export          USE_KRNL=1
+#  for named-function support (NFN), export               USE_NFN=1
+#  for NACK support in NFN, export                        USE_NACK=1
 
 
 # OS name: Linux or Darwing (OSX) supported
