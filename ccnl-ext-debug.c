@@ -33,11 +33,12 @@
 #define WARNING 1003 // WARNING 
 #define INFO    1004 // INFO 
 #define DEBUG   1005 // DEBUG 
-// #define TRACE   1006 // TRACE 
+#define TRACE   1006 // TRACE 
 #define VERBOSE 1007 // VERBOSE 
 
-#define _TRACE(F,P) fprintf(stderr, "[T] %s%c %s()  // %s:%d\n",        \
-                            timestamp(), (P), (F), __FILE__, __LINE__)
+#define _TRACE(F,P) if (debug_level >= TRACE)                             \
+                      fprintf(stderr, "[T] %s%c %s()  // %s:%d\n",        \
+                              timestamp(), (P), (F), __FILE__, __LINE__)
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  define TRACEIN(F)    do { _TRACE(__func__, '>'); } while (0)
