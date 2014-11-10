@@ -211,7 +211,7 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind], packettype, NULL, NULL);
+    prefix = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1], NULL);
     if (!prefix) {
         fprintf(stderr, "no URI found, aborting\n");
         return -1;
