@@ -4,8 +4,8 @@ killall ccn-lite-relay
 killall ccn-nfn-relay
 killall python
 
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
+$CCNL_HOME/ccn-nfn-relay -v 999 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
+$CCNL_HOME/ccn-nfn-relay -v 999 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
 
 sleep 3
 
