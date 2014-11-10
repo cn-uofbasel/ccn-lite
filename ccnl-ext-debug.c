@@ -57,7 +57,7 @@ ccnl_debugLevelToChar(int level)
         case WARNING:   return 'W';
         case INFO:      return 'I';
         case DEBUG:     return 'D';
-//        case TRACE:     return 'T';
+        case TRACE:     return 'T';
         case VERBOSE:   return 'V';
         default:        return '?';
     }
