@@ -74,7 +74,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         return;
     }
 
-    /*//update original interest prefix to stay longer...reenable if propagate=0 do not protect interests
+    //update original interest prefix to stay longer...reenable if propagate=0 do not protect interests
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
         if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
@@ -83,7 +83,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             original_interest->from->last_used = CCNL_NOW();
             break;
         }
-    }*/
+    }
     if(config->thunk && CCNL_NOW() > config->endtime){
         DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
@@ -168,7 +168,18 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
     if (ccnl_nfnprefix_isTHUNK(prefix))
         thunk_request = 1;
-/*
+
+
+    // Checks first if the interest has a routing hint and then searches for it locally.
+    // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
+    // Without this mechanism, there will be situations where several nodes "overtake" a computation
+    // applying the same strategy and, potentially, all executing it locally (after trying all arguments).
+    // TODO: this is not an elegant solution and should be improved on, because the clients cannot send a
+    // computation with a routing hint on which the network applies a strategy if the routable name
+    // does not exist (because each node will just forward it without ever taking it into an abstract machine).
+    // encoding the routing hint more explicitely as well as additonal information (e.g. already tried names) 
+    // could solve the problem. More generally speaking, additional state describing the exact situation will be required.
+    
     if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
@@ -182,7 +193,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         free_prefix(copy);
         start_locally = 1;
     }
-*/
    
     //put packet together
 #ifdef USE_SUITE_CCNTLV
