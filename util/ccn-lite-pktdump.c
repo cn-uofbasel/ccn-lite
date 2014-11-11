@@ -341,7 +341,7 @@ ccntlv_must_recurse(char ctx, char typ)
 // ----------------------------------------------------------------------
 
 static char*
-ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type)
+ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
 {
     char *cn = "globalCtx", *tn = NULL;
     static char tmp[50];
@@ -412,7 +412,10 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type)
         }
     }
     if (tn) {
-        sprintf(tmp, "%s\\%s", tn, cn);
+        if(!rawxml)
+            sprintf(tmp, "%s\\%s", tn, cn);
+        else
+            sprintf(tmp, "%s", tn);
     } else if (cn) {
         sprintf(tmp, "type=0x%04x\\%s", type, cn);
     } else {
@@ -429,7 +432,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     unsigned int vallen, typ;
     int i;
     unsigned char ctx2, *cp;
-    char *n, tmp[100];
+    char *n, n_old[100], tmp[100];
 
     while (*len > 0) {
         cp = *buf;
@@ -444,30 +447,54 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
           exit(-1);
         }
 
-        n = ccnl_ccntlv_type2name(ctx, typ);
+        n = ccnl_ccntlv_type2name(ctx, typ, rawxml);
         if (!n) {
             sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
-        fprintf(out, "%04zx  ", cp - base);
+
+        if(!rawxml)
+            fprintf(out, "%04zx  ", cp - base);
         for (i = 0; i < lev; i++) {
-            fprintf(out, "  ");
+                fprintf(out, "  ");
         }
         for (; cp < *buf; cp++) {
-            fprintf(out, "%02x ", *cp);
+            if(!rawxml)
+                fprintf(out, "%02x ", *cp);
         }
-        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+        if(!rawxml)
+            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
 
+        // if(rawxml)
+        //     fprintf(out, "</%s>\n", n);
         ctx2 = ccntlv_must_recurse(ctx, typ);
         if (ctx2) {
+            if (rawxml)
+                fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
+            strcpy(n_old, n);
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
+
+            if(rawxml) {
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n_old);
+            }
         } else {
-            hexdump(lev, base, *buf, vallen, rawxml, out);
+            if (rawxml && vallen > 0) {
+                fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n", n, vallen);
+                base64dump(lev, base, *buf, vallen, rawxml, out);
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n);
+            } else
+                hexdump(lev, base, *buf, vallen, rawxml, out);
             *buf += vallen;
             *len -= vallen;
         }
@@ -489,20 +516,29 @@ ccntlv_201409(unsigned char *data, int len, int rawxml, FILE* out)
     hdrlen = ntohs(hp->hdrlen);
     payloadlen = ntohs(hp->payloadlen);
 
-    fprintf(out, "%04zx  hdr.vers=%d\n",
-       (unsigned char*) &(hp->version) - data, hp->version);
+    if (!rawxml)
+        fprintf(out, "%04zx  hdr.vers=%d\n",
+            (unsigned char*) &(hp->version) - data, hp->version);
     if (hp->packettype == CCNX_PT_Interest)
-        mp = "Interest\\toplevelCtx";
+        if (!rawxml)
+            mp = "Interest\\toplevelCtx";
+        else
+            mp = "Interest";
     else if (hp->packettype == CCNX_PT_ContentObject)
-        mp = "Object\\toplevelCtx";
+        if (!rawxml)
+            mp = "Object\\toplevelCtx";
+        else
+            mp = "Object";
     else
         mp = "unknown";
-    fprintf(out, "%04zx  hdr.mtyp=0x%02x (%s)\n",
-            (unsigned char*) &(hp->packettype) - data, hp->packettype, mp);
-    fprintf(out, "%04zx  hdr.paylen=%d\n",
-            (unsigned char*) &(hp->payloadlen) - data, payloadlen);
-    fprintf(out, "%04zx  hdr.hdrlen=%d\n",
-            (unsigned char*) &(hp->hdrlen) - data, hdrlen);
+    if (!rawxml) {
+        fprintf(out, "%04zx  hdr.mtyp=0x%02x (%s)\n",
+                (unsigned char*) &(hp->packettype) - data, hp->packettype, mp);
+        fprintf(out, "%04zx  hdr.paylen=%d\n",
+                (unsigned char*) &(hp->payloadlen) - data, payloadlen);
+        fprintf(out, "%04zx  hdr.hdrlen=%d\n",
+                (unsigned char*) &(hp->hdrlen) - data, hdrlen);
+    }
 
     if (hdrlen + payloadlen != len) {
         fprintf(stderr, "length mismatch\n");
@@ -518,17 +554,16 @@ ccntlv_201409(unsigned char *data, int len, int rawxml, FILE* out)
     //         fprintf(stderr, "%d left over bytes in header\n", len);
     //     }
     // }
-    fprintf(out, "%04zx  hdr.end\n", buf - data);
+    if (!rawxml)
+        fprintf(out, "%04zx  hdr.end\n", buf - data);
 
     // dump the sequence of TLV fields of the message (formerly called payload)
     len = payloadlen;
     buf = data + hdrlen;
     ccntlv_parse_sequence(0, CTX_TOPLEVEL, data, &buf, &len,
                                                         "message", rawxml, out);
-    if (len != 0) {
-    }
-
-    fprintf(out, "%04zx  pkt.end\n", buf - data);
+    if (!rawxml)
+        fprintf(out, "%04zx  pkt.end\n", buf - data);
 }
 
 // ----------------------------------------------------------------------
