@@ -6,6 +6,7 @@
 #include "unit.h"
 
 #include "ccnl_unit_prefix_to_path.c"
+#include "ccnl_unit_uri_2_prefix.c"
 #include "ccnl_unit_prefix_comp.c"
 
 
@@ -14,17 +15,23 @@ int main(int argc, char **argv){
 	fprintf(stderr, "CCN-lite Unit Tests\n");
 
 	int testnum = 0;
-	//TEST 1: PREFIX TO PATH
+	//TEST 0: PREFIX TO PATH
+	++testnum;
+	struct ccn_prefix_s *p_t0 = 0;
+	char *c_t0 = 0;
+	RUN_TEST(testnum, "testing prefix to path function", ccnl_test_prepare_prefix_to_path_1, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t0, c_t0);
+
+	//Test 1: PREFIX TO PATH NFN
 	++testnum;
 	struct ccn_prefix_s *p_t1 = 0;
 	char *c_t1 = 0;
-	RUN_TEST(testnum, "testing prefix to path function", ccnl_test_prepare_prefix_to_path_1, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t1, c_t1);
+	RUN_TEST(testnum, "testing prefix to path function for nfn", ccnl_test_prepare_prefix_to_path_2, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t1, c_t1);
 
-	//Test 2: PREFIX TO PATH NFN
+	//Test 2: uri_to_prefix
 	++testnum;
 	struct ccn_prefix_s *p_t2 = 0;
 	char *c_t2 = 0;
-	RUN_TEST(testnum, "testing prefix to path function for nfn", ccnl_test_prepare_prefix_to_path_2, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t2, c_t2);
+	RUN_TEST(testnum, "testing uri to prefix", ccnl_test_prepare_uri_to_prefix, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, c_t2, p_t2);
 
 	char *testdescription = ccnl_malloc(512);
 	for(prefix_cmp_suite = 0; prefix_cmp_suite < 3; ++prefix_cmp_suite){
