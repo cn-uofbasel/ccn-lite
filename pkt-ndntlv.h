@@ -75,6 +75,11 @@ Values		Designation
 >32767		For application use (3-byte encoding)
 */
 
+// Signature types (not TLV values)
+#define NDN_SigTypeVal_DigestSha256             0x00
+#define NDN_SigTypeVal_SignatureSha256WithRsa   0x01
+#define NDN_SigTypeVal_SignatureSha256WithEcdsa 0x02
+
 // pkt-ndntlv-dec.c prototypes:
 // int ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
