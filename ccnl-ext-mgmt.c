@@ -1398,7 +1398,6 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(action, CCN_DTAG_ACTION);
         extractStr(faceid, CCN_DTAG_FACEID);
         extractStr(suite, CCNL_DTAG_SUITE);
-        p->suite = suite[0];
 
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
@@ -1408,6 +1407,8 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct ccnl_face_s *f;
         struct ccnl_forward_s *fwd, **fwd2;
         int fi = strtol((const char*)faceid, NULL, 0);
+        
+        p->suite = suite[0];
 
         DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
                  ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
