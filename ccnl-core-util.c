@@ -76,7 +76,7 @@ ccnl_prefix_new(int suite, int cnt)
     }
     p->compcnt = 0;
     p->suite = suite;
-    p->chunknum = -1;
+    p->chunknum = NULL;
 
     return p;
 }
@@ -191,7 +191,7 @@ ccnl_URItoComponents(char **compVector, char *uri)
 
 // turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
@@ -240,7 +240,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
-    p->chunknum = chunknum ? *chunknum : -1;
+    p->chunknum = chunknum;
 
     return p;
 }
@@ -489,7 +489,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &offs, &contentpos, NULL, 0, tmp);
+                                         &offs, &contentpos, NULL, tmp);
         break;
 #endif
     default:

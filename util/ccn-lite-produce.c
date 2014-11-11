@@ -56,6 +56,8 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *name;
     struct stat st_buf;
 
+    debug_level = 99;
+
     while ((opt = getopt(argc, argv, "hc:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'c':
@@ -159,7 +161,7 @@ Usage:
     struct chunk *first_chunk = NULL;
     struct chunk *cur_chunk = NULL;
     struct chunk *chunk = NULL;
-    int num_chunks = 0;
+    unsigned int num_chunks = 0;
 
     do {
         chunk_len = read(f, chunk_buf, chunk_size);
@@ -189,10 +191,12 @@ Usage:
 
     cur_chunk = first_chunk;
 
+    DEBUGMSG(99, "read %d chunks from stdin\n", num_chunks);
+
     sprintf(final_chunkname_with_number, "%s%i", chunkname, num_chunks - 1);
     char *chunk_data = NULL;
-    int chunknum = 0;
-    int lastchunknum = num_chunks - 1;
+    unsigned int chunknum = 0;
+    unsigned int lastchunknum = num_chunks - 1;
     int offs = -1;
 
     switch (suite) {
@@ -224,10 +228,10 @@ Usage:
             DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                                (unsigned char *)chunk_data, chunk_len, 
-                                &lastchunknum, &offs, 
-                                NULL, // int *contentpos
-                                out);
+                                                           (unsigned char *)chunk_data, chunk_len, 
+                                                           &lastchunknum, &offs, 
+                                                           NULL, // int *contentpos
+                                                           out);
             break;
         case CCNL_SUITE_NDNTLV:
             // sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
@@ -235,8 +239,8 @@ Usage:
             contentlen = ccnl_ndntlv_prependContent(name, 
                                 (unsigned char *) chunk_data, chunk_len, 
                                 &offs, NULL,
-                                (unsigned char *) final_chunkname_with_number,
-                                strlen(final_chunkname_with_number), out);
+                                &lastchunknum,
+                                out);
             break;
         default:
             DEBUGMSG(99, "produce for suite %i is not implemented\n", suite);

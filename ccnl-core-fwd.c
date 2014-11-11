@@ -206,7 +206,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
-    int keyidlen, contlen, chunknum, lastchunknum;
+    int keyidlen, contlen;
+    unsigned int lastchunknum;
     struct ccnl_buf_s *buf = 0;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
@@ -225,7 +226,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                               data, datalen,
                               &p, 
                               &keyid, &keyidlen,
-                              &chunknum, &lastchunknum,
+                              &lastchunknum,
                               &content, &contlen);
     if (!buf) {
             DEBUGMSG(6, "  parsing error or no prefix\n");
@@ -397,7 +398,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return -1;
     buf = ccnl_ndntlv_extract(*data - cp,
                               data, datalen,
-                              &scope, &mbf, &minsfx, &maxsfx, 0, 0,
+                              &scope, &mbf, &minsfx, &maxsfx, 0, 
                               &p, &tracing, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
         DEBUGMSG(6, "  parsing error or no prefix\n");

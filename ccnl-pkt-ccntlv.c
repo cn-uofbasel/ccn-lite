@@ -40,7 +40,7 @@ Note:
 
 // convert network order byte array into local integer value
 int
-ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval)
+ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, unsigned int *intval)
 {
     int val = 0;
     
@@ -83,7 +83,7 @@ ccnl_ccntlv_extract(int hdrlen,
                     unsigned char **data, int *datalen,
                     struct ccnl_prefix_s **prefix,
                     unsigned char **keyid, int *keyidlen,
-                    int *chunknum, int *lastchunknum,
+                    unsigned int *lastchunknum,
                     unsigned char **content, int *contlen)
 {
     unsigned char *start = *data - hdrlen;
@@ -124,11 +124,21 @@ ccnl_ccntlv_extract(int hdrlen,
                     goto Bail;
 
                 if (typ == CCNX_TLV_N_Chunk) {
-                    if (chunknum && ccnl_ccnltv_extractNetworkVarInt(cp,
-                                                         len2, chunknum) < 0) {
+                    // We extract the chunknum to the prefix but keep it in the name component for now
+                    // In the future we possibly want to remove the chunk segment from the name components 
+                    // and rely on the chunknum field in the prefix.
+                    p->chunknum = ccnl_malloc(sizeof(int));
+
+                    if (ccnl_ccnltv_extractNetworkVarInt(cp,
+                                                         len2, p->chunknum) < 0) {
                         DEBUGMSG(99, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
+                    if (p->compcnt < CCNL_MAX_NAME_COMP) {
+                        p->comp[p->compcnt] = cp2;
+                        p->complen[p->compcnt] = cp - cp2 + len3;
+                        p->compcnt++;
+                    } // else out of name component memory: skip
                 } else if (typ == CCNX_TLV_N_NameSegment) {
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
                         p->comp[p->compcnt] = cp2;
@@ -239,22 +249,20 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 // the given integer val *before* position buf[offset], adjust offset
 // and return number of bytes prepended. 0 is represented as %x00
 int
-ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval,
+ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
                                  int *offset, unsigned char *buf)
 {
     int offs = *offset;
     int len = 0;
 
-    if (intval >= 0) {
-        while (offs > 0) {
-            buf[--offs] = intval & 0xff;
-            len++;
-            if (intval < 128)
-                break;
-            intval = intval >> 8;
-        }
-        *offset = offs;
-    } // else TODO: negative values
+    while (offs > 0) {
+        buf[--offs] = intval & 0xff;
+        len++;
+        if (intval < 128)
+            break;
+        intval = intval >> 8;
+    }
+    *offset = offs;
 
     if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
         return -1;
@@ -296,9 +304,9 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 
     int oldoffset = *offset, cnt;
 
-    if (name->chunknum >= 0 &&
+    if (name->chunknum &&
         ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
-                                         name->chunknum, offset, buf) < 0)
+                                         *name->chunknum, offset, buf) < 0)
             return -1;
 
     // optional: (not used)
@@ -372,7 +380,7 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,
-                           int *lastchunknum, int *offset, int *contentpos,
+                           unsigned int *lastchunknum, int *offset, int *contentpos,
                            unsigned char *buf)
 {
     int tloffset = *offset;
@@ -412,7 +420,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned char *payload, int paylen,
-                                  int *lastchunknum, int *offset,
+                                  unsigned int *lastchunknum, int *offset,
                                   int *contentpos, unsigned char *buf)
 {
     int len, oldoffset;
