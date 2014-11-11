@@ -1,7 +1,6 @@
 # ccn-lite Makefile for Linux and OS X
 
-# If nfn targets should be compiled export USE_NFN environment variable to something 
-# or add commandline option -e <FLAG>=0 to make
+# If nfn targets should be compiled export USE_NFN environment variable to something (e.g. 1)
 # For (experimental) nack set USE_NACKS to something
 
 # OS name: Linux or Darwing (OSX) supported
