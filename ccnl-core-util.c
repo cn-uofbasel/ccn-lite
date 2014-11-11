@@ -391,6 +391,8 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 #ifdef USE_SUITE_CCNTLV
         if (pr->suite == CCNL_SUITE_CCNTLV)
             skip = 4;
+
+	DEBUGMSG(99, "SKIP 3245: %d, suite: %d\n", skip, pr->suite);
 /*
             len += sprintf(buf + len, "/%%x%02x%02x%.*s",
                            pr->comp[i][0], pr->comp[i][1],
