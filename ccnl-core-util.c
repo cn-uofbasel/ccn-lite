@@ -357,7 +357,7 @@ static char *buf;
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    int len = 0, i;
+    int len = 0, i, j;
 
     if (!pr)
         return NULL;
@@ -385,19 +385,12 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
         len += sprintf(buf + len, "[");
 #endif
 
-    for (i = 0; i < pr->compcnt; i++) {
-        int skip = 0;
 
-#ifdef USE_SUITE_CCNTLV
-        if (pr->suite == CCNL_SUITE_CCNTLV)
-            skip = 4;
 /*
-            len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-                           pr->comp[i][0], pr->comp[i][1],
-                           pr->complen[i]-4, pr->comp[i]+4);
-*/
-#endif
-
+Not sure why a component starting with a call is not printed with a leading '/'
+A call should also be printed with a '/' because this function prints a prefix
+and prefix components are visually separated with a leading '/'.
+One possibility is to not have a '/' before any nfn expression.
 #ifdef USE_NFN
         if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
             !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
@@ -405,8 +398,16 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
                            pr->complen[i]-skip, pr->comp[i]+skip);
         } else
 #endif
-            len += sprintf(buf + len, "/%.*s",
-                           pr->complen[i]-skip, pr->comp[i]+skip);
+*/
+    for (i = 0; i < pr->compcnt; i++) {
+        len += sprintf(buf + len, "/");
+        for (j = 0; j < pr->complen[i]; j++) {
+            char c = pr->comp[i][j];
+            if(isalnum(c))
+                len += sprintf(buf + len, "%c", c);
+            else 
+                len += sprintf(buf + len, "x%02x", c);
+        }
     }
 
 #ifdef USE_NFN
