@@ -241,7 +241,11 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
 
-    p->chunknum = chunknum;
+    if(chunknum) {
+        p->chunknum = ccnl_malloc(sizeof(int));
+        *p->chunknum = *chunknum;
+    }
+
 
     return p;
 }
