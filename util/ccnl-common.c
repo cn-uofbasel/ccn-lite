@@ -56,35 +56,13 @@
 
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
+#include "../ccnl-ext-debug.c"
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
 #define ccnl_realloc(p,s)               realloc(p,s)
 #define ccnl_free(p)                    free(p)
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-#define free_prefix(p)  do { if (p) { free(p->comp); free(p->complen); free(p->bytes); free(p); }} while(0)
-
-#define DEBUGMSG(LVL, ...) do {       \
-        if ((LVL)>debug_level) break;   \
-        fprintf(stderr, __VA_ARGS__);   \
-    } while (0)
-#define DEBUGSTMT(LVL, ...)             do {} while(0)
-
-int debug_level;
-
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
