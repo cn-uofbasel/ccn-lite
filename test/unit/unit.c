@@ -12,57 +12,63 @@
 
 int main(int argc, char **argv){
 
+	struct ccnl_prefix_s *p1 = NULL, *p2 = NULL;
+	char *str = NULL;
+
 	fprintf(stderr, "CCN-lite Unit Tests\n");
 
 	int testnum = 0;
-	//TEST 0: PREFIX TO PATH
+	//TEST: PREFIX TO PATH
 	++testnum;
-	struct ccn_prefix_s *p_t0 = 0;
-	char *c_t0 = 0;
-	RUN_TEST(testnum, "testing prefix to path function", ccnl_test_prepare_prefix_to_path_1, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t0, c_t0);
+	RUN_TEST(testnum, "testing prefix to path function", ccnl_test_prepare_prefix_to_path_1, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p1, str);
 
-	//Test 1: PREFIX TO PATH NFN
+	//Test: PREFIX TO PATH NFN
 	++testnum;
-	struct ccn_prefix_s *p_t1 = 0;
-	char *c_t1 = 0;
-	RUN_TEST(testnum, "testing prefix to path function for nfn", ccnl_test_prepare_prefix_to_path_2, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p_t1, c_t1);
+	RUN_TEST(testnum, "testing prefix to path function for nfn", ccnl_test_prepare_prefix_to_path_2, ccnl_test_run_prefix_to_path, ccnl_test_cleanup_prefix_to_path, p1, str);
 
-	//Test 2: uri_to_prefix
+	//Test: uri_to_prefix
 	++testnum;
-	struct ccn_prefix_s *p_t2 = 0;
-	char *c_t2 = 0;
-	RUN_TEST(testnum, "testing uri to prefix", ccnl_test_prepare_uri_to_prefix, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, c_t2, p_t2);
+	RUN_TEST(testnum, "testing uri to prefix", ccnl_test_prepare_uri_to_prefix, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, str, p1);
 
+	//Test: uri_to_prefix NFN
+	++testnum;
+	RUN_TEST(testnum, "testing uri to prefix for nfn", ccnl_test_prepare_uri_to_prefix_nfn, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, str, p1);
+
+	//Test: uri_to_prefix chunk
+	++testnum;
+	RUN_TEST(testnum, "testing uri to prefix with chunk", ccnl_test_prepare_uri_to_prefix_chunk, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, str, p1);
+
+	//Prefix CMP Tests for all suites
 	char *testdescription = ccnl_malloc(512);
 	for(prefix_cmp_suite = 0; prefix_cmp_suite < 3; ++prefix_cmp_suite){
 		
-		//Test 3: PREFIX CMP EXACT MATCH
+		//Test: PREFIX CMP EXACT MATCH
 		++testnum;
 		sprintf(testdescription, "testing prefix cmp exact match with a match with suite %s", ccnl_suite2str(prefix_cmp_suite));
-		struct ccn_prefix_s *p1_t3 = 0;
-		struct ccn_prefix_s *p2_t3 = 0;
-		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_exact_match, ccnl_test_run_prefix_cmp_exact_match, ccnl_test_cleanup_prefix_cmp_exact_match, p1_t3, p2_t3);
+		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_exact_match, ccnl_test_run_prefix_cmp_exact_match, ccnl_test_cleanup_prefix_cmp, p1, p2);
 
-		//Test 4: PREFIX CMP EXACT MISMATCH
+		//Test: PREFIX CMP EXACT MISMATCH
 		++testnum;
 		sprintf(testdescription, "testing prefix cmp exact match with a mismatch with suite %s", ccnl_suite2str(prefix_cmp_suite));
-		struct ccn_prefix_s *p1_t4 = 0;
-		struct ccn_prefix_s *p2_t4 = 0; 
-		RUN_TEST(testnum, testdescription , ccnl_test_prepare_prefix_cmp_exact_mismatch, ccnl_test_run_prefix_cmp_exact_mismatch, ccnl_test_cleanup_prefix_cmp_exact_mismatch, p1_t4, p2_t4);
+		RUN_TEST(testnum, testdescription , ccnl_test_prepare_prefix_cmp_exact_mismatch, ccnl_test_run_prefix_cmp_exact_mismatch, ccnl_test_cleanup_prefix_cmp, p1, p2);
 
-		//Test 5: PREFIX CMP LONGEST MATCH
+		//Test: PREFIX CMP LONGEST MATCH
 		++testnum;
 		sprintf(testdescription, "testing prefix cmp with a match of 3 components for longest prefix matching with suite %s", ccnl_suite2str(prefix_cmp_suite));
-		struct ccn_prefix_s *p1_t5 = 0;
-		struct ccn_prefix_s *p2_t5 = 0; 
-		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_longest_match, ccnl_test_run_prefix_cmp_longest_match, ccnl_test_cleanup_prefix_cmp_longest_match, p1_t5, p2_t5);
+		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_longest_match, ccnl_test_run_prefix_cmp_longest_match, ccnl_test_cleanup_prefix_cmp, p1, p2);
 
-		//Test 6: PREFIX CMP LONGEST MISSMATCH
+		//Test: PREFIX CMP LONGEST MISSMATCH
 		++testnum;
 		sprintf(testdescription, "testing prefix cmp with a match of 0 components for longest prefix matching with suite %s", ccnl_suite2str(prefix_cmp_suite));
-		struct ccn_prefix_s *p1_t6 = 0;
-		struct ccn_prefix_s *p2_t6 = 0; 
-		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_longest_mismatch, ccnl_test_run_prefix_cmp_longest_mismatch, ccnl_test_cleanup_prefix_cmp_longest_mismatch, p1_t6, p2_t6);
+		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_longest_mismatch, ccnl_test_run_prefix_cmp_longest_mismatch, ccnl_test_cleanup_prefix_cmp, p1, p2);
+
+		//Test: PREFIX CMP LONGEST MATCH
+		++testnum;
+		sprintf(testdescription, "testing prefix cmp with a match components for match with suite %s", ccnl_suite2str(prefix_cmp_suite));
+		RUN_TEST(testnum, testdescription, ccnl_test_prepare_prefix_cmp_match, ccnl_test_run_prefix_cmp_match, ccnl_test_cleanup_prefix_cmp, p1, p2);
 	}
+	ccnl_free(testdescription);
+
+
 }
 

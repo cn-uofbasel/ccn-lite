@@ -38,7 +38,6 @@ int ccnl_test_prepare_prefix_to_path_2(void **prefix, void **out){
 	p->nfnflags = 0;
 	p->nfnflags |= 0x01;
 
-
 	*out = (unsigned char*)"nfn[/path/to/data/(@x call 2 /fun/func x)]";
 	return 1;
 }
@@ -55,6 +54,8 @@ int ccnl_test_run_prefix_to_path(void *prefix, void *out){
 
 int ccnl_test_cleanup_prefix_to_path(void *prefix, void *out){
 
+	struct ccnl_prefix_s *p = prefix;
+	free_prefix(p);
 	return 1;
 }
 
