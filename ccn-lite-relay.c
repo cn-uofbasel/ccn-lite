@@ -596,7 +596,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             datalen -= 8;
             data += 8;
             pkt = ccnl_ccntlv_extract(8, // hdrlen
-                                      &data, &datalen, &prefix, 0, 0, 0, 0,
+                                      &data, &datalen, &prefix, 0, 0, 0,
                                       &content, &contlen);
             break;
 #endif 
@@ -607,7 +607,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
                                                        typ != NDN_TLV_Data)
                 goto notacontent;
             pkt = ccnl_ndntlv_extract(data - buf->data, &data, &datalen,
-                                      0, 0, 0, 0, NULL, 0, &prefix, NULL,
+                                      0, 0, 0, 0, NULL, &prefix, NULL,
                                       &nonce, &ppkd, &content, &contlen);
             break;
 #endif

@@ -76,7 +76,7 @@ ccnl_prefix_new(int suite, int cnt)
     }
     p->compcnt = 0;
     p->suite = suite;
-    p->chunknum = -1;
+    p->chunknum = NULL;
 
     return p;
 }
@@ -191,7 +191,7 @@ ccnl_URItoComponents(char **compVector, char *uri)
 
 // turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
@@ -240,7 +240,12 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, int *chunknum)
     if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
-    p->chunknum = chunknum ? *chunknum : -1;
+
+    if(chunknum) {
+        p->chunknum = ccnl_malloc(sizeof(int));
+        *p->chunknum = *chunknum;
+    }
+
 
     return p;
 }
@@ -274,6 +279,11 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         p->comp[i] = p->bytes + len;
         memcpy(p->bytes + len, prefix->comp[i], p->complen[i]);
         len += p->complen[i];
+    }
+
+    if(prefix->chunknum) {
+        p->chunknum = ccnl_malloc(sizeof(int));
+        *p->chunknum = *prefix->chunknum;
     }
 
     return p;
@@ -357,7 +367,7 @@ static char *buf;
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 {
-    int len = 0, i;
+    int len = 0, i, j;
 
     if (!pr)
         return NULL;
@@ -385,21 +395,11 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
         len += sprintf(buf + len, "[");
 #endif
 
-    for (i = 0; i < pr->compcnt; i++) {
-        int skip = 0;
-
-#ifdef USE_SUITE_CCNTLV
-        if (pr->suite == CCNL_SUITE_CCNTLV)
-            skip = 4;
-
-	DEBUGMSG(99, "SKIP 3245: %d, suite: %d\n", skip, pr->suite);
 /*
-            len += sprintf(buf + len, "/%%x%02x%02x%.*s",
-                           pr->comp[i][0], pr->comp[i][1],
-                           pr->complen[i]-4, pr->comp[i]+4);
-*/
-#endif
-
+Not sure why a component starting with a call is not printed with a leading '/'
+A call should also be printed with a '/' because this function prints a prefix
+and prefix components are visually separated with a leading '/'.
+One possibility is to not have a '/' before any nfn expression.
 #ifdef USE_NFN
         if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
             !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
@@ -407,8 +407,27 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
                            pr->complen[i]-skip, pr->comp[i]+skip);
         } else
 #endif
-            len += sprintf(buf + len, "/%.*s",
-                           pr->complen[i]-skip, pr->comp[i]+skip);
+*/
+
+    int skip = 0;
+
+#if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
+    // In the future it is possibly helpful to see the type information in the logging output
+    // However, this does not work with NFN because it uses this function to create the names in NFN expressions
+    // resulting in CCNTLV type information in printed names.
+    if(pr->suite == CCNL_SUITE_CCNTLV)
+        skip = 4;
+#endif
+
+    for (i = 0; i < pr->compcnt; i++) {
+        len += sprintf(buf + len, "/");
+        for (j = skip; j < pr->complen[i]; j++) {
+            char c = pr->comp[i][j];
+            if(c < 0x20 || c == 0x7f) {
+                len += sprintf(buf + len, "x%02x", c);
+            } else 
+                len += sprintf(buf + len, "%c", c);
+        }
     }
 
 #ifdef USE_NFN
@@ -491,7 +510,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &offs, &contentpos, NULL, 0, tmp);
+                                         &offs, &contentpos, NULL, tmp);
         break;
 #endif
     default:

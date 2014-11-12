@@ -79,6 +79,13 @@ else
 fi
 
 
+# producing content 
+# ----------------------------------------------------------------------
+
+echo "chunkedtestcontent" | $CCNL_HOME/util/ccn-lite-produce -s $SUITE -c 5 $CCNL_HOME/test/$DIR "$FWD/$FNAME"
+
+# ----------------------------------------------------------------------
+
 # topology:
 
 #  ccn-lite-peek --> relay A     -->  relay B
@@ -87,6 +94,9 @@ fi
 #                 /tmp/a.sock      /tmp/b.sock (unix sockets, for ctrl only)
 
 # ----------------------------------------------------------------------
+
+
+
 
 echo -n "killing all ccn-lite-relay instances... "
 killall ccn-lite-relay
