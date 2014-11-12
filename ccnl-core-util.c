@@ -281,6 +281,11 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         len += p->complen[i];
     }
 
+    if(prefix->chunknum) {
+        p->chunknum = ccnl_malloc(sizof(unsigned int));
+        *p->chunknum = *prefix->chunknum
+    }
+
     return p;
 }
 
