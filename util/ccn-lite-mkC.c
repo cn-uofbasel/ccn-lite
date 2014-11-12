@@ -212,7 +212,7 @@ Usage:
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_prependContent(name, body, len, &offs,
-                                         NULL, NULL, 0, out);
+                                         NULL, NULL, out);
         break;
     default:
         break;

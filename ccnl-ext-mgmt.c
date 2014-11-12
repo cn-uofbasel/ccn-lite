@@ -1559,7 +1559,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         case CCNL_SUITE_NDNTLV:
             datalen = datalen - 7;
             pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen,
-                                      0, 0, 0, 0, NULL, 0, &prefix_a, NULL,
+                                      0, 0, 0, 0, NULL, &prefix_a, NULL,
                                       &nonce, &ppkd, &content, &contlen);
             break;
         case CCNL_SUITE_CCNTLV: {
@@ -1568,7 +1568,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             pkt = ccnl_ccntlv_extract(8, &data, &datalen,
                                       &prefix_a, 
                                       0, 0, // keyid/len
-                                      0, 0, // chunknum/lastchunknum
+                                      0, // lastchunknum
                                       &content, &contlen);
             }
             break;

@@ -80,6 +80,19 @@ Values          Designation
 #define NDN_SigTypeVal_SignatureSha256WithRsa   0x01
 #define NDN_SigTypeVal_SignatureSha256WithEcdsa 0x02
 
+
+// Markers (not TLV values)
+// For details see: http://named-data.net/wp-content/uploads/2014/08/ndn-tr-22-ndn-memo-naming-conventions.pdf
+
+// Segmenting markers
+#define NDN_Marker_SegmentNumber 		0x00
+#define NDN_Marker_ByteOffset 			0xFB
+
+#define NDN_Marker_Version 				0xFD
+#define NDN_Marker_Timestamp			0xFC
+#define NDN_Marker_SequenceNumber		0xFE
+
+
 // pkt-ndntlv-dec.c prototypes:
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);

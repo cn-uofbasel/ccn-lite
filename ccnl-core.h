@@ -127,7 +127,7 @@ struct ccnl_prefix_s {
     unsigned char *nameptr; // binary name (for fast comparison)
     unsigned int   namelen; // valid length of name memory
     unsigned char *bytes;   // memory for name component copies
-    int chunknum; // -1 to disable
+    unsigned int *chunknum; // -1 to disable
 #ifdef USE_NFN
     unsigned int nfnflags;
 # define CCNL_PREFIX_NFN   0x01
