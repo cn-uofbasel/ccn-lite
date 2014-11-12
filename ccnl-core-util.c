@@ -240,6 +240,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
+
     p->chunknum = chunknum;
 
     return p;
@@ -398,14 +399,25 @@ One possibility is to not have a '/' before any nfn expression.
         } else
 #endif
 */
+
+    int skip = 0;
+
+#if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
+    // In the future it is possibly helpful to see the type information in the logging output
+    // However, this does not work with NFN because it uses this function to create the names in NFN expressions
+    // resulting in CCNTLV type information in printed names.
+    if(pr->suite == CCNL_SUITE_CCNTLV)
+        skip = 4;
+#endif
+
     for (i = 0; i < pr->compcnt; i++) {
         len += sprintf(buf + len, "/");
-        for (j = 0; j < pr->complen[i]; j++) {
+        for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if(isalnum(c))
-                len += sprintf(buf + len, "%c", c);
-            else 
+            if(c < 0x20 || c == 0x7f) {
                 len += sprintf(buf + len, "x%02x", c);
+            } else 
+                len += sprintf(buf + len, "%c", c);
         }
     }
 
