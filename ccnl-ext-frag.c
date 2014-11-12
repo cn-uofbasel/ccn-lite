@@ -406,7 +406,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
     }
     // FIXME: we should only bump recvseq if s->ourseq is ahead, or 0
     e->recvseq = s->ourseq + 1;
-    DEBUGMSG(999, ">>> seq from %d to %d (w=%d)\n", s->ourseq, e->recvseq,
+    DEBUGMSG(99, ">>> seq from %d to %d (w=%d)\n", s->ourseq, e->recvseq,
         s->ourseqwidth);
 
     if (buf) {
