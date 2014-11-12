@@ -92,7 +92,7 @@ ccnl_ndntlv_extract(int hdrlen,
     int i, len, typ, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf, *n = 0, *pub = 0;
-    DEBUGMSG(99, "ccnl_ndntlv_extract\n");
+    DEBUGMSG(DEBUG, "extracting NDNTLV packet\n");
 
     if (content)
         *content = NULL;
@@ -153,7 +153,7 @@ ccnl_ndntlv_extract(int hdrlen,
                 if (typ == NDN_TLV_MustBeFresh && mbf)
                     *mbf = 1;
                 if (typ == NDN_TLV_Exclude) {
-                    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
+                    DEBUGMSG(WARNING, "'Exclude' field ignored\n");
                 }
                 cp += i;
                 len2 -= i;
@@ -180,12 +180,12 @@ ccnl_ndntlv_extract(int hdrlen,
                 if (typ == NDN_TLV_ContentType) {
                     // Not used
                     // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(49, "warning: 'ContentType' field ignored\n");
+                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
                 }
                 if (typ == NDN_TLV_FreshnessPeriod)
                     // Not used
                     // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(49, "warning: 'FreshnessPeriod' field ignored\n");
+                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
                 if (typ == NDN_TLV_FinalBlockId) {
                     if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
                         goto Bail;
