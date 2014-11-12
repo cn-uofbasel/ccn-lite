@@ -28,13 +28,13 @@
 #include "ccnl-ext-debug.h"
 #ifdef USE_DEBUG
 
-#define FATAL   1001 // FATAL
-#define ERROR   1002 // ERROR
-#define WARNING 1003 // WARNING 
-#define INFO    1004 // INFO 
-#define DEBUG   1005 // DEBUG 
-#define TRACE   1006 // TRACE 
-#define VERBOSE 1007 // VERBOSE 
+#define FATAL   94 // FATAL
+#define ERROR   95 // ERROR
+#define WARNING 96 // WARNING 
+#define INFO    97 // INFO 
+#define DEBUG   98 // DEBUG 
+#define TRACE   99 // TRACE 
+#define VERBOSE 100 // VERBOSE 
 
 #define _TRACE(F,P) if (debug_level >= TRACE)                             \
                       fprintf(stderr, "[T] %s%c %s()  // %s:%d\n",        \
@@ -69,12 +69,17 @@ ccnl_debugLevelToChar(int level)
 } while (0)
 
 #ifndef CCNL_LINUXKERNEL
-#  define DEBUGMSG(LVL, ...) do {               \
-        if ((LVL)>debug_level) break;           \
-        fprintf(stderr, "[%c] %s: ",            \
-            ccnl_debugLevelToChar(LVL),         \
-            timestamp());                       \
-        fprintf(stderr, __VA_ARGS__);           \
+#  define DEBUGMSG(LVL, ...) do {                   \
+        if ((LVL)>debug_level) break;               \
+        fprintf(stderr, "[%c] %s",                  \
+            ccnl_debugLevelToChar(LVL),             \
+            timestamp());                           \
+        if(debug_level >= TRACE) {                  \
+            fprintf(stderr, " %s %s:%d",            \
+                    __func__, __FILE__, __LINE__);  \
+        }                                           \
+        fprintf(stderr, ":\t");                     \
+        fprintf(stderr, __VA_ARGS__);               \
     } while (0)
 
 #else // CCNL_LINUXKERNEL
@@ -801,9 +806,10 @@ ccnl_buf_new(void *data, int len)
 #endif // !USE_DEBUG_MALLOC
 
 
-#define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
-#define free_3ptr_list(a,b,c)   ccnl_free(a), ccnl_free(b), ccnl_free(c)
-#define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
+#define free_2ptr_list(a,b)       ccnl_free(a), ccnl_free(b)
+#define free_3ptr_list(a,b,c)     ccnl_free(a), ccnl_free(b), ccnl_free(c)
+#define free_4ptr_list(a,b,c,d)   ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
+#define free_5ptr_list(a,b,c,d,e) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d), ccnl_free(e);
 
 #define free_prefix(p)  do{ if(p) \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)

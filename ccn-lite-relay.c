@@ -319,7 +319,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 {
     struct ccnl_if_s *i;
 
-    DEBUGMSG(VERBOSE, "ccnl_relay_config\n");
+    DEBUGMSG(INFO, "configuring relay\n");
 
     relay->max_cache_entries = max_cache_entries;       
 #ifdef USE_SCHEDULER
@@ -531,8 +531,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
     DIR *dir;
     struct dirent *de;
 
-    TRACEIN("ccnl_populate_cache");
-
     dir = opendir(path);
     if (!dir) {
         DEBUGMSG(ERROR, "could not open directory %s\n", path); return;
@@ -646,7 +644,6 @@ notacontent:
     }
 
     closedir(dir);
-    TRACEOUT("ccnl_populate_cache");
 }
 
 // ----------------------------------------------------------------------
@@ -750,16 +747,12 @@ usage:
 
     ccnl_core_init();
 
-    TRACEIN();
-
     DEBUGMSG(INFO, "This is ccn-lite-relay, starting at %s",
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
-
-    TRACEOUT();
 
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
