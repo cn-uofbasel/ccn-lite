@@ -30,14 +30,22 @@ char*
 ccnl_lambdaParseVar(char **cpp)
 {
     char *p;
-    int len;
+    int len, string = 0;
 
     p = *cpp;
-    if (*p && *p == '\'')
+    if (*p && *p == '\''){ // Parse a String between ''
+        string = 1;
         p++;
-    while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/' || *p == '.'))
-	   p++;
-    len = p - *cpp;
+        while(*p != '\''){
+            p++;
+        }
+    }
+    else{
+        while (*p && (isalnum(*p) || *p == '_' || *p == '=' || *p == '/' || *p == '.')){
+           p++;
+        }
+    }
+    len = p - *cpp + string;
     p = ccnl_malloc(len+1);
     if (!p)
         return 0;
