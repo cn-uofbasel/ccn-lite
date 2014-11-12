@@ -385,7 +385,6 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
         len += sprintf(buf + len, "[");
 #endif
 
-
 /*
 Not sure why a component starting with a call is not printed with a leading '/'
 A call should also be printed with a '/' because this function prints a prefix
