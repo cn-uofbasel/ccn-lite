@@ -60,7 +60,7 @@ ccnl_http_new(struct ccnl_relay_s *ccnl, int serverport)
     }
     http->server = s;
 
-    DEBUGMSG(1, "HTTP status server listening at TCP port %d\n", serverport);
+    DEBUGMSG(INFO, "HTTP status server listening at TCP port %d\n", serverport);
 
     return http;
 }

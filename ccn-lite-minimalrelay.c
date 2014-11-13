@@ -53,6 +53,14 @@ int inet_aton(const char *cp, struct in_addr *inp);
 // ----------------------------------------------------------------------
 // "replacement lib"
 
+#define FATAL   94 // FATAL
+#define ERROR   95 // ERROR
+#define WARNING 96 // WARNING 
+#define INFO    97 // INFO 
+#define DEBUG   98 // DEBUG 
+#define TRACE   99 // TRACE 
+#define VERBOSE 100 // VERBOSE 
+
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \

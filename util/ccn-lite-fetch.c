@@ -33,7 +33,7 @@
 int
 ccnl_fetchContentForChunkName(char* name, 
                               char* nfnexpr,
-                              int *chunknum,
+                              unsigned int *chunknum,
                               int suite, 
                               unsigned char *out, int out_len, 
                               int *len, 
@@ -84,12 +84,10 @@ ccnl_fetchContentForChunkName(char* name,
 }
 
 int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
-                                      int *chunknum, int *lastchunknum,
-                                      unsigned char **content, int *contentlen) {
+                                        unsigned int *chunknum, unsigned int *lastchunknum,
+                                        unsigned char **content, int *contentlen) {
     int typ, len;
     unsigned char *cp = *data;
-    unsigned char finalBlockId[1*1024];
-    int finalBlockId_len = -1;
     int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
     struct ccnl_prefix_s *prefix;
@@ -100,7 +98,7 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     }
     buf = ccnl_ndntlv_extract(*data - cp,
                   data, datalen,
-                  &scope, &mbf, &minsfx, &maxsfx, finalBlockId, &finalBlockId_len,
+                  &scope, &mbf, &minsfx, &maxsfx, lastchunknum,
                   &prefix, NULL,
                   &nonce, // nonce
                   &ppkl, //ppkl
@@ -112,22 +110,12 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     if (typ == NDN_TLV_Interest) {
         DEBUGMSG(99, "ignoring parsed interest with name %s\n", ccnl_prefix_to_path(prefix));
     } else { // data packet with content -------------------------------------
-        if (finalBlockId_len > 0) {
-            finalBlockId[finalBlockId_len] = 0;
-            *lastchunknum = atoi((const char *)&finalBlockId[1]);
-
-            // Extract the chunknum from the last component having the from 'c<int>' (e.g. c13)
-            int lastcmpind = prefix->compcnt-1;
-            *chunknum = atoi((const char *)(prefix->comp[lastcmpind] + 1));
-        } else {
-            DEBUGMSG(99, "Received finalBlockId of size smaller than 1\n");
-            return -1;
-        }
+        *chunknum = *prefix->chunknum;
     }
     return 0;
 }
 int ccnl_ccntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
-                                      int *chunknum, int *lastchunknum,
+                                      unsigned int *chunknum, unsigned int *lastchunknum,
                                       unsigned char **content, int *contentlen) {
     struct ccnl_prefix_s *prefix;
     *datalen -= 8;
@@ -138,17 +126,25 @@ int ccnl_ccntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
                            data, datalen,
                            &prefix,
                            0, 0, // keyid/keyidlen
-                           chunknum, lastchunknum,
+                           lastchunknum,
                            content, contentlen) == NULL) {
         fprintf(stderr, "Error in ccntlv_extract\n");
         exit(-1);
     } 
+
+    if (!prefix->chunknum) {
+        fprintf(stderr, "Extracted correct data object but name did not contain a chunk number\n");
+        exit(-1);
+    } else {
+        *chunknum = *prefix->chunknum;
+    }
+
     return 0;
 }
 int ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
-                               int suite, 
-                               int *chunknum, int *lastchunknum,
-                               unsigned char **content, int *contentlen) {
+                                 int suite, 
+                                 unsigned int *chunknum, unsigned int *lastchunknum,
+                                 unsigned char **content, int *contentlen) {
     int result = -1;
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
@@ -179,6 +175,8 @@ main(int argc, char *argv[])
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
+
+    debug_level = 99;
 
     while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
         switch (opt) {
@@ -270,75 +268,74 @@ usage:
     unsigned char **dataPerChunk = 0;
     int *datalenOfChunks = 0;
     int numberofchunks = -1;
-    int curchunknum = 0;
+    unsigned int *curchunknum = NULL;
     int do_fetch_next = 1;
+
+    if(suite == CCNL_SUITE_CCNTLV) {
+
+        curchunknum = malloc(sizeof(int));
+        *curchunknum = 0;
+    }
 
 
     while (do_fetch_next) {
-
+        
         if (dataPerChunk) {
             for (int x = 0; x < numberofchunks; x++) {
                 if (!dataPerChunk[x]) {
-                    curchunknum = x;
+                    if(!curchunknum) {
+                        curchunknum = malloc(sizeof(int));
+                    }
+                    *curchunknum = x;
+                    DEBUGMSG(99, "fetching next chunk %d...\n", x);
                     break;
                 } 
             }
         }
 
-        if (curchunknum >= 0) {
-            DEBUGMSG(99, "fetching chunk %d...\n", curchunknum);
+        if (curchunknum) {
+            DEBUGMSG(99, "fetching chunk %d...\n", *curchunknum);
         } else {
-            DEBUGMSG(99, "fetching any chunk...\n");
+            DEBUGMSG(99, "fetching first chunk...\n");
         }
 
         strcpy(url, orig_url);
         if (ccnl_fetchContentForChunkName(url, 
-                                         nfnexpr,
-                                         curchunknum >= 0 ? &curchunknum : NULL, 
-                                         suite, 
-                                         out, sizeof(out), 
-                                         &len, 
-                                         wait, sock, sa) < 0) {
+                                          nfnexpr,
+                                          curchunknum,
+                                          suite, 
+                                          out, sizeof(out), 
+                                          &len, 
+                                          wait, sock, sa) < 0) {
             fprintf(stderr, "timeout, retry not implemented, exit\n");
             exit(1);
         }
 
-        int chunknum = -1, lastchunknum = -1;
+        unsigned int chunknum = 0, lastchunknum = 0;
         unsigned char *t = &out[0];
         if (ccnl_extractDataAndChunkInfo(&t, &len, suite, 
-                                        &chunknum, &lastchunknum, 
-                                        &content, &contlen) < 0) {
+                                         &chunknum, &lastchunknum, 
+                                         &content, &contlen) < 0) {
             DEBUGMSG(99, "Could not extract data and chunkinfo\n");
             goto Done;
         } else {
             DEBUGMSG(99, "extracted chunknum %d lastchunknum %d \n", chunknum, lastchunknum);
         }
 
-        if (lastchunknum >= 0) {
-            DEBUGMSG(99, "processing chunk %d\n", chunknum);
-            numberofchunks = lastchunknum + 1;
-            if (!dataPerChunk) {
-                dataPerChunk = calloc(numberofchunks, sizeof(unsigned char*));
-                datalenOfChunks = calloc(numberofchunks, sizeof(int));
-            }
-            dataPerChunk[chunknum] = malloc(contlen * sizeof(unsigned char));
-            memcpy(dataPerChunk[chunknum], content, contlen);
-            datalenOfChunks[chunknum] = contlen;
+        numberofchunks = lastchunknum + 1;
+        if (!dataPerChunk) {
+            dataPerChunk = calloc(numberofchunks, sizeof(unsigned char*));
+            datalenOfChunks = calloc(numberofchunks, sizeof(int));
+        }
+        dataPerChunk[chunknum] = malloc(contlen * sizeof(unsigned char));
+        memcpy(dataPerChunk[chunknum], content, contlen);
+        datalenOfChunks[chunknum] = contlen;
 
-            do_fetch_next = 0;
-            for (i = 0; i < numberofchunks; i++) {
-                if (!dataPerChunk[i]) {
-                    do_fetch_next = 1;
-                } 
-            }
-
-        } else {
-            if (dataPerChunk) {
-                DEBUGMSG(99, "ERROR: Received single, non-chunked content but there were already received chunks for name.\n");
-                exit(-1);
-            }
-            DEBUGMSG(99, "Received single, non-chunked content\n");
-            goto Done;
+        do_fetch_next = 0;
+        for (i = 0; i < numberofchunks; i++) {
+            if (!dataPerChunk[i]) {
+                do_fetch_next = 1;
+            } 
         }
     }
 
