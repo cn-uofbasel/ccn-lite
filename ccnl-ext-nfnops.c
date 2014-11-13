@@ -401,6 +401,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
         struct const_s *con = (struct const_s *) s2->content;
         int suite = -1;
+        DEBUGMSG(99, "  original packet format: %s\n", con->str);
 
         if (!strcmp(con->str, "ccnb"))
             suite = CCNL_SUITE_CCNB;
