@@ -1407,6 +1407,9 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct ccnl_face_s *f;
         struct ccnl_forward_s *fwd, **fwd2;
         int fi = strtol((const char*)faceid, NULL, 0);
+        
+        p->suite = suite[0];
+
         DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
                  ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
 
@@ -1556,8 +1559,18 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         case CCNL_SUITE_NDNTLV:
             datalen = datalen - 7;
             pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen,
-                                      0, 0, 0, 0, NULL, 0, &prefix_a, NULL,
+                                      0, 0, 0, 0, NULL, &prefix_a, NULL,
                                       &nonce, &ppkd, &content, &contlen);
+            break;
+        case CCNL_SUITE_CCNTLV: {
+            datalen -= (7 + 6);
+            data += 6;
+            pkt = ccnl_ccntlv_extract(8, &data, &datalen,
+                                      &prefix_a, 
+                                      0, 0, // keyid/len
+                                      0, // lastchunknum
+                                      &content, &contlen);
+            }
             break;
         default:
             pkt = 0;

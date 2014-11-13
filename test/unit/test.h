@@ -42,17 +42,14 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #define USE_SUITE_LOCALRPC
 #define USE_UNIXSOCKET
 
-#include "../../ccnl-includes.h"
 
 #include "../../ccnl-headers.h"
 
-#include "../../ccnl.h"
 #include "../../ccnl-core.h"
 
-
 #include "../../ccnl-ext-debug.c"
+#include "../../ccnl-os-time.c"
 #include "../../ccnl-ext.h"
-#include "../../ccnl-platform.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
@@ -60,7 +57,6 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #define ccnl_ll_TX(a,b,c,d)		do{a=a;}while(0)
 
 #include "../../ccnl-core.c"
-#include "../../ccnl-util.c"
 
 #include "../../ccnl-ext-http.c"
 #include "../../ccnl-ext-mgmt.c"

@@ -39,6 +39,11 @@
 // ----------------------------------------------------------------------
 // data structures
 
+struct const_s{
+    char *str;
+    int len;
+};
+
 struct stack_s{
     void *content;
     int type;

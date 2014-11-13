@@ -2,6 +2,11 @@
 #define CCNL_HEADERS_H
 
 
+//data structure forward declarations
+struct ccnx_tlvhdr_ccnx201409_s *hdrptr;
+struct rdr_ds_s *ds;
+
+
 //CCNL INCLUDES
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
@@ -145,7 +150,7 @@ void ccnl_nfn_freeClosure(struct closure_s *c);
 void ccnl_nfn_freeStack(struct stack_s *s);
 void ccnl_nfn_freeMachineState(struct fox_machine_state_s *f);
 void ccnl_nfn_freeConfiguration(struct configuration_s *c);
-void ccnl_nfn_freeKrivine(struct ccnl_krivine_s *k);
+void ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl);
 int trim(char *str);
 struct ccnl_prefix_s *add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, char *comp);
 struct ccnl_prefix_s *add_local_computation_components(struct configuration_s *config);
@@ -217,6 +222,7 @@ struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-core-util.c */
+char* ccnl_suite2str(int suite);
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, char *uri);
@@ -332,7 +338,6 @@ int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-localrpc.c */
 #ifdef USE_SUITE_LOCALRPC
-void ccnl_rdr_free(struct rdr_ds_s *x);
 struct rdr_ds_s *ccnl_rdr_mkApp(struct rdr_ds_s *expr, struct rdr_ds_s *arg);
 struct rdr_ds_s *ccnl_rdr_mkSeq(void);
 struct rdr_ds_s *ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el);
@@ -356,7 +361,7 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_
 int ccnl_localrpc_handleReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *rc, struct rdr_ds_s *aux);
 int ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *fexpr, struct rdr_ds_s *args);
 int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);
-
+void ccnl_rdr_free(struct rdr_ds_s *x);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* pkt-localrpc-dec.c */
@@ -366,7 +371,6 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* pkt-localrpc-enc.c */
-void ccnl_rdr_free(struct rdr_ds_s *x);
 struct rdr_ds_s *ccnl_rdr_mkApp(struct rdr_ds_s *expr, struct rdr_ds_s *arg);
 struct rdr_ds_s *ccnl_rdr_mkSeq(void);
 struct rdr_ds_s *ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el);

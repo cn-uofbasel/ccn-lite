@@ -22,6 +22,29 @@
 
 // ----------------------------------------------------------------------
 
+//struct const_s *
+//ccnl_nfn_krivine_str_to_const_len
+int
+ccnl_nfn_krivine_const_len
+(char *str){
+    //int len = 0;
+    char *ccp = str;
+    //struct const_s * c = ccnl_malloc(sizeof());
+    if(*ccp != '\''){
+        return 0;
+    }
+    ++ccp;
+    while(*ccp != '\''){
+        ++ccp;
+    }
+    //len =
+
+
+    return (ccp - str) + 1;
+}
+
+// ----------------------------------------------------------------------
+
 struct ccnl_interest_s *
 ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct ccnl_prefix_s **prefix,
@@ -645,6 +668,10 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             len += sprintf(buf + len, " %s",
                            ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
             break;
+        case STACK_TYPE_CONST:
+            len += sprintf(buf + len, " %s", (char*)entry->content);
+            break;
+
         default:
             DEBUGMSG(1, "Invalid type in createComputationString() #%d (%d)\n",
                      j, entry->type);
