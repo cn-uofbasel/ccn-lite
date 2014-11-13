@@ -40,8 +40,8 @@
 // data structures
 
 struct const_s{
-    char *str;
     int len;
+    char str[1];
 };
 
 struct stack_s{
