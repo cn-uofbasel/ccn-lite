@@ -558,13 +558,8 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
                 ccnl_free(integer);
         } else if (*cp == '\'') { // quoted name (constant)
             //determine size
-            int string_len = ccnl_nfn_krivine_const_len(cp);
-            cp = ccnl_malloc(string_len+1);
-
-            //cp = ccnl_malloc(strlen(t->v));
-            strncpy(cp, t->v, string_len);
-            cp[string_len] = '\0';
-            push_to_stack(&config->result_stack, cp, STACK_TYPE_CONST);
+            struct const_s *con = ccnl_nfn_krivine_str2const(cp);
+            push_to_stack(&config->result_stack, con, STACK_TYPE_CONST);
             end = (char*)1;
         } else if (iscontentname(cp)) { // is content...
             struct ccnl_prefix_s *prefix;

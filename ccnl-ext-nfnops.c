@@ -399,14 +399,16 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     if (s2->type == STACK_TYPE_CONST && s1->type == STACK_TYPE_PREFIX) {
         struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
+        struct const_s *con = (struct const_s *) s2->content;
         int suite = -1;
 
-        if (!strcmp(s2->content, "ccnb"))
+        if (!strcmp(con->str, "ccnb"))
             suite = CCNL_SUITE_CCNB;
-        else if (!strcmp(s2->content, "ccnx2014"))
+        else if (!strcmp(con->str, "ccnx2014"))
             suite = CCNL_SUITE_CCNTLV;
-        else if (!strcmp(s2->content, "ndn2013"))
+        else if (!strcmp(con->str, "ndn2013"))
             suite = CCNL_SUITE_NDNTLV;
+
         if (suite < 0)
             goto out;
         DEBUGMSG(99, " >> changing PREFIX suite from %d to %d\n",

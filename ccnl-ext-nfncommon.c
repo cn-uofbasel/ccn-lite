@@ -22,14 +22,11 @@
 
 // ----------------------------------------------------------------------
 
-//struct const_s *
-//ccnl_nfn_krivine_str_to_const_len
-int
-ccnl_nfn_krivine_const_len
-(char *str){
-    //int len = 0;
+struct const_s *
+ccnl_nfn_krivine_str2const(char *str){
+    int len = 0;
     char *ccp = str;
-    //struct const_s * c = ccnl_malloc(sizeof());
+    struct const_s *c;
     if(*ccp != '\''){
         return 0;
     }
@@ -37,10 +34,21 @@ ccnl_nfn_krivine_const_len
     while(*ccp != '\''){
         ++ccp;
     }
-    //len =
+    len = (ccp - str);
+    c = ccnl_calloc(1, sizeof(*c) + len);
+    c->len = len-1;
+    strncpy(c->str, str+1, len-1);
 
+    return c;
+}
 
-    return (ccp - str) + 1;
+char *
+ccnl_nfn_krivine_const2str(struct const_s * con){ //may be unsafe
+    char *c = ccnl_calloc(con->len+3, sizeof(*c));
+    strncpy(c+1, con->str, con->len);
+    c[0] = '\'';
+    c[con->len+1] = '\'';
+    return c;
 }
 
 // ----------------------------------------------------------------------
@@ -645,6 +653,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
 {
     int len, j;
     struct stack_s *entry;
+    struct const_s *con;
 
     DEBUGMSG(99, "exclude parameter: %d\n", exclude_param);
     if (exclude_param >= 0){
@@ -669,7 +678,10 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
                            ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
             break;
         case STACK_TYPE_CONST:
-            len += sprintf(buf + len, " %s", (char*)entry->content);
+            con = (struct const_s *)entry->content;
+            char *str = ccnl_nfn_krivine_const2str(con);
+            len += sprintf(buf + len, " %.*s", con->len+2, str);
+            ccnl_free(str);
             break;
 
         default:
