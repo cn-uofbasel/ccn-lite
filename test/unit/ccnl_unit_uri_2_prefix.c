@@ -57,7 +57,7 @@ int ccnl_test_prepare_uri_to_prefix_chunk(void **cmpstr, void **prefix){
 	*cmpstr = ccnl_malloc(100);
 	char *c1 = ccnl_malloc(100);
 	char *c2 = ccnl_malloc(100);
-	int *chunk = ccnl_malloc(sizeof(int));
+	unsigned int *chunk = ccnl_malloc(sizeof(int));
 	*chunk = 1;
 	strcpy(*cmpstr, "/path/to/data");
 	strcpy(c1, "/path/to/data");
