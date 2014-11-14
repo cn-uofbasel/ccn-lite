@@ -70,8 +70,13 @@ int main(int argc, char **argv){
 	}
 	ccnl_free(testdescription);
 
-	//Test: prefix type const
+	//Test: prefix type const: str2const
 	++testnum;
 	RUN_TEST(testnum, "Testing stack type str2const", ccnl_test_prepare_stack_type_const_str2const, ccnl_test_run_stack_type_const_str2const, ccnl_test_cleanup_stack_type_const_str2const, con1, con2);
+	
+	
+	//Test: prefix type const: const2str
+	++testnum;
+	RUN_TEST(testnum, "Testing stack type const2str", ccnl_test_prepare_stack_type_const_const2str, ccnl_test_run_stack_type_const_const2str, ccnl_test_cleanup_stack_type_const_const2str, str, con2);
 }
 
