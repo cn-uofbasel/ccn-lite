@@ -42,6 +42,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <limits.h>
 
 #include <arpa/inet.h>
 #include <sys/types.h>
