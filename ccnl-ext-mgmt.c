@@ -811,9 +811,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	int flagval = flags ?
 	    strtol((const char*)flags, NULL, 0) : CCNL_FACE_FLAGS_STATIC;
 	//	printf("  flags=%s %d\n", flags, flagval);
-	DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
 	f->flags = flagval &
 	    (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
+	DEBUGMSG(99, "  adding a new face (id=%d, flags = %d),  worked!\n", 
+                f->faceid, f->flags);
 
 #ifdef USE_FRAG
 	if (frag) {
@@ -1413,6 +1414,11 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 	    fwd2 = &((*fwd2)->next);
 	*fwd2 = fwd;
 	cp = "prefixreg cmd worked";
+#ifdef ESJ_DEMO
+        extern void ccnl_pipe_notify_fib_change (struct ccnl_relay_s *ccnl);
+        // notify FIB table changes
+        ccnl_pipe_notify_fib_change(ccnl);
+#endif
     } else {
 	DEBUGMSG(99, "mgmt: ignored prefixreg faceid=%s\n", faceid);
     }
@@ -1535,11 +1541,13 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
                     &prefix_a, &nonce, &ppkd, &content, &contlen);
             break;
+#ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             datalen = datalen - 7;
             pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen, 0, 0, 0, 0,
                               &prefix_a, &nonce, &ppkd, &content, &contlen);
             break;
+#endif
         default:
             pkt = 0;
     }

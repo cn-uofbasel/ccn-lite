@@ -75,6 +75,15 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 
 // ----------------------------------------------------------------------
 
+#ifdef ESJ_DEMO
+extern int ccnl_named_pipe_write_content_object (struct ccnl_relay_s *ccnl,
+                                          unsigned char *buffer,
+                                          unsigned int len);
+extern int ccnl_named_pipe_write_notify_content_object (struct ccnl_relay_s *ccnl,
+                                          unsigned char *buffer,
+                                          unsigned int len);
+#endif
+
 #ifdef XXX
 #ifdef USE_ETHERNET
 

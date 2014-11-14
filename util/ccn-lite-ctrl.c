@@ -39,7 +39,7 @@
 
 #define USE_SUITE_CCNB
 // #define USE_SUITE_NDNTLV
-#define USE_SIGNATURES
+//#define USE_SIGNATURES
 
 #include "../ccnl-includes.h"
 #include "../ccnl.h"
@@ -736,7 +736,8 @@ make_next_seg_debug_interest(int num, char *out)
 int
 handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
 {
-   int num, typ, verified = 0, siglen;
+#ifdef USE_SIGNATURES
+   int num, typ, verified = 0, siglen = 0;
    unsigned char *sigtype = 0, *sig = 0;
    while (ccnl_ccnb_dehead(buf, buflen, &num, &typ) == 0) {
 
@@ -758,6 +759,9 @@ handle_ccn_signature(unsigned char **buf, int *buflen, char *relay_public_key)
     }
     Bail:
     return verified;
+#else
+    return 1;
+#endif
 }
 
 /**
@@ -807,7 +811,7 @@ check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferle
     if(typ != CCN_TT_BLOB) return 0;
     contentlen = num;
 
-    newbuffer = realloc(*recvbuffer, (*recvbufferlen+contentlen)*sizeof(char));
+    newbuffer = realloc(*recvbuffer, (*recvbufferlen+contentlen)*sizeof(unsigned char));
     *recvbuffer = newbuffer;
     memcpy(*recvbuffer+*recvbufferlen, buf, contentlen);
     *recvbufferlen += contentlen;

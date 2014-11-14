@@ -117,6 +117,17 @@ Bail:
     return NULL;
 }
 
+extern void dump_buf (unsigned char *buf, unsigned char *data, unsigned int size);
+
+extern unsigned long int ccnl_get_unique_id (void);
+extern int ccnl_named_pipe_write_interest (struct ccnl_relay_s *ccnl,
+                                    unsigned long int fromptr,
+                                    unsigned char *buffer,
+                                    unsigned int len);
+
+extern int ccnl_named_pipe_write_content_object (struct ccnl_relay_s *ccnl,
+                                          unsigned char *buffer,
+                                          unsigned int len);
 
 int
 ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
@@ -128,6 +139,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = 0;
+
     DEBUGMSG(99, "ccnl/ccnb forwarder (%d bytes left)\n", *datalen);
 
     buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
@@ -163,8 +175,11 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             sendtomonitor(ccnl, monitorpacket, l);
 #endif
             ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
-        }
-        else{
+        } else {
+#ifdef ESJ_DEMO
+            ccnl_named_pipe_write_content_object(relay, c->pkt->data,
+                            c->pkt->datalen);
+#endif
             ccnl_app_RX(ccnl, c);
         }
 		goto Skip;
@@ -204,9 +219,22 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 	    if (ppkd)
 		i->details.ccnb.ppkd = ppkd, ppkd = NULL;
 	    if (i) { // CONFORM: Step 3 (and 4)
-		DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
-		if (scope > 2)
-            ccnl_interest_propagate(ccnl, i);
+		DEBUGMSG(7, "  created new interest entry %p scope %d\n",
+                         (void *) i, scope);
+		if (scope > 2) {
+#ifdef ESJ_DEMO     
+                    if (from->ifndx >= 0) {
+                        i->uid = ccnl_get_unique_id();
+                        DEBUGMSG(99, "  intercepting new interest entry of len %d\n",
+                                 i->pkt->datalen);
+                        ccnl_named_pipe_write_interest(relay,
+                                i->uid,
+                                i->pkt->data,  // full datagram
+                                i->pkt->datalen);  // ?last 8 bytes contains some junk?
+                    } else
+#endif
+                    ccnl_interest_propagate(ccnl, i);
+                }
 	    }
 	} else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
 	    DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
@@ -289,7 +317,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #endif //CCNL_NFN
         if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
 		// CONFORM: "A node MUST NOT forward unsolicited data [...]"
-		DEBUGMSG(7, "  removed because no matching interest\n");
+		DEBUGMSG(8, "  removed because no matching interest\n");
 		free_content(c);
 		goto Skip;
 	    }
@@ -309,6 +337,7 @@ Done:
     free_3ptr_list(buf, nonce, ppkd);
     return rc;
 }
+
 
 int
 ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,

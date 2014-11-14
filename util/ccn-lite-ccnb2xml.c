@@ -32,7 +32,7 @@
 #include <openssl/obj_mac.h>
 
 
-#define USE_SIGNATURES
+//#define USE_SIGNATURES
 #define USE_SUITE_CCNB
 
 #include "../ccnl.h"
@@ -336,10 +336,10 @@ handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
     return 0;
 }
 
-#ifdef USE_SIGNATURES
 int 
 handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
 {
+#ifdef USE_SIGNATURES
    int num, typ, i;
    if(ccnl_ccnb_dehead(buf, buflen, &num, &typ)) return -1; 
    if (typ != CCN_TT_BLOB) return 0;
@@ -355,10 +355,11 @@ handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
    *buflen -= (num+1);
    *buf += (num+1);
    
-    
     return 0;
-}
+#else
+    return 0;
 #endif /*USE_SIGNATURES*/
+}
 
 int 
 handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *stream)

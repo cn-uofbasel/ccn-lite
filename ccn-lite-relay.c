@@ -39,10 +39,14 @@
 #define USE_SCHEDULER
 #define USE_SUITE_CCNB
 // #define USE_SUITE_CCNTLV
-#define USE_SUITE_LOCALRPC
-#define USE_SUITE_NDNTLV
+//#define USE_SUITE_LOCALRPC
+//#define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
+
+#ifdef ESJ_DEMO
+#define USE_NAMED_PIPE 
+#endif
 
 #include "ccnl-includes.h"
 
@@ -58,6 +62,8 @@
 #define ccnl_print_stats(x,y)		do{}while(0)
 
 #include "ccnl-util.c"
+
+
 #include "ccnl-core.c"
 
 #ifdef USE_SUITE_CCNB
@@ -80,11 +86,13 @@
 #include "ccnl-ext-nfn.c"
 #endif
 
+#include "ccnl-ext-pipes.c"
+
 
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite = CCNL_SUITE_NDNTLV; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
+char suite = CCNL_SUITE_CCNB; // = CCNL_SUITE_CCNB, or = CCNL_SUITE_NDNTLV
 
 struct timeval*
 ccnl_run_events()
@@ -202,6 +210,7 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
     si->sin_family = PF_INET;
     if(bind(s, (struct sockaddr *)si, sizeof(*si)) < 0) {
         perror("udp sock bind");
+        printf(" port %d", port);
 	return -1;
     }
     len = sizeof(*si);
@@ -326,13 +335,32 @@ void ccnl_ageing(void *relay, void *aux)
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 		  int httpport, char *uxpath, int suite, int max_cache_entries,
-                  char *crypto_face_path)
+                  char *crypto_face_path, char *named_pipe_prefix)
 {
     struct ccnl_if_s *i;
 
     DEBUGMSG(99, "ccnl_relay_config\n");
 
     relay->max_cache_entries = max_cache_entries;       
+
+#ifdef ESJ_DEMO
+    char named_pipe[256];
+    sprintf(named_pipe, "%s-%s", named_pipe_prefix, "pytoc");
+    relay->named_pipe_read_fd = open(named_pipe, O_RDWR);
+    if (relay->named_pipe_read_fd == -1) {
+        fprintf(stderr, "Opening named read pipe failed\n");
+    }
+    DEBUGMSG(99, "Opened named read pipe %s\n", named_pipe);
+    
+    sprintf(named_pipe, "%s-%s", named_pipe_prefix, "ctopy");
+    relay->named_pipe_write_fd = open(named_pipe, O_RDWR);
+    if (relay->named_pipe_write_fd == -1) {
+        fprintf(stderr, "Opening named write pipe failed\n");
+    }
+    DEBUGMSG(99, "Opened named write pipe %s\n", named_pipe);
+    /* TODO: find where to close? */
+#endif
+
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
@@ -380,7 +408,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 		i->sched = relay->defaultInterfaceScheduler(relay,
 							ccnl_interface_CTS);
 	} else
-	    fprintf(stderr, "sorry, could not open udp device\n");
+	    fprintf(stderr, "sorry, could not open udp device port %d\n", 
+                    udpport);
     }
 
 #ifdef USE_HTTP_STATUS
@@ -461,10 +490,6 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 	fprintf(stderr, "no socket to work with, not good, quitting\n");
 	exit(EXIT_FAILURE);
     }
-    for (i = 0; i < ccnl->ifcount; i++)
-	if (ccnl->ifs[i].sock > maxfd)
-	    maxfd = ccnl->ifs[i].sock;
-    maxfd++;
 
     DEBUGMSG(1, "starting main event and IO loop\n");
     while(!ccnl->halt_flag) {
@@ -476,22 +501,44 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 #ifdef USE_HTTP_STATUS
 	ccnl_http_anteselect(ccnl, ccnl->http, &readfs, &writefs, &maxfd);
 #endif
+
+#define MAX(a,b) ((a)>=(b))?(a):(b)
 	for (i = 0; i < ccnl->ifcount; i++) {
 	    FD_SET(ccnl->ifs[i].sock, &readfs);
+	    maxfd = MAX(maxfd, ccnl->ifs[i].sock);
 	    if (ccnl->ifs[i].qlen > 0)
 		FD_SET(ccnl->ifs[i].sock, &writefs);
 	}
 
+#ifdef ESJ_DEMO
+        FD_SET(ccnl->named_pipe_read_fd, &readfs);
+        maxfd = MAX(maxfd, ccnl->named_pipe_read_fd);
+#endif
+#undef MAX
+
 	timeout = ccnl_run_events();
-	rc = select(maxfd, &readfs, &writefs, NULL, timeout);
+	rc = select(maxfd+1, &readfs, &writefs, NULL, timeout);
 
 	if (rc < 0) {
 	    perror("select(): ");
 	    exit(EXIT_FAILURE);
-	}
+	} 
 
 #ifdef USE_HTTP_STATUS
 	ccnl_http_postselect(ccnl, ccnl->http, &readfs, &writefs);
+#endif
+#ifdef ESJ_DEMO
+        if (FD_ISSET(ccnl->named_pipe_read_fd, &readfs)) {
+            /* 
+            char buffer[256];
+            memset(buffer, 0, sizeof(buffer));
+            read(ccnl->named_pipe_read_fd, buffer, sizeof(buffer));
+            printf("%s", buffer);
+            */
+            extern int
+                ccnl_named_pipe_reader (struct ccnl_relay_s *ccnl);
+            ccnl_named_pipe_reader(ccnl);
+        }
 #endif
 	for (i = 0; i < ccnl->ifcount; i++) {
 	    if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
@@ -587,7 +634,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 		    struct ccnl_content_s *c = 0;
 		    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
 		    unsigned char *content, *data;
-		    int contlen, typ, len;
+		    int contlen;
 
 		    buf->datalen = datalen;
 		    switch (suite) {
@@ -603,6 +650,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 #endif
 #ifdef USE_SUITE_NDNTLV
 		    case CCNL_SUITE_NDNTLV:
+                    {
+                        int typ, len;
 			data = buf->data;
 			if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
 			    typ != NDN_TLV_Data)
@@ -611,6 +660,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path, int suite)
 						  &data, &datalen, 0, 0, 0, 0,
 				&prefix, &nonce, &ppkd, &content, &contlen);
 			break;
+                    }
 #endif
 		    default:
 			goto Done;
@@ -660,11 +710,16 @@ main(int argc, char **argv)
     char *uxpath = NULL;
 #endif
 
+    char *named_pipe_prefix = NULL;
+
     time(&theRelay.startup_time);
     srandom(time(NULL));
-    udpport = httpport = NDN_UDP_PORT;
-
+    udpport = httpport = CCN_UDP_PORT;
+#ifdef ESJ_DEMO
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:n:")) != -1) {
+#else
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
+#endif
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -701,6 +756,11 @@ main(int argc, char **argv)
 		break;
 	    }
 	    break;
+#ifdef ESJ_DEMO
+        case 'n':
+            named_pipe_prefix = optarg;
+            break;
+#endif
         case 't':
             httpport = atoi(optarg);
             break;
@@ -728,7 +788,9 @@ main(int argc, char **argv)
 		    " [-t tcpport (for HTML status page)]"
 		    " [-u udpport]"
 		    " [-v DEBUG_LEVEL]"
-
+#ifdef ESJ_DEMO
+                    " [-n named pipe prefix]"
+#endif
 #ifdef USE_UNIXSOCKET
                     " [-p crypto_face_ux_socket]"
 		    " [-x unixpath]"
@@ -744,7 +806,8 @@ main(int argc, char **argv)
     DEBUGMSG(1, "  compile options: %s\n", compile_string());
 
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
-		      uxpath, suite, max_cache_entries, crypto_sock_path);
+		      uxpath, suite, max_cache_entries, crypto_sock_path, 
+                      named_pipe_prefix);
     if (datadir)
 	ccnl_populate_cache(&theRelay, datadir, suite);
     

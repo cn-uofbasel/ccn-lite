@@ -230,7 +230,8 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     struct ccnl_face_s *f2;
     struct ccnl_interest_s *pit;
     struct ccnl_forward_s **ppfwd;
-    DEBUGMSG(1, "ccnl_face_remove relay=%p face=%p\n", (void*)ccnl, (void*)f);
+    DEBUGMSG(1, "ccnl_face_remove relay=%p face=%p id = %d\n", (void*)ccnl, 
+            (void*)f, f->faceid);
 
     ccnl_sched_destroy(f->sched);
     ccnl_frag_destroy(f->frag);
@@ -478,6 +479,9 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #endif
     }
     i->last_used = CCNL_NOW();
+#ifdef ESJ_DEMO
+    i->uid = 0;  // 0 indicates no interception
+#endif
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
     return i;
 }
@@ -654,6 +658,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
 		 unsigned char *content, int contlen)
 {
     struct ccnl_content_s *c;
+
     DEBUGMSG(99, "ccnl_content_new <%s>\n",
          prefix==NULL ? NULL : ccnl_prefix_to_path(*prefix));
 
@@ -676,6 +681,14 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
 	}
 	*ppk = NULL;
     }
+#ifdef ESJ_DEMO
+    {
+        // TODO remove. ccnl_prefix_to_path is a flaky debug thing.
+        char *prefix_str = ccnl_prefix_to_path(*prefix);
+        DEBUGMSG(99, "Notifying new content added \n %s\n", prefix_str);
+        //ccnl_named_pipe_write_notify_content_object(ccnl, prefix_str, strlen(prefix_str));
+    }
+#endif
     return c;
 }
 
@@ -786,6 +799,13 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     #endif
                  ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt));
             } else {// upcall to deliver content to local client
+#ifdef ESJ_DEMO
+                DEBUGMSG(99, "  Intercepting content object\n");
+
+                ccnl_named_pipe_write_content_object(ccnl,
+                                                     c->pkt->data,
+                                                     c->pkt->datalen);
+#endif
                 ccnl_app_RX(ccnl, c);
             }
             c->served_cnt++;
@@ -823,8 +843,19 @@ ccnl_do_ageing(void *ptr, void *dummy)
 	    // CONFORM: "A node MUST retransmit Interest Messages
 	    // periodically for pending PIT entries."
 	    DEBUGMSG(7, " retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
+
+#ifdef ESJ_DEMO
+            /* handle these timeouts differently
+            */
+            if (i->uid != 0) {
+                DEBUGMSG(7, " skipping retransmit %d <%s>\n", i->retries, ccnl_prefix_to_path(i->prefix));
+            } else
+#endif
+
 #ifdef CCNL_NFN
-	    if(i->propagate) ccnl_interest_propagate(relay, i);
+	    if (i->propagate)
+                ccnl_interest_propagate(relay, i);
+            else
 #else
             ccnl_interest_propagate(relay, i);
 #endif

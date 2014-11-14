@@ -24,9 +24,6 @@
 #ifndef CCNL_CORE
 #define CCNL_CORE
 
-#define EXACT_MATCH 1
-#define PREFIX_MATCH 0
-
 #define CMP_EXACT   0 // used to compare interests among themselves
 #define CMP_MATCH   1 // used to match interest and content
 #define CMP_LONGEST 2 // used to lookup the FIB
@@ -109,7 +106,15 @@ struct ccnl_relay_s {
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
     char *crypto_path;
+
+#ifdef ESJ_DEMO
+    int    named_pipe_read_fd;
+    int    named_pipe_write_fd;
+#endif
 };
+
+
+
 
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;
@@ -231,6 +236,9 @@ struct ccnl_content_s {
 	struct ccnl_ndntlv_cd_s ndntlv;
     } details;
     char suite;
+#ifdef ESJ_DEMO
+    unsigned long int uid;
+#endif
 };
 
 // ----------------------------------------------------------------------

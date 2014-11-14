@@ -41,7 +41,7 @@
 
 
 #define USE_SUITE_CCNB
-#define USE_SUITE_NDNTLV
+//#define USE_SUITE_NDNTLV
 
 #include "../ccnl.h"
 
@@ -82,6 +82,7 @@ myexit(int rc)
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_SUITE_NDNTLV
 int
 ndntlv_mkInterest(char **namecomp, int *nonce,
 		  unsigned char *out, int outlen)
@@ -94,8 +95,7 @@ ndntlv_mkInterest(char **namecomp, int *nonce,
 
     return len;
 }
-
-
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -203,10 +203,10 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, i=0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, i = 0, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *prefix[CCNL_MAX_NAME_COMP], *udp = "127.0.0.1/6363", *ux = NULL;
     struct sockaddr sa;
-    float wait = 3.0;
+    float wait = 4.0;
     int (*mkInterest)(char**,int*,unsigned char*,int);
     int (*isContent)(unsigned char*,int);
 
@@ -268,9 +268,14 @@ Usage:
 	strcpy(su->sun_path, ux);
 	sock = ux_open();
     } else { // UDP
+        char *t_udp = strdup(udp);
+        if (!t_udp) {
+            fprintf(stderr, "Memory fail");
+            exit(-1);
+        }
 	struct sockaddr_in *si = (struct sockaddr_in*) &sa;
 	si->sin_family = PF_INET;
-	si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
+	si->sin_addr.s_addr = inet_addr(strtok(t_udp, "/"));
 	si->sin_port = htons(atoi(strtok(NULL, "/")));
 	sock = udp_open();
     }
@@ -279,10 +284,11 @@ Usage:
 	char *uri = strdup(argv[optind]), *cp;
 	int nonce = random();
 
-	cp = strtok(argv[optind], "|");
+        i = 0;
+	cp = strtok(uri, "/");
 	while (i < (CCNL_MAX_NAME_COMP - 1) && cp) {
 	    prefix[i++] = cp;
-	    cp = strtok(NULL, "|");
+	    cp = strtok(NULL, "/");
 	}
 	prefix[i] = NULL;
 	len = mkInterest(prefix, &nonce, out, sizeof(out));

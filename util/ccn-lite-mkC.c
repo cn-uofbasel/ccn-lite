@@ -21,7 +21,7 @@
  */
 
 #define USE_SUITE_CCNB
-#define USE_SIGNATURES
+//#define USE_SIGNATURES
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     unsigned char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int i = 0, f, len, opt, plen;
+    int i = 0, f, len = 0, opt, plen = 0;
     char *prefix[CCNL_MAX_NAME_COMP], *cp;
     int packettype = 2;
     private_key_path = 0;
