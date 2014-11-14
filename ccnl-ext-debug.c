@@ -2,7 +2,7 @@
  * @f ccnl-ext-debug.c
  * @b CCNL debugging support, dumping routines, memory tracking, stats
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,9 +36,9 @@
 #define TRACE   99 // TRACE 
 #define VERBOSE 100 // VERBOSE 
 
-#define _TRACE(F,P) if (debug_level >= TRACE)                             \
-                      fprintf(stderr, "[T] %s%c %s()  // %s:%d\n",        \
-                              timestamp(), (P), (F), __FILE__, __LINE__)
+#define _TRACE(F,P) if (debug_level >= TRACE)                            \
+                      fprintf(stderr, "[%c] %s: %s() in %s:%d\n",        \
+                              (P), timestamp(), (F), __FILE__, __LINE__)
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  define TRACEIN(F)    do { _TRACE(__func__, '>'); } while (0)
@@ -63,6 +63,19 @@ ccnl_debugLevelToChar(int level)
     }
 }
 
+int
+ccnl_debug_str2level(char *s)
+{
+    if (!strcmp(s, "fatal"))   return FATAL;
+    if (!strcmp(s, "error"))   return ERROR;
+    if (!strcmp(s, "warning")) return WARNING;
+    if (!strcmp(s, "info"))    return INFO;
+    if (!strcmp(s, "debug"))   return DEBUG;
+    if (!strcmp(s, "trace"))   return TRACE;
+    if (!strcmp(s, "verbose")) return VERBOSE;
+    return 1;
+}
+
 #define DEBUGSTMT(LVL, ...) do { \
         if ((LVL)>debug_level) break; \
         __VA_ARGS__; \
@@ -71,16 +84,17 @@ ccnl_debugLevelToChar(int level)
 #ifndef CCNL_LINUXKERNEL
 #  define DEBUGMSG(LVL, ...) do {                   \
         if ((LVL)>debug_level) break;               \
-        fprintf(stderr, "[%c] %s",                  \
+        fprintf(stderr, "[%c] %s: ",                \
             ccnl_debugLevelToChar(LVL),             \
             timestamp());                           \
-        if(debug_level >= TRACE) {                  \
-            fprintf(stderr, " %s %s:%d",            \
-                    __func__, __FILE__, __LINE__);  \
-        }                                           \
-        fprintf(stderr, ":\t");                     \
         fprintf(stderr, __VA_ARGS__);               \
     } while (0)
+/*
+        if (debug_level >= TRACE)                   \
+            fprintf(stderr, "[>] %s: %s() in %s:%d\n",         \
+                    timestamp(), __func__, __FILE__, __LINE__); \
+
+ */
 
 #else // CCNL_LINUXKERNEL
 #  define DEBUGMSG(LVL, ...) do {       \
@@ -630,6 +644,8 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
 #else // !USE_DEBUG
 #  define DEBUGSTMT(LVL, ...)                   do {} while(0)
 #  define DEBUGMSG(LVL, ...)                    do {} while(0)
+#  define TRACEIN(...)                          do {} while(0)
+#  define TRACEOUT(...)                         do {} while(0)
 #endif // !USE_DEBUG
 
 // -----------------------------------------------------------------
