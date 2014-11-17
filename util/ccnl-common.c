@@ -107,6 +107,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 #ifdef USE_SUITE_CCNB
 
+#ifdef NEEDS_PACKET_CRAFTING
 int
 ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
                      char *maxSuffix, unsigned char *digest, int dlen,
@@ -158,6 +159,7 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
 
     return len;
 }
+#endif
 
 int ccnb_isContent(unsigned char *buf, int len)
 {
@@ -169,9 +171,13 @@ int ccnb_isContent(unsigned char *buf, int len)
         return 0;
     return 1;
 }
-#endif
+#endif // USE_SUITE_CCNB
+
+// ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_CCNTLV
+
+#ifdef NEEDS_PACKET_CRAFTING
 int
 ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
                   unsigned char *out, int outlen)
@@ -185,6 +191,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 
      return len;
 }
+#endif
 
 int ccntlv_isObject(unsigned char *buf, int len)
 {
@@ -214,9 +221,13 @@ int ccntlv_isObject(unsigned char *buf, int len)
     else
         return 0;
 }
-#endif
+#endif // USE_SUITE_CCNTLV
+
+// ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_NDNTLV
+
+#ifdef NEEDS_PACKET_CRAFTING
 int
 ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
                   unsigned char *out, int outlen)
@@ -230,6 +241,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 
     return len;
 }
+#endif
 
 int ndntlv_isData(unsigned char *buf, int len)
 {
@@ -241,7 +253,7 @@ int ndntlv_isData(unsigned char *buf, int len)
         return 0;
     return 1;
 }
-#endif
+#endif // USE_SUITE_NDNTLV
 
 #endif //CCNL_COMMON_C
 // eof
