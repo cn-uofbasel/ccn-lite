@@ -28,6 +28,8 @@
 #include "ccnl-ext-debug.h"
 #ifdef USE_DEBUG
 
+extern int debug_level;
+
 #define FATAL   94 // FATAL
 #define ERROR   95 // ERROR
 #define WARNING 96 // WARNING 
@@ -785,14 +787,17 @@ debug_memdump()
 {
     struct mhdr *h;
 
-    fprintf(stderr, "%s: @@@ memory dump starts\n", timestamp());
+    //    fprintf(stderr, "%s: @@@ memory dump starts\n", timestamp());
+    DEBUGMSG(DEBUG, "%s: @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
-        fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
+      //        fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
+        DEBUGMSG(DEBUG, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
                 timestamp(),
                 (unsigned char *)h + sizeof(struct mhdr),
                 h->size, h->fname, h->lineno, h->tstamp);
     }
-    fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
+//    fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
+    DEBUGMSG(DEBUG, "%s: @@@ memory dump ends\n", timestamp());
 }
 
 #else // !USE_DEBUG_MALLOC
