@@ -189,21 +189,10 @@ ccnl_URItoComponents(char **compVector, char *uri)
     return i;
 }
 
-// turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
-{
+ccnl_componentstoPrefix(char **compvect, int cnt, char *nfnexpr, int suite, unsigned int *chunknum){
     struct ccnl_prefix_s *p;
-    char *compvect[CCNL_MAX_NAME_COMP];
-    int cnt, i, len = 0;
-
-    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, nfnexpr);
-
-    if (strlen(uri))
-        cnt = ccnl_URItoComponents(compvect, uri);
-    else
-        cnt = 0;
+    int i, len = 0;
     if (nfnexpr && *nfnexpr)
         cnt += 1;
 
@@ -221,7 +210,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     if (suite == CCNL_SUITE_CCNTLV)
         len += cnt * 4; // add TL size
 #endif
-    
     p->bytes = ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
@@ -245,9 +233,30 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         p->chunknum = ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
-
-
     return p;
+
+
+}
+
+
+// turn an URI into an internal prefix (watch out: this modifies the uri string)
+struct ccnl_prefix_s *
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
+{
+    char *compvect[CCNL_MAX_NAME_COMP];
+    int cnt;
+
+    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+             ccnl_suite2str(suite), uri, nfnexpr);
+
+    if (strlen(uri))
+        cnt = ccnl_URItoComponents(compvect, uri);
+    else
+        cnt = 0;
+    /*if (nfnexpr && *nfnexpr)
+        cnt += 1;*/
+
+    return ccnl_componentstoPrefix(compvect, cnt, nfnexpr, suite, chunknum);
 }
 
 struct ccnl_prefix_s*

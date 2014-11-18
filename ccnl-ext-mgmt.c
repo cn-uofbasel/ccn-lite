@@ -1513,92 +1513,57 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
-    unsigned char *data;
-    int buflen, datalen, contlen;
-    int num, typ, suite;
-    
-    struct ccnl_prefix_s *prefix_a = 0;
-    struct ccnl_content_s *c = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-    unsigned char *content;
-    
-    //unsigned char *sigtype = 0, *sig = 0;
-    char *answer = "Failed to add content";
-    
+    unsigned char **components = 0;
+    //unsigned char *data;
+    int buflen;//, datalen, contlen;
+    int num, typ, i, num_of_components = -1;//, suite;
+
+    //struct ccnl_prefix_s *prefix_a = 0;
+    //struct ccnl_content_s *c = 0;
+    /*struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0*/;
+    //unsigned char *content;
+
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", "received add to cache request, inizializing callback");
+
+    components = (unsigned char**) ccnl_malloc(sizeof(unsigned char*)*1024);
+    for(i = 0; i < 1024; ++i)components[i] = 0;
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
 
-    
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
     if (typ != CCN_TT_BLOB) goto Bail;
-    
 
-    datalen = buflen - 2;
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
+        if (num==0 && typ==0)
+            break; // end
+        ++num_of_components;
+        extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
 
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+    ++num_of_components;
 
-    data = buf + 2;
-
-    suite = ccnl_pkt2suite(buf, buflen);
-    //add object to cache here...
-
-    switch(suite){
-        case CCNL_SUITE_CCNB:
-
-            pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-                    &prefix_a, &nonce, &ppkd, &content, &contlen);
-            break;
-        case CCNL_SUITE_NDNTLV:
-            datalen = datalen - 7;
-            pkt = ccnl_ndntlv_extract(data - buf, &data, &datalen,
-                                      0, 0, 0, 0, NULL, &prefix_a, NULL,
-                                      &nonce, &ppkd, &content, &contlen);
-            break;
-        case CCNL_SUITE_CCNTLV: {
-            datalen -= (7 + 6);
-            data += 6;
-            pkt = ccnl_ccntlv_extract(8, &data, &datalen,
-                                      &prefix_a, 
-                                      0, 0, // keyid/len
-                                      0, // lastchunknum
-                                      &content, &contlen);
-            }
-            break;
-        default:
-            pkt = 0;
+//Howto create prefix???
+    struct ccnl_prefix_s *prefix_new = ccnl_malloc(sizeof(*prefix));
+    prefix_new->compcnt = num_of_components;
+    prefix_new->comp = ccnl_calloc(num_of_components, sizeof(char *));
+    prefix_new->complen = ccnl_calloc(num_of_components, sizeof(int));
+    for(i = 0; i < num_of_components; ++i)
+    {
+        prefix_new->comp[i] = components[i];
+        prefix_new->complen[i] = strlen((char *)components[i]);
     }
 
-    if (!pkt) {
-        DEBUGMSG(6, " parsing error\n"); goto Done;
-    }
-    if (!prefix_a) {
-        DEBUGMSG(6, " no prefix error\n"); goto Done;
-    }
+    //Create an Interest message hear to request the content....
 
-    c = ccnl_content_new(ccnl, suite, &pkt, &prefix_a, &ppkd,
-                        content, contlen);
 
-    if (!c || !c->name || !c->content) goto Done;
-    ccnl_content_add2cache(ccnl, c);
-    c->flags |= CCNL_CONTENT_FLAGS_STATIC;
-     
-    answer = "Content successfully added";
-    Done:
-        free_prefix(prefix_a);
-        ccnl_free(pkt);
-        ccnl_free(nonce);
-        ccnl_free(ppkd);
-
-    Bail:
-        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", answer);
+Bail:
     return 0;   
 }
 

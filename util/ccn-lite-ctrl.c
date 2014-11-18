@@ -510,28 +510,17 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
 }
 
 int
-mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_path)
+mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, char *private_key_path)
 {
-    long len = 0, len1 = 0, len2 = 0, len3 = 0;
-    long fsize;
-    unsigned char *ccnb_file, *contentobj, *stmt, *out1;
-    FILE *f = fopen(file_uri, "r");
-    if(!f) return 0;
-
-    //determine size of the file
-    fseek(f, 0L, SEEK_END);
-    fsize = ftell(f);
-    fseek(f, 0L, SEEK_SET);
-
-    ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
-    fread(ccnb_file, fsize, 1, f);
-    fclose(f);
+    long len = 0, len1 = 0, len2 = 0, len3 = 0, i = 0;
+    unsigned char *contentobj, *stmt, *out1;
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, suite, NULL, NULL);
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
-    out1 = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
-    contentobj = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 4000);
-    stmt = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 1000);
+    out1 = (unsigned char *) malloc(sizeof(unsigned char) * 5000);
+    contentobj = (unsigned char *) malloc(sizeof(unsigned char) * 4000);
+    stmt = (unsigned char *) malloc(sizeof(unsigned char)* 1000);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -540,14 +529,15 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    //add content to interest...
-    len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len3 += ccnl_ccnb_addBlob(stmt+len3, (char*) ccnb_file, fsize);
-    stmt[len3++] = 0; // end content
+
+    for(i = 0; i < prefix->compcnt; ++i){
+       // len1 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix->comp[i]); // länge!?
+        len3 += ccnl_ccnb_mkBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char *)prefix->comp[i], prefix->complen[i]);
+    }
 
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
-    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_NAME, CCN_TT_DTAG,  // content
                              (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
 
@@ -563,7 +553,6 @@ mkAddToRelayCacheRequest(unsigned char *out, char *file_uri, char *private_key_p
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
     // printf("Contentlen %d\n", len1);
-    free(ccnb_file);
     free(contentobj);
     free(stmt);
     return len;
@@ -828,7 +817,7 @@ main(int argc, char *argv[])
     int numOfParts = 1;
     int msgOnly = 0;
     int suite = CCNL_SUITE_DEFAULT;
-    char *file_uri;
+    char *file_uri = NULL, *name = NULL;
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
@@ -836,7 +825,7 @@ main(int argc, char *argv[])
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
         ux = argv[2];
         argv += 2;
-        argc -= 2;
+//        argc -= 2;
     }
     else if (argv[1] && !strcmp(argv[1], "-u") && argc > 3) {
     udp = argv[2];
@@ -917,9 +906,12 @@ main(int argc, char *argv[])
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
-        if(argc < 3) goto Usage;
-        file_uri = argv[2];
-        len = mkAddToRelayCacheRequest(out, file_uri, private_key_path);
+        printf("Num of argc: %d\n", argc);
+        if(argc < 5) goto Usage;
+        name = argv[2];
+        file_uri = argv[3];
+        suite = ccnl_str2suite(argv[4]);
+        len = mkAddToRelayCacheRequest(out, name, suite, private_key_path);
     } else if(!strcmp(argv[1], "removeContentFromCache")){
         if(argc < 3) goto Usage;
         ccn_path = argv[2];
@@ -1001,6 +993,31 @@ main(int argc, char *argv[])
         printf("\n");
 
     printf("received %d bytes.\n", recvbufferlen);
+
+
+    if(!strcmp(argv[1], "addContentToCache")){
+        unsigned char *ccnb_file;
+        long fsize = 0;
+        FILE *f = fopen(file_uri, "r");
+        if(!f) return 0;
+        //determine size of the file
+        fseek(f, 0L, SEEK_END);
+        fsize = ftell(f);
+        fseek(f, 0L, SEEK_SET);
+
+        ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
+        fread(ccnb_file, fsize, 1, f);
+        fclose(f);
+
+        if(!use_udp)
+            ux_sendto(sock, ux, out, len);
+        else
+            udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
+
+        free(ccnb_file);
+    }
+
+
     } else if(msgOnly) {
         fwrite(out, len, 1, stdout);
     } else {
@@ -1029,7 +1046,7 @@ Usage:
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
-       "  addContentToCache             ccn-file\n"
+       "  addContentToCache             name ccn-file suite\n"
        "  removeContentFromCache        ccn-path\n"
        "where FRAG in none, seqd2012, ccnx2013\n"
        "-m is a special mode which only prints the interest message of the corresponding command",
