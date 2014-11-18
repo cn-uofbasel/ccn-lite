@@ -226,6 +226,7 @@ char* ccnl_suite2str(int suite);
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, char *uri);
+struct ccnl_prefix_s *ccnl_componentstoPrefix(char **compvect, int cnt, char *nfnexpr, int suite, unsigned int *chunknum);
 struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, unsigned int *chunknum);
 int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
