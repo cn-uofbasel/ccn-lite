@@ -226,7 +226,7 @@ char* ccnl_suite2str(int suite);
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, char *uri);
-struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, int *chunknum);
+struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, unsigned int *chunknum);
 int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
 int ccnl_pkt2suite(unsigned char *data, int len);
@@ -276,25 +276,18 @@ int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int d
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */
 #ifdef USE_SUITE_CCNTLV
-int ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval);
-int ccnl_ccntlv_dehead(unsigned char **buf, int *len, unsigned int *typ, unsigned int *vallen);
-struct ccnl_buf_s *ccnl_ccntlv_extract(int hdrlen, unsigned char **data, int *datalen, struct ccnl_prefix_s **prefix, unsigned char **keyid, int *keyidlen, int *chunknum, int *lastchunknum, unsigned char **content, int *contlen);
 int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201409_s *hdrptr, int hoplimit, unsigned char **data, int *datalen);
 int ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
-/* pkt-ccntlv-dec.c */
-int ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, int *intval);
+/* ccnl-pkt-ccntlv.c */
+int ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, unsigned int *intval);
 int ccnl_ccntlv_dehead(unsigned char **buf, int *len, unsigned int *typ, unsigned int *vallen);
-struct ccnl_buf_s *ccnl_ccntlv_extract(int hdrlen, unsigned char **data, int *datalen, struct ccnl_prefix_s **prefix, unsigned char **keyid, int *keyidlen, int *chunknum, int *lastchunknum, unsigned char **content, int *contlen);
-
-
-//---------------------------------------------------------------------------------------------------------------------------------------
-/* pkt-ccntlv-enc.c */
+struct ccnl_buf_s *ccnl_ccntlv_extract(int hdrlen, unsigned char **data, int *datalen, struct ccnl_prefix_s **prefix, unsigned char **keyid, int *keyidlen, unsigned int *lastchunknum, unsigned char **content, int *contlen);
 int ccnl_ccntlv_prependTL(unsigned int type, unsigned short len, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob, unsigned short len, int *offset, unsigned char *buf);
-int ccnl_ccntlv_prependNetworkVarInt(unsigned short type, int intval, int *offset, unsigned char *buf);
+int ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependFixedHdr(unsigned char ver, unsigned char packettype, unsigned short payloadlen, unsigned char hoplimit, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependChunkName(struct ccnl_prefix_s *name, int *chunknum, int *offset, unsigned char *buf);
 int ccnl_ccntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
@@ -317,15 +310,11 @@ int ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigne
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
-/* pkt-ndntlv-dec.c */
+/* ccnl-pkt-ndntlv.c */
 const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
-struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned char *final_block_id, int *final_block_id_len, struct ccnl_prefix_s **prefix, struct ccnl_prefix_s **tracing, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
-
-
-//---------------------------------------------------------------------------------------------------------------------------------------
-/* pkt-ndntlv-enc.c */
+struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned int *final_block_id, struct ccnl_prefix_s **prefix, struct ccnl_prefix_s **tracing, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
 int ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
 int ccnl_ndntlv_prependTL(int type, unsigned int len, int *offset, unsigned char *buf);
 int ccnl_ndntlv_prependNonNegInt(int type, unsigned int val, int *offset, unsigned char *buf);
