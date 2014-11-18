@@ -211,7 +211,9 @@ Usage:
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_prependContent(name, body, len, &offs,
-                                         NULL, NULL, out);
+                                         NULL, 
+                                         lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
+                                         out);
         break;
     default:
         break;
