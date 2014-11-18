@@ -19,7 +19,7 @@ $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ndn2013 | 
 
 sleep 3
 
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache /test/data $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv ndntlv
 
 sleep 3
 

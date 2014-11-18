@@ -1514,14 +1514,14 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {    
     unsigned char *buf;
     unsigned char **components = 0;
-    //unsigned char *data;
-    int buflen;//, datalen, contlen;
-    int num, typ, i, num_of_components = -1;//, suite;
+    unsigned char *data;
+    int buflen;//, contlen;
+    int num, typ, i, num_of_components = -1, suite = 2;
 
     //struct ccnl_prefix_s *prefix_a = 0;
     //struct ccnl_content_s *c = 0;
     /*struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0*/;
-    //unsigned char *content;
+    //unsigned char *content
 
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", "received add to cache request, inizializing callback");
 
@@ -1544,24 +1544,18 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             break; // end
         ++num_of_components;
         extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
-
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     ++num_of_components;
 
-//Howto create prefix???
-    struct ccnl_prefix_s *prefix_new = ccnl_malloc(sizeof(*prefix));
-    prefix_new->compcnt = num_of_components;
-    prefix_new->comp = ccnl_calloc(num_of_components, sizeof(char *));
-    prefix_new->complen = ccnl_calloc(num_of_components, sizeof(int));
-    for(i = 0; i < num_of_components; ++i)
-    {
-        prefix_new->comp[i] = components[i];
-        prefix_new->complen[i] = strlen((char *)components[i]);
-    }
+    struct ccnl_prefix_s *prefix_new = ccnl_componentstoPrefix((char**)components, num_of_components, NULL, suite, NULL);
+    data = ccnl_calloc(CCNL_MAX_PACKET_SIZE, sizeof(char));
 
-    //Create an Interest message hear to request the content....
-
+    struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
+    struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);
+    if(!interest) return 0;
+    //Send interest to from!
+    ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
 
 Bail:
     return 0;   
