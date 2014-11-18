@@ -289,6 +289,46 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     return p;
 }
 
+int
+ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmplen)
+{
+    int lastcmp = prefix->compcnt, i;
+    int *oldcomplen = prefix->complen;
+    unsigned char **oldcomp = prefix->comp;
+    unsigned char *oldbytes = prefix->bytes;
+
+    int prefixlen = 0;
+
+    if(prefix->compcnt + 1 > CCNL_MAX_NAME_COMP) 
+        return -1;
+    for(i = 0; i < lastcmp; i++) {
+        prefixlen += prefix->complen[i];
+    }
+
+    prefix->compcnt++;
+    prefix->comp = (unsigned char**) ccnl_malloc(prefix->compcnt * sizeof(unsigned char*));
+    prefix->complen = (int*) ccnl_malloc(prefix->compcnt * sizeof(int));
+    prefix->bytes = (unsigned char*) ccnl_malloc(prefixlen + cmplen);
+
+    memcpy(prefix->bytes, oldbytes, prefixlen);
+    memcpy(prefix->bytes + prefixlen, cmp, cmplen);
+
+    prefixlen = 0;
+    for(i = 0; i < lastcmp; i++) {
+        prefix->comp[i] = &prefix->bytes[prefixlen];
+        prefix->complen[i] = oldcomplen[i];
+        prefixlen += oldcomplen[i];
+    }
+    prefix->comp[lastcmp] = &prefix->bytes[prefixlen];
+    prefix->complen[lastcmp] = cmplen;
+
+    ccnl_free(oldcomp);
+    ccnl_free(oldcomplen);
+    ccnl_free(oldbytes);
+
+    return 0;
+}
+
 // ----------------------------------------------------------------------
 
 int
