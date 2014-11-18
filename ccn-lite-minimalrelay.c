@@ -66,6 +66,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
+#define TRACEIN(...)                    do {} while(0)
+#define TRACEOUT(...)                   do {} while(0)
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)

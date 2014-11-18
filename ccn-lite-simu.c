@@ -139,11 +139,11 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
         return;
 
     sprintf(tmp, "%s/.%d", name, seqn);
-    DEBUGMSG(99, "  %s\n", tmp);
+    DEBUGMSG(VERBOSE, "  %s\n", tmp);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(99, "  %s\n", ccnl_prefix_to_path(p));
+    DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(p));
     buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
     c = ccnl_content_new(relay, theSuite, &buf, &p,
                          NULL, buf->data + dataoffset, len);
@@ -162,7 +162,8 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     struct ccnl_buf_s *buf;
     struct ccnl_relay_s *relay = char2relay(node);
 
-    DEBUGMSG(10, "ccnl_client_tx node=%c: request %s #%d\n", node, name, seqn);
+    DEBUGMSG(TRACE, "ccnl_client_tx node=%c: request %s #%d\n",
+             node, name, seqn);
 
     if (!relay)
         return;
@@ -171,7 +172,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(99, "  create interest for %s\n", ccnl_prefix_to_path(p));
+    DEBUGMSG(TRACE, "  create interest for %s\n", ccnl_prefix_to_path(p));
     buf = ccnl_mkSimpleInterest(p, &nonce);
     free_prefix(p);
 
@@ -218,13 +219,13 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
             sun.sa.sa_family = AF_PACKET;
             memcpy(sun.eth.sll_addr, p->src, ETH_ALEN);
 
-            DEBUGMSG(10, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
+            DEBUGMSG(DEBUG, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
                      p->len, eth2ascii(p->dst), qlen);
 
             ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
                         p->len, &sun.sa, sizeof(sun.eth));
         } else {
-            DEBUGMSG(10, "simu_ethernet: dest %s not found\n",
+            DEBUGMSG(WARNING, "simu_ethernet: dest %s not found\n",
                      eth2ascii(etherqueue->dst));
         }
         ccnl_free(p);
@@ -262,7 +263,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         tmp2[p->complen[p->compcnt-1]] = '\0';
     }
 
-    DEBUGMSG(10, "app delivery at node %c, name=%s%s\n",
+    DEBUGMSG(INFO, "app delivery at node %c, name=%s%s\n",
              relay2char(ccnl), tmp, tmp2);
 
     ccnl_simu_client_RX(ccnl, tmp, atoi(tmp2+1),
@@ -280,10 +281,10 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
     for (cnt = 0, p = etherqueue; p; p = p->next, cnt++);
 
-    DEBUGMSG(29, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
+    DEBUGMSG(TRACE, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
              ccnl_addr2ascii(dst), buf->datalen, cnt,
              buf->data[0], buf->data[1]);
-    DEBUGMSG(29, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
+    DEBUGMSG(TRACE, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));
 
     p = ccnl_calloc(1, sizeof(*p) + 2*ETH_ALEN + buf->datalen);
     p->dst = (unsigned char*)p + sizeof(*p);
@@ -451,7 +452,7 @@ ccnl_simu_init_node(char node, const char *addr,
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_if_s *i;
 
-    DEBUGMSG(99, "ccnl_simu_init_node\n");
+    DEBUGMSG(TRACE, "ccnl_simu_init_node\n");
 
     relay->id = relay - relays;
     relay->max_cache_entries = node == 'C' ? -1 : max_cache_entries;
@@ -498,7 +499,7 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     sockunion sun;
     char *cp;
 
-    DEBUGMSG(99, "ccnl_simu_add_fwd\n");
+    DEBUGMSG(TRACE, "ccnl_simu_add_fwd\n");
 
     sun.eth.sll_family = AF_PACKET;
     memcpy(sun.eth.sll_addr, dst->ifs[0].addr.eth.sll_addr, ETH_ALEN);
@@ -530,7 +531,7 @@ ccnl_simu_init(int max_cache_entries)
         return 0;
     init_was_visited = 1;
 
-    DEBUGMSG(99, "ccnl_simu_init\n");
+    DEBUGMSG(TRACE, "ccnl_simu_init\n");
 
  #ifdef USE_SCHEDULER
     // initialize the scheduling subsystem
@@ -626,7 +627,7 @@ simu_eventloop()
             (fct2)(aux1, aux2);
         }
     }
-    DEBUGMSG(0, "simu event loop: no more events to handle\n");
+    DEBUGMSG(ERROR, "simu event loop: no more events to handle\n");
 }
 
 #define end_log(CHANNEL) do { if (CHANNEL){ \
@@ -700,7 +701,10 @@ main(int argc, char **argv)
             inter_ccn_interval = atoi(optarg);
             break;
         case 'v':
-            debug_level = atoi(optarg);
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
             break;
         case 's':
             theSuite = ccnl_str2suite(optarg);
@@ -722,18 +726,18 @@ main(int argc, char **argv)
 
     ccnl_core_init();
 
-    DEBUGMSG(1, "This is ccn-lite-simu, starting at %s",
+    DEBUGMSG(INFO, "This is ccn-lite-simu, starting at %s",
              ctime(&relays[0].startup_time) + 4);
-    DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
-    DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(1, "  compile options: %s\n", compile_string());
-    DEBUGMSG(1, "using suite %s\n", ccnl_suite2str(theSuite));
+    DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(theSuite));
 
     ccnl_simu_init(max_cache_entries);
 
-    DEBUGMSG(1, "simulation starts\n");
+    DEBUGMSG(INFO, "simulation starts\n");
     simu_eventloop();
-    DEBUGMSG(1, "simulation ends\n");
+    DEBUGMSG(INFO, "simulation ends\n");
 
     return -1;
 }

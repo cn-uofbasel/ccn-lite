@@ -25,6 +25,8 @@
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 
+#define NEEDS_PACKET_CRAFTING
+
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
