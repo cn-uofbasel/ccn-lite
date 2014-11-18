@@ -109,7 +109,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     struct ifreq ifr;
     int s;
 
-    DEBUGMSG(99, "ccnl_open_ethdev %s 0x%04x\n", devname, ethtype);
+    DEBUGMSG(TRACE, "ccnl_open_ethdev %s 0x%04x\n", devname, ethtype);
 
     s = socket(AF_PACKET, SOCK_RAW, htons(ethtype));
     if (s < 0) {
@@ -208,7 +208,7 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
     int hdrlen;
 
     strcpy((char*)buf, eth2ascii(dst));
-    DEBUGMSG(DEBUG, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
+    DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
 
     hdrlen = 14;
@@ -692,7 +692,10 @@ main(int argc, char **argv)
             udpport = atoi(optarg);
             break;
         case 'v':
-            debug_level = atoi(optarg);
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
             break;
         case 'x':
             uxpath = optarg;
@@ -704,21 +707,22 @@ main(int argc, char **argv)
         default:
 usage:
             fprintf(stderr,
-                    "usage: %s [-h] [-c MAX_CONTENT_ENTRIES]"
-                    " [-d databasedir]"
-                    " [-e ethdev]"
-                    " [-g MIN_INTER_PACKET_INTERVAL]"
-                    " [-i MIN_INTER_CCNMSG_INTERVAL]"
-                    " [-s SUITE (ccnb, ccnx2014, ndn2013)]"
-                    " [-t tcpport (for HTML status page)]"
-                    " [-u udpport]"
-                    " [-v DEBUG_LEVEL]"
-
+                    "usage: %s [options]\n"
+                    "  -c MAX_CONTENT_ENTRIES\n"
+                    "  -d databasedir\n"
+                    "  -e ethdev\n"
+                    "  -g MIN_INTER_PACKET_INTERVAL\n"
+                    "  -h\n"
+                    "  -i MIN_INTER_CCNMSG_INTERVAL\n"
+                    "  -p crypto_face_ux_socket\n"
+                    "  -s SUITE (ccnb, ccnx2014, ndn2013)\n"
+                    "  -t tcpport (for HTML status page)\n"
+                    "  -u udpport\n"
+                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #ifdef USE_UNIXSOCKET
-                    " [-p crypto_face_ux_socket]"
-                    " [-x unixpath]"
+                    "  -x unixpath\n"
 #endif
-                    "\n", argv[0]);
+                    , argv[0]);
             exit(EXIT_FAILURE);
         }
     }
