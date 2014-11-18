@@ -821,6 +821,7 @@ main(int argc, char *argv[])
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
+    int i = 0;
 
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
         ux = argv[2];
@@ -989,13 +990,15 @@ main(int argc, char *argv[])
         recvbufferlen2+=recvbufferlen;
         recvbuffer2[recvbufferlen2++] = 0; //end of content
 
-    write(1, recvbuffer2, recvbufferlen2);
+        write(1, recvbuffer2, recvbufferlen2);
         printf("\n");
 
     printf("received %d bytes.\n", recvbufferlen);
 
 
     if(!strcmp(argv[1], "addContentToCache")){
+
+        //read ccnb_file
         unsigned char *ccnb_file;
         long fsize = 0;
         FILE *f = fopen(file_uri, "r");
@@ -1004,16 +1007,27 @@ main(int argc, char *argv[])
         fseek(f, 0L, SEEK_END);
         fsize = ftell(f);
         fseek(f, 0L, SEEK_SET);
-
         ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
         fread(ccnb_file, fsize, 1, f);
         fclose(f);
 
+        printf("Waiting for callback\n");
+        //receive request
+        memset(out, 0, sizeof(out));
         if(!use_udp)
-            ux_sendto(sock, ux, out, len);
+            len = recv(sock, out, sizeof(out), 0);
         else
-            udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
+            len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
+        printf("Uploading content file\n");
+        //send file
+        if(!use_udp)
+            i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, len);
+        else
+            i = udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
 
+        if(i){
+            printf("Sent file to relay\n");
+        }
         free(ccnb_file);
     }
 

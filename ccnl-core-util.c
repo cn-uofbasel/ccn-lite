@@ -253,8 +253,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         cnt = ccnl_URItoComponents(compvect, uri);
     else
         cnt = 0;
-    /*if (nfnexpr && *nfnexpr)
-        cnt += 1;*/
 
     return ccnl_componentstoPrefix(compvect, cnt, nfnexpr, suite, chunknum);
 }
