@@ -1541,7 +1541,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         break;
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
-    DEBUGMSG(99, "  TYPE: %d NUM %d Suite %d\n", typ, num, suite);
     if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
     
     if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
@@ -1554,7 +1553,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
-    DEBUGMSG(99, "  Component: %s\n", components[0]);
     ++num_of_components;
 
     struct ccnl_prefix_s *prefix_new = ccnl_componentstoPrefix((char**)components, num_of_components, NULL, suite, NULL);
