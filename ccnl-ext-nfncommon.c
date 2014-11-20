@@ -420,8 +420,12 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         } else if (stack->type == STACK_TYPE_INT) {
             len += sprintf((char*)name->bytes + offset + len, " %d",
                            *(int*)stack->content);
+
+        } else if (stack->type == STACK_TYPE_CONST) {
+            len += sprintf((char*)name->bytes + offset + len, " %s", 
+                           ccnl_nfn_krivine_const2str(stack->content));
         } else {
-            DEBUGMSG(1, "Invalid stack type\n");
+            DEBUGMSG(1, "Invalid stack type %d\n", stack->type);
             return NULL;
         }
 
