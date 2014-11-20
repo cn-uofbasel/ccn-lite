@@ -513,7 +513,7 @@ int
 mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, char *private_key_path)
 {
     long len = 0, len1 = 0, len2 = 0, len3 = 0, i = 0;
-    unsigned char *contentobj, *stmt, *out1;
+    unsigned char *contentobj, *stmt, *out1, h[10];
     struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, suite, NULL, NULL);
 
     //Create ccn-lite-ctrl interest object with signature to add content...
@@ -536,6 +536,12 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, cha
     }
 
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+
+
+    memset(h, '\0', sizeof(h));
+    sprintf((char*)h, "%d", suite);
+    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
+                             (char*) h, strlen(h));
 
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_NAME, CCN_TT_DTAG,  // content
                              (char*) stmt, len3);
