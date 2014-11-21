@@ -175,8 +175,12 @@ ccnl_URItoComponents(char **compVector, char *uri)
 
     for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
         compVector[i] = uri;
-        while (*uri && *uri != '/')
+        while (*uri && *uri != '/') {
+            if(*uri == '%') {
+                uri++;
+            }
             uri++;
+        }
         if (*uri) {
             *uri = '\0';
             uri++;
