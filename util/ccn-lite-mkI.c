@@ -24,6 +24,8 @@
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
 
+#define NEEDS_PACKET_CRAFTING
+
 #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
@@ -41,11 +43,15 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *prefix;
     uint32_t nonce;
     int isLambda = 0;
+    unsigned int chunknum = UINT_MAX;
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "hc:d:ln:o:p:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:c:d:i:ln:o:p:s:x:")) != -1) {
         switch (opt) {
+        case 'a':
+            minSuffix = optarg;
+            break;
         case 'c':
             scope = optarg;
             break;
@@ -62,7 +68,7 @@ main(int argc, char *argv[])
             isLambda = 1 - isLambda;
             break;
         case 'n':
-            minSuffix = optarg;
+            chunknum = atoi(optarg);
             break;
         case 'o':
             fname = optarg;
@@ -88,10 +94,11 @@ main(int argc, char *argv[])
         default:
 Usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            "  -a LEN     miN additional components\n"
             "  -c SCOPE\n"
             "  -d DIGEST  content digest (sets -x to 0)\n"
             "  -l         URI is a Lambda expression\n"
-            "  -n LEN     miN additional components\n"
+            "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
             "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
@@ -109,7 +116,10 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind], packettype, argv[optind+1], NULL);
+    prefix = ccnl_URItoPrefix(argv[optind],     
+                              packettype,       
+                              argv[optind+1],   
+                              chunknum == UINT_MAX ? NULL : &chunknum); 
     if (!prefix) {
         fprintf(stderr, "no URI found, aborting\n");
         return -1;

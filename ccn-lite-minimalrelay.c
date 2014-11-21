@@ -66,6 +66,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
+#define TRACEIN(...)                    do {} while(0)
+#define TRACEOUT(...)                   do {} while(0)
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
@@ -343,14 +345,14 @@ main(int argc, char **argv)
 
     srandom(time(NULL));
 
-    theRelay.suite = CCNL_SUITE_NDNTLV;
+    int suite = CCNL_SUITE_NDNTLV;
 
     while ((opt = getopt(argc, argv, "hs:u:v:")) != -1) {
         switch (opt) {
         case 's':
             opt = ccnl_str2suite(optarg);
             if (opt >= CCNL_SUITE_CCNB && opt < CCNL_SUITE_LAST)
-                theRelay.suite = opt;
+                suite = opt;
             else
                 fprintf(stderr, "Suite parameter <%s> ignored.\n", optarg);
             break;
@@ -395,8 +397,8 @@ usage:
     inet_aton(strtok(defaultgw,"/"), &sun.ip4.sin_addr);
     sun.ip4.sin_port = atoi(strtok(NULL, ""));
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
-    fwd->prefix = ccnl_URItoPrefix(prefix, theRelay.suite, NULL, NULL);
-    fwd->suite = theRelay.suite;
+    fwd->prefix = ccnl_URItoPrefix(prefix, suite, NULL, NULL);
+    fwd->suite = suite;
     fwd->face = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.ip4));
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     theRelay.fib = fwd;

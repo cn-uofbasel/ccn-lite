@@ -725,6 +725,7 @@ ndn_init()
     ndntlv_recurse[NDN_TLV_Name] = 1;
     ndntlv_recurse[NDN_TLV_Selectors] = 1;
     ndntlv_recurse[NDN_TLV_MetaInfo] = 1;
+    ndntlv_recurse[NDN_TLV_FinalBlockId] = 1;
     ndntlv_recurse[NDN_TLV_SignatureInfo] = 1;
     ndntlv_recurse[NDN_TLV_KeyLocator] = 1;
 }

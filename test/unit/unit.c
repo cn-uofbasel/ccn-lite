@@ -38,6 +38,9 @@ int main(int argc, char **argv){
 	++testnum;
 	RUN_TEST(testnum, "testing uri to prefix with chunk", ccnl_test_prepare_uri_to_prefix_chunk, ccnl_test_run_uri_to_prefix, ccnl_test_cleanup_uri_to_prefix, str, p1);
 
+	++testnum;
+	RUN_TEST(testnum, "testing add component to prefix", ccnl_test_prepare_AppendCmpToPrefix, ccnl_test_run_AppendCmpToPrefix, ccnl_test_cleanup_uri_to_prefix, str, p1);
+
 	//Prefix CMP Tests for all suites
 	char *testdescription = ccnl_malloc(512);
 	for(prefix_cmp_suite = 0; prefix_cmp_suite < 3; ++prefix_cmp_suite){

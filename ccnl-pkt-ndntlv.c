@@ -32,6 +32,8 @@
 static int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
+    TRACEIN();
+
     if (**buf < 253 && *len >= 1) {
         *val = **buf;
         *buf += 1;
@@ -56,6 +58,7 @@ unsigned long int
 ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 {
     unsigned long int val = 0;
+    TRACEIN();
 
     while (len-- > 0) {
         val = (val << 8) | *cp;
@@ -67,8 +70,10 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-           int *typ, int *vallen)
+                   int *typ, int *vallen)
 {
+    TRACEIN();
+
     if (ccnl_ndntlv_varlenint(buf, len, typ))
         return -1;
     if (ccnl_ndntlv_varlenint(buf, len, vallen))
@@ -92,6 +97,7 @@ ccnl_ndntlv_extract(int hdrlen,
     int i, len, typ, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf, *n = 0, *pub = 0;
+
     DEBUGMSG(DEBUG, "extracting NDNTLV packet\n");
 
     if (content)
@@ -117,7 +123,7 @@ ccnl_ndntlv_extract(int hdrlen,
                     if(cp[0] == NDN_Marker_SegmentNumber) {
                         p->chunknum = ccnl_malloc(sizeof(int));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
-                        // even though it is implemented for encode, the decode is not yet implemented
+                        // it is implemented for encode, the decode is not yet implemented
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
                     }
                     p->comp[p->compcnt] = cp;

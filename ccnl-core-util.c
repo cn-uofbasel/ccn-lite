@@ -175,8 +175,12 @@ ccnl_URItoComponents(char **compVector, char *uri)
 
     for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
         compVector[i] = uri;
-        while (*uri && *uri != '/')
+        while (*uri && *uri != '/') {
+            if(*uri == '%') {
+                uri++;
+            }
             uri++;
+        }
         if (*uri) {
             *uri = '\0';
             uri++;
@@ -281,13 +285,107 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         len += p->complen[i];
     }
 
-    if(prefix->chunknum) {
+    if (prefix->chunknum) {
         p->chunknum = ccnl_malloc(sizeof(int));
         *p->chunknum = *prefix->chunknum;
     }
 
     return p;
 }
+
+
+int
+ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmplen)
+{
+    int lastcmp = prefix->compcnt, i;
+    int *oldcomplen = prefix->complen;
+    unsigned char **oldcomp = prefix->comp;
+    unsigned char *oldbytes = prefix->bytes;
+
+    int prefixlen = 0;
+
+    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP) 
+        return -1;
+    for (i = 0; i < lastcmp; i++) {
+        prefixlen += prefix->complen[i];
+    }
+
+    prefix->compcnt++;
+    prefix->comp = (unsigned char**) ccnl_malloc(prefix->compcnt * sizeof(unsigned char*));
+    prefix->complen = (int*) ccnl_malloc(prefix->compcnt * sizeof(int));
+    prefix->bytes = (unsigned char*) ccnl_malloc(prefixlen + cmplen);
+
+    memcpy(prefix->bytes, oldbytes, prefixlen);
+    memcpy(prefix->bytes + prefixlen, cmp, cmplen);
+
+    prefixlen = 0;
+    for (i = 0; i < lastcmp; i++) {
+        prefix->comp[i] = &prefix->bytes[prefixlen];
+        prefix->complen[i] = oldcomplen[i];
+        prefixlen += oldcomplen[i];
+    }
+    prefix->comp[lastcmp] = &prefix->bytes[prefixlen];
+    prefix->complen[lastcmp] = cmplen;
+
+    ccnl_free(oldcomp);
+    ccnl_free(oldcomplen);
+    ccnl_free(oldbytes);
+
+    return 0;
+}
+
+// TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
+// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level. 
+int 
+ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
+
+    if(chunknum >= 0xff) {
+        DEBUGMSG(WARNING, "addChunkNum is only implemented for chunknum smaller than 0xff\n");
+        return -1;
+    }
+    switch(prefix->suite) {
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV: {
+            unsigned char cmp[2];
+            cmp[0] = NDN_Marker_SegmentNumber;
+            // TODO: this only works for chunknums smaller than 255
+            cmp[1] = chunknum;
+            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0) 
+                return -1;
+            if(prefix->chunknum == NULL) {
+                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            }
+            *prefix->chunknum = chunknum;
+        }
+        break;
+#endif
+
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV: {
+            unsigned char cmp[5];
+            cmp[0] = 0;
+            // TODO: this only works for chunknums smaller than 255
+            cmp[1] = CCNX_TLV_N_Chunk;
+            cmp[2] = 0;
+            cmp[3] = 1;
+            cmp[4] = chunknum;
+            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
+                return -1;
+            if(prefix->chunknum == NULL) {
+                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            }
+            *prefix->chunknum = chunknum;
+        }
+        break;
+#endif
+
+        default:
+            DEBUGMSG(WARNING, "add chunk number not implemented for suite %d\n", prefix->suite);
+            return -1;
+    }
+    return 0;
+}
+
 
 // ----------------------------------------------------------------------
 
@@ -414,8 +512,8 @@ One possibility is to not have a '/' before any nfn expression.
 #if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
     // In the future it is possibly helpful to see the type information in the logging output
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
-    // resulting in CCNTLV type information in printed names.
-    if(pr->suite == CCNL_SUITE_CCNTLV)
+    // resulting in CCNTLV type information names within expressions.
+    if (pr->suite == CCNL_SUITE_CCNTLV)
         skip = 4;
 #endif
 
@@ -423,9 +521,9 @@ One possibility is to not have a '/' before any nfn expression.
         len += sprintf(buf + len, "/");
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if(c < 0x20 || c == 0x7f) {
+            if (c < 0x20 || c == 0x7f)
                 len += sprintf(buf + len, "x%02x", c);
-            } else 
+            else 
                 len += sprintf(buf + len, "%c", c);
         }
     }

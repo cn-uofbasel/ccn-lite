@@ -420,8 +420,12 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         } else if (stack->type == STACK_TYPE_INT) {
             len += sprintf((char*)name->bytes + offset + len, " %d",
                            *(int*)stack->content);
+
+        } else if (stack->type == STACK_TYPE_CONST) {
+            len += sprintf((char*)name->bytes + offset + len, " %s", 
+                           ccnl_nfn_krivine_const2str(stack->content));
         } else {
-            DEBUGMSG(1, "Invalid stack type\n");
+            DEBUGMSG(1, "Invalid stack type %d\n", stack->type);
             return NULL;
         }
 
@@ -445,16 +449,30 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
 {
     struct prefix_mapping_s *iter;
     struct ccnl_content_s *content;
+    struct ccnl_prefix_s *prefixchunkzero;
 
     DEBUGMSG(2, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
              ccnl_prefix_to_path(prefix), ccnl_suite2str(prefix->suite));
 
     DEBUGMSG(99, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
+
     for (content = ccnl->contents; content; content = content->next) {
         if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)
                                             && content->suite == prefix->suite)
             return content;
     }
+
+    // If the content for the prefix is chunked, the exact match on the prefix fails.
+    // We assume that if chunk 0 is available the content is available.
+    // Searching the content again with the same prefix for chunk 0.
+    prefixchunkzero = ccnl_prefix_dup(prefix);
+    ccnl_prefix_addChunkNum(prefixchunkzero, 0);
+    for (content = ccnl->contents; content; content = content->next) {
+        if (!ccnl_prefix_cmp(prefixchunkzero, 0, content->name, CMP_EXACT)
+                                            && content->suite == prefix->suite)
+            return content;
+    }
+
     if (!config || !config->fox_state || !config->fox_state->prefix_mapping)
         return NULL;
 
