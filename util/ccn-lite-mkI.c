@@ -129,7 +129,7 @@ Usage:
 	break;
     case CCNL_SUITE_NDNTLV:
         len = ndntlv_mkInterest(prefix, 
-                                NULL, // chunknum
+                                (int*)&nonce,
                                 out,
                                 CCNL_MAX_PACKET_SIZE);
         break;

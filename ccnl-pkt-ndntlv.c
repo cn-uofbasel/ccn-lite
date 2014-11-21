@@ -385,7 +385,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 {
     int oldoffset = *offset;
     unsigned char lifetime[2] = { 0x0f, 0xa0 };
-     unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
+    //unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
 
     if (scope >= 0) {
         if (scope > 2)
@@ -402,9 +402,9 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
                                 offset, buf) < 0)
         return -1;
 
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
+    /*if (ccnl_ndntlv_prependBlob(NDN_TLV_Selectors, mustbefresh, 2,
                                 offset, buf) < 0)
-        return -1;
+        return -1;*/
 
     if (ccnl_ndntlv_prependName(name, offset, buf))
         return -1;
