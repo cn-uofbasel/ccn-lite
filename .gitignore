@@ -42,6 +42,7 @@ util/ccn-lite-simplenfn
 
 # unit tests
 test/unit/prefix-cmp
+test/unit/unit
 
 # OSX:
 

@@ -116,14 +116,14 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    // int chunk_num = -1, last_chunk_num = -1;
+    int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
     private_key_path = 0;
     witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:k:o:p:s:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:k:l:n:o:p:s:w:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
@@ -144,13 +144,12 @@ main(int argc, char *argv[])
                 exit(-1);
             }
             break;
-/*
-        case 'c':
-            chunk_num = atoi(optarg);
-            break;
         case 'l':
-            last_chunk_num = atoi(optarg);
-*/
+            lastchunknum = atoi(optarg);
+            break;
+        case 'n':
+            chunknum = atoi(optarg);
+            break;
         case 'w':
             witness = optarg;
             break;
@@ -195,7 +194,7 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], NULL);
+    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
@@ -204,7 +203,7 @@ Usage:
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
-            NULL, // chunknum/lastchunknum
+            lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
             &offs, 
             NULL, // Int *contentpos
             out);
@@ -212,7 +211,9 @@ Usage:
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_prependContent(name, body, len, &offs,
-                                         NULL, NULL, out);
+                                         NULL, 
+                                         lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
+                                         out);
         break;
     default:
         break;

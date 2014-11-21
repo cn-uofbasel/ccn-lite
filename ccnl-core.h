@@ -87,7 +87,6 @@ struct ccnl_if_s { // interface for packet IO
 struct ccnl_relay_s {
     time_t startup_time;
     int id;
-    char suite;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
     struct ccnl_interest_s *pit;
