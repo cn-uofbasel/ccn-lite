@@ -176,9 +176,6 @@ ccnl_URItoComponents(char **compVector, char *uri)
     for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
         compVector[i] = uri;
         while (*uri && *uri != '/') {
-            if(*uri == '%') {
-                uri++;
-            }
             uri++;
         }
         if (*uri) {
@@ -522,7 +519,7 @@ One possibility is to not have a '/' before any nfn expression.
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
             if (c < 0x20 || c == 0x7f)
-                len += sprintf(buf + len, "x%02x", c);
+                len += sprintf(buf + len, "%%%02x", c);
             else 
                 len += sprintf(buf + len, "%c", c);
         }
