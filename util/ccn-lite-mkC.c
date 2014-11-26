@@ -194,7 +194,8 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
+    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
+                            chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {
     case CCNL_SUITE_CCNB:

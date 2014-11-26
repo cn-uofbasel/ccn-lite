@@ -202,7 +202,7 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // work on a message (buffer passed without the fixed header)
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      struct ccnx_tlvhdr_ccnx201409_s *hdrptr, int hoplimit,
+                      struct ccnx_tlvhdr_ccnx201411_s *hdrptr, int hoplimit,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
@@ -343,11 +343,10 @@ ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 next:
     while (rc >= 0 && **data == CCNX_TLV_V0 &&
-                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
-        struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*) *data;
+                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201411_s)) {
+        struct ccnx_tlvhdr_ccnx201411_s *hp = (struct ccnx_tlvhdr_ccnx201411_s*) *data;
         int hoplimit = -1;
-
-        unsigned short hdrlen = ntohs(hp->hdrlen);
+        unsigned short hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
         unsigned short payloadlen = ntohs(hp->payloadlen);
 
         // check if info data to construct packet header
