@@ -116,7 +116,7 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
+    unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
@@ -194,7 +194,8 @@ Usage:
     len = read(f, body, sizeof(body));
     close(f);
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
+    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
+                            chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
