@@ -472,8 +472,8 @@ handlecontent: //if result was found ---> handle it
                     create_prefix_for_content_on_result_stack(ccnl, config);
                 push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                 mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
-                mapping->key = name;
-                mapping->value = c->name;
+                mapping->key = ccnl_prefix_dup(name); //TODO COPY
+                mapping->value = ccnl_prefix_dup(c->name);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 DEBUGMSG(99, "Created a mapping %s - %s\n",
                          ccnl_prefix_to_path(mapping->key),

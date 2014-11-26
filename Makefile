@@ -37,9 +37,9 @@ INST_PROGS= ccn-lite-relay \
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)
     $(info *** Configuring for Linux ***)
+    EXTLIBS += -lrt
     ifdef USE_KRNL
     	$(info *** With Linux Kernel ***)
-	    EXTLIBS += -lrt
 	    INST_PROGS += ccn-lite-simu
     	PROGS += ccn-lite-lnxkernel 
     endif
