@@ -110,11 +110,11 @@ unescape_component(char *comp) // inplace, returns len after shrinking
 }
 
 int
-ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
 {
-    int len = 0;
-
 //    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
+
+    int len = srclen;
 
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
@@ -122,7 +122,6 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
     {
         unsigned short *sp = (unsigned short*) dst;
         *sp++ = htons(CCNX_TLV_N_NameSegment);
-        len = strlen(src);
         *sp++ = htons(len);
         memcpy(sp, src, len);
         len += 2*sizeof(unsigned short);
@@ -130,7 +129,7 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src)
     }
 #endif
     default:
-        len = strlen(src);
+        // len = strlen(src);
         memcpy(dst, src, len);
         break;
     }
@@ -166,7 +165,7 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
 
 // fill in the compVector (watch out: this modifies the uri string)
 int
-ccnl_URItoComponents(char **compVector, char *uri)
+ccnl_URItoComponents(char **compVector, unsigned int *complens, char *uri)
 {
     int i, len;
 
@@ -183,6 +182,9 @@ ccnl_URItoComponents(char **compVector, char *uri)
             uri++;
         }
         len = unescape_component(compVector[i]);
+        if(complens) {
+            complens[i] = len;
+        }
         compVector[i][len] = '\0';
     }
     compVector[i] = NULL;
@@ -196,13 +198,14 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 {
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
+    unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len = 0;
 
     DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
              ccnl_suite2str(suite), uri, nfnexpr);
 
     if (strlen(uri))
-        cnt = ccnl_URItoComponents(compvect, uri);
+        cnt = ccnl_URItoComponents(compvect, complens, uri);
     else
         cnt = 0;
     if (nfnexpr && *nfnexpr)
@@ -213,10 +216,12 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         return NULL;
 
     for (i = 0, len = 0; i < cnt; i++) {
-        if (i == (cnt-1) && nfnexpr && *nfnexpr)
+        if (i == (cnt-1) && nfnexpr && *nfnexpr) {
             len += strlen(nfnexpr);
-        else
-            len += strlen(compvect[i]);
+        }
+        else {
+            len += complens[i];//strlen(compvect[i]);
+        }
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
@@ -232,7 +237,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         char *cp = (i == (cnt-1) && nfnexpr && *nfnexpr) ?
                                               nfnexpr : (char*) compvect[i];
         p->comp[i] = p->bytes + len;
-        p->complen[i] = ccnl_pkt_mkComponent(suite, p->comp[i], cp);
+        p->complen[i] = ccnl_pkt_mkComponent(suite, p->comp[i], cp, complens[i]);
         len += p->complen[i];
     }
 
