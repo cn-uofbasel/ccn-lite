@@ -197,7 +197,7 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 int ccntlv_isObject(unsigned char *buf, int len)
 {
     struct ccnx_tlvhdr_ccnx201411_s *hp = (struct ccnx_tlvhdr_ccnx201411_s*)buf;
-    unsigned short payloadlen, hdrlen,
+    unsigned short payloadlen, hdrlen;
 
     if (len < sizeof(struct ccnx_tlvhdr_ccnx201411_s)) {
         fprintf(stderr, "ccntlv header not large enough");
