@@ -38,9 +38,10 @@ Note:
 // ----------------------------------------------------------------------
 // packet decomposition
 
-// convert network order byte array into local integer value
+// convert network order byte array into local unsigned integer value
 int
-ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, unsigned int *intval)
+ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
+                                 unsigned int *intval)
 {
     int val = 0;
     
@@ -49,14 +50,8 @@ ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len, unsigned int *intv
         buf++;
     }
     *intval = val;
-    return 0;
-/*
-    int nintval = 0;
 
-    memcpy((unsigned char *)&nintval + 4 - len, buf, len);
-    *intval = ntohl(nintval);
     return 0;
-*/
 }
 
 // parse TL (returned in typ and vallen) and adjust buf and len
@@ -280,18 +275,18 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 {
     // Currently there are no optional headers, only fixed header of size 8
     unsigned char hdrlen = 8;
-    struct ccnx_tlvhdr_ccnx201409_s *hp;
+    struct ccnx_tlvhdr_ccnx201411_s *hp;
 
     if (*offset < 8 || payloadlen < 0)
         return -1;
     *offset -= 8;
-    hp = (struct ccnx_tlvhdr_ccnx201409_s *)(buf + *offset);
+    hp = (struct ccnx_tlvhdr_ccnx201411_s *)(buf + *offset);
     hp->version = ver;
     hp->packettype = packettype;
     hp->payloadlen = htons(payloadlen);
     hp->hoplimit = hoplimit;
-    hp->hdrlen = htons(hdrlen);
     hp->reserved = 0;
+    hp->hdrlen = hdrlen; // htons(hdrlen);
 
     return hdrlen + payloadlen;
 }

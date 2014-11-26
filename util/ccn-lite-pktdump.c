@@ -505,15 +505,15 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
 
 void
-ccntlv_201409(unsigned char *data, int len, int rawxml, FILE* out)
+ccntlv_201411(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf;
     char *mp;
     unsigned short hdrlen, payloadlen;
-    struct ccnx_tlvhdr_ccnx201409_s *hp;
+    struct ccnx_tlvhdr_ccnx201411_s *hp;
 
-    hp = (struct ccnx_tlvhdr_ccnx201409_s*) data;
-    hdrlen = ntohs(hp->hdrlen);
+    hp = (struct ccnx_tlvhdr_ccnx201411_s*) data;
+    hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
     payloadlen = ntohs(hp->payloadlen);
 
     if (!rawxml)
@@ -546,7 +546,7 @@ ccntlv_201409(unsigned char *data, int len, int rawxml, FILE* out)
 
     buf = data + 8;
     // dump the sequence of TLV fields of the optional header
-    len = ntohs(hp->hdrlen);
+    len = hp->hdrlen; // ntohs(hp->hdrlen);
     // if (len > 0) {
     //     ccntlv_parse_sequence(0, CTX_HOP, data, &buf, &len,
     //                                                     "header", rawxml, out);
@@ -970,7 +970,7 @@ help:
         if (format == 0) {
             printf("#   %s CCNx TLV format (as of Sept 2014)\n#\n", forced);
         }
-        ccntlv_201409(data, len, format == 1, out);
+        ccntlv_201411(data, len, format == 1, out);
         break;
     case CCNL_SUITE_NDNTLV:
         if (format == 0) {
