@@ -25,6 +25,19 @@
 
 // ----------------------------------------------------------------------
 // Header
+
+struct ccnx_tlvhdr_ccnx201411_s {
+    unsigned char version;
+    unsigned char packettype;
+    uint16_t payloadlen;
+    unsigned char hoplimit;
+  //    uint16_t reserved;
+    unsigned char reserved;
+    unsigned char reserved2;
+    unsigned char hdrlen;
+} __attribute__((packed));
+
+/*
 struct ccnx_tlvhdr_ccnx201409_s {
     unsigned char version;
     unsigned char packettype;
@@ -33,7 +46,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
     unsigned char reserved;
     uint16_t hdrlen;
 } __attribute__((packed));
-
+*/
 
 // Non-TLV values for the packettype in the header
 #define CCNX_PT_Interest                        1
