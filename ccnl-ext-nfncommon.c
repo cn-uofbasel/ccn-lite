@@ -292,8 +292,8 @@ add_computation_components(struct ccnl_prefix_s *prefix,
         len += prefix->complen[i];
     len += 4 + strlen(comp); // add 4 to be on the safe side (CCNTLV)
     if (thunk_request)
-        len += l1 = ccnl_pkt_mkComponent(prefix->suite, buf1, "THUNK", strlen("THUNK"));
-    len += l2 = ccnl_pkt_mkComponent(prefix->suite, buf2, "NFN", strlen("NFN"));
+        len += l1 = ccnl_pkt_mkComponent(prefix->suite, buf1, "THUNK");
+    len += l2 = ccnl_pkt_mkComponent(prefix->suite, buf2, "NFN");
     ret->bytes = ccnl_malloc(len);
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
         ret->comp[i] = ret->bytes + len;
@@ -302,7 +302,7 @@ add_computation_components(struct ccnl_prefix_s *prefix,
         len += prefix->complen[i];
     }
     ret->comp[i] = ret->bytes + len;
-    ret->complen[i] = ccnl_pkt_mkComponent(prefix->suite, ret->comp[i], comp, strlen(comp));
+    ret->complen[i] = ccnl_pkt_mkComponent(prefix->suite, ret->comp[i], comp);
     len += ret->complen[i];
     i++;
     if (thunk_request) {
@@ -404,7 +404,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
     name->compcnt = 1;
-    len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN"));
+    len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN");
     name->complen[1] = len;
     name->comp[0] = name->bytes + offset + len;
 
@@ -777,7 +777,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
         p->nfnflags |= CCNL_PREFIX_THUNK;
 
     p->comp[0] = (unsigned char*) bytes;
-    len = p->complen[0] = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));
+    len = p->complen[0] = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE");
 
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
