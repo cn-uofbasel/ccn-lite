@@ -196,13 +196,15 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 
 int ccntlv_isObject(unsigned char *buf, int len)
 {
-    if (len <= sizeof(struct ccnx_tlvhdr_ccnx201409_s)) {
+    struct ccnx_tlvhdr_ccnx201411_s *hp = (struct ccnx_tlvhdr_ccnx201411_s*)buf;
+    unsigned short payloadlen, hdrlen,
+
+    if (len < sizeof(struct ccnx_tlvhdr_ccnx201411_s)) {
         fprintf(stderr, "ccntlv header not large enough");
         return -1;
     }
-    struct ccnx_tlvhdr_ccnx201409_s *hp = (struct ccnx_tlvhdr_ccnx201409_s*)buf;
-    unsigned short hdrlen = ntohs(hp->hdrlen);
-    unsigned short payloadlen = ntohs(hp->payloadlen);
+    hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
+    payloadlen = ntohs(hp->payloadlen);
 
     if (hp->version != CCNX_TLV_V0) {
         fprintf(stderr, "ccntlv version %d not supported\n", hp->version);
@@ -215,7 +217,6 @@ int ccntlv_isObject(unsigned char *buf, int len)
     }
     buf += hdrlen;
     len -= hdrlen;
-
 
     if(hp->packettype == CCNX_PT_ContentObject)
         return 1;
