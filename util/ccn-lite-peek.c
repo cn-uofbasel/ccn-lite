@@ -44,9 +44,13 @@ main(int argc, char *argv[])
     float wait = 3.0;
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     int (*isContent)(unsigned char*, int);
+    unsigned int chunknum = UINT_MAX;
 
-    while ((opt = getopt(argc, argv, "hs:u:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hn:s:u:w:x:")) != -1) {
         switch (opt) {
+        case 'n':
+            chunknum = atoi(optarg);
+            break;
         case 's':
           /*
             opt = atoi(optarg);
@@ -71,6 +75,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -s SUITE         SUITE= ccnb, ccnx2014, ndn2013 (default)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
             "  -w timeout       in sec (float)\n"
@@ -150,7 +155,7 @@ usage:
         sock = udp_open();
     }
 
-    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], NULL);
+    prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 /*
     fprintf(stderr, "prefix <%s><%s> became is %s\n",
             argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
