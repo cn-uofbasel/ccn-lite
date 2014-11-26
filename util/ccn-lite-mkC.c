@@ -116,7 +116,7 @@ main(int argc, char *argv[])
     unsigned char out[65*1024];
     char *publisher = 0;
     char *infname = 0, *outfname = 0;
-    int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
+    unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;

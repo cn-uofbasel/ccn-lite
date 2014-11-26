@@ -75,7 +75,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-            "  -n CHUNKNUM positive integer for chunk interest\n"
+            "  -n CHUNKNUM      positive integer for chunk interest\n"
             "  -s SUITE         SUITE= ccnb, ccnx2014, ndn2013 (default)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
             "  -w timeout       in sec (float)\n"

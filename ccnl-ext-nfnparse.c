@@ -169,7 +169,7 @@ ccnl_lambdaFreeTerm(struct ccnl_lambdaTerm_s *t)
 int
 ccnl_lambdaStrToComponents(char **compVector, char *str)
 {
-    return ccnl_URItoComponents(compVector, str);
+    return ccnl_URItoComponents(compVector, NULL, str);
 }
 
 // eof
