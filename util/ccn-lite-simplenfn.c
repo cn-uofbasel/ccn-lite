@@ -104,7 +104,7 @@ main(int argc, char *argv[])
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
     char *udp = "127.0.0.1/6363", *ux = NULL;
-    char *defaultNFNpath = strdup("/ndn/ch/unibas/nfn");
+    char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
