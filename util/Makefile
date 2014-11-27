@@ -11,7 +11,6 @@ PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-mkI \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
-	ccn-lite-cryptoserver \
 	ccn-lite-produce \
 	ccn-lite-fetch \
 	ccn-lite-simplenfn
