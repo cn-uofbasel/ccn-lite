@@ -81,13 +81,13 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 }
 
 int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
+                                        struct ccnl_prefix_s **prefix,
                                         unsigned int *chunknum, unsigned int *lastchunknum,
                                         unsigned char **content, int *contentlen) {
     int typ, len;
     unsigned char *cp = *data;
     int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
-    struct ccnl_prefix_s *prefix;
 
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
         DEBUGMSG(99, "could not dehead\n");
@@ -96,7 +96,7 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     buf = ccnl_ndntlv_extract(*data - cp,
                   data, datalen,
                   &scope, &mbf, &minsfx, &maxsfx, lastchunknum,
-                  &prefix, NULL,
+                  prefix, NULL,
                   &nonce, // nonce
                   &ppkl, //ppkl
                   content, contentlen);
@@ -107,21 +107,21 @@ int ccnl_ndntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
     if (typ == NDN_TLV_Interest) {
         DEBUGMSG(99, "ignoring parsed interest with name %s\n", ccnl_prefix_to_path(prefix));
     } else { // data packet with content -------------------------------------
-        *chunknum = *prefix->chunknum;
+        *chunknum = *prefix[0]->chunknum;
     }
     return 0;
 }
 int ccnl_ccntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen, 
-                                      unsigned int *chunknum, unsigned int *lastchunknum,
-                                      unsigned char **content, int *contentlen) {
-    struct ccnl_prefix_s *prefix;
+                                        struct ccnl_prefix_s **prefix,
+                                        unsigned int *chunknum, unsigned int *lastchunknum,
+                                        unsigned char **content, int *contentlen) {
     *datalen -= 8;
     *data += 8;
     int hdrlen = 8;
 
     if (ccnl_ccntlv_extract(hdrlen,
                            data, datalen,
-                           &prefix,
+                           prefix,
                            0, 0, // keyid/keyidlen
                            lastchunknum,
                            content, contentlen) == NULL) {
@@ -129,29 +129,30 @@ int ccnl_ccntlv_extractDataAndChunkinfo(unsigned char **data, int *datalen,
         exit(-1);
     } 
 
-    if (!prefix->chunknum) {
-        fprintf(stderr, "Extracted correct data object but name did not contain a chunk number\n");
-        exit(-1);
-    } else {
-        *chunknum = *prefix->chunknum;
-    }
+    // if (!prefix->chunknum) {
+    //     fprintf(stderr, "Extracted correct data object but name did not contain a chunk number\n");
+    //     exit(-1);
+    // } else {
+    *chunknum = *prefix[0]->chunknum;
+    // }
 
     return 0;
 }
 int ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
                                  int suite, 
+                                 struct ccnl_prefix_s **prefix,
                                  unsigned int *chunknum, unsigned int *lastchunknum,
                                  unsigned char **content, int *contentlen) {
     int result = -1;
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        result = ccnl_ccntlv_extractDataAndChunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
+        result = ccnl_ccntlv_extractDataAndChunkinfo(data, datalen, prefix, chunknum, lastchunknum, content, contentlen);
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        result = ccnl_ndntlv_extractDataAndChunkinfo(data, datalen, chunknum, lastchunknum, content, contentlen);
+        result = ccnl_ndntlv_extractDataAndChunkinfo(data, datalen, prefix, chunknum, lastchunknum, content, contentlen);
         break;
 #endif
     default:
@@ -278,10 +279,11 @@ usage:
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
             *prefix->chunknum = *curchunknum; 
-            DEBUGMSG(DEBUG,  "fetching chunk %d...\n", *curchunknum);
+            DEBUGMSG(DEBUG, "fetching chunk %d...\n", *curchunknum);
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
         }
+        DEBUGMSG(DEBUG, "fetching prefix '%s'\n", ccnl_prefix_to_path(prefix));
 
         if (ccnl_fetchContentForChunkName(prefix, 
                                           nfnexpr,
@@ -296,12 +298,22 @@ usage:
 
         unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
         unsigned char *t = &out[0];
+        struct ccnl_prefix_s *nextprefix = 0;
         if (ccnl_extractDataAndChunkInfo(&t, &len, suite, 
+                                         &nextprefix,
                                          &chunknum, &lastchunknum, 
                                          &content, &contlen) < 0) {
             fprintf(stderr, "Could not extract data and chunkinfo\n");
             goto Done;
         } 
+
+        prefix=nextprefix;
+
+
+        if(prefix->comp[prefix->compcnt-1][0] == NDN_Marker_SegmentNumber) {
+            prefix->compcnt--;
+        }
+
 
         if (chunknum == UINT_MAX) {
             // Response is not chunked, print content and exit
@@ -311,11 +323,11 @@ usage:
 
             // Check if it is the next chunk, otherwise discard content and fetch the next chunk...
             if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
-                DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d\n", *curchunknum, contlen);
                 if (!curchunknum) {
                     curchunknum = ccnl_malloc(sizeof(unsigned int));
                     *curchunknum = 0;
                 }
+                DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d\n", *curchunknum, contlen);
 
                 write(1, content, contlen);
 
@@ -330,7 +342,7 @@ usage:
                 *curchunknum = 0;
             } else {
                 // error, a specific chunk was fetched, but it was not the next chunk
-                DEBUGMSG(ERROR, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
+                fprintf(stderr, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
                 goto Error;
             }
         }
