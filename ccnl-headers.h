@@ -152,8 +152,6 @@ void ccnl_nfn_freeMachineState(struct fox_machine_state_s *f);
 void ccnl_nfn_freeConfiguration(struct configuration_s *c);
 void ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl);
 int trim(char *str);
-struct ccnl_prefix_s *add_computation_components(struct ccnl_prefix_s *prefix, int thunk_request, char *comp);
-struct ccnl_prefix_s *add_local_computation_components(struct configuration_s *config);
 void set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref);
 struct ccnl_prefix_s *create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl, struct configuration_s *config);
 struct ccnl_content_s *ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix);
