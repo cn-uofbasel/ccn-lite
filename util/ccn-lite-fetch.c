@@ -33,7 +33,7 @@
 // ----------------------------------------------------------------------
 
 int
-ccnl_fetchContentForChunkName(char* name, 
+ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               char* nfnexpr,
                               unsigned int *chunknum,
                               int suite, 
@@ -41,7 +41,6 @@ ccnl_fetchContentForChunkName(char* name,
                               int *len, 
                               float wait, int sock, struct sockaddr sa) {
 
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, suite, nfnexpr, chunknum);
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     switch (suite) {
 #ifdef USE_SUITE_CCNB
@@ -65,11 +64,7 @@ ccnl_fetchContentForChunkName(char* name,
         exit(-1);
     }
 
-    char temp_name[1024];
-    strcpy(temp_name, name);
-
     int nonce = random();
-
     *len = mkInterest(prefix, &nonce, out, out_len);
 
     if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
@@ -173,7 +168,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int i, len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
+    int len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
@@ -255,8 +250,7 @@ usage:
         sock = udp_open();
     }
 
-    char *orig_url = argv[optind];
-    char url[strlen(orig_url)];
+    char *url = argv[optind];
 
     char *nfnexpr = 0;
     
@@ -267,42 +261,29 @@ usage:
     unsigned char *content = 0;
     int contlen;
 
-    unsigned char **dataPerChunk = 0;
-    int *datalenOfChunks = 0;
-    int numberofchunks = -1;
     unsigned int *curchunknum = NULL;
-    int do_fetch_next = 1;
 
     if(suite == CCNL_SUITE_CCNTLV) {
-
         curchunknum = malloc(sizeof(int));
         *curchunknum = 0;
     }
 
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(url, suite, nfnexpr, curchunknum);
 
-    while (do_fetch_next) {
+    for (;;) {
+
         
-        if (dataPerChunk) {
-            for (int x = 0; x < numberofchunks; x++) {
-                if (!dataPerChunk[x]) {
-                    if(!curchunknum) {
-                        curchunknum = malloc(sizeof(int));
-                    }
-                    *curchunknum = x;
-                    DEBUGMSG(99, "fetching next chunk %d...\n", x);
-                    break;
-                } 
-            }
-        }
-
         if (curchunknum) {
-            DEBUGMSG(99, "fetching chunk %d...\n", *curchunknum);
+            if (!prefix->chunknum) {
+                prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
+            }
+            *prefix->chunknum = *curchunknum; 
+            DEBUGMSG(DEBUG,  "fetching chunk %d...\n", *curchunknum);
         } else {
-            DEBUGMSG(99, "fetching first chunk...\n");
+            DEBUGMSG(DEBUG, "fetching first chunk...\n");
         }
 
-        strcpy(url, orig_url);
-        if (ccnl_fetchContentForChunkName(url, 
+        if (ccnl_fetchContentForChunkName(prefix, 
                                           nfnexpr,
                                           curchunknum,
                                           suite, 
@@ -313,42 +294,53 @@ usage:
             exit(1);
         }
 
-        unsigned int chunknum = 0, lastchunknum = 0;
+        unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
         unsigned char *t = &out[0];
         if (ccnl_extractDataAndChunkInfo(&t, &len, suite, 
                                          &chunknum, &lastchunknum, 
                                          &content, &contlen) < 0) {
-            DEBUGMSG(99, "Could not extract data and chunkinfo\n");
+            fprintf(stderr, "Could not extract data and chunkinfo\n");
             goto Done;
+        } 
+
+        if (chunknum == UINT_MAX) {
+            // Response is not chunked, print content and exit
+            write(1, content, contlen);
         } else {
-            DEBUGMSG(99, "extracted chunknum %d lastchunknum %d \n", chunknum, lastchunknum);
-        }
+            // Response is chunked with chunknum as the answer
 
-        numberofchunks = lastchunknum + 1;
-        if (!dataPerChunk) {
-            dataPerChunk = calloc(numberofchunks, sizeof(unsigned char*));
-            datalenOfChunks = calloc(numberofchunks, sizeof(int));
-        }
-        dataPerChunk[chunknum] = malloc(contlen * sizeof(unsigned char));
-        memcpy(dataPerChunk[chunknum], content, contlen);
-        datalenOfChunks[chunknum] = contlen;
+            // Check if it is the next chunk, otherwise discard content and fetch the next chunk...
+            if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
+                DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d\n", *curchunknum, contlen);
+                if (!curchunknum) {
+                    curchunknum = ccnl_malloc(sizeof(unsigned int));
+                    *curchunknum = 0;
+                }
 
-        do_fetch_next = 0;
-        for (i = 0; i < numberofchunks; i++) {
-            if (!dataPerChunk[i]) {
-                do_fetch_next = 1;
-            } 
+                write(1, content, contlen);
+
+                if (lastchunknum != UINT_MAX && lastchunknum == chunknum) {
+                    goto Done;
+                } else {
+                    *curchunknum += 1;
+                }
+            } else if(!curchunknum) {
+                DEBUGMSG(DEBUG, "First chunk is %d and not chunk 0, drop this chunk and start with chunk 0\n", chunknum);
+                curchunknum = ccnl_malloc(sizeof(unsigned int));
+                *curchunknum = 0;
+            } else {
+                // error, a specific chunk was fetched, but it was not the next chunk
+                DEBUGMSG(ERROR, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
+                goto Error;
+            }
         }
     }
+
+Error:
+    close(sock);
+    return 1;
 
 Done:
-    if (!dataPerChunk) {
-        write(1, content, contlen);
-    } else {
-        for (int x = 0; x < numberofchunks; x++) {
-            write(1, dataPerChunk[x], datalenOfChunks[x]);
-        }
-    }
     close(sock);
     return 0; 
 }

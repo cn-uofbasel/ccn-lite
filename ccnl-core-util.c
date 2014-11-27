@@ -222,7 +222,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     for (i = 0, len = 0; i < cnt; i++) {
         if (i == (cnt-1) && nfnexpr && *nfnexpr) {
             len += strlen(nfnexpr);
-            fprintf(stderr, "nfnexpr len=%lu totallen=%d\n", strlen(nfnexpr), len);
         } else {
             len += complens[i];//strlen(compvect[i]);
         }
@@ -248,7 +247,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         else
             tlen = complens[i];
         
-        fprintf(stderr, "len = %d, tlen = %d, cp='%s'\n", len, tlen, cp);
         p->comp[i] = p->bytes + len;
         p->complen[i] = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
         len += tlen;
