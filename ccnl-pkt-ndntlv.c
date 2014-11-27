@@ -32,7 +32,6 @@
 static int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
-    TRACEIN();
 
     if (**buf < 253 && *len >= 1) {
         *val = **buf;
@@ -58,7 +57,6 @@ unsigned long int
 ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 {
     unsigned long int val = 0;
-    TRACEIN();
 
     while (len-- > 0) {
         val = (val << 8) | *cp;
@@ -72,8 +70,6 @@ int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
                    int *typ, int *vallen)
 {
-    TRACEIN();
-
     if (ccnl_ndntlv_varlenint(buf, len, typ))
         return -1;
     if (ccnl_ndntlv_varlenint(buf, len, vallen))

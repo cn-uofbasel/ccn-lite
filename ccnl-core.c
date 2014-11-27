@@ -624,9 +624,10 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     DEBUGMSG(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p\n",
              ccnl->contentcnt, ccnl->max_cache_entries, (void*)c);
     for (cit = ccnl->contents; cit; cit = cit->next) {
-        DEBUGMSG(TRACE, "--- Already in cache ---\n");
-        if (c == cit)
+        if (c == cit) {
+            DEBUGMSG(DEBUG, "--- Already in cache ---\n");
             return NULL;
+        }
     }
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c))
