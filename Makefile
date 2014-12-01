@@ -15,10 +15,10 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 CC?=gcc
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g 
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
 
 # Linux flags
-LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -O0
+LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux 
 
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
