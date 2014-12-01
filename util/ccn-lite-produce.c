@@ -45,28 +45,29 @@ main(int argc, char *argv[])
     //    char *witness = 0;
     unsigned char out[65*1024];
     char *publisher = 0;
-    char *infname = 0, *outdirname = 0;
-    char chunkname[10] = "c";
-    char fileext[10];
-    char final_chunkname_with_number[1024];
-    int f, fout, chunk_len, contentlen = 0, opt, plen;
+    char *infname = 0, *outdirname = 0, *outfname;
+    int f, fout, contentlen = 0, opt, plen;
     int suite = CCNL_SUITE_DEFAULT;
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
-    int status;
     struct ccnl_prefix_s *name;
-    struct stat st_buf;
 
     debug_level = 99;
 
-    while ((opt = getopt(argc, argv, "hc:i:o:p:k:w:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'c':
             chunk_size = atoi(optarg);
             if (chunk_size > CCNL_MAX_CHUNK_SIZE) 
                 chunk_size = CCNL_MAX_CHUNK_SIZE;
             break;
+        case 'f':
+            outfname = optarg;
+            break;
         case 'i':
             infname = optarg;
+            break;
+        case 'o':
+            outdirname = optarg;
             break;
 /*
         case 'k':
@@ -88,21 +89,19 @@ main(int argc, char *argv[])
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite >= 0 && suite < CCNL_SUITE_LAST)
-                break;
+            break;
         case 'h':
         default:
 Usage:
         fprintf(stderr, 
-        "create content object chunks for the input data and writes them "
-        "to the files into the given directory.\n"
-        "usage: %s [options] OUTDIR URL [NFNexpr]\n"
-        "  -c chunk_size size for each chunk (max %d)\n"
-        "  -i FNAME   input file (instead of stdin)\n"
-        // "  -k FNAME   publisher private key\n"
-        "  -p DIGEST  publisher fingerprint\n"
-        "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
-        // "  -w STRING  witness\n"       
+        "Creates a chunked content object stream for the input data and writes them to stdout.\n"
+        "usage: %s [options] URL\n"
+        "  -c SIZE          size for each chunk (max %d)\n"
+        "  -f FNAME         filename of the chunks when using -o\n"
+        "  -i FNAME         input file (instead of stdin)\n"
+        "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
+        "  -p DIGEST        publisher fingerprint\n"
+        "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
         ,
         argv[0],
         CCNL_MAX_CHUNK_SIZE);
@@ -110,12 +109,8 @@ Usage:
         }
     }
 
-
-    // mandatory out dir
-    if (!argv[optind])
+    if (suite < 0 || suite >= CCNL_SUITE_LAST)
         goto Usage;
-    outdirname = argv[optind];
-    optind++;
 
     // mandatory url 
     if (!argv[optind])
@@ -128,17 +123,18 @@ Usage:
     // optional nfn 
     char *nfnexpr = argv[optind];
 
+    // int status;
+    // struct stat st_buf;
     // Check if outdirname is a directory and open it as a file
-    status = stat(outdirname, &st_buf);
-    if (status != 0) {
-        DEBUGMSG (99, "Error (%d) when opening file %s\n", errno, outdirname);
-        return 1;
-    }
-
-    if (S_ISREG (st_buf.st_mode)) {
-        DEBUGMSG (99, "Error: %s is a file and not a directory.\n", argv[optind]);
-        goto Usage;
-    }
+    // status = stat(outdirname, &st_buf);
+    // if (status != 0) {
+    //     DEBUGMSG (99, "Error (%d) when opening file %s\n", errno, outdirname);
+    //     return 1;
+    // }
+    // if (S_ISREG (st_buf.st_mode)) {
+    //     DEBUGMSG (99, "Error: %s is a file and not a directory.\n", argv[optind]);
+    //     goto Usage;
+    // }
 /*
     if (S_ISDIR (st_buf.st_mode)) {
         fdir = open(outdirname, O_RDWR);
@@ -153,52 +149,25 @@ Usage:
       f = 0;
     }
 
-
-
     char outfilename[255];
-    char chunk_buf[chunk_size];
+    char *chunk_buf, *next_chunk_buf, *temp_chunk_buf;
+    chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
+    next_chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
+
+    int chunk_len, next_chunk_len;
     int is_last = 0;
-    struct chunk *first_chunk = NULL;
-    struct chunk *cur_chunk = NULL;
-    struct chunk *chunk = NULL;
-    unsigned int num_chunks = 0;
-
-    do {
-        chunk_len = read(f, chunk_buf, chunk_size);
-
-        // Remove linefeed, found last chunk
-        if (chunk_buf[chunk_len-1] == 10) {
-            chunk_len--;
-            is_last = 1;
-        }
-        if (chunk_len <= 0)
-            break;
-
-        num_chunks += 1;
-
-        chunk = malloc(sizeof(struct chunk));
-        strcpy(chunk->data, chunk_buf);
-        chunk->len = chunk_len;
-        chunk->next = NULL;
-
-        if (cur_chunk == NULL)
-            first_chunk = chunk;
-        else
-            cur_chunk->next = chunk;
-        cur_chunk = chunk;
-    } while(!is_last);
-    close(f);
-
-    cur_chunk = first_chunk;
-
-    DEBUGMSG(99, "read %d chunks from stdin\n", num_chunks);
-
-    sprintf(final_chunkname_with_number, "%s%i", chunkname, num_chunks - 1);
-    char *chunk_data = NULL;
     unsigned int chunknum = 0;
-    unsigned int lastchunknum = num_chunks - 1;
+
+    // sprintf(final_chunkname_with_number, "%s%i", outfname, num_chunks - 1);
+    char *chunk_data = NULL;
     int offs = -1;
 
+    char default_file_name[1] = "c";
+    if(!outfname) {
+        outfname = default_file_name;
+    }
+
+    char fileext[10];
     switch (suite) {
         case CCNL_SUITE_CCNB:
             strcpy(fileext, "ccnb");
@@ -210,54 +179,70 @@ Usage:
             strcpy(fileext, "ndntlv");
             break;
         default:
-            DEBUGMSG(99, "fileext for suite %d not implemented", suite);
+            fprintf(stderr, "fileext for suite %d not implemented\n", suite);
     }
 
+    chunk_len = read(f, chunk_buf, chunk_size);
+    while(!is_last && chunk_len > 0) {
 
-    while(cur_chunk != NULL) {
-        chunk_data = cur_chunk->data;
-        chunk_len = cur_chunk->len;
+        if(chunk_len < chunk_size)
+            is_last = 1;
+        else
+            next_chunk_len = read(f, next_chunk_buf, chunk_size);
+
+        // found last chunk
+        if (next_chunk_len <= 0) {
+            is_last = 1;
+        } 
 
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
+        name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
-
-            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
-
-            DEBUGMSG(99, "prefix: '%s'\n", ccnl_prefix_to_path(name));
-
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
                                                            (unsigned char *)chunk_data, chunk_len, 
-                                                           &lastchunknum, &offs, 
+                                                           is_last ? &chunknum : NULL, 
+                                                           &offs, 
                                                            NULL, // int *contentpos
                                                            out);
             break;
         case CCNL_SUITE_NDNTLV:
-            // sprintf(chunkname_with_number, "%s/%s%d", url, chunkname, chunknum);
-            name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
             contentlen = ccnl_ndntlv_prependContent(name, 
-                                (unsigned char *) chunk_data, chunk_len, 
-                                &offs, NULL,
-                                &lastchunknum,
-                                out);
+                                                    (unsigned char *) chunk_data, chunk_len, 
+                                                    &offs, NULL,
+                                                    is_last ? &chunknum : NULL, 
+                                                    out);
             break;
         default:
-            DEBUGMSG(99, "produce for suite %i is not implemented\n", suite);
+            fprintf(stderr, "produce for suite %i is not implemented\n", suite);
             goto Error;
             break;
         }
 
-        sprintf(outfilename, "%s/%s%d.%s", outdirname, chunkname, chunknum, fileext);
+        if(outdirname) {
+            sprintf(outfilename, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
-        DEBUGMSG(99, "writing to %s for chunk %d\n", outfilename, chunknum);
+            fprintf(stderr, "writing to %s for chunk %d\n", outfilename, chunknum);
 
-        fout = creat(outfilename, 0666);
-        write(fout, out + offs, contentlen);
-        close(fout);
+            fout = creat(outfilename, 0666);
+            write(fout, out + offs, contentlen);
+            close(fout);
+        } else {
+            fwrite(out + offs, sizeof(unsigned char),contentlen, stdout);
+        }
+
         chunknum++;
-        cur_chunk = cur_chunk->next;
-    }
+
+        temp_chunk_buf = chunk_buf;
+        chunk_buf = next_chunk_buf;
+        next_chunk_buf = temp_chunk_buf;
+        chunk_len = next_chunk_len;
+    } 
+    close(f);
+
+    fprintf(stderr, "read %d chunks from stdin\n", chunknum);
+
     return 0;
 
 Error:
