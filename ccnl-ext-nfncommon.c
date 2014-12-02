@@ -311,7 +311,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
     name->compcnt = 1;
-    len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN"));
+    //len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN")); //what does nfn here?
     name->complen[1] = len;
     name->comp[0] = name->bytes + offset + len;
 
@@ -329,9 +329,9 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 
         } else if (stack->type == STACK_TYPE_CONST) {
             struct const_s *con = stack->content;
-            DEBUGMSG(99, "strlen: %d \n", con->len);
-            sprintf((char*)name->bytes + offset + len, " %.*s", con->len+2, ccnl_nfn_krivine_const2str(con));
-            len += con->len;
+            DEBUGMSG(99, "strlen: %d str: %.*s \n", con->len, con->len+2, ccnl_nfn_krivine_const2str(con));
+            len += sprintf((char*)name->bytes + offset + len, " %.*s", con->len+2, ccnl_nfn_krivine_const2str(con));
+            //len += con->len+4; //FIXME why???
 
         } else {
             DEBUGMSG(1, "Invalid stack type %d\n", stack->type);
@@ -347,6 +347,8 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     }
 #endif
     name->complen[0] = len;
+    
+    DEBUGMSG(99, "PREFIX_TO_PATH 12345: %s \n", ccnl_prefix_to_path(name));
     return name;
 }
 
@@ -608,6 +610,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
             len += sprintf(buf + len, " %.*s", con->len+2, str);
+            
             ccnl_free(str);
             break;
 
