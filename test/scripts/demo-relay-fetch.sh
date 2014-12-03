@@ -82,7 +82,7 @@ fi
 # producing content 
 # ----------------------------------------------------------------------
 
-echo "chunkedtestcontent" | $CCNL_HOME/util/ccn-lite-produce -s $SUITE -c 5 $CCNL_HOME/test/$DIR "$FWD/$FNAME"
+echo "chunkedtestcontent" | $CCNL_HOME/util/ccn-lite-produce -s $SUITE -c 5 -o $CCNL_HOME/test/$DIR "$FWD/$FNAME"
 
 # ----------------------------------------------------------------------
 
