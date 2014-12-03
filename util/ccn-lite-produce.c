@@ -27,16 +27,9 @@
 #define USE_SIGNATURES
 
 #define CCNL_MAX_CHUNK_SIZE 4048
-#define CCNL_MIN_CHUNK_SIZE 1
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
-
-struct chunk {
-    char data[CCNL_MAX_CHUNK_SIZE];
-    int len;
-    struct chunk *next;
-};
 
 int
 main(int argc, char *argv[])
@@ -51,14 +44,14 @@ main(int argc, char *argv[])
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
 
-    debug_level = 99;
-
     while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:")) != -1) {
         switch (opt) {
         case 'c':
             chunk_size = atoi(optarg);
-            if (chunk_size > CCNL_MAX_CHUNK_SIZE) 
+            if (chunk_size > CCNL_MAX_CHUNK_SIZE) {
+                DEBUGMSG(WARNING, "max chunk size is %d (%d is to large), using max chunk size\n", CCNL_MAX_CHUNK_SIZE, chunk_size);
                 chunk_size = CCNL_MAX_CHUNK_SIZE;
+            }
             break;
         case 'f':
             outfname = optarg;
@@ -123,24 +116,35 @@ Usage:
     // optional nfn 
     char *nfnexpr = argv[optind];
 
-    // int status;
-    // struct stat st_buf;
-    // Check if outdirname is a directory and open it as a file
-    // status = stat(outdirname, &st_buf);
-    // if (status != 0) {
-    //     DEBUGMSG (99, "Error (%d) when opening file %s\n", errno, outdirname);
-    //     return 1;
-    // }
-    // if (S_ISREG (st_buf.st_mode)) {
-    //     DEBUGMSG (99, "Error: %s is a file and not a directory.\n", argv[optind]);
-    //     goto Usage;
-    // }
-/*
-    if (S_ISDIR (st_buf.st_mode)) {
-        fdir = open(outdirname, O_RDWR);
+    int status;
+    struct stat st_buf;
+    if(outdirname) {
+        // Check if outdirname is a directory and open it as a file
+        status = stat(outdirname, &st_buf);
+        if (status != 0) {
+            // DEBUGMSG (ERROR, "Error (%d) when opening file %s\n", errno, outdirname);
+            fprintf(stderr, "Error (%d) when opening output dir %s (probaby does not exist)\n", errno, outdirname);
+            goto Usage;
+        }
+        if (S_ISREG (st_buf.st_mode)) {
+            // DEBUGMSG (ERROR, "Error: %s is a file and not a directory.\n", argv[optind]);
+            fprintf(stderr, "Error: output dir %s is a file and not a directory.\n", outdirname);
+            goto Usage;
+        }
     }
-*/
-    if (infname) {
+    if(infname) {
+        // Check if outdirname is a directory and open it as a file
+        status = stat(infname, &st_buf);
+        if (status != 0) {
+            // DEBUGMSG (ERROR, "Error (%d) when opening file %s\n", errno, outdirname);
+            fprintf(stderr, "Error (%d) when opening input file %s (probaby does not exist)\n", errno, infname);
+            goto Usage;
+        }
+        if (S_ISDIR (st_buf.st_mode)) {
+            // DEBUGMSG (ERROR, "Error: %s is a file and not a directory.\n", argv[optind]);
+            fprintf(stderr, "Error: input file %s is a directory and not a file.\n", infname);
+            goto Usage;
+        }
         f = open(infname, O_RDONLY);
         if (f < 0) {
             perror("file open:");
@@ -149,24 +153,19 @@ Usage:
       f = 0;
     }
 
-    char outfilename[255];
-    char *chunk_buf, *next_chunk_buf, *temp_chunk_buf;
-    chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
-    next_chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
-
-    int chunk_len, next_chunk_len;
-    int is_last = 0;
-    unsigned int chunknum = 0;
-
-    // sprintf(final_chunkname_with_number, "%s%i", outfname, num_chunks - 1);
-    char *chunk_data = NULL;
-    int offs = -1;
-
-    char default_file_name[1] = "c";
-    if(!outfname) {
+    char default_file_name[2] = "c";
+    if (!outfname) {
         outfname = default_file_name;
+    } else if(!outdirname) {
+        DEBUGMSG(WARNING, "filename -f without -o output dir does nothing\n");
     }
 
+    char *chunk_buf;
+    chunk_buf = ccnl_malloc(chunk_size * sizeof(unsigned char));
+    int chunk_len, is_last = 0, offs = -1;
+    unsigned int chunknum = 0;
+
+    char outpathname[255];
     char fileext[10];
     switch (suite) {
         case CCNL_SUITE_CCNB:
@@ -179,19 +178,15 @@ Usage:
             strcpy(fileext, "ndntlv");
             break;
         default:
+            // DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
             fprintf(stderr, "fileext for suite %d not implemented\n", suite);
     }
 
+    chunk_len = 1;
     chunk_len = read(f, chunk_buf, chunk_size);
-    while(!is_last && chunk_len > 0) {
+    while (!is_last && chunk_len > 0) {
 
-        if(chunk_len < chunk_size)
-            is_last = 1;
-        else
-            next_chunk_len = read(f, next_chunk_buf, chunk_size);
-
-        // found last chunk
-        if (next_chunk_len <= 0) {
+        if (chunk_len < chunk_size) {
             is_last = 1;
         } 
 
@@ -201,7 +196,7 @@ Usage:
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                                                           (unsigned char *)chunk_data, chunk_len, 
+                                                           (unsigned char *)chunk_buf, chunk_len, 
                                                            is_last ? &chunknum : NULL, 
                                                            &offs, 
                                                            NULL, // int *contentpos
@@ -209,43 +204,44 @@ Usage:
             break;
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name, 
-                                                    (unsigned char *) chunk_data, chunk_len, 
+                                                    (unsigned char *) chunk_buf, chunk_len, 
                                                     &offs, NULL,
                                                     is_last ? &chunknum : NULL, 
                                                     out);
             break;
         default:
+            // DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
             fprintf(stderr, "produce for suite %i is not implemented\n", suite);
             goto Error;
             break;
         }
 
-        if(outdirname) {
-            sprintf(outfilename, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
+        if (outdirname) {
+            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
 
-            fprintf(stderr, "writing to %s for chunk %d\n", outfilename, chunknum);
+            DEBUGMSG(INFO, "writing chunk %d to file %s\n", outpathname, chunknum);
 
-            fout = creat(outfilename, 0666);
+            fout = creat(outpathname, 0666);
             write(fout, out + offs, contentlen);
             close(fout);
         } else {
+            DEBUGMSG(INFO, "writing chunk %d\n", chunknum);
             fwrite(out + offs, sizeof(unsigned char),contentlen, stdout);
         }
 
         chunknum++;
-
-        temp_chunk_buf = chunk_buf;
-        chunk_buf = next_chunk_buf;
-        next_chunk_buf = temp_chunk_buf;
-        chunk_len = next_chunk_len;
+        if (!is_last) {
+            chunk_len = read(f, chunk_buf, chunk_size);
+        }
     } 
+
     close(f);
-
-    fprintf(stderr, "read %d chunks from stdin\n", chunknum);
-
+    ccnl_free(chunk_buf);
     return 0;
 
 Error:
+    close(f);
+    ccnl_free(chunk_buf);
     return -1;
 }
 
