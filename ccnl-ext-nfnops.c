@@ -73,13 +73,13 @@ op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0, *h;
 
-    DEBUGMSG(2, "---to do: OP_ADD <%s>\n", prog+7);
+    DEBUGMSG(2, "---to do: OP_ADD <%s> pending: %s\n", prog+7, pending);
     pop2int();
     h = ccnl_malloc(sizeof(int));
     *h = i1 + i2;
     push_to_stack(stack, h, STACK_TYPE_INT);
 
-    return pending ? ccnl_strdup(pending+1) : NULL;
+    return pending ? ccnl_strdup(pending) : NULL;
 }
 
 char*
@@ -167,7 +167,7 @@ op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     *h = i2 * i1;
     push_to_stack(stack, h, STACK_TYPE_INT);
 
-    return pending ? ccnl_strdup(pending+1) : NULL;
+    return pending ? ccnl_strdup(pending) : NULL;
 }
 
 char*
@@ -258,7 +258,7 @@ op_builtin_sub(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     *h = i2 - i1;
     push_to_stack(stack, h, STACK_TYPE_INT);
 
-    return pending ? ccnl_strdup(pending+1) : NULL;
+    return pending ? ccnl_strdup(pending) : NULL;
 }
 
 // ----------------------------------------------------------------------

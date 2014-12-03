@@ -25,8 +25,8 @@
 // ----------------------------------------------------------------------
 // config and constants
 
-#define NFN_MAX_RUNNING_COMPUTATIONS    10
-#define NFN_DEFAULT_WAITING_TIME        10
+#define NFN_MAX_RUNNING_COMPUTATIONS    100
+#define NFN_DEFAULT_WAITING_TIME        100
 
 #define STACK_TYPE_MARK                 0
 #define STACK_TYPE_INT                  1

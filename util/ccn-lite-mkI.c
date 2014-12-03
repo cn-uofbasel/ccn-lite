@@ -47,7 +47,7 @@ main(int argc, char *argv[])
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "ha:c:d:i:ln:o:p:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:x:")) != -1) {
         switch (opt) {
         case 'a':
             minSuffix = optarg;
@@ -63,6 +63,9 @@ main(int argc, char *argv[])
                         dlen);
                 exit(-1);
             }
+            break;
+        case 'e':
+            nonce = atoi(optarg);
             break;
         case 'l':
             isLambda = 1 - isLambda;
@@ -96,7 +99,9 @@ Usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -a LEN     miN additional components\n"
             "  -c SCOPE\n"
+
             "  -d DIGEST  content digest (sets -x to 0)\n"
+            "  -e NONCE   random 4 bytes\n"
             "  -l         URI is a Lambda expression\n"
             "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
@@ -139,7 +144,7 @@ Usage:
 	break;
     case CCNL_SUITE_NDNTLV:
         len = ndntlv_mkInterest(prefix, 
-                                (int*)&nonce,
+                                (int*)&nonce, 
                                 out,
                                 CCNL_MAX_PACKET_SIZE);
         break;
