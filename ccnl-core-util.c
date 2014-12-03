@@ -518,7 +518,7 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 
     for (i = 0; i < pr->compcnt; i++) {
 #ifdef USE_NFN
-        if(strncmp("call", (char*)pr->comp[i]+skip, 4))
+        if(strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5))
         {
 #endif
             len += sprintf(buf + len, "/");
