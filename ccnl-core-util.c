@@ -577,7 +577,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        len = ccnl_ndntlv_prependInterest(name, -1, NULL, &offs, tmp);
+        len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
         break;
 #endif
     default:
