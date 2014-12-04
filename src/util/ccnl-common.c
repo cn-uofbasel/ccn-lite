@@ -71,7 +71,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-pkt-ccnb.c"
 #include "../ccnl-pkt-ccntlv.c"
 #include "../ccnl-pkt-ndntlv.c"
-#include "../ccnl-pkt-localrpc.h"
+#include "../ccnl-pkt-localrpc.c"
 
 #define ccnl_core_addToCleanup(b)       do{}while(0)
 

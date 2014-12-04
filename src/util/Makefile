@@ -7,15 +7,15 @@ EXTLIBS=-lcrypto
 PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-cryptoserver\
 	ccn-lite-ctrl \
+	ccn-lite-fetch \
 	ccn-lite-mkC \
 	ccn-lite-mkI \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
 	ccn-lite-produce \
-	ccn-lite-fetch \
+	ccn-lite-rpc \
 	ccn-lite-simplenfn
 
-#	ccn-lite-localrpc \
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
 #	ccn-lite-mkF \
