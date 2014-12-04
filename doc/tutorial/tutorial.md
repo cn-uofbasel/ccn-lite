@@ -458,6 +458,8 @@ class WordCount() extends NFNService {
 
 ### 3. Implementing and publishing a custom service
 
+If you want to use an IDE (both intellij and eclipse have a good scala plugin) you can use the `sbt gen-idea` or `sbt eclipse` to generate a project that can be directly opened with the IDE.
+
 Create a `.scala` file in the `src/main/scala/nfn/service` package, e.g. ToUpper.scala. Implement your service accordingly (as in Java, a Scala String has the function `.toUpperCase`). It is up to you on what types the service is defined and how many arguments the service supports.
 
 To publish this service, simply add the line `node.publishService(new ToUpper()) to the StandaloneComputeServer script. If you used the above mention package, you do not have to import anything. If you choose a different place you need to import the class accordingly.
