@@ -127,18 +127,6 @@ block_on_read(int sock, float wait)
     return rc;
 }
 
-
-int
-ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ, vallen;
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
-
 struct rdr_ds_s*
 loadFile(char **cpp)
 {
