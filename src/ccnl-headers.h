@@ -223,9 +223,9 @@ struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 char* ccnl_suite2str(int suite);
 int hex2int(char c);
 int unescape_component(char *comp);
-int ccnl_URItoComponents(char **compVector, char *uri);
+int ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
 struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, unsigned int *chunknum);
-int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src);
+int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
 int ccnl_pkt2suite(unsigned char *data, int len);
 char *ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
@@ -274,7 +274,7 @@ int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int d
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */
 #ifdef USE_SUITE_CCNTLV
-int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201409_s *hdrptr, int hoplimit, unsigned char **data, int *datalen);
+int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201411_s *hdrptr, int hoplimit, unsigned char **data, int *datalen);
 int ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 

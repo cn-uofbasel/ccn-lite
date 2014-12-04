@@ -6,7 +6,7 @@ https://github.com/cn-uofbasel/ccn-lite
 
 This is outdated (Nov 2014), needs updateing.
 
-[test link to tutorial](tutorial/tutorial.md)
+[test link to tutorial](../tutorial/tutorial.md)
 
 ### Abstract
 

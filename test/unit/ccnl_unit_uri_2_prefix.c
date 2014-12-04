@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../ccnl-headers.h"
+#include "../../src/ccnl-headers.h"
 
 
 int uri_to_prefix_suite = 0;
@@ -50,9 +50,9 @@ int ccnl_test_prepare_AppendCmpToPrefix(void **cmpstr, void **prefix){
 int ccnl_test_run_AppendCmpToPrefix(void *cmpstr, void *prefix) {
 	struct ccnl_prefix_s *p = prefix;
 	char *component = ccnl_malloc(100);
-	strcpy(component, "cmp");
 
-	ccnl_prefix_appendCmp(p, component, 3);
+	strcpy(component, "cmp");
+	ccnl_prefix_appendCmp(p, (unsigned char*) component, 3);
 
 	int res = C_ASSERT_EQUAL_STRING(ccnl_prefix_to_path(p), cmpstr);
 	if(p->suite != uri_to_prefix_suite) return 0;
@@ -83,7 +83,7 @@ int ccnl_test_prepare_uri_to_prefix_chunk(void **cmpstr, void **prefix){
 	*cmpstr = ccnl_malloc(100);
 	char *c1 = ccnl_malloc(100);
 	char *c2 = ccnl_malloc(100);
-	int *chunk = ccnl_malloc(sizeof(int));
+	unsigned int *chunk = ccnl_malloc(sizeof(int));
 	*chunk = 1;
 	strcpy(*cmpstr, "/path/to/data");
 	strcpy(c1, "/path/to/data");

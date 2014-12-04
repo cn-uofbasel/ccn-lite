@@ -15,6 +15,7 @@ PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-fetch \
 	ccn-lite-simplenfn
 
+#	ccn-lite-localrpc \
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
 #	ccn-lite-mkF \

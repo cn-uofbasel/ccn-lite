@@ -10,7 +10,7 @@
 * [README-OMNeT.txt](README-OMNeT.txt)
 
 ### Tutorial
-* [How to connect to NDN, run a named-function demo](tutorial/tutorial.md)
+* [How to connect to NDN, run a named-function demo](../tutorial/tutorial.md)
 
 ### Technical (internal) docs
 * [ccnl_crypto_system.txt](ccnl_crypto_system.txt)

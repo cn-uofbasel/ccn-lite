@@ -52,14 +52,14 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 	* Ubuntu: `sudo apt-get install libssl-dev`
 	* OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
 
-4. `make clean all` in `$CCNL_HOME`
+4. `make clean all` in `$CCNL_HOME/src`
 
 ### 1. Producing Content 
 
 `ccn-lite-mkC` creates an (unsigned) content object in a specified wireformat, subject to the maximum packet size of 4kB. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
 ```bash
-$CCNL_HOME/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
+$CCNL_HOME/src/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
 ```
 Type something, your text will be used as the data for the content object.
 
@@ -74,7 +74,7 @@ Type something, your text will be used as the data for the content object.
 `-x` sets up a Unix socket, we will use that port later to send management commands. 
 
 ```bash
-$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
+$CCNL_HOME/src/ccn-lite-relay -v 99 -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
 ```
 
 ### 3. Starting `ccn-lite-relay` for node `B` 
@@ -83,7 +83,7 @@ Similar to starting relay `A`, but on a different port. Additional, with `-d` we
 Open a new terminal window for relay `B`.
 
 ```bash
-$CCNL_HOME/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d $CCNL_HOME/test/ndntlv
+$CCNL_HOME/src/ccn-lite-relay -v 99 -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d $CCNL_HOME/test/ndntlv
 ```
 
 ### 4. Add a Forwarding Rule
@@ -96,13 +96,13 @@ Finally, because faces are identified by dynamically asigned numbers,  we need t
 
 For creating the face at node `A`, open a new terminal window:
 ```bash
-FACEID=`$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 For defining the namespace that should become reachable through this face, we have to configure a forwarding rule. We choose `/ndn` as namespace (prefix) pattern because our test content as well as all objects in `./test/ndntlv` have a name starting with `/ndn`. Later, all interest which match with the longest prefix on this name will be forwarded to this face.
 
 In other words: Relay `A` is technically connected to relay `B` through the UDP face, but logically, relay `A` does not yet have the necessary forwarding state to reach `B`. To create a forwarding rule (`/ndn ---> B`), we execute:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
 You might want to verify a relay's configuration through the builtin HTTP server. Just point your browser to `http://127.0.0.1:6363/`
@@ -112,12 +112,12 @@ This ends the configuration part and we are ready to use the two-node setup for 
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A` 
 The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want `ccn-lite-peek` to send an interest to relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a somehow readable format.
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 If you want to see the content proper, use the `-f 2` output format option:
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump -f 2
+$CCNL_HOME/src/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 2
 ```
 
 <a name="scenario2"/>
@@ -131,7 +131,7 @@ Similar to Scenario 1, but this time the network consists of the NDN Testbed ins
 Peek sends the interest directly to a node in the NDN Testbed. `-w` sets the timeout of peek to 10 seconds.
 
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla/ping" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla/ping" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 Note: `/ndn/edu/ucla/ping` dynamically creates a new content packet with a limited lifetime and random name extension. Due to the network level caching, repeating the above command might return a copy instead of triggering a new response. Try it out!
@@ -147,34 +147,34 @@ Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to t
 ### 1. Shutdown relay `B` 
 To shutdown a relay we can use the ctrl tool.
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt 
 ```
 
 ### 2. Remove Face to `B` 
 To see the current configuration of the face, use:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 Now we can destroy the face:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 And check again if the face was actually removed.
 
 ### 3. Connecting node `A` directly to the NDN Testbed 
 Connect to the NDN testbed server of the University of Basel by creating a new UDP face to the NFD of Basel and then registring the prefix `/ndn`
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Send interest to `A` 
 Request data from the Testbed system of the UCLA. The Interest will be transmitted over the Testbed server of the University of Basel to the Testbed system of the UCLA:
 ```bash
-$CCNL_HOME/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 
@@ -191,23 +191,23 @@ To build a CCN-lite relay with NFN functionality, export the variable:
 ```bash
 export USE_NFN=1
 ```
-and rebuild the project
-or build:
+and rebuild the project in $CCNL_HOME/src with make
 
+Or build directly:
 ```bash
 make ccn-nfn-relay
 ```
 
 The ccn-nfn-relay can be started similar to the ccn-lite-relay:
 ```bash
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
+$CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
 ### 2. Send a NFN request
 
 To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of `ccn-lite-peek`. This tool is very similar, but instead of fetching the content for a static name it returns the result of a dynamic NFN computation.
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
 Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
 
@@ -223,7 +223,7 @@ Instead of running a complex Compute Server, a `dummyserver` is used in this sce
 ### 1. Start a NFN-relay
 A NFN-relay is started on the same way as shown in the previous scenario:
 ```bash
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
+$CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
 ### 2. Start the computation dummy server
