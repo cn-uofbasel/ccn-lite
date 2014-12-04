@@ -72,6 +72,6 @@ int main(int argc, char **argv){
 	}
 	ccnl_free(testdescription);
 
-
+        return 0;
 }
 

@@ -35,6 +35,8 @@
 #define USE_SUITE_NDNTLV
 #define USE_SCHEDULER
 
+#define NEEDS_PACKET_CRAFTING
+
 #include "ccnl-os-includes.h"
 
 #include "ccnl-defs.h"

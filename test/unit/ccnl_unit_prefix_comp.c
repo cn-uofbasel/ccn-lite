@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../ccnl-headers.h"
+#include "../../src/ccnl-headers.h"
 
 
 int prefix_cmp_suite;

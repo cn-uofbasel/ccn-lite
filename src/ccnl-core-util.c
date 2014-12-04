@@ -201,8 +201,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     struct ccnl_prefix_s *p;
     char *compvect[CCNL_MAX_NAME_COMP];
     unsigned int complens[CCNL_MAX_NAME_COMP];
-
-    int cnt, i, len = 0;
+    int cnt, i, len, tlen;
 
     DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
              ccnl_suite2str(suite), uri, nfnexpr);
@@ -220,11 +219,10 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         return NULL;
 
     for (i = 0, len = 0; i < cnt; i++) {
-        if (i == (cnt-1) && nfnexpr && *nfnexpr) {
+        if (i == (cnt-1) && nfnexpr && *nfnexpr)
             len += strlen(nfnexpr);
-        } else {
+        else
             len += complens[i];//strlen(compvect[i]);
-        }
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
@@ -236,8 +234,8 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         free_prefix(p);
         return NULL;
     }
-    int tlen = 0;
-    for (i = 0, len = 0; i < cnt; i++) {
+
+    for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
         int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
         
         char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
@@ -262,7 +260,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         p->chunknum = ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
-
 
     return p;
 }
