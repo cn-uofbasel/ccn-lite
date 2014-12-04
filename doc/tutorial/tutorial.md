@@ -7,6 +7,9 @@ Table Of Contents:
 - [Scenario 3: Connecting CCNL with NDNTestbed](#scenario3)
 - [Scenario 4: Simple NFN request](#scenario4)
 - [Scenario 5: NFN request with Compute Server Interaction](#scenario5)
+- [Scenario 6: Full Named Function Networking (NFN) demo](#scneario6)
+- [Scenario 7: Creating and Publishing your own Named Function](#scenario7)
+
 
 <a name="introduction"/>
 ## Introduction
