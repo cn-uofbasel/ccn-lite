@@ -60,6 +60,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct configuration_s *config)
 {
     struct ccnl_buf_s *buf;
+    int nonce = rand();
 
     DEBUGMSG(2, "ccnl_nfn_query2interest()\n");
 
@@ -69,7 +70,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     from->outq = NULL;
     DEBUGMSG(99, "  Configuration ID: %d\n", config->configid);
 
-    buf = ccnl_mkSimpleInterest(*prefix, NULL);
+    buf = ccnl_mkSimpleInterest(*prefix, &nonce);
 
     return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
 //    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
