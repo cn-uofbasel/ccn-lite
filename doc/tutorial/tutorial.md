@@ -208,6 +208,7 @@ $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCN
 ```
 Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
 
+<a name="scenario5"/>
 ## Scenario 5: NFN request with Compute Server Interaction 
 
 ![](demo-function-call-ext.png)
@@ -260,5 +261,212 @@ One can also combine build in operators and function calls:
 $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
 ```
 Now the result will be 11.
+
+<a name="scenario6"/>
+## Scenario 6: Full Named Function Networking (NFN) demo
+In this scenario we install a full implementation of the compute server instead of just a dummy implementation. The comptue server implementation can be found in the project [nfn-scala](https://github.com/cn-uofbasel/nfn-scala). It is written in Scala and requires some installation steps. 
+
+### 0. Installation nfn-scala 
+Follow the installation instructions of nfn-scala. You mainly have to make sure that a JDK and sbt is installed.
+
+### 1. Again, start a NFN-relay
+Start a nfn-relay. We again add the content you produced in the first scenario.
+```bash
+$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
+```
+
+### 2. Start the Scala compute server
+First, make sure that CCNL_HOME is set correctly to the CCN-Lite folder with `echo $CCNL_HOME` and also make sure everything is compiled (`make clean all`).
+Next, change to the nfn-scala directory. Finally, start the compute server with:
+
+```bash
+sbt 'project nfn-runnables' 'runMain production.StandaloneComputeServer /node/nodeA /tmp/mgmt-nfn-relay-a.sock 9001 9002 debug'
+```
+
+The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
+It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a udp face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published. The first is called `/node/nodeA/nfn_service_WordCount`, the second `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
+
+### 3. Send a NFN expression with a wordcount function call
+We are going to invoke the wordcount service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+The result of this request should be 2. In the following some more examples:
+You can also count the number of words of the document you produced in the first scenario, which should have the name `/ndn/test/mycontent`.
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+
+Some more examples you can try:
+
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/util/ccn-lite-pktdump
+```
+
+### 4. Invoke the pandoc service
+First install the [pandoc](http://johnmacfarlane.net/pandoc) command-line utility (Ubuntu: `apt-get install pandoc` OSX: `brew install pandoc`) because the implementation of the pandoc services uses the command-line application. 
+This function reformats a document from one format (e.g. markdown github) to another format (e.g. html) using pandoc.
+It takes 3 parameters, the first one is the name of a document to transform, the second is a string indicating the initial document format and the third is a string for the format the document should be converted to. A list of all supported formats can be found on the webpage (e.g. call 4 /ndn/ch/unibas/nfn/nfn_service_Pandoc /name/of/doc 'markdown' 'latex').
+
+To test this we can send the following request:
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2
+```
+
+Since `tiny_md` is only a small document, the generated html document will also fit into a single content object.
+
+### 5. Invoke the pandoc service with a large document
+So far, all results of NFN computations were small and fit into single content objects. Next we test what happens if the result is larger, by transforming this tutorial instead of `tiny_md`.
+
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2 
+```
+The result of this computation will not be a document, but something like `redirect:/node/nodeA/call 2 %2fndn%2fch...`. When the result is too large to fit into one content object it has to be chunked. Since chunking of computation does not make too much sense, the result is a redirect address under which the chunked result was published by the compute server. To get the result, copy the redirected address (without `redirect:`). Because `ccn-lite-peek` can only retrieve a single content object, we have to use `ccn-lite-fetch`, which works almost like `ccn-lite-peek`. It will return the stream of the data of the fetched content objects chunks, instead of wire format encoded packets, therefore `ccn-lite-pktdump` is not necessary. The `%2f` is used to escape the `/` character, because otherwise an expression would incorrectly be split into components.
+```bash
+$CCNL_HOME/util/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
+```
+Open the `tutorial.html` file in the browser. You should see a HTML page of this tutorial (with missing pictures).
+
+### 6. Function chaining
+One last example shows the chaining of functions. Too see that this works, use the following:
+```bash
+$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/util/ccn-lite-pktdump  
+```
+
+<a name="scenario7"/>
+## Scenario 7: Creating and Publishing your own Named Function
+So far, all services as well as the published documents of the compute server were predefined. In this scenario, we are going to first look the the compute server start script as well as how an implemented service looks like. Then, we are going to implement a new service called revert.
+
+### 1. Explaining production.StandaloneComputeServer
+The nfn-scala project consists of several projects. The main part, you could call it the main library, is the root project in /src. There are some subprojects. We are interested in the subproject `nfn-runnables`, which contains several start scripts which setup a certain environment. In `evaluation.*` there are some scripts which setup a nfn environment in Scala only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `production.StandaloneComputeServer`.
+You might be able to understand what is going on even if you do not know any Scala. First, there is some basic parsing of the command-line arguments. The important part are the following lines:
+```scala
+// Configuration of the router, so far always ccn-lite
+// It requires the socket to the management interface, isCCNOnly = false indicates that it is a NFN node
+// and isAlreadyRunning = true tells the system that it should not have to start ccn-lite
+val routerConfig = RouterConfig("127.0.0.1", ccnlPort, prefix, mgmtSocket ,isCCNOnly = false, isAlreadyRunning = true)
+
+
+// This configuration sets up the compute server
+// withLocalAm = false tells the system that it should not start an abstract machine alongside the compute server
+// because we know that the ccn-lite node will be started in nfn mode
+val computeNodeConfig = ComputeNodeConfig("127.0.0.1", computeServerPort, prefix, withLocalAM = false)
+
+// Abstraction of a node which runs both the router and the compute server on localhost (over UDP sockets)
+val node = LocalNode(routerConfig, Some(computeNodeConfig))
+
+
+// Publish services
+// This will internally get the Java bytecode for the compiled services, put them into jar files and
+// put the data of the jar into a content object.
+// The name of this service is infered from the package structure of the service as well as the prefix of the local node.
+// In this case the prefix is given with the commandline argument 'prefixStr' (e.g. /node/nodeA/nfn_service_WordCount)
+node.publishService(new WordCount())
+node.publishService(new Pandoc())
+node.publishService(new Reverse())
+node.publishService(new RemoveSpace())
+
+// Publish docs/tiny_md under the given prefix (e.g /node/nodeA/docs/tiny_md)
+node += Content(node.prefix.append("docs", "tiny_md"),
+"""
+  |# TODO List
+  |* ~~NOTHING~~
+""".stripMargin.getBytes)
+
+
+// Read the tutorial form the ccn-lite documentation and publish it
+val ccnlTutorialMdPath = "doc/tutorial/tutorial.md"
+
+val tutorialMdName = node.prefix.append(CCNName("docs", "tutorial_md"))
+val ccnlHome = System.getenv("CCNL_HOME")
+val tutorialMdFile = new File(s"$ccnlHome/$ccnlTutorialMdPath")
+val tutorialMdData = IOHelper.readByteArrayFromFile(tutorialMdFile)
+node += Content(tutorialMdName, tutorialMdData)
+```
+
+### 2. Introduction to Service Implementation
+First, a simple example of an implemented service (found in `/src/main/scala/nfn/service/Reverse.scala`). Again, even without knowing Scala you should be able to grasp what it does.
+
+```scala
+package nfn.service
+
+// ActorRef is the reference to an Akka Actor where you can send messages to
+// It is used to have access to the client-library style interface to CCN where you can send interests to and
+// receive content from (as well as access to the management interface and more)
+// This service will no make use of this
+import akka.actor.ActorRef
+
+
+// NFNService is a trait, which is very similar to a Java interface
+// It requires the implementation of one method called 'function'
+class Reverse extends NFNService{
+
+
+  // This method does not have any parameters, you can imagine 'function()'.
+  // The return type is a function, which has two parameters, one is a sequence (or list) of NFNValue's and the second
+  // is the reference to the actor providing the CCN interface. This function returns a value of type NFNValue.
+  override def function(args: Seq[NFNValue], ccnApi: ActorRef): NFNValue = {
+
+    // Match the arguments to the expected or supported types
+    // In this case the function is only implemented for a single parameter of type string ('foo bar')
+    args match{
+      case Seq(NFNStringValue(str)) => 
+        
+        // Return a result of type NFNValue, in this case a string value
+        // NFNValue is a trait with a 'toDataRepresentation', which will be called on the result of the
+        // function invocation to get the result to put into the final content object
+        NFNStringValue(str.reverse)
+        
+      // ??? is a Scala construct, it throws a NotImplementedExeption (and is of type Nothing which is a subtype of any other type)
+      case _ => ???
+    }
+  }
+}
+```
+
+Or a more complete implementation demonstrating how several arguments and different argument types can be handled:
+
+```scala
+package nfn.service
+
+import akka.actor.ActorRef
+
+class WordCount() extends NFNService {
+  override def function(args: Seq[NFNValue], ccnApi: ActorRef): NFNValue = {
+    def splitString(s: String) = s.split(" ").size
+    
+    NFNIntValue(
+      args.map({
+        // corresponds to a name or another expression in the call expression, compute server will fetches the data from the network before invoking this function
+        case doc: NFNContentObjectValue => splitString(new String(doc.data)) 
+        // corresponds to string 'foo bar'
+        case NFNStringValue(s) => splitString(s)
+        // corresponds to an integer
+        case NFNIntValue(i) => 1
+        case _ =>
+          throw new NFNServiceArgumentException(s"$ccnName can only be applied to values of type NFNBinaryDataValue and not $args")
+      }).sum
+    )
+  }
+}
+```
+
+### 3. Implementing and publishing a custom service
+
+Create a `.scala` file in the `src/main/scala/nfn/service` package, e.g. ToUpper.scala. Implement your service accordingly (as in Java, a Scala String has the function `.toUpperCase`). It is up to you on what types the service is defined and how many arguments the service supports.
+
+To publish this service, simply add the line `node.publishService(new ToUpper()) to the StandaloneComputeServer script. If you used the above mention package, you do not have to import anything. If you choose a different place you need to import the class accordingly.
+
+### 4. Test your service
+
+After rerunning both the ccn-nfn-lite application as well as the compute server, you should be able to call your service. Run the according peek. The name of your service will be /node/nodeA/nfn_service_ToUpper. If you have chosen a different package, replace every '.' of the package name with '_'. If you want you can send us a pull request or an email with the code of your service and we will publish it to the testbed.
+
+### 5. Uninstall sbt and downloaded libraries
+The following should get rid of everything downloaded/installed:
+* Delete nfn-scala
+* uninstall sbt (and remove `~/.sbt` if it still exists)
+* Remove `~/.ivy2` (this will of course also delete all your cached Java jars if you are using ivy)
 
 ### // end-of-tutorial
