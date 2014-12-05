@@ -283,7 +283,7 @@ First, make sure that CCNL_HOME is set correctly to the CCN-Lite folder with `ec
 Next, change to the nfn-scala directory. Finally, start the compute server with:
 
 ```bash
-sbt 'project nfn-runnables' 'runMain production.StandaloneComputeServer /node/nodeA /tmp/mgmt-nfn-relay-a.sock 9001 9002 debug'
+sbt 'runMain runnables.production.StandaloneComputeServer /node/nodeA /tmp/mgmt-nfn-relay-a.sock 9001 9002 debug'
 ```
 
 The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
@@ -342,8 +342,8 @@ $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /n
 ## Scenario 7: Creating and Publishing your own Named Function
 So far, all services as well as the published documents of the compute server were predefined. In this scenario, we are going to first look the the compute server start script as well as how an implemented service looks like. Then, we are going to implement a new service called revert.
 
-### 1. Explaining production.StandaloneComputeServer
-The nfn-scala project consists of several projects. The main part, you could call it the main library, is the root project in /src. There are some subprojects. We are interested in the subproject `nfn-runnables`, which contains several start scripts which setup a certain environment. In `evaluation.*` there are some scripts which setup a nfn environment in Scala only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `production.StandaloneComputeServer`.
+### 1. Explaining runnables.production.StandaloneComputeServer
+Currenty all running targets exist withing the project itself in the runnables package. In `runnables.evaluation.*` are some scripts which setup a nfn environment in Scala-only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `runnables.production.StandaloneComputeServer`.
 You might be able to understand what is going on even if you do not know any Scala. First, there is some basic parsing of the command-line arguments. The important part are the following lines:
 ```scala
 // Configuration of the router, so far always ccn-lite
