@@ -155,15 +155,27 @@ int
 ccnl_prefix_removeChunkNumComponent(int suite,
                            struct ccnl_prefix_s *prefix) {
     switch (suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        // TODO: asumes that chunk is at the end!
+        if(prefix->comp[prefix->compcnt-1][1] == CCNX_TLV_N_Chunk) {
+            prefix->compcnt--;
+        } else {
+            DEBUGMSG(WARN, "Tried to remove chunknum from CCNTLV prefix, but either prefix does not have a chunknum "
+                           "or the last component is not the chunknum.");
+            return -1;
+        }
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         if(prefix->comp[prefix->compcnt-1][0] == NDN_Marker_SegmentNumber) {
             prefix->compcnt--;
-        }
+        } 
         break;
 #endif
     default:
-        DEBUGMSG(99, "removeChunkNum: suite %d not implemented\n", suite);
+        fprintf(stderr, "removeChunkNum: suite %d not implemented\n", suite);
         return -1;
     }
 
@@ -342,7 +354,7 @@ usage:
                     // Remove chunk component from name
                     if (ccnl_prefix_removeChunkNumComponent(suite, prefix) < 0) {
                         retry++;
-                        DEBUGMSG(ERROR, "Could not remove chunknum\n");
+                        fprintf(stderr, "Could not remove chunknum\n");
                     } 
 
                     // Check if the chunk is the first chunk or the next valid chunk
