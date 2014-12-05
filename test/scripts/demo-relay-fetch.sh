@@ -108,7 +108,7 @@ then
     rmmod ccn_lite_lnxkernel
     insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA 
 else
-    $CCNL_HOME/src/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    $CCNL_HOME/src/ccn-lite-relay -v 100 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 sleep 1
 FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
@@ -116,7 +116,7 @@ echo $FACEID
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # starting relay B, with content loading
-$CCNL_HOME/src/ccn-lite-relay -v 99 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
+$CCNL_HOME/src/ccn-lite-relay -v 100 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B

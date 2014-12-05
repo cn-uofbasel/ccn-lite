@@ -240,13 +240,14 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         
         char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
 
-        if(isnfnfcomp)
+        if (isnfnfcomp)
             tlen = strlen(nfnexpr);
-        else
+        else 
             tlen = complens[i];
         
         p->comp[i] = p->bytes + len;
-        p->complen[i] = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
+        tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
+        p->complen[i] = tlen;
         len += tlen;
     }
 
@@ -349,7 +350,7 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmpl
 int 
 ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
 
-    if(chunknum >= 0xff) {
+    if (chunknum >= 0xff) {
         DEBUGMSG(WARNING, "addChunkNum is only implemented for chunknum smaller than 0xff\n");
         return -1;
     }
