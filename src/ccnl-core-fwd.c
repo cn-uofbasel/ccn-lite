@@ -571,49 +571,49 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     char *n, tmp[20];
 
     t = ccnl_rdr_getType(x);
-    if (t < NDN_TLV_RPC_SERIALIZED)
+    if (t < LRPC_NOT_SERIALIZED)
         return t;
-    if (t < NDN_TLV_RPC_APPLICATION) {
+    if (t < LRPC_APPLICATION) {
         sprintf(tmp, "v%02x", t);
         n = tmp;
     } else switch (t) {
-    case NDN_TLV_RPC_APPLICATION:
+    case LRPC_APPLICATION:
         n = "APP"; break;
-    case NDN_TLV_RPC_LAMBDA:
+    case LRPC_LAMBDA:
         n = "LBD"; break;
-    case NDN_TLV_RPC_SEQUENCE:
+    case LRPC_SEQUENCE:
         n = "SEQ"; break;
-    case NDN_TLV_RPC_NAME:
+    case LRPC_FLATNAME:
         n = "VAR"; break;
-    case NDN_TLV_RPC_NONNEGINT:
+    case LRPC_NONNEGINT:
         n = "INT"; break;
-    case NDN_TLV_RPC_BIN:
+    case LRPC_BIN:
         n = "BIN"; break;
-    case NDN_TLV_RPC_STR:
+    case LRPC_STR:
         n = "STR"; break;
     default:
         n = "???"; break;
     }
     for (i = 0; i < lev; i++)
         fprintf(stderr, "  ");
-    if (t == NDN_TLV_RPC_NAME)
+    if (t == LRPC_FLATNAME)
         fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->u.namelen);
     else
         fprintf(stderr, "%s (0x%x)\n", n, t);
 
     switch (t) {
-    case NDN_TLV_RPC_APPLICATION:
+    case LRPC_APPLICATION:
         ccnl_rdr_dump(lev+1, x->u.fct);
         break;
-    case NDN_TLV_RPC_LAMBDA:
+    case LRPC_LAMBDA:
         ccnl_rdr_dump(lev+1, x->u.lambdavar);
         break;
-    case NDN_TLV_RPC_SEQUENCE:
+    case LRPC_SEQUENCE:
         break;
-    case NDN_TLV_RPC_NAME:
-    case NDN_TLV_RPC_NONNEGINT:
-    case NDN_TLV_RPC_BIN:
-    case NDN_TLV_RPC_STR:
+    case LRPC_FLATNAME:
+    case LRPC_NONNEGINT:
+    case LRPC_BIN:
+    case LRPC_STR:
     default:
         return 0;
     }
@@ -658,7 +658,7 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 //    fprintf(stderr, "%d bytes to return face=%p\n", len, from);
 
-    *(pkt->data) = NDN_TLV_RPC_APPLICATION;
+    *(pkt->data) = LRPC_APPLICATION;
     pkt->datalen = len;
     ccnl_face_enqueue(relay, from, pkt);
 
@@ -687,7 +687,7 @@ int rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                struct rpc_exec_s *exec, struct rdr_ds_s *param)
 {
     DEBUGMSG(11, "rpc_syslog\n");
-    if (ccnl_rdr_getType(param) == NDN_TLV_RPC_STR) {
+    if (ccnl_rdr_getType(param) == LRPC_STR) {
         char *cp = ccnl_malloc(param->u.strlen + 1);
         memcpy(cp, param->aux, param->u.strlen);
         cp[param->u.strlen] = '\0';
@@ -711,7 +711,7 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG(11, "rpc_forward\n");
 
-    if (ccnl_rdr_getType(param) != NDN_TLV_RPC_NAME) {
+    if (ccnl_rdr_getType(param) != LRPC_FLATNAME) {
         ccnl_emit_RpcReturn(relay, from,
                             415, "rpc_forward: expected encoding name", NULL);
         return 0;
@@ -737,7 +737,7 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     while (param->nextinseq) {
         param = param->nextinseq;
-        if (ccnl_rdr_getType(param) != NDN_TLV_RPC_BIN) {
+        if (ccnl_rdr_getType(param) != LRPC_BIN) {
             ccnl_emit_RpcReturn(relay, from,
                                 415, "rpc_forward: invalid or no data", NULL);
             return 0;
@@ -768,7 +768,7 @@ int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     DEBUGMSG(11, "rpc_lookup\n");
 
-    if (ccnl_rdr_getType(param) == NDN_TLV_RPC_NAME) {
+    if (ccnl_rdr_getType(param) == LRPC_FLATNAME) {
         char *cp = ccnl_malloc(param->u.namelen + 1);
         struct rdr_ds_s *val = 0;
         memcpy(cp, param->aux, param->u.namelen);
@@ -810,7 +810,7 @@ rpcBuiltinFct* rpc_getBuiltinFct(struct rdr_ds_s *var)
 {
     struct x_s *x = builtin;
 
-    if (var->type != NDN_TLV_RPC_NAME)
+    if (var->type != LRPC_FLATNAME)
         return NULL;
     while (x->name) {
         if (strlen(x->name) == var->u.namelen &&
@@ -843,7 +843,7 @@ ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay,
     DEBUGMSG(10, "ccnl_RX_handleApplication face=%p\n", (void*) from);
 
     ftype = ccnl_rdr_getType(fexpr);
-    if (ftype != NDN_TLV_RPC_NAME) {
+    if (ftype != LRPC_FLATNAME) {
         DEBUGMSG(11, " (%02x) only constant fct names supported yet\n", ftype);
         ccnl_emit_RpcReturn(relay, from,
                             404, "only constant fct names supported yet", NULL);
@@ -873,7 +873,7 @@ ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              *buflen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc == 0 && *buflen > 0) {
-        if (**buf != NDN_TLV_RPC_APPLICATION) {
+        if (**buf != LRPC_APPLICATION) {
             DEBUGMSG(15, "  not an RPC packet\n");
             return -1;
         }
@@ -886,12 +886,12 @@ ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 //      ccnl_rdr_dump(0, a);
 
         type = ccnl_rdr_getType(a);
-        if (type < 0 || type != NDN_TLV_RPC_APPLICATION) {
+        if (type < 0 || type != LRPC_APPLICATION) {
             DEBUGMSG(15, "  unserialization error %d\n", type);
             return -1;
         }
         fct = a->u.fct;
-        if (ccnl_rdr_getType(fct) == NDN_TLV_RPC_NONNEGINT) // RPC return msg
+        if (ccnl_rdr_getType(fct) == LRPC_NONNEGINT) // RPC return msg
             rc = ccnl_localrpc_handleReturn(relay, from, fct, a->aux);
         else
             rc = ccnl_localrpc_handleApplication(relay, from, fct, a->aux);
