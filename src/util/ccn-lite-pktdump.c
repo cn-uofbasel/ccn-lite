@@ -745,7 +745,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
     cp = *buf;
 
     dorecurse = 0;
-    if (*cp < NDN_TLV_RPC_APPLICATION) {
+    if (*cp < LRPC_APPLICATION) {
         sprintf(tmp, "Variable=v%02x", *cp);
         n = tmp;
         *buf += 1;
@@ -755,24 +755,24 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
         if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
             return -1;
         if (vallen > *len) {
-            fprintf(stderr, "\n%04zx ** NDN_TLV_RPC length problem:\n"
+            fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
                     "  type=%hu, len=%hu larger than %d available bytes\n",
                     cp - base, (unsigned short)typ, (unsigned short)vallen,
                     *len);
             exit(-1);
         }
         switch(typ) {
-        case NDN_TLV_RPC_APPLICATION:
+        case LRPC_APPLICATION:
             n = "Application"; dorecurse = 1; break;
-        case NDN_TLV_RPC_LAMBDA:
+        case LRPC_LAMBDA:
             n = "Lambda"; dorecurse = 1; break;
-        case NDN_TLV_RPC_SEQUENCE:
+        case LRPC_SEQUENCE:
             n = "Sequence"; dorecurse = 1; break;
-        case NDN_TLV_RPC_NONNEGINT:
+        case LRPC_NONNEGINT:
             n = "Integer"; break;
-        case NDN_TLV_RPC_NAME:
+        case LRPC_FLATNAME:
             n = "NAME"; break;
-        case NDN_TLV_RPC_BIN:
+        case LRPC_BIN:
             n = "BinaryData"; break;
         default:
             sprintf(tmp, "Type=0x%x", (unsigned short)typ);
@@ -793,12 +793,12 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
         continue;
     }
 
-    if (typ == NDN_TLV_RPC_NONNEGINT) {
+    if (typ == LRPC_NONNEGINT) {
         printf("%04zx  ", *buf - base);
         for (i = 0; i <= lev; i++)
             printf("  ");
         printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-    } else if (typ == NDN_TLV_RPC_NAME) {
+    } else if (typ == LRPC_FLATNAME) {
         printf("%04zx  ", *buf - base);
         for (i = 0; i <= lev; i++)
             printf("  ");
@@ -826,14 +826,14 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
     unsigned char *cp;
 
     if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
-                    typ != NDN_TLV_RPC_APPLICATION)
+                    typ != LRPC_APPLICATION)
     return;
 
     cp = buf;
     len2 = vallen;
     if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
         return;
-    if (typ2 == NDN_TLV_RPC_NONNEGINT) { // RPC return code
+    if (typ2 == LRPC_NONNEGINT) { // RPC return code
         printf("0000  RPC-result\n");
         printf("%04zx    INT %ld\n", cp - data,
                ccnl_ndntlv_nonNegInt(buf, vallen2));

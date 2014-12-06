@@ -32,17 +32,18 @@ typedef int(rpcBuiltinFct)(struct ccnl_relay_s *, struct ccnl_face_s *,
                            struct rpc_exec_s *, struct rdr_ds_s *);
 
 
-// #define NDN_TLV_RPC_USERDEFINEDNAME  0x00..0x7f
+// #define LRPC_USERDEFINEDNAME  0x10..0x7f
 
-#define NDN_TLV_RPC_APPLICATION         0x80
-#define NDN_TLV_RPC_LAMBDA              0x81
+#define LRPC_APPLICATION         0x80
+#define LRPC_LAMBDA              0x81
 
 // data marshalling
-#define NDN_TLV_RPC_SEQUENCE            0x82
-#define NDN_TLV_RPC_NAME                0x83
-#define NDN_TLV_RPC_NONNEGINT           0x84
-#define NDN_TLV_RPC_BIN                 0x85
-#define NDN_TLV_RPC_STR                 0x86
+#define LRPC_SEQUENCE            0x82
+#define LRPC_BIN                 0x83
+
+#define LRPC_NONNEGINT           0x00 // low values for IoT encoding
+#define LRPC_FLATNAME            0x01
+#define LRPC_STR                 0x02
 
 
 struct rdr_ds_s { // RPC Data Representation (RPR) data structure
@@ -82,7 +83,7 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 */
 
 
-#define NDN_TLV_RPC_SERIALIZED          -1
+#define LRPC_NOT_SERIALIZED          -1
 
 #endif //PKT_LOCALRPC_H
 // eof

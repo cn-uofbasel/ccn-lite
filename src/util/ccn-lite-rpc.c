@@ -162,7 +162,7 @@ loadFile(char **cpp)
         fprintf(stderr, "read file: malloc problem");
         return 0;
     }
-    c->type = NDN_TLV_RPC_BIN;
+    c->type = LRPC_BIN;
     c->flatlen = -1;
     c->aux = c + 1;
 
@@ -202,19 +202,19 @@ parseConst(char **cpp)
 
     p = *cpp;
     if (isalpha(*p) || *p == '/') {
-        c->type = NDN_TLV_RPC_NAME;
+        c->type = LRPC_FLATNAME;
         while (*p == '/' || isalnum(*p) || *p == '_')
             p++;
         c->u.namelen = p - *cpp;
     } else if (isdigit(*p)) {
-        c->type = NDN_TLV_RPC_NONNEGINT;
+        c->type = LRPC_NONNEGINT;
         c->u.nonnegintval = 0;
         while (isdigit(*p)) {
             c->u.nonnegintval = 10 * c->u.nonnegintval + (*p - '0');
             p++;
         }
     } else if (*p == '\"') {
-        c->type = NDN_TLV_RPC_STR;
+        c->type = LRPC_STR;
         p++;
         c->aux = (struct rdr_ds_s*) p;
         while (*p && *p != '\"')
@@ -261,7 +261,7 @@ parsePrefixTerm(int lev, char **cpp)
         } else if (**cpp == '\\') { // lambda
             *cpp += 1;
             t2 = calloc(1, sizeof(*t2));
-            t2->type = NDN_TLV_RPC_LAMBDA;
+            t2->type = LRPC_LAMBDA;
             t2->flatlen = -1;
             t2->u.lambdavar = parseConst(cpp);
             t2->aux = parsePrefixTerm(lev+1, cpp);
@@ -273,7 +273,7 @@ parsePrefixTerm(int lev, char **cpp)
             t2 = parseConst(cpp);
             if (!term) {
                 term = calloc(1, sizeof(*t2));
-                term->type = NDN_TLV_RPC_APPLICATION;
+                term->type = LRPC_APPLICATION;
                 term->flatlen = -1;
                 term->u.fct = t2;
                 continue;
@@ -294,25 +294,25 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     char *n, tmp[10];
 
     t = ccnl_rdr_getType(x);
-    if (t < NDN_TLV_RPC_SERIALIZED)
+    if (t < LRPC_NOT_SERIALIZED)
         return t;
-    if (t < NDN_TLV_RPC_APPLICATION) {
+    if (t < LRPC_APPLICATION) {
         sprintf(tmp, "v%02x", t);
         n = tmp;
     } else switch (t) {
-    case NDN_TLV_RPC_APPLICATION:
+    case LRPC_APPLICATION:
         n = "APP"; break;
-    case NDN_TLV_RPC_LAMBDA:
+    case LRPC_LAMBDA:
         n = "LBD"; break;
-    case NDN_TLV_RPC_SEQUENCE:
+    case LRPC_SEQUENCE:
         n = "SEQ"; break;
-    case NDN_TLV_RPC_NAME:
+    case LRPC_FLATNAME:
         n = "VAR"; break;
-    case NDN_TLV_RPC_NONNEGINT:
+    case LRPC_NONNEGINT:
         n = "INT"; break;
-    case NDN_TLV_RPC_BIN:
+    case LRPC_BIN:
         n = "BIN"; break;
-    case NDN_TLV_RPC_STR:
+    case LRPC_STR:
         n = "STR"; break;
     default:
         n = "???"; break;
@@ -322,18 +322,18 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     fprintf(stderr, "%s (0x%x, len=%d)\n", n, t, x->flatlen);
 
     switch (t) {
-    case NDN_TLV_RPC_APPLICATION:
+    case LRPC_APPLICATION:
         ccnl_rdr_dump(lev+1, x->u.fct);
         break;
-    case NDN_TLV_RPC_LAMBDA:
+    case LRPC_LAMBDA:
         ccnl_rdr_dump(lev+1, x->u.lambdavar);
         break;
-    case NDN_TLV_RPC_SEQUENCE:
+    case LRPC_SEQUENCE:
         break;
-    case NDN_TLV_RPC_NAME:
-    case NDN_TLV_RPC_NONNEGINT:
-    case NDN_TLV_RPC_BIN:
-    case NDN_TLV_RPC_STR:
+    case LRPC_FLATNAME:
+    case LRPC_NONNEGINT:
+    case LRPC_BIN:
+    case LRPC_STR:
     default:
         return 0;
     }
@@ -455,7 +455,7 @@ Usage:
 */
             if (replen <= 0)
                 goto done;
-            if (*reply != NDN_TLV_RPC_APPLICATION) { // not a RPC pkt
+            if (*reply != LRPC_APPLICATION) { // not a RPC pkt
                 fprintf(stderr, "skipping non-RPC packet\n");
                 continue;
             }
