@@ -1030,7 +1030,7 @@ main(int argc, char *argv[])
         printf("Uploading content file\n");
         //send file
         if(!use_udp)
-            i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, len);
+            i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, fsize);
         else
             i = udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
 
