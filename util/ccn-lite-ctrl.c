@@ -514,7 +514,9 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, cha
 {
     long len = 0, len1 = 0, len2 = 0, len3 = 0, i = 0;
     unsigned char *contentobj, *stmt, *out1, h[10];
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, suite, NULL, NULL);
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, CCNL_SUITE_CCNB, NULL, NULL);
+    
+    
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
@@ -529,12 +531,14 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, cha
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-
     for(i = 0; i < prefix->compcnt; ++i){
-       // len1 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix->comp[i]); // länge!?
+        
+        //memset(h, '\0', sizeof(h));
+        //int len4 = sprintf(h, "%d", prefix->complen[i]);
+        //len3 += ccnl_ccnb_mkBlob(stmt+len3, CCNL_DTAG_COMPLENGTH, CCN_TT_DTAG, (char *)h, len4);
         len3 += ccnl_ccnb_mkBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char *)prefix->comp[i], prefix->complen[i]);
     }
-
+    
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
 
@@ -913,7 +917,6 @@ main(int argc, char *argv[])
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
-        printf("Num of argc: %d\n", argc);
         if(argc < 5) goto Usage;
         name = argv[2];
         file_uri = argv[3];

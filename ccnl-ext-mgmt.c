@@ -28,6 +28,9 @@
 #ifdef USE_MGMT
 
 #include "ccnl-ext-crypto.c"
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-core.h"
+#include "ccnl-defs.h"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -1513,10 +1516,11 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
-    unsigned char **components = 0, *h = 0;
+    unsigned char **components = 0,*h = 0;
     unsigned char *data;
-    int buflen;//, contlen;
-    int num, typ, i, num_of_components = -1, suite = 2;
+    int buflen, *complen;//, contlen;
+    int num, typ, num_of_components = -1, suite = 2;
+    struct ccnl_prefix_s *prefix_new;
 
     //struct ccnl_prefix_s *prefix_a = 0;
     //struct ccnl_content_s *c = 0;
@@ -1525,8 +1529,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", "received add to cache request, inizializing callback");
 
-    components = (unsigned char**) ccnl_malloc(sizeof(unsigned char*)*1024);
-    for(i = 0; i < 1024; ++i)components[i] = 0;
+    components = (unsigned char**) ccnl_calloc(1, sizeof(unsigned char*)*1024);
+    complen = (int*) malloc(sizeof(int)*1024);
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
 
@@ -1551,15 +1555,22 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             break; // end
         ++num_of_components;
         extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
+        
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     ++num_of_components;
 
-    struct ccnl_prefix_s *prefix_new = ccnl_componentstoPrefix((char**)components, num_of_components, NULL, suite, NULL);
+    prefix_new = ccnl_componentstoPrefix((char**)components, num_of_components, NULL, suite, NULL);
     data = ccnl_calloc(CCNL_MAX_PACKET_SIZE, sizeof(char));
 
     struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
     struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);
+    
+    FILE *f = fopen("test.txt", "w");
+
+    fwrite(interest->pkt->data, sizeof(char), interest->pkt->datalen, f);
+    fclose(f);
+    
     if(!interest) return 0;
     //Send interest to from!
     ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
