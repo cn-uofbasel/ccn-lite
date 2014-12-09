@@ -1566,11 +1566,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
     struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);
     
-    FILE *f = fopen("test.txt", "w");
-
-    fwrite(interest->pkt->data, sizeof(char), interest->pkt->datalen, f);
-    fclose(f);
-    
     if(!interest) return 0;
     //Send interest to from!
     ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
