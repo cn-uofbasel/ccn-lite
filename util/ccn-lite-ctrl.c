@@ -509,20 +509,126 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     return len;
 }
 
+
+struct ccnl_prefix_s*
+getCCNBPrefix(char *data, int datalen){
+    struct ccnl_prefix_s *prefix = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
+    unsigned char *content = 0;
+    int contlen, num, typ;
+    
+    if (ccnl_ccnb_dehead(&data, &datalen, &num, &typ) || typ != CCN_TT_DTAG)
+            return -1;
+    
+    if(ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
+                    &prefix, &nonce, &ppkd, &content, &contlen) == NULL){
+        fprintf(stderr, "Error in ccnb_extract\n");
+        return 0;
+    }
+                
+    printf("%s\n", ccnl_prefix_to_path(prefix));
+    return prefix;
+}
+
+struct ccnl_prefix_s*
+getCCNTLVPrefix(char *data, int datalen){
+    struct ccnl_prefix_s *prefix;
+    unsigned char *content = 0;
+    int contentlen = 0;
+    int hdrlen = 8, lastchunknum;
+    datalen -= 8;
+    data += 8;
+
+    if (ccnl_ccntlv_extract(hdrlen,
+                           &data, &datalen,
+                           &prefix,
+                           0, 0, // keyid/keyidlen
+                           &lastchunknum,
+                           &content, &contentlen) == NULL) {
+        fprintf(stderr, "Error in ccntlv_extract\n");
+        return 0;
+    } 
+    return prefix;
+}
+
+struct ccnl_prefix_s*
+getNDNTLVPrefix(char *data, int datalen){
+    
+    int typ, len, lastchunknum;
+    char *cp = data;
+    int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3;
+    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkl=0;
+    struct ccnl_prefix_s *prefix;
+    unsigned char *content = 0;
+    int contentlen = 0;
+
+    if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
+        DEBUGMSG(99, "could not dehead\n");
+        return 0;
+    }
+    
+    if(ccnl_ndntlv_extract(data - cp,
+                  &data, &datalen,
+                  &scope, &mbf, &minsfx, &maxsfx, &lastchunknum,
+                  &prefix, NULL,
+                  &nonce, // nonce
+                  &ppkl, //ppkl
+                  &content, &contentlen) == NULL){
+       fprintf(stderr, "Error in ndntlv_extract\n");
+    }
+    return prefix;
+}
+
+struct ccnl_prefix_s *getPrefix(char *data, int datalen, int *suite){
+    struct ccnl_prefix_s *prefix;
+    *suite = ccnl_pkt2suite(data, datalen);
+    
+    if (*suite < 0 || *suite >= CCNL_SUITE_LAST) {
+        DEBUGMSG(6, "?unknown packet? %s\n", name);
+        return 0;
+    }
+    switch(*suite){
+        case 0:
+            prefix = getCCNBPrefix(data, datalen);
+            break;
+        case 1: 
+            prefix = getCCNTLVPrefix(data, datalen);
+            break;
+        case 2: 
+            prefix = getNDNTLVPrefix(data, datalen);
+            break;
+    }
+    return prefix;
+}
+
 int
-mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, char *private_key_path)
+mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path, int *suite)
 {
     long len = 0, len1 = 0, len2 = 0, len3 = 0, i = 0;
-    unsigned char *contentobj, *stmt, *out1, h[10];
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(name, CCNL_SUITE_CCNB, NULL, NULL);
+    unsigned char *contentobj, *stmt, *out1, h[10], *data;
+    int datalen;
+    struct ccnl_prefix_s *prefix;
+    
+    FILE *file = fopen(name, "r");
+    if(!file) return 0;
+    //determine size of the file
+    fseek(file, 0L, SEEK_END);
+    datalen = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+    data = (unsigned char *) ccnl_malloc(sizeof(unsigned char)*datalen);
+    fread(data, datalen, 1, file);
+    fclose(file);
     
     
+    prefix=getPrefix(data, datalen, suite);
+   
+    struct ccnl_prefix_s *prefix2 = ccnl_URItoPrefix(ccnl_prefix_to_path(prefix), CCNL_SUITE_CCNB, NULL, NULL);  
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
-    out1 = (unsigned char *) malloc(sizeof(unsigned char) * 5000);
-    contentobj = (unsigned char *) malloc(sizeof(unsigned char) * 4000);
-    stmt = (unsigned char *) malloc(sizeof(unsigned char)* 1000);
+    out1 = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 5000);
+    contentobj = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 4000);
+    stmt = (unsigned char *) ccnl_malloc(sizeof(unsigned char)* 1000);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -531,19 +637,14 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, cha
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    for(i = 0; i < prefix->compcnt; ++i){
-        
-        //memset(h, '\0', sizeof(h));
-        //int len4 = sprintf(h, "%d", prefix->complen[i]);
-        //len3 += ccnl_ccnb_mkBlob(stmt+len3, CCNL_DTAG_COMPLENGTH, CCN_TT_DTAG, (char *)h, len4);
-        len3 += ccnl_ccnb_mkBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char *)prefix->comp[i], prefix->complen[i]);
+    for(i = 0; i < prefix2->compcnt; ++i){
+        len3 += ccnl_ccnb_mkBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char *)prefix2->comp[i], prefix2->complen[i]);
     }
     
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
-
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", suite);
+    sprintf((char*)h, "%d", *suite);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
                              (char*) h, strlen(h));
 
@@ -563,8 +664,11 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, unsigned int suite, cha
     out[len++] = 0; //name end
     out[len++] = 0; //interest end
     // printf("Contentlen %d\n", len1);
-    free(contentobj);
-    free(stmt);
+    ccnl_free(data);
+    ccnl_free(contentobj);
+    ccnl_free(stmt);
+    ccnl_free(prefix);
+    ccnl_free(prefix2);
     return len;
 }
 
@@ -827,7 +931,7 @@ main(int argc, char *argv[])
     int numOfParts = 1;
     int msgOnly = 0;
     int suite = CCNL_SUITE_DEFAULT;
-    char *file_uri = NULL, *name = NULL;
+    char *file_uri = NULL;
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
@@ -917,11 +1021,10 @@ main(int argc, char *argv[])
         if (argc < 4) goto Usage;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
-        if(argc < 5) goto Usage;
-        name = argv[2];
-        file_uri = argv[3];
-        suite = ccnl_str2suite(argv[4]);
-        len = mkAddToRelayCacheRequest(out, name, suite, private_key_path);
+        if(argc < 3) goto Usage;
+        file_uri = argv[2];
+        len = mkAddToRelayCacheRequest(out, file_uri, private_key_path, &suite);
+        printf("Suite %d\n", suite);
     } else if(!strcmp(argv[1], "removeContentFromCache")){
         if(argc < 3) goto Usage;
         ccn_path = argv[2];
@@ -1006,7 +1109,6 @@ main(int argc, char *argv[])
 
 
     if(!strcmp(argv[1], "addContentToCache")){
-
         //read ccnb_file
         unsigned char *ccnb_file;
         long fsize = 0;
@@ -1069,7 +1171,7 @@ Usage:
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
-       "  addContentToCache             name ccn-file suite\n"
+       "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
        "where FRAG in none, seqd2012, ccnx2013\n"
        "-m is a special mode which only prints the interest message of the corresponding command",
