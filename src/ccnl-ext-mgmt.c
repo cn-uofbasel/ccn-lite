@@ -1518,7 +1518,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {    
     unsigned char *buf;
     unsigned char *components = 0, *h = 0;
-    int buflen, *complen;//, contlen;
+    int buflen;
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
 
@@ -1528,9 +1528,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     //unsigned char *content
 
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", "received add to cache request, inizializing callback");
-
-    components = (unsigned char*) ccnl_calloc(1, sizeof(unsigned char*)*CCNL_MAX_PACKET_SIZE);
-    complen = (int*) malloc(sizeof(int)*1024);
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
 
@@ -1561,7 +1558,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     DEBUGMSG(99, "NAME %s\n", components);
     
     prefix_new = ccnl_URItoPrefix((char *)components, suite, NULL, NULL);
-    DEBUGMSG(99, "COMP: %d\n", prefix_new->complen[2]);
+    DEBUGMSG(99, "COMP: %d, Prefix %s\n", prefix_new->complen[2], ccnl_prefix_to_path(prefix_new));
 
     struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
     struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);
