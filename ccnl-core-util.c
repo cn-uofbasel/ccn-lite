@@ -20,6 +20,12 @@
  * 2014-06-18 created
  */
 
+#ifndef CCNL_CORE_UTIL_H
+#define CCNL_CORE_UTIL_H
+
+#include "ccnl-core.h"
+
+
 // ----------------------------------------------------------------------
 
 int
@@ -238,7 +244,6 @@ ccnl_componentstoPrefix(char **compvect, int cnt, char *nfnexpr, int suite, unsi
 
 }
 
-
 // turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
 ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
@@ -430,8 +435,8 @@ One possibility is to not have a '/' before any nfn expression.
         len += sprintf(buf + len, "/");
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if(c < 0x20 || c == 0x7f) {
-                len += sprintf(buf + len, "x%02x", c);
+            if(c < 0x20 || c >= 0x7f) {
+                len += sprintf(buf + len, "%%%02x", c);
             } else 
                 len += sprintf(buf + len, "%c", c);
         }
@@ -538,4 +543,5 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
 #endif // CCNL_LINUXKERNEL
 
+#endif // CCNL_CORE_UTIL_H
 // eof
