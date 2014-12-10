@@ -31,6 +31,7 @@
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-core.h"
 #include "ccnl-defs.h"
+#include "ccnl-core-util.c"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -1516,8 +1517,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {    
     unsigned char *buf;
-    unsigned char **components = 0,*h = 0;
-    unsigned char *data;
+    unsigned char *components = 0, *h = 0;
     int buflen, *complen;//, contlen;
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
@@ -1529,7 +1529,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", "received add to cache request, inizializing callback");
 
-    components = (unsigned char**) ccnl_calloc(1, sizeof(unsigned char*)*1024);
+    components = (unsigned char*) ccnl_calloc(1, sizeof(unsigned char*)*CCNL_MAX_PACKET_SIZE);
     complen = (int*) malloc(sizeof(int)*1024);
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1553,15 +1553,15 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         if (num==0 && typ==0)
             break; // end
-        ++num_of_components;
-        extractStr(components[num_of_components], CCN_DTAG_COMPONENT);
-        
+        extractStr(components, CCN_DTAG_COMPONENT);
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
     ++num_of_components;
 
-    prefix_new = ccnl_componentstoPrefix((char**)components, num_of_components, NULL, suite, NULL);
-    data = ccnl_calloc(CCNL_MAX_PACKET_SIZE, sizeof(char));
+    DEBUGMSG(99, "NAME %s\n", components);
+    
+    prefix_new = ccnl_URItoPrefix((char *)components, suite, NULL, NULL);
+    DEBUGMSG(99, "COMP: %d\n", prefix_new->complen[2]);
 
     struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
     struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);

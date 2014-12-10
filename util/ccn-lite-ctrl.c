@@ -608,6 +608,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     unsigned char *contentobj, *stmt, *out1, h[10], *data;
     int datalen;
     struct ccnl_prefix_s *prefix;
+    char *prefix_string = NULL;
     
     FILE *file = fopen(name, "r");
     if(!file) return 0;
@@ -620,10 +621,9 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     fclose(file);
     
     
-    prefix=getPrefix(data, datalen, suite);
-   
-    struct ccnl_prefix_s *prefix2 = ccnl_URItoPrefix(ccnl_prefix_to_path(prefix), CCNL_SUITE_CCNB, NULL, NULL);  
-
+    prefix = getPrefix(data, datalen, suite);
+    prefix_string = ccnl_prefix_to_path(prefix);
+    
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
     out1 = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 5000);
@@ -637,9 +637,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    for(i = 0; i < prefix2->compcnt; ++i){
-        len3 += ccnl_ccnb_mkBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char *)prefix2->comp[i], prefix2->complen[i]);
-    }
+    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
+
     
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
@@ -668,7 +667,6 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     ccnl_free(contentobj);
     ccnl_free(stmt);
     ccnl_free(prefix);
-    ccnl_free(prefix2);
     return len;
 }
 
@@ -1129,6 +1127,10 @@ main(int argc, char *argv[])
             len = recv(sock, out, sizeof(out), 0);
         else
             len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
+        
+        f = fopen("test.icn", "w");
+        fwrite(out, 1, len, f);
+        fclose(f);
         printf("Uploading content file\n");
         //send file
         if(!use_udp)
