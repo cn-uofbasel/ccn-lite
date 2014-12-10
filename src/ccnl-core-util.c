@@ -20,6 +20,12 @@
  * 2014-06-18 created
  */
 
+#ifndef CCNL_CORE_UTIL_H
+#define CCNL_CORE_UTIL_H
+
+#include "ccnl-core.h"
+
+
 // ----------------------------------------------------------------------
 
 int
@@ -504,6 +510,20 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
         len += sprintf(buf + len, "[");
 #endif
 
+/*
+Not sure why a component starting with a call is not printed with a leading '/'
+A call should also be printed with a '/' because this function prints a prefix
+and prefix components are visually separated with a leading '/'.
+One possibility is to not have a '/' before any nfn expression.
+#ifdef USE_NFN
+        if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
+            !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
+            len += sprintf(buf + len, "%.*s",
+                           pr->complen[i]-skip, pr->comp[i]+skip);
+        } else
+#endif
+*/
+
     int skip = 0;
 
 #if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
@@ -638,4 +658,5 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
 #endif // CCNL_LINUXKERNEL
 
+#endif // CCNL_CORE_UTIL_H
 // eof
