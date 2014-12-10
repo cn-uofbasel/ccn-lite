@@ -700,6 +700,15 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             i = i->next;
             continue;
         }
+
+        //Hook for add content to cache by callback:
+        if(i && ! i->pending){
+            c->flags |= CCNL_CONTENT_FLAGS_STATIC;
+            i = ccnl_interest_remove(ccnl, i);
+            return 1;
+        }
+
+
         // CONFORM: "Data MUST only be transmitted in response to
         // an Interest that matches the Data."
         for (pi = i->pending; pi; pi = pi->next) {
