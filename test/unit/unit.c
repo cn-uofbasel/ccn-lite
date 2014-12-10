@@ -8,12 +8,13 @@
 #include "ccnl_unit_prefix_to_path.c"
 #include "ccnl_unit_uri_2_prefix.c"
 #include "ccnl_unit_prefix_comp.c"
-
+#include "ccnl_unit_stack_type_const.c"
 
 int main(int argc, char **argv){
 
 	struct ccnl_prefix_s *p1 = NULL, *p2 = NULL;
 	char *str = NULL;
+	struct const_s *con1 = NULL, *con2 = NULL;
 
 	fprintf(stderr, "CCN-lite Unit Tests\n");
 
@@ -72,6 +73,15 @@ int main(int argc, char **argv){
 	}
 	ccnl_free(testdescription);
 
-        return 0;
+	//Test: prefix type const: str2const
+	++testnum;
+	RUN_TEST(testnum, "Testing stack type str2const", ccnl_test_prepare_stack_type_const_str2const, ccnl_test_run_stack_type_const_str2const, ccnl_test_cleanup_stack_type_const_str2const, con1, con2);
+	
+	
+	//Test: prefix type const: const2str
+	++testnum;
+	RUN_TEST(testnum, "Testing stack type const2str", ccnl_test_prepare_stack_type_const_const2str, ccnl_test_run_stack_type_const_const2str, ccnl_test_cleanup_stack_type_const_const2str, str, con2);
+
+	return 0;
 }
 
