@@ -1560,7 +1560,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(h)ccnl_free(h);
     h = ccnl_malloc(300);
     sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
-    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", (char *)h);
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", (char *        )h);
     if(h)ccnl_free(h);
     //Reply MSG END
 
