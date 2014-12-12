@@ -121,6 +121,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
     DEBUGMSG(99, "ccnl_ccnb_extract\n");
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
+    p->compcnt = 0;
     if (!p)
         return NULL;
 

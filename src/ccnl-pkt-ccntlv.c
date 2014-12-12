@@ -95,6 +95,7 @@ ccnl_ccntlv_extract(int hdrlen,
         *keyid = NULL;
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    p->compcnt = 0;
     if (!p)
         return NULL;
 

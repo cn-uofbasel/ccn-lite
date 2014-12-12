@@ -80,7 +80,7 @@ ccnl_prefix_new(int suite, int cnt)
         free_prefix(p);
         return NULL;
     }
-    p->compcnt = 0;
+    p->compcnt = cnt;
     p->suite = suite;
     p->chunknum = NULL;
 
