@@ -624,7 +624,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     
     
     prefix = getPrefix(data, datalen, suite);
-    prefix_string = ccnl_prefix_to_path(prefix);
+    prefix_string = ccnl_prefix_to_path_detailed(prefix, 0);
     
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
@@ -1122,18 +1122,13 @@ main(int argc, char *argv[])
         fread(ccnb_file, fsize, 1, f);
         fclose(f);
 
-        printf("Waiting for callback\n");
         //receive request
         memset(out, 0, sizeof(out));
         if(!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else
             len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
-        
-        f = fopen("test.icn", "w");
-        fwrite(out, 1, len, f);
-        fclose(f);
-        printf("Uploading content file\n");
+
         //send file
         if(!use_udp)
             i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, fsize);

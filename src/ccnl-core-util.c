@@ -480,7 +480,7 @@ static char *prefix_buf2;
 static char *buf;
 
 char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip)
 {
     int len = 0, i, j;
 
@@ -531,7 +531,7 @@ One possibility is to not have a '/' before any nfn expression.
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
     if (pr->suite == CCNL_SUITE_CCNTLV)
-        skip = 4;
+        skip = ccntlv_skip;
 #endif
 
     for (i = 0; i < pr->compcnt; i++) {
@@ -565,6 +565,12 @@ One possibility is to not have a '/' before any nfn expression.
     buf[len] = '\0';
 
     return buf;
+}
+
+
+char*
+ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
+    return ccnl_prefix_to_path_detailed(pr, 4);
 }
 
 // ----------------------------------------------------------------------
