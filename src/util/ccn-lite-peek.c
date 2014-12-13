@@ -127,7 +127,7 @@ usage:
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isObject;
+        isContent = ccntlv_isData;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV

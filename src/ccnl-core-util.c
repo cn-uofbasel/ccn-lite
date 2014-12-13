@@ -421,7 +421,8 @@ ccnl_pkt2suite(unsigned char *data, int len)
 #ifdef USE_SUITE_CCNTLV
     if (data[0] == CCNX_TLV_V0 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
-            data[1] == CCNX_PT_ContentObject) 
+            data[1] == CCNX_PT_Data ||
+            data[1] == CCNX_PT_NACK) 
             return CCNL_SUITE_CCNTLV;
     } 
 #endif

@@ -504,7 +504,78 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     return 0;
 }
 
+void
+ccntlv_201412(unsigned char *data, int len, int rawxml, FILE* out)
+{
+    unsigned char *buf;
+    char *mp;
+    unsigned short hdrlen, pktlen; // payloadlen;
+    struct ccnx_tlvhdr_ccnx201412_s *hp;
 
+    hp = (struct ccnx_tlvhdr_ccnx201412_s*) data;
+    hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
+    pktlen = ntohs(hp->pktlen);
+
+    if (pktlen != len) {
+        fprintf(stderr, "length mismatch\n");
+    }
+
+    if (!rawxml)
+        fprintf(out, "%04zx  hdr.vers=%d\n",
+            (unsigned char*) &(hp->version) - data, hp->version);
+    if (hp->pkttype == CCNX_PT_Interest)
+        mp = rawxml ? "Interest" : "Interest\\toplevelCtx";
+    else if (hp->pkttype == CCNX_PT_Data)
+        mp = rawxml ? "Data" : "Data\\toplevelCtx";
+    else if (hp->pkttype == CCNX_PT_NACK)
+        mp = rawxml ? "NACK" : "NACK\\toplevelCtx";
+    else
+        mp = "unknown";
+    if (!rawxml) {
+        fprintf(out, "%04zx  hdr.ptyp=0x%02x (%s)\n",
+                (unsigned char*) &(hp->pkttype) - data, hp->pkttype, mp);
+        fprintf(out, "%04zx  hdr.pktlen=%d\n",
+                (unsigned char*) &(hp->pktlen) - data, pktlen);
+        if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
+            fprintf(out, "%04zx  hdr.hoplim=%d\n",
+                    (unsigned char*) &(hp->hoplimit) - data, hp->hoplimit);
+        fprintf(out, "%04zx  hdr.hdrlen=%d\n",
+                (unsigned char*) &(hp->hdrlen) - data, hdrlen);
+        if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK) {
+            struct ccnx_tlvhdr_ccnx201412nack_s *np;
+            np = (struct ccnx_tlvhdr_ccnx201412nack_s*)
+                (data + sizeof(struct ccnx_tlvhdr_ccnx201412_s));
+            fprintf(out, "%04zx  hdr.errorc=%d\n",
+                    (unsigned char*) np - data, ntohs(np->errorc));
+        }
+    }
+
+    buf = data + sizeof(struct ccnx_tlvhdr_ccnx201412_s);
+    if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
+        buf += sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
+    // dump the sequence of TLV fields of the optional header
+    len = buf - data;
+    // if (len > 0) {
+    //     ccntlv_parse_sequence(0, CTX_HOP, data, &buf, &len,
+    //                                                     "header", rawxml, out);
+    //     if (len != 0) {
+    //         fprintf(stderr, "%d left over bytes in header\n", len);
+    //     }
+    // }
+    if (!rawxml)
+        fprintf(out, "%04zx  hdr.end\n", buf - data);
+
+    // dump the sequence of TLV fields of the message body
+    buf = data + hdrlen;
+    len = pktlen - hdrlen;
+    ccntlv_parse_sequence(0, CTX_TOPLEVEL, data, &buf, &len,
+                                                        "message", rawxml, out);
+    if (!rawxml)
+        fprintf(out, "%04zx  pkt.end\n", buf - data);
+}
+
+
+#ifdef OBSOLETE
 void
 ccntlv_201411(unsigned char *data, int len, int rawxml, FILE* out)
 {
@@ -566,6 +637,7 @@ ccntlv_201411(unsigned char *data, int len, int rawxml, FILE* out)
     if (!rawxml)
         fprintf(out, "%04zx  pkt.end\n", buf - data);
 }
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -969,9 +1041,10 @@ help:
         break;
     case CCNL_SUITE_CCNTLV:
         if (format == 0) {
-            printf("#   %s CCNx TLV format (as of Sept 2014)\n#\n", forced);
+            printf("#   %s CCNx TLV format (as of Dec 2014)\n#\n", forced);
         }
-        ccntlv_201411(data, len, format == 1, out);
+        ccntlv_201412(data, len, format == 1, out);
+//      ccntlv_201411(data, len, format == 1, out);
         break;
     case CCNL_SUITE_NDNTLV:
         if (format == 0) {
@@ -981,7 +1054,7 @@ help:
         break;
     case CCNL_SUITE_LOCALRPC:
         if (format == 0) {
-            printf("#   %s NDN TLV format, local RPC (May 2014)\n#\n", forced);
+            printf("#   %s NDN TLV format, local RPC (Dec 2014)\n#\n", forced);
         }
         localrpc_201405(data, len, format == 1, out);
         break;

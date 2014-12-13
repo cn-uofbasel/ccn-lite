@@ -26,6 +26,21 @@
 // ----------------------------------------------------------------------
 // Header
 
+struct ccnx_tlvhdr_ccnx201412_s {
+    unsigned char version;
+    unsigned char pkttype;
+    unsigned int  pktlen;
+    unsigned char hoplimit;  // not used for data
+    unsigned char fill[2];   // perhaps some bits will go to hdrlen
+    unsigned char hdrlen;
+} __attribute__((packed));
+
+struct ccnx_tlvhdr_ccnx201412nack_s { // "interest return" extension
+    unsigned int  errorc;
+    unsigned char fill[2];
+} __attribute__((packed));
+
+/*
 struct ccnx_tlvhdr_ccnx201411_s {
     unsigned char version;
     unsigned char packettype;
@@ -36,6 +51,7 @@ struct ccnx_tlvhdr_ccnx201411_s {
     unsigned char reserved2;
     unsigned char hdrlen;
 } __attribute__((packed));
+*/
 
 /*
 struct ccnx_tlvhdr_ccnx201409_s {
@@ -50,7 +66,8 @@ struct ccnx_tlvhdr_ccnx201409_s {
 
 // Non-TLV values for the packettype in the header
 #define CCNX_PT_Interest                        1
-#define CCNX_PT_ContentObject                   2
+#define CCNX_PT_Data                            2
+#define CCNX_PT_NACK                            3 // "Interest Return"
 
 // ----------------------------------------------------------------------
 // TLV message

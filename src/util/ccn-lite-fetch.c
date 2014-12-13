@@ -94,8 +94,8 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         int hdrlen = 8;
 
         // TODO: return -1 for non-content-objects
-        if(ccntlv_isObject(*data, *datalen) < 0) {
-            DEBUGMSG(DEBUG, "Received interest\n");
+        if (ccntlv_isData(*data, *datalen) < 0) {
+            DEBUGMSG(DEBUG, "Received interest or NACK\n");
             return -1;
         }
 
