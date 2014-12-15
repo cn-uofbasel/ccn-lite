@@ -24,6 +24,7 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
+#define USE_LOGGING
 #define CCNL_UNIX
 #define _BSD_SOURCE
 #define _SVID_SOURCE
@@ -58,6 +59,7 @@
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
 #include "../ccnl-ext-debug.c"
+#include "../ccnl-ext-logging.c"
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
@@ -194,31 +196,33 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 }
 #endif
 
-int ccntlv_isObject(unsigned char *buf, int len)
+int ccntlv_isData(unsigned char *buf, int len)
 {
-    struct ccnx_tlvhdr_ccnx201411_s *hp = (struct ccnx_tlvhdr_ccnx201411_s*)buf;
-    unsigned short payloadlen, hdrlen;
+    struct ccnx_tlvhdr_ccnx201412_s *hp = (struct ccnx_tlvhdr_ccnx201412_s*)buf;
+    unsigned short hdrlen, pktlen; // payloadlen;
 
-    if (len < sizeof(struct ccnx_tlvhdr_ccnx201411_s)) {
+    if (len < sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
         fprintf(stderr, "ccntlv header not large enough");
         return -1;
     }
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-    payloadlen = ntohs(hp->payloadlen);
+    pktlen = ntohs(hp->pktlen);
+    //    payloadlen = ntohs(hp->payloadlen);
 
     if (hp->version != CCNX_TLV_V0) {
         fprintf(stderr, "ccntlv version %d not supported\n", hp->version);
         return -1;
     }
 
-    if (hdrlen + payloadlen < len) {
-        fprintf(stderr, "ccntlv hdr + payload do not fit into received buf\n");
+    if (pktlen < len) {
+        fprintf(stderr, "ccntlv packet too small (%d instead of %d bytes)\n",
+                len, pktlen);
         return -1;
     }
     buf += hdrlen;
     len -= hdrlen;
 
-    if(hp->packettype == CCNX_PT_ContentObject)
+    if(hp->pkttype == CCNX_PT_Data)
         return 1;
     else
         return 0;

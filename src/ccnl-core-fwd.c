@@ -202,7 +202,7 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // work on a message (buffer passed without the fixed header)
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      struct ccnx_tlvhdr_ccnx201411_s *hdrptr, int hoplimit,
+                      struct ccnx_tlvhdr_ccnx201412_s *hdrptr,
                       unsigned char **data, int *datalen)
 {
     int rc = -1;
@@ -218,7 +218,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     // if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
     //     return -1;
 
-    unsigned char typ = hdrptr->packettype;
+    unsigned char typ = hdrptr->pkttype;
     unsigned char hdrlen = *data - (unsigned char*)hdrptr;
     DEBUGMSG(99, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
              *datalen, hdrlen);
@@ -260,7 +260,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (i->suite != CCNL_SUITE_CCNTLV)
                 continue;
             if (!ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT))
-                // TODO check hoplimit
                 // TODO check keyid
                 break;
         }
@@ -273,11 +272,10 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
 #endif
         if (!i) {
-            // TODO keyID restriction
-            // TODO hoplimit
             i = ccnl_interest_new(relay, from, CCNL_SUITE_CCNTLV,
-                                  &buf, &p, 0, 0 /* hoplimit */);
+                                  &buf, &p, 0, hdrptr->hoplimit - 1);
             if (i) { // CONFORM: Step 3 (and 4)
+                // TODO keyID restriction
                 DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
                 ccnl_interest_propagate(relay, i);
             }
@@ -289,8 +287,9 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
-
-    } else if (typ == CCNX_PT_ContentObject) { // data packet with content
+    } else if (typ == CCNX_PT_NACK) {
+        DEBUGMSG(6, "  NACK=<%s>\n", ccnl_prefix_to_path(p));
+    } else if (typ == CCNX_PT_Data) { // data packet with content
         DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
         ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 
@@ -343,13 +342,13 @@ ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 next:
     while (rc >= 0 && **data == CCNX_TLV_V0 &&
-                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201411_s)) {
-        struct ccnx_tlvhdr_ccnx201411_s *hp = (struct ccnx_tlvhdr_ccnx201411_s*) *data;
+                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
+        struct ccnx_tlvhdr_ccnx201412_s *hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
         int hoplimit = -1;
         unsigned short hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-        unsigned short payloadlen = ntohs(hp->payloadlen);
+        int payloadlen = ntohs(hp->pktlen) - hdrlen;
 
-        // check if info data to construct packet header
+        // check if enough data to reconstruct packet header
         if (hdrlen > *datalen)
             return -1;
 
@@ -357,19 +356,21 @@ next:
         *datalen -= hdrlen;
 
         // check if enough data to reconstruct message
-        if (payloadlen > *datalen)
+        if (payloadlen <= 0 || payloadlen > *datalen)
             return -1;
 
         end = *data + payloadlen;
         endlen = *datalen - payloadlen;
 
         hoplimit = hp->hoplimit - 1;
-        if (hp->packettype == CCNX_PT_Interest && hoplimit <= 0) { // drop this interest
+        if (hoplimit <= 0 && (hp->pkttype == CCNX_PT_Interest ||
+                              hp->pkttype == CCNX_PT_NACK)) { // drop it
             *data = end;
             *datalen = endlen;
             goto next;
-        }
-        rc = ccnl_ccntlv_forwarder(relay, from, hp, hoplimit, data, datalen);
+        } else
+            hp->hoplimit = hoplimit;
+        rc = ccnl_ccntlv_forwarder(relay, from, hp, data, datalen);
     }
     return rc;
 }

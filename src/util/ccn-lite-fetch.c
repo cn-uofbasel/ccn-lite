@@ -94,8 +94,8 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         int hdrlen = 8;
 
         // TODO: return -1 for non-content-objects
-        if(ccntlv_isObject(*data, *datalen) < 0) {
-            DEBUGMSG(DEBUG, "Received interest\n");
+        if (ccntlv_isData(*data, *datalen) < 0) {
+            DEBUGMSG(DEBUG, "Received interest or NACK\n");
             return -1;
         }
 
@@ -161,7 +161,7 @@ ccnl_prefix_removeChunkNumComponent(int suite,
         if(prefix->comp[prefix->compcnt-1][1] == CCNX_TLV_N_Chunk) {
             prefix->compcnt--;
         } else {
-            DEBUGMSG(WARN, "Tried to remove chunknum from CCNTLV prefix, but either prefix does not have a chunknum "
+            DEBUGMSG(WARNING, "Tried to remove chunknum from CCNTLV prefix, but either prefix does not have a chunknum "
                            "or the last component is not the chunknum.");
             return -1;
         }

@@ -576,7 +576,7 @@ getNDNTLVPrefix(unsigned char *data, int datalen){
                   &nonce, // nonce
                   &ppkl, //ppkl
                   &content, &contentlen) == NULL){
-       fprintf(stderr, "Error in ndntlv_extract\n");
+       DEBUGMSG(ERROR, "Error in ndntlv_extract\n");
     }
     return prefix;
 }
@@ -586,7 +586,7 @@ struct ccnl_prefix_s *getPrefix(unsigned char *data, int datalen, int *suite){
     *suite = ccnl_pkt2suite(data, datalen);
     
     if (*suite < 0 || *suite >= CCNL_SUITE_LAST) {
-        DEBUGMSG(6, "?unknown packet? %s\n", name);
+        DEBUGMSG(ERROR, "?unknown packet?\n");
         return 0;
     }
     switch(*suite){
