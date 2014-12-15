@@ -61,6 +61,8 @@
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-ext-logging.c"
 
+int debug_level = WARNING;
+
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
 #define ccnl_realloc(p,s)               realloc(p,s)
@@ -202,7 +204,7 @@ int ccntlv_isData(unsigned char *buf, int len)
     unsigned short hdrlen, pktlen; // payloadlen;
 
     if (len < sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
-        fprintf(stderr, "ccntlv header not large enough");
+        DEBUGMSG(ERROR, "ccntlv header not large enough");
         return -1;
     }
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
@@ -210,12 +212,12 @@ int ccntlv_isData(unsigned char *buf, int len)
     //    payloadlen = ntohs(hp->payloadlen);
 
     if (hp->version != CCNX_TLV_V0) {
-        fprintf(stderr, "ccntlv version %d not supported\n", hp->version);
+        DEBUGMSG(ERROR, "ccntlv version %d not supported\n", hp->version);
         return -1;
     }
 
     if (pktlen < len) {
-        fprintf(stderr, "ccntlv packet too small (%d instead of %d bytes)\n",
+        DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
                 len, pktlen);
         return -1;
     }

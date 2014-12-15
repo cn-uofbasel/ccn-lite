@@ -105,7 +105,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                                0, 0, // keyid/keyidlen
                                lastchunknum,
                                content, contentlen) == NULL) {
-            fprintf(stderr, "Error in ccntlv_extract\n");
+            DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
             return -1;
         } 
 
@@ -124,7 +124,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
             return -1;
         }
         if(typ != NDN_TLV_Data) {
-            fprintf(stderr, "received non-content-object packet with type %d\n", typ); 
+            DEBUGMSG(ERROR, "received non-content-object packet with type %d\n", typ); 
             return -1;
         }
 
@@ -135,7 +135,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                                   NULL, 0, 0, 
                                   content, contentlen);
         if (!buf) {
-            fprintf(stderr, "ndntlv_extract: parsing error or no prefix\n"); 
+            DEBUGMSG(ERROR, "ndntlv_extract: parsing error or no prefix\n"); 
             return -1;
         } 
         return 0;
@@ -144,7 +144,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 
     default:
-        fprintf(stderr, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
+        DEBUGMSG(ERROR, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
         return -1;
    }
 
@@ -162,7 +162,7 @@ ccnl_prefix_removeChunkNumComponent(int suite,
             prefix->compcnt--;
         } else {
             DEBUGMSG(WARNING, "Tried to remove chunknum from CCNTLV prefix, but either prefix does not have a chunknum "
-                           "or the last component is not the chunknum.");
+                              "or the last component is not the chunknum.");
             return -1;
         }
         break;
@@ -175,7 +175,7 @@ ccnl_prefix_removeChunkNumComponent(int suite,
         break;
 #endif
     default:
-        fprintf(stderr, "removeChunkNum: suite %d not implemented\n", suite);
+        DEBUGMSG(ERROR, "removeChunkNum: suite %d not implemented\n", suite);
         return -1;
     }
 
@@ -333,7 +333,7 @@ usage:
                                           &len, 
                                           wait, sock, sa) < 0) {
             retry++;
-            fprintf(stderr, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
+            DEBUGMSG(WARNING, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
         } else {
 
             unsigned int lastchunknum = UINT_MAX;
@@ -346,7 +346,7 @@ usage:
                                              &lastchunknum, 
                                              &content, &contlen) < 0) {
                 retry++;
-                fprintf(stderr, "Could not extract response or it was an interest");
+               DEBUGMSG(WARNING, "Could not extract response or it was an interest");
             } else {
 
                 prefix = nextprefix;
@@ -367,7 +367,7 @@ usage:
                     // Remove chunk component from name
                     if (ccnl_prefix_removeChunkNumComponent(suite, prefix) < 0) {
                         retry++;
-                        fprintf(stderr, "Could not remove chunknum\n");
+                        DEBUGMSG(WARNING, "Could not remove chunknum\n");
                     } 
 
                     // Check if the chunk is the first chunk or the next valid chunk
@@ -386,14 +386,14 @@ usage:
                     } else {
                         // retry if the fetched chunk
                         retry++;
-                        fprintf(stderr, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
+                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
                     }
                 }
             }
         }
 
         if(retry > 0) {
-            fprintf(stderr, "Retry %d of %d\n", retry, maxretry);
+            DEBUGMSG(INFO, "Retry %d of %d\n", retry, maxretry);
         }
     }
 

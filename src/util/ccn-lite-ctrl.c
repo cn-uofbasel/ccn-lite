@@ -522,11 +522,10 @@ getCCNBPrefix(unsigned char *data, int datalen){
     
     if(ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
                     &prefix, &nonce, &ppkd, &content, &contlen) == NULL){
-        fprintf(stderr, "Error in ccnb_extract\n");
+        DEBUGMSG(ERROR, "Error in ccnb_extract\n");
         return 0;
     }
                 
-    printf("%s\n", ccnl_prefix_to_path(prefix));
     return prefix;
 }
 
@@ -546,7 +545,7 @@ getCCNTLVPrefix(unsigned char *data, int datalen){
                            0, 0, // keyid/keyidlen
                            &lastchunknum,
                            &content, &contentlen) == NULL) {
-        fprintf(stderr, "Error in ccntlv_extract\n");
+        DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
         return 0;
     } 
     return prefix;
@@ -783,7 +782,7 @@ udp_sendto(int sock, char *address, int port,
     si_other.sin_family = AF_INET;
     si_other.sin_port = htons(port);
     if (inet_aton(address, &si_other.sin_addr)==0) {
-          fprintf(stderr, "inet_aton() failed\n");
+          DEBUGMSG(ERROR, "inet_aton() failed\n");
           exit(1);
     }
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &si_other,
@@ -804,7 +803,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
         sizeof(struct sockaddr_un));
     if (rc < 0) {
-      fprintf(stderr, "named pipe \'%s\'\n", topath);
+      DEBUGMSG(ERROR, "named pipe \'%s\'\n", topath);
       perror("sending datagram message");
     }
     return rc;
@@ -1033,13 +1032,12 @@ main(int argc, char *argv[])
         if(argc < 3) goto Usage;
         file_uri = argv[2];
         len = mkAddToRelayCacheRequest(out, file_uri, private_key_path, &suite);
-        printf("Suite %d\n", suite);
     } else if(!strcmp(argv[1], "removeContentFromCache")){
         if(argc < 3) goto Usage;
         ccn_path = argv[2];
         len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
     } else{
-    printf("unknown command %s\n", argv[1]);
+    DEBUGMSG(ERROR, "unknown command %s\n", argv[1]);
     goto Usage;
     }
 
@@ -1053,7 +1051,7 @@ main(int argc, char *argv[])
             sock = udp_open(getpid()%65536+1025, &si);
         }
         if (!sock) {
-            fprintf(stderr, "cannot open UNIX/UDP receive socket\n");
+            DEBUGMSG(ERROR, "cannot open UNIX/UDP receive socket\n");
             exit(-1);
         }
 
@@ -1114,7 +1112,7 @@ main(int argc, char *argv[])
         write(1, recvbuffer2, recvbufferlen2);
         printf("\n");
 
-    printf("received %d bytes.\n", recvbufferlen);
+    DEBUGMSG(DEBUG, "received %d bytes.\n", recvbufferlen);
 
 
     if(!strcmp(argv[1], "addContentToCache")){
@@ -1145,7 +1143,7 @@ main(int argc, char *argv[])
             i = udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
 
         if(i){
-            printf("Sent file to relay\n");
+            DEBUGMSG(INFO, "Sent file to relay\n");
         }
         free(ccnb_file);
     }
@@ -1154,7 +1152,7 @@ main(int argc, char *argv[])
     } else if(msgOnly) {
         fwrite(out, len, 1, stdout);
     } else {
-       printf("nothing to send, program terminates\n");
+       DEBUGMSG(ERROR, "nothing to send, program terminates\n");
     }
 
     if(recvbuffer2)free(recvbuffer2);

@@ -138,7 +138,7 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-                fprintf(stderr,
+                DEBUGMSG(ERROR,
                   "publisher key digest has wrong length (%d instead of 32)\n",
                   plen);
                 exit(-1);
@@ -165,7 +165,7 @@ main(int argc, char *argv[])
         case 's':
             suite = ccnl_str2suite(optarg);
             if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-                fprintf(stderr, "Unsupported suite %d\n", suite);
+                DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
                 goto Usage;
             }
             break;

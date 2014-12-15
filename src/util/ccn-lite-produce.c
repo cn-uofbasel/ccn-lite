@@ -74,7 +74,7 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-            fprintf(stderr,
+            DEBUGMSG(ERROR,
              "publisher key digest has wrong length (%d instead of 32)\n",
              plen);
             exit(-1);
@@ -134,12 +134,12 @@ Usage:
         status = stat(outdirname, &st_buf);
         if (status != 0) {
             // DEBUGMSG (ERROR, "Error (%d) when opening file %s\n", errno, outdirname);
-            fprintf(stderr, "Error (%d) when opening output dir %s (probaby does not exist)\n", errno, outdirname);
+            DEBUGMSG(ERROR, "Error (%d) when opening output dir %s (probaby does not exist)\n", errno, outdirname);
             goto Usage;
         }
         if (S_ISREG (st_buf.st_mode)) {
             // DEBUGMSG (ERROR, "Error: %s is a file and not a directory.\n", argv[optind]);
-            fprintf(stderr, "Error: output dir %s is a file and not a directory.\n", outdirname);
+            DEBUGMSG(ERROR, "Error: output dir %s is a file and not a directory.\n", outdirname);
             goto Usage;
         }
     }
@@ -148,12 +148,12 @@ Usage:
         status = stat(infname, &st_buf);
         if (status != 0) {
             // DEBUGMSG (ERROR, "Error (%d) when opening file %s\n", errno, outdirname);
-            fprintf(stderr, "Error (%d) when opening input file %s (probaby does not exist)\n", errno, infname);
+            DEBUGMSG(ERROR, "Error (%d) when opening input file %s (probaby does not exist)\n", errno, infname);
             goto Usage;
         }
         if (S_ISDIR (st_buf.st_mode)) {
             // DEBUGMSG (ERROR, "Error: %s is a file and not a directory.\n", argv[optind]);
-            fprintf(stderr, "Error: input file %s is a directory and not a file.\n", infname);
+            DEBUGMSG(ERROR, "Error: input file %s is a directory and not a file.\n", infname);
             goto Usage;
         }
         f = open(infname, O_RDONLY);
@@ -189,8 +189,7 @@ Usage:
             strcpy(fileext, "ndntlv");
             break;
         default:
-            // DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
-            fprintf(stderr, "fileext for suite %d not implemented\n", suite);
+            DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
     }
 
     chunk_len = 1;
@@ -221,14 +220,13 @@ Usage:
                                                     out);
             break;
         default:
-            // DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
-            fprintf(stderr, "produce for suite %i is not implemented\n", suite);
+            DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
             goto Error;
             break;
         }
 
         if (outdirname) {
-            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+            DEBUGMSG(INFO, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
 
