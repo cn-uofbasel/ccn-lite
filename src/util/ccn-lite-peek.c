@@ -148,7 +148,7 @@ usage:
         break;
 #endif
     default:
-        printf("unknown suite\n");
+        DEBUGMSG(ERROR, "unknown suite\n");
         exit(-1);
     }
 
@@ -167,10 +167,10 @@ usage:
     }
 
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
-/*
-    fprintf(stderr, "prefix <%s><%s> became is %s\n",
+
+    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
             argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
-*/
+
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
@@ -206,18 +206,18 @@ usage:
 
             rc = isContent(out, len);
             if (rc < 0) {
-                fprintf(stderr, "error when checking type of packet\n");
+                DEBUGMSG(ERROR, "error when checking type of packet\n");
                 goto done;
             }
             if (rc == 0) { // it's an interest, ignore it
-                fprintf(stderr, "skipping non-data packet\n");
+                DEBUGMSG(WARNING, "skipping non-data packet\n");
                 continue;
             }
             write(1, out, len);
             myexit(0);
         }
         if (cnt < 2)
-            fprintf(stderr, "re-sending interest\n");
+            DEBUGMSG(WARNING, "re-sending interest\n");
     }
     fprintf(stderr, "timeout\n");
 

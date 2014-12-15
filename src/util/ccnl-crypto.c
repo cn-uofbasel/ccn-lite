@@ -109,7 +109,7 @@ sign(char* private_key_path, unsigned char *msg, int msg_len,
     //Load private key
     FILE *fp = fopen(private_key_path, "r");
     if(!fp) {
-        printf("Could not find private key\n");
+        DEBUGMSG(ERROR, "Could not find private key\n");
         return 0;
     }
     RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);

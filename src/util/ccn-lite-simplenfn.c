@@ -90,8 +90,8 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
         expr = tmp;
     }
 
-    fprintf(stderr, "route hint is <%s>\n", name);
-    fprintf(stderr, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
+    DEBUGMSG(INFO, "route hint is <%s>\n", name);
+    DEBUGMSG(INFO, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
                             suite, (expr && *expr) ? expr : NULL, 
                             NULL); // chunknum
@@ -203,7 +203,7 @@ usage:
         break;
 #endif
     default:
-        printf("unknown suite\n");
+        DEBUGMSG(ERROR, "unknown suite %d\n", suite);
         exit(-1);
     }
 
@@ -251,16 +251,16 @@ usage:
             if (rc < 0)
                 goto done;
             if (rc == 0) { // it's an interest, ignore it
-                fprintf(stderr, "skipping non-data packet\n");
+                DEBUGMSG(WARNING, "skipping non-data packet\n");
                 continue;
             }
             write(1, out, len);
             myexit(0);
         }
         if (cnt < 2)
-            fprintf(stderr, "re-sending interest\n");
+            DEBUGMSG(INFO, "re-sending interest\n");
     }
-    fprintf(stderr, "timeout\n");
+    DEBUGMSG(ERROR, "timeout\n");
 
 done:
     close(sock);

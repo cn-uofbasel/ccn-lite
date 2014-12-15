@@ -59,7 +59,7 @@ main(int argc, char *argv[])
             digest = optarg;
             dlen = unescape_component(digest);
             if (dlen != 32) {
-                fprintf(stderr, "digest has wrong length (%d instead of 32)\n",
+                DEBUGMSG(ERROR, "digest has wrong length (%d instead of 32)\n",
                         dlen);
                 exit(-1);
             }
@@ -80,7 +80,7 @@ main(int argc, char *argv[])
             publisher = optarg;
             plen = unescape_component(publisher);
             if (plen != 32) {
-                fprintf(stderr,
+                DEBUGMSG(ERROR,
                  "publisher key digest has wrong length (%d instead of 32)\n",
                  plen);
                 exit(-1);
@@ -137,7 +137,7 @@ Usage:
                               argv[optind+1],   
                               chunknum == UINT_MAX ? NULL : &chunknum); 
     if (!prefix) {
-        fprintf(stderr, "no URI found, aborting\n");
+        DEBUGMSG(ERROR, "no URI found, aborting\n");
         return -1;
     }
 
@@ -160,12 +160,12 @@ Usage:
                                 CCNL_MAX_PACKET_SIZE);
         break;
     default:
-        fprintf(stderr, "Not Implemented (yet)\n");
+        DEBUGMSG(ERROR, "Not Implemented (yet)\n");
         return -1;
     }
 
     if (len <= 0) {
-        fprintf(stderr, "internal error: empty packet\n");
+        DEBUGMSG(ERROR, "internal error: empty packet\n");
         return -1;
     }
 

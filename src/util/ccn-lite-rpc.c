@@ -138,7 +138,7 @@ loadFile(char **cpp)
     while (isdigit(**cpp))
         (*cpp)++;
     if (n < 1 || n >= filecnt) {
-        fprintf(stderr, "parse error, no file at position %d\n", n);
+        DEBUGMSG(ERROR, "parse error, no file at position %d\n", n);
         return 0;
     }
     if (!n) {  // should read stdin
@@ -147,7 +147,7 @@ loadFile(char **cpp)
     } else {
         struct stat st;
         if (stat(fileargs[n-1], &st)) {
-            fprintf(stderr, "cannot access file %s\n", fileargs[n-1]);
+            DEBUGMSG(ERROR, "cannot access file %s\n", fileargs[n-1]);
             return 0;
         }
         maxlen = st.st_size;
@@ -159,7 +159,7 @@ loadFile(char **cpp)
     }
     c = calloc(1, sizeof(*c) + maxlen);
     if (!c) {
-        fprintf(stderr, "read file: malloc problem");
+        DEBUGMSG(ERROR, "read file: malloc problem");
         return 0;
     }
     c->type = LRPC_BIN;
@@ -223,7 +223,7 @@ parseConst(char **cpp)
             p++;
         c->u.strlen = p - *cpp - 2;
     } else {
-        fprintf(stderr, "parse error, unknown constant format %s\n", *cpp);
+        DEBUGMSG(ERROR, "parse error, unknown constant format %s\n", *cpp);
         free(c);
         return 0;
     }
@@ -250,7 +250,7 @@ parsePrefixTerm(int lev, char **cpp)
             if (!t2)
                 return 0;
             if (**cpp != ')') {
-                fprintf(stderr, "parsePrefixTerm error: missing )\n");
+                DEBUGMSG(ERROR, "parsePrefixTerm error: missing )\n");
                 return 0;
             }
             *cpp += 1;
@@ -467,16 +467,16 @@ Usage:
             if (replen <= 0)
                 goto done;
             if (*reply != LRPC_APPLICATION) { // not a RPC pkt
-                fprintf(stderr, "skipping non-RPC packet\n");
+                DEBUGMSG(WARNING, "skipping non-RPC packet\n");
                 continue;
             }
             write(1, reply, replen);
             myexit(0);
         }
         if (cnt < 2)
-            fprintf(stderr, "re-sending RPC request\n");
+            DEBUGMSG(INFO, "re-sending RPC request\n");
     }
-    fprintf(stderr, "timeout (no RPC reply received so far)\n");
+    DEBUGMSG(ERROR, "timeout (no RPC reply received so far)\n");
 
 done:
     close(sock);

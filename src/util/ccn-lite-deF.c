@@ -52,7 +52,7 @@ reassembly_done(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         exit(-1);
     }
 
-    printf("new file %s, %d bytes\n", fname, *len);
+    DEBUGMSG(INFO, "new file %s, %d bytes\n", fname, *len);
 
     f = creat(fname, 0666);
     if (f < 0)
@@ -74,7 +74,7 @@ parseFrag(char *fname, unsigned char *data, int datalen, struct ccnl_face_s *f)
 
     if (dehead(&data, &datalen, &num, &typ)
                 || typ != CCN_TT_DTAG || num != CCNL_DTAG_FRAGMENT2013) {
-        fprintf(stderr, "** file %s not a CCNx2013 fragment, ignored\n", fname);
+        DEBUGMSG(ERROR, "** file %s not a CCNx2013 fragment, ignored\n", fname);
         return;
     }
 
@@ -133,15 +133,15 @@ usage:
         unsigned char in[64*1024];
         int len, fd = open(fname, O_RDONLY);
 
-        printf("** file %s\n", fname);
+        DEBUGMSG(INFO, "** file %s\n", fname);
 
         if (fd < 0) {
-            fprintf(stderr, "error opening file %s\n", fname);
+            DEBUGMSG(ERROR, "error opening file %s\n", fname);
             exit(-1);
         }
         len = read(fd, in, sizeof(in));
         if (len < 0) {
-            fprintf(stderr, "error reading file %s\n", fname);
+            DEBUGMSG(ERROR, "error reading file %s\n", fname);
             exit(-1);
         }
         close(fd);
