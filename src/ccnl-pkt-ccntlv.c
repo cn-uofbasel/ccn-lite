@@ -95,6 +95,7 @@ ccnl_ccntlv_extract(int hdrlen,
         *keyid = NULL;
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    p->compcnt = 0;
     if (!p)
         return NULL;
 
@@ -273,22 +274,31 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
                             unsigned char hoplimit, 
                             int *offset, unsigned char *buf)
 {
-    // Currently there are no optional headers, only fixed header of size 8
-    unsigned char hdrlen = 8;
-    struct ccnx_tlvhdr_ccnx201411_s *hp;
+    // optional headers are not yet supported, only the fixed header
+    unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx201412_s);
+    struct ccnx_tlvhdr_ccnx201412_s *hp;
 
-    if (*offset < 8 || payloadlen < 0)
+    if (packettype == CCNX_PT_Interest || packettype == CCNX_PT_NACK) {
+        struct ccnx_tlvhdr_ccnx201412nack_s *np;
+        hdrlen += sizeof(*np);
+        *offset -= sizeof(*np);
+        np = (struct ccnx_tlvhdr_ccnx201412nack_s *)(buf + *offset);
+        memset(np, 0, sizeof(*np));
+    }
+    if (*offset < hdrlen || payloadlen < 0)
         return -1;
-    *offset -= 8;
-    hp = (struct ccnx_tlvhdr_ccnx201411_s *)(buf + *offset);
-    hp->version = ver;
-    hp->packettype = packettype;
-    hp->payloadlen = htons(payloadlen);
-    hp->hoplimit = hoplimit;
-    hp->reserved = 0;
-    hp->hdrlen = hdrlen; // htons(hdrlen);
 
-    return hdrlen + payloadlen;
+    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412_s);
+    hp = (struct ccnx_tlvhdr_ccnx201412_s *)(buf + *offset);
+    hp->version = ver;
+    hp->pkttype = packettype;
+    hp->hoplimit = hoplimit;
+    memset(hp->fill, 0, 2);
+
+    hp->hdrlen = hdrlen; // htons(hdrlen);
+    hp->pktlen = htons(hdrlen + payloadlen);
+
+    return hp->pktlen;
 }
 
 // write given prefix and chunknum *before* buf[offs], adjust offset
@@ -350,12 +360,16 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
                                         int *offset, unsigned char *buf)
 {
     int len, oldoffset;
-    unsigned char hoplimit = 255; // setting hoplimit to max valid value
+    unsigned char hoplimit = 64; // setting hoplimit to max valid value?
 
     oldoffset = *offset;
     len = ccnl_ccntlv_prependInterest(name, offset, buf);
     if (len >= ((1 << 16)-8))
         return -1;
+/*
+    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
+    memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_ccnx201412nack_s));
+*/
     if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
                                     len, hoplimit, offset, buf) < 0)
         return -1;
