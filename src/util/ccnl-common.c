@@ -24,6 +24,7 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
+#define USE_LOGGING
 #define CCNL_UNIX
 #define _BSD_SOURCE
 #define _SVID_SOURCE
@@ -58,6 +59,7 @@
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
 #include "../ccnl-ext-debug.c"
+#include "../ccnl-ext-logging.c"
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)

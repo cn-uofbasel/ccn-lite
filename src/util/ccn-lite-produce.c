@@ -219,7 +219,7 @@ Usage:
         if (outdirname) {
             sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
 
-            DEBUGMSG(INFO, "writing chunk %d to file %s\n", outpathname, chunknum);
+            DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
 
             fout = creat(outpathname, 0666);
             write(fout, out + offs, contentlen);
