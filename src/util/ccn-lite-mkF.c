@@ -87,7 +87,7 @@ main(int argc, char *argv[])
     char *cmdname = argv[0], *cp, *fname, *fileprefix = "frag";
     char noclobber = 0;
 
-    while ((opt = getopt(argc, argv, "b:f:hns:")) != -1) {
+    while ((opt = getopt(argc, argv, "b:f:hns:v:")) != -1) {
         switch (opt) {
         case 'b':
             bytelimit = atoi((char*) optarg);
@@ -103,13 +103,26 @@ main(int argc, char *argv[])
             if (cp && cp[0]== '/' && isdigit(cp[1]))
                 seqnrlen = atoi(cp+1);
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
+
         case 'h':
         default:
             fprintf(stderr, "usage: %s [options] FILE(S)\n"
             "  -b LIMIT    MTU limit (default is 1500)\n"
             "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
             "  -n          no-clobber\n"
-            "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n",
+            "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n"
+#ifdef USE_LOGGING
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
+            ,
             cmdname);
             exit(1);
         }

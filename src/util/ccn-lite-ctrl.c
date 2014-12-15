@@ -936,6 +936,15 @@ main(int argc, char *argv[])
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
     int i = 0;
+    if(argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
+#ifdef USE_LOGGING
+        if (isdigit(argv[2][0]))
+            debug_level = atoi(argv[2]);
+        else
+            debug_level = ccnl_debug_str2level(argv[2]);
+#endif
+        argv += 2;
+    }
 
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
         ux = argv[2];
@@ -1156,7 +1165,11 @@ main(int argc, char *argv[])
     return 0;
 
 Usage:
-    fprintf(stderr, "usage: %s [-x ux_path | -u ip-address port] [-p private-key] [-k relay-public-key] [-m] CMD, where CMD either of\n"
+    fprintf(stderr, "usage: %s " 
+#ifdef USE_LOGGING
+       "[-v (fatal, error, warning, info, debug, trace, verbose)]"
+#endif
+       "[-x ux_path | -u ip-address port] [-p private-key] [-k relay-public-key] [-m] CMD, where CMD either of\n"
        "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
        "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
        "  destroydev    DEVNDX\n"

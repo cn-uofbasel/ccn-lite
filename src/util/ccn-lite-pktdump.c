@@ -975,7 +975,7 @@ main(int argc, char *argv[])
     FILE *out = stdout;
 
     ndn_init();
-    while ((opt = getopt(argc, argv, "hs:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:f:v:")) != -1) {
         switch (opt) {
         case 's':
             suite = ccnl_str2suite(optarg);
@@ -985,13 +985,25 @@ main(int argc, char *argv[])
         case 'f':
             format = atoi(optarg);
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
         default:
 help:
             fprintf(stderr,
                     "usage: %s [options] <encoded_data\n"
                     "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
                     "  -h           this help\n"
-                    "  -s SUITE     (ccnb, ccnx2014, ndn2013)\n",
+                    "  -s SUITE     (ccnb, ccnx2014, ndn2013)\n"
+#ifdef USE_LOGGING
+                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
+                    ,
                     argv[0]);
             exit(1);
         }

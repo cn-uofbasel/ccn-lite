@@ -46,7 +46,7 @@ int main(int argc, char **argv){
     int print = 0;
     int thunk_request = 0;
 
-    while ((opt = getopt(argc, argv, "hptu:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hptu:v:w:x:")) != -1) {
         switch (opt) {
         case 'u':
         udp = optarg;
@@ -63,15 +63,26 @@ int main(int argc, char **argv){
         case 't':
             thunk_request = 1;
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
         case 'h':
         default:
 Usage:
         fprintf(stderr, "usage: %s "
         "[-u host/port] [-x ux_path_name] [-w timeout] COMPUTATION URI\n"
+        "  -p               print interest on console and exit\n"
         "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/9695)\n"
-        "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
+#ifdef USE_LOGGING
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
         "  -w timeout       in sec (float)\n"
-            "  -p               print interest on console and exit\n",
+        "  -x ux_path_name  UNIX IPC: use this instead of UDP\n",
         argv[0]);
         exit(1);
         }

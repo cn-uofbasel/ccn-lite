@@ -123,7 +123,7 @@ main(int argc, char *argv[])
     private_key_path = 0;
     witness = 0;
 
-    while ((opt = getopt(argc, argv, "hi:k:l:n:o:p:s:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "hi:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
@@ -150,6 +150,15 @@ main(int argc, char *argv[])
         case 'n':
             chunknum = atoi(optarg);
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
+
         case 'w':
             witness = optarg;
             break;
@@ -171,6 +180,9 @@ Usage:
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
         "  -s SUITE    (ccnb, ccnx2014, ndn2013)\n"
+#ifdef USE_LOGGING
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
         "  -w STRING   witness\n"
         "Examples:\n"
         "%% mkC /ndn/edu/wustl/ping             (classic lookup)\n"

@@ -57,6 +57,7 @@
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
 #include "ccnl-ext-logging.c"
+
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
@@ -691,14 +692,14 @@ main(int argc, char **argv)
         case 'u':
             udpport = atoi(optarg);
             break;
-#ifdef USE_LOGGING
         case 'v':
+#ifdef USE_LOGGING
             if (isdigit(optarg[0]))
                 debug_level = atoi(optarg);
             else
                 debug_level = ccnl_debug_str2level(optarg);
-            break;
 #endif
+            break;
         case 'x':
             uxpath = optarg;
             break;
@@ -720,6 +721,7 @@ usage:
                     "  -s SUITE (ccnb, ccnx2014, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
                     "  -u udpport\n"
+
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
