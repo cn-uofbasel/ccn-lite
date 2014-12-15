@@ -47,7 +47,7 @@ main(int argc, char *argv[])
 
     time((time_t*) &nonce);
 
-    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:x:")) != -1) {
         switch (opt) {
         case 'a':
             minSuffix = optarg;
@@ -86,6 +86,14 @@ main(int argc, char *argv[])
                 exit(-1);
             }
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
         case 'x':
             maxSuffix = optarg;
             break;
@@ -107,6 +115,9 @@ Usage:
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
             "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
+#ifdef USE_LOGGING
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
             "  -x LEN     maX additional components\n",
             argv[0]);
             exit(1);

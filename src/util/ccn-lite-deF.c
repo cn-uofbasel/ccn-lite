@@ -90,7 +90,7 @@ main(int argc, char *argv[])
     char *cmdname = argv[0], *fname;
     struct ccnl_face_s f;
 
-    while ((opt = getopt(argc, argv, "f:hn:")) != -1) {
+    while ((opt = getopt(argc, argv, "f:hv:n:")) != -1) {
         switch (opt) {
         case 'f':
             fileprefix = optarg;
@@ -98,12 +98,24 @@ main(int argc, char *argv[])
         case 'n':
             noclobber = ! noclobber;
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+        break;
+
         case 'h':
         default:
 usage:
             fprintf(stderr, "usage: %s [options] FILE(S)\n"
             "  -f PREFIX   use PREFIX for output file names (default: defrag)\n"
             "  -n          no-clobber\n",
+#ifdef USE_LOGGING
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
             cmdname);
             exit(1);
         }

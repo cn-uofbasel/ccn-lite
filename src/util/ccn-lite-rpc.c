@@ -375,13 +375,21 @@ main(int argc, char *argv[])
     struct rdr_ds_s *expr;
     char noreply = 0;
 
-    while ((opt = getopt(argc, argv, "hnu:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hnu:v:w:x:")) != -1) {
         switch (opt) {
         case 'n':
             noreply = 1 - noreply;
             break;
         case 'u':
             udp = optarg;
+            break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
             break;
         case 'w':
             wait = atof(optarg);
@@ -396,8 +404,11 @@ Usage:
             "[-u host:port] [-x ux_path_name] [-w timeout] EXPRESSION [filenames]\n"
             "  -n               no-reply (just send)\n"
             "  -u a.b.c.d:port  UDP destination (default is 127.0.0.1/6363)\n"
-            "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
+#ifdef USE_LOGGING
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
             "  -w timeout       in sec (float)\n"
+            "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
             "EXPRESSION examples:\n"
             "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n"
             "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n",

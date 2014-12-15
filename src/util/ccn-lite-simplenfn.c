@@ -111,7 +111,7 @@ main(int argc, char *argv[])
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     int (*isContent)(unsigned char*, int);
 
-    while ((opt = getopt(argc, argv, "hn:s:u:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
         case 'n':
             defaultNFNpath = optarg;
@@ -142,6 +142,14 @@ main(int argc, char *argv[])
         case 'u':
             udp = optarg;
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
         case 'w':
             wait = atof(optarg);
             break;
@@ -155,6 +163,9 @@ usage:
             "  -n NFNPATH       default prefix towards some NFN node(s)\n"
             "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
+#ifdef USE_LOGGING
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
             "Examples:\n"

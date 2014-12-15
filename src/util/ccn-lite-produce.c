@@ -44,7 +44,7 @@ main(int argc, char *argv[])
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
 
-    while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:f:i:o:p:k:w:s:v:")) != -1) {
         switch (opt) {
         case 'c':
             chunk_size = atoi(optarg);
@@ -83,6 +83,14 @@ main(int argc, char *argv[])
         case 's':
             suite = ccnl_str2suite(optarg);
             break;
+        case 'v':
+#ifdef USE_LOGGING
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
+#endif
+            break;
         case 'h':
         default:
 Usage:
@@ -95,6 +103,9 @@ Usage:
         "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
         "  -p DIGEST        publisher fingerprint\n"
         "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
+#ifdef USE_LOGGING
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+#endif
         ,
         argv[0],
         CCNL_MAX_CHUNK_SIZE);
