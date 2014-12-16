@@ -935,7 +935,7 @@ main(int argc, char *argv[])
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
     int i = 0;
-    if(argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
+    if(argv[1] && !strcmp(argv[1], "-v") && argc > 2) {
 #ifdef USE_LOGGING
         if (isdigit(argv[2][0]))
             debug_level = atoi(argv[2]);
