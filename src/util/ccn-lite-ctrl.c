@@ -623,7 +623,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     
     
     prefix = getPrefix(data, datalen, suite);
-    prefix_string = ccnl_prefix_to_path_detailed(prefix, 0);
+    prefix_string = ccnl_prefix_to_path_detailed(prefix, 0, 1, 1);
     
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
@@ -637,6 +637,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
+
+    DEBUGMSG(0, "NAME:%s\n", prefix_string);
 
     len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
 
@@ -943,6 +945,9 @@ main(int argc, char *argv[])
             debug_level = ccnl_debug_str2level(argv[2]);
 #endif
         argv += 2;
+    }
+    else{
+    	debug_level = 0;
     }
 
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
