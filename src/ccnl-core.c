@@ -29,7 +29,7 @@
 int ccnl_pkt2suite(unsigned char *data, int len);
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip);
+char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 void ccnl_face_CTS_done(void *ptr, int cnt, int len);
@@ -74,7 +74,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
 done:
     DEBUGMSG(VERBOSE, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s"
              " prefix=%s: %d (%p)\n", mode, nlen, p->compcnt, name->compcnt,
-             ccnl_prefix_to_path_detailed(name, 0), ccnl_prefix_to_path_detailed(p, 0), rc, md);
+             ccnl_prefix_to_path_detailed(name, 0, 0, 0), ccnl_prefix_to_path_detailed(p, 0, 0, 0), rc, md);
     return rc;
 }
 

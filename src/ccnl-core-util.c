@@ -481,7 +481,7 @@ static char *prefix_buf2;
 static char *buf;
 
 char*
-ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip)
+ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash)
 {
     int len = 0, i, j;
 
@@ -531,13 +531,13 @@ One possibility is to not have a '/' before any nfn expression.
     // In the future it is possibly helpful to see the type information in the logging output
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
-    if (pr->suite == CCNL_SUITE_CCNTLV)
-        skip = ccntlv_skip;
+    if (pr->suite == CCNL_SUITE_CCNTLV && ccntlv_skip)
+        skip = 4;
 #endif
 
     for (i = 0; i < pr->compcnt; i++) {
 #ifdef USE_NFN
-        if(strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5))
+        if((strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5)) || call_slash)
         {
 #endif
             len += sprintf(buf + len, "/");
@@ -551,7 +551,7 @@ One possibility is to not have a '/' before any nfn expression.
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if (c < 0x20 || c == 0x7f)
+            if (c < 0x20 || c == 0x7f || (escape_components && c == '/' ))
                 len += sprintf(buf + len, "%%%02x", c);
             else 
                 len += sprintf(buf + len, "%c", c);
@@ -571,7 +571,7 @@ One possibility is to not have a '/' before any nfn expression.
 
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
-    return ccnl_prefix_to_path_detailed(pr, 4);
+    return ccnl_prefix_to_path_detailed(pr, 1, 0, 0);
 }
 
 // ----------------------------------------------------------------------
