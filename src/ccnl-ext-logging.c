@@ -30,13 +30,13 @@
 
 extern int debug_level;
 
-#define FATAL   94 // FATAL
-#define ERROR   95 // ERROR
-#define WARNING 96 // WARNING 
-#define INFO    97 // INFO 
-#define DEBUG   98 // DEBUG 
-#define TRACE   99 // TRACE 
-#define VERBOSE 100 // VERBOSE 
+#define FATAL   94  // FATAL
+#define ERROR   95  // ERROR
+#define WARNING 96  // WARNING 
+#define INFO    97  // INFO 
+#define DEBUG   98  // DEBUG 
+#define VERBOSE 99  // VERBOSE
+#define TRACE 	100 // TRACE 
 
 #define _TRACE(F,P) if (debug_level >= TRACE)                            \
                       fprintf(stderr, "[%c] %s: %s() in %s:%d\n",        \
