@@ -1,7 +1,7 @@
 
 # CCN-Lite Docker Tutorial
 This tutorial explains how ccn-lite as well as nfn-scala can be run in a Docker container. This keeps your system clean
-and makes it possible to easily run several nodes on different (virtual) machines.
+and makes it possible to easily run several nodes on fully isolated system processes.
 
 ## Docker Installation
 Just follow the official [installation](https://docs.docker.com/installation/#installation). For OSX you will have to install
@@ -11,11 +11,12 @@ Boot2Docker which runs a prebuild docker image on virtual box.
 First you have to build the docker container. A container is based on a certain image, in this case ubuntu. From this base image
 several commands are run to compile CCN-Lite and setup some variables and expose the port of CCN-Lite
 (9000 instead of the default ports, because this makes it possible to use the same port for different protocols).
+In Ubuntu you will have to provide sudo privileges by using `sudo docker ...` instead of `docker`.
 ```bash
 cd $CCNL_HOME
 docker build -t yourname/ccn-lite:devel .
 ```
-With the -t flag you can give your container a name, which is usually your username from dockerhub, the name of the container and a version flag at the end.
+With the -t flag you can give your container a name, which is usually your username from dockerhub (or any other name if you do not use dockerhub), the name of the container and a version flag at the end.
 
 ```bash
 docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -s ndn2013 -v 99 -u 9000
@@ -29,7 +30,7 @@ If you want to run a different command in the container, you can start it with t
 docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -s ndn2013 -v 99 -u 9000
 ```
 Now you should be able to send CCN requests to the container by using your locally installed ccn-lite-peek utility.
-To send request to the container on OSX you have to get the IP with the `boot2docker ip`.
+On Ubuntu, you can send the requests to 127.0.0.1. To send on OSX you have to get the IP with `boot2docker ip` (that is the address of the virtual machine running on virtualbox).
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "/ndn/simple" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
@@ -65,7 +66,7 @@ $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "add 1 2" | $CCNL_HOM
 ```
 The  request will internally send a request to the compute server. The result will be a content object with the content '5'.
 ```bash
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "call 2 /docker/nfn/nfn_service_WordCount 'foo bar 1 2 3" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "call 2 /docker/nfn/nfn_service_WordCount 'foo bar 1 2 3'" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 The result of the next computation does not fit into a single content object. Because the NFN-machinery does not support chunked results (and it is also questionable if this would make sense),
 the result is a redirect. Neither NDN nor CCNx has a native mechansim supporting redirects, therefore we use a primitive protocol for redirects.
