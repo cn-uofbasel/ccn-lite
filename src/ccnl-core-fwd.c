@@ -48,7 +48,6 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(ccnl, STAT_RCV_I); //log count recv_interest
         if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1)
             goto Skip;
         if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
@@ -63,7 +62,6 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 if (ppkd && !buf_equal(ppkd, c->details.ccnb.ppkd)) continue;
                 // FIXME: should check stale bit in aok here
                 DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-                ccnl_print_stats(ccnl, STAT_SND_C); //log sent_c
                 if (from->ifndx >= 0) {
                     ccnl_nfn_monitor(ccnl, from, c->name, c->content, c->contentlen);
                     ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
@@ -113,7 +111,6 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         }
     } else { // content
         DEBUGMSG(6, "  content=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(ccnl, STAT_RCV_C); //log count recv_content
         
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
@@ -235,7 +232,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     if (typ == CCNX_PT_Interest) {
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
         // CONFORM: Step 1: search for matching local content
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_CCNTLV)
@@ -245,7 +241,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
                 continue;
             DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-            ccnl_print_stats(relay, STAT_SND_C); //log sent_c
             if (from->ifndx >= 0){
                 ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
@@ -291,7 +286,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG(6, "  NACK=<%s>\n", ccnl_prefix_to_path(p));
     } else if (typ == CCNX_PT_Data) { // data packet with content
         DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 
         // CONFORM: Step 1:
         for (c = relay->contents; c; c = c->next)
@@ -411,7 +405,6 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             goto Skip;
         }
         DEBUGMSG(6, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(relay, STAT_RCV_I); //log count recv_interest
     /*
         filter here for link level management messages ...
         if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
@@ -426,7 +419,6 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             // FIXME: should check freshness (mbf) here
             // if (mbf) // honor "answer-from-existing-content-store" flag
             DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
-            ccnl_print_stats(relay, STAT_SND_C); //log sent_c
             if (from->ifndx >= 0) {
                 ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
@@ -482,7 +474,6 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     } else { // data packet with content -------------------------------------
         DEBUGMSG(6, "  data=<%s>\n", ccnl_prefix_to_path(p));
-        ccnl_print_stats(relay, STAT_RCV_C); //log count recv_content
 
 /*  mgmt messages for NDN?
 #ifdef USE_SIGNATURES
