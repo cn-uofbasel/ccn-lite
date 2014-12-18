@@ -945,6 +945,7 @@ main(int argc, char *argv[])
             debug_level = ccnl_debug_str2level(argv[2]);
 #endif
         argv += 2;
+        argc -= 2;
     }
     else{
     	debug_level = 0;
@@ -953,7 +954,7 @@ main(int argc, char *argv[])
     if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
         ux = argv[2];
         argv += 2;
-//        argc -= 2;
+        argc -= 2;
     }
     else if (argv[1] && !strcmp(argv[1], "-u") && argc > 3) {
     udp = argv[2];
