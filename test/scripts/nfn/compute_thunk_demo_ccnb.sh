@@ -14,8 +14,8 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock newUDPface any 127.0.0.1 9002  |
 
 sleep 3
 
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 ccnb | $CCNL_HOME/bin/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ccnb | $CCNL_HOME/bin/ccn-lite-ccnb2xml
 
 sleep 3
 
@@ -27,8 +27,8 @@ python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
 
 sleep 3
 
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9000 -w 100 "call 1 /test/data|THUNK|NFN"  | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ccnb -u 127.0.0.1/9000 -w 100 "call 1 /test/data|THUNK|NFN"  | $CCNL_HOME/bin/ccn-lite-pktdump
 
 sleep 5
 
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9000 -w 100 "call 1 /test/data|NFN" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ccnb -u 127.0.0.1/9000 -w 100 "call 1 /test/data|NFN" | $CCNL_HOME/bin/ccn-lite-pktdump
