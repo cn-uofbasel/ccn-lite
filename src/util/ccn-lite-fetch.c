@@ -194,8 +194,6 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     float wait = 3.0;
 
-    debug_level = 99;
-
     while ((opt = getopt(argc, argv, "hs:u:v:w:x:")) != -1) {
         switch (opt) {
         case 's':
@@ -318,11 +316,11 @@ usage:
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
             *prefix->chunknum = *curchunknum; 
-            DEBUGMSG(DEBUG, "fetching chunk %d...\n", *curchunknum);
+            DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
+            DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n", ccnl_prefix_to_path(prefix));
         }
-        DEBUGMSG(DEBUG, "fetching prefix '%s'\n", ccnl_prefix_to_path(prefix));
 
         // Fetch chunk
         if (ccnl_fetchContentForChunkName(prefix, 
