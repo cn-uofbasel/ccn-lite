@@ -463,8 +463,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #endif
     DEBUGMSG(DEBUG, "ccnl_interest_propagate\n");
 
-    ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
-
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
     // transmit an Interest Message on all listed dest faces in sequence."
     // CCNL strategy: we forward on all FWD entries with a prefix match
@@ -719,7 +717,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             if (pi->face->ifndx >= 0) {
                 DEBUGMSG(DEBUG, "  forwarding content <%s>\n",
                          ccnl_prefix_to_path(c->name));
-                ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
                 DEBUGMSG(VERBOSE, "--- Serve to face: %d (buf=%p)\n",
                          pi->face->faceid, (void*) c->pkt);

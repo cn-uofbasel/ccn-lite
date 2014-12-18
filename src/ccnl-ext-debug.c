@@ -1,6 +1,6 @@
 /*
  * @f ccnl-ext-debug.c
- * @b CCNL debugging support, dumping routines, memory tracking, stats
+ * @b CCNL debugging support, dumping routines, memory tracking
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
