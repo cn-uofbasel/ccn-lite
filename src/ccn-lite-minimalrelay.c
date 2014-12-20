@@ -105,7 +105,12 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 
+struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
+                     struct ccnl_interest_s *i);
+int ccnl_pkt2suite(unsigned char *data, int len);
 char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
+                    int ccntlv_skip, int escape_components, int call_slash);
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 char* ccnl_suite2str(int suite);

@@ -26,17 +26,11 @@
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
 
-int ccnl_pkt2suite(unsigned char *data, int len);
-struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
-int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
-
+// forward reference:
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
-void ccnl_face_CTS_done(void *ptr, int cnt, int len);
 
 // ----------------------------------------------------------------------
 // datastructure support functions
-
 
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
@@ -508,7 +502,6 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_interest_s *i2;
-//    int it;
 
     DEBUGMSG(TRACE, "ccnl_interest_remove %p\n", (void *) i);
 /*
@@ -706,7 +699,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             i = ccnl_interest_remove(ccnl, i);
             return 1;
         }
-
 
         // CONFORM: "Data MUST only be transmitted in response to
         // an Interest that matches the Data."
@@ -912,7 +904,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #ifdef USE_NFN
     ccnl_nfn_freeKrivine(ccnl);
 #endif
-
 }
 
 #include "ccnl-core-util.c"
