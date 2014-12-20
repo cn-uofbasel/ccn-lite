@@ -392,8 +392,6 @@ ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
     return len;
 }
 
-// #if defined(CCNL_SIMULATION) || defined(CCNL_OMNET) || defined(USE_NFN) || defined(USE_NACK)
-
 int
 ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
                       int datalen, int *contentpos, unsigned char *out)
@@ -418,7 +416,6 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
     return len;
 }
 
-// #endif // CCNL_SIMULATION || CCNL_OMNET
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // PKT_CCNB_C

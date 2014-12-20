@@ -48,7 +48,6 @@
 // #define USE_SIGNATURES
 
 #include "ccnl-os-includes.h"
-// #include "ccnl-headers.h"
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -84,20 +83,22 @@ ccnl_run_events()
 
     gettimeofday(&now, 0);
     while (eventqueue) {
-    struct ccnl_timer_s *t = eventqueue;
-    usec = timevaldelta(&(t->timeout), &now);
-    if (usec >= 0) {
-        now.tv_sec = usec / 1000000;
-        now.tv_usec = usec % 1000000;
-        return &now;
+        struct ccnl_timer_s *t = eventqueue;
+
+        usec = timevaldelta(&(t->timeout), &now);
+        if (usec >= 0) {
+            now.tv_sec = usec / 1000000;
+            now.tv_usec = usec % 1000000;
+            return &now;
+        }
+        if (t->fct)
+            (t->fct)(t->node, t->intarg);
+        else if (t->fct2)
+            (t->fct2)(t->aux1, t->aux2);
+        eventqueue = t->next;
+        ccnl_free(t);
     }
-    if (t->fct)
-        (t->fct)(t->node, t->intarg);
-    else if (t->fct2)
-        (t->fct2)(t->aux1, t->aux2);
-    eventqueue = t->next;
-    ccnl_free(t);
-    }
+
     return NULL;
 }
 
@@ -141,7 +142,6 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     return s;
 }
 #endif // USE_ETHERNET
-
 
 #ifdef USE_UNIXSOCKET
 int
@@ -196,6 +196,7 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
     }
     len = sizeof(*si);
     getsockname(s, (struct sockaddr*) si, &len);
+
     return s;
 }
 
@@ -223,7 +224,6 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
     return sendto(sock, buf, hdrlen + datalen, 0, 0, 0);
 }
 #endif // USE_ETHERNET
-
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -401,8 +401,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
     }
 #ifdef USE_SIGNATURES
-    if(crypto_face_path)
-    {
+    if(crypto_face_path) {
         char h[1024];
         //sending interface + face
         i = &relay->ifs[relay->ifcount];
@@ -445,7 +444,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
 // ----------------------------------------------------------------------
 
-
 int
 ccnl_io_loop(struct ccnl_relay_s *ccnl)
 {
@@ -463,7 +461,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
     maxfd++;
 
     DEBUGMSG(INFO, "starting main event and IO loop\n");
-    while(!ccnl->halt_flag) {
+    while (!ccnl->halt_flag) {
         struct timeval *timeout;
 
         FD_ZERO(&readfs);
@@ -534,7 +532,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
     dir = opendir(path);
     if (!dir) {
-        DEBUGMSG(ERROR, "could not open directory %s\n", path); return;
+        DEBUGMSG(ERROR, "could not open directory %s\n", path);
+        return;
     }
 
     DEBUGMSG(INFO, "populating cache from directory %s\n", path);
@@ -560,7 +559,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             continue; 
         }
 
-        DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name, (int) s.st_size);
+        DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name,
+                 (int) s.st_size);
 
         fd = open(fname, O_RDONLY);
         if (!fd) { 
@@ -621,15 +621,21 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             DEBUGMSG(WARNING, "unknown packet format (%s)\n", de->d_name);
             goto Done;
         }
-        if (!pkt)
-            { DEBUGMSG(WARNING, "parsing error (%s)\n", de->d_name); goto Done; }
-        if (!prefix)
-            { DEBUGMSG(WARNING, "missing prefix (%s)\n", de->d_name); goto Done; }
+        if (!pkt) {
+            DEBUGMSG(WARNING, "parsing error (%s)\n", de->d_name);
+            goto Done;
+        }
+        if (!prefix) {
+            DEBUGMSG(WARNING, "missing prefix (%s)\n", de->d_name);
+            goto Done;
+        }
 
         c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
                              &ppkd, content, contlen);
-        if (!c)
-            { DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name); goto Done; }
+        if (!c) {
+            DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name);
+            goto Done;
+        }
         ccnl_content_add2cache(ccnl, c);
         c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 Done:
@@ -682,9 +688,8 @@ main(int argc, char **argv)
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+            if (suite < 0 || suite >= CCNL_SUITE_LAST)
                 goto usage;
-            }
             break;
         case 't':
             httpport = atoi(optarg);

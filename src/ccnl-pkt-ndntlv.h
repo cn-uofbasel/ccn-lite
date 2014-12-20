@@ -92,9 +92,4 @@ Values          Designation
 #define NDN_Marker_Timestamp			0xFC
 #define NDN_Marker_SequenceNumber		0xFE
 
-
-// pkt-ndntlv-dec.c prototypes:
-unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
-int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
-
 // eof

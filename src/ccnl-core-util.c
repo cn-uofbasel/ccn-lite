@@ -25,7 +25,6 @@
 
 #include "ccnl-core.h"
 
-
 // ----------------------------------------------------------------------
 
 int
@@ -118,14 +117,11 @@ unescape_component(char *comp) // inplace, returns len after shrinking
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
 {
-//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
-
     int len = 0;
 
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-    {
+    case CCNL_SUITE_CCNTLV: {
         unsigned short *sp = (unsigned short*) dst;
         *sp++ = htons(CCNX_TLV_N_NameSegment);
         len = srclen;
@@ -140,6 +136,7 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
         memcpy(dst, src, len);
         break;
     }
+
     return len;
 }
 
@@ -148,7 +145,7 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
 {
     int len = strlen(src);
 
-//    DEBUGMSG(99, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+    DEBUGMSG(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
 
     if (*offset < len)
         return -1;
@@ -209,7 +206,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len, tlen;
 
-    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+    DEBUGMSG(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
              ccnl_suite2str(suite), uri, nfnexpr);
 
     if (strlen(uri))
@@ -243,7 +240,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 
     for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
         int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
-        
         char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
 
         if (isnfnfcomp)
@@ -282,10 +278,10 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         return p;
 
     p->compcnt = prefix->compcnt;
+    p->chunknum = prefix->chunknum;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
 #endif
-    p->chunknum = prefix->chunknum;
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
@@ -312,7 +308,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
 
 int
-ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmplen)
+ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
+                      int cmplen)
 {
     int lastcmp = prefix->compcnt, i;
     int *oldcomplen = prefix->complen;
@@ -354,12 +351,14 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmpl
 // TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
 // and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level. 
 int 
-ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
-
+ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
+{
     if (chunknum >= 0xff) {
-        DEBUGMSG(WARNING, "addChunkNum is only implemented for chunknum smaller than 0xff\n");
+      DEBUGMSG(WARNING, "addChunkNum is only implemented for "
+               "chunknum smaller than 0xff (%d)\n", chunknum);
         return -1;
     }
+
     switch(prefix->suite) {
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
@@ -397,12 +396,14 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
 #endif
 
         default:
-            DEBUGMSG(WARNING, "add chunk number not implemented for suite %d\n", prefix->suite);
+            DEBUGMSG(WARNING,
+                     "add chunk number not implemented for suite %d\n",
+                     prefix->suite);
             return -1;
     }
+
     return 0;
 }
-
 
 // ----------------------------------------------------------------------
 
@@ -436,6 +437,7 @@ ccnl_pkt2suite(unsigned char *data, int len)
     if (*data == 0x80)
         return CCNL_SUITE_LOCALRPC;
 #endif
+
     return -1;
 }
 
@@ -448,8 +450,7 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
-    case AF_PACKET:
-    {
+    case AF_PACKET: {
         struct sockaddr_ll *ll = &su->eth;
         strcpy(result, eth2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
@@ -469,6 +470,7 @@ ccnl_addr2ascii(sockunion *su)
     default:
         break;
     }
+
     return NULL;
 }
 
@@ -481,7 +483,8 @@ static char *prefix_buf2;
 static char *buf;
 
 char*
-ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash)
+ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
+                             int escape_components, int call_slash)
 {
     int len = 0, i, j;
 
@@ -545,9 +548,7 @@ One possibility is to not have a '/' before any nfn expression.
         }else{
             len += sprintf(buf + len, " ");
         }
-
 #endif
-
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
@@ -567,7 +568,6 @@ One possibility is to not have a '/' before any nfn expression.
 
     return buf;
 }
-
 
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
