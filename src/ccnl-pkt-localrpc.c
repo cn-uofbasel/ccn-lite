@@ -1,5 +1,5 @@
 /*
- * @f pkt-localrpc.c
+ * @f ccnl-pkt-localrpc.c
  * @b CCN lite - local RPC Data Representation (RDR) de- and encoding 
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
@@ -46,6 +46,75 @@
   
 */
 
+// ----------------------------------------------------------------------
+// TLV encoding, decoding
+
+int
+ccnl_lrpc_fieldlen(unsigned long val)
+{
+    if (val < 253) return 1;
+    if (val <= 0x0ffff) return 3;
+    if (val <= 0xffffffffL) return 5;
+    return 9;
+}
+
+int
+ccnl_lrpc_TLlen(unsigned int type, unsigned int len)
+{
+  /*
+    if (type < 4 && len < 64)
+        return 1;
+    return 1 + ccnl_lrpc_fieldlen(type) + ccnl_lrpc_fieldlen(len);
+  */
+    return ccnl_lrpc_fieldlen(type) + ccnl_lrpc_fieldlen(len);
+}
+
+int
+ccnl_lrpc_TLVlen(int typ, int nofbytes)
+{
+    return ccnl_lrpc_TLlen(typ, nofbytes) + nofbytes;
+}
+
+int
+ccnl_lrpc_varlenint(unsigned char **buf, int *len, int *val)
+{
+    return ccnl_ndntlv_varlenint(buf, len, val);
+}
+
+int
+ccnl_lrpc_dehead(unsigned char **buf, int *len,
+                 int *typ, int *vallen)
+{
+/*
+    if (*len <= 0)
+        return -1;
+    if (**buf != 0) {
+        *typ = **buf >> 6;
+        *vallen = **buf & 0x3f;
+        (*buf)++;
+        (*len)--;
+        return 0;
+    }
+//    fprintf(stderr, "==\n");
+    (*buf)++;
+    (*len)--;
+*/
+    if (ccnl_lrpc_varlenint(buf, len, typ))
+        return -1;
+    if (ccnl_lrpc_varlenint(buf, len, vallen))
+        return -1;
+//    fprintf(stderr, "==%d %d\n", *typ, *vallen);
+    return 0;
+}
+
+unsigned long int
+ccnl_lrpc_nonNegInt(unsigned char *buf, int vallen)
+{
+    return ccnl_ndntlv_nonNegInt(buf, vallen);
+}
+
+// ----------------------------------------------------------------------
+
 struct rdr_ds_s* ccnl_rdr_unserialize(unsigned char *buf, int buflen)
 {
     struct rdr_ds_s *ds;
@@ -74,19 +143,23 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
 
     buf = ds->flat;
     len = ds->flatlen;
-    if (*buf < LRPC_APPLICATION) { // user defined code point
+/*
+    if (*buf < LRPC_APPLICATION) { //  && *buf >= 0x10) { // user defined code point
         ds->type = *buf;
         ds->flatlen = 1;
         return ds->type;
     }
-    if (ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+*/
+    if (ccnl_lrpc_dehead(&buf, &len, &typ, &vallen))
         return -3;
+
+    //    fprintf(stderr, "typ=%d, len=%d, vallen=%d\n", typ, len, vallen);
 
     if (vallen > len)
         return -4;
     switch (typ) {
     case LRPC_NONNEGINT:
-        ds->u.nonnegintval = ccnl_ndntlv_nonNegInt(buf, vallen);
+        ds->u.nonnegintval = ccnl_lrpc_nonNegInt(buf, vallen);
         ds->type = LRPC_NONNEGINT;
         ds->flatlen = (buf - ds->flat) + vallen;
         return 0;
@@ -108,17 +181,24 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
         ds->type = LRPC_STR;
         ds->flatlen = (buf - ds->flat) + vallen;
         return 0;
+    case LRPC_NONCE:
+        ds->u.binlen = vallen;
+        ds->aux = (struct rdr_ds_s*) buf;
+        ds->type = LRPC_NONCE;
+        ds->flatlen = (buf - ds->flat) + vallen;
+        return 0;
 
     case LRPC_APPLICATION:
         ds->flatlen = buf - ds->flat;
         a = ccnl_rdr_unserialize(buf, vallen);
         if (!a || ccnl_rdr_getType(a) < 0)
             return -5;
+        //        fprintf(stderr, ".. app used %d bytes\n", a->flatlen);
         buf += a->flatlen;
-        len -= a->flatlen;
+        vallen -= a->flatlen;
         ds->u.fct = a;
         ds->flatlen += a->flatlen;
-        ds->type = LRPC_APPLICATION;
+        ds->type = typ;
         break;
     case LRPC_LAMBDA:
         ds->flatlen = buf - ds->flat;
@@ -126,22 +206,36 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
         if (!a || ccnl_rdr_getType(a) < 0)
             return -6;
         buf += a->flatlen;
-        len -= a->flatlen;
+        vallen -= a->flatlen;
         ds->u.lambdavar = a;
         ds->flatlen += a->flatlen;
         ds->type = LRPC_LAMBDA;
         break;
+    case LRPC_PT_REQUEST:
+    case LRPC_PT_REPLY:
     case LRPC_SEQUENCE:
         ds->flatlen = buf - ds->flat;
-        ds->type = LRPC_SEQUENCE;
+/*
+        a = ccnl_rdr_unserialize(buf, vallen);
+        if (!a || ccnl_rdr_getType(a) < 0)
+            return -5;
+        fprintf(stderr, ".. seq/req/rep used %d bytes\n", a->flatlen);
+        buf += a->flatlen;
+        vallen -= a->flatlen;
+        ds->u.aux = a;
+        ds->flatlen += a->flatlen;
+*/
+        ds->type = typ;
         break;
     default:
         return -1;
     }
 
+    //    fprintf(stderr, "== left bytes=%d\n", vallen);
     end = 0;
-    while (len > 0) {
-        a = ccnl_rdr_unserialize(buf, len);
+    while (vallen > 0) {
+      //        fprintf(stderr, " *left bytes=%d\n", vallen);
+        a = ccnl_rdr_unserialize(buf, vallen);
         if (!a || ccnl_rdr_getType(a) < 0)
             return -10;
         ds->flatlen += a->flatlen;
@@ -151,7 +245,7 @@ int ccnl_rdr_getType(struct rdr_ds_s *ds)
             end->nextinseq = a;
         end = a;
         buf += a->flatlen;
-        len -= a->flatlen;
+        vallen -= a->flatlen;
     }
 
     return ds->type;
@@ -166,6 +260,7 @@ void ccnl_rdr_free(struct rdr_ds_s *x)
         struct rdr_ds_s *y = x->nextinseq;
 
         switch (x->type) {
+        case LRPC_PT_REQUEST:
         case LRPC_APPLICATION:
             ccnl_rdr_free(x->u.fct);
             ccnl_rdr_free(x->aux);
@@ -178,9 +273,11 @@ void ccnl_rdr_free(struct rdr_ds_s *x)
             ccnl_rdr_free(x->aux);
             break;
         case LRPC_FLATNAME:
-        case LRPC_NONNEGINT:
+        case LRPC_NONCE:
         case LRPC_BIN:
         case LRPC_STR:
+            // do not free ->aux as it points into the packet byte array
+        case LRPC_NONNEGINT:
         default:
             break;
         }
@@ -323,23 +420,18 @@ struct rdr_ds_s* ccnl_rdr_mkStr(char *s)
     return ds;
 }
 
-
-int ndn_tlv_fieldlen(unsigned long val)
+struct rdr_ds_s* ccnl_rdr_mkNonce(char *data, int len)
 {
-    if (val < 253) return 1;
-    if (val <= 0x0ffff) return 3;
-    if (val <= 0xffffffffL) return 5;
-    return 9;
-}
+    struct rdr_ds_s *ds = ccnl_rdr_mkBin(data, len);
 
-static int ndn_tlv_len(int typ, int nofbytes)
-{
-    return ndn_tlv_fieldlen(typ) + ndn_tlv_fieldlen(nofbytes) + nofbytes;
+    if (ds)
+        ds->type = LRPC_NONCE;
+    return ds;
 }
 
 int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds) // incl TL header
 {
-    int len;
+    int len = 0;
     unsigned int val;
     struct rdr_ds_s *aux;
 
@@ -350,22 +442,24 @@ int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds) // incl TL header
 
     switch(ds->type) {
     case LRPC_FLATNAME:
-        len = ndn_tlv_len(LRPC_FLATNAME, ds->u.namelen);
+        len = ccnl_lrpc_TLVlen(LRPC_FLATNAME, ds->u.namelen);
         goto done;
     case LRPC_NONNEGINT:
         val = ds->u.nonnegintval;
-        len = 0;
         do {
             val = val >> 8;
             len++;
         } while (val);
-        len = ndn_tlv_len(LRPC_NONNEGINT, len);
+        len = ccnl_lrpc_TLVlen(LRPC_NONNEGINT, len);
         goto done;
     case LRPC_BIN:
-        len = ndn_tlv_len(LRPC_BIN, ds->u.binlen);
+        len = ccnl_lrpc_TLVlen(LRPC_BIN, ds->u.binlen);
         goto done;
     case LRPC_STR:
-        len = ndn_tlv_len(LRPC_FLATNAME, ds->u.strlen);
+        len = ccnl_lrpc_TLVlen(LRPC_FLATNAME, ds->u.strlen);
+        goto done;
+    case LRPC_NONCE:
+        len = ccnl_lrpc_TLVlen(LRPC_NONCE, ds->u.binlen);
         goto done;
 
     case LRPC_APPLICATION:
@@ -374,6 +468,8 @@ int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds) // incl TL header
     case LRPC_LAMBDA:
         len = ccnl_rdr_getFlatLen(ds->u.lambdavar);
         break;
+    case LRPC_PT_REQUEST:
+    case LRPC_PT_REPLY:
     case LRPC_SEQUENCE:
         len = 0;
         break;
@@ -385,7 +481,7 @@ int ccnl_rdr_getFlatLen(struct rdr_ds_s *ds) // incl TL header
         len += ccnl_rdr_getFlatLen(aux);
         aux = aux->nextinseq;
     }
-    len = ndn_tlv_len(ds->type, len);
+    len = ccnl_lrpc_TLVlen(ds->type, len);
 done:
     ds->flatlen = len;
     return len;
@@ -416,11 +512,21 @@ static int ccnl_rdr_serialize_fillTorL(long val, unsigned char *buf)
 
 static int ccnl_rdr_serialize_fillTandL(int typ, int len, unsigned char *buf)
 {
-    int i;
+  /*
+    int i = 1;
 
-    i = ccnl_rdr_serialize_fillTorL(typ, buf);
-    i += ccnl_rdr_serialize_fillTorL(len, buf + i);
+    if (typ < 4 && len < 64) {
+        *buf = (typ << 6) | len;
+    } else {
+  */
+    int i = 0;
+    {
+        *buf = 0;
+        i += ccnl_rdr_serialize_fillTorL(typ, buf + i);
+        i += ccnl_rdr_serialize_fillTorL(len, buf + i);
+    }
 
+//    fprintf(stderr, "typ=%d len=%d, bytes=%d\n", typ, len, i);
     return i;
 }
 
@@ -433,10 +539,12 @@ static void ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, unsigned char *at)
     if (!ds)
         return;
 
+/*
     if (ds->type < LRPC_APPLICATION) { // user defined code point
         *at = ds->type;
         return;
     }
+*/
 
     switch(ds->type) {
     case LRPC_FLATNAME:
@@ -450,6 +558,10 @@ static void ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, unsigned char *at)
     case LRPC_STR:
         len = ccnl_rdr_serialize_fillTandL(LRPC_STR, ds->u.strlen, at);
         memcpy(at + len, ds->aux, ds->u.strlen);
+        return;
+    case LRPC_NONCE:
+        len = ccnl_rdr_serialize_fillTandL(LRPC_NONCE, ds->u.binlen, at);
+        memcpy(at + len, ds->aux, ds->u.binlen);
         return;
     case LRPC_NONNEGINT:
         len = ds->flatlen;
@@ -467,6 +579,8 @@ static void ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, unsigned char *at)
         len = ccnl_rdr_getFlatLen(ds->u.fct);
         goesfirst = ds->u.fct;
         break;
+    case LRPC_PT_REQUEST:
+    case LRPC_PT_REPLY:
     case LRPC_SEQUENCE:
         len = 0;
         goesfirst = NULL;
@@ -476,7 +590,7 @@ static void ccnl_rdr_serialize_fill(struct rdr_ds_s *ds, unsigned char *at)
         goesfirst = ds->u.lambdavar;
         break;
     default:
-        fprintf(stderr, "serialize_fill() error\n");
+        DEBUGMSG(WARNING, "serialize_fill() error (ds->type=%d)\n", ds->type);
         return;
     }
 

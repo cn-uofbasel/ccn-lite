@@ -734,7 +734,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
     time_t t = CCNL_NOW();
-    DEBUGMSG(VERBOSE, "ageing t=%d\n", (int)t);
+    DEBUGMSG(TRACE, "ageing t=%d\n", (int)t);
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
@@ -806,6 +806,7 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 #include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
 
 #include "ccnl-core-fwd.c"
+#include "ccnl-ext-localrpc.c"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
                            unsigned char**, int*);
