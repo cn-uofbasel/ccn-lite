@@ -814,77 +814,89 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
     char *n, tmp[100], dorecurse;
 
     while (*len > 0) {
-    cp = *buf;
+        cp = *buf;
 
-    dorecurse = 0;
-    if (*cp < LRPC_APPLICATION) {
+        dorecurse = 0;
+    /*
+    if (*cp && *cp < LRPC_APPLICATION) { // private type value
         sprintf(tmp, "Variable=v%02x", *cp);
         n = tmp;
         *buf += 1;
         *len -= 1;
         vallen = 0;
-    } else {
-        if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
-            return -1;
-        if (vallen > *len) {
-            fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
-                    "  type=%hu, len=%hu larger than %d available bytes\n",
-                    cp - base, (unsigned short)typ, (unsigned short)vallen,
-                    *len);
-            exit(-1);
+    } else
+    */
+        {
+            if (ccnl_lrpc_dehead(buf, len, &typ, &vallen) < 0)
+                return -1;
+            if (vallen > *len) {
+                fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
+                        "  type=%hu, len=%hu larger than %d available bytes\n",
+                        cp - base, (unsigned short)typ, (unsigned short)vallen,
+                        *len);
+                exit(-1);
+            }
+            switch(typ) {
+            case LRPC_PT_REQUEST:
+                n = "Request"; dorecurse = 1; break;
+            case LRPC_PT_REPLY:
+                n = "Reply"; dorecurse = 1; break;
+            case LRPC_APPLICATION:
+                n = "Application"; dorecurse = 1; break;
+            case LRPC_LAMBDA:
+                n = "Lambda"; dorecurse = 1; break;
+            case LRPC_SEQUENCE:
+                n = "Sequence"; dorecurse = 1; break;
+            case LRPC_FLATNAME:
+                n = "FlatName"; break;
+            case LRPC_NONNEGINT:
+                n = "Integer"; break;
+            case LRPC_STR:
+                n = "String"; break;
+            case LRPC_BIN:
+                n = "BinaryData"; break;
+            case LRPC_NONCE:
+                n = "Nonce"; break;
+            default:
+                sprintf(tmp, "Type=0x%x", (unsigned short)typ);
+                n = tmp;
+                break;
+            }
         }
-        switch(typ) {
-        case LRPC_APPLICATION:
-            n = "Application"; dorecurse = 1; break;
-        case LRPC_LAMBDA:
-            n = "Lambda"; dorecurse = 1; break;
-        case LRPC_SEQUENCE:
-            n = "Sequence"; dorecurse = 1; break;
-        case LRPC_NONNEGINT:
-            n = "Integer"; break;
-        case LRPC_FLATNAME:
-            n = "NAME"; break;
-        case LRPC_BIN:
-            n = "BinaryData"; break;
-        default:
-            sprintf(tmp, "Type=0x%x", (unsigned short)typ);
-            n = tmp;
-            break;
+
+        printf("%04zx  ", cp - base);
+        for (i = 0; i < lev; i++)
+            printf("  ");
+        for (; cp < *buf; cp++)
+            printf("%02x ", *cp);
+        printf("-- <%s, len=%d>\n", n, vallen);
+
+        if (dorecurse) {
+            *len -= vallen;
+            localrpc_parse(lev+1, base, buf, &vallen, rawxml, out);
+            continue;
         }
-    }
 
-    printf("%04zx  ", cp - base);
-    for (i = 0; i < lev; i++)
-        printf("  ");
-    for (; cp < *buf; cp++)
-        printf("%02x ", *cp);
-    printf("-- <%s, len=%d>\n", n, vallen);
-
-    if (dorecurse) {
-        localrpc_parse(lev+1, base, buf, len, rawxml, out);
-        continue;
-    }
-
-    if (typ == LRPC_NONNEGINT) {
-        printf("%04zx  ", *buf - base);
-        for (i = 0; i <= lev; i++)
-            printf("  ");
-        printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-    } else if (typ == LRPC_FLATNAME) {
-        printf("%04zx  ", *buf - base);
-        for (i = 0; i <= lev; i++)
-            printf("  ");
-        strcpy(tmp, "\"");
-        i = sizeof(tmp) - 6;
-        if (vallen < i)
-            i = vallen;
-        memcpy(tmp+1, *buf, i);
-        strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-        printf("%s\n", tmp);
-    } else if (vallen > 0)
-        hexdump(lev, base, *buf, vallen, rawxml, out);
-    *buf += vallen;
-    *len -= vallen;
+        if (typ == LRPC_NONNEGINT) {
+            printf("%04zx  ", *buf - base);
+            for (i = 0; i <= lev; i++)
+                printf("  ");
+            printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
+        } else if (typ == LRPC_FLATNAME) {
+            printf("%04zx  ", *buf - base);
+            for (i = 0; i <= lev; i++)
+                printf("  ");
+            strcpy(tmp, "\"");
+            i = sizeof(tmp) - 6;
+            if (vallen < i)
+                i = vallen;
+            memcpy(tmp+1, *buf, i);
+            strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
+            printf("%s\n", tmp);
+        } else if (vallen > 0)
+            hexdump(lev, base, *buf, vallen, rawxml, out);
+        *buf += vallen;
+        *len -= vallen;
     }
     return 0;
 }
@@ -893,29 +905,31 @@ static void
 localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
+    int origlen = len, typ, vallen;
+    // int typ2, vallen2, len2;
+    //    unsigned char *cp;
 
-    int origlen = len, typ, vallen, typ2, vallen2, len2;
-    unsigned char *cp;
+    if (len <= 0 || ccnl_lrpc_dehead(&buf, &len, &typ, &vallen) < 0 ||
+                              (typ != LRPC_PT_REQUEST && typ != LRPC_PT_REPLY))
+        return;
 
-    if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
-                    typ != LRPC_APPLICATION)
-    return;
-
+    /*
     cp = buf;
     len2 = vallen;
-    if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
+    if (ccnl_lrpc_dehead(&buf, &len2, &typ2, &vallen2) < 0)
         return;
     if (typ2 == LRPC_NONNEGINT) { // RPC return code
         printf("0000  RPC-result\n");
         printf("%04zx    INT %ld\n", cp - data,
-               ccnl_ndntlv_nonNegInt(buf, vallen2));
+               ccnl_lrpc_nonNegInt(buf, vallen2));
         buf += vallen2;
         len = origlen - (buf - data);
         localrpc_parse(1, data, &buf, &len, rawxml, out);
     } else { // RPC request
+    */
         buf = data;
         localrpc_parse(0, data, &buf, &origlen, rawxml, out);
-    }
+    //    }
 
     printf("%04zx  pkt.end\n", buf - data);
 }

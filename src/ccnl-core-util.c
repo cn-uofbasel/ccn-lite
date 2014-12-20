@@ -28,6 +28,20 @@
 // ----------------------------------------------------------------------
 
 int
+ccnl_is_local_addr(sockunion *su)
+{
+    if (!su)
+        return 0;
+#ifdef USE_UNIXSOCKET
+    if (su->sa.sa_family == AF_UNIX)
+        return -1;
+#endif
+    if (su->sa.sa_family == AF_INET)
+        return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+    return 0;
+}
+
+int
 ccnl_str2suite(char *cp)
 {
 #ifdef USE_SUITE_CCNB
@@ -410,7 +424,6 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 int
 ccnl_pkt2suite(unsigned char *data, int len)
 {
-
     if (len <= 0) 
         return -1;
 
@@ -434,7 +447,7 @@ ccnl_pkt2suite(unsigned char *data, int len)
 #endif
 
 #ifdef USE_SUITE_LOCALRPC
-    if (*data == 0x80)
+    if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
         return CCNL_SUITE_LOCALRPC;
 #endif
 
