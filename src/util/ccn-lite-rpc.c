@@ -375,6 +375,8 @@ main(int argc, char *argv[])
     struct rdr_ds_s *expr;
     char noreply = 0;
 
+    srandom(time(NULL));
+
     while ((opt = getopt(argc, argv, "hnu:v:w:x:")) != -1) {
         switch (opt) {
         case 'n':
@@ -410,8 +412,9 @@ Usage:
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
             "EXPRESSION examples:\n"
-            "  \"/rpc/builtin/lookup /rpc/config/localTime)\"\n"
-            "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n",
+            "  \"/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1\"\n"
+            "  \"/rpc/builtin/lookup /rpc/config/localTime\"\n"
+            "  \"/rpc/builtin/syslog \\\"log this!\\\"\"\n",
             argv[0]);
             exit(1);
         }
@@ -426,10 +429,44 @@ Usage:
     if (!expr)
         return -1;
 
-    reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
-//    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
-    write(1, request, reqlen);
+    {
+        struct rdr_ds_s *request;
+        struct rdr_ds_s *nonce;
+        int n = random();
 
+        nonce = calloc(1, sizeof(*nonce));
+        nonce->type = LRPC_NONCE;
+        nonce->flatlen = -1;
+        nonce->aux = malloc(sizeof(int));
+        memcpy(nonce->aux, &n, sizeof(int));
+        nonce->u.binlen = sizeof(int);
+        nonce->nextinseq = expr;
+
+        request = calloc(1, sizeof(*request));
+        request->type = LRPC_PT_REQUEST;
+        request->flatlen = -1;
+        //        request->u.fct = expr;
+        request->aux = nonce;
+
+/*
+        request->nextinseq = nonce;
+        expr->nextinseq = nonce;
+*/
+
+        expr = request;
+    }
+
+    reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
+
+/*
+//    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
+//    write(1, request, reqlen);
+    {
+        int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+        write(fd, request, reqlen);
+        close(fd);
+    }
+*/
     srandom(time(NULL));
 
     if (ux) { // use UNIX socket
@@ -466,8 +503,8 @@ Usage:
 */
             if (replen <= 0)
                 goto done;
-            if (*reply != LRPC_APPLICATION) { // not a RPC pkt
-                DEBUGMSG(WARNING, "skipping non-RPC packet\n");
+            if (*reply != LRPC_PT_REPLY) { // not a Reply pkt
+                DEBUGMSG(WARNING, "skipping non-Reply packet %d\n", *reply);
                 continue;
             }
             write(1, reply, replen);

@@ -1,5 +1,5 @@
 /*
- * @f pkt-localrpc.h
+ * @f ccnl-pkt-localrpc.h
  * @b CCN lite - header file for local RPC support
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
@@ -29,24 +29,38 @@ struct rpc_exec_s { // execution context
 };
 
 typedef int(rpcBuiltinFct)(struct ccnl_relay_s *, struct ccnl_face_s *,
-                           struct rpc_exec_s *, struct rdr_ds_s *);
+                           struct rdr_ds_s *, struct rpc_exec_s *,
+                           struct rdr_ds_s *);
 
+
+#define LRPC_PT_REQUEST          0x80
+#define LRPC_PT_REPLY            0x81
 
 // #define LRPC_USERDEFINEDNAME  0x10..0x7f
 
-#define LRPC_APPLICATION         0x80
+/*
 #define LRPC_LAMBDA              0x81
 
 // data marshalling
 #define LRPC_SEQUENCE            0x82
-#define LRPC_BIN                 0x83
+#define LRPC_FLATNAME            0x83
+#define LRPC_NONNEGINT           0x84
+#define LRPC_STR                 0x85
+#define LRPC_BIN                 0x86
+*/
 
-#define LRPC_NONNEGINT           0x00 // low values for IoT encoding
-#define LRPC_FLATNAME            0x01
-#define LRPC_STR                 0x02
+#define LRPC_APPLICATION         0x82
+#define LRPC_FLATNAME            0x1
+#define LRPC_NONNEGINT           0x2
+#define LRPC_STR                 0x3
+
+#define LRPC_SEQUENCE            0x4
+#define LRPC_LAMBDA              0x5
+#define LRPC_BIN                 0x6
+#define LRPC_NONCE               0x7
 
 
-struct rdr_ds_s { // RPC Data Representation (RPR) data structure
+struct rdr_ds_s { // RPC Data Representation (RDR) data structure
     int type;
     int flatlen;
     unsigned char *flat;
@@ -63,6 +77,14 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
 };
 
 /* use of struct rdr_ds_s:
+
+  Req->u.fct (the RPC proper)
+     ->aux (nonce)
+
+  Rep->u.nonnegintval (nonce)
+     ->aux (seq)
+              ->u.nonnegintval (retcode)
+              ->u.nextinseq (more info, string) ...
 
   App->u.fct (function)
      ->aux (1st param)

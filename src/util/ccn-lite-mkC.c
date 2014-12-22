@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_SIGNATURES
 
@@ -33,76 +34,6 @@
 
 char *private_key_path; 
 char *witness;
-
-// ----------------------------------------------------------------------
-
-#ifdef XXX
-int
-ccnl_ccnb_mkContent(char **namecomp,
-      unsigned char *publisher, int plen,
-      unsigned char *body, int blen,
-      char *private_key_path,
-      char *witness,
-      unsigned char *out)
-{
-    int len = 0, k;
-
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // interest
-
-    // add signature
-#ifdef USE_SIGNATURES
-    if(private_key_path)
-        len += add_signature(out+len, private_key_path, body, blen);  
-#endif
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    while (*namecomp) {
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG);  // comp
-    k = strlen(*namecomp);
-    len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-    memcpy(out+len, *namecomp++, k);
-    len += k;
-    out[len++] = 0; // end-of-component
-    }
-    out[len++] = 0; // end-of-name
-
-    if (publisher) {
-    struct timeval t;
-    unsigned char tstamp[6];
-    uint32_t *sec;
-    uint16_t *secfrac;
-
-    gettimeofday(&t, NULL);
-    sec = (uint32_t*)(tstamp + 0); // big endian
-    *sec = htonl(t.tv_sec);
-    secfrac = (uint16_t*)(tstamp + 4);
-    *secfrac = htons(4048L * t.tv_usec / 1000000);
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_TIMESTAMP, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, sizeof(tstamp), CCN_TT_BLOB);
-    memcpy(out+len, tstamp, sizeof(tstamp));
-    len += sizeof(tstamp);
-    out[len++] = 0; // end-of-timestamp
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_SIGNEDINFO, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_PUBPUBKDIGEST, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, plen, CCN_TT_BLOB);
-    memcpy(out+len, publisher, plen);
-    len += plen;
-    out[len++] = 0; // end-of-publisher
-    out[len++] = 0; // end-of-signedinfo
-    }
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-    len += ccnl_ccnb_mkHeader(out+len, blen, CCN_TT_BLOB);
-    memcpy(out + len, body, blen);
-    len += blen;
-    out[len++] = 0; // end-of-content
-
-    out[len++] = 0; // end-of-contentobj
-
-    return len;
-}
-
-#endif
 
 // ----------------------------------------------------------------------
 
@@ -179,7 +110,7 @@ Usage:
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
-        "  -s SUITE    (ccnb, ccnx2014, ndn2013)\n"
+        "  -s SUITE    (ccnb, ccnx2014, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
@@ -220,6 +151,14 @@ Usage:
             &offs, 
             NULL, // Int *contentpos
             out);
+        break;
+    case CCNL_SUITE_IOTTLV:
+        offs = CCNL_MAX_PACKET_SIZE;
+        if (ccnl_iottlv_prependReply(name, body, len, &offs, NULL,
+                   lastchunknum == UINT_MAX ? NULL : &lastchunknum, out) < 0
+              || ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, out) < 0)
+            return -1;
+        len = CCNL_MAX_PACKET_SIZE - offs;
         break;
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
