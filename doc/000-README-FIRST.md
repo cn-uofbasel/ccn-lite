@@ -5,8 +5,10 @@
 * [README-ccn-lite.md](README-ccn-lite.md) (project description, first steps)
 
 ### Technical READMEs
-* [README-chunking.md](README-chunking.md)
-* [README-localrpc.md](README-localrpc.md)
+* [README-chunking.md](README-chunking.md) (use of segment numbers)
+* [README-localrpc.md](README-localrpc.md) (an experimental RPC data representation)
+* [README-iottlv.md](README-iottlv.md) (an experimental compact packet encoding, Nov 2014)
+* [README-multiprotocol.md](README-multiprotocol.md) (a demux method supporting multiple protocols on the same wire)
 * [README-OMNeT.txt](README-OMNeT.txt)
 
 ### Tutorial

@@ -163,12 +163,9 @@ void
 ccnl_simu_client_start(void *ptr, void *dummy)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    struct ccnl_stats_s *st = relay->stats;
     char node = relay2char(relay);
     int i;
 
-    if (!st)
-        return;
     if (phaseOne != 1) {
         struct ccnl_client_s *cl = relay->aux;
         cl->nextseq = 0;

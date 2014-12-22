@@ -678,6 +678,15 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             }
             break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV:
+            if (ccnl_prefix_cmp(c->name, NULL, i->prefix, CMP_EXACT)) {
+                // XX must also check keyid
+                i = i->next;
+                continue;
+            }
+            break;
+#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             if (!ccnl_i_prefixof_c(i->prefix, i->details.ndntlv.minsuffix,
@@ -800,8 +809,14 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
+#if defined(USE_SUITE_IOTTLV) | defined(USE_SUITE_LOCALRPC)
+# define NEEDS_PACKET_CRAFTING
+#endif
+#include "ccnl-pkt-switch.c"
+
 #include "ccnl-pkt-ccnb.c"
 #include "ccnl-pkt-ccntlv.c"
+#include "ccnl-pkt-iottlv.c"
 #include "ccnl-pkt-ndntlv.c"
 #include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
 
@@ -817,8 +832,9 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
              int datalen, struct sockaddr *sa, int addrlen)
 {
     struct ccnl_face_s *from;
-    int suite;
+    int enc, suite = -1, skip;
     dispatchFct dispatch;
+    unsigned char *base = data;
 
     DEBUGMSG(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
@@ -826,22 +842,31 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     if (!from)
         return;
 
-    suite = ccnl_pkt2suite(data, datalen);
-    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-        DEBUGMSG(WARNING,
-                 "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
-                 ifndx, datalen, *data);
-        return;
-    }
-    dispatch = ccnl_core_RX_dispatch[suite];
-    if (dispatch) {
-        dispatch(relay, from, &data, &datalen);
+    while (datalen > 0) {
+        // work through explicit code switching
+        while (!ccnl_switch_dehead(&data, &datalen, &enc))
+            suite = ccnl_enc2suite(enc);
+        if (suite == -1)
+            suite = ccnl_pkt2suite(data, datalen, &skip);
+
+        if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+            DEBUGMSG(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
+                     ifndx, datalen, *data, data - base);
+#include "fcntl.h"
+            return;
+        }
+        dispatch = ccnl_core_RX_dispatch[suite];
+        if (!dispatch) {
+            DEBUGMSG(ERROR, "Forwarder not initialized or dispatcher "
+                     "for suite %s does not exist.\n", ccnl_suite2str(suite));
+            return;
+        }
+        if (dispatch(relay, from, &data, &datalen) < 0)
+            break;
         if (datalen > 0) {
             DEBUGMSG(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
         }
-    } else
-        fprintf(stderr, "Forwarder not initialized or dispatcher "
-                "for suite %s does not exist.\n", ccnl_suite2str(suite));
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -854,6 +879,9 @@ ccnl_core_init(void)
 #endif
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_RX_ccntlv;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_RX_iottlv;
 #endif
 #ifdef USE_SUITE_NDNTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_RX_ndntlv;

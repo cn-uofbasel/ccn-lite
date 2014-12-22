@@ -23,6 +23,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PACKET_CRAFTING
@@ -52,12 +53,6 @@ main(int argc, char *argv[])
             chunknum = atoi(optarg);
             break;
         case 's':
-          /*
-            opt = atoi(optarg);
-            if (opt < CCNL_SUITE_CCNB || opt >= CCNL_SUITE_LAST)
-                goto usage;
-            suite = opt;
-          */
             suite = ccnl_str2suite(optarg);
             if (suite < 0 || suite >= CCNL_SUITE_LAST)
                 goto usage;
@@ -84,7 +79,7 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         SUITE= ccnb, ccnx2014, ndn2013 (default)\n"
+            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
@@ -139,6 +134,12 @@ usage:
     case CCNL_SUITE_CCNTLV:
         mkInterest = ccntlv_mkInterest;
         isContent = ccntlv_isData;
+        break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        mkInterest = iottlv_mkRequest;
+        isContent = iottlv_isReply;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -197,9 +198,14 @@ usage:
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;
             len = recv(sock, out, sizeof(out), 0);
+        {
+            int fd = open("pkt.bin", O_CREAT | O_WRONLY | O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
 
+            DEBUGMSG(DEBUG, "received %d bytes\n", len);
 /*
-            fprintf(stderr, "received %d bytes\n", len);
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */

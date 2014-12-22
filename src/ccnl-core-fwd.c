@@ -372,6 +372,142 @@ next:
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_SUITE_IOTTLV
+
+int
+ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+               unsigned char **data, int *datalen)
+{
+    int rc=-1, contlen, len, typ;
+    struct ccnl_buf_s *buf = 0;
+    struct ccnl_interest_s *i = 0;
+    struct ccnl_content_s *c = 0;
+    struct ccnl_prefix_s *p = 0;
+    unsigned char *start = *data, *content = 0;
+    DEBUGMSG(99, "ccnl_iottlv_forwarder (%d bytes left)\n", *datalen);
+
+    if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+        return -1;
+
+    // typ must be Request or Reply
+
+    buf = ccnl_iottlv_extract(start, data, datalen, &p, NULL,
+                              &content, &contlen);
+    if (!buf) {
+        DEBUGMSG(6, "  parsing error or no prefix\n");
+        goto Done;
+    }
+
+    if (typ == IOT_TLV_Request) {
+        DEBUGMSG(6, "  request=<%s>\n", ccnl_prefix_to_path(p));
+        for (c = relay->contents; c; c = c->next) {
+            if (c->suite != CCNL_SUITE_IOTTLV)
+                continue;
+            if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
+                continue;
+            DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
+            if (from->ifndx >= 0) {
+                ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
+                ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+            } else {
+                ccnl_app_RX(relay, c);
+            }
+            goto Skip;
+        }
+        DEBUGMSG(7, "  no matching content for interest\n");
+        // CONFORM: Step 2: check whether interest is already known
+        for (i = relay->pit; i; i = i->next) {
+            if (i->suite == CCNL_SUITE_IOTTLV &&
+                !ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT))
+                break;
+        }
+        // this is a new/unknown I request: create and propagate
+#ifdef USE_NFN
+        if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
+            if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_IOTTLV,
+                                    &buf, &p, 0, 0))
+                // Since the interest msg may be required in future it is
+                // not possible to delete the interest/prefix here
+                // return rc;
+                goto Done;
+        }
+#endif
+        if (!i) {
+            i = ccnl_interest_new(relay, from, CCNL_SUITE_IOTTLV,
+                                  &buf, &p, 0, 0);
+            if (i) { // CONFORM: Step 3 (and 4)
+                DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
+                ccnl_interest_propagate(relay, i);
+            }
+        } else if (from->flags & CCNL_FACE_FLAGS_FWDALLI) {
+            DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
+            ccnl_interest_propagate(relay, i);
+        }
+        if (i) { // store the I request, for the incoming face (Step 3)
+            DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
+            ccnl_interest_append_pending(i, from);
+        }
+    } else { // data packet with content -------------------------------------
+      {
+            int fd = open("t3.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, buf->data, buf->datalen);
+            close(fd);
+      }
+        DEBUGMSG(6, "  reply=<%s>\n", ccnl_prefix_to_path(p));
+
+/*  mgmt messages for NDN?
+#ifdef USE_SIGNATURES
+        if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
+                && !memcmp(p->comp[1], "crypto", 6) &&
+                from == relay->crypto_face) {
+            rc = ccnl_crypto(relay, buf, p, from); goto Done;
+        }
+#endif // USE_SIGNATURES
+*/
+        
+        // CONFORM: Step 1:
+        for (c = relay->contents; c; c = c->next)
+            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+        c = ccnl_content_new(relay, CCNL_SUITE_IOTTLV,
+                             &buf, &p, NULL /* ppkd */ , content, contlen);
+       if (c) { // CONFORM: Step 2 (and 3)
+/*
+#ifdef USE_NFN
+            if (ccnl_nfnprefix_isNFN(c->name)) {
+                if (ccnl_nfn_RX_result(relay, from, c))
+                    goto Done;
+                DEBUGMSG(99, "no running computation found \n");
+            }
+#endif
+*/
+            if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
+                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
+                DEBUGMSG(7, "  removed because no matching interest\n");
+                free_content(c);
+                goto Skip;
+            }
+            if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
+                DEBUGMSG(7, "  adding content to cache\n");
+                ccnl_content_add2cache(relay, c);
+            } else {
+                DEBUGMSG(7, "  content not added to cache\n");
+                free_content(c);
+            }
+        }
+    }
+
+Skip:
+    rc = 0;
+Done:
+    free_prefix(p);
+    ccnl_free(buf);
+    return rc;
+}
+
+#endif // USE_SUITE_IOTTLV
+
+// ----------------------------------------------------------------------
+
 #ifdef USE_SUITE_NDNTLV
 
 int

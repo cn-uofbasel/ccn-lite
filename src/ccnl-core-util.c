@@ -52,6 +52,10 @@ ccnl_str2suite(char *cp)
     if (!strcmp(cp, "ccnx2014"))
         return CCNL_SUITE_CCNTLV;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    if (!strcmp(cp, "iot2014"))
+        return CCNL_SUITE_IOTTLV;
+#endif
 #ifdef USE_SUITE_NDNTLV
     if (!strcmp(cp, "ndn2013"))
         return CCNL_SUITE_NDNTLV;
@@ -69,6 +73,10 @@ ccnl_suite2str(int suite)
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
         return "ccnx2014";
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return "iot2014";
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
@@ -422,10 +430,23 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 // ----------------------------------------------------------------------
 
 int
-ccnl_pkt2suite(unsigned char *data, int len)
+ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 {
+    int enc, suite = -1;
+    unsigned char *olddata = data;
+
+    if (skip)
+        *skip = 0;
+
     if (len <= 0) 
         return -1;
+
+    while (!ccnl_switch_dehead(&data, &len, &enc))
+        suite = ccnl_enc2suite(enc);
+    if (skip)
+        *skip = data - olddata;
+    if (suite >= 0)
+        return suite;
 
 #ifdef USE_SUITE_CCNB
     if (*data == 0x01 || *data == 0x04)
@@ -446,10 +467,18 @@ ccnl_pkt2suite(unsigned char *data, int len)
         return CCNL_SUITE_NDNTLV;
 #endif
 
-#ifdef USE_SUITE_LOCALRPC
-    if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
-        return CCNL_SUITE_LOCALRPC;
+/*
+#ifdef USE_SUITE_IOTTLV
+        if (*data == IOT_TLV_Request || *data == IOT_TLV_Reply)
+            return CCNL_SUITE_IOTTLV;
 #endif
+
+#ifdef USE_SUITE_LOCALRPC
+        if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
+            return CCNL_SUITE_LOCALRPC;
+#endif
+    }
+*/
 
     return -1;
 }
@@ -613,6 +642,17 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
         len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
         break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV: {
+        int rc = ccnl_iottlv_prependRequest(name, NULL, &offs, tmp);
+        if (rc <= 0)
+            break;
+        len = rc;
+        rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
+        len = (rc <= 0) ? 0 : len + rc;
+        break;
+    }
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
@@ -622,7 +662,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
         break;
     }
 
-    if (len)
+    if (len > 0)
         buf = ccnl_buf_new(tmp + offs, len);
     ccnl_free(tmp);
 
@@ -636,6 +676,9 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
+
+    DEBUGMSG(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
+             ccnl_prefix_to_path(name), paylen);
 
     tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
@@ -653,6 +696,18 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                                                 NULL, // lastchunknum
                                                 &offs, &contentpos, tmp);
         break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV: {
+        int rc = ccnl_iottlv_prependReply(name, payload, paylen,
+                                         &offs, &contentpos, NULL, tmp);
+        if (rc <= 0)
+            break;
+        len = rc;
+        rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
+        len = (rc <= 0) ? 0 : len + rc;
+        break;
+    }
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:

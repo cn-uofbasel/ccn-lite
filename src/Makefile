@@ -31,6 +31,7 @@ EXTMAKECLEAN=
 NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 
+PROGS = ccn-lite-simu
 INST_PROGS= ccn-lite-relay \
             ccn-lite-minimalrelay 
 
@@ -40,7 +41,6 @@ ifeq ($(uname_S),Linux)
     EXTLIBS += -lrt
     ifdef USE_KRNL
     	$(info *** With Linux Kernel ***)
-	    INST_PROGS += ccn-lite-simu
     	PROGS += ccn-lite-lnxkernel 
     endif
 
