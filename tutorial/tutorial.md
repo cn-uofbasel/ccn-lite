@@ -48,6 +48,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
 2. Set the CCN-Lite env: `export CCNL_HOME=".../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist)
+3. Add the binary directory of ccn-lite to your path `export PATH=$PATH:".../ccn-lite/bin`
 3. Dependencies:
 	* Ubuntu: `sudo apt-get install libssl-dev`
 	* OSX: `brew install openssl` (assuming the [homebrew](http://brew.sh) packet manager is installed)
@@ -239,11 +240,11 @@ For complexer functions you have to setup the `nfn-scala` computation environmen
 ### 3. Add a compute face
 In order to interact with the Compute Server which runs on Port 9002 we need to setup a new interface.
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 And to register the name "COMPUTE" to this interface. This name is reserved in NFN networks for the interaction with a Compute Server:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Add (the result of) a dummy function to the cache of the relay
@@ -275,16 +276,15 @@ Follow the installation instructions of nfn-scala. You mainly have to make sure 
 ### 1. Again, start a NFN-relay
 Start a nfn-relay. We again add the content you produced in the first scenario.
 ```bash
-$CCNL_HOME/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
+$CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
 ```
 
 ### 2. Start the Scala compute server
-First, make sure that CCNL_HOME is set correctly to the CCN-Lite folder with `echo $CCNL_HOME` and also make sure everything is compiled (`make clean all`).
-Next, change to the nfn-scala directory. Finally, start the compute server with:
-
+Go to the nfn-scala directory. Start the compute server with:
 ```bash
-sbt 'runMain runnables.production.StandaloneComputeServer /node/nodeA /tmp/mgmt-nfn-relay-a.sock 9001 9002 debug'
+sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 -cs-port 9002 --debug --ccnl-already-running /node/nodeA'
 ```
+
 
 The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
 It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a udp face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published. The first is called `/node/nodeA/nfn_service_WordCount`, the second `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
@@ -346,16 +346,15 @@ So far, all services as well as the published documents of the compute server we
 Currenty all running targets exist withing the project itself in the runnables package. In `runnables.evaluation.*` are some scripts which setup a nfn environment in Scala-only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `runnables.production.StandaloneComputeServer`.
 You might be able to understand what is going on even if you do not know any Scala. First, there is some basic parsing of the command-line arguments. The important part are the following lines:
 ```scala
-// Configuration of the router, so far always ccn-lite
+// Configuration of the router, sro far always ccn-lite
 // It requires the socket to the management interface, isCCNOnly = false indicates that it is a NFN node
-// and isAlreadyRunning = true tells the system that it should not have to start ccn-lite
-val routerConfig = RouterConfig("127.0.0.1", ccnlPort, prefix, mgmtSocket ,isCCNOnly = false, isAlreadyRunning = true)
+// and isAlreadyRunning tells the system that it should not have to start ccn-lite
+val routerConfig = RouterConfig(config.ccnLiteAddr, config.ccnlPort, config.prefix, config.mgmtSocket.getOrElse("") ,isCCNOnly = false, isAlreadyRunning = config.isCCNLiteAlreadyRunning)
 
 
 // This configuration sets up the compute server
 // withLocalAm = false tells the system that it should not start an abstract machine alongside the compute server
-// because we know that the ccn-lite node will be started in nfn mode
-val computeNodeConfig = ComputeNodeConfig("127.0.0.1", computeServerPort, prefix, withLocalAM = false)
+val computeNodeConfig = ComputeNodeConfig("127.0.0.1", config.computeServerPort, config.prefix, withLocalAM = false)
 
 // Abstraction of a node which runs both the router and the compute server on localhost (over UDP sockets)
 val node = LocalNode(routerConfig, Some(computeNodeConfig))
@@ -366,27 +365,16 @@ val node = LocalNode(routerConfig, Some(computeNodeConfig))
 // put the data of the jar into a content object.
 // The name of this service is infered from the package structure of the service as well as the prefix of the local node.
 // In this case the prefix is given with the commandline argument 'prefixStr' (e.g. /node/nodeA/nfn_service_WordCount)
-node.publishService(new WordCount())
-node.publishService(new Pandoc())
-node.publishService(new Reverse())
-node.publishService(new RemoveSpace())
-
-// Publish docs/tiny_md under the given prefix (e.g /node/nodeA/docs/tiny_md)
-node += Content(node.prefix.append("docs", "tiny_md"),
-"""
-  |# TODO List
-  |* ~~NOTHING~~
-""".stripMargin.getBytes)
+node.publishServiceLocalPrefix(new WordCount())
+node.publishServiceLocalPrefix(new Pandoc())
+node.publishServiceLocalPrefix(new PDFLatex())
+node.publishServiceLocalPrefix(new Reverse())
 
 
-// Read the tutorial form the ccn-lite documentation and publish it
-val ccnlTutorialMdPath = "doc/tutorial/tutorial.md"
-
-val tutorialMdName = node.prefix.append(CCNName("docs", "tutorial_md"))
-val ccnlHome = System.getenv("CCNL_HOME")
-val tutorialMdFile = new File(s"$ccnlHome/$ccnlTutorialMdPath")
-val tutorialMdData = IOHelper.readByteArrayFromFile(tutorialMdFile)
-node += Content(tutorialMdName, tutorialMdData)
+// Gets the content of the ccn-lite tutorial
+node += PandocTestDocuments.tutorialMd(node.localPrefix)
+// Publishes a very small two-line markdown file
+node += PandocTestDocuments.tinyMd(node.localPrefix)
 ```
 
 ### 2. Introduction to Service Implementation
