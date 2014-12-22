@@ -22,8 +22,10 @@ PROGS=	ccn-lite-ccnb2xml \
 
 CCNB_LIB =   ../ccnl-pkt-ccnb.h ../ccnl-pkt-ccnb.c
 CCNTLV_LIB = ../ccnl-pkt-ccntlv.h ../ccnl-pkt-ccntlv.c
-NDNTLV_LIB = ../ccnl-pkt-ndntlv.h ../ccnl-pkt-ndntlv.c
+IOTTLV_LIB = ../ccnl-pkt-iottlv.h ../ccnl-pkt-iottlv.c
 LOCRPC_LIB = ../ccnl-pkt-localrpc.h ../ccnl-pkt-localrpc.c
+NDNTLV_LIB = ../ccnl-pkt-ndntlv.h ../ccnl-pkt-ndntlv.c
+
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
 
 

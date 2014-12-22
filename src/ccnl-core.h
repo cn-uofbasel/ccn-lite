@@ -323,6 +323,9 @@ compile_string(void)
 #ifdef USE_SUITE_CCNTLV
         "SUITE_CCNTLV, "
 #endif
+#ifdef USE_SUITE_IOTTLV
+        "SUITE_IOTTLV, "
+#endif
 #ifdef USE_SUITE_LOCALRPC
         "SUITE_LOCALRPC, "
 #endif

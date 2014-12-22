@@ -37,7 +37,7 @@ char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
-int ccnl_pkt2suite(unsigned char *data, int len);
+int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
 

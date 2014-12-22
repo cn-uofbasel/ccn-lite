@@ -53,12 +53,25 @@
 enum {
   CCNL_SUITE_CCNB,
   CCNL_SUITE_CCNTLV,
-  CCNL_SUITE_NDNTLV,
+  CCNL_SUITE_IOTTLV,
   CCNL_SUITE_LOCALRPC,
+  CCNL_SUITE_NDNTLV,
   CCNL_SUITE_LAST
 };
 
 #define CCNL_SUITE_DEFAULT CCNL_SUITE_NDNTLV
+
+// ----------------------------------------------------------------------
+// our own packet format extension for switching encodings:
+// 0x80 followed by:
+
+enum {
+  CCNL_ENC_CCNB,
+  CCNL_ENC_NDN2013,
+  CCNL_ENC_CCNX2014,
+  CCNL_ENC_IOT2014,
+  CCNL_ENC_LOCALRPC
+};
 
 // ----------------------------------------------------------------------
 // our own CCN-lite extensions for the ccnb encoding:

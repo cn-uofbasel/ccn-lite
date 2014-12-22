@@ -102,7 +102,7 @@ Usage:
         "  -i FNAME         input file (instead of stdin)\n"
         "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
         "  -p DIGEST        publisher fingerprint\n"
-        "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
+        "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif

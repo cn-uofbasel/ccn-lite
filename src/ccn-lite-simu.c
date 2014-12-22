@@ -31,10 +31,11 @@
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
 //#define USE_FRAG
+#define USE_SCHEDULER
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
-#define USE_SCHEDULER
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -48,6 +49,7 @@ void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
+#include "ccnl-ext-logging.c"
 
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
@@ -370,8 +372,6 @@ ccnl_simu_init_node(char node, const char *addr,
         client->name = node == 'A' ?
             "/ccnl/simu/movie1" : "/ccnl/simu/movie2";
         relay->aux = (void *) client;
-
-        relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     }
 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
@@ -585,10 +585,10 @@ main(int argc, char **argv)
                 break;
         case 'h':
         default:
-            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
+            fprintf(stderr, "Xusage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
                     "[-g MIN_INTER_PACKET_INTERVAL] "
                     "[-i MIN_INTER_CCNMSG_INTERVAL] "
-                    "[-s SUITE (ccnb, ccnx2014, ndn2013)] "
+                    "[-s SUITE (ccnb, ccnx2014, iot2014, ndn2013)] "
                     "[-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

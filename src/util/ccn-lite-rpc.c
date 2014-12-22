@@ -457,15 +457,16 @@ Usage:
     }
 
     reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
+
+/*
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
 //    write(1, request, reqlen);
-
     {
         int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
         write(fd, request, reqlen);
         close(fd);
     }
-
+*/
     srandom(time(NULL));
 
     if (ux) { // use UNIX socket

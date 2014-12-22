@@ -107,7 +107,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
-int ccnl_pkt2suite(unsigned char *data, int len);
+int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);

@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PACKET_CRAFTING
@@ -39,7 +40,7 @@ main(int argc, char *argv[])
     char *fname = 0;
     int f, len=0, opt;
     int dlen = 0, plen = 0;
-    int packettype = 2;
+    int packettype = CCNL_SUITE_NDNTLV;
     struct ccnl_prefix_s *prefix;
     uint32_t nonce;
     int isLambda = 0;
@@ -114,7 +115,7 @@ Usage:
             "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
-            "  -s SUITE   (ccnb, ccnx2014, ndn2013)\n"
+            "  -s SUITE   (ccnb, ccnx2014, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
@@ -153,6 +154,9 @@ Usage:
                                 (int*)&nonce, 
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;
+    case CCNL_SUITE_IOTTLV:
+        len = iottlv_mkRequest(prefix, NULL, out, CCNL_MAX_PACKET_SIZE);
+        break;
     case CCNL_SUITE_NDNTLV:
         len = ndntlv_mkInterest(prefix, 
                                 (int*)&nonce, 

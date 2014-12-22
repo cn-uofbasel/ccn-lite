@@ -72,8 +72,10 @@ int debug_level = WARNING;
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
+#include "../ccnl-pkt-switch.c"
 #include "../ccnl-pkt-ccnb.c"
 #include "../ccnl-pkt-ccntlv.c"
+#include "../ccnl-pkt-iottlv.c"
 #include "../ccnl-pkt-ndntlv.c"
 #include "../ccnl-pkt-localrpc.c"
 
@@ -233,6 +235,49 @@ int ccntlv_isData(unsigned char *buf, int len)
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_SUITE_IOTTLV
+
+#ifdef NEEDS_PACKET_CRAFTING
+int
+iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
+                 unsigned char *out, int outlen)
+{
+    int offset, hoplim = 16;
+
+    offset = outlen;
+    if (ccnl_iottlv_prependRequest(name, &hoplim, &offset, out) < 0
+              || ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, out) < 0)
+        return -1;
+    memmove(out, out + offset, outlen - offset);
+
+    return outlen - offset;
+}
+#endif // NEEDS_PACKET_CRAFTING
+
+// return 1 for Reply, 0 for Request, -1 if invalid
+int iottlv_isReply(unsigned char *buf, int len)
+{
+    int typ, vallen, enc = 1, suite;
+
+    while (!ccnl_switch_dehead(&buf, &len, &enc));
+    suite = ccnl_enc2suite(enc);
+    if (suite != CCNL_SUITE_IOTTLV)
+        return -1;
+    DEBUGMSG(DEBUG, "suite ok\n");
+    if (len < 1 || ccnl_iottlv_dehead(&buf, &len, &typ, &vallen) < 0)
+        return -1;
+    DEBUGMSG(DEBUG, "typ=%d, len=%d\n", typ, vallen);
+    if (typ == IOT_TLV_Reply)
+        return 1;
+    if (typ == IOT_TLV_Request)
+        return 0;
+    return -1;
+}
+
+#endif // USE_SUITE_IOTTLV
+
+// ----------------------------------------------------------------------
+
 #ifdef USE_SUITE_NDNTLV
 
 #ifdef NEEDS_PACKET_CRAFTING
@@ -249,7 +294,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 
     return len;
 }
-#endif
+#endif // NEEDS_PACKET_CRAFTING
 
 int ndntlv_isData(unsigned char *buf, int len)
 {

@@ -104,7 +104,7 @@ static struct cf_server *server = NULL;
 // callback from the CCNL timer; execute pending reactions
 static void ccnl_sched_cf_timeout(void *aux1, void *aux2)
 {
-    DEBUGMSG(99, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
 
     cf_engine_execute_pending_reactions_and_set_timer(engine, ccnl_cf_now());
 }
@@ -114,7 +114,7 @@ static int ccnl_sched_cf_engine_set_timer(struct cf_engine *e, void *userptr, cf
 {
     struct timeval tv;
 
-    DEBUGMSG(99, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
 
     // stop the currently running timer
     if (engine_timer) {
@@ -140,10 +140,10 @@ static void ccnl_sched_cf_queue_serve_cb(struct cf_queue *q, void *userptr, cf_t
 {
     struct ccnl_sched_s *s = userptr;
 
-    DEBUGMSG(99, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
 
     if (CF_OK == cf_queue_dequeue_packet(q, 1)) {
-        DEBUGMSG(30, "  cf_dequeue successful; CTS\n");
+        DEBUGMSG(VERBOSE, "  cf_dequeue successful; CTS\n");
         cf_queue_update_concentrations(q, now);
         cf_engine_reschedule_and_set_timer(engine, now);
         s->cts(s->aux1, s->aux2);
@@ -162,7 +162,7 @@ static struct cf_queue_op_cb qcb = {
 
 int ccnl_sched_init()
 {
-    DEBUGMSG(99, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
 #ifdef USE_CHEMFLOW
     cf_debug_level = 0;
     // create chemflow core
@@ -197,7 +197,7 @@ err_out:
 
 void ccnl_sched_cleanup()
 {
-    DEBUGMSG(99, "cfnl_sched_cleanup()\n");
+    DEBUGMSG(TRACE, "cfnl_sched_cleanup()\n");
 #ifdef USE_CHEMFLOW
     if (server) {
         cfs_stop(server);
@@ -220,7 +220,7 @@ int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_
     struct cf_reaction *r1, *r2;
     cf_time now;
 
-    DEBUGMSG(99, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
 
     if (inter_packet_interval) {
         law = CF_LAW_MASS_ACTION;
@@ -314,7 +314,7 @@ ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2),
 {
     struct ccnl_sched_s *s;
 
-    DEBUGMSG(99, "ccnl_sched_dummy_new()\n");
+    DEBUGMSG(TRACE, "ccnl_sched_dummy_new()\n");
 
     s = (struct ccnl_sched_s*) ccnl_calloc(1, sizeof(struct ccnl_sched_s));
     if (s) {
@@ -330,7 +330,7 @@ ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2),
 {
     struct ccnl_sched_s *s;
 
-    DEBUGMSG(99, "ccnl_sched_pktrate_new()\n");
+    DEBUGMSG(TRACE, "ccnl_sched_pktrate_new()\n");
 
     s = (struct ccnl_sched_s*) ccnl_calloc(1, sizeof(struct ccnl_sched_s));
     if (!s)
@@ -354,7 +354,7 @@ ccnl_sched_pktrate_new(void (cts)(void *aux1, void *aux2),
 void
 ccnl_sched_destroy(struct ccnl_sched_s *s)
 {
-  DEBUGMSG(99, "ccnl_sched_destroy %p\n", (void*)s);
+  DEBUGMSG(TRACE, "ccnl_sched_destroy %p\n", (void*)s);
 
     if (s) {
 #ifdef USE_CHEMFLOW
@@ -383,11 +383,11 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 #endif
 
     if (!s) {
-        DEBUGMSG(30, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
+        DEBUGMSG(VERBOSE, "ccnl_sched_RTS sched=%p len=%d aux1=%p aux2=%p\n",
              (void*)s, len, (void*)aux1, (void*)aux2);
         return;
     }
-    DEBUGMSG(30, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
+    DEBUGMSG(VERBOSE, "ccnl_sched_RTS sched=%p/%d len=%d aux1=%p aux2=%p\n",
              (void*)s, s->mode, len, (void*)aux1, (void*)aux2);
 
     s->cnt += cnt;
@@ -401,7 +401,7 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
 
 #ifdef USE_CHEMFLOW
     for (; cnt; --cnt) {
-        DEBUGMSG(30, "  cf_enqueuen");
+        DEBUGMSG(VERBOSE, "  cf_enqueuen");
         if (CF_OK == cf_queue_enqueue_packet(s->q, 1)) {
             cf_queue_update_concentrations(s->q, now);
             cf_engine_reschedule_and_set_timer(engine, now);
@@ -417,7 +417,7 @@ ccnl_sched_RTS(struct ccnl_sched_s *s, int cnt, int len,
         s->cts(aux1, aux2);
         return;
     }
-    DEBUGMSG(30, "since=%ld\n", since);
+    DEBUGMSG(VERBOSE, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, aux1, aux2);
     s->nextTX.tv_sec += s->ipi / 1000000;;
@@ -436,11 +436,11 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 #endif
 
     if (!s) {
-        DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
+        DEBUGMSG(VERBOSE, "ccnl_sched_CTS_done sched=%p cnt=%d len=%d\n",
              (void*)s, cnt, len);
         return;
     }
-    DEBUGMSG(30, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
+    DEBUGMSG(VERBOSE, "ccnl_sched_CTS_done sched=%p/%d cnt=%d len=%d (mycnt=%d)\n",
              (void*)s, s->mode, cnt, len, s->cnt);
 
     s->cnt -= cnt;
@@ -454,7 +454,7 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 
 #ifdef USE_CHEMFLOW
     if (CF_OK == cf_queue_dequeue_packet(s->q, 1)) {
-        DEBUGMSG(30, "  cf_dequeue successful; CTS\n");
+        DEBUGMSG(VERBOSE, "  cf_dequeue successful; CTS\n");
         cf_queue_update_concentrations(s->q, now);
         cf_engine_reschedule_and_set_timer(engine, now);
         s->cts(s->aux1, s->aux2);
@@ -470,7 +470,7 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
         s->cts(s->aux1, s->aux2);
         return;
     }
-    DEBUGMSG(30, "since=%ld\n", since);
+    DEBUGMSG(VERBOSE, "since=%ld\n", since);
 //    ccnl_set_timer(since, (void(*)(void*,int))signal_cts, ccnl, ifndx);
     s->pendingTimer = ccnl_set_timer(since, s->cts, s->aux1, s->aux2);
     s->nextTX.tv_sec += s->ipi / 1000000;;
@@ -483,7 +483,7 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 void
 ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
-    DEBUGMSG(99, "ccnl_sched_X_ok()\n");
+    DEBUGMSG(TRACE, "ccnl_sched_X_ok()\n");
     // here a chemflow reaction NW could act on pkt reception events
 }
 
@@ -491,7 +491,7 @@ ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 void
 ccnl_sched_RX_loss(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
-    DEBUGMSG(99, "ccnl_sched_RX_loss()\n");
+    DEBUGMSG(TRACE, "ccnl_sched_RX_loss()\n");
     // here a chemflow reaction NW could act on pkt loss events
 }
 
@@ -503,7 +503,7 @@ ccnl_sched_packetratelimiter_new(int inter_packet_interval,
                                  void *aux1, void *aux2)
 {
     struct ccnl_sched_s *s;
-    DEBUGMSG(99, "ccnl_rate:limiter_new()\n");
+    DEBUGMSG(TRACE, "ccnl_rate:limiter_new()\n");
 
     s = (struct ccnl_sched_s*) ccnl_calloc(1, sizeof(struct ccnl_sched_s));
     if (s) {
