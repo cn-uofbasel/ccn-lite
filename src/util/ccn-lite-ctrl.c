@@ -24,6 +24,7 @@
 #define CCNL_UNIX
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define USE_SIGNATURES
@@ -552,6 +553,21 @@ getCCNTLVPrefix(unsigned char *data, int datalen){
 }
 
 struct ccnl_prefix_s*
+getIOTTLVPrefix(unsigned char *start, unsigned char *data, int datalen)
+{
+    struct ccnl_prefix_s *prefix;
+    unsigned char *content = 0;
+    int contentlen = 0;
+
+    if (ccnl_iottlv_extract(start, &data, &datalen, &prefix,
+                            0, &content, &contentlen) == NULL) {
+        DEBUGMSG(ERROR, "Error in iottlv_extract\n");
+        return 0;
+    }
+    return prefix;
+}
+
+struct ccnl_prefix_s*
 getNDNTLVPrefix(unsigned char *data, int datalen){
     
     int typ, len;
@@ -580,25 +596,35 @@ getNDNTLVPrefix(unsigned char *data, int datalen){
     return prefix;
 }
 
-struct ccnl_prefix_s *getPrefix(unsigned char *data, int datalen, int *suite){
+struct ccnl_prefix_s*
+getPrefix(unsigned char *data, int datalen, int *suite)
+{
     struct ccnl_prefix_s *prefix;
-    *suite = ccnl_pkt2suite(data, datalen);
+    int skip;
+
+    *suite = ccnl_pkt2suite(data, datalen, &skip);
     
     if (*suite < 0 || *suite >= CCNL_SUITE_LAST) {
         DEBUGMSG(ERROR, "?unknown packet?\n");
         return 0;
     }
-    switch(*suite){
-        case 0:
-            prefix = getCCNBPrefix(data, datalen);
-            break;
-        case 1: 
-            prefix = getCCNTLVPrefix(data, datalen);
-            break;
-        case 2: 
-            prefix = getNDNTLVPrefix(data, datalen);
-            break;
+    data += skip;
+    datalen -= skip;
+    switch(*suite) {
+    case CCNL_SUITE_CCNB:
+        prefix = getCCNBPrefix(data, datalen);
+        break;
+    case CCNL_SUITE_CCNTLV: 
+        prefix = getCCNTLVPrefix(data, datalen);
+        break;
+    case CCNL_SUITE_IOTTLV: 
+        prefix = getIOTTLVPrefix(data - skip, data, datalen);
+        break;
+    case CCNL_SUITE_NDNTLV: 
+        prefix = getNDNTLVPrefix(data, datalen);
+        break;
     }
+
     return prefix;
 }
 

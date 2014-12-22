@@ -26,17 +26,11 @@
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
 
-int ccnl_pkt2suite(unsigned char *data, int len);
-struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
-int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
-
+// forward reference:
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
-void ccnl_face_CTS_done(void *ptr, int cnt, int len);
 
 // ----------------------------------------------------------------------
 // datastructure support functions
-
 
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
@@ -463,8 +457,6 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #endif
     DEBUGMSG(DEBUG, "ccnl_interest_propagate\n");
 
-    ccnl_print_stats(ccnl, STAT_SND_I); // log_send_i
-
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
     // transmit an Interest Message on all listed dest faces in sequence."
     // CCNL strategy: we forward on all FWD entries with a prefix match
@@ -510,7 +502,6 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_interest_s *i2;
-//    int it;
 
     DEBUGMSG(TRACE, "ccnl_interest_remove %p\n", (void *) i);
 /*
@@ -687,6 +678,15 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             }
             break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV:
+            if (ccnl_prefix_cmp(c->name, NULL, i->prefix, CMP_EXACT)) {
+                // XX must also check keyid
+                i = i->next;
+                continue;
+            }
+            break;
+#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             if (!ccnl_i_prefixof_c(i->prefix, i->details.ndntlv.minsuffix,
@@ -709,7 +709,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             return 1;
         }
 
-
         // CONFORM: "Data MUST only be transmitted in response to
         // an Interest that matches the Data."
         for (pi = i->pending; pi; pi = pi->next) {
@@ -719,7 +718,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             if (pi->face->ifndx >= 0) {
                 DEBUGMSG(DEBUG, "  forwarding content <%s>\n",
                          ccnl_prefix_to_path(c->name));
-                ccnl_print_stats(ccnl, STAT_SND_C); //log sent c
 
                 DEBUGMSG(VERBOSE, "--- Serve to face: %d (buf=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
@@ -745,7 +743,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
     time_t t = CCNL_NOW();
-    DEBUGMSG(VERBOSE, "ageing t=%d\n", (int)t);
+    DEBUGMSG(TRACE, "ageing t=%d\n", (int)t);
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
@@ -811,12 +809,19 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
+#if defined(USE_SUITE_IOTTLV) | defined(USE_SUITE_LOCALRPC)
+# define NEEDS_PACKET_CRAFTING
+#endif
+#include "ccnl-pkt-switch.c"
+
 #include "ccnl-pkt-ccnb.c"
 #include "ccnl-pkt-ccntlv.c"
+#include "ccnl-pkt-iottlv.c"
 #include "ccnl-pkt-ndntlv.c"
 #include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
 
 #include "ccnl-core-fwd.c"
+#include "ccnl-ext-localrpc.c"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
                            unsigned char**, int*);
@@ -827,8 +832,9 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
              int datalen, struct sockaddr *sa, int addrlen)
 {
     struct ccnl_face_s *from;
-    int suite;
+    int enc, suite = -1, skip;
     dispatchFct dispatch;
+    unsigned char *base = data;
 
     DEBUGMSG(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
@@ -836,22 +842,31 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     if (!from)
         return;
 
-    suite = ccnl_pkt2suite(data, datalen);
-    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-        DEBUGMSG(WARNING,
-                 "?unknown packet? ccnl_core_RX ifndx=%d, %d bytes %d\n",
-                 ifndx, datalen, *data);
-        return;
-    }
-    dispatch = ccnl_core_RX_dispatch[suite];
-    if (dispatch) {
-        dispatch(relay, from, &data, &datalen);
+    while (datalen > 0) {
+        // work through explicit code switching
+        while (!ccnl_switch_dehead(&data, &datalen, &enc))
+            suite = ccnl_enc2suite(enc);
+        if (suite == -1)
+            suite = ccnl_pkt2suite(data, datalen, &skip);
+
+        if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+            DEBUGMSG(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
+                     ifndx, datalen, *data, data - base);
+#include "fcntl.h"
+            return;
+        }
+        dispatch = ccnl_core_RX_dispatch[suite];
+        if (!dispatch) {
+            DEBUGMSG(ERROR, "Forwarder not initialized or dispatcher "
+                     "for suite %s does not exist.\n", ccnl_suite2str(suite));
+            return;
+        }
+        if (dispatch(relay, from, &data, &datalen) < 0)
+            break;
         if (datalen > 0) {
             DEBUGMSG(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
         }
-    } else
-        fprintf(stderr, "Forwarder not initialized or dispatcher "
-                "for suite %s does not exist.\n", ccnl_suite2str(suite));
+    }
 }
 
 // ----------------------------------------------------------------------
@@ -864,6 +879,9 @@ ccnl_core_init(void)
 #endif
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_RX_ccntlv;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_RX_iottlv;
 #endif
 #ifdef USE_SUITE_NDNTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_RX_ndntlv;
@@ -915,7 +933,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 #ifdef USE_NFN
     ccnl_nfn_freeKrivine(ccnl);
 #endif
-
 }
 
 #include "ccnl-core-util.c"

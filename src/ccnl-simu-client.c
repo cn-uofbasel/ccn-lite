@@ -21,14 +21,12 @@
  * 2011-12 simulation scenario and logging support s.braun@stud.unibas.ch
  * 2013-03-19 updated (ms): replacement code after renaming the field
  *              ccnl_relay_s.client to ccnl_relay_s.aux
+ * 2014-12-18 removed log generation (cft)
  */
 
 
 #define MAX_PIPELINE    4
 #define TIMEOUT         500000
-
-#define LOG_INTERVAL    100000
-
 
 struct ccnl_client_s {
     char *name;  // media URI to be downloaded
@@ -55,8 +53,6 @@ ccnl_simu_client_timeout(void *ptr, void *aux)
     int ndx;
 
     cl->retries++;
-    if (relay->stats)
-        relay->stats->log_need_rt_seqn++;
     ndx = vpp - cl->to_handlers;
     DEBUGMSG(99, "*** node %c timeout: new timeout for ndx%d, seqno=%d\n",
              node, ndx, cl->onthefly[ndx]);
@@ -64,59 +60,6 @@ ccnl_simu_client_timeout(void *ptr, void *aux)
     cl->nonces[ndx] = random();
     ccnl_client_TX(node, cl->name, cl->onthefly[ndx], cl->nonces[ndx]);
 }
-
-
-void
-ccnl_simu_client_logger(void *ptr, void *dummy)
-{
-    struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    struct ccnl_client_s *cl = relay->aux;
-    struct ccnl_stats_s *st = relay->stats;
-
-    if (st->ofp) {
-        // calc content delivery rate
-        if(current_time() - st->log_cdr_t < 1){
-            st->log_content_delivery_rate_per_s +=
-                st->log_recv - st->log_recv_old;
-        } else {
-            st->log_cdr_t = current_time();
-            st->log_content_delivery_rate_per_s +=
-                st->log_recv_old - st->log_recv_old;
-        }
-
-        fprintf(st->ofp, "%.4g\t %i\t %i\t %i\t %i\t %i\t %i\t %i\n",
-                current_time(), st->log_sent, st->log_recv,
-                st->log_sent - st->log_sent_old,
-                st->log_recv - st->log_recv_old,
-                cl->last_received, st->log_need_rt_seqn,
-                st->log_content_delivery_rate_per_s);
-        fflush(st->ofp);
-        st->log_sent_old = st->log_sent;
-        st->log_recv_old = st->log_recv;
-        st->log_need_rt_seqn = -1;
-    }
-    // re-install the log_timoeout
-    st->log_handler = ccnl_set_timer(LOG_INTERVAL,
-                               ccnl_simu_client_logger, relay, dummy);
-}
-
-
-void
-ccnl_simu_client_endlog(struct ccnl_relay_s *relay)
-{
-    struct ccnl_stats_s *st = relay->stats;
-
-    if (st && st->ofp) {
-        fprintf(st->ofp, "\n#Total transmission time [s]: %.4g",
-                current_time() - st->log_start_t);
-        fprintf(st->ofp, "\n#Avg content delivery rate [c/s]: %.4g",
-                st->log_recv / (current_time() - st->log_start_t));
-        fprintf(st->ofp, "\n");
-        fclose(st->ofp);
-        st->ofp =  NULL;
-    }
-}
-
 
 void
 ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
@@ -141,9 +84,6 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
     }
     if (i == MAX_PIPELINE) // must be old content, ignore
         return;
-
-    if (relay->stats)
-        relay->stats->log_recv++;
 
     if (seqn != (cl->last_received+1)) {
         DEBUGMSG(6, "*** content %d out of sequence (expected %d)\n",
@@ -170,11 +110,9 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
                 if (phaseOne == 1){
                     DEBUGMSG(1, "Enter Phase-TWO (by node %c)\n\n", node);
                     //make a fake zero log
-                    ccnl_print_stats(relay, STAT_EOP1);
                     ccnl_set_timer(500000, ccnl_simu_phase_two, 0, 0);
                 } else {
                     DEBUGMSG(1, "all tasks of phase two terminated\n");
-                    ccnl_simu_client_endlog(relay);
                     for (i = 0; i < MAX_PIPELINE; i++) {
                         if (cl->to_handlers[i]) {
                             ccnl_rem_timer(cl->to_handlers[i]);
@@ -225,29 +163,10 @@ void
 ccnl_simu_client_start(void *ptr, void *dummy)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
-    struct ccnl_stats_s *st = relay->stats;
     char node = relay2char(relay);
     int i;
 
-    if (!st)
-        return;
-    if (phaseOne == 1) {
-        char tmp[100];
-
-        // write the log here
-        sprintf(tmp, "node-%c-client.log", node);
-        st->ofp = fopen(tmp, "w");
-        if (st->ofp) {
-            fprintf(st->ofp, "#############################\n");
-            fprintf(st->ofp, "# client_log Node %c \n", node);
-            fprintf(st->ofp, "# Retransmission timeout: %i \n", TIMEOUT);
-            fprintf(st->ofp, "# Max pipelining threads: %i \n", MAX_PIPELINE);
-            fprintf(st->ofp, "#############################\n");
-            fprintf(st->ofp, "#time\t p sent\t p recv\t dlta_s\t dlta_r\t lc_rcv\t retra\t cdr\n");
-            fflush(st->ofp);
-        }
-        ccnl_simu_client_logger(relay, 0);
-    } else {
+    if (phaseOne != 1) {
         struct ccnl_client_s *cl = relay->aux;
         cl->nextseq = 0;
         cl->name = node == 'A' ? "/ccnl/simu/movie2" : "/ccnl/simu/movie3";

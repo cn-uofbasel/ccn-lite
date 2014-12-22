@@ -21,6 +21,7 @@
  * 2011-12 simulation scenario and logging support s.braun@stud.unibas.ch
  * 2013-03-19 updated (ms): replacement code after renaming the field
  *              ccnl_relay_s.client to ccnl_relay_s.aux
+ * 2014-12-18 removed log generation (cft)
  */
 
 
@@ -30,10 +31,11 @@
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
 //#define USE_FRAG
+#define USE_SCHEDULER
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
-#define USE_SCHEDULER
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -47,11 +49,9 @@ void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
+#include "ccnl-ext-logging.c"
 
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
-
-void ccnl_print_stats(struct ccnl_relay_s *relay, int code);
-enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
@@ -312,118 +312,6 @@ ccnl_close_socket(int s)
 // ----------------------------------------------------------------------
 
 
-void 
-ccnl_simu_node_log_start(struct ccnl_relay_s *relay, char node)
-{
-    char name[100];
-    struct ccnl_stats_s *st = relay->stats;
-
-    if (!st)
-        return;
-
-    sprintf(name, "node-%c-sent.log", node);
-    st->ofp_s = fopen(name, "w");
-    if (st->ofp_s) {
-        fprintf(st->ofp_s,"#####################\n");
-        fprintf(st->ofp_s,"# sent_log Node %c\n", node);
-        fprintf(st->ofp_s,"#####################\n");
-        fprintf(st->ofp_s,"# time\t sent i\t\t sent c\t\t sent i+c\n");
-        fflush(st->ofp_s);
-    }
-    sprintf(name, "node-%c-rcvd.log", node);
-    st->ofp_r = fopen(name, "w");
-    if (st->ofp_r) {
-        fprintf(st->ofp_r,"#####################\n");
-        fprintf(st->ofp_r,"# rcvd_log Node %c\n", node);
-        fprintf(st->ofp_r,"#####################\n");
-        fprintf(st->ofp_r,"# time\t recv i\t\t recv c\t\t recv i+c\n");
-        fflush(st->ofp_r);
-    }
-    sprintf(name, "node-%c-qlen.log", node);
-    st->ofp_q = fopen(name, "w");
-    if (st->ofp_q) {
-        fprintf(st->ofp_q,"#####################\n");
-        fprintf(st->ofp_q,"# qlen_log Node %c (relay->ifs[0].qlen)\n", node);
-        fprintf(st->ofp_q,"#####################\n");
-        fprintf(st->ofp_q,"# time\t qlen\n");
-        fflush(st->ofp_q);
-    }
-}
-
-
-void
-ccnl_print_stats(struct ccnl_relay_s *relay, int code)
-{
-    //code 1 = recv interest
-    //code 2 = recv content
-    //code 3 = sent interest
-    //code 4 = sent content
-    //code 5 = queue length
-    //code 6 = end phaseOne
-    struct ccnl_stats_s *st = relay->stats;
-    double t = current_time();
-    double tmp;
-
-    if (!st || !st->ofp_r || !st->ofp_s || !st->ofp_q)
-            return;
-
-    switch (code) {
-    case STAT_RCV_I:
-        if (st->log_recv_t_i < st->log_recv_t_c) {
-            tmp = st->log_recv_t_c;
-        } else {
-            tmp = st->log_recv_t_i;
-        } 
-        fprintf(st->ofp_r, "%.4g\t %f\t %c\t %f\n",
-                t, 1/(t - st->log_recv_t_i), '?', 1/(t-tmp));
-        fflush(st->ofp_r);
-        st->log_recv_t_i = t;
-        break;
-    case STAT_RCV_C:
-        if (st->log_recv_t_i < st->log_recv_t_c) {
-            tmp = st->log_recv_t_c;
-        } else {
-            tmp = st->log_recv_t_i;
-        } 
-        fprintf(st->ofp_r, "%.4g\t %c\t %f\t %f\n",
-                t, '?', 1/(t - st->log_recv_t_c), 1/(t-tmp));
-        fflush(st->ofp_r);
-        st->log_recv_t_c = t;
-    case STAT_SND_I:
-        if (st->log_sent_t_i < st->log_sent_t_c) {
-            tmp = st->log_sent_t_c;
-        } else {
-            tmp = st->log_sent_t_i;
-        } 
-        fprintf(st->ofp_s, "%.4g\t %f\t %c\t %f\n",
-                t, 1/(t - st->log_sent_t_i), '?', 1/(t-tmp));
-        fflush(st->ofp_s);
-        st->log_sent_t_i = t;
-        break;
-    case STAT_SND_C:
-        if (st->log_sent_t_i < st->log_sent_t_c) {
-            tmp = st->log_sent_t_c;
-        } else {
-            tmp = st->log_sent_t_i;
-        } 
-        fprintf(st->ofp_s, "%.4g\t %c\t %f\t %f\n",
-                t, '?', 1/(t - st->log_sent_t_c), 1/(t-tmp));
-        fflush(st->ofp_s);
-        st->log_sent_t_c = t;
-        break;
-    case STAT_QLEN:
-        fprintf(st->ofp_q, "%.4g\t %i\n", t, relay->ifs[0].qlen);
-        fflush(st->ofp_q);
-        break;
-    case STAT_EOP1: // end of phase 1
-        fprintf(st->ofp_r, "%.4g\t %f\t %f\t %f\n", t, 0.0, 0.0, 0.0);
-        fflush(st->ofp_r);
-        break;
-    default:
-        break;
-    }
-}
-
 void ccnl_simu_cleanup(void *dummy, void *dummy2);
 #include "ccnl-simu-client.c"
 
@@ -484,12 +372,9 @@ ccnl_simu_init_node(char node, const char *addr,
         client->name = node == 'A' ?
             "/ccnl/simu/movie1" : "/ccnl/simu/movie2";
         relay->aux = (void *) client;
-
-        relay->stats = ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     }
 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
-    ccnl_simu_node_log_start(relay, node);
 }
 
 
@@ -632,12 +517,6 @@ simu_eventloop()
     DEBUGMSG(ERROR, "simu event loop: no more events to handle\n");
 }
 
-#define end_log(CHANNEL) do { if (CHANNEL){ \
-  fprintf(CHANNEL, "#end\n"); \
-  fclose(CHANNEL); \
-  CHANNEL = NULL; \
-} } while(0)
-
 void
 ccnl_simu_cleanup(void *dummy, void *dummy2)
 {
@@ -648,17 +527,9 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
     for (i = 0; i < 5; i++) {
         struct ccnl_relay_s *relay = relays + i;
 
-    if (relay->aux) {
-        ccnl_free(relay->aux);
-        relay->aux = NULL;
-    }
-
-        if (relay->stats) {
-            end_log(relay->stats->ofp_s);
-            end_log(relay->stats->ofp_r);
-            end_log(relay->stats->ofp_q);
-            ccnl_free(relay->stats);
-            relay->stats = NULL;
+        if (relay->aux) {
+            ccnl_free(relay->aux);
+            relay->aux = NULL;
         }
         ccnl_core_cleanup(relay);
     }
@@ -714,10 +585,10 @@ main(int argc, char **argv)
                 break;
         case 'h':
         default:
-            fprintf(stderr, "usage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
+            fprintf(stderr, "Xusage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
                     "[-g MIN_INTER_PACKET_INTERVAL] "
                     "[-i MIN_INTER_CCNMSG_INTERVAL] "
-                    "[-s SUITE (ccnb, ccnx2014, ndn2013)] "
+                    "[-s SUITE (ccnb, ccnx2014, iot2014, ndn2013)] "
                     "[-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

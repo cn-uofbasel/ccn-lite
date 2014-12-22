@@ -41,18 +41,6 @@ unsigned char out1[2000], out2[1000], out3[500];
 
 // ----------------------------------------------------------------------
 
-int
-ccnl_is_local_addr(sockunion *su)
-{
-    if (!su)
-        return 0;
-    if (su->sa.sa_family == AF_UNIX)
-        return -1;
-    if (su->sa.sa_family == AF_INET)
-        return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
-    return 0;
-}
-
 int 
 ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 

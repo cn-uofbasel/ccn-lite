@@ -24,12 +24,24 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
+
+#define NEEDS_PACKET_CRAFTING // for IOTTLV
 
 #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
+
+void
+indent(char *s, int lev)
+{
+    if (s)
+        printf("%s", s);
+    while (lev-- >= 0)
+        printf("  ");
+}
 
 void
 hexdump(int lev, unsigned char *base, unsigned char *cp, int len,
@@ -44,8 +56,7 @@ hexdump(int lev, unsigned char *base, unsigned char *cp, int len,
             fprintf(out, "%04zx  ", cp - base);
         }
 
-        for (i = 0; i < lev+1; i++)
-            fprintf(out, "  ");
+        indent(NULL, lev);
         for (i = 0; i < 8; i++){
             if (i < maxi)
                     fprintf(out, "%02x ", cp[i]);
@@ -80,6 +91,7 @@ base64dump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml,
 }
 
 // ----------------------------------------------------------------------
+// CCNB
 
 int
 ccnb_deheadAndPrint(int lev, unsigned char *base, unsigned char **buf,
@@ -266,7 +278,6 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
                 return -1;
             }
             if (lev == 0) {
-                // base = *buf;
                 if (*len > 0) {
                     fprintf(out, "\n");
                 }
@@ -298,17 +309,17 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
 
 
 void
-ccnb_parse(unsigned char *data, int len, int rawxml, FILE* out)
+ccnb_parse(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
-    ccnb_parse_lev(0, data, &buf, &len, NULL, rawxml, out);
-    if (!rawxml) {
+    ccnb_parse_lev(lev, data, &buf, &len, NULL, rawxml, out);
+    if (!rawxml)
         fprintf(out, "%04zx  pkt.end\n", buf - data);
-    }
 }
 
 // ----------------------------------------------------------------------
+// CCNTLV
 
 enum {
     CTX_GLOBAL = 1,
@@ -505,7 +516,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 }
 
 void
-ccntlv_201412(unsigned char *data, int len, int rawxml, FILE* out)
+ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf;
     char *mp;
@@ -562,16 +573,22 @@ ccntlv_201412(unsigned char *data, int len, int rawxml, FILE* out)
     //         fprintf(stderr, "%d left over bytes in header\n", len);
     //     }
     // }
-    if (!rawxml)
-        fprintf(out, "%04zx  hdr.end\n", buf - data);
+    if (!rawxml) {
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, lev);
+        fprintf(out, "hdr.end\n");
+    }
 
     // dump the sequence of TLV fields of the message body
     buf = data + hdrlen;
     len = pktlen - hdrlen;
-    ccntlv_parse_sequence(0, CTX_TOPLEVEL, data, &buf, &len,
+    ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
                                                         "message", rawxml, out);
-    if (!rawxml)
-        fprintf(out, "%04zx  pkt.end\n", buf - data);
+    if (!rawxml) {
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, lev);
+        fprintf(out, "pkt.end\n");
+    }
 }
 
 
@@ -640,6 +657,369 @@ ccntlv_201411(unsigned char *data, int len, int rawxml, FILE* out)
 #endif
 
 // ----------------------------------------------------------------------
+// IOTTLV
+
+#ifdef XXX
+enum {
+    IOT_CTX_TOPLEVEL,
+    IOT_CTX_REQUEST,
+    IOT_CTX_REPLY,
+    IOT_CTX_HEADER,
+    IOT_CTX_FWDTARGET,
+    IOT_CTX_NAME,
+    IOT_CTX_HNAME,
+    IOT_CTX_EXCLUSION,
+    IOT_CTX_PAYLOAD,
+    IOT_CTX_VALIDATION
+};
+
+static char iottlv_recurse[][3] = {
+    // context         type                 sub-context
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Request,      IOT_CTX_REQUEST},
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Reply,        IOT_CTX_REPLY},
+    {IOT_CTX_REQUEST,  IOT_TLV_R_Header,     IOT_CTX_HEADER},
+    {IOT_CTX_REQUEST,  IOT_TLV_R_Name,       IOT_CTX_NAME},
+    {IOT_CTX_REQUEST,  IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
+    {IOT_CTX_REQUEST,  IOT_TLV_R_Validation, IOT_CTX_VALIDATION},
+    {IOT_CTX_REPLY,    IOT_TLV_R_Header,     IOT_CTX_HEADER},
+    {IOT_CTX_REPLY,    IOT_TLV_R_Name,       IOT_CTX_NAME},
+    {IOT_CTX_REPLY,    IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
+    {IOT_CTX_REPLY,    IOT_TLV_R_Validation, IOT_CTX_VALIDATION},
+    {IOT_CTX_HEADER,   IOT_TLV_H_Exclusion,  IOT_CTX_EXCLUSION},
+    {IOT_CTX_HEADER,   IOT_TLV_H_FwdTarget,  IOT_CTX_FWDTARGET},
+    {IOT_CTX_NAME,     IOT_TLV_N_HName,      IOT_CTX_HNAME},
+    {0,0,0}
+};
+
+static char
+iottlv_must_recurse(char ctx, char typ)
+{
+    int i;
+
+    for (i = 0; iottlv_recurse[i][0]; i++)
+        if (iottlv_recurse[i][0] == ctx && iottlv_recurse[i][1] == typ)
+            return iottlv_recurse[i][2];
+
+    return 0;
+}
+
+static char*
+ccnl_iottlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
+{
+    char *cn = "globalCtx", *tn = NULL;
+    static char tmp[50];
+
+//    fprintf(stderr, "t2n %d %d\n", ctx, type);
+
+    switch (ctx) {
+
+    case IOT_CTX_TOPLEVEL:
+        cn = "toplevelCtx";
+        switch (type) {
+        case IOT_TLV_Request:          tn = "Request"; break;
+        case IOT_TLV_Reply:            tn = "Reply"; break;
+        default: break;
+        }
+        break;
+
+    case IOT_CTX_REQUEST:
+    case IOT_CTX_REPLY:
+        cn = "RequestAndReplyCtx";
+        switch (type) {
+        case IOT_TLV_R_Header:      tn = "Header"; break;
+        case IOT_TLV_R_Name:        tn = "Name"; break;
+        case IOT_TLV_R_Payload:     tn = "Payload"; break;
+        case IOT_TLV_R_Validation:  tn = "Validation"; break;
+        default: break;
+        }
+        break;
+
+    case IOT_CTX_NAME:
+        cn = "NameCtx";
+        switch (type) {
+        case IOT_TLV_N_HName:       tn = "HierarchicalName"; break;
+        case IOT_TLV_N_FlatLabel:   tn = "FlatLabel"; break;
+        case IOT_TLV_N_NamedFunction: tn = "NamedFunction"; break;
+        default: break;
+        }
+        break;
+
+    case IOT_CTX_HNAME:
+        cn = "HierarchicalNameCtx";
+        switch (type) {
+        case IOT_TLV_HN_Component:    tn = "Component"; break;
+        default: break;
+        }
+        break;
+
+    default:
+        cn = NULL;
+        break;
+    }
+
+    if (tn) {
+        if (!rawxml)
+            sprintf(tmp, "%s\\%s", tn, cn);
+        else
+            sprintf(tmp, "%s", tn);
+    } else if (cn)
+        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+    else
+        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+
+    return tmp;
+}
+
+int
+iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
+                      unsigned char **buf, int *len, char *cur_tag,
+                      int rawxml, FILE* out)
+{
+    int vallen, typ;
+    int i;
+    unsigned char ctx2, *cp;
+    char *n, n_old[100], tmp[100];
+
+    while (*len > 0) {
+        cp = *buf;
+        if (ccnl_iottlv_dehead(buf, len, &typ, &vallen) < 0)
+            return -1;
+
+        if (vallen > *len) {
+          fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
+              "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
+              *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
+          exit(-1);
+        }
+
+        n = ccnl_iottlv_type2name(ctx, typ, rawxml);
+        if (!n) {
+            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            n = tmp;
+        }
+
+        if (!rawxml)
+            fprintf(out, "%04zx  ", cp - base);
+        for (i = 0; i < lev; i++)
+                fprintf(out, "  ");
+        for (; cp < *buf; cp++) {
+            if (!rawxml)
+                fprintf(out, "%02x ", *cp);
+        }
+        if (!rawxml)
+            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+
+        ctx2 = iottlv_must_recurse(ctx, typ);
+        if (ctx2) {
+            if (rawxml)
+                fprintf(out, "<%s>\n", n);
+            *len -= vallen;
+            i = vallen;
+            strcpy(n_old, n);
+            if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
+                                                        n, rawxml, out) < 0)
+                return -1;
+            if (rawxml) {
+                for (i = 0; i < lev; i++)
+                        fprintf(out, "  ");
+                fprintf(out, "</%s>\n", n_old);
+            }
+        } else {
+            if (rawxml && vallen > 0) {
+                fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n",
+                        n, vallen);
+                base64dump(lev, base, *buf, vallen, rawxml, out);
+                for (i = 0; i < lev; i++)
+                        fprintf(out, "  ");
+                fprintf(out, "</%s>\n", n);
+            } else
+                hexdump(lev, base, *buf, vallen, rawxml, out);
+            *buf += vallen;
+            *len -= vallen;
+        }
+    }
+
+    return 0;
+}
+
+#endif // XXX
+
+enum {
+    IOT_CTX_TOPLEVEL = 1,
+    IOT_CTX_MSG,
+    IOT_CTX_HEADER,
+    IOT_CTX_EXCLUSION,
+    IOT_CTX_FWDTARGET,
+    IOT_CTX_NAME,
+    IOT_CTX_PAYLOAD,
+    IOT_CTX_VALIDATION,
+    IOT_CTX_PATHNAME
+};
+
+static char iottlv_recurse[][3] = {
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Request,      IOT_CTX_MSG},
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Reply,        IOT_CTX_MSG},
+    {IOT_CTX_MSG,      IOT_TLV_R_OptHeader,  IOT_CTX_HEADER},
+    {IOT_CTX_MSG,      IOT_TLV_R_Name,       IOT_CTX_NAME},
+    {IOT_CTX_MSG,      IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
+    {IOT_CTX_MSG,      IOT_TLV_R_Validation, IOT_CTX_VALIDATION},
+    {IOT_CTX_HEADER,   IOT_TLV_H_Exclusion,  IOT_CTX_EXCLUSION},
+    {IOT_CTX_HEADER,   IOT_TLV_H_FwdTarget,  IOT_CTX_FWDTARGET},
+    {IOT_CTX_NAME,     IOT_TLV_N_PathName,   IOT_CTX_PATHNAME},
+    {0,0,0}
+};
+
+static char*
+ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
+{
+    char *cn = "?ctx?", *tn = NULL;
+    static char tmp[50];
+
+    switch (ctx) {
+    case IOT_CTX_TOPLEVEL:
+        cn = "toplevelCtx";
+        switch (type) {
+        case IOT_TLV_Request:          tn = "Request"; break;
+        case IOT_TLV_Reply:            tn = "Reply"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_MSG:
+        cn = "ReqRepCtx";
+        switch (type) {
+        case IOT_TLV_R_OptHeader:      tn = "OptHeader"; break;
+        case IOT_TLV_R_Name:           tn = "Name"; break;
+        case IOT_TLV_R_Payload:        tn = "Payload"; break;
+        case IOT_TLV_R_Validation:     tn = "Validation"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_HEADER:
+        cn = "HeaderCtx";
+        switch (type) {
+        case IOT_TLV_H_HopLim:         tn = "HopLimit"; break;
+        case IOT_TLV_H_Exclusion:      tn = "Exclusion"; break;
+        case IOT_TLV_H_FwdTarget:      tn = "FwdTarget"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_NAME:
+        cn = "NameCtx";
+        switch (type) {
+        case IOT_TLV_N_PathName:       tn = "PathName"; break;
+        case IOT_TLV_N_FlatLabel:      tn = "FlatLabel"; break;
+        case IOT_TLV_N_NamedFunction:  tn = "NamedFunction"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_PATHNAME:
+        cn = "PathNameCtx";
+        switch (type) {
+        case IOT_TLV_PN_Component:     tn = "Component"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_PAYLOAD:
+        cn = "PayloadCtx";
+        switch (type) {
+        case IOT_TLV_PL_Data:          tn = "Data"; break;
+        case IOT_TLV_PL_Metadata:      tn = "Metadata"; break;
+        default: break;
+        }
+        break;
+     default:
+        cn = NULL;
+        break;
+    }
+    if (tn) {
+        sprintf(tmp, "%s\\%s", tn, cn);
+    } else if (cn) {
+        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+    } else {
+        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+    }
+    return tmp;
+}
+
+static char
+iottlv_must_recurse(char ctx, char typ)
+{
+    int i;
+    for (i = 0; iottlv_recurse[i][0]; i++) {
+        if (iottlv_recurse[i][0] == ctx && iottlv_recurse[i][1] == typ) {
+            return iottlv_recurse[i][2];
+        }
+    }
+    return 0;
+}
+
+static int
+iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
+                      unsigned char **buf, int *len, char *cur_tag,
+                      int rawxml, FILE* out)
+{
+  int vallen, typ, i;
+    unsigned char ctx2, *cp;
+    char *n, tmp[100];
+
+    while (*len > 0) {
+        cp = *buf;
+        if (ccnl_iottlv_dehead(buf, len, &typ, &vallen) < 0) {
+            return -1;
+        }
+
+        if (vallen > *len) {
+            fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
+              "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
+              *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
+            exit(-1);
+        }
+
+        n = ccnl_iottlv_type2name(ctx, typ);
+        if (!n) {
+            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            n = tmp;
+        }
+
+        fprintf(out, "%04zx  ", cp - base);
+        for (i = 0; i < lev; i++) {
+            fprintf(out, "  ");
+        }
+        for (; cp < *buf; cp++) {
+            fprintf(out, "%02x ", *cp);
+        }
+        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+
+        ctx2 = iottlv_must_recurse(ctx, typ);
+        if (ctx2) {
+            *len -= vallen;
+            i = vallen;
+            if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
+                                                        n, rawxml, out) < 0)
+                return -1;
+        } else {
+            hexdump(lev, base, *buf, vallen, rawxml, out);
+            *buf += vallen;
+            *len -= vallen;
+        }
+    }
+
+    return 0;
+}
+
+void
+iottlv_201411(int lev, unsigned char *base, unsigned char *data,
+              int len, int rawxml, FILE* out)
+{
+    // dump the sequence of TLV fields
+    iottlv_parse_sequence(lev, IOT_CTX_TOPLEVEL, base, &data, &len,
+                          "payload", rawxml, out);
+    if (!rawxml)
+        fprintf(out, "%04x  pkt.end\n", (int)(data - base));
+}
+
+// ----------------------------------------------------------------------
+// NDNTLV
 
 #define NDN_TLV_MAX_TYPE 256
 static char ndntlv_recurse[NDN_TLV_MAX_TYPE];
@@ -680,7 +1060,6 @@ ndn_type2name(unsigned type)
     }
     return n;
 }
-
 
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
@@ -804,6 +1183,7 @@ ndn_init()
 }
 
 // ----------------------------------------------------------------------
+// LOCALRPC
 
 int
 localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
@@ -814,77 +1194,89 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
     char *n, tmp[100], dorecurse;
 
     while (*len > 0) {
-    cp = *buf;
+        cp = *buf;
 
-    dorecurse = 0;
-    if (*cp < LRPC_APPLICATION) {
+        dorecurse = 0;
+    /*
+    if (*cp && *cp < LRPC_APPLICATION) { // private type value
         sprintf(tmp, "Variable=v%02x", *cp);
         n = tmp;
         *buf += 1;
         *len -= 1;
         vallen = 0;
-    } else {
-        if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
-            return -1;
-        if (vallen > *len) {
-            fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
-                    "  type=%hu, len=%hu larger than %d available bytes\n",
-                    cp - base, (unsigned short)typ, (unsigned short)vallen,
-                    *len);
-            exit(-1);
+    } else
+    */
+        {
+            if (ccnl_lrpc_dehead(buf, len, &typ, &vallen) < 0)
+                return -1;
+            if (vallen > *len) {
+                fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
+                        "  type=%hu, len=%hu larger than %d available bytes\n",
+                        cp - base, (unsigned short)typ, (unsigned short)vallen,
+                        *len);
+                exit(-1);
+            }
+            switch(typ) {
+            case LRPC_PT_REQUEST:
+                n = "Request"; dorecurse = 1; break;
+            case LRPC_PT_REPLY:
+                n = "Reply"; dorecurse = 1; break;
+            case LRPC_APPLICATION:
+                n = "Application"; dorecurse = 1; break;
+            case LRPC_LAMBDA:
+                n = "Lambda"; dorecurse = 1; break;
+            case LRPC_SEQUENCE:
+                n = "Sequence"; dorecurse = 1; break;
+            case LRPC_FLATNAME:
+                n = "FlatName"; break;
+            case LRPC_NONNEGINT:
+                n = "Integer"; break;
+            case LRPC_STR:
+                n = "String"; break;
+            case LRPC_BIN:
+                n = "BinaryData"; break;
+            case LRPC_NONCE:
+                n = "Nonce"; break;
+            default:
+                sprintf(tmp, "Type=0x%x", (unsigned short)typ);
+                n = tmp;
+                break;
+            }
         }
-        switch(typ) {
-        case LRPC_APPLICATION:
-            n = "Application"; dorecurse = 1; break;
-        case LRPC_LAMBDA:
-            n = "Lambda"; dorecurse = 1; break;
-        case LRPC_SEQUENCE:
-            n = "Sequence"; dorecurse = 1; break;
-        case LRPC_NONNEGINT:
-            n = "Integer"; break;
-        case LRPC_FLATNAME:
-            n = "NAME"; break;
-        case LRPC_BIN:
-            n = "BinaryData"; break;
-        default:
-            sprintf(tmp, "Type=0x%x", (unsigned short)typ);
-            n = tmp;
-            break;
+
+        printf("%04zx  ", cp - base);
+        for (i = 0; i < lev; i++)
+            printf("  ");
+        for (; cp < *buf; cp++)
+            printf("%02x ", *cp);
+        printf("-- <%s, len=%d>\n", n, vallen);
+
+        if (dorecurse) {
+            *len -= vallen;
+            localrpc_parse(lev+1, base, buf, &vallen, rawxml, out);
+            continue;
         }
-    }
 
-    printf("%04zx  ", cp - base);
-    for (i = 0; i < lev; i++)
-        printf("  ");
-    for (; cp < *buf; cp++)
-        printf("%02x ", *cp);
-    printf("-- <%s, len=%d>\n", n, vallen);
-
-    if (dorecurse) {
-        localrpc_parse(lev+1, base, buf, len, rawxml, out);
-        continue;
-    }
-
-    if (typ == LRPC_NONNEGINT) {
-        printf("%04zx  ", *buf - base);
-        for (i = 0; i <= lev; i++)
-            printf("  ");
-        printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
-    } else if (typ == LRPC_FLATNAME) {
-        printf("%04zx  ", *buf - base);
-        for (i = 0; i <= lev; i++)
-            printf("  ");
-        strcpy(tmp, "\"");
-        i = sizeof(tmp) - 6;
-        if (vallen < i)
-            i = vallen;
-        memcpy(tmp+1, *buf, i);
-        strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-        printf("%s\n", tmp);
-    } else if (vallen > 0)
-        hexdump(lev, base, *buf, vallen, rawxml, out);
-    *buf += vallen;
-    *len -= vallen;
+        if (typ == LRPC_NONNEGINT) {
+            printf("%04zx  ", *buf - base);
+            for (i = 0; i <= lev; i++)
+                printf("  ");
+            printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
+        } else if (typ == LRPC_FLATNAME) {
+            printf("%04zx  ", *buf - base);
+            for (i = 0; i <= lev; i++)
+                printf("  ");
+            strcpy(tmp, "\"");
+            i = sizeof(tmp) - 6;
+            if (vallen < i)
+                i = vallen;
+            memcpy(tmp+1, *buf, i);
+            strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
+            printf("%s\n", tmp);
+        } else if (vallen > 0)
+            hexdump(lev, base, *buf, vallen, rawxml, out);
+        *buf += vallen;
+        *len -= vallen;
     }
     return 0;
 }
@@ -893,29 +1285,31 @@ static void
 localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
+    int origlen = len, typ, vallen;
+    // int typ2, vallen2, len2;
+    //    unsigned char *cp;
 
-    int origlen = len, typ, vallen, typ2, vallen2, len2;
-    unsigned char *cp;
+    if (len <= 0 || ccnl_lrpc_dehead(&buf, &len, &typ, &vallen) < 0 ||
+                              (typ != LRPC_PT_REQUEST && typ != LRPC_PT_REPLY))
+        return;
 
-    if (len <= 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen) < 0 ||
-                    typ != LRPC_APPLICATION)
-    return;
-
+    /*
     cp = buf;
     len2 = vallen;
-    if (ccnl_ndntlv_dehead(&buf, &len2, &typ2, &vallen2) < 0)
+    if (ccnl_lrpc_dehead(&buf, &len2, &typ2, &vallen2) < 0)
         return;
     if (typ2 == LRPC_NONNEGINT) { // RPC return code
         printf("0000  RPC-result\n");
         printf("%04zx    INT %ld\n", cp - data,
-               ccnl_ndntlv_nonNegInt(buf, vallen2));
+               ccnl_lrpc_nonNegInt(buf, vallen2));
         buf += vallen2;
         len = origlen - (buf - data);
         localrpc_parse(1, data, &buf, &len, rawxml, out);
     } else { // RPC request
+    */
         buf = data;
         localrpc_parse(0, data, &buf, &origlen, rawxml, out);
-    }
+    //    }
 
     printf("%04zx  pkt.end\n", buf - data);
 }
@@ -963,6 +1357,106 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
 
 // ----------------------------------------------------------------------
 
+void
+dump_content(int lev, unsigned char *base, unsigned char *data,
+             int len, int format, int suite, FILE *out)
+{
+    char *forced;
+    int enc, oldlen = len;
+    unsigned char *olddata = data;
+
+    if (len == 0)
+       goto done;
+
+    if (suite >= 0) {
+        forced = "forced";
+        while (!ccnl_switch_dehead(&data, &len, &enc)) {
+            if (format)
+                continue;
+            printf("%04x", (int)(olddata - base));
+            indent(NULL, lev);
+            while (olddata < data)
+                printf("0x%02x ", *(olddata++));
+            printf("-- ignored: switch to %s\n", ccnl_enc2str(enc));
+            olddata = data;
+        }
+    } else {
+        forced = "auto-detected";
+        while (!ccnl_switch_dehead(&data, &len, &enc)) {
+            suite = ccnl_enc2suite(enc);
+            if (format)
+                continue;
+            printf("%04x", (int)(olddata - base));
+            indent(NULL, lev);
+            while (olddata < data)
+                printf("0x%02x ", *(olddata++));
+            printf("--> switch to %s\n", ccnl_enc2str(enc));
+            forced = "explicit";
+            olddata = data;
+        }
+        if (suite < 0)
+            suite = ccnl_pkt2suite(olddata, oldlen, NULL);
+    }
+
+    if (format >= 2) {
+        emit_content_only(data, len, suite, format);
+        return;
+    }
+
+    switch (suite) {
+    case CCNL_SUITE_CCNB:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("%s CCNB format\n#\n", forced);
+        }
+        ccnb_parse(lev, data, len, format == 1, out);
+        break;
+    case CCNL_SUITE_CCNTLV:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("%s CCNx TLV format (as of Dec 2014)\n#\n", forced);
+        }
+        ccntlv_201412(lev, data, len, format == 1, out);
+        break;
+    case CCNL_SUITE_IOTTLV:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("%s IOT TLV format (as of Nov 2014)\n#\n", forced);
+        }
+        iottlv_201411(lev, base, data, len, format == 1, out);
+        break;
+    case CCNL_SUITE_LOCALRPC:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("%s NDN TLV format, local RPC (Dec 2014)\n#\n", forced);
+        }
+        localrpc_201405(data, len, format == 1, out);
+        break;
+    case CCNL_SUITE_NDNTLV:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("%s NDN TLV format (as of Mar 2014)\n#\n", forced);
+        }
+        ndntlv_201311(data, len, format == 1, out);
+        break;
+    default:
+        if (format == 0) {
+            indent("#   ", lev);
+            printf("unknown pkt format, showing plain hex\n");
+        }
+        hexdump(-1, data, data, len, format == 1, out);
+done:
+        if (format == 0) {
+            printf("%04x", (int)(data - base));
+            indent(NULL, lev);
+            printf("pkt.end\n");
+        }
+        break;
+    }
+}
+
+// ----------------------------------------------------------------------
+
 #ifndef USE_JNI_LIB
 
 int
@@ -970,7 +1464,6 @@ main(int argc, char *argv[])
 {
     int opt, rc;
     unsigned char data[64*1024];
-    char *forced = "forced";
     int len, maxlen, suite = -1, format = 0;
     FILE *out = stdout;
 
@@ -999,7 +1492,7 @@ help:
                     "usage: %s [options] <encoded_data\n"
                     "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
                     "  -h           this help\n"
-                    "  -s SUITE     (ccnb, ccnx2014, ndn2013)\n"
+                    "  -s SUITE     (ccnb, ccnx2014, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
@@ -1010,7 +1503,7 @@ help:
     }
 
     if (argv[optind])
-    goto help;
+        goto help;
 
     len = 0;
     maxlen = sizeof(data);
@@ -1026,61 +1519,10 @@ help:
         maxlen -= rc;
     }
 
-    if (format == 0) {
+    if (format == 0)
         printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
-    }
 
-    if (len == 0) {
-       goto done;
-    }
-
-    if (suite == -1) {
-        suite = ccnl_pkt2suite(data, len);
-        forced = "auto-detected";
-    }
-
-    if (format >= 2) {
-        emit_content_only(data, len, suite, format);
-        return 0;
-    }
-
-    switch (suite) {
-    case CCNL_SUITE_CCNB:
-        if (format == 0) {
-            printf("#   %s CCNB format\n#\n", forced);
-        }
-        ccnb_parse(data, len, format == 1, out);
-        break;
-    case CCNL_SUITE_CCNTLV:
-        if (format == 0) {
-            printf("#   %s CCNx TLV format (as of Dec 2014)\n#\n", forced);
-        }
-        ccntlv_201412(data, len, format == 1, out);
-//      ccntlv_201411(data, len, format == 1, out);
-        break;
-    case CCNL_SUITE_NDNTLV:
-        if (format == 0) {
-            printf("#   %s NDN TLV format (as of Mar 2014)\n#\n", forced);
-        }
-        ndntlv_201311(data, len, format == 1, out);
-        break;
-    case CCNL_SUITE_LOCALRPC:
-        if (format == 0) {
-            printf("#   %s NDN TLV format, local RPC (Dec 2014)\n#\n", forced);
-        }
-        localrpc_201405(data, len, format == 1, out);
-        break;
-    default:
-        if (format == 0) {
-            printf("#   unknown pkt format, showing plain hex\n");
-        }
-        hexdump(-1, data, data, len, format == 1, out);
-done:
-        if (format == 0) {
-            printf("%04x  pkt.end\n", len);
-        }
-        break;
-    }
+    dump_content(0, data, data, len, format, suite, out);
 
     return 0;
 }

@@ -102,7 +102,6 @@ struct ccnl_relay_s {
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*));
     struct ccnl_http_s *http;
-    struct ccnl_stats_s *stats;
     void *aux;
 
     struct ccnl_krivine_s *km;
@@ -323,6 +322,9 @@ compile_string(void)
 #endif
 #ifdef USE_SUITE_CCNTLV
         "SUITE_CCNTLV, "
+#endif
+#ifdef USE_SUITE_IOTTLV
+        "SUITE_IOTTLV, "
 #endif
 #ifdef USE_SUITE_LOCALRPC
         "SUITE_LOCALRPC, "

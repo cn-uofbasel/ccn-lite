@@ -25,8 +25,21 @@
 
 #include "ccnl-core.h"
 
-
 // ----------------------------------------------------------------------
+
+int
+ccnl_is_local_addr(sockunion *su)
+{
+    if (!su)
+        return 0;
+#ifdef USE_UNIXSOCKET
+    if (su->sa.sa_family == AF_UNIX)
+        return -1;
+#endif
+    if (su->sa.sa_family == AF_INET)
+        return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+    return 0;
+}
 
 int
 ccnl_str2suite(char *cp)
@@ -38,6 +51,10 @@ ccnl_str2suite(char *cp)
 #ifdef USE_SUITE_CCNTLV
     if (!strcmp(cp, "ccnx2014"))
         return CCNL_SUITE_CCNTLV;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (!strcmp(cp, "iot2014"))
+        return CCNL_SUITE_IOTTLV;
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (!strcmp(cp, "ndn2013"))
@@ -56,6 +73,10 @@ ccnl_suite2str(int suite)
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
         return "ccnx2014";
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return "iot2014";
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
@@ -118,14 +139,11 @@ unescape_component(char *comp) // inplace, returns len after shrinking
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
 {
-//    printf("ccnl_pkt_mkComponent(%d, %s)\n", suite, src);
-
     int len = 0;
 
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-    {
+    case CCNL_SUITE_CCNTLV: {
         unsigned short *sp = (unsigned short*) dst;
         *sp++ = htons(CCNX_TLV_N_NameSegment);
         len = srclen;
@@ -140,6 +158,7 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
         memcpy(dst, src, len);
         break;
     }
+
     return len;
 }
 
@@ -148,7 +167,7 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
 {
     int len = strlen(src);
 
-//    DEBUGMSG(99, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+    DEBUGMSG(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
 
     if (*offset < len)
         return -1;
@@ -209,7 +228,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len, tlen;
 
-    DEBUGMSG(99, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+    DEBUGMSG(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
              ccnl_suite2str(suite), uri, nfnexpr);
 
     if (strlen(uri))
@@ -243,7 +262,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 
     for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
         int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
-        
         char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
 
         if (isnfnfcomp)
@@ -282,10 +300,10 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         return p;
 
     p->compcnt = prefix->compcnt;
+    p->chunknum = prefix->chunknum;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
 #endif
-    p->chunknum = prefix->chunknum;
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
@@ -312,7 +330,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
 
 int
-ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmplen)
+ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
+                      int cmplen)
 {
     int lastcmp = prefix->compcnt, i;
     int *oldcomplen = prefix->complen;
@@ -354,12 +373,14 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmpl
 // TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
 // and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level. 
 int 
-ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
-
+ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
+{
     if (chunknum >= 0xff) {
-        DEBUGMSG(WARNING, "addChunkNum is only implemented for chunknum smaller than 0xff\n");
+      DEBUGMSG(WARNING, "addChunkNum is only implemented for "
+               "chunknum smaller than 0xff (%d)\n", chunknum);
         return -1;
     }
+
     switch(prefix->suite) {
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
@@ -397,21 +418,35 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum) {
 #endif
 
         default:
-            DEBUGMSG(WARNING, "add chunk number not implemented for suite %d\n", prefix->suite);
+            DEBUGMSG(WARNING,
+                     "add chunk number not implemented for suite %d\n",
+                     prefix->suite);
             return -1;
     }
+
     return 0;
 }
-
 
 // ----------------------------------------------------------------------
 
 int
-ccnl_pkt2suite(unsigned char *data, int len)
+ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 {
+    int enc, suite = -1;
+    unsigned char *olddata = data;
+
+    if (skip)
+        *skip = 0;
 
     if (len <= 0) 
         return -1;
+
+    while (!ccnl_switch_dehead(&data, &len, &enc))
+        suite = ccnl_enc2suite(enc);
+    if (skip)
+        *skip = data - olddata;
+    if (suite >= 0)
+        return suite;
 
 #ifdef USE_SUITE_CCNB
     if (*data == 0x01 || *data == 0x04)
@@ -432,10 +467,19 @@ ccnl_pkt2suite(unsigned char *data, int len)
         return CCNL_SUITE_NDNTLV;
 #endif
 
-#ifdef USE_SUITE_LOCALRPC
-    if (*data == 0x80)
-        return CCNL_SUITE_LOCALRPC;
+/*
+#ifdef USE_SUITE_IOTTLV
+        if (*data == IOT_TLV_Request || *data == IOT_TLV_Reply)
+            return CCNL_SUITE_IOTTLV;
 #endif
+
+#ifdef USE_SUITE_LOCALRPC
+        if (*data == LRPC_PT_REQUEST || *data == LRPC_PT_REPLY)
+            return CCNL_SUITE_LOCALRPC;
+#endif
+    }
+*/
+
     return -1;
 }
 
@@ -448,8 +492,7 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
-    case AF_PACKET:
-    {
+    case AF_PACKET: {
         struct sockaddr_ll *ll = &su->eth;
         strcpy(result, eth2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
@@ -469,6 +512,7 @@ ccnl_addr2ascii(sockunion *su)
     default:
         break;
     }
+
     return NULL;
 }
 
@@ -481,7 +525,8 @@ static char *prefix_buf2;
 static char *buf;
 
 char*
-ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash)
+ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
+                             int escape_components, int call_slash)
 {
     int len = 0, i, j;
 
@@ -545,9 +590,7 @@ One possibility is to not have a '/' before any nfn expression.
         }else{
             len += sprintf(buf + len, " ");
         }
-
 #endif
-
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
@@ -567,7 +610,6 @@ One possibility is to not have a '/' before any nfn expression.
 
     return buf;
 }
-
 
 char*
 ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
@@ -600,6 +642,17 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
         len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
         break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV: {
+        int rc = ccnl_iottlv_prependRequest(name, NULL, &offs, tmp);
+        if (rc <= 0)
+            break;
+        len = rc;
+        rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
+        len = (rc <= 0) ? 0 : len + rc;
+        break;
+    }
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
@@ -609,7 +662,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
         break;
     }
 
-    if (len)
+    if (len > 0)
         buf = ccnl_buf_new(tmp + offs, len);
     ccnl_free(tmp);
 
@@ -623,6 +676,9 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
+
+    DEBUGMSG(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
+             ccnl_prefix_to_path(name), paylen);
 
     tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
@@ -640,6 +696,18 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                                                 NULL, // lastchunknum
                                                 &offs, &contentpos, tmp);
         break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV: {
+        int rc = ccnl_iottlv_prependReply(name, payload, paylen,
+                                         &offs, &contentpos, NULL, tmp);
+        if (rc <= 0)
+            break;
+        len = rc;
+        rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
+        len = (rc <= 0) ? 0 : len + rc;
+        break;
+    }
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:

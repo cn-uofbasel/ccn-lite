@@ -224,7 +224,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-            "  -s SUITE         (ccnb, ccnx2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
