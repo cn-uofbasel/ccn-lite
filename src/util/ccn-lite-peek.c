@@ -34,10 +34,11 @@
 
 // ----------------------------------------------------------------------
 
+unsigned char out[8*CCNL_MAX_PACKET_SIZE];
+
 int
 main(int argc, char *argv[])
 {
-    unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
@@ -187,7 +188,7 @@ usage:
         }
 */
 
-        if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
+        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un)) < 0) {
             perror("sendto");
             myexit(1);
         }
