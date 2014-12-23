@@ -98,12 +98,12 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
     if (elm->type == STACK_TYPE_THUNK) {
         res = (unsigned char *)elm->content;
         if (res && !strncmp((char *)res, "THUNK", 5)) {
-            DEBUGMSG(49, "Resolve Thunk: %s \n", res);
+            DEBUGMSG(DEBUG, "Resolve Thunk: %s \n", res);
             if (!config->thunk) {
                 config->thunk = 1;
                 config->starttime = CCNL_NOW();
                 config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
-                DEBUGMSG(99,"Wating %f sec for Thunk\n", config->thunk_time);
+                DEBUGMSG(DEBUG, "Wating %f sec for Thunk\n", config->thunk_time);
             }
             c = ccnl_nfn_resolve_thunk(ccnl, config, res);
             if(!c)
@@ -221,7 +221,7 @@ int choose_parameter(struct configuration_s *config){
 
     int num, param_to_choose = config->fox_state->it_routable_param;
 
-    DEBUGMSG(99, "choose_parameter(%d)\n", param_to_choose);
+    DEBUGMSG(DEBUG, "choose_parameter(%d)\n", param_to_choose);
     for(num = config->fox_state->num_of_params-1; num >=0; --num){
         if(config->fox_state->params[num]->type == STACK_TYPE_PREFIX){
             --param_to_choose;
@@ -239,13 +239,13 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
 {
-    DEBUGMSG(99, "create_namecomps\n");
+    DEBUGMSG(TRACE, "create_namecomps\n");
     if (config->start_locally ||
                 ccnl_nfn_local_content_search(ccnl, config, prefix)) {
         //local computation name components
-        DEBUGMSG(99, "content local available\n");
+        DEBUGMSG(DEBUG, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
-        DEBUGMSG(99, "LOCAL PREFIX: %s\n", ccnl_prefix_to_path(pref));
+        DEBUGMSG(DEBUG, "LOCAL PREFIX: %s\n", ccnl_prefix_to_path(pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -293,7 +293,7 @@ ZAM_nextToken(char *prog, char **argdup, char **cont)
                 break;
             }
         if (token == ZAM_UNKNOWN)
-            DEBUGMSG(99, "  ** DID NOT find %s\n", prog);
+            DEBUGMSG(INFO, "  ** DID NOT find %s\n", prog);
     }
 
     if (*cp == '(') {
@@ -334,7 +334,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_prefix_s *pref, *pref2;
     struct ccnl_interest_s *interest;
 
-    DEBUGMSG(2, "---to do: FOX <%s>\n", arg);
+    DEBUGMSG(DEBUG, "---to do: FOX <%s>\n", arg);
     ccnl_free(arg);
     if (*restart) {
         *restart = 0;
@@ -345,7 +345,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     h = pop_or_resolve_from_result_stack(ccnl, config);
     //TODO CHECK IF INT
     config->fox_state->num_of_params = *(int*)h->content;
-    DEBUGMSG(99, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
+    DEBUGMSG(DEBUG, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
 
     config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) *
                                             config->fox_state->num_of_params);
@@ -368,11 +368,11 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             break;
         }
         case STACK_TYPE_INT:
-            DEBUGMSG(99, "  info: Parameter %d %d\n", i,
+            DEBUGMSG(DEBUG, "  info: Parameter %d %d\n", i,
                      *(int *)config->fox_state->params[i]->content);
             break;
         case STACK_TYPE_PREFIX:
-            DEBUGMSG(99, "  info: Parameter %d %s\n", i,
+            DEBUGMSG(DEBUG, "  info: Parameter %d %s\n", i,
                      ccnl_prefix_to_path((struct ccnl_prefix_s*)
                                       config->fox_state->params[i]->content));
             break;
@@ -386,7 +386,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     //check if last result is now available
 recontinue: //loop by reentering after timeout of the interest...
     if (local_search) {
-        DEBUGMSG(99, "Checking if result was received\n");
+        DEBUGMSG(DEBUG, "Checking if result was received\n");
         parameter_number = choose_parameter(config);
         pref = create_namecomps(ccnl, config, parameter_number, thunk_request,
                         config->fox_state->params[parameter_number]->content);
@@ -395,7 +395,7 @@ recontinue: //loop by reentering after timeout of the interest...
         set_propagate_of_interests_to_1(ccnl, pref);
         //TODO Check? //TODO remove interest here?
         if (c){
-	    DEBUGMSG(99, "Result was found\n");
+	    DEBUGMSG(DEBUG, "Result was found\n");
             goto handlecontent;
 	}
     }
@@ -418,7 +418,7 @@ recontinue: //loop by reentering after timeout of the interest...
     interest = ccnl_nfn_query2interest(ccnl, &pref2, config);
     if (interest) {
         ccnl_interest_propagate(ccnl, interest);
-        DEBUGMSG(99, "  new interest's face is %d\n", interest->from->faceid);
+        DEBUGMSG(DEBUG, "  new interest's face is %d\n", interest->from->faceid);
     }
     // wait for content, return current program to continue later
     *halt = -1; //set halt to -1 for async computations
@@ -430,7 +430,7 @@ local_compute:
 
     config->local_done = 1;
     pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
-    DEBUGMSG(99, "Prefix local computation: %s\n",
+    DEBUGMSG(DEBUG, "Prefix local computation: %s\n",
              ccnl_prefix_to_path(pref));
     interest = ccnl_nfn_query2interest(ccnl, &pref, config);
     if (interest)
@@ -440,7 +440,7 @@ handlecontent: //if result was found ---> handle it
     if (c) {
 #ifdef USE_NACK
         if (!strncmp((char*)c->content, ":NACK", 5)) {
-            DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+            DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
             ++config->fox_state->it_routable_param;
             return prog ? ccnl_strdup(prog) : NULL;
         }
@@ -454,11 +454,11 @@ handlecontent: //if result was found ---> handle it
             thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
             config->thunk_time = config->thunk_time > thunk_time ?
                                  config->thunk_time : thunk_time;
-            DEBUGMSG(99, "Got thunk %s, now %d thunks are required\n",
+            DEBUGMSG(DEBUG, "Got thunk %s, now %d thunks are required\n",
                      thunkid, *num_of_required_thunks);
             push_to_stack(&config->result_stack, thunkid, STACK_TYPE_THUNK);
             if (*num_of_required_thunks <= 0) {
-                DEBUGMSG(99, "All thunks are available\n");
+                DEBUGMSG(DEBUG, "All thunks are available\n");
                 ccnl_nfn_reply_thunk(ccnl, config);
             }
         } else {
@@ -475,13 +475,13 @@ handlecontent: //if result was found ---> handle it
                 mapping->key = ccnl_prefix_dup(name); //TODO COPY
                 mapping->value = ccnl_prefix_dup(c->name);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
-                DEBUGMSG(99, "Created a mapping %s - %s\n",
+                DEBUGMSG(DEBUG, "Created a mapping %s - %s\n",
                          ccnl_prefix_to_path(mapping->key),
                          ccnl_prefix_to_path(mapping->value));
             }
         }
     }        
-    DEBUGMSG(99, " FOX continuation: %s\n", contd);
+    DEBUGMSG(DEBUG, " FOX continuation: %s\n", contd);
     return ccnl_strdup(contd);
 }
 
@@ -493,14 +493,14 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
     char res[1000], *cp = arg;
     int len;
 
-    DEBUGMSG(2, "---to do: resolveNAME <%s>\n", arg);
+    DEBUGMSG(DEBUG, "---to do: resolveNAME <%s>\n", arg);
 
     //function definition
     if (!strncmp(cp, "let", 3)) {
         int i, end = 0, cp2len, namelength, lambdalen;
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
-        DEBUGMSG(99, " fct definition: %s\n", cp);
+        DEBUGMSG(DEBUG, " fct definition: %s\n", cp);
         strcpy(res, cp+3);
         for (i = 0; i < strlen(res); ++i) {
             if (!strncmp(res+i, "endlet", 6)) {
@@ -627,7 +627,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
              strcpy(prog, config->result_stack->content);
              return prog;
          }
-         DEBUGMSG(2, "no result returned\n");
+         DEBUGMSG(DEBUG, "no result returned\n");
          return NULL;
     }
 
@@ -643,13 +643,13 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     case ZAM_ACCESS:
     {
         struct closure_s *closure = search_in_environment(config->env, arg);
-        DEBUGMSG(2, "---to do: access <%s>\n", arg);
+        DEBUGMSG(DEBUG, "---to do: access <%s>\n", arg);
         if (!closure) {
             // TODO: is the following needed? Above search should have
             // visited global_dict, already!
             closure = search_in_environment(config->global_dict, arg);
             if (!closure) {
-                DEBUGMSG(2, "?? could not lookup var %s\n", arg);
+                DEBUGMSG(WARNING, "?? could not lookup var %s\n", arg);
                 ccnl_free(arg);
                 return NULL;
             }
@@ -665,7 +665,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         struct stack_s *par = pop_from_stack(&config->argument_stack);
         struct closure_s *fclosure, *aclosure;
         char *code;
-        DEBUGMSG(2, "---to do: apply\n");
+        DEBUGMSG(DEBUG, "---to do: apply\n");
 
         if (!fct || !par)
             return NULL;
@@ -696,7 +696,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int i, offset, num_params = *(int *)h->content;
         char name[5];
 
-        DEBUGMSG(2, "---to do: CALL <%s>\n", arg);
+        DEBUGMSG(DEBUG, "---to do: CALL <%s>\n", arg);
         ccnl_free(h->content);
         ccnl_free(h);
         sprintf(dummybuf, "CLOSURE(FOX);RESOLVENAME(@op(");
@@ -721,7 +721,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     case ZAM_CLOSURE:
     {
         struct closure_s *closure;
-        DEBUGMSG(2, "---to do: closure <%s> (contd=%s)\n", arg, contd);
+        DEBUGMSG(DEBUG, "---to do: closure <%s> (contd=%s)\n", arg, contd);
 
         if (!config->argument_stack && !strncmp(arg, "RESOLVENAME(", 12)) {
             char v[500], *c;
@@ -736,7 +736,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             if (!closure)
                 goto normal;
             if (!strcmp(closure->term, arg)) {
-                DEBUGMSG(2, "** detected tail recursion case %s/%s\n",
+                DEBUGMSG(WARNING, "** detected tail recursion case %s/%s\n",
                          closure->term, arg);
             } else
                 goto normal;
@@ -751,7 +751,7 @@ normal:
             ccnl_free(arg);
             return ccnl_strdup(contd);
         }
-        printf("** not implemented, see line %d\n", __LINE__);
+        DEBUGMSG(ERROR, "** not implemented, see line %d\n", __LINE__);
         return arg;
     }
     case ZAM_FOX:
@@ -760,7 +760,7 @@ normal:
     case ZAM_GRAB:
     {
         struct stack_s *stack = pop_from_stack(&config->argument_stack);
-        DEBUGMSG(2, "---to do: grab <%s>\n", arg);
+        DEBUGMSG(DEBUG, "---to do: grab <%s>\n", arg);
         add_to_environment(&config->env, arg, stack->content);
         ccnl_free(stack);
         return ccnl_strdup(contd);
@@ -778,7 +778,7 @@ normal:
         struct stack_s *stack = pop_from_stack(&config->argument_stack);
         struct closure_s *closure = (struct closure_s *) stack->content;
         char *code = closure->term;
-        DEBUGMSG(2, "---to do: tailapply\n");
+        DEBUGMSG(DEBUG, "---to do: tailapply\n");
 
         ccnl_free(stack);
         if (contd) //build new term
@@ -795,7 +795,7 @@ normal:
     case ZAM_UNKNOWN:
         break;
     default:
-        DEBUGMSG(99, "builtin: %s (%s/%s)\n", bifs[-tok - 1].name, prog, contd);
+        DEBUGMSG(DEBUG, "builtin: %s (%s/%s)\n", bifs[-tok - 1].name, prog, contd);
         return bifs[-tok - 1].fct(ccnl, config, restart, halt, prog,
                                   contd, &config->result_stack);
     }
@@ -808,7 +808,7 @@ normal:
             return (bp->fct)(ccnl, config, restart, halt, prog,
                              contd, &config->result_stack);
 
-    DEBUGMSG(2, "unknown (built-in) command <%s>\n", prog);
+    DEBUGMSG(INFO, "unknown (built-in) command <%s>\n", prog);
 
     return NULL;
 }
@@ -887,7 +887,7 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
 /*
-                DEBUGMSG(99, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
+                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
                          cont->pkt ? cont->pkt->datalen : -1);
 */
                 memcpy(res+pos, (char*)cont->pkt->data, cont->pkt->datalen);
@@ -919,7 +919,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     int len = strlen("CLOSURE(HALT);RESOLVENAME()") + strlen(expression) + 1;
     char *dummybuf;
 
-    DEBUGMSG(99, "Krivine_reduction()\n");
+    DEBUGMSG(TRACE, "Krivine_reduction()\n");
 
     if (!*config && strlen(expression) == 0)
         return 0;
@@ -931,7 +931,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         prog = ccnl_malloc(len*sizeof(char));
         sprintf(prog, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
         setup_global_environment(&global_dict);
-        DEBUGMSG(99, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
+        DEBUGMSG(DEBUG, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
         *config = new_config(ccnl, prog, global_dict, thunk_request,
                              start_locally, num_of_required_thunks,
                              prefix, ccnl->km->configid, suite);
@@ -942,12 +942,12 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     if (thunk_request && num_of_required_thunks == 0)
         ccnl_nfn_reply_thunk(ccnl, *config);
 
-    DEBUGMSG(99, "Prog: %s\n", (*config)->prog);
+    DEBUGMSG(INFO, "Prog: %s\n", (*config)->prog);
 
     while ((*config)->prog && !halt) {
         char *oldprog = (*config)->prog;
         steps++;
-        DEBUGMSG(1, "Step %d (%d/%d): %s\n", steps,
+        DEBUGMSG(DEBUG, "Step %d (%d/%d): %s\n", steps,
                  stack_len((*config)->argument_stack),
                  stack_len((*config)->result_stack), (*config)->prog);
         (*config)->prog = ZAM_term(ccnl, *config,
@@ -959,12 +959,12 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     ccnl_free(dummybuf);
 
     if (halt < 0) { //HALT < 0 means pause computation
-        DEBUGMSG(99,"Pause computation: %d\n", -(*config)->configid);
+        DEBUGMSG(INFO,"Pause computation: %d\n", -(*config)->configid);
         return NULL;
     }
 
     //HALT > 0 means computation finished
-    DEBUGMSG(99, "end-of-computation (%d/%d)\n",
+    DEBUGMSG(INFO, "end-of-computation (%d/%d)\n",
              stack_len((*config)->argument_stack),
              stack_len((*config)->result_stack));
 /*

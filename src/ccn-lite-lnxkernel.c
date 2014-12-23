@@ -110,7 +110,7 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
-    DEBUGMSG(1, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
+    DEBUGMSG(TRACE, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
              ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
@@ -264,7 +264,7 @@ ccnl_upcall_RX(struct work_struct *work)
 {
     struct ccnl_upcall_s *uc = (struct ccnl_upcall_s*) work;
 
-    DEBUGMSG(6, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
+    DEBUGMSG(TRACE, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
 
     ccnl_core_RX(&theRelay, uc->ifndx, uc->data, uc->datalen,
                  &uc->su.sa, sizeof(uc->su));
@@ -318,7 +318,7 @@ ccnl_udp_data_ready(struct sock *sk, int len)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(99, "ccnl_udp_data_ready %d bytes\n", len);
+    DEBUGMSG(TRACE, "ccnl_udp_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -330,7 +330,7 @@ ccnl_udp_data_ready(struct sock *sk, int len)
         su.sa.sa_family = AF_INET;
         su.ip4.sin_addr.s_addr = ((struct iphdr *)skb_network_header(skb))->saddr;
         su.ip4.sin_port = udp_hdr(skb)->source;
-        DEBUGMSG(99, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(TRACE, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data + sizeof(struct udphdr),
                                 skb->len - sizeof(struct udphdr));
@@ -347,7 +347,7 @@ ccnl_ux_data_ready(struct sock *sk, int len)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(99, "ccnl_ux_data_ready %d bytes\n", len);
+    DEBUGMSG(TRACE, "ccnl_ux_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -361,7 +361,7 @@ ccnl_ux_data_ready(struct sock *sk, int len)
             memcpy(&su, u->addr->name, u->addr->len);
         else
             su.sa.sa_family = 0;
-        DEBUGMSG(99, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(TRACE, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
 
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
@@ -391,7 +391,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
     struct net_device *dev;
 
-    DEBUGMSG(99, "ccnl_open_ethdev %s\n", devname);
+    DEBUGMSG(TRACE, "ccnl_open_ethdev %s\n", devname);
 
     dev = dev_get_by_name(&init_net, devname);
     if (!dev)
@@ -402,7 +402,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     memcpy(sll->sll_addr, dev->dev_addr, ETH_ALEN);
     sll->sll_ifindex = dev->ifindex;
 
-    DEBUGMSG(99, "access to %s with MAC=%s installed\n",
+    DEBUGMSG(INFO, "access to %s with MAC=%s installed\n",
              devname, eth2ascii(sll->sll_addr));
     //    dev_put(dev);
     return dev;
@@ -417,18 +417,18 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
 
     rc = sock_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP, &s);
     if (rc < 0) {
-        DEBUGMSG(1, "Error %d creating UDP socket\n", rc);
+        DEBUGMSG(ERROR, "Error %d creating UDP socket\n", rc);
         return NULL;
     }
 
-    DEBUGMSG(99, "UDP socket is %p\n", s);
+    DEBUGMSG(INFO, "UDP socket is %p\n", s);
 
     sin->sin_family = AF_INET;
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
     sin->sin_port = htons(port);
     rc = s->ops->bind(s, (struct sockaddr*) sin, sizeof(*sin));
     if (rc < 0) {
-        DEBUGMSG(1, "Error %d binding UDP socket\n", rc);
+        DEBUGMSG(ERROR, "Error %d binding UDP socket\n", rc);
         goto Bail;
     }
 
@@ -445,21 +445,21 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     struct socket *s;
     int rc;
 
-    DEBUGMSG(99, "ccnl_open_unixpath %s\n", path);
+    DEBUGMSG(TRACE, "ccnl_open_unixpath %s\n", path);
 
     rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
     if (rc < 0) {
-        DEBUGMSG(1, "Error %d creating UNIX socket %s\n", rc, path);
+        DEBUGMSG(ERROR, "Error %d creating UNIX socket %s\n", rc, path);
         return NULL;
     }
-    DEBUGMSG(9, "UNIX socket is %p\n", (void*)s);
+    DEBUGMSG(DEBUG, "UNIX socket is %p\n", (void*)s);
 
     ux->sun_family = AF_UNIX;
     strcpy(ux->sun_path, path);
     rc = s->ops->bind(s, (struct sockaddr*) ux,
                 offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {
-        DEBUGMSG(1, "Error %d binding UNIX socket to %s "
+        DEBUGMSG(ERROR, "Error %d binding UNIX socket to %s "
                     "(remove first, check access rights)\n", rc, path);
         goto Bail;
     }
@@ -523,13 +523,13 @@ ccnl_init(void)
     if (suite < 0 || suite >= CCNL_SUITE_LAST)
         suite = CCNL_SUITE_DEFAULT;
 
-    DEBUGMSG(1, "This is %s\n", THIS_MODULE->name);
-    DEBUGMSG(1, "  ccnl-core: %s\n", CCNL_VERSION);
-    DEBUGMSG(1, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(1, "  compile options: %s\n", compile_string());
-    DEBUGMSG(1, "using suite %s\n", ccnl_suite2str(suite));
+    DEBUGMSG(INFO, "This is %s\n", THIS_MODULE->name);
+    DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    DEBUGMSG(99, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
+    DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
                  "u=%d, v=%d, x=%s\n",
              c, e, k, p, s, u, v, x);
 
@@ -559,7 +559,7 @@ ccnl_init(void)
         i = &theRelay.ifs[theRelay.ifcount];
         i->sock = ccnl_open_unixpath(x, &i->addr.ux);
         if (i->sock) {
-            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+            DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");
 //      i->frag = CCNL_DGRAM_FRAG_ETH2011;
             i->mtu = 4048;
             i->reflect = 0;
@@ -614,7 +614,7 @@ ccnl_init(void)
         i = &theRelay.ifs[theRelay.ifcount];
         i->sock = ccnl_open_unixpath(p, &i->addr.ux);
         if (i->sock) {
-            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+            DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");
 //      i->frag = CCNL_DGRAM_FRAG_ETH2011;
             i->mtu = 4048;
             i->reflect = 0;
@@ -633,7 +633,7 @@ ccnl_init(void)
         sprintf(h, "%s-2", p);
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         if (i->sock) {
-            DEBUGMSG(99, "ccnl_open_unixpath worked\n");
+            DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");
 //      i->frag = CCNL_DGRAM_FRAG_ETH2011;
             i->mtu = 4048;
             i->reflect = 0;
@@ -735,7 +735,7 @@ ccnl_lnxkernel_cleanup(void)
 static void __exit
 ccnl_exit( void )
 {
-    DEBUGMSG(1, "%s: exit\n", THIS_MODULE->name);
+    DEBUGMSG(INFO, "%s: exit\n", THIS_MODULE->name);
 
     if (ageing_handler)
         ccnl_rem_timer(ageing_handler);
@@ -743,7 +743,7 @@ ccnl_exit( void )
     flush_scheduled_work();
     ccnl_lnxkernel_cleanup();
 
-    DEBUGMSG(1, "%s: exit done\n", THIS_MODULE->name);
+    DEBUGMSG(INFO, "%s: exit done\n", THIS_MODULE->name);
 }
 
 module_init(ccnl_init);

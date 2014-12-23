@@ -45,7 +45,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        DEBUGMSG(99, "CCNB not implemented\n");
+        DEBUGMSG(ERROR, "CCNB not implemented\n");
         exit(-1);
         break;
 #endif
@@ -60,7 +60,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         break;
 #endif
     default:
-        DEBUGMSG(99, "unknown suite\n");
+        DEBUGMSG(ERROR, "unknown suite %d\n", suite);
         exit(-1);
     }
 
@@ -72,7 +72,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         myexit(1);
     }
     if (block_on_read(sock, wait) <= 0) {
-        DEBUGMSG(99, "timeout after block_on_read\n");
+        DEBUGMSG(WARNING, "timeout after block_on_read\n");
         return -1;
     }
     *len = recv(sock, out, out_len, 0);
@@ -95,7 +95,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 
         // TODO: return -1 for non-content-objects
         if (ccntlv_isData(*data, *datalen) < 0) {
-            DEBUGMSG(DEBUG, "Received interest or NACK\n");
+            DEBUGMSG(WARNING, "Received non-content-object\n");
             return -1;
         }
 
@@ -105,7 +105,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                                0, 0, // keyid/keyidlen
                                lastchunknum,
                                content, contentlen) == NULL) {
-            DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
+            DEBUGMSG(WARNING, "Error in ccntlv_extract\n");
             return -1;
         } 
 
@@ -120,11 +120,11 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         struct ccnl_buf_s *buf = 0;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
-            DEBUGMSG(99, "could not dehead\n");
+            DEBUGMSG(WARNING, "could not dehead\n");
             return -1;
         }
         if(typ != NDN_TLV_Data) {
-            DEBUGMSG(ERROR, "received non-content-object packet with type %d\n", typ); 
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ); 
             return -1;
         }
 
@@ -135,7 +135,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                                   NULL, 0, 0, 
                                   content, contentlen);
         if (!buf) {
-            DEBUGMSG(ERROR, "ndntlv_extract: parsing error or no prefix\n"); 
+            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
             return -1;
         } 
         return 0;
@@ -144,7 +144,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 
     default:
-        DEBUGMSG(ERROR, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
+        DEBUGMSG(WARNING, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
         return -1;
    }
 

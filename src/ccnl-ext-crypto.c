@@ -76,7 +76,7 @@ static int
 ccnl_crypto_create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
 {
     sockunion su;
-    DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", ux_path);
+    DEBUGMSG(DEBUG, "  adding UNIX face unixsrc=%s\n", ux_path);
     su.sa.sa_family = AF_UNIX;
     strcpy(su.ux.sun_path, (char*) ux_path);
     relay->crypto_face = ccnl_get_face_or_create(relay, -1, &su.sa, sizeof(struct sockaddr_un));
@@ -198,7 +198,7 @@ ccnl_crypto_extract_msg(unsigned char **buf, int *buflen, unsigned char **msg){
     
     return len;
     Bail:
-    DEBUGMSG(99, "Failed to extract msg\n");
+    DEBUGMSG(DEBUG, "Failed to extract msg\n");
     return 0;
 }
 
@@ -258,7 +258,7 @@ ccnl_crypto_extract_verify_reply(unsigned char **buf, int *buflen, int *seqnum)
     h = ccnl_crypto_strtoint(verified_s);
     if(h == 1) {
         verified = 1;
-        DEBUGMSG(99,"VERIFIED\n");
+        DEBUGMSG(DEBUG,"VERIFIED\n");
     }
     Bail:
     return verified;
@@ -312,7 +312,7 @@ ccnl_crypto_sign(struct ccnl_relay_s *ccnl, char *content, int content_len,
             NULL, 0, msg, callback);
     
     if(len > CCNL_MAX_PACKET_SIZE){
-        DEBUGMSG(99,"Ignored, packet size too large");
+        DEBUGMSG(DEBUG,"Ignored, packet size too large");
         return 0;
     }
     //send ccn_msg to crytoserver
@@ -356,7 +356,7 @@ ccnl_crypto_verify(struct ccnl_relay_s *ccnl, char *content, int content_len,
             content_len, sig, sig_len, msg, callback);
 
     if(len > CCNL_MAX_PACKET_SIZE){
-        DEBUGMSG(99,"Ignored, packet size too large");
+        DEBUGMSG(DEBUG,"Ignored, packet size too large");
         return 0;
     }
     //send ccn_msg to crytoserver
@@ -372,7 +372,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
 {
     
    struct ccnl_face_s *from;
-   DEBUGMSG(99,"ccnl_crypto type: %s\n", type);  
+   DEBUGMSG(DEBUG,"ccnl_crypto type: %s\n", type);  
   
    if(!strcmp(type, "verify")){
       int seqnum = 0;
@@ -381,7 +381,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       char cmd[500];
       int len = ccnl_crypto_extract_msg(&buf, &buflen, &msg), len2 = 0;
       struct ccnl_face_s *from;
-      //DEBUGMSG(99,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
+      //DEBUGMSG(DEBUG,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
       
       int scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
       struct ccnl_buf_s *buf1 = 0, *nonce=0, *ppkd=0;
@@ -453,10 +453,10 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
                                   &prefix_a, &nonce, &ppkd, &content, &contlen);
           
           if (!pkt) {
-               DEBUGMSG(6, " parsing error\n"); goto Done;
+               DEBUGMSG(WARNING, " parsing error\n"); goto Done;
           }
           if (prefix_a) {
-              //DEBUGMSG(99, "%s", prefix_a->comp);
+              //DEBUGMSG(DEBUG, "%s", prefix_a->comp);
               //ccnl_free(prefix_a);
           }
           //prefix_a = (struct ccnl_prefix_s *)ccnl_malloc(sizeof(struct ccnl_prefix_s));
@@ -494,7 +494,7 @@ ccnl_crypto(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(!ccnl_crypto_extract_type_callback(&buf, &buflen, type, sizeof(type), callback, 
     sizeof(callback))) goto Bail;
     
-    DEBUGMSG(99,"Callback: %s Type: %s\n", callback, type); 
+    DEBUGMSG(DEBUG,"Callback: %s Type: %s\n", callback, type); 
     
     if(!strcmp(callback, "ccnl_mgmt_crypto")) 
         ccnl_mgmt_crypto(ccnl, type, buf, buflen);

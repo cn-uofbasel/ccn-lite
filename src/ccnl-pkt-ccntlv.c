@@ -87,7 +87,7 @@ ccnl_ccntlv_extract(int hdrlen,
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
 
-    DEBUGMSG(99, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
+    DEBUGMSG(TRACE, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
 
     if (content)
         *content = NULL;
@@ -127,7 +127,7 @@ ccnl_ccntlv_extract(int hdrlen,
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp,
                                                          len2, p->chunknum) < 0) {
-                        DEBUGMSG(99, "Error in NetworkVarInt for chunk\n");
+                        DEBUGMSG(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
@@ -161,12 +161,12 @@ ccnl_ccntlv_extract(int hdrlen,
             break;
         case CCNX_TLV_M_MetaData:
             if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
-                DEBUGMSG(99, "error when extracting CCNX_TLV_M_MetaData\n");
+                DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                 goto Bail;
             }
             if (lastchunknum && typ == CCNX_TLV_M_ENDChunk &&
                 ccnl_ccnltv_extractNetworkVarInt(cp, len2, lastchunknum) < 0) {
-                DEBUGMSG(99, "error when extracting CCNX_TLV_M_ENDChunk\n");
+                DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }  
             cp += len3;

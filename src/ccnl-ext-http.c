@@ -116,7 +116,7 @@ ccnl_http_postselect(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http,
         if (http->client < 0)
             http->client = 0;
         else {
-            DEBUGMSG(9, "accepted web server client\n");
+            DEBUGMSG(INFO, "accepted web server client\n");
             http->inlen = http->outlen = http->inoffs = http->outoffs = 0;
         }
     }
@@ -124,7 +124,7 @@ ccnl_http_postselect(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http,
         int len = sizeof(http->in) - http->inlen - 1;
         len = recv(http->client, http->in + http->inlen, len, 0);
         if (len == 0) {
-            DEBUGMSG(9, "web client went away\n");
+            DEBUGMSG(INFO, "web client went away\n");
             close(http->client);
             http->client = 0;
         } else if (len > 0) {

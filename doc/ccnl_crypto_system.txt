@@ -23,7 +23,7 @@
 //----------------------------------------------------------------------------
 
 CCNL has a build-in system for verification and signatures. 
-This system is based on OpenSSL and runs in a seperate userspace tool.
+This system is based on OpenSSL and runs in a separate userspace tool.
 The relay communicates with a unix socket with the Crypto-Server.
 The entire communication between the relay and the Crypto-Server runs
 asynchronously, so that the relay can handle other packets while waiting for

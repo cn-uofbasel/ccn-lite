@@ -181,7 +181,7 @@ rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         char *cp = ccnl_malloc(param->u.strlen + 1);
         memcpy(cp, param->aux, param->u.strlen);
         cp[param->u.strlen] = '\0';
-        DEBUGMSG(1, "rpc_syslog: \"%s\"\n", cp);
+        DEBUGMSG(DEBUG, "rpc_syslog: \"%s\"\n", cp);
         ccnl_free(cp);
         ccnl_emit_RpcReturn(relay, from, nonce, 200, "ok", NULL);
     } else {
@@ -534,7 +534,7 @@ ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         */
 
         if (rc < 0) {
-//          DEBUGMSG(15, "  error processing RPC msg\n");
+//          DEBUGMSG(WARNING, "  error processing RPC msg\n");
 //          return rc;
         }
         ccnl_rdr_free(a);
