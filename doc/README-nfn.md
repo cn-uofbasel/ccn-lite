@@ -1,6 +1,6 @@
 # Named Function Networking (NFN) by using the Lambda Calculus 
 
-The Lambda Calculus is a formal mathematical language to represent logic. It consists of variables v, abstractions @v T and applications T T, where v is a variable and T a term.
+The Lambda Calculus is a formal mathematical language to represent logic. A Term T consists of variables v, abstractions @v T and applications T T, where v is a variable and T a term.
 
 The Lambda Calculus can be evaluated by using an abstract machine. 
 
