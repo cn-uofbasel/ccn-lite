@@ -1,26 +1,27 @@
-# README-ccn-lite.md5
+# README-ccn-lite.md (2014-12-23)
 
-http://www.ccn-lite.net
+The main code base is on GitHub at [https://github.com/cn-uofbasel/ccn-lite)](https://github.com/cn-uofbasel/ccn-lite). If you want to file a bug report, please create an issue on GitHub (and: thanks a lot!)
 
-https://github.com/cn-uofbasel/ccn-lite
+If you are interested in running CCN-lite, see the fine [tutorial](../tutorial/tutorial.md)!
 
-This is outdated (Nov 2014), needs updateing.
-
-[test link to tutorial](../tutorial/tutorial.md)
+If you are interested in the latest (bleeding edge) code, see the [dev-master](https://github.com/cn-uofbasel/ccn-lite/tree/dev-master) branch on GitHub.
 
 ### Abstract
 
 CCN-lite is a reduced and lightweight --yet functionally
 interoperable-- implementation of the CCNx protocol. It covers:
+
 -  the classic CCNx ccnb version (Nov 2013)
--  CCNx1.0 (Sep 2014)
--  the Named-Data-Networking protocol (as of Nov 2013), and
--  the novel Named-Function-networking approach.
+-  the Named-Data-Networking (NDN) protocol (as of Nov 2013)
+-  the CCNx1.0 encoding (unofficial, as of Dec 2014)
+-  an experimental and compact encoding for IoT environments (Nov 2014)
+-  the novel Named-Function-networking approach (University of Basel)
 
 CCN-lite runs in UNIX user space, as well (most of it) as a Linux
 kernel module, making it suitable for resource constraint devices like
 the Raspberry Pi, sensor nodes and the Internet of Things (IoT). The
-same, unchanged, code runs in the OMNeT simulator.
+same, unchanged, code runs in the OMNeT simulator (shipped independently
+of this CCN-lite course release).
 
 CCN-lite is meant as a code base for class room work, experimental
 extensions and simulation experiments. The ISC license makes it an
@@ -31,17 +32,18 @@ excellent starting point for commercial products.
 1. [Rationale for CCN-lite, what you get (and what is missing)](#rationale)
 2. [Extensions to CCNx](#extensions)
 3. [CCN-lite supported platforms and how to compile](#platforms)
-4. [List of files](#lof)
+4. [Command Line Tools](#lof)
 5. [How to start](#start)
 6. [Useful links](#links)
 
 - - -
 
 <a name="rationale"></a>
-## 1. Rationale for CCN-lite, what you get (and what is missing)
 
-The original motivation for creating CCN-lite was that PARC's CCNx
-router software has grown huge. CCN-lite provides a lean alternative
+### 1. Rationale for CCN-lite, what you get (and what is missing)
+
+The original motivation in 2011 for creating CCN-lite was that PARC's CCNx
+router software had grown huge. CCN-lite provides a lean alternative
 for educational purposes and as a stepping stone. It's for those who
 want a simple piece of software for experimentation or own
 development, but who do not need all features of the full thing.
@@ -54,271 +56,237 @@ depending on how CCNx evolves. We consider this question of
 "sufficient CCNx functionality" to be of engineering and academic
 interest of its own and welcome contributions from everybody.
 
-Hence, with CCN-lite, we do a race-to-the-bottom and strive for a kind
-of "Level-0" interoperability. Level-0, as we currently understand it,
-should cover:
+Hence, with CCN-lite, we did a race-to-the-bottom and strived for a kind
+of "Level-0" interoperability. Level-0, as we understood it,
+covers:
 
-- ccnb encoding of messages (PDU level compatibility)
+- ccnb encoding of messages (or any other encoding flavor, including the TLV variants)
 - PIT and FIB (CCN basic data structures)
-- longest prefix matching (for basic CCN operations),
+- longest and exact prefix matching (for basic CCN operations),
   including minsuffixcomp und maxsuffixcomp handling
 - matching of publisher's public key (to fight cache poisoning)
-- nonce tracking (to avoid loops as a minimal safeguard)
+- nonce and/or hop limit tracking (to avoid loops as a minimal safeguard)
 
 As an interoperability goal we set for ourselves the threshold that
 the CCN-lite software must be able to route at the CCN level between
-fully fledged CCNx daemons so that one can successfully run
-applications such as PARC's SYNC protocol over a heterogeneous
-CCNx network:
+fully fledged CCNx forwarders. Of course, this is a moving target, but
+we regularly use our tools to interface with the NDN testbed, for
+example.
 
-```
-  sync (ccnr)                                             sync (ccnr)
-     |                                                       |
-   ccnd <--> ccn-lite-relay <-- eth --> ccn-lite-relay <--> ccnd
-```
-
-See the script test/script/interop-SYNCoEth-a.sh how this is done.
-
-What we do NOT cover in our CCN-lite code is:
+What we (deliberately) do NOT cover in our CCN-lite code is:
 
 - sophisticated data structures for performance optimisations (it's up to
   you to exchange the linked lists with whatever fits your needs)
-- exclusion filtering in interests i.e., negative content selection
-  like the cumbersome to use Bloom filters
-- all TCP connectivity and CCNx cmd line utilities that have TCP
+- exclusion filtering in interests
+- all TCP connectivity and the old CCNx cmd line utilities that have TCP
   hardwired into them (we are datagram purists)
 - crypto functionality, which here is not our prime concern
-- repository functionality, SYNC server etc (but these can be
-  used in a CCN-lite context as described above, or implemented
-  externally)
+- repository functionality, SYNC server etc
 
-A second reason to create CCN-lite was the software license (CCNx
-picked GNU) where we prefer a Berkeley Software Distribution style of
-"do whatever you want" as we believe that this will help adopting CCN
-technology. Therefore, CCN-lite is released under the ISC license.
+A second reason to create CCN-lite was the software license (the
+original CCNx project picked GNU, but NDN also has chosen this path)
+where we prefer a Berkeley Software Distribution style of "do whatever
+you want" as we believe that this will help adopting CCN
+technology. Therefore, CCN-lite is released under the ISC license. We
+have learned that several companies have picked up CCN-lite for their
+internal experiments, so we think our license choice was right.
 
-So what you get with CCN-lite is:
-- a tiny CCNx core (1000 lines of C)
+What you get with CCN-lite is:
+
+- a tiny CCNx core (1000-2000 lines of C suffice)
 - three supported platforms: UNIX user space, Linux kernel, OMNeT
-  all using the same core logic
+  all using the same core logic (OMNeT to be re-released independently),
+  Docker files are also provided
 - partially interoperable management protocol implementation
+- a simple HTTP server to display the relay's internal config
 - plus some interesting extensions of our own, see the next section.
 
 We are running CCN-lite on PCs, but also on the Raspberry Pi, both the
 user space version as well as the kernel module.
 
-
 - - -
 
 <a name="extensions"></a>
+
 ## 2. Extensions to CCNx
 
-  In two selected areas we have started our own "experiments",
+  In several selected areas we have started our own "experiments",
   resulting in contributions that are now part of CCN-lite:
 
-  a) fragmentation and lost packet detection support for running
-     the CCNx protocol natively over Ethernet (symbol USE_FRAG)
+  a) *Named functions* for letting clients express "cooked" results
+     instead of accessing only raw data. See also the use of
+     [SCALA](https://github.com/cn-uofbasel/nfn-scala)
+     to host function execution and to interface to a NFN network.
 
-  b) clean scheduler support at chunk level as well as packet or
+  b) Experimental *RPC functionality* for letting neighbors mutually invoke
+     functions, which could be the starting point both for network management
+     functionality and for data marshalling (of interests and data objects)
+     using the TLV encoding.
+
+  c) Clean *packet scheduler support* at chunk level as well as packet or
      fragment level (symbol USE_SCHEDULER)
 
+  d) *Packet fragmentation* and lost packet detection support for running
+     the CCNx protocol natively over Ethernet (symbol USE_FRAG).
+     This is somehow outdated and waits for protocol specs to
+     emerge.
+
   Other features that you can switch on and off at compile time are:
-
+```
     USE_CCNxDIGEST        // enable digest component (requires crypto lib)
-    USE_DEBUG             // enable log messages
-    USE_DEBUG_MALLOC      // compile with memory armoring
-    USE_FRAG              // enable fragments (to run CCNx over Ethernet)
-    USE_ETHERNET          // talk to eth/wlan devices, raw frames
-    USE_HTTP_STATUS       // provide status info for web browsers
-    USE_MGMT              // react to CCNx mgmt protocol messages
-    USE_SCHEDULER         // rate control at CCNx msg and fragment level
-    USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
     USE_CHEMFLOW          // experimental scheduler, src not included
+    USE_DEBUG             // basic data structure dumping
+    USE_DEBUG_MALLOC      // compile with memory armoring
+    USE_ETHERNET          // talk to eth/wlan devices, raw frames
+    USE_FRAG              // enable fragments (to run CCNx over Ethernet)
+    USE_HTTP_STATUS       // provide status info for web browsers
+    USE_LOGGING           // enable log messages
+    USE_KITE              // forthcoming (routing along the return path)
+    USE_MGMT              // react to CCNx mgmt protocol messages
+    USE_NACK              // NACK support (for NFN)
+    USE_NFN               // named function networking
+    USE_SCHEDULER         // rate control at CCNx msg and fragment level
+    USE_SIGNATURES        // authenticate mgmt messages
+    USE_SUITE_*           // multiprotocol (CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC)
+    USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
+```
 
+The approach for these extensions is that one can tailor a CCN
+forwarder (or NDN etc) to including only those features really
+necessary.  We have strived to make these choices as orthogonal as
+possible and invite you to attempt the same for your additions.
 
 - - -
 
 <a name="platforms"></a>
+
 ## 3. CCN-lite supported platforms and how to compile
 
   The CCN-lite code currently supports three platforms, defined in
-  corresponding main source files. In these main files, a symbol is
-  set which selects the platform:
+  corresponding main source files (they shouild compile under Linux and
+  Mac OSX). In these main files, a symbol is set which selects the platform:
 
+```
   CCNL_UNIX         UNIX user space relay    ccn-lite-relay.c
+
   CCNL_LINUXKERNEL  Linux kernel module      ccn-lite-lnxkernel.c
   CCNL_OMNET        OmNet++ integration      ccn-lite-omnet.c
+```
+  The main forwarder is called ccn-lite-relay. Two additional main
+  source files are provided for demo purposes:
 
-  Two additional main source files are provided for demo purposes:
+  The *ccn-lite-simu.c* is a standalone simulator that internally
+  runs a simple 4 node topology - it is used just for basic functional
+  testing, e.g. hunting for memory leaks.
 
-  The ccn-lite-simu.c (CCNL-SIMULATION) is a standalone simulator
-  that internally runs a simple 4 node topology - it is used just for
-  basic functional testing, e.g. hunting for memory leaks.
-
-  The ccn-lite-minimalrelay.c is an exercise in writing the least
-  C code possible in order to get a working CCNx relay. It has all
+  The *ccn-lite-minimalrelay.c* is an exercise in writing the least
+  C code possible in order to get a working NDN forwarder. It has all
   extra features disabled and only provides UDP connectivity. But
   hey, it works! And it really IS lean, looking at the lines of
   C code:
+```
+   417 ccn-lite-minimalrelay.c
+   940 ccnl-core.c
+   696 ccnl-core-fwd.c    // only partially needed
+   737 ccnl-core-util.c
+   498 ccnl-pkt-ndntlv.c  // only partially needed
 
-     66 ccnx.h
-     73 ccnl.h
-    194 ccnl-core.h
-    998 ccnl-core.c
-    385 ccn-lite-minimalrelay.c
+   346 ccnl-core.h
+   163 ccnl-defs.h
+    95 ccnl-pkt-ndntlv.h
+```
 
+  The provided Makefile compiles the code for the CCNL_UNIX
+  platform - just type make.
 
-  The provided Makefile compiles the code for the CCNL_UNIX and
-  the CCNL-LINUXKERNEL platforms, as well as the two demo binaries
-  CCNL_SIMULATION and ccn-lite-minimalrelay - just type make.
-  An additional BSDmakefile enables easy compilation on FreeBSD
-  platforms, including Apple's OSX.
+  If you want named function support (NFN), define an environment variable at the
+  shell level before invoking make:
+  export USE_NFN=1; make clean all
 
-  The code for the OMNeT platform is a wrapper that needs to be
-  compiled from within the OMNeT environment. More details and
-  installation instructions can be found in README-OMNeT.txt
+  If you want NFN *and* NACK support, define an additional environment variable
+  before invoking make:
+  export USE_NACK=1; make clean all
+
+  If you want to build the Linux kernel module, define an environment
+  variable at the shell level before invoking make:
+  export USE_KRNL=1; make clean all
+
+  The OMNeT platform is currently out-dated and has moved to an
+  independent project, but will be available soon (target date is in
+  early 2015).
 
   Ubuntu needs the following packages:
     libssl-dev
   (load them with "sudo apt-get install ...")
 
-
 - - -
 
 <a name="lof"></a>
-## 4. List of Files
 
-CCN-lite main logic and extensions:
-```
-   ccnl-core.c
-   ccnl-core.h
-   ccnl-ext-debug.c
-   ccnl-ext-frag.c
-   ccnl-ext-http.c
-   ccnl-ext-mgmt.c
-   ccnl-ext-sched.c
-   ccnl-ext.h
-   ccnl.h
-   ccnx.h
-```
+## 4. Command Line Tools
 
-CCN-lite portability:
+The main files (and corresponding executables) in the src directory are:
 ```
-   ccnl-includes.h
-   ccnl-platform.c
-```
+   ccn-lite-relay.c              CCN-lite forwarder: user space
 
-CCN-lite main files for binaries: (= "platforms")
-```
-   ccn-lite-relay.c              CCN-lite user space
-   ccn-lite-lnxkernel.c          CCN-lite Linux kernel module
+                                 This code is compiled to three executables,
+                                 depending on compile time environment flags:
+                                   ccn-lite-relay
+                                   ccn-nfn-relay
+                                   ccn-nfn-relay-nack
 
-   ccn-lite-minimalrelay.c       minimal user space prog for CCNx over UDP
-   ccn-lite-simu.c               CCN-lite standalone simulation (as a unit test)
-   ccnl-simu-client.c            used in the unit test above
-```
+   ccn-lite-lnxkernel.c          CCN-lite forwarder: Linux kernel module
 
-Utilities:
-```
+
    util/ccn-lite-ctrl.c          cmd line program running the CCNx mgmt
                                  protocol (over UNIX sockets). Used for
                                  configuring a running relay either running
                                  in user space or as a kernel module
-   util/ccn-lite-ccnb2hex.c      simple ccnb parser
-   util/ccn-lite-ccnb2xml.c      simple ccnb parser, currently only works
-                                 for mgmt replies
-   util/ccn-lite-peek.c          simple interest injector waiting for
-                                 a content chunk
-   util/ccn-lite-mkI.c           simple interest composer (to stdout)
+
+   util/ccn-lite-ccnb2xml.c      simple ccnb parser
+
+   util/ccn-lite-cryptoserver.c  used by the kernel module to carry out
+                                 compute intensive crypto operations (in
+                                 user space)
+
+   util/ccn-lite-ctrl.c          mgmt tool to talk to a relay
+
+   util/ccn-lite-fetch.c         fetches both a single chunk content, or
+                                 a series of chunk for larger named data.
+                                 The real content is returned (without
+                                 any protocol bytes)
+
    util/ccn-lite-mkC.c           simple content composer (to stdout, no crypto)
-   util/ccn-lite-mkF.c           turns a ccnb object info fragments (files)
-   util/ccn-lite-deF.c           reassemble fragment files
-```
 
-OMNeT:
-```
-   ccn-lite-omnet/               directory with OMNeT specific code
-   ccn-lite-omnet.c              wrapper for CCN-lite inclusion into OMNet++
-```
+   util/ccn-lite-mkI.c           simple interest composer (to stdout)
 
-Documentation:
-```
-   ccnl-datastruct.pdf           diagram of CCN-lite's internal data structures
-   ccnl-datastruct.dot           source file of above
-   ccn-lite-logo-712x184.jpg     logo
-   rts-cts-20120802.txt          MSC of the scheduler interactions
-   Nice2012-poster.pdf           poster from the CCNxCon meeting in Nice, 2012
-```
+   util/ccn-lite-peek.c          simple interest injector waiting for
+                                 a content chunk, can also be used to
+                                 request named-function results
 
-Test Scripts
-```
-   test/scripts/*.sh             consult these files for learning how to use
-                                 CCN-lite, the mgmt protocol, and how to test
-                                 interopability with PARC's ccnd
-```
+   util/ccn-lite-pktdump.c       powerful packet dumper for all known packet
+                                 formats. Output is in hexdump style, XML
+                                 or just the pure content.
 
-Misc:
-```
-   BSDmakefile
-   Makefile                      
-   README.txt                    this file
-   README-OMNeT.txt              OMNeT-specific instructions
+   util/ccn-lite-produce.c       creates a series of chunks for data that
+                                 does not fit into a single PDU
+
+   util/ccn-lite-rpc.c           send an RPC request and return the reply
+
+   util/ccn-lite-simplenfn.c     a simplified interface to request named-
+                                 function results
 ```
 
 - - -
 
 <a name="start"></a>
+
 ## 5. How to start
 
-### 5.a) A simple hello-world config (user space relay)
+The best way to start is to work through the
+[tutorial](../tutorial/tutorial.md)!
 
-```
-  % cd the_ccn-lite_directory
-
-  #-- start a CCNx relay in the background, preload the content store:
-  % ./ccn-lite-relay -d test/ccnb &
-
-  #-- have a look at the internal state
-  % firefox 127.0.0.1:9695 &
-
-  #-- retrieve content, in raw CCNx format:
-  % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt
-
-  #-- retrieve content, parse the fields
-  % ./util/ccn-lite-peek /ccnx/0.7.1/doc/technical/URI.txt \
-    | ./util/ccn-lite-ccnb2hex
-```
-
-
-### 5.b) Advanced configurations via the mgmt protocol
-
-```
-  #-- start the relay with sudo (if you want to access eth devices)
-  % sudo ./ccn-lite-relay
-
-  #-- bring up a wifi interface, listen for ethtype value 0x3456
-  # sudo ./util/ccn-lite-ctrl newETHdev wlan0 0x3456 \
-    | ./util/ccn-lite-ccnb2xml
-
-  #-- define a peer reachable via wifi at 11:22:33:44:55:66, ethtype 0x9876
-  % sudo ./util/ccn-lite-ctrl newETHface any 11:22:33:44:55:66 0x9876 \
-    | ./util/ccn-lite-ccnb2xml
-
-  #-- define a peer reachable at 10.0.0.1 and UDP port 9000, picking
-  #   any of the machines IP interfaces
-  % sudo ./util/ccn-lite-ctrl newUDPface any 10.0.0.1 9000 \
-    | ./util/ccn-lite-ccnb2xml
-
-  #-- add a routing entry (pick face 3 in this example)
-  % sudo ./util/ccn-lite-ctrl prefixreg /acme.com/frontpage 3 \
-    | ./util/ccn-lite-ccnb2xml
-
-  #-- have a look at the internal state, repeatedly during the previous steps
-  % firefox 127.0.0.1:9695
-```
-
-
-### 5.c) Starting (and controlling) the Linux kernel module
+### 5') Starting (and controlling) the Linux kernel module
 
 ```
   #-- insert the module, enabeling eth0, debug msgs
@@ -337,6 +305,7 @@ Misc:
 - - -
 
 <a name="links"></a>
+
 ## 6. Links:
 
 - Source code repository:
@@ -355,9 +324,11 @@ Misc:
   http://named-function.net/
 
 - - -
-history:
+
+History:
 
 * 2012-10-12 created (christian.tschudin@unibas.ch)
-* 2013-07-27 ccn-lite released on Github
-* 2014-11-02 this version
+* 2013-07-27 part of ccn-lite release 0.1.0 on GitHub
+* 2014-12-23 this version (release 0.2.0)
+
 - - -
