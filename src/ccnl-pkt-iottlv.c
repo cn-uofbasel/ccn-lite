@@ -274,7 +274,7 @@ ccnl_iottlv_prependTL(unsigned int type, unsigned short len,
     if (*offset < 1)
         return -1;
     if (type < 4 && len < 64) {
-        char b = (type << 6) | len;
+        unsigned char b = (type << 6) | len;
         if (b != 0 && b != 0x80) { // 0x80 is the "switch encoding" magic byte
             buf[--(*offset)] = b;
             return 1;
