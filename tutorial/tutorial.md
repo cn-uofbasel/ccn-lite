@@ -450,7 +450,7 @@ If you want to use an IDE (both intellij and eclipse have a good scala plugin) y
 
 Create a `.scala` file in the `src/main/scala/nfn/service` package, e.g. ToUpper.scala. Implement your service accordingly (as in Java, a Scala String has the function `.toUpperCase`). It is up to you on what types the service is defined and how many arguments the service supports.
 
-To publish this service, simply add the line `node.publishService(new ToUpper()) to the StandaloneComputeServer script. If you used the above mention package, you do not have to import anything. If you choose a different place you need to import the class accordingly.
+To publish this service, simply add the line `node.publishServiceLocalPrefix(new ToUpper()) to the StandaloneComputeServer script. If you used the above mention package, you do not have to import anything. If you choose a different place you need to import the class accordingly.
 
 ### 4. Test your service
 
