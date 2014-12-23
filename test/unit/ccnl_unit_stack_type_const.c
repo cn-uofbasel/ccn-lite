@@ -1,6 +1,6 @@
 
 #include "test.h"
-#include "../../ccnl-headers.h"
+#include "../../src/ccnl-headers.h"
 
 int ccnl_test_prepare_stack_type_const_str2const(void **con1, void **con2){
 

@@ -227,9 +227,9 @@ int ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
 struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, unsigned int *chunknum);
 int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
-int ccnl_pkt2suite(unsigned char *data, int len);
+int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 char *ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip);
+char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 char *ccnl_lambdaParseVar(char **cpp);
 struct ccnl_lambdaTerm_s *ccnl_lambdaStrToTerm(int lev, char **cp, int (*prt)(char *fmt, ...));
 int ccnl_lambdaTermToStr(char *cfg, struct ccnl_lambdaTerm_s *t, char last);
@@ -275,7 +275,7 @@ int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int d
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */
 #ifdef USE_SUITE_CCNTLV
-int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201411_s *hdrptr, int hoplimit, unsigned char **data, int *datalen);
+int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201412_s *hdrptr, unsigned char **data, int *datalen);
 int ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 
@@ -340,12 +340,12 @@ int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen);
 struct rdr_ds_s *ccnl_rdr_unserialize(unsigned char *buf, int buflen);
 int ccnl_rdr_getType(struct rdr_ds_s *ds);
 int ccnl_rdr_dump(int lev, struct rdr_ds_s *x);
-int ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, int rc, char *reason, struct rdr_ds_s *content);
+int ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *nonce, int rc, char *reason, struct rdr_ds_s *content);
 struct rpc_exec_s *rpc_exec_new(void);
 void rpc_exec_free(struct rpc_exec_s *exec);
-int rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
-int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
-int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rpc_exec_s *exec, struct rdr_ds_s *param);
+int rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *nonce, struct rpc_exec_s *exec, struct rdr_ds_s *param);
+int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *nonce, struct rpc_exec_s *exec, struct rdr_ds_s *param);
+int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *nonce, struct rpc_exec_s *exec, struct rdr_ds_s *param);
 int ccnl_localrpc_handleReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *rc, struct rdr_ds_s *aux);
 int ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *fexpr, struct rdr_ds_s *args);
 int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);

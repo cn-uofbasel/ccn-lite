@@ -38,12 +38,14 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #define USE_NFN_NSTRANS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
 #define USE_UNIXSOCKET
 
 #include "../../src/ccnl-os-includes.h"
 // #include "../../src/ccnl-headers.h"
+#include "../../src/ccnl-ext-logging.c"
 
 #include "../../src/ccnl-defs.h"
 #include "../../src/ccnl-core.h"
