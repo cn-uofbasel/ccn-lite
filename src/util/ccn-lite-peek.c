@@ -109,6 +109,12 @@ usage:
             udp = "127.0.0.1/9695";
         break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        if(!udp)
+            udp = "127.0.0.1/6363";
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         if(!udp)
@@ -116,7 +122,9 @@ usage:
         break;
 #endif
         default:
-            udp = "127.0.0.1/6363";
+	    if(!udp)
+               udp = "127.0.0.1/6363";
+	    break;
         }
 
     if (!argv[optind]) 
