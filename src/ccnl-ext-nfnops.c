@@ -73,7 +73,7 @@ op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0, *h;
 
-    DEBUGMSG(2, "---to do: OP_ADD <%s> pending: %s\n", prog+7, pending);
+    DEBUGMSG(DEBUG, "---to do: OP_ADD <%s> pending: %s\n", prog+7, pending);
     pop2int();
     h = ccnl_malloc(sizeof(int));
     *h = i1 + i2;
@@ -94,11 +94,11 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_content_s *c = NULL;
 
     if (*restart) {
-        DEBUGMSG(2, "---to do: OP_FIND restart\n");
+        DEBUGMSG(DEBUG, "---to do: OP_FIND restart\n");
         *restart = 0;
         local_search = 1;
     } else {
-        DEBUGMSG(2, "---to do: OP_FIND <%s> <%s>\n", prog+7, pending);
+        DEBUGMSG(DEBUG, "---to do: OP_FIND <%s> <%s>\n", prog+7, pending);
         h = pop_from_stack(&config->result_stack);
         //    if (h->type != STACK_TYPE_PREFIX)  ...
         config->fox_state->num_of_params = 1;
@@ -110,20 +110,20 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     //check if result is now available
     //loop by reentering (with local_search) after timeout of the interest...
-    DEBUGMSG(99, "FIND: Checking if result was received\n");
+    DEBUGMSG(DEBUG, "FIND: Checking if result was received\n");
     c = ccnl_nfn_local_content_search(ccnl, config, prefix);
     if (!c) {
         struct ccnl_prefix_s *copy;
         struct ccnl_interest_s *interest;
         if (local_search) {
-            DEBUGMSG(99, "FIND: no content\n");
+            DEBUGMSG(INFO, "FIND: no content\n");
             return NULL;
         }
         //Result not in cache, search over the network
         //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
         copy = ccnl_prefix_dup(prefix);
         interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-        DEBUGMSG(99, "FIND: sending new interest from Face ID: %d\n",
+        DEBUGMSG(DEBUG, "FIND: sending new interest from Face ID: %d\n",
                  interest->from->faceid);
         if (interest)
             ccnl_interest_propagate(ccnl, interest);
@@ -132,11 +132,11 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return ccnl_strdup(prog);
     }
 
-    DEBUGMSG(99, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {
-        DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+        DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
         
         return prog ? ccnl_strdup(prog) : NULL;
@@ -147,7 +147,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
 
     if (pending) {
-        DEBUGMSG(99, "Pending: %s\n", pending);
+        DEBUGMSG(DEBUG, "Pending: %s\n", pending);
 
         cp = ccnl_strdup(pending);
     }
@@ -161,7 +161,7 @@ op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0, *h;
 
-    DEBUGMSG(2, "---to do: OP_MULT <%s>\n", prog+8);
+    DEBUGMSG(DEBUG, "---to do: OP_MULT <%s>\n", prog+8);
     pop2int();
     h = ccnl_malloc(sizeof(int));
     *h = i2 * i1;
@@ -184,16 +184,16 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     //    print_argument_stack(config->argument_stack);
     //    print_result_stack(config->result_stack);
     if (*restart) {
-        DEBUGMSG(2, "---to do: OP_RAW restart\n");
+        DEBUGMSG(DEBUG, "---to do: OP_RAW restart\n");
         *restart = 0;
         local_search = 1;
     } else {
-        DEBUGMSG(2, "---to do: OP_RAW <%s>\n", prog+7);
+        DEBUGMSG(DEBUG, "---to do: OP_RAW <%s>\n", prog+7);
         h = pop_from_stack(&config->result_stack);
         if (!h || h->type != STACK_TYPE_PREFIX) {
-            DEBUGMSG(99, "  stack empty or has no prefix %p\n", (void*) h);
+            DEBUGMSG(DEBUG, "  stack empty or has no prefix %p\n", (void*) h);
         } else {
-            DEBUGMSG(99, "  found a prefix!\n");
+            DEBUGMSG(DEBUG, "  found a prefix!\n");
         }
         config->fox_state->num_of_params = 1;
         config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *));
@@ -204,18 +204,18 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     //check if result is now available
     //loop by reentering (with local_search) after timeout of the interest...
-    DEBUGMSG(99, "RAW: Checking if result was received\n");
+    DEBUGMSG(DEBUG, "RAW: Checking if result was received\n");
     c = ccnl_nfn_local_content_search(ccnl, config, prefix);
     if (!c) {
         if (local_search) {
-            DEBUGMSG(99, "RAW: no content\n");
+            DEBUGMSG(DEBUG, "RAW: no content\n");
             return NULL;
         }
         //Result not in cache, search over the network
         //        struct ccnl_interest_s *interest = mkInterestObject(ccnl, config, prefix);
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         struct ccnl_interest_s *interest = ccnl_nfn_query2interest(ccnl, &copy, config);
-        DEBUGMSG(99, "RAW: sending new interest from Face ID: %d\n", interest->from->faceid);
+        DEBUGMSG(DEBUG, "RAW: sending new interest from Face ID: %d\n", interest->from->faceid);
         if (interest)
             ccnl_interest_propagate(ccnl, interest);
         //wait for content, return current program to continue later
@@ -223,11 +223,11 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return prog ? ccnl_strdup(prog) : NULL;
     }
 
-    DEBUGMSG(99, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {
-        DEBUGMSG(99, "NACK RECEIVED, going to next parameter\n");
+        DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
         
         return prog ? ccnl_strdup(prog) : NULL;
@@ -238,7 +238,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIXRAW);
 
     if (pending) {
-        DEBUGMSG(99, "Pending: %s\n", pending+1);
+        DEBUGMSG(DEBUG, "Pending: %s\n", pending+1);
 
         cp = ccnl_strdup(pending+1);
     }
@@ -252,7 +252,7 @@ op_builtin_sub(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0, *h;
 
-    DEBUGMSG(2, "---to do: OP_SUB <%s>\n", prog+7);
+    DEBUGMSG(DEBUG, "---to do: OP_SUB <%s>\n", prog+7);
     pop2int();
     h = ccnl_malloc(sizeof(int));
     *h = i2 - i1;
@@ -273,7 +273,7 @@ op_builtin_cmpeqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     pop2int();
     cp = (i1 == i2) ? "@x@y x" : "@x@y y";
-    DEBUGMSG(2, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
+    DEBUGMSG(DEBUG, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
     if (pending)
         sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
     else
@@ -291,7 +291,7 @@ op_builtin_cmpleqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     pop2int();
     cp = (i2 <= i1) ? "@x@y x" : "@x@y y";
-    DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
+    DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
     if (pending)
         sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
     else
@@ -307,7 +307,7 @@ op_builtin_cmpeq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     int i1=0, i2=0;
     char res[1000], *cp;
 
-    DEBUGMSG(2, "---to do: OP_CMPEQ<%s>\n", pending);
+    DEBUGMSG(DEBUG, "---to do: OP_CMPEQ<%s>\n", pending);
     pop2int();
     cp = (i1 == i2) ? "1" : "0";
     if (pending)
@@ -325,7 +325,7 @@ op_builtin_cmpleq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     int i1=0, i2=0;
     char res[1000], *cp;
 
-    DEBUGMSG(2, "---to do: OP_CMPLEQ <%s>\n", pending);
+    DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>\n", pending);
     pop2int();
     cp = (i2 <= i1) ? "1" : "0";
     if (pending)
@@ -343,26 +343,26 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct stack_s *h;
     int i1=0;
 
-    DEBUGMSG(2, "---to do: OP_IFELSE <%s>\n", prog+10);
+    DEBUGMSG(DEBUG, "---to do: OP_IFELSE <%s>\n", prog+10);
     h = pop_or_resolve_from_result_stack(ccnl, config);
     if (!h) {
         *halt = -1;
         return ccnl_strdup(prog);
     }
     if (h->type != STACK_TYPE_INT) {
-        DEBUGMSG(99, "ifelse requires int as condition");
+        DEBUGMSG(WARNING, "ifelse requires int as condition");
         ccnl_nfn_freeStack(h);
         return NULL;
     }
     i1 = *(int *)h->content;
     if (i1) {
         struct stack_s *stack = pop_from_stack(&config->argument_stack);
-        DEBUGMSG(99, "Execute if\n");
+        DEBUGMSG(DEBUG, "Execute if\n");
         pop_from_stack(&config->argument_stack);
         push_to_stack(&config->argument_stack, stack->content,
                       STACK_TYPE_CLOSURE);
     } else {
-        DEBUGMSG(99, "Execute else\n");
+        DEBUGMSG(DEBUG, "Execute else\n");
         pop_from_stack(&config->argument_stack);
     }
     return ccnl_strdup(pending);
@@ -383,7 +383,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct stack_s *s1, *s2;
 
-    DEBUGMSG(99, "---to do: OP_NSTRANS\n");
+    DEBUGMSG(DEBUG, "---to do: OP_NSTRANS\n");
 
     s1 = pop_or_resolve_from_result_stack(ccnl, config);
     if (!s1) {
@@ -401,7 +401,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
         struct const_s *con = (struct const_s *) s2->content;
         int suite = -1;
-        DEBUGMSG(99, "  original packet format: %s\n", con->str);
+        DEBUGMSG(DEBUG, "  original packet format: %s\n", con->str);
 
         if (!strcmp(con->str, "ccnb"))
             suite = CCNL_SUITE_CCNB;
@@ -412,7 +412,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
         if (suite < 0)
             goto out;
-        DEBUGMSG(99, " >> changing PREFIX suite from %d to %d\n",
+        DEBUGMSG(DEBUG, " >> changing PREFIX suite from %d to %d\n",
                  p->suite, suite);
 
         p->nfnflags = 0;

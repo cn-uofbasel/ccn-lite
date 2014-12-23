@@ -105,7 +105,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                                 &prefix_a, &nonce, &ppkd, &content, &contlen);
 
                 if (!pkt) {
-                     //DEBUGMSG(6, " parsing error\n"); goto Done;
+                     DEBUGMSG(WARNING, " parsing error\n"); 
                 }
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
@@ -528,7 +528,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     //End Alloc
     
-    DEBUGMSG(99, "ccnl_mgmt_debug from=%s\n", ccnl_addr2ascii(&from->peer));
+    DEBUGMSG(TRACE, "ccnl_mgmt_debug from=%s\n", ccnl_addr2ascii(&from->peer));
     action = debugaction = NULL;
 
     buf = prefix->comp[3];
@@ -556,7 +556,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     if (debugaction) {
         cp = "debug cmd worked";
-        DEBUGMSG(99, "  debugaction is %s\n", debugaction);
+        DEBUGMSG(TRACE, "  debugaction is %s\n", debugaction);
         if (!strcmp((char*) debugaction, "dump")){
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
@@ -730,7 +730,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char faceidstr[100];
     unsigned char retstr[200];
 
-    DEBUGMSG(99, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
+    DEBUGMSG(TRACE, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
              (void*) from, from->ifndx);
     action = macsrc = ip4src = proto = host = port = NULL;
     path = frag = flags = NULL;
@@ -769,7 +769,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_ETHERNET
     if (macsrc && host && port) {
         sockunion su;
-        DEBUGMSG(99, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
+        DEBUGMSG(TRACE, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
                  macsrc, host, port);
         memset(&su, 0, sizeof(su));
         su.eth.sll_family = AF_PACKET;
@@ -785,7 +785,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         sockunion su;
-        DEBUGMSG(99, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
+        DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                  ip4src, proto, host, port);
         su.sa.sa_family = AF_INET;
         inet_aton((const char*)host, &su.ip4.sin_addr);
@@ -797,7 +797,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_UNIXSOCKET
     if (path) {
         sockunion su;
-        DEBUGMSG(99, "  adding UNIX face unixsrc=%s\n", path);
+        DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
         su.sa.sa_family = AF_UNIX;
         strcpy(su.ux.sun_path, (char*) path);
         f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
@@ -809,7 +809,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         int flagval = flags ?
             strtol((const char*)flags, NULL, 0) : CCNL_FACE_FLAGS_STATIC;
         //      printf("  flags=%s %d\n", flags, flagval);
-        DEBUGMSG(99, "  adding a new face (id=%d) worked!\n", f->faceid);
+        DEBUGMSG(TRACE, "  adding a new face (id=%d) worked!\n", f->faceid);
         f->flags = flagval &
             (CCNL_FACE_FLAGS_STATIC|CCNL_FACE_FLAGS_REFLECT);
 
@@ -828,7 +828,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
         cp = "newface cmd worked";
     } else {
-        DEBUGMSG(99, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
+        DEBUGMSG(TRACE, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
                  macsrc, ip4src, proto, host, port, frag, flags);
     }
     rc = 0;
@@ -904,7 +904,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_face_s *f;
     int len = 0, len3;
 
-    DEBUGMSG(99, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
+    DEBUGMSG(TRACE, "ccnl_mgmt_setfrag from=%p, ifndx=%d\n",
              (void*) from, from->ifndx);
     action = faceid = frag = mtu = NULL;
 
@@ -965,7 +965,7 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
     } else {
 Error:
-        DEBUGMSG(99, "  setfrag request for (faceid=%s frag=%s mtu=%s) failed or was ignored\n",
+        DEBUGMSG(TRACE, "  setfrag request for (faceid=%s frag=%s mtu=%s) failed or was ignored\n",
                  faceid, frag, mtu);
     }
     rc = 0;
@@ -1014,7 +1014,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
 
-    DEBUGMSG(99, "ccnl_mgmt_destroyface\n");
+    DEBUGMSG(TRACE, "ccnl_mgmt_destroyface\n");
     action = faceid = NULL;
 
     buf = prefix->comp[3];
@@ -1046,14 +1046,14 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         int fi = strtol((const char*)faceid, NULL, 0);
         for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
         if (!f) {
-            DEBUGMSG(99, "  could not find face=%s\n", faceid);
+            DEBUGMSG(TRACE, "  could not find face=%s\n", faceid);
             goto Bail;
         }
         ccnl_face_remove(ccnl, f);
-        DEBUGMSG(99, "  face %s destroyed\n", faceid);
+        DEBUGMSG(TRACE, "  face %s destroyed\n", faceid);
         cp = "facedestroy cmd worked";
     } else {
-        DEBUGMSG(99, "  missing faceid\n");
+        DEBUGMSG(TRACE, "  missing faceid\n");
     }
     rc = 0;
 
@@ -1106,7 +1106,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     struct ccnl_if_s *i;
     
 
-    DEBUGMSG(99, "ccnl_mgmt_newdev\n");
+    DEBUGMSG(TRACE, "ccnl_mgmt_newdev\n");
     action = devname = ip4src = port = frag = flags = NULL;
 
     buf = prefix->comp[3];
@@ -1138,7 +1138,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     // should (re)verify that action=="newdev"
 
     if (ccnl->ifcount >= CCNL_MAX_INTERFACES) {
-      DEBUGMSG(99, "  too many interfaces, no new interface created\n");
+      DEBUGMSG(TRACE, "  too many interfaces, no new interface created\n");
       goto Bail;
     }
 
@@ -1149,7 +1149,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         cp = "newETHdev cmd worked";
         portnum = port ? strtol((const char*)port, NULL, 0) : CCNL_ETH_TYPE;
 
-        DEBUGMSG(99, "  adding eth device devname=%s, port=%s\n",
+        DEBUGMSG(TRACE, "  adding eth device devname=%s, port=%s\n",
                  devname, port);
 
         // check if it already exists, bail
@@ -1162,13 +1162,13 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             int j;
             nd = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
             if (!nd) {
-                DEBUGMSG(99, "  could not open device %s\n", devname);
+                DEBUGMSG(TRACE, "  could not open device %s\n", devname);
                 goto Bail;
             }
             for (j = 0; j < ccnl->ifcount; j++) {
                 if (ccnl->ifs[j].netdev == nd) {
                     dev_put(nd);
-                    DEBUGMSG(99, "  device %s already open\n", devname);
+                    DEBUGMSG(TRACE, "  device %s already open\n", devname);
                     goto Bail;
                 }
             }
@@ -1181,7 +1181,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #else
         i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
         if (!i->sock) {
-            DEBUGMSG(99, "  could not open device %s\n", devname);
+            DEBUGMSG(TRACE, "  could not open device %s\n", devname);
             goto Bail;
         }
 #endif
@@ -1203,7 +1203,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 // #ifdef USE_UDP
     if (ip4src && port) {
         cp = "newUDPdev cmd worked";
-        DEBUGMSG(99, "  adding UDP device ip4src=%s, port=%s\n",
+        DEBUGMSG(TRACE, "  adding UDP device ip4src=%s, port=%s\n",
                  ip4src, port);
 
         // check if it already exists, bail
@@ -1212,7 +1212,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         i = &ccnl->ifs[ccnl->ifcount];
         i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip4);
         if (!i->sock) {
-            DEBUGMSG(99, "  could not open UDP device %s/%s\n", ip4src, port);
+            DEBUGMSG(TRACE, "  could not open UDP device %s/%s\n", ip4src, port);
             goto Bail;
         }
 
@@ -1222,7 +1222,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             for (j = 0; j < ccnl->ifcount; j++) {
                 if (!ccnl_addr_cmp(&ccnl->ifs[j].addr, &i->addr)) {
                     sock_release(i->sock);
-                    DEBUGMSG(99, "  UDP device %s/%s already open\n",
+                    DEBUGMSG(TRACE, "  UDP device %s/%s already open\n",
                              ip4src, port);
                     goto Bail;
                 }
@@ -1231,7 +1231,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         i->wq = create_workqueue(ccnl_addr2ascii(&i->addr));
         if (!i->wq) {
-            DEBUGMSG(99, "  could not create work queue (UDP device %s/%s)\n", ip4src, port);
+            DEBUGMSG(TRACE, "  could not create work queue (UDP device %s/%s)\n", ip4src, port);
             sock_release(i->sock);
             goto Bail;
         }
@@ -1257,7 +1257,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         goto Bail;
     }
 
-    DEBUGMSG(99, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
+    DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip4src, port, frag);
 // #endif // USE_UDP
 
@@ -1317,7 +1317,7 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                      struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
 
-    DEBUGMSG(99, "mgmt_destroydev not implemented yet\n");
+    DEBUGMSG(TRACE, "mgmt_destroydev not implemented yet\n");
     /*ANSWER*/
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "mgmt_destroy", "mgmt_destroydev not implemented yet");
     
@@ -1341,7 +1341,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 //    unsigned char contentobj[2000];
 //    unsigned char fwdentry[2000];
 
-    DEBUGMSG(99, "ccnl_mgmt_prefixreg\n");
+    DEBUGMSG(TRACE, "ccnl_mgmt_prefixreg\n");
     action = faceid = NULL;
 
     buf = prefix->comp[3];
@@ -1402,7 +1402,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         
         p->suite = suite[0];
 
-        DEBUGMSG(99, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
+        DEBUGMSG(TRACE, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
                  ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
 
         for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
@@ -1422,7 +1422,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         *fwd2 = fwd;
         cp = "prefixreg cmd worked";
     } else {
-        DEBUGMSG(99, "mgmt: ignored prefixreg faceid=%s\n", faceid);
+        DEBUGMSG(TRACE, "mgmt: ignored prefixreg faceid=%s\n", faceid);
     }
 
     rc = 0;
@@ -1624,11 +1624,11 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
     }
     if(i == num_of_components){
-        DEBUGMSG(99, "Content found\n");
+        DEBUGMSG(TRACE, "Content found\n");
         ccnl_content_remove(ccnl, c2);
     }else
     {
-       DEBUGMSG(99, "Ignore request since content not found\n");
+       DEBUGMSG(TRACE, "Ignore request since content not found\n");
        goto Bail;
     }
     answer = "Content successfully removed";
@@ -1694,7 +1694,7 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
           struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
         char *cmd, int verified)
 {
-    DEBUGMSG(99, "ccnl_mgmt_handle \"%s\"\n", cmd);
+    DEBUGMSG(TRACE, "ccnl_mgmt_handle \"%s\"\n", cmd);
     if(!verified){
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
                 "refused: error signature not verified");
@@ -1723,7 +1723,7 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 #endif
     else {
-        DEBUGMSG(99, "unknown mgmt command %s\n", cmd);
+        DEBUGMSG(TRACE, "unknown mgmt command %s\n", cmd);
         ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, "unknown mgmt command");
         return -1;
     }
@@ -1741,7 +1741,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     } else
         strcpy(cmd, "cmd-is-too-long-to-display");
 
-    DEBUGMSG(99, "ccnl_mgmt request \"%s\"\n", cmd);
+    DEBUGMSG(TRACE, "ccnl_mgmt request \"%s\"\n", cmd);
 
     if (ccnl_is_local_addr(&from->peer)) goto MGMT;
 
@@ -1749,7 +1749,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from, cmd);
 #endif /*USE_SIGNATURES*/
                    
-    DEBUGMSG(99, "  rejecting because src=%s is not a local addr\n",
+    DEBUGMSG(TRACE, "  rejecting because src=%s is not a local addr\n",
             ccnl_addr2ascii(&from->peer));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, cmd, 
                 "refused: origin of mgmt cmd is not local"); 

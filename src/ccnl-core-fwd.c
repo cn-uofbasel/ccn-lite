@@ -384,7 +384,7 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *start = *data, *content = 0;
-    DEBUGMSG(99, "ccnl_iottlv_forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG(TRACE, "ccnl_iottlv_forwarder (%d bytes left)\n", *datalen);
 
     if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
         return -1;
@@ -394,18 +394,18 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     buf = ccnl_iottlv_extract(start, data, datalen, &p, NULL,
                               &content, &contlen);
     if (!buf) {
-        DEBUGMSG(6, "  parsing error or no prefix\n");
+        DEBUGMSG(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
 
     if (typ == IOT_TLV_Request) {
-        DEBUGMSG(6, "  request=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG(DEBUG, "  request=<%s>\n", ccnl_prefix_to_path(p));
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_IOTTLV)
                 continue;
             if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
                 continue;
-            DEBUGMSG(7, "  matching content for interest, content %p\n", (void *) c);
+            DEBUGMSG(DEBUG, "  matching content for interest, content %p\n", (void *) c);
             if (from->ifndx >= 0) {
                 ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
@@ -414,7 +414,7 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
             goto Skip;
         }
-        DEBUGMSG(7, "  no matching content for interest\n");
+        DEBUGMSG(DEBUG, "  no matching content for interest\n");
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
             if (i->suite == CCNL_SUITE_IOTTLV &&
@@ -436,15 +436,15 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i = ccnl_interest_new(relay, from, CCNL_SUITE_IOTTLV,
                                   &buf, &p, 0, 0);
             if (i) { // CONFORM: Step 3 (and 4)
-                DEBUGMSG(7, "  created new interest entry %p\n", (void *) i);
+                DEBUGMSG(DEBUG, "  created new interest entry %p\n", (void *) i);
                 ccnl_interest_propagate(relay, i);
             }
         } else if (from->flags & CCNL_FACE_FLAGS_FWDALLI) {
-            DEBUGMSG(7, "  old interest, nevertheless propagated %p\n", (void *) i);
+            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n", (void *) i);
             ccnl_interest_propagate(relay, i);
         }
         if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG(7, "  appending interest entry %p\n", (void *) i);
+            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
     } else { // data packet with content -------------------------------------
@@ -453,7 +453,7 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             write(fd, buf->data, buf->datalen);
             close(fd);
       }
-        DEBUGMSG(6, "  reply=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG(DEBUG, "  reply=<%s>\n", ccnl_prefix_to_path(p));
 
 /*  mgmt messages for NDN?
 #ifdef USE_SIGNATURES
@@ -476,21 +476,21 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (ccnl_nfnprefix_isNFN(c->name)) {
                 if (ccnl_nfn_RX_result(relay, from, c))
                     goto Done;
-                DEBUGMSG(99, "no running computation found \n");
+                DEBUGMSG(WARNING, "no running computation found \n");
             }
 #endif
 
             if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
                 // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-                DEBUGMSG(7, "  removed because no matching interest\n");
+                DEBUGMSG(DEBUG, "  removed because no matching interest\n");
                 free_content(c);
                 goto Skip;
             }
             if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-                DEBUGMSG(7, "  adding content to cache\n");
+                DEBUGMSG(DEBUG, "  adding content to cache\n");
                 ccnl_content_add2cache(relay, c);
             } else {
-                DEBUGMSG(7, "  content not added to cache\n");
+                DEBUGMSG(DEBUG, "  content not added to cache\n");
                 free_content(c);
             }
         }

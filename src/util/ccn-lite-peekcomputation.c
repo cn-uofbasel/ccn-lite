@@ -8,7 +8,7 @@ int
 mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
 {
 #ifndef USE_UTIL
-    DEBUGMSG(2, "mkInterestCompute()\n");
+    DEBUGMSG(TRACE, "mkInterestCompute()\n");
 #endif
     int len = 0, k, i;
     unsigned char *cp;
