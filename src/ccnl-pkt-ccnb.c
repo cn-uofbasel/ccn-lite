@@ -120,7 +120,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
     int num, typ, len, oldpos;
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf, *n = 0, *pub = 0;
-    DEBUGMSG(99, "ccnl_ccnb_extract\n");
+    DEBUGMSG(TRACE, "ccnl_ccnb_extract\n");
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
     p->compcnt = 0;
@@ -181,7 +181,7 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
                 if (num == CCN_DTAG_PUBPUBKDIGEST && !pub)
                     pub = ccnl_buf_new(cp, len);
                 if (num == CCN_DTAG_EXCLUDE) {
-                    DEBUGMSG(49, "warning: 'exclude' field ignored\n");
+                    DEBUGMSG(DEBUG, "'exclude' field ignored\n");
                 } else {
                     oldpos = *data - start;
                     continue;

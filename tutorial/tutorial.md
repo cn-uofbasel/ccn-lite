@@ -4,7 +4,7 @@ Table Of Contents:
 - [Introduction](#introduction)
 - [Scenario 1: Simple Content-lookup](#scenario1)
 - [Scenario 2: Content Lookup from NDN Testbed](#scenario2)
-- [Scenario 3: Connecting CCNL with NDNTestbed](#scenario3)
+- [Scenario 3: Connecting CCNL with NDN Testbed](#scenario3)
 - [Scenario 4: Simple NFN request](#scenario4)
 - [Scenario 5: NFN request with Compute Server Interaction](#scenario5)
 - [Scenario 6: Full Named Function Networking (NFN) demo](#scneario6)
@@ -57,7 +57,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 
 ### 1. Producing Content 
 
-`ccn-lite-mkC` creates an (unsigned) content object in a specified wireformat, subject to the maximum packet size of 4kB. CCN-Lite currently supports three wireformats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
+`ccn-lite-mkC` creates an (unsigned) content object in a specified wire format, subject to the maximum packet size of 4kB. CCN-Lite currently supports three wire formats. We use `ndn2013` in the following, `ccnb` and `ccnx2014` are also available. 
 
 ```bash
 $CCNL_HOME/src/util/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
@@ -93,7 +93,7 @@ The two relays are not yet connected to each other. We want to add a forwarding 
 `ccn-lite-ctrl` provides a set of management commands to configure and maintain a relay. These management commands are based on a request-reply protocol using interest and content objects. Currently the ctrl tool is hardwired for the `ccnb` format (but the relay still handles packets in all other formats, too). 
 To decode the reply of the ctrl tool we use the `ccn-lite-ccnb2xml` tool.
 
-Finally, because faces are identified by dynamically asigned numbers,  we need to extract the FACEID from the reply of the create face command. When defining the forwarding rule we can then refer to this FACEID. 
+Finally, because faces are identified by dynamically assigned numbers,  we need to extract the FACEID from the reply of the create face command. When defining the forwarding rule we can then refer to this FACEID. 
 
 For creating the face at node `A`, open a new terminal window:
 ```bash
@@ -106,12 +106,12 @@ In other words: Relay `A` is technically connected to relay `B` through the UDP 
 $CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
-You might want to verify a relay's configuration through the builtin HTTP server. Just point your browser to `http://127.0.0.1:6363/`
+You might want to verify a relay's configuration through the built-in HTTP server. Just point your browser to `http://127.0.0.1:6363/`
 
 This ends the configuration part and we are ready to use the two-node setup for experiments.
 
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A` 
-The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want `ccn-lite-peek` to send an interest to relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wireformat-encoded packet in a somehow readable format.
+The `ccn-lite-peek` utility encodes the specified name in a interest with the according suite and sends it to a socket. In this case we want `ccn-lite-peek` to send an interest to relay `A`. Relay `A` will receive the interest, forward it to node `B` which will in turn respond with our initially created content object to relay `A`. Relay `A` sends the content objects back to peek, which prints it to stdout. Here, we pipe the output to `ccn-lite-pktdump` which detects the encoded format (here ndntlv) and prints the wire format-encoded packet in a somehow readable format.
 ```bash
 $CCNL_HOME/src/util/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
@@ -142,7 +142,7 @@ Note: `/ndn/edu/ucla/ping` dynamically creates a new content packet with a limit
 
 ![content-lookup-CCNL-NDNTestbed](demo-content-lookup-CCNL-NDNTestbed.png)
 
-Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDNTestbed and sending interests to it. The relay will forward the interests to the testbed.
+Scenario 3 combines Scenario 1 and 2 by connecting a (local) CCN-Lite relay to the NDN Testbed and sending interests to it. The relay will forward the interests to the testbed.
 
 
 ### 1. Shutdown relay `B` 
@@ -163,7 +163,7 @@ $CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID 
 And check again if the face was actually removed.
 
 ### 3. Connecting node `A` directly to the NDN Testbed 
-Connect to the NDN testbed server of the University of Basel by creating a new UDP face to the NFD of Basel and then registring the prefix `/ndn`
+Connect to the NDN testbed server of the University of Basel by creating a new UDP face to the NFD of Basel and then registering the prefix `/ndn`
 ```bash
 $CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363| $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
@@ -218,7 +218,7 @@ Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
 ![](demo-function-call-ext.png)
 
 This scenario explains how to setup an NFN-node which can interact with a Compute Server. 
-A compute server is an externel application which can execute functions written in a high level programming language.
+A compute server is an external application which can execute functions written in a high level programming language.
 Instead of running a complex Compute Server, a `dummyserver` is used in this scenario with the sole goal to let a mock function named "/test/data" be made available.
 
 ### 1. Start a NFN-relay
@@ -233,7 +233,7 @@ Start it with:
 ```bash
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py
 ```
-For complexer functions you have to setup the `nfn-scala` computation environment.
+For more complex functions you have to setup the `nfn-scala` computation environment.
 
 
 
@@ -248,7 +248,7 @@ $CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPU
 ```
 
 ### 4. Add (the result of) a dummy function to the cache of the relay
-The `/test/data` function will mimick computations by returning a name where the result can be found (i.e., it is the constant function always returning the value 10). This result is added to the local cache of the relay where the NFN abstract machines sits:
+The `/test/data` function will mimic computations by returning a name where the result can be found (i.e., it is the constant function always returning the value 10). This result is added to the local cache of the relay where the NFN abstract machines sits:
 ```bash
 $CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/util/ccn-lite-ccnb2xml
 ```
@@ -268,7 +268,7 @@ Now the result will be 11.
 
 <a name="scenario6"/>
 ## Scenario 6: Full Named Function Networking (NFN) demo
-In this scenario we install a full implementation of the compute server instead of just a dummy implementation. The comptue server implementation can be found in the project [nfn-scala](https://github.com/cn-uofbasel/nfn-scala). It is written in Scala and requires some installation steps. 
+In this scenario we install a full implementation of the compute server instead of just a dummy implementation. The compute server implementation can be found in the project [nfn-scala](https://github.com/cn-uofbasel/nfn-scala). It is written in Scala and requires some installation steps. 
 
 ### 0. Installation nfn-scala 
 Follow the installation instructions of nfn-scala. You mainly have to make sure that a JDK and sbt is installed.
@@ -289,8 +289,8 @@ sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nf
 The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
 It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a udp face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published. The first is called `/node/nodeA/nfn_service_WordCount`, the second `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
 
-### 3. Send a NFN expression with a wordcount function call
-We are going to invoke the wordcount service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
+### 3. Send a NFN expression with a word count function call
+We are going to invoke the word count service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
 ```bash
 $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/util/ccn-lite-pktdump
 ```
@@ -311,7 +311,7 @@ $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call
 ### 4. Invoke the pandoc service
 First install the [pandoc](http://johnmacfarlane.net/pandoc) command-line utility (Ubuntu: `apt-get install pandoc` OSX: `brew install pandoc`) because the implementation of the pandoc services uses the command-line application. 
 This function reformats a document from one format (e.g. markdown github) to another format (e.g. html) using pandoc.
-It takes 3 parameters, the first one is the name of a document to transform, the second is a string indicating the initial document format and the third is a string for the format the document should be converted to. A list of all supported formats can be found on the webpage (e.g. call 4 /ndn/ch/unibas/nfn/nfn_service_Pandoc /name/of/doc 'markdown' 'latex').
+It takes 3 parameters, the first one is the name of a document to transform, and the second is a string indicating the initial document format and the third is a string for the format the document should be converted to. A list of all supported formats can be found on the webpage (e.g. call 4 /ndn/ch/unibas/nfn/nfn_service_Pandoc /name/of/doc 'markdown' 'latex').
 
 To test this we can send the following request:
 ```bash
@@ -340,13 +340,13 @@ $CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /n
 
 <a name="scenario7"/>
 ## Scenario 7: Creating and Publishing your own Named Function
-So far, all services as well as the published documents of the compute server were predefined. In this scenario, we are going to first look the the compute server start script as well as how an implemented service looks like. Then, we are going to implement a new service called revert.
+So far, all services as well as the published documents of the compute server were predefined. In this scenario, we are first going to look at the compute server start script as well as how an implemented service looks like. Then, we are going to implement a new service called revert.
 
 ### 1. Explaining runnables.production.StandaloneComputeServer
-Currenty all running targets exist withing the project itself in the runnables package. In `runnables.evaluation.*` are some scripts which setup a nfn environment in Scala-only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `runnables.production.StandaloneComputeServer`.
+Currently all running targets exist within the project itself in the runnables package. In `runnables.evaluation.*` are some scripts which setup a nfn environment in Scala-only (without manually starting ccn-lite/nfn instances). In this tutorial we will only discuss `runnables.production.StandaloneComputeServer`.
 You might be able to understand what is going on even if you do not know any Scala. First, there is some basic parsing of the command-line arguments. The important part are the following lines:
 ```scala
-// Configuration of the router, sro far always ccn-lite
+// Configuration of the router, so far always ccn-lite
 // It requires the socket to the management interface, isCCNOnly = false indicates that it is a NFN node
 // and isAlreadyRunning tells the system that it should not have to start ccn-lite
 val routerConfig = RouterConfig(config.ccnLiteAddr, config.ccnlPort, config.prefix, config.mgmtSocket.getOrElse("") ,isCCNOnly = false, isAlreadyRunning = config.isCCNLiteAlreadyRunning)
@@ -363,8 +363,8 @@ val node = LocalNode(routerConfig, Some(computeNodeConfig))
 // Publish services
 // This will internally get the Java bytecode for the compiled services, put them into jar files and
 // put the data of the jar into a content object.
-// The name of this service is infered from the package structure of the service as well as the prefix of the local node.
-// In this case the prefix is given with the commandline argument 'prefixStr' (e.g. /node/nodeA/nfn_service_WordCount)
+// The name of this service is inferred from the package structure of the service as well as the prefix of the local node.
+// In this case the prefix is given with the command line argument 'prefixStr' (e.g. /node/nodeA/nfn_service_WordCount)
 node.publishServiceLocalPrefix(new WordCount())
 node.publishServiceLocalPrefix(new Pandoc())
 node.publishServiceLocalPrefix(new PDFLatex())

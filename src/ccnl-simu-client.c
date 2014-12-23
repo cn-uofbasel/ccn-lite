@@ -54,7 +54,7 @@ ccnl_simu_client_timeout(void *ptr, void *aux)
 
     cl->retries++;
     ndx = vpp - cl->to_handlers;
-    DEBUGMSG(99, "*** node %c timeout: new timeout for ndx%d, seqno=%d\n",
+    DEBUGMSG(WARNING, "*** node %c timeout: new timeout for ndx%d, seqno=%d\n",
              node, ndx, cl->onthefly[ndx]);
     *vpp = ccnl_set_timer(TIMEOUT, ccnl_simu_client_timeout, ptr, aux);
     cl->nonces[ndx] = random();
@@ -69,11 +69,11 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
     struct ccnl_client_s *cl = relay->aux;
     int i;
 
-    DEBUGMSG(1, "*** node %c received %d content bytes for name %s, seq=%d\n",
+    DEBUGMSG(INFO, "*** node %c received %d content bytes for name %s, seq=%d\n",
            node, len, name, seqn);
 
     if (strcmp(name, cl->name)) {
-        DEBUGMSG(1, "*** content name does not match our request!!\n"
+        DEBUGMSG(WARNING, "*** content name does not match our request!!\n"
                     "    <%s> instead of <%s>\n", name, cl->name);
         return;
     }
@@ -86,7 +86,7 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
         return;
 
     if (seqn != (cl->last_received+1)) {
-        DEBUGMSG(6, "*** content %d out of sequence (expected %d)\n",
+        DEBUGMSG(INFO, "*** content %d out of sequence (expected %d)\n",
                  seqn, cl->last_received+1);
         cl->outofseq++;
     }
@@ -98,21 +98,21 @@ ccnl_simu_client_RX(struct ccnl_relay_s *relay, char *name,
     }
 
     if (cl->nextseq > cl->lastseq) {
-        DEBUGMSG(1, "*** node %c, client thread %d terminated, %d remaining\n",
+        DEBUGMSG(INFO, "*** node %c, client thread %d terminated, %d remaining\n",
                  node, i, cl->threadcnt-1);
         cl->onthefly[i] = -1;
         cl->threadcnt--;
         if (cl->threadcnt <= 0) {
             pending_client_tasks--;
-            DEBUGMSG(1, "task for node %c ended, %d retransmit(s), %d outofseq /%d\n",
+            DEBUGMSG(INFO, "task for node %c ended, %d retransmit(s), %d outofseq /%d\n",
                      node, cl->retries, cl->outofseq, pending_client_tasks);
             if (pending_client_tasks <= 0) {
                 if (phaseOne == 1){
-                    DEBUGMSG(1, "Enter Phase-TWO (by node %c)\n\n", node);
+                    DEBUGMSG(INFO, "Enter Phase-TWO (by node %c)\n\n", node);
                     //make a fake zero log
                     ccnl_set_timer(500000, ccnl_simu_phase_two, 0, 0);
                 } else {
-                    DEBUGMSG(1, "all tasks of phase two terminated\n");
+                    DEBUGMSG(INFO, "all tasks of phase two terminated\n");
                     for (i = 0; i < MAX_PIPELINE; i++) {
                         if (cl->to_handlers[i]) {
                             ccnl_rem_timer(cl->to_handlers[i]);

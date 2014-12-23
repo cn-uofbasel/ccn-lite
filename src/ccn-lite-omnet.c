@@ -562,7 +562,7 @@ ccnl_ageing(void *relay, void *aux)
 
     struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
 
-    DEBUGMSG(99, "do_ageing for node %s(%c)\n", opp_info->node_name, opp_info->node_id);
+    DEBUGMSG(TRACE, "do_ageing for node %s(%c)\n", opp_info->node_name, opp_info->node_id);
 
     ccnl_do_ageing(relay, aux);
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
@@ -580,7 +580,7 @@ ccnl_destroy_relay (void *relay)
 
     struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
 
-    DEBUGMSG(99, "ccnl_destroy_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
+    DEBUGMSG(TRACE, "ccnl_destroy_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
 
     if (active_relay->stats) {
         END_LOG(active_relay->stats->ofp_s);
@@ -649,7 +649,7 @@ ccnl_create_relay (
     } else
         new_relay->aux = (void *) opp_info;
 
-    DEBUGMSG(99, "ccnl_create_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
+    DEBUGMSG(TRACE, "ccnl_create_relay on node %s (%d) \n", opp_info->node_name, opp_info->node_id);
 
 
     /* init relay control block
@@ -709,7 +709,7 @@ ccnl_create_relay (
 #ifdef USE_STATS
     new_relay->stats = (struct ccnl_stats_s *) ccnl_calloc(1, sizeof(struct ccnl_stats_s));
     if (!new_relay->stats)
-        DEBUGMSG(99, "ccnl_create_relay on node %s (%d) -- stats logging not activated \n", opp_info->node_name, opp_info->node_id);
+        DEBUGMSG(TRACE, "ccnl_create_relay on node %s (%d) -- stats logging not activated \n", opp_info->node_name, opp_info->node_id);
     else
         ccnl_node_log_start(new_relay, (char *) node_name);
 
@@ -793,7 +793,7 @@ ccnl_add_content (
         return -1;
     }
 
-    DEBUGMSG(99, "ccnl_add_content %s in relay of node %s (%d) \n", tmp2, opp_info->node_name, opp_info->node_id);
+    DEBUGMSG(TRACE, "ccnl_add_content %s in relay of node %s (%d) \n", tmp2, opp_info->node_name, opp_info->node_id);
 
     return 0;
 };
@@ -819,7 +819,7 @@ ccnl_add_fwdrule(
     struct ccnl_forward_s *fwd;
     sockunion sun;
 
-    DEBUGMSG(99, "ccnl_add_fwdrule <%s --> %s> in relay of node %s (%d) \n", name, dstaddr, opp_info->node_name, opp_info->node_id);
+    DEBUGMSG(TRACE, "ccnl_add_fwdrule <%s --> %s> in relay of node %s (%d) \n", name, dstaddr, opp_info->node_name, opp_info->node_id);
 
 
     // TODO - currently assuming only fwd rules with MAC addresses. Fix to
@@ -881,7 +881,7 @@ ccnl_app2relay(
     struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
     if (!opp_info) return -1;
 
-    DEBUGMSG(10, "ccnl_app2relay on node %s (%d) requests content %s (chunk %d)\n", opp_info->node_name, opp_info->node_id, name, seqn);
+    DEBUGMSG(DEBUG, "ccnl_app2relay on node %s (%d) requests content %s (chunk %d)\n", opp_info->node_name, opp_info->node_id, name, seqn);
 
 
     /* prepare content prefix
@@ -933,7 +933,7 @@ ccnl_lnk2relay(
     struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
     if (!opp_info) return -1;
 
-    DEBUGMSG(10, "ccnl_lnk2relay on node %s (%d) received %d bytes of data on netif %d from %s destined to %s \n",
+    DEBUGMSG(DEBUG, "ccnl_lnk2relay on node %s (%d) received %d bytes of data on netif %d from %s destined to %s \n",
             opp_info->node_name,
             opp_info->node_id,
             len, rx_netif_idx,
@@ -974,7 +974,7 @@ ccnl_ll_TX(
     struct ccnl_omnet_s *opp_info = (struct ccnl_omnet_s *) active_relay->aux;
     if (!opp_info) return;
 
-    DEBUGMSG(2, "ccnl_ll_TX on node %s (%d) sending %d bytes of data from %s destined to %s \n",
+    DEBUGMSG(DEBUG, "ccnl_ll_TX on node %s (%d) sending %d bytes of data from %s destined to %s \n",
             opp_info->node_name,
             opp_info->node_id,
             buf->datalen,
@@ -1025,7 +1025,7 @@ ccnl_app_RX(
 
     opp_relay2app(opp_info->opp_module, tmp, atoi(tmp2+1), (char*) c->content, c->contentlen);
 
-    DEBUGMSG(2, "ccnl_app_RX on node %s (%d) delivering %d bytes of content %s/%s \n",
+    DEBUGMSG(DEBUG, "ccnl_app_RX on node %s (%d) delivering %d bytes of content %s/%s \n",
             opp_info->node_name,
             opp_info->node_id,
             c->contentlen,
