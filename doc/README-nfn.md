@@ -28,7 +28,7 @@ In the component before the NFN marker there is an arbitrary Lambda expression.
 Furthermore it is possible to put an ICN name before the lambda expression.
 The entire name can be specified as:
 
-/&lt ICN name components&gt / lt Lambda expression&gt / NFN marker
+/ \<ICN name components\> / \<Lambda expression\> / NFN marker
 where the ICN name can consist of an arbitrary number of components.
 
 ## The call operation
