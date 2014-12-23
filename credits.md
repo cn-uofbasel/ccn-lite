@@ -1,4 +1,4 @@
-﻿Credits
+Credits
 =======
 
 release 0.2.0
@@ -28,7 +28,7 @@ Misa Jovanovic
 Rasa Liebfried
 Dario Maggi
 Christian Mehlis
-Frank Müller
+Frank M�ller
 Marko Obradovic
 Michaja Pressmar
 Mihai D. Rapcea
