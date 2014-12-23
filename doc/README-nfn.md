@@ -15,7 +15,7 @@ The operations are:
         * add p1 p2
         * sub p1 p2 
         * mult p1 p2
-	* ifelse p1 p2 p3
+        * ifelse p1 p2 p3
 
 where pX represent the X parameter of the function.
 
