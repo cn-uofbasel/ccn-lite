@@ -305,6 +305,9 @@ compile_string(void)
 #ifdef USE_NFN
         "NFN, "
 #endif
+#ifdef USE_LOGGING
+        "LOGGING, "
+#endif
 #ifdef USE_NFN_MONITOR
         "NFN_MONITOR, "
 #endif
