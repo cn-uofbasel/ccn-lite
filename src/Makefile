@@ -31,7 +31,7 @@ EXTMAKECLEAN=
 NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 
-PROGS = ccn-lite-simu
+PROGS = 
 INST_PROGS= ccn-lite-relay \
             ccn-lite-minimalrelay 
 
@@ -40,10 +40,12 @@ ifeq ($(uname_S),Linux)
     $(info *** Configuring for Linux ***)
     EXTLIBS += -lrt
     ifdef USE_KRNL
-    	$(info *** With Linux Kernel ***)
-    	PROGS += ccn-lite-lnxkernel 
+        $(info *** With Linux Kernel ***)
+        PROGS += ccn-lite-lnxkernel 
     endif
 
+    # Some investigation needed to compile ccn-lite-simu with OSX
+    PROGS += ccn-lite-simu
     CCNLCFLAGS += ${LINUX_CFLAGS}
 endif
 
