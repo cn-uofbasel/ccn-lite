@@ -7,23 +7,25 @@ The Lambda Calculus can be evaluated by using an abstract machine.
 Already the pure Lambda Calculus is Turing complete and can represent any computation.
 
 ## The Lambda Calculus in the Network
-To Simplify computation we extended the pure Lambda Calculus to support integer numbers, ICN names, strings and simple operations.
+To simplify computation we extended the pure Lambda Calculus to support integer numbers, ICN names, strings and simple operations.
 A string is always between two 'string'
 
 The operations are: 
+
         * add p1 p2
         * sub p1 p2 
         * mult p1 p2
-        * ifelse p1 p2 p3
+	* ifelse p1 p2 p3
+
 where pX represent the X parameter of the function.
 
-A user can send an interest packet with an computation inside the name and the NFN network will solve the computation. 
+A user can send an interest packet with a computation inside the name and the NFN network will solve the computation. 
 Thereby it is possible to use these operations as well as the Lambda Calculus itself.
 
 An interest packet that contains a computation consists of either two or more components. 
 The last component is always a marker. This marker tags a packet as NFN packet and by this marker it can be distinguish from a normal ICN packet.
 In the component before the NFN marker there is an arbitrary Lambda expression. 
-Futhermore it is possible to put an ICN name before the lambda expression.
+Furthermore it is possible to put an ICN name before the lambda expression.
 The entire name can be specified as:
 
 / <ICN name components> / <Lambda expression> / NFN marker
@@ -52,7 +54,7 @@ NFN is designed to optimize the location where a computation is executed.
 To do this NFN handles three different cases:
         * The data are stored in the cache.
         * The computation can be executed on the location where the data are stored.
-        * The computation can only be executed on the location where the function is stored (the function cannot be transfered over the network, e.g. for security reason)
+        * The computation can only be executed on the location where the function is stored (the function cannot be transferred over the network, e.g. for security reason)
 
 Additional only computations on data are forward into the network, since for other computation it usually is faster to compute them locally. 
 
@@ -68,11 +70,11 @@ Example:
 
         *NFN call: call 2 /functions/wordcount /data/dataset1
 
-        *Step one: try to route to a input parameter, which is an ICN name. Apply an abstraction to prepend the ICN name: /data/dataset1 (@x call /functions/wordcount x)
+        *Step one: try to route to an input parameter, which is an ICN name. Apply an abstraction to prepend the ICN name: /data/dataset1 (@x call /functions/wordcount x)
 
-        *Step two: if no result if found, try another input parameter. If there is no futher input parameter try to route to the function, by prepending the function name: /functions/wordcount (@x call x /data/dataset1)
+        *Step two: if no result if found, try another input parameter. If there is no further input parameter try to route to the function, by prepending the function name: /functions/wordcount (@x call x /data/dataset1)
 
-        *Step three: Try to compute the result locally by sending it to the local computeserver (if available): /COMPUTE/call 2 /functions/wordcount /data/dataset1 
+        *Step three: Try to compute the result locally by sending it to the local compute server (if available): /COMPUTE/call 2 /functions/wordcount /data/dataset1 
 
 The relay expects that the result of an interest is either returned from cache or computed on the fly. 
 If a relay receives an interest for a computation it checks if the result can be returned from cache. 
