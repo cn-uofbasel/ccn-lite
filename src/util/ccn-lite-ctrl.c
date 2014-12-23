@@ -580,7 +580,7 @@ getNDNTLVPrefix(unsigned char *data, int datalen){
     int contentlen = 0;
 
     if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
-        DEBUGMSG(99, "could not dehead\n");
+        DEBUGMSG(WARNING, "could not dehead\n");
         return 0;
     }
     
@@ -664,7 +664,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    DEBUGMSG(0, "NAME:%s\n", prefix_string);
+    DEBUGMSG(DEBUG, "NAME:%s\n", prefix_string);
 
     len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
 

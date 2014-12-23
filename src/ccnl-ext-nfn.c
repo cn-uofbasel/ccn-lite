@@ -60,17 +60,17 @@ ccnl_nfn_count_required_thunks(char *str)
         tok += 4;
         ++num;
     }
-    DEBUGMSG(99, "Number of required Thunks is: %d\n", num);
+    DEBUGMSG(DEBUG, "Number of required Thunks is: %d\n", num);
     return num;
 }
 
 void 
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
-    DEBUGMSG(49, "ccnl_nfn_continue_computation()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
     
     if(!config){
-        DEBUGMSG(49, "nfn_continue_computation: %d not found\n", configid);
+        DEBUGMSG(DEBUG, "nfn_continue_computation: %d not found\n", configid);
         return;
     }
 
@@ -85,7 +85,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         }
     }
     if(config->thunk && CCNL_NOW() > config->endtime){
-        DEBUGMSG(49, "NFN: Exit computation: timeout when resolving thunk\n");
+        DEBUGMSG(INFO, "NFN: Exit computation: timeout when resolving thunk\n");
         DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
         //Reply error!
         //config->thunk = 0;
@@ -101,7 +101,7 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
                                 struct ccnl_face_s *from,
                                 int suite)
 {
-    DEBUGMSG(49, "ccnl_nfn_nack_local_computation\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_nack_local_computation\n");
 
     ccnl_nfn(ccnl, prefix, from, NULL, NULL, suite, 1);
 }
@@ -113,7 +113,7 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
     int i = 0;
     struct ccnl_prefix_s *copy;
 
-    DEBUGMSG(49, "ccnl_nfn_thunk_already_computing()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_thunk_already_computing()\n");
 
     copy = ccnl_prefix_dup(prefix);
     // ccnl_nfn_remove_thunk_from_prefix(copy);
@@ -147,12 +147,12 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
 
-    DEBUGMSG(49, "ccnl_nfn(%p, %s, %p, config=%p)\n",
+    DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
              (void*)ccnl, ccnl_prefix_to_path(prefix),
              (void*)from, (void*)config);
 
     //    prefix = ccnl_prefix_dup(prefix);
-    DEBUGMSG(99, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
 
     if (config){
         suite = config->suite;
@@ -163,7 +163,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
     if (ccnl_nfn_thunk_already_computing(ccnl, prefix)) {
-        DEBUGMSG(9, "Computation for this interest is already running\n");
+        DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
         return -1;
     }
     if (ccnl_nfnprefix_isTHUNK(prefix))
@@ -183,7 +183,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
-        DEBUGMSG(99, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
+        DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK); 
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
@@ -218,7 +218,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
             len += sprintf(str+len,"/%.*s",prefix->complen[i],prefix->comp[i]);
     }
 
-    DEBUGMSG(99, "expr is <%s>\n", str);
+    DEBUGMSG(DEBUG, "expr is <%s>\n", str);
     //search for result here... if found return...
     if (thunk_request)
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
@@ -233,7 +233,7 @@ restart:
         struct ccnl_prefix_s *copy;
         struct ccnl_content_s *c;
 
-        DEBUGMSG(2,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
+        DEBUGMSG(INFO,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
                  res->datalen, res->data, res->datalen, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
             // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
@@ -296,7 +296,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
 
-    DEBUGMSG(99, "ccnl_nfn_RX_result()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_RX_result()\n");
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c)) {
         ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
@@ -306,7 +306,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_NACK
     for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
         //Check if prefix match and it is a nfn request
-        DEBUGMSG(99, "CMP: %d (match if zero), faceid: %d \n", 
+        DEBUGMSG(DEBUG, "CMP: %d (match if zero), faceid: %d \n", 
 			ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT),
 			i_it->from->faceid);
         if (!ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT) &&
@@ -314,7 +314,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             int faceid = -i_it->from->faceid;
 
             ccnl_content_add2cache(relay, c);
-	    DEBUGMSG(49, "Continue configuration for configid: %d with prefix: %s\n",
+	    DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                      -i_it->from->faceid, ccnl_prefix_to_path(c->name));
             i_it->corePropagates = 1;
             i_it = ccnl_interest_remove(relay, i_it);
