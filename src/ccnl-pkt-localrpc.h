@@ -33,25 +33,15 @@ typedef int(rpcBuiltinFct)(struct ccnl_relay_s *, struct ccnl_face_s *,
                            struct rdr_ds_s *);
 
 
-#define LRPC_PT_REQUEST          0x80
-#define LRPC_PT_REPLY            0x81
+#define LRPC_PT_REQUEST          0x81
+#define LRPC_PT_REPLY            0x82
 
 // #define LRPC_USERDEFINEDNAME  0x10..0x7f
 
-/*
-#define LRPC_LAMBDA              0x81
+#define LRPC_APPLICATION         0x2
 
-// data marshalling
-#define LRPC_SEQUENCE            0x82
-#define LRPC_FLATNAME            0x83
-#define LRPC_NONNEGINT           0x84
-#define LRPC_STR                 0x85
-#define LRPC_BIN                 0x86
-*/
-
-#define LRPC_APPLICATION         0x82
-#define LRPC_FLATNAME            0x1
-#define LRPC_NONNEGINT           0x2
+#define LRPC_FLATNAME            0x0
+#define LRPC_NONNEGINT           0x1
 #define LRPC_STR                 0x3
 
 #define LRPC_SEQUENCE            0x4
