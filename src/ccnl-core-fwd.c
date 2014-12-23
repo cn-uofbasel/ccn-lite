@@ -448,11 +448,6 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_interest_append_pending(i, from);
         }
     } else { // data packet with content -------------------------------------
-      {
-            int fd = open("t3.bin", O_WRONLY|O_CREAT|O_TRUNC);
-            write(fd, buf->data, buf->datalen);
-            close(fd);
-      }
         DEBUGMSG(DEBUG, "  reply=<%s>\n", ccnl_prefix_to_path(p));
 
 /*  mgmt messages for NDN?
