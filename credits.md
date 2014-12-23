@@ -1,20 +1,18 @@
 ﻿Credits
 =======
 
-release 0.2.0
+release 0.2.0 (Dec 2014)
 -------------
 
-### Code:  
-Stefan Braun  
-Pierre Imai  
-Basil Kohler  
-Thomas Meyer  
+### Code contributions:  
+Basil Kohler 
+Christian Mehlis 
 Massimo Monti  
 Christopher Scherb  
 Manolis Sifalakis  
 Christian F. Tschudin  
 
-### Review:  
+### Code and documentation feedback:  
 Samuel Bader  
 Christoph Betschart  
 Nore Derguti  
@@ -23,11 +21,8 @@ Wilson A. Eghonghon
 Daniel Federau  
 Ralph Gasser  
 Cedric Geissmann  
-Ernad Hodzic  
-Misa Jovanovic  
 Rasa Liebfried  
 Dario Maggi  
-Christian Mehlis  
 Frank Müller  
 Marko Obradovic  
 Michaja Pressmar  
@@ -36,16 +31,14 @@ Urs Schnurrenberger
 Thomas Simonsen  
 Alexander Stiemer  
 Ziba Tavassoli  
-Fabio Tea  
-Ilir Tullumi  
 Simon Wang  
 Mario Weber  
 
 
-release 0.1.0
+release 0.1.0 (Jul 2013)
 -------------
 
-### Code:  
+### Code contributions:  
 Stefan Braun  
 Pierre Imai  
 Basil Kohler  
@@ -54,5 +47,3 @@ Massimo Monti
 Christopher Scherb  
 Manolis Sifalakis  
 Christian F. Tschudin  
-
-### Review:
