@@ -30,7 +30,7 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/tes
 echo "** in 3 seconds, starting the dummy compute server"
 sleep 3
 
-python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
+python $CCNL_HOME/test/scripts/nfn/dummyanswer_ccnb.py & > /dev/null
 
 echo "** in 3 seconds, probing the NFN system"
 sleep 3

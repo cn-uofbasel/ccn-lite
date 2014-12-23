@@ -34,10 +34,11 @@
 
 // ----------------------------------------------------------------------
 
+unsigned char out[8*CCNL_MAX_PACKET_SIZE];
+
 int
 main(int argc, char *argv[])
 {
-    unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
@@ -108,6 +109,12 @@ usage:
             udp = "127.0.0.1/9695";
         break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        if(!udp)
+            udp = "127.0.0.1/6363";
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         if(!udp)
@@ -115,7 +122,9 @@ usage:
         break;
 #endif
         default:
-            udp = "127.0.0.1/6363";
+	    if(!udp)
+               udp = "127.0.0.1/6363";
+	    break;
         }
 
     if (!argv[optind]) 
@@ -187,7 +196,7 @@ usage:
         }
 */
 
-        if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
+        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un)) < 0) {
             perror("sendto");
             myexit(1);
         }
