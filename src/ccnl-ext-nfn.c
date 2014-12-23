@@ -1,0 +1,334 @@
+/*
+ * @f ccnl-ext-nfn.c
+ * @b CCN-lite, NFN related routines
+ *
+ * Copyright (C) 2014, Christopher Scherb, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2014-02-06 <christopher.scherb@unibas.ch>created 
+ */
+
+#ifdef USE_NFN
+
+#include "ccnl-core.h"
+#include "ccnl-ext-nfn.h"
+
+struct builtin_s *op_extensions;
+struct builtin_s bifs[];
+
+#include "ccnl-ext-nfncommon.c"
+#include "ccnl-ext-nfnparse.c"
+#include "ccnl-ext-nfnkrivine.c"
+#include "ccnl-ext-nfnops.c"
+
+void
+ZAM_init(void)
+{
+}
+
+struct configuration_s*
+ccnl_nfn_findConfig(struct configuration_s *config_list, int configid)
+{
+    struct configuration_s *config;
+
+    for (config = config_list; config; config = config->next)
+        if(config->configid == configid)
+            return config;
+
+    return NULL;
+}
+
+static int
+ccnl_nfn_count_required_thunks(char *str)
+{
+    int num = 0;
+    char *tok;
+    tok = str;
+    while((tok = strstr(tok, "call")) != NULL ){
+        tok += 4;
+        ++num;
+    }
+    DEBUGMSG(DEBUG, "Number of required Thunks is: %d\n", num);
+    return num;
+}
+
+void 
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
+    DEBUGMSG(TRACE, "ccnl_nfn_continue_computation()\n");
+    struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
+    
+    if(!config){
+        DEBUGMSG(DEBUG, "nfn_continue_computation: %d not found\n", configid);
+        return;
+    }
+
+    //update original interest prefix to stay longer...reenable if propagate=0 do not protect interests
+    struct ccnl_interest_s *original_interest;
+    for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
+        if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
+            original_interest->last_used = CCNL_NOW();
+            original_interest->retries = 0;
+            original_interest->from->last_used = CCNL_NOW();
+            break;
+        }
+    }
+    if(config->thunk && CCNL_NOW() > config->endtime){
+        DEBUGMSG(INFO, "NFN: Exit computation: timeout when resolving thunk\n");
+        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
+        //Reply error!
+        //config->thunk = 0;
+        return;
+    }
+    ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
+}
+
+void
+ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
+                                struct ccnl_buf_s *orig,
+                                struct ccnl_prefix_s *prefix,
+                                struct ccnl_face_s *from,
+                                int suite)
+{
+    DEBUGMSG(TRACE, "ccnl_nfn_nack_local_computation\n");
+
+    ccnl_nfn(ccnl, prefix, from, NULL, NULL, suite, 1);
+}
+
+int
+ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
+                                 struct ccnl_prefix_s *prefix)
+{
+    int i = 0;
+    struct ccnl_prefix_s *copy;
+
+    DEBUGMSG(TRACE, "ccnl_nfn_thunk_already_computing()\n");
+
+    copy = ccnl_prefix_dup(prefix);
+    // ccnl_nfn_remove_thunk_from_prefix(copy);
+    ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
+
+    for (i = 0; i < -ccnl->km->configid; ++i) {
+        struct configuration_s *config;
+
+        config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -i);
+        if (!config)
+            continue;
+        if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
+            free_prefix(copy);
+            return 1;
+        }  
+    }
+    free_prefix(copy);
+
+    return 0;
+}
+
+int 
+ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
+         struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+         struct configuration_s *config, struct ccnl_interest_s *interest,
+         int suite, int start_locally)
+{
+    int num_of_required_thunks = 0;
+    int thunk_request = 0;
+    struct ccnl_buf_s *res = NULL;
+    char str[CCNL_MAX_PACKET_SIZE];
+    int i, len = 0;
+
+    DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
+             (void*)ccnl, ccnl_prefix_to_path(prefix),
+             (void*)from, (void*)config);
+
+    //    prefix = ccnl_prefix_dup(prefix);
+    DEBUGMSG(DEBUG, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
+
+    if (config){
+        suite = config->suite;
+        thunk_request = config->fox_state->thunk_request;
+        goto restart; //do not do parsing thunks again
+    }
+
+    from->flags = CCNL_FACE_FLAGS_STATIC;
+
+    if (ccnl_nfn_thunk_already_computing(ccnl, prefix)) {
+        DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
+        return -1;
+    }
+    if (ccnl_nfnprefix_isTHUNK(prefix))
+        thunk_request = 1;
+
+
+    // Checks first if the interest has a routing hint and then searches for it locally.
+    // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
+    // Without this mechanism, there will be situations where several nodes "overtake" a computation
+    // applying the same strategy and, potentially, all executing it locally (after trying all arguments).
+    // TODO: this is not an elegant solution and should be improved on, because the clients cannot send a
+    // computation with a routing hint on which the network applies a strategy if the routable name
+    // does not exist (because each node will just forward it without ever taking it into an abstract machine).
+    // encoding the routing hint more explicitely as well as additonal information (e.g. already tried names) 
+    // could solve the problem. More generally speaking, additional state describing the exact situation will be required.
+    
+    if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
+        struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
+        copy->compcnt -= (1 + thunk_request);
+        DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK); 
+        if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
+            free_prefix(copy);
+            ccnl_interest_propagate(ccnl, interest);
+            return 0;
+        }
+        free_prefix(copy);
+        start_locally = 1;
+    }
+   
+    //put packet together
+#ifdef USE_SUITE_CCNTLV
+    if (prefix->suite == CCNL_SUITE_CCNTLV) {
+        len = prefix->complen[prefix->compcnt-1] - 4;
+        memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
+        str[len] = '\0';
+    } else
+#endif
+    {
+        len = prefix->complen[prefix->compcnt-1];
+        memcpy(str, prefix->comp[prefix->compcnt-1], len);
+        str[len] = '\0';
+    }
+    if (prefix->compcnt > 1)
+        len += sprintf(str + len, " ");
+    for (i = 0; i < prefix->compcnt-1; i++) {
+#ifdef USE_SUITE_CCNTLV
+        if (prefix->suite == CCNL_SUITE_CCNTLV)
+            len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
+        else
+#endif
+            len += sprintf(str+len,"/%.*s",prefix->complen[i],prefix->comp[i]);
+    }
+
+    DEBUGMSG(DEBUG, "expr is <%s>\n", str);
+    //search for result here... if found return...
+    if (thunk_request)
+        num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
+    
+    ++ccnl->km->numOfRunningComputations;
+restart:
+    res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
+                            num_of_required_thunks, &config, prefix, suite);
+
+    //stores result if computed      
+    if (res) {
+        struct ccnl_prefix_s *copy;
+        struct ccnl_content_s *c;
+
+        DEBUGMSG(INFO,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
+                 res->datalen, res->data, res->datalen, ccnl->km->numOfRunningComputations);
+        if (config && config->fox_state->thunk_request) {
+            // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
+            ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
+        }
+        copy = ccnl_prefix_dup(config->prefix);
+        c = ccnl_nfn_result2content(ccnl, &copy, res->data, res->datalen);
+        c->flags = CCNL_CONTENT_FLAGS_STATIC;
+
+        set_propagate_of_interests_to_1(ccnl, c->name);
+        ccnl_content_serve_pending(ccnl,c);
+        ccnl_content_add2cache(ccnl, c);
+        --ccnl->km->numOfRunningComputations;
+
+        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
+        ccnl_nfn_freeConfiguration(config);
+        ccnl_free(res);
+    }
+#ifdef USE_NACK
+    else if(config->local_done){
+        struct ccnl_content_s *nack;
+        nack = ccnl_nfn_result2content(ccnl, &config->prefix,
+                                       (unsigned char*)":NACK", 5);
+        ccnl_content_serve_pending(ccnl, nack);
+
+    }
+#endif
+
+    return 0;
+}
+
+struct ccnl_interest_s*
+ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                    int suite, struct ccnl_buf_s **buf,
+                    struct ccnl_prefix_s **p, int minsfx, int maxsfx)
+{
+    struct ccnl_interest_s *i;
+    struct ccnl_prefix_s *p2;
+
+    if (ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+        return 0;
+
+    p2 = ccnl_prefix_dup(*p);
+    i = ccnl_interest_new(ccnl, from, (*p)->suite, buf, p, minsfx, maxsfx);
+    i->corePropagates = 0; //do not forward interests for running computations
+    ccnl_interest_append_pending(i, from);
+    if (!i->corePropagates)
+        ccnl_nfn(ccnl, p2, from, NULL, i, suite, 0);
+    else {
+        free_prefix(p2);
+    }
+    return i;
+}
+
+
+int
+ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_content_s *c)
+{
+    struct ccnl_interest_s *i_it = NULL;
+    int found = 0;
+
+    DEBUGMSG(TRACE, "ccnl_nfn_RX_result()\n");
+#ifdef USE_NACK
+    if (ccnl_nfnprefix_contentIsNACK(c)) {
+        ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
+                                        from, c->name->suite);
+        return -1;
+    }
+#endif // USE_NACK
+    for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
+        //Check if prefix match and it is a nfn request
+        DEBUGMSG(DEBUG, "CMP: %d (match if zero), faceid: %d \n", 
+			ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT),
+			i_it->from->faceid);
+        if (!ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT) &&
+                                                i_it->from->faceid < 0) {
+            int faceid = -i_it->from->faceid;
+
+            ccnl_content_add2cache(relay, c);
+	    DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
+                     -i_it->from->faceid, ccnl_prefix_to_path(c->name));
+            i_it->corePropagates = 1;
+            i_it = ccnl_interest_remove(relay, i_it);
+            ccnl_nfn_continue_computation(relay, faceid, 0);
+            ++found;
+            //goto Done;
+        }
+        else
+            i_it = i_it->next;
+    }
+    return found > 0;
+}
+
+#endif //USE_NFN
+
+
+// eof

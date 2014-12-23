@@ -14,37 +14,41 @@ Module.symvers
 # Project files:
 
 # ccn-binaries
-ccn-lite-minimalrelay
-ccn-lite-relay
-ccn-lite-simu
+src/ccn-lite-minimalrelay
+src/ccn-lite-relay
+src/ccn-lite-simu
 
 # nfn-binaries
-ccn-lite-relay-nack
-ccn-nfn-relay
-ccn-nfn-relay-nack
-krivine
+src/ccn-lite-relay-nack
+src/ccn-nfn-relay
+src/ccn-nfn-relay-nack
 
 # util binaries
-util/ccn-lite-ccnb2xml
-util/ccn-lite-cryptoserver
-util/ccn-lite-ctrl
-util/ccn-lite-deF
-util/ccn-lite-mkC
-util/ccn-lite-mkF
-util/ccn-lite-mkI
-util/ccn-lite-peek
-util/ccn-lite-peekcomputation
-util/ccn-lite-pktdump
-util/ccn-lite-rpc
-
+src/util/ccn-lite-ccnb2xml
+src/util/ccn-lite-cryptoserver
+src/util/ccn-lite-ctrl
+src/util/ccn-lite-deF
+src/util/ccn-lite-localrpc
+src/util/ccn-lite-mkC
+src/util/ccn-lite-mkF
+src/util/ccn-lite-mkI
+src/util/ccn-lite-peek
+src/util/ccn-lite-peekcomputation
+src/util/ccn-lite-produce
+src/util/ccn-lite-fetch
+src/util/ccn-lite-pktdump
+src/util/ccn-lite-rpc
+src/util/ccn-lite-simplenfn
 
 # unit tests
 test/unit/prefix-cmp
+test/unit/unit
 
 # OSX:
 
 # contains debug symbols tables for Xcode
-*.dSYM 
+*.dSYM
+.DS_Store
 
 # vim:
 *.swp
@@ -52,7 +56,5 @@ test/unit/prefix-cmp
 # sublime:
 *.sublime-workspace
 *.sublime-project
-
-
 
 # eof
