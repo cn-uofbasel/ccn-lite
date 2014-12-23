@@ -607,6 +607,17 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
                                       &content, &contlen);
             break;
 #endif 
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV:
+            data = buf->data + skip;
+            datalen -= skip;
+            if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
+                                                       typ != IOT_TLV_Reply)
+                goto notacontent;
+            pkt = ccnl_iottlv_extract(buf->data + skip, &data, &datalen,
+                                      &prefix, NULL, &content, &contlen);
+            break;
+#endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             data = buf->data + skip;
