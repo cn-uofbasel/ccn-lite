@@ -188,13 +188,6 @@ usage:
                          &nonce, 
                          out, sizeof(out));
 
-/*
-        {
-            int fd = open("pkt.bin", O_CREAT | O_WRONLY);
-            write(fd, out, len);
-            close(fd);
-        }
-*/
 
         if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un)) < 0) {
             perror("sendto");
@@ -207,11 +200,6 @@ usage:
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;
             len = recv(sock, out, sizeof(out), 0);
-        {
-            int fd = open("pkt.bin", O_CREAT | O_WRONLY | O_TRUNC);
-            write(fd, out, len);
-            close(fd);
-        }
 
             DEBUGMSG(DEBUG, "received %d bytes\n", len);
 /*
