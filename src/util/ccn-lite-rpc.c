@@ -367,13 +367,12 @@ rpc_cli2rdr(char *cmd)
 int
 main(int argc, char *argv[])
 {
-    unsigned char request[64*1024], reply[64*1024];
-    int cnt, opt, reqlen, replen, sock = 0;
+    unsigned char request[64*1024], reply[64*1024], tmp[10];
+    int cnt, opt, reqlen, replen, sock = 0, switchlen;
     struct sockaddr sa;
-    char *udp = "127.0.0.1:6363", *ux = NULL;
+    char *udp = "127.0.0.1:6363", *ux = NULL, noreply = 0;
     float wait = 3.0;
     struct rdr_ds_s *expr;
-    char noreply = 0;
 
     srandom(time(NULL));
 
@@ -430,7 +429,7 @@ Usage:
         return -1;
 
     {
-        struct rdr_ds_s *request;
+        struct rdr_ds_s *req;
         struct rdr_ds_s *nonce;
         int n = random();
 
@@ -442,23 +441,35 @@ Usage:
         nonce->u.binlen = sizeof(int);
         nonce->nextinseq = expr;
 
-        request = calloc(1, sizeof(*request));
-        request->type = LRPC_PT_REQUEST;
-        request->flatlen = -1;
+        req = calloc(1, sizeof(*req));
+        req->type = LRPC_PT_REQUEST;
+        req->flatlen = -1;
         //        request->u.fct = expr;
-        request->aux = nonce;
+        req->aux = nonce;
 
 /*
         request->nextinseq = nonce;
         expr->nextinseq = nonce;
 */
 
-        expr = request;
+        expr = req;
     }
 
-    reqlen = ccnl_rdr_serialize(expr, request, sizeof(request));
 
-/*
+    reqlen = sizeof(tmp);
+    switchlen = ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &reqlen, tmp);
+    if (switchlen > 0)
+        memcpy(request, tmp+reqlen, switchlen);
+    else // this should not happen
+        switchlen = 0;
+
+    reqlen = ccnl_rdr_serialize(expr, request + switchlen,
+                                sizeof(request) - switchlen);
+    if (reqlen <= 0) {
+        DEBUGMSG(ERROR, "could no serialize\n");
+    } else
+        reqlen += switchlen;
+
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
 //    write(1, request, reqlen);
     {
@@ -466,7 +477,7 @@ Usage:
         write(fd, request, reqlen);
         close(fd);
     }
-*/
+
     srandom(time(NULL));
 
     if (ux) { // use UNIX socket
@@ -485,6 +496,7 @@ Usage:
     }
 
     for (cnt = 0; cnt < 3; cnt++) {
+        DEBUGMSG(DEBUG, "sending %d bytes\n", reqlen);
         if (sendto(sock, request, reqlen, 0, &sa, sizeof(sa)) < 0) {
             perror("sendto");
             myexit(1);
@@ -493,18 +505,25 @@ Usage:
             goto done;
 
         for (;;) { // wait for a content pkt (ignore interests)
+            int offs = 0;
+
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;
             replen = recv(sock, reply, sizeof(reply), 0);
-/*
-            fprintf(stderr, "received %d bytes\n", len);
-            if (len > 0)
-                fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
-*/
+
+            DEBUGMSG(DEBUG, "received %d bytes\n", replen);
+            if (replen > 0) {
+                DEBUGMSG(DEBUG, "  suite=%d\n",
+                         ccnl_pkt2suite(reply, replen, NULL));
+            }
+
             if (replen <= 0)
                 goto done;
-            if (*reply != LRPC_PT_REPLY) { // not a Reply pkt
-                DEBUGMSG(WARNING, "skipping non-Reply packet %d\n", *reply);
+            if (ccnl_pkt2suite(reply, replen, &offs) != CCNL_SUITE_LOCALRPC ||
+                                                reply[offs] != LRPC_PT_REPLY) {
+                // not a Reply pkt
+                DEBUGMSG(WARNING, "skipping non-Reply packet 0x%02x 0x%02x\n",
+                         *reply, reply[offs]);
                 continue;
             }
             write(1, reply, replen);

@@ -1428,7 +1428,8 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
     case CCNL_SUITE_LOCALRPC:
         if (format == 0) {
             indent("#   ", lev);
-            printf("%s NDN TLV format, local RPC (Dec 2014)\n#\n", forced);
+            printf("%s local RPC format (Dec 2014, with NDNTLV encoding)\n#\n",
+                   forced);
         }
         localrpc_201405(data, len, format == 1, out);
         break;

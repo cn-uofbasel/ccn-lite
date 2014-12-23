@@ -27,7 +27,9 @@ show the *encoding* rules:
 ```
 If Type_Val < 4 &&
    Length_Val < 64 &&
-   (Type_Val|Length_Val) != 0  then
+   (Type_Val|Length_Val) != 80 &&  // this is the "switch encoding" magic byte
+   (Type_Val|Length_Val) != 0      // this forces independent type and len enc
+then
 
   TYPE-LENGTH-PREFIX := BYTE
 

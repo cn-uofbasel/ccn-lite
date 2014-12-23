@@ -23,6 +23,7 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
+#define USE_SUITE_IOTTLV
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -124,19 +125,32 @@ main(int argc, char *argv[])
             switch (suite) {
 #ifdef USE_SUITE_CCNB
             case CCNL_SUITE_CCNB:
-                udp = "127.0.0.1/9695";
+		if(!udp) 
+                    udp = "127.0.0.1/9695";
                 break;
 #endif
 #ifdef USE_SUITE_CCNTLV
             case CCNL_SUITE_CCNTLV:
-                udp = "127.0.0.1/9695";
+		if(!udp) 
+                    udp = "127.0.0.1/9695";
+                break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+            case CCNL_SUITE_IOTTLV:
+		if(!udp) 
+                    udp = "127.0.0.1/6363";
                 break;
 #endif
 #ifdef USE_SUITE_NDNTLV
             case CCNL_SUITE_NDNTLV:
-                udp = "127.0.0.1/6363";
+		if(!udp) 
+                    udp = "127.0.0.1/6363";
                 break;
 #endif
+            default:
+		if(!udp) 
+	            udp = "127.0.0.1/6363";
+		break;
             }
             break;
         case 'u':
@@ -196,6 +210,12 @@ usage:
         isContent = ccntlv_isData;
         break;
 #endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        mkInterest = iottlv_mkRequest;
+        isContent = iottlv_isReply;
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         mkInterest = ndntlv_mkInterest;
@@ -231,7 +251,7 @@ usage:
                          &nonce, 
                          out, sizeof(out));
 
-        if (sendto(sock, out, len, 0, &sa, sizeof(sa)) < 0) {
+        if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, sizeof(struct sockaddr_un)) < 0) {
             perror("sendto");
             myexit(1);
         }
