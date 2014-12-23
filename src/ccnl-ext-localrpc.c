@@ -107,9 +107,10 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     struct ccnl_buf_s *pkt;
     struct rdr_ds_s *seq, *element;
-    int len;
+    int len, switchlen;
+    unsigned char tmp[10];
 
-    len = strlen(reason) + 50;
+    len = strlen(reason) + 50; // add some headroom
     if (content)
         len += ccnl_rdr_getFlatLen(content);
     pkt = ccnl_buf_new(NULL, len);
@@ -127,7 +128,16 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (content) {
         ccnl_rdr_seqAppend(seq, content);
     }
-    len = ccnl_rdr_serialize(seq, pkt->data, pkt->datalen);
+
+    len = sizeof(tmp);
+    switchlen = ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &len, tmp);
+    if (switchlen > 0)
+        memcpy(pkt->data, tmp+len, switchlen);
+    else // this should not happen
+        switchlen = 0;
+
+    len = ccnl_rdr_serialize(seq, pkt->data + switchlen,
+                             pkt->datalen - switchlen);
     ccnl_rdr_free(seq);
     if (len < 0) {
         ccnl_free(pkt);
@@ -135,8 +145,8 @@ ccnl_emit_RpcReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 //    fprintf(stderr, "%d bytes to return face=%p\n", len, from);
 
-    *(pkt->data) = LRPC_PT_REPLY;
-    pkt->datalen = len;
+    *(pkt->data + switchlen) = LRPC_PT_REPLY;
+    pkt->datalen = switchlen + len;
     ccnl_face_enqueue(relay, from, pkt);
 
     return 0;
@@ -302,8 +312,13 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     else
 #endif
 #ifdef CCNL_SUITE_CCNTLV
-    if (!strcmp(cp, "/rpc/const/encoding/ccntlv2014"))
+    if (!strcmp(cp, "/rpc/const/encoding/ccnx2014"))
         encoding = CCNL_SUITE_CCNTLV;
+    else
+#endif
+#ifdef CCNL_SUITE_IOTTLV
+    if (!strcmp(cp, "/rpc/const/encoding/iot2014"))
+        encoding = CCNL_SUITE_IOTTLV;
     else
 #endif
 #ifdef CCNL_SUITE_NDNTLV
@@ -338,6 +353,11 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
             ccnl_RX_ccntlv(relay, from, &ucp, &len);
+            break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV:
+            ccnl_RX_iottlv(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
