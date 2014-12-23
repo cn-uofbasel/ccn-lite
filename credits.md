@@ -5,8 +5,8 @@ release 0.2.0 (Dec 2014)
 -------------
 
 ### Code contributions:  
-Basil Kohler 
-Christian Mehlis 
+Basil Kohler  
+Christian Mehlis  
 Massimo Monti  
 Christopher Scherb  
 Manolis Sifalakis  
