@@ -471,7 +471,7 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         c = ccnl_content_new(relay, CCNL_SUITE_IOTTLV,
                              &buf, &p, NULL /* ppkd */ , content, contlen);
        if (c) { // CONFORM: Step 2 (and 3)
-/*
+
 #ifdef USE_NFN
             if (ccnl_nfnprefix_isNFN(c->name)) {
                 if (ccnl_nfn_RX_result(relay, from, c))
@@ -479,7 +479,7 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 DEBUGMSG(99, "no running computation found \n");
             }
 #endif
-*/
+
             if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
                 // CONFORM: "A node MUST NOT forward unsolicited data [...]"
                 DEBUGMSG(7, "  removed because no matching interest\n");
