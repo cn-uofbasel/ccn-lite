@@ -115,7 +115,9 @@ ccnl_debug_str2level(char *s)
 
 #endif // USE_LOGGING
 
+#ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
+#include "ccnl-ext-debug.h"
 void
 debug_memdump()
 {
@@ -134,6 +136,7 @@ debug_memdump()
     DEBUGMSG(DEBUG, "%s: @@@ memory dump ends\n", timestamp());
 }
 #endif //USE_DEBUG_MALLOC
+#endif //USE_DEBUG
 
 #endif //CCNL_EXT_LOGGING_C
 //eof
