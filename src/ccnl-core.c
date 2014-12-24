@@ -821,7 +821,6 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 #include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
 
 #include "ccnl-core-fwd.c"
-#include "ccnl-ext-localrpc.c"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
                            unsigned char**, int*);

@@ -92,6 +92,11 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 # define ccnl_is_fragment(d,l)  0
 #endif // USE_FRAG
 
+#ifdef USE_SUITE_LOCALRPC
+int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                     unsigned char **buf, int *buflen);
+#endif
+
 #ifdef USE_NACK
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                          struct ccnl_face_s *from, int suite);
