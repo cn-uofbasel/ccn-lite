@@ -22,11 +22,44 @@
 
 // ----------------------------------------------------------------------
 
+// content/data handling (common across all suites)
+void
+ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                       struct ccnl_content_s *c)
+{
+    if (!c)
+        return;
+     // CONFORM: Step 2 (and 3)
+#ifdef USE_NFN
+    if (ccnl_nfnprefix_isNFN(c->name)) {
+        if (ccnl_nfn_RX_result(relay, from, c))
+            return;
+        DEBUGMSG(VERBOSE, "no running computation found \n");
+    }
+#endif
+    if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
+        // CONFORM: "A node MUST NOT forward unsolicited data [...]"
+        DEBUGMSG(DEBUG, "  removed because no matching interest\n");
+        free_content(c);
+        return;
+    }
+    if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
+        DEBUGMSG(DEBUG, "  adding content to cache\n");
+        ccnl_content_add2cache(relay, c);
+    } else {
+        DEBUGMSG(DEBUG, "  content not added to cache\n");
+        free_content(c);
+    }
+}
+
+// ----------------------------------------------------------------------
+
 #ifdef USE_SUITE_CCNB
 
+// helper proc: work on a message, top level type is already stripped
 int
-ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                    unsigned char **data, int *datalen)
+ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+              unsigned char **data, int *datalen)
 {
     int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
     struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
@@ -34,7 +67,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = 0;
-    DEBUGMSG(DEBUG, "ccnl/ccnb forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
 
     buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
                             &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
@@ -123,35 +156,16 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             goto Done;
         }
 #endif /*USE_SIGNATURES*/
-        
+
         // CONFORM: Step 1:
         for (c = ccnl->contents; c; c = c->next)
-            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+            if (buf_equal(c->pkt, buf))
+                goto Skip; // content is dup
         c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB,
                              &buf, &p, &ppkd, content, contlen);
-        if (c) { // CONFORM: Step 2 (and 3)
-#ifdef USE_NFN
-            if (ccnl_nfnprefix_isNFN(c->name)) {
-                if (ccnl_nfn_RX_result(ccnl, from, c))
-                    goto Done;
-                DEBUGMSG(VERBOSE, "no running computation found \n");
-            }
-#endif
-            if (!ccnl_content_serve_pending(ccnl, c)) { // unsolicited content
-                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-                DEBUGMSG(DEBUG, "  removed because no matching interest\n");
-                free_content(c);
-                goto Skip;
-            }
-        if (ccnl->max_cache_entries != 0) { // it's set to -1 or a limit
-                DEBUGMSG(DEBUG, "  adding content to cache\n");
-                ccnl_content_add2cache(ccnl, c);
-            } else {
-                DEBUGMSG(DEBUG, "  content not added to cache\n");
-                free_content(c);
-            }
-        }
+        ccnl_fwd_handleContent(ccnl, from, c);
     }
+
 Skip:
     rc = 0;
 Done:
@@ -160,9 +174,10 @@ Done:
     return rc;
 }
 
+// loops over a frame until empty or error
 int
-ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-             unsigned char **data, int *datalen)
+ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                    unsigned char **data, int *datalen)
 {
     int rc = 0, num, typ;
     DEBUGMSG(DEBUG, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
@@ -174,7 +189,7 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         switch (num) {
         case CCN_DTAG_INTEREST:
         case CCN_DTAG_CONTENTOBJ:
-            rc = ccnl_ccnb_forwarder(relay, from, data, datalen);
+            rc = ccnl_ccnb_fwd(relay, from, data, datalen);
             continue;
 #ifdef USE_FRAG
         case CCNL_DTAG_FRAGMENT2012:
@@ -194,16 +209,15 @@ ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #endif // USE_SUITE_CCNB
 
-
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_CCNTLV
 
-// work on a message (buffer passed without the fixed header)
+// helper proc: work on a message, buffer is passed without the fixed header
 int
-ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      struct ccnx_tlvhdr_ccnx201412_s *hdrptr,
-                      unsigned char **data, int *datalen)
+ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                struct ccnx_tlvhdr_ccnx201412_s *hdrptr,
+                unsigned char **data, int *datalen)
 {
     int rc = -1;
     int keyidlen, contlen;
@@ -288,31 +302,11 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         // CONFORM: Step 1:
         for (c = relay->contents; c; c = c->next)
-            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+            if (buf_equal(c->pkt, buf))
+                goto Skip; // content is dup
         c = ccnl_content_new(relay, CCNL_SUITE_CCNTLV,
                              &buf, &p, NULL, content, contlen);
-        if (c) { // CONFORM: Step 2 (and 3)
-#ifdef USE_NFN
-            if (ccnl_nfnprefix_isNFN(c->name)) {
-                if (ccnl_nfn_RX_result(relay, from, c))
-                    goto Done;
-                DEBUGMSG(VERBOSE, "no running computation found \n");
-            }
-#endif
-            if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
-                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-                DEBUGMSG(DEBUG, "  removed because no matching interest\n");
-                free_content(c);
-                goto Skip;
-            }
-            if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-                DEBUGMSG(DEBUG, "  adding content to cache\n");
-                ccnl_content_add2cache(relay, c);
-            } else {
-                DEBUGMSG(DEBUG, "  content not added to cache\n");
-                free_content(c);
-            }
-        }
+        ccnl_fwd_handleContent(relay, from, c);
     }
 
 Skip:
@@ -324,48 +318,48 @@ Done:
     return rc;
 }
 
+// process one CCNTLV packet, return <0 if no bytes consumed or error
 int
-ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-               unsigned char **data, int *datalen)
+ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen)
 {
-    int rc = 0, endlen;
+    int payloadlen, hoplimit, endlen;
+    unsigned short hdrlen;
     unsigned char *end;
+    struct ccnx_tlvhdr_ccnx201412_s *hp;
+
     DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-next:
-    while (rc >= 0 && **data == CCNX_TLV_V0 &&
-                        *datalen >= sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
-        struct ccnx_tlvhdr_ccnx201412_s *hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
-        int hoplimit = -1;
-        unsigned short hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-        int payloadlen = ntohs(hp->pktlen) - hdrlen;
+    if (**data != CCNX_TLV_V0 ||
+                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s))
+        return -1;
 
-        // check if enough data to reconstruct packet header
-        if (hdrlen > *datalen)
+    hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
+    hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
+    if (hdrlen > *datalen) // not enough bytes for a full header
+        return -1;
+
+    payloadlen = ntohs(hp->pktlen) - hdrlen;
+    *data += hdrlen;
+    *datalen -= hdrlen;
+    if (payloadlen <= 0 ||
+              payloadlen > *datalen) // not enough data to reconstruct message
             return -1;
 
-        *data += hdrlen;
-        *datalen -= hdrlen;
+    end = *data + payloadlen;
+    endlen = *datalen - payloadlen;
 
-        // check if enough data to reconstruct message
-        if (payloadlen <= 0 || payloadlen > *datalen)
-            return -1;
+    hoplimit = hp->hoplimit - 1;
+    if ((hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
+                                           && hoplimit <= 0) { // drop it
+        *data = end;
+        *datalen = endlen;
+        return 0;
+    } else
+        hp->hoplimit = hoplimit;
 
-        end = *data + payloadlen;
-        endlen = *datalen - payloadlen;
-
-        hoplimit = hp->hoplimit - 1;
-        if (hoplimit <= 0 && (hp->pkttype == CCNX_PT_Interest ||
-                              hp->pkttype == CCNX_PT_NACK)) { // drop it
-            *data = end;
-            *datalen = endlen;
-            goto next;
-        } else
-            hp->hoplimit = hoplimit;
-        rc = ccnl_ccntlv_forwarder(relay, from, hp, data, datalen);
-    }
-    return rc;
+    return ccnl_ccntlv_fwd(relay, from, hp, data, datalen);
 }
 
 #endif // USE_SUITE_CCNTLV
@@ -374,9 +368,10 @@ next:
 
 #ifdef USE_SUITE_IOTTLV
 
+// process one IOTTLV packet, return <0 if no bytes consumed or error
 int
-ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-               unsigned char **data, int *datalen)
+ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen)
 {
     int rc=-1, contlen, len, typ;
     struct ccnl_buf_s *buf = 0;
@@ -462,33 +457,11 @@ ccnl_RX_iottlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         
         // CONFORM: Step 1:
         for (c = relay->contents; c; c = c->next)
-            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+            if (buf_equal(c->pkt, buf))
+                goto Skip; // content is dup
         c = ccnl_content_new(relay, CCNL_SUITE_IOTTLV,
                              &buf, &p, NULL /* ppkd */ , content, contlen);
-       if (c) { // CONFORM: Step 2 (and 3)
-
-#ifdef USE_NFN
-            if (ccnl_nfnprefix_isNFN(c->name)) {
-                if (ccnl_nfn_RX_result(relay, from, c))
-                    goto Done;
-                DEBUGMSG(WARNING, "no running computation found \n");
-            }
-#endif
-
-            if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
-                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-                DEBUGMSG(DEBUG, "  removed because no matching interest\n");
-                free_content(c);
-                goto Skip;
-            }
-            if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-                DEBUGMSG(DEBUG, "  adding content to cache\n");
-                ccnl_content_add2cache(relay, c);
-            } else {
-                DEBUGMSG(DEBUG, "  content not added to cache\n");
-                free_content(c);
-            }
-        }
+        ccnl_fwd_handleContent(relay, from, c);
     }
 
 Skip:
@@ -505,6 +478,7 @@ Done:
 
 #ifdef USE_SUITE_NDNTLV
 
+// process one NDNTLV packet, return <0 if no bytes consumed or error
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
@@ -621,31 +595,11 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         // CONFORM: Step 1:
         for (c = relay->contents; c; c = c->next)
-            if (buf_equal(c->pkt, buf)) goto Skip; // content is dup
+            if (buf_equal(c->pkt, buf))
+                goto Skip; // content is dup
         c = ccnl_content_new(relay, CCNL_SUITE_NDNTLV,
                              &buf, &p, NULL /* ppkd */ , content, contlen);
-        if (c) { // CONFORM: Step 2 (and 3)
-#ifdef USE_NFN
-            if (ccnl_nfnprefix_isNFN(c->name)) {
-                if (ccnl_nfn_RX_result(relay, from, c))
-                    goto Done;
-                DEBUGMSG(VERBOSE, "no running computation found \n");
-            }
-#endif
-            if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
-                // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-                DEBUGMSG(DEBUG, "  removed because no matching interest\n");
-                free_content(c);
-                goto Skip;
-            }
-            if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-                DEBUGMSG(DEBUG, "  adding content to cache\n");
-                ccnl_content_add2cache(relay, c);
-            } else {
-                DEBUGMSG(DEBUG, "  content not added to cache\n");
-                free_content(c);
-            }
-        }
+        ccnl_fwd_handleContent(relay, from, c);
     }
 
 Skip:
@@ -654,35 +608,6 @@ Done:
     free_prefix(p);
     free_3ptr_list(buf, nonce, ppkl);
 
-    return rc;
-}
-
-int
-ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-               unsigned char **data, int *datalen)
-{
-    int rc = 0;
-    DEBUGMSG(DEBUG, "ccnl_RX_ndntlv: %d bytes from face=%p (id=%d.%d)\n",
-             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
-
-    while (rc >= 0 && *datalen > 0) {
-        if (**data == NDN_TLV_Interest || **data == NDN_TLV_Data) {
-            rc = ccnl_ndntlv_forwarder(relay, from, data, datalen);
-            continue;
-        }
-/*
-#ifdef USE_FRAG
-        case CCNL_DTAG_FRAGMENT2012:
-            rc = ccnl_frag_RX_frag2012(ccnl_RX_ccnb, relay, from, data, datalen);
-            continue;
-        case CCNL_DTAG_FRAGMENT2013:
-            rc = ccnl_frag_RX_CCNx2013(ccnl_RX_ccnb, relay, from, data, datalen);
-            continue;
-#endif
-*/
-        DEBUGMSG(DEBUG, "  unknown datagram type 0x%02x\n", **data);
-        return -1;
-    }
     return rc;
 }
 

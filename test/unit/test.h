@@ -63,6 +63,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 
 #include "../../src/ccnl-ext-http.c"
 #include "../../src/ccnl-ext-mgmt.c"
+#include "../../src/ccnl-ext-localrpc.c"
 #include "../../src/ccnl-ext-nfn.c"
 #include "../../src/ccnl-ext-nfnmonitor.c"
 #include "../../src/ccnl-ext-sched.c"

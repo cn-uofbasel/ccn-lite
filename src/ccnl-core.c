@@ -809,9 +809,6 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
-#if defined(USE_SUITE_IOTTLV) | defined(USE_SUITE_LOCALRPC)
-# define NEEDS_PACKET_CRAFTING
-#endif
 #include "ccnl-pkt-switch.c"
 
 #include "ccnl-pkt-ccnb.c"
@@ -833,7 +830,6 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
-    unsigned char *base = data;
 
     DEBUGMSG(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
@@ -841,6 +837,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     if (!from)
         return;
 
+    // loop through all packets in the received frame (UDP, Ethernet etc)
     while (datalen > 0) {
         // work through explicit code switching
         while (!ccnl_switch_dehead(&data, &datalen, &enc))
@@ -851,7 +848,6 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
         if (suite < 0 || suite >= CCNL_SUITE_LAST) {
             DEBUGMSG(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
                      ifndx, datalen, *data, data - base);
-#include "fcntl.h"
             return;
         }
         dispatch = ccnl_core_RX_dispatch[suite];
@@ -874,19 +870,19 @@ void
 ccnl_core_init(void)
 {
 #ifdef USE_SUITE_CCNB
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_RX_ccnb;
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_ccnb_forwarder;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_RX_ccntlv;
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_RX_iottlv;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_RX_ndntlv;
+    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_iottlv_forwarder;
 #endif
 #ifdef USE_SUITE_LOCALRPC
-    ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_RX_localrpc;
+    ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_localrpc_exec;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder;
 #endif
 
 #ifdef USE_NFN
