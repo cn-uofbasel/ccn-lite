@@ -23,6 +23,8 @@
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
 
+#define NEEDS_PACKET_CRAFTING
+
 #include "ccnl-common.c"
 
 /*
@@ -345,7 +347,6 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     return 0;
 }
 
-
 struct rdr_ds_s*
 rpc_cli2rdr(char *cmd)
 {
@@ -444,17 +445,9 @@ Usage:
         req = calloc(1, sizeof(*req));
         req->type = LRPC_PT_REQUEST;
         req->flatlen = -1;
-        //        request->u.fct = expr;
         req->aux = nonce;
-
-/*
-        request->nextinseq = nonce;
-        expr->nextinseq = nonce;
-*/
-
         expr = req;
     }
-
 
     reqlen = sizeof(tmp);
     switchlen = ccnl_switch_prependCoding(CCNL_ENC_LOCALRPC, &reqlen, tmp);
@@ -472,11 +465,13 @@ Usage:
 
 //    fprintf(stderr, "%p len=%d flatlen=%d\n", expr, reqlen, expr->flatlen);
 //    write(1, request, reqlen);
+/*
     {
         int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
         write(fd, request, reqlen);
         close(fd);
     }
+*/
 
     srandom(time(NULL));
 
