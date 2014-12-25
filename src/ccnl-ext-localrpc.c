@@ -197,7 +197,7 @@ rpc_cacheAdd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              struct rdr_ds_s *nonce, struct rpc_exec_s *exec,
              struct rdr_ds_s *param)
 {
-    int cnt = 0;
+    int len, cnt = 0;
 
     DEBUGMSG(DEBUG, "rpc_cacheAdd\n");
 
@@ -216,6 +216,7 @@ rpc_cacheAdd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         /*
         ucp = (unsigned char*) param->aux;
         */
+        len = param->u.binlen;
 
         // not implemented yet ...
         // len = param->u.binlen;

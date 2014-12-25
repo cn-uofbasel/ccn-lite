@@ -825,6 +825,7 @@ void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
              int datalen, struct sockaddr *sa, int addrlen)
 {
+    unsigned char *base = data;
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
