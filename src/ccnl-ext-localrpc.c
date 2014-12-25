@@ -197,7 +197,7 @@ rpc_cacheAdd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              struct rdr_ds_s *nonce, struct rpc_exec_s *exec,
              struct rdr_ds_s *param)
 {
-    int len, cnt = 0;
+    int cnt = 0;
 
     DEBUGMSG(DEBUG, "rpc_cacheAdd\n");
 
@@ -216,9 +216,9 @@ rpc_cacheAdd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         /*
         ucp = (unsigned char*) param->aux;
         */
-        len = param->u.binlen;
 
         // not implemented yet ...
+        // len = param->u.binlen;
         DEBUGMSG(INFO, "not implemented: rpc_cacheAdd (%d bytes)\n", len);
         // first convert aux bits to ccnl_content_s ...
         // then call ccnl_content_add2cache();
@@ -347,22 +347,22 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         switch(encoding) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            ccnl_RX_ccnb(relay, from, &ucp, &len);
+            ccnl_ccnb_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-            ccnl_RX_ccntlv(relay, from, &ucp, &len);
+            ccnl_ccntlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
-            ccnl_RX_iottlv(relay, from, &ucp, &len);
+            ccnl_iottlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
-            ccnl_RX_ndntlv(relay, from, &ucp, &len);
+            ccnl_ndntlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
         default:
@@ -438,7 +438,7 @@ int
 ccnl_localrpc_handleReply(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                            struct rdr_ds_s *aux)
 {
-    DEBUGMSG(DEBUG, "ccnl_RX_handleReply %d %d\n",
+    DEBUGMSG(DEBUG, "ccnl_localrpc_handleReply %d %d\n",
              ccnl_rdr_getType(aux), ccnl_rdr_getType(aux->nextinseq));
     
     return 0;
@@ -455,7 +455,7 @@ ccnl_localrpc_handleRequest(struct ccnl_relay_s *relay,
     int ftype, ntype, rc = -1;
     rpcBuiltinFct *fct;
 
-    DEBUGMSG(DEBUG, "ccnl_RX_handleRequest face=%p\n", (void*) from);
+    DEBUGMSG(DEBUG, "ccnl_localrpc_handleRequest face=%p\n", (void*) from);
 
     nonce = req->aux;
     if (!nonce)
@@ -493,13 +493,13 @@ done:
 }
 
 int
-ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                 unsigned char **buf, int *buflen)
+ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   unsigned char **buf, int *buflen)
 {
     struct rdr_ds_s *a; // , *fct;
     int rc = 0, type;
 
-    DEBUGMSG(DEBUG, "ccnl_RX_localrpc: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG(DEBUG, "ccnl_localrpc_exec: %d bytes from face=%p (id=%d.%d)\n",
              *buflen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc == 0 && *buflen > 0) {

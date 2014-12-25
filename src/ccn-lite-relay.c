@@ -64,6 +64,7 @@
 #include "ccnl-core.c"
 
 #include "ccnl-ext-http.c"
+#include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-nfn.c"
 #include "ccnl-ext-nfnmonitor.c"

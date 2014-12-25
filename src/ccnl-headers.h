@@ -247,7 +247,6 @@ int ccnl_ccnb_data2uint(unsigned char *cp, int len);
 struct ccnl_buf_s *ccnl_ccnb_extract(unsigned char **data, int *datalen, int *scope, int *aok, int *min, int *max, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkd, unsigned char **content, int *contlen);
 int ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen, unsigned int *result, unsigned char *width);
 int ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-int ccnl_RX_ccnb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -275,8 +274,7 @@ int ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data, int d
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccntlv.c */
 #ifdef USE_SUITE_CCNTLV
-int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnx_tlvhdr_ccnx201412_s *hdrptr, unsigned char **data, int *datalen);
-int ccnl_RX_ccntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
+int ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -305,8 +303,6 @@ const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-int ccnl_RX_ndntlv(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-pkt-ndntlv.c */
@@ -348,7 +344,7 @@ int rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr
 int rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *nonce, struct rpc_exec_s *exec, struct rdr_ds_s *param);
 int ccnl_localrpc_handleReturn(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *rc, struct rdr_ds_s *aux);
 int ccnl_localrpc_handleApplication(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct rdr_ds_s *fexpr, struct rdr_ds_s *args);
-int ccnl_RX_localrpc(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);
+int ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **buf, int *buflen);
 void ccnl_rdr_free(struct rdr_ds_s *x);
 
 //---------------------------------------------------------------------------------------------------------------------------------------

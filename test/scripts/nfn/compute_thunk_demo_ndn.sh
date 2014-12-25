@@ -23,7 +23,7 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/tes
 
 sleep 3
 
-python $CCNL_HOME/test/scripts/nfn/dummyanswer.py & > /dev/null
+python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py & > /dev/null
 
 sleep 3
 

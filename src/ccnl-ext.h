@@ -20,7 +20,7 @@
  * 2013-03-30 created
  */
 
-#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES)
+#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES) || defined(USE_SUITE_IOTTLV) | defined(USE_SUITE_LOCALRPC)
 # define NEEDS_PACKET_CRAFTING
 #endif
 
@@ -91,6 +91,11 @@ int ccnl_is_fragment(unsigned char *data, int datalen);
 # define ccnl_frag_handle_fragment(r,f,data,len)    ccnl_buf_new(data,len)
 # define ccnl_is_fragment(d,l)  0
 #endif // USE_FRAG
+
+#ifdef USE_SUITE_LOCALRPC
+int ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                       unsigned char **buf, int *buflen);
+#endif
 
 #ifdef USE_NACK
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,

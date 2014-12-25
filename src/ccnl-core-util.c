@@ -26,6 +26,80 @@
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
+// collect the USE_* macros in a string
+
+const char*
+compile_string(void)
+{
+    static const char *cp = ""
+#ifdef USE_CCNxDIGEST
+        "CCNxDIGEST, "
+#endif
+#ifdef USE_DEBUG
+        "DEBUG, "
+#endif
+#ifdef USE_DEBUG_MALLOC
+        "DEBUG_MALLOC, "
+#endif
+#ifdef USE_ETHERNET
+        "ETHERNET, "
+#endif
+#ifdef USE_FRAG
+        "FRAG, "
+#endif
+#ifdef USE_HTTP_STATUS
+        "HTTP_STATUS, "
+#endif
+#ifdef USE_KITE
+        "KITE, "
+#endif
+#ifdef USE_LOGGING
+        "LOGGING, "
+#endif
+#ifdef USE_MGMT
+        "MGMT, "
+#endif
+#ifdef USE_NACK
+        "NACK, "
+#endif
+#ifdef USE_NFN
+        "NFN, "
+#endif
+#ifdef USE_NFN_MONITOR
+        "NFN_MONITOR, "
+#endif
+#ifdef USE_NFN_NSTRANS
+        "NFN_NSTRANS, "
+#endif
+#ifdef USE_SCHEDULER
+        "SCHEDULER, "
+#endif
+#ifdef USE_SIGNATURES
+        "SIGNATURES, "
+#endif
+#ifdef USE_SUITE_CCNB
+        "SUITE_CCNB, "
+#endif
+#ifdef USE_SUITE_CCNTLV
+        "SUITE_CCNTLV, "
+#endif
+#ifdef USE_SUITE_IOTTLV
+        "SUITE_IOTTLV, "
+#endif
+#ifdef USE_SUITE_LOCALRPC
+        "SUITE_LOCALRPC, "
+#endif
+#ifdef USE_SUITE_NDNTLV
+        "SUITE_NDNTLV, "
+#endif
+#ifdef USE_UNIXSOCKET
+        "UNIXSOCKET, "
+#endif
+        ;
+  return cp;
+}
+
+// ----------------------------------------------------------------------
 
 int
 ccnl_is_local_addr(sockunion *su)
