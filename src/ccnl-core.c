@@ -66,9 +66,17 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
     }
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
+
+#ifndef CCNL_LINUXKERNEL
+# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 0, 0, 0)
+#else
+# define PREFIX2STR(P) ccnl_prefix_to_path(P)
+#endif
     DEBUGMSG(VERBOSE, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s"
              " prefix=%s: %d (%p)\n", mode, nlen, p->compcnt, name->compcnt,
-             ccnl_prefix_to_path_detailed(name, 0, 0, 0), ccnl_prefix_to_path_detailed(p, 0, 0, 0), rc, md);
+             PREFIX2STR(name), PREFIX2STR(p), rc, md);
+#undef PREFIX2STR
+
     return rc;
 }
 

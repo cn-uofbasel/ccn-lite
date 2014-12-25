@@ -55,11 +55,9 @@
 
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
-#include "ccnl-os-time.c"
 #include "ccnl-ext-logging.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
-#define ccnl_print_stats(x,y)           do{}while(0)
 
 #include "ccnl-core.c"
 

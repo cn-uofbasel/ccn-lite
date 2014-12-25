@@ -28,27 +28,26 @@
 // #define USE_DEBUG_MALLOC
 // #define USE_FRAG
 #define USE_ETHERNET
+#define USE_LOGGING
 // #define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
+// #define USE_SIGNATURES
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
-// #define USE_SIGNATURES
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
-
-#include "ccnl-os-time.c"
+#include "ccnl-ext-logging.c"
 
 // ----------------------------------------------------------------------
 
-
-#define ccnl_print_stats(x,y)           do{}while(0)
 #define ccnl_app_RX(x,y)                do{}while(0)
 
 static struct ccnl_relay_s theRelay;
@@ -110,8 +109,8 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
-    DEBUGMSG(TRACE, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
-             ifc, ifc ? ifc->sock : NULL);
+    DEBUGMSG(TRACE, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
+             buf ? buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
         return;
