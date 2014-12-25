@@ -27,7 +27,6 @@
 #define CCNL_OS_TIME_C
 
 #include "ccnl-os-includes.h"
-#include "ccnl-ext-debug.c"
 
 long
 timevaldelta(struct timeval *a, struct timeval *b) {

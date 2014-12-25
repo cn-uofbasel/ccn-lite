@@ -685,11 +685,6 @@ One possibility is to not have a '/' before any nfn expression.
     return buf;
 }
 
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
-    return ccnl_prefix_to_path_detailed(pr, 1, 0, 0);
-}
-
 // ----------------------------------------------------------------------
 
 #ifdef NEEDS_PACKET_CRAFTING

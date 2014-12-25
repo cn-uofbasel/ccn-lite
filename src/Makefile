@@ -15,8 +15,8 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 CC?=gcc
 
 # general flags used on both linux and OSX
-# CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
-CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
+# CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux 
@@ -168,7 +168,8 @@ uninstall:
 
 clean:
 	${EXTMAKECLEAN}
-	rm -rf *~ *.o ${PROGS} node-*.log .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
+	rm -rf *~ *.o ${PROGS}
+	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf omnet/src/ccn-lite/*
 	rm -rf ccn-lite-omnet.tgz
 	make -C util clean
