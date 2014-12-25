@@ -34,6 +34,7 @@
 // #define USE_FRAG
 #define USE_ETHERNET
 #define USE_HTTP_STATUS
+#define USE_KITE
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN

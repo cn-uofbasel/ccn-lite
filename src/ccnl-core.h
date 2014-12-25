@@ -188,8 +188,9 @@ struct ccnl_ndntlv_id_s { // interest details
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
 
+// interest flags:
 #define CCNL_PIT_COREPROPAGATES    0x01
-#define CCNL_PIT_TRACED            0x02
+#define CCNL_PIT_TRACED            0x02 // Kite's "Trace Forward Table"
 
 struct ccnl_interest_s {
     struct ccnl_buf_s *pkt; // full datagram
@@ -205,6 +206,7 @@ struct ccnl_interest_s {
         struct ccnl_ccntlv_id_s ccntlv;
         struct ccnl_ndntlv_id_s ndntlv;
     } details;
+    struct ccnl_interest_s *tracing; // Kite's "Trace Name Table"
     char suite;
 };
 
