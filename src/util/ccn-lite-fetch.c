@@ -102,7 +102,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         if (ccnl_ccntlv_extract(hdrlen,
                                data, datalen,
                                prefix,
-                               0, 0, // keyid/keyidlen
+                               0, // keyid
                                lastchunknum,
                                content, contentlen) == NULL) {
             DEBUGMSG(WARNING, "Error in ccntlv_extract\n");

@@ -543,7 +543,7 @@ getCCNTLVPrefix(unsigned char *data, int datalen){
     if (ccnl_ccntlv_extract(hdrlen,
                            &data, &datalen,
                            &prefix,
-                           0, 0, // keyid/keyidlen
+                           0, // keyid buf
                            &lastchunknum,
                            &content, &contentlen) == NULL) {
         DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
