@@ -46,44 +46,11 @@ eth2ascii(unsigned char *eth)
     return buf;
 }
 
-/*
-char*
-ccnl_addr2ascii(sockunion *su)
-{
-    static char result[130];
-
-    switch (su->sa.sa_family) {
-#ifdef USE_ETHERNET
-        case AF_PACKET:
-        {
-             struct sockaddr_ll *ll = &su->eth;
-             strcpy(result, eth2ascii(ll->sll_addr));
-             sprintf(result+strlen(result), "/0x%04x",
-                     ntohs(ll->sll_protocol));
-        }
-            return result;
-#endif
-        case AF_INET:
-            sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
-                    ntohs(su->ip4.sin_port));
-            return result;
-//          return inet_ntoa(SA_CAST_IN(sa)->sin_addr);
-#ifdef USE_UNIXSOCKET
-        case AF_UNIX:
-            strcpy(result, su->ux.sun_path);
-            return result;
-#endif
-        default:
-            break;
-    }
-    return NULL;
-}
-*/
-
 char* ccnl_addr2ascii(sockunion *su);
-char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 
 // ----------------------------------------------------------------------
+
+#ifndef CCNL_LINUXKERNEL
 
 static void
 blob(unsigned char *cp, int len)
@@ -566,6 +533,7 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
     }
     return line;
 }
+#endif // !USE_LINUXKERNEL
 
 #endif // !USE_DEBUG
 

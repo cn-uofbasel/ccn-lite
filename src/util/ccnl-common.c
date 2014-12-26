@@ -69,6 +69,8 @@ int debug_level = WARNING;
 #define ccnl_free(p)                    free(p)
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
+#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
