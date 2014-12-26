@@ -21,7 +21,6 @@
  */
 
 // ----------------------------------------------------------------------
-
 // content/data handling (common across all suites)
 void
 ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -54,6 +53,64 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // ----------------------------------------------------------------------
 
+struct pkt_ccnb_s {
+    int scope, aok, minsfx, maxsfx;
+    struct ccnl_buf_s *nonce, *ppkd;
+};
+
+struct pkt_s {
+    struct ccnl_buf_s *buf;      // the packet's bytes
+    struct ccnl_prefix_s *pfx;   // prefix
+    unsigned char *content;      // raw content/payload bytes
+    int contlen;                 // len
+    union {
+        struct pkt_ccnb_s ccnb;
+    } p;                         // protocol specific fields
+};
+
+typedef int (*matchfct)(struct pkt_s *p, struct ccnl_content_s *c);
+
+// returns: 0=match, -1=otherwise
+int
+match_ccnb(struct pkt_s *p, struct ccnl_content_s *c)
+{
+    if (!ccnl_i_prefixof_c(p->pfx, p->p.ccnb.minsfx, p->p.ccnb.maxsfx, c))
+        return -1;
+    if (p->p.ccnb.ppkd && !buf_equal(p->p.ccnb.ppkd, c->details.ccnb.ppkd))
+        return -1;
+    // FIXME: should check stale bit in aok here
+    return 0;
+}
+
+// returns: -1=no match, 0=fullfilled
+int
+ccnl_fwd_answerFromCS(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      struct pkt_s *p, matchfct cmp)
+{
+    struct ccnl_content_s *c;
+
+    for (c = relay->contents; c; c = c->next) {
+        if (c->suite != p->pfx->suite)
+            continue;
+        if (cmp(p, c))
+            continue;
+
+        DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+                 (void *) c);
+        if (from->ifndx >= 0) {
+            ccnl_nfn_monitor(relay, from, c->name, c->content,
+                             c->contentlen);
+            ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+        } else {
+            ccnl_app_RX(relay, c);
+        }
+        return 0;
+    }
+    return -1;
+}
+
+// ----------------------------------------------------------------------
+
 #ifdef USE_SUITE_CCNB
 
 // helper proc: work on a message, top level type is already stripped
@@ -61,66 +118,57 @@ int
 ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
               unsigned char **data, int *datalen)
 {
-    int rc= -1, scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0;
+    int rc= -1;
     struct ccnl_interest_s *i = 0;
     struct ccnl_content_s *c = 0;
-    struct ccnl_prefix_s *p = 0;
-    unsigned char *content = 0;
+    struct pkt_s pkt;
+
     DEBUGMSG(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
 
-    buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
-                            &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
-    if (!buf) {
+    memset(&pkt, 0, sizeof(pkt));
+    pkt.p.ccnb.scope = 3;
+    pkt.p.ccnb.aok = 3;
+    pkt.p.ccnb.maxsfx = CCNL_MAX_NAME_COMP;
+
+    pkt.buf = ccnl_ccnb_extract(data, datalen, &pkt.p.ccnb.scope,
+                                &pkt.p.ccnb.aok, &pkt.p.ccnb.minsfx,
+                                &pkt.p.ccnb.maxsfx, &pkt.pfx,
+                                &pkt.p.ccnb.nonce, &pkt.p.ccnb.ppkd,
+                                &pkt.content, &pkt.contlen);
+    if (!pkt.buf) {
         DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
         goto Done;
     }
-    if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
+    if (pkt.p.ccnb.nonce && ccnl_nonce_find_or_append(ccnl, pkt.p.ccnb.nonce)) {
         DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
         goto Skip;
     }
-    if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
-        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
-        if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1)
+    if (pkt.buf->data[0] == 0x01 && pkt.buf->data[1] == 0xd2) { // interest
+        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt.pfx));
+        if (pkt.pfx->compcnt > 0 && pkt.pfx->comp[0][0] == (unsigned char) 0xc1)
             goto Skip;
-        if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
-            rc = ccnl_mgmt(ccnl, buf, p, from);
+        if (pkt.pfx->compcnt == 4 && !memcmp(pkt.pfx->comp[0], "ccnx", 4)) {
+            rc = ccnl_mgmt(ccnl, pkt.buf, pkt.pfx, from);
             goto Done;
         }
-        // CONFORM: Step 1:
-        if ( aok & 0x01 ) { // honor "answer-from-existing-content-store" flag
-            for (c = ccnl->contents; c; c = c->next) {
-                if (c->suite != CCNL_SUITE_CCNB) continue;
-                if (!ccnl_i_prefixof_c(p, minsfx, maxsfx, c)) continue;
-                if (ppkd && !buf_equal(ppkd, c->details.ccnb.ppkd)) continue;
-                // FIXME: should check stale bit in aok here
-                DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
-                         (void *) c);
-                if (from->ifndx >= 0) {
-                    ccnl_nfn_monitor(ccnl, from, c->name, c->content,
-                                     c->contentlen);
-                    ccnl_face_enqueue(ccnl, from, buf_dup(c->pkt));
-                } else {
-                    ccnl_app_RX(ccnl, c);
-                }
-                goto Skip;
-            }
-        }
+        if (!ccnl_fwd_answerFromCS(ccnl, from, &pkt, match_ccnb))
+            goto Skip;
         // CONFORM: Step 2: check whether interest is already known
         for (i = ccnl->pit; i; i = i->next) {
             if (i->suite == CCNL_SUITE_CCNB &&
-                !ccnl_prefix_cmp(i->prefix, NULL, p, CMP_EXACT) &&
-                i->details.ccnb.minsuffix == minsfx &&
-                i->details.ccnb.maxsuffix == maxsfx && 
-                ((!ppkd && !i->details.ccnb.ppkd) ||
-                   buf_equal(ppkd, i->details.ccnb.ppkd)) )
+                !ccnl_prefix_cmp(i->prefix, NULL, pkt.pfx, CMP_EXACT) &&
+                i->details.ccnb.minsuffix == pkt.p.ccnb.minsfx &&
+                i->details.ccnb.maxsuffix == pkt.p.ccnb.maxsfx && 
+                ((!pkt.p.ccnb.ppkd && !i->details.ccnb.ppkd) ||
+                   buf_equal(pkt.p.ccnb.ppkd, i->details.ccnb.ppkd)) )
                 break;
         }
         // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
-        if (!i && ccnl_nfnprefix_isNFN(p)) { // NFN PLUGIN CALL
+        if (!i && ccnl_nfnprefix_isNFN(pkt.pfx)) { // NFN PLUGIN CALL
             if (ccnl_nfn_RX_request(ccnl, from, CCNL_SUITE_CCNB,
-                                    &buf, &p, minsfx, maxsfx))
+                                    &pkt.buf, &pkt.pfx,
+                                    pkt.p.ccnb.minsfx, pkt.p.ccnb.maxsfx))
               // Since the interest msg may be required in future, it is not
               // possible to delete the interest/prefix here
               return rc;
@@ -128,15 +176,16 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #endif
         if (!i) {
             i = ccnl_interest_new(ccnl, from, CCNL_SUITE_CCNB,
-                                  &buf, &p, minsfx, maxsfx);
-            if (ppkd)
-                i->details.ccnb.ppkd = ppkd, ppkd = NULL;
+                                  &pkt.buf, &pkt.pfx,
+                                  pkt.p.ccnb.minsfx, pkt.p.ccnb.maxsfx);
+            if (pkt.p.ccnb.ppkd)
+                i->details.ccnb.ppkd = pkt.p.ccnb.ppkd, pkt.p.ccnb.ppkd = NULL;
             if (i) { // CONFORM: Step 3 (and 4)
                 DEBUGMSG(DEBUG, "  created new interest entry %p\n", (void *)i);
-                if (scope > 2)
+                if (pkt.p.ccnb.scope > 2)
                     ccnl_interest_propagate(ccnl, i);
             }
-        } else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
+        } else if (pkt.p.ccnb.scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
             DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
                      (void *) i);
             ccnl_interest_propagate(ccnl, i);
@@ -146,31 +195,31 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             ccnl_interest_append_pending(i, from);
         }
     } else { // content
-        DEBUGMSG(DEBUG, "  content=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG(DEBUG, "  content=<%s>\n", ccnl_prefix_to_path(pkt.pfx));
         
 #ifdef USE_SIGNATURES
-        if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
-                && !memcmp(p->comp[1], "crypto", 6) &&
+        if (pkt.pfx->compcnt == 2 && !memcmp(pkt.pfx->comp[0], "ccnx", 4)
+                && !memcmp(pkt.pfx->comp[1], "crypto", 6) &&
                 from == ccnl->crypto_face) {
-            rc = ccnl_crypto(ccnl, buf, p, from);
+            rc = ccnl_crypto(ccnl, pkt.buf, pkt.pfx, from);
             goto Done;
         }
 #endif /*USE_SIGNATURES*/
 
         // CONFORM: Step 1:
         for (c = ccnl->contents; c; c = c->next)
-            if (buf_equal(c->pkt, buf))
+            if (buf_equal(c->pkt, pkt.buf))
                 goto Skip; // content is dup
-        c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB,
-                             &buf, &p, &ppkd, content, contlen);
+        c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt.buf, &pkt.pfx,
+                             &pkt.p.ccnb.ppkd, pkt.content, pkt.contlen);
         ccnl_fwd_handleContent(ccnl, from, c);
     }
 
 Skip:
     rc = 0;
 Done:
-    free_prefix(p);
-    free_3ptr_list(buf, nonce, ppkd);
+    free_prefix(pkt.pfx);
+    free_3ptr_list(pkt.buf, pkt.p.ccnb.nonce, pkt.p.ccnb.ppkd);
     return rc;
 }
 
