@@ -1335,7 +1335,7 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
         cp = data + 12;
         len -= 12;
         // FIXME: should read fixed header length, add 4
-        ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL, NULL,
+        ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL,
                             &content, &contlen);
         break;
     case CCNL_SUITE_NDNTLV:

@@ -77,7 +77,7 @@ struct ccnl_buf_s*
 ccnl_ccntlv_extract(int hdrlen,
                     unsigned char **data, int *datalen,
                     struct ccnl_prefix_s **prefix,
-                    unsigned char **keyid, int *keyidlen,
+                    struct ccnl_buf_s **keyid,
                     unsigned int *lastchunknum,
                     unsigned char **content, int *contlen)
 {
@@ -91,8 +91,6 @@ ccnl_ccntlv_extract(int hdrlen,
 
     if (content)
         *content = NULL;
-    if (keyid)
-        *keyid = NULL;
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
     p->compcnt = 0;
