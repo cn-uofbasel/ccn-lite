@@ -109,7 +109,7 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
-    DEBUGMSG(TRACE, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
+    DEBUGMSG(DEBUG, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
              buf ? buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
@@ -263,7 +263,7 @@ ccnl_upcall_RX(struct work_struct *work)
 {
     struct ccnl_upcall_s *uc = (struct ccnl_upcall_s*) work;
 
-    DEBUGMSG(TRACE, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
+    DEBUGMSG(DEBUG, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
 
     ccnl_core_RX(&theRelay, uc->ifndx, uc->data, uc->datalen,
                  &uc->su.sa, sizeof(uc->su));
@@ -317,7 +317,7 @@ ccnl_udp_data_ready(struct sock *sk, int len)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(TRACE, "ccnl_udp_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_udp_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -329,7 +329,7 @@ ccnl_udp_data_ready(struct sock *sk, int len)
         su.sa.sa_family = AF_INET;
         su.ip4.sin_addr.s_addr = ((struct iphdr *)skb_network_header(skb))->saddr;
         su.ip4.sin_port = udp_hdr(skb)->source;
-        DEBUGMSG(TRACE, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(DEBUG, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data + sizeof(struct udphdr),
                                 skb->len - sizeof(struct udphdr));
@@ -346,7 +346,7 @@ ccnl_ux_data_ready(struct sock *sk, int len)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(TRACE, "ccnl_ux_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_ux_data_ready %d bytes\n", len);
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -360,7 +360,7 @@ ccnl_ux_data_ready(struct sock *sk, int len)
             memcpy(&su, u->addr->name, u->addr->len);
         else
             su.sa.sa_family = 0;
-        DEBUGMSG(TRACE, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(DEBUG, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
 
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
@@ -390,7 +390,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
     struct net_device *dev;
 
-    DEBUGMSG(TRACE, "ccnl_open_ethdev %s\n", devname);
+    DEBUGMSG(DEBUG, "ccnl_open_ethdev %s\n", devname);
 
     dev = dev_get_by_name(&init_net, devname);
     if (!dev)
@@ -444,7 +444,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     struct socket *s;
     int rc;
 
-    DEBUGMSG(TRACE, "ccnl_open_unixpath %s\n", path);
+    DEBUGMSG(DEBUG, "ccnl_open_unixpath %s\n", path);
 
     rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
     if (rc < 0) {
@@ -477,7 +477,7 @@ static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int suite = CCNL_SUITE_DEFAULT;
 static int u = 0; // u = CCN_UDP_PORT?
-static int v = 0;
+static char *v = NULL;
 static char *p = NULL;
 static char *k = NULL;
 static char *s = NULL;
@@ -496,7 +496,7 @@ MODULE_PARM_DESC(s, "suite (0=ccnb, 1=ccntlv, 2=ndntlv)");
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
 
-module_param(v, int, 0);
+module_param(v, charp, 0);
 MODULE_PARM_DESC(v, "verbosity level");
 
 module_param(k, charp, 0);
@@ -515,8 +515,14 @@ static int __init
 ccnl_init(void)
 {
     struct ccnl_if_s *i;
-    if (v >= 0)
-        debug_level = v;
+
+    if (isdigit(v[0])) {
+        debug_level = v[0] - '0';
+        v++;
+        while (isdigit(*v))
+            debug_level = 10 * debug_level + *(v++) - '0';
+    } else
+        debug_level = ccnl_debug_str2level(v);
 
     suite = ccnl_str2suite(s);
     if (suite < 0 || suite >= CCNL_SUITE_LAST)
@@ -528,8 +534,8 @@ ccnl_init(void)
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
-                 "u=%d, v=%d, x=%s\n",
+    DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s, "
+                 "u=%d, v=%s, x=%s\n",
              c, e, k, p, s, u, v, x);
 
 #ifdef USE_SUITE_CCNB
