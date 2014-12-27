@@ -709,6 +709,8 @@ One possibility is to not have a '/' before any nfn expression.
     return buf;
 }
 
+#endif // CCNL_LINUXKERNEL
+
 // ----------------------------------------------------------------------
 
 #ifdef NEEDS_PACKET_CRAFTING
@@ -823,8 +825,6 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // CCNL_LINUXKERNEL
 
 #endif // CCNL_CORE_UTIL_H
 // eof
