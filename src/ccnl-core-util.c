@@ -118,6 +118,8 @@ ccnl_is_local_addr(sockunion *su)
 int
 ccnl_str2suite(char *cp)
 {
+    if (!cp)
+        return -1;
 #ifdef USE_SUITE_CCNB
     if (!strcmp(cp, "ccnb"))
         return CCNL_SUITE_CCNB;
@@ -157,6 +159,28 @@ ccnl_suite2str(int suite)
         return "ndn2013";
 #endif
     return "?";
+}
+
+int
+ccnl_suite2defaultPort(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return NDN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return NDN_UDP_PORT;
+#endif
+    return NDN_UDP_PORT;
 }
 
 // ----------------------------------------------------------------------

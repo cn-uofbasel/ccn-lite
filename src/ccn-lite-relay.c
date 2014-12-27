@@ -750,27 +750,11 @@ usage:
         }
     }
 
-#define setPorts(PORT)  if (udpport < 0) udpport = PORT; \
-                        if (httpport < 0) httpport = PORT
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-#endif
-    default:
-        setPorts(NDN_UDP_PORT);
-        break;
-    }
+    opt = ccnl_suite2defaultPort(suite);
+    if (udpport < 0)
+        udpport = opt;
+    if (httpport < 0)
+        httpport = opt;
 
     ccnl_core_init();
 
