@@ -420,16 +420,15 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
         return NULL;
     }
 
-    DEBUGMSG(INFO, "UDP socket is %p\n", s);
-
     sin->sin_family = AF_INET;
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
     sin->sin_port = htons(port);
     rc = s->ops->bind(s, (struct sockaddr*) sin, sizeof(*sin));
     if (rc < 0) {
-        DEBUGMSG(ERROR, "Error %d binding UDP socket\n", rc);
+        DEBUGMSG(ERROR, "Error %d binding UDP socket (port %d)\n", rc, port);
         goto Bail;
     }
+    DEBUGMSG(INFO, "UDP port %d opened, socket is %p\n", port, s);
 
     return s;
 Bail:
@@ -491,7 +490,7 @@ module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
 
 module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (0=ccnb, 1=ccntlv, 2=ndntlv)");
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
@@ -538,18 +537,8 @@ ccnl_init(void)
                  "u=%d, v=%s, x=%s\n",
              c, e, k, p, s, u, v, x);
 
-#ifdef USE_SUITE_CCNB
-    if (suite == CCNL_SUITE_CCNB) {
-        if (u < 0)
-            u = CCN_UDP_PORT;
-    }
-#endif
-#ifdef USE_SUITE_NDNTLV
-    if (suite == CCNL_SUITE_NDNTLV) {
-        if (u < 0)
-            u = NDN_UDP_PORT;
-    }
-#endif
+    if (u <= 0)
+        u = ccnl_suite2defaultPort(suite);
 
     ccnl_core_init();
     theRelay.max_cache_entries = c;

@@ -494,7 +494,7 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
     h->fname = (char *) fn;
     h->lineno = lno;
     h->size = s;
-    h->tstamp = strdup(tstamp);
+    h->tstamp = strdup((const char*)tstamp);
     /*
     if (s == 32) fprintf(stderr, "+++ s=%d %p at %s:%d\n", s,
                          (void*)(((unsigned char *)h) + sizeof(struct mhdr)),

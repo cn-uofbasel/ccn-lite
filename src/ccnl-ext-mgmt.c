@@ -114,6 +114,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     int it, size = CCNL_MAX_PACKET_SIZE/2;
     int numPackets = len/(size/2) + 1;
+
+    DEBUGMSG(DEBUG, "ccnl_mgmt_send_return_split %d bytes, %d packet(s)\n",
+             len, numPackets);
     
     for(it = 0; it < numPackets; ++it){
         unsigned char *buf2;
@@ -124,9 +127,12 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(it == numPackets - 1) {
             len4 += ccnl_ccnb_mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
         }
+        len5 = len - it * packetsize;
+        if (len5 > packetsize)
+            len5 = packetsize;
         len4 += ccnl_ccnb_mkBlob(packet+len4, CCN_DTAG_CONTENTDIGEST,
                                  CCN_TT_DTAG, (char*) buf + it*packetsize,
-                                 packetsize);
+                                 len5);
         packet[len4++] = 0;
         
 //#ifdef USE_SIGNATURES
@@ -143,7 +149,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             //send back the first part,
             //store the other parts in cache, after checking the pit
             buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
-            len5 = ccnl_ccnb_mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+            len5 = ccnl_ccnb_mkHeader(buf2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
             memcpy(buf2+len5, packet, len4);
             len5 +=len4;
             buf2[len5++] = 0; // end-of-interest
@@ -151,6 +157,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             
             if(it == 0){
                 struct ccnl_buf_s *retbuf;
+                DEBUGMSG(TRACE, "  enqueue %d %d bytes\n", len4, len5);
                 retbuf = ccnl_buf_new((char *)buf2, len5);
                 ccnl_face_enqueue(ccnl, from, retbuf); 
             }
@@ -1076,7 +1083,7 @@ ccnl_mgmt_destroyface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 //    unsigned char contentobj[2000];
 //    unsigned char faceinst[2000];
 
-    DEBUGMSG(TRACE, "ccnl_mgmt_destroyface\n");
+    DEBUGMSG(DEBUG, "ccnl_mgmt_destroyface\n");
     action = faceid = NULL;
 
     buf = prefix->comp[3];
