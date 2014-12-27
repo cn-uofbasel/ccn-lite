@@ -29,7 +29,7 @@
 // #define USE_FRAG
 #define USE_ETHERNET
 #define USE_LOGGING
-// #define USE_MGMT
+#define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER

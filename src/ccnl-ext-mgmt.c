@@ -41,22 +41,85 @@ unsigned char out1[2000], out2[1000], out3[500];
 
 // ----------------------------------------------------------------------
 
-int 
+int
+get_num_faces(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
+    
+    while (fac) {
+        ++num;
+        fac = fac->next;
+    }
+    return num;
+}
+
+int
+get_num_fwds(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
+    
+    while (fwd) {
+        ++num;
+        fwd = fwd->next;
+    }
+    return num;
+}
+
+int
+get_num_interface(void *p)
+{
+    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
+    return top->ifcount;
+}
+
+int
+get_num_interests(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
+    
+    while (itr) {
+        ++num;
+        itr = itr->next;
+    }
+    return num;
+}
+
+int
+get_num_contents(void *p)
+{
+    int num = 0;
+    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
+    struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
+    
+    while (con) {
+        ++num;
+        con = con->next;
+    }
+    return num;
+}
+
+// ----------------------------------------------------------------------
+
+int
 ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
                 int len, unsigned char *buf)
 {
     
-    int it;
-    int size = CCNL_MAX_PACKET_SIZE/2;
+    int it, size = CCNL_MAX_PACKET_SIZE/2;
     int numPackets = len/(size/2) + 1;
     
     for(it = 0; it < numPackets; ++it){
-      //        int id = -it; 
-        
-        int packetsize = size/2;
+        unsigned char *buf2;
+        int packetsize = size/2, len4 = 0, len5;
         unsigned char *packet = (unsigned char*) ccnl_malloc(sizeof(char)*packetsize * 2);
-        int len4 = 0;
+
         len4 += ccnl_ccnb_mkHeader(packet+len4, CCNL_DTAG_FRAG, CCN_TT_DTAG); 
         if(it == numPackets - 1) {
             len4 += ccnl_ccnb_mkStrBlob(packet+len4, CCN_DTAG_ANY, CCN_TT_DTAG, "last");
@@ -79,9 +142,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
             //send back the first part,
             //store the other parts in cache, after checking the pit
-            unsigned char *buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
-            int len5 = 0;
-            len5 += ccnl_ccnb_mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
+            buf2 = ccnl_malloc(CCNL_MAX_PACKET_SIZE*sizeof(char));
+            len5 = ccnl_ccnb_mkHeader(buf2+len5, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // content
             memcpy(buf2+len5, packet, len4);
             len5 +=len4;
             buf2[len5++] = 0; // end-of-interest
@@ -1524,7 +1586,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (num==0 && typ==0)
             break; // end
         extractStr(h, CCNL_DTAG_SUITE);
-        suite = atoi((char *)h);
+        suite = strtol((const char*)h, NULL, 0);
         break;
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
     }
@@ -1552,12 +1614,17 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if(h)ccnl_free(h);
     //Reply MSG END
 
-    struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
-    struct ccnl_interest_s *interest = ccnl_interest_new(ccnl, from, suite, &buffer, &prefix_new, 0, 1);
-    
-    if(!interest) return 0;
-    //Send interest to from!
-    ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
+    {
+        struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
+        struct ccnl_interest_s *interest;
+
+        interest = ccnl_interest_new(ccnl, from, suite, &buffer,
+                                     &prefix_new, 0, 1);
+        if (!interest)
+            return 0;
+        //Send interest to from!
+        ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
+    }
 
 Bail:
     return 0;   

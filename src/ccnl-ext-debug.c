@@ -50,8 +50,6 @@ char* ccnl_addr2ascii(sockunion *su);
 
 // ----------------------------------------------------------------------
 
-#ifndef CCNL_LINUXKERNEL
-
 static void
 blob(unsigned char *cp, int len)
 {
@@ -285,20 +283,6 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
     return 1;
 }
 
-int 
-get_num_faces(void *p)
-{
-    int num = 0;
-    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
-    
-    while (fac) {
-        ++num;
-        fac = fac->next;
-    }
-    return num;
-}
-
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
                int *ifndx, int *flags, char **peer, int *type, char **frag)
@@ -340,20 +324,6 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
     return line;
 }
 
-int 
-get_num_fwds(void *p)
-{
-    int num = 0;
-    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
-    
-    while (fwd) {
-        ++num;
-        fwd = fwd->next;
-    }
-    return num;
-}
-
 int
 get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, 
         int *suite, int *prefixlen, char **prefix)
@@ -377,13 +347,6 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
         ++line; 
     }
     return line;
-}
-
-int 
-get_num_interface(void *p)
-{
-    struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
-    return top->ifcount;
 }
 
 int
@@ -421,20 +384,6 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
     return top->ifcount;
 }
 
-
-int 
-get_num_interests(void *p)
-{
-    int num = 0;
-    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
-    
-    while (itr) {
-        ++num;
-        itr = itr->next;
-    }
-    return num;
-}
 
 int
 get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
@@ -496,20 +445,6 @@ get_pendint_dump(int lev, void *p, char **out){
     return line;
 }
 
-int 
-get_num_contents(void *p)
-{
-    int num = 0;
-    struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
-    struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
-    
-    while (con) {
-        ++num;
-        con = con->next;
-    }
-    return num;
-}
-
 int
 get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         int *last_use, int *served_cnt, int *prefixlen, char **prefix){
@@ -533,7 +468,6 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
     }
     return line;
 }
-#endif // !USE_LINUXKERNEL
 
 #endif // !USE_DEBUG
 
