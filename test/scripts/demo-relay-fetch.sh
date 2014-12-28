@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# demo-relay-udp.sh -- test/demo for ccn-lite: CCNx relaying via UDP sockets
-USAGE="usage: sh demo-relay.sh <SUITE[ccnb,ccnx2014,ndn2013]> <CON[udp,ux]> <USEKRNL[true,false]"
+# demo-relay-fetch.sh -- test/demo for ccn-lite: CCNx relaying
+USAGE="usage: sh demo-relay-fetch.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE= ccnb, ccnx2014, iot2014, ndn2013\n CHANNEL= udp, ux\n KERNELMODULE= true, false"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all' in the src/ directory"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME/src"
 
@@ -46,6 +46,11 @@ elif [ $SUITE = "ccnx2014" ]
 then
     DIR="ccntlv"
     FWD="ccnx"
+    FNAME="chunked"
+elif [ $SUITE = "iot2014" ] 
+then
+    DIR="iottlv"
+    FWD="iot"
     FNAME="chunked"
 elif [ $SUITE = "ndn2013" ] 
 then
@@ -112,7 +117,7 @@ else
 fi
 sleep 1
 FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
-echo $FACEID
+echo faceid=$FACEID
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # starting relay B, with content loading

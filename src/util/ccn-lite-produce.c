@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
  
 #define USE_SIGNATURES
@@ -185,6 +186,9 @@ Usage:
         case CCNL_SUITE_CCNTLV: 
             strcpy(fileext, "ccntlv");
             break;
+        case CCNL_SUITE_IOTTLV:
+            strcpy(fileext, "iottlv");
+            break;
         case CCNL_SUITE_NDNTLV:
             strcpy(fileext, "ndntlv");
             break;
@@ -203,6 +207,7 @@ Usage:
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
+
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
@@ -211,6 +216,13 @@ Usage:
                                                            &offs, 
                                                            NULL, // int *contentpos
                                                            out);
+            break;
+        case CCNL_SUITE_IOTTLV:
+            ccnl_iottlv_prependReply(name, (unsigned char *) chunk_buf,
+                                     chunk_len, &offs, NULL,
+                                     is_last ? &chunknum : NULL, out);
+            ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, out);
+            contentlen = CCNL_MAX_PACKET_SIZE - offs;
             break;
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name, 
@@ -226,7 +238,8 @@ Usage:
         }
 
         if (outdirname) {
-            DEBUGMSG(INFO, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+//            DEBUGMSG(INFO, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
 

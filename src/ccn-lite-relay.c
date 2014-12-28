@@ -595,16 +595,20 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV:
-            // ccntlv_extract expects the data pointer 
-            // at the start of the message. Move past the fixed header.
+        case CCNL_SUITE_CCNTLV: {
+            int hdrlen;
             data = buf->data + skip;
-            datalen -= 8 + skip;
-            data += 8;
-            pkt = ccnl_ccntlv_extract(8, // hdrlen
+            datalen -=  skip;
+            // ccntlv_extract expects the data pointer 
+            // at the start of the message. Move past the fixed header:
+            hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+            data += hdrlen;
+            datalen -= hdrlen;
+            pkt = ccnl_ccntlv_extract(hdrlen,
                                       &data, &datalen, &prefix, 0, 0,
                                       &content, &contlen);
             break;
+        }
 #endif 
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
@@ -750,27 +754,11 @@ usage:
         }
     }
 
-#define setPorts(PORT)  if (udpport < 0) udpport = PORT; \
-                        if (httpport < 0) httpport = PORT
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-#endif
-    default:
-        setPorts(NDN_UDP_PORT);
-        break;
-    }
+    opt = ccnl_suite2defaultPort(suite);
+    if (udpport < 0)
+        udpport = opt;
+    if (httpport < 0)
+        httpport = opt;
 
     ccnl_core_init();
 
