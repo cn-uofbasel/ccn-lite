@@ -316,6 +316,10 @@ ccnl_iottlv_prependName(struct ccnl_prefix_s *name,
 
     int oldoffset = *offset, cnt;
 
+    if (name->chunknum) {
+        DEBUGMSG(ERROR, "writing IOT2014 name: chunk number not supported\n");
+    }
+
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
         if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,

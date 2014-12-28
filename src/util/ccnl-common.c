@@ -222,7 +222,7 @@ int ccntlv_isData(unsigned char *buf, int len)
 
     if (pktlen < len) {
         DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
-                len, pktlen);
+                 pktlen, len);
         return -1;
     }
     buf += hdrlen;

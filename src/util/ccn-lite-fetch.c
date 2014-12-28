@@ -89,19 +89,16 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
-        *datalen -= 8;
-        *data += 8;
-        int hdrlen = 8;
+        int hdrlen;
 
-        // TODO: return -1 for non-content-objects
         if (ccntlv_isData(*data, *datalen) < 0) {
             DEBUGMSG(WARNING, "Received non-content-object\n");
             return -1;
         }
-
-        if (ccnl_ccntlv_extract(hdrlen,
-                               data, datalen,
-                               prefix,
+        hdrlen = ccnl_ccntlv_getHdrLen(*data, *datalen);
+        *data += hdrlen;
+        *datalen -= hdrlen;
+        if (ccnl_ccntlv_extract(hdrlen, data, datalen, prefix,
                                0, 0, // keyid/keyidlen
                                lastchunknum,
                                content, contentlen) == NULL) {
