@@ -595,16 +595,20 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV:
-            // ccntlv_extract expects the data pointer 
-            // at the start of the message. Move past the fixed header.
+        case CCNL_SUITE_CCNTLV: {
+            int hdrlen;
             data = buf->data + skip;
-            datalen -= 8 + skip;
-            data += 8;
-            pkt = ccnl_ccntlv_extract(8, // hdrlen
+            datalen -=  skip;
+            // ccntlv_extract expects the data pointer 
+            // at the start of the message. Move past the fixed header:
+            hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+            data += hdrlen;
+            datalen -= hdrlen;
+            pkt = ccnl_ccntlv_extract(hdrlen,
                                       &data, &datalen, &prefix, 0, 0,
                                       &content, &contlen);
             break;
+        }
 #endif 
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:

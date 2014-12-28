@@ -30,7 +30,7 @@
 Note:
   For a CCNTLV prefix, we store the name components INCLUDING
   the TL. This is different for CCNB and NDNTLV where we only keep
-  a components value bytes, as there is only one "type" of name
+  a component's value bytes, as there is only one "type" of name
   component.
   This might change in the future (on the side of CCNB and NDNTLV prefixes).
 */
@@ -52,6 +52,20 @@ ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
     *intval = val;
 
     return 0;
+}
+
+// returns hdr length to skip before the payload starts.
+// this value depends on the type (interest/data/nack) and opt headers
+// but should be available in the fixed header
+int
+ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
+{
+    struct ccnx_tlvhdr_ccnx201412_s *hp;
+
+    hp = (struct ccnx_tlvhdr_ccnx201412_s*) data;
+    if (len >= hp->hdrlen)
+        return hp->hdrlen;
+    return -1;
 }
 
 // parse TL (returned in typ and vallen) and adjust buf and len
