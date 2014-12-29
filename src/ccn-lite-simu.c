@@ -31,10 +31,10 @@
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
 //#define USE_FRAG
-#define USE_SCHEDULER
-#define USE_SUITE_CCNB
-#define USE_SUITE_CCNTLV
-#define USE_SUITE_IOTTLV
+// #define USE_SCHEDULER
+// #define USE_SUITE_CCNB
+// #define USE_SUITE_CCNTLV
+// #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PACKET_CRAFTING

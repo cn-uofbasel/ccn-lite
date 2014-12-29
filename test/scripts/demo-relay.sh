@@ -108,7 +108,7 @@ else
 fi
 sleep 1
 FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA $FACETOB | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
-echo $FACEID
+echo faceid=$FACEID
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # starting relay B, with content loading

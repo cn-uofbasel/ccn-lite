@@ -80,7 +80,10 @@ struct pkt_s {
     } p;                           // protocol specific fields
 };
 
+// ----------------------------------------------------------------------
+
 typedef int (*matchfct)(struct pkt_s *p, struct ccnl_content_s *c);
+typedef int (*matchfct2)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 // returns: 0=match, -1=otherwise
 int
@@ -127,6 +130,18 @@ match_ndntlv(struct pkt_s *p, struct ccnl_content_s *c)
     return 0;
 }
 
+int
+match_ndntlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
+        return -1;
+    // FIXME: should check freshness (mbf) here
+    // if (mbf) // honor "answer-from-existing-content-store" flag
+    DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+                     (void *) c);
+    return 0;
+}
+
 // ----------------------------------------------------------------------
 // returns: -1=no match, 0=fullfilled
 int
@@ -136,6 +151,35 @@ ccnl_fwd_answerFromCS(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_content_s *c;
 
     for (c = relay->contents; c; c = c->next) {
+        if (c->suite != p->pfx->suite)
+            continue;
+        if (cmp(p, c))
+            continue;
+
+        DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+                 (void *) c);
+        if (from->ifndx >= 0) {
+            ccnl_nfn_monitor(relay, from, c->name, c->content,
+                             c->contentlen);
+            ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+        } else {
+            ccnl_app_RX(relay, c);
+        }
+        return 0;
+    }
+    return -1;
+}
+
+int
+ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                       struct ccnl_pkt_s *p, matchfct2 cmp)
+{
+    struct ccnl_content_s *c;
+
+    DEBUGMSG(DEBUG, "search in CS for %s %p\n", ccnl_prefix_to_path(p->pfx), (void*) relay->contents);
+
+    for (c = relay->contents; c; c = c->next) {
+      //        fprintf(stderr, "*\n");
         if (c->suite != p->pfx->suite)
             continue;
         if (cmp(p, c))
@@ -545,6 +589,7 @@ Done:
 
 #ifdef USE_SUITE_NDNTLV
 
+#ifdef XXX
 // process one NDNTLV packet, return <0 if no bytes consumed or error
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -666,6 +711,128 @@ Skip:
 Done:
     free_prefix(pkt.pfx);
     free_3ptr_list(pkt.buf, pkt.p.ndntlv.nonce, pkt.p.ndntlv.ppkl);
+
+    return rc;
+}
+#endif
+
+// process one NDNTLV packet, return <0 if no bytes consumed or error
+int
+ccnl_ndntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                       unsigned char **data, int *datalen)
+{
+    int len, rc=-1, typ;
+    struct ccnl_interest_s *i = 0;
+    struct ccnl_content_s *c = 0;
+    unsigned char *cp = *data;
+    struct ccnl_pkt_s pkt;
+
+    DEBUGMSG(DEBUG, "ccnl_ndntlv_forwarder2 (%d bytes left)\n", *datalen);
+
+    memset(&pkt, 0, sizeof(pkt));
+    pkt.s.ndntlv.scope = 3;
+    pkt.s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
+        return -1;
+    rc = ccnl_ndntlv_bytes2pkt(*data - cp, data, datalen, &pkt);
+    if (rc) {
+        DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+        goto Done;
+    }
+
+    //    fprintf(stderr, "is %d\n", pkt.s.ndntlv.maxsuffix);
+
+    if (typ == NDN_TLV_Interest) {
+        if (pkt.s.ndntlv.nonce && ccnl_nonce_find_or_append(relay, pkt.s.ndntlv.nonce)) {
+            DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
+            goto Skip;
+        }
+        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt.pfx));
+    /*
+        filter here for link level management messages ...
+        if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
+            rc = ccnl_mgmt(relay, buf, p, from); goto Done;
+        }
+    */
+        if (!ccnl_fwd_answerFromCS2(relay, from, &pkt, match_ndntlv2))
+            goto Skip;
+
+        // CONFORM: Step 2: check whether interest is already known
+#ifdef USE_KITE
+        if (pkt.tracing) { // is a tracing interest
+            for (i = relay->pit; i; i = i->next) {
+            }
+        }
+#endif
+        for (i = relay->pit; i; i = i->next) {
+            if (i->suite == CCNL_SUITE_NDNTLV &&
+                !ccnl_prefix_cmp(i->prefix, NULL, pkt.pfx, CMP_EXACT) &&
+                i->details.ndntlv.minsuffix == pkt.s.ndntlv.minsuffix &&
+                i->details.ndntlv.maxsuffix == pkt.s.ndntlv.maxsuffix &&
+                ((!pkt.s.ndntlv.ppkl && !i->details.ndntlv.ppkl) ||
+                 buf_equal(pkt.s.ndntlv.ppkl, i->details.ndntlv.ppkl)) )
+                break;
+        }
+        // this is a new/unknown I request: create and propagate
+#ifdef USE_NFN
+        if (!i && ccnl_nfnprefix_isNFN(pkt.pfx)) { // NFN PLUGIN CALL
+            if (ccnl_nfn_RX_request(relay, from, CCNL_SUITE_NDNTLV, &pkt.buf,
+                     &pkt.pfx, pkt.s.ndntlv.minsuffix, pkt.s.ndntlv.maxsuffix))
+                // Since the interest msg may be required in future it is
+                // not possible to delete the interest/prefix here
+                // return rc;
+                goto Done;
+        }
+#endif
+        if (!i) {
+            i = ccnl_interest_new(relay, from, CCNL_SUITE_NDNTLV, &pkt.buf,
+                     &pkt.pfx, pkt.s.ndntlv.minsuffix, pkt.s.ndntlv.maxsuffix);
+            if (pkt.s.ndntlv.ppkl)
+                i->details.ndntlv.ppkl = pkt.s.ndntlv.ppkl, pkt.s.ndntlv.ppkl = NULL;
+            if (i) { // CONFORM: Step 3 (and 4)
+                DEBUGMSG(DEBUG,
+                         "  created new interest entry %p\n", (void *) i);
+                if (pkt.s.ndntlv.scope > 2)
+                    ccnl_interest_propagate(relay, i);
+            }
+        } else if (pkt.s.ndntlv.scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
+            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
+                     (void *) i);
+            ccnl_interest_propagate(relay, i);
+        }
+        if (i) { // store the I request, for the incoming face (Step 3)
+            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+            ccnl_interest_append_pending(i, from);
+        }
+    } else { // data packet with content -------------------------------------
+        DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(pkt.pfx));
+
+/*  mgmt messages for NDN?
+#ifdef USE_SIGNATURES
+        if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
+                && !memcmp(p->comp[1], "crypto", 6) &&
+                from == relay->crypto_face) {
+            rc = ccnl_crypto(relay, buf, p, from); goto Done;
+        }
+#endif // USE_SIGNATURES
+*/
+
+        // CONFORM: Step 1:
+        for (c = relay->contents; c; c = c->next)
+            if (buf_equal(c->pkt, pkt.buf))
+                goto Skip; // content is dup
+        c = ccnl_content_new(relay, CCNL_SUITE_NDNTLV,
+                             &pkt.buf, &pkt.pfx, NULL /* ppkd */ ,
+                             pkt.content, pkt.contlen);
+        ccnl_fwd_handleContent(relay, from, c);
+    }
+
+Skip:
+    rc = 0;
+Done:
+    free_prefix(pkt.pfx);
+    free_3ptr_list(pkt.buf, pkt.s.ndntlv.nonce, pkt.s.ndntlv.ppkl);
 
     return rc;
 }

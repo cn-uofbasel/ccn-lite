@@ -568,32 +568,22 @@ getIOTTLVPrefix(unsigned char *start, unsigned char *data, int datalen)
 }
 
 struct ccnl_prefix_s*
-getNDNTLVPrefix(unsigned char *data, int datalen){
-    
+getNDNTLVPrefix(unsigned char *data, int datalen)
+{
+    struct ccnl_pkt_s pkt;
     int typ, len;
-    unsigned int lastchunknum;
     unsigned char *cp = data;
-    int mbf=0, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, scope=3;
-    struct ccnl_buf_s *nonce=0, *ppkl=0;
-    struct ccnl_prefix_s *prefix;
-    unsigned char *content = 0;
-    int contentlen = 0;
 
     if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
         DEBUGMSG(WARNING, "could not dehead\n");
         return 0;
     }
-    
-    if(ccnl_ndntlv_extract(data - cp,
-                  &data, &datalen,
-                  &scope, &mbf, &minsfx, &maxsfx, &lastchunknum,
-                  &prefix, NULL,
-                  &nonce, // nonce
-                  &ppkl, //ppkl
-                  &content, &contentlen) == NULL){
+
+    memset(&pkt, 0, sizeof(pkt));
+    if (ccnl_ndntlv_bytes2pkt(data - cp, &data, &datalen, &pkt) < 0) {
        DEBUGMSG(ERROR, "Error in ndntlv_extract\n");
     }
-    return prefix;
+    return pkt.pfx;
 }
 
 struct ccnl_prefix_s*

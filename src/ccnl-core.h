@@ -227,22 +227,53 @@ struct ccnl_ndntlv_cd_s { // content details
 };
 
 struct ccnl_content_s {
-    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_content_s *next, *prev;
-    struct ccnl_prefix_s *name;
-    struct ccnl_buf_s *ppkd; // publisher public key digest
+    struct ccnl_buf_s *pkt; // full datagram
+    struct ccnl_pkt_s *_pkt;
     int flags;
-    unsigned char *content; // pointer into the data buffer
-    int contentlen;
-    // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
-    // >> CCNL: currently no stale bit, old content is fully removed <<
     int last_used;
     int served_cnt;
+    // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
+    // >> CCNL: currently no stale bit, old content is fully removed <<
     union {
         struct ccnl_ccnb_cd_s ccnb;
         struct ccnl_ccntlv_cd_s ccntlv;
         struct ccnl_ndntlv_cd_s ndntlv;
     } details;
+    char suite;
+
+    struct ccnl_prefix_s *name;
+    unsigned char *content; // pointer into the data buffer
+    int contentlen;
+};
+
+struct ccnl_pktdetail_ccnb_s {
+    int minsuffix, maxsuffix, aok;
+    struct ccnl_buf_s *ppkd;       // publisher public key digest
+};
+
+struct ccnl_pktdetail_ccntlv_s {
+    struct ccnl_buf_s *keyid;       // publisher keyID
+};
+
+struct ccnl_pktdetail_ndntlv_s {
+    int minsuffix, maxsuffix, mbf, scope;
+    struct ccnl_buf_s *nonce;      // nonce
+    struct ccnl_buf_s *ppkl;       // publisher public key locator
+};
+
+struct ccnl_pkt_s {
+    struct ccnl_buf_s *buf;        // the packet's bytes
+    struct ccnl_prefix_s *pfx;     // prefix/name
+    unsigned char *content;        // pointer into the data buffer
+    int contlen;
+    unsigned int final_block_id;
+    union {
+        struct ccnl_pktdetail_ccnb_s   ccnb;
+        struct ccnl_pktdetail_ccntlv_s ccntlv;
+        struct ccnl_pktdetail_ndntlv_s ndntlv;
+    } s;                           // suite specific packet details
+    unsigned short flags;
     char suite;
 };
 
