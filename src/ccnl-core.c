@@ -619,8 +619,9 @@ struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *cit;
-    DEBUGMSG(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p\n",
-             ccnl->contentcnt, ccnl->max_cache_entries, (void*)c);
+    DEBUGMSG(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s\n",
+             ccnl->contentcnt, ccnl->max_cache_entries, (void*)c,
+             ccnl_prefix_to_path(c->name));
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (c == cit) {
             DEBUGMSG(DEBUG, "--- Already in cache ---\n");
@@ -889,7 +890,8 @@ ccnl_core_init(void)
     ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_localrpc_exec;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder;
+    //    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder;
+    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder2;
 #endif
 
 #ifdef USE_NFN

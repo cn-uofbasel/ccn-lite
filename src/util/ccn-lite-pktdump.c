@@ -1331,21 +1331,33 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
                           NULL, NULL, NULL, NULL, &p, NULL, NULL,
                           &content, &contlen);
         break;
-    case CCNL_SUITE_CCNTLV:
-        cp = data + 12;
-        len -= 12;
-        // FIXME: should read fixed header length, add 4
-        ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL,
+    case CCNL_SUITE_CCNTLV: {
+        int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
+        cp = data + hdrlen;
+        len -= hdrlen;
+        ccnl_ccntlv_extract(hdrlen, &cp, &len, &p, NULL, NULL,
                             &content, &contlen);
         break;
-    case CCNL_SUITE_NDNTLV:
+    }
+    case CCNL_SUITE_NDNTLV: {
+        struct ccnl_pkt_s pkt;
         cp = data + 2;
         len -= 2;
+        memset(&pkt, 0, sizeof(pkt));
+        if (ccnl_ndntlv_bytes2pkt(2, &data, &len, &pkt) < 0) {
+            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
+        }
+/*
         ccnl_ndntlv_extract(2, &cp, &len,
                             NULL, NULL, NULL, NULL, NULL, 
                             &p, NULL, NULL, NULL,
                             &content, &contlen);
+*/
+        free_prefix(pkt.pfx);
+        content = pkt.content;
+        contlen = pkt.contlen;
         break;
+    }
     default:
         return;
     }

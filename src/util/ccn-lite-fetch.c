@@ -114,29 +114,27 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
     case CCNL_SUITE_NDNTLV: {
         int typ, len;
         unsigned char *cp = *data;
-        struct ccnl_buf_s *buf = 0;
+        struct ccnl_pkt_s pkt;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
             DEBUGMSG(WARNING, "could not dehead\n");
             return -1;
         }
-        if(typ != NDN_TLV_Data) {
+        if (typ != NDN_TLV_Data) {
             DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ); 
             return -1;
         }
 
-        buf = ccnl_ndntlv_extract(*data - cp, data, datalen,
-                                  0, 0, 0, 0, 
-                                  lastchunknum,
-                                  prefix, 
-                                  NULL, 0, 0, 
-                                  content, contentlen);
-        if (!buf) {
+        memset(&pkt, 0, sizeof(pkt));
+        if (ccnl_ndntlv_bytes2pkt(*data - cp, data, datalen, &pkt) < 0) {
             DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
             return -1;
-        } 
+        }
+        *prefix = pkt.pfx;
+        *lastchunknum = pkt.final_block_id;
+        *content = pkt.content;
+        *contentlen = pkt.contlen;
         return 0;
-        break;
     }
 #endif
 

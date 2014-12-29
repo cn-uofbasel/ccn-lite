@@ -558,6 +558,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             perror("stat"); 
             continue; 
         }
+        if (S_ISDIR(s.st_mode))
+            continue;
 
         DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name,
                  (int) s.st_size);
@@ -622,16 +624,36 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV:
-            data = buf->data + skip;
+        case CCNL_SUITE_NDNTLV: {
+            struct ccnl_pkt_s pk;
+            unsigned char *olddata;
+            int rc;
+
+            memset(&pk, 0, sizeof(pk));
+
+            data = olddata = buf->data + skip;
             datalen -= skip;
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
-                                                       typ != NDN_TLV_Data)
+                                                         typ != NDN_TLV_Data)
                 goto notacontent;
-            pkt = ccnl_ndntlv_extract(data - buf->data, &data, &datalen,
-                                      0, 0, 0, 0, NULL, &prefix, NULL,
-                                      &nonce, &ppkd, &content, &contlen);
+
+//            pkt = ccnl_ndntlv_extract(data - buf->data, &data, &datalen,
+//                                      0, 0, 0, 0, NULL, &prefix, NULL,
+//                                      &nonce, &ppkd, &content, &contlen);
+//            rc = ccnl_ndntlv_bytes2pkt(skip, &data, &datalen, &pk);
+            rc = ccnl_ndntlv_bytes2pkt(data - olddata, &data, &datalen, &pk);
+            if (rc) {
+                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+                goto Done;
+            }
+            DEBUGMSG(INFO, "  after bytes2pkt, buf.len is %d\n", pk.buf->datalen);
+
+            pkt = pk.buf;
+            prefix = pk.pfx;
+            content = pk.content;
+            contlen = pk.contlen;
             break;
+        }
 #endif
         default:
             DEBUGMSG(WARNING, "unknown packet format (%s)\n", de->d_name);
