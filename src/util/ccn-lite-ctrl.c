@@ -580,7 +580,7 @@ getNDNTLVPrefix(unsigned char *data, int datalen)
     }
 
     memset(&pkt, 0, sizeof(pkt));
-    if (ccnl_ndntlv_bytes2pkt(data - cp, &data, &datalen, &pkt) < 0) {
+    if (ccnl_ndntlv_bytes2pkt(cp, &data, &datalen, &pkt) < 0) {
        DEBUGMSG(ERROR, "Error in ndntlv_extract\n");
     }
     return pkt.pfx;

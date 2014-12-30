@@ -77,168 +77,11 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
     return 0;
 }
 
-#ifdef XXX
-// we use one extraction routine for both interest and data pkts
-struct ccnl_buf_s*
-ccnl_ndntlv_extract(int hdrlen,
-                    unsigned char **data, int *datalen,
-                    int *scope, int *mbf, int *min, int *max,
-                    unsigned int *final_block_id,
-                    struct ccnl_prefix_s **prefix,
-                    struct ccnl_prefix_s **tracing,
-                    struct ccnl_buf_s **nonce,
-                    struct ccnl_buf_s **ppkl,
-                    unsigned char **content, int *contlen)
-{
-    unsigned char *start = *data - hdrlen;
-    int i, len, typ, oldpos;
-    struct ccnl_prefix_s *p;
-    struct ccnl_buf_s *buf, *n = 0, *pub = 0;
-
-    DEBUGMSG(DEBUG, "extracting NDNTLV packet\n");
-
-    if (content)
-        *content = NULL;
-
-    p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
-    p->compcnt = 0;
-    if (!p)
-        return NULL;
-
-    oldpos = *data - start;
-    while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
-        unsigned char *cp = *data;
-        int len2 = len;
-
-        switch (typ) {
-        case NDN_TLV_Name:
-            p->nameptr = start + oldpos;
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-                    goto Bail;
-                if (typ == NDN_TLV_NameComponent &&
-                            p->compcnt < CCNL_MAX_NAME_COMP) {
-                    if(cp[0] == NDN_Marker_SegmentNumber) {
-                        p->chunknum = ccnl_malloc(sizeof(int));
-                        // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
-                        // it is implemented for encode, the decode is not yet implemented
-                        *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                    }
-                    p->comp[p->compcnt] = cp;
-                    p->complen[p->compcnt] = i;
-                    p->compcnt++;
-                }  // else unknown type: skip
-                cp += i;
-                len2 -= i;
-            }
-            p->namelen = *data - p->nameptr;
-    #ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
-                p->nfnflags |= CCNL_PREFIX_NFN;
-                p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                        !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
-            }
-    #endif
-            break;
-        case NDN_TLV_Selectors:
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-                    goto Bail;
-
-                if (typ == NDN_TLV_MinSuffixComponents && min)
-                    *min = ccnl_ndntlv_nonNegInt(cp, i);
-                if (typ == NDN_TLV_MinSuffixComponents && max)
-                    *max = ccnl_ndntlv_nonNegInt(cp, i);
-                if (typ == NDN_TLV_MustBeFresh && mbf)
-                    *mbf = 1;
-                if (typ == NDN_TLV_Exclude) {
-                    DEBUGMSG(WARNING, "'Exclude' field ignored\n");
-                }
-                cp += i;
-                len2 -= i;
-            }
-            break;
-        case NDN_TLV_Nonce:
-            if (!n)
-                n = ccnl_buf_new(*data, len);
-            break;
-        case NDN_TLV_Scope:
-            if (scope)
-                *scope = ccnl_ndntlv_nonNegInt(*data, len);
-            break;
-        case NDN_TLV_Content:
-            if (content) {
-                *content = *data;
-                *contlen = len;
-            }
-            break;
-        case NDN_TLV_MetaInfo:
-            while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-                    goto Bail;
-                if (typ == NDN_TLV_ContentType) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
-                }
-                if (typ == NDN_TLV_FreshnessPeriod)
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
-                if (typ == NDN_TLV_FinalBlockId) {
-                    if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
-                        goto Bail;
-                    if (typ == NDN_TLV_NameComponent && final_block_id) {
-                        // TODO: again, includedNonNeg not yet implemented
-                        *final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                    } 
-                }
-                cp += i;
-                len2 -= i;
-            }
-            break;
-        default:
-            break;
-        }
-        *data += len;
-        *datalen -= len;
-        oldpos = *data - start;
-    }
-    if (*datalen > 0)
-        goto Bail;
-
-    if (prefix)    *prefix = p;    else free_prefix(p);
-    if (nonce)     *nonce = n;     else ccnl_free(n);
-    if (ppkl)      *ppkl = pub;    else ccnl_free(pub);
-
-    buf = ccnl_buf_new(start, *data - start);
-    // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (content && *content)
-        *content = buf->data + (*content - start);
-    for (i = 0; i < p->compcnt; i++)
-        p->comp[i] = buf->data + (p->comp[i] - start);
-    if (p->nameptr)
-        p->nameptr = buf->data + (p->nameptr - start);
-
-    return buf;
-Bail:
-    free_prefix(p);
-    free_2ptr_list(n, pub);
-    return NULL;
-}
-#endif
-
 // we use one extraction routine for both interest and data pkts
 int
-ccnl_ndntlv_bytes2pkt(int hdrlen, unsigned char **data, int *datalen,
+ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
                       struct ccnl_pkt_s *pkt)
 {
-    unsigned char *start = *data - hdrlen;
     int i, len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
@@ -367,7 +210,8 @@ ccnl_ndntlv_bytes2pkt(int hdrlen, unsigned char **data, int *datalen,
     if (!pkt->buf)
         goto Bail;
     // carefully rebase ptrs to new buf because of 64bit pointers:
-    pkt->content = pkt->buf->data + (pkt->content - start);
+    if (pkt->content)
+        pkt->content = pkt->buf->data + (pkt->content - start);
     for (i = 0; i < p->compcnt; i++)
         p->comp[i] = pkt->buf->data + (p->comp[i] - start);
     if (p->nameptr)

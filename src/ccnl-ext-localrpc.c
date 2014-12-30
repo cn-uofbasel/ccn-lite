@@ -358,7 +358,7 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
-            ccnl_iottlv_forwarder(relay, from, &ucp, &len);
+            ccnl_iottlv_forwarder2(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
