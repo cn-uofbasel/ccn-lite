@@ -447,6 +447,12 @@ ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         i->details.ccnb.maxsuffix = pkt->s.ccnb.maxsuffix;
         break;
 #endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        if (pkt->s.ccntlv.keyid)
+            i->details.ccntlv.keyid = pkt->s.ccntlv.keyid, pkt->s.ccntlv.keyid = NULL;
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         i->details.ndntlv.minsuffix = pkt->s.ndntlv.minsuffix;
@@ -935,7 +941,7 @@ ccnl_core_init(void)
     ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_ccnb_forwarder;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder;
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder2;
 #endif
 #ifdef USE_SUITE_IOTTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_iottlv_forwarder2;

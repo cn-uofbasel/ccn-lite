@@ -87,35 +87,28 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 }
 
 // we use one extraction routine for both interest and data pkts
-struct ccnl_buf_s*
-ccnl_ccntlv_extract(int hdrlen,
-                    unsigned char **data, int *datalen,
-                    struct ccnl_prefix_s **prefix,
-                    struct ccnl_buf_s **keyid,
-                    unsigned int *lastchunknum,
-                    unsigned char **content, int *contlen)
+int
+ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
+                      struct ccnl_pkt_s *pkt)
 {
-    unsigned char *start = *data - hdrlen;
     int i;
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
-    struct ccnl_buf_s *buf;
 
-    DEBUGMSG(TRACE, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
-
-    if (content)
-        *content = NULL;
+    DEBUGMSG(DEBUG, "extracting CCNTLV packet (2)\n");
 
     p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
     p->compcnt = 0;
     if (!p)
-        return NULL;
+        return -1;
 
     // We ignore the TL types of the message for now
     // content and interests are filled in both cases (and only one exists)
     // validation is ignored
-    if(ccnl_ccntlv_dehead(data, datalen, &typ, &len))
+    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
         goto Bail;
+    pkt->type = typ;
+    pkt->suite = CCNL_SUITE_CCNTLV;
 
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
@@ -176,19 +169,18 @@ ccnl_ccntlv_extract(int hdrlen,
                 DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                 goto Bail;
             }
-            if (lastchunknum && typ == CCNX_TLV_M_ENDChunk &&
-                ccnl_ccnltv_extractNetworkVarInt(cp, len2, lastchunknum) < 0) {
-                DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
-                goto Bail;
-            }  
+            if (typ == CCNX_TLV_M_ENDChunk) {
+                if (ccnl_ccnltv_extractNetworkVarInt(cp, len2, &pkt->final_block_id) < 0) {
+                    DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
+                    goto Bail;
+                }
+            }
             cp += len3;
             len2 -= len3;
             break;
         case CCNX_TLV_M_Payload:
-            if (content) {
-                *content = *data;
-                *contlen = len;
-            }
+            pkt->content = *data;
+            pkt->contlen = len;
             break;
         default:
             break;
@@ -200,21 +192,22 @@ ccnl_ccntlv_extract(int hdrlen,
     if (*datalen > 0)
         goto Bail;
 
-    if (prefix)    *prefix = p;    else free_prefix(p);
-
-    buf = ccnl_buf_new(start, *data - start);
+    pkt->pfx = p;
+    pkt->buf = ccnl_buf_new(start, *data - start);
+    if (!pkt->buf)
+        goto Bail;
     // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (content && *content)
-        *content = buf->data + (*content - start);
+    if (pkt->content)
+        pkt->content = pkt->buf->data + (pkt->content - start);
     for (i = 0; i < p->compcnt; i++)
-            p->comp[i] = buf->data + (p->comp[i] - start);
+        p->comp[i] = pkt->buf->data + (p->comp[i] - start);
     if (p->nameptr)
-        p->nameptr = buf->data + (p->nameptr - start);
+        p->nameptr = pkt->buf->data + (p->nameptr - start);
 
-    return buf;
+    return 0;
 Bail:
     free_prefix(p);
-    return NULL;
+    return -1;
 }
 
 // ----------------------------------------------------------------------
