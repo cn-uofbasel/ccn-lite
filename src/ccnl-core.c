@@ -938,7 +938,7 @@ ccnl_core_init(void)
     ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_iottlv_forwarder;
+    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_iottlv_forwarder2;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_localrpc_exec;

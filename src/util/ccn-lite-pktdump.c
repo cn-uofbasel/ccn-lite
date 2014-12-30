@@ -1344,7 +1344,7 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
         cp = data + 2;
         len -= 2;
         memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ndntlv_bytes2pkt(2, &data, &len, &pkt) < 0) {
+        if (ccnl_ndntlv_bytes2pkt(cp, &data, &len, &pkt) < 0) {
             DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
         }
 /*

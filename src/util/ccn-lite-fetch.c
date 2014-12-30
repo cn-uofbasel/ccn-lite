@@ -126,7 +126,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         }
 
         memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ndntlv_bytes2pkt(*data - cp, data, datalen, &pkt) < 0) {
+        if (ccnl_ndntlv_bytes2pkt(cp, data, datalen, &pkt) < 0) {
             DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
             return -1;
         }

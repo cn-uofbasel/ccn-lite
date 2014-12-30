@@ -239,6 +239,105 @@ Bail:
     return NULL;
 }
 
+// we use one extraction routine for both request and reply pkts
+int
+ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
+                      struct ccnl_pkt_s *pkt)
+{
+    unsigned char *cp, tmp[10];
+    int len, typ, len2, cplen;
+    struct ccnl_prefix_s *n = NULL;
+
+    DEBUGMSG(DEBUG, "ccnl_iottlv_bytes2pkt len=%d\n", *datalen);
+
+    pkt->suite = CCNL_SUITE_IOTTLV;
+
+    while (*datalen) {
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+            goto Bail;
+        switch (typ) {
+        case IOT_TLV_R_OptHeader:
+        {
+            cp = *data;
+            cplen = len;
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
+                if (typ == IOT_TLV_H_HopLim && len2 == 1) {
+                    if (*cp > 0)
+                        *cp -= 1;
+                    pkt->s.iottlv.ttl = *cp;
+                }
+                cp += len2;
+                cplen -= len2;
+            }
+            break;
+        }
+        case IOT_TLV_R_Name:
+            cp = *data;
+            cplen = len;
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
+                if (typ == IOT_TLV_N_PathName) {
+                    if (n)
+                        free_prefix(n);
+                    n = ccnl_iottlv_parseHierarchicalName(cp, len2);
+                    if (!n)
+                        goto Bail;
+                }
+                cp += len2;
+                cplen -= len2;
+            }
+            break;
+        case IOT_TLV_R_Payload:
+            cp = *data;
+            cplen = len;
+            if (!ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
+                if (typ == IOT_TLV_PL_Data) {
+                    pkt->content = cp;
+                    pkt->contlen = len2;
+		}
+	    }
+            break;
+        default:
+            break;
+        }
+        *data += len;
+        *datalen -= len;
+    }
+    if (*datalen > 0)
+        goto Bail;
+
+// we receive a nacked packet (without switch code), we need to add
+// it when creating the packet buffer
+    len = sizeof(tmp);
+    len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
+    if (len2 < 0) {
+        DEBUGMSG(ERROR, "prending code should not return -1\n");
+        len2 = 0;
+    }
+    start -= len2;
+    pkt->buf = ccnl_buf_new(start, *data - start);
+    if (!pkt->buf)
+        goto Bail;
+    if (pkt->buf && len2)
+        memcpy(pkt->buf->data, tmp + len, len2);
+
+    // carefully rebase ptrs to new buf because of 64bit pointers:
+    if (pkt->content)
+        pkt->content = pkt->buf->data + (pkt->content - start);
+    pkt->pfx = n;
+    if (n) {
+        int i;
+        for (i = 0; i < n->compcnt; i++)
+            n->comp[i] = pkt->buf->data + (n->comp[i] - start);
+        if (n->nameptr)
+            n->nameptr = pkt->buf->data + (n->nameptr - start);
+    }
+
+    return 0;
+Bail:
+    free_prefix(n);
+    return -1;
+}
+
 // ----------------------------------------------------------------------
 // packet composition
 
