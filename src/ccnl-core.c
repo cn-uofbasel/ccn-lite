@@ -2,7 +2,7 @@
  * @f ccnl-core.c
  * @b CCN lite, core CCNx protocol logic
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-14, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -425,6 +425,43 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     return i;
 }
 
+struct ccnl_interest_s*
+ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt)
+{
+    struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
+                                            sizeof(struct ccnl_interest_s));
+    DEBUGMSG(TRACE, "ccnl_new_interest\n");
+
+    if (!i)
+        return NULL;
+    i->flags |= CCNL_PIT_COREPROPAGATES;
+    i->suite = pkt->suite;
+    i->from = from;
+    i->prefix = pkt->pfx;           pkt->pfx = 0;
+    i->pkt  = pkt->buf;             pkt->buf = 0;
+    switch (pkt->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        i->details.ccnb.minsuffix = pkt->s.ccnb.minsuffix;
+        i->details.ccnb.maxsuffix = pkt->s.ccnb.maxsuffix;
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        i->details.ndntlv.minsuffix = pkt->s.ndntlv.minsuffix;
+        i->details.ndntlv.maxsuffix = pkt->s.ndntlv.maxsuffix;
+        if (pkt->s.ndntlv.ppkl)
+            i->details.ndntlv.ppkl = pkt->s.ndntlv.ppkl, pkt->s.ndntlv.ppkl = NULL;
+        break;
+#endif
+    }
+    i->last_used = CCNL_NOW();
+    DBL_LINKED_LIST_ADD(ccnl->pit, i);
+
+    return i;
+}
+
 int
 ccnl_interest_append_pending(struct ccnl_interest_s *i,
                              struct ccnl_face_s *from)
@@ -461,6 +498,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #ifdef USE_NACK
     int matching_face = 0;
 #endif
+    if (!i)
+        return;
     DEBUGMSG(DEBUG, "ccnl_interest_propagate\n");
 
     // CONFORM: "A node MUST implement some strategy rule, even if it is only to
@@ -809,6 +848,21 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
             ccnl_free(n2->next);
             n2->next = 0;
         }
+    }
+    return 0;
+}
+
+int
+ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
+{
+    switch (pkt->suite) {
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return pkt->s.ndntlv.nonce &&
+            ccnl_nonce_find_or_append(relay, pkt->s.ndntlv.nonce);
+#endif
+    default:
+        break;
     }
     return 0;
 }

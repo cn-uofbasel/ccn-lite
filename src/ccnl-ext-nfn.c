@@ -288,6 +288,33 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     return i;
 }
 
+struct ccnl_interest_s*
+ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                     struct ccnl_pkt_s *pkt)
+//                     int suite, struct ccnl_buf_s **buf,
+//                     struct ccnl_prefix_s **p, int minsfx, int maxsfx)
+{
+    struct ccnl_interest_s *i;
+
+//CCNL_SUITE_NDNTLV, &pkt.buf,
+//                     &pkt.pfx, pkt.s.ndntlv.minsuffix, pkt.s.ndntlv.maxsuffix))
+
+
+    if (!ccnl_nfnprefix_isNFN(pkt->pfx) ||
+           ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+        return NULL;
+    i = ccnl_interest_new(ccnl, from, pkt->suite, &(pkt->buf),
+                          &(pkt->pfx), pkt->s.ndntlv.minsuffix,
+                          pkt->s.ndntlv.maxsuffix);
+    if (!i)
+        return NULL;
+    i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
+    ccnl_interest_append_pending(i, from);
+    ccnl_nfn(ccnl, ccnl_prefix_dup(i->prefix), from, NULL, i, pkt->suite, 0);
+
+    return i;
+}
+
 
 int
 ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,

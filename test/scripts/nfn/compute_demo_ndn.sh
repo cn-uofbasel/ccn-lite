@@ -34,3 +34,6 @@ sleep 3
 
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump
 
+killall ccn-lite-relay
+killall ccn-nfn-relay
+killall python
