@@ -1317,34 +1317,43 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 // ----------------------------------------------------------------------
 
 void
-emit_content_only(unsigned char *data, int len, int suite, int format)
+emit_content_only(unsigned char *start, int len, int suite, int format)
 {
     int contlen;
-    unsigned char *content = 0, *cp;
+    unsigned char *content = 0, *data;
     struct ccnl_prefix_s *p;
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
-        cp = data + 2;
+        data = start + 2;
         len -= 2;
-        ccnl_ccnb_extract(&cp, &len,
+        ccnl_ccnb_extract(&data, &len,
                           NULL, NULL, NULL, NULL, &p, NULL, NULL,
                           &content, &contlen);
         break;
     case CCNL_SUITE_CCNTLV: {
-        int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
-        cp = data + hdrlen;
+        int hdrlen = ccnl_ccntlv_getHdrLen(start, len);
+        struct ccnl_pkt_s pkt;
+        data = start + hdrlen;
         len -= hdrlen;
+        if (ccnl_ccntlv_bytes2pkt(start, &data, &len, &pkt) < 0) {
+            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
+        }
+/*
         ccnl_ccntlv_extract(hdrlen, &cp, &len, &p, NULL, NULL,
                             &content, &contlen);
+*/
+        free_prefix(pkt.pfx);
+        content = pkt.content;
+        contlen = pkt.contlen;
         break;
     }
     case CCNL_SUITE_NDNTLV: {
         struct ccnl_pkt_s pkt;
-        cp = data + 2;
+        data = start + 2;
         len -= 2;
         memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ndntlv_bytes2pkt(cp, &data, &len, &pkt) < 0) {
+        if (ccnl_ndntlv_bytes2pkt(start, &data, &len, &pkt) < 0) {
             DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
         }
 /*

@@ -271,7 +271,7 @@ struct ccnl_pkt_s {
     struct ccnl_prefix_s *pfx;     // prefix/name
     unsigned char *content;        // pointer into the data buffer
     int contlen;
-    unsigned int final_block_id;
+    unsigned int type, final_block_id;
     union {
         struct ccnl_pktdetail_ccnb_s   ccnb;
         struct ccnl_pktdetail_ccntlv_s ccntlv;

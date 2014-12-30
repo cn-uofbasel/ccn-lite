@@ -90,14 +90,32 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
         int hdrlen;
+        unsigned char *start = *data;
+        struct ccnl_pkt_s pkt;
 
         if (ccntlv_isData(*data, *datalen) < 0) {
             DEBUGMSG(WARNING, "Received non-content-object\n");
             return -1;
         }
         hdrlen = ccnl_ccntlv_getHdrLen(*data, *datalen);
+        if (hdrlen < 0)
+            return -1;
+
         *data += hdrlen;
         *datalen -= hdrlen;
+
+        memset(&pkt, 0, sizeof(pkt));
+        if (ccnl_ccntlv_bytes2pkt(start, data, datalen, &pkt) < 0) {
+            DEBUGMSG(WARNING, "ccntlv_extract: parsing error or no prefix\n"); 
+            return -1;
+        }
+        *prefix = pkt.pfx;
+        *lastchunknum = pkt.final_block_id;
+        *content = pkt.content;
+        *contentlen = pkt.contlen;
+        return 0;
+
+/*
         if (ccnl_ccntlv_extract(hdrlen, data, datalen, prefix,
                                0, // keyid/keyidlen
                                lastchunknum,
@@ -107,6 +125,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         } 
 
         return 0;
+*/
         break;
     }
 #endif

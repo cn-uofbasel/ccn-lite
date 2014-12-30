@@ -531,40 +531,43 @@ getCCNBPrefix(unsigned char *data, int datalen){
 }
 
 struct ccnl_prefix_s*
-getCCNTLVPrefix(unsigned char *data, int datalen){
-    struct ccnl_prefix_s *prefix;
-    unsigned char *content = 0;
-    int contentlen = 0;
-    int hdrlen = 8;
-    unsigned int lastchunknum;
-    datalen -= 8;
-    data += 8;
+getCCNTLVPrefix(unsigned char *data, int datalen)
+{
+    int hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+    struct ccnl_pkt_s pkt;
+    unsigned char *start = data;
 
-    if (ccnl_ccntlv_extract(hdrlen,
-                           &data, &datalen,
-                           &prefix,
-                           0, // keyid buf
-                           &lastchunknum,
-                           &content, &contentlen) == NULL) {
-        DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
-        return 0;
-    } 
-    return prefix;
+    if (hdrlen < 0)
+        return NULL;
+    data += hdrlen;
+    datalen -= hdrlen;
+
+    memset(&pkt, 0, sizeof(pkt));
+    if (ccnl_ndntlv_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
+       DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
+    }
+    return pkt.pfx;
 }
 
 struct ccnl_prefix_s*
 getIOTTLVPrefix(unsigned char *start, unsigned char *data, int datalen)
 {
-    struct ccnl_prefix_s *prefix;
-    unsigned char *content = 0;
-    int contentlen = 0;
+    struct ccnl_pkt_s pkt;
 
+    memset(&pkt, 0, sizeof(pkt));
+    if (ccnl_iottlv_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
+        DEBUGMSG(ERROR, "Error in iottlv_extract\n");
+    }
+    return pkt.pfx;
+    
+/*
     if (ccnl_iottlv_extract(start, &data, &datalen, &prefix,
                             0, &content, &contentlen) == NULL) {
         DEBUGMSG(ERROR, "Error in iottlv_extract\n");
         return 0;
     }
     return prefix;
+*/
 }
 
 struct ccnl_prefix_s*
