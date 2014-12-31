@@ -192,7 +192,7 @@ struct ccnl_ndntlv_id_s { // interest details
 #define CCNL_PIT_TRACED            0x02
 
 struct ccnl_interest_s {
-    struct ccnl_buf_s *pkt; // full datagram
+    struct ccnl_buf_s *buf; // full datagram
     struct ccnl_interest_s *next, *prev;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
@@ -205,7 +205,6 @@ struct ccnl_interest_s {
         struct ccnl_ccntlv_id_s ccntlv;
         struct ccnl_ndntlv_id_s ndntlv;
     } details;
-    char suite;
 };
 
 struct ccnl_pendint_s { // pending interest
@@ -214,32 +213,14 @@ struct ccnl_pendint_s { // pending interest
     int last_used;
 };
 
-struct ccnl_ccnb_cd_s { // content details
-    struct ccnl_buf_s *ppkd;       // publisher public key digest
-};
-
-struct ccnl_ccntlv_cd_s { // content details
-    struct ccnl_buf_s *keyid;       // publisher keyID
-};
-
-struct ccnl_ndntlv_cd_s { // content details
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
-};
-
 struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
-    struct ccnl_buf_s *pkt; // full datagram
-    struct ccnl_pkt_s *_pkt;
+    struct ccnl_pkt_s *pkt;
     int flags;
     int last_used;
     int served_cnt;
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
-    union {
-        struct ccnl_ccnb_cd_s ccnb;
-        struct ccnl_ccntlv_cd_s ccntlv;
-        struct ccnl_ndntlv_cd_s ndntlv;
-    } details;
 
     struct ccnl_prefix_s *name;
     unsigned char *content; // pointer into the data buffer

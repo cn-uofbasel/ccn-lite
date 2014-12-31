@@ -140,16 +140,18 @@ ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
 }
 
 // we use one extraction routine for both request and reply pkts
-int
-ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
-                      struct ccnl_pkt_s *pkt)
+struct ccnl_pkt_s*
+ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
+    struct ccnl_pkt_s *pkt;
     unsigned char *cp, tmp[10];
     int len, typ, len2, cplen;
-    struct ccnl_prefix_s *n = NULL;
 
     DEBUGMSG(DEBUG, "ccnl_iottlv_bytes2pkt len=%d\n", *datalen);
 
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
     pkt->suite = CCNL_SUITE_IOTTLV;
 
     while (*datalen) {
@@ -176,10 +178,9 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
             cplen = len;
             while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
                 if (typ == IOT_TLV_N_PathName) {
-                    if (n)
-                        free_prefix(n);
-                    n = ccnl_iottlv_parseHierarchicalName(cp, len2);
-                    if (!n)
+                    if (!pkt->pfx)
+                        pkt->pfx = ccnl_iottlv_parseHierarchicalName(cp, len2);
+                    if (!pkt->pfx)
                         goto Bail;
                 }
                 cp += len2;
@@ -223,19 +224,18 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
     // carefully rebase ptrs to new buf because of 64bit pointers:
     if (pkt->content)
         pkt->content = pkt->buf->data + (pkt->content - start);
-    pkt->pfx = n;
-    if (n) {
+    if (pkt->pfx) {
         int i;
-        for (i = 0; i < n->compcnt; i++)
-            n->comp[i] = pkt->buf->data + (n->comp[i] - start);
-        if (n->nameptr)
-            n->nameptr = pkt->buf->data + (n->nameptr - start);
+        for (i = 0; i < pkt->pfx->compcnt; i++)
+            pkt->pfx->comp[i] = pkt->buf->data + (pkt->pfx->comp[i] - start);
+        if (pkt->pfx->nameptr)
+            pkt->pfx->nameptr = pkt->buf->data + (pkt->pfx->nameptr - start);
     }
 
-    return 0;
+    return pkt;
 Bail:
-    free_prefix(n);
-    return -1;
+    free_packet(pkt);
+    return NULL;
 }
 
 // ----------------------------------------------------------------------

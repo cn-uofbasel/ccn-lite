@@ -79,6 +79,7 @@ enum { // numbers for each data type
     CCNL_FWD,
     CCNL_INTEREST,
     CCNL_PENDINT,
+    CCNL_PACKET,
     CCNL_CONTENT
 };
 
@@ -95,6 +96,7 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) p;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) p;
+    struct ccnl_pkt_s      *pkt = (struct ccnl_pkt_s      *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
     int i, k;
 
@@ -190,29 +192,29 @@ ccnl_dump(int lev, int typ, void *p)
         break;
     case CCNL_INTEREST:
         while (itr) {
-            int mi, ma;
-            struct ccnl_buf_s *ppk;
-            switch (itr->suite) {
-            case CCNL_SUITE_CCNB:
-                mi = itr->details.ccnb.minsuffix;
-                ma = itr->details.ccnb.maxsuffix;
-                ppk = itr->details.ccnb.ppkd;
-                break;
-            case CCNL_SUITE_NDNTLV:
-                mi = itr->details.ndntlv.minsuffix;
-                ma = itr->details.ndntlv.maxsuffix;
-                ppk = itr->details.ndntlv.ppkl;
-                break;
-            default:
-                mi = ma = -1;
-                ppk = NULL;
-                break;
+            int mi = -1, ma = -1;
+            struct ccnl_buf_s *ppk = NULL;
+            if (itr->prefix) {
+                switch (itr->prefix->suite) {
+                case CCNL_SUITE_CCNB:
+                    mi = itr->details.ccnb.minsuffix;
+                    ma = itr->details.ccnb.maxsuffix;
+                    ppk = itr->details.ccnb.ppkd;
+                    break;
+                case CCNL_SUITE_NDNTLV:
+                    mi = itr->details.ndntlv.minsuffix;
+                    ma = itr->details.ndntlv.maxsuffix;
+                    ppk = itr->details.ndntlv.ppkl;
+                    break;
+                default:
+                    break;
+                }
             }
             INDENT(lev);
             fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
                    (void *) itr, (void *) itr->next, (void *) itr->prev,
                     itr->last_used, mi, ma, itr->retries);
-            ccnl_dump(lev+1, CCNL_BUF, itr->pkt);
+            ccnl_dump(lev+1, CCNL_BUF, itr->buf);
             ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
             if (ppk) {
                 INDENT(lev+1);
@@ -237,6 +239,14 @@ ccnl_dump(int lev, int typ, void *p)
             pir = pir->next;
         }
         break;
+    case CCNL_PACKET:
+        INDENT(lev);
+        fprintf(stderr, "%p PACKET cnt=%p cntlen=%d typ=%d finalBI=%d 0x%04x %d\n",
+                (void *) pkt, (void*) pkt->content, pkt->contlen,
+                pkt->type, pkt->final_block_id, pkt->flags, pkt->suite);
+        ccnl_dump(lev+1, CCNL_BUF, pkt->buf);
+        ccnl_dump(lev+1, CCNL_PREFIX, pkt->pfx);
+        break;
     case CCNL_CONTENT:
         while (con) {
             INDENT(lev);
@@ -244,7 +254,7 @@ ccnl_dump(int lev, int typ, void *p)
                    (void *) con, (void *) con->next, (void *) con->prev,
                    con->last_used, con->served_cnt);
             ccnl_dump(lev+1, CCNL_PREFIX, con->name);
-            ccnl_dump(lev+1, CCNL_BUF, con->pkt);
+            ccnl_dump(lev+1, CCNL_PACKET, con->pkt);
             con = con->next;
         }
         break;
@@ -402,22 +412,23 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         prev[line] = (long)(void *) itr->prev;
         last[line] = itr->last_used;
         retries[line] = itr->retries;
-        switch (itr->suite) {
-        case CCNL_SUITE_CCNB:
-            min[line] = itr->details.ccnb.minsuffix;
-            max[line] = itr->details.ccnb.maxsuffix;
-            publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
-            break;
-        case CCNL_SUITE_NDNTLV:
-            min[line] = itr->details.ndntlv.minsuffix;
-            max[line] = itr->details.ndntlv.maxsuffix;
-            publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
-            break;
-        default:
-            min[line] = max[line] = -1;
-            publisher[line] = 0L;
-            break;
-        }
+        min[line] = max[line] = -1;
+        publisher[line] = 0L;
+        if (itr->prefix)
+            switch (itr->prefix->suite) {
+            case CCNL_SUITE_CCNB:
+                min[line] = itr->details.ccnb.minsuffix;
+                max[line] = itr->details.ccnb.maxsuffix;
+                publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
+                break;
+            case CCNL_SUITE_NDNTLV:
+                min[line] = itr->details.ndntlv.minsuffix;
+                max[line] = itr->details.ndntlv.maxsuffix;
+                publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
+                break;
+            default:
+                break;
+            }
         get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
@@ -638,8 +649,10 @@ ccnl_buf_new(void *data, int len)
 
 #define free_prefix(p)  do{ if(!p) break; ccnl_free(p->chunknum);  \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
-#define free_content(c) do{ free_prefix(c->name); \
-                        free_2ptr_list(c->pkt, c); } while(0)
+#define free_packet(p)  do{ if(!p) break; free_prefix(p->pfx); \
+                ccnl_free(p->buf); ccnl_free(p); /* nonce ... */ } while(0)
+#define free_content(c) do{ free_prefix(c->name); free_packet(c->pkt);  \
+                        ccnl_free(c); } while(0)
 
 // -----------------------------------------------------------------
 int debug_level;

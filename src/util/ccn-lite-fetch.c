@@ -82,16 +82,17 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 
 int 
 ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
-                             int suite, 
-                             struct ccnl_prefix_s **prefix,
+                             int suite, struct ccnl_prefix_s **prefix,
                              unsigned int *lastchunknum,
-                             unsigned char **content, int *contentlen) {
+                             unsigned char **content, int *contentlen)
+{
+    struct ccnl_pkt_s *pkt = NULL;
+
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
         int hdrlen;
         unsigned char *start = *data;
-        struct ccnl_pkt_s pkt;
 
         if (ccntlv_isData(*data, *datalen) < 0) {
             DEBUGMSG(WARNING, "Received non-content-object\n");
@@ -104,36 +105,14 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         *data += hdrlen;
         *datalen -= hdrlen;
 
-        memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ccntlv_bytes2pkt(start, data, datalen, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ccntlv_extract: parsing error or no prefix\n"); 
-            return -1;
-        }
-        *prefix = pkt.pfx;
-        *lastchunknum = pkt.final_block_id;
-        *content = pkt.content;
-        *contentlen = pkt.contlen;
-        return 0;
-
-/*
-        if (ccnl_ccntlv_extract(hdrlen, data, datalen, prefix,
-                               0, // keyid/keyidlen
-                               lastchunknum,
-                               content, contentlen) == NULL) {
-            DEBUGMSG(WARNING, "Error in ccntlv_extract\n");
-            return -1;
-        } 
-
-        return 0;
-*/
+        pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
         break;
     }
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
         int typ, len;
-        unsigned char *cp = *data;
-        struct ccnl_pkt_s pkt;
+        unsigned char *start = *data;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
             DEBUGMSG(WARNING, "could not dehead\n");
@@ -144,16 +123,8 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
             return -1;
         }
 
-        memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ndntlv_bytes2pkt(cp, data, datalen, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
-            return -1;
-        }
-        *prefix = pkt.pfx;
-        *lastchunknum = pkt.final_block_id;
-        *content = pkt.content;
-        *contentlen = pkt.contlen;
-        return 0;
+        pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+        break;
     }
 #endif
 
@@ -161,8 +132,19 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         DEBUGMSG(WARNING, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
         return -1;
    }
+    if (!pkt) {
+        DEBUGMSG(WARNING, "extract(%s): parsing error or no prefix\n",
+                 ccnl_suite2str(suite)); 
+        return -1;
+    }
+    *prefix = pkt->pfx;
+    pkt->pfx = NULL;
+    *lastchunknum = pkt->final_block_id;
+    *content = pkt->content;
+    *contentlen = pkt->contlen;
+    free_packet(pkt);
 
-   return -2;
+    return 0;
 }
 
 int

@@ -86,19 +86,32 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
                         struct ccnl_prefix_s **prefix,
                         unsigned char *resultstr, int resultlen)
 {
-    struct ccnl_buf_s *buf;
     int resultpos = 0;
+    struct ccnl_pkt_s *pkt;
+    struct ccnl_content_s *c;
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
              ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
-    buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
-    if (!buf)
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
         return NULL;
 
-    return ccnl_content_new(ccnl, (*prefix)->suite, &buf, prefix,
-                            NULL, buf->data + resultpos, resultlen);
+    pkt->buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
+    if (!pkt->buf) {
+        ccnl_free(pkt);
+        return NULL;
+    }
+    pkt->pfx = *prefix;
+    *prefix = NULL;
+    pkt->content = pkt->buf->data + resultpos;
+    pkt->contlen = resultlen;
+
+    c = ccnl_content_new2(ccnl, &pkt);
+    if (!c)
+        free_packet(pkt);
+    return c;
 }
 
 // ----------------------------------------------------------------------

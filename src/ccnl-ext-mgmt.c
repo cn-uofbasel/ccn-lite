@@ -164,17 +164,18 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             else
             {
                 DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
-                struct ccnl_prefix_s *prefix_a;
                 struct ccnl_content_s *c;
                 char uri[50];
-                struct ccnl_buf_s *aBuf;
                 int contentpos;
+                struct ccnl_pkt_s *pkt;
 
                 sprintf(uri, "/mgmt/seqnum-%d", it);
-                prefix_a = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
-                aBuf = ccnl_mkSimpleContent(prefix_a, buf2, len5, &contentpos);
-                c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &aBuf, &prefix_a,
-                                     NULL, aBuf->data+contentpos, len5);
+                pkt = ccnl_calloc(1, sizeof(*pkt));
+                pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
+                pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
+                pkt->content = pkt->buf->data + contentpos;
+                pkt->contlen = len5;
+                c = ccnl_content_new2(ccnl, &pkt);
                 ccnl_content_serve_pending(ccnl, c);
                 ccnl_content_add2cache(ccnl, c);
 /*

@@ -108,20 +108,29 @@ ccnl_ccnb_data2uint(unsigned char *cp, int len)
     return val;
 }
 
-int
-ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
-                    struct ccnl_pkt_s *pkt)
+struct ccnl_pkt_s*
+ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
+    struct ccnl_pkt_s *pkt;
     unsigned char *cp;
     int num, typ, len, oldpos;
     struct ccnl_prefix_s *p;
 
     DEBUGMSG(TRACE, "ccnl_ccnb_extract\n");
 
-    p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
+    pkt->s.ccnb.scope = 3;
+    pkt->s.ccnb.aok = 3;
+    pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+
+    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
+    if (!p) {
+        ccnl_free(pkt);
+        return NULL;
+    }
     p->compcnt = 0;
-    if (!p)
-        return -1;
 
     oldpos = *data - start;
     while (ccnl_ccnb_dehead(data, datalen, &num, &typ) == 0) {
@@ -223,11 +232,10 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
     if (p->nameptr)
         p->nameptr = pkt->buf->data + (p->nameptr - start);
 
-    return 0;
+    return pkt;
 Bail:
-    free_prefix(p);
-    free_2ptr_list(pkt->s.ccnb.nonce, pkt->s.ccnb.ppkd);
-    return -1;
+    free_packet(pkt);
+    return NULL;
 }
 
 int

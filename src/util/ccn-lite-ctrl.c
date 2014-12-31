@@ -510,100 +510,12 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     return len;
 }
 
-
-struct ccnl_prefix_s*
-getCCNBPrefix(unsigned char *data, int datalen)
-{
-    unsigned char *start = data; //content = 0;
-    int num, typ;
-    struct ccnl_pkt_s pkt;
-    
-    if (ccnl_ccnb_dehead(&data, &datalen, &num, &typ) || typ != CCN_TT_DTAG)
-            return 0;
-
-    memset(&pkt, 0, sizeof(pkt));
-    if (ccnl_ccnb_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
-       DEBUGMSG(ERROR, "Error in ccnb_extract\n");
-    }
-    return pkt.pfx;
-    
-    /*
-    struct ccnl_prefix_s *prefix = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0;
-    if(ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-                    &prefix, &nonce, &ppkd, &content, &contlen) == NULL){
-        DEBUGMSG(ERROR, "Error in ccnb_extract\n");
-        return 0;
-    }
-                
-    return prefix;
-    */
-}
-
-struct ccnl_prefix_s*
-getCCNTLVPrefix(unsigned char *data, int datalen)
-{
-    int hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
-    struct ccnl_pkt_s pkt;
-    unsigned char *start = data;
-
-    if (hdrlen < 0)
-        return NULL;
-    data += hdrlen;
-    datalen -= hdrlen;
-
-    memset(&pkt, 0, sizeof(pkt));
-    if (ccnl_ndntlv_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
-       DEBUGMSG(ERROR, "Error in ccntlv_extract\n");
-    }
-    return pkt.pfx;
-}
-
-struct ccnl_prefix_s*
-getIOTTLVPrefix(unsigned char *start, unsigned char *data, int datalen)
-{
-    struct ccnl_pkt_s pkt;
-
-    memset(&pkt, 0, sizeof(pkt));
-    if (ccnl_iottlv_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
-        DEBUGMSG(ERROR, "Error in iottlv_extract\n");
-    }
-    return pkt.pfx;
-    
-/*
-    if (ccnl_iottlv_extract(start, &data, &datalen, &prefix,
-                            0, &content, &contentlen) == NULL) {
-        DEBUGMSG(ERROR, "Error in iottlv_extract\n");
-        return 0;
-    }
-    return prefix;
-*/
-}
-
-struct ccnl_prefix_s*
-getNDNTLVPrefix(unsigned char *data, int datalen)
-{
-    struct ccnl_pkt_s pkt;
-    int typ, len;
-    unsigned char *cp = data;
-
-    if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len)) {
-        DEBUGMSG(WARNING, "could not dehead\n");
-        return 0;
-    }
-
-    memset(&pkt, 0, sizeof(pkt));
-    if (ccnl_ndntlv_bytes2pkt(cp, &data, &datalen, &pkt) < 0) {
-       DEBUGMSG(ERROR, "Error in ndntlv_extract\n");
-    }
-    return pkt.pfx;
-}
-
 struct ccnl_prefix_s*
 getPrefix(unsigned char *data, int datalen, int *suite)
 {
     struct ccnl_prefix_s *prefix;
     int skip;
+    struct ccnl_pkt_s *pkt = NULL;
 
     *suite = ccnl_pkt2suite(data, datalen, &skip);
     
@@ -613,21 +525,47 @@ getPrefix(unsigned char *data, int datalen, int *suite)
     }
     data += skip;
     datalen -= skip;
+
     switch(*suite) {
-    case CCNL_SUITE_CCNB:
-        prefix = getCCNBPrefix(data, datalen);
-        break;
-    case CCNL_SUITE_CCNTLV: 
-        prefix = getCCNTLVPrefix(data, datalen);
-        break;
-    case CCNL_SUITE_IOTTLV: 
-        prefix = getIOTTLVPrefix(data - skip, data, datalen);
-        break;
-    case CCNL_SUITE_NDNTLV: 
-        prefix = getNDNTLVPrefix(data, datalen);
+    case CCNL_SUITE_CCNB: {
+        int num, typ;
+        unsigned char *start = data;
+        if (!ccnl_ccnb_dehead(&data, &datalen, &num, &typ) &&
+                                                        typ == CCN_TT_DTAG)
+            pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
         break;
     }
+    case CCNL_SUITE_CCNTLV: {
+        unsigned char *start = data;
+        int hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
 
+        if (hdrlen < 0) {
+            data += hdrlen;
+            datalen -= hdrlen;
+            pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+        }
+        break;
+    }
+    case CCNL_SUITE_IOTTLV: 
+        pkt = ccnl_iottlv_bytes2pkt(data - skip, &data, &datalen);
+        break;
+    case CCNL_SUITE_NDNTLV: {
+        int typ, len;
+        unsigned char *start = data;
+        if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len))
+            pkt = ccnl_ndntlv_bytes2pkt(start, &data, &datalen);
+        break;
+    }
+    default:
+        break;
+    }
+    if (!pkt) {
+       DEBUGMSG(ERROR, "Error in prefix extract\n");
+       return NULL;
+    }
+    prefix = pkt->pfx;
+    pkt->pfx = NULL;
+    free_packet(pkt);
     return prefix;
 }
 
