@@ -240,7 +240,6 @@ struct ccnl_content_s {
         struct ccnl_ccntlv_cd_s ccntlv;
         struct ccnl_ndntlv_cd_s ndntlv;
     } details;
-    char suite;
 
     struct ccnl_prefix_s *name;
     unsigned char *content; // pointer into the data buffer
@@ -266,6 +265,9 @@ struct ccnl_pktdetail_ndntlv_s {
     struct ccnl_buf_s *nonce;      // nonce
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
+
+#define CCNL_PKT_REQUEST   0x01 // "Interest"
+#define CCNL_PKT_REPLY     0x02 // "Object", "Data"
 
 struct ccnl_pkt_s {
     struct ccnl_buf_s *buf;        // the packet's bytes

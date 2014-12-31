@@ -389,43 +389,6 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 // handling of interest messages
 
 struct ccnl_interest_s*
-ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                  char suite,
-                  struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix,
-                  int minsuffix, int maxsuffix)
-{
-    struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
-                                            sizeof(struct ccnl_interest_s));
-    DEBUGMSG(TRACE, "ccnl_new_interest\n");
-
-    if (!i){
-        return NULL;
-    }
-    i->flags |= CCNL_PIT_COREPROPAGATES;
-    i->suite = suite;
-    i->from = from;
-    i->prefix = *prefix;        *prefix = 0;
-    i->pkt  = *pkt;             *pkt = 0;
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        i->details.ccnb.minsuffix = minsuffix;
-        i->details.ccnb.maxsuffix = maxsuffix;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        i->details.ndntlv.minsuffix = minsuffix;
-        i->details.ndntlv.maxsuffix = maxsuffix;
-        break;
-#endif
-    }
-    i->last_used = CCNL_NOW();
-    DBL_LINKED_LIST_ADD(ccnl->pit, i);
-    return i;
-}
-
-struct ccnl_interest_s*
 ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt)
 {
@@ -624,7 +587,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt,
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c) return NULL;
-    c->suite = suite;
+    //    c->suite = suite;
     c->last_used = CCNL_NOW();
     c->content = content;
     c->contentlen = contlen;

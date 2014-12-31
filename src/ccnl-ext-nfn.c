@@ -266,46 +266,15 @@ restart:
 }
 
 struct ccnl_interest_s*
-ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                    int suite, struct ccnl_buf_s **buf,
-                    struct ccnl_prefix_s **p, int minsfx, int maxsfx)
-{
-    struct ccnl_interest_s *i;
-    struct ccnl_prefix_s *p2;
-
-    if (ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
-        return 0;
-
-    p2 = ccnl_prefix_dup(*p);
-    i = ccnl_interest_new(ccnl, from, (*p)->suite, buf, p, minsfx, maxsfx);
-    i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
-    ccnl_interest_append_pending(i, from);
-    if (!(i->flags & CCNL_PIT_COREPROPAGATES))
-        ccnl_nfn(ccnl, p2, from, NULL, i, suite, 0);
-    else {
-        free_prefix(p2);
-    }
-    return i;
-}
-
-struct ccnl_interest_s*
 ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                      struct ccnl_pkt_s *pkt)
-//                     int suite, struct ccnl_buf_s **buf,
-//                     struct ccnl_prefix_s **p, int minsfx, int maxsfx)
 {
     struct ccnl_interest_s *i;
-
-//CCNL_SUITE_NDNTLV, &pkt.buf,
-//                     &pkt.pfx, pkt.s.ndntlv.minsuffix, pkt.s.ndntlv.maxsuffix))
-
 
     if (!ccnl_nfnprefix_isNFN(pkt->pfx) ||
            ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
         return NULL;
-    i = ccnl_interest_new(ccnl, from, pkt->suite, &(pkt->buf),
-                          &(pkt->pfx), pkt->s.ndntlv.minsuffix,
-                          pkt->s.ndntlv.maxsuffix);
+    i = ccnl_interest_new2(ccnl, from, pkt);
     if (!i)
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
