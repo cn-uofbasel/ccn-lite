@@ -512,15 +512,24 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
 
 
 struct ccnl_prefix_s*
-getCCNBPrefix(unsigned char *data, int datalen){
-    struct ccnl_prefix_s *prefix = 0;
-    struct ccnl_buf_s *nonce=0, *ppkd=0;
-    unsigned char *content = 0;
-    int contlen, num, typ;
+getCCNBPrefix(unsigned char *data, int datalen)
+{
+    unsigned char *start = data; //content = 0;
+    int num, typ;
+    struct ccnl_pkt_s pkt;
     
     if (ccnl_ccnb_dehead(&data, &datalen, &num, &typ) || typ != CCN_TT_DTAG)
             return 0;
+
+    memset(&pkt, 0, sizeof(pkt));
+    if (ccnl_ccnb_bytes2pkt(start, &data, &datalen, &pkt) < 0) {
+       DEBUGMSG(ERROR, "Error in ccnb_extract\n");
+    }
+    return pkt.pfx;
     
+    /*
+    struct ccnl_prefix_s *prefix = 0;
+    struct ccnl_buf_s *nonce=0, *ppkd=0;
     if(ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
                     &prefix, &nonce, &ppkd, &content, &contlen) == NULL){
         DEBUGMSG(ERROR, "Error in ccnb_extract\n");
@@ -528,6 +537,7 @@ getCCNBPrefix(unsigned char *data, int datalen){
     }
                 
     return prefix;
+    */
 }
 
 struct ccnl_prefix_s*

@@ -1321,23 +1321,35 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
 {
     int contlen;
     unsigned char *content = 0, *data;
-    struct ccnl_prefix_s *p;
+    //    struct ccnl_prefix_s *p;
 
     switch (suite) {
-    case CCNL_SUITE_CCNB:
+    case CCNL_SUITE_CCNB: {
+        struct ccnl_pkt_s pkt;
         data = start + 2;
         len -= 2;
+        /*
         ccnl_ccnb_extract(&data, &len,
                           NULL, NULL, NULL, NULL, &p, NULL, NULL,
                           &content, &contlen);
+        */
+        memset(&pkt, 0, sizeof(pkt));
+        if (ccnl_ccnb_bytes2pkt(start, &data, &len, &pkt) < 0) {
+            DEBUGMSG(WARNING, "ccnb_extract: parsing error or no prefix\n"); 
+        }
+        free_prefix(pkt.pfx);
+        content = pkt.content;
+        contlen = pkt.contlen;
         break;
+    }
     case CCNL_SUITE_CCNTLV: {
         int hdrlen = ccnl_ccntlv_getHdrLen(start, len);
         struct ccnl_pkt_s pkt;
         data = start + hdrlen;
         len -= hdrlen;
+        memset(&pkt, 0, sizeof(pkt));
         if (ccnl_ccntlv_bytes2pkt(start, &data, &len, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
+            DEBUGMSG(WARNING, "ccntlv_extract: parsing error or no prefix\n"); 
         }
 /*
         ccnl_ccntlv_extract(hdrlen, &cp, &len, &p, NULL, NULL,
@@ -1348,6 +1360,9 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         contlen = pkt.contlen;
         break;
     }
+
+// FIXME - add a case for IOTTLV
+
     case CCNL_SUITE_NDNTLV: {
         struct ccnl_pkt_s pkt;
         data = start + 2;

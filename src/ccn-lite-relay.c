@@ -587,14 +587,32 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
         switch (suite) {
 #ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB:
-            if (buf->data[0+skip] != 0x04 || buf->data[1+skip] != 0x82)
+        case CCNL_SUITE_CCNB: {
+            unsigned char *start;
+            int rc;
+            struct ccnl_pkt_s pk;
+
+            data = start = buf->data + skip;
+            datalen -= skip;
+
+            if (data[0] != 0x04 || data[1] != 0x82)
                 goto notacontent;
-            data = buf->data + 2 + skip;
-            datalen -= 2 + skip;
-            pkt = ccnl_ccnb_extract(&data, &datalen, 0, 0, 0, 0,
-                                    &prefix, &nonce, &ppkd, &content, &contlen);
+            data += 2;
+            datalen -= 2;
+
+            memset(&pk, 0, sizeof(pk));
+            rc = ccnl_ccnb_bytes2pkt(start, &data, &datalen, &pk);
+            if (rc) { //  || pk.type != CCNX_TLV_TL_Interest) {
+                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+                goto Done;
+            }
+
+            pkt = pk.buf;
+            prefix = pk.pfx;
+            content = pk.content;
+            contlen = pk.contlen;
             break;
+        }
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV: {
