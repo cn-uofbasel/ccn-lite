@@ -59,21 +59,26 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct ccnl_prefix_s **prefix,
                         struct configuration_s *config)
 {
-    struct ccnl_buf_s *buf;
     int nonce = rand();
+    struct ccnl_pkt_s pkt;
+    struct ccnl_face_s *from;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_query2interest()\n");
+    DEBUGMSG(TRACE, "nfn_query2interest(configID=%d)\n", config->configid);
 
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
+    from = ccnl_malloc(sizeof(struct ccnl_face_s));
+    if (!from)
+        return NULL;
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = NULL;
-    DEBUGMSG(DEBUG, "  Configuration ID: %d\n", config->configid);
 
-    buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    memset(&pkt, 0, sizeof(pkt));
+    pkt.suite = (*prefix)->suite;
+    pkt.buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    pkt.pfx = *prefix;
+    *prefix = NULL;
 
-    return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
-//    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
+    return ccnl_interest_new2(ccnl, from, &pkt);
 }
 
 struct ccnl_content_s *
@@ -367,8 +372,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
-        if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+        if (content->name->suite == prefix->suite &&
+                    !ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT))
             return content;
     }
 
@@ -378,8 +383,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     prefixchunkzero = ccnl_prefix_dup(prefix);
     ccnl_prefix_addChunkNum(prefixchunkzero, 0);
     for (content = ccnl->contents; content; content = content->next) {
-        if (!ccnl_prefix_cmp(prefixchunkzero, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+        if (content->name->suite == prefix->suite &&
+               !ccnl_prefix_cmp(prefixchunkzero, 0, content->name, CMP_EXACT))
             return content;
     }
 
@@ -389,8 +394,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     for (iter = config->fox_state->prefix_mapping; iter; iter = iter->next) {
         if (!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)) {
             for (content = ccnl->contents; content; content = content->next) {
-                if (!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+                if (content->name->suite == prefix->suite &&
+                     !ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT))
                     return content;
             }
         }
