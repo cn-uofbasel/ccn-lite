@@ -541,11 +541,11 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
     while ((de = readdir(dir))) {
         char fname[1000];
         struct stat s;
-        struct ccnl_buf_s *buf = 0, *nonce=0, *ppkd=0, *pkt = 0;
-        struct ccnl_prefix_s *prefix = 0;
+        struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        unsigned char *content, *data;
-        int fd, contlen, datalen, typ, len, suite, skip;
+        unsigned char *data;
+        int fd, datalen, typ, len, suite, skip;
+        struct ccnl_pkt_s *pk;
 
         if (de->d_name[0] == '.')
             continue;
@@ -585,12 +585,11 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         buf->datalen = datalen;
         suite = ccnl_pkt2suite(buf->data, datalen, &skip);
 
+        pk = NULL;
         switch (suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
             unsigned char *start;
-            int rc;
-            struct ccnl_pkt_s pk;
 
             data = start = buf->data + skip;
             datalen -= skip;
@@ -600,17 +599,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             data += 2;
             datalen -= 2;
 
-            memset(&pk, 0, sizeof(pk));
-            rc = ccnl_ccnb_bytes2pkt(start, &data, &datalen, &pk);
-            if (rc) { //  || pk.type != CCNX_TLV_TL_Interest) {
-                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
-                goto Done;
-            }
-
-            pkt = pk.buf;
-            prefix = pk.pfx;
-            content = pk.content;
-            contlen = pk.contlen;
+            pk = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif
@@ -618,8 +607,6 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         case CCNL_SUITE_CCNTLV: {
             int hdrlen;
             unsigned char *start;
-            int rc;
-            struct ccnl_pkt_s pk;
 
             data = start = buf->data + skip;
             datalen -=  skip;
@@ -627,68 +614,34 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
             data += hdrlen;
             datalen -= hdrlen;
-            
-            memset(&pk, 0, sizeof(pk));
-            rc = ccnl_ccntlv_bytes2pkt(start, &data, &datalen, &pk);
-            if (rc) { //  || pk.type != CCNX_TLV_TL_Interest) {
-                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
-                goto Done;
-            }
 
-            pkt = pk.buf;
-            prefix = pk.pfx;
-            content = pk.content;
-            contlen = pk.contlen;
+            pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif 
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV: {
-            struct ccnl_pkt_s pk;
             unsigned char *olddata;
-            int rc;
+
             data = olddata = buf->data + skip;
             datalen -= skip;
             if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
                                                        typ != IOT_TLV_Reply)
                 goto notacontent;
-            memset(&pk, 0, sizeof(pk));
-            rc = ccnl_iottlv_bytes2pkt(olddata, &data, &datalen, &pk);
-            if (rc) {
-                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
-                goto Done;
-            }
-            pkt = pk.buf;
-            prefix = pk.pfx;
-            content = pk.content;
-            contlen = pk.contlen;
+            pk = ccnl_iottlv_bytes2pkt(olddata, &data, &datalen);
             break;
         }
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV: {
-            struct ccnl_pkt_s pk;
             unsigned char *olddata;
-            int rc;
-
-            memset(&pk, 0, sizeof(pk));
 
             data = olddata = buf->data + skip;
             datalen -= skip;
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
-            rc = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen, &pk);
-            if (rc) {
-                DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
-                goto Done;
-            }
-            DEBUGMSG(INFO, "  after bytes2pkt, buf.len is %d\n", pk.buf->datalen);
-
-            pkt = pk.buf;
-            prefix = pk.pfx;
-            content = pk.content;
-            contlen = pk.contlen;
+            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
             break;
         }
 #endif
@@ -696,17 +649,11 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             DEBUGMSG(WARNING, "unknown packet format (%s)\n", de->d_name);
             goto Done;
         }
-        if (!pkt) {
-            DEBUGMSG(WARNING, "parsing error (%s)\n", de->d_name);
+        if (!pk) {
+            DEBUGMSG(DEBUG, "  parsing error in %s\n", de->d_name);
             goto Done;
         }
-        if (!prefix) {
-            DEBUGMSG(WARNING, "missing prefix (%s)\n", de->d_name);
-            goto Done;
-        }
-
-        c = ccnl_content_new(ccnl, suite, &pkt, &prefix,
-                             &ppkd, content, contlen);
+        c = ccnl_content_new2(ccnl, &pk);
         if (!c) {
             DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name);
             goto Done;
@@ -714,11 +661,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         ccnl_content_add2cache(ccnl, c);
         c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 Done:
-        free_prefix(prefix);
+        free_packet(pk);
         ccnl_free(buf);
-        ccnl_free(pkt);
-        ccnl_free(nonce);
-        ccnl_free(ppkd);
         continue;
 notacontent:
         DEBUGMSG(WARNING, "not a content object (%s)\n", de->d_name);

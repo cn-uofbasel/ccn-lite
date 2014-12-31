@@ -78,21 +78,28 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
 }
 
 // we use one extraction routine for both interest and data pkts
-int
-ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
-                      struct ccnl_pkt_s *pkt)
+struct ccnl_pkt_s*
+ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
+    struct ccnl_pkt_s *pkt;
     int i, len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
     DEBUGMSG(DEBUG, "extracting NDNTLV packet (2)\n");
 
-    p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
+    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
+    if (!p) {
+        ccnl_free(pkt);
+        return NULL;
+    }
     p->compcnt = 0;
-    if (!p)
-        return -1;
 
     pkt->suite = CCNL_SUITE_NDNTLV;
+    pkt->s.ndntlv.scope = 3;
+    pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
     oldpos = *data - start;
     while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
@@ -217,11 +224,10 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
     if (p->nameptr)
         p->nameptr = pkt->buf->data + (p->nameptr - start);
 
-    return 0;
+    return pkt;
 Bail:
-    free_prefix(p);
-    ccnl_free(pkt->s.ndntlv.nonce);
-    return -1;
+    free_packet(pkt);
+    return NULL;
 }
 
 

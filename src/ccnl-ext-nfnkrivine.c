@@ -887,11 +887,12 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
 /*
-                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
-                         cont->pkt ? cont->pkt->datalen : -1);
+                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->buf,
+                         cont->buf ? cont->buf->datalen : -1);
 */
-                memcpy(res+pos, (char*)cont->pkt->data, cont->pkt->datalen);
-                pos += cont->pkt->datalen;
+                memcpy(res+pos, (char*)cont->pkt->buf->data,
+                       cont->pkt->buf->datalen);
+                pos += cont->pkt->buf->datalen;
             }
         } else if (stack->type == STACK_TYPE_INT) {
             //h = ccnl_buf_new(NULL, 10);

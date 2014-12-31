@@ -130,10 +130,9 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
 {
     struct ccnl_relay_s *relay;
     char tmp[100];
-    struct ccnl_prefix_s *p;
-    struct ccnl_buf_s *buf;
     int dataoffset;
     struct ccnl_content_s *c;
+    struct ccnl_pkt_s *pkt;
 
     relay = char2relay(node);
     if (!relay)
@@ -143,11 +142,13 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     DEBUGMSG(VERBOSE, "  %s\n", tmp);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
-    p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(p));
-    buf = ccnl_mkSimpleContent(p, data, len, &dataoffset);
-    c = ccnl_content_new(relay, theSuite, &buf, &p,
-                         NULL, buf->data + dataoffset, len);
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    pkt->pfx = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
+    DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(pkt->pfx));
+    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
+    pkt->content = pkt->buf->data + dataoffset;
+    pkt->contlen = len;
+    c = ccnl_content_new2(relay, &pkt);
     if (c)
         ccnl_content_add2cache(relay, c);
     return;

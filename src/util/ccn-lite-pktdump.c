@@ -1319,76 +1319,50 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 void
 emit_content_only(unsigned char *start, int len, int suite, int format)
 {
-    int contlen;
-    unsigned char *content = 0, *data;
-    //    struct ccnl_prefix_s *p;
+    unsigned char *data;
+    struct ccnl_pkt_s *pkt;
 
     switch (suite) {
     case CCNL_SUITE_CCNB: {
-        struct ccnl_pkt_s pkt;
         data = start + 2;
         len -= 2;
-        /*
-        ccnl_ccnb_extract(&data, &len,
-                          NULL, NULL, NULL, NULL, &p, NULL, NULL,
-                          &content, &contlen);
-        */
-        memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ccnb_bytes2pkt(start, &data, &len, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ccnb_extract: parsing error or no prefix\n"); 
-        }
-        free_prefix(pkt.pfx);
-        content = pkt.content;
-        contlen = pkt.contlen;
+
+        pkt = ccnl_ccnb_bytes2pkt(start, &data, &len);
         break;
     }
     case CCNL_SUITE_CCNTLV: {
         int hdrlen = ccnl_ccntlv_getHdrLen(start, len);
-        struct ccnl_pkt_s pkt;
         data = start + hdrlen;
         len -= hdrlen;
-        memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ccntlv_bytes2pkt(start, &data, &len, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ccntlv_extract: parsing error or no prefix\n"); 
-        }
-/*
-        ccnl_ccntlv_extract(hdrlen, &cp, &len, &p, NULL, NULL,
-                            &content, &contlen);
-*/
-        free_prefix(pkt.pfx);
-        content = pkt.content;
-        contlen = pkt.contlen;
+
+        pkt = ccnl_ccntlv_bytes2pkt(start, &data, &len);
         break;
     }
-
-// FIXME - add a case for IOTTLV
-
-    case CCNL_SUITE_NDNTLV: {
-        struct ccnl_pkt_s pkt;
+    case CCNL_SUITE_IOTTLV: {
         data = start + 2;
         len -= 2;
-        memset(&pkt, 0, sizeof(pkt));
-        if (ccnl_ndntlv_bytes2pkt(start, &data, &len, &pkt) < 0) {
-            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
-        }
-/*
-        ccnl_ndntlv_extract(2, &cp, &len,
-                            NULL, NULL, NULL, NULL, NULL, 
-                            &p, NULL, NULL, NULL,
-                            &content, &contlen);
-*/
-        free_prefix(pkt.pfx);
-        content = pkt.content;
-        contlen = pkt.contlen;
+
+        pkt = ccnl_iottlv_bytes2pkt(start, &data, &len);
+        break;
+    }
+    case CCNL_SUITE_NDNTLV: {
+        data = start + 2;
+        len -= 2;
+
+        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &len);
         break;
     }
     default:
         return;
     }
-
-    write(1, content, contlen);
+    if (!pkt) {
+        DEBUGMSG(WARNING, "extract (%s): parsing error or no prefix\n",
+                 ccnl_suite2str(suite)); 
+    }
+    write(1, pkt->content, pkt->contlen);
     if (format > 2)
         write(1, "\n", 1);
+    free_packet(pkt);
 }
 
 // ----------------------------------------------------------------------

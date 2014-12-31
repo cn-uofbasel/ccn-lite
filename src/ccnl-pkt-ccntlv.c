@@ -87,20 +87,26 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 }
 
 // we use one extraction routine for both interest and data pkts
-int
-ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
-                      struct ccnl_pkt_s *pkt)
+struct ccnl_pkt_s*
+ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
+    struct ccnl_pkt_s *pkt;
     int i;
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
     DEBUGMSG(DEBUG, "extracting CCNTLV packet (2)\n");
 
-    p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
+
+    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    if (!p) {
+        ccnl_free(pkt);
+        return NULL;
+    }
     p->compcnt = 0;
-    if (!p)
-        return -1;
 
     // We ignore the TL types of the message for now
     // content and interests are filled in both cases (and only one exists)
@@ -204,10 +210,10 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen,
     if (p->nameptr)
         p->nameptr = pkt->buf->data + (p->nameptr - start);
 
-    return 0;
+    return pkt;
 Bail:
-    free_prefix(p);
-    return -1;
+    free_packet(pkt);
+    return NULL;
 }
 
 // ----------------------------------------------------------------------

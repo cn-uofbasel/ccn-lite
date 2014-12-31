@@ -80,8 +80,10 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define free_prefix(p)  do{ if(p) \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
-#define free_content(c) do{ free_prefix(c->name); \
-                        free_2ptr_list(c->pkt, c); } while(0)
+#define free_packet(p)  do{ if(!p) break; free_prefix(p->pfx); \
+                ccnl_free(p->buf); ccnl_free(p); /* nonce ... */ } while(0)
+#define free_content(c) do{ free_prefix(c->name); free_packet(c->pkt);  \
+                        ccnl_free(c); } while(0)
 
 #define ccnl_frag_new(a,b)                      NULL
 #define ccnl_frag_destroy(e)                    do {} while(0)

@@ -25,11 +25,11 @@ typedef int (*matchfct2)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 // returning 0 if packet was 
 int
 ccnl_fwd_handleContent2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                        struct ccnl_pkt_s *pkt)
+                        struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
 
-    DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+    DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path((*pkt)->pfx));
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -42,12 +42,10 @@ ccnl_fwd_handleContent2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next)
-        if (buf_equal(c->pkt, pkt->buf))
+        if (buf_equal(c->pkt->buf, (*pkt)->buf))
             return 0; // content is dup
 
-    c = ccnl_content_new(relay, pkt->suite,
-                         &pkt->buf, &pkt->pfx, NULL /* ppkd */ ,
-                         pkt->content, pkt->contlen);
+    c = ccnl_content_new2(relay, pkt);
     if (!c)
         return 0;
 
@@ -83,7 +81,7 @@ match_ccnb2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
         return -1;
-    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->details.ccnb.ppkd))
+    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd))
         return -1;
     // FIXME: should check stale bit in aok here
     return 0;
@@ -146,11 +144,11 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
 int
 ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 {
-    if (i->suite != pkt->suite ||
+    if (i->prefix->suite != pkt->suite ||
                 ccnl_prefix_cmp(i->prefix, NULL, pkt->pfx, CMP_EXACT))
         return 0;
 
-    switch (i->suite) {
+    switch (i->prefix->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         return i->details.ccnb.minsuffix == pkt->s.ccnb.minsuffix &&
@@ -197,7 +195,7 @@ ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (from->ifndx >= 0) {
             ccnl_nfn_monitor(relay, from, c->name, c->content,
                              c->contentlen);
-            ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
+            ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
         } else {
             ccnl_app_RX(relay, c);
         }
@@ -274,24 +272,20 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
               unsigned char **data, int *datalen, int typ)
 {
     int rc= -1;
-    struct ccnl_pkt_s pkt;
+    struct ccnl_pkt_s *pkt;
 
     DEBUGMSG(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
 
-    memset(&pkt, 0, sizeof(pkt));
-    pkt.type = typ;
-    pkt.flags |= typ == CCN_DTAG_INTEREST ? CCNL_PKT_REQUEST : CCNL_PKT_REPLY;
-    pkt.s.ccnb.scope = 3;
-    pkt.s.ccnb.aok = 3;
-    pkt.s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
-
-    if (ccnl_ccnb_bytes2pkt(*data - 2, data, datalen, &pkt)) {
+    pkt = ccnl_ccnb_bytes2pkt(*data - 2, data, datalen);
+    if (!pkt) {
         DEBUGMSG(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+    pkt->type = typ;
+    pkt->flags |= typ == CCN_DTAG_INTEREST ? CCNL_PKT_REQUEST : CCNL_PKT_REPLY;
 
-    if (pkt.flags & CCNL_PKT_REQUEST) { // interest
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ccnb2))
+    if (pkt->flags & CCNL_PKT_REQUEST) { // interest
+        if (ccnl_fwd_handleInterest(relay, from, pkt, match_ccnb2))
             goto Done;
     } else { // content
         if (ccnl_fwd_handleContent2(relay, from, &pkt))
@@ -299,8 +293,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     rc = 0;
 Done:
-    free_prefix(pkt.pfx);
-    free_3ptr_list(pkt.buf, pkt.s.ccnb.nonce, pkt.s.ccnb.ppkd);
+    free_packet(pkt);
     return rc;
 }
 
@@ -353,7 +346,7 @@ ccnl_ccntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned short hdrlen;
     struct ccnx_tlvhdr_ccnx201412_s *hp;
     unsigned char *start = *data;
-    struct ccnl_pkt_s pkt;
+    struct ccnl_pkt_s *pkt;
 
     DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
@@ -387,37 +380,36 @@ ccnl_ccntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
              *datalen, hdrlen);
-    memset(&pkt, 0, sizeof(pkt));
 
-    if (ccnl_ccntlv_bytes2pkt(start, data, datalen, &pkt)) {
+    pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
+    if (!pkt) {
         DEBUGMSG(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
 
     if (hp->pkttype == CCNX_PT_Interest) {
-        if (pkt.type == CCNX_TLV_TL_Interest) {
-            pkt.flags |= CCNL_PKT_REQUEST;
-            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt.pfx));
-            if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ccntlv2))
+        if (pkt->type == CCNX_TLV_TL_Interest) {
+            pkt->flags |= CCNL_PKT_REQUEST;
+            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            if (ccnl_fwd_handleInterest(relay, from, pkt, match_ccntlv2))
                 goto Done;
         } else {
             DEBUGMSG(WARNING, "  ccntlv: interest pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt.type);
+                     hp->pkttype, pkt->type);
         }
 
     } else if (hp->pkttype == CCNX_PT_Data) {
-        if (pkt.type == CCNX_TLV_TL_Object) {
-            pkt.flags |= CCNL_PKT_REPLY;
+        if (pkt->type == CCNX_TLV_TL_Object) {
+            pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent2(relay, from, &pkt);
         } else {
             DEBUGMSG(WARNING, "  ccntlv: data pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt.type);
+                     hp->pkttype, pkt->type);
         }
     } // else ignore
     rc = 0;
 Done:
-    free_prefix(pkt.pfx);
-    ccnl_free(pkt.buf);
+    free_packet(pkt);
 
     return rc;
 }
@@ -435,7 +427,7 @@ ccnl_iottlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int typ, len, rc = -1;
     unsigned char *start = *data;
-    struct ccnl_pkt_s pkt;
+    struct ccnl_pkt_s *pkt;
 
     DEBUGMSG(TRACE, "ccnl_iottlv_forwarder2 (%d bytes left)\n", *datalen);
 
@@ -443,26 +435,26 @@ ccnl_iottlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
         return -1;
-    // typ must be Request or Reply
-    pkt.type = typ;
-
-    if (ccnl_iottlv_bytes2pkt(start, data, datalen, &pkt)) {
+    pkt = ccnl_iottlv_bytes2pkt(start, data, datalen);
+    if (!pkt) {
         DEBUGMSG(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+    // typ must be Request or Reply
+    pkt->type = typ;
+
     if (typ == IOT_TLV_Request) {
-        pkt.flags |= CCNL_PKT_REQUEST;
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_iottlv2))
+        pkt->flags |= CCNL_PKT_REQUEST;
+        if (ccnl_fwd_handleInterest(relay, from, pkt, match_iottlv2))
             goto Done;
     } else { // data packet with content -------------------------------------
-        pkt.flags |= CCNL_PKT_REPLY;
+        pkt->flags |= CCNL_PKT_REPLY;
         if (ccnl_fwd_handleContent2(relay, from, &pkt))
             goto Done;
     }
     rc = 0;
 Done:
-    free_prefix(pkt.pfx);
-    ccnl_free(pkt.buf);
+    free_packet(pkt);
     return rc;
 }
 
@@ -479,35 +471,30 @@ ccnl_ndntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int typ, len, rc = -1;
     unsigned char *start = *data;
-    struct ccnl_pkt_s pkt;
+    struct ccnl_pkt_s *pkt;
 
     DEBUGMSG(DEBUG, "ccnl_ndntlv_forwarder2 (%d bytes left)\n", *datalen);
 
-    memset(&pkt, 0, sizeof(pkt));
-    pkt.s.ndntlv.scope = 3;
-    pkt.s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
-
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen)
         return -1;
-    pkt.type = typ;
-    if (ccnl_ndntlv_bytes2pkt(start, data, datalen, &pkt)) {
+    pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+    if (!pkt) {
         DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
         goto Done;
     }
+    pkt->type = typ;
     if (typ == NDN_TLV_Interest) {
-        pkt.flags |= CCNL_PKT_REQUEST;
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ndntlv2))
+        pkt->flags |= CCNL_PKT_REQUEST;
+        if (ccnl_fwd_handleInterest(relay, from, pkt, match_ndntlv2))
             goto Done;
     } else { // data packet with content -------------------------------------
-        pkt.flags |= CCNL_PKT_REPLY;
+        pkt->flags |= CCNL_PKT_REPLY;
         if (ccnl_fwd_handleContent2(relay, from, &pkt))
             goto Done;
     }
     rc = 0;
 Done:
-    free_prefix(pkt.pfx);
-    free_3ptr_list(pkt.buf, pkt.s.ndntlv.nonce, pkt.s.ndntlv.ppkl);
-
+    free_packet(pkt);
     return rc;
 }
 
