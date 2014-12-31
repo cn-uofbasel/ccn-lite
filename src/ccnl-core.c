@@ -862,6 +862,11 @@ int
 ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 {
     switch (pkt->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return pkt->s.ccnb.nonce &&
+            ccnl_nonce_find_or_append(relay, pkt->s.ccnb.nonce);
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         return pkt->s.ndntlv.nonce &&
@@ -938,7 +943,7 @@ void
 ccnl_core_init(void)
 {
 #ifdef USE_SUITE_CCNB
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_ccnb_forwarder;
+    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_ccnb_forwarder2;
 #endif
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder2;

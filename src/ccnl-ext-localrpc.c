@@ -348,7 +348,7 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         switch(encoding) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            ccnl_ccnb_forwarder(relay, from, &ucp, &len);
+            ccnl_ccnb_forwarder2(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV

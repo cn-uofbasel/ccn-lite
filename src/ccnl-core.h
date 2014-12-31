@@ -248,8 +248,9 @@ struct ccnl_content_s {
 };
 
 struct ccnl_pktdetail_ccnb_s {
-    int minsuffix, maxsuffix, aok;
-    struct ccnl_buf_s *ppkd;       // publisher public key digest
+    int minsuffix, maxsuffix, aok, scope;
+    struct ccnl_buf_s *nonce;
+    struct ccnl_buf_s *ppkd;        // publisher public key digest
 };
 
 struct ccnl_pktdetail_ccntlv_s {

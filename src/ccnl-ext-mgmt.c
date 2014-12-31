@@ -163,19 +163,35 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             }
             else
             {
+                DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
+                struct ccnl_prefix_s *prefix_a;
+                struct ccnl_content_s *c;
+                char uri[50];
+                struct ccnl_buf_s *aBuf;
+                int contentpos;
+
+                sprintf(uri, "/mgmt/seqnum-%d", it);
+                prefix_a = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
+                aBuf = ccnl_mkSimpleContent(prefix_a, buf2, len5, &contentpos);
+                c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &aBuf, &prefix_a,
+                                     NULL, aBuf->data+contentpos, len5);
+                ccnl_content_serve_pending(ccnl, c);
+                ccnl_content_add2cache(ccnl, c);
+/*
                 //put to cache
                 struct ccnl_prefix_s *prefix_a = 0;
                 struct ccnl_content_s *c = 0;
-                struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
-                unsigned char *content = 0;
+                struct ccnl_buf_s *pkt = 0;
+                unsigned char *content = 0, *cp = buf2;
                 unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
                 int contlen;
-                pkt = ccnl_ccnb_extract(&buf2, &len5, 0, 0, 0, 0,
-                                &prefix_a, &nonce, &ppkd, &content, &contlen);
+                pkt = ccnl_ccnb_extract(&cp, &len5, 0, 0, 0, 0,
+                                &prefix_a, NULL, NULL, &content, &contlen);
 
                 if (!pkt) {
                      DEBUGMSG(WARNING, " parsing error\n"); 
                 }
+                DEBUGMSG(INFO, " prefix is %s\n", ccnl_prefix_to_path(prefix_a)); 
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
                 prefix_a->comp[0] = (unsigned char *)"mgmt";
@@ -185,13 +201,14 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 prefix_a->complen[0] = strlen("mgmt");
                 prefix_a->complen[1] = strlen((char*)ht);
                 c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a,
-                                     &ppkd, content, contlen);
+                                     NULL, content, contlen);
                 //if (!c) goto Done;
 
                 ccnl_content_serve_pending(ccnl, c);
                 ccnl_content_add2cache(ccnl, c);
                 //Done:
                 //continue;
+*/
             }
             ccnl_free(buf2);
 #ifdef USE_SIGNATURES
@@ -1527,6 +1544,7 @@ Bail:
     /*END ANWER*/  
 
 
+    ccnl_free(suite);
     ccnl_free(faceid);
     ccnl_free(action);
     free_prefix(p);
@@ -1534,40 +1552,6 @@ Bail:
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
-
-#ifdef XXX
-int
-pkt2suite(unsigned char *data, int len)
-{
-    if (len < 1)
-    return -1;
-
-    switch (*data) {
-
-    case 0x01:
-    case 0x04:
-    return CCNL_SUITE_CCNB;
-
-    case 0x05:
-    case 0x06:
-        return CCNL_SUITE_NDNTLV;
-
-    case 0x80:
-        return CCNL_SUITE_LOCALRPC;
-
-    /*case 0x00:
-    if (len > 1 &&
-        (data[1] == CCNX_TLV_TL_Interest || data[1] == CCNX_TLV_TL_Object))
-            return SUITE_CCNTLV;
-    // fall through
-*/
-    default:
-    break;
-    }
-
-    return -1;
-}
-#endif
 
 int
 ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
