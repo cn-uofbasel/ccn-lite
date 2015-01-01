@@ -40,9 +40,6 @@
 #define CCNL_FRAG_SEQUENCED2012 1
 #define CCNL_FRAG_CCNx2013      2
 
-#define CCNL_CONTENT_FLAGS_STATIC  0x01
-#define CCNL_CONTENT_FLAGS_STALE   0x02
-
 // ----------------------------------------------------------------------
 
 typedef union {
@@ -217,14 +214,12 @@ struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
     struct ccnl_pkt_s *pkt;
     int flags;
-    int last_used;
-    int served_cnt;
+#define CCNL_CONTENT_FLAGS_STATIC  0x01
+#define CCNL_CONTENT_FLAGS_STALE   0x02
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
-
-    struct ccnl_prefix_s *name;
-    unsigned char *content; // pointer into the data buffer
-    int contentlen;
+    int last_used;
+    int served_cnt;
 };
 
 struct ccnl_pktdetail_ccnb_s {

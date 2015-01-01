@@ -262,7 +262,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         prefix = ccnl_URItoPrefix(p, CCNL_SUITE_DEFAULT, NULL, NULL);
 
         while (c) {
-            if (!ccnl_prefix_cmp(c->name, NULL, prefix, CMP_EXACT)) {
+            if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, prefix, CMP_EXACT)) {
                 struct ccnl_content_s *tmp = c->next;
                 ccnl_content_remove(relay, c);
                 DEBUGMSG(DEBUG, "content %s removed\n",

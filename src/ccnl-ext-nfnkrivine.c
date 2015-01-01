@@ -114,13 +114,13 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
                 return NULL;
 
             struct stack_s *elm1 = ccnl_calloc(1, sizeof(struct stack_s));
-            if (isdigit(*c->content)) {
+            if (isdigit(*c->pkt->content)) {
                 int *integer = ccnl_malloc(sizeof(int));
-                *integer = (int)strtol((char*)c->content, NULL, 0);
+                *integer = (int)strtol((char*)c->pkt->content, NULL, 0);
                 elm1->content = (void*)integer;
                 elm1->type = STACK_TYPE_INT;
             } else {
-                elm1->content = c->name;
+                elm1->content = c->pkt->pfx;
                 elm1->type = STACK_TYPE_PREFIX;
             }
             elm1->next = NULL;
@@ -439,7 +439,7 @@ local_compute:
 handlecontent: //if result was found ---> handle it
     if (c) {
 #ifdef USE_NACK
-        if (!strncmp((char*)c->content, ":NACK", 5)) {
+        if (!strncmp((char*)c->pkt->content, ":NACK", 5)) {
             DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
             ++config->fox_state->it_routable_param;
             return prog ? ccnl_strdup(prog) : NULL;
@@ -448,8 +448,8 @@ handlecontent: //if result was found ---> handle it
         if (thunk_request) { //if thunk_request push thunkid on the stack
 
             --(*num_of_required_thunks);
-            char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
-            char *time_required = (char *)c->content;
+            char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->pkt->pfx);
+            char *time_required = (char *)c->pkt->content;
             int thunk_time = strtol(time_required, NULL, 10);
             thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
             config->thunk_time = config->thunk_time > thunk_time ?
@@ -462,9 +462,9 @@ handlecontent: //if result was found ---> handle it
                 ccnl_nfn_reply_thunk(ccnl, config);
             }
         } else {
-            if (isdigit(*c->content)) {
+            if (isdigit(*c->pkt->content)) {
                 int *integer = ccnl_malloc(sizeof(int));
-                *integer = strtol((char*)c->content, 0, 0);
+                *integer = strtol((char*)c->pkt->content, 0, 0);
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             } else {
                 struct prefix_mapping_s *mapping;
@@ -473,7 +473,7 @@ handlecontent: //if result was found ---> handle it
                 push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                 mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
                 mapping->key = ccnl_prefix_dup(name); //TODO COPY
-                mapping->value = ccnl_prefix_dup(c->name);
+                mapping->value = ccnl_prefix_dup(c->pkt->pfx);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 DEBUGMSG(DEBUG, "Created a mapping %s - %s\n",
                          ccnl_prefix_to_path(mapping->key),
@@ -880,8 +880,8 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
         if (stack->type == STACK_TYPE_PREFIX) {
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-                memcpy(res+pos, (char*)cont->content, cont->contentlen);
-                pos += cont->contentlen;
+                memcpy(res+pos, (char*)cont->pkt->content, cont->pkt->contlen);
+                pos += cont->pkt->contlen;
             }
         } else if (stack->type == STACK_TYPE_PREFIXRAW) {
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);

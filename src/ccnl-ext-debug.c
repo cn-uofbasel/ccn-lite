@@ -253,7 +253,7 @@ ccnl_dump(int lev, int typ, void *p)
             fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
                    (void *) con, (void *) con->next, (void *) con->prev,
                    con->last_used, con->served_cnt);
-            ccnl_dump(lev+1, CCNL_PREFIX, con->name);
+            //            ccnl_dump(lev+1, CCNL_PREFIX, con->pkt->pfx);
             ccnl_dump(lev+1, CCNL_PACKET, con->pkt);
             con = con->next;
         }
@@ -472,7 +472,7 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         last_use[line] = con->last_used;
         served_cnt[line] = con->served_cnt;
         
-        get_prefix_dump(lev, con->name, &prefixlen[line], &prefix[line]);
+        get_prefix_dump(lev, con->pkt->pfx, &prefixlen[line], &prefix[line]);
       
         con = con->next;
         ++line;
@@ -649,10 +649,10 @@ ccnl_buf_new(void *data, int len)
 
 #define free_prefix(p)  do{ if(!p) break; ccnl_free(p->chunknum);  \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
-#define free_packet(p)  do{ if(!p) break; free_prefix(p->pfx); \
-                ccnl_free(p->buf); ccnl_free(p); /* nonce ... */ } while(0)
-#define free_content(c) do{ free_prefix(c->name); free_packet(c->pkt);  \
+#define free_content(c) do{ /* free_prefix(c->name); */ free_packet(c->pkt); \
                         ccnl_free(c); } while(0)
+
+void free_packet(struct ccnl_pkt_s *pkt);
 
 // -----------------------------------------------------------------
 int debug_level;

@@ -243,7 +243,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     int i;
     char tmp[200], tmp2[10];
-    struct ccnl_prefix_s *p = c->name;
+    struct ccnl_prefix_s *p = c->pkt->pfx;
 
     if (theSuite == CCNL_SUITE_CCNTLV) {
         tmp[0] = '\0';
@@ -269,7 +269,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
              relay2char(ccnl), tmp, tmp2);
 
     ccnl_simu_client_RX(ccnl, tmp, atoi(tmp2+1),
-                       (char*) c->content, c->contentlen);
+                       (char*) c->pkt->content, c->pkt->contlen);
     return 0;
 }
 
