@@ -385,8 +385,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
-        if (content->name->suite == prefix->suite &&
-                    !ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT))
+        if (content->pkt->pfx->suite == prefix->suite &&
+                    !ccnl_prefix_cmp(prefix, 0, content->pkt->pfx, CMP_EXACT))
             return content;
     }
 
@@ -396,8 +396,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     prefixchunkzero = ccnl_prefix_dup(prefix);
     ccnl_prefix_addChunkNum(prefixchunkzero, 0);
     for (content = ccnl->contents; content; content = content->next) {
-        if (content->name->suite == prefix->suite &&
-               !ccnl_prefix_cmp(prefixchunkzero, 0, content->name, CMP_EXACT))
+        if (content->pkt->pfx->suite == prefix->suite &&
+             !ccnl_prefix_cmp(prefixchunkzero, 0, content->pkt->pfx, CMP_EXACT))
             return content;
     }
 
@@ -407,8 +407,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     for (iter = config->fox_state->prefix_mapping; iter; iter = iter->next) {
         if (!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)) {
             for (content = ccnl->contents; content; content = content->next) {
-                if (content->name->suite == prefix->suite &&
-                     !ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT))
+                if (content->pkt->pfx->suite == prefix->suite &&
+                 !ccnl_prefix_cmp(iter->value, 0, content->pkt->pfx, CMP_EXACT))
                     return content;
             }
         }
@@ -494,7 +494,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     c = ccnl_nfn_result2content(ccnl, &prefix, (unsigned char*)reply_content,
                                 strlen(reply_content));
     if (c) {
-        set_propagate_of_interests_to_1(ccnl, c->name);
+        set_propagate_of_interests_to_1(ccnl, c->pkt->pfx);
         ccnl_content_add2cache(ccnl, c);
         ccnl_content_serve_pending(ccnl, c);
     }
@@ -532,7 +532,8 @@ ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     nack = ccnl_nfn_result2content(ccnl, &prefix,
                                     (unsigned char*)":NACK", 5);
-    ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
+    ccnl_nfn_monitor(ccnl, from, nack->pkt->pfx,
+                     nack->pkt->content, nack->pkt->contentlen);
     DEBUGMSG(WARNING, "+++ nack->pkt is %p\n", (void*) nack->pkt);
     ccnl_face_enqueue(ccnl, from, nack->pkt);
 }
@@ -578,7 +579,7 @@ ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p)
 int
 ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
-    return !memcmp(c->content, ":NACK", 5);
+    return !memcmp(c->pkt->content, ":NACK", 5);
 }
 
 void

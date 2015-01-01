@@ -51,7 +51,7 @@ ccnl_fwd_handleContent2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-    if (ccnl_nfnprefix_isNFN(c->name)) {
+    if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
         if (ccnl_nfn_RX_result(relay, from, c))
             return 0;
         DEBUGMSG(VERBOSE, "no running computation found \n");
@@ -91,7 +91,7 @@ match_ccnb2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 int
 match_ccntlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
-    if (ccnl_prefix_cmp(c->name, NULL, p->pfx, CMP_EXACT))
+    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     // TODO: check keyid
     // TODO: check freshness, kind-of-reply
@@ -102,7 +102,7 @@ match_ccntlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 int
 match_iottlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
-    if (ccnl_prefix_cmp(c->name, NULL, p->pfx, CMP_EXACT))
+    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     return 0;
 }
@@ -185,7 +185,7 @@ ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              ccnl_prefix_to_path(p->pfx), (void*) relay->contents);
 
     for (c = relay->contents; c; c = c->next) {
-        if (c->name->suite != p->pfx->suite)
+        if (c->pkt->pfx->suite != p->pfx->suite)
             continue;
         if (cmp(p, c))
             continue;
@@ -193,8 +193,8 @@ ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
                  (void *) c);
         if (from->ifndx >= 0) {
-            ccnl_nfn_monitor(relay, from, c->name, c->content,
-                             c->contentlen);
+            ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
+                             c->pkt->contlen);
             ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
         } else {
             ccnl_app_RX(relay, c);

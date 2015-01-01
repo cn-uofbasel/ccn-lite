@@ -243,7 +243,7 @@ restart:
         c = ccnl_nfn_result2content(ccnl, &copy, res->data, res->datalen);
         c->flags = CCNL_CONTENT_FLAGS_STATIC;
 
-        set_propagate_of_interests_to_1(ccnl, c->name);
+        set_propagate_of_interests_to_1(ccnl, c->pkt->pfx);
         ccnl_content_serve_pending(ccnl,c);
         ccnl_content_add2cache(ccnl, c);
         --ccnl->km->numOfRunningComputations;
@@ -295,23 +295,23 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG(TRACE, "ccnl_nfn_RX_result()\n");
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c)) {
-        ccnl_nfn_nack_local_computation(relay, c->pkt, c->name,
-                                        from, c->name->suite);
+        ccnl_nfn_nack_local_computation(relay, c->pkt, c->pkt->pfx,
+                                        from, c->pkt->pfx->suite);
         return -1;
     }
 #endif // USE_NACK
     for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
         //Check if prefix match and it is a nfn request
         DEBUGMSG(DEBUG, "CMP: %d (match if zero), faceid: %d \n", 
-			ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT),
-			i_it->from->faceid);
-        if (!ccnl_prefix_cmp(c->name, NULL, i_it->prefix, CMP_EXACT) &&
+                ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->prefix, CMP_EXACT),
+                        i_it->from->faceid);
+        if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->prefix, CMP_EXACT) &&
                                                 i_it->from->faceid < 0) {
             int faceid = -i_it->from->faceid;
 
             ccnl_content_add2cache(relay, c);
-	    DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
-                     -i_it->from->faceid, ccnl_prefix_to_path(c->name));
+            DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
+                  -i_it->from->faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it = ccnl_interest_remove(relay, i_it);
             ccnl_nfn_continue_computation(relay, faceid, 0);

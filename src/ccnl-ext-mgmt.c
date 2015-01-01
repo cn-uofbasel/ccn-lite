@@ -1675,10 +1675,10 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     for (c2 = ccnl->contents; c2; c2 = c2->next)
     {
-        if(c2->name->compcnt != num_of_components) continue;
+        if(c2->pkt->pfx->compcnt != num_of_components) continue;
         for(i = 0; i < num_of_components; ++i)
         {
-            if(strcmp((char*)c2->name->comp[i], (char*)components[i]))
+            if(strcmp((char*)c2->pkt->pfx->comp[i], (char*)components[i]))
             {
                 break;
             }

@@ -80,9 +80,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define free_prefix(p)  do{ if(p) \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
-#define free_packet(p)  do{ if(!p) break; free_prefix(p->pfx); \
-                ccnl_free(p->buf); ccnl_free(p); /* nonce ... */ } while(0)
-#define free_content(c) do{ free_prefix(c->name); free_packet(c->pkt);  \
+#define free_content(c) do{ /* free_prefix(c->name); */ free_packet(c->pkt); \
                         ccnl_free(c); } while(0)
 
 #define ccnl_frag_new(a,b)                      NULL
@@ -105,6 +103,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
+
+void free_packet(struct ccnl_pkt_s *pkt);
 
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);

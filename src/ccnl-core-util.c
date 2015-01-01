@@ -581,6 +581,37 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     return -1;
 }
 
+void
+free_packet(struct ccnl_pkt_s *pkt)
+{
+    if (pkt) {
+        if (pkt->pfx) switch (pkt->pfx->suite) {
+#ifdef USE_SUITE_CCNB
+            case CCNL_SUITE_CCNB:
+                ccnl_free(pkt->s.ccnb.nonce);
+                ccnl_free(pkt->s.ccnb.ppkd);
+                break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+            case CCNL_SUITE_CCNTLV:
+                ccnl_free(pkt->s.ccntlv.keyid);
+                break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+            case CCNL_SUITE_NDNTLV:
+                ccnl_free(pkt->s.ndntlv.nonce);
+                ccnl_free(pkt->s.ndntlv.ppkl);
+                break;
+#endif
+            case CCNL_SUITE_IOTTLV:
+            default:
+                break;
+            }
+        ccnl_free(pkt->buf);
+        ccnl_free(pkt);
+    }
+}
+
 // ----------------------------------------------------------------------
 
 char*
