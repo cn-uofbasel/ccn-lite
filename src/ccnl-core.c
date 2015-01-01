@@ -163,6 +163,8 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
         f->ifndx = -1;
     f->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->faces, f);
+
+    TRACEOUT();
     return f;
 }
 
@@ -193,8 +195,10 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
         }
         if (pit->pending)
             pit = pit->next;
-        else
+        else {
+            DEBUGMSG(TRACE, "before NFN interest_remove 0x%p\n", (void*)pit);
             pit = ccnl_nfn_interest_remove(ccnl, pit);
+        }
     }
     for (ppfwd = &ccnl->fib; *ppfwd;) {
         if ((*ppfwd)->face == f) {
@@ -213,6 +217,8 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     f2 = f->next;
     DBL_LINKED_LIST_REMOVE(ccnl->faces, f);
     ccnl_free(f);
+
+    TRACEOUT();
     return f2;
 }
 
@@ -685,6 +691,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
         //Hook for add content to cache by callback:
         if(i && ! i->pending){
+            DEBUGMSG(WARNING, "releasing interest 0x%p OK?\n", (void*)i);
             c->flags |= CCNL_CONTENT_FLAGS_STATIC;
             i = ccnl_interest_remove(ccnl, i);
             return 1;
@@ -737,6 +744,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
+            DEBUGMSG(DEBUG, " timeout: remove interest 0x%p <%s>\n", (void*)i,
+                     ccnl_prefix_to_path(i->pkt->pfx));
             i = ccnl_nfn_interest_remove(relay, i);
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages

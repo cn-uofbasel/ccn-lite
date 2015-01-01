@@ -565,6 +565,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     if (faceid < 0)
         ccnl_nfn_continue_computation(relay, -faceid, 1);
 
+    TRACEOUT();
     return i;
 }
 
