@@ -92,6 +92,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
         return;
     }
     ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
+    TRACEOUT();
 }
 
 void
@@ -104,6 +105,7 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
     DEBUGMSG(TRACE, "ccnl_nfn_nack_local_computation\n");
 
     ccnl_nfn(ccnl, prefix, from, NULL, NULL, suite, 1);
+    TRACEOUT();
 }
 
 int
@@ -262,6 +264,7 @@ restart:
     }
 #endif
 
+    TRACEOUT();
     return 0;
 }
 
@@ -280,7 +283,7 @@ ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
     ccnl_nfn(ccnl, ccnl_prefix_dup(i->pkt->pfx), from, NULL, i, i->pkt->suite, 0);
-
+    TRACEOUT();
     return i;
 }
 
@@ -321,6 +324,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         else
             i_it = i_it->next;
     }
+    TRACEOUT();
     return found > 0;
 }
 
