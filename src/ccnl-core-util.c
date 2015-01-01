@@ -607,6 +607,7 @@ free_packet(struct ccnl_pkt_s *pkt)
             default:
                 break;
             }
+        free_prefix(pkt->pfx);
         ccnl_free(pkt->buf);
         ccnl_free(pkt);
     }

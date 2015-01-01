@@ -390,7 +390,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 
 struct ccnl_interest_s*
 ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                   struct ccnl_pkt_s *pkt)
+                   struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
@@ -398,34 +398,10 @@ ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
     if (!i)
         return NULL;
+    i->pkt = *pkt;
+    *pkt = NULL;
     i->flags |= CCNL_PIT_COREPROPAGATES;
-    //    i->suite = pkt->suite;
     i->from = from;
-//    i->prefix = ccnl_prefix_dup(pkt->pfx); //           pkt->pfx = 0;
-    i->prefix = pkt->pfx;           pkt->pfx = 0;
-    i->buf  = pkt->buf;             pkt->buf = 0;
-    switch (pkt->suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        i->details.ccnb.minsuffix = pkt->s.ccnb.minsuffix;
-        i->details.ccnb.maxsuffix = pkt->s.ccnb.maxsuffix;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if (pkt->s.ccntlv.keyid)
-            i->details.ccntlv.keyid = pkt->s.ccntlv.keyid, pkt->s.ccntlv.keyid = NULL;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        i->details.ndntlv.minsuffix = pkt->s.ndntlv.minsuffix;
-        i->details.ndntlv.maxsuffix = pkt->s.ndntlv.maxsuffix;
-        if (pkt->s.ndntlv.ppkl)
-            i->details.ndntlv.ppkl = pkt->s.ndntlv.ppkl, pkt->s.ndntlv.ppkl = NULL;
-        break;
-#endif
-    }
     i->last_used = CCNL_NOW();
     DBL_LINKED_LIST_ADD(ccnl->pit, i);
 
@@ -479,13 +455,13 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
 
         //Only for matching suite
-        if (!i->prefix || fwd->suite != i->prefix->suite) {
+        if (!i->pkt->pfx || fwd->suite != i->pkt->pfx->suite) {
             DEBUGMSG(DEBUG, "  not same suite (%d/%d)\n",
-                     fwd->suite, i->prefix ? i->prefix->suite : -1);
+                     fwd->suite, i->pkt->pfx ? i->pkt->pfx->suite : -1);
             continue;
         }
 
-        rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->prefix, CMP_LONGEST);
+        rc = ccnl_prefix_cmp(fwd->prefix, NULL, i->pkt->pfx, CMP_LONGEST);
 
         DEBUGMSG(DEBUG, "  ccnl_interest_propagate, rc=%d/%d\n",
                  rc, fwd->prefix->compcnt);
@@ -495,8 +471,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
-            ccnl_nfn_monitor(ccnl, fwd->face, i->prefix, NULL, 0);
-            ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->buf));
+            ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
+            ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
 #ifdef USE_NACK
             matching_face = 1;
 #endif
@@ -506,7 +482,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
 #ifdef USE_NACK
     if(!matching_face){
-        ccnl_nack_reply(ccnl, i->prefix, i->from, i->prefix->suite);
+        ccnl_nack_reply(ccnl, i->pkt->pfx, i->from, i->pkt->pfx->suite);
         ccnl_interest_remove(ccnl, i);
     }
 #endif
@@ -518,6 +494,11 @@ struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_interest_s *i2;
+
+/*
+    if (!i)
+        return NULL;
+*/
 
     DEBUGMSG(TRACE, "ccnl_interest_remove %p\n", (void *) i);
 /*
@@ -534,30 +515,8 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
 
-    if (i->prefix)
-        switch (i->prefix->suite) {
-#ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB:
-//            ccnl_free(i->details.ccnb.nonce);
-            ccnl_free(i->details.ccnb.ppkd);
-            break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV:
-            ccnl_free(i->details.ccntlv.keyid);
-            break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV:
-//            ccnl_free(i->details.ndntlv.nonce);
-            ccnl_free(i->details.ndntlv.ppkl);
-            break;
-#endif
-        default:
-            break;
-    }
-    free_prefix(i->prefix);
-    free_2ptr_list(i->buf, i);
+    free_packet(i->pkt);
+    ccnl_free(i);
     return i2;
 }
 
@@ -596,32 +555,12 @@ ccnl_content_new2(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
              (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx));
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
-    if (!c) return NULL;
-    //    c->suite = suite;
-    //    c->name = (*pkt)->pfx;
-/*
-    c->content = (*pkt)->content;
-    c->contentlen = (*pkt)->contlen;
-*/
+    if (!c)
+        return NULL;
     c->pkt = *pkt;
     *pkt = NULL;
     c->last_used = CCNL_NOW();
-/*
-    if (ppk) {
-        switch (suite) {
-#ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB: c->details.ccnb.ppkd = *ppk; break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV: c->details.ccntlv.keyid = *ppk; break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV: c->details.ndntlv.ppkl = *ppk; break;
-#endif
-        }
-        *ppk = NULL;
-    }
-*/
+
     return c;
 }
 
@@ -697,14 +636,14 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     for (i = ccnl->pit; i;) {
         struct ccnl_pendint_s *pi;
 
-        if (!i->prefix)
+        if (!i->pkt->pfx)
             continue;
 
-        switch (i->prefix->suite) {
+        switch (i->pkt->pfx->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            if (!ccnl_i_prefixof_c(i->prefix, i->details.ccnb.minsuffix,
-                       i->details.ccnb.maxsuffix, c)) {
+            if (!ccnl_i_prefixof_c(i->pkt->pfx, i->pkt->s.ccnb.minsuffix,
+                       i->pkt->s.ccnb.maxsuffix, c)) {
                 // XX must also check i->ppkd
                 i = i->next;
                 continue;
@@ -713,7 +652,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-            if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->prefix, CMP_EXACT)) {
+            if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
                 // XX must also check keyid
                 i = i->next;
                 continue;
@@ -722,7 +661,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
-          if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->prefix, CMP_EXACT)) {
+          if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
                 // XX must also check keyid
                 i = i->next;
                 continue;
@@ -731,8 +670,8 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
-            if (!ccnl_i_prefixof_c(i->prefix, i->details.ndntlv.minsuffix,
-                       i->details.ndntlv.maxsuffix, c)) {
+            if (!ccnl_i_prefixof_c(i->pkt->pfx, i->pkt->s.ndntlv.minsuffix,
+                       i->pkt->s.ndntlv.maxsuffix, c)) {
                 // XX must also check i->ppkl,
                 i = i->next;
                 continue;
@@ -803,7 +742,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
             DEBUGMSG(DEBUG, " retransmit %d <%s>\n", i->retries,
-                     ccnl_prefix_to_path(i->prefix));
+                     ccnl_prefix_to_path(i->pkt->pfx));
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES)
 #endif

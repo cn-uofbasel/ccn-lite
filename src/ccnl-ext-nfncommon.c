@@ -60,22 +60,24 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct configuration_s *config)
 {
     int nonce = rand();
-    struct ccnl_pkt_s pkt;
+    struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
 
     DEBUGMSG(TRACE, "nfn_query2interest(configID=%d)\n", config->configid);
 
     from = ccnl_malloc(sizeof(struct ccnl_face_s));
-    if (!from)
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!from || !pkt) {
+        free_2ptr_list(from, pkt);
         return NULL;
+    }
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = NULL;
 
-    memset(&pkt, 0, sizeof(pkt));
-    pkt.suite = (*prefix)->suite;
-    pkt.buf = ccnl_mkSimpleInterest(*prefix, &nonce);
-    pkt.pfx = *prefix;
+    pkt->suite = (*prefix)->suite;
+    pkt->buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    pkt->pfx = *prefix;
     *prefix = NULL;
 
     return ccnl_interest_new2(ccnl, from, &pkt);
@@ -304,7 +306,7 @@ void
 set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref){
     struct ccnl_interest_s *interest = NULL;
     for(interest = ccnl->pit; interest; interest = interest->next){
-        if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
+        if(!ccnl_prefix_cmp(interest->pkt->pfx, 0, pref, CMP_EXACT)){
             interest->flags |= CCNL_PIT_COREPROPAGATES;
             /*interest->last_used = CCNL_NOW();
             interest->retries = 0;
@@ -509,7 +511,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     if(interest){
         interest->last_used = CCNL_NOW();
         struct ccnl_content_s *c = NULL;
-        if((c = ccnl_nfn_local_content_search(ccnl, config, interest->prefix)) != NULL){
+        if((c = ccnl_nfn_local_content_search(ccnl, config, interest->pkt->pfx)) != NULL){
             interest = ccnl_interest_remove(ccnl, interest);
             return c;
         }
@@ -544,13 +546,18 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
 {
     int faceid = 0;
 
-    if (i && i->from)
+    if (!i) {
+        DEBUGMSG(WARNING, "nfn_interest_remove: should remove NULL interest\n");
+        return NULL;
+    }
+
+    if (i->from)
         faceid = i->from->faceid;
     DEBUGMSG(DEBUG, "ccnl_nfn_interest_remove %d\n", faceid);
 
 #ifdef USE_NACK
     if (faceid >= 0)
-        ccnl_nack_reply(relay, i->prefix, i->from, i->suite);
+        ccnl_nack_reply(relay, i->pkt->pfx, i->from, i->suite);
 #endif
 
     i = ccnl_interest_remove(relay, i);

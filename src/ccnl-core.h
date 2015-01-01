@@ -171,37 +171,16 @@ struct ccnl_forward_s {
     char suite;
 };
 
-struct ccnl_ccnb_id_s { // interest details
-    int minsuffix, maxsuffix, aok;
-    struct ccnl_buf_s *ppkd;       // publisher public key digest
-};
-
-struct ccnl_ccntlv_id_s { // interest details
-    struct ccnl_buf_s *keyid;       // publisher keyID
-};
-
-struct ccnl_ndntlv_id_s { // interest details
-    int minsuffix, maxsuffix, mbf;
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
-};
-
-#define CCNL_PIT_COREPROPAGATES    0x01
-#define CCNL_PIT_TRACED            0x02
-
 struct ccnl_interest_s {
-    struct ccnl_buf_s *buf; // full datagram
     struct ccnl_interest_s *next, *prev;
+    struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
-    struct ccnl_prefix_s *prefix;
-    int flags;
+    unsigned short flags;
+#define CCNL_PIT_COREPROPAGATES    0x01
+#define CCNL_PIT_TRACED            0x02
     int last_used;
     int retries;
-    union {
-        struct ccnl_ccnb_id_s ccnb;
-        struct ccnl_ccntlv_id_s ccntlv;
-        struct ccnl_ndntlv_id_s ndntlv;
-    } details;
 };
 
 struct ccnl_pendint_s { // pending interest
@@ -213,7 +192,7 @@ struct ccnl_pendint_s { // pending interest
 struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
     struct ccnl_pkt_s *pkt;
-    int flags;
+    unsigned short flags;
 #define CCNL_CONTENT_FLAGS_STATIC  0x01
 #define CCNL_CONTENT_FLAGS_STALE   0x02
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."

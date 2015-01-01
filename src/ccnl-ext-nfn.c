@@ -77,7 +77,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
     //update original interest prefix to stay longer...reenable if propagate=0 do not protect interests
     struct ccnl_interest_s *original_interest;
     for(original_interest = ccnl->pit; original_interest; original_interest = original_interest->next){
-        if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->prefix, CMP_EXACT)){
+        if(!ccnl_prefix_cmp(config->prefix, 0, original_interest->pkt->pfx, CMP_EXACT)){
             original_interest->last_used = CCNL_NOW();
             original_interest->retries = 0;
             original_interest->from->last_used = CCNL_NOW();
@@ -180,7 +180,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     // encoding the routing hint more explicitely as well as additonal information (e.g. already tried names) 
     // could solve the problem. More generally speaking, additional state describing the exact situation will be required.
     
-    if (interest && interest->prefix->compcnt > 1) { // forward interests with outsourced components
+    if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
@@ -267,11 +267,11 @@ restart:
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                     struct ccnl_pkt_s *pkt)
+                     struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i;
 
-    if (!ccnl_nfnprefix_isNFN(pkt->pfx) ||
+    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) ||
            ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
         return NULL;
     i = ccnl_interest_new2(ccnl, from, pkt);
@@ -279,7 +279,7 @@ ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
-    ccnl_nfn(ccnl, ccnl_prefix_dup(i->prefix), from, NULL, i, pkt->suite, 0);
+    ccnl_nfn(ccnl, ccnl_prefix_dup(i->pkt->pfx), from, NULL, i, i->pkt->suite, 0);
 
     return i;
 }
@@ -303,9 +303,9 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
         //Check if prefix match and it is a nfn request
         DEBUGMSG(DEBUG, "CMP: %d (match if zero), faceid: %d \n", 
-                ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->prefix, CMP_EXACT),
+                ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT),
                         i_it->from->faceid);
-        if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->prefix, CMP_EXACT) &&
+        if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
                                                 i_it->from->faceid < 0) {
             int faceid = -i_it->from->faceid;
 
