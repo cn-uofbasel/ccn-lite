@@ -51,13 +51,14 @@ char* ccnl_addr2ascii(sockunion *su);
 // ----------------------------------------------------------------------
 
 static void
-blob(unsigned char *cp, int len)
+blob(struct ccnl_buf_s *buf)
 {
+    unsigned char *cp = buf->data;
     int i;
-    for (i = 0; i < len; i++, cp++)
+
+    for (i = 0; i < buf->datalen; i++, cp++)
         fprintf(stderr, "%02x", *cp);
 }
-
 
 char*
 frag_protocol(int e)
@@ -192,36 +193,11 @@ ccnl_dump(int lev, int typ, void *p)
         break;
     case CCNL_INTEREST:
         while (itr) {
-            int mi = -1, ma = -1;
-            struct ccnl_buf_s *ppk = NULL;
-            if (itr->prefix) {
-                switch (itr->prefix->suite) {
-                case CCNL_SUITE_CCNB:
-                    mi = itr->details.ccnb.minsuffix;
-                    ma = itr->details.ccnb.maxsuffix;
-                    ppk = itr->details.ccnb.ppkd;
-                    break;
-                case CCNL_SUITE_NDNTLV:
-                    mi = itr->details.ndntlv.minsuffix;
-                    ma = itr->details.ndntlv.maxsuffix;
-                    ppk = itr->details.ndntlv.ppkl;
-                    break;
-                default:
-                    break;
-                }
-            }
             INDENT(lev);
-            fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d min=%d max=%d retries=%d\n",
+            fprintf(stderr, "%p INTEREST next=%p prev=%p last=%d retries=%d flags=0x%04x\n",
                    (void *) itr, (void *) itr->next, (void *) itr->prev,
-                    itr->last_used, mi, ma, itr->retries);
-            ccnl_dump(lev+1, CCNL_BUF, itr->buf);
-            ccnl_dump(lev+1, CCNL_PREFIX, itr->prefix);
-            if (ppk) {
-                INDENT(lev+1);
-                fprintf(stderr, "%p PUBLISHER=", (void *) ppk);
-                blob(ppk->data, ppk->datalen);
-                fprintf(stderr, "\n");
-            }
+                    itr->last_used, itr->retries, itr->flags);
+            ccnl_dump(lev+1, CCNL_PACKET, itr->pkt);
             if (itr->pending) {
                 INDENT(lev+1); fprintf(stderr, "pending:\n");
                 ccnl_dump(lev+2, CCNL_PENDINT, itr->pending);
@@ -241,18 +217,68 @@ ccnl_dump(int lev, int typ, void *p)
         break;
     case CCNL_PACKET:
         INDENT(lev);
-        fprintf(stderr, "%p PACKET cnt=%p cntlen=%d typ=%d finalBI=%d 0x%04x %d\n",
-                (void *) pkt, (void*) pkt->content, pkt->contlen,
-                pkt->type, pkt->final_block_id, pkt->flags, pkt->suite);
-        ccnl_dump(lev+1, CCNL_BUF, pkt->buf);
+        fprintf(stderr,
+                "%p PACKET %s typ=%d cont=%p contlen=%d finalBI=%d flags=0x%04x\n",
+                (void *) pkt, ccnl_suite2str(pkt->suite), pkt->type,
+                (void*) pkt->content, pkt->contlen, pkt->final_block_id,
+                pkt->flags);
         ccnl_dump(lev+1, CCNL_PREFIX, pkt->pfx);
+        switch(pkt->suite) {
+        case CCNL_SUITE_CCNB:
+            INDENT(lev+1);
+            fprintf(stderr, "minsfx=%d maxsfx=%d aok=%d scope=%d",
+                    pkt->s.ccnb.minsuffix, pkt->s.ccnb.maxsuffix, 
+                    pkt->s.ccnb.aok, pkt->s.ccnb.scope);
+            if (pkt->s.ccnb.nonce) {
+                fprintf(stderr, " nonce=");
+                blob(pkt->s.ccnb.nonce);
+            }
+            fprintf(stderr, "\n");
+            if (pkt->s.ccnb.ppkd) {
+                INDENT(lev+1);
+                fprintf(stderr, "ppkd="); blob(pkt->s.ccnb.ppkd);
+                fprintf(stderr, "\n");
+            }
+            break;
+        case CCNL_SUITE_CCNTLV:
+            if (pkt->s.ccntlv.keyid) {
+                INDENT(lev+1);
+                fprintf(stderr, "keyid="); blob(pkt->s.ccntlv.keyid);
+                fprintf(stderr, "\n");
+            }
+            break;
+        case CCNL_SUITE_IOTTLV:
+            INDENT(lev+1);
+            fprintf(stderr, "ttl=%d\n", pkt->s.iottlv.ttl);
+            break;
+        case CCNL_SUITE_NDNTLV:
+            INDENT(lev+1);
+            fprintf(stderr, "minsfx=%d maxsfx=%d mbf=%d scope=%d",
+                    pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix, 
+                    pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
+            if (pkt->s.ndntlv.nonce) {
+                fprintf(stderr, " nonce=");
+                blob(pkt->s.ndntlv.nonce);
+            }
+            fprintf(stderr, "\n");
+            if (pkt->s.ndntlv.ppkl) {
+                INDENT(lev+1);
+                fprintf(stderr, "ppkl="); blob(pkt->s.ndntlv.ppkl);
+                fprintf(stderr, "\n");
+            }
+            break;
+        default:
+            INDENT(lev+1);
+            fprintf(stderr, "... suite-specific packet details here ...\n");
+        }
+        ccnl_dump(lev+1, CCNL_BUF, pkt->buf);
         break;
     case CCNL_CONTENT:
         while (con) {
             INDENT(lev);
-            fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d\n",
+            fprintf(stderr, "%p CONTENT  next=%p prev=%p last_used=%d served_cnt=%d flags=0x%04x\n",
                    (void *) con, (void *) con->next, (void *) con->prev,
-                   con->last_used, con->served_cnt);
+                    con->last_used, con->served_cnt, con->flags);
             //            ccnl_dump(lev+1, CCNL_PREFIX, con->pkt->pfx);
             ccnl_dump(lev+1, CCNL_PACKET, con->pkt);
             con = con->next;
@@ -374,13 +400,10 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
         strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
        
 #ifdef CCNL_LINUXKERNEL
-        if (top->ifs[k].addr.sa.sa_family == AF_PACKET)
-        {
+        if (top->ifs[k].addr.sa.sa_family == AF_PACKET) {
             dev[k] = (long) (void *) top->ifs[k].netdev; //%p   
             devtype[k] = 1;
-        }
-        else
-        {
+        } else {
             dev[k] = (long) (void *) top->ifs[k].sock; //%p
             devtype[k] = 2;
         }
@@ -394,11 +417,11 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
     return top->ifcount;
 }
 
-
 int
 get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         int *last, int *min, int *max, int *retries, long *publisher,
-        int *prefixlen, char **prefix){
+        int *prefixlen, char **prefix)
+{
     
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
@@ -414,22 +437,22 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         retries[line] = itr->retries;
         min[line] = max[line] = -1;
         publisher[line] = 0L;
-        if (itr->prefix)
-            switch (itr->prefix->suite) {
+        if (itr->pkt->pfx)
+            switch (itr->pkt->pfx->suite) {
             case CCNL_SUITE_CCNB:
-                min[line] = itr->details.ccnb.minsuffix;
-                max[line] = itr->details.ccnb.maxsuffix;
-                publisher[line] = (long)(void *) itr->details.ccnb.ppkd;
+                min[line] = itr->pkt->s.ccnb.minsuffix;
+                max[line] = itr->pkt->s.ccnb.maxsuffix;
+                publisher[line] = (long)(void *) itr->pkt->s.ccnb.ppkd;
                 break;
             case CCNL_SUITE_NDNTLV:
-                min[line] = itr->details.ndntlv.minsuffix;
-                max[line] = itr->details.ndntlv.maxsuffix;
-                publisher[line] = (long)(void *) itr->details.ndntlv.ppkl;
+                min[line] = itr->pkt->s.ndntlv.minsuffix;
+                max[line] = itr->pkt->s.ndntlv.maxsuffix;
+                publisher[line] = (long)(void *) itr->pkt->s.ndntlv.ppkl;
                 break;
             default:
                 break;
             }
-        get_prefix_dump(lev, itr->prefix, &prefixlen[line], &prefix[line]);
+        get_prefix_dump(lev, itr->pkt->pfx, &prefixlen[line], &prefix[line]);
         
         itr = itr->next;
         ++line;
