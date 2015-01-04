@@ -24,6 +24,7 @@
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_NDNTLV
+#define USE_LOGGING
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -60,7 +61,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         break;
 #endif
     default:
-        DEBUGMSG(ERROR, "unknown suite %d\n", suite);
+        DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
         exit(-1);
     }
 
@@ -306,7 +307,6 @@ usage:
 
     while (retry < maxretry) {
 
-
         if (curchunknum) {
             if (!prefix->chunknum) {
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
@@ -330,7 +330,7 @@ usage:
             DEBUGMSG(WARNING, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
         } else {
 
-            unsigned int lastchunknum = UINT_MAX;
+            unsigned int lastchunknum;
             unsigned char *t = &out[0];
             struct ccnl_prefix_s *nextprefix = 0;
 
@@ -367,11 +367,11 @@ usage:
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
                     if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
-                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d\n", *curchunknum, contlen);
+                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != UINT_MAX && lastchunknum == chunknum) {
+                        if (lastchunknum != -1 && lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;
@@ -380,7 +380,7 @@ usage:
                     } else {
                         // retry if the fetched chunk
                         retry++;
-                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
+                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d (lastchunk=%d)\n", *curchunknum, chunknum, lastchunknum);
                     }
                 }
             }

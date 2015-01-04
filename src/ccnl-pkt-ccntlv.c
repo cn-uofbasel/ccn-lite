@@ -115,6 +115,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         goto Bail;
     pkt->type = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
+    pkt->final_block_id = -1;
 
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {

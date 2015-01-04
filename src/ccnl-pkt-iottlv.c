@@ -153,6 +153,7 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     if (!pkt)
         return NULL;
     pkt->suite = CCNL_SUITE_IOTTLV;
+    pkt->final_block_id = -1;
 
     while (*datalen) {
         if (ccnl_iottlv_dehead(data, datalen, &typ, &len))

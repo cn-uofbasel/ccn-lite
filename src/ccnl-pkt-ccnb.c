@@ -121,6 +121,8 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
+    pkt->suite = CCNL_SUITE_CCNB;
+    pkt->final_block_id = -1;
     pkt->s.ccnb.scope = 3;
     pkt->s.ccnb.aok = 3;
     pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;

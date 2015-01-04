@@ -2,7 +2,7 @@
  * @f ccnl-core.h
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
