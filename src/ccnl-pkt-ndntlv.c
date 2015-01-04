@@ -2,7 +2,7 @@
  * @f pkt-ndntlv.c
  * @b CCN lite - NDN pkt decoding and composition (TLV pkt format March 2014)
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,7 +52,6 @@ ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
     return 0;
 }
 
-
 unsigned long int
 ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 {
@@ -64,7 +63,6 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
     }
     return val;
 }
-
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
@@ -230,6 +228,27 @@ Bail:
     return NULL;
 }
 
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+// returns: 0=match, -1=otherwise
+int
+ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    assert(p);
+    assert(p->suite == CCNL_SUITE_NDNTLV);
+
+    if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
+        return -1;
+    // FIXME: should check freshness (mbf) here
+    // if (mbf) // honor "answer-from-existing-content-store" flag
+    DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+                     (void *) c);
+    return 0;
+}
+
+#endif
 
 // ----------------------------------------------------------------------
 // packet composition

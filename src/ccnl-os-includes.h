@@ -22,6 +22,7 @@
 
 #ifndef CCNL_LINUXKERNEL
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>

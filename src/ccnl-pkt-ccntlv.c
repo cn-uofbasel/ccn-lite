@@ -2,7 +2,7 @@
  * @f pkt-ccntlv.c
  * @b CCN lite - CCNx pkt parsing and composing (TLV pkt format Sep 22, 2014)
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -215,6 +215,26 @@ Bail:
     free_packet(pkt);
     return NULL;
 }
+
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+// returns: 0=match, -1=otherwise
+int
+ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    assert(p);
+    assert(p->suite == CCNL_SUITE_CCNTLV);
+
+    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
+        return -1;
+    // TODO: check keyid
+    // TODO: check freshness, kind-of-reply
+    return 0;
+}
+
+#endif
 
 // ----------------------------------------------------------------------
 // packet composition

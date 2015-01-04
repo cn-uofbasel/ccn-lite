@@ -240,6 +240,17 @@ struct ccnl_pkt_s {
     char suite;
 };
 
+typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
+                           unsigned char**, int*);
+typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
+
+struct ccnl_suite_s {
+    dispatchFct RX;
+    cMatchFct cMatch;
+};
+
+// ----------------------------------------------------------------------
+
 struct ccnl_lambdaTerm_s {
     char *v;
     struct ccnl_lambdaTerm_s *m, *n;

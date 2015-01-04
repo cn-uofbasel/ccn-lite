@@ -21,6 +21,7 @@
  * 2014-11-05 small code cleanups, now using NDNTLV as default encoding
  */
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
@@ -49,6 +50,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #undef USE_NFN
 
 #define USE_SUITE_NDNTLV
+#define NEEDS_PREFIX_MATCHING
 
 // ----------------------------------------------------------------------
 // "replacement lib"

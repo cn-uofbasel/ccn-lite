@@ -282,7 +282,9 @@ ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
     ccnl_interest_append_pending(i, from);
+//    if (!(i->flags & CCNL_PIT_COREPROPAGATES))
     ccnl_nfn(ccnl, ccnl_prefix_dup(i->pkt->pfx), from, NULL, i, i->pkt->suite, 0);
+
     TRACEOUT();
     return i;
 }

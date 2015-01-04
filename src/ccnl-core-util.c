@@ -101,6 +101,78 @@ compile_string(void)
 
 // ----------------------------------------------------------------------
 
+#ifdef NEEDS_PREFIX_MATCHING
+
+int
+ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
+                struct ccnl_prefix_s *p, int mode)
+/* returns -1 if no match at all (all modes) or exact match failed
+   returns  0 if full match (CMP_EXACT)
+   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
+{
+    int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
+    unsigned char *comp;
+
+    if (mode == CMP_EXACT) {
+        if (nlen != p->compcnt)
+            goto done;
+#ifdef USE_NFN
+        if (p->nfnflags != name->nfnflags)
+            goto done;
+#endif
+    }
+    for (i = 0; i < nlen && i < p->compcnt; ++i) {
+        comp = i < name->compcnt ? name->comp[i] : md;
+        clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
+        if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
+            rc = mode == CMP_EXACT ? -1 : i;
+            goto done;
+        }
+    }
+    rc = (mode == CMP_EXACT) ? 0 : i;
+done:
+
+#ifndef CCNL_LINUXKERNEL
+# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 0, 0, 0)
+#else
+# define PREFIX2STR(P) ccnl_prefix_to_path(P)
+#endif
+    DEBUGMSG(VERBOSE, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s"
+             " prefix=%s: %d (%p)\n", mode, nlen, p->compcnt, name->compcnt,
+             PREFIX2STR(name), PREFIX2STR(p), rc, md);
+#undef PREFIX2STR
+
+    return rc;
+}
+
+int
+ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
+                  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
+{
+    unsigned char *md;
+    struct ccnl_prefix_s *p = c->pkt->pfx;
+
+    DEBUGMSG(TRACE, "ccnl_i_prefixof_c prefix=%s min=%d max=%d\n",
+             ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
+
+    // CONFORM: we do prefix match, honour min. and maxsuffix,
+
+    // NON-CONFORM: "Note that to match a ContentObject must satisfy
+    // all of the specifications given in the Interest Message."
+    // >> CCNL does not honour the exclusion filtering
+
+    if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
+         (prefix->compcnt + maxsuffix) < (p->compcnt + 1) )
+        return 0;
+
+    md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
+    return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
+}
+
+#endif
+
+// ----------------------------------------------------------------------
+
 int
 ccnl_is_local_addr(sockunion *su)
 {
