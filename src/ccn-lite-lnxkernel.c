@@ -40,6 +40,8 @@
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
 
+#define NEEDS_PREFIX_MATCHING
+
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -47,6 +49,8 @@
 #include "ccnl-ext-logging.c"
 
 // ----------------------------------------------------------------------
+
+#define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 

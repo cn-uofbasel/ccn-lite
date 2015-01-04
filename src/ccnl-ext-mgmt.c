@@ -2,7 +2,7 @@
  * @f ccnl-ext-mgmt.c
  * @b CCN lite extension, management logic (face mgmt and registration)
  *
- * Copyright (C) 2012-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2012-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -163,12 +163,12 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             }
             else
             {
-                DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
                 struct ccnl_content_s *c;
                 char uri[50];
                 int contentpos;
                 struct ccnl_pkt_s *pkt;
 
+                DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
                 sprintf(uri, "/mgmt/seqnum-%d", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
                 pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);

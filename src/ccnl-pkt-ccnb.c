@@ -2,7 +2,7 @@
  * @f pkt-ccnb.c
  * @b CCN lite - parse, create and manipulate CCNb formatted packets
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -268,6 +268,26 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
     *datalen = len-1;
     return 0;
 }
+
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+// returns: 0=match, -1=otherwise
+int
+ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    assert(p);
+    assert(p->suite == CCNL_SUITE_CCNB);
+
+    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
+        return -1;
+    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd))
+        return -1;
+    // FIXME: should check stale bit in aok here
+    return 0;
+}
+#endif
 
 // ----------------------------------------------------------------------
 // ccnb encoding support

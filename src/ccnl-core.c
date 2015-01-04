@@ -28,6 +28,10 @@
 
 // forward reference:
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+int ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
+                    struct ccnl_prefix_s *p, int mode);
+int ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, int minsuffix,
+                      int maxsuffix, struct ccnl_content_s *c);
 
 // ----------------------------------------------------------------------
 // datastructure support functions
@@ -37,48 +41,6 @@ void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
                          !memcmp(X->data,Y->data,X->datalen))
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
-
-int
-ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
-                struct ccnl_prefix_s *p, int mode)
-/* returns -1 if no match at all (all modes) or exact match failed
-   returns  0 if full match (CMP_EXACT)
-   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
-{
-    int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
-    unsigned char *comp;
-
-    if (mode == CMP_EXACT) {
-        if (nlen != p->compcnt)
-            goto done;
-#ifdef USE_NFN
-        if (p->nfnflags != name->nfnflags)
-            goto done;
-#endif
-    }
-    for (i = 0; i < nlen && i < p->compcnt; ++i) {
-        comp = i < name->compcnt ? name->comp[i] : md;
-        clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
-        if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
-            rc = mode == CMP_EXACT ? -1 : i;
-            goto done;
-        }
-    }
-    rc = (mode == CMP_EXACT) ? 0 : i;
-done:
-
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 0, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
-    DEBUGMSG(VERBOSE, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s"
-             " prefix=%s: %d (%p)\n", mode, nlen, p->compcnt, name->compcnt,
-             PREFIX2STR(name), PREFIX2STR(p), rc, md);
-#undef PREFIX2STR
-
-    return rc;
-}
 
 // ----------------------------------------------------------------------
 // addresses, interfaces and faces
@@ -529,30 +491,6 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 // ----------------------------------------------------------------------
 // handling of content messages
 
-int
-ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
-                  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
-{
-    unsigned char *md;
-    struct ccnl_prefix_s *p = c->pkt->pfx;
-
-    DEBUGMSG(TRACE, "ccnl_i_prefixof_c prefix=%s min=%d max=%d\n",
-             ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
-
-    // CONFORM: we do prefix match, honour min. and maxsuffix,
-
-    // NON-CONFORM: "Note that to match a ContentObject must satisfy
-    // all of the specifications given in the Interest Message."
-    // >> CCNL does not honour the exclusion filtering
-
-    if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
-         (prefix->compcnt + maxsuffix) < (p->compcnt + 1) )
-        return 0;
-
-    md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
-    return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
-}
-
 struct ccnl_content_s*
 ccnl_content_new2(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
@@ -829,9 +767,7 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 
 #include "ccnl-core-fwd.c"
 
-typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
-                           unsigned char**, int*);
-dispatchFct ccnl_core_RX_dispatch[CCNL_SUITE_LAST];
+struct ccnl_suite_s ccnl_core_suits[CCNL_SUITE_LAST];
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
@@ -861,7 +797,8 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
                      ifndx, datalen, *data, data - base);
             return;
         }
-        dispatch = ccnl_core_RX_dispatch[suite];
+        //        dispatch = ccnl_core_RX_dispatch[suite];
+        dispatch = ccnl_core_suits[suite].RX;
         if (!dispatch) {
             DEBUGMSG(ERROR, "Forwarder not initialized or dispatcher "
                      "for suite %s does not exist.\n", ccnl_suite2str(suite));
@@ -881,20 +818,24 @@ void
 ccnl_core_init(void)
 {
 #ifdef USE_SUITE_CCNB
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNB]     = ccnl_ccnb_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNB].RX         = ccnl_ccnb_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNB].cMatch     = ccnl_ccnb_cMatch;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_CCNTLV]   = ccnl_ccntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    ccnl_core_RX_dispatch[CCNL_SUITE_IOTTLV]   = ccnl_iottlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_IOTTLV].cMatch   = ccnl_iottlv_cMatch;
 #endif
 #ifdef USE_SUITE_LOCALRPC
-    ccnl_core_RX_dispatch[CCNL_SUITE_LOCALRPC] = ccnl_localrpc_exec;
+    ccnl_core_suits[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;
+    //    ccnl_core_suits[CCNL_SUITE_LOCALRPC].cMatch = ccnl_localrpc_cMatch;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    //    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder;
-    ccnl_core_RX_dispatch[CCNL_SUITE_NDNTLV]   = ccnl_ndntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
 #endif
 
 #ifdef USE_NFN

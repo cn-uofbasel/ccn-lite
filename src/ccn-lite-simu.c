@@ -37,6 +37,7 @@
 // #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define NEEDS_PREFIX_MATCHING
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-os-includes.h"

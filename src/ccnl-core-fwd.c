@@ -20,8 +20,6 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-typedef int (*matchfct2)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
-
 // returning 0 if packet was 
 int
 ccnl_fwd_handleContent2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -74,53 +72,6 @@ ccnl_fwd_handleContent2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 }
 
 // ----------------------------------------------------------------------
-
-// returns: 0=match, -1=otherwise
-int
-match_ccnb2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
-{
-    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
-        return -1;
-    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd))
-        return -1;
-    // FIXME: should check stale bit in aok here
-    return 0;
-}
-
-// returns: 0=match, -1=otherwise
-int
-match_ccntlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
-{
-    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
-        return -1;
-    // TODO: check keyid
-    // TODO: check freshness, kind-of-reply
-    return 0;
-}
-
-// returns: 0=match, -1=otherwise
-int
-match_iottlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
-{
-    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
-        return -1;
-    return 0;
-}
-
-int
-match_ndntlv2(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
-{
-    if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
-        return -1;
-    // FIXME: should check freshness (mbf) here
-    // if (mbf) // honor "answer-from-existing-content-store" flag
-    DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
-                     (void *) c);
-    return 0;
-}
-
-// ----------------------------------------------------------------------
-
 // returns 0 if packet should not be forwarded further
 int
 ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
@@ -177,7 +128,7 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 
 int
 ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                       struct ccnl_pkt_s *p, matchfct2 cmp)
+                       struct ccnl_pkt_s *p, cMatchFct cmp)
 {
     struct ccnl_content_s *c;
 
@@ -206,7 +157,7 @@ ccnl_fwd_answerFromCS2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                        struct ccnl_pkt_s **pkt, matchfct2 match)
+                        struct ccnl_pkt_s **pkt, cMatchFct cMatch)
 {
     struct ccnl_interest_s *i;
 
@@ -223,7 +174,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 #endif
-    if (!ccnl_fwd_answerFromCS2(relay, from, (*pkt), match))
+    if (!ccnl_fwd_answerFromCS2(relay, from, (*pkt), cMatch))
         return 0;
 
     // CONFORM: Step 2: check whether interest is already known
@@ -285,7 +236,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     pkt->flags |= typ == CCN_DTAG_INTEREST ? CCNL_PKT_REQUEST : CCNL_PKT_REPLY;
 
     if (pkt->flags & CCNL_PKT_REQUEST) { // interest
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ccnb2))
+        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccnb_cMatch))
             goto Done;
     } else { // content
         if (ccnl_fwd_handleContent2(relay, from, &pkt))
@@ -329,7 +280,6 @@ ccnl_ccnb_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     return rc;
 }
-
 
 #endif // USE_SUITE_CCNB
 
@@ -391,7 +341,7 @@ ccnl_ccntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
-            if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ccntlv2))
+            if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
             DEBUGMSG(WARNING, "  ccntlv: interest pkt type mismatch %d %d\n",
@@ -445,7 +395,7 @@ ccnl_iottlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     if (typ == IOT_TLV_Request) {
         pkt->flags |= CCNL_PKT_REQUEST;
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_iottlv2))
+        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_iottlv_cMatch))
             goto Done;
     } else { // data packet with content -------------------------------------
         pkt->flags |= CCNL_PKT_REPLY;
@@ -485,7 +435,7 @@ ccnl_ndntlv_forwarder2(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     pkt->type = typ;
     if (typ == NDN_TLV_Interest) {
         pkt->flags |= CCNL_PKT_REQUEST;
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, match_ndntlv2))
+        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
             goto Done;
     } else { // data packet with content -------------------------------------
         pkt->flags |= CCNL_PKT_REPLY;

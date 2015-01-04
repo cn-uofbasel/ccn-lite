@@ -48,6 +48,8 @@
 #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
 
+#define NEEDS_PREFIX_MATCHING
+
 #include "ccnl-os-includes.h"
 
 #include "ccnl-defs.h"
