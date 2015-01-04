@@ -357,8 +357,8 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 // handling of interest messages
 
 struct ccnl_interest_s*
-ccnl_interest_new2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                   struct ccnl_pkt_s **pkt)
+ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                  struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
@@ -488,11 +488,45 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     return i2;
 }
 
+int
+ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
+{
+    if (i->pkt->pfx->suite != pkt->suite ||
+                ccnl_prefix_cmp(i->pkt->pfx, NULL, pkt->pfx, CMP_EXACT))
+        return 0;
+
+    switch (i->pkt->pfx->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return i->pkt->s.ccnb.minsuffix == pkt->s.ccnb.minsuffix &&
+               i->pkt->s.ccnb.maxsuffix == pkt->s.ccnb.maxsuffix && 
+               ((!i->pkt->s.ccnb.ppkd && !pkt->s.ccnb.ppkd) ||
+                    buf_equal(i->pkt->s.ccnb.ppkd, pkt->s.ccnb.ppkd));
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return i->pkt->s.ndntlv.minsuffix == pkt->s.ndntlv.minsuffix &&
+               i->pkt->s.ndntlv.maxsuffix == pkt->s.ndntlv.maxsuffix &&
+               ((!i->pkt->s.ndntlv.ppkl && !pkt->s.ndntlv.ppkl) ||
+                    buf_equal(i->pkt->s.ndntlv.ppkl, pkt->s.ndntlv.ppkl));
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+#endif
+    default:
+        break;
+    }
+    return 1;
+}
+
 // ----------------------------------------------------------------------
 // handling of content messages
 
 struct ccnl_content_s*
-ccnl_content_new2(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
+ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
     DEBUGMSG(TRACE, "ccnl_content_new2 %p <%s>\n",
@@ -818,15 +852,15 @@ void
 ccnl_core_init(void)
 {
 #ifdef USE_SUITE_CCNB
-    ccnl_core_suits[CCNL_SUITE_CCNB].RX         = ccnl_ccnb_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNB].RX         = ccnl_ccnb_forwarder;
     ccnl_core_suits[CCNL_SUITE_CCNB].cMatch     = ccnl_ccnb_cMatch;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    ccnl_core_suits[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
     ccnl_core_suits[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    ccnl_core_suits[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder;
     ccnl_core_suits[CCNL_SUITE_IOTTLV].cMatch   = ccnl_iottlv_cMatch;
 #endif
 #ifdef USE_SUITE_LOCALRPC
@@ -834,7 +868,7 @@ ccnl_core_init(void)
     //    ccnl_core_suits[CCNL_SUITE_LOCALRPC].cMatch = ccnl_localrpc_cMatch;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    ccnl_core_suits[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder2;
+    ccnl_core_suits[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
     ccnl_core_suits[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
 #endif
 

@@ -80,7 +80,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     pkt->pfx = *prefix;
     *prefix = NULL;
 
-    return ccnl_interest_new2(ccnl, from, &pkt);
+    return ccnl_interest_new(ccnl, from, &pkt);
 }
 
 struct ccnl_content_s *
@@ -110,7 +110,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     pkt->content = pkt->buf->data + resultpos;
     pkt->contlen = resultlen;
 
-    c = ccnl_content_new2(ccnl, &pkt);
+    c = ccnl_content_new(ccnl, &pkt);
     if (!c)
         free_packet(pkt);
     return c;

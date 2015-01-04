@@ -348,22 +348,22 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         switch(encoding) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
-            ccnl_ccnb_forwarder2(relay, from, &ucp, &len);
+            ccnl_ccnb_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-            ccnl_ccntlv_forwarder2(relay, from, &ucp, &len);
+            ccnl_ccntlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
-            ccnl_iottlv_forwarder2(relay, from, &ucp, &len);
+            ccnl_iottlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
-            ccnl_ndntlv_forwarder2(relay, from, &ucp, &len);
+            ccnl_ndntlv_forwarder(relay, from, &ucp, &len);
             break;
 #endif
         default:
