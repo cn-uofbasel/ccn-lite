@@ -125,7 +125,7 @@ $CCNL_HOME/src/ccn-lite-relay -v 100 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/t
 sleep 1
 
 # test case: ask relay A to deliver content that is hosted at relay B
-$CCNL_HOME/src/util/ccn-lite-fetch -s$SUITE $PEEKADDR "$FWD/$FNAME" > /tmp/res
+$CCNL_HOME/src/util/ccn-lite-fetch -v trace -s$SUITE $PEEKADDR "$FWD/$FNAME" 2>/tmp/c.log >/tmp/res
 
 RESULT=$?
 

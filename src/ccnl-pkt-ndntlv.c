@@ -96,6 +96,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     p->compcnt = 0;
 
     pkt->suite = CCNL_SUITE_NDNTLV;
+    pkt->final_block_id = -1;
     pkt->s.ndntlv.scope = 3;
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
