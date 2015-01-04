@@ -149,7 +149,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = len;
-    c = ccnl_content_new2(relay, &pkt);
+    c = ccnl_content_new(relay, &pkt);
     if (c)
         ccnl_content_add2cache(relay, c);
     return;

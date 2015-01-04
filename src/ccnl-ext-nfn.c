@@ -269,7 +269,7 @@ restart:
 }
 
 struct ccnl_interest_s*
-ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                      struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i;
@@ -277,7 +277,7 @@ ccnl_nfn_RX_request2(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) ||
            ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
         return NULL;
-    i = ccnl_interest_new2(ccnl, from, pkt);
+    i = ccnl_interest_new(ccnl, from, pkt);
     if (!i)
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations

@@ -655,7 +655,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             DEBUGMSG(DEBUG, "  parsing error in %s\n", de->d_name);
             goto Done;
         }
-        c = ccnl_content_new2(ccnl, &pk);
+        c = ccnl_content_new(ccnl, &pk);
         if (!c) {
             DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name);
             goto Done;

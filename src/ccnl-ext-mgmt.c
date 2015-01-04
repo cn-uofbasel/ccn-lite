@@ -175,7 +175,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
                 pkt->content = pkt->buf->data + contentpos;
                 pkt->contlen = len5;
-                c = ccnl_content_new2(ccnl, &pkt);
+                c = ccnl_content_new(ccnl, &pkt);
                 ccnl_content_serve_pending(ccnl, c);
                 ccnl_content_add2cache(ccnl, c);
 /*
