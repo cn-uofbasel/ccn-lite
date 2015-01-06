@@ -23,7 +23,7 @@
 //----------------------------------------------------------------------------
 
 A mgmt-command is send as interest to the relay.
-If a interest has the prefix "/ccnx//<command>" the relay recognizes it
+If an interest has the prefix "/ccnx//<command>" the relay recognizes it
 as a mgmt command.
 
 
@@ -44,14 +44,14 @@ All CCN-Lite interests have a similar structure:
 </interest>
 
 where "COMMAND" is the mgmt command and 
-"COMMAND PARAMETER" contains the parameters for the command (delivered in ccn-style formate).
-The signature field is optional (only required if content is ship via udp). 
+"COMMAND PARAMETER" contains the parameters for the command (delivered in ccn-style format).
+The signature field is optional (only required if content is shipped via udp). 
 The signature is computed over all 4 components.
 
 //----------------------------------------------------------------------------
 
 If the mgmt command is executed a reply msg will be sent as answer to the interest.
-This answer is ship as contentobject:
+This answer is shipped as contentobject:
 
 <contentobj>
 	[<signature>...</signature>]
@@ -67,7 +67,7 @@ This answer is ship as contentobject:
 
 where "COMMAND" is the mgmt commant and 
 "EXECUTION DETAILS" contains details about the mgmt command execution or 
-information about the relay (delivered in ccn-style formate).
+information about the relay (delivered in ccn-style format).
 
 //----------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ This content object may be larger than the CCNL_MAX_PACKET_SIZE.
 
 To prevent transmission problems, the packet is split into segments if it is too large.
 
-All packet parts (segments) are ship in a transport packet:
+All packet parts (segments) are shipped in a transport packet:
 
 <contentobj>
 	[<signature>...</signature>]
@@ -90,7 +90,7 @@ All packet parts (segments) are ship in a transport packet:
 </contentobj>
 
 where the signature is computed over the contentdigest.
-The signature field is optional (only required if content is ship via udp). 
+The signature field is optional (only required if content is shipped via udp). 
 The mgmt client has to extract and combine the contentdigest.
 The <any>last<any> tag is used to mark the last segment of the mgmt reply.
 This tag is only available in the last segment.
@@ -145,7 +145,7 @@ is received.
 //----------------------------------------------------------------------------
 
 To create interests for a concrete mgmt command the functions in util/ccn-lite-ctrl.c can be used.
-The mgmt commants are:
+The mgmt commands are:
   newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]
   newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]
   destroydev    DEVNDX

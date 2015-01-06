@@ -5,10 +5,10 @@ and makes it possible to easily run several nodes on fully isolated system proce
 
 ## Docker Installation
 Just follow the official [installation](https://docs.docker.com/installation/#installation). For OSX you will have to install
-Boot2Docker which runs a prebuild docker image on virtual box.
+Boot2Docker which runs a prebuild Docker image on virtual box.
 
 ## Building and running the CCN-Lite Docker Image
-First you have to build the docker container. A container is based on a certain image, in this case ubuntu. From this base image
+First you have to build the Docker container. A container is based on a certain image, in this case Ubuntu. From this base image
 several commands are run to compile CCN-Lite and setup some variables and expose the port of CCN-Lite
 (9000 instead of the default ports, because this makes it possible to use the same port for different protocols).
 In Ubuntu you will have to provide sudo privileges by using `sudo docker ...` instead of `docker`.
@@ -22,7 +22,7 @@ With the -t flag you can give your container a name, which is usually your usern
 docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -s ndn2013 -v 99 -u 9000
 docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel
 ```
-This commands runs the container in deamon mode (`-d`), connects the internal port to the external port (`-p`) and
+This commands runs the container in daemon mode (`-d`), connects the internal port to the external port (`-p`) and
 gives the running container a named handle (otherwise a random name is chosen).
 Since there are no additional arguments after the container name, the default command is run (`CMD` statement of the Dockerfile).
 If you want to run a different command in the container, you can start it with the following instead:
@@ -30,7 +30,7 @@ If you want to run a different command in the container, you can start it with t
 docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -s ndn2013 -v 99 -u 9000
 ```
 Now you should be able to send CCN requests to the container by using your locally installed ccn-lite-peek utility.
-On Ubuntu, you can send the requests to 127.0.0.1. To send on OSX you have to get the IP with `boot2docker ip` (that is the address of the virtual machine running on virtualbox).
+On Ubuntu, you can send the requests to 127.0.0.1. To send on OSX you have to get the IP with `boot2docker ip` (that is the address of the virtual machine running on VirtualBox).
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "/ndn/simple" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
@@ -64,12 +64,12 @@ For the first request, the compute server is not involved because there is no ca
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "add 1 2" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
-The  request will internally send a request to the compute server. The result will be a content object with the content '5'.
+The request will internally send a request to the compute server. The result will be a content object with the content '5'.
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "call 2 /docker/nfn/nfn_service_WordCount 'foo bar 1 2 3'" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 The result of the next computation does not fit into a single content object. Because the NFN-machinery does not support chunked results (and it is also questionable if this would make sense),
-the result is a redirect. Neither NDN nor CCNx has a native mechansim supporting redirects, therefore we use a primitive protocol for redirects.
+the result is a redirect. Neither NDN nor CCNx has a native mechanism supporting redirects, therefore we use a primitive protocol for redirects.
 If the result is a redirect, the content starts with `redirect:` following the redirected name which has to be looked up manually, e.g. `redirect:/some/name`.
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "" "call 4 /docker/nfn/nfn_service_Pandoc /node/docker/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/bin/ccn-lite-pktdump -f2
