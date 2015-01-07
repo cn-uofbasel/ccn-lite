@@ -32,9 +32,10 @@
 #define USE_ETHERNET
 //#define USE_FRAG
 // #define USE_SCHEDULER
-// #define USE_SUITE_CCNB
-// #define USE_SUITE_CCNTLV
-// #define USE_SUITE_IOTTLV
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PREFIX_MATCHING

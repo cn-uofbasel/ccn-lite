@@ -47,6 +47,7 @@ ccnl_enc2str(int enc)
     case CCNL_ENC_CCNB:      return "ccnb";
     case CCNL_ENC_NDN2013:   return "ndn2013";
     case CCNL_ENC_CCNX2014:  return "ccnbx2014";
+    case CCNL_ENC_CISCO2015: return "cisco2015";
     case CCNL_ENC_IOT2014:   return "iot2014";
     case CCNL_ENC_LOCALRPC:  return "localrpc";
     default:
@@ -63,6 +64,7 @@ ccnl_enc2suite(int enc)
     case CCNL_ENC_CCNB:      return CCNL_SUITE_CCNB;
     case CCNL_ENC_NDN2013:   return CCNL_SUITE_NDNTLV;
     case CCNL_ENC_CCNX2014:  return CCNL_SUITE_CCNTLV;
+    case CCNL_ENC_CISCO2015: return CCNL_SUITE_CISTLV;
     case CCNL_ENC_IOT2014:   return CCNL_SUITE_IOTTLV;
     case CCNL_ENC_LOCALRPC:  return CCNL_SUITE_LOCALRPC;
     default:

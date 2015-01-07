@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkC.c
  * @b CLI mkContent, write to Stdout
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_SIGNATURES
@@ -144,6 +145,7 @@ Usage:
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
         break;
+#ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
@@ -152,6 +154,16 @@ Usage:
             NULL, // Int *contentpos
             out);
         break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        offs = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_cistlv_prependContentWithHdr(name, body, len,
+                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  &offs, NULL, out);
+        break;
+#endif
+#ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         if (ccnl_iottlv_prependReply(name, body, len, &offs, NULL,
@@ -160,6 +172,8 @@ Usage:
             return -1;
         len = CCNL_MAX_PACKET_SIZE - offs;
         break;
+#endif
+#ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_ndntlv_prependContent(name, body, len, &offs,
@@ -167,6 +181,7 @@ Usage:
                                          lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
                                          out);
         break;
+#endif
     default:
         break;
     }

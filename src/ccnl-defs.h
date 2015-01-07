@@ -53,6 +53,7 @@
 enum {
   CCNL_SUITE_CCNB,
   CCNL_SUITE_CCNTLV,
+  CCNL_SUITE_CISTLV,
   CCNL_SUITE_IOTTLV,
   CCNL_SUITE_LOCALRPC,
   CCNL_SUITE_NDNTLV,
@@ -64,13 +65,15 @@ enum {
 // ----------------------------------------------------------------------
 // our own packet format extension for switching encodings:
 // 0x80 followed by:
+// (add new encodings at the end)
 
 enum {
   CCNL_ENC_CCNB,
   CCNL_ENC_NDN2013,
   CCNL_ENC_CCNX2014,
   CCNL_ENC_IOT2014,
-  CCNL_ENC_LOCALRPC
+  CCNL_ENC_LOCALRPC,
+  CCNL_ENC_CISCO2015
 };
 
 // ----------------------------------------------------------------------

@@ -2,7 +2,7 @@
  * @f ccnl-core.c
  * @b CCN lite, core CCNx protocol logic
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -513,6 +513,9 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+#endif
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
 #endif
@@ -630,6 +633,15 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
+            if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
+                // XX must also check keyid
+                i = i->next;
+                continue;
+            }
+            break;
+#endif
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV:
             if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
                 // XX must also check keyid
                 i = i->next;
@@ -795,6 +807,7 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 
 #include "ccnl-pkt-ccnb.c"
 #include "ccnl-pkt-ccntlv.c"
+#include "ccnl-pkt-cistlv.c"
 #include "ccnl-pkt-iottlv.c"
 #include "ccnl-pkt-ndntlv.c"
 #include "ccnl-pkt-localrpc.c" // must come after pkt-ndntlv.c
@@ -858,6 +871,10 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_CCNTLV
     ccnl_core_suits[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
     ccnl_core_suits[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
+#endif
+#ifdef USE_SUITE_CISTLV
+    ccnl_core_suits[CCNL_SUITE_CISTLV].RX       = ccnl_cistlv_forwarder;
+    ccnl_core_suits[CCNL_SUITE_CISTLV].cMatch   = ccnl_cistlv_cMatch;
 #endif
 #ifdef USE_SUITE_IOTTLV
     ccnl_core_suits[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder;

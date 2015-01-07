@@ -1,8 +1,8 @@
 /*
- * @f pkt-ccntlv.c
- * @b CCN lite - CCNx pkt parsing and composing (TLV pkt format Sep 22, 2014)
+ * @f pkt-cistlv.c
+ * @b CCN lite - Cisco pkt parsing and composing (TLV pkt format Jan 6, 2015)
  *
- * Copyright (C) 2014-15, Christian Tschudin, University of Basel
+ * Copyright (C) 2015, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,30 +17,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-03-05 created
- * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
+ * 2015-01-06 created
  */
 
-#ifndef PKT_CCNTLV_C
-#define PKT_CCNTLV_C
+#ifndef PKT_CISTLV_C
+#define PKT_CISTLV_C
 
-#include "ccnl-pkt-ccntlv.h"
-
-/* ----------------------------------------------------------------------
-Note:
-  For a CCNTLV prefix, we store the name components INCLUDING
-  the TL. This is different for CCNB and NDNTLV where we only keep
-  a component's value bytes, as there is only one "type" of name
-  component.
-  This might change in the future (on the side of CCNB and NDNTLV prefixes).
-*/
+#include "ccnl-pkt-cistlv.h"
 
 // ----------------------------------------------------------------------
 // packet decomposition
 
 // convert network order byte array into local unsigned integer value
 int
-ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
+ccnl_cistlv_extractNetworkVarInt(unsigned char *buf, int len,
                                  unsigned int *intval)
 {
     int val = 0;
@@ -55,22 +45,20 @@ ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
 }
 
 // returns hdr length to skip before the payload starts.
-// this value depends on the type (interest/data/nack) and opt headers
-// but should be available in the fixed header
 int
-ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
+ccnl_cistlv_getHdrLen(unsigned char *data, int len)
 {
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    struct cisco_tlvhdr_201501_s *hp;
 
-    hp = (struct ccnx_tlvhdr_ccnx201412_s*) data;
-    if (len >= hp->hdrlen)
-        return hp->hdrlen;
+    hp = (struct cisco_tlvhdr_201501_s*) data;
+    if (len >= hp->hlen)
+        return hp->hlen;
     return -1;
 }
 
 // parse TL (returned in typ and vallen) and adjust buf and len
 int
-ccnl_ccntlv_dehead(unsigned char **buf, int *len,
+ccnl_cistlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
 {
     unsigned short *ip;
@@ -88,20 +76,20 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 
 // we use one extraction routine for both interest and data pkts
 struct ccnl_pkt_s*
-ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
+ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
     struct ccnl_pkt_s *pkt;
     int i;
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
-    DEBUGMSG(DEBUG, "extracting CCNTLV packet (2)\n");
+    DEBUGMSG(DEBUG, "extracting CISTLV packet (2)\n");
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
 
-    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CISTLV, CCNL_MAX_NAME_COMP);
     if (!p) {
         ccnl_free(pkt);
         return NULL;
@@ -111,33 +99,33 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // We ignore the TL types of the message for now
     // content and interests are filled in both cases (and only one exists)
     // validation is ignored
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
+    if (ccnl_cistlv_dehead(data, datalen, &typ, &len))
         goto Bail;
     pkt->type = typ;
-    pkt->suite = CCNL_SUITE_CCNTLV;
+    pkt->suite = CCNL_SUITE_CISTLV;
     pkt->final_block_id = -1;
 
     oldpos = *data - start;
-    while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
+    while (ccnl_cistlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
         int len2 = len;
         unsigned int len3;
 
         switch (typ) {
-        case CCNX_TLV_M_Name:
+        case CISCO_TLV_Name:
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
+                if (ccnl_cistlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
 
-                if (typ == CCNX_TLV_N_Chunk) {
+                if (typ == CISCO_TLV_NameSegment) {
                     // We extract the chunknum to the prefix but keep it in the name component for now
                     // In the future we possibly want to remove the chunk segment from the name components 
                     // and rely on the chunknum field in the prefix.
                     p->chunknum = ccnl_malloc(sizeof(int));
 
-                    if (ccnl_ccnltv_extractNetworkVarInt(cp,
+                    if (ccnl_cistlv_extractNetworkVarInt(cp,
                                                          len2, p->chunknum) < 0) {
                         DEBUGMSG(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
@@ -147,10 +135,10 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                         p->complen[p->compcnt] = cp - cp2 + len3;
                         p->compcnt++;
                     } // else out of name component memory: skip
-                } else if (typ == CCNX_TLV_N_NameSegment) {
+                } else if (typ == CISCO_TLV_NameComponent) {
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
-                        p->comp[p->compcnt] = cp2;
-                        p->complen[p->compcnt] = cp - cp2 + len3;
+                        p->comp[p->compcnt] = cp;
+                        p->complen[p->compcnt] = len3;
                         p->compcnt++;
                     } // else out of name component memory: skip
                 }
@@ -159,33 +147,25 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             }
             p->namelen = *data - p->nameptr;
 #ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
-                    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
+            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
+                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
-                   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
+                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+                   !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
                     p->nfnflags |= CCNL_PREFIX_THUNK;
                     p->compcnt--;
                 }
             }
 #endif
             break;
-        case CCNX_TLV_M_MetaData:
-            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
-                DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
-                goto Bail;
-            }
-            if (typ == CCNX_TLV_M_ENDChunk) {
-                if (ccnl_ccnltv_extractNetworkVarInt(cp, len2, &pkt->final_block_id) < 0) {
-                    DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
+        case CISCO_TLV_FinalSegmentID:
+            if (ccnl_cistlv_extractNetworkVarInt(cp, len2, &pkt->final_block_id) < 0) {
+                    DEBUGMSG(WARNING, "error when extracting CISCO_TLV_FinalSegmentID\n");
                     goto Bail;
-                }
             }
-            cp += len3;
-            len2 -= len3;
             break;
-        case CCNX_TLV_M_Payload:
+        case CISCO_TLV_ContentData:
             pkt->content = *data;
             pkt->contlen = len;
             break;
@@ -223,10 +203,10 @@ Bail:
 
 // returns: 0=match, -1=otherwise
 int
-ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+ccnl_cistlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
     assert(p);
-    assert(p->suite == CCNL_SUITE_CCNTLV);
+    assert(p->suite == CCNL_SUITE_CISTLV);
 
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
@@ -244,7 +224,7 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 
 // write given TL *before* position buf+offset, adjust offset and return len
 int
-ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
+ccnl_cistlv_prependTL(unsigned int type, unsigned short len,
                       int *offset, unsigned char *buf)
 {
     unsigned short *ip;
@@ -260,14 +240,14 @@ ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
 
 // write len bytes *before* position buf[offset], adjust offset
 int
-ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
+ccnl_cistlv_prependBlob(unsigned short type, unsigned char *blob,
                         unsigned short len, int *offset, unsigned char *buf)
 {
     if (*offset < (len + 4))
         return -1;
     memcpy(buf + *offset - len, blob, len);
     *offset -= len;
-    if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
+    if (ccnl_cistlv_prependTL(type, len, offset, buf) < 0)
         return -1;
     return len + 4;
 }
@@ -277,7 +257,7 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 // the given integer val *before* position buf[offset], adjust offset
 // and return number of bytes prepended. 0 is represented as %x00
 int
-ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
+ccnl_cistlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
                                  int *offset, unsigned char *buf)
 {
     int offs = *offset;
@@ -292,42 +272,56 @@ ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
     }
     *offset = offs;
 
-    if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
+    if (ccnl_cistlv_prependTL(type, len, offset, buf) < 0)
         return -1;
     return len + 4;
 }
 
-// write *before* position buf[offset] the CCNx1.0 fixed header,
+// write (in network order and with the minimal number of bytes)
+// the given integer val *before* position buf[offset], adjust offset
+// and return number of bytes prepended. 0 is represented as %x00
+int
+ccnl_cistlv_prepend4BInt(unsigned short type, unsigned int intval,
+                         int *offset, unsigned char *buf)
+{
+    int oldoffset = *offset;
+
+    if (*offset < 8)
+        return -1;
+
+    *offset -= 4;
+    *(uint32_t*)(buf + *offset) = htonl(intval);
+
+    if (ccnl_cistlv_prependTL(type, 4, offset, buf) < 0)
+        return -1;
+
+    return oldoffset - *offset;
+}
+
+// write *before* position buf[offset] the Cisco fixed header,
 // returns total packet len
 int
-ccnl_ccntlv_prependFixedHdr(unsigned char ver, 
+ccnl_cistlv_prependFixedHdr(unsigned char ver, 
                             unsigned char packettype, 
                             unsigned short payloadlen, 
                             unsigned char hoplimit, 
                             int *offset, unsigned char *buf)
 {
     // optional headers are not yet supported, only the fixed header
-    unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx201412_s);
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    unsigned char hdrlen = sizeof(struct cisco_tlvhdr_201501_s);
+    struct cisco_tlvhdr_201501_s *hp;
 
-    if (packettype == CCNX_PT_Interest || packettype == CCNX_PT_NACK) {
-        struct ccnx_tlvhdr_ccnx201412nack_s *np;
-        hdrlen += sizeof(*np);
-        *offset -= sizeof(*np);
-        np = (struct ccnx_tlvhdr_ccnx201412nack_s *)(buf + *offset);
-        memset(np, 0, sizeof(*np));
-    }
     if (*offset < hdrlen || payloadlen < 0)
         return -1;
 
-    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412_s);
-    hp = (struct ccnx_tlvhdr_ccnx201412_s *)(buf + *offset);
+    *offset -= sizeof(struct cisco_tlvhdr_201501_s);
+    hp = (struct cisco_tlvhdr_201501_s *)(buf + *offset);
     hp->version = ver;
     hp->pkttype = packettype;
-    hp->hoplimit = hoplimit;
-    memset(hp->fill, 0, 2);
-
-    hp->hdrlen = hdrlen; // htons(hdrlen);
+    hp->hoplim = hoplimit;
+    hp->flags = 0;
+    hp->resvd = 0;
+    hp->hlen = hdrlen;
     hp->pktlen = htons(hdrlen + payloadlen);
 
     return hdrlen + payloadlen;
@@ -336,18 +330,15 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 // write given prefix and chunknum *before* buf[offs], adjust offset
 // and return bytes used
 int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+ccnl_cistlv_prependName(struct ccnl_prefix_s *name,
                         int *offset, unsigned char *buf) {
 
     int oldoffset = *offset, cnt;
 
     if (name->chunknum &&
-        ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
-                                         *name->chunknum, offset, buf) < 0)
+        ccnl_cistlv_prepend4BInt(CISCO_TLV_NameSegment,
+                                 *name->chunknum, offset, buf) < 0)
             return -1;
-
-    // optional: (not used)
-    // CCNX_TLV_N_MetaData
 
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN)
@@ -358,12 +349,13 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
             return -1;
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (*offset < name->complen[cnt])
+        if (*offset < (name->complen[cnt] + 4))
             return -1;
-        *offset -= name->complen[cnt];
-        memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
+        if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent, name->comp[cnt],
+                                    name->complen[cnt], offset, buf) < 0)
+            return -1;
     }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, oldoffset - *offset,
+    if (ccnl_cistlv_prependTL(CISCO_TLV_Name, oldoffset - *offset,
                               offset, buf) < 0)
         return -1;
 
@@ -372,14 +364,14 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 
 // write Interest payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
+ccnl_cistlv_prependInterest(struct ccnl_prefix_s *name,
                             int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf))
         return -1;
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
+    if (ccnl_cistlv_prependTL(CISCO_TLV_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
         return -1;
 
@@ -388,21 +380,21 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name, 
                                         int *offset, unsigned char *buf)
 {
     int len, oldoffset;
     unsigned char hoplimit = 64; // setting hoplimit to max valid value?
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_prependInterest(name, offset, buf);
+    len = ccnl_cistlv_prependInterest(name, offset, buf);
     if (len >= ((1 << 16)-8))
         return -1;
 /*
-    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
-    memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_ccnx201412nack_s));
+    *offset -= sizeof(struct ccnx_tlvhdr_cisco201501nack_s);
+    memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_cisco201501nack_s));
 */
-    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
+    if (ccnl_cistlv_prependFixedHdr(CISCO_TLV_V1, CISCO_TLV_Interest, 
                                     len, hoplimit, offset, buf) < 0)
         return -1;
 
@@ -411,79 +403,67 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependInterestWithHdr(struct ccnl_prefix_s *name, 
                                 int *offset, unsigned char *buf)
 {
-    return ccnl_ccntlv_prependChunkInterestWithHdr(name, offset, buf);
+    return ccnl_cistlv_prependChunkInterestWithHdr(name, offset, buf);
 }
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,
-                           unsigned int *lastchunknum, int *offset, int *contentpos,
-                           unsigned char *buf)
+                           unsigned int *lastchunknum, int *offset,
+                           int *contentpos, unsigned char *buf)
 {
-    int tloffset = *offset;
+    int oldoffset = *offset;
 
     if (contentpos)
         *contentpos = *offset - paylen;
 
     // fill in backwards
-    if (ccnl_ccntlv_prependBlob(CCNX_TLV_M_Payload, payload, paylen,
+    if (ccnl_cistlv_prependBlob(CISCO_TLV_ContentData, payload, paylen,
                                                         offset, buf) < 0)
         return -1;
 
     if (lastchunknum) {
-        int oldoffset = *offset;
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_M_ENDChunk,
-                                             *lastchunknum, offset, buf) < 0)
-            return -1;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_M_MetaData,
-                                  oldoffset - *offset, offset, buf) < 0)
+        if (ccnl_cistlv_prepend4BInt(CISCO_TLV_FinalSegmentID,
+                                         *lastchunknum, offset, buf) < 0)
             return -1;
     }
 
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf))
         return -1;
 
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
-                                        tloffset - *offset, offset, buf) < 0)
+    if (ccnl_cistlv_prependTL(CISCO_TLV_Content,
+                                        oldoffset - *offset, offset, buf) < 0)
         return -1;
 
-    /*
-    if (contentpos)
-        *contentpos -= *offset;
-    */
-
-    return tloffset - *offset;
+    return oldoffset - *offset;
 }
 
 // write Content packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
+ccnl_cistlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned char *payload, int paylen,
                                   unsigned int *lastchunknum, int *offset,
                                   int *contentpos, unsigned char *buf)
 {
     int len, oldoffset;
-    unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
+    unsigned char hoplimit = 64;
 
     oldoffset = *offset;
 
-    len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
+    len = ccnl_cistlv_prependContent(name, payload, paylen, lastchunknum,
                                      offset, contentpos, buf);
 
-    if (len >= ((1 << 16) - 4))
-        return -1;
-
-    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
+    ccnl_cistlv_prependFixedHdr(CISCO_TLV_V1, CISCO_TLV_Content,
                                 len, hoplimit, offset, buf);
     return oldoffset - *offset;
 }
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // PKT_CCNTLV_C
+#endif // PKT_CISTLV_C
 
 // eof

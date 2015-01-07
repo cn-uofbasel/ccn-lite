@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
  
@@ -186,6 +187,9 @@ Usage:
         case CCNL_SUITE_CCNTLV: 
             strcpy(fileext, "ccntlv");
             break;
+        case CCNL_SUITE_CISTLV: 
+            strcpy(fileext, "cistlv");
+            break;
         case CCNL_SUITE_IOTTLV:
             strcpy(fileext, "iottlv");
             break;
@@ -211,6 +215,14 @@ Usage:
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
+                                                           (unsigned char *)chunk_buf, chunk_len, 
+                                                           is_last ? &chunknum : NULL, 
+                                                           &offs, 
+                                                           NULL, // int *contentpos
+                                                           out);
+            break;
+        case CCNL_SUITE_CISTLV: 
+            contentlen = ccnl_cistlv_prependContentWithHdr(name, 
                                                            (unsigned char *)chunk_buf, chunk_len, 
                                                            is_last ? &chunknum : NULL, 
                                                            &offs, 

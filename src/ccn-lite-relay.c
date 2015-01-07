@@ -42,6 +42,7 @@
 // #define USE_SCHEDULER
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
@@ -618,6 +619,22 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             datalen -= hdrlen;
 
             pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+            break;
+        }
+#endif 
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV: {
+            int hdrlen;
+            unsigned char *start;
+
+            data = start = buf->data + skip;
+            datalen -=  skip;
+
+            hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
+            data += hdrlen;
+            datalen -= hdrlen;
+
+            pk = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
             break;
         }
 #endif 

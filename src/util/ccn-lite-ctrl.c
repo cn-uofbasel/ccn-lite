@@ -2,7 +2,7 @@
  * @f util/ccn-lite-ctrl.c
  * @b control utility to steer a ccn-lite relay via UNIX sockets
  *
- * Copyright (C) 2012-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2012-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,7 @@
 #define CCNL_UNIX
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
@@ -1128,8 +1129,10 @@ main(int argc, char *argv[])
        DEBUGMSG(ERROR, "nothing to send, program terminates\n");
     }
 
-    if(recvbuffer2)free(recvbuffer2);
-    if(recvbuffer2)free(recvbuffer);
+    if(recvbuffer2)
+        free(recvbuffer2);
+    if(recvbuffer2)
+        free(recvbuffer);
     close(sock);
     unlink(mysockname);
 
@@ -1149,8 +1152,8 @@ Usage:
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
-       "  prefixunreg   PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  prefixreg     PREFIX FACEID [SUITE (ccnb,ccnx2014,cisco2015,iot2014,ndn2013)]\n"
+       "  prefixunreg   PREFIX FACEID [SUITE (ccnb,ccnx2014,cisco2015,iot2014,ndn2013)]\n"
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
@@ -1161,8 +1164,8 @@ Usage:
     progname);
 
     if (sock) {
-    close(sock);
-    unlink(mysockname);
+        close(sock);
+        unlink(mysockname);
     }
     return -1;
 }

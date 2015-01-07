@@ -23,6 +23,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
@@ -80,7 +81,7 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
@@ -105,6 +106,12 @@ usage:
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
+        if(!udp)
+            udp = "127.0.0.1/9695";
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
         if(!udp)
             udp = "127.0.0.1/9695";
         break;
@@ -143,6 +150,12 @@ usage:
     case CCNL_SUITE_CCNTLV:
         mkInterest = ccntlv_mkInterest;
         isContent = ccntlv_isData;
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        mkInterest = cistlv_mkInterest;
+        isContent = cistlv_isData;
         break;
 #endif
 #ifdef USE_SUITE_IOTTLV

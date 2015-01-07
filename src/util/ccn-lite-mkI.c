@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
@@ -151,6 +152,11 @@ Usage:
 	break;
     case CCNL_SUITE_CCNTLV:
         len = ccntlv_mkInterest(prefix, 
+                                (int*)&nonce, 
+                                out, CCNL_MAX_PACKET_SIZE);
+	break;
+    case CCNL_SUITE_CISTLV:
+        len = cistlv_mkInterest(prefix, 
                                 (int*)&nonce, 
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;

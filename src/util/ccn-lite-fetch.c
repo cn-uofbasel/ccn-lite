@@ -23,6 +23,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
 
@@ -53,6 +54,11 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         mkInterest = ccntlv_mkInterest;
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        mkInterest = cistlv_mkInterest;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -110,6 +116,26 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         break;
     }
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        int hdrlen;
+        unsigned char *start = *data;
+
+        if (cistlv_isData(*data, *datalen) < 0) {
+            DEBUGMSG(WARNING, "Received non-content-object\n");
+            return -1;
+        }
+        hdrlen = ccnl_cistlv_getHdrLen(*data, *datalen);
+        if (hdrlen < 0)
+            return -1;
+
+        *data += hdrlen;
+        *datalen -= hdrlen;
+
+        pkt = ccnl_cistlv_bytes2pkt(start, data, datalen);
+        break;
+    }
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
         int typ, len;
@@ -159,6 +185,18 @@ ccnl_prefix_removeChunkNumComponent(int suite,
             prefix->compcnt--;
         } else {
             DEBUGMSG(WARNING, "Tried to remove chunknum from CCNTLV prefix, but either prefix does not have a chunknum "
+                              "or the last component is not the chunknum.");
+            return -1;
+        }
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        // TODO: asumes that chunk is at the end!
+        if(prefix->comp[prefix->compcnt-1][1] == CISCO_TLV_NameSegment) {
+            prefix->compcnt--;
+        } else {
+            DEBUGMSG(WARNING, "Tried to remove chunknum from CISTLV prefix, but either prefix does not have a chunknum "
                               "or the last component is not the chunknum.");
             return -1;
         }
@@ -221,7 +259,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
@@ -246,6 +284,12 @@ usage:
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
+        if (!udp)
+            udp = "127.0.0.1/9695";
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
         if (!udp)
             udp = "127.0.0.1/9695";
         break;
@@ -294,7 +338,7 @@ usage:
 
     // For CCNTLV always start with the first chunk because of exact content match
     // This means it can only fetch chunked data and not single content-object data
-    if(suite == CCNL_SUITE_CCNTLV) {
+    if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV) {
         curchunknum = malloc(sizeof(int));
         *curchunknum = 0;
     }

@@ -83,6 +83,9 @@ compile_string(void)
 #ifdef USE_SUITE_CCNTLV
         "SUITE_CCNTLV, "
 #endif
+#ifdef USE_SUITE_CISTLV
+        "SUITE_CISTLV, "
+#endif
 #ifdef USE_SUITE_IOTTLV
         "SUITE_IOTTLV, "
 #endif
@@ -200,6 +203,10 @@ ccnl_str2suite(char *cp)
     if (!strcmp(cp, "ccnx2014"))
         return CCNL_SUITE_CCNTLV;
 #endif
+#ifdef USE_SUITE_CISTLV
+    if (!strcmp(cp, "cisco2015"))
+        return CCNL_SUITE_CISTLV;
+#endif
 #ifdef USE_SUITE_IOTTLV
     if (!strcmp(cp, "iot2014"))
         return CCNL_SUITE_IOTTLV;
@@ -222,6 +229,10 @@ ccnl_suite2str(int suite)
     if (suite == CCNL_SUITE_CCNTLV)
         return "ccnx2014";
 #endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return "cisco2015";
+#endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
         return "iot2014";
@@ -242,6 +253,10 @@ ccnl_suite2defaultPort(int suite)
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
         return CCN_UDP_PORT;
 #endif
 #ifdef USE_SUITE_IOTTLV
@@ -619,7 +634,12 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
         return suite;
 
 #ifdef USE_SUITE_CCNB
-    if (*data == 0x01 || *data == 0x04)
+    if (*data == 0x04)
+        return CCNL_SUITE_CCNB;
+    if (*data == 0x01 && len > 1 && // check for Cisco collision:
+                                (data[1] != 0x01 &&
+                                 data[1] != 0x02 &&
+                                 data[1] != 0x03))
         return CCNL_SUITE_CCNB;
 #endif
 
@@ -629,6 +649,15 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
             data[1] == CCNX_PT_Data ||
             data[1] == CCNX_PT_NACK) 
             return CCNL_SUITE_CCNTLV;
+    } 
+#endif
+
+#ifdef USE_SUITE_CISTLV
+    if (data[0] == CISCO_TLV_V1 && len > 1) {
+        if (data[1] == CISCO_PT_Interest ||
+            data[1] == CISCO_PT_Content ||
+            data[1] == CISCO_PT_Nack) 
+            return CCNL_SUITE_CISTLV;
     } 
 #endif
 

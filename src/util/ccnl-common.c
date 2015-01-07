@@ -77,6 +77,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-pkt-switch.c"
 #include "../ccnl-pkt-ccnb.c"
 #include "../ccnl-pkt-ccntlv.c"
+#include "../ccnl-pkt-cistlv.c"
 #include "../ccnl-pkt-iottlv.c"
 #include "../ccnl-pkt-ndntlv.c"
 #include "../ccnl-pkt-localrpc.c"
@@ -233,7 +234,61 @@ int ccntlv_isData(unsigned char *buf, int len)
     else
         return 0;
 }
+
 #endif // USE_SUITE_CCNTLV
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_SUITE_CISTLV
+
+#ifdef NEEDS_PACKET_CRAFTING
+int
+cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *out, int outlen)
+{
+     int len, offset;
+
+     offset = outlen;
+     len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
+     if (len > 0)
+         memmove(out, out + offset, len);
+
+     return len;
+}
+#endif
+
+int cistlv_isData(unsigned char *buf, int len)
+{
+    struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
+    unsigned short hdrlen, pktlen; // payloadlen;
+
+    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
+        DEBUGMSG(ERROR, "ccntlv header not large enough");
+        return -1;
+    }
+    hdrlen = hp->hlen; // ntohs(hp->hdrlen);
+    pktlen = ntohs(hp->pktlen);
+    //    payloadlen = ntohs(hp->payloadlen);
+
+    if (hp->version != CISCO_TLV_V1) {
+        DEBUGMSG(ERROR, "cistlv version %d not supported\n", hp->version);
+        return -1;
+    }
+
+    if (pktlen < len) {
+        DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
+                 pktlen, len);
+        return -1;
+    }
+    buf += hdrlen;
+    len -= hdrlen;
+
+    if(hp->pkttype == CISCO_PT_Content)
+        return 1;
+    else
+        return 0;
+}
+#endif // USE_SUITE_CISTLV
 
 // ----------------------------------------------------------------------
 
