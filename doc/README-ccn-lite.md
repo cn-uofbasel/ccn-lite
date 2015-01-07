@@ -75,7 +75,7 @@ example.
 
 What we (deliberately) do NOT cover in our CCN-lite code is:
 
-- sophisticated data structures for performance optimisations (it's up to
+- sophisticated data structures for performance optimizations (it's up to
   you to exchange the linked lists with whatever fits your needs)
 - exclusion filtering in interests
 - all TCP connectivity and the old CCNx cmd line utilities that have TCP
@@ -98,7 +98,7 @@ What you get with CCN-lite is:
   all using the same core logic (OMNeT to be re-released independently),
   Docker files are also provided
 - partially interoperable management protocol implementation
-- a simple HTTP server to display the relay's internal config
+- a simple HTTP server to display the relay's internal configuration
 - plus some interesting extensions of our own, see the next section.
 
 We are running CCN-lite on PCs, but also on the Raspberry Pi, both the
@@ -163,7 +163,7 @@ possible and invite you to attempt the same for your additions.
 ## 3. CCN-lite supported platforms and how to compile
 
   The CCN-lite code currently supports three platforms, defined in
-  corresponding main source files (they shouild compile under Linux and
+  corresponding main source files (they should compile under Linux and
   Mac OSX). In these main files, a symbol is set which selects the platform:
 
 ```
@@ -211,7 +211,7 @@ possible and invite you to attempt the same for your additions.
   variable at the shell level before invoking make:
   export USE_KRNL=1; make clean all
 
-  The OMNeT platform is currently out-dated and has moved to an
+  The OMNeT platform is currently outdated and has moved to an
   independent project, but will be available soon (target date is in
   early 2015).
 
@@ -289,7 +289,7 @@ The best way to start is to work through the
 ### 5') Starting (and controlling) the Linux kernel module
 
 ```
-  #-- insert the module, enabeling eth0, debug msgs
+  #-- insert the module, enabling eth0, debug msgs
   % sudo insmod ./ccn-lite-lnxkernel.ko e=eth0 v=99
 
   #-- talk to the module via the default UNIX socket, trigger a dump

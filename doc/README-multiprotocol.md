@@ -14,7 +14,7 @@ This means that a CCN-lite relay, listing on a given UDP port, is
 potentially confronted with packets encoded in different schemas like
 ccnb, CCNx2014 or NDN2013. In the past it was possible to discriminate
 among these packets because luckily enough the "type values" were
-sparsly populated and the programmers had chosen code points that do
+sparsely populated and the programmers had chosen code points that do
 not overlap. But with the compact IOT2014 format, there is no sparsity
 anymore. Instead of letting the relay do clever guess and check work
 for deducing a packet's format, we suggest an explicit way of

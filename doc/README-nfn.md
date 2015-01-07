@@ -81,4 +81,4 @@ If a relay receives an interest for a computation it checks if the result can be
 If no cached result is available the relay checks whether the prepended name is local available. If it is the relay will compute the result locally.
 Otherwise it will forward the interest according to the FIB entries.
 
-A practical turorial how to use NFN can be found in the [CCN-Lite Tutorial](../tutorial/tutorial.md)
+A practical tutorial how to use NFN can be found in the [CCN-Lite Tutorial](../tutorial/tutorial.md)

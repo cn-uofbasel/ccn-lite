@@ -108,30 +108,30 @@ ccn-lite-omnet can successfully finish the compilation
 
 __Caveats (with OMNeT++ ver 4.2.2)__: 
 
-Those of you already using OMNeT++ extensivelly, will
+Those of you already using OMNeT++ extensively, will
 already know that this version had several issues with
 latest features that were added in the Eclipse CDT
-environment (such as the debugger nuissances, the bogus
-repots of the code analyser, and the crashes when building
-before indexing). Those nuissances appear also with the
+environment (such as the debugger nuisances, the bogus
+repots of the code analyzer, and the crashes when building
+before indexing). Those nuisances appear also with the
 'ccn-lite-omnet' project of course. However, if you are
 patient with pressing NEXT a dozen times at the start of the
 Debug mode, if you index before compiling, and if you ignore
 the false "semantic errors" that are flagged in the
-ccn-lite-omnet.c file, you ll see that everything works like
-a charm :). All these nuissances have hopefully dissapeared
+ccn-lite-omnet.c file, you'll see that everything works like
+a charm :). All these nuisances have hopefully disappeared
 again in version 4.3!
 
 ---
 
 4) Further documentation and code examples
 
-At this point you re ready to build your own topologies and
+At this point you're ready to build your own topologies and
 experiment with CCN in OMNeT++. To get you started if you re
 not too familiar with OMNeT++ and INET, in the in the
 ccn-lite project you will find the following
 
-  topologies/   folder containing two simple toy-tologies 
+  topologies/   folder containing two simple toy-topologies 
   simulations/  folder with one example scenario that uses
                 one of the topologies
   compounds/    folder containing vanilla NED definition for

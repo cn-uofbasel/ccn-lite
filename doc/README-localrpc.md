@@ -134,7 +134,7 @@ struct rdr_ds_s { // RPC Data Representation (RPR) data structure
     struct rdr_ds_s *aux;
 };
 
-Importing is done "lazily": A nodes's bytes are only parsed if details
+Importing is done "lazily": A node's bytes are only parsed if details
 are requested. When importing (rdr_unserialize()), a root node is
 created that just keeps track of the flat bytes - at this stage it has
 the type "SERIALIZED". Only by calling rdr_getType(), the bytes are
@@ -180,7 +180,7 @@ parameters. Example:
 
 '(/rpc/builtin/forward /rpc/const/encoding/ndn2013 &1)'
 
-At the outermost level, parentheses can be ommited because
+At the outermost level, parentheses can be omitted because
 ccn-lite-rpc expects a remote procedure call to some function
 (/rpc/builtin/forward in the example above).
 

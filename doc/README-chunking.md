@@ -14,7 +14,7 @@ For more details see [CCNx Content Object Chunking](http://www.ccnx.org/pubs/ccn
 
 ## NDNTLV
 
-In NDN there is no explicit encoding of  chunk numbers in the protocol. NDN suggests the use of markers to encode chunk numbers, but the applications are free to use their own scheme.
+In NDN there is no explicit encoding of chunk numbers in the protocol. NDN suggests the use of markers to encode chunk numbers, but the applications are free to use their own scheme.
 To encode the chunk number in an interests or content object, the last component of the name should start with the chunk marker. The marker for chunk numbers is the byte `%00` followed by variable integer for the actual number.
 To encode the last chunk number, there is an optional field for the content object in NDN called `FinalBlockId`. The value of this field is a name component. This is used for the chunking protocol. As soon as the last component of a name is equal to the component of the final block id, the chunk stream is complete. This means the final block id should also start with the byte `%00` followed by a variable integer of the last chunk number.
 For more details see [NDN Packet Spec for Content Objects](http://named-data.net/doc/ndn-tlv/data.html).

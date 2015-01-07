@@ -23,7 +23,7 @@
 //----------------------------------------------------------------------------
 
 NFN is an extension to the CCNx to deliver dynamic created content and compute results out of input data.
-The NFN system conists of two additional layer which are created on top of the CCN system:
+The NFN system consists of two additional layer which are created on top of the CCN system:
 	
 	Service Layer
 	NFN Layer
@@ -38,10 +38,10 @@ or
 
 The NFN system can compute operations on numbers by itself.
 To request a result of a computation you can use util/ccn-lite-peek, e.g. ./util/ccn-lite-peek "add 2 3|NFN",
-where the second component is marks the request as request for a computation and the components are splitted by "|".
+where the second component is marks the request as request for a computation and the components are split by "|".
 (it is required to first start ./ccn-nfn-relay)
-s
-If you want to perform computatiovvns on data it is required to start the service layer system.
+
+If you want to perform computations on data it is required to start the service layer system.
 
 As simple example you can also use the test/scripts/nfn examples which simulate the service layer system.
 These scripts show how to setup a NFN environment to perform computations.

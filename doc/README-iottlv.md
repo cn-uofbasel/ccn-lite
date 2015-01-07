@@ -20,7 +20,7 @@ radios only supporting PDUs as small as 100 Bytes.
 For efficiency, we define a 1-Byte combined Type+Length encoding for
 small type and length values T and L. If necessary (type and/or length
 too large), a variable-length encoding is used: The first byte is set
-to 0, followed by the independtly encoded values of T and L. Here, we
+to 0, followed by the independently encoded values of T and L. Here, we
 show the *encoding* rules:
 
 
