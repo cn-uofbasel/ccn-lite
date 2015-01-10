@@ -233,8 +233,12 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
                        struct ccnl_buf_s *buf, sockunion *dest)
 {
     struct ccnl_txrequest_s *r;
+
+    TRACEIN();
     DEBUGMSG(TRACE, "enqueue interface=%p buf=%p len=%d (qlen=%d)\n",
-             (void*)ifc, (void*)buf, buf->datalen, ifc->qlen);
+             (void*)ifc, (void*)buf,
+             buf ? buf->datalen : -1,
+             ifc ? ifc->qlen : -1);
 
     if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
         DEBUGMSG(WARNING, "  DROPPING buf=%p\n", (void*)buf);
@@ -435,17 +439,20 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                  rc, fwd->prefix->compcnt);
         if (rc < fwd->prefix->compcnt)
             continue;
-        DEBUGMSG(DEBUG, "  ccnl_interest_propagate, fwd==%p\n", (void*)fwd);
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
+            DEBUGMSG(DEBUG, "  ccnl_interest_propagate, forwarding via %p\n",
+                   (void*)fwd);
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
+            DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
             ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
 #ifdef USE_NACK
             matching_face = 1;
 #endif
+        } else {
+            DEBUGMSG(DEBUG, "  not forwarded\n");
         }
-
     }
 
 #ifdef USE_NACK
@@ -814,7 +821,7 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 
 #include "ccnl-core-fwd.c"
 
-struct ccnl_suite_s ccnl_core_suits[CCNL_SUITE_LAST];
+struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
@@ -845,7 +852,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
             return;
         }
         //        dispatch = ccnl_core_RX_dispatch[suite];
-        dispatch = ccnl_core_suits[suite].RX;
+        dispatch = ccnl_core_suites[suite].RX;
         if (!dispatch) {
             DEBUGMSG(ERROR, "Forwarder not initialized or dispatcher "
                      "for suite %s does not exist.\n", ccnl_suite2str(suite));
@@ -865,28 +872,28 @@ void
 ccnl_core_init(void)
 {
 #ifdef USE_SUITE_CCNB
-    ccnl_core_suits[CCNL_SUITE_CCNB].RX         = ccnl_ccnb_forwarder;
-    ccnl_core_suits[CCNL_SUITE_CCNB].cMatch     = ccnl_ccnb_cMatch;
+    ccnl_core_suites[CCNL_SUITE_CCNB].RX         = ccnl_ccnb_forwarder;
+    ccnl_core_suites[CCNL_SUITE_CCNB].cMatch     = ccnl_ccnb_cMatch;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    ccnl_core_suits[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
-    ccnl_core_suits[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
+    ccnl_core_suites[CCNL_SUITE_CCNTLV].RX       = ccnl_ccntlv_forwarder;
+    ccnl_core_suites[CCNL_SUITE_CCNTLV].cMatch   = ccnl_ccntlv_cMatch;
 #endif
 #ifdef USE_SUITE_CISTLV
-    ccnl_core_suits[CCNL_SUITE_CISTLV].RX       = ccnl_cistlv_forwarder;
-    ccnl_core_suits[CCNL_SUITE_CISTLV].cMatch   = ccnl_cistlv_cMatch;
+    ccnl_core_suites[CCNL_SUITE_CISTLV].RX       = ccnl_cistlv_forwarder;
+    ccnl_core_suites[CCNL_SUITE_CISTLV].cMatch   = ccnl_cistlv_cMatch;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    ccnl_core_suits[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder;
-    ccnl_core_suits[CCNL_SUITE_IOTTLV].cMatch   = ccnl_iottlv_cMatch;
+    ccnl_core_suites[CCNL_SUITE_IOTTLV].RX       = ccnl_iottlv_forwarder;
+    ccnl_core_suites[CCNL_SUITE_IOTTLV].cMatch   = ccnl_iottlv_cMatch;
 #endif
 #ifdef USE_SUITE_LOCALRPC
-    ccnl_core_suits[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;
-    //    ccnl_core_suits[CCNL_SUITE_LOCALRPC].cMatch = ccnl_localrpc_cMatch;
+    ccnl_core_suites[CCNL_SUITE_LOCALRPC].RX     = ccnl_localrpc_exec;
+    //    ccnl_core_suites[CCNL_SUITE_LOCALRPC].cMatch = ccnl_localrpc_cMatch;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    ccnl_core_suits[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
-    ccnl_core_suits[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
+    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
+    ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
 #endif
 
 #ifdef USE_NFN

@@ -83,7 +83,8 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
-    DEBUGMSG(DEBUG, "extracting CISTLV packet (2)\n");
+    DEBUGMSG(DEBUG, "extracting CISTLV packet (%d, %d bytes)\n",
+             (int)(*data - start), *datalen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
@@ -341,12 +342,15 @@ ccnl_cistlv_prependName(struct ccnl_prefix_s *name,
             return -1;
 
 #ifdef USE_NFN
-    if (name->nfnflags & CCNL_PREFIX_NFN)
-        if (ccnl_pkt_prependComponent(name->suite, "NFN", offset, buf) < 0)
+    if (name->nfnflags & CCNL_PREFIX_NFN) {
+        if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent,
+                                (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
-    if (name->nfnflags & CCNL_PREFIX_THUNK)
-        if (ccnl_pkt_prependComponent(name->suite, "THUNK", offset, buf) < 0)
-            return -1;
+        if (name->nfnflags & CCNL_PREFIX_THUNK)
+            if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent,
+                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
+                return -1;
+    }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
         if (*offset < (name->complen[cnt] + 4))

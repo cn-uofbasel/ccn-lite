@@ -2,7 +2,7 @@
  * @f util/ccnl-common.c
  * @b common functions for the CCN-lite utilities
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -262,6 +262,8 @@ int cistlv_isData(unsigned char *buf, int len)
     struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
     unsigned short hdrlen, pktlen; // payloadlen;
 
+    TRACEIN();
+
     if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
         DEBUGMSG(ERROR, "ccntlv header not large enough");
         return -1;
@@ -276,12 +278,14 @@ int cistlv_isData(unsigned char *buf, int len)
     }
 
     if (pktlen < len) {
-        DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
+        DEBUGMSG(ERROR, "cistlv packet too small (%d instead of %d bytes)\n",
                  pktlen, len);
         return -1;
     }
     buf += hdrlen;
     len -= hdrlen;
+
+    TRACEOUT();
 
     if(hp->pkttype == CISCO_PT_Content)
         return 1;

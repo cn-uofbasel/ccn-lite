@@ -99,7 +99,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
 
-    DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG(DEBUG, "  handle interest=<%s>\n",
+             ccnl_prefix_to_path((*pkt)->pfx));
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
         return 0;
@@ -294,7 +295,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CCNX_PT_Interest) {
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            //            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
@@ -376,7 +377,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CISCO_PT_Interest) {
         if (pkt->type == CISCO_TLV_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            //            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_cistlv_cMatch))
                 goto Done;
         } else {

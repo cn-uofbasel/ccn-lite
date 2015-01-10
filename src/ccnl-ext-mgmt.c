@@ -1599,30 +1599,36 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     prefix_new->suite = suite;
     
     //Reply MSG
-    if(h)ccnl_free(h);
+    if (h)
+        ccnl_free(h);
     h = ccnl_malloc(300);
     sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
-    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "addcacheobject", (char *        )h);
-    if(h)ccnl_free(h);
+    ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
+                             "addcacheobject", (char *)h);
+    if (h)
+        ccnl_free(h);
+
     //Reply MSG END
-
     {
-        struct ccnl_buf_s *buffer = ccnl_mkSimpleInterest(prefix_new, NULL);
-
-        DEBUGMSG(ERROR, " this code was removed, ok?\n");
-/* FIXME: ok to remove, is this really needed?
-
+        struct ccnl_pkt_s *pkt;
         struct ccnl_interest_s *interest;
-        interest = ccnl_interest_new(ccnl, from, suite, &buffer,
-                                     &prefix_new, 0, 1);
+        struct ccnl_buf_s *buffer;
+
+        pkt = ccnl_calloc(1, sizeof(*pkt));
+        pkt->pfx = prefix_new;
+        pkt->buf = ccnl_mkSimpleInterest(prefix_new, NULL);
+        pkt->suite = prefix_new->suite;
+        pkt->final_block_id = -1;
+        buffer = buf_dup(pkt->buf);
+
+        interest = ccnl_interest_new(ccnl, from, &pkt);
         if (!interest)
             return 0;
-        ccnl_face_enqueue(ccnl, from, buf_dup(interest->pkt));
-*/
+
         //Send interest to from!
         ccnl_face_enqueue(ccnl, from, buffer);
     }
-    free_prefix(prefix_new);
+//    free_prefix(prefix_new);
 
 Bail:
     return 0;   

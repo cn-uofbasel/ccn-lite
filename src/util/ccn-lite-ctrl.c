@@ -540,10 +540,21 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         unsigned char *start = data;
         int hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
 
-        if (hdrlen < 0) {
+        if (hdrlen > 0) {
             data += hdrlen;
             datalen -= hdrlen;
             pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+        }
+        break;
+    }
+    case CCNL_SUITE_CISTLV: {
+        unsigned char *start = data;
+        int hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
+
+        if (hdrlen > 0) {
+            data += hdrlen;
+            datalen -= hdrlen;
+            pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
         }
         break;
     }

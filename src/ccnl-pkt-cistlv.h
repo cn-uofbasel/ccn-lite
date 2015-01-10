@@ -29,7 +29,7 @@
 struct cisco_tlvhdr_201501_s {
     unsigned char version;
     unsigned char pkttype;
-    unsigned int  pktlen;
+    unsigned short pktlen;
     unsigned char hoplim;  // not used for data
     unsigned char flags;
     unsigned char resvd;

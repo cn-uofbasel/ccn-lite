@@ -196,19 +196,28 @@ usage:
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
+        int rc;
+
+        DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
 
         len = mkInterest(prefix, 
                          &nonce, 
                          out, sizeof(out));
 
-
-        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un)) < 0) {
+        {
+            int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un));
+        if (rc < 0) {
             perror("sendto");
             myexit(1);
         }
+        DEBUGMSG(DEBUG, "sendto returned %d\n", rc);
 
         for (;;) { // wait for a content pkt (ignore interests)
-            int rc;
+            DEBUGMSG(TRACE, "  waiting for packet\n");
 
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;

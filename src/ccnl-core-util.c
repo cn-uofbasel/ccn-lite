@@ -575,9 +575,9 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[1] = chunknum;
             if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0) 
                 return -1;
-            if(prefix->chunknum == NULL) {
-                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
-            }
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -594,9 +594,28 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[4] = chunknum;
             if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
                 return -1;
-            if(prefix->chunknum == NULL) {
-                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
-            }
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            *prefix->chunknum = chunknum;
+        }
+        break;
+#endif
+
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV: {
+            unsigned char cmp[5];
+            // TODO: this only works for chunknums smaller than 255
+            cmp[0] = 0;
+            cmp[1] = CISCO_TLV_NameSegment;
+            cmp[2] = 0;
+            cmp[3] = 1;
+            cmp[4] = chunknum;
+            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
+                return -1;
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -604,8 +623,8 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 
         default:
             DEBUGMSG(WARNING,
-                     "add chunk number not implemented for suite %d\n",
-                     prefix->suite);
+                     "add chunk number not implemented for suite %s\n",
+                     ccnl_suite2str(prefix->suite));
             return -1;
     }
 
@@ -686,7 +705,8 @@ void
 free_packet(struct ccnl_pkt_s *pkt)
 {
     if (pkt) {
-        if (pkt->pfx) switch (pkt->pfx->suite) {
+        if (pkt->pfx) {
+            switch (pkt->pfx->suite) {
 #ifdef USE_SUITE_CCNB
             case CCNL_SUITE_CCNB:
                 ccnl_free(pkt->s.ccnb.nonce);
@@ -704,11 +724,13 @@ free_packet(struct ccnl_pkt_s *pkt)
                 ccnl_free(pkt->s.ndntlv.ppkl);
                 break;
 #endif
+            case CCNL_SUITE_CISTLV:
             case CCNL_SUITE_IOTTLV:
             default:
                 break;
             }
-        free_prefix(pkt->pfx);
+            free_prefix(pkt->pfx);
+        }
         ccnl_free(pkt->buf);
         ccnl_free(pkt);
     }
@@ -868,6 +890,11 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        len = ccnl_cistlv_prependInterestWithHdr(name, &offs, tmp);
         break;
 #endif
 #ifdef USE_SUITE_IOTTLV
