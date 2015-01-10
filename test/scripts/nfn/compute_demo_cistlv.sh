@@ -25,7 +25,7 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 cisco2015 |
 sleep 3
 echo "adding content"
 
-# $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/cistlv/nfn/computation_content.cistlv | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/cistlv/nfn/computation_content.cistlv | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 
 sleep 3
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_cistlv.py & > /dev/null

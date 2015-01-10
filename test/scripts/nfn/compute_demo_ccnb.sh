@@ -7,8 +7,8 @@ killall ccn-nfn-relay
 killall python
 
 echo "** starting two CCNL relays"
-$CCNL_HOME/bin/ccn-nfn-relay -v 99 -u 9000 -x /tmp/mgmt1.sock 2> /tmp/r0.log &
-$CCNL_HOME/bin/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt2.sock 2> /tmp/r1.log &
+$CCNL_HOME/bin/ccn-nfn-relay -v debug -u 9000 -x /tmp/mgmt1.sock 2>/tmp/r0.log &
+$CCNL_HOME/bin/ccn-nfn-relay -v debug -u 9001 -x /tmp/mgmt2.sock 2>/tmp/r1.log &
 
 echo "** in 3 seconds, adding an UDP interface, twice"
 sleep 3
@@ -36,3 +36,7 @@ echo "** in 3 seconds, probing the NFN system"
 sleep 3
 
 $CCNL_HOME/bin/ccn-lite-peek -s ccnb -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump
+
+killall ccn-lite-relay
+killall ccn-nfn-relay
+killall python
