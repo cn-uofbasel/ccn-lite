@@ -952,6 +952,13 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                                                 &offs, &contentpos, tmp);
         break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        len = ccnl_cistlv_prependContentWithHdr(name, payload, paylen, 
+                                                NULL, // lastchunknum
+                                                &offs, &contentpos, tmp);
+        break;
+#endif
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV: {
         int rc = ccnl_iottlv_prependReply(name, payload, paylen,
