@@ -1564,10 +1564,6 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
 
-    //struct ccnl_prefix_s *prefix_a = 0;
-    //struct ccnl_content_s *c = 0;
-    /*struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0*/;
-    //unsigned char *content
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
 
@@ -1597,6 +1593,9 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     
     prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, NULL);
     prefix_new->suite = suite;
+
+    DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
+             ccnl_prefix_to_path(prefix_new), ccnl_suite2str(suite));
     
     //Reply MSG
     if (h)

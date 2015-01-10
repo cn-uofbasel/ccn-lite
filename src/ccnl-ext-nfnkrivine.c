@@ -973,7 +973,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     print_result_stack((*config)->result_stack);
 */
 
-    print_result_stack((*config)->result_stack);
     return Krivine_exportResultStack(ccnl, *config);
 }
 

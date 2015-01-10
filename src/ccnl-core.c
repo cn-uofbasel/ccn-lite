@@ -366,7 +366,8 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
-    DEBUGMSG(TRACE, "ccnl_new_interest\n");
+    DEBUGMSG(TRACE, "ccnl_interest_new name=%s\n",
+             ccnl_prefix_to_path((*pkt)->pfx));
 
     if (!i)
         return NULL;

@@ -524,6 +524,7 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         DEBUGMSG(ERROR, "?unknown packet?\n");
         return 0;
     }
+    DEBUGMSG(TRACE, "  suite %s\n", ccnl_suite2str(*suite));
     data += skip;
     datalen -= skip;
 
@@ -558,9 +559,15 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         }
         break;
     }
-    case CCNL_SUITE_IOTTLV: 
-        pkt = ccnl_iottlv_bytes2pkt(data - skip, &data, &datalen);
+    case CCNL_SUITE_IOTTLV: {
+        unsigned char *start = data - skip;
+        int typ, len;
+
+        if (!ccnl_iottlv_dehead(&data, &datalen, &typ, &len) &&
+                                                        typ == IOT_TLV_Reply)
+            pkt = ccnl_iottlv_bytes2pkt(start, &data, &datalen);
         break;
+    }
     case CCNL_SUITE_NDNTLV: {
         int typ, len;
         unsigned char *start = data;
@@ -571,7 +578,7 @@ getPrefix(unsigned char *data, int datalen, int *suite)
     default:
         break;
     }
-    if (!pkt) {
+    if (!pkt || !pkt->pfx) {
        DEBUGMSG(ERROR, "Error in prefix extract\n");
        return NULL;
     }
@@ -582,7 +589,8 @@ getPrefix(unsigned char *data, int datalen, int *suite)
 }
 
 int
-mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path, int *suite)
+mkAddToRelayCacheRequest(unsigned char *out, char *fname,
+                         char *private_key_path, int *suite)
 {
     long len = 0, len1 = 0, len2 = 0, len3 = 0;
     unsigned char *contentobj, *stmt, *out1, h[10], *data;
@@ -590,8 +598,9 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     struct ccnl_prefix_s *prefix;
     char *prefix_string = NULL;
     
-    FILE *file = fopen(name, "r");
-    if(!file) return 0;
+    FILE *file = fopen(fname, "r");
+    if (!file)
+        return 0;
     //determine size of the file
     fseek(file, 0L, SEEK_END);
     datalen = ftell(file);
@@ -600,8 +609,12 @@ mkAddToRelayCacheRequest(unsigned char *out, char *name, char *private_key_path,
     fread(data, datalen, 1, file);
     fclose(file);
     
-    
     prefix = getPrefix(data, datalen, suite);
+    if (!prefix) {
+        DEBUGMSG(ERROR, "  no prefix in file %s\n", fname);
+        return -1;
+    }
+    DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", ccnl_prefix_to_path(prefix));
     prefix_string = ccnl_prefix_to_path_detailed(prefix, 0, 1, 1);
     
     //Create ccn-lite-ctrl interest object with signature to add content...
