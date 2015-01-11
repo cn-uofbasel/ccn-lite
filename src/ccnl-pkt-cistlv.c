@@ -138,8 +138,8 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     } // else out of name component memory: skip
                 } else if (typ == CISCO_TLV_NameComponent) {
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
-                        p->comp[p->compcnt] = cp;
-                        p->complen[p->compcnt] = len3;
+                        p->comp[p->compcnt] = cp2;
+                        p->complen[p->compcnt] = cp - cp2 + len3;
                         p->compcnt++;
                     } // else out of name component memory: skip
                 }
@@ -148,12 +148,12 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             }
             p->namelen = *data - p->nameptr;
 #ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
+            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
+                    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                   !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
+                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
+                   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
                     p->nfnflags |= CCNL_PREFIX_THUNK;
                     p->compcnt--;
                 }
@@ -342,22 +342,18 @@ ccnl_cistlv_prependName(struct ccnl_prefix_s *name,
             return -1;
 
 #ifdef USE_NFN
-    if (name->nfnflags & CCNL_PREFIX_NFN) {
-        if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent,
-                                (unsigned char*) "NFN", 3, offset, buf) < 0)
+    if (name->nfnflags & CCNL_PREFIX_NFN)
+        if (ccnl_pkt_prependComponent(name->suite, "NFN", offset, buf) < 0)
             return -1;
-        if (name->nfnflags & CCNL_PREFIX_THUNK)
-            if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent,
-                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
-                return -1;
-    }
+    if (name->nfnflags & CCNL_PREFIX_THUNK)
+        if (ccnl_pkt_prependComponent(name->suite, "THUNK", offset, buf) < 0)
+            return -1;
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
-        if (*offset < (name->complen[cnt] + 4))
+        if (*offset < (name->complen[cnt]))
             return -1;
-        if (ccnl_cistlv_prependBlob(CISCO_TLV_NameComponent, name->comp[cnt],
-                                    name->complen[cnt], offset, buf) < 0)
-            return -1;
+        *offset -= name->complen[cnt];
+        memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
     if (ccnl_cistlv_prependTL(CISCO_TLV_Name, oldoffset - *offset,
                               offset, buf) < 0)

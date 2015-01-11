@@ -23,7 +23,7 @@ sock.bind((UDP_IP, UDP_PORT))
 while True:
     print "dummyanswer server now blocking on recvfrom"
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-    print "received message:", data
+#    print "received message:", data
  #   if "THUNK" in data:
   #      sock.sendto(c_t, ("127.0.0.1", 9001))
   #  else:

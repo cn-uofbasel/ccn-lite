@@ -30,6 +30,7 @@ sleep 3
 
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_iottlv.py & > /dev/null
 
+echo "** in 3 seconds, retrieving a computation result"
 sleep 3
 
 $CCNL_HOME/bin/ccn-lite-peek -s iot2014 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump

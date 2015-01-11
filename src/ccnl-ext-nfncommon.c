@@ -76,9 +76,20 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     from->outq = NULL;
 
     pkt->suite = (*prefix)->suite;
+    switch(pkt->suite) {
+    case CCNL_SUITE_CCNB:
+        pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+    case CCNL_SUITE_NDNTLV:
+        pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+    default:
+        break;
+    }
     pkt->buf = ccnl_mkSimpleInterest(*prefix, &nonce);
     pkt->pfx = *prefix;
     *prefix = NULL;
+    pkt->final_block_id = -1;
 
     return ccnl_interest_new(ccnl, from, &pkt);
 }
@@ -326,8 +337,9 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     if (!name)
         return NULL;
 
-#ifdef USE_SUITE_CCNTLV
-    if (config->suite == CCNL_SUITE_CCNTLV)
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    if (config->suite == CCNL_SUITE_CCNTLV || 
+                                         config->suite == CCNL_SUITE_CISTLV)
         offset = 4;
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
@@ -363,6 +375,13 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len, &offset,
+                              name->bytes + name->complen[1]);
+        len += 4;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (config->suite == CCNL_SUITE_CISTLV) {
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, len, &offset,
                               name->bytes + name->complen[1]);
         len += 4;
     }
@@ -675,21 +694,38 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
         len += p->complen[i];
     }
 
-#ifdef USE_SUITE_CCNTLV
-    if (p->suite == CCNL_SUITE_CCNTLV)
+    switch (p->suite) {
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    case CCNL_SUITE_CCNTLV:
+    case CCNL_SUITE_CISTLV:
         offset = 4;
+        break;
 #endif
+    default:
+        break;
+    }
     p->comp[i] = (unsigned char*)(bytes + len);
     p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
                                                 config->fox_state,
                                                 parameter_num);
+    switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV
-    if (p->suite == CCNL_SUITE_CCNTLV) {
+    case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
-                              &offset, (unsigned char*) bytes + len);
+                              &offset, p->comp[i]);
         p->complen[i] += 4;
-    }
+        break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[i],
+                              &offset, p->comp[i]);
+        p->complen[i] += 4;
+        break;
+#endif
+    default:
+        break;
+    }
     len += p->complen[i];
 
     p->bytes = ccnl_realloc(bytes, len);
@@ -715,22 +751,40 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
         p->nfnflags |= CCNL_PREFIX_THUNK;
 
     p->comp[0] = (unsigned char*) bytes;
-    len = p->complen[0] = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));
+    len = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));
+    p->complen[0] = len;
 
-#ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV)
+    switch (p->suite) {
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    case CCNL_SUITE_CCNTLV:
+    case CCNL_SUITE_CISTLV:
         offset = 4;
+        break;
 #endif
+    default:
+        break;
+    }
     p->comp[1] = (unsigned char*) (bytes + len);
     p->complen[1] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
                                                 config->fox_state, -1);
+    switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV) {
+    case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[1],
                               &offset, p->comp[1]);
         p->complen[1] += 4;
-    }
+        break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[1],
+                              &offset, p->comp[1]);
+        p->complen[1] += 4;
+        break;
+#endif
+    default:
+        break;
+    }
     len += p->complen[1];
 
     p->bytes = ccnl_realloc(bytes, len);

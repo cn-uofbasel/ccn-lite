@@ -107,44 +107,44 @@ compile_string(void)
 #ifdef NEEDS_PREFIX_MATCHING
 
 int
-ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
-                struct ccnl_prefix_s *p, int mode)
+ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
+                struct ccnl_prefix_s *nam, int mode)
 /* returns -1 if no match at all (all modes) or exact match failed
    returns  0 if full match (CMP_EXACT)
    returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
 {
-    int i, clen, nlen = name->compcnt + (md ? 1 : 0), rc = -1;
+    int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
-
-    if (mode == CMP_EXACT) {
-        if (nlen != p->compcnt)
-            goto done;
-#ifdef USE_NFN
-        if (p->nfnflags != name->nfnflags)
-            goto done;
-#endif
-    }
-    for (i = 0; i < nlen && i < p->compcnt; ++i) {
-        comp = i < name->compcnt ? name->comp[i] : md;
-        clen = i < name->compcnt ? name->complen[i] : 32; // SHA256_DIGEST_LEN
-        if (clen != p->complen[i] || memcmp(comp, p->comp[i], p->complen[i])) {
-            rc = mode == CMP_EXACT ? -1 : i;
-            goto done;
-        }
-    }
-    rc = (mode == CMP_EXACT) ? 0 : i;
-done:
 
 #ifndef CCNL_LINUXKERNEL
 # define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 0, 0, 0)
 #else
 # define PREFIX2STR(P) ccnl_prefix_to_path(P)
 #endif
-    DEBUGMSG(VERBOSE, "ccnl_prefix_cmp (mode=%d, nlen=%d, plen=%d, %d), name=%s"
-             " prefix=%s: %d (%p)\n", mode, nlen, p->compcnt, name->compcnt,
-             PREFIX2STR(name), PREFIX2STR(p), rc, md);
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
+             mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
 #undef PREFIX2STR
 
+    if (mode == CMP_EXACT) {
+        if (plen != nam->compcnt)
+            goto done;
+#ifdef USE_NFN
+        if (nam->nfnflags != pfx->nfnflags)
+            goto done;
+#endif
+    }
+    for (i = 0; i < plen && i < nam->compcnt; ++i) {
+        comp = i < pfx->compcnt ? pfx->comp[i] : md;
+        clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
+        if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
+            rc = mode == CMP_EXACT ? -1 : i;
+            goto done;
+        }
+    }
+    rc = (mode == CMP_EXACT) ? 0 : i;
+done:
+    DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
+             pfx->compcnt, plen, nam->compcnt, rc);
     return rc;
 }
 
@@ -155,8 +155,11 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     unsigned char *md;
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
-    DEBUGMSG(TRACE, "ccnl_i_prefixof_c prefix=%s min=%d max=%d\n",
-             ccnl_prefix_to_path(prefix), minsuffix, maxsuffix);
+    DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
+//             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
+             ccnl_prefix_to_path_detailed(prefix,0,0,0),
+             ccnl_prefix_to_path_detailed(p,0,0,0),
+             minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
 
@@ -165,8 +168,10 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     // >> CCNL does not honour the exclusion filtering
 
     if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
-         (prefix->compcnt + maxsuffix) < (p->compcnt + 1) )
+         (prefix->compcnt + maxsuffix) < (p->compcnt + 1)) {
+        DEBUGMSG(TRACE, "  mismatch in # of components\n");
         return 0;
+    }
 
     md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
     return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
@@ -338,6 +343,17 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
         break;
     }
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        unsigned short *sp = (unsigned short*) dst;
+        *sp++ = htons(CISCO_TLV_NameComponent);
+        len = srclen;
+        *sp++ = htons(len);
+        memcpy(sp, src, len);
+        len += 2*sizeof(unsigned short);
+        break;
+    }
+#endif
     default:
         len = srclen;
         memcpy(dst, src, len);
@@ -366,6 +382,17 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
             return -1;
         *sp-- = htons(len);
         *sp = htons(CCNX_TLV_N_NameSegment);
+        len += 2*sizeof(unsigned short);
+        *offset -= 2*sizeof(unsigned short);
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV) {
+        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
+        if (*offset < 4)
+            return -1;
+        *sp-- = htons(len);
+        *sp = htons(CISCO_TLV_NameComponent);
         len += 2*sizeof(unsigned short);
         *offset -= 2*sizeof(unsigned short);
     }
@@ -436,6 +463,10 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
+        len += cnt * 4; // add TL size
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
         len += cnt * 4; // add TL size
 #endif
     
@@ -825,11 +856,11 @@ One possibility is to not have a '/' before any nfn expression.
 
     int skip = 0;
 
-#if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
+#if defined(USE_NFN) && (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV))
     // In the future it is possibly helpful to see the type information in the logging output
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
-    if (pr->suite == CCNL_SUITE_CCNTLV && ccntlv_skip)
+    if (ccntlv_skip && (pr->suite == CCNL_SUITE_CCNTLV || pr->suite == CCNL_SUITE_CISTLV))
         skip = 4;
 #endif
 

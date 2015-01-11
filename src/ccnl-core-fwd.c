@@ -41,7 +41,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next)
         if (buf_equal(c->pkt->buf, (*pkt)->buf))
-            return 0; // content is dup
+            return 0; // content is dup, do nothing
 
     c = ccnl_content_new(relay, pkt);
     if (!c)

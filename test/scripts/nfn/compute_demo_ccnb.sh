@@ -37,6 +37,9 @@ sleep 3
 
 $CCNL_HOME/bin/ccn-lite-peek -s ccnb -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump
 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock debug dump+halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml >/tmp/r0-end.log
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock debug dump+halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml >/tmp/r1-end.log
+
 killall ccn-lite-relay
 killall ccn-nfn-relay
 killall python

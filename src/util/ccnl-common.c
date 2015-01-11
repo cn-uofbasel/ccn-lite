@@ -265,7 +265,7 @@ int cistlv_isData(unsigned char *buf, int len)
     TRACEIN();
 
     if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
-        DEBUGMSG(ERROR, "ccntlv header not large enough");
+        DEBUGMSG(ERROR, "cistlv header not large enough");
         return -1;
     }
     hdrlen = hp->hlen; // ntohs(hp->hdrlen);

@@ -197,8 +197,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
    
     //put packet together
-#ifdef USE_SUITE_CCNTLV
-    if (prefix->suite == CCNL_SUITE_CCNTLV) {
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    if (prefix->suite == CCNL_SUITE_CCNTLV ||
+                                        prefix->suite == CCNL_SUITE_CISTLV) {
         len = prefix->complen[prefix->compcnt-1] - 4;
         memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
         str[len] = '\0';
@@ -212,8 +213,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (prefix->compcnt > 1)
         len += sprintf(str + len, " ");
     for (i = 0; i < prefix->compcnt-1; i++) {
-#ifdef USE_SUITE_CCNTLV
-        if (prefix->suite == CCNL_SUITE_CCNTLV)
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+        if (prefix->suite == CCNL_SUITE_CCNTLV ||
+                                      prefix->suite == CCNL_SUITE_CISTLV)
             len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
         else
 #endif
@@ -297,7 +299,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_RX_result()\n");
+    TRACEIN();
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c)) {
         ccnl_nfn_nack_local_computation(relay, c->pkt, c->pkt->pfx,
@@ -307,9 +309,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_NACK
     for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
         //Check if prefix match and it is a nfn request
-        DEBUGMSG(DEBUG, "CMP: %d (match if zero), faceid: %d \n", 
-                ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT),
-                        i_it->from->faceid);
+        DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
         if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
                                                 i_it->from->faceid < 0) {
             int faceid = -i_it->from->faceid;

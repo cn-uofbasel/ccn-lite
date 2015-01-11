@@ -204,11 +204,13 @@ usage:
                          &nonce, 
                          out, sizeof(out));
 
+        /*
         {
             int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
             write(fd, out, len);
             close(fd);
         }
+        */
         rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un));
         if (rc < 0) {
             perror("sendto");

@@ -1614,9 +1614,19 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         struct ccnl_buf_s *buffer;
 
         pkt = ccnl_calloc(1, sizeof(*pkt));
+        pkt->suite = prefix_new->suite;
+        switch(pkt->suite) {
+        case CCNL_SUITE_CCNB:
+            pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+            break;
+        case CCNL_SUITE_NDNTLV:
+            pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+            break;
+        default:
+            break;
+        }
         pkt->pfx = prefix_new;
         pkt->buf = ccnl_mkSimpleInterest(prefix_new, NULL);
-        pkt->suite = prefix_new->suite;
         pkt->final_block_id = -1;
         buffer = buf_dup(pkt->buf);
 
