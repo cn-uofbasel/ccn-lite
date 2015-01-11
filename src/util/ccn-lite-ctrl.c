@@ -475,9 +475,19 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
         } 
+        if (suite == CCNL_SUITE_CISTLV) {
+            char* oldcp = cp;
+            cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            cp[0] = CISCO_TLV_NameComponent >> 8;
+            cp[1] = CISCO_TLV_NameComponent;
+            cp[2] = cmplen >> 8;
+            cp[3] = cmplen;
+            memcpy(cp + 4, oldcp, cmplen);
+            cmplen += 4;
+        } 
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
-        if (suite == CCNL_SUITE_CCNTLV)
+        if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV)
             free(cp);
         cp = strtok(NULL, "/");
     }

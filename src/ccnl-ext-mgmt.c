@@ -220,6 +220,9 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return 1;
 }
 
+#define ccnl_prefix_clone(P) ccnl_prefix_dup(P)
+
+/*
 struct ccnl_prefix_s*
 ccnl_prefix_clone(struct ccnl_prefix_s *p)
 {
@@ -244,6 +247,7 @@ Bail:
     free_prefix(p2);
     return NULL;
 }
+*/
 
 // ----------------------------------------------------------------------
 // management protocols
