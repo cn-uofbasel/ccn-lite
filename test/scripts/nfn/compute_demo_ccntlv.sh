@@ -33,7 +33,7 @@ python $CCNL_HOME/test/scripts/nfn/dummyanswer_ccntlv.py & > /dev/null
 echo "** in 3 seconds, probing the NFN system"
 sleep 3
 
-$CCNL_HOME/bin/ccn-lite-peek -s ccnx2014 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data/" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ccnx2014 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump
 
 killall ccn-lite-relay
 killall ccn-nfn-relay

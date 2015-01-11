@@ -877,8 +877,8 @@ One possibility is to not have a '/' before any nfn expression.
 #endif
 
         for (j = skip; j < pr->complen[i]; j++) {
-            char c = pr->comp[i][j];
-            if (c < 0x20 || c == 0x7f || (escape_components && c == '/' ))
+            unsigned char c = pr->comp[i][j];
+            if (c < 0x20 || c >= 0x7f || (escape_components && c == '/' ))
                 len += sprintf(buf + len, "%%%02x", c);
             else 
                 len += sprintf(buf + len, "%c", c);
