@@ -309,21 +309,24 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_NACK
     for (i_it = relay->pit; i_it;/* i_it = i_it->next*/) {
         //Check if prefix match and it is a nfn request
-        DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
         if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
-                                                i_it->from->faceid < 0) {
-            int faceid = -i_it->from->faceid;
+                                        i_it->from && i_it->from->faceid < 0) {
+            struct ccnl_face_s *from = i_it->from;
+            int faceid = - from->faceid;
+
+            DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
             ccnl_content_add2cache(relay, c);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
-                  -i_it->from->faceid, ccnl_prefix_to_path(c->pkt->pfx));
+                  faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
-            i_it = ccnl_interest_remove(relay, i_it);
+            i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);
+            i_it = ccnl_interest_remove(relay, i_it);
+            ccnl_face_remove(relay, from);
             ++found;
             //goto Done;
-        }
-        else
+        } else
             i_it = i_it->next;
     }
     TRACEOUT();

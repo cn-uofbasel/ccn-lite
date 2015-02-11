@@ -628,7 +628,10 @@ debug_free(void *p, const char *fn, int lno)
     }
     if (h->tstamp && *h->tstamp)
         free(h->tstamp);
-    free(h);
+    //    free(h);
+    // instead of free: do a
+    //   memset(h+1, 0x8f, h->size);
+    // to discover continued use of a freed memory zone
 }
 
 struct ccnl_buf_s*

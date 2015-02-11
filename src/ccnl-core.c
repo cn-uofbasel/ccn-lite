@@ -143,6 +143,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     ccnl_sched_destroy(f->sched);
     ccnl_frag_destroy(f->frag);
 
+    DEBUGMSG(TRACE, "face_remove: cleaning PIT\n");
     for (pit = ccnl->pit; pit; ) {
         struct ccnl_pendint_s **ppend, *pend;
         if (pit->from == f)
@@ -162,6 +163,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
             pit = ccnl_nfn_interest_remove(ccnl, pit);
         }
     }
+    DEBUGMSG(TRACE, "face_remove: cleaning fwd table\n");
     for (ppfwd = &ccnl->fib; *ppfwd;) {
         if ((*ppfwd)->face == f) {
             struct ccnl_forward_s *pfwd = *ppfwd;
@@ -171,13 +173,18 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
         } else
             ppfwd = &(*ppfwd)->next;
     }
+    DEBUGMSG(TRACE, "face_remove: cleaning pkt queue\n");
     while (f->outq) {
         struct ccnl_buf_s *tmp = f->outq->next;
         ccnl_free(f->outq);
         f->outq = tmp;
     }
+    DEBUGMSG(TRACE, "face_remove: unlinking1 %p %p\n",
+             (void*)f->next, (void*)f->prev);
     f2 = f->next;
+    DEBUGMSG(TRACE, "face_remove: unlinking2\n");
     DBL_LINKED_LIST_REMOVE(ccnl->faces, f);
+    DEBUGMSG(TRACE, "face_remove: unlinking3\n");
     ccnl_free(f);
 
     TRACEOUT();
@@ -449,6 +456,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
             DEBUGMSG(DEBUG, "  ccnl_interest_propagate, forwarding via %p\n",
                    (void*)fwd);
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
+
             DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
             if (fwd->tap)
                 (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);

@@ -247,7 +247,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     char tmp[200], tmp2[10];
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
-    if (theSuite == CCNL_SUITE_CCNTLV) {
+    if (theSuite == CCNL_SUITE_CCNTLV || theSuite == CCNL_SUITE_CISTLV) {
         tmp[0] = '\0';
         for (i = 0; i < p->compcnt-1; i++) {
             strcat((char*)tmp, "/");

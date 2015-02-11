@@ -65,6 +65,7 @@ push_to_stack(struct stack_s **top, void *content, int type)
 
     h = ccnl_calloc(1, sizeof(struct stack_s));
     if (h) {
+        DEBUGMSG(TRACE, "push_to_stack: %p\n", (void*)h);
         h->next = *top;
         h->content = content;
         h->type = type;
@@ -87,7 +88,8 @@ pop_from_stack(struct stack_s **top)
 
 struct stack_s *
 pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
-                                 struct configuration_s *config) // , int *restart)
+                                 struct configuration_s *config)
+                                 // , int *restart)
 {
     unsigned char *res = NULL;
     struct stack_s *elm = pop_from_stack(&config->result_stack);
@@ -95,6 +97,8 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
 
     if (!elm)
         return NULL;
+    DEBUGMSG(TRACE, "pop_or_resolve_from_RS: conf=%p, elm=%p, type=%d\n",
+             (void*)config, (void*)elm, elm->type);
     if (elm->type == STACK_TYPE_THUNK) {
         res = (unsigned char *)elm->content;
         if (res && !strncmp((char *)res, "THUNK", 5)) {
@@ -103,7 +107,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
                 config->thunk = 1;
                 config->starttime = CCNL_NOW();
                 config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
-                DEBUGMSG(DEBUG, "Wating %f sec for Thunk\n", config->thunk_time);
+                DEBUGMSG(DEBUG, "Waiting %f sec for Thunk\n", config->thunk_time);
             }
             c = ccnl_nfn_resolve_thunk(ccnl, config, res);
             if(!c)
@@ -327,11 +331,10 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int thunk_request, int *restart, int *halt,
         int *num_of_required_thunks, char *prog, char *arg, char *contd)
 {
-    struct stack_s *h;
     int local_search = 0, i;
     int parameter_number = 0;
     struct ccnl_content_s *c = NULL;
-    struct ccnl_prefix_s *pref, *pref2;
+    struct ccnl_prefix_s *pref;
     struct ccnl_interest_s *interest;
 
     DEBUGMSG(DEBUG, "---to do: FOX <%s>\n", arg);
@@ -342,9 +345,15 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         goto recontinue;
     }
 
-    h = pop_or_resolve_from_result_stack(ccnl, config);
-    //TODO CHECK IF INT
-    config->fox_state->num_of_params = *(int*)h->content;
+    {
+        struct stack_s *h;
+        h = pop_or_resolve_from_result_stack(ccnl, config);
+        assert(h);
+        //TODO CHECK IF INT
+        config->fox_state->num_of_params = *(int*)h->content;
+        h->next = NULL;
+        ccnl_nfn_freeStack(h);
+    }
     DEBUGMSG(DEBUG, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
 
     config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) *
@@ -393,8 +402,9 @@ recontinue: //loop by reentering after timeout of the interest...
         // search for a result
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
         set_propagate_of_interests_to_1(ccnl, pref);
+        free_prefix(pref);
         //TODO Check? //TODO remove interest here?
-        if (c){
+        if (c) {
 	    DEBUGMSG(DEBUG, "Result was found\n");
             goto handlecontent;
 	}
@@ -410,12 +420,16 @@ recontinue: //loop by reentering after timeout of the interest...
     pref = create_namecomps(ccnl, config, parameter_number, thunk_request,
                         config->fox_state->params[parameter_number]->content);
     c = ccnl_nfn_local_content_search(ccnl, config, pref);
-    if (c)
+    if (c) {
+        free_prefix(pref);
         goto handlecontent;
+    }
 
     // Result not in cache, search over the network
-    pref2 = ccnl_prefix_dup(pref);
-    interest = ccnl_nfn_query2interest(ccnl, &pref2, config);
+//    pref2 = ccnl_prefix_dup(pref);
+    interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+    if (pref)
+        free_prefix(pref);
     if (interest) {
         ccnl_interest_propagate(ccnl, interest);
         DEBUGMSG(DEBUG, "  new interest's face is %d\n", interest->from->faceid);
@@ -433,6 +447,8 @@ local_compute:
     DEBUGMSG(DEBUG, "Prefix local computation: %s\n",
              ccnl_prefix_to_path(pref));
     interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+    if (pref)
+        free_prefix(pref);
     if (interest)
         ccnl_interest_propagate(ccnl, interest);
 
@@ -549,10 +565,9 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
             // is disgit...
             int *integer = ccnl_malloc(sizeof(int));
             *integer = strtol(cp, &end, 0);
-            if (end && *end){
+            if (end && *end)
                 end = 0;
-            }
-            if(end)
+            if (end)
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             else
                 ccnl_free(integer);

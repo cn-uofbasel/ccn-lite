@@ -62,6 +62,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     int nonce = rand();
     struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
+    struct ccnl_interest_s *i;
 
     DEBUGMSG(TRACE, "nfn_query2interest(configID=%d)\n", config->configid);
 
@@ -91,7 +92,12 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     *prefix = NULL;
     pkt->final_block_id = -1;
 
-    return ccnl_interest_new(ccnl, from, &pkt);
+    i = ccnl_interest_new(ccnl, from, &pkt);
+    if (i) {
+        DEBUGMSG(TRACE, "  new interest %p, from=%p, i->from=%p\n",
+                 (void*)i, (void*)from, (void*)i->from);
+    }
+    return i;
 }
 
 struct ccnl_content_s *
@@ -226,6 +232,7 @@ ccnl_nfn_freeStack(struct stack_s* s)
             t = (struct thunk_s *)s->content;
             free_prefix(t->prefix);
             free_prefix(t->reduced_prefix);
+            ccnl_free(s->content);
             break;
         case STACK_TYPE_INT:
         default:
@@ -240,9 +247,19 @@ ccnl_nfn_freeStack(struct stack_s* s)
 void
 ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
 {
+    DEBUGMSG(VERBOSE, "nfn_freeMachineState %p\n", (void*)f);
+
     if (!f)
         return;
-    if(!f->thunk)ccnl_free(f->thunk);
+    if (f->thunk)
+        ccnl_free(f->thunk);
+    if (f->params) {
+        struct stack_s **s;
+        int i = f->num_of_params;
+        for (s = f->params; i > 0; s++, i--)
+            ccnl_nfn_freeStack(*s);
+        ccnl_free(f->params);
+    }
     /*while (f->prefix_mapping) {
         struct prefix_mapping_s *m = f->prefix_mapping;
         //FIXME: WHY SEGFAULT HERE???
@@ -256,6 +273,7 @@ ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
         free_prefix(m->value);
     }*/
     ccnl_free(f);
+    TRACEOUT();
 }
 
 void
@@ -312,7 +330,7 @@ int trim(char *str){  // inplace, returns len after shrinking
 
 // ----------------------------------------------------------------------
 
-#ifndef USE_UTIL
+// #ifndef USE_UTIL
 void
 set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref){
     struct ccnl_interest_s *interest = NULL;
@@ -418,9 +436,13 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     ccnl_prefix_addChunkNum(prefixchunkzero, 0);
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
-             !ccnl_prefix_cmp(prefixchunkzero, 0, content->pkt->pfx, CMP_EXACT))
+           !ccnl_prefix_cmp(prefixchunkzero, 0, content->pkt->pfx, CMP_EXACT)) {
+            free_prefix(prefixchunkzero);
             return content;
+        }
     }
+    free_prefix(prefixchunkzero);
+    prefixchunkzero = 0;
 
     if (!config || !config->fox_state || !config->fox_state->prefix_mapping)
         return NULL;
@@ -523,14 +545,25 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
 }
 
 struct ccnl_content_s *
-ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunk){
-    DEBUGMSG(TRACE, "ccnl_nfn_resolve_thunk()\n");
-    struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(ccnl, config, thunk);
+ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl,
+                       struct configuration_s *config, unsigned char *thunk)
+{
+    struct ccnl_interest_s *interest;
 
-    if(interest){
+    DEBUGMSG(TRACE, "ccnl_nfn_resolve_thunk()\n");
+
+    interest = ccnl_nfn_get_interest_for_thunk(ccnl, config, thunk);
+    if (interest) {
+        struct ccnl_content_s *c;
+
         interest->last_used = CCNL_NOW();
-        struct ccnl_content_s *c = NULL;
-        if((c = ccnl_nfn_local_content_search(ccnl, config, interest->pkt->pfx)) != NULL){
+        if ((c = ccnl_nfn_local_content_search(ccnl, config,
+                                               interest->pkt->pfx)) != NULL) {
+            if (interest->from && interest->from->faceid < 0) {
+                struct ccnl_face_s *f = interest->from;
+                interest->from = NULL;
+                ccnl_face_remove(ccnl, f);
+            }
             interest = ccnl_interest_remove(ccnl, interest);
             return c;
         }
@@ -538,7 +571,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     }
     return NULL;
 }
-#endif //USE_UTIL
+// #endif //USE_UTIL
 
 
 #ifdef USE_NACK
@@ -564,21 +597,25 @@ struct ccnl_interest_s*
 ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
 {
     int faceid = 0;
+    struct ccnl_face_s *face;
 
     if (!i) {
         DEBUGMSG(WARNING, "nfn_interest_remove: should remove NULL interest\n");
         return NULL;
     }
 
-    if (i->from)
-        faceid = i->from->faceid;
+    face = i->from;
+    if (face)
+        faceid = face->faceid;
     DEBUGMSG(DEBUG, "ccnl_nfn_interest_remove %d\n", faceid);
 
+    if (faceid < 0)
+        ccnl_free(face);
 #ifdef USE_NACK
-    if (faceid >= 0)
-        ccnl_nack_reply(relay, i->pkt->pfx, i->from, i->suite);
+    else
+        ccnl_nack_reply(relay, i->pkt->pfx, face, i->suite);
 #endif
-
+    i->from = NULL;
     i = ccnl_interest_remove(relay, i);
 
     if (faceid < 0)
