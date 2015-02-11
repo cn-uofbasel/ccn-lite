@@ -47,7 +47,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     ucp = reply->data;
     len = reply->datalen;
-    ccnl_core_suits[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
+    ccnl_core_suites[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
     ccnl_free(reply);
 }
 
