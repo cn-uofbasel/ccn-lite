@@ -570,7 +570,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     fwdfaceid = (int*)ccnl_malloc(num_fwds*sizeof(int));
     suite = (int*)ccnl_malloc(num_fwds*sizeof(int));
     fwdprefixlen = (int*)ccnl_malloc(num_fwds*sizeof(int));
-    fwdprefix = (char**)ccnl_malloc(num_faces*sizeof(char*));
+    fwdprefix = (char**)ccnl_malloc(num_fwds*sizeof(char*));
     for(it = 0; it <num_fwds; ++it)
     {
         fwdprefix[it] = (char*)ccnl_malloc(256*sizeof(char));
@@ -651,12 +651,16 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (!strcmp((char*) debugaction, "dump")){
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
-            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
-            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite, fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
-            get_interest_dump(0,ccnl, interest, interestnext, 
-                    interestprev, interestlast, interestmin,
-                    interestmax, interestretries, interestpublisher, interestprefixlen, interestprefix);
+            get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
+                           faceflags, facepeer, facetype, facefrag);
+            get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
+                         fwdprefixlen, fwdprefix);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
+                             interfacedev, interfacedevtype, interfacereflect);
+            get_interest_dump(0,ccnl, interest, interestnext, interestprev,
+                              interestlast, interestmin, interestmax,
+                              interestretries, interestpublisher,
+                              interestprefixlen, interestprefix);
             get_content_dump(0, ccnl, content, contentnext, contentprev, 
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
@@ -667,12 +671,16 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         else if (!strcmp((char*) debugaction, "dump+halt")) {
             ccnl_dump(0, CCNL_RELAY, ccnl);
             
-            get_faces_dump(0,ccnl, faceid, facenext, faceprev, faceifndx, faceflags, facepeer, facetype, facefrag);
-            get_fwd_dump(0,ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite, fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfacedev, interfacedevtype, interfacereflect);
-            get_interest_dump(0,ccnl, interest, interestnext, 
-                    interestprev, interestlast, interestmin,
-                    interestmax, interestretries, interestpublisher, interestprefixlen, interestprefix);
+            get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
+                           faceflags, facepeer, facetype, facefrag);
+            get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
+                         fwdprefixlen, fwdprefix);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
+                             interfacedev, interfacedevtype, interfacereflect);
+            get_interest_dump(0,ccnl, interest, interestnext, interestprev,
+                              interestlast, interestmin, interestmax,
+                              interestretries, interestpublisher,
+                              interestprefixlen, interestprefix);
             get_content_dump(0, ccnl, content, contentnext, contentprev, 
                     contentlast_use, contentserved_cnt, cprefixlen, cprefix);
             
