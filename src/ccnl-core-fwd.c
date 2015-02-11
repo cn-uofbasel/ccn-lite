@@ -148,6 +148,26 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
 #endif
+    }
+    if (!ccnl_pkt_fwdOK(*pkt))
+        return -1;
+    if (!i) {
+        i = ccnl_interest_new(relay, from, pkt);
+        DEBUGMSG(DEBUG,
+            "  created new interest entry %p\n", (void *) i);
+    }
+    if (i) { // store the I request, for the incoming face (Step 3)
+        DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+        ccnl_interest_append_pending(i, from);
+        ccnl_interest_propagate(relay, i);
+    }
+        
+    /*
+    if (!i) { // this is a new/unknown I request: create and propagate
+#ifdef USE_NFN
+        if (ccnl_nfn_RX_request(relay, from, pkt))
+            return -1; // this means: everything is ok and pkt was consumed
+#endif
         if (!ccnl_pkt_fwdOK(*pkt))
             return -1;
         i = ccnl_interest_new(relay, from, pkt);
@@ -165,6 +185,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
         ccnl_interest_append_pending(i, from);
     }
+    */
     return 0;
 }
 

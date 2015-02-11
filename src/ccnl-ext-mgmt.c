@@ -1414,6 +1414,122 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 
 int
+ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+               struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
+{
+    unsigned char *buf;
+    int buflen, num, typ;
+    struct ccnl_prefix_s *p = NULL;
+    unsigned char *action, *suite=0, h[10];
+    char *cp = "echoserver cmd failed";
+    int rc = -1;
+
+    int len = 0, len3;
+
+    DEBUGMSG(TRACE, "ccnl_mgmt_echo\n");
+    action = NULL;
+
+    buf = prefix->comp[3];
+    buflen = prefix->complen[3];
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+  
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENT) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_BLOB) goto Bail;
+    buflen = num;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_FWDINGENTRY) goto Bail;
+
+    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
+    if (!p) goto Bail;
+    p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
+                                           sizeof(unsigned char*));
+    p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
+    if (!p->comp || !p->complen) goto Bail;
+
+    while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
+        if (num==0 && typ==0)
+            break; // end
+
+        if (typ == CCN_TT_DTAG && num == CCN_DTAG_NAME) {
+            for (;;) {
+                if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
+                if (num==0 && typ==0)
+                    break;
+                if (typ == CCN_TT_DTAG && num == CCN_DTAG_COMPONENT &&
+                    p->compcnt < CCNL_MAX_NAME_COMP) {
+                        // if (ccnl_grow_prefix(p)) goto Bail;
+                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen,
+                                p->comp + p->compcnt,
+                                p->complen + p->compcnt) < 0) goto Bail;
+                    p->compcnt++;
+                } else {
+                    if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+                }
+            }
+            continue;
+        }
+
+        extractStr(action, CCN_DTAG_ACTION);
+        extractStr(suite, CCNL_DTAG_SUITE);
+
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+    }
+
+    // should (re)verify that action=="prefixreg"
+    if (*suite && p->compcnt > 0) {
+        p->suite = *suite;
+        DEBUGMSG(TRACE, "mgmt: activating echo server for %s, suite=%s\n",
+                 ccnl_prefix_to_path(p), ccnl_suite2str(*suite));
+        ccnl_echo_add(ccnl, ccnl_prefix_clone(p));
+        cp = "echoserver cmd worked";
+    } else {
+        DEBUGMSG(TRACE, "mgmt: ignored echoserver\n");
+    }
+
+    rc = 0;
+
+Bail:
+    /*ANSWER*/
+    if(!action || !p) {
+        ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from, "echoserver", cp);
+        return -1;
+    }
+    len += ccnl_ccnb_mkHeader(out_buf+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len += ccnl_ccnb_mkStrBlob(out_buf+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, (char*) action);
+    out_buf[len++] = 0; // end-of-name
+
+    // prepare FWDENTRY
+    len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+
+    //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
+    memset(h,0,sizeof(h));
+    sprintf((char*)h, "%d", (int)suite[0]);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
+    fwdentry_buf[len3++] = 0; // end-of-fwdentry
+
+    len += ccnl_ccnb_mkBlob(out_buf+len, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) fwdentry_buf, len3);
+
+    ccnl_mgmt_send_return_split(ccnl, orig, prefix, from, len, (unsigned char*)out_buf);
+    
+    /*END ANWER*/  
+
+    ccnl_free(suite);
+    ccnl_free(action);
+    free_prefix(p);
+
+    //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
+    return rc;
+}
+
+int
 ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
@@ -1772,6 +1888,8 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_mgmt_setfrag(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
         ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
+    else if (!strcmp(cmd, "echoserver"))
+        ccnl_mgmt_echo(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "newface"))
         ccnl_mgmt_newface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroyface"))

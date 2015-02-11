@@ -123,17 +123,13 @@ debug_memdump()
 {
     struct mhdr *h;
 
-    //    fprintf(stderr, "%s: @@@ memory dump starts\n", timestamp());
-    DEBUGMSG(DEBUG, "%s: @@@ memory dump starts\n", timestamp());
+    DEBUGMSG(DEBUG, "@@@ memory dump starts\n");
     for (h = mem; h; h = h->next) {
-      //        fprintf(stderr, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
-        DEBUGMSG(DEBUG, "%s: @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
-                timestamp(),
-                (unsigned char *)h + sizeof(struct mhdr),
-                h->size, h->fname, h->lineno, h->tstamp);
+        DEBUGMSG(DEBUG, "@@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
+                 (unsigned char *)h + sizeof(struct mhdr),
+                 h->size, h->fname, h->lineno, h->tstamp);
     }
-//    fprintf(stderr, "%s: @@@ memory dump ends\n", timestamp());
-    DEBUGMSG(DEBUG, "%s: @@@ memory dump ends\n", timestamp());
+    DEBUGMSG(DEBUG, "@@@ memory dump ends\n");
 }
 #endif //USE_DEBUG_MALLOC
 #endif //USE_DEBUG

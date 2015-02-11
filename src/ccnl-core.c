@@ -421,6 +421,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     // CCNL strategy: we forward on all FWD entries with a prefix match
 
     for (fwd = ccnl->fib; fwd; fwd = fwd->next) {
+        if (!fwd->prefix)
+            continue;
 
         //Only for matching suite
         if (!i->pkt->pfx || fwd->suite != i->pkt->pfx->suite) {
@@ -440,7 +442,10 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
-            ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
+            if (fwd->tap)
+                (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);
+            if (fwd->face)
+                ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
 #ifdef USE_NACK
             matching_face = 1;
 #endif
@@ -890,12 +895,19 @@ void
 ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 {
     int k;
+
     DEBUGMSG(TRACE, "ccnl_core_cleanup %p\n", (void *) ccnl);
 
     while (ccnl->pit)
         ccnl_interest_remove(ccnl, ccnl->pit);
     while (ccnl->faces)
-        ccnl_face_remove(ccnl, ccnl->faces); // also removes all FWD entries
+        ccnl_face_remove(ccnl, ccnl->faces); // removes allmost all FWD entries
+    while (ccnl->fib) {
+        struct ccnl_forward_s *fwd = ccnl->fib->next;
+        free_prefix(ccnl->fib->prefix);
+        ccnl_free(ccnl->fib);
+        ccnl->fib = fwd;
+    }
     while (ccnl->contents)
         ccnl_content_remove(ccnl, ccnl->contents);
     while (ccnl->nonces) {

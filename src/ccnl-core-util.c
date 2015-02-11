@@ -41,6 +41,9 @@ compile_string(void)
 #ifdef USE_DEBUG_MALLOC
         "DEBUG_MALLOC, "
 #endif
+#ifdef USE_ECHO
+        "ECHO, "
+#endif
 #ifdef USE_ETHERNET
         "ETHERNET, "
 #endif
