@@ -31,8 +31,9 @@
 #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-// #define USE_FRAG
+#define USE_ECHO
 #define USE_ETHERNET
+// #define USE_FRAG
 #define USE_HTTP_STATUS
 #define USE_MGMT
 // #define USE_NACK
@@ -64,6 +65,7 @@
 
 #include "ccnl-core.c"
 
+#include "ccnl-ext-echo.c"
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
@@ -795,7 +797,16 @@ usage:
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
         ccnl_populate_cache(&theRelay, datadir);
-    
+/*
+    {
+        struct ccnl_prefix_s *pfx;
+        char *cp = ccnl_strdup("/echo");
+
+        pfx = ccnl_URItoPrefix(cp, suite, NULL, NULL);
+        ccnl_free(cp);
+        ccnl_echo_add(&theRelay, pfx);
+    }
+*/
     ccnl_io_loop(&theRelay);
 
     while (eventqueue)

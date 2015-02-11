@@ -167,6 +167,7 @@ struct ccnl_face_s {
 struct ccnl_forward_s {
     struct ccnl_forward_s *next;
     struct ccnl_prefix_s *prefix;
+    void (*tap)(struct ccnl_relay_s *, struct ccnl_face_s *, struct ccnl_prefix_s *, struct ccnl_buf_s *);
     struct ccnl_face_s *face;
     char suite;
 };

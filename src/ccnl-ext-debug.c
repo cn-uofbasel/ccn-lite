@@ -102,6 +102,7 @@ ccnl_dump(int lev, int typ, void *p)
     int i, k;
 
 #define INDENT(lev) for (i = 0; i < lev; i++) fprintf(stderr, "  ")
+
     switch(typ) {
     case CCNL_BUF:
         while (buf) {
@@ -184,10 +185,12 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_FWD:
         while (fwd) {
             INDENT(lev);
-            fprintf(stderr, "%p FWD next=%p face=%p (id=%d suite=%s)\n",
-                    (void *) fwd, (void *) fwd->next, (void *) fwd->face,
-                    fwd->face->faceid, ccnl_suite2str(fwd->suite));
-            ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
+            fprintf(stderr, "%p FWD next=%p tap=%s face=%p (id=%d suite=%s)\n",
+                    (void *) fwd, (void *) fwd->next, fwd->tap ? "yes" : "no",
+                    (void *) fwd->face, fwd->face ? fwd->face->faceid : 0,
+                    ccnl_suite2str(fwd->suite));
+            if (fwd->prefix)
+                ccnl_dump(lev+1, CCNL_PREFIX, fwd->prefix);
             fwd = fwd->next;
         }
         break;
@@ -294,9 +297,9 @@ int
 get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
 {
     struct ccnl_buf_s  *buf = (struct ccnl_buf_s      *) p;
-    int line = 0, i;
+    int line = 0;
     while (buf) {
-        INDENT(lev);
+//        INDENT(lev);
         outbuf[line] = (long) (void *) buf;
         len[line] = buf->datalen;
         next[line] = (long) buf->next;
@@ -310,8 +313,8 @@ int
 get_prefix_dump(int lev, void *p, int *len, char** val)
 {
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
-    int i;
-    INDENT(lev);
+//    int i;
+//    INDENT(lev);
     //*prefix =  (void *) pre;
     *len = pre->compcnt;
     //*val = ccnl_prefix_to_path(pre);
@@ -325,10 +328,10 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
-    int line = 0, i;
+    int line = 0;
     
     while (fac) {
-        INDENT(lev);
+//        INDENT(lev);
          
         faceid[line] = fac->faceid;
         next[line] = (long)(void *) fac->next;
@@ -366,19 +369,25 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_forward_s  *fwd = (struct ccnl_forward_s  *) top->fib;
-    int line = 0, i;
+    int line = 0;
     while (fwd) {
-        INDENT(lev);
+//        INDENT(lev);
         /*pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
                 (void *) fwd, (void *) fwd->next,
                 (void *) fwd->face, fwd->face->faceid);*/
         outfwd[line] = (long)(void *) fwd;
         next[line] = (long)(void *) fwd->next;
         face[line] = (long)(void *) fwd->face;
-        faceid[line] = fwd->face->faceid;
+        faceid[line] = fwd->face ? fwd->face->faceid : 0;
         suite[line] = fwd->suite;
-        
-        get_prefix_dump(lev, fwd->prefix, &prefixlen[line], &prefix[line]);
+
+        if (fwd->prefix)
+            get_prefix_dump(lev, fwd->prefix, &prefixlen[line], &prefix[line]);
+        else {
+            prefixlen[line] = 99;
+            prefix[line] = "?";
+        }
+
         fwd = fwd->next;
         ++line; 
     }
@@ -391,9 +400,9 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     
-    int k, i;
+    int k;
     for (k = 0; k < top->ifcount; k++) {
-        INDENT(lev+1);
+//        INDENT(lev+1);
         
         ifndx[k] = k;
         //        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
@@ -426,9 +435,9 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     
-    int line = 0, i;
+    int line = 0;
     while (itr) {
-        INDENT(lev);
+//        INDENT(lev);
 
         interest[line] = (long)(void *) itr;
         next[line] = (long)(void *) itr->next;
@@ -466,9 +475,9 @@ get_pendint_dump(int lev, void *p, char **out){
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
     
-    int pos = 0, line = 0, i;
+    int pos = 0, line = 0;
     while (pir) {
-        INDENT(lev);
+//        INDENT(lev);
         pos = 0;
         pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
                (void *) pir, (void *) pir->next,
@@ -486,9 +495,9 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
     
-    int line = 0, i;
+    int line = 0;
     while (con) {
-        INDENT(lev);
+//        INDENT(lev);
         content[line] = (long)(void *) con;
         next[line] = (long)(void *) con->next;
         prev[line] = (long)(void *) con->prev;

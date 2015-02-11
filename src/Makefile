@@ -99,12 +99,12 @@ CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c
 
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-                 ccnl-ext-mgmt.c ccnl-ext-http.c ccnl-ext-crypto.c 
+                 ccnl-ext-crypto.c ccnl-ext-echo.c ccnl-ext-http.c \
+                 ccnl-ext-mgmt.c
 
 CCNL_PLATFORM_LIB = ccnl-os-includes.h \
-                    ccnl-ext-debug.c ccnl-ext.h ccnl-os-time.c  \
-                    ccnl-ext-frag.c ccnl-ext-sched.c\
-
+                    ccnl-ext-debug.c ccnl-ext.h ccnl-ext-logging.c \
+                    ccnl-os-time.c ccnl-ext-frag.c ccnl-ext-sched.c
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c
 

@@ -233,6 +233,80 @@ mkDestroyDevRequest(unsigned char *out, char *faceid, char *private_key_path)
 }
 
 int
+mkEchoserverRequest(unsigned char *out, char *path, int suite,
+                    char *private_key_path)
+{
+    int len = 0, len1 = 0, len2 = 0, len3 = 0;
+    unsigned char out1[CCNL_MAX_PACKET_SIZE];
+    unsigned char contentobj[2000];
+    unsigned char fwdentry[2000];
+    char suite_s[1];
+    char *cp;
+
+    DEBUGMSG(DEBUG, "mkEchoserverRequest uri=%s suite=%d\n", path, suite);
+
+    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
+    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
+
+    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "ccnx");
+    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
+    len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "echoserver");
+
+    // prepare FWDENTRY
+    len3 = ccnl_ccnb_mkHeader(fwdentry, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "echoserver");
+    len3 += ccnl_ccnb_mkHeader(fwdentry+len3, CCN_DTAG_NAME, CCN_TT_DTAG); // prefix
+
+    cp = strtok(path, "/");
+    while (cp) {
+
+        unsigned short cmplen = strlen(cp);
+        if (suite == CCNL_SUITE_CCNTLV) {
+            char* oldcp = cp;
+            cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            cp[0] = CCNX_TLV_N_NameSegment >> 8;
+            cp[1] = CCNX_TLV_N_NameSegment;
+            cp[2] = cmplen >> 8;
+            cp[3] = cmplen;
+            memcpy(cp + 4, oldcp, cmplen);
+            cmplen += 4;
+        } 
+        len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
+                       cp, cmplen);
+        if (suite == CCNL_SUITE_CCNTLV)
+            free(cp);
+        cp = strtok(NULL, "/");
+    }
+    fwdentry[len3++] = 0; // end-of-prefix
+
+    suite_s[0] = suite;
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, suite_s);
+    fwdentry[len3++] = 0; // end-of-fwdentry
+
+    // prepare CONTENTOBJ with CONTENT
+    len2 = ccnl_ccnb_mkHeader(contentobj, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
+    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_CONTENT, CCN_TT_DTAG,  // content
+                   (char*) fwdentry, len3);
+    contentobj[len2++] = 0; // end-of-contentobj
+
+    // add CONTENTOBJ as the final name component
+    len1 += ccnl_ccnb_mkBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG,  // comp
+                  (char*) contentobj, len2);
+
+#ifdef USE_SIGNATURES
+    if(private_key_path) len += add_signature(out+len, private_key_path, out1, len1);
+#endif /*USE_SIGNATURES*/
+    memcpy(out+len, out1, len1);
+    len += len1;
+
+    out[len++] = 0; // end-of-name
+    out[len++] = 0; // end-of-interest
+
+//    ccnl_prefix_free(p);
+    return len;
+}
+
+int
 mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
          char *host, char *port, char *flags, char *private_key_path)
 {
@@ -919,7 +993,7 @@ check_has_next(unsigned char *buf, int len, char **recvbuffer, int *recvbufferle
 int
 main(int argc, char *argv[])
 {
-    char mysockname[200], *progname=argv[0];
+    char mysockname[200];
     unsigned char *recvbuffer = 0, *recvbuffer2 = 0;
     int recvbufferlen = 0, recvbufferlen2 = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
@@ -938,150 +1012,195 @@ main(int argc, char *argv[])
     char *ccn_path;
     char *private_key_path = 0, *relay_public_key = 0;
     struct sockaddr_in si;
-    int i = 0;
-    if(argv[1] && !strcmp(argv[1], "-v") && argc > 2) {
+    int opt, i = 0;
+
+    while ((opt = getopt(argc, argv, "hk:mp:v:u:x:")) != -1) {
+        switch (opt) {
+        case 'k':
+            relay_public_key = optarg;
+            break;
+        case 'm':
+            msgOnly = 1;
+            break;
+        case 'p':
+            private_key_path = optarg;
+            break;
+        case 'v':
 #ifdef USE_LOGGING
-        if (isdigit(argv[2][0]))
-            debug_level = atoi(argv[2]);
-        else
-            debug_level = ccnl_debug_str2level(argv[2]);
+            if (isdigit(optarg[0]))
+                debug_level = atoi(optarg);
+            else
+                debug_level = ccnl_debug_str2level(optarg);
 #endif
-        argv += 2;
-        argc -= 2;
-    }
-    else{
-    	debug_level = 0;
+            break;
+        case 'u':
+            udp = strdup(optarg);
+            port = strtol(strtok(udp, "/"), NULL, 0);
+            use_udp = 1;
+printf("udp: <%s> <%d>\n", udp, port);
+            break;
+        case 'x':
+            ux = optarg;
+            break;
+        case 'h':
+        default:
+help:
+            fprintf(stderr, "usage: %s [options] CMD ...\n"
+       "  [-h] [-k relay-public-key] [-m] [-p private-key]\n"
+#ifdef USE_LOGGING
+       "  [-v (fatal, error, warning, info, debug, trace, verbose)]\n"
+#endif
+       "  [-u ip-address/port | -x ux_path]\n"
+       "where CMD is either of\n"
+       "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
+       "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
+       "  destroydev    DEVNDX\n"
+       "  echoserver    PREFIX [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
+       "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
+       "  newUNIXface   PATH [FACEFLAGS]\n"
+       "  setfrag       FACEID FRAG MTU\n"
+       "  destroyface   FACEID\n"
+       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  prefixunreg   PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  debug         dump\n"
+       "  debug         halt\n"
+       "  debug         dump+halt\n"
+       "  addContentToCache             ccn-file\n"
+       "  removeContentFromCache        ccn-path\n"
+       "where FRAG in none, seqd2012, ccnx2013\n"
+       "-m is a special mode which only prints the interest message of the corresponding command",
+                    argv[0]);
+
+            if (sock) {
+                close(sock);
+                unlink(mysockname);
+            }
+            exit(1);
+        }
     }
 
-    if (argv[1] && !strcmp(argv[1], "-x") && argc > 2) {
-        ux = argv[2];
-        argv += 2;
-        argc -= 2;
-    }
-    else if (argv[1] && !strcmp(argv[1], "-u") && argc > 3) {
-    udp = argv[2];
-        port = strtol(argv[3], NULL, 0);
-        argv += 3;
-        argc -= 3;
-        use_udp = 1;
-    }
-    if(argv[1] && !strcmp(argv[1], "-p") && argc > 2)
-    {
-        private_key_path = argv[2];
-        argv += 2;
-        argc -= 2;
-    }
-     if(argv[1] && !strcmp(argv[1], "-k") && argc > 2)
-    {
-        relay_public_key = argv[2];
-        argv += 2;
-        argc -= 2;
-    }
-    if(argv[1] && !strcmp(argv[1], "-m") && argc > 1)
-    {
-        msgOnly = 1;
-        argv += 1;
-        argc -= 1;
-    }
+    if (!argv[optind]) 
+        goto help;
 
-    if (argc < 2) goto Usage;
-
+    argv += optind-1;
+    argc -= optind-1;
 
     if (!strcmp(argv[1], "debug")) {
-        if (argc < 3)  goto Usage;
+        if (argc < 3)
+            goto help;
         len = mkDebugRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "newETHdev")) {
-        if (argc < 3)  goto Usage;
+        if (argc < 3)
+            goto help;
         len = mkNewEthDevRequest(out, argv[2],
                      argc > 3 ? argv[3] : "0x88b5",
                      argc > 4 ? argv[4] : "0",
                      argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "newUDPdev")) {
-    if (argc < 3)  goto Usage;
-    len = mkNewUDPDevRequest(out, argv[2],
+        if (argc < 3)
+            goto help;
+        len = mkNewUDPDevRequest(out, argv[2],
                  argc > 3 ? argv[3] : "9695",
                  argc > 4 ? argv[4] : "0",
                  argc > 5 ? argv[5] : "0", private_key_path);
     } else if (!strcmp(argv[1], "destroydev")) {
-        if (argc < 3) goto Usage;
+        if (argc < 3)
+            goto help;
         len = mkDestroyDevRequest(out, argv[2], private_key_path);
+    } else if (!strcmp(argv[1], "echoserver")) {
+        if (argc > 3) {
+            suite = ccnl_str2suite(argv[3]);
+            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+                goto help;
+        } 
+        if (argc < 3)
+            goto help;
+        len = mkEchoserverRequest(out, argv[2], suite, private_key_path);
     } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1], "newUDPface")) {
-        if (argc < 5)  goto Usage;
+        if (argc < 5)
+            goto help;
         len = mkNewFaceRequest(out,
                        !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
                        argv[3], argv[4],
                        argc > 5 ? argv[5] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "newUNIXface")) {
-        if (argc < 3)  goto Usage;
-    len = mkNewUNIXFaceRequest(out, argv[2],
-                   argc > 3 ? argv[3] : "0x0001",
-                                   private_key_path);
+        if (argc < 3)
+            goto help;
+        len = mkNewUNIXFaceRequest(out, argv[2],
+                   argc > 3 ? argv[3] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "setfrag")) {
-        if (argc < 5)  goto Usage;
+        if (argc < 5)
+            goto help;
         len = mkSetfragRequest(out, argv[2], argv[3], argv[4], private_key_path);
     } else if (!strcmp(argv[1], "destroyface")) {
-        if (argc < 3) goto Usage;
-    len = mkDestroyFaceRequest(out, argv[2], private_key_path);
+        if (argc < 3)
+            goto help;
+        len = mkDestroyFaceRequest(out, argv[2], private_key_path);
     } else if (!strcmp(argv[1], "prefixreg")) {
-        if(argc > 4) {
+        if (argc > 4) {
             suite = ccnl_str2suite(argv[4]);
             if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-                goto Usage;
+                goto help;
             }
         } 
-        if (argc < 4) goto Usage;
+        if (argc < 4)
+            goto help;
         len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "prefixunreg")) {
-        if(argc > 4) suite = atoi(argv[4]);
-        if (argc < 4) goto Usage;
+        if (argc > 4)
+            suite = atoi(argv[4]);
+        if (argc < 4)
+            goto help;
         len = mkPrefixregRequest(out, 0, argv[2], argv[3], suite, private_key_path);
     } else if (!strcmp(argv[1], "addContentToCache")){
-        if(argc < 3) goto Usage;
+        if (argc < 3)
+            goto help;
         file_uri = argv[2];
         len = mkAddToRelayCacheRequest(out, file_uri, private_key_path, &suite);
     } else if(!strcmp(argv[1], "removeContentFromCache")){
-        if(argc < 3) goto Usage;
+        if (argc < 3)
+            goto help;
         ccn_path = argv[2];
         len = mkRemoveFormRelayCacheRequest(out, ccn_path, private_key_path);
     } else{
-    DEBUGMSG(ERROR, "unknown command %s\n", argv[1]);
-    goto Usage;
+        DEBUGMSG(ERROR, "unknown command %s\n", argv[1]);
+        goto help;
     }
 
     if (len > 0 && !msgOnly) {
+        unsigned int slen = 0; int num = 1; int len2 = 0;
+        int hasNext = 0;
+
         // socket for receiving
         sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
 
-        if(!use_udp) {
+        if (!use_udp)
             sock = ccnl_crypto_ux_open(mysockname);
-        } else {
+        else
             sock = udp_open(getpid()%65536+1025, &si);
-        }
         if (!sock) {
             DEBUGMSG(ERROR, "cannot open UNIX/UDP receive socket\n");
             exit(-1);
         }
 
-        if(!use_udp)
+        if (!use_udp)
             ux_sendto(sock, ux, out, len);
         else
             udp_sendto(sock, udp, port, (unsigned char*)out, len);
 
 //  sleep(1);
-
-        unsigned int slen = 0; int num = 1; int len2 = 0;
-        int hasNext = 0;
-
         memset(out, 0, sizeof(out));
-        if(!use_udp)
+        if (!use_udp)
             len = recv(sock, out, sizeof(out), 0);
         else
             len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
         hasNext = check_has_next(out, len, (char**)&recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
-        if(!verified_i) verified = 0;
+        if (!verified_i)
+            verified = 0;
 
-        while(hasNext){
+        while (hasNext) {
            //send an interest for debug packets... and store content in a array...
            unsigned char interest2[100];
            len2 = make_next_seg_debug_interest(num++, (char*)interest2);
@@ -1093,22 +1212,24 @@ main(int argc, char *argv[])
            if(!use_udp)
                 len = recv(sock, out, sizeof(out), 0);
            else
-                len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
-           hasNext =  check_has_next(out+2, len-2, (char**)&recvbuffer, &recvbufferlen, relay_public_key, &verified_i);
-           if(!verified_i) verified = 0;
+                len = recvfrom(sock, out, sizeof(out), 0,
+                                (struct sockaddr *)&si, &slen);
+           hasNext =  check_has_next(out+2, len-2, (char**)&recvbuffer,
+                                &recvbufferlen, relay_public_key, &verified_i);
+           if (!verified_i)
+               verified = 0;
            ++numOfParts;
-
         }
         recvbuffer2 = malloc(sizeof(char)*recvbufferlen +1000);
-        recvbufferlen2 += ccnl_ccnb_mkHeader(recvbuffer2+recvbufferlen2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
-        if(relay_public_key && use_udp)
-        {
+        recvbufferlen2 += ccnl_ccnb_mkHeader(recvbuffer2+recvbufferlen2,
+                                             CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);
+        if (relay_public_key && use_udp) {
             char sigoutput[200];
 
-            if(verified){
+            if (verified) {
                 sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
-            }else{
+            } else {
                 sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }
@@ -1120,47 +1241,46 @@ main(int argc, char *argv[])
         write(1, recvbuffer2, recvbufferlen2);
         printf("\n");
 
-    DEBUGMSG(DEBUG, "received %d bytes.\n", recvbufferlen);
+        DEBUGMSG(DEBUG, "received %d bytes.\n", recvbufferlen);
 
+        if (!strcmp(argv[1], "addContentToCache")) { //read ccnb_file
+            unsigned char *ccnb_file;
+            long fsize = 0;
+            FILE *f = fopen(file_uri, "r");
 
-    if(!strcmp(argv[1], "addContentToCache")){
-        //read ccnb_file
-        unsigned char *ccnb_file;
-        long fsize = 0;
-        FILE *f = fopen(file_uri, "r");
-        if(!f) return 0;
-        //determine size of the file
-        fseek(f, 0L, SEEK_END);
-        fsize = ftell(f);
-        fseek(f, 0L, SEEK_SET);
-        ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
-        fread(ccnb_file, fsize, 1, f);
-        fclose(f);
+            if (!f)
+                return 0;
+            //determine size of the file
+            fseek(f, 0L, SEEK_END);
+            fsize = ftell(f);
+            fseek(f, 0L, SEEK_SET);
+            ccnb_file = (unsigned char *) malloc(sizeof(unsigned char)*fsize);
+            fread(ccnb_file, fsize, 1, f);
+            fclose(f);
 
-        //receive request
-        memset(out, 0, sizeof(out));
-        if(!use_udp)
-            len = recv(sock, out, sizeof(out), 0);
-        else
-            len = recvfrom(sock, out, sizeof(out), 0, (struct sockaddr *)&si, &slen);
+            //receive request
+            memset(out, 0, sizeof(out));
+            if (!use_udp)
+                len = recv(sock, out, sizeof(out), 0);
+            else
+                len = recvfrom(sock, out, sizeof(out), 0,
+                               (struct sockaddr *)&si, &slen);
 
-        //send file
-        if(!use_udp)
-            i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, fsize);
-        else
-            i = udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
+            //send file
+            if (!use_udp)
+                i = ux_sendto(sock, ux, (unsigned char*)ccnb_file, fsize);
+            else
+                i = udp_sendto(sock, udp, port, (unsigned char*)ccnb_file, fsize);
 
-        if(i){
-            DEBUGMSG(INFO, "Sent file to relay\n");
+            if (i) {
+                DEBUGMSG(INFO, "Sent file to relay\n");
+            }
+            free(ccnb_file);
         }
-        free(ccnb_file);
-    }
-
-
     } else if(msgOnly) {
         fwrite(out, len, 1, stdout);
     } else {
-       DEBUGMSG(ERROR, "nothing to send, program terminates\n");
+        DEBUGMSG(ERROR, "nothing to send, program terminates\n");
     }
 
     if(recvbuffer2)
@@ -1171,35 +1291,4 @@ main(int argc, char *argv[])
     unlink(mysockname);
 
     return 0;
-
-Usage:
-    fprintf(stderr, "usage: %s " 
-#ifdef USE_LOGGING
-       "[-v (fatal, error, warning, info, debug, trace, verbose)]"
-#endif
-       "[-x ux_path | -u ip-address port] [-p private-key] [-k relay-public-key] [-m] CMD, where CMD either of\n"
-       "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
-       "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
-       "  destroydev    DEVNDX\n"
-       "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
-       "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
-       "  newUNIXface   PATH [FACEFLAGS]\n"
-       "  setfrag       FACEID FRAG MTU\n"
-       "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID [SUITE (ccnb,ccnx2014,cisco2015,iot2014,ndn2013)]\n"
-       "  prefixunreg   PREFIX FACEID [SUITE (ccnb,ccnx2014,cisco2015,iot2014,ndn2013)]\n"
-       "  debug         dump\n"
-       "  debug         halt\n"
-       "  debug         dump+halt\n"
-       "  addContentToCache             ccn-file\n"
-       "  removeContentFromCache        ccn-path\n"
-       "where FRAG in none, seqd2012, ccnx2013\n"
-       "-m is a special mode which only prints the interest message of the corresponding command",
-    progname);
-
-    if (sock) {
-        close(sock);
-        unlink(mysockname);
-    }
-    return -1;
 }
