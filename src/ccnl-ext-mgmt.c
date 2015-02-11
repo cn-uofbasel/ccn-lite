@@ -1687,31 +1687,43 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
 
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0) goto Bail;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) < 0)
+        goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+        goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0){
         if (num==0 && typ==0)
             break; // end
         extractStr(h, CCNL_DTAG_SUITE);
-        suite = strtol((const char*)h, NULL, 0);
-        break;
-        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (h) {
+            suite = strtol((const char*)h, NULL, 0);
+            ccnl_free(h);
+            break;
+        }
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0)
+            goto Bail;
     }
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME) goto Bail;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_NAME)
+        goto Bail;
     
-    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0) goto Bail;
-    if (typ != CCN_TT_BLOB) goto Bail;
+    if (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) != 0)
+        goto Bail;
+    if (typ != CCN_TT_BLOB)
+        goto Bail;
 
     while (ccnl_ccnb_dehead(&buf, &buflen, &num, &typ) == 0) {
         if (num==0 && typ==0)
             break; // end
         extractStr(components, CCN_DTAG_COMPONENT);
-        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0)
+            goto Bail;
     }
     ++num_of_components;
     
     prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, NULL);
+    ccnl_free(components);
+    components = NULL;
     prefix_new->suite = suite;
 
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
