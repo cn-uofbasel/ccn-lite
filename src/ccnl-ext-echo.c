@@ -30,7 +30,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     char *s, *cp;
     struct ccnl_buf_s *reply;
     unsigned char *ucp;
-    int len;
+    int len, enc;
 
     DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
 
@@ -47,7 +47,10 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     ucp = reply->data;
     len = reply->datalen;
-    ccnl_core_suits[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
+
+    while (!ccnl_switch_dehead(&ucp, &len, &enc)); // for iot2014 encoding
+
+    ccnl_core_suites[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
     ccnl_free(reply);
 }
 

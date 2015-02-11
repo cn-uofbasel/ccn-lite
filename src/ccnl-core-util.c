@@ -879,8 +879,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
 
-    DEBUGMSG(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-             ccnl_prefix_to_path(name), paylen);
+    DEBUGMSG(DEBUG, "mkSimpleContent (%s, suite=%s, %d bytes)\n",
+             ccnl_prefix_to_path(name), ccnl_suite2str(name->suite), paylen);
 
     tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
