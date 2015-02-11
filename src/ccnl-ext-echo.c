@@ -50,7 +50,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     while (!ccnl_switch_dehead(&ucp, &len, &enc)); // for iot2014 encoding
 
-    ccnl_core_suites[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
+    ccnl_core_suits[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
     ccnl_free(reply);
 }
 
@@ -60,7 +60,8 @@ ccnl_echo_add(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx)
 {
     struct ccnl_forward_s *fwd, **fwd2;
 
-    DEBUGMSG(DEBUG, "adding echo server for <%s>\n", ccnl_prefix_to_path(pfx));
+    DEBUGMSG(DEBUG, "adding echo server for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         if (fwd->suite == pfx->suite &&

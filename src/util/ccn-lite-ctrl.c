@@ -260,6 +260,7 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
     cp = strtok(path, "/");
     while (cp) {
 
+#ifdef USE_SUITE_CCNTLV
         unsigned short cmplen = strlen(cp);
         if (suite == CCNL_SUITE_CCNTLV) {
             char* oldcp = cp;
@@ -270,11 +271,28 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
             cp[3] = cmplen;
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
+        }
+#endif
+#ifdef USE_SUITE_CISTLV
+        if (suite == CCNL_SUITE_CISTLV) {
+            char* oldcp = cp;
+            cp = malloc( (cmplen + 4) * (sizeof(char)) );
+            cp[0] = CISCO_TLV_NameComponent >> 8;
+            cp[1] = CISCO_TLV_NameComponent;
+            cp[2] = cmplen >> 8;
+            cp[3] = cmplen;
+            memcpy(cp + 4, oldcp, cmplen);
+            cmplen += 4;
         } 
+#endif
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
-        if (suite == CCNL_SUITE_CCNTLV)
-            free(cp);
+#ifdef USE_SUITE_CCNTLV
+        if (suite == CCNL_SUITE_CCNTLV) free(cp);
+#endif
+#ifdef USE_SUITE_CISTLV
+        if (suite == CCNL_SUITE_CISTLV) free(cp);
+#endif
         cp = strtok(NULL, "/");
     }
     fwdentry[len3++] = 0; // end-of-prefix
@@ -1055,21 +1073,22 @@ help:
        "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
        "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
        "  destroydev    DEVNDX\n"
-       "  echoserver    PREFIX [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  echoserver    PREFIX [SUITE]\n"
        "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
        "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
-       "  prefixreg     PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
-       "  prefixunreg   PREFIX FACEID [SUITE (ccnb, ccnx2014, iot2014, ndn2013)]\n"
+       "  prefixreg     PREFIX FACEID [SUITE]\n"
+       "  prefixunreg   PREFIX FACEID [SUITE]\n"
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
        "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
-       "where FRAG in none, seqd2012, ccnx2013\n"
-       "-m is a special mode which only prints the interest message of the corresponding command",
+       "where FRAG in one of (none, seqd2012, ccnx2013)\n"
+       "      SUITE is one of (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
+       "-m is a special mode which only prints the interest message of the corresponding command\n",
                     argv[0]);
 
             if (sock) {
