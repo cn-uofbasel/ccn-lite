@@ -1156,7 +1156,7 @@ Usage:
        "  debug         dump+halt\n"
        "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
-       "where FRAG in none, seqd2012, ccnx2013\n"
+       "where FRAG in none, seqd2012, ccnx2013, seqd2015\n"
        "-m is a special mode which only prints the interest message of the corresponding command",
     progname);
 

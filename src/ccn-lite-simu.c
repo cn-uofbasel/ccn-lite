@@ -30,11 +30,11 @@
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
-//#define USE_FRAG
+#define USE_FRAG
 // #define USE_SCHEDULER
-// #define USE_SUITE_CCNB
-// #define USE_SUITE_CCNTLV
-// #define USE_SUITE_IOTTLV
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PREFIX_MATCHING
@@ -354,6 +354,7 @@ ccnl_simu_init_node(char node, const char *addr,
     memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
     //    i->mtu = 1400;
     i->mtu = 1200;
+    //    i->mtu = 1800;
     i->reflect = 1;
     i->fwdalli = 1;
     relay->ifcount++;
@@ -400,7 +401,9 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
 #ifdef USE_FRAG
     //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012, 1500);
-    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
+    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
+    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2015, 1200);
+    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, 1200);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;
@@ -589,7 +592,7 @@ main(int argc, char **argv)
             fprintf(stderr, "Xusage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
                     "[-g MIN_INTER_PACKET_INTERVAL] "
                     "[-i MIN_INTER_CCNMSG_INTERVAL] "
-                    "[-s SUITE (ccnb, ccnx2014, iot2014, ndn2013)] "
+                    "[-s SUITE (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)] "
                     "[-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);

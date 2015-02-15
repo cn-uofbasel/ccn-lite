@@ -95,7 +95,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
-    DEBUGMSG(DEBUG, "extracting CCNTLV packet (2)\n");
+    DEBUGMSG(DEBUG, "extracting CCNTLV packet (%d bytes)\n", *datalen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
@@ -117,6 +117,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     pkt->suite = CCNL_SUITE_CCNTLV;
     pkt->final_block_id = -1;
 
+    // XXX this parsing is not safe for all input data - needs more bound
+    // checks, as some packets with wrong L values can bring this to crash
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;

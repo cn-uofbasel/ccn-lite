@@ -2,7 +2,7 @@
  * @f pkt-ccntlv.h
  * @b header file for CCN lite, PARC's definitions for TLV (Sep 22, 2014)
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,11 +29,21 @@
 struct ccnx_tlvhdr_ccnx201412_s {
     unsigned char version;
     unsigned char pkttype;
-    unsigned int  pktlen;
+    unsigned short pktlen;
     unsigned char hoplimit;  // not used for data
     unsigned char fill[2];   // perhaps some bits will go to hdrlen
     unsigned char hdrlen;
 } __attribute__((packed));
+
+#ifdef USE_FRAG
+struct ccnx_tlvhdr_ccnx2015frag_s {
+    unsigned char version;
+    unsigned char pkttype;
+    unsigned short pktlen;
+    unsigned char flagsAndSeqNr[3];
+    unsigned char hdrlen;
+} __attribute__((packed));
+#endif
 
 struct ccnx_tlvhdr_ccnx201412nack_s { // "interest return" extension
     unsigned int  errorc;
@@ -68,6 +78,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PT_Interest                        1
 #define CCNX_PT_Data                            2
 #define CCNX_PT_NACK                            3 // "Interest Return"
+#define CCNX_PT_FRAGMENT                        9 // fragment
 
 // ----------------------------------------------------------------------
 // TLV message
@@ -83,6 +94,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_TLV_TL_Object                      0x0002
 #define CCNX_TLV_TL_ValidationAlg               0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
+#define CCNX_TLV_TL_Fragment                    0x0005
 
 // global (3.4)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?

@@ -22,6 +22,8 @@
  *
  */
 
+#define USE_FRAG
+
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_IOTTLV
@@ -47,12 +49,27 @@ void
 hexdump(int lev, unsigned char *base, unsigned char *cp, int len,
         int rawxml, FILE* out)
 {
-    int i, maxi;
+    int i, maxi, lastlen=-1;
+    unsigned char cmp[8], star = 0;
 
     while (len > 0) {
         maxi = len > 8 ? 8 : len;
 
         if (!rawxml) {
+            if (maxi == 8) {
+                if (lastlen == 8 && !memcmp(cmp, cp, 8)) {
+                    if (!star) {
+                        fprintf(out, "*\n");
+                        star = 1;
+                    }
+                    cp += 8;
+                    len -= 8;
+                    continue;
+                }
+                lastlen = 8;
+                memcpy(cmp, cp, 8);
+                star = 0;
+            }
             fprintf(out, "%04zx  ", cp - base);
         }
 
@@ -540,6 +557,8 @@ ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         mp = rawxml ? "Data" : "Data\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "NACK" : "NACK\\toplevelCtx";
+    else if (hp->pkttype == CCNX_PT_FRAGMENT)
+        mp = rawxml ? "FRAGMENT" : "FRAG\\toplevelCtx";
     else
         mp = "unknown";
     if (!rawxml) {
@@ -550,6 +569,24 @@ ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
             fprintf(out, "%04zx  hdr.hoplim=%d\n",
                     (unsigned char*) &(hp->hoplimit) - data, hp->hoplimit);
+        if (hp->pkttype == CCNX_PT_FRAGMENT) {
+            struct ccnx_tlvhdr_ccnx2015frag_s *fp;
+            unsigned char tmp[4];
+            uint32_t seqnr;
+            fp = (struct ccnx_tlvhdr_ccnx2015frag_s*) hp;
+            memcpy(tmp, fp->flagsAndSeqNr-1, 4);
+            seqnr = ntohl(*(uint32_t*)tmp) & 0x0fffff;
+            fprintf(out, "%04zx  hdr.frag: seqnr=0x%05x ",
+                                      fp->flagsAndSeqNr - data, seqnr);
+            if ((fp->flagsAndSeqNr[0] >> 6) == 0x0)
+                fprintf(out, "MID\n");
+            else if ((fp->flagsAndSeqNr[0] >> 6) == 0x1)
+                fprintf(out, "BEGIN\n");
+            else if ((fp->flagsAndSeqNr[0] >> 6) == 0x2)
+                fprintf(out, "END\n");
+            else
+                fprintf(out, "SINGLE\n");
+        }
         fprintf(out, "%04zx  hdr.hdrlen=%d\n",
                 (unsigned char*) &(hp->hdrlen) - data, hdrlen);
         if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK) {
@@ -579,11 +616,19 @@ ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         fprintf(out, "hdr.end\n");
     }
 
-    // dump the sequence of TLV fields of the message body
     buf = data + hdrlen;
     len = pktlen - hdrlen;
-    ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
+    if (hp->pkttype == CCNX_PT_Interest ||
+             hp->pkttype == CCNX_PT_Data || hp->pkttype == CCNX_PT_NACK) {
+
+        // dump the sequence of TLV fields of the message body
+        ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
                                                         "message", rawxml, out);
+    } else {
+        hexdump(lev, data, buf, len, rawxml, out);
+        buf += len;
+    }
+
     if (!rawxml) {
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);

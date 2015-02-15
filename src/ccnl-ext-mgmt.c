@@ -1042,6 +1042,8 @@ ccnl_mgmt_setfrag(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             e = CCNL_FRAG_SEQUENCED2012;
         } else if (!strcmp((const char*)frag, "ccnx2013")) {
             e = CCNL_FRAG_CCNx2013;
+        } else if (!strcmp((const char*)frag, "seqd2015")) {
+            e = CCNL_FRAG_SEQUENCED2015;
         }
         if (e < 0)
             goto Error;

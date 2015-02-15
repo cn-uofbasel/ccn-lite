@@ -2,7 +2,7 @@
  * @f ccnl-core-fwd.c
  * @b CCN lite, the collection of suite specific forwarding logics
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -209,7 +209,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     unsigned char **data, int *datalen)
 {
     int rc = 0, num, typ;
-    DEBUGMSG(DEBUG, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG(DEBUG, "ccnl_ccnb_forwarder: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {
@@ -222,10 +222,12 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             continue;
 #ifdef USE_FRAG
         case CCNL_DTAG_FRAGMENT2012:
-            rc = ccnl_frag_RX_frag2012(ccnl_RX_ccnb, relay, from, data, datalen);
+            rc = ccnl_frag_RX_frag2012(ccnl_ccnb_forwarder, relay,
+                                       from, data, datalen);
             continue;
         case CCNL_DTAG_FRAGMENT2013:
-            rc = ccnl_frag_RX_CCNx2013(ccnl_RX_ccnb, relay, from, data, datalen);
+            rc = ccnl_frag_RX_CCNx2013(ccnl_ccnb_forwarder, relay,
+                                       from, data, datalen);
             continue;
 #endif
         default:
@@ -247,44 +249,81 @@ int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int payloadlen, hoplimit, rc = -1;
+    int payloadlen, rc = -1;
     unsigned short hdrlen;
     struct ccnx_tlvhdr_ccnx201412_s *hp;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
-             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
+    DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %p %d bytes from face=%p (id=%d.%d)\n",
+             *data, *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CCNX_TLV_V0 ||
-                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s))
+                       *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
+        DEBUGMSG(DEBUG, "  wrong version (%d)\n", **data);
         return -1;
+    }
 
     hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-    if (hdrlen > *datalen) // not enough bytes for a full header
+    if (hdrlen > *datalen) { // not enough bytes for a full header
+        DEBUGMSG(DEBUG, "  hdrlen too large (%d > %d)\n", hdrlen, *datalen);
         return -1;
+    }
 
     payloadlen = ntohs(hp->pktlen);
     if (payloadlen < hdrlen ||
-              payloadlen > *datalen) // not enough data to reconstruct message
-            return -1;
+             payloadlen > *datalen) { // not enough data to reconstruct message
+        DEBUGMSG(DEBUG, "  pkt too small or too big (%d < %d < %d)\n",
+                 hdrlen, payloadlen, *datalen);
+        return -1;
+    }
     payloadlen -= hdrlen;
 
     *data += hdrlen;
     *datalen -= hdrlen;
 
-    hoplimit = hp->hoplimit - 1;
-    if ((hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
-                                           && hoplimit <= 0) { // drop it
-        *data += payloadlen;
-        *datalen -= payloadlen;
-        return 0;
-    } else
-        hp->hoplimit = hoplimit;
+    if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK) {
+        if (hp->hoplimit <= 0) { // drop it
+            DEBUGMSG(DEBUG, "  pkt dropped because of hop limit\n");
+            *data += payloadlen;
+            *datalen -= payloadlen;
+            return 0;
+        }
+        hp->hoplimit--;
+    }
 
-    DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
-             *datalen, hdrlen);
+    DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder (%p, %d bytes left, hdrlen=%d)\n",
+             *data, *datalen, hdrlen);
+
+#ifdef USE_FRAG
+    if (hp->pkttype == CCNX_PT_FRAGMENT) {
+        struct ccnx_tlvhdr_ccnx2015frag_s *fp = 
+                                   (struct ccnx_tlvhdr_ccnx2015frag_s *)hp;
+        uint16_t *sp = (uint16_t*) (fp+1);
+        int fraglen = ntohs(*(sp+1));
+        if (ntohs(*sp) == CCNX_TLV_TL_Fragment && fraglen == (payloadlen-4)) {
+            *data += 4;
+            *datalen -= 4;
+            payloadlen = fraglen;
+            ccnl_frag_RX_CCNx2015(ccnl_ccntlv_forwarder, relay, from,
+                        fp->flagsAndSeqNr[0] >> 6,
+//                      (*(uint32_t *)(fp->flagsAndSeqNr)) & 0x0fffff,
+                        ntohs(*(uint16_t *)(fp->flagsAndSeqNr + 1)) & 0x0ffff,
+                        data, &fraglen);
+            DEBUGMSG(DEBUG, "  fraglen=%d, payloadlen=%d, *datalen=%d\n",
+                     fraglen, payloadlen, *datalen);
+            *datalen -= payloadlen - fraglen;
+        } else {
+            DEBUGMSG(DEBUG, "  problem with frag type or length (%d, %d, %d)\n",
+                     ntohs(*sp), fraglen, payloadlen);
+            *data += payloadlen;
+            *datalen -= payloadlen;
+        }
+        DEBUGMSG(TRACE, "  returning after fragment: %d bytes\n", *datalen);
+        return 0;
+    }
+#endif
 
     pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
@@ -295,14 +334,12 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CCNX_PT_Interest) {
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
             DEBUGMSG(WARNING, "  ccntlv: interest pkt type mismatch %d %d\n",
                      hp->pkttype, pkt->type);
         }
-
     } else if (hp->pkttype == CCNX_PT_Data) {
         if (pkt->type == CCNX_TLV_TL_Object) {
             pkt->flags |= CCNL_PKT_REPLY;
@@ -316,6 +353,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 Done:
     free_packet(pkt);
 
+    DEBUGMSG(TRACE, "  returning %d bytes\n", *datalen);
     return rc;
 }
 

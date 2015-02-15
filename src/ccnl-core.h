@@ -39,6 +39,7 @@
 #define CCNL_FRAG_NONE          0
 #define CCNL_FRAG_SEQUENCED2012 1
 #define CCNL_FRAG_CCNx2013      2
+#define CCNL_FRAG_SEQUENCED2015 3
 
 // ----------------------------------------------------------------------
 
@@ -223,6 +224,7 @@ struct ccnl_pktdetail_ndntlv_s {
 
 #define CCNL_PKT_REQUEST   0x01 // "Interest"
 #define CCNL_PKT_REPLY     0x02 // "Object", "Data"
+#define CCNL_PKT_FRAGMENT  0x03 // "Fragment"
 
 struct ccnl_pkt_s {
     struct ccnl_buf_s *buf;        // the packet's bytes

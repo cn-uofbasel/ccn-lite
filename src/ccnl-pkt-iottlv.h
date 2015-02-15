@@ -35,9 +35,14 @@
 
 Top level:
   0 reserved
-  1 reserved
+  1 Fragment
   2 Request (aka Interest)
   3 Reply (aka Data/Content)
+
+Fragment:
+  0 Optional Headers
+  1 FlagsAndSeqNr (2 bytes: BEIXnnnn nnnnnnnn)
+  2 Payload
 
 Request or Reply:
   0 Optional Headers

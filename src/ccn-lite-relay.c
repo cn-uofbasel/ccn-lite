@@ -2,7 +2,7 @@
  * @f ccn-lite-relay.c
  * @b user space CCN relay
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,8 +31,8 @@
 #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-// #define USE_FRAG
 #define USE_ETHERNET
+#define USE_FRAG
 #define USE_HTTP_STATUS
 #define USE_MGMT
 // #define USE_NACK
