@@ -909,8 +909,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             }
             if (f->ifndx >= 0 && ccnl->ifs[f->ifndx].mtu > 0)
                 mtu = ccnl->ifs[f->ifndx].mtu;
-            f->frag = ccnl_frag_new(strtol((const char*)frag, NULL, 0),
-                                        mtu); 
+            f->frag = ccnl_frag_new(strtol((const char*)frag, NULL, 0), mtu); 
         }
 #endif
         cp = "newface cmd worked";

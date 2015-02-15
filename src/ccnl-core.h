@@ -134,15 +134,17 @@ struct ccnl_prefix_s {
 };
 
 struct ccnl_frag_s {
-    int protocol; // (0=plain CCNx)
+    int protocol; // fragmentation protocol, 0=none
     int mtu;
     sockunion dest;
-    struct ccnl_buf_s *bigpkt;
+    struct ccnl_buf_s *bigpkt; // outgoing bytes
     unsigned int sendoffs;
+    int outsuite; // suite of outgoing packet
     // transport state, if present:
     int ifndx;
 
-    struct ccnl_buf_s *defrag;
+    // int insuite; // suite of incoming packet series
+    struct ccnl_buf_s *defrag; // incoming bytes
 
     unsigned int sendseq;
     unsigned int losscount;

@@ -67,6 +67,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 
 char theSuite = CCNL_SUITE_DEFAULT;
+int theMTU = 0;
 
 // ----------------------------------------------------------------------
 
@@ -400,10 +401,8 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     fwd->suite = theSuite;
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
 #ifdef USE_FRAG
-    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012, 1500);
-    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
-    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2015, 1200);
-    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, 1200);
+    if (theMTU)
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, theMTU);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;
@@ -566,7 +565,7 @@ main(int argc, char **argv)
     //    srand(time(NULL));
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:g:i:s:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:g:i:m:s:v:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -576,6 +575,9 @@ main(int argc, char **argv)
             break;
         case 'i':
             inter_ccn_interval = atoi(optarg);
+            break;
+        case 'm':
+            theMTU = atoi(optarg);
             break;
         case 'v':
             if (isdigit(optarg[0]))
@@ -589,11 +591,13 @@ main(int argc, char **argv)
                 break;
         case 'h':
         default:
-            fprintf(stderr, "Xusage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
-                    "[-g MIN_INTER_PACKET_INTERVAL] "
-                    "[-i MIN_INTER_CCNMSG_INTERVAL] "
-                    "[-s SUITE (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)] "
-                    "[-v DEBUG_LEVEL]\n",
+            fprintf(stderr, "Xusage: %s [-h]\n"
+                    "  [-c MAX_CONTENT_ENTRIES]\n"
+                    "  [-g MIN_INTER_PACKET_INTERVAL]\n"
+                    "  [-i MIN_INTER_CCNMSG_INTERVAL]\n"
+                    "  [-m MTU]\n"
+                    "  [-s SUITE (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)]\n"
+                    "  [-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);
         }

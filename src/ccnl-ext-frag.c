@@ -60,7 +60,7 @@ ccnl_frag_new(int protocol, int mtu)
     case CCNL_FRAG_SEQUENCED2012:
     case CCNL_FRAG_CCNx2013:
     case CCNL_FRAG_SEQUENCED2015:
-      e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
+        e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
         if (e) {
             e->protocol = protocol;
             e->mtu = mtu;
@@ -89,6 +89,8 @@ ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
     memcpy(&e->dest, dst, sizeof(*dst));
     ccnl_free(e->bigpkt);
     e->bigpkt = buf;
+    if (buf)
+        e->outsuite = ccnl_pkt2suite(buf->data, buf->datalen, 0);
     e->sendoffs = 0;
 }
 
@@ -292,127 +294,39 @@ struct ccnl_buf_s*
 ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     struct ccnl_buf_s *buf = 0;
-    unsigned int datalen;
-//    unsigned char tmp[4];
-    uint16_t tmp;
-    struct ccnx_tlvhdr_ccnx2015frag_s *fp;
-
-    datalen = fr->mtu - sizeof(*fp) - 4;
-    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
-        datalen = fr->bigpkt->datalen - fr->sendoffs;
+    unsigned int datalen = 0;
 
     DEBUGMSG(DEBUG, "ccnl_frag_getnextSEQD2015: datalen=%d\n", datalen);
 
-    buf = ccnl_buf_new(NULL, sizeof(*fp) + 4 + datalen);
-    fp = (struct ccnx_tlvhdr_ccnx2015frag_s*) buf->data;
-    memset(fp, 0, sizeof(*fp));
-    fp->version = CCNX_TLV_V0;
-    fp->pkttype = CCNX_PT_FRAGMENT;
-    fp->hdrlen = sizeof(*fp);
-    fp->pktlen = htons(buf->datalen);
-    *(uint16_t*)(fp+1) = htons(CCNX_TLV_TL_Fragment);
-    *(uint16_t*)((char*)(fp+1) + 2) = htons(datalen);
-    memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
+    switch(fr->outsuite) {
+    case CCNL_SUITE_CCNTLV:
+        buf = ccnl_ccntlv_mkFrag(fr, &datalen);
+        break;
+    default:
+        break;
+    }
 
-/*
-    *(uint32_t*) tmp = htonl(fr->sendseq & 0x0fffff);
-    memcpy(fp->flagsAndSeqNr, tmp+1, 3);
-*/
+    if (buf) {
+        fr->sendseq++;
 
-    tmp = htons(fr->sendseq & 0x0ffff);
-    memcpy(fp->flagsAndSeqNr+1, &tmp, 2);
+        fr->sendoffs += datalen;
+        if (fr->sendoffs >= fr->bigpkt->datalen) {
+            ccnl_free(fr->bigpkt);
+            fr->bigpkt = NULL;
+        }
 
-    // patch flag field:
-    if (datalen >= fr->bigpkt->datalen) { // single
-        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_SINGLE << 6;
-        ccnl_free(fr->bigpkt);
-        fr->bigpkt = NULL;
-    } else if (fr->sendoffs == 0) // start
-        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_FIRST << 6;
-    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
-        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_LAST << 6;
-        ccnl_free(fr->bigpkt);
-        fr->bigpkt = NULL;
-    } else
-        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_MID << 6;
+        if (ifndx)
+            *ifndx = fr->ifndx;
+        if (su)
+            memcpy(su, &fr->dest, sizeof(*su));
 
-    fr->sendoffs += datalen;
-    fr->sendseq++;
-
-    if (ifndx)
-        *ifndx = fr->ifndx;
-    if (su)
-        memcpy(su, &fr->dest, sizeof(*su));
-
-    DEBUGMSG(DEBUG, "  produced %d bytes fragment, seqnr=%d-1\n",
-             buf->datalen, fr->sendseq);
+        DEBUGMSG(DEBUG, "  produced %d bytes fragment, seqnr=%d-1\n",
+                 buf->datalen, fr->sendseq);
+    } else 
+        DEBUGMSG(DEBUG, "  produced NO fragment, seqnr remains at =%d-1\n",
+                 fr->sendseq);
 
     return buf;
-
-
-/*
-    unsigned char header[256];
-    int hdrlen, blobtaglen, flagoffs;
-
-    // switch among encodings of fragments here (ccnb, TLV, etc)
-
-    hdrlen = ccnl_ccnb_mkHeader(header, CCNL_DTAG_FRAGMENT2013, CCN_TT_DTAG); // fragment
-
-    hdrlen += ccnl_ccnb_mkHeader(header + hdrlen, CCNL_DTAG_FRAG2013_TYPE, CCN_TT_DTAG);
-    hdrlen += ccnl_ccnb_mkHeader(header + hdrlen, 3, CCN_TT_BLOB);
-    memcpy(header + hdrlen, CCNL_FRAG_TYPE_CCNx2013_VAL, 3); // "FHBH"
-    header[hdrlen + 3] = '\0';
-    hdrlen += 4;
-
-    hdrlen += ccnl_ccnb_mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG2013_SEQNR, CCN_TT_DTAG,
-                          fr->sendseq, fr->sendseqwidth);
-
-    hdrlen += ccnl_ccnb_mkBinaryInt(header+hdrlen, CCNL_DTAG_FRAG2013_FLAGS, CCN_TT_DTAG,
-                          0, fr->flagwidth);
-    flagoffs = hdrlen - 2; // most significant byte of flag element
-
-    // other optional fields would go here
-
-    hdrlen += ccnl_ccnb_mkHeader(header+hdrlen, CCN_DTAG_CONTENT, CCN_TT_DTAG);
-
-    blobtaglen = ccnl_ccnb_mkHeader(header + hdrlen, fr->mtu - hdrlen - 2, CCN_TT_BLOB);
-    datalen = fr->mtu - hdrlen - blobtaglen - 2;
-    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
-        datalen = fr->bigpkt->datalen - fr->sendoffs;
-    hdrlen += ccnl_ccnb_mkHeader(header + hdrlen, datalen, CCN_TT_BLOB);
-
-    buf = ccnl_buf_new(NULL, hdrlen + datalen + 2);
-    if (!buf)
-        return NULL;
-    memcpy(buf->data, header, hdrlen);
-    memcpy(buf->data + hdrlen, fr->bigpkt->data + fr->sendoffs, datalen);
-    buf->data[hdrlen + datalen] = '\0'; // end of content field
-    buf->data[hdrlen + datalen + 1] = '\0'; // end of fragment
-
-    // patch flag field:
-    if (datalen >= fr->bigpkt->datalen) { // single
-        buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_SINGLE;
-        ccnl_free(fr->bigpkt);
-        fr->bigpkt = NULL;
-    } else if (fr->sendoffs == 0) // start
-        buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_FIRST;
-    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
-        buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_LAST;
-        ccnl_free(fr->bigpkt);
-        fr->bigpkt = NULL;
-    } else
-        buf->data[flagoffs] = CCNL_DTAG_FRAG_FLAG_MID;
-
-    fr->sendoffs += datalen;
-    fr->sendseq++;
-
-    if (ifndx)
-        *ifndx = fr->ifndx;
-    if (su)
-        memcpy(su, &fr->dest, sizeof(*su));
-
-    return buf;
-*/
 }
 
 struct ccnl_buf_s*

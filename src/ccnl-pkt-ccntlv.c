@@ -482,6 +482,57 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
+#ifdef USE_FRAG
+
+// produces a full FRAG packet. It does not write, just read the fields in *fr
+struct ccnl_buf_s*
+ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
+{
+    unsigned int datalen;
+    struct ccnl_buf_s *buf;
+    uint16_t tmp;
+    struct ccnx_tlvhdr_ccnx2015frag_s *fp;
+
+    datalen = fr->mtu - sizeof(*fp) - 4;
+    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
+        datalen = fr->bigpkt->datalen - fr->sendoffs;
+
+    buf = ccnl_buf_new(NULL, sizeof(*fp) + 4 + datalen);
+    if (!buf)
+        return 0;
+    fp = (struct ccnx_tlvhdr_ccnx2015frag_s*) buf->data;
+    memset(fp, 0, sizeof(*fp));
+    fp->version = CCNX_TLV_V0;
+    fp->pkttype = CCNX_PT_FRAGMENT;
+    fp->hdrlen = sizeof(*fp);
+    fp->pktlen = htons(buf->datalen);
+    *(uint16_t*)(fp+1) = htons(CCNX_TLV_TL_Fragment);
+    *(uint16_t*)((char*)(fp+1) + 2) = htons(datalen);
+    memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
+
+/*
+    *(uint32_t*) tmp = htonl(fr->sendseq & 0x0fffff);
+    memcpy(fp->flagsAndSeqNr, tmp+1, 3);
+*/
+
+    tmp = htons(fr->sendseq & 0x0ffff);
+    memcpy(fp->flagsAndSeqNr+1, &tmp, 2);
+
+    // patch flag field:
+    if (datalen >= fr->bigpkt->datalen) { // single
+        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_SINGLE << 6;
+    } else if (fr->sendoffs == 0) // start
+        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_FIRST << 6;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_LAST << 6;
+    } else
+        fp->flagsAndSeqNr[0] |= CCNL_DTAG_FRAG_FLAG_MID << 6;
+
+    *consumed = datalen;
+    return buf;
+}
+#endif
+
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // PKT_CCNTLV_C
