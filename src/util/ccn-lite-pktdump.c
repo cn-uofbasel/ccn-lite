@@ -891,6 +891,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
 enum {
     IOT_CTX_TOPLEVEL = 1,
+    IOT_CTX_FRAG,
     IOT_CTX_MSG,
     IOT_CTX_HEADER,
     IOT_CTX_EXCLUSION,
@@ -902,8 +903,10 @@ enum {
 };
 
 static char iottlv_recurse[][3] = {
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Fragment,     IOT_CTX_FRAG},
     {IOT_CTX_TOPLEVEL, IOT_TLV_Request,      IOT_CTX_MSG},
     {IOT_CTX_TOPLEVEL, IOT_TLV_Reply,        IOT_CTX_MSG},
+    {IOT_CTX_FRAG,     IOT_TLV_F_OptFragHdr, IOT_CTX_HEADER},
     {IOT_CTX_MSG,      IOT_TLV_R_OptHeader,  IOT_CTX_HEADER},
     {IOT_CTX_MSG,      IOT_TLV_R_Name,       IOT_CTX_NAME},
     {IOT_CTX_MSG,      IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
@@ -924,8 +927,18 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
     case IOT_CTX_TOPLEVEL:
         cn = "toplevelCtx";
         switch (type) {
+        case IOT_TLV_Fragment:         tn = "Fragment"; break;
         case IOT_TLV_Request:          tn = "Request"; break;
         case IOT_TLV_Reply:            tn = "Reply"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_FRAG:
+        cn = "FragCtx";
+        switch (type) {
+        case IOT_TLV_F_OptFragHdr:     tn = "OptFragHeader"; break;
+        case IOT_TLV_F_FlagsAndSeq:    tn = "FlagsAndSeq"; break;
+        case IOT_TLV_F_Payload:        tn = "Payload"; break;
         default: break;
         }
         break;

@@ -107,7 +107,7 @@ then
     rmmod ccn_lite_lnxkernel
     insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA
 else
-    $CCNL_HOME/src/ccn-lite-relay -v 99 -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
+    $CCNL_HOME/src/ccn-lite-relay -v trace -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi
 
 # ----------------------------------------------------------------------
@@ -117,17 +117,17 @@ echo "faceid at A=$FACEID"
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA prefixreg $FWD $FACEID $SUITE | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # if testing fragmentation:
-# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA setfrag $FACEID seqd2015 200 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA setfrag $FACEID seqd2015 800 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # ----------------------------------------------------------------------
 echo "starting relay B, with content loading ..."
-$CCNL_HOME/src/ccn-lite-relay -v 99 -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
+$CCNL_HOME/src/ccn-lite-relay -v trace -s $SUITE $SOCKETB -x $UXB -d "$CCNL_HOME/test/$DIR" 2>/tmp/b.log &
 sleep 1
 FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB $FACETOA | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 echo "faceid at B=$FACEID"
 
 # if testing fragmentation:
-# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB setfrag $FACEID seqd2015 200 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
+# $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB setfrag $FACEID seqd2015 800 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep ACTION
 
 # ----------------------------------------------------------------------
 sleep 1

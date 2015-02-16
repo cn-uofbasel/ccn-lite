@@ -61,6 +61,8 @@ ccnl_iottlv_peekType(unsigned char *buf, int len)
         return -1;
     if (*buf)
         return *buf >> 6;
+    buf++;
+    len--;
     if (ccnl_iottlv_varlenint(&buf, &len, &typ) < 0)
         return -1;
     return typ;
@@ -149,11 +151,19 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     DEBUGMSG(DEBUG, "ccnl_iottlv_bytes2pkt len=%d\n", *datalen);
 
+    {
+        int fd = open("s.bin", O_WRONLY|O_CREAT|O_TRUNC);
+        write(fd, *data, *datalen);
+        close(fd);
+    }
+
+
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
     pkt->suite = CCNL_SUITE_IOTTLV;
     pkt->final_block_id = -1;
+    pkt->s.iottlv.ttl = -1;
 
     while (*datalen) {
         if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
@@ -207,15 +217,18 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     if (*datalen > 0)
         goto Bail;
 
-// we receive a nacked packet (without switch code), we need to add
-// it when creating the packet buffer
-    len = sizeof(tmp);
-    len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
-    if (len2 < 0) {
-        DEBUGMSG(ERROR, "prending code should not return -1\n");
+// if we received a naked packet (without switch code), we need to add
+// a switch code when creating the packet buffer
+    if (*start != 0x80) {
+        len = sizeof(tmp);
+        len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
+        if (len2 < 0) {
+            DEBUGMSG(ERROR, "prending code should not return -1\n");
+            len2 = 0;
+        }
+        start -= len2;
+    } else
         len2 = 0;
-    }
-    start -= len2;
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
         goto Bail;
@@ -424,6 +437,91 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
 
     return oldoffset - *offset;
 }
+
+#ifdef USE_FRAG
+
+// produces a full FRAG packet. It does not write, just read the fields in *fr
+struct ccnl_buf_s*
+ccnl_iottlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
+{
+    unsigned char test[20];
+    int offset, hdrlen, len, len2;
+    unsigned int datalen;
+    struct ccnl_buf_s *buf;
+    uint16_t tmp = 0;
+
+    // test size, first
+    datalen = fr->bigpkt->datalen - fr->sendoffs - 9;
+    if (datalen > fr->mtu)
+        datalen = fr->mtu;
+    offset = sizeof(test);
+    len = datalen + 
+             ccnl_iottlv_prependTL(IOT_TLV_F_Payload, datalen, &offset, test);
+    len += ccnl_iottlv_prependTL(IOT_TLV_F_FlagsAndSeq, 2, &offset, test) + 2;
+    ccnl_iottlv_prependTL(IOT_TLV_Fragment, len, &offset, test);
+    hdrlen = sizeof(test) - offset + 2 + 2; // adj for flagAndSeq, switch code
+
+    // with real values:
+    datalen = fr->bigpkt->datalen - fr->sendoffs;
+    if (datalen > (fr->mtu - hdrlen))
+        datalen = fr->mtu - hdrlen;
+
+    buf = ccnl_buf_new(NULL, hdrlen + datalen); // 2 bytes for switch code
+    if (!buf)
+        return 0;
+    offset = buf->datalen;
+    len = ccnl_iottlv_prependBlob(IOT_TLV_F_Payload,
+                 fr->bigpkt->data + fr->sendoffs, datalen, &offset, buf->data);
+    if (len <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+
+    // flags and sequence number
+    if (datalen >= fr->bigpkt->datalen) { // single
+        tmp |= CCNL_DTAG_FRAG_FLAG_SINGLE << 14;
+    } else if (fr->sendoffs == 0) // start
+        tmp |= CCNL_DTAG_FRAG_FLAG_FIRST << 14;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+        tmp |= CCNL_DTAG_FRAG_FLAG_LAST << 14;
+    } else
+        tmp |= CCNL_DTAG_FRAG_FLAG_MID << 14;
+    tmp |= fr->sendseq & 0x07ff;
+    tmp = htons(tmp);
+    len2 = ccnl_iottlv_prependBlob(IOT_TLV_F_FlagsAndSeq, (unsigned char*)
+                                   &tmp, sizeof(tmp), &offset, buf->data);
+    if (len2 <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+    // main header
+    len2 = ccnl_iottlv_prependTL(IOT_TLV_Fragment, len, &offset, buf->data);
+    if (len2 <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+
+    // encoding switch:
+    len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, buf->data);
+    if (len2 < 0) {
+        DEBUGMSG(ERROR, "  prending code should not return -1\n");
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+
+    if (offset > 0) {
+        DEBUGMSG(DEBUG, "  iottlv fragment: shift by %d bytes\n", offset);
+        memmove(buf->data, buf->data + offset, len);
+        buf->datalen = len;
+    }
+
+    *consumed = datalen;
+    return buf;
+}
+#endif
 
 #endif // NEEDS_PACKET_CRAFTING
 

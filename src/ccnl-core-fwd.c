@@ -79,7 +79,7 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
     switch (pkt->suite) {
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
-        return pkt->s.iottlv.ttl > 0;
+        return pkt->s.iottlv.ttl < 0 || pkt->s.iottlv.ttl > 0;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
@@ -255,8 +255,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %p %d bytes from face=%p (id=%d.%d)\n",
-             *data, *datalen, (void*)from, relay->id, from ? from->faceid : -1);
+    DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder: %d bytes from face=%p (id=%d.%d)\n",
+             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CCNX_TLV_V0 ||
                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
@@ -293,7 +293,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         hp->hoplimit--;
     }
 
-    DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder (%p, %d bytes left, hdrlen=%d)\n",
+    DEBUGMSG(DEBUG, "  data=%p, %d bytes left, hdrlen=%d\n",
              *data, *datalen, hdrlen);
 
 #ifdef USE_FRAG
@@ -368,21 +368,79 @@ int
 ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int typ, len, rc = -1;
+    int typ, len, rc = -1, enc;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG(TRACE, "ccnl_iottlv_forwarder2 (%d bytes left)\n", *datalen);
+    DEBUGMSG(TRACE, "ccnl_iottlv_forwarder: %d bytes from face=%p (id=%d.%d)\n",
+             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-    memset(&pkt, 0, sizeof(pkt));
+    {
+        int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+        write(fd, *data, *datalen);
+        close(fd);
+    }
 
-    if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+    while (!ccnl_switch_dehead(data, datalen, &enc));
+/*
+        suite = ccnl_enc2suite(enc);
+    if (suite != CCNL_SUITE_IOTTLV) {
+        DEBUGMSG(TRACE, "  wrong encoding? (%d)\n", enc);
         return -1;
+    }
+*/
+
+
+    DEBUGMSG(TRACE, "  datalen now %d\n", *datalen);
+
+#ifdef USE_FRAG
+    if (ccnl_iottlv_peekType(*data, *datalen) == IOT_TLV_Fragment) {
+        uint16_t tmp;
+        int payloadlen;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
+            return -1;
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+            return -1;
+        if (typ == IOT_TLV_F_OptFragHdr) { // skip it for the time being
+            *data += len;
+            *datalen -= len;
+            if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+                return -1;
+        }
+        if (typ != IOT_TLV_F_FlagsAndSeq || len < 2) {
+            DEBUGMSG(DEBUG, "  no flags and seqrn found (%d)\n", typ);
+            return -1;
+        }
+        tmp = ntohs(*(uint16_t*) *data);
+        *data += len;
+        *datalen -= len;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &payloadlen))
+            return -1;
+        if (typ != IOT_TLV_F_Payload) {
+            DEBUGMSG(DEBUG, "  no payload (%d)\n", typ);
+            return -1;
+        }
+        *datalen -= payloadlen;
+        ccnl_frag_RX_CCNx2015(ccnl_iottlv_forwarder, relay, from,
+                              tmp >> 14, tmp & 0x7ff, data, &payloadlen);
+        *datalen += payloadlen;
+
+        DEBUGMSG(TRACE, "  returning after fragment: %d bytes\n", *datalen);
+        return 0;
+    } else
+#endif
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
+            return -1;
+
     pkt = ccnl_iottlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
         DEBUGMSG(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+
+    DEBUGMSG(DEBUG, "  parsed packet has %d bytes\n", pkt->buf->datalen);
     // typ must be Request or Reply
     pkt->type = typ;
 

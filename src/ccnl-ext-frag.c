@@ -302,6 +302,9 @@ ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     case CCNL_SUITE_CCNTLV:
         buf = ccnl_ccntlv_mkFrag(fr, &datalen);
         break;
+    case CCNL_SUITE_IOTTLV:
+        buf = ccnl_iottlv_mkFrag(fr, &datalen);
+        break;
     default:
         break;
     }

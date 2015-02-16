@@ -529,8 +529,9 @@ struct ccnl_content_s*
 ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
-    DEBUGMSG(TRACE, "ccnl_content_new2 %p <%s>\n",
-             (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG(TRACE, "ccnl_content_new %p len=%d <%s>\n",
+             (void*) *pkt, (*pkt)->buf->datalen,
+             ccnl_prefix_to_path((*pkt)->pfx));
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)

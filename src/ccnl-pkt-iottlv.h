@@ -79,8 +79,14 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // ----------------------------------------------------------------------
 // TLV message
 
+#define IOT_TLV_Fragment        0x1
 #define IOT_TLV_Request         0x2
 #define IOT_TLV_Reply           0x3
+
+// inside fragment
+#define IOT_TLV_F_OptFragHdr    0x0
+#define IOT_TLV_F_FlagsAndSeq   0x1
+#define IOT_TLV_F_Payload       0x2
 
 // inside request/reply packet
 #define IOT_TLV_R_OptHeader     0x0
