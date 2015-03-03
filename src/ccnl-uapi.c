@@ -81,20 +81,25 @@ int mk_ccnb_interest(struct info_data_s *o);
 
 //ndntlv
 const struct suite_vt_s ndnTlv_vt = {
-        mk_ndntlv_interest,0,0,0
+        mk_ndntlv_interest,
+        mk_ndntlv_content,
+        0,0
     // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
 };
 
 //ccntlv
 const struct suite_vt_s ccnTlv_vt = {
-        mk_ccntlv_interest,0,0,0
+        mk_ccntlv_interest,
+        mk_ccntlv_content,
+        0,0
         // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
 };
 
 //ccnb
 const struct suite_vt_s ccnXmlb_vt = {
         mk_ccnb_interest,
-        0,0,0
+        mk_ccnb_content,
+        0,0
         // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
 };
 
@@ -882,6 +887,44 @@ fwd_rule_add(struct info_mgmt_s *mgmt)
     return cnt;
 };
 
+/*
+ * create a prefix from a info_data object
+ */
+struct ccnl_prefix_s *
+mk_prefix(struct info_data_s *o){
+    struct ccnl_prefix_s * pref;
+    //prepare name
+    if (o->name) {
+        pref = ccnl_URItoPrefix(o->name, o, NULL, o->chunk_seqn)
+    }
+    else if(o->name_components){
+        int numOfComps = 0;
+        int complens[CCNL_MAX_NAME_COMP];
+        char ** comps = o->name_components;
+        while (*comps)) {
+            complens[numOfComps] = strlen(*comps)
+            ++numOfComps;
+            ++(*comps);
+        }
+        
+        int suite = -1:
+        int s = o->vtable->suite;
+        
+        if (s == CCN_XMLB){
+            suite = CCNL_SUITE_CCNB;
+        }
+        else if(s == CCN_TLV){
+            suite = CCNL_SUITE_CCNTLV;
+        }
+        else if(s == NDN_TLV){
+            suite = CCNL_SUITE_NDNTLV;
+        }
+        
+        
+        pref = ccnl_componentsToPrefix(o->name_components, complens, numOfComps, suite, NULL, o->chunk_seqn);
+    }
+    return pref;
+}
 
 
 /*
@@ -890,6 +933,7 @@ fwd_rule_add(struct info_mgmt_s *mgmt)
 int
 mk_ccnb_interest(struct info_data_s *o)
 {
+#ifdef old_version
     struct info_interest_ccnXmlb_s *    i_info = (struct info_interest_ccnXmlb_s *) o;
     struct ccnl_prefix_s *              pp = 0;
     unsigned char                       tmp2[_TMP_INTEREST_OBJ_MAXSIZE];
@@ -898,14 +942,14 @@ mk_ccnb_interest(struct info_data_s *o)
 
     assert (i_info);
 
-    /*
+//    /*
      * FIXME: NOTE that as things are here, to create an interest we do not look at the
      * chunk_seqn field of the info_interest_ccnXmlb_s struct passed to us to determine
      * the last component as a chunk num. In principle we SHOULD(!) because in this way
      * we can differentiate prefixes from exact names, and because this MAY make easier
      * the juggling with conventions on how chunk naming should be formed at the last
      * component
-     */
+//     */
 
     // name must be supplied
     if (i_info->base.name)      // name supplied as a string
@@ -947,29 +991,33 @@ mk_ccnb_interest(struct info_data_s *o)
     i_info->nonce = nonce;
 
     return 1;       // success: 1 interest pkt created
+#endif
+    
+    struct ccnl_prefix_s * pref = mk_prefix(o);
+    o->pkt_buf = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    len = ccnl_ccnb_fillInterest(pref, NULL, o->pkt_buf, CCNL_MAX_PACKET_SIZE);
+    
+    return 1;
+
 };
 
 
 /*
  * create a ccntlv interest packet
  */
+//TODO add offset to o->pkt_buf
 int
 mk_ccntlv_interest(struct info_data_s *o)
 {
-    struct ccnl_prefix_s * pref:
-    //prepare name
-    if (o->name) {
-        pref = ccnl_URItoPrefix(o->name, CCNL_SUITE_CCNTLV, NULL, o->chunk_seqn)
-    }
-    else if(o->name_components){
-        
-    }
+    struct ccnl_prefix_s * pref = mk_prefix(o);
+
+    int offs = CCNL_MAX_PACKET_SIZE;
+    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    o->pkt_len = ccnl_ccntlv_prependInterestWithHdr(pref, &offs, tmp);
     
-
-    o->pkt_buf = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    o->pkt_len = ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                                   o->pkt_buf, CCNL_MAX_PACKET_SIZE);
-
+    o->pkt_buf = tmp + offs;
+    
+    return 1;
 }
 
 /*
@@ -978,7 +1026,78 @@ mk_ccntlv_interest(struct info_data_s *o)
 int
 mk_ndntlv_interest(struct info_data_s *o)
 {
+    struct ccnl_prefix_s * pref = mk_prefix(o);
     
+    int offs = CCNL_MAX_PACKET_SIZE;
+    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    
+    struct info_interest_ndnTlv_s *ii = (struct info_interest_ndnTlv_s *)o
+    o->pkt_len = ccnl_ndntlv_prependInterest(pref, -1, ii->nonce, &offs, tmp);
+    
+    o->pkt_buf = tmp + offs;
+    
+    return 1;
+}
+
+/*
+ * create a ccnb content packet
+ */
+int
+mk_ccnb_content(struct info_data_s *o)
+{
+    struct ccnl_prefix_s * pref = mk_prefix(o);
+    int contentpos = 0;
+    
+    struct info_content_ccnXmlb_s *ic = (struct info_content_ccnXmlb_s *)o:
+    
+    o->pkt_buf = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    o->pkt_len = ccnl_ccnb_fillContent(pref, ic->data, ic->datalen, &contentpos, o->pkt_buf);
+    
+    return 1;
+}
+
+/*
+ * create a ccnb content packet
+ */
+int
+mk_ccntlv_content(struct info_data_s *o)
+{
+    struct ccnl_prefix_s * pref = mk_prefix(o);
+    int contentpos = 0;
+    int offs = CCNL_MAX_PACKET_SIZE;
+    
+    struct info_content_ccnTlv_s *ic = (struct info_content_ccnTlv_s *)o:
+    
+    char * tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    
+    o->pkt_len = ccnl_ccntlv_prependContentWithHdr(pref, ic->data, ic->datalen
+                                      NULL, // lastchunknum
+                                      &offs, &contentpos, tmp);
+    
+    o->pkt_buf = tmp + offs;
+    return 1;
+}
+
+/*
+ * create a ccnb content packet
+ */
+int
+mk_ndntlv_content(struct info_data_s *o)
+{
+    struct ccnl_prefix_s * pref = mk_prefix(o);
+    int contentpos = 0;
+    int offs = CCNL_MAX_PACKET_SIZE;
+    
+    struct info_content_ndnTlv_s *ic = (struct info_content_ndnTlv_s *)o:
+    
+    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    
+    o->pkt_len = ccnl_ndntlv_prependContent(pref, ic->data, ic->datalen,
+                                            &offs, &contentpos, NULL, tmp);
+    
+    o->pkt_buf = tmp + offs;
+    return 1;
+
 }
 
 

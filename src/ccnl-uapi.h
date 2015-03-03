@@ -234,6 +234,8 @@ struct info_data_s {
 // interest object for ndntlv
 struct info_interest_ndnTlv_s {
     struct info_data_s  base;
+    
+    int                 nonce;      // nonce value
     // TODO: ndntlv specific obj attribs
 };
 
@@ -254,18 +256,27 @@ struct info_interest_ccnXmlb_s {
 // content object for ndntlv
 struct info_content_ndnTlv_s {
     struct info_data_s  base;
+    
+    unsigned char       *data;
+    unsigned int        datalen;
     // TODO: ndntlv content obj attribs
 };
 
 // content object for ccntlv
 struct info_content_ccnTlv_s {
     struct info_data_s  base;
+    
+    unsigned char *data;
+    unsigned int datalen;
     // TODO: ccntlv content obj attribs
 };
 
 // content object for ccnb
 struct info_content_ccnXmlb_s {
     struct info_data_s  base;
+    
+    unsigned char *data;
+    unsigned int datalen;
     // TODO: ccnb content obj attribs
 };
 
