@@ -28,17 +28,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <getopt.h>
-#include <unistd.h>
-#include <fcntl.h>
 
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/un.h>
-#include <sys/utsname.h>
+#ifdef CCNL_UNIX
+
+# include <time.h>
+# include <getopt.h>
+# include <unistd.h>
+# include <fcntl.h>
+# include <sys/ioctl.h>
+# include <sys/select.h>
+# include <sys/socket.h>
+# include <sys/time.h>
+# include <sys/un.h>
+# include <sys/utsname.h>
 
 #if !(defined(_BSD_SOURCE) || defined(SVID_SOURCE))
 #  define __USE_MISC
@@ -65,6 +67,7 @@
 #ifdef USE_CCNxDIGEST
 #  include <openssl/sha.h>
 #endif
+#endif // CCNL_UNIX
 
 #else // else we are compiling for the Linux kernel
 
@@ -102,5 +105,22 @@
 #define USE_ETHERNET
 
 #endif // CCNL_LINUXKERNEL
+
+// ----------------------------------------------------------------------
+
+#ifdef CCNL_ARDUINO
+
+struct sockaddr {
+  unsigned char sa_family;
+};
+
+# define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
+# define htons(i)  ntohs(i)
+
+// 32 bit values in an Arduino context?
+# define ntohl(i)  -1
+# define htonl(i)  -1
+
+#endif
 
 // eof

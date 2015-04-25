@@ -21,8 +21,10 @@
  * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
  */
 
-#ifndef PKT_CCNTLV_C
-#define PKT_CCNTLV_C
+#ifdef USE_CCNTLV
+
+//#ifndef PKT_CCNTLV_C
+//#define PKT_CCNTLV_C
 
 #include "ccnl-pkt-ccntlv.h"
 
@@ -450,6 +452,6 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // PKT_CCNTLV_C
+#endif // USE_CCNTLV
 
 // eof

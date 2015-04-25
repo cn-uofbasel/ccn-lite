@@ -110,8 +110,10 @@ ccnl_is_local_addr(sockunion *su)
     if (su->sa.sa_family == AF_UNIX)
         return -1;
 #endif
+#ifdef USE_IPV4
     if (su->sa.sa_family == AF_INET)
         return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+#endif
     return 0;
 }
 
@@ -328,7 +330,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         len += cnt * 4; // add TL size
 #endif
     
-    p->bytes = ccnl_malloc(len);
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
@@ -356,7 +358,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #endif
 
     if(chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
 
@@ -381,7 +383,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
-    p->bytes = ccnl_malloc(len);
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
@@ -395,7 +397,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     }
 
     if (prefix->chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *prefix->chunknum;
     }
 
@@ -574,10 +576,12 @@ ccnl_addr2ascii(sockunion *su)
         return result;
     }
 #endif
+#ifdef USE_IPV4
     case AF_INET:
         sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
         return result;
+#endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
         strcpy(result, su->ux.sun_path);
@@ -701,7 +705,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     unsigned char *tmp;
     int len = 0, offs;
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
@@ -754,7 +758,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     DEBUGMSG(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
              ccnl_prefix_to_path(name), paylen);
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {

@@ -33,8 +33,15 @@
 
 #define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
-#define CCNL_MAX_INTERFACES             10
-#define CCNL_MAX_PACKET_SIZE            8096
+#ifndef CCNL_ARDUINO
+# define CCNL_MAX_INTERFACES             10
+# define CCNL_MAX_IF_QLEN                64
+# define CCNL_MAX_PACKET_SIZE            8096
+#else
+# define CCNL_MAX_INTERFACES             1
+# define CCNL_MAX_IF_QLEN                1
+# define CCNL_MAX_PACKET_SIZE            108
+#endif
 
 #define CCNL_CONTENT_TIMEOUT            30 // sec
 #define CCNL_INTEREST_TIMEOUT           4  // sec
@@ -44,7 +51,6 @@
 #define CCNL_FACE_TIMEOUT       15 // sec
 
 #define CCNL_MAX_NAME_COMP      64
-#define CCNL_MAX_IF_QLEN        64
 
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #define CCNL_MAX_NONCES                 256 // for detected dups

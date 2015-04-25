@@ -21,8 +21,10 @@
  * 2014-11-05 merged from pkt-ndntlv-enc.c pkt-ndntlv-dec.c
  */
 
-#ifndef PKT_NDNTLV_C
-#define PKT_NDNTLV_C
+#ifdef USE_NDNTLV
+
+//#ifndef PKT_NDNTLV_C
+//#define PKT_NDNTLV_C
 
 #include "ccnl-pkt-ndntlv.h"
 
@@ -493,6 +495,6 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // PKT_NDNTLV_C
+#endif // USE_NDNTLV
 
 // eof

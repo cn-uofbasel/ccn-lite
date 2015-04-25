@@ -85,9 +85,11 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
         case AF_PACKET:
             return memcmp(s1->eth.sll_addr, s2->eth.sll_addr, ETH_ALEN);
 #endif
+#ifdef USA_IPV4
         case AF_INET:
             return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
                         s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
+#endif
 #ifdef USE_UNIXSOCKET
         case AF_UNIX:
             return strcmp(s1->ux.sun_path, s2->ux.sun_path);

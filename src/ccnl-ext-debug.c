@@ -715,7 +715,7 @@ debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)
 {
-    struct ccnl_buf_s *b = ccnl_malloc(sizeof(*b) + len);
+    struct ccnl_buf_s *b = (struct ccnl_buf_s*) ccnl_malloc(sizeof(*b) + len);
 
     if (!b)
         return NULL;

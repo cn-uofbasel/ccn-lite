@@ -26,8 +26,32 @@
 #ifndef CCNL_OS_TIME_C
 #define CCNL_OS_TIME_C
 
-#include "ccnl-os-includes.h"
+// #include "ccnl-os-includes.h"
 #include "ccnl-ext-debug.c"
+
+#ifdef CCNL_ARDUINO
+
+  typedef int time_t;
+# define Hz 1000
+
+int CCNL_NOW(void) { return millis() / Hz; }
+
+struct timeval {
+    int tv_sec;
+    int tv_usec;
+};
+
+void gettimeofday(struct timeval *tv, void *dummy)
+{
+    int t = millis();
+    tv->tv_sec = t / Hz;
+    tv->tv_usec = (t % Hz) * (1000000 / Hz);
+}
+
+#endif
+
+
+#ifdef CCNL_UNIX
 
 long
 timevaldelta(struct timeval *a, struct timeval *b) {
@@ -135,7 +159,7 @@ struct ccnl_timer_s {
     void *aux2;
     int handler;
 };
-
+#endif // CCNL_UNIX
 
 #if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
 
@@ -261,7 +285,6 @@ timestamp(void)
 #endif 
 
 // void ccnl_get_timeval(struct timeval *tv);
-
 
 #endif //CCNL_OS_TIME_C
 // eof
