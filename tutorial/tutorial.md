@@ -47,7 +47,7 @@ This scenario consists of a topology of two nodes `A` and `B` each running an in
 ### 0. Installing CCN-Lite 
 
 1. `git clone https://github.com/cn-uofbasel/ccn-lite`
-2. Set the CCN-Lite env: `export CCNL_HOME=".../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist). Additional you can add $CCNL_HOME/bin to your system PATH to be able to start all CCN-lite binaries directly.
+2. Set the CCN-Lite env: `export CCNL_HOME=".../ccn-lite"` (don't forget to add it to your  bash profile if you want it to persist). Additional you can add `$CCNL_HOME/bin` to your system PATH  to be able to start all CCN-lite binaries directly.
 3. Add the binary directory of ccn-lite to your path `export PATH=$PATH:".../ccn-lite/bin`
 3. Dependencies:
 	* Ubuntu: `sudo apt-get install libssl-dev`
