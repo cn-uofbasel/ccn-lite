@@ -1,6 +1,6 @@
 /*
  * @f ccn-lite-arduino.c
- * @b a small relay for the Ardiuno platform
+ * @b a small server/relay for the Ardiuno platform
  *
  * Copyright (C) 2015, Christian Tschudin, University of Basel
  *
@@ -28,6 +28,7 @@
 //#define USE_FRAG
 //#define USE_ETHERNET
 //#define USE_HTTP_STATUS
+// #define USE_LOGGING
 //#define USE_MGMT
 //#define USE_NACK
 //#define USE_NFN
@@ -42,7 +43,45 @@
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
 
-#include "ccnl-os-includes.h"
+// #include "ccnl-os-includes.h"
+
+struct sockaddr {
+  unsigned char sa_family;
+};
+
+# define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
+# define htons(i)  ntohs(i)
+
+// 32 bit values in an Arduino context?
+# define ntohl(i)  -1
+# define htonl(i)  -1
+
+
+#ifdef XXX
+#ifdef EXTRACT_DEBUGMSG_STR
+# define CONCATE(X,Y) X##Y
+# define CONCAT(X,Y) CONCATE(X,Y)
+# undef DEBUGMSG
+//# define DEBUGMSG(L,F) PROGMEM_STR(CONCAT(var,__COUNTER__), F)
+# define DEBUGMSG(L,F,...) PROGMEM_STR(CONCAT(var,__COUNTER__), F)
+#else
+# undef DEBUGMSG
+# define DEBUGMSG(L,F,...) DEBUGMSG_PROGMEM(L,__COUNTER__,__VA_ARGS__)
+#endif
+#endif
+
+static char mem[512];
+
+#undef DEBUGMSG
+#define DEBUGMSG(L,FMT, ...) do { \
+  if ((L) <= debug_level) {                      \
+    sprintf_P(mem, PSTR(FMT), ##__VA_ARGS__);      \
+    Serial.print(timestamp()); \
+    Serial.print(" "); \
+    Serial.print(mem); \
+    Serial.print("\r"); \
+  } \
+} while(0)
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -50,13 +89,30 @@
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
-#include "ccnl-ext-logging.c"
+//#include "ccnl-ext-logging.c"
+
+#define FATAL   94  // FATAL
+#define ERROR   95  // ERROR
+#define WARNING 96  // WARNING 
+#define INFO    97  // INFO 
+#define DEBUG   98  // DEBUG 
+#define VERBOSE 99  // VERBOSE
+#define TRACE 	100 // TRACE 
+
+const char Xmsg[] PROGMEM = "hello world <%s>";
+const char* const Xmsgs[] PROGMEM = {Xmsg};
+
+//#undef DEBUGMSG (
+//#define DEBUGMSG(Lvl,Mid
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
+char* ccnl_addr2ascii(sockunion *su);
+
 #include "ccnl-core.c"
 
+/*
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
@@ -65,6 +121,7 @@
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
 #include "ccnl-ext-crypto.c"
+*/
 
 // ----------------------------------------------------------------------
 
@@ -91,7 +148,7 @@ timevaldelta(struct timeval *a, struct timeval *b) {
 }
 
 void*
-ccnl_set_timer(int usec, void (*fct)(void *aux1, void *aux2),
+ccnl_set_timer(long usec, void (*fct)(void *aux1, void *aux2),
                  void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
@@ -235,11 +292,15 @@ void ccnl_ageing(void *relay, void *aux)
 
 // ----------------------------------------------------------------------
 
-// ----------------------------------------------------------------------
-
-int
+unsigned long
 ccnl_arduino_run_events(struct ccnl_relay_s *relay)
 {
+    struct timeval *timeout;
+    timeout = ccnl_run_events();
+    if (timeout)
+        return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
+    else
+        return 10;
 
 /*
     int i, len, maxfd = -1, rc;
@@ -328,44 +389,22 @@ ccnl_arduino_init(struct ccnl_relay_s *relay)
     int opt, max_cache_entries = -1, udpport = -1, httpport = -1;
     char *datadir = NULL, *ethdev = NULL;
 
-/*
-#define setPorts(PORT)  if (udpport < 0) udpport = PORT; \
-                        if (httpport < 0) httpport = PORT
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-#endif
-    default:
-        setPorts(NDN_UDP_PORT);
-        break;
-    }
-*/
-    ccnl_core_init();
-
-/*
-    DEBUGMSG(INFO, "This is ccn-lite-relay, starting at %s",
-             ctime(&theRelay.startup_time) + 4);
-*/
+    DEBUGMSG(INFO, "This is ccn-lite-relay\n");
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
-    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
+    DEBUGMSG(INFO, "  using suite %s\n", ccnl_suite2str(suite));
 
-    DEBUGMSG(INFO, "configuring relay\n");
+    DEBUGMSG(INFO, "configuring the relay\n");
+
+    // init interfaces here
+
+    ccnl_core_init();
 
     relay->max_cache_entries = 0;
-    //    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+
+    DEBUGMSG(INFO, "config done, starting the loop\n");
 
     return 0;
 }

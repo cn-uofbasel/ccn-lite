@@ -106,21 +106,4 @@
 
 #endif // CCNL_LINUXKERNEL
 
-// ----------------------------------------------------------------------
-
-#ifdef CCNL_ARDUINO
-
-struct sockaddr {
-  unsigned char sa_family;
-};
-
-# define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
-# define htons(i)  ntohs(i)
-
-// 32 bit values in an Arduino context?
-# define ntohl(i)  -1
-# define htonl(i)  -1
-
-#endif
-
 // eof

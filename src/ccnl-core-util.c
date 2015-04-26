@@ -20,8 +20,8 @@
  * 2014-06-18 created
  */
 
-#ifndef CCNL_CORE_UTIL_H
-#define CCNL_CORE_UTIL_H
+//#ifndef CCNL_CORE_UTIL_H
+//#define CCNL_CORE_UTIL_H
 
 #include "ccnl-core.h"
 
@@ -564,7 +564,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 char*
 ccnl_addr2ascii(sockunion *su)
 {
-    static char result[130];
+    static char result[64];
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
@@ -584,7 +584,8 @@ ccnl_addr2ascii(sockunion *su)
 #endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
-        strcpy(result, su->ux.sun_path);
+        strncpy(result, su->ux.sun_path, sizeof(result)-1);
+        result[sizeof(result)-1] = 0;
         return result;
 #endif
     default:
@@ -811,5 +812,5 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
 #endif // CCNL_LINUXKERNEL
 
-#endif // CCNL_CORE_UTIL_H
+// #endif // CCNL_CORE_UTIL_H
 // eof

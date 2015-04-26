@@ -193,8 +193,10 @@ ccnl_dump(int lev, int typ, void *p)
             else if (fac->peer.sa.sa_family == AF_PACKET)
                 fprintf(stderr, " eth=%s", ccnl_addr2ascii(&fac->peer));
 #endif
+#ifdef USE_UNIXSOCKET
             else if (fac->peer.sa.sa_family == AF_UNIX)
                 fprintf(stderr, " ux=%s", ccnl_addr2ascii(&fac->peer));
+#endif
             else
                 fprintf(stderr, " peer=?");
             if (fac->frag)

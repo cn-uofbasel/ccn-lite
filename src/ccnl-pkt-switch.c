@@ -20,9 +20,6 @@
  * 2014-12-21 created
  */
 
-#ifndef PKT_SWITCH_C
-#define PKT_SWITCH_C
-
 // see ccnl-defs.h for the ENC constants
 
 int
@@ -117,7 +114,5 @@ ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf)
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // PKT_SWITCH_C
 
 // eof

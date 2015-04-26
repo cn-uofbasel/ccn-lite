@@ -23,9 +23,6 @@
 
 #ifdef USE_CCNTLV
 
-//#ifndef PKT_CCNTLV_C
-//#define PKT_CCNTLV_C
-
 #include "ccnl-pkt-ccntlv.h"
 
 /* ----------------------------------------------------------------------

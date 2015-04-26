@@ -20,9 +20,6 @@
  * 2014-11-05 created
  */
 
-#ifndef PKT_IOTTLV_C
-#define PKT_IOTTLV_C
-
 #ifdef USE_SUITE_IOTTLV
 
 #include "ccnl-pkt-iottlv.h"
@@ -406,6 +403,5 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // USE_SUITE_IOTTLV
-#endif // PKT_IOTTLV_C
 
 // eof

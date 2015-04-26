@@ -20,7 +20,7 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2014-12-23"
+#define CCNL_VERSION "2015-04-26"
 
 #ifndef CCNL_DEFS_H
 #define CCNL_DEFS_H

@@ -23,9 +23,6 @@
 
 #ifdef USE_NDNTLV
 
-//#ifndef PKT_NDNTLV_C
-//#define PKT_NDNTLV_C
-
 #include "ccnl-pkt-ndntlv.h"
 
 // ----------------------------------------------------------------------

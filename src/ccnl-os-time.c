@@ -34,16 +34,16 @@
   typedef int time_t;
 # define Hz 1000
 
-int CCNL_NOW(void) { return millis() / Hz; }
+double CCNL_NOW(void) { return (double) millis() / Hz; }
 
 struct timeval {
-    int tv_sec;
-    int tv_usec;
+    unsigned long tv_sec;
+    unsigned long tv_usec;
 };
 
 void gettimeofday(struct timeval *tv, void *dummy)
 {
-    int t = millis();
+    unsigned long t = millis();
     tv->tv_sec = t / Hz;
     tv->tv_usec = (t % Hz) * (1000000 / Hz);
 }
@@ -269,7 +269,7 @@ current_time(void)
 char*
 timestamp(void)
 {
-    static char ts[30], *cp;
+    static char ts[16], *cp;
 
     sprintf(ts, "%.4g", CCNL_NOW());
     cp = strchr(ts, '.');
@@ -279,10 +279,26 @@ timestamp(void)
         cp[5] = '\0';
     else while (strlen(cp) < 5)
         strcat(cp, "0");
+
     return ts;
 }
 
-#endif 
+#endif // CCNL_UNIX, SIMU
+
+#ifdef CCNL_ARDUINO
+
+char*
+timestamp(void)
+{
+    static char ts[16];
+    unsigned long m = millis();
+
+    sprintf(ts, "%ld.%03d", m / 1000, (int)(m % 1000));
+
+    return ts;
+}
+
+#endif // CCNL_ARDUINO
 
 // void ccnl_get_timeval(struct timeval *tv);
 

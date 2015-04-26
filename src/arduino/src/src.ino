@@ -1,44 +1,46 @@
 // ccnlite/src.ino
 
-struct ccnl_relay_s;
+#define LED_PIN 13
 
 #include "../../ccn-lite-arduino.c"
-
 struct ccnl_relay_s theRelay;
-
-#define LED_PIN 13
 
 void setup()
 {
     pinMode(LED_PIN, OUTPUT);
 
     Serial.begin(9600);
-    Serial.println("hello world\n");
+    Serial.println(">>");
+    Serial.print("mem addr of relay = ");
+    Serial.println((int) &theRelay);
+    Serial.println();
+
+    debug_level = TRACE;
 
     ccnl_arduino_init(&theRelay);
 }
 
 void loop()
 {
-    int timeout;
-
-    long addr = (long) &theRelay;
-
-    Serial.print("\nloop ");
-    Serial.print(millis()/100.0);
-    Serial.print(" relaysize=");
-    Serial.print(sizeof(struct ccnl_relay_s));
-    Serial.print(" relayaddr=");
-    Serial.print(addr);
-    Serial.print(" timeout=");
+    unsigned long timeout;
 
     timeout = ccnl_arduino_run_events(&theRelay);
-    Serial.println(timeout);
 
-    digitalWrite(LED_PIN, HIGH);
-    delay(100);
-    digitalWrite(LED_PIN, LOW);
-    delay(900);
+    while (timeout > 20) {
+      digitalWrite(LED_PIN, HIGH);
+      delay(20);
+      digitalWrite(LED_PIN, LOW);
+      if (timeout <= 20)
+          break;
+      timeout -= 20;
+      if (timeout < 100) {
+          delay(timeout);
+          break;
+      } else {
+          delay(100);
+          timeout -= 100;
+      }
+    }
 }
 
 // eof
