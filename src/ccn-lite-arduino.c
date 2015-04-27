@@ -45,6 +45,9 @@
 
 // #include "ccnl-os-includes.h"
 
+// ----------------------------------------------------------------------
+// dummy types
+
 struct sockaddr {
   unsigned char sa_family;
 };
@@ -56,19 +59,31 @@ struct sockaddr {
 # define ntohl(i)  -1
 # define htonl(i)  -1
 
+// ----------------------------------------------------------------------
+// logging
 
-#ifdef XXX
-#ifdef EXTRACT_DEBUGMSG_STR
-# define CONCATE(X,Y) X##Y
-# define CONCAT(X,Y) CONCATE(X,Y)
-# undef DEBUGMSG
-//# define DEBUGMSG(L,F) PROGMEM_STR(CONCAT(var,__COUNTER__), F)
-# define DEBUGMSG(L,F,...) PROGMEM_STR(CONCAT(var,__COUNTER__), F)
-#else
-# undef DEBUGMSG
-# define DEBUGMSG(L,F,...) DEBUGMSG_PROGMEM(L,__COUNTER__,__VA_ARGS__)
-#endif
-#endif
+#define FATAL   0  // FATAL
+#define ERROR   1  // ERROR
+#define WARNING 2  // WARNING 
+#define INFO    3  // INFO 
+#define DEBUG   4  // DEBUG 
+#define VERBOSE 5  // VERBOSE
+#define TRACE 	6  // TRACE 
+
+char
+ccnl_debugLevelToChar(int level)
+{
+    switch (level) {
+        case FATAL:     return 'F';
+        case ERROR:     return 'E';
+        case WARNING:   return 'W';
+        case INFO:      return 'I';
+        case DEBUG:     return 'D';
+        case TRACE:     return 'T';
+        case VERBOSE:   return 'V';
+        default:        return '?';
+    }
+}
 
 static char mem[512];
 
@@ -78,10 +93,14 @@ static char mem[512];
     sprintf_P(mem, PSTR(FMT), ##__VA_ARGS__);      \
     Serial.print(timestamp()); \
     Serial.print(" "); \
+    Serial.print(ccnl_debugLevelToChar(debug_level)); \
+    Serial.print("  "); \
     Serial.print(mem); \
     Serial.print("\r"); \
   } \
 } while(0)
+
+// ----------------------------------------------------------------------
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
@@ -90,20 +109,6 @@ static char mem[512];
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
 //#include "ccnl-ext-logging.c"
-
-#define FATAL   94  // FATAL
-#define ERROR   95  // ERROR
-#define WARNING 96  // WARNING 
-#define INFO    97  // INFO 
-#define DEBUG   98  // DEBUG 
-#define VERBOSE 99  // VERBOSE
-#define TRACE 	100 // TRACE 
-
-const char Xmsg[] PROGMEM = "hello world <%s>";
-const char* const Xmsgs[] PROGMEM = {Xmsg};
-
-//#undef DEBUGMSG (
-//#define DEBUGMSG(Lvl,Mid
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
@@ -389,7 +394,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay)
     int opt, max_cache_entries = -1, udpport = -1, httpport = -1;
     char *datadir = NULL, *ethdev = NULL;
 
-    DEBUGMSG(INFO, "This is ccn-lite-relay\n");
+    DEBUGMSG(INFO, "This is 'ccn-lite-relay' for Arduino\n");
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
@@ -407,6 +412,18 @@ ccnl_arduino_init(struct ccnl_relay_s *relay)
     DEBUGMSG(INFO, "config done, starting the loop\n");
 
     return 0;
+}
+
+void
+debug_delta(char up)
+{
+    if (up && debug_level < TRACE)
+        debug_level++;
+    else if (debug_level > FATAL)
+        debug_level--;
+
+    DEBUGMSG(FATAL, "debug level now at %d (%c)\n",
+             debug_level, ccnl_debugLevelToChar(debug_level));
 }
 
 // eof

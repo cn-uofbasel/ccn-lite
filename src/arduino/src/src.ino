@@ -15,7 +15,10 @@ void setup()
     Serial.println((int) &theRelay);
     Serial.println();
 
-    debug_level = TRACE;
+    debug_level = WARNING;
+    Serial.println("Use '+' and '-' to change verbosity");
+    debug_delta(1);
+    Serial.println();
 
     ccnl_arduino_init(&theRelay);
 }
@@ -23,6 +26,15 @@ void setup()
 void loop()
 {
     unsigned long timeout;
+
+    while (Serial.available()) {
+        char c = Serial.read();
+        switch (c) {
+          case '+': debug_delta(1); break;
+          case '-': debug_delta(0); break;
+          default:  break;
+       }
+    }
 
     timeout = ccnl_arduino_run_events(&theRelay);
 
