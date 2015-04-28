@@ -23,11 +23,8 @@
  */
 
 
-#ifndef CCNL_OS_TIME_C
-#define CCNL_OS_TIME_C
-
 // #include "ccnl-os-includes.h"
-#include "ccnl-ext-debug.c"
+// #include "ccnl-ext-debug.c"
 
 #ifdef CCNL_ARDUINO
 
@@ -293,7 +290,7 @@ timestamp(void)
     static char ts[16];
     unsigned long m = millis();
 
-    sprintf(ts, "%ld.%03d", m / 1000, (int)(m % 1000));
+    sprintf_P(ts, PSTR("%ld.%03d"), m / 1000, (int)(m % 1000));
 
     return ts;
 }
@@ -302,5 +299,4 @@ timestamp(void)
 
 // void ccnl_get_timeval(struct timeval *tv);
 
-#endif //CCNL_OS_TIME_C
 // eof

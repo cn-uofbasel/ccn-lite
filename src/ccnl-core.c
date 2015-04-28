@@ -85,7 +85,7 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
         case AF_PACKET:
             return memcmp(s1->eth.sll_addr, s2->eth.sll_addr, ETH_ALEN);
 #endif
-#ifdef USA_IPV4
+#ifdef USE_IPV4
         case AF_INET:
             return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
                         s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
@@ -109,8 +109,9 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
 {
     static int seqno, i;
     struct ccnl_face_s *f;
+
     DEBUGMSG(TRACE, "ccnl_get_face_or_create src=%s\n",
-             sa ? ccnl_addr2ascii((sockunion*)sa) : "(local)");
+             ccnl_addr2ascii((sockunion*)sa));
 
     for (f = ccnl->faces; f; f = f->next) {
         if (!sa) {
@@ -135,7 +136,7 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
             return NULL;
     }
     DEBUGMSG(VERBOSE, "  found suitable interface %d for %s\n", ifndx,
-             sa ? ccnl_addr2ascii((sockunion*)sa) : "(local)");
+             ccnl_addr2ascii((sockunion*)sa));
 
     f = (struct ccnl_face_s *) ccnl_calloc(1, sizeof(struct ccnl_face_s));
     if (!f)

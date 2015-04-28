@@ -23,12 +23,12 @@
 #define CCNL_ARDUINO
 
 //#define USE_CCNxDIGEST
-//#define USE_DEBUG                      // must select this for USE_MGMT
-//#define USE_DEBUG_MALLOC
+#define USE_DEBUG                      // must select this for USE_MGMT
+#define USE_DEBUG_MALLOC
 //#define USE_FRAG
 //#define USE_ETHERNET
 //#define USE_HTTP_STATUS
-// #define USE_LOGGING
+#define USE_LOGGING
 //#define USE_MGMT
 //#define USE_NACK
 //#define USE_NFN
@@ -62,6 +62,7 @@ struct sockaddr {
 // ----------------------------------------------------------------------
 // logging
 
+/*
 #define FATAL   0  // FATAL
 #define ERROR   1  // ERROR
 #define WARNING 2  // WARNING 
@@ -69,7 +70,9 @@ struct sockaddr {
 #define DEBUG   4  // DEBUG 
 #define VERBOSE 5  // VERBOSE
 #define TRACE 	6  // TRACE 
+*/
 
+/*
 char
 ccnl_debugLevelToChar(int level)
 {
@@ -84,31 +87,49 @@ ccnl_debugLevelToChar(int level)
         default:        return '?';
     }
 }
+*/
 
-static char mem[512];
-
-#undef DEBUGMSG
+/*
+// #undef DEBUGMSG
 #define DEBUGMSG(L,FMT, ...) do { \
   if ((L) <= debug_level) {                      \
-    sprintf_P(mem, PSTR(FMT), ##__VA_ARGS__);      \
+    sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__);      \
     Serial.print(timestamp()); \
     Serial.print(" "); \
     Serial.print(ccnl_debugLevelToChar(debug_level)); \
     Serial.print("  "); \
-    Serial.print(mem); \
+    Serial.print(logstr); \
     Serial.print("\r"); \
   } \
 } while(0)
+*/
 
 // ----------------------------------------------------------------------
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
-
 #include "ccnl-ext.h"
+
+static char logstr[256];
+#define LOGSTROFFS 24  // where to put a %s parameter for the printf_P
+
+// static char fromPROGMEM[16];
+char*
+ccnl_arduino_getPROGMEMstr(const char* s)
+{
+/*
+    strcpy_P(fromPROGMEM, s);
+    return fromPROGMEM;
+*/
+    strcpy_P(logstr + LOGSTROFFS, s);
+    return logstr + LOGSTROFFS;
+
+}
+
+
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
-//#include "ccnl-ext-logging.c"
+#include "ccnl-ext-logging.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
@@ -130,7 +151,7 @@ char* ccnl_addr2ascii(sockunion *su);
 
 // ----------------------------------------------------------------------
 
-//static struct ccnl_relay_s theRelay;
+static struct ccnl_relay_s theRelay;
 static const char suite = CCNL_SUITE_IOTTLV;
 
 struct ccnl_timer_s {
@@ -395,9 +416,10 @@ ccnl_arduino_init(struct ccnl_relay_s *relay)
     char *datadir = NULL, *ethdev = NULL;
 
     DEBUGMSG(INFO, "This is 'ccn-lite-relay' for Arduino\n");
-    DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
-    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  ccnl-core: " CCNL_VERSION "\n");
+    DEBUGMSG(INFO, "  compile time: " __DATE__ " "  __TIME__ "\n");
+    strcpy_P(logstr + LOGSTROFFS, compile_string);
+    DEBUGMSG(INFO, "  compile options: %s\n", logstr + LOGSTROFFS);
     DEBUGMSG(INFO, "  using suite %s\n", ccnl_suite2str(suite));
 
     DEBUGMSG(INFO, "configuring the relay\n");

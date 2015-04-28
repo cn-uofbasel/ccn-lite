@@ -48,18 +48,19 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #undef USE_NFN
 
+#define USE_IPV4
 #define USE_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
 // "replacement lib"
 
-#define FATAL   94 // FATAL
-#define ERROR   95 // ERROR
-#define WARNING 96 // WARNING 
-#define INFO    97 // INFO 
-#define DEBUG   98 // DEBUG 
-#define TRACE   99 // TRACE 
-#define VERBOSE 100 // VERBOSE 
+#define FATAL   0 // FATAL
+#define ERROR   1 // ERROR
+#define WARNING 2 // WARNING 
+#define INFO    3 // INFO 
+#define DEBUG   4 // DEBUG 
+#define TRACE   5 // TRACE 
+#define VERBOSE 6 // VERBOSE 
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
@@ -68,6 +69,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
 #define TRACEIN(...)                    do {} while(0)
 #define TRACEOUT(...)                   do {} while(0)
+
+#define CONSTSTR(s)                     s
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)

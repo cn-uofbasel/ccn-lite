@@ -37,22 +37,6 @@ ccnl_switch_dehead(unsigned char **buf, int *len, int *code)
     return -1;
 }
 
-char*
-ccnl_enc2str(int enc)
-{
-    switch(enc) {
-    case CCNL_ENC_CCNB:      return "ccnb";
-    case CCNL_ENC_NDN2013:   return "ndn2013";
-    case CCNL_ENC_CCNX2014:  return "ccnbx2014";
-    case CCNL_ENC_IOT2014:   return "iot2014";
-    case CCNL_ENC_LOCALRPC:  return "localrpc";
-    default:
-        break;
-    }
-
-    return "?";
-}
-
 int
 ccnl_enc2suite(int enc)
 {

@@ -3,20 +3,22 @@
 #define LED_PIN 13
 
 #include "../../ccn-lite-arduino.c"
-struct ccnl_relay_s theRelay;
 
 void setup()
 {
     pinMode(LED_PIN, OUTPUT);
 
     Serial.begin(9600);
-    Serial.println(">>");
-    Serial.print("mem addr of relay = ");
+    strcpy_P(logstr, PSTR(">>"));
+    Serial.println(logstr);
+    strcpy_P(logstr, PSTR("mem addr of relay = "));
+    Serial.print(logstr);
     Serial.println((int) &theRelay);
     Serial.println();
 
     debug_level = WARNING;
-    Serial.println("Use '+' and '-' to change verbosity");
+    strcpy_P(logstr, PSTR("Use '+' and '-' to change verbosity, 'd' for heap dump"));
+    Serial.println(logstr);
     debug_delta(1);
     Serial.println();
 
@@ -32,6 +34,7 @@ void loop()
         switch (c) {
           case '+': debug_delta(1); break;
           case '-': debug_delta(0); break;
+          case 'd': debug_memdump(); break;
           default:  break;
        }
     }

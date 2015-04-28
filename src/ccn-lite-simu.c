@@ -26,11 +26,13 @@
 
 
 #define CCNL_SIMULATION
+#define CCNL_UNIX
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
 //#define USE_FRAG
+#define USE_IPV4
 #define USE_SCHEDULER
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
@@ -603,7 +605,7 @@ main(int argc, char **argv)
              ctime(&relays[0].startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(theSuite));
 
     ccnl_simu_init(max_cache_entries);

@@ -28,6 +28,7 @@
 // #define USE_DEBUG_MALLOC
 // #define USE_FRAG
 #define USE_ETHERNET
+#define USE_IPV4
 // #define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR

@@ -301,7 +301,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                    "<td align=right> %d<td>\n", CCNL_MAX_NONCES);
 
     len += sprintf(txt+len, "<tr><td>compile.featureset:<td><td> %s\n",
-                   compile_string());
+                   compile_string);
     len += sprintf(txt+len, "<tr><td>compile.time:"
                    "<td><td>%s %s\n", __DATE__, __TIME__);
     len += sprintf(txt+len, "<tr><td>compile.ccnl_core_version:"

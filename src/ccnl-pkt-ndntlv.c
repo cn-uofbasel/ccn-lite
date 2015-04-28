@@ -21,7 +21,7 @@
  * 2014-11-05 merged from pkt-ndntlv-enc.c pkt-ndntlv-dec.c
  */
 
-#ifdef USE_NDNTLV
+#ifdef USE_SUITE_NDNTLV
 
 #include "ccnl-pkt-ndntlv.h"
 

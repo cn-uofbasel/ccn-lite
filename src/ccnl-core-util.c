@@ -28,10 +28,12 @@
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-const char*
-compile_string(void)
-{
-    static const char *cp = ""
+#ifdef CCNL_ARDUINO
+const char compile_string[] PROGMEM = ""
+#else
+const char *compile_string = ""
+#endif
+
 #ifdef USE_CCNxDIGEST
         "CCNxDIGEST, "
 #endif
@@ -96,8 +98,6 @@ compile_string(void)
         "UNIXSOCKET, "
 #endif
         ;
-  return cp;
-}
 
 // ----------------------------------------------------------------------
 
@@ -121,19 +121,19 @@ int
 ccnl_str2suite(char *cp)
 {
 #ifdef USE_SUITE_CCNB
-    if (!strcmp(cp, "ccnb"))
+    if (!strcmp(cp, CONSTSTR("ccnb")))
         return CCNL_SUITE_CCNB;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    if (!strcmp(cp, "ccnx2014"))
+    if (!strcmp(cp, CONSTSTR("ccnx2014")))
         return CCNL_SUITE_CCNTLV;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    if (!strcmp(cp, "iot2014"))
+    if (!strcmp(cp, CONSTSTR("iot2014")))
         return CCNL_SUITE_IOTTLV;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    if (!strcmp(cp, "ndn2013"))
+    if (!strcmp(cp, CONSTSTR("ndn2013")))
         return CCNL_SUITE_NDNTLV;
 #endif
     return -1;
@@ -144,21 +144,21 @@ ccnl_suite2str(int suite)
 {
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB)
-        return "ccnb";
+        return CONSTSTR("ccnb");
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return "ccnx2014";
+        return CONSTSTR("ccnx2014");
 #endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
-        return "iot2014";
+        return CONSTSTR("iot2014");
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
-        return "ndn2013";
+        return CONSTSTR("ndn2013");
 #endif
-    return "?";
+    return CONSTSTR("?");
 }
 
 // ----------------------------------------------------------------------
@@ -566,6 +566,9 @@ ccnl_addr2ascii(sockunion *su)
 {
     static char result[64];
 
+    if (!su)
+        return CONSTSTR("(local)");
+
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
     case AF_PACKET: {
@@ -673,10 +676,16 @@ One possibility is to not have a '/' before any nfn expression.
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if (c < 0x20 || c == 0x7f || (escape_components && c == '/' ))
-                len += sprintf(buf + len, "%%%02x", c);
-            else 
-                len += sprintf(buf + len, "%c", c);
+            char *fmt;
+            fmt = (c < 0x20 || c == 0x7f
+                            || (escape_components && c == '/' )) ?
+#ifdef CCNL_ARDUINO
+                  (char*)PSTR("%%%02x") : (char*)PSTR("%c");
+            len += sprintf_P(buf + len, fmt, c);
+#else
+                  "%%%02x" : "%c";
+            len += sprintf(buf + len, fmt, c);
+#endif
         }
     }
 

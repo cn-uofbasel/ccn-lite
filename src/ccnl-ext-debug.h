@@ -29,7 +29,11 @@ struct mhdr {
     struct mhdr *next;
     char *fname;
     int lineno, size;
-    char *tstamp;
+#ifdef CCNL_ARDUINO
+    double tstamp;
+#else
+    char *tstamp; // Linux kernel (no double), also used for CCNL_UNIX
+#endif
 } *mem;
 #endif
 

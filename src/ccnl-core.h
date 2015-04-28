@@ -47,7 +47,7 @@
 
 typedef union {
     struct sockaddr sa;
-#ifdef CCNL_IPV4
+#ifdef USE_IPV4
     struct sockaddr_in ip4;
 #endif
 #ifdef USE_ETHERNET
@@ -87,7 +87,7 @@ struct ccnl_if_s { // interface for packet IO
 };
 
 struct ccnl_relay_s {
-#ifdef CCNL_UNIX
+#ifndef CCNL_ARDUINO
     time_t startup_time;
 #endif
     int id;
@@ -105,7 +105,7 @@ struct ccnl_relay_s {
                                                  void(*cts_done)(void*,void*));
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*));
-#ifdef USE_HTTP
+#ifdef USE_HTTP_STATUS
     struct ccnl_http_s *http;
 #endif
     void *aux;

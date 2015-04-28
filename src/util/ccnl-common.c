@@ -24,6 +24,7 @@
 #ifndef CCNL_COMMON_C
 #define CCNL_COMMON_C
 
+#define USE_IPV4
 #define USE_LOGGING
 #define CCNL_UNIX
 #define _BSD_SOURCE
@@ -56,9 +57,11 @@
 
 #include "base64.c"
 
+#include "../ccnl-os-includes.h"
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
 #include "../ccnl-ext-debug.c"
+#include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
 
 int debug_level = WARNING;
@@ -83,6 +86,24 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 // include only the utils, not the core routines:
 #include "../ccnl-core-util.c"
+
+// ----------------------------------------------------------------------
+
+char*
+ccnl_enc2str(int enc)
+{
+    switch(enc) {
+    case CCNL_ENC_CCNB:      return "ccnb";
+    case CCNL_ENC_NDN2013:   return "ndn2013";
+    case CCNL_ENC_CCNX2014:  return "ccnbx2014";
+    case CCNL_ENC_IOT2014:   return "iot2014";
+    case CCNL_ENC_LOCALRPC:  return "localrpc";
+    default:
+        break;
+    }
+
+    return "?";
+}
 
 // ----------------------------------------------------------------------
 
