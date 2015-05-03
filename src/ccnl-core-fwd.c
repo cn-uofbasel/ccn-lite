@@ -271,18 +271,18 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int payloadlen, hoplimit, rc = -1;
     unsigned short hdrlen;
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    struct ccnx_tlvhdr_ccnx2015_s *hp;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-    if (**data != CCNX_TLV_V0 ||
-                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s))
+    if (**data != CCNX_TLV_V1 ||
+                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s))
         return -1;
 
-    hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
+    hp = (struct ccnx_tlvhdr_ccnx2015_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
     if (hdrlen > *datalen) // not enough bytes for a full header
         return -1;

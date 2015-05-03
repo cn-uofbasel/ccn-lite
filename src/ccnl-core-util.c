@@ -2,7 +2,7 @@
  * @f ccnl-core-util.c
  * @b CCN lite, common utility procedures (used by utils as well as relays)
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -208,7 +208,7 @@ ccnl_str2suite(char *cp)
         return CCNL_SUITE_CCNB;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    if (!strcmp(cp, "ccnx2014"))
+    if (!strcmp(cp, "ccnx2015"))
         return CCNL_SUITE_CCNTLV;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -235,7 +235,7 @@ ccnl_suite2str(int suite)
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return "ccnx2014";
+        return "ccnx2015";
 #endif
 #ifdef USE_SUITE_CISTLV
     if (suite == CCNL_SUITE_CISTLV)
@@ -679,6 +679,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (len <= 0) 
         return -1;
 
+    DEBUGMSG(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
+
     while (!ccnl_switch_dehead(&data, &len, &enc))
         suite = ccnl_enc2suite(enc);
     if (skip)
@@ -689,15 +691,16 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #ifdef USE_SUITE_CCNB
     if (*data == 0x04)
         return CCNL_SUITE_CCNB;
-    if (*data == 0x01 && len > 1 && // check for Cisco collision:
-                                (data[1] != 0x01 &&
+    if (*data == 0x01 && len > 1 && // check for CCNx2015 and Cisco collision:
+                                (data[1] != 0x00 &&
+                                 data[1] != 0x01 &&
                                  data[1] != 0x02 &&
                                  data[1] != 0x03))
         return CCNL_SUITE_CCNB;
 #endif
 
 #ifdef USE_SUITE_CCNTLV
-    if (data[0] == CCNX_TLV_V0 && len > 1) {
+    if (data[0] == CCNX_TLV_V1 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
             data[1] == CCNX_PT_NACK) 

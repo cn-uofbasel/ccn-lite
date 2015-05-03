@@ -2,7 +2,7 @@
  * @f util/ccn-lite-peek.c
  * @b request content: send an interest, wait for reply, output to stdout
  *
- * Copyright (C) 2013-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -203,15 +203,15 @@ usage:
         len = mkInterest(prefix, 
                          &nonce, 
                          out, sizeof(out));
-
-        /*
+/*
         {
             int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
             write(fd, out, len);
             close(fd);
         }
-        */
-        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un));
+*/
+        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa,
+                    sizeof(struct sockaddr_un));
         if (rc < 0) {
             perror("sendto");
             myexit(1);

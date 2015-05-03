@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # demo-relay.sh -- test/demo for ccn-lite: CCNx relaying
-USAGE="usage: sh demo-relay.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE= ccnb, ccnx2014, cisco2015, iot2014, ndn2013\n CHANNEL= udp, ux\n KERNELMODULE= true, false"
+USAGE="usage: sh demo-relay.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE= ccnb, ccnx2015, cisco2015, iot2014, ndn2013\n CHANNEL= udp, ux\n KERNELMODULE= true, false"
 SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all' in CCNL_HOME/src"
 COMPILE_CCNL="run 'make clean all' in CCNL_HOME/src"
 
@@ -42,7 +42,7 @@ then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
-elif [ $SUITE = "ccnx2014" ] 
+elif [ $SUITE = "ccnx2015" ] 
 then
     DIR="ccntlv"
     FWD="ccnx"

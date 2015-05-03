@@ -21,9 +21,6 @@
  * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
  */
 
-#ifndef PKT_CCNTLV_C
-#define PKT_CCNTLV_C
-
 #include "ccnl-pkt-ccntlv.h"
 
 /* ----------------------------------------------------------------------
@@ -60,9 +57,9 @@ ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
 int
 ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
 {
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    hp = (struct ccnx_tlvhdr_ccnx201412_s*) data;
+    hp = (struct ccnx_tlvhdr_ccnx2015_s*) data;
     if (len >= hp->hdrlen)
         return hp->hdrlen;
     return -1;
@@ -131,14 +128,17 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
 
-                if (typ == CCNX_TLV_N_Chunk) {
-                    // We extract the chunknum to the prefix but keep it in the name component for now
-                    // In the future we possibly want to remove the chunk segment from the name components 
-                    // and rely on the chunknum field in the prefix.
+                switch (typ) {
+                case CCNX_TLV_N_Chunk:
+                    // We extract the chunknum to the prefix but keep it
+                    // in the name component for now. In the future we
+                    // possibly want to remove the chunk segment from the
+                    // name components and rely on the chunknum field in
+                    // the prefix.
                     p->chunknum = ccnl_malloc(sizeof(int));
 
-                    if (ccnl_ccnltv_extractNetworkVarInt(cp,
-                                                         len2, p->chunknum) < 0) {
+                    if (ccnl_ccnltv_extractNetworkVarInt(cp, len2,
+                                                         p->chunknum) < 0) {
                         DEBUGMSG(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
@@ -147,12 +147,28 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                         p->complen[p->compcnt] = cp - cp2 + len3;
                         p->compcnt++;
                     } // else out of name component memory: skip
-                } else if (typ == CCNX_TLV_N_NameSegment) {
+                    break;
+                case CCNX_TLV_N_NameSegment:
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
                         p->comp[p->compcnt] = cp2;
                         p->complen[p->compcnt] = cp - cp2 + len3;
                         p->compcnt++;
                     } // else out of name component memory: skip
+                    break;
+                case CCNX_TLV_N_Meta:
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
+                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
+                        goto Bail;
+                    }
+                    if (typ == CCNX_TLV_Meta_ENDChunk &&
+                        ccnl_ccnltv_extractNetworkVarInt(cp, len2,
+                                               &(pkt->final_block_id)) < 0) {
+                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
+                        goto Bail;
+                    }
+                    break;
+                default:
+                    break;
                 }
                 cp += len3;
                 len2 -= len3;
@@ -170,20 +186,6 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 }
             }
 #endif
-            break;
-        case CCNX_TLV_M_MetaData:
-            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
-                DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
-                goto Bail;
-            }
-            if (typ == CCNX_TLV_M_ENDChunk) {
-                if (ccnl_ccnltv_extractNetworkVarInt(cp, len2, &pkt->final_block_id) < 0) {
-                    DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
-                    goto Bail;
-                }
-            }
-            cp += len3;
-            len2 -= len3;
             break;
         case CCNX_TLV_M_Payload:
             pkt->content = *data;
@@ -307,21 +309,23 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
                             int *offset, unsigned char *buf)
 {
     // optional headers are not yet supported, only the fixed header
-    unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx201412_s);
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx2015_s);
+    struct ccnx_tlvhdr_ccnx2015_s *hp;
 
+/*
     if (packettype == CCNX_PT_Interest || packettype == CCNX_PT_NACK) {
-        struct ccnx_tlvhdr_ccnx201412nack_s *np;
+        struct ccnx_tlvhdr_ccnx2015nack_s *np;
         hdrlen += sizeof(*np);
         *offset -= sizeof(*np);
-        np = (struct ccnx_tlvhdr_ccnx201412nack_s *)(buf + *offset);
+        np = (struct ccnx_tlvhdr_ccnx2015nack_s *)(buf + *offset);
         memset(np, 0, sizeof(*np));
     }
+*/
     if (*offset < hdrlen || payloadlen < 0)
         return -1;
 
-    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412_s);
-    hp = (struct ccnx_tlvhdr_ccnx201412_s *)(buf + *offset);
+    *offset -= sizeof(struct ccnx_tlvhdr_ccnx2015_s);
+    hp = (struct ccnx_tlvhdr_ccnx2015_s *)(buf + *offset);
     hp->version = ver;
     hp->pkttype = packettype;
     hp->hoplimit = hoplimit;
@@ -337,9 +341,20 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 // and return bytes used
 int
 ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf) {
+                        int *offset, unsigned char *buf,
+                        unsigned int *lastchunknum) {
 
     int oldoffset = *offset, cnt;
+
+    if (lastchunknum) {
+        int oldoffset = *offset;
+        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_Meta_ENDChunk,
+                                             *lastchunknum, offset, buf) < 0)
+            return -1;
+        if (ccnl_ccntlv_prependTL(CCNX_TLV_N_Meta,
+                                  oldoffset - *offset, offset, buf) < 0)
+            return -1;
+    }
 
     if (name->chunknum &&
         ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
@@ -347,7 +362,7 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
             return -1;
 
     // optional: (not used)
-    // CCNX_TLV_N_MetaData
+    // CCNX_TLV_N_Meta
 
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN)
@@ -377,7 +392,7 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -402,7 +417,7 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
     *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
     memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_ccnx201412nack_s));
 */
-    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Interest, 
+    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Interest, 
                                     len, hoplimit, offset, buf) < 0)
         return -1;
 
@@ -434,17 +449,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if (lastchunknum) {
-        int oldoffset = *offset;
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_M_ENDChunk,
-                                             *lastchunknum, offset, buf) < 0)
-            return -1;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_M_MetaData,
-                                  oldoffset - *offset, offset, buf) < 0)
-            return -1;
-    }
-
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum))
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
@@ -477,13 +482,11 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     if (len >= ((1 << 16) - 4))
         return -1;
 
-    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V0, CCNX_TLV_TL_Object,
+    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                 len, hoplimit, offset, buf);
     return oldoffset - *offset;
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // PKT_CCNTLV_C
 
 // eof
