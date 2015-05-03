@@ -3,7 +3,7 @@
  * @b CCN lite - dumps CCNB, CCN-TLV and NDN-TLV encoded packets
  *               as well as RPC data structures
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -326,14 +326,16 @@ enum {
     CTX_TOPLEVEL,
     CTX_MSG,
     CTX_NAME,
-    CTX_METADATA
+    CTX_METADATA,
+    CTX_VALIDALGO
 };
 
 static char ccntlv_recurse[][3] = {
     {CTX_TOPLEVEL, CCNX_TLV_TL_Interest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_Object, CTX_MSG},
+    {CTX_TOPLEVEL, CCNX_TLV_TL_ValidationAlgo, CTX_VALIDALGO},
     {CTX_MSG, CCNX_TLV_M_Name, CTX_NAME},
-    {CTX_MSG, CCNX_TLV_M_MetaData, CTX_METADATA},
+    {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
     {0,0,0}
 };
 
@@ -380,7 +382,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_TL_Interest:          tn = "Interest"; break;
                 case CCNX_TLV_TL_Object:            tn = "Object"; break;
-                case CCNX_TLV_TL_ValidationAlg:     tn = "ValidationAlg"; break;
+                case CCNX_TLV_TL_ValidationAlgo:    tn = "ValidationAlgo"; break;
                 case CCNX_TLV_TL_ValidationPayload: tn = "ValidationPayload"; break;
                 default: break;
                 }
@@ -389,7 +391,6 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 cn = "msgCtx";
                 switch (type) {
                 case CCNX_TLV_M_Name:       tn = "Name"; break;
-                case CCNX_TLV_M_MetaData:   tn = "MetaData"; break;
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
                 default: break;
                 }
@@ -398,9 +399,11 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 cn = "nameCtx";
                 switch (type) {
                 case CCNX_TLV_N_NameSegment:    tn = "NameSegment"; break;
-                case CCNX_TLV_N_NameNonce:      tn = "NameNonce"; break;
+                case CCNX_TLV_N_IPID:           tn = "InterestPID"; break;
+                  /*
                 case CCNX_TLV_N_NameKey:        tn = "NameKey"; break;
                 case CCNX_TLV_N_ObjHash:        tn = "ObjHash"; break;
+                  */
                 case CCNX_TLV_N_Chunk:          tn = "Chunk"; break;
                 case CCNX_TLV_N_Meta:           tn = "MetaData"; break;
                 default: break;
@@ -409,12 +412,32 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
             case CTX_METADATA:
                 cn = "metaDataCtx";
                 switch (type) {
+                  /*
                 case CCNX_TLV_M_KeyID:       tn = "KeyId"; break;
                 case CCNX_TLV_M_ObjHash:     tn = "ObjHash"; break;
                 case CCNX_TLV_M_PayldType:   tn = "PayloadType"; break;
                 case CCNX_TLV_M_Create:      tn = "Create"; break;
-                case CCNX_TLV_M_ENDChunk:    tn = "EndChunk"; break;
+                  */
+                case CCNX_TLV_Meta_ENDChunk: tn = "EndChunk"; break;
 
+                default: break;
+                }
+                break;
+            case CTX_VALIDALGO:
+                cn = "validAlgoCtx";
+                switch (type) {
+                case CCNX_VALIDALGO_CRC32C:
+                    tn = "CRC32C"; break;
+                case CCNX_VALIDALGO_HMAC_SHA256:
+                    tn = "HMAC_SHA256"; break;
+                case CCNX_VALIDALGO_VMAC_128:
+                    tn = "VMAC_128"; break;
+                case CCNX_VALIDALGO_RSA_SHA256:
+                    tn = "RSA_SHA256"; break;
+                case CCNX_VALIDALGO_EC_SECP_256K1:
+                    tn = "EC_SECP_256K1"; break;
+                case CCNX_VALIDALGO_EC_SECP_384R1:
+                    tn = "EC_SECP_384R1"; break;
                 default: break;
                 }
                 break;
@@ -516,14 +539,14 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 }
 
 void
-ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
+ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf;
     char *mp;
     unsigned short hdrlen, pktlen; // payloadlen;
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    hp = (struct ccnx_tlvhdr_ccnx201412_s*) data;
+    hp = (struct ccnx_tlvhdr_ccnx2015_s*) data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
     pktlen = ntohs(hp->pktlen);
 
@@ -537,13 +560,13 @@ ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     if (hp->pkttype == CCNX_PT_Interest)
         mp = rawxml ? "Interest" : "Interest\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Data)
-        mp = rawxml ? "Data" : "Data\\toplevelCtx";
+        mp = rawxml ? "Content" : "Content\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
-        mp = rawxml ? "NACK" : "NACK\\toplevelCtx";
+        mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
     else
         mp = "unknown";
     if (!rawxml) {
-        fprintf(out, "%04zx  hdr.ptyp=0x%02x (%s)\n",
+        fprintf(out, "%04zx  hdr.pkttyp=0x%02x (%s)\n",
                 (unsigned char*) &(hp->pkttype) - data, hp->pkttype, mp);
         fprintf(out, "%04zx  hdr.pktlen=%d\n",
                 (unsigned char*) &(hp->pktlen) - data, pktlen);
@@ -552,18 +575,17 @@ ccntlv_201412(int lev, unsigned char *data, int len, int rawxml, FILE* out)
                     (unsigned char*) &(hp->hoplimit) - data, hp->hoplimit);
         fprintf(out, "%04zx  hdr.hdrlen=%d\n",
                 (unsigned char*) &(hp->hdrlen) - data, hdrlen);
-        if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK) {
-            struct ccnx_tlvhdr_ccnx201412nack_s *np;
-            np = (struct ccnx_tlvhdr_ccnx201412nack_s*)
-                (data + sizeof(struct ccnx_tlvhdr_ccnx201412_s));
+        if (hp->pkttype == CCNX_PT_NACK) {
             fprintf(out, "%04zx  hdr.errorc=%d\n",
-                    (unsigned char*) np - data, ntohs(np->errorc));
+                    (unsigned char*) &hp->fill - data, hp->fill[0]);
         }
     }
 
-    buf = data + sizeof(struct ccnx_tlvhdr_ccnx201412_s);
+    buf = data + sizeof(struct ccnx_tlvhdr_ccnx2015_s);
+    /*
     if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
-        buf += sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
+        buf += sizeof(struct ccnx_tlvhdr_ccnx2015nack_s);
+    */
     // dump the sequence of TLV fields of the optional header
     len = buf - data;
     // if (len > 0) {
@@ -1414,9 +1436,9 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
     case CCNL_SUITE_CCNTLV:
         if (format == 0) {
             indent("#   ", lev);
-            printf("%s CCNx TLV format (as of Dec 2014)\n#\n", forced);
+            printf("%s CCNx TLV format (as of Mar 2015)\n#\n", forced);
         }
-        ccntlv_201412(lev, data, len, format == 1, out);
+        ccntlv_2015(lev, data, len, format == 1, out);
         break;
     case CCNL_SUITE_IOTTLV:
         if (format == 0) {

@@ -2,7 +2,7 @@
  * @f ccnl-core-fwd.c
  * @b CCN lite, the collection of suite specific forwarding logics
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -216,7 +216,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // helper proc: work on a message, buffer is passed without the fixed header
 int
 ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                struct ccnx_tlvhdr_ccnx201412_s *hdrptr,
+                struct ccnx_tlvhdr_ccnx2015_s *hdrptr,
                 unsigned char **data, int *datalen)
 {
     int rc = -1;
@@ -326,16 +326,16 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int payloadlen, hoplimit, endlen;
     unsigned short hdrlen;
     unsigned char *end;
-    struct ccnx_tlvhdr_ccnx201412_s *hp;
+    struct ccnx_tlvhdr_ccnx2015_s *hp;
 
     DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-    if (**data != CCNX_TLV_V0 ||
-                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx201412_s))
+    if (**data != CCNX_TLV_V1 ||
+                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s))
         return -1;
 
-    hp = (struct ccnx_tlvhdr_ccnx201412_s*) *data;
+    hp = (struct ccnx_tlvhdr_ccnx2015_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
     if (hdrlen > *datalen) // not enough bytes for a full header
         return -1;

@@ -2,7 +2,7 @@
  * @f pkt-ccntlv.h
  * @b header file for CCN lite, PARC's definitions for TLV (Sep 22, 2014)
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,25 +20,24 @@
  * 2014-03-05 created
  */
 
-#ifndef PKT_CCNTLV_H
-#define PKT_CCNTLV_H
-
 // ----------------------------------------------------------------------
 // Header
 
-struct ccnx_tlvhdr_ccnx201412_s {
-    unsigned char version;
-    unsigned char pkttype;
-    unsigned int  pktlen;
-    unsigned char hoplimit;  // not used for data
-    unsigned char fill[2];   // perhaps some bits will go to hdrlen
-    unsigned char hdrlen;
+struct ccnx_tlvhdr_ccnx2015_s {
+    unsigned char  version;
+    unsigned char  pkttype;
+    uint16_t       pktlen;
+    unsigned char  hoplimit;  // not used for data
+    unsigned char  fill[2];   // fill[0] is errcode
+    unsigned char  hdrlen;
 } __attribute__((packed));
 
-struct ccnx_tlvhdr_ccnx201412nack_s { // "interest return" extension
+/*
+struct ccnx_tlvhdr_ccnx2015nack_s { // "interest return" extension
     unsigned int  errorc;
     unsigned char fill[2];
 } __attribute__((packed));
+*/
 
 /*
 struct ccnx_tlvhdr_ccnx201411_s {
@@ -64,73 +63,82 @@ struct ccnx_tlvhdr_ccnx201409_s {
 } __attribute__((packed));
 */
 
-// Non-TLV values for the packettype in the header
-#define CCNX_PT_Interest                        1
-#define CCNX_PT_Data                            2
-#define CCNX_PT_NACK                            3 // "Interest Return"
+// Non-TLV values for the fields in the header
+
+// #define CCNX_TLV_V0                             0
+#define CCNX_TLV_V1                             1
+
+#define CCNX_PT_Interest                        0
+#define CCNX_PT_Data                            1
+#define CCNX_PT_NACK                            2 // "Interest Return"
+
+// NACK/Interest Return codes (fill[0]):
+#define CCNX_TLV_NACK_NOROUTE      1
+#define CCNX_TLV_NACK_HOPLIMIT     2
+#define CCNX_TLV_NACK_NORESOURCES  3
+#define CCNX_TLV_NACK_PATHERROR    4
+#define CCNX_TLV_NACK_PROHIBITED   5
+#define CCNX_TLV_NACK_CONGESTED    6
+#define CCNX_TLV_NACK_MTUTOOLARGE  7
 
 // ----------------------------------------------------------------------
 // TLV message
 
-// Version
-#define CCNX_TLV_V0                             0
+// optional hop-by-hop (Sect 3.3)
+// #define CCNX_TLV_O_IntLife                      1
+// #define CCNX_TLV_O_CacheTime                    2
 
-// optional (3.2)
-// #define CCNX_TLV_O_IntLife
-
-// top level(3.3)
+// top level(Sect 3.4)
 #define CCNX_TLV_TL_Interest                    0x0001
 #define CCNX_TLV_TL_Object                      0x0002
-#define CCNX_TLV_TL_ValidationAlg               0x0003
+#define CCNX_TLV_TL_ValidationAlgo              0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
 
-// global (3.4)
+// global (Sect 3.5.1)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?
 
-// per msg (3.5)
-// 3.5.1
+// per msg (Sect 3.6)
+// 3.6.1
 #define CCNX_TLV_M_Name                         0x0000
-// 3.5.2
-#define CCNX_TLV_M_MetaData                     0x0001
-// 3.5.3
-#define CCNX_TLV_M_Payload                      0x0002
+#define CCNX_TLV_M_Payload                      0x0001
 
-// per name (3.5.1)
+// per name (Sect 3.6.1)
+
 #define CCNX_TLV_N_NameSegment                  0x0001
-#define CCNX_TLV_N_NameNonce                    0x0002
-#define CCNX_TLV_N_NameKey                      0x0003
-#define CCNX_TLV_N_ObjHash                      0x0004
-#define CCNX_TLV_N_Chunk                        0x0010      // var int
+#define CCNX_TLV_N_IPID                         0x0002
+#define CCNX_TLV_N_Chunk                        0x0010 // chunking document
 #define CCNX_TLV_N_Meta                         0x0011
-// #define CCNX_TLV_N_App                       0xF000 - 0xF0FF
+// #define CCNX_TLV_N_App                       0x1000 - 0x1FFF
 
-// per metadata (3.5.2)
+// meta
+#define CCNX_TLV_Meta_ENDChunk                  0x0019 // chunking document
 
-// per interest metadata (3.5.2.1)
-#define CCNX_TLV_M_KeyID                        0x0001
-#define CCNX_TLV_M_ObjHash                      0x0002
+// (opt) message TLVs (Sect 3.6.2)
 
-// per content metadta(3.5.2.2)
-#define CCNX_TLV_M_PayldType                    0x0003
-#define CCNX_TLV_M_Create                       0x0004
-#define CCNX_TLV_M_ENDChunk                     0x0019      // var int
+#define CCNX_TLV_M_KeyIDRestriction             0x0002
+#define CCNX_TLV_M_ObjHashRestriction           0x0003
+#define CCNX_TLV_M_IPIDM                        0x0004
 
-// content payload type (3.5.2.2.1)
+// (opt) content msg TLVs (Sect 3.6.2.2)
+
+#define CCNX_TLV_C_PayloadType                  0x0005
+#define CCNX_TLV_C_ExpiryTime                   0x0006
+
+// content payload type (Sect 3.6.2.2.1)
 #define CCNX_PAYLDTYPE_Data                     0
-#define CCNX_PAYLDTYPE_EncrypteData             1
-#define CCNX_PAYLDTYPE_Key                      2
-#define CCNX_PAYLDTYPE_Link                     3
-#define CCNX_PAYLDTYPE_Certificate              4
-#define CCNX_PAYLDTYPE_Gone                     5
-#define CCNX_PAYLDTYPE_NACK                     6
-#define CCNX_PAYLDTYPE_Manifest                 7
+#define CCNX_PAYLDTYPE_Key                      1
+#define CCNX_PAYLDTYPE_Link                     2
+#define CCNX_PAYLDTYPE_Manifest                 3
+
+// validation algorithms (Sect 3.6.4.1)
+#define CCNX_VALIDALGO_CRC32C                   2
+#define CCNX_VALIDALGO_HMAC_SHA256              4
+#define CCNX_VALIDALGO_VMAC_128                 5
+#define CCNX_VALIDALGO_RSA_SHA256               6
+#define CCNX_VALIDALGO_EC_SECP_256K1            7
+#define CCNX_VALIDALGO_EC_SECP_384R1            8
 
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
 
-// Validation stuff ignored
-
-// per chunk number
-
-#endif
 // eof
