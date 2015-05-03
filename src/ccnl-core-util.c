@@ -515,6 +515,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (len <= 0) 
         return -1;
 
+    DEBUGMSG(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
+
     while (!ccnl_switch_dehead(&data, &len, &enc))
         suite = ccnl_enc2suite(enc);
     if (skip)
@@ -523,7 +525,13 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
         return suite;
 
 #ifdef USE_SUITE_CCNB
-    if (*data == 0x01 || *data == 0x04)
+    if (*data == 0x04)
+        return CCNL_SUITE_CCNB;
+    if (*data == 0x01 && len > 1 && // check for CCNx2015 and Cisco collision:
+                                (data[1] != 0x00 &&
+                                 data[1] != 0x01 &&
+                                 data[1] != 0x02 &&
+                                 data[1] != 0x03))
         return CCNL_SUITE_CCNB;
 #endif
 

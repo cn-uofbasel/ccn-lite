@@ -310,9 +310,20 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 // and return bytes used
 int
 ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf) {
+                        int *offset, unsigned char *buf,
+                        unsigned int *lastchunknum) {
 
     int oldoffset = *offset, cnt;
+
+    if (lastchunknum) {
+        int oldoffset = *offset;
+        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_Meta_ENDChunk,
+                                             *lastchunknum, offset, buf) < 0)
+            return -1;
+        if (ccnl_ccntlv_prependTL(CCNX_TLV_N_Meta,
+                                  oldoffset - *offset, offset, buf) < 0)
+            return -1;
+    }
 
     if (name->chunknum &&
         ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
@@ -350,7 +361,7 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -407,17 +418,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if (lastchunknum) {
-        int oldoffset = *offset;
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_Meta_ENDChunk,
-                                             *lastchunknum, offset, buf) < 0)
-            return -1;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_N_Meta,
-                                  oldoffset - *offset, offset, buf) < 0)
-            return -1;
-    }
-
-    if (ccnl_ccntlv_prependName(name, offset, buf))
+    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum))
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
