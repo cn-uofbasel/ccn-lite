@@ -44,7 +44,11 @@ void setup()
                       (unsigned long int) Ethernet.localIP(),
                       htons(LOCALPORT), &Udp);
 
+#ifdef USE_DEBUG_MALLOC
     DEBUGMSG_ON(INFO, "Use '+', '-' to change verbosity, 'd' for heap dump\n");
+#else
+    DEBUGMSG_ON(INFO, "Use '+', '-' to change verbosity\n");
+#endif
 }
 
 void loop()
@@ -57,8 +61,9 @@ void loop()
         switch (c) {
           case '+': debug_delta(1); break;
           case '-': debug_delta(0); break;
+#ifdef USE_DEBUG_MALLOC
           case 'd': debug_memdump(); break;
-
+#endif
           default:  break;
        }
     }

@@ -117,7 +117,7 @@ ccnl_ndntlv_extract(int hdrlen,
                 if (typ == NDN_TLV_NameComponent &&
                             p->compcnt < CCNL_MAX_NAME_COMP) {
                     if(cp[0] == NDN_Marker_SegmentNumber) {
-                        p->chunknum = ccnl_malloc(sizeof(int));
+                      p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
                         // it is implemented for encode, the decode is not yet implemented
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);

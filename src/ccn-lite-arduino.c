@@ -37,12 +37,14 @@
 //#define USE_NFN_MONITOR
 //#define USE_SCHEDULER
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
-//#define USE_SUITE_CCNTLV
+// #define USE_SUITE_CCNTLV
 #define USE_SUITE_IOTTLV
-//#define USE_SUITE_NDNTLV
+// #define USE_SUITE_NDNTLV
 //#define USE_SUITE_LOCALRPC
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
+
+#define NEEDS_PACKET_CRAFTING
 
 double GetTemp(void)
 {
@@ -158,6 +160,7 @@ char* ccnl_addr2ascii(sockunion *su);
 #define DEBUGMSG_CUTL(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_PIOT(...) DEBUGMSG_OFF(__VA_ARGS__)
+#define DEBUGMSG_PNDN(...) DEBUGMSG_OFF(__VA_ARGS__)
 
 #define DEBUGMSG(...)      DEBUGMSG_OFF(__VA_VARGS__)
 
@@ -182,7 +185,14 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 // ----------------------------------------------------------------------
 
 static struct ccnl_relay_s theRelay;
+
+#ifdef USE_SUITE_CCNTLV
+static const char theSuite = CCNL_SUITE_CCNTLV;
+#elif defined(USE_SUITE_IOTTLV)
 static const char theSuite = CCNL_SUITE_IOTTLV;
+#elif defined(USE_SUITE_NDNTLV)
+static const char theSuite = CCNL_SUITE_NDNTLV;
+#endif
 
 struct timeval*
 ccnl_run_events()
@@ -233,10 +243,32 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     d = GetTemp();
     sprintf_P(ReplyBuffer, PSTR("@%s  %d.%1d C"), timestamp(),
               (int)d, (int)(10*(d - (int)d)));
-    ccnl_iottlv_prependReply(pfx, (unsigned char*) ReplyBuffer,
-                             strlen(ReplyBuffer), &offset, NULL, NULL,
-                             (unsigned char*) packetBuffer);
-    ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
+    switch (pfx->suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        ccnl_ccntlv_prependContentWithHdr(pfx, (unsigned char*) ReplyBuffer,
+                                 strlen(ReplyBuffer), &offset, NULL, NULL,
+                                 (unsigned char*) packetBuffer);
+        break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        ccnl_iottlv_prependReply(pfx, (unsigned char*) ReplyBuffer,
+                                 strlen(ReplyBuffer), &offset, NULL, NULL,
+                                 (unsigned char*) packetBuffer);
+        ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        ccnl_ndntlv_prependContent(pfx, (unsigned char*) ReplyBuffer,
+                                   strlen(ReplyBuffer), &offset, NULL, NULL,
+                                   (unsigned char*) packetBuffer);
+        break;
+#endif
+    default:
+        break;
+    }
 
     relay->ifs[from->ifndx].sock->beginPacket(
         from->peer.ip4.sin_addr.s_addr,from->peer.ip4.sin_port);
@@ -319,10 +351,14 @@ ccnl_arduino_run_events(struct ccnl_relay_s *relay)
 // ----------------------------------------------------------------------
 
 struct ccnl_prefix_s sensor;
+int sensor_len[2];
+#ifdef USE_SUITE_CCNTLV
+char sensor_mac[16];
+char* sensor_comp[2] = {sensor_mac, "\x00\x01\x00\x04temp"};
+#else
 char sensor_mac[12];
 char* sensor_comp[2] = {sensor_mac, "temp"};
-int sensor_len[2];
-
+#endif
 
 int
 ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
@@ -355,12 +391,21 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     relay->max_cache_entries = 0;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
+    sensor.suite = theSuite;
+#ifdef USE_SUITE_CCNTLV
+    sensor_mac[1] = 1;
+    sensor_mac[3] = 12;
+    for (i = 0; i < 6; i++)
+        sprintf_P(sensor_mac + 4 + 2*i, PSTR("%02x"), mac[i]);
+    sensor_len[0] = sizeof(sensor_mac);
+    sensor_len[1] = 8; // 4 + strlen("temp");
+#else
     for (i = 0; i < 6; i++)
         sprintf_P(sensor_mac + 2*i, PSTR("%02x"), mac[i]);
-    sensor.suite = CCNL_SUITE_IOTTLV;
-    sensor.comp = (unsigned char**) sensor_comp;
     sensor_len[0] = sizeof(sensor_mac);
     sensor_len[1] = strlen(sensor_comp[1]);
+#endif
+    sensor.comp = (unsigned char**) sensor_comp;
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));

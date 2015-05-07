@@ -146,9 +146,8 @@ Usage:
         break;
     case CCNL_SUITE_CCNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
-            lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
-            &offs, 
+        len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
+            &offs, lastchunknum == UINT_MAX ? NULL : &lastchunknum,
             NULL, // Int *contentpos
             out);
         break;

@@ -241,6 +241,8 @@ ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     if (typ == CCNX_PT_Interest) {
         DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
+        if (local_producer(relay, p, from, content, contlen, buf))
+            return 0;
         // CONFORM: Step 1: search for matching local content
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_CCNTLV)
@@ -511,6 +513,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             goto Skip;
         }
         DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
+        if (local_producer(relay, p, from, content, contlen, buf))
+            return 0;
     /*
         filter here for link level management messages ...
         if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {

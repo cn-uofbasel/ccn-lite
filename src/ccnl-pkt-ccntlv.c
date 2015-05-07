@@ -125,7 +125,7 @@ ccnl_ccntlv_extract(int hdrlen,
                     // possibly want to remove the chunk segment from the
                     // name components and rely on the chunknum field in
                     // the prefix.
-                    p->chunknum = ccnl_malloc(sizeof(int));
+                  p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len2,
                                                          p->chunknum) < 0) {
@@ -407,8 +407,8 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,
-                           unsigned int *lastchunknum, int *offset, int *contentpos,
-                           unsigned char *buf)
+                           int *offset, unsigned int *lastchunknum,
+                           int *contentpos, unsigned char *buf)
 {
     int tloffset = *offset;
 
@@ -437,7 +437,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned char *payload, int paylen,
-                                  unsigned int *lastchunknum, int *offset,
+                                  int *offset, unsigned int *lastchunknum,
                                   int *contentpos, unsigned char *buf)
 {
     int len, oldoffset;
@@ -445,10 +445,10 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
     oldoffset = *offset;
 
-    len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
-                                     offset, contentpos, buf);
+    len = ccnl_ccntlv_prependContent(name, payload, paylen, offset,
+                                     lastchunknum, contentpos, buf);
 
-    if (len >= ((1 << 16) - 4))
+    if (len >= (((uint32_t)1 << 16) - 4))
         return -1;
 
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,

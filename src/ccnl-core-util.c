@@ -621,7 +621,7 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     int len = 0, i, j;
 
 #ifdef CCNL_ARDUINO
-# define PREFIX_BUFSIZE 20
+# define PREFIX_BUFSIZE 50
 #else
 # define PREFIX_BUFSIZE 2048
 #endif
@@ -795,8 +795,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
-                                                NULL, // lastchunknum
-                                                &offs, &contentpos, tmp);
+                                                &offs, NULL, // lastchunknum
+                                                &contentpos, tmp);
         break;
 #endif
 #ifdef USE_SUITE_IOTTLV

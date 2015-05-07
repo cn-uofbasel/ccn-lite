@@ -206,11 +206,10 @@ Usage:
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                                                           (unsigned char *)chunk_buf, chunk_len, 
-                                                           is_last ? &chunknum : NULL, 
-                                                           &offs, 
-                                                           NULL, // int *contentpos
-                                                           out);
+                            (unsigned char *)chunk_buf, chunk_len, 
+                            &offs, is_last ? &chunknum : NULL, 
+                            NULL, // int *contentpos
+                            out);
             break;
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name, 
