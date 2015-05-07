@@ -2,7 +2,7 @@
  * @f util/ccnl-common.c
  * @b common functions for the CCN-lite utilities
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,10 +21,8 @@
  * 2013-10-17 extended <christopher.scherb@unibas.ch>
  */
 
-#ifndef CCNL_COMMON_C
-#define CCNL_COMMON_C
-
 #define USE_IPV4
+
 #define USE_LOGGING
 #define CCNL_UNIX
 #define _BSD_SOURCE
@@ -223,10 +221,10 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 
 int ccntlv_isData(unsigned char *buf, int len)
 {
-    struct ccnx_tlvhdr_ccnx201412_s *hp = (struct ccnx_tlvhdr_ccnx201412_s*)buf;
+    struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
     unsigned short hdrlen, pktlen; // payloadlen;
 
-    if (len < sizeof(struct ccnx_tlvhdr_ccnx201412_s)) {
+    if (len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
         DEBUGMSG(ERROR, "ccntlv header not large enough");
         return -1;
     }
@@ -234,7 +232,7 @@ int ccntlv_isData(unsigned char *buf, int len)
     pktlen = ntohs(hp->pktlen);
     //    payloadlen = ntohs(hp->payloadlen);
 
-    if (hp->version != CCNX_TLV_V0) {
+    if (hp->version != CCNX_TLV_V1) {
         DEBUGMSG(ERROR, "ccntlv version %d not supported\n", hp->version);
         return -1;
     }
@@ -329,5 +327,4 @@ int ndntlv_isData(unsigned char *buf, int len)
 }
 #endif // USE_SUITE_NDNTLV
 
-#endif //CCNL_COMMON_C
 // eof
