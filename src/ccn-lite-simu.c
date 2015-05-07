@@ -48,6 +48,7 @@
 #include "ccnl-ext.h"
 
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
+#define local_producer(...) 0
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"

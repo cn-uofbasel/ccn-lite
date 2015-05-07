@@ -20,9 +20,6 @@
  * 2014-10-30 created <christopher.scherb@unibas.ch
  */
 
-#ifndef CCNL_EXT_DEBUG_H
-#define CCNL_EXT_DEBUG_H
-
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
 struct mhdr {
@@ -59,5 +56,3 @@ struct ccnl_stats_s {
 };
 #endif
 #endif
-
-#endif //CCNL_EXT_DEBUG_H

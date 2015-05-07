@@ -20,7 +20,7 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2015-04-26"
+#define CCNL_VERSION "2015-05-07"
 
 #ifndef CCNL_DEFS_H
 #define CCNL_DEFS_H
@@ -37,10 +37,12 @@
 # define CCNL_MAX_INTERFACES             10
 # define CCNL_MAX_IF_QLEN                64
 # define CCNL_MAX_PACKET_SIZE            8096
+# define CCNL_MAX_NAME_COMP              64
 #else
 # define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                1
 # define CCNL_MAX_PACKET_SIZE            108
+# define CCNL_MAX_NAME_COMP              8
 #endif
 
 #define CCNL_CONTENT_TIMEOUT            30 // sec
@@ -49,8 +51,6 @@
 
 // #define CCNL_FACE_TIMEOUT    60 // sec
 #define CCNL_FACE_TIMEOUT       15 // sec
-
-#define CCNL_MAX_NAME_COMP      64
 
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #define CCNL_MAX_NONCES                 256 // for detected dups

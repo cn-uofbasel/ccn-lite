@@ -147,7 +147,7 @@ ccnl_iottlv_extract(unsigned char *start, unsigned char **data, int *datalen,
     struct ccnl_prefix_s *n = NULL;
     struct ccnl_buf_s *buf;
 
-    DEBUGMSG(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
+    DEBUGMSG_PIOT(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
 
     if (content)
         *content = NULL;
@@ -156,6 +156,8 @@ ccnl_iottlv_extract(unsigned char *start, unsigned char **data, int *datalen,
         if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
             goto Bail;
         switch (typ) {
+        case IOT_TLV_Reply: // skip the TL, parse the rest (=restart the loop)
+            continue;
         case IOT_TLV_R_OptHeader:
         {
             cp = *data;
@@ -207,7 +209,7 @@ ccnl_iottlv_extract(unsigned char *start, unsigned char **data, int *datalen,
     len = sizeof(tmp);
     len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
     if (len2 < 0) {
-        DEBUGMSG(ERROR, "prending code should not return -1\n");
+        DEBUGMSG_PIOT(ERROR, "prending code should not return -1\n");
         len2 = 0;
     }
     start -= len2;

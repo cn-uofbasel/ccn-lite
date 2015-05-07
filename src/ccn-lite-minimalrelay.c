@@ -66,6 +66,11 @@ int inet_aton(const char *cp, struct in_addr *inp);
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
+# define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
+
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
 #define TRACEIN(...)                    do {} while(0)
 #define TRACEOUT(...)                   do {} while(0)
@@ -102,6 +107,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define ccnl_close_socket(s)            close(s)
 
 #define compute_ccnx_digest(b) NULL
+#define local_producer(...)             0
 
 //----------------------------------------------------------------------
 

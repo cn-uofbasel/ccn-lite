@@ -44,10 +44,7 @@
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "ccnl-os-time.c"
-
 // ----------------------------------------------------------------------
-
 
 #define ccnl_print_stats(x,y)           do{}while(0)
 #define ccnl_app_RX(x,y)                do{}while(0)
@@ -103,6 +100,8 @@ ccnl_free(void *ptr)
 }
 
 #include "ccnl-ext-debug.c"
+#include "ccnl-os-time.c"
+#include "ccnl-ext-logging.c"
 
 static void ccnl_lnxkernel_cleanup(void);
 char* ccnl_addr2ascii(sockunion *su);
@@ -527,7 +526,7 @@ ccnl_init(void)
     DEBUGMSG(INFO, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"

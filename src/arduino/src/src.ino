@@ -1,5 +1,17 @@
 // ccnlite/src.ino
 
+#include <SD.h>
+#include <SPI.h>          // needed for Arduino versions later than 0018
+#include <EthernetV2_0.h>
+#include <EthernetUdpV2_0.h>
+
+#define W5200_CS  10   // Ethernet controller SPI CS pin
+#define SDCARD_CS 4    // SD card SPI CS pin
+
+byte mac[] = {0x63, 0x63, 0x6e, 0x6c, 0x69, 0x74};
+#define LOCALPORT  6360   // local UDP port to listen on
+EthernetUDP Udp;
+
 #define LED_PIN 13
 
 #include "../../ccn-lite-arduino.c"
@@ -11,23 +23,34 @@ void setup()
     Serial.begin(9600);
     strcpy_P(logstr, PSTR(">>"));
     Serial.println(logstr);
-    strcpy_P(logstr, PSTR("mem addr of relay = "));
-    Serial.print(logstr);
-    Serial.println((int) &theRelay);
-    Serial.println();
 
+#ifdef USE_DEBUG
     debug_level = WARNING;
-    strcpy_P(logstr, PSTR("Use '+' and '-' to change verbosity, 'd' for heap dump"));
-    Serial.println(logstr);
     debug_delta(1);
-    Serial.println();
+#endif
 
-    ccnl_arduino_init(&theRelay);
+    // make sure that the SD card is not selected for the SPI port
+    // by setting the CS pin to HIGH
+    pinMode(SDCARD_CS,OUTPUT);
+    digitalWrite(SDCARD_CS,HIGH);  // disable SD card
+    pinMode(W5200_CS, OUTPUT);
+    digitalWrite(W5200_CS, LOW);   //Enable Ethernet
+
+//  Ethernet.begin(mac);                           // DHCP
+    Ethernet.begin(mac, IPAddress(192,168,2,222)); // manual assignment
+    Udp.begin(LOCALPORT);
+
+    ccnl_arduino_init(&theRelay, mac,
+                      (unsigned long int) Ethernet.localIP(),
+                      htons(LOCALPORT), &Udp);
+
+    DEBUGMSG_ON(INFO, "Use '+', '-' to change verbosity, 'd' for heap dump\n");
 }
 
 void loop()
 {
-    unsigned long timeout;
+    unsigned long timeout, len;
+    EthernetUDP *udp = theRelay.ifs[0].sock;
 
     while (Serial.available()) {
         char c = Serial.read();
@@ -35,10 +58,24 @@ void loop()
           case '+': debug_delta(1); break;
           case '-': debug_delta(0); break;
           case 'd': debug_memdump(); break;
+
           default:  break;
        }
     }
 
+    len = udp->parsePacket();
+    if (len > 0) {
+        struct sockaddr sa;
+
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_family = AF_INET;
+
+        len = udp->read(packetBuffer, sizeof(packetBuffer));
+        ((struct sockaddr_in*) (&sa))->sin_addr.s_addr = udp->remoteIP();
+        ((struct sockaddr_in*) (&sa))->sin_port = udp->remotePort();
+        ccnl_core_RX(&theRelay, 0, packetBuffer, len, &sa, sizeof(sa));
+    }
+ 
     timeout = ccnl_arduino_run_events(&theRelay);
 
     while (timeout > 20) {

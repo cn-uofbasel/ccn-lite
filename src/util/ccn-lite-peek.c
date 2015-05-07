@@ -31,7 +31,6 @@
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
-
 // ----------------------------------------------------------------------
 
 unsigned char out[8*CCNL_MAX_PACKET_SIZE];
@@ -187,9 +186,11 @@ usage:
         len = mkInterest(prefix, 
                          &nonce, 
                          out, sizeof(out));
+
+        DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 /*
         {
-            int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
             write(fd, out, len);
             close(fd);
         }
@@ -211,7 +212,13 @@ usage:
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
-
+/*
+        {
+            int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+*/
             rc = isContent(out, len);
             if (rc < 0) {
                 DEBUGMSG(ERROR, "error when checking type of packet\n");

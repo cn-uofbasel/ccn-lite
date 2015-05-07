@@ -1354,11 +1354,18 @@ emit_content_only(unsigned char *data, int len, int suite, int format)
                           &content, &contlen);
         break;
     case CCNL_SUITE_CCNTLV:
-        cp = data + 12;
-        len -= 12;
+        cp = data + 8;
+        len -= 8;
         // FIXME: should read fixed header length, add 4
         ccnl_ccntlv_extract(8, &cp, &len, &p, NULL, NULL, NULL,
                             &content, &contlen);
+        break;
+    case CCNL_SUITE_IOTTLV:
+        cp = data;
+        if (!ccnl_iottlv_extract(data, &cp, &len, &p, NULL, &content, &contlen)
+            || !content) {
+            DEBUGMSG(FATAL, "packet parsing error\n");
+        }
         break;
     case CCNL_SUITE_NDNTLV:
         cp = data + 2;

@@ -35,11 +35,18 @@
      Serial.print("\r"); \
    } while(0)
 #  define CONSTSTR(s)         ccnl_arduino_getPROGMEMstr(PSTR(s))
-#else
+
+#elif !defined(CCNL_LINUXKERNEL)
+
 #  define CONSOLE(FMT, ...)   fprintf(stderr, FMT, ##__VA_ARGS__)
    // silly 'CONSOLE("...%s", "")' code - due to c99 compiler strictness
-
 #  define CONSTSTR(s)         s
+
+#else // CCNL_LINUXKERNEL
+
+#  define CONSOLE(FMT, ...)   printk(FMT, ##__VA_ARGS__)
+#  define CONSTSTR(s)         s
+
 #endif
 
 // ----------------------------------------------------------------------
@@ -759,12 +766,17 @@ debug_free(void *p, const char *fn, int lno)
 }
 
 #ifdef CCNL_ARDUINO
+
 struct ccnl_buf_s*
 debug_buf_new(void *data, int len, const char *fn, int lno, double tstamp)
+
 #else
+
 struct ccnl_buf_s*
 debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
+
 #endif
+
 {
     struct ccnl_buf_s *b =
          (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn, lno, tstamp);

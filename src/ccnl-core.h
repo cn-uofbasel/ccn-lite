@@ -73,6 +73,8 @@ struct ccnl_if_s { // interface for packet IO
     void (*old_data_ready)(struct sock *, int);
     struct net_device *netdev;
     struct packet_type ccnl_packet;
+#elif defined(CCNL_ARDUINO)
+    EthernetUDP *sock;
 #else
     int sock;
 #endif

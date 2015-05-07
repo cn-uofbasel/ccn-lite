@@ -34,20 +34,20 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (ccnl_nfnprefix_isNFN(c->name)) {
         if (ccnl_nfn_RX_result(relay, from, c))
             return;
-        DEBUGMSG(VERBOSE, "no running computation found \n");
+        DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
     }
 #endif
     if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
         // CONFORM: "A node MUST NOT forward unsolicited data [...]"
-        DEBUGMSG(DEBUG, "  removed because no matching interest\n");
+        DEBUGMSG_CFWD(DEBUG, "  removed because no matching interest\n");
         free_content(c);
         return;
     }
     if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
-        DEBUGMSG(DEBUG, "  adding content to cache\n");
+        DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
         ccnl_content_add2cache(relay, c);
     } else {
-        DEBUGMSG(DEBUG, "  content not added to cache\n");
+        DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
         free_content(c);
     }
 }
@@ -67,20 +67,20 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *content = 0;
-    DEBUGMSG(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
 
     buf = ccnl_ccnb_extract(data, datalen, &scope, &aok, &minsfx,
                             &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
     if (!buf) {
-        DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(DEBUG, "  parsing error or no prefix\n");
         goto Done;
     }
     if (nonce && ccnl_nonce_find_or_append(ccnl, nonce)) {
-        DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
+        DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
         goto Skip;
     }
     if (buf->data[0] == 0x01 && buf->data[1] == 0xd2) { // interest
-        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
         if (p->compcnt > 0 && p->comp[0][0] == (unsigned char) 0xc1)
             goto Skip;
         if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
@@ -94,7 +94,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                 if (!ccnl_i_prefixof_c(p, minsfx, maxsfx, c)) continue;
                 if (ppkd && !buf_equal(ppkd, c->details.ccnb.ppkd)) continue;
                 // FIXME: should check stale bit in aok here
-                DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+                DEBUGMSG_CFWD(DEBUG, "  matching content for interest, content %p\n",
                          (void *) c);
                 if (from->ifndx >= 0) {
                     ccnl_nfn_monitor(ccnl, from, c->name, c->content,
@@ -132,21 +132,21 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
             if (ppkd)
                 i->details.ccnb.ppkd = ppkd, ppkd = NULL;
             if (i) { // CONFORM: Step 3 (and 4)
-                DEBUGMSG(DEBUG, "  created new interest entry %p\n", (void *)i);
+                DEBUGMSG_CFWD(DEBUG, "  created new interest entry %p\n", (void *)i);
                 if (scope > 2)
                     ccnl_interest_propagate(ccnl, i);
             }
         } else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
                      (void *) i);
             ccnl_interest_propagate(ccnl, i);
         }
         if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+            DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
     } else { // content
-        DEBUGMSG(DEBUG, "  content=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  content=<%s>\n", ccnl_prefix_to_path(p));
         
 #ifdef USE_SIGNATURES
         if (p->compcnt == 2 && !memcmp(p->comp[0], "ccnx", 4)
@@ -180,7 +180,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     unsigned char **data, int *datalen)
 {
     int rc = 0, num, typ;
-    DEBUGMSG(DEBUG, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {
@@ -200,7 +200,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             continue;
 #endif
         default:
-            DEBUGMSG(DEBUG, "  unknown datagram type %d\n", num);
+            DEBUGMSG_CFWD(DEBUG, "  unknown datagram type %d\n", num);
             return -1;
         }
     }
@@ -229,18 +229,18 @@ ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *content = 0, *keyid = 0;
     unsigned char typ = hdrptr->pkttype;
     unsigned char hdrlen = *data - (unsigned char*)hdrptr;
-    DEBUGMSG(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
              *datalen, hdrlen);
 
     buf = ccnl_ccntlv_extract(hdrlen, data, datalen, &p, &keyid, &keyidlen,
                               &lastchunknum, &content, &contlen);
     if (!buf) {
-            DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+            DEBUGMSG_CFWD(DEBUG, "  parsing error or no prefix\n");
             goto Done;
     }
 
     if (typ == CCNX_PT_Interest) {
-        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
         // CONFORM: Step 1: search for matching local content
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_CCNTLV)
@@ -249,7 +249,7 @@ ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             // TODO: check freshness, kind-of-reply
             if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
                 continue;
-            DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  matching content for interest, content %p\n",
                      (void *) c);
             if (from->ifndx >= 0){
                 ccnl_nfn_monitor(relay, from, c->name, c->content,
@@ -260,7 +260,7 @@ ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
             goto Skip;
         }
-        DEBUGMSG(DEBUG, "  no matching content for interest\n");
+        DEBUGMSG_CFWD(DEBUG, "  no matching content for interest\n");
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
             if (i->suite != CCNL_SUITE_CCNTLV)
@@ -282,23 +282,23 @@ ccnl_ccntlv_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                                   &buf, &p, 0, hdrptr->hoplimit - 1);
             if (i) { // CONFORM: Step 3 (and 4)
                 // TODO keyID restriction
-                DEBUGMSG(DEBUG, "  created new interest entry %p\n",
+                DEBUGMSG_CFWD(DEBUG, "  created new interest entry %p\n",
                          (void *) i);
                 ccnl_interest_propagate(relay, i);
             }
         } else if ((from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
                      (void *) i);
             ccnl_interest_propagate(relay, i);
         }
         if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+            DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
     } else if (typ == CCNX_PT_NACK) {
-        DEBUGMSG(DEBUG, "  NACK=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  NACK=<%s>\n", ccnl_prefix_to_path(p));
     } else if (typ == CCNX_PT_Data) { // data packet with content
-        DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(p));
 
         // CONFORM: Step 1:
         for (c = relay->contents; c; c = c->next)
@@ -328,7 +328,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *end;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    DEBUGMSG(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CCNX_TLV_V1 ||
@@ -379,7 +379,7 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0;
     unsigned char *start = *data, *content = 0;
-    DEBUGMSG(TRACE, "ccnl_iottlv_forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(TRACE, "ccnl_iottlv_forwarder (%d bytes left)\n", *datalen);
 
     if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
         return -1;
@@ -389,18 +389,20 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     buf = ccnl_iottlv_extract(start, data, datalen, &p, NULL,
                               &content, &contlen);
     if (!buf) {
-        DEBUGMSG(WARNING, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
 
     if (typ == IOT_TLV_Request) {
-        DEBUGMSG(DEBUG, "  request=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  request=<%s>\n", ccnl_prefix_to_path(p));
+        if (local_producer(relay, p, from, content, contlen, buf))
+            return 0;
         for (c = relay->contents; c; c = c->next) {
             if (c->suite != CCNL_SUITE_IOTTLV)
                 continue;
             if (ccnl_prefix_cmp(c->name, NULL, p, CMP_EXACT))
                 continue;
-            DEBUGMSG(DEBUG, "  matching content for interest, content %p\n", (void *) c);
+            DEBUGMSG_CFWD(DEBUG, "  matching content for interest, content %p\n", (void *) c);
             if (from->ifndx >= 0) {
                 ccnl_nfn_monitor(relay, from, c->name, c->content, c->contentlen);
                 ccnl_face_enqueue(relay, from, buf_dup(c->pkt));
@@ -409,7 +411,7 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
             goto Skip;
         }
-        DEBUGMSG(DEBUG, "  no matching content for interest\n");
+        DEBUGMSG_CFWD(DEBUG, "  no matching content for interest\n");
         // CONFORM: Step 2: check whether interest is already known
         for (i = relay->pit; i; i = i->next) {
             if (i->suite == CCNL_SUITE_IOTTLV &&
@@ -431,19 +433,19 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i = ccnl_interest_new(relay, from, CCNL_SUITE_IOTTLV,
                                   &buf, &p, 0, 0);
             if (i) { // CONFORM: Step 3 (and 4)
-                DEBUGMSG(DEBUG, "  created new interest entry %p\n", (void *) i);
+                DEBUGMSG_CFWD(DEBUG, "  created new interest entry %p\n", (void *) i);
                 ccnl_interest_propagate(relay, i);
             }
         } else if (from->flags & CCNL_FACE_FLAGS_FWDALLI) {
-            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n", (void *) i);
+            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n", (void *) i);
             ccnl_interest_propagate(relay, i);
         }
         if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+            DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
     } else { // data packet with content -------------------------------------
-        DEBUGMSG(DEBUG, "  reply=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  reply=<%s>\n", ccnl_prefix_to_path(p));
 
 /*  mgmt messages for NDN?
 #ifdef USE_SIGNATURES
@@ -490,7 +492,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_content_s *c = 0;
     struct ccnl_prefix_s *p = 0, *tracing = 0;
     unsigned char *content = 0, *cp = *data;
-    DEBUGMSG(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len))
         return -1;
@@ -499,16 +501,16 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                               &scope, &mbf, &minsfx, &maxsfx, 0, 
                               &p, &tracing, &nonce, &ppkl, &content, &contlen);
     if (!buf) {
-        DEBUGMSG(DEBUG, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(DEBUG, "  parsing error or no prefix\n");
         goto Done;
     }
 
     if (typ == NDN_TLV_Interest) {
         if (nonce && ccnl_nonce_find_or_append(relay, nonce)) {
-            DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
+            DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
             goto Skip;
         }
-        DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(p));
     /*
         filter here for link level management messages ...
         if (p->compcnt == 4 && !memcmp(p->comp[0], "ccnx", 4)) {
@@ -522,7 +524,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (ppkl && !buf_equal(ppkl, c->details.ndntlv.ppkl)) continue;
             // FIXME: should check freshness (mbf) here
             // if (mbf) // honor "answer-from-existing-content-store" flag
-            DEBUGMSG(DEBUG, "  matching content for interest, content %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  matching content for interest, content %p\n",
                      (void *) c);
             if (from->ifndx >= 0) {
                 ccnl_nfn_monitor(relay, from, c->name, c->content,
@@ -566,22 +568,22 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             if (ppkl)
                 i->details.ndntlv.ppkl = ppkl, ppkl = NULL;
             if (i) { // CONFORM: Step 3 (and 4)
-                DEBUGMSG(DEBUG,
+                DEBUGMSG_CFWD(DEBUG,
                          "  created new interest entry %p\n", (void *) i);
                 if (scope > 2)
                     ccnl_interest_propagate(relay, i);
             }
         } else if (scope > 2 && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
                      (void *) i);
             ccnl_interest_propagate(relay, i);
         }
         if (i) { // store the I request, for the incoming face (Step 3)
-            DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+            DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
             ccnl_interest_append_pending(i, from);
         }
     } else { // data packet with content -------------------------------------
-        DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(p));
+        DEBUGMSG_CFWD(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path(p));
 
 /*  mgmt messages for NDN?
 #ifdef USE_SIGNATURES

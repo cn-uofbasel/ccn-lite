@@ -19,7 +19,7 @@ CC?=gcc
 CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
-LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux 
+LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -Wno-error=date-time
 
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations

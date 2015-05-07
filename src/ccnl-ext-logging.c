@@ -112,13 +112,15 @@ ccnl_debug_str2level(char *s)
 
 #elif defined(CCNL_ARDUINO)
 
-#  define DEBUGMSG(L,FMT, ...) do {     \
+#  define DEBUGMSG_OFF(...) do{}while(0)
+#  define DEBUGMSG_ON(L,FMT, ...) do {     \
         if ((L) <= debug_level) {       \
+          Serial.print("[");            \
+          Serial.print(ccnl_debugLevelToChar(debug_level)); \
+          Serial.print("] ");           \
           sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__); \
           Serial.print(timestamp());    \
           Serial.print(" ");            \
-          Serial.print(ccnl_debugLevelToChar(debug_level)); \
-          Serial.print("  ");           \
           Serial.print(logstr);         \
           Serial.print("\r");           \
         }                               \
@@ -133,6 +135,7 @@ ccnl_debug_str2level(char *s)
             timestamp());                           \
         fprintf(stderr, __VA_ARGS__);               \
     } while (0)
+
 #endif
 
 // ----------------------------------------------------------------------
@@ -147,7 +150,7 @@ ccnl_debug_str2level(char *s)
 
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
-#include "ccnl-ext-debug.h"
+
 void
 debug_memdump()
 {
@@ -156,12 +159,16 @@ debug_memdump()
     CONSOLE("%s @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
 #ifdef CCNL_ARDUINO
-        strcpy_P(logstr + LOGSTROFFS, h->fname);
-        CONSOLE("%s @@@ mem %p %5d Bytes, allocated by %s:%d @%d.%03d\n",
-                timestamp(),
-                (unsigned char *)h + sizeof(struct mhdr),
-                h->size, logstr + LOGSTROFFS, h->lineno,
-            int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
+        char *cp = logstr;
+        sprintf_P(logstr, PSTR("%s @@@ mem %p %5d Bytes, allocated by "),
+                  timestamp(),
+                  (int)((unsigned char *)h + sizeof(struct mhdr)),
+                  h->size);
+        cp += strlen(logstr);
+        strcpy_P(cp, h->fname + 7); // remove the "src/../" prefix
+        Serial.print(logstr);
+        CONSOLE(":%d @%d.%03d\n", h->lineno,
+                int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
 #else
         CONSOLE("%s @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
                 timestamp(),
@@ -173,5 +180,14 @@ debug_memdump()
 }
 #endif //USE_DEBUG_MALLOC
 #endif //USE_DEBUG
+
+
+// only in the Ardiono case we wish to control debugging on a module basis
+#ifndef CCNL_ARDUINO
+# define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
+#endif
 
 //eof

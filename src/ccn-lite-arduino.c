@@ -1,6 +1,6 @@
 /*
  * @f ccn-lite-arduino.c
- * @b a small server/relay for the Ardiuno platform
+ * @b a small server (and relay) for the Arduino platform
  *
  * Copyright (C) 2015, Christian Tschudin, University of Basel
  *
@@ -28,7 +28,8 @@
 //#define USE_FRAG
 //#define USE_ETHERNET
 //#define USE_HTTP_STATUS
-#define USE_LOGGING
+#define USE_IPV4
+//#define USE_LOGGING
 //#define USE_MGMT
 //#define USE_NACK
 //#define USE_NFN
@@ -43,66 +44,75 @@
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
 
-// #include "ccnl-os-includes.h"
+double GetTemp(void)
+{
+  unsigned int wADC;
+  double t;
+
+  // The internal temperature has to be used
+  // with the internal reference of 1.1V.
+  // Channel 8 can not be selected with
+  // the analogRead function yet.
+
+  // Set the internal reference and mux.
+  ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
+  ADCSRA |= _BV(ADEN);  // enable the ADC
+
+  delay(20);            // wait for voltages to become stable.
+
+  ADCSRA |= _BV(ADSC);  // Start the ADC
+
+  // Detect end-of-conversion
+  while (bit_is_set(ADCSRA,ADSC));
+
+  // Reading register "ADCW" takes care of how to read ADCL and ADCH.
+  wADC = ADCW;
+
+  // The offset of 324.31 could be wrong. It is just an indication.
+//  t = (wADC - 324.31 ) / 1.22;
+  t = (wADC - 338) / 1.22;
+
+  // The returned temperature is in degrees Celcius.
+  return (t);
+}
+
 
 // ----------------------------------------------------------------------
 // dummy types
 
-struct sockaddr {
-  unsigned char sa_family;
+struct in_addr {
+    unsigned long s_addr;
 };
+
+struct sockaddr_in {
+    unsigned char sa_family;
+    unsigned short sin_port;
+    struct in_addr sin_addr;
+};
+
+struct sockaddr {
+    unsigned char sa_family;
+    unsigned char sa_bits[sizeof(struct sockaddr_in)];
+};
+
+#define AF_PACKET 1
+#define AF_INET   2
 
 # define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
 # define htons(i)  ntohs(i)
 
-// 32 bit values in an Arduino context?
-# define ntohl(i)  -1
-# define htonl(i)  -1
-
-// ----------------------------------------------------------------------
-// logging
-
-/*
-#define FATAL   0  // FATAL
-#define ERROR   1  // ERROR
-#define WARNING 2  // WARNING 
-#define INFO    3  // INFO 
-#define DEBUG   4  // DEBUG 
-#define VERBOSE 5  // VERBOSE
-#define TRACE 	6  // TRACE 
-*/
-
-/*
-char
-ccnl_debugLevelToChar(int level)
-{
-    switch (level) {
-        case FATAL:     return 'F';
-        case ERROR:     return 'E';
-        case WARNING:   return 'W';
-        case INFO:      return 'I';
-        case DEBUG:     return 'D';
-        case TRACE:     return 'T';
-        case VERBOSE:   return 'V';
-        default:        return '?';
+unsigned long
+ntohl(unsigned long l) {
+    unsigned char r[4];
+    char i;
+    for (i = 0; i < 4; i++) {
+        r[3-i] = l & 0xff;
+        l >>= 8;
     }
+    return *(unsigned long*)r;
 }
-*/
 
-/*
-// #undef DEBUGMSG
-#define DEBUGMSG(L,FMT, ...) do { \
-  if ((L) <= debug_level) {                      \
-    sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__);      \
-    Serial.print(timestamp()); \
-    Serial.print(" "); \
-    Serial.print(ccnl_debugLevelToChar(debug_level)); \
-    Serial.print("  "); \
-    Serial.print(logstr); \
-    Serial.print("\r"); \
-  } \
-} while(0)
-*/
+#define htonl(i) ntohl(i)
 
 // ----------------------------------------------------------------------
 
@@ -110,22 +120,29 @@ ccnl_debugLevelToChar(int level)
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-static char logstr[256];
-#define LOGSTROFFS 24  // where to put a %s parameter for the printf_P
+static unsigned char packetBuffer[128];      // buffer to hold incoming packet,
+static char ReplyBuffer[20];  // a string to send back
 
-// static char fromPROGMEM[16];
+static char logstr[128];
+#define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
 {
-/*
-    strcpy_P(fromPROGMEM, s);
-    return fromPROGMEM;
-*/
     strcpy_P(logstr + LOGSTROFFS, s);
     return logstr + LOGSTROFFS;
-
 }
 
+char*
+inet_ntoa(struct in_addr a)
+{
+    static char result[16];
+    unsigned long l = ntohl(a.s_addr);
+
+    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
+            (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
+    return result;
+}
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
@@ -136,10 +153,23 @@ ccnl_arduino_getPROGMEMstr(const char* s)
 
 char* ccnl_addr2ascii(sockunion *su);
 
+#define DEBUGMSG_CORE(...) DEBUGMSG_OFF(__VA_ARGS__)
+#define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
+#define DEBUGMSG_CUTL(...) DEBUGMSG_OFF(__VA_ARGS__)
+#define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
+#define DEBUGMSG_PIOT(...) DEBUGMSG_OFF(__VA_ARGS__)
+
+#define DEBUGMSG(...)      DEBUGMSG_OFF(__VA_VARGS__)
+
+extern struct ccnl_prefix_s sensor;
+int local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *from, unsigned char *content,
+                   int contlen, struct ccnl_buf_s *buf);
+
 #include "ccnl-core.c"
+#include "ccnl-ext-http.c"
 
 /*
-#include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-nfn.c"
@@ -152,72 +182,7 @@ char* ccnl_addr2ascii(sockunion *su);
 // ----------------------------------------------------------------------
 
 static struct ccnl_relay_s theRelay;
-static const char suite = CCNL_SUITE_IOTTLV;
-
-struct ccnl_timer_s {
-    struct ccnl_timer_s *next;
-    struct timeval timeout;
-    void (*fct)(char,int);
-    void (*fct2)(void*,void*);
-    char node;
-    int intarg;
-    void *aux1;
-    void *aux2;
-    int handler;
-};
-
-struct ccnl_timer_s *eventqueue;
-
-long
-timevaldelta(struct timeval *a, struct timeval *b) {
-    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
-}
-
-void*
-ccnl_set_timer(long usec, void (*fct)(void *aux1, void *aux2),
-                 void *aux1, void *aux2)
-{
-    struct ccnl_timer_s *t, **pp;
-    static int handlercnt;
-
-    t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
-    if (!t)
-        return 0;
-    t->fct2 = fct;
-    gettimeofday(&t->timeout, NULL);
-    usec += t->timeout.tv_usec;
-    t->timeout.tv_sec += usec / 1000000;
-    t->timeout.tv_usec = usec % 1000000;
-    t->aux1 = aux1;
-    t->aux2 = aux2;
-
-    for (pp = &eventqueue; ; pp = &((*pp)->next)) {
-        if (!*pp || (*pp)->timeout.tv_sec > t->timeout.tv_sec ||
-            ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
-             (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
-            t->next = *pp;
-            t->handler = handlercnt++;
-            *pp = t;
-            return t;
-        }
-    }
-    return NULL; // ?
-}
-
-void
-ccnl_rem_timer(void *h)
-{
-    struct ccnl_timer_s **pp;
-
-    for (pp = &eventqueue; *pp; pp = &((*pp)->next)) {
-        if ((void*)*pp == h) {
-            struct ccnl_timer_s *e = *pp;
-            *pp = e->next;
-            ccnl_free(e);
-            break;
-        }
-    }
-}
+static const char theSuite = CCNL_SUITE_IOTTLV;
 
 struct timeval*
 ccnl_run_events()
@@ -246,12 +211,52 @@ ccnl_run_events()
     return NULL;
 }
 
+void ccnl_ageing(void *relay, void *aux)
+{
+    ccnl_do_ageing(relay, aux);
+    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+}
+
 // ----------------------------------------------------------------------
 
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+               struct ccnl_face_s *from, unsigned char *content, int contlen,
+               struct ccnl_buf_s *buf)
+{
+    int offset = sizeof(packetBuffer);
+    double d;
+
+    if (ccnl_prefix_cmp(&sensor, NULL, pfx, CMP_EXACT))
+        return 0;
+
+    d = GetTemp();
+    sprintf_P(ReplyBuffer, PSTR("@%s  %d.%1d C"), timestamp(),
+              (int)d, (int)(10*(d - (int)d)));
+    ccnl_iottlv_prependReply(pfx, (unsigned char*) ReplyBuffer,
+                             strlen(ReplyBuffer), &offset, NULL, NULL,
+                             (unsigned char*) packetBuffer);
+    ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
+
+    relay->ifs[from->ifndx].sock->beginPacket(
+        from->peer.ip4.sin_addr.s_addr,from->peer.ip4.sin_port);
+    relay->ifs[from->ifndx].sock->write(packetBuffer + offset,
+                                        sizeof(packetBuffer) - offset);
+    relay->ifs[from->ifndx].sock->endPacket();
+
+    free_prefix(pfx);
+    ccnl_free(buf);
+
+    return 1;
+}
+
+// ----------------------------------------------------------------------
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
 {
+// forwarding not yet implemented for Arduino
+
 /*
     int rc;
 
@@ -293,27 +298,8 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 }
 
 void
-ccnl_close_socket(int s)
+ccnl_close_socket(EthernetUDP *udp)
 {
-/*
-    struct sockaddr_un su;
-    socklen_t len = sizeof(su);
-
-    if (!getsockname(s, (struct sockaddr*) &su, &len) &&
-                                        su.sun_family == AF_UNIX) {
-        unlink(su.sun_path);
-    }
-    close(s);
-*/
-}
-
-// ----------------------------------------------------------------------
-
-
-void ccnl_ageing(void *relay, void *aux)
-{
-    ccnl_do_ageing(relay, aux);
-    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
 // ----------------------------------------------------------------------
@@ -327,109 +313,57 @@ ccnl_arduino_run_events(struct ccnl_relay_s *relay)
         return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
     else
         return 10;
-
-/*
-    int i, len, maxfd = -1, rc;
-    fd_set readfs, writefs;
-    unsigned char buf[CCNL_MAX_PACKET_SIZE];
-    
-    if (ccnl->ifcount == 0) {
-        DEBUGMSG(ERROR, "no socket to work with, not good, quitting\n");
-        exit(EXIT_FAILURE);
-    }
-    for (i = 0; i < ccnl->ifcount; i++)
-        if (ccnl->ifs[i].sock > maxfd)
-            maxfd = ccnl->ifs[i].sock;
-    maxfd++;
-
-    DEBUGMSG(INFO, "starting main event and IO loop\n");
-    while (!ccnl->halt_flag) {
-        struct timeval *timeout;
-
-        FD_ZERO(&readfs);
-        FD_ZERO(&writefs);
-
-#ifdef USE_HTTP_STATUS
-        ccnl_http_anteselect(ccnl, ccnl->http, &readfs, &writefs, &maxfd);
-#endif
-        for (i = 0; i < ccnl->ifcount; i++) {
-            FD_SET(ccnl->ifs[i].sock, &readfs);
-            if (ccnl->ifs[i].qlen > 0)
-                FD_SET(ccnl->ifs[i].sock, &writefs);
-        }
-
-        timeout = ccnl_run_events();
-        rc = select(maxfd, &readfs, &writefs, NULL, timeout);
-
-        if (rc < 0) {
-            perror("select(): ");
-            exit(EXIT_FAILURE);
-        }
-
-#ifdef USE_HTTP_STATUS
-        ccnl_http_postselect(ccnl, ccnl->http, &readfs, &writefs);
-#endif
-        for (i = 0; i < ccnl->ifcount; i++) {
-            if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
-                sockunion src_addr;
-                socklen_t addrlen = sizeof(sockunion);
-                if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
-                                (struct sockaddr*) &src_addr, &addrlen)) > 0) {
-                    
-                    if (src_addr.sa.sa_family == AF_INET) {
-                        ccnl_core_RX(ccnl, i, buf, len,
-                                     &src_addr.sa, sizeof(src_addr.ip4));
-                    }
-#ifdef USE_ETHERNET
-                    else if (src_addr.sa.sa_family == AF_PACKET) {
-                        if (len > 14)
-                            ccnl_core_RX(ccnl, i, buf+14, len-14,
-                                         &src_addr.sa, sizeof(src_addr.eth));
-                    }
-#endif
-#ifdef USE_UNIXSOCKET
-                    else if (src_addr.sa.sa_family == AF_UNIX) {
-                        ccnl_core_RX(ccnl, i, buf, len,
-                                     &src_addr.sa, sizeof(src_addr.ux));
-                    }
-#endif
-                }
-            }
-
-            if (FD_ISSET(ccnl->ifs[i].sock, &writefs)) {
-              ccnl_interface_CTS(ccnl, ccnl->ifs + i);
-            }
-        }
-    }
-*/
-
-    return 0;
 }
 
 
 // ----------------------------------------------------------------------
 
+struct ccnl_prefix_s sensor;
+char sensor_mac[12];
+char* sensor_comp[2] = {sensor_mac, "temp"};
+int sensor_len[2];
+
+
 int
-ccnl_arduino_init(struct ccnl_relay_s *relay)
+ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
+                  unsigned long int IPaddr, unsigned short port,
+                  EthernetUDP *udp)
 {
-    int opt, max_cache_entries = -1, udpport = -1, httpport = -1;
-    char *datadir = NULL, *ethdev = NULL;
+    int i;
 
-    DEBUGMSG(INFO, "This is 'ccn-lite-relay' for Arduino\n");
-    DEBUGMSG(INFO, "  ccnl-core: " CCNL_VERSION "\n");
-    DEBUGMSG(INFO, "  compile time: " __DATE__ " "  __TIME__ "\n");
+    DEBUGMSG_MAIN(INFO, "This is 'ccn-lite-arduino'\n");
+    DEBUGMSG_MAIN(INFO, "  ccnl-core: " CCNL_VERSION "\n");
+    DEBUGMSG_MAIN(INFO, "  compile time: " __DATE__ " "  __TIME__ "\n");
     strcpy_P(logstr + LOGSTROFFS, compile_string);
-    DEBUGMSG(INFO, "  compile options: %s\n", logstr + LOGSTROFFS);
-    DEBUGMSG(INFO, "  using suite %s\n", ccnl_suite2str(suite));
+    DEBUGMSG_MAIN(INFO, "  compile options: %s\n", logstr + LOGSTROFFS);
+    DEBUGMSG_MAIN(INFO, "  using suite %s\n", ccnl_suite2str(theSuite));
 
-    DEBUGMSG(INFO, "configuring the relay\n");
-
-    // init interfaces here
+    DEBUGMSG_MAIN(INFO, "configuring the relay\n");
 
     ccnl_core_init();
 
+    theRelay.ifcount = 1;
+    theRelay.ifs[0].addr.ip4.sa_family = AF_INET;
+    theRelay.ifs[0].addr.ip4.sin_addr.s_addr = IPaddr;
+    theRelay.ifs[0].addr.ip4.sin_port = port;
+    theRelay.ifs[0].sock = udp;
+
+    // init interfaces here
+    DEBUGMSG_MAIN(INFO, "  UDP port %s\n",
+                  ccnl_addr2ascii(&theRelay.ifs[0].addr));
+
     relay->max_cache_entries = 0;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+
+    for (i = 0; i < 6; i++)
+        sprintf_P(sensor_mac + 2*i, PSTR("%02x"), mac[i]);
+    sensor.suite = CCNL_SUITE_IOTTLV;
+    sensor.comp = (unsigned char**) sensor_comp;
+    sensor_len[0] = sizeof(sensor_mac);
+    sensor_len[1] = strlen(sensor_comp[1]);
+    sensor.complen = sensor_len;
+    sensor.compcnt = 2;
+    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
     DEBUGMSG(INFO, "config done, starting the loop\n");
 
@@ -439,6 +373,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay)
 void
 debug_delta(char up)
 {
+#ifdef USE_DEBUG
     if (up && debug_level < TRACE)
         debug_level++;
     else if (debug_level > FATAL)
@@ -446,6 +381,7 @@ debug_delta(char up)
 
     DEBUGMSG(FATAL, "debug level now at %d (%c)\n",
              debug_level, ccnl_debugLevelToChar(debug_level));
+#endif
 }
 
 // eof
