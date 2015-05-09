@@ -21,6 +21,8 @@
  * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
  */
 
+#ifdef USE_SUITE_CCNTLV
+
 #include "ccnl-pkt-ccntlv.h"
 
 /* ----------------------------------------------------------------------
@@ -479,7 +481,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
                                      offset, contentpos, buf);
 
-    if (len >= ((1 << 16) - 4))
+    if (len >= ((1 << 16) - 8))
         return -1;
 
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
@@ -488,5 +490,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
+
+#endif // USE_SUITE_CCNTLV
 
 // eof

@@ -328,7 +328,8 @@ enum {
     CTX_MSG,
     CTX_NAME,
     CTX_METADATA,
-    CTX_VALIDALGO
+    CTX_VALIDALGO,
+    CTX_VALIDALGODEPEND
 };
 
 static char ccntlv_recurse[][3] = {
@@ -337,6 +338,7 @@ static char ccntlv_recurse[][3] = {
     {CTX_TOPLEVEL, CCNX_TLV_TL_ValidationAlgo, CTX_VALIDALGO},
     {CTX_MSG, CCNX_TLV_M_Name, CTX_NAME},
     {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
+    {CTX_VALIDALGO, CCNX_VALIDALGO_HMAC_SHA256, CTX_VALIDALGODEPEND},
     {0,0,0}
 };
 
@@ -439,6 +441,14 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                     tn = "EC_SECP_256K1"; break;
                 case CCNX_VALIDALGO_EC_SECP_384R1:
                     tn = "EC_SECP_384R1"; break;
+                default: break;
+                }
+                break;
+            case CTX_VALIDALGODEPEND:
+                cn = "validAlgoDependendCtx";
+                switch (type) {
+                case CCNX_VALIDALGO_KEYID:
+                    tn = "KeyID"; break;
                 default: break;
                 }
                 break;

@@ -34,6 +34,7 @@
 #define USE_ECHO
 #define USE_ETHERNET
 // #define USE_FRAG
+#define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_MGMT
 // #define USE_NACK
@@ -66,6 +67,7 @@
 #include "ccnl-core.c"
 
 #include "ccnl-ext-echo.c"
+#include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
