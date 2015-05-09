@@ -29,7 +29,7 @@
 Note:
   For a CCNTLV prefix, we store the name components INCLUDING
   the TL. This is different for CCNB and NDNTLV where we only keep
-  a components value bytes, as there is only one "type" of name
+  a component's value bytes, as there is only one "type" of name
   component.
   This might change in the future (on the side of CCNB and NDNTLV prefixes).
 */
@@ -86,7 +86,7 @@ ccnl_ccntlv_extract(int hdrlen,
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
 
-    DEBUGMSG(TRACE, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
+    DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_extract len=%d hdrlen=%d\n", *datalen, hdrlen);
 
     if (content)
         *content = NULL;
@@ -129,7 +129,7 @@ ccnl_ccntlv_extract(int hdrlen,
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len2,
                                                          p->chunknum) < 0) {
-                        DEBUGMSG(WARNING, "Error in NetworkVarInt for chunk\n");
+                        DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
@@ -147,13 +147,13 @@ ccnl_ccntlv_extract(int hdrlen,
                     break;
                 case CCNX_TLV_N_Meta:
                     if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
-                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
+                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
                     if (lastchunknum && typ == CCNX_TLV_Meta_ENDChunk &&
                         ccnl_ccnltv_extractNetworkVarInt(cp, len2,
                                                          lastchunknum) < 0) {
-                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
+                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
                         goto Bail;
                     }
                     break;
@@ -458,6 +458,6 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // USE_CCNTLV
+#endif // USE_SUITE_CCNTLV
 
 // eof

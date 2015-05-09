@@ -49,6 +49,9 @@ const char *compile_string = ""
 #ifdef USE_FRAG
         "FRAG, "
 #endif
+#ifdef USE_HMAC256
+        "HMAC256, "
+#endif
 #ifdef USE_HTTP_STATUS
         "HTTP_STATUS, "
 #endif
@@ -668,7 +671,7 @@ One possibility is to not have a '/' before any nfn expression.
 
     int skip = 0;
 
-#if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
+#if defined(USE_SUITE_CCNTLV) // && defined(USE_NFN)
     // In the future it is possibly helpful to see the type information in the logging output
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.

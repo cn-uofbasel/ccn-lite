@@ -28,8 +28,11 @@
 
 #define NEEDS_PACKET_CRAFTING
 
+#define assert(...) do {} while(0)
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
+
+#include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
@@ -212,6 +215,7 @@ usage:
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
+
 /*
         {
             int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);

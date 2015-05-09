@@ -138,6 +138,13 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_VALIDALGO_EC_SECP_256K1            7
 #define CCNX_VALIDALGO_EC_SECP_384R1            8
 
+// validation dependent data (Sect 3.6.4.1.4)
+#define CCNX_VALIDALGO_KEYID                    9
+#define CCNX_VALIDALGO_PUBLICKEY                0x000b
+#define CCNX_VALIDALGO_CERT                     0x000c
+#define CCNX_VALIDALGO_KEYNAME                  0x000e
+#define CCNX_VALIDALGO_SIGTIME                  0x000f
+
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
 

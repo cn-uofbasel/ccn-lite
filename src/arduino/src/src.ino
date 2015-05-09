@@ -4,11 +4,18 @@
 #include <SPI.h>          // needed for Arduino versions later than 0018
 #include <EthernetV2_0.h>
 #include <EthernetUdpV2_0.h>
+#include <avr/io.h>
 
 #define W5200_CS  10   // Ethernet controller SPI CS pin
 #define SDCARD_CS 4    // SD card SPI CS pin
 
-byte mac[] = {0x63, 0x63, 0x6e, 0x6c, 0x69, 0x74};
+// assign different MAC addresses for each sensor, as a sensor's reading
+// will be accessible under "cli:/<mac-addr-in-hex>/temp"
+byte mac[] = {0x55, 0x42, 0x41, 0x53, 0x45, 0x4c};
+
+// choose a key that is at least 32 bytes long
+const char key[] PROGMEM = "some secret secret secret secret";
+
 #define LOCALPORT  6360   // local UDP port to listen on
 EthernetUDP Udp;
 
@@ -40,7 +47,7 @@ void setup()
     Ethernet.begin(mac, IPAddress(192,168,2,222)); // manual assignment
     Udp.begin(LOCALPORT);
 
-    ccnl_arduino_init(&theRelay, mac,
+    ccnl_arduino_init(&theRelay, mac, key,
                       (unsigned long int) Ethernet.localIP(),
                       htons(LOCALPORT), &Udp);
 
@@ -58,6 +65,7 @@ void loop()
 
     while (Serial.available()) {
         char c = Serial.read();
+        Serial.println();
         switch (c) {
           case '+': debug_delta(1); break;
           case '-': debug_delta(0); break;

@@ -141,10 +141,12 @@ ccnl_debug_str2level(char *s)
 // ----------------------------------------------------------------------
 
 #else // !USE_LOGGING
-#  define DEBUGSTMT(LVL, ...)                   do {} while(0)
-#  define DEBUGMSG(LVL, ...)                    do {} while(0)
-#  define TRACEIN(...)                          do {} while(0)
-#  define TRACEOUT(...)                         do {} while(0)
+#  define DEBUGSTMT(...)                   do {} while(0)
+#  define DEBUGMSG(...)                    do {} while(0)
+#  define DEBUGMSG_ON(...)                 do {} while(0)
+#  define DEBUGMSG_OFF(...)                do {} while(0)
+#  define TRACEIN(...)                     do {} while(0)
+#  define TRACEOUT(...)                    do {} while(0)
 
 #endif // USE_LOGGING
 
@@ -187,7 +189,9 @@ debug_memdump()
 # define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PCNX(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PNDN(...) DEBUGMSG(__VA_ARGS__)
 #endif
 
 //eof

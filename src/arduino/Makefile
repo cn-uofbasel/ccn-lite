@@ -1,7 +1,7 @@
 # Makefile
 
 BOARD=atmega328
-# BOARD=uno
+#BOARD=uno
 
 all:
 	ino build -m ${BOARD} -v

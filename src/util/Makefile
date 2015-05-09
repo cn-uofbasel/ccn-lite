@@ -38,7 +38,7 @@ CCNL_CORE_LIB = ../ccnl-defs.h ../ccnl-core.h ../ccnl-core.c
 
 CCNL_PLATFORM_LIB = ../ccnl-includes.h \
                     ../ccnl-ext-debug.c ../ccnl-ext.h ../ccnl-platform.c  \
-                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c\
+                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c ../ccnl-ext-hmac.c
 
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c

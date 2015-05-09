@@ -21,15 +21,18 @@
  */
 
 #define CCNL_ARDUINO
+#define LITTLE_ENDIAN 1234
+#define BYTE_ORDER LITTLE_ENDIAN
 
 //#define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
-#define USE_DEBUG_MALLOC
+// #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 //#define USE_ETHERNET
+#define USE_HMAC256
 //#define USE_HTTP_STATUS
 #define USE_IPV4
-//#define USE_LOGGING
+#define USE_LOGGING
 //#define USE_MGMT
 //#define USE_NACK
 //#define USE_NFN
@@ -37,9 +40,9 @@
 //#define USE_NFN_MONITOR
 //#define USE_SCHEDULER
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
-// #define USE_SUITE_CCNTLV
-#define USE_SUITE_IOTTLV
-// #define USE_SUITE_NDNTLV
+//#define USE_SUITE_CCNTLV
+// #define USE_SUITE_IOTTLV
+#define USE_SUITE_NDNTLV
 //#define USE_SUITE_LOCALRPC
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
@@ -106,9 +109,9 @@ struct sockaddr {
 unsigned long
 ntohl(unsigned long l) {
     unsigned char r[4];
-    char i;
-    for (i = 0; i < 4; i++) {
-        r[3-i] = l & 0xff;
+    unsigned char i = 4;
+    while (i-- > 0) {
+        r[i] = l & 0xff;
         l >>= 8;
     }
     return *(unsigned long*)r;
@@ -118,15 +121,26 @@ ntohl(unsigned long l) {
 
 // ----------------------------------------------------------------------
 
+#include <assert.h>
+
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-static unsigned char packetBuffer[128];      // buffer to hold incoming packet,
-static char ReplyBuffer[20];  // a string to send back
+extern char __heap_start;
+extern char *__brkval;
 
 static char logstr[128];
 #define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+
+static unsigned char packetBuffer[160];      // buffer to hold incoming packet,
+// static char ReplyBuffer[20];  // a string to send back
+char *ReplyBuffer = logstr;
+
+unsigned char keyval[64];
+unsigned char keyid[32];
+
+// ----------------------------------------------------------------------
 
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
@@ -156,9 +170,10 @@ inet_ntoa(struct in_addr a)
 char* ccnl_addr2ascii(sockunion *su);
 
 #define DEBUGMSG_CORE(...) DEBUGMSG_OFF(__VA_ARGS__)
-#define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
+#define DEBUGMSG_CFWD(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_CUTL(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
+#define DEBUGMSG_PCNX(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_PIOT(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_PNDN(...) DEBUGMSG_OFF(__VA_ARGS__)
 
@@ -170,6 +185,7 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                    int contlen, struct ccnl_buf_s *buf);
 
 #include "ccnl-core.c"
+#include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
 
 /*
@@ -237,6 +253,8 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     int offset = sizeof(packetBuffer);
     double d;
 
+    DEBUGMSG_MAIN(VERBOSE, "local_producer %d bytes\n", buf->datalen);
+
     if (ccnl_prefix_cmp(&sensor, NULL, pfx, CMP_EXACT))
         return 0;
 
@@ -244,13 +262,22 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     sprintf_P(ReplyBuffer, PSTR("@%s  %d.%1d C"), timestamp(),
               (int)d, (int)(10*(d - (int)d)));
     switch (pfx->suite) {
+
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
+#ifdef USE_HMAC256
+        ccnl_ccntlv_prependSignedContentWithHdr(pfx,
+                   (unsigned char*) ReplyBuffer, strlen(ReplyBuffer),
+                   NULL, NULL, keyval, keyid, &offset,
+                   (unsigned char*) packetBuffer);
+#else
         ccnl_ccntlv_prependContentWithHdr(pfx, (unsigned char*) ReplyBuffer,
                                  strlen(ReplyBuffer), &offset, NULL, NULL,
                                  (unsigned char*) packetBuffer);
+#endif // USE_HMAC256
         break;
-#endif
+#endif // USE_SUITE_CCNTLV
+
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
         ccnl_iottlv_prependReply(pfx, (unsigned char*) ReplyBuffer,
@@ -361,7 +388,8 @@ char* sensor_comp[2] = {sensor_mac, "temp"};
 #endif
 
 int
-ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
+ccnl_arduino_init(struct ccnl_relay_s *relay,
+                  unsigned char *mac, const char *key,
                   unsigned long int IPaddr, unsigned short port,
                   EthernetUDP *udp)
 {
@@ -373,7 +401,6 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     strcpy_P(logstr + LOGSTROFFS, compile_string);
     DEBUGMSG_MAIN(INFO, "  compile options: %s\n", logstr + LOGSTROFFS);
     DEBUGMSG_MAIN(INFO, "  using suite %s\n", ccnl_suite2str(theSuite));
-
     DEBUGMSG_MAIN(INFO, "configuring the relay\n");
 
     ccnl_core_init();
@@ -410,7 +437,15 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     sensor.compcnt = 2;
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
-    DEBUGMSG(INFO, "config done, starting the loop\n");
+#ifdef USE_HMAC256
+    strcpy_P(logstr, key);
+    ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
+    ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
+#endif
+
+    DEBUGMSG_MAIN(INFO, "  brkval=%p, stackptr=%p (%d bytes free)\n",
+                  __brkval, (char *)AVR_STACK_POINTER_REG,
+                  (char *)AVR_STACK_POINTER_REG - __brkval);
 
     return 0;
 }

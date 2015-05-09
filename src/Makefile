@@ -87,7 +87,7 @@ EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
-CCNB_LIB =   ccnl-pkt-ccnb.h ccnl-pkt-ccnb.c
+CCNB_LIB =   ccnl-pkt-ccnb.h ccnl-pkt-ccnb.c lib-sha256.c
 CCNTLV_LIB = ccnl-pkt-ccntlv.h ccnl-pkt-ccntlv.c
 NDNTLV_LIB = ccnl-pkt-ndntlv.h ccnl-pkt-ndntlv.c
 LOCRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
@@ -98,7 +98,8 @@ CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-ut
 
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-                 ccnl-ext-mgmt.c ccnl-ext-http.c ccnl-ext-crypto.c 
+                 ccnl-ext-hmac.c ccnl-ext-mgmt.c ccnl-ext-http.c \
+                 ccnl-ext-crypto.c 
 
 CCNL_PLATFORM_LIB = ccnl-os-includes.h \
                     ccnl-ext-debug.c ccnl-ext.h ccnl-os-time.c  \
