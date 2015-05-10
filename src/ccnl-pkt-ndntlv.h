@@ -79,6 +79,7 @@ Values          Designation
 #define NDN_SigTypeVal_DigestSha256             0x00
 #define NDN_SigTypeVal_SignatureSha256WithRsa   0x01
 #define NDN_SigTypeVal_SignatureSha256WithEcdsa 0x02
+#define NDN_SigTypeVal_SignatureHmacWithSha256  0x04
 
 
 // Markers (not TLV values)

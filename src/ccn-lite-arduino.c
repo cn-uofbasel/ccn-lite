@@ -286,13 +286,22 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
         ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
         break;
 #endif
+
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
+#ifdef USE_HMAC256
+        ccnl_ndntlv_prependSignedContent(pfx,
+                   (unsigned char*) ReplyBuffer, strlen(ReplyBuffer),
+                   NULL, NULL, keyval, keyid, &offset,
+                   (unsigned char*) packetBuffer);
+#else
         ccnl_ndntlv_prependContent(pfx, (unsigned char*) ReplyBuffer,
                                    strlen(ReplyBuffer), &offset, NULL, NULL,
                                    (unsigned char*) packetBuffer);
+#endif // USE_HMAC256
         break;
 #endif
+
     default:
         break;
     }
