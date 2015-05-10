@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkI.c
  * @b CLI mkInterest, write to Stdout
  *
- * Copyright (C) 2013-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -116,7 +116,7 @@ Usage:
             "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
-            "  -s SUITE   (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE   (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
