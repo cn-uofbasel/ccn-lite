@@ -46,10 +46,10 @@ gettimeofday(struct timeval *tv, void *dummy)
 char*
 timestamp(void)
 {
-    static char ts[16];
+    static char ts[12];
     uint32_t m = millis();
 
-    sprintf_P(ts, PSTR("%ld.%03d"), m / 1000, (int)(m % 1000));
+    sprintf_P(ts, PSTR("%lu.%03d"), m / 1000, (int)(m % 1000));
 
     return ts;
 }

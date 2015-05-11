@@ -41,11 +41,12 @@ void setup()
     ccnl_arduino_init(&theRelay, mac_addr,
                       (unsigned long int) Ethernet.localIP(),
                       htons(LOCAL_UDP_PORT), &Udp, secret_key);
-
+#ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
-    DEBUGMSG_ON(INFO, "Use '+', '-' to change verbosity, 'd' for heap dump\n");
+    Serial.println(F("  use '+', '-' to change verbosity, 'd' for heap dump\n"));
 #else
-    DEBUGMSG_ON(INFO, "Use '+', '-' to change verbosity\n");
+    Serial.println(F("  use '+', '-' to change verbosity\n"));
+#endif
 #endif
 }
 

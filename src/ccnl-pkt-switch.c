@@ -41,12 +41,24 @@ int
 ccnl_enc2suite(int enc)
 {
     switch(enc) {
+#ifdef USE_SUITE_CCNB
     case CCNL_ENC_CCNB:      return CCNL_SUITE_CCNB;
+#endif
+#ifdef USE_SUITE_NDNTLV
     case CCNL_ENC_NDN2013:   return CCNL_SUITE_NDNTLV;
+#endif
+#ifdef USE_SUITE_CCNTLV
     case CCNL_ENC_CCNX2014:  return CCNL_SUITE_CCNTLV;
+#endif
+#ifdef USE_SUITE_CISTLV
     case CCNL_ENC_CISCO2015: return CCNL_SUITE_CISTLV;
+#endif
+#ifdef USE_SUITE_IOTTLV
     case CCNL_ENC_IOT2014:   return CCNL_SUITE_IOTTLV;
+#endif
+#ifdef USE_SUITE_LOCALRPC
     case CCNL_ENC_LOCALRPC:  return CCNL_SUITE_LOCALRPC;
+#endif
     default:
         break;
     }

@@ -370,7 +370,7 @@ main(int argc, char **argv)
         switch (opt) {
         case 's':
             opt = ccnl_str2suite(optarg);
-            if (opt >= CCNL_SUITE_CCNB && opt < CCNL_SUITE_LAST)
+            if (opt >= 0 && opt < CCNL_SUITE_LAST)
                 suite = opt;
             else
                 fprintf(stderr, "Suite parameter <%s> ignored.\n", optarg);

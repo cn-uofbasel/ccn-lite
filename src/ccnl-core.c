@@ -77,7 +77,8 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
 // sa!=NULL && ifndx==-1: search suitable interface for given sa_family
 // sa!=NULL && ifndx!=-1: use this (incoming) interface for outgoing
 {
-    static int seqno, i;
+    static int seqno;
+    int i;
     struct ccnl_face_s *f;
 
     DEBUGMSG_CORE(TRACE, "ccnl_get_face_or_create src=%s\n",

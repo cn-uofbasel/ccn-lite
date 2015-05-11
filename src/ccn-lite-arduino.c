@@ -38,8 +38,29 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #define LITTLE_ENDIAN 1234
 #define BYTE_ORDER LITTLE_ENDIAN
 
+/*
+    Flash (and RAM) memory is tight on the Arduino Uno: carefully
+    enable the minimal subset of compile time options.
+    What worked for me (May 2015), for example, was
+
+    USE_DEBUG, USE_MALLOC, USE_IPV4, USE_NDNTLV
+  or
+    USE_DEBUG, USE_LOGGING, USE_IPV4, USE_NDNTLV
+  or
+    USE_HMAC256, USE_IPV4, USE_NDNTLV
+
+  but
+    USE_DEBUG, USE_HMAC256, USE_IPV4, USE_NDNTLV
+  was too big, while
+    USE_DEBUG, USE_HMAC256, USE_IPV4, USE_IOTTLV
+  worked again.
+
+    See also the section with the DEBUGMSG_OFF() etc defines, which is
+    another place to tweak.
+ */
+
 //#define USE_CCNxDIGEST
-//#define USE_DEBUG                      // must select this for USE_MGMT
+#define USE_DEBUG                      // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 //#define USE_ETHERNET
@@ -55,8 +76,8 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 //#define USE_SCHEDULER
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 // #define USE_SUITE_CCNTLV
-// #define USE_SUITE_IOTTLV
-#define USE_SUITE_NDNTLV
+#define USE_SUITE_IOTTLV
+// #define USE_SUITE_NDNTLV
 //#define USE_SUITE_LOCALRPC
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
@@ -184,6 +205,8 @@ inet_ntoa(struct in_addr a)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
 char* ccnl_addr2ascii(sockunion *su);
+
+// selectively enable/disable logging messages per module
 
 #define DEBUGMSG_CORE(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
@@ -405,7 +428,7 @@ ccnl_arduino_run_events(struct ccnl_relay_s *relay)
 struct ccnl_prefix_s sensor;
 int sensor_len[2];
 #ifdef USE_SUITE_CCNTLV
-char sensor_mac[16];
+char sensor_mac[16]; // ascii (hex) representation + 4 CCNx TL bytes
 char* sensor_comp[2] = {sensor_mac, "\x00\x01\x00\x04temp"};
 #else
 char sensor_mac[12];

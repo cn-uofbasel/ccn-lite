@@ -258,6 +258,7 @@ ccnl_dump(int lev, int typ, void *p)
                 pkt->flags);
         ccnl_dump(lev+1, CCNL_PREFIX, pkt->pfx);
         switch(pkt->suite) {
+#ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
             INDENT(lev+1);
             CONSOLE("minsfx=%d maxsfx=%d aok=%d scope=%d",
@@ -273,6 +274,8 @@ ccnl_dump(int lev, int typ, void *p)
                 CONSOLE("\n");
             }
             break;
+#endif
+#ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
             if (pkt->s.ccntlv.keyid) {
                 INDENT(lev+1);
@@ -280,10 +283,14 @@ ccnl_dump(int lev, int typ, void *p)
                 CONSOLE("\n");
             }
             break;
+#endif
+#ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV:
             INDENT(lev+1);
             CONSOLE("ttl=%d\n", pkt->s.iottlv.ttl);
             break;
+#endif
+#ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
             INDENT(lev+1);
             CONSOLE("minsfx=%d maxsfx=%d mbf=%d scope=%d",
@@ -299,6 +306,7 @@ ccnl_dump(int lev, int typ, void *p)
                 CONSOLE("\n");
             }
             break;
+#endif
         default:
             INDENT(lev+1);
             CONSOLE("... suite-specific packet details here ...\n");

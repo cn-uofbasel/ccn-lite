@@ -57,16 +57,28 @@
 
 
 enum {
+#ifdef USE_SUITE_CCNB
   CCNL_SUITE_CCNB,
+#endif
+#ifdef USE_SUITE_CCNTLV
   CCNL_SUITE_CCNTLV,
+#endif
+#ifdef USE_SUITE_CISTLV
   CCNL_SUITE_CISTLV,
+#endif
+#ifdef USE_SUITE_IOTTLV
   CCNL_SUITE_IOTTLV,
+#endif
+#ifdef USE_SUITE_LOCALRPC
   CCNL_SUITE_LOCALRPC,
+#endif
+#ifdef USE_SUITE_NDNTLV
   CCNL_SUITE_NDNTLV,
+#endif
   CCNL_SUITE_LAST
 };
 
-#define CCNL_SUITE_DEFAULT CCNL_SUITE_NDNTLV
+#define CCNL_SUITE_DEFAULT (CCNL_SUITE_LAST - 1)
 
 // ----------------------------------------------------------------------
 // our own packet format extension for switching encodings:

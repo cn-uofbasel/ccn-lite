@@ -766,8 +766,12 @@ free_packet(struct ccnl_pkt_s *pkt)
                 ccnl_free(pkt->s.ndntlv.ppkl);
                 break;
 #endif
+#ifdef USE_SUITE_CISTLV
             case CCNL_SUITE_CISTLV:
+#endif
+#ifdef USE_SUITE_IOTTLV
             case CCNL_SUITE_IOTTLV:
+#endif
             default:
                 break;
             }
@@ -880,10 +884,18 @@ One possibility is to not have a '/' before any nfn expression.
     int skip = 0;
 
 #if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
-    // In the future it is possibly helpful to see the type information in the logging output
-    // However, this does not work with NFN because it uses this function to create the names in NFN expressions
+    // In the future it is possibly helpful to see the type information
+    // in the logging output. However, this does not work with NFN because
+    // it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
-    if (ccntlv_skip && (pr->suite == CCNL_SUITE_CCNTLV || pr->suite == CCNL_SUITE_CISTLV))
+    if (ccntlv_skip && (0
+#ifdef USE_SUITE_CCNTLV
+       || pr->suite == CCNL_SUITE_CCNTLV
+#endif
+#ifdef USE_SUITE_CISTLV
+       || pr->suite == CCNL_SUITE_CISTLV
+#endif
+                         ))
         skip = 4;
 #endif
 

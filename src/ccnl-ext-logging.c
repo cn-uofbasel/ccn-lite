@@ -75,7 +75,7 @@ ccnl_debugLevelToChar(int level)
           Serial.print("] ");           \
           Serial.print(timestamp());    \
           Serial.print(": ");            \
-          strcpy_P(logstr, PSTR(__FILE__) + 8); \
+          strcpy_P(logstr, PSTR(__FILE__) + 8);     \
           Serial.print(logstr);            \
           Serial.print(":");            \
           Serial.print(__LINE__);            \
