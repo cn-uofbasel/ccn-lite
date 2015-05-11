@@ -22,22 +22,94 @@
  *   ccnl_timer_s to the '#ifndef CCNL_LINUXKERNEL' section
  */
 
+// ----------------------------------------------------------------------
+#ifdef CCNL_ARDUINO
 
-#ifndef CCNL_OS_TIME_C
-#define CCNL_OS_TIME_C
+typedef int time_t;
+#define Hz 1000
 
-#include "ccnl-os-includes.h"
+double CCNL_NOW(void) { return (double) millis() / Hz; }
 
-long
-timevaldelta(struct timeval *a, struct timeval *b) {
-    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
+struct timeval {
+    uint32_t tv_sec;
+    uint32_t tv_usec;
+};
+
+void
+gettimeofday(struct timeval *tv, void *dummy)
+{
+    uint32_t t = millis();
+    tv->tv_sec = t / Hz;
+    tv->tv_usec = (t % Hz) * (1000000 / Hz);
 }
+
+char*
+timestamp(void)
+{
+    static char ts[16];
+    uint32_t m = millis();
+
+    sprintf_P(ts, PSTR("%ld.%03d"), m / 1000, (int)(m % 1000));
+
+    return ts;
+}
+
+#else // !CCNL_ARDUINO
+
+#define CCNL_NOW()                    current_time()
+
+#ifndef CCNL_LINUXKERNEL
+double
+current_time(void)
+{
+    struct timeval tv;
+    static time_t start;
+    static time_t start_usec;
+
+    gettimeofday(&tv, NULL);
+
+    if (!start) {
+        start = tv.tv_sec;
+        start_usec = tv.tv_usec;
+    }
+
+    return (double)(tv.tv_sec) - start +
+                ((double)(tv.tv_usec) - start_usec) / 1000000;
+}
+
+char*
+timestamp(void)
+{
+    static char ts[16], *cp;
+
+    sprintf(ts, "%.4g", CCNL_NOW());
+    cp = strchr(ts, '.');
+    if (!cp)
+        strcat(ts, ".0000");
+    else if (strlen(cp) > 5)
+        cp[5] = '\0';
+    else while (strlen(cp) < 5)
+        strcat(cp, "0");
+
+    return ts;
+}
+
+#endif
+
+#endif // !CCNL_ARDUINO
+
+
+// ----------------------------------------------------------------------
+#ifdef CCNL_UNIX
 
 #ifndef CCNL_OMNET
 #  define CCNL_NOW()                    current_time()
 #endif
-// ----------------------------------------------------------------------
 
+#endif // CCNL_UNIX
+
+
+// ----------------------------------------------------------------------
 #ifdef CCNL_LINUXKERNEL
 
 struct ccnl_timerlist_s {
@@ -115,14 +187,13 @@ ccnl_rem_timer(void *p)
         kfree(t);
 }
 
-// ----------------------------------------------------------------------
-#else // !CCNL_LINUXKERNEL
+#endif // CCNL_LINUXKERNEL
 // ----------------------------------------------------------------------
 
-// (ms) I moved the following struct def here because it is used by all
-// containers apart from the kernel (this way I don't need to redefine it
-// for omnet.
-//
+
+#if defined(CCNL_UNIX) || defined (CCNL_ARDUINO)
+// ----------------------------------------------------------------------
+
 struct ccnl_timer_s {
     struct ccnl_timer_s *next;
     struct timeval timeout;
@@ -135,9 +206,6 @@ struct ccnl_timer_s {
     int handler;
 };
 
-
-#if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
-
 struct ccnl_timer_s *eventqueue;
 
 void
@@ -146,8 +214,13 @@ ccnl_get_timeval(struct timeval *tv)
     gettimeofday(tv, NULL);
 }
 
+long
+timevaldelta(struct timeval *a, struct timeval *b) {
+    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
+}
+
 void*
-ccnl_set_timer(int usec, void (*fct)(void *aux1, void *aux2),
+ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
                  void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
@@ -161,34 +234,6 @@ ccnl_set_timer(int usec, void (*fct)(void *aux1, void *aux2),
     usec += t->timeout.tv_usec;
     t->timeout.tv_sec += usec / 1000000;
     t->timeout.tv_usec = usec % 1000000;
-    t->aux1 = aux1;
-    t->aux2 = aux2;
-
-    for (pp = &eventqueue; ; pp = &((*pp)->next)) {
-    if (!*pp || (*pp)->timeout.tv_sec > t->timeout.tv_sec ||
-        ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
-         (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
-        t->next = *pp;
-        t->handler = handlercnt++;
-        *pp = t;
-        return t;
-    }
-    }
-    return NULL; // ?
-}
-
-void*
-ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *aux2),
-         void *aux1, void *aux2)
-{
-    struct ccnl_timer_s *t, **pp;
-    static int handlercnt;
-
-    t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
-    if (!t)
-    return 0;
-    t->fct2 = fct;
-    t->timeout = abstime;
     t->aux1 = aux1;
     t->aux2 = aux2;
 
@@ -222,45 +267,38 @@ ccnl_rem_timer(void *h)
 
 #endif
 
+// ----------------------------------------------------------------------
 
-double
-current_time(void)
+#ifdef USE_SCHEDULER
+
+void*
+ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *aux2),
+         void *aux1, void *aux2)
 {
-    struct timeval tv;
-    static time_t start;
-    static time_t start_usec;
+    struct ccnl_timer_s *t, **pp;
+    static int handlercnt;
 
-    ccnl_get_timeval(&tv);
+    t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
+    if (!t)
+    return 0;
+    t->fct2 = fct;
+    t->timeout = abstime;
+    t->aux1 = aux1;
+    t->aux2 = aux2;
 
-    if (!start) {
-        start = tv.tv_sec;
-        start_usec = tv.tv_usec;
+    for (pp = &eventqueue; ; pp = &((*pp)->next)) {
+    if (!*pp || (*pp)->timeout.tv_sec > t->timeout.tv_sec ||
+        ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
+         (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
+        t->next = *pp;
+        t->handler = handlercnt++;
+        *pp = t;
+        return t;
     }
-
-    return (double)(tv.tv_sec) - start +
-                ((double)(tv.tv_usec) - start_usec) / 1000000;
+    }
+    return NULL; // ?
 }
 
-char*
-timestamp(void)
-{
-    static char ts[30], *cp;
+#endif
 
-    sprintf(ts, "%.4g", CCNL_NOW());
-    cp = strchr(ts, '.');
-    if (!cp)
-        strcat(ts, ".0000");
-    else if (strlen(cp) > 5)
-        cp[5] = '\0';
-    else while (strlen(cp) < 5)
-        strcat(cp, "0");
-    return ts;
-}
-
-#endif 
-
-// void ccnl_get_timeval(struct timeval *tv);
-
-
-#endif //CCNL_OS_TIME_C
 // eof

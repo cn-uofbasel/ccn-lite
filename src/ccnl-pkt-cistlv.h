@@ -20,9 +20,6 @@
  * 2015-01-06 created
  */
 
-#ifndef PKT_CISTLV_H
-#define PKT_CISTLV_H
-
 // ----------------------------------------------------------------------
 // Header
 
@@ -81,5 +78,4 @@ struct cisco_tlvhdr_201501_s {
 #define CISCO_ERR_NORESOURCE                     3
 #define CISCO_ERR_POLICY                         4
 
-#endif
 // eof

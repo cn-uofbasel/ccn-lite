@@ -49,27 +49,35 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #undef USE_NFN
 
+#define USE_IPV4
 #define USE_SUITE_NDNTLV
 #define NEEDS_PREFIX_MATCHING
 
 // ----------------------------------------------------------------------
 // "replacement lib"
 
-#define FATAL   94 // FATAL
-#define ERROR   95 // ERROR
-#define WARNING 96 // WARNING 
-#define INFO    97 // INFO 
-#define DEBUG   98 // DEBUG 
-#define TRACE   99 // TRACE 
-#define VERBOSE 100 // VERBOSE 
+#define FATAL   0 // FATAL
+#define ERROR   1 // ERROR
+#define WARNING 2 // WARNING 
+#define INFO    3 // INFO 
+#define DEBUG   4 // DEBUG 
+#define TRACE   5 // TRACE 
+#define VERBOSE 6 // VERBOSE 
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
+# define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
+
 #define DEBUGSTMT(LVL, ...)             do {} while(0)
 #define TRACEIN(...)                    do {} while(0)
 #define TRACEOUT(...)                   do {} while(0)
+
+#define CONSTSTR(s)                     s
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
@@ -100,6 +108,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 #define ccnl_close_socket(s)            close(s)
 
 #define compute_ccnx_digest(b) NULL
+#define local_producer(...)             0
 
 //----------------------------------------------------------------------
 

@@ -94,9 +94,9 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
 
-    DEBUGMSG(DEBUG, "extracting CCNTLV packet (2)\n");
+    DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_extract len=%d\n", *datalen);
 
-    pkt = ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
 
@@ -137,11 +137,11 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // possibly want to remove the chunk segment from the
                     // name components and rely on the chunknum field in
                     // the prefix.
-                    p->chunknum = ccnl_malloc(sizeof(int));
+                  p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len2,
                                                          p->chunknum) < 0) {
-                        DEBUGMSG(WARNING, "Error in NetworkVarInt for chunk\n");
+                        DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
                     if (p->compcnt < CCNL_MAX_NAME_COMP) {
@@ -159,13 +159,13 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     break;
                 case CCNX_TLV_N_Meta:
                     if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
-                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
+                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
                     if (typ == CCNX_TLV_Meta_ENDChunk &&
                         ccnl_ccnltv_extractNetworkVarInt(cp, len2,
                                                &(pkt->final_block_id)) < 0) {
-                        DEBUGMSG(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
+                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
                         goto Bail;
                     }
                     break;
@@ -438,8 +438,8 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,
-                           unsigned int *lastchunknum, int *offset, int *contentpos,
-                           unsigned char *buf)
+                           unsigned int *lastchunknum, int *contentpos,
+                           int *offset, unsigned char *buf)
 {
     int tloffset = *offset;
 
@@ -470,8 +470,8 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned char *payload, int paylen,
-                                  unsigned int *lastchunknum, int *offset,
-                                  int *contentpos, unsigned char *buf)
+                                  unsigned int *lastchunknum, int *contentpos,
+                                  int *offset, unsigned char *buf)
 {
     int len, oldoffset;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
@@ -479,9 +479,9 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     oldoffset = *offset;
 
     len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
-                                     offset, contentpos, buf);
+                                     contentpos, offset, buf);
 
-    if (len >= ((1 << 16) - 8))
+    if (len >= ((uint32_t)(1 << 16) - 8))
         return -1;
 
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,

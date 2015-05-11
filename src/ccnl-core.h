@@ -44,10 +44,12 @@
 
 typedef union {
     struct sockaddr sa;
+#ifdef USE_IPV4
+    struct sockaddr_in ip4;
+#endif
 #ifdef USE_ETHERNET
     struct sockaddr_ll eth;
 #endif
-    struct sockaddr_in ip4;
 #ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;
 #endif
@@ -68,6 +70,8 @@ struct ccnl_if_s { // interface for packet IO
     void (*old_data_ready)(struct sock *, int);
     struct net_device *netdev;
     struct packet_type ccnl_packet;
+#elif defined(CCNL_ARDUINO)
+    EthernetUDP *sock;
 #else
     int sock;
 #endif
@@ -82,7 +86,9 @@ struct ccnl_if_s { // interface for packet IO
 };
 
 struct ccnl_relay_s {
+#ifndef CCNL_ARDUINO
     time_t startup_time;
+#endif
     int id;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
@@ -98,14 +104,20 @@ struct ccnl_relay_s {
                                                  void(*cts_done)(void*,void*));
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*));
+#ifdef USE_HTTP_STATUS
     struct ccnl_http_s *http;
+#endif
     void *aux;
 
+#ifdef USE_NFN
     struct ccnl_krivine_s *km;
-    
+#endif   
+
+  /*
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
     char *crypto_path;
+  */
 };
 
 struct ccnl_buf_s {

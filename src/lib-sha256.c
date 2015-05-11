@@ -1,8 +1,16 @@
 /*
  * @f lib-sha256.c
- * @b implementation of NIST SHA256, extracted from Aaron Gifford's code
+ * @b implementation of NIST SHA256, based on Aaron Gifford's code
  *
  */
+
+#ifdef CCNL_ARDUINO
+# define _MEMLOCATION_ PROGMEM
+# define K256_(i)      pgm_read_dword_near(K256 + i)
+#else
+# define _MEMLOCATION_
+# define K256_(i) K256[i]
+#endif
 
 /*
  * AUTHOR:	Aaron D. Gifford - http://www.aarongifford.com/
@@ -73,18 +81,6 @@ typedef uint64_t sha2_word64;	/* Exactly 8 bytes */
 }
 #endif /* BYTE_ORDER == LITTLE_ENDIAN */
 
-/*
- * Macro for incrementally adding the unsigned 64-bit integer n to the
- * unsigned 128-bit integer (represented using a two-element array of
- * 64-bit words):
- */
-#define ADDINC128(w,n)	{ \
-	(w)[0] += (sha2_word64)(n); \
-	if ((w)[0] < (n)) { \
-		(w)[1]++; \
-	} \
-}
-
 #define MEMSET_BZERO(p,l)	memset((p), 0, (l))
 #define MEMCPY_BCOPY(d,s,l)	memcpy((d), (s), (l))
 
@@ -117,7 +113,7 @@ typedef uint64_t sha2_word64;	/* Exactly 8 bytes */
 
 /*** SHA-XYZ INITIAL HASH VALUES AND CONSTANTS ************************/
 /* Hash constant words K for SHA-256: */
-const static sha2_word32 K256[64] = {
+const sha2_word32 K256[64] _MEMLOCATION_ = {
 	0x428a2f98UL, 0x71374491UL, 0xb5c0fbcfUL, 0xe9b5dba5UL,
 	0x3956c25bUL, 0x59f111f1UL, 0x923f82a4UL, 0xab1c5ed5UL,
 	0xd807aa98UL, 0x12835b01UL, 0x243185beUL, 0x550c7dc3UL,
@@ -137,7 +133,7 @@ const static sha2_word32 K256[64] = {
 };
 
 /* Initial hash value H for SHA-256: */
-const static sha2_word32 sha256_initial_hash_value[8] = {
+const static sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
 	0x6a09e667UL,
 	0xbb67ae85UL,
 	0x3c6ef372UL,
@@ -155,7 +151,11 @@ void ccnl_SHA256_Init(SHA256_CTX_t* context) {
 	if (context == (SHA256_CTX_t*)0) {
 		return;
 	}
+#ifdef CCNL_ARDUINO
+	memcpy_P(context->state, sha256_initial_hash_value, SHA256_DIGEST_LENGTH);
+#else
 	MEMCPY_BCOPY(context->state, sha256_initial_hash_value, SHA256_DIGEST_LENGTH);
+#endif
 	MEMSET_BZERO(context->buffer, SHA256_BLOCK_LENGTH);
 	context->bitcount = 0;
 }
@@ -183,10 +183,10 @@ void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
 		/* Copy data while converting to host byte order */
 		REVERSE32(*data++,W256[j]);
 		/* Apply the SHA-256 compression function to update a..h */
-		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + W256[j];
+		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256_(j) + W256[j];
 #else /* BYTE_ORDER == LITTLE_ENDIAN */
 		/* Apply the SHA-256 compression function to update a..h with copy */
-		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + (W256[j] = *data++);
+		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256_(j) + (W256[j] = *data++);
 #endif /* BYTE_ORDER == LITTLE_ENDIAN */
 		T2 = Sigma0_256(a) + Maj(a, b, c);
 		h = g;
@@ -209,7 +209,7 @@ void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
 		s1 = sigma1_256(s1);
 
 		/* Apply the SHA-256 compression function to update a..h */
-		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + 
+		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256_(j) + 
 		     (W256[j&0x0f] += s1 + W256[(j+9)&0x0f] + s0);
 		T2 = Sigma0_256(a) + Maj(a, b, c);
 		h = g;

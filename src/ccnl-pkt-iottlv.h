@@ -20,9 +20,6 @@
  * 2014-11-05 created
  */
 
-#ifndef PKT_IOTTLV_H
-#define PKT_IOTTLV_H
-
 // ----------------------------------------------------------------------
 // Header
 
@@ -111,7 +108,5 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // inside validation
 #define IOT_TLV_V_AlgoType      0x0
 #define IOT_TLV_V_Bits          0x1
-
-#endif // PKT_IOTTLV_H
 
 // eof

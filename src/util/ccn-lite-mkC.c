@@ -165,7 +165,7 @@ Usage:
         } else
             len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
                           lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
-                          &offs, NULL /* Int *contentpos */, out);
+                          NULL /* Int *contentpos */, &offs, out);
         break;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -173,7 +173,7 @@ Usage:
         offs = CCNL_MAX_PACKET_SIZE;
         len = ccnl_cistlv_prependContentWithHdr(name, body, len,
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  &offs, NULL, out);
+                  NULL, &offs, out);
         break;
 #endif
 #ifdef USE_SUITE_IOTTLV
@@ -189,10 +189,16 @@ Usage:
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_prependContent(name, body, len, &offs,
-                                         NULL, 
-                                         lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
-                                         out);
+        if (keylen > 0) {
+            ccnl_hmac256_keyval(key, keylen, keyval);
+            ccnl_hmac256_keyid(key, keylen, keyid);
+            len = ccnl_ndntlv_prependSignedContent(name, body, len,
+                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  NULL, keyval, keyid, &offs, out);
+        } else
+          len = ccnl_ndntlv_prependContent(name, body, len,
+                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
+                  &offs, out);
         break;
 #endif
     default:

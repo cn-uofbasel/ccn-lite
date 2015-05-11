@@ -39,7 +39,7 @@ CCNL_CORE_LIB = ../ccnl-defs.h ../ccnl-core.h ../ccnl-core.c
 
 CCNL_PLATFORM_LIB = ../ccnl-includes.h \
                     ../ccnl-ext-debug.c ../ccnl-ext.h ../ccnl-platform.c  \
-                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c\
+                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c ../ccnl-ext-hmac.c
 
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c
@@ -82,7 +82,8 @@ ccn-lite-fetch: Makefile ccn-lite-fetch.c \
 	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
-		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB}
+		${CCNB_LIB} ${CCNTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} \
+		${LOCRPC_LIB}
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
 
 ccn-lite-simplenfn: Makefile ccn-lite-simplenfn.c \

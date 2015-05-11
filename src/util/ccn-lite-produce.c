@@ -215,11 +215,10 @@ Usage:
         switch (suite) {
         case CCNL_SUITE_CCNTLV: 
             contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                                                           (unsigned char *)chunk_buf, chunk_len, 
-                                                           is_last ? &chunknum : NULL, 
-                                                           &offs, 
-                                                           NULL, // int *contentpos
-                                                           out);
+                            (unsigned char *)chunk_buf, chunk_len, 
+                            is_last ? &chunknum : NULL, 
+                            NULL, // int *contentpos
+                            &offs, out);
             break;
         case CCNL_SUITE_CISTLV: 
             contentlen = ccnl_cistlv_prependContentWithHdr(name, 
@@ -237,11 +236,10 @@ Usage:
             contentlen = CCNL_MAX_PACKET_SIZE - offs;
             break;
         case CCNL_SUITE_NDNTLV:
-            contentlen = ccnl_ndntlv_prependContent(name, 
-                                                    (unsigned char *) chunk_buf, chunk_len, 
-                                                    &offs, NULL,
-                                                    is_last ? &chunknum : NULL, 
-                                                    out);
+            contentlen = ccnl_ndntlv_prependContent(name,
+                                 (unsigned char *) chunk_buf, chunk_len, 
+                                 NULL, is_last ? &chunknum : NULL, 
+                                 &offs, out);
             break;
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);

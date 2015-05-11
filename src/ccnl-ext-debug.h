@@ -20,16 +20,43 @@
  * 2014-10-30 created <christopher.scherb@unibas.ch
  */
 
-#ifndef CCNL_EXT_DEBUG_H
-#define CCNL_EXT_DEBUG_H
+#ifdef USE_DEBUG
+#ifdef USE_DEBUG_MALLOC
 
-#if defined(USE_DEBUG) && defined(USE_DEBUG_MALLOC)
 struct mhdr {
     struct mhdr *next;
     char *fname;
     int lineno, size;
-    char *tstamp;
-} *mem;
+#ifdef CCNL_ARDUINO
+    double tstamp;
+#else
+    char *tstamp; // Linux kernel (no double), also used for CCNL_UNIX
 #endif
+} *mem;
 
-#endif //CCNL_EXT_DEBUG_H
+#endif // USE_DEBUG_MALLOC
+
+#ifndef CCNL_LINUXKERNEL
+struct ccnl_stats_s {
+    void* log_handler;
+    FILE *ofp;
+    int log_sent;
+    int log_recv;
+    int log_recv_old;
+    int log_sent_old;
+    int log_need_rt_seqn;
+    int log_content_delivery_rate_per_s;
+    double log_start_t;
+    double log_cdr_t;
+    //
+    FILE *ofp_r, *ofp_s, *ofp_q;
+    double log_recv_t_i;
+    double log_recv_t_c;
+    double log_sent_t_i;
+    double log_sent_t_c;
+};
+#endif // CCNL_LINUXKERNEL
+
+#endif // USE_DEBUG
+
+// eof

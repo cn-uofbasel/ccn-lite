@@ -20,8 +20,7 @@
  * 2015-01-06 created
  */
 
-#ifndef PKT_CISTLV_C
-#define PKT_CISTLV_C
+#ifdef USE_SUITE_CISTLV
 
 #include "ccnl-pkt-cistlv.h"
 
@@ -86,7 +85,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     DEBUGMSG(DEBUG, "extracting CISTLV packet (%d, %d bytes)\n",
              (int)(*data - start), *datalen);
 
-    pkt = ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
 
@@ -124,7 +123,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // We extract the chunknum to the prefix but keep it in the name component for now
                     // In the future we possibly want to remove the chunk segment from the name components 
                     // and rely on the chunknum field in the prefix.
-                    p->chunknum = ccnl_malloc(sizeof(int));
+                  p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_cistlv_extractNetworkVarInt(cp,
                                                          len2, p->chunknum) < 0) {
@@ -464,6 +463,6 @@ ccnl_cistlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // PKT_CISTLV_C
+#endif // USE_SUITE_CISTLV
 
 // eof

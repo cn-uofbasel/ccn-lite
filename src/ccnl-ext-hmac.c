@@ -29,6 +29,8 @@ void
 ccnl_hmac256_keyval(unsigned char *key, int klen,
                     unsigned char *keyval) // MUST have 64 bytes (BLOCK_LENGTH)
 {
+    DEBUGMSG(TRACE, "ccnl_hmac256_keyval %d bytes\n", klen);
+
     if (klen <= SHA256_BLOCK_LENGTH) {
         memcpy(keyval, key, klen);
     } else {
@@ -47,6 +49,8 @@ ccnl_hmac256_keyid(unsigned char *key, int klen,
                    unsigned char *keyid) // MUST have 32 bytes (DIGEST_LENGTH)
 {
     SHA256_CTX_t ctx;
+
+    DEBUGMSG(TRACE, "ccnl_hmac256_keyid %d bytes\n", klen);
 
     ccnl_SHA256_Init(&ctx);
     ccnl_SHA256_Update(&ctx, key, klen);
@@ -89,6 +93,8 @@ ccnl_hmac256_sign(unsigned char *keyval, int kvlen,
     unsigned char tmp[SHA256_DIGEST_LENGTH];
     SHA256_CTX_t ctx;
 
+    DEBUGMSG(TRACE, "ccnl_hmac_sign %d bytes\n", dlen);
+
     ccnl_hmac256_keysetup(&ctx, keyval, kvlen, 0x36); // inner hash
     ccnl_SHA256_Update(&ctx, data, dlen);
     ccnl_SHA256_Final(tmp, &ctx);
@@ -116,16 +122,19 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
                                         unsigned char *keydigest, // 32B
                                         int *offset, unsigned char *buf)
 {
-    int dummy, len, mdoffset, oldoffset;
+    int mdlength = 32, mdoffset, endofsign, oldoffset;
+    uint32_t len;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
 
     if (*offset < (8 + paylen + 4+32 + 3*4+32))
         return -1;
 
     oldoffset = *offset;
-    *offset -= 32; // reserve space for the digest
+
+    *offset -= mdlength; // reserve space for the digest
     mdoffset = *offset;
-    ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, 32, offset, buf);
+    ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, mdlength, offset, buf);
+    endofsign = *offset;
     *offset -= 32;
     memcpy(buf + *offset, keydigest, 32);
     ccnl_ccntlv_prependTL(CCNX_VALIDALGO_KEYID, 32, offset, buf);
@@ -134,18 +143,107 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
 
     len = oldoffset - *offset;
     len += ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
-                                      offset, contentpos, buf);
-    if (len >= ((1 << 16) - 8))
+                                      contentpos, offset, buf);
+    if (len >= (((uint32_t)1 << 16) - 8)) {
+        DEBUGMSG(ERROR, "payload to sign is too large\n");
         return -1;
-    dummy = 32;
-    ccnl_hmac256_sign(keyval, 64, buf + *offset, mdoffset - *offset,
-                      buf + mdoffset, &dummy);
+    }
+
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+                      buf + mdoffset, &mdlength);
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                 len, hoplimit, offset, buf);
     return oldoffset - *offset;
 }
 
 #endif // USE_SUITE_CCNTLV
+
+#ifdef USE_SUITE_NDNTLV
+
+int
+ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name, 
+                           unsigned char *payload, int paylen,  
+                           unsigned int *final_block_id, int *contentpos,
+                           unsigned char *keyval, // 64B
+                           unsigned char *keydigest, // 32B
+                           int *offset, unsigned char *buf)
+{
+    int oldoffset = *offset, oldoffset2, mdoffset, endofsign, mdlength = 32;
+    unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureHmacWithSha256 };
+
+    if (contentpos)
+        *contentpos = *offset - paylen;
+
+    // fill in backwards
+
+    *offset -= mdlength; // sha256 msg digest bits, filled out later
+    mdoffset = *offset;
+    // mandatory
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureValue, mdlength, offset, buf) <0)
+        return -1;
+
+    // to find length from start of content to end of SignatureInfo
+    endofsign = *offset;
+
+    // keyid
+    *offset -= 32;
+    memcpy(buf + *offset, keydigest, 32);
+    if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocatorDigest, 32, offset, buf) < 0)
+        return -1;
+    if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocator, 32+2, offset, buf) < 0)
+        return -1;
+
+    // use NDN_SigTypeVal_SignatureHmacWithSha256
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
+                offset, buf)< 0)
+        return 1;
+
+    // Groups KeyLocator and Signature Type with stored len
+    if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, endofsign - *offset, offset, buf) < 0)
+        return -1;
+
+    // mandatory payload/content
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
+                                offset, buf) < 0)
+        return -1;
+
+    // to find length of optional MetaInfo fields
+    oldoffset2 = *offset;
+    if(final_block_id) {
+        if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
+                                                 *final_block_id, 
+                                                 NDN_Marker_SegmentNumber,
+                                                 offset, buf) < 0)
+            return -1;
+
+        // optional
+        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset, offset, buf) < 0)
+            return -1;
+    }
+
+    // mandatory (empty for now)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)
+        return -1;
+
+    // mandatory
+    if (ccnl_ndntlv_prependName(name, offset, buf))
+        return -1;
+
+    // mandatory
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
+                              offset, buf) < 0)
+           return -1;
+
+    if (contentpos)
+        *contentpos -= *offset;
+
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+                      buf + mdoffset, &mdlength);
+
+    return oldoffset - *offset;
+}
+
+#endif // USE_SUITE_NDNTLV
 
 #endif // NEEDS_PACKET_CRAFTING
 

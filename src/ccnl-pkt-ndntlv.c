@@ -21,10 +21,9 @@
  * 2014-11-05 merged from pkt-ndntlv-enc.c pkt-ndntlv-dec.c
  */
 
-#ifndef PKT_NDNTLV_C
-#define PKT_NDNTLV_C
-
 #include "ccnl-pkt-ndntlv.h"
+
+#ifdef USE_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
 // packet parsing
@@ -85,7 +84,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     DEBUGMSG(DEBUG, "extracting NDNTLV packet (2)\n");
 
-    pkt = ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
     pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
@@ -114,7 +113,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 if (typ == NDN_TLV_NameComponent &&
                             p->compcnt < CCNL_MAX_NAME_COMP) {
                     if(cp[0] == NDN_Marker_SegmentNumber) {
-                        p->chunknum = ccnl_malloc(sizeof(int));
+                      p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
                         // it is implemented for encode, the decode is not yet implemented
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
@@ -441,9 +440,8 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,  
-                           int *offset, int *contentpos,
-                           unsigned int *final_block_id,
-                           unsigned char *buf)
+                           int *contentpos, unsigned int *final_block_id,
+                           int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };
@@ -513,6 +511,6 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // PKT_NDNTLV_C
+#endif // USE_NDNTLV
 
 // eof

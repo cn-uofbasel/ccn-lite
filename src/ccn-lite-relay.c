@@ -36,6 +36,7 @@
 // #define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS
+#define USE_IPV4
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
@@ -60,9 +61,11 @@
 
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
+#include "ccnl-os-time.c"
 #include "ccnl-ext-logging.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
+#define local_producer(...)             0
 
 #include "ccnl-core.c"
 
@@ -792,7 +795,7 @@ usage:
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,

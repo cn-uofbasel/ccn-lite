@@ -22,16 +22,9 @@
  */
 
 
-#ifndef CCNL_EXT_MGMT_C
-#define CCNL_EXT_MGMT_C
-
 #ifdef USE_MGMT
 
 #include "ccnl-ext-crypto.c"
-#include "ccnl-pkt-ccnb.h"
-#include "ccnl-core.h"
-#include "ccnl-defs.h"
-#include "ccnl-core-util.c"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -1984,5 +1977,5 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 }
 
 #endif // USE_MGMT
-#endif /*CCNL_EXT_MGMT_C*/
+
 // eof

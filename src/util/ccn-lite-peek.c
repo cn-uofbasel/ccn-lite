@@ -29,9 +29,11 @@
 
 #define NEEDS_PACKET_CRAFTING
 
+#define assert(...) do {} while(0)
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
+#include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
@@ -203,9 +205,11 @@ usage:
         len = mkInterest(prefix, 
                          &nonce, 
                          out, sizeof(out));
+
+        DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 /*
         {
-            int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
             write(fd, out, len);
             close(fd);
         }
@@ -231,6 +235,13 @@ usage:
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
 
+/*
+        {
+            int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+*/
             rc = isContent(out, len);
             if (rc < 0) {
                 DEBUGMSG(ERROR, "error when checking type of packet\n");

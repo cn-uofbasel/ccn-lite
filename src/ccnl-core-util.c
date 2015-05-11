@@ -20,18 +20,20 @@
  * 2014-06-18 created
  */
 
-#ifndef CCNL_CORE_UTIL_H
-#define CCNL_CORE_UTIL_H
+//#ifndef CCNL_CORE_UTIL_H
+//#define CCNL_CORE_UTIL_H
 
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-const char*
-compile_string(void)
-{
-    static const char *cp = ""
+#ifdef CCNL_ARDUINO
+const char compile_string[] PROGMEM = ""
+#else
+const char *compile_string = ""
+#endif
+
 #ifdef USE_CCNxDIGEST
         "CCNxDIGEST, "
 #endif
@@ -49,6 +51,9 @@ compile_string(void)
 #endif
 #ifdef USE_FRAG
         "FRAG, "
+#endif
+#ifdef USE_HMAC256
+        "HMAC256, "
 #endif
 #ifdef USE_HTTP_STATUS
         "HTTP_STATUS, "
@@ -102,8 +107,6 @@ compile_string(void)
         "UNIXSOCKET, "
 #endif
         ;
-  return cp;
-}
 
 // ----------------------------------------------------------------------
 
@@ -193,8 +196,10 @@ ccnl_is_local_addr(sockunion *su)
     if (su->sa.sa_family == AF_UNIX)
         return -1;
 #endif
+#ifdef USE_IPV4
     if (su->sa.sa_family == AF_INET)
         return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+#endif
     return 0;
 }
 
@@ -204,11 +209,11 @@ ccnl_str2suite(char *cp)
     if (!cp)
         return -1;
 #ifdef USE_SUITE_CCNB
-    if (!strcmp(cp, "ccnb"))
+    if (!strcmp(cp, CONSTSTR("ccnb")))
         return CCNL_SUITE_CCNB;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    if (!strcmp(cp, "ccnx2015"))
+    if (!strcmp(cp, CONSTSTR("ccnx2015")))
         return CCNL_SUITE_CCNTLV;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -216,11 +221,11 @@ ccnl_str2suite(char *cp)
         return CCNL_SUITE_CISTLV;
 #endif
 #ifdef USE_SUITE_IOTTLV
-    if (!strcmp(cp, "iot2014"))
+    if (!strcmp(cp, CONSTSTR("iot2014")))
         return CCNL_SUITE_IOTTLV;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    if (!strcmp(cp, "ndn2013"))
+    if (!strcmp(cp, CONSTSTR("ndn2013")))
         return CCNL_SUITE_NDNTLV;
 #endif
     return -1;
@@ -231,11 +236,11 @@ ccnl_suite2str(int suite)
 {
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB)
-        return "ccnb";
+        return CONSTSTR("ccnb");
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return "ccnx2015";
+        return CONSTSTR("ccnx2015");
 #endif
 #ifdef USE_SUITE_CISTLV
     if (suite == CCNL_SUITE_CISTLV)
@@ -243,13 +248,13 @@ ccnl_suite2str(int suite)
 #endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
-        return "iot2014";
+        return CONSTSTR("iot2014");
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
-        return "ndn2013";
+        return CONSTSTR("ndn2013");
 #endif
-    return "?";
+    return CONSTSTR("?");
 }
 
 int
@@ -371,7 +376,7 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
 {
     int len = strlen(src);
 
-    DEBUGMSG(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+    DEBUGMSG_CUTL(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
 
     if (*offset < len)
         return -1;
@@ -443,7 +448,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len, tlen;
 
-    DEBUGMSG(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
              ccnl_suite2str(suite), uri, nfnexpr);
 
     if (strlen(uri))
@@ -473,7 +478,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
         len += cnt * 4; // add TL size
 #endif
     
-    p->bytes = ccnl_malloc(len);
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
@@ -501,7 +506,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #endif
 
     if(chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
 
@@ -526,7 +531,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
-    p->bytes = ccnl_malloc(len);
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
@@ -540,7 +545,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     }
 
     if (prefix->chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *prefix->chunknum;
     }
 
@@ -595,7 +600,7 @@ int
 ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 {
     if (chunknum >= 0xff) {
-      DEBUGMSG(WARNING, "addChunkNum is only implemented for "
+      DEBUGMSG_CUTL(WARNING, "addChunkNum is only implemented for "
                "chunknum smaller than 0xff (%d)\n", chunknum);
         return -1;
     }
@@ -656,9 +661,9 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 #endif
 
         default:
-            DEBUGMSG(WARNING,
-                     "add chunk number not implemented for suite %s\n",
-                     ccnl_suite2str(prefix->suite));
+            DEBUGMSG_CUTL(WARNING,
+                     "add chunk number not implemented for suite %d\n",
+                     prefix->suite);
             return -1;
     }
 
@@ -679,7 +684,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (len <= 0) 
         return -1;
 
-    DEBUGMSG(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
+    DEBUGMSG_CUTL(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
 
     while (!ccnl_switch_dehead(&data, &len, &enc))
         suite = ccnl_enc2suite(enc);
@@ -778,7 +783,10 @@ free_packet(struct ccnl_pkt_s *pkt)
 char*
 ccnl_addr2ascii(sockunion *su)
 {
-    static char result[130];
+    static char result[64];
+
+    if (!su)
+        return CONSTSTR("(local)");
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
@@ -790,13 +798,16 @@ ccnl_addr2ascii(sockunion *su)
         return result;
     }
 #endif
+#ifdef USE_IPV4
     case AF_INET:
-        sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
+        sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
         return result;
+#endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
-        strcpy(result, su->ux.sun_path);
+        strncpy(result, su->ux.sun_path, sizeof(result)-1);
+        result[sizeof(result)-1] = 0;
         return result;
 #endif
     default:
@@ -820,15 +831,21 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
 {
     int len = 0, i, j;
 
+#ifdef CCNL_ARDUINO
+# define PREFIX_BUFSIZE 50
+#else
+# define PREFIX_BUFSIZE 2048
+#endif
+
     if (!pr)
         return NULL;
 
     if (!buf) {
         struct ccnl_buf_s *b;
-        b = ccnl_buf_new(NULL, 2048);
+        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
         ccnl_core_addToCleanup(b);
         prefix_buf1 = (char*) b->data;
-        b = ccnl_buf_new(NULL, 2048);
+        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
         ccnl_core_addToCleanup(b);
         prefix_buf2 = (char*) b->data;
         buf = prefix_buf1;
@@ -862,7 +879,7 @@ One possibility is to not have a '/' before any nfn expression.
 
     int skip = 0;
 
-#if defined(USE_NFN) && (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV))
+#if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
     // In the future it is possibly helpful to see the type information in the logging output
     // However, this does not work with NFN because it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
@@ -883,11 +900,17 @@ One possibility is to not have a '/' before any nfn expression.
 #endif
 
         for (j = skip; j < pr->complen[i]; j++) {
-            unsigned char c = pr->comp[i][j];
-            if (c < 0x20 || c >= 0x7f || (escape_components && c == '/' ))
-                len += sprintf(buf + len, "%%%02x", c);
-            else 
-                len += sprintf(buf + len, "%c", c);
+            char c = pr->comp[i][j];
+            char *fmt;
+            fmt = (c < 0x20 || c == 0x7f
+                            || (escape_components && c == '/' )) ?
+#ifdef CCNL_ARDUINO
+                  (char*)PSTR("%%%02x") : (char*)PSTR("%c");
+            len += sprintf_P(buf + len, fmt, c);
+#else
+                  "%%%02x" : "%c";
+            len += sprintf(buf + len, fmt, c);
+#endif
         }
     }
 
@@ -914,7 +937,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     unsigned char *tmp;
     int len = 0, offs;
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
@@ -969,10 +992,10 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
 
-    DEBUGMSG(DEBUG, "mkSimpleContent (%s, suite=%s, %d bytes)\n",
-             ccnl_prefix_to_path(name), ccnl_suite2str(name->suite), paylen);
+    DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
+             ccnl_prefix_to_path(name), paylen);
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
@@ -986,7 +1009,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
                                                 NULL, // lastchunknum
-                                                &offs, &contentpos, tmp);
+                                                &contentpos, &offs, tmp);
         break;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -1011,7 +1034,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &offs, &contentpos, NULL, tmp);
+                                         &contentpos, NULL, &offs, tmp);
         break;
 #endif
     default:
@@ -1030,5 +1053,4 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 
 #endif // NEEDS_PACKET_CRAFTING
 
-#endif // CCNL_CORE_UTIL_H
 // eof

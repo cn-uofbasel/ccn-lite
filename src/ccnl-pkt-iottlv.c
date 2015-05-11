@@ -20,9 +20,6 @@
  * 2014-11-05 created
  */
 
-#ifndef PKT_IOTTLV_C
-#define PKT_IOTTLV_C
-
 #ifdef USE_SUITE_IOTTLV
 
 #include "ccnl-pkt-iottlv.h"
@@ -147,9 +144,9 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     unsigned char *cp, tmp[10];
     int len, typ, len2, cplen;
 
-    DEBUGMSG(DEBUG, "ccnl_iottlv_bytes2pkt len=%d\n", *datalen);
+    DEBUGMSG_PIOT(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
 
-    pkt = ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
     pkt->suite = CCNL_SUITE_IOTTLV;
@@ -159,6 +156,8 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
             goto Bail;
         switch (typ) {
+        case IOT_TLV_Reply: // skip the TL, parse the rest (=restart the loop)
+            continue;
         case IOT_TLV_R_OptHeader:
         {
             cp = *data;
@@ -212,7 +211,7 @@ ccnl_iottlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     len = sizeof(tmp);
     len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
     if (len2 < 0) {
-        DEBUGMSG(ERROR, "prending code should not return -1\n");
+        DEBUGMSG_PIOT(ERROR, "prending code should not return -1\n");
         len2 = 0;
     }
     start -= len2;
@@ -428,6 +427,5 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // USE_SUITE_IOTTLV
-#endif // PKT_IOTTLV_C
 
 // eof

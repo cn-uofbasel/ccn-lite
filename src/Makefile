@@ -19,7 +19,7 @@ CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
 # CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
-LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux 
+LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -Wno-error=date-time
 
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
@@ -99,8 +99,8 @@ CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-ut
 
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-                 ccnl-ext-crypto.c ccnl-ext-echo.c ccnl-ext-http.c \
-                 ccnl-ext-mgmt.c
+                 ccnl-ext-echo.c ccnl-ext-hmac.c ccnl-ext-mgmt.c \
+		 ccnl-ext-http.c  ccnl-ext-crypto.c 
 
 CCNL_PLATFORM_LIB = ccnl-os-includes.h \
                     ccnl-ext-debug.c ccnl-ext.h ccnl-ext-logging.c \

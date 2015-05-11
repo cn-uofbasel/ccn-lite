@@ -386,7 +386,7 @@ rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         memcpy(cp, param->aux, param->u.namelen);
         cp[param->u.namelen] = '\0';
         if (!strcmp(cp, "/rpc/config/compileString")) {
-            val = ccnl_rdr_mkStr((char*)compile_string());
+          val = ccnl_rdr_mkStr((char*)compile_string);
         } else if (!strcmp(cp, "/rpc/config/localTime")) {
             time_t t = time(NULL);
             char *p = ctime(&t);
