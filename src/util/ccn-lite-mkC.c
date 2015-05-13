@@ -195,10 +195,11 @@ Usage:
             len = ccnl_ndntlv_prependSignedContent(name, body, len,
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   NULL, keyval, keyid, &offs, out);
-        } else
-          len = ccnl_ndntlv_prependContent(name, body, len,
+        } else {
+            len = ccnl_ndntlv_prependContent(name, body, len,
                   NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
                   &offs, out);
+        }
         break;
 #endif
     default:

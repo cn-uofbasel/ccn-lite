@@ -68,18 +68,20 @@ ccnl_debugLevelToChar(int level)
 
 #ifdef CCNL_ARDUINO
 
-#define _TRACE(F,P) do { \
-     if (debug_level >= TRACE) {                     \
-          Serial.print("[");            \
+#define _TRACE(F,P) do {                    \
+    if (debug_level >= TRACE) { char *cp;   \
+          Serial.print("[");                \
           Serial.print(P); \
-          Serial.print("] ");           \
-          Serial.print(timestamp());    \
-          Serial.print(": ");            \
-          strcpy_P(logstr, PSTR(__FILE__) + 8);     \
-          Serial.print(logstr);            \
-          Serial.print(":");            \
-          Serial.print(__LINE__);            \
-          Serial.println("\r");           \
+          Serial.print("] ");               \
+          Serial.print(timestamp());        \
+          Serial.print(": ");               \
+          strcpy_P(logstr, PSTR(__FILE__)); \
+          cp = logstr + strlen(logstr);     \
+          while (cp >= logstr && *cp != '/') cp--; \
+          Serial.print(cp+1);               \
+          Serial.print(":");                \
+          Serial.print(__LINE__);           \
+          Serial.println("\r");             \
      }} while(0)
 
 #else
@@ -206,7 +208,8 @@ debug_memdump()
                   (int)((unsigned char *)h + sizeof(struct mhdr)),
                   h->size);
         Serial.print(logstr);
-        strcpy_P(logstr, h->fname); // remove the "src/../" prefix
+        // remove the "src/../" prefix:
+        strcpy_P(logstr, h->fname);
         Serial.print(getBaseName(logstr));
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));

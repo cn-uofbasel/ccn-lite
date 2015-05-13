@@ -25,7 +25,7 @@
 // ----------------------------------------------------------------------
 #ifdef CCNL_ARDUINO
 
-typedef int time_t;
+//typedef int time_t;
 #define Hz 1000
 
 double CCNL_NOW(void) { return (double) millis() / Hz; }
