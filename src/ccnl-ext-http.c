@@ -40,8 +40,10 @@ ccnl_http_new(struct ccnl_relay_s *ccnl, int serverport)
     struct ccnl_http_s *http;
 
     s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (!s)
+    if (!s) {
+        DEBUGMSG(INFO, "could not create socket for http server\n");
         return NULL;
+    }
     setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &i, sizeof(i));
 
     me.sin_family = AF_INET;
@@ -49,6 +51,7 @@ ccnl_http_new(struct ccnl_relay_s *ccnl, int serverport)
     me.sin_addr.s_addr = htonl(INADDR_ANY);
     if (bind(s, (struct sockaddr*) &me, sizeof(me)) < 0) {
         close(s);
+        DEBUGMSG(INFO, "could not bind socket for http server\n");
         return NULL;
     }
     listen(s, 2);
