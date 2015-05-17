@@ -123,7 +123,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
 
 #ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 0, 0, 0)
+# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
 #else
 # define PREFIX2STR(P) ccnl_prefix_to_path(P)
 #endif
@@ -163,8 +163,8 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
 //             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-             ccnl_prefix_to_path_detailed(prefix,0,0,0),
-             ccnl_prefix_to_path_detailed(p,0,0,0),
+             ccnl_prefix_to_path_detailed(prefix,1,0,0),
+             ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,

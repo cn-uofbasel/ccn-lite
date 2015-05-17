@@ -338,7 +338,8 @@ void ccnl_ageing(void *relay, void *aux)
 struct ccnl_prefix_s sensor;
 
 #ifdef USE_SUITE_CCNTLV
-char* sensor_comp[2] = {"\x00\x01\x00\x01a", "\x00\x01\x00\x01b"};
+char* sensor_comp[2] = { (char*)"\x00\x01\x00\x01" "a",  // compiler reads 0x1a?
+                         (char*)"\x00\x01\x00\x01" "b"};
 int sensor_len[2] = {5, 5};
 #else
 char* sensor_comp[2] = {"a", "b"};
@@ -971,7 +972,7 @@ ccnl_android_init()
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(&theRelay, NULL, 8111, 8080, NULL,
@@ -1124,7 +1125,7 @@ usage:
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
