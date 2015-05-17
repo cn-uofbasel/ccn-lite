@@ -231,6 +231,12 @@ usage:
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
 
+        {
+            int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+
             rc = isContent(out, len);
             if (rc < 0) {
                 DEBUGMSG(ERROR, "error when checking type of packet\n");

@@ -44,7 +44,7 @@
 // #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
-#define USE_SUITE_CCNB                 // must select this for USE_MGMT
+//#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_IOTTLV
 // #define USE_SUITE_NDNTLV
@@ -53,6 +53,7 @@
 // #define USE_SIGNATURES
 
 #define NEEDS_PREFIX_MATCHING
+#define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-os-includes.h"
 
@@ -329,6 +330,116 @@ void ccnl_ageing(void *relay, void *aux)
 {
     ccnl_do_ageing(relay, aux);
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+}
+
+// ----------------------------------------------------------------------
+
+
+struct ccnl_prefix_s sensor;
+
+#ifdef USE_SUITE_CCNTLV
+char* sensor_comp[2] = {"\x00\x01\x00\x01a", "\x00\x01\x00\x01b"};
+int sensor_len[2] = {5, 5};
+#else
+char* sensor_comp[2] = {"a", "b"};
+int sensor_len[2] = {1, 1};
+#endif
+
+extern int
+ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
+                                  unsigned char *payload, int paylen,
+                                  unsigned int *lastchunknum,
+                                  int *contentpos, 
+                                  int *offset, unsigned char *buf);
+
+extern int
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
+                           unsigned char *payload, int paylen,  
+                           int *contentpos,
+                           unsigned int *final_block_id,
+                           int *offset, unsigned char *buf);
+
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+               struct ccnl_pkt_s *pkt)
+{
+    unsigned char packetBuffer[400], msg[100];
+    int offset = sizeof(packetBuffer);
+    double d;
+
+    DEBUGMSG(VERBOSE, "local_producer %d bytes\n", pkt->buf->datalen);
+
+    if (ccnl_prefix_cmp(&sensor, NULL, pkt->pfx, CMP_EXACT))
+        return 0;
+
+    sprintf(msg, "uptime is %s", timestamp());
+
+    switch (pkt->pfx->suite) {
+
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+#ifdef USE_HMAC256
+        ccnl_ccntlv_prependSignedContentWithHdr(pkt->pfx,
+                   (unsigned char*) msg, strlen(msg),
+                   NULL, NULL, keyval, keyid, &offset,
+                   (unsigned char*) packetBuffer);
+#else
+        ccnl_ccntlv_prependContentWithHdr(pkt->pfx, (unsigned char*) msg,
+                                 strlen(msg), NULL, NULL,
+                                 &offset, (unsigned char*) packetBuffer);
+#endif // USE_HMAC256
+        break;
+#endif // USE_SUITE_CCNTLV
+
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        ccnl_iottlv_prependReply(pkt->pfx, (unsigned char*) msg,
+                                 strlen(msg), &offset, NULL, NULL,
+                                 (unsigned char*) packetBuffer);
+        ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
+        break;
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+#ifdef USE_HMAC256
+        ccnl_ndntlv_prependSignedContent(pkt->pfx,
+                   (unsigned char*) msg, strlen(msg),
+                   NULL, NULL, keyval, keyid, &offset,
+                   (unsigned char*) packetBuffer);
+#else
+        ccnl_ndntlv_prependContent(pkt->pfx, (unsigned char*) msg,
+                                   strlen(msg), NULL, NULL,
+                                   &offset, (unsigned char*) packetBuffer);
+#endif // USE_HMAC256
+        break;
+#endif
+
+    default:
+        break;
+    }
+
+    {
+        struct ccnl_buf_s *retbuf;
+        DEBUGMSG(TRACE, "  enqueue %d bytes\n",
+            (int)(sizeof(packetBuffer) - offset));
+        retbuf = ccnl_buf_new((char *)packetBuffer + offset,
+            sizeof(packetBuffer) - offset);
+        ccnl_face_enqueue(relay, from, retbuf); 
+    }
+
+/*
+    relay->ifs[from->ifndx].sock->beginPacket(
+        from->peer.ip4.sin_addr.s_addr,from->peer.ip4.sin_port);
+    relay->ifs[from->ifndx].sock->write(packetBuffer + offset,
+                                        sizeof(packetBuffer) - offset);
+    relay->ifs[from->ifndx].sock->endPacket();
+*/
+    free_packet(pkt);
+
+    TRACEOUT();
+
+    return 1;
 }
 
 // ----------------------------------------------------------------------
@@ -710,6 +821,52 @@ notacontent:
 // ----------------------------------------------------------------------
 
 int
+ccnl_android_udp_io(int fd, int events, void *data)
+{
+    struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
+    ALooper *lpr = ALooper_forThread();
+    unsigned char buf[CCNL_MAX_PACKET_SIZE];
+    int i, len;
+
+    if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP)) {
+        return 0;
+    }
+
+//    DEBUGMSG(INFO, "android_udp_io %0x04x, %d\n", events, relay->ifcount);
+
+    for (i = 0; i < relay->ifcount; i++) {
+//        DEBUGMSG(INFO, "android_udp_io loop\n");
+        if (relay->ifs[i].sock != fd)
+            continue;
+        if (events | ALOOPER_EVENT_INPUT) {
+            sockunion src_addr;
+            socklen_t addrlen = sizeof(sockunion);
+
+//            DEBUGMSG(INFO, "android_udp_io - input event\n");
+
+            if ((len = recvfrom(relay->ifs[i].sock, buf, sizeof(buf),
+                                MSG_DONTWAIT,
+                                (struct sockaddr*) &src_addr, &addrlen)) > 0) {
+                    
+                DEBUGMSG(INFO, "android_udp_io - input event %d\n", len);
+                if (src_addr.sa.sa_family == AF_INET) {
+                    ccnl_core_RX(relay, i, buf, len,
+                                 &src_addr.sa, sizeof(src_addr.ip4));
+                }
+            }
+//            DEBUGMSG(INFO, "android_udp_io - input event done\n");
+        }
+//        if (events | ALOOPER_EVENT_OUTPUT) {}
+    }
+
+//    DEBUGMSG(INFO, "android_udp_io returning\n");
+//    fflush(stdout);
+//    fflush(stderr);
+
+    return 1; // continue receiving callbacks
+}
+
+int
 ccnl_android_http_io(int fd, int events, void *data)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
@@ -726,6 +883,7 @@ ccnl_android_http_io(int fd, int events, void *data)
         int len = sizeof(http->in) - http->inlen - 1;
         len = recv(http->client, http->in + http->inlen, len, 0);
         if (len == 0) {
+            ALooper_removeFd(lpr, http->client);
             DEBUGMSG(INFO, "web client went away\n");
             close(http->client);
             http->client = 0;
@@ -739,14 +897,19 @@ ccnl_android_http_io(int fd, int events, void *data)
     if (http->outlen > 0 && (events | ALOOPER_EVENT_OUTPUT)) {
         int len = send(http->client, http->out + http->outoffs,
                        http->outlen, 0);
+        DEBUGMSG(TRACE, " http has sent %d bytes\n", len);
         if (len > 0) {
             http->outlen -= len;
             http->outoffs += len;
-            if (http->outlen == 0) {
+            if (http->outlen <= 0) {
+                ALooper_removeFd(lpr, http->client);
                 close(http->client);
                 http->client = 0;
                 // we should check if there are pending clients ...
+                DEBUGMSG(TRACE, " http closed\n");
                 return 0;
+            } else {
+                DEBUGMSG(TRACE, " http more to send %d\n", http->outlen);
             }
         }
     }
@@ -755,7 +918,7 @@ ccnl_android_http_io(int fd, int events, void *data)
 }
 
 int
-cncl_android_http_accept(int fd, int events, void *data)
+ccnl_android_http_accept(int fd, int events, void *data)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
     struct ccnl_http_s *http = relay->http;
@@ -774,7 +937,7 @@ cncl_android_http_accept(int fd, int events, void *data)
     if (http->client < 0)
         http->client = 0;
     else {
-        DEBUGMSG(INFO, "accepted web server client\n");
+        DEBUGMSG(INFO, "accepted web server client %d\n", http->client);
         http->inlen = http->outlen = http->inoffs = http->outoffs = 0;
 
         ALooper_addFd(lpr, http->client,
@@ -817,12 +980,28 @@ ccnl_android_init()
     {
         ALooper *lpr = ALooper_forThread();
         
+        ALooper_addFd(lpr, theRelay.ifs[theRelay.ifcount - 1].sock, 
+                      ALOOPER_POLL_CALLBACK,
+                      ALOOPER_EVENT_INPUT | ALOOPER_EVENT_OUTPUT,
+                      ccnl_android_udp_io,
+                      &theRelay);
+    }
+
+    {
+        ALooper *lpr = ALooper_forThread();
+        
         ALooper_addFd(lpr, theRelay.http->server, 
                       ALOOPER_POLL_CALLBACK,
                       ALOOPER_EVENT_INPUT /* ALOOPER_EVENT_OUTPUT */,
-                      cncl_android_http_accept,
+                      ccnl_android_http_accept,
                       &theRelay);
     }
+
+    sensor.suite = suite;
+    sensor.comp = (unsigned char**) sensor_comp;
+    sensor.complen = sensor_len;
+    sensor.compcnt = 2;
+    DEBUGMSG(INFO, "  message at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
     sprintf(hello, "hello Java land,\nccn-lite-android started at\n%s",
             ctime(&theRelay.startup_time) + 4);

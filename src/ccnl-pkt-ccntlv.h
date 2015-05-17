@@ -20,8 +20,9 @@
  * 2014-03-05 created
  */
 
-#ifndef PKT_CCNTLV_H
-#define PKT_CCNTLV_H
+#ifndef CCN_UDP_PORT
+#  define CCN_UDP_PORT            9695
+#endif
 
 // ----------------------------------------------------------------------
 // Header
@@ -132,5 +133,4 @@ struct ccnx_tlvhdr_ccnx201409_s {
 
 // per chunk number
 
-#endif
 // eof

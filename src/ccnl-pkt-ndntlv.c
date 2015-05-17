@@ -441,9 +441,9 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
                            unsigned char *payload, int paylen,  
-                           int *offset, int *contentpos,
+                           int *contentpos,
                            unsigned int *final_block_id,
-                           unsigned char *buf)
+                           int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureSha256WithRsa };

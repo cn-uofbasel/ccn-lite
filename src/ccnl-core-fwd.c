@@ -105,6 +105,12 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG(DEBUG, "  dropped because of duplicate nonce\n");
         return 0;
     }
+
+    if (local_producer(relay, from, *pkt)) {
+        *pkt = NULL;
+        return 0;
+    }
+
 #ifdef USE_SUITE_CCNB
     if ((*pkt)->suite == CCNL_SUITE_CCNB && (*pkt)->pfx->compcnt == 4 &&
                                   !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {

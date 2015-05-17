@@ -21,9 +21,6 @@
  * 2014-11-05 merged from pkt-ccntlv-enc.c pkt-ccntlv-dec.c
  */
 
-#ifndef PKT_CCNTLV_C
-#define PKT_CCNTLV_C
-
 #include "ccnl-pkt-ccntlv.h"
 
 /* ----------------------------------------------------------------------
@@ -463,8 +460,9 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
 int
 ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned char *payload, int paylen,
-                                  unsigned int *lastchunknum, int *offset,
-                                  int *contentpos, unsigned char *buf)
+                                  unsigned int *lastchunknum,
+                                  int *contentpos, 
+                                  int *offset, unsigned char *buf)
 {
     int len, oldoffset;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
@@ -483,7 +481,5 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // PKT_CCNTLV_C
 
 // eof
