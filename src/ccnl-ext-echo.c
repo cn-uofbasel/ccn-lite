@@ -60,7 +60,7 @@ ccnl_echo_add(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx)
 {
     struct ccnl_forward_s *fwd, **fwd2;
 
-    DEBUGMSG(DEBUG, "adding echo server for <%s>, suite %s\n",
+    DEBUGMSG(INFO, "adding echo server for <%s>, suite %s\n",
              ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {

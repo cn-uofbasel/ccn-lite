@@ -154,8 +154,6 @@ void jni_append_to_log(char *line);
 
 #else
 
-X
-
 #  define DEBUGMSG(LVL, ...) do {                   \
         if ((LVL)>debug_level) break;               \
         fprintf(stderr, "[%c] %s: ",                \

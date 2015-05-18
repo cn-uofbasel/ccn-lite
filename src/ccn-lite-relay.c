@@ -710,11 +710,14 @@ main(int argc, char **argv)
 #else
     char *uxpath = NULL;
 #endif
+#ifdef USE_ECHO
+    char *echopfx;
+#endif
 
     time(&theRelay.startup_time);
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:v:x:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -730,6 +733,14 @@ main(int argc, char **argv)
             break;
         case 'i':
             inter_ccn_interval = atoi(optarg);
+            break;
+#ifdef USE_ECHO
+        case 'o':
+            echopfx = optarg;
+            break;
+#endif
+        case 'p':
+            crypto_sock_path = optarg;
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
@@ -753,9 +764,6 @@ main(int argc, char **argv)
         case 'x':
             uxpath = optarg;
             break;
-        case 'p':
-            crypto_sock_path = optarg;
-            break;
         case 'h':
         default:
 usage:
@@ -767,6 +775,9 @@ usage:
                     "  -g MIN_INTER_PACKET_INTERVAL\n"
                     "  -h\n"
                     "  -i MIN_INTER_CCNMSG_INTERVAL\n"
+#ifdef USE_ECHO
+                    "  -o echo_prefix\n"
+#endif
                     "  -p crypto_face_ux_socket\n"
                     "  -s SUITE (ccnb, ccnx2014, iot2014, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
@@ -802,16 +813,19 @@ usage:
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
         ccnl_populate_cache(&theRelay, datadir);
-/*
+
+#ifdef USE_ECHO
     {
         struct ccnl_prefix_s *pfx;
-        char *cp = ccnl_strdup("/echo");
+        char *dup = ccnl_strdup(echopfx);
 
-        pfx = ccnl_URItoPrefix(cp, suite, NULL, NULL);
-        ccnl_free(cp);
-        ccnl_echo_add(&theRelay, pfx);
+        pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
+        if (pfx)
+            ccnl_echo_add(&theRelay, pfx);
+        ccnl_free(dup);
     }
-*/
+#endif
+
     ccnl_io_loop(&theRelay);
 
     while (eventqueue)

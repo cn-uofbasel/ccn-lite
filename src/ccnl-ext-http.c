@@ -232,8 +232,13 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fwda[i] = fwd;
         qsort(fwda, cnt, sizeof(fwd), ccnl_cmpfib);
         for (i = 0; i < cnt; i++) {
-            char fname[10];
-            sprintf(fname, "f%d", fwda[i]->face->faceid);
+            char fname[16];
+#ifdef USE_ECHO
+            if (fwda[i]->tap)
+                strcpy(fname, "'echoserver'");
+            else
+#endif
+            sprintf(fname, fwda[i]->face ? "f%d" : "?", fwda[i]->face->faceid);
             len += sprintf(txt+len,
                            "<li>via %4s: <font face=courier>%s</font>\n",
                            fname, ccnl_prefix_to_path(fwda[i]->prefix));
