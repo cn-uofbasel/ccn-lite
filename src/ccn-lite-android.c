@@ -29,6 +29,7 @@
 #include <android/looper.h>
 
 #define CCNL_UNIX
+#define CCNL_ANDROID
 
 // #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
@@ -36,6 +37,8 @@
 // #define USE_ECHO
 // #define USE_ETHERNET
 // #define USE_FRAG
+#define USE_LOGGING
+#define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
 // #define USE_MGMT
@@ -47,7 +50,7 @@
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_IOTTLV
-// #define USE_SUITE_NDNTLV
+#define USE_SUITE_NDNTLV
 // #define USE_SUITE_LOCALRPC
 // #define USE_UNIXSOCKET
 // #define USE_SIGNATURES
@@ -65,8 +68,15 @@
 #include "ccnl-os-time.c"
 #include "ccnl-ext-logging.c"
 
-FILE *stdlog;
+void append_to_log(char *line);
 
+const char secret_key[] = "some secret secret secret secret";
+unsigned char keyval[64];
+unsigned char keyid[32];
+
+// FILE *stdlog;
+
+/*
 #undef DEBUGMSG
 #define DEBUGMSG(LVL, ...) do {                   \
         if ((LVL)>debug_level) break;               \
@@ -76,12 +86,14 @@ FILE *stdlog;
         fprintf(stdlog, __VA_ARGS__);               \
         fflush(stdlog);                             \
     } while (0)
+*/
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 
 #include "ccnl-core.c"
 
 #include "ccnl-ext-echo.c"
+#include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
@@ -885,7 +897,7 @@ ccnl_android_http_io(int fd, int events, void *data)
         len = recv(http->client, http->in + http->inlen, len, 0);
         if (len == 0) {
             ALooper_removeFd(lpr, http->client);
-            DEBUGMSG(INFO, "web client went away\n");
+            DEBUGMSG(WARNING, "web client went away\n");
             close(http->client);
             http->client = 0;
             // we should check if there are pending clients ...
@@ -898,7 +910,7 @@ ccnl_android_http_io(int fd, int events, void *data)
     if (http->outlen > 0 && (events | ALOOPER_EVENT_OUTPUT)) {
         int len = send(http->client, http->out + http->outoffs,
                        http->outlen, 0);
-        DEBUGMSG(TRACE, " http has sent %d bytes\n", len);
+        //        DEBUGMSG(TRACE, " we have sent %d HTML bytes\n", len);
         if (len > 0) {
             http->outlen -= len;
             http->outoffs += len;
@@ -938,7 +950,7 @@ ccnl_android_http_accept(int fd, int events, void *data)
     if (http->client < 0)
         http->client = 0;
     else {
-        DEBUGMSG(INFO, "accepted web server client %d\n", http->client);
+        DEBUGMSG(DEBUG, "accepted web server client fd=%d\n", http->client);
         http->inlen = http->outlen = http->inoffs = http->outoffs = 0;
 
         ALooper_addFd(lpr, http->client,
@@ -963,7 +975,7 @@ ccnl_android_init()
     done = 1;
 
     time(&theRelay.startup_time);
-    stdlog = fopen("/sdcard/ccn-lite.log", "w");
+    //    stdlog = fopen("/sdcard/ccn-lite.log", "w");
     debug_level = TRACE;
 
     ccnl_core_init();
@@ -975,7 +987,7 @@ ccnl_android_init()
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, NULL, 8111, 8080, NULL,
+    ccnl_relay_config(&theRelay, NULL, CCN_UDP_PORT, 8080, NULL,
                       CCNL_SUITE_CCNTLV, 0, NULL);
 
     {
@@ -998,16 +1010,41 @@ ccnl_android_init()
                       &theRelay);
     }
 
+    ccnl_populate_cache(&theRelay, "/sdcard/ccn-lite");
+
     sensor.suite = suite;
     sensor.comp = (unsigned char**) sensor_comp;
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
     DEBUGMSG(INFO, "  message at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
-    sprintf(hello, "hello Java land,\nccn-lite-android started at\n%s",
+#ifdef USE_HMAC256
+    ccnl_hmac256_keyval((unsigned char*)secret_key,
+                        strlen(secret_key), keyval);
+    ccnl_hmac256_keyid((unsigned char*)secret_key,
+                        strlen(secret_key), keyid);
+#endif
+
+    sprintf(hello, "ccn-lite-android, %s",
             ctime(&theRelay.startup_time) + 4);
 
     return hello;
+}
+
+
+char*
+ccnl_android_getTransport()
+{
+    sockunion su;
+    static char addr[100];
+    int len = sizeof(su);
+
+    if (getsockname(theRelay.ifs[0].sock, (struct sockaddr*)&su, &len))
+        return "cannot retrieve UDP address\n";
+
+    sprintf(addr, "UDP %s", ccnl_addr2ascii(&su));
+
+    return addr;
 }
 
 

@@ -120,6 +120,22 @@ ccnl_debug_str2level(char *s)
     } while (0)
 #  define fprintf(fd, ...)      printk(__VA_ARGS__)
 
+#elif defined(CCNL_ANDROID)
+
+static char android_logstr[1024];
+void jni_append_to_log(char *line);
+
+#  define DEBUGMSG(LVL, ...) do { int len;          \
+        if ((LVL)>debug_level) break;               \
+        len = sprintf(android_logstr, "[%c] %s: ",  \
+            ccnl_debugLevelToChar(LVL),             \
+            timestamp());                           \
+        len += sprintf(android_logstr+len, __VA_ARGS__);   \
+        if (android_logstr[len - 1] == '\n')       \
+            android_logstr[len - 1] = '\0';         \
+        jni_append_to_log(android_logstr);          \
+    } while (0)
+
 #elif defined(CCNL_ARDUINO)
 
 #  define DEBUGMSG_OFF(...) do{}while(0)
@@ -137,6 +153,8 @@ ccnl_debug_str2level(char *s)
    } while(0)
 
 #else
+
+X
 
 #  define DEBUGMSG(LVL, ...) do {                   \
         if ((LVL)>debug_level) break;               \
