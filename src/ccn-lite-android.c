@@ -23,6 +23,11 @@
 #include <dirent.h>
 #include <fnmatch.h>
 #include <regex.h>
+#include <jni.h>
+#include <arpa/inet.h>
+#include <linux/if.h>
+#include <linux/in.h>
+#include <linux/sockios.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -975,12 +980,12 @@ ccnl_android_init()
     done = 1;
 
     time(&theRelay.startup_time);
-    //    stdlog = fopen("/sdcard/ccn-lite.log", "w");
+    //    stdlog = fopen("/mnt/sdcard/ccn-lite.log", "w");
     debug_level = TRACE;
 
     ccnl_core_init();
 
-    DEBUGMSG(INFO, "This is 'ccn-lite-relay' for Android, starting at %s",
+    DEBUGMSG(INFO, "This is 'ccn-lite-android', starting at %s",
              ctime(&theRelay.startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
@@ -1010,7 +1015,7 @@ ccnl_android_init()
                       &theRelay);
     }
 
-    ccnl_populate_cache(&theRelay, "/sdcard/ccn-lite");
+    ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 
     sensor.suite = suite;
     sensor.comp = (unsigned char**) sensor_comp;
@@ -1035,16 +1040,41 @@ ccnl_android_init()
 char*
 ccnl_android_getTransport()
 {
-    sockunion su;
     static char addr[100];
-    int len = sizeof(su);
+    struct ifreq *ifr;
+    struct ifconf ifc;
+    int s, i;
+    int numif;
 
-    if (getsockname(theRelay.ifs[0].sock, (struct sockaddr*)&su, &len))
-        return "cannot retrieve UDP address\n";
+    // find number of interfaces.
+    memset(&ifc, 0, sizeof(ifc));
+    ifc.ifc_ifcu.ifcu_req = NULL;
+    ifc.ifc_len = 0;
 
-    sprintf(addr, "UDP %s", ccnl_addr2ascii(&su));
+    if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+        return NULL;
+    if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
+        return NULL;
+    if ((ifr = (struct ifreq*) ccnl_malloc(ifc.ifc_len)) == NULL)
+        return NULL;
+    ifc.ifc_ifcu.ifcu_req = ifr;
+    if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+        ccnl_free(ifr);
+        return NULL;
+    }
+    numif = ifc.ifc_len / sizeof(struct ifreq);
 
-    return addr;
+    for (i = 0; i < numif; i++) {
+        struct ifreq *r = &ifr[i];
+        struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
+        if (strcmp(r->ifr_name, "lo")) {
+            sin->sin_port = htons(CCN_UDP_PORT);
+            sprintf(addr, "UDP %s", ccnl_addr2ascii((sockunion*)sin));
+            return addr;
+        }
+    }
+    ccnl_free(ifr);
+    return NULL;
 }
 
 
