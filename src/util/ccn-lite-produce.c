@@ -42,7 +42,8 @@ main(int argc, char *argv[])
     char *publisher = 0;
     char *infname = 0, *outdirname = 0, *outfname;
     int f, fout, contentlen = 0, opt, plen;
-    int suite = CCNL_SUITE_DEFAULT;
+    //    int suite = CCNL_SUITE_DEFAULT;
+    int suite = CCNL_SUITE_CCNTLV;
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
 
@@ -104,9 +105,9 @@ Usage:
         "  -i FNAME         input file (instead of stdin)\n"
         "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
         "  -p DIGEST        publisher fingerprint\n"
-        "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+        "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
         ,
         argv[0],

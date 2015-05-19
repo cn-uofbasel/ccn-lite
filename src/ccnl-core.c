@@ -467,7 +467,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                    (void*)fwd);
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
 
-            DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
+            // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
             if (fwd->tap)
                 (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);
             if (fwd->face)
@@ -865,6 +865,9 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     if (!from) {
         DEBUGMSG_CORE(VERBOSE, "  no face\n");
         return;
+    } else {
+        DEBUGMSG_CORE(VERBOSE, "  face %d, peer=%s\n", from->faceid,
+                    ccnl_addr2ascii(&from->peer));
     }
 
     // loop through all packets in the received frame (UDP, Ethernet etc)
