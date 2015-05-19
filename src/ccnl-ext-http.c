@@ -119,7 +119,8 @@ ccnl_http_postselect(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http,
         if (http->client < 0)
             http->client = 0;
         else {
-            DEBUGMSG(INFO, "accepted web server client\n");
+            DEBUGMSG(INFO, "accepted web server client %s\n",
+                     ccnl_addr2ascii((sockunion*)&peer));
             http->inlen = http->outlen = http->inoffs = http->outoffs = 0;
         }
     }

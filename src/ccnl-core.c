@@ -863,10 +863,10 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
     if (!from) {
-        DEBUGMSG_CORE(VERBOSE, "  no face\n");
+        DEBUGMSG_CORE(DEBUG, "  no face\n");
         return;
     } else {
-        DEBUGMSG_CORE(VERBOSE, "  face %d, peer=%s\n", from->faceid,
+        DEBUGMSG_CORE(DEBUG, "  face %d, peer=%s\n", from->faceid,
                     ccnl_addr2ascii(&from->peer));
     }
 

@@ -160,7 +160,8 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 #endif
             break;
         case CISCO_TLV_FinalSegmentID:
-            if (ccnl_cistlv_extractNetworkVarInt(cp, len2, &pkt->final_block_id) < 0) {
+            if (ccnl_cistlv_extractNetworkVarInt(cp, len2,
+                                   (unsigned int*) &pkt->final_block_id) < 0) {
                     DEBUGMSG(WARNING, "error when extracting CISCO_TLV_FinalSegmentID\n");
                     goto Bail;
             }

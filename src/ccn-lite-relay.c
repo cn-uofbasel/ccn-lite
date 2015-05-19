@@ -315,8 +315,18 @@ ccnl_relay_defaultInterfaceScheduler(struct ccnl_relay_s *ccnl,
 #endif // USE_SCHEDULER
 
 
+static int lasthour = -1;
+
 void ccnl_ageing(void *relay, void *aux)
 {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+
+    if (lasthour != tm->tm_hour) {
+        DEBUGMSG(INFO, "local time is %s", ctime(&t));
+        lasthour = tm->tm_hour;
+    }
+
     ccnl_do_ageing(relay, aux);
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
@@ -711,7 +721,7 @@ main(int argc, char **argv)
     char *uxpath = NULL;
 #endif
 #ifdef USE_ECHO
-    char *echopfx;
+    char *echopfx = NULL;
 #endif
 
     time(&theRelay.startup_time);
@@ -815,7 +825,7 @@ usage:
         ccnl_populate_cache(&theRelay, datadir);
 
 #ifdef USE_ECHO
-    {
+    if (echopfx) {
         struct ccnl_prefix_s *pfx;
         char *dup = ccnl_strdup(echopfx);
 

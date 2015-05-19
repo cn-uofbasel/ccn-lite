@@ -259,10 +259,10 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-            "  -s SUITE         (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -316,10 +316,15 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
+        char *cp;
         udp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
-        si->sin_port = htons(atoi(strtok(NULL, "/")));
+        cp = strtok(udp, "/");
+        if (!cp) { DEBUGMSG(FATAL, "no host\n"); exit(-1); }
+        si->sin_addr.s_addr = inet_addr(cp);
+        cp = strtok(NULL, "/");
+        if (!cp) { DEBUGMSG(FATAL, "no port\n"); exit(-1); }
+        si->sin_port = htons(atoi(cp));
         sock = udp_open();
     }
 

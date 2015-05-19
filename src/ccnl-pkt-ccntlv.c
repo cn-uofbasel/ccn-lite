@@ -139,7 +139,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // the prefix.
                   p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
 
-                    if (ccnl_ccnltv_extractNetworkVarInt(cp, len2,
+                    if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
                                                          p->chunknum) < 0) {
                         DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
@@ -163,8 +163,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                         goto Bail;
                     }
                     if (typ == CCNX_TLV_Meta_ENDChunk &&
-                        ccnl_ccnltv_extractNetworkVarInt(cp, len2,
-                                               &(pkt->final_block_id)) < 0) {
+                        ccnl_ccnltv_extractNetworkVarInt(cp, len3,
+                                 (unsigned int*) &(pkt->final_block_id)) < 0) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
                         goto Bail;
                     }
