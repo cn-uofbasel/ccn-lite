@@ -280,9 +280,17 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     for (i = 0; i < ccnl->ifcount; i++) {
         len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
-                       "qlen=%d/%d\n",
+                       "qlen=%d/%d"
+#ifdef USE_STATS
+                       "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u"
+#endif
+                       "\n",
                        i, ccnl_addr2ascii(&ccnl->ifs[i].addr),
-                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN);
+                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN
+#ifdef USE_STATS
+                       , ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt
+#endif
+                       );
     }
     len += sprintf(txt+len, "</ul>\n");
 

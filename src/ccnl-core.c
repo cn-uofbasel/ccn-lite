@@ -227,6 +227,11 @@ ccnl_interface_CTS(void *aux1, void *aux2)
 
     if (ifc->qlen <= 0)
         return;
+
+#ifdef USE_STATS
+    ifc->tx_cnt++;
+#endif
+
     r = ifc->queue + ifc->qfront;
     memcpy(&req, r, sizeof(req));
     ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
@@ -860,6 +865,11 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 
     DEBUGMSG_CORE(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
     //    DEBUGMSG_ON(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
+
+#ifdef USE_STATS
+    if (ifndx >= 0)
+        relay->ifs[ifndx].rx_cnt++;
+#endif
 
     from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
     if (!from) {
