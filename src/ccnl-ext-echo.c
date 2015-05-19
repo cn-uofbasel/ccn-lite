@@ -1,6 +1,6 @@
 /*
  * @f ccnl-ext-echo.c
- * @b CCN lite extension: echo service
+ * @b CCN lite extension: echo/ping service - send back run-time generated data
  *
  * Copyright (C) 2015, Christian Tschudin, University of Basel
  *
@@ -34,12 +34,17 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
 
+    if (pfx->chunknum) {
+        // mkSimpleContent adds the chunk number, so remove it here
+        ccnl_free(pfx->chunknum);
+        pfx->chunknum = NULL;
+    }
+
     t = time(NULL);
     s = ccnl_prefix_to_path(pfx);
 
     cp = ccnl_malloc(strlen(s) + 60);
-    strcpy(cp, ctime(&t));
-    strcat(cp, s);
+    sprintf(cp, "%s%s\n", ctime(&t), s);
 
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
     ccnl_free(cp);

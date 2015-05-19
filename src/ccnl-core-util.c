@@ -1018,11 +1018,12 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
-                                                NULL, // lastchunknum
+    case CCNL_SUITE_CCNTLV: {
+        unsigned int lcn = 0; // lastchunknum
+        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
                                                 &contentpos, &offs, tmp);
         break;
+    }
 #endif
 #ifdef USE_SUITE_CISTLV
     case CCNL_SUITE_CISTLV:
