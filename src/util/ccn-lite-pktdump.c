@@ -395,6 +395,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_M_Name:       tn = "Name"; break;
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
+                case CCNX_TLV_M_ENDChunk:   tn = "EndChunk"; break;
                 default: break;
                 }
                 break;
@@ -421,8 +422,6 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 case CCNX_TLV_M_PayldType:   tn = "PayloadType"; break;
                 case CCNX_TLV_M_Create:      tn = "Create"; break;
                   */
-                case CCNX_TLV_Meta_ENDChunk: tn = "EndChunk"; break;
-
                 default: break;
                 }
                 break;

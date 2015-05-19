@@ -73,7 +73,13 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
 
     int nonce = random();
     *len = mkInterest(prefix, &nonce, out, out_len);
-
+/*
+        {
+            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, *len);
+            close(fd);
+        }
+*/
     if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
         perror("sendto");
         myexit(1);
@@ -83,7 +89,13 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         return -1;
     }
     *len = recv(sock, out, out_len, 0);
-
+/*
+        {
+            int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, *len);
+            close(fd);
+        }
+*/
     return 0;
 }
 

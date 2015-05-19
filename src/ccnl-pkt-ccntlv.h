@@ -105,6 +105,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 // 3.6.1
 #define CCNX_TLV_M_Name                         0x0000
 #define CCNX_TLV_M_Payload                      0x0001
+#define CCNX_TLV_M_ENDChunk                     0x0019 // chunking document
 
 // per name (Sect 3.6.1)
 
@@ -115,7 +116,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 // #define CCNX_TLV_N_App                       0x1000 - 0x1FFF
 
 // meta
-#define CCNX_TLV_Meta_ENDChunk                  0x0019 // chunking document
+// ...
 
 // (opt) message TLVs (Sect 3.6.2)
 

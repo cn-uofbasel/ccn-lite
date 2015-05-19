@@ -162,12 +162,6 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
-                    if (typ == CCNX_TLV_Meta_ENDChunk &&
-                        ccnl_ccnltv_extractNetworkVarInt(cp, len3,
-                                 (unsigned int*) &(pkt->final_block_id)) < 0) {
-                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_Meta_ENDChunk\n");
-                        goto Bail;
-                    }
                     break;
                 default:
                     break;
@@ -188,6 +182,13 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 }
             }
 #endif
+            break;
+        case CCNX_TLV_M_ENDChunk:
+            if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
+                                 (unsigned int*) &(pkt->final_block_id)) < 0) {
+                DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
+                goto Bail;
+            }
             break;
         case CCNX_TLV_M_Payload:
             pkt->content = *data;
@@ -276,13 +277,12 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
     return len + 4;
 }
 
-
 // write (in network order and with the minimal number of bytes)
-// the given integer val *before* position buf[offset], adjust offset
+// the given unsigned integer val *before* position buf[offset], adjust offset
 // and return number of bytes prepended. 0 is represented as %x00
 int
-ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
-                                 int *offset, unsigned char *buf)
+ccnl_ccntlv_prependNetworkVarUInt(unsigned short type, unsigned int intval,
+                                  int *offset, unsigned char *buf)
 {
     int offs = *offset;
     int len = 0;
@@ -290,9 +290,9 @@ ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
     while (offs > 0) {
         buf[--offs] = intval & 0xff;
         len++;
-        if (intval < 128)
-            break;
         intval = intval >> 8;
+        if (!intval)
+            break;
     }
     *offset = offs;
 
@@ -300,6 +300,18 @@ ccnl_ccntlv_prependNetworkVarInt(unsigned short type, unsigned int intval,
         return -1;
     return len + 4;
 }
+
+#ifdef XXX
+// write (in network order and with the minimal number of bytes)
+// the given signed integer val *before* position buf[offset], adjust offset
+// and return number of bytes prepended. 0 is represented as %x00
+int
+ccnl_ccntlv_prependNetworkVarSInt(unsigned short type, int intval,
+                                  int *offset, unsigned char *buf)
+{
+ ...
+}
+#endif
 
 // write *before* position buf[offset] the CCNx1.0 fixed header,
 // returns total packet len
@@ -346,21 +358,19 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
                         int *offset, unsigned char *buf,
                         unsigned int *lastchunknum) {
 
-    int oldoffset = *offset, cnt;
+    int nameend, cnt;
 
     if (lastchunknum) {
-        int oldoffset = *offset;
-        if (ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_Meta_ENDChunk,
-                                             *lastchunknum, offset, buf) < 0)
-            return -1;
-        if (ccnl_ccntlv_prependTL(CCNX_TLV_N_Meta,
-                                  oldoffset - *offset, offset, buf) < 0)
+        if (ccnl_ccntlv_prependNetworkVarUInt(CCNX_TLV_M_ENDChunk,
+                                              *lastchunknum, offset, buf) < 0)
             return -1;
     }
 
+    nameend = *offset;
+
     if (name->chunknum &&
-        ccnl_ccntlv_prependNetworkVarInt(CCNX_TLV_N_Chunk,
-                                         *name->chunknum, offset, buf) < 0)
+        ccnl_ccntlv_prependNetworkVarUInt(CCNX_TLV_N_Chunk,
+                                          *name->chunknum, offset, buf) < 0)
             return -1;
 
     // optional: (not used)
@@ -380,7 +390,7 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
         *offset -= name->complen[cnt];
         memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, oldoffset - *offset,
+    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, nameend - *offset,
                               offset, buf) < 0)
         return -1;
 
