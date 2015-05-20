@@ -282,7 +282,7 @@ $CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCN
 ### 2. Start the Scala compute server
 Go to the nfn-scala directory. Start the compute server with:
 ```bash
-sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 -cs-port 9002 --debug --ccnl-already-running /node/nodeA'
+sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
 ```
 
 
