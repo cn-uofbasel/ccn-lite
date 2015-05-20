@@ -258,13 +258,13 @@ To invoke the function call the user can issue the request:
 ```bash
 $CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-The result of the computation is 10.
+The result of the computation is `10`.
 
 One can also combine build in operators and function calls:
 ```bash
 $CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-Now the result will be 11.
+Now the result will be `11`.
 
 <a name="scenario6"/>
 ## Scenario 6: Full Named Function Networking (NFN) demo
