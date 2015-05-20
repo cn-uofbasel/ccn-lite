@@ -240,17 +240,17 @@ For more complex functions you have to setup the `nfn-scala` computation environ
 ### 3. Add a compute face
 In order to interact with the Compute Server which runs on Port 9002 we need to setup a new interface.
 ```bash
-$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 And to register the name "COMPUTE" to this interface. This name is reserved in NFN networks for the interaction with a Compute Server:
 ```bash
-$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE $FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Add (the result of) a dummy function to the cache of the relay
 The `/test/data` function will mimic computations by returning a name where the result can be found (i.e., it is the constant function always returning the value 10). This result is added to the local cache of the relay where the NFN abstract machines sits:
 ```bash
-$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 
 ### 5. Send a request for a function call:
