@@ -250,19 +250,19 @@ $CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPU
 ### 4. Add (the result of) a dummy function to the cache of the relay
 The `/test/data` function will mimic computations by returning a name where the result can be found (i.e., it is the constant function always returning the value 10). This result is added to the local cache of the relay where the NFN abstract machines sits:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 
 ### 5. Send a request for a function call:
 To invoke the function call the user can issue the request:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
 The result of the computation is 10.
 
 One can also combine build in operators and function calls:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
 Now the result will be 11.
 
@@ -292,20 +292,20 @@ It runs a compute server on port 9002. There is quite a lot going on when starti
 ### 3. Send a NFN expression with a word count function call
 We are going to invoke the word count service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 The result of this request should be 2. In the following some more examples:
 You can also count the number of words of the document you produced in the first scenario, which should have the name `/ndn/test/mycontent`.
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 Some more examples you can try:
 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/src/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/src/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 ### 4. Invoke the pandoc service
@@ -315,7 +315,7 @@ It takes 3 parameters, the first one is the name of a document to transform, and
 
 To test this we can send the following request:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f2
 ```
 
 Since `tiny_md` is only a small document, the generated html document will also fit into a single content object.
@@ -324,18 +324,18 @@ Since `tiny_md` is only a small document, the generated html document will also 
 So far, all results of NFN computations were small and fit into single content objects. Next we test what happens if the result is larger, by transforming this tutorial instead of `tiny_md`.
 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2 
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f2 
 ```
 The result of this computation will not be a document, but something like `redirect:/node/nodeA/call 2 %2fndn%2fch...`. When the result is too large to fit into one content object it has to be chunked. Since chunking of computation does not make too much sense, the result is a redirect address under which the chunked result was published by the compute server. To get the result, copy the redirected address (without `redirect:`). Because `ccn-lite-peek` can only retrieve a single content object, we have to use `ccn-lite-fetch`, which works almost like `ccn-lite-peek`. It will return the stream of the data of the fetched content objects chunks, instead of wire format encoded packets, therefore `ccn-lite-pktdump` is not necessary. The `%2f` is used to escape the `/` character, because otherwise an expression would incorrectly be split into components.
 ```bash
-$CCNL_HOME/util/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
+$CCNL_HOME/src/util/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
 ```
 Open the `tutorial.html` file in the browser. You should see a HTML page of this tutorial (with missing pictures).
 
 ### 6. Function chaining
 One last example shows the chaining of functions. Too see that this works, use the following:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/util/ccn-lite-pktdump  
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 <a name="scenario7"/>
