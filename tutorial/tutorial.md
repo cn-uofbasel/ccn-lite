@@ -192,7 +192,7 @@ To build a CCN-lite relay with NFN functionality, export the variable:
 ```bash
 export USE_NFN=1
 ```
-and rebuild the project in $CCNL_HOME/src with make
+and rebuild the project in $CCNL_HOME/src with `make`
 
 Or build directly:
 ```bash
@@ -210,7 +210,7 @@ To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of `ccn-
 ```bash
 $CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
+Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 
 <a name="scenario5"/>
 ## Scenario 5: NFN request with Compute Server Interaction 
@@ -219,7 +219,7 @@ Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
 
 This scenario explains how to setup an NFN-node which can interact with a Compute Server. 
 A compute server is an external application which can execute functions written in a high level programming language.
-Instead of running a complex Compute Server, a `dummyserver` is used in this scenario with the sole goal to let a mock function named "/test/data" be made available.
+Instead of running a complex Compute Server, a `dummyserver` is used in this scenario with the sole goal to let a mock function named `/test/data` be made available.
 
 ### 1. Start a NFN-relay
 A NFN-relay is started on the same way as shown in the previous scenario:
@@ -228,7 +228,7 @@ $CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
 ### 2. Start the computation dummy server
-The dummy server is written in Python and can only handle the function "/test/data". 
+The dummy server is written in Python and can only handle the function `/test/data`.
 Start it with:
 ```bash
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py
