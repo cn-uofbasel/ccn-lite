@@ -643,29 +643,26 @@ notacontent:
 // ----------------------------------------------------------------------
 
 ALooper *theLooper;
+
 pthread_mutex_t timer_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t timer_thread;
+volatile int timer_usec = -1;
 int pipeT2R[2]; // timer thread to relay
-int pipeR2T[2]; // relay to timer thread
 
 int
 ccnl_android_timer_io(int fd, int events, void *data)
 {
-    struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
     unsigned char c;
     int len;
-    int usec;
 
-    if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP)) {
+    if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP))
         return 0;
-    }
 
     len = read(pipeT2R[0], &c, 1);
+    DEBUGMSG(TRACE, "timer_io %d\n", len);
 
-    DEBUGMSG(TRACE, "timer_io %d %c\n", len, c);
-
-    usec = ccnl_run_events();
-    write(pipeR2T[1], &usec, sizeof(usec));
+    timer_usec = ccnl_run_events();
+    pthread_mutex_unlock(&timer_mutex);
 
     return 1; // continue receiving callbacks
 }
@@ -797,19 +794,18 @@ ccnl_android_http_accept(int fd, int events, void *data)
 void*
 timer()
 {
-    char c = 'a';
+    char c = 't';
 
     usleep(1000000);
+    pthread_mutex_lock(&timer_mutex);
+
     while (1) {
-        int usec = -1;
+        timer_usec = -1;
         if (theLooper) {
             write(pipeT2R[1], &c, 1);
-            c++;
-            if (c > 'z')
-                c = 'a';
-            read(pipeR2T[0], &usec, sizeof(usec));
+            pthread_mutex_lock(&timer_mutex);
         }
-        usleep(usec < 0 ? 500000 : usec);
+        usleep(timer_usec < 0 ? 500000 : timer_usec);
     }
 
     return NULL;
@@ -846,7 +842,6 @@ ccnl_android_init()
 
     // launch timer thread
     pipe2(pipeT2R, O_DIRECT);
-    pipe2(pipeR2T, O_DIRECT);
     pthread_create(&timer_thread, NULL, timer, NULL);
 
     ALooper_addFd(theLooper, pipeT2R[0], ALOOPER_POLL_CALLBACK,
@@ -882,7 +877,7 @@ ccnl_android_init()
 char*
 ccnl_android_getTransport()
 {
-    static char addr[100];
+    static char addr[50];
     struct ifreq *ifr;
     struct ifconf ifc;
     int s, i;
@@ -911,7 +906,9 @@ ccnl_android_getTransport()
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
             sin->sin_port = htons(CCN_UDP_PORT);
-            sprintf(addr, "UDP %s", ccnl_addr2ascii((sockunion*)sin));
+            sprintf(addr, "(%s)  UDP %s", ifr[i].ifr_name,
+                    ccnl_addr2ascii((sockunion*)sin));
+            ccnl_free(ifr);
             return addr;
         }
     }
