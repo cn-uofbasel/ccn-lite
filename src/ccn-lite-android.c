@@ -22,8 +22,10 @@
 
 #include <dirent.h>
 #include <fnmatch.h>
-#include <regex.h>
 #include <jni.h>
+#include <pthread.h>
+#include <regex.h>
+
 #include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/in.h>
@@ -39,7 +41,7 @@
 // #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-// #define USE_ECHO
+#define USE_ECHO
 // #define USE_ETHERNET
 // #define USE_FRAG
 #define USE_LOGGING
@@ -52,6 +54,7 @@
 // #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
+#define USE_STATS
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_IOTTLV
@@ -79,21 +82,9 @@ const char secret_key[] = "some secret secret secret secret";
 unsigned char keyval[64];
 unsigned char keyid[32];
 
-// FILE *stdlog;
-
-/*
-#undef DEBUGMSG
-#define DEBUGMSG(LVL, ...) do {                   \
-        if ((LVL)>debug_level) break;               \
-        fprintf(stdlog, "[%c] %s: ",                \
-            ccnl_debugLevelToChar(LVL),             \
-            timestamp());                           \
-        fprintf(stdlog, __VA_ARGS__);               \
-        fflush(stdlog);                             \
-    } while (0)
-*/
 
 #define ccnl_app_RX(x,y)                do{}while(0)
+#define local_producer(...)             0
 
 #include "ccnl-core.c"
 
@@ -113,10 +104,10 @@ unsigned char keyid[32];
 struct ccnl_relay_s theRelay;
 char suite = CCNL_SUITE_CCNTLV; 
 
-struct timeval*
+int
 ccnl_run_events()
 {
-    static struct timeval now;
+    struct timeval now;
     long usec;
 
     gettimeofday(&now, 0);
@@ -124,11 +115,8 @@ ccnl_run_events()
         struct ccnl_timer_s *t = eventqueue;
 
         usec = timevaldelta(&(t->timeout), &now);
-        if (usec >= 0) {
-            now.tv_sec = usec / 1000000;
-            now.tv_usec = usec % 1000000;
-            return &now;
-        }
+        if (usec >= 0)
+            return usec;
         if (t->fct)
             (t->fct)(t->node, t->intarg);
         else if (t->fct2)
@@ -137,7 +125,7 @@ ccnl_run_events()
         ccnl_free(t);
     }
 
-    return NULL;
+    return -1;
 }
 
 // ----------------------------------------------------------------------
@@ -352,113 +340,8 @@ void ccnl_ageing(void *relay, void *aux)
 // ----------------------------------------------------------------------
 
 
-struct ccnl_prefix_s sensor;
-
-#ifdef USE_SUITE_CCNTLV
-char* sensor_comp[2] = { (char*)"\x00\x01\x00\x01" "a",  // compiler reads 0x1a?
-                         (char*)"\x00\x01\x00\x01" "b"};
-int sensor_len[2] = {5, 5};
-#else
-char* sensor_comp[2] = {"a", "b"};
-int sensor_len[2] = {1, 1};
-#endif
-
-extern int
-ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
-                                  unsigned char *payload, int paylen,
-                                  unsigned int *lastchunknum,
-                                  int *contentpos, 
-                                  int *offset, unsigned char *buf);
-
-extern int
-ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
-                           unsigned char *payload, int paylen,  
-                           int *contentpos,
-                           unsigned int *final_block_id,
-                           int *offset, unsigned char *buf);
-
-int
-local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-               struct ccnl_pkt_s *pkt)
-{
-    unsigned char packetBuffer[400], msg[100];
-    int offset = sizeof(packetBuffer);
-    double d;
-
-    DEBUGMSG(VERBOSE, "local_producer %d bytes\n", pkt->buf->datalen);
-
-    if (ccnl_prefix_cmp(&sensor, NULL, pkt->pfx, CMP_EXACT))
-        return 0;
-
-    sprintf(msg, "uptime is %s", timestamp());
-
-    switch (pkt->pfx->suite) {
-
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-#ifdef USE_HMAC256
-        ccnl_ccntlv_prependSignedContentWithHdr(pkt->pfx,
-                   (unsigned char*) msg, strlen(msg),
-                   NULL, NULL, keyval, keyid, &offset,
-                   (unsigned char*) packetBuffer);
-#else
-        ccnl_ccntlv_prependContentWithHdr(pkt->pfx, (unsigned char*) msg,
-                                 strlen(msg), NULL, NULL,
-                                 &offset, (unsigned char*) packetBuffer);
-#endif // USE_HMAC256
-        break;
-#endif // USE_SUITE_CCNTLV
-
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        ccnl_iottlv_prependReply(pkt->pfx, (unsigned char*) msg,
-                                 strlen(msg), &offset, NULL, NULL,
-                                 (unsigned char*) packetBuffer);
-        ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, packetBuffer);
-        break;
-#endif
-
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-#ifdef USE_HMAC256
-        ccnl_ndntlv_prependSignedContent(pkt->pfx,
-                   (unsigned char*) msg, strlen(msg),
-                   NULL, NULL, keyval, keyid, &offset,
-                   (unsigned char*) packetBuffer);
-#else
-        ccnl_ndntlv_prependContent(pkt->pfx, (unsigned char*) msg,
-                                   strlen(msg), NULL, NULL,
-                                   &offset, (unsigned char*) packetBuffer);
-#endif // USE_HMAC256
-        break;
-#endif
-
-    default:
-        break;
-    }
-
-    {
-        struct ccnl_buf_s *retbuf;
-        DEBUGMSG(TRACE, "  enqueue %d bytes\n",
-            (int)(sizeof(packetBuffer) - offset));
-        retbuf = ccnl_buf_new((char *)packetBuffer + offset,
-            sizeof(packetBuffer) - offset);
-        ccnl_face_enqueue(relay, from, retbuf); 
-    }
-
-/*
-    relay->ifs[from->ifndx].sock->beginPacket(
-        from->peer.ip4.sin_addr.s_addr,from->peer.ip4.sin_port);
-    relay->ifs[from->ifndx].sock->write(packetBuffer + offset,
-                                        sizeof(packetBuffer) - offset);
-    relay->ifs[from->ifndx].sock->endPacket();
-*/
-    free_packet(pkt);
-
-    TRACEOUT();
-
-    return 1;
-}
+char *echopath = "/local/echo";
+struct ccnl_prefix_s *echoprefix;
 
 // ----------------------------------------------------------------------
 
@@ -592,85 +475,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 }
 
 // ----------------------------------------------------------------------
-
-int
-ccnl_io_loop(struct ccnl_relay_s *ccnl)
-{
-    int i, len, maxfd = -1, rc;
-    fd_set readfs, writefs;
-    unsigned char buf[CCNL_MAX_PACKET_SIZE];
-    
-    if (ccnl->ifcount == 0) {
-        DEBUGMSG(ERROR, "no socket to work with, not good, quitting\n");
-        exit(EXIT_FAILURE);
-    }
-    for (i = 0; i < ccnl->ifcount; i++)
-        if (ccnl->ifs[i].sock > maxfd)
-            maxfd = ccnl->ifs[i].sock;
-    maxfd++;
-
-    DEBUGMSG(INFO, "starting main event and IO loop\n");
-    while (!ccnl->halt_flag) {
-        struct timeval *timeout;
-
-        FD_ZERO(&readfs);
-        FD_ZERO(&writefs);
-
-#ifdef USE_HTTP_STATUS
-        ccnl_http_anteselect(ccnl, ccnl->http, &readfs, &writefs, &maxfd);
-#endif
-        for (i = 0; i < ccnl->ifcount; i++) {
-            FD_SET(ccnl->ifs[i].sock, &readfs);
-            if (ccnl->ifs[i].qlen > 0)
-                FD_SET(ccnl->ifs[i].sock, &writefs);
-        }
-
-        timeout = ccnl_run_events();
-        rc = select(maxfd, &readfs, &writefs, NULL, timeout);
-
-        if (rc < 0) {
-            perror("select(): ");
-            exit(EXIT_FAILURE);
-        }
-
-#ifdef USE_HTTP_STATUS
-        ccnl_http_postselect(ccnl, ccnl->http, &readfs, &writefs);
-#endif
-        for (i = 0; i < ccnl->ifcount; i++) {
-            if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
-                sockunion src_addr;
-                socklen_t addrlen = sizeof(sockunion);
-                if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
-                                (struct sockaddr*) &src_addr, &addrlen)) > 0) {
-                    
-                    if (src_addr.sa.sa_family == AF_INET) {
-                        ccnl_core_RX(ccnl, i, buf, len,
-                                     &src_addr.sa, sizeof(src_addr.ip4));
-                    }
-#ifdef USE_ETHERNET
-                    else if (src_addr.sa.sa_family == AF_PACKET) {
-                        if (len > 14)
-                            ccnl_core_RX(ccnl, i, buf+14, len-14,
-                                         &src_addr.sa, sizeof(src_addr.eth));
-                    }
-#endif
-#ifdef USE_UNIXSOCKET
-                    else if (src_addr.sa.sa_family == AF_UNIX) {
-                        ccnl_core_RX(ccnl, i, buf, len,
-                                     &src_addr.sa, sizeof(src_addr.ux));
-                    }
-#endif
-                }
-            }
-
-            if (FD_ISSET(ccnl->ifs[i].sock, &writefs)) {
-              ccnl_interface_CTS(ccnl, ccnl->ifs + i);
-            }
-        }
-    }
-
-    return 0;
-}
 
 void
 ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
@@ -838,48 +642,69 @@ notacontent:
 
 // ----------------------------------------------------------------------
 
+ALooper *theLooper;
+pthread_mutex_t timer_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t timer_thread;
+int pipeT2R[2]; // timer thread to relay
+int pipeR2T[2]; // relay to timer thread
+
 int
-ccnl_android_udp_io(int fd, int events, void *data)
+ccnl_android_timer_io(int fd, int events, void *data)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
-    ALooper *lpr = ALooper_forThread();
-    unsigned char buf[CCNL_MAX_PACKET_SIZE];
-    int i, len;
+    unsigned char c;
+    int len;
+    int usec;
 
     if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP)) {
         return 0;
     }
 
-//    DEBUGMSG(INFO, "android_udp_io %0x04x, %d\n", events, relay->ifcount);
+    len = read(pipeT2R[0], &c, 1);
+
+    DEBUGMSG(TRACE, "timer_io %d %c\n", len, c);
+
+    usec = ccnl_run_events();
+    write(pipeR2T[1], &usec, sizeof(usec));
+
+    return 1; // continue receiving callbacks
+}
+
+int
+ccnl_android_udp_io(int fd, int events, void *data)
+{
+    struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
+    unsigned char buf[CCNL_MAX_PACKET_SIZE];
+    int i, len;
+
+    DEBUGMSG(TRACE, "-- udp_io\n");
+
+    if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP)) {
+        return 0;
+    }
+
+    DEBUGMSG(TRACE, "android_udp_io %d 0x%04x, %d\n",
+             fd, events, relay->ifcount);
 
     for (i = 0; i < relay->ifcount; i++) {
-//        DEBUGMSG(INFO, "android_udp_io loop\n");
         if (relay->ifs[i].sock != fd)
             continue;
         if (events | ALOOPER_EVENT_INPUT) {
             sockunion src_addr;
             socklen_t addrlen = sizeof(sockunion);
 
-//            DEBUGMSG(INFO, "android_udp_io - input event\n");
-
             if ((len = recvfrom(relay->ifs[i].sock, buf, sizeof(buf),
                                 MSG_DONTWAIT,
                                 (struct sockaddr*) &src_addr, &addrlen)) > 0) {
                     
-                DEBUGMSG(INFO, "android_udp_io - input event %d\n", len);
+                DEBUGMSG(TRACE, "android_udp_io - input event %d\n", len);
                 if (src_addr.sa.sa_family == AF_INET) {
                     ccnl_core_RX(relay, i, buf, len,
                                  &src_addr.sa, sizeof(src_addr.ip4));
                 }
             }
-//            DEBUGMSG(INFO, "android_udp_io - input event done\n");
         }
-//        if (events | ALOOPER_EVENT_OUTPUT) {}
     }
-
-//    DEBUGMSG(INFO, "android_udp_io returning\n");
-//    fflush(stdout);
-//    fflush(stderr);
 
     return 1; // continue receiving callbacks
 }
@@ -889,7 +714,8 @@ ccnl_android_http_io(int fd, int events, void *data)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
     struct ccnl_http_s *http = relay->http;
-    ALooper *lpr = ALooper_forThread();
+
+    DEBUGMSG(TRACE, "-- http_io\n");
 
     if (events & (ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP)) {
         close(http->client);
@@ -901,7 +727,7 @@ ccnl_android_http_io(int fd, int events, void *data)
         int len = sizeof(http->in) - http->inlen - 1;
         len = recv(http->client, http->in + http->inlen, len, 0);
         if (len == 0) {
-            ALooper_removeFd(lpr, http->client);
+            ALooper_removeFd(theLooper, http->client);
             DEBUGMSG(WARNING, "web client went away\n");
             close(http->client);
             http->client = 0;
@@ -915,12 +741,11 @@ ccnl_android_http_io(int fd, int events, void *data)
     if (http->outlen > 0 && (events | ALOOPER_EVENT_OUTPUT)) {
         int len = send(http->client, http->out + http->outoffs,
                        http->outlen, 0);
-        //        DEBUGMSG(TRACE, " we have sent %d HTML bytes\n", len);
         if (len > 0) {
             http->outlen -= len;
             http->outoffs += len;
             if (http->outlen <= 0) {
-                ALooper_removeFd(lpr, http->client);
+                ALooper_removeFd(theLooper, http->client);
                 close(http->client);
                 http->client = 0;
                 // we should check if there are pending clients ...
@@ -940,9 +765,10 @@ ccnl_android_http_accept(int fd, int events, void *data)
 {
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) data;
     struct ccnl_http_s *http = relay->http;
-    ALooper *lpr = ALooper_forThread();
     struct sockaddr_in peer;
     socklen_t len = sizeof(peer);
+
+    DEBUGMSG(TRACE, "-- http_accept\n");
 
     if (http->client) // only one client at the time
         return 1;
@@ -958,14 +784,35 @@ ccnl_android_http_accept(int fd, int events, void *data)
         DEBUGMSG(DEBUG, "accepted web server client fd=%d\n", http->client);
         http->inlen = http->outlen = http->inoffs = http->outoffs = 0;
 
-        ALooper_addFd(lpr, http->client,
+        ALooper_addFd(theLooper, http->client,
                       ALOOPER_POLL_CALLBACK,
-                      ALOOPER_EVENT_INPUT | ALOOPER_EVENT_OUTPUT,
+                      ALOOPER_EVENT_INPUT, // | ALOOPER_EVENT_OUTPUT,
                       ccnl_android_http_io,
                       &theRelay);
     }
 
     return 1; // continue receiving callbacks
+}
+
+void*
+timer()
+{
+    char c = 'a';
+
+    usleep(1000000);
+    while (1) {
+        int usec = -1;
+        if (theLooper) {
+            write(pipeT2R[1], &c, 1);
+            c++;
+            if (c > 'z')
+                c = 'a';
+            read(pipeR2T[0], &usec, sizeof(usec));
+        }
+        usleep(usec < 0 ? 500000 : usec);
+    }
+
+    return NULL;
 }
 
 char*
@@ -974,14 +821,14 @@ ccnl_android_init()
     static char done;
     static char hello[100];
     time_t now = time(NULL);
+    int dummy = 0;
 
     if (done)
         return hello;
     done = 1;
 
     time(&theRelay.startup_time);
-    //    stdlog = fopen("/mnt/sdcard/ccn-lite.log", "w");
-    debug_level = TRACE;
+    debug_level = DEBUG;
 
     ccnl_core_init();
 
@@ -995,33 +842,28 @@ ccnl_android_init()
     ccnl_relay_config(&theRelay, NULL, CCN_UDP_PORT, 8080, NULL,
                       CCNL_SUITE_CCNTLV, 0, NULL);
 
-    {
-        ALooper *lpr = ALooper_forThread();
-        
-        ALooper_addFd(lpr, theRelay.ifs[theRelay.ifcount - 1].sock, 
-                      ALOOPER_POLL_CALLBACK,
-                      ALOOPER_EVENT_INPUT | ALOOPER_EVENT_OUTPUT,
-                      ccnl_android_udp_io,
-                      &theRelay);
-    }
+    theLooper = ALooper_forThread();
 
-    {
-        ALooper *lpr = ALooper_forThread();
-        
-        ALooper_addFd(lpr, theRelay.http->server, 
-                      ALOOPER_POLL_CALLBACK,
-                      ALOOPER_EVENT_INPUT /* ALOOPER_EVENT_OUTPUT */,
-                      ccnl_android_http_accept,
-                      &theRelay);
-    }
+    // launch timer thread
+    pipe2(pipeT2R, O_DIRECT);
+    pipe2(pipeR2T, O_DIRECT);
+    pthread_create(&timer_thread, NULL, timer, NULL);
+
+    ALooper_addFd(theLooper, pipeT2R[0], ALOOPER_POLL_CALLBACK,
+                  ALOOPER_EVENT_INPUT, ccnl_android_timer_io, &theRelay);
+    ALooper_addFd(theLooper, theRelay.ifs[theRelay.ifcount - 1].sock, 
+                  ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+                  ccnl_android_udp_io, &theRelay);
+    ALooper_addFd(theLooper, theRelay.http->server, ALOOPER_POLL_CALLBACK,
+                  ALOOPER_EVENT_INPUT, ccnl_android_http_accept, &theRelay);
+
 
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 
-    sensor.suite = suite;
-    sensor.comp = (unsigned char**) sensor_comp;
-    sensor.complen = sensor_len;
-    sensor.compcnt = 2;
-    DEBUGMSG(INFO, "  message at lci:%s\n", ccnl_prefix_to_path(&sensor));
+    strcpy(hello, echopath);
+    echoprefix = ccnl_URItoPrefix(hello, suite, NULL,
+                                  suite == CCNL_SUITE_CCNTLV ? &dummy : NULL);
+    ccnl_echo_add(&theRelay, echoprefix);
 
 #ifdef USE_HMAC256
     ccnl_hmac256_keyval((unsigned char*)secret_key,
@@ -1076,147 +918,5 @@ ccnl_android_getTransport()
     ccnl_free(ifr);
     return NULL;
 }
-
-
-#ifdef XXX
-// old code from ccn-lite-relay.c
-
-int
-main(int argc, char **argv)
-{
-    int opt, max_cache_entries = -1, udpport = -1, httpport = -1;
-    char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
-#ifdef USE_UNIXSOCKET
-    char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
-#else
-    char *uxpath = NULL;
-#endif
-
-    time(&theRelay.startup_time);
-    srandom(time(NULL));
-
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:s:t:u:v:x:p:")) != -1) {
-        switch (opt) {
-        case 'c':
-            max_cache_entries = atoi(optarg);
-            break;
-        case 'd':
-            datadir = optarg;
-            break;
-        case 'e':
-            ethdev = optarg;
-            break;
-        case 'g':
-            inter_pkt_interval = atoi(optarg);
-            break;
-        case 'i':
-            inter_ccn_interval = atoi(optarg);
-            break;
-        case 's':
-            suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
-                goto usage;
-            break;
-        case 't':
-            httpport = atoi(optarg);
-            break;
-        case 'u':
-            udpport = atoi(optarg);
-            break;
-        case 'v':
-#ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
-            else
-                debug_level = ccnl_debug_str2level(optarg);
-#endif
-            break;
-        case 'x':
-            uxpath = optarg;
-            break;
-        case 'p':
-            crypto_sock_path = optarg;
-            break;
-        case 'h':
-        default:
-usage:
-            fprintf(stderr,
-                    "usage: %s [options]\n"
-                    "  -c MAX_CONTENT_ENTRIES\n"
-                    "  -d databasedir\n"
-                    "  -e ethdev\n"
-                    "  -g MIN_INTER_PACKET_INTERVAL\n"
-                    "  -h\n"
-                    "  -i MIN_INTER_CCNMSG_INTERVAL\n"
-                    "  -p crypto_face_ux_socket\n"
-                    "  -s SUITE (ccnb, ccnx2014, iot2014, ndn2013)\n"
-                    "  -t tcpport (for HTML status page)\n"
-                    "  -u udpport\n"
-
-#ifdef USE_LOGGING
-                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
-#endif
-#ifdef USE_UNIXSOCKET
-                    "  -x unixpath\n"
-#endif
-                    , argv[0]);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-#define setPorts(PORT)  if (udpport < 0) udpport = PORT; \
-                        if (httpport < 0) httpport = PORT
-
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        setPorts(CCN_UDP_PORT);
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-#endif
-    default:
-        setPorts(NDN_UDP_PORT);
-        break;
-    }
-
-    ccnl_core_init();
-
-    DEBUGMSG(INFO, "This is ccn-lite-relay, starting at %s",
-             ctime(&theRelay.startup_time) + 4);
-    DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
-    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
-    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
-
-    ccnl_relay_config(&theRelay, ethdev, udpport, httpport,
-                      uxpath, suite, max_cache_entries, crypto_sock_path);
-    if (datadir)
-        ccnl_populate_cache(&theRelay, datadir);
-    
-    ccnl_io_loop(&theRelay);
-
-    while (eventqueue)
-        ccnl_rem_timer(eventqueue);
-    
-    ccnl_core_cleanup(&theRelay);
-#ifdef USE_HTTP_STATUS
-    theRelay.http = ccnl_http_cleanup(theRelay.http);
-#endif
-#ifdef USE_DEBUG_MALLOC
-    debug_memdump();
-#endif
-
-    return 0;
-}
-
-// eof
-#endif
 
 // eof

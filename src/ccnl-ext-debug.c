@@ -36,6 +36,16 @@
    } while(0)
 #  define CONSTSTR(s)         ccnl_arduino_getPROGMEMstr(PSTR(s))
 
+#elif defined(CCNL_ANDROID)
+
+static char android_logstr[1024];
+void jni_append_to_log(char *line);
+
+#  define CONSOLE(...)        do { sprintf(android_logstr, __VA_ARGS__); \
+                                   jni_append_to_log(android_logstr); \
+                              } while(0)
+#  define CONSTSTR(s)         s
+
 #elif !defined(CCNL_LINUXKERNEL)
 
 #  define CONSOLE(...)        fprintf(stderr, __VA_ARGS__)

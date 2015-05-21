@@ -31,24 +31,38 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     struct ccnl_buf_s *reply;
     unsigned char *ucp;
     int len, enc;
+    struct ccnl_prefix_s *pfx2 = NULL;
 
     DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
 
-    if (pfx->chunknum) {
+//    if (pfx->chunknum) {
         // mkSimpleContent adds the chunk number, so remove it here
+      /*
         ccnl_free(pfx->chunknum);
         pfx->chunknum = NULL;
+      */
+#ifdef USE_SUITE_CCNTLV
+    if (pfx->complen[pfx->compcnt-1] > 1 &&
+        pfx->comp[pfx->compcnt-1][1] == CCNX_TLV_N_Chunk) {
+        struct ccnl_prefix_s *pfx2 = ccnl_prefix_dup(pfx);
+        pfx2->compcnt--;
+        pfx2->chunknum = (int*) ccnl_malloc(sizeof(int));
+        *(pfx2->chunknum) = 0;
+        pfx = pfx2;
     }
+#endif
 
     t = time(NULL);
     s = ccnl_prefix_to_path(pfx);
 
     cp = ccnl_malloc(strlen(s) + 60);
-    sprintf(cp, "%s%s\n", ctime(&t), s);
+    sprintf(cp, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
 
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
     ccnl_free(cp);
-//    ccnl_face_enqueue(relay, inface, reply);
+    if (pfx2) {
+        free_prefix(pfx2);
+    }
 
     ucp = reply->data;
     len = reply->datalen;

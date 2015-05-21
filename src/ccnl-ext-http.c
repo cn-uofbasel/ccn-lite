@@ -224,7 +224,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, " (started %s)</font>\n</table>\n", cp);
 
     len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
-                   "<tr><td><em>Forwarding Table</em></table><ul>\n");
+                   "<tr><td><em>Forwarding table</em></table><ul>\n");
     for (fwd = ccnl->fib, cnt = 0; fwd; fwd = fwd->next, cnt++);
     if (cnt > 0) {
         struct ccnl_forward_s **fwda;
