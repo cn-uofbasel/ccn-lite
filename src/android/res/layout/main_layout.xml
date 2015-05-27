@@ -13,7 +13,7 @@
               android:paddingTop="15dp"
               android:src="@drawable/ccn_lite_logo_712x184"/>
 
-    <TextView android:id="@+id/hello"
+    <TextView android:id="@+id/transport"
               android:layout_width="fill_parent"
               android:layout_height="20dp"
               android:paddingTop="5dp"

@@ -17,7 +17,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := ccn-lite-android
-LOCAL_SRC_FILES := ccn-lite-android.c
+LOCAL_SRC_FILES := ccn-lite-jni.c
 LOCAL_LDLIBS    := -landroid
 
 include $(BUILD_SHARED_LIBRARY)

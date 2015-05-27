@@ -42,20 +42,20 @@
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
-// #define USE_ETHERNET
+#define USE_ETHERNET
 // #define USE_FRAG
 #define USE_LOGGING
 #define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
-// #define USE_MGMT
+#define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
 // #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_STATS
-//#define USE_SUITE_CCNB                 // must select this for USE_MGMT
+#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
@@ -102,7 +102,7 @@ unsigned char keyid[32];
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite = CCNL_SUITE_CCNTLV; 
+char suite = CCNL_SUITE_NDNTLV; 
 
 int
 ccnl_run_events()
@@ -267,10 +267,13 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         break;
 #ifdef USE_ETHERNET
     case AF_PACKET:
+/*
         rc = ccnl_eth_sendto(ifc->sock,
                              dest->eth.sll_addr,
                              ifc->addr.eth.sll_addr,
                              buf->data, buf->datalen);
+*/
+        rc = jni_bleSend(buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
                  eth2ascii(dest->eth.sll_addr), rc);
         break;
@@ -334,6 +337,7 @@ ccnl_relay_defaultInterfaceScheduler(struct ccnl_relay_s *ccnl,
 void ccnl_ageing(void *relay, void *aux)
 {
     ccnl_do_ageing(relay, aux);
+
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
 
@@ -835,8 +839,8 @@ ccnl_android_init()
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, NULL, CCN_UDP_PORT, 8080, NULL,
-                      CCNL_SUITE_CCNTLV, 0, NULL);
+    ccnl_relay_config(&theRelay, NULL, NDN_UDP_PORT, 8080, NULL,
+                      CCNL_SUITE_NDNTLV, 0, NULL);
 
     theLooper = ALooper_forThread();
 
@@ -844,6 +848,7 @@ ccnl_android_init()
     pipe2(pipeT2R, O_DIRECT);
     pthread_create(&timer_thread, NULL, timer, NULL);
 
+    // UDP and HTTP ports
     ALooper_addFd(theLooper, pipeT2R[0], ALOOPER_POLL_CALLBACK,
                   ALOOPER_EVENT_INPUT, ccnl_android_timer_io, &theRelay);
     ALooper_addFd(theLooper, theRelay.ifs[theRelay.ifcount - 1].sock, 
@@ -905,7 +910,7 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sin->sin_port = htons(CCN_UDP_PORT);
+            sin->sin_port = htons(NDN_UDP_PORT);
             sprintf(addr, "(%s)  UDP %s", ifr[i].ifr_name,
                     ccnl_addr2ascii((sockunion*)sin));
             ccnl_free(ifr);
