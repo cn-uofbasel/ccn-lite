@@ -44,7 +44,7 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 #define USE_ETHERNET
-#define USE_HMAC256
+//#define USE_HMAC256
 //#define USE_HTTP_STATUS
 //#define USE_IPV4
 #define USE_LOGGING
@@ -66,9 +66,9 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #define NEEDS_PACKET_CRAFTING
 
 double
-GetTemp(void)
+GetTemp(int scale)
 {
-    return RFduino_temperature(CELSIUS);
+    return RFduino_temperature(scale);
 }
 
 void
@@ -195,7 +195,7 @@ char* ccnl_addr2ascii(sockunion *su);
 
 #define DEBUGMSG(...)      DEBUGMSG_OFF(__VA_VARGS__)
 
-extern struct ccnl_prefix_s sensor;
+extern struct ccnl_prefix_s *sensorC, *sensorF;
 
 int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
@@ -270,12 +270,16 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG_MAIN(VERBOSE, "local_producer %d bytes\n", pkt->buf->datalen);
 
-    if (ccnl_prefix_cmp(&sensor, NULL, pkt->pfx, CMP_EXACT))
+    if (!ccnl_prefix_cmp(sensorC, NULL, pkt->pfx, CMP_EXACT))
+        d = GetTemp(CELSIUS);
+    else if (!ccnl_prefix_cmp(sensorF, NULL, pkt->pfx, CMP_EXACT))
+        d = GetTemp(FAHRENHEIT);
+    else
         return 0;
 
-    d = GetTemp();
-    sprintf_P(logstr, PSTR("@%s  %d.%1d C"), timestamp(),
+    sprintf_P(logstr, PSTR("%03u %d.%1d"), (millis() / 1000) % 1000,
               (int)d, (int)(10*(d - (int)d)));
+
     switch (pkt->pfx->suite) {
 
 #ifdef USE_SUITE_CCNTLV
@@ -329,6 +333,13 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     relay->ifs[from->ifndx].sock->endPacket();
 #endif
 
+    RFduinoBLE.send((char*)packetBuffer + offset,
+                    sizeof(packetBuffer) - offset);
+
+    DEBUGMSG_MAIN(INFO, "  send: packet starts with %02x %02x %02x\n",
+                  packetBuffer[offset], packetBuffer[offset+1],
+                  packetBuffer[offset+2]);
+
     free_packet(pkt);
 
     TRACEOUT();
@@ -337,11 +348,29 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 }
 
 // ----------------------------------------------------------------------
+
+void
+ccnl_ll_RX(char *data, int len)
+{
+    sockunion su;
+
+    DEBUGMSG_MAIN(INFO, "ccnl_ll_RX %d bytes\n", len);
+
+    memset(&su, 0, sizeof(su));
+    su.sa.sa_family = AF_PACKET;
+
+    ccnl_core_RX(&theRelay, 0, (unsigned char*) data, len,
+                 &su.sa, sizeof(su));
+}
+
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
 {
-// forwarding not yet implemented for Arduino
+// forwarding not yet implemented for Arduino, we do it directly in the
+// local_producer routing
+
+    DEBUGMSG(INFO, "ccnl_ll_TX\n");
 
 /*
     int rc;
@@ -404,13 +433,16 @@ ccnl_rfduino_run_events(struct ccnl_relay_s *relay)
 
 // ----------------------------------------------------------------------
 
-struct ccnl_prefix_s sensor;
-int sensor_len[1];
+struct ccnl_prefix_s *sensorC, *sensorF;
+/*
+int sensorC_len[1];
+int sensorC_len[1];
 #ifdef USE_SUITE_CCNTLV
 char* sensor_comp[1] = {"\x00\x01\x00\x04TinC"};
 #else
 char* sensor_comp[1] = {"TinC"};
 #endif
+*/
 
 void
 debug_delta(char up)
@@ -418,11 +450,11 @@ debug_delta(char up)
 #ifdef USE_DEBUG
     if (up && debug_level < TRACE)
         debug_level++;
-    else if (debug_level > FATAL)
+    else if (!up && debug_level > FATAL)
         debug_level--;
 
-    DEBUGMSG(FATAL, "debug level now at %d (%c)\n",
-             debug_level, ccnl_debugLevelToChar(debug_level));
+    DEBUGMSG_MAIN(FATAL, "debug level now at %d (%c)\n",
+                  debug_level, ccnl_debugLevelToChar(debug_level));
 #endif
 }
 
@@ -463,20 +495,19 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 
     mac.sa_family = AF_PACKET;
     ccnl_rfduino_get_MAC_addr(mac.sll_addr);
-    mac.sll_protocol = htons(0x6363); // it does not matter
+    mac.sll_protocol = htons(0x2222); // it does not matter
     DEBUGMSG_MAIN(INFO, "  MAC addr is %s\n",
                   ccnl_addr2ascii((sockunion*) &mac));
 
-    sensor.suite = theSuite;
-#ifdef USE_SUITE_CCNTLV
-    sensor_len[0] = 8; // 4 + strlen("TinC");
-#else
-    sensor_len[0] = strlen(sensor_comp[0]);
-#endif
-    sensor.comp = (unsigned char**) sensor_comp;
-    sensor.complen = sensor_len;
-    sensor.compcnt = 1;
-    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
+    strcpy_P(logstr, PSTR("/TinC"));
+    sensorC = ccnl_URItoPrefix(logstr, CCNL_SUITE_NDNTLV, NULL, NULL);
+    strcpy_P(logstr, PSTR("/TinF"));
+    sensorF = ccnl_URItoPrefix(logstr, CCNL_SUITE_NDNTLV, NULL, NULL);
+
+    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n",
+                  ccnl_prefix_to_path(sensorC));
+    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n",
+                  ccnl_prefix_to_path(sensorF));
 
 #ifdef USE_HMAC256
     strcpy_P(logstr, secret_key);
@@ -514,5 +545,39 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 
     return 0;
 }
+
+int
+ccnl_fillmsg(unsigned char *msg, int len)
+{
+    struct ccnl_prefix_s *nm;
+    struct ccnl_buf_s *buf;
+
+    // any message would do - just to wake up the Android smartphone
+    // and let it install a FIB entry for us
+
+    strcpy((char*)msg, "/TinC");
+    nm = ccnl_URItoPrefix((char*) msg, CCNL_SUITE_NDNTLV, NULL, NULL);
+    if (!nm) {
+        Serial.println("URItoPrefix failed");
+        return -1;
+    }
+
+    buf = ccnl_mkSimpleContent(nm, (unsigned char*) "23.4", 4, NULL);
+    if (!buf) {
+        Serial.println("mkSimpleInterest failed");
+        free_prefix(nm);
+        return -1;
+    }
+    if (buf->datalen < len)
+        len = buf->datalen;
+    memcpy(msg, buf->data, len);
+
+    free_prefix(nm);
+    ccnl_free(buf);
+
+    return len;
+}
+
+
 
 // eof

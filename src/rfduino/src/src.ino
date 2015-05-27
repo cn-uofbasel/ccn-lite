@@ -8,13 +8,19 @@
 #include <nrf51.h>
 
 extern "C" {
-  #include "/home/tschudin/ccnlite/ccn-lite-20150510/src/ccn-lite-rfduino.c"
+  #include "/home/tschudin/ccnlite/ccn-lite-rfduino-20150524/src/ccn-lite-rfduino.c"
 //  #include "../../ccn-lite-rfduino.c"
 }
 
-char *msg = "hello worl123456789012345678901234567890";
+unsigned char msg[23]; // = "hello worl123456789012345678901234567890";
+int msglen;
 uint8_t uuid[16] = {0xff, 0xC5, 0x6D, 0xB5, 0xDF, 0xFB, 0x48, 0xD2, 0xB0, 0x60, 0xD0, 0xF5, 0xA7, 0x10, 0x96,
 0xff}; //Custom iBeacon UUID
+
+int flag = false;
+char ch = 'A';
+int cnt = 0;
+int announced = 0;
 
 void setup()
 {
@@ -22,8 +28,9 @@ void setup()
   int i;
   
   Serial.begin(9600);
-  strcpy_P(logstr, PSTR(">>"));
-  Serial.println(logstr);
+  delay(200);
+  Serial.println();
+  Serial.println("ccn-lite-rfduino started");
 
 #ifdef USE_DEBUG
   debug_level = WARNING;
@@ -31,15 +38,22 @@ void setup()
 #endif
 
   // start BLE ...
+//  RFduinoBLE.deviceName = "ccn-lite-rfd";
+// (the deviceName length plus the advertisement length must be <= 18 bytes)
+  RFduinoBLE.deviceName = "ccn-lite";
+  RFduinoBLE.advertisementData = "-cft";
+  /*
   RFduinoBLE.iBeacon = true;
-  RFduinoBLE.deviceName = "ccn-lite-rfd";
   memcpy(RFduinoBLE.iBeaconUUID, uuid, sizeof(RFduinoBLE.iBeaconUUID));
   RFduinoBLE.iBeaconMajor = 1234; //Custom iBeacon Major
   RFduinoBLE.iBeaconMinor = 5678; //Custom iBeacon Minor
-
+  */
   RFduinoBLE.begin();
 
   ccnl_rfduino_init(&theRelay);
+  msglen = ccnl_fillmsg(msg, sizeof(msg));
+  Serial.print("msglen is ");
+  Serial.println(msglen);
 
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
@@ -56,16 +70,47 @@ void loop()
 
   while (Serial.available()) {
     char c = Serial.read();
-    Serial.println();
     switch (c) {
       case '+': debug_delta(1); break;
       case '-': debug_delta(0); break;
 #ifdef USE_DEBUG_MALLOC
       case 'd': debug_memdump(); break;
 #endif
-      default:  break;
+      default:
+          Serial.println();
+          break;
     }
   }
+
+  if (flag && !announced && msglen > 0) {
+       delay(800);
+       announced = 1;
+       Serial.print(cnt);
+       Serial.println(" sending");
+       cnt++;
+       Serial.print(RFduinoBLE.send((char*) msg, msglen));
+       Serial.println(" send done");
+   }
+  
+/*
+if (flag) {
+    Serial.print(cnt);
+    Serial.println(" sending");
+    cnt++;
+
+    char buf[20];
+    for (int i = 0; i < 20; i++)
+    {
+      buf[i] = ch;
+      ch++;
+      if (ch > 'Z')
+        ch = 'A';
+    }
+    Serial.print(RFduinoBLE.send(buf, 20));
+    Serial.println(" send done");
+    delay(400);
+}
+*/
 
   /*
       len = udp->parsePacket();
@@ -82,8 +127,10 @@ void loop()
       }
   */
 
-  timeout = 100; // ccnl_arduino_run_events(&theRelay);
+/*
+timeout = 100; // ccnl_arduino_run_events(&theRelay);
   delay(timeout);
+*/
 
   /*
       while (timeout > 20) {
@@ -102,7 +149,6 @@ void loop()
         }
       }
   */
-
 }
 
 void RFduinoBLE_onAdvertisement(bool start)
@@ -122,17 +168,22 @@ void RFduinoBLE_onRSSI(int rssi)
 void RFduinoBLE_onConnect()
 {
     Serial.println("connect");
-    RFduinoBLE.send(msg, strlen(msg));
+//    RFduinoBLE.send(msg, strlen(msg));
+    flag = true;
 }
 
 void RFduinoBLE_onReceive(char *data, int len)
 {
     sprintf(logstr, "received %d bytes", len);
     Serial.println(logstr);
+
+    ccnl_ll_RX(data, len);
 }
 
 void RFduinoBLE_onDisconnect()
 {
+    flag = false;
+    announced = 0;
     Serial.println("disconnect");
 }
 
