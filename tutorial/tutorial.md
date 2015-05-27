@@ -287,7 +287,7 @@ sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nf
 
 
 The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
-It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a udp face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published. The first is called `/node/nodeA/nfn_service_WordCount`, the second `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
+It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a UDP face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published: `/node/nodeA/nfn_service_WordCount` and `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
 
 ### 3. Send a NFN expression with a word count function call
 We are going to invoke the word count service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
@@ -315,7 +315,7 @@ It takes 3 parameters, the first one is the name of a document to transform, and
 
 To test this we can send the following request:
 ```bash
-$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f2
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 2
 ```
 
 Since `tiny_md` is only a small document, the generated html document will also fit into a single content object.
@@ -324,7 +324,7 @@ Since `tiny_md` is only a small document, the generated html document will also 
 So far, all results of NFN computations were small and fit into single content objects. Next we test what happens if the result is larger, by transforming this tutorial instead of `tiny_md`.
 
 ```bash
-$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f2 
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 2 
 ```
 The result of this computation will not be a document, but something like `redirect:/node/nodeA/call 2 %2fndn%2fch...`. When the result is too large to fit into one content object it has to be chunked. Since chunking of computation does not make too much sense, the result is a redirect address under which the chunked result was published by the compute server. To get the result, copy the redirected address (without `redirect:`). Because `ccn-lite-peek` can only retrieve a single content object, we have to use `ccn-lite-fetch`, which works almost like `ccn-lite-peek`. It will return the stream of the data of the fetched content objects chunks, instead of wire format encoded packets, therefore `ccn-lite-pktdump` is not necessary. The `%2f` is used to escape the `/` character, because otherwise an expression would incorrectly be split into components.
 ```bash
