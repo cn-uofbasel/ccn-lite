@@ -43,11 +43,14 @@ main(int argc, char *argv[])
     int dlen = 0, plen = 0;
     int packettype = CCNL_SUITE_NDNTLV;
     struct ccnl_prefix_s *prefix;
+    time_t curtime;
     uint32_t nonce;
     int isLambda = 0;
     unsigned int chunknum = UINT_MAX;
-
-    time((time_t*) &nonce);
+    
+    time(&curtime);
+    // Get current time in double to avoid dealing with time_t
+    nonce = (uint32_t) difftime(curtime, 0);
 
     while ((opt = getopt(argc, argv, "ha:c:d:e:i:ln:o:p:s:v:x:")) != -1) {
         switch (opt) {
@@ -145,11 +148,11 @@ Usage:
 
     switch (packettype) {
     case CCNL_SUITE_CCNB:
-    	len = ccnl_ccnb_mkInterest(prefix, minSuffix, maxSuffix,
+        len = ccnl_ccnb_mkInterest(prefix, minSuffix, maxSuffix,
                                    (unsigned char*) digest, dlen,
                                    (unsigned char*) publisher, plen,
                                    scope, &nonce, out);
-	break;
+        break;
     case CCNL_SUITE_CCNTLV:
         len = ccntlv_mkInterest(prefix, 
                                 (int*)&nonce, 

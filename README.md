@@ -1,5 +1,7 @@
 # ccn-lite
 
+Note: Currently, the newest development branch is "cistlv" except during the week of May 18, 2015 where it is "ccnxcon2015". These branches include an Android and an Arduino port.
+
 CCN-lite (http://ccn-lite.net/) is a lightweight and cross-compatible
 implementation of Name Based Networking. In particular, it supports
 
@@ -17,4 +19,4 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-![alt text](doc/ccn-lite-logo-256x66.jpg)
+![alt text](doc/ccn-lite-logo-256x66.png)

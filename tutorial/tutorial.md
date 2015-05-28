@@ -7,7 +7,7 @@ Table Of Contents:
 - [Scenario 3: Connecting CCNL with NDN Testbed](#scenario3)
 - [Scenario 4: Simple NFN request](#scenario4)
 - [Scenario 5: NFN request with Compute Server Interaction](#scenario5)
-- [Scenario 6: Full Named Function Networking (NFN) demo](#scneario6)
+- [Scenario 6: Full Named Function Networking (NFN) demo](#scenario6)
 - [Scenario 7: Creating and Publishing your own Named Function](#scenario7)
 
 
@@ -192,7 +192,7 @@ To build a CCN-lite relay with NFN functionality, export the variable:
 ```bash
 export USE_NFN=1
 ```
-and rebuild the project in $CCNL_HOME/src with make
+and rebuild the project in $CCNL_HOME/src with `make`
 
 Or build directly:
 ```bash
@@ -210,7 +210,7 @@ To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of `ccn-
 ```bash
 $CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
+Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 
 <a name="scenario5"/>
 ## Scenario 5: NFN request with Compute Server Interaction 
@@ -219,7 +219,7 @@ Try out more complex expression evaluations, for example `add 1 (mult 23 456)`.
 
 This scenario explains how to setup an NFN-node which can interact with a Compute Server. 
 A compute server is an external application which can execute functions written in a high level programming language.
-Instead of running a complex Compute Server, a `dummyserver` is used in this scenario with the sole goal to let a mock function named "/test/data" be made available.
+Instead of running a complex Compute Server, a `dummyserver` is used in this scenario with the sole goal to let a mock function named `/test/data` be made available.
 
 ### 1. Start a NFN-relay
 A NFN-relay is started on the same way as shown in the previous scenario:
@@ -228,7 +228,7 @@ $CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
 ### 2. Start the computation dummy server
-The dummy server is written in Python and can only handle the function "/test/data". 
+The dummy server is written in Python and can only handle the function `/test/data`.
 Start it with:
 ```bash
 python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py
@@ -240,31 +240,31 @@ For more complex functions you have to setup the `nfn-scala` computation environ
 ### 3. Add a compute face
 In order to interact with the Compute Server which runs on Port 9002 we need to setup a new interface.
 ```bash
-$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002| $CCNL_HOME/src/util/ccn-lite-ccnb2xml
+FACEID=`$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 And to register the name "COMPUTE" to this interface. This name is reserved in NFN networks for the interaction with a Compute Server:
 ```bash
-$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE $FACEID ndn2013 | $CCNL_HOME/src/util/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Add (the result of) a dummy function to the cache of the relay
 The `/test/data` function will mimic computations by returning a name where the result can be found (i.e., it is the constant function always returning the value 10). This result is added to the local cache of the relay where the NFN abstract machines sits:
 ```bash
-$CCNL_HOME/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv  | $CCNL_HOME/util/ccn-lite-ccnb2xml
+$CCNL_HOME/src/util/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/src/util/ccn-lite-ccnb2xml
 ```
 
 ### 5. Send a request for a function call:
 To invoke the function call the user can issue the request:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-The result of the computation is 10.
+The result of the computation is `10`.
 
 One can also combine build in operators and function calls:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/util/ccn-lite-pktdump -f 3
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 3
 ```
-Now the result will be 11.
+Now the result will be `11`.
 
 <a name="scenario6"/>
 ## Scenario 6: Full Named Function Networking (NFN) demo
@@ -282,30 +282,30 @@ $CCNL_HOME/src/ccn-nfn-relay -v 99 -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCN
 ### 2. Start the Scala compute server
 Go to the nfn-scala directory. Start the compute server with:
 ```bash
-sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 -cs-port 9002 --debug --ccnl-already-running /node/nodeA'
+sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
 ```
 
 
 The first time this command is run will take a while (it downloads all dependencies as well as scala itself) and compiling the compute server also takes some time.
-It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a udp face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published. The first is called `/node/nodeA/nfn_service_WordCount`, the second `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
+It runs a compute server on port 9002. There is quite a lot going on when starting the compute server like this. Since the application has the name of the management socket, it is able to setup the required face (a UDP face from the relay on 9001 named `/COMPUTE` to the compute server on 9002). It then publishes some data by injecting it directly into the cache of CCN-Lite. There are two documents named `/node/nodeA/docs/tiny_md` (single content object) and `/node/nodeA/docs/tutorial_md` (several chunks). There are also two named functions (or services) published: `/node/nodeA/nfn_service_WordCount` and `/node/nodaA/nfn_service_Pandoc`. We explain later how they can be used.
 
 ### 3. Send a NFN expression with a word count function call
 We are going to invoke the word count service. This function takes a variable number of arguments of any type (string, integer, name, another call expression, ...) and returns an integer with the number of words (e.g. `call 3 /ndn/ch/unibas/nfn/nfn_service_WordCount /name/of/doc 'foo bar'`). To invoke this service over NFN we send the following NFN expression to the relay `A`. 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 The result of this request should be 2. In the following some more examples:
 You can also count the number of words of the document you produced in the first scenario, which should have the name `/ndn/test/mycontent`.
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 Some more examples you can try:
 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/util/ccn-lite-pktdump
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/src/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/src/util/ccn-lite-pktdump
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 ### 4. Invoke the pandoc service
@@ -315,7 +315,7 @@ It takes 3 parameters, the first one is the name of a document to transform, and
 
 To test this we can send the following request:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 2
 ```
 
 Since `tiny_md` is only a small document, the generated html document will also fit into a single content object.
@@ -324,18 +324,18 @@ Since `tiny_md` is only a small document, the generated html document will also 
 So far, all results of NFN computations were small and fit into single content objects. Next we test what happens if the result is larger, by transforming this tutorial instead of `tiny_md`.
 
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/util/ccn-lite-pktdump -f2 
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/src/util/ccn-lite-pktdump -f 2 
 ```
 The result of this computation will not be a document, but something like `redirect:/node/nodeA/call 2 %2fndn%2fch...`. When the result is too large to fit into one content object it has to be chunked. Since chunking of computation does not make too much sense, the result is a redirect address under which the chunked result was published by the compute server. To get the result, copy the redirected address (without `redirect:`). Because `ccn-lite-peek` can only retrieve a single content object, we have to use `ccn-lite-fetch`, which works almost like `ccn-lite-peek`. It will return the stream of the data of the fetched content objects chunks, instead of wire format encoded packets, therefore `ccn-lite-pktdump` is not necessary. The `%2f` is used to escape the `/` character, because otherwise an expression would incorrectly be split into components.
 ```bash
-$CCNL_HOME/util/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
+$CCNL_HOME/src/util/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
 ```
 Open the `tutorial.html` file in the browser. You should see a HTML page of this tutorial (with missing pictures).
 
 ### 6. Function chaining
 One last example shows the chaining of functions. Too see that this works, use the following:
 ```bash
-$CCNL_HOME/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/util/ccn-lite-pktdump  
+$CCNL_HOME/src/util/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/src/util/ccn-lite-pktdump
 ```
 
 <a name="scenario7"/>
