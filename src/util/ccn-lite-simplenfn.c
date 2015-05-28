@@ -103,7 +103,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
+    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT;
     char *udp = "127.0.0.1/6363", *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
@@ -251,7 +251,11 @@ usage:
                          &nonce, 
                          out, sizeof(out));
 
-        if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, sizeof(struct sockaddr_un)) < 0) {
+	if(ux)
+		socksize = sizeof(struct sockaddr_un);
+	else 
+		socksize = sizeof(struct sockaddr_in);
+        if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, socksize) < 0) {
             perror("sendto");
             myexit(1);
         }
