@@ -477,6 +477,11 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
     Serial.print(  "  using suite ");
     Serial.println(ccnl_suite2str(theSuite));
 
+#ifdef USE_DEBUG
+  debug_level = WARNING;
+  debug_delta(1);
+#endif
+
     DEBUGMSG_MAIN(INFO, "configuring the relay\n");
 
     ccnl_core_init();
@@ -578,6 +583,15 @@ ccnl_fillmsg(unsigned char *msg, int len)
     return len;
 }
 
-
+unsigned long
+ccnl_arduino_run_events(struct ccnl_relay_s *relay)
+{
+    struct timeval *timeout;
+    timeout = ccnl_run_events();
+    if (timeout)
+        return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
+    else
+        return 10;
+}
 
 // eof
