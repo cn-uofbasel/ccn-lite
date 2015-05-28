@@ -33,16 +33,21 @@
 
 #define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
-#ifndef CCNL_ARDUINO
-# define CCNL_MAX_INTERFACES             10
-# define CCNL_MAX_IF_QLEN                64
-# define CCNL_MAX_PACKET_SIZE            8096
-# define CCNL_MAX_NAME_COMP              64
-#else
+#if defined(CCNL_ARDUINO)
 # define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                1
 # define CCNL_MAX_PACKET_SIZE            108
 # define CCNL_MAX_NAME_COMP              8
+#elif defined(CCNL_ANDROID) // max of UDP and BTLE
+# define CCNL_MAX_INTERFACES             2
+# define CCNL_MAX_IF_QLEN                10
+# define CCNL_MAX_PACKET_SIZE            4096
+# define CCNL_MAX_NAME_COMP              16
+#else
+# define CCNL_MAX_INTERFACES             10
+# define CCNL_MAX_IF_QLEN                64
+# define CCNL_MAX_PACKET_SIZE            8096
+# define CCNL_MAX_NAME_COMP              64
 #endif
 
 #define CCNL_CONTENT_TIMEOUT            30 // sec

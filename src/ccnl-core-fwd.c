@@ -508,9 +508,13 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(INFO, "  packet starts with %02x %02x %02x\n",
+                  (*data)[0], (*data)[1], (*data)[2]);
 
-    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen)
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen) {
+        DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
+    }
     pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(DEBUG, "  parsing error or no prefix\n");

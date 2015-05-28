@@ -13,7 +13,7 @@
               android:paddingTop="15dp"
               android:src="@drawable/ccn_lite_logo_712x184"/>
 
-    <TextView android:id="@+id/hello"
+    <TextView android:id="@+id/transport"
               android:layout_width="fill_parent"
               android:layout_height="20dp"
               android:paddingTop="5dp"
@@ -45,10 +45,9 @@
               android:stackFromBottom="true"
               /> 
 
-<!--
   <LinearLayout android:id="@+id/footer"
                 android:layout_width="match_parent"
-                android:layout_height="30dp"
+                android:layout_height="25dp"
                 android:orientation="horizontal"
                 android:paddingRight="2dp"
                 android:background="#dfb743"
@@ -57,41 +56,41 @@
 
     <TextView android:id="@+id/debuglevel"
               android:layout_width="wrap_content"
-              android:layout_height="30sp"
+              android:layout_height="match_parent"
               android:layout_margin="3dp"
-              android:textSize="15sp"
+              android:layout_marginLeft="6dp"
+              android:textSize="10sp"
               android:textColor="#000000"
               android:text=" 5" />
 
-    <Button android:id="@+id/button1"
+    <Button android:id="@+id/minus"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="4"
             android:layout_margin="3dp"
             android:background="#cf9723"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textColor="#000000"
-            android:text=" + " />
-    <Button android:id="@+id/button2"
+            android:text=" -- "
+            />
+    <Button android:id="@+id/plus"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="4"
             android:layout_margin="3dp"
             android:background="#cf9723"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textColor="#000000"
-            android:text=" - " />
-    <Button android:id="@+id/button3"
-            android:layout_height="wrap_content"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:text=" ++ " />
+    <Button android:id="@+id/dump"
+            android:layout_height="match_parent"
+            android:layout_width="wrap_content"
             android:layout_margin="3dp"
             android:background="#cf9723"
-            android:textSize="15sp"
+            android:textSize="10sp"
             android:textColor="#000000"
-            android:text=" d " />
+            android:text=" memdump " />
 
   </LinearLayout>
--->
 
 </LinearLayout>

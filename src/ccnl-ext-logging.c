@@ -122,17 +122,12 @@ ccnl_debug_str2level(char *s)
 
 #elif defined(CCNL_ANDROID)
 
-static char android_logstr[1024];
-void jni_append_to_log(char *line);
-
 #  define DEBUGMSG(LVL, ...) do { int len;          \
         if ((LVL)>debug_level) break;               \
         len = sprintf(android_logstr, "[%c] %s: ",  \
             ccnl_debugLevelToChar(LVL),             \
             timestamp());                           \
         len += sprintf(android_logstr+len, __VA_ARGS__);   \
-        if (android_logstr[len - 1] == '\n')       \
-            android_logstr[len - 1] = '\0';         \
         jni_append_to_log(android_logstr);          \
     } while (0)
 
@@ -187,32 +182,41 @@ void jni_append_to_log(char *line);
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
 
+char *
+getBaseName(char *fn)
+{
+    char *cp = fn + strlen(fn);
+
+    for (cp--; cp >= fn; cp--)
+        if (*cp == '/')
+            break;
+
+    return cp+1;
+}
+
 void
 debug_memdump()
 {
     struct mhdr *h;
 
-    CONSOLE("%s @@@ memory dump starts\n", timestamp());
+    CONSOLE("[M] %s: @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
 #ifdef CCNL_ARDUINO
-        char *cp = logstr;
-        sprintf_P(logstr, PSTR("%s @@@ mem %p %5d Bytes, allocated by "),
-                  timestamp(),
+        sprintf_P(logstr, PSTR("addr %p %5d Bytes, "),
                   (int)((unsigned char *)h + sizeof(struct mhdr)),
                   h->size);
-        cp += strlen(logstr);
-        strcpy_P(cp, h->fname + 7); // remove the "src/../" prefix
         Serial.print(logstr);
+        strcpy_P(logstr, h->fname); // remove the "src/../" prefix
+        Serial.print(getBaseName(logstr));
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
 #else
-        CONSOLE("%s @@@ mem %p %5d Bytes, allocated by %s:%d @%s\n",
-                timestamp(),
+        CONSOLE("addr %p %5d Bytes, %s:%d @%s\n",
                 (unsigned char *)h + sizeof(struct mhdr),
-                h->size, h->fname, h->lineno, h->tstamp);
+                h->size, getBaseName(h->fname), h->lineno, h->tstamp);
 #endif
     }
-    CONSOLE("%s @@@ memory dump ends\n", timestamp());
+    CONSOLE("[M] %s: @@@ memory dump ends\n", timestamp());
 }
 #endif //USE_DEBUG_MALLOC
 #endif //USE_DEBUG
