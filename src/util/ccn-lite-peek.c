@@ -39,7 +39,7 @@ unsigned char out[8*CCNL_MAX_PACKET_SIZE];
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
@@ -189,7 +189,11 @@ usage:
                          out, sizeof(out));
 
 
-        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, sizeof(struct sockaddr_un)) < 0) {
+	if(ux)
+		socksize = sizeof(struct sockaddr_un);
+	else
+		socksize = sizeof(struct sockaddr_in);
+        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize) < 0) {
             perror("sendto");
             myexit(1);
         }
