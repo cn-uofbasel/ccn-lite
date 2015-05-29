@@ -147,6 +147,8 @@ ccnl_buf_new(void *data, int len)
 
 // ----------------------------------------------------------------------
 // timer support and event server
+// copied from ccnl-os-time.c
+// (because we do not want to have includes beyond the core CCN logic)
 
 void
 ccnl_get_timeval(struct timeval *tv)

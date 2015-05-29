@@ -86,33 +86,6 @@
 struct ccnl_relay_s theRelay;
 char suite = CCNL_SUITE_DEFAULT; 
 
-struct timeval*
-ccnl_run_events()
-{
-    static struct timeval now;
-    long usec;
-
-    gettimeofday(&now, 0);
-    while (eventqueue) {
-        struct ccnl_timer_s *t = eventqueue;
-
-        usec = timevaldelta(&(t->timeout), &now);
-        if (usec >= 0) {
-            now.tv_sec = usec / 1000000;
-            now.tv_usec = usec % 1000000;
-            return &now;
-        }
-        if (t->fct)
-            (t->fct)(t->node, t->intarg);
-        else if (t->fct2)
-            (t->fct2)(t->aux1, t->aux2);
-        eventqueue = t->next;
-        ccnl_free(t);
-    }
-
-    return NULL;
-}
-
 // ----------------------------------------------------------------------
 
 #ifdef USE_ETHERNET
@@ -483,7 +456,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
     DEBUGMSG(INFO, "starting main event and IO loop\n");
     while (!ccnl->halt_flag) {
-        struct timeval *timeout;
+        int usec;
 
         FD_ZERO(&readfs);
         FD_ZERO(&writefs);
@@ -497,8 +470,14 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                 FD_SET(ccnl->ifs[i].sock, &writefs);
         }
 
-        timeout = ccnl_run_events();
-        rc = select(maxfd, &readfs, &writefs, NULL, timeout);
+        usec = ccnl_run_events();
+        if (usec >= 0) {
+            struct timeval deadline;
+            deadline.tv_sec = usec / 1000000;
+            deadline.tv_usec = usec % 1000000;
+            rc = select(maxfd, &readfs, &writefs, NULL, &deadline);
+        } else
+            rc = select(maxfd, &readfs, &writefs, NULL, NULL);
 
         if (rc < 0) {
             perror("select(): ");

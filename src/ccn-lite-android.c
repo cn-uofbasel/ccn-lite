@@ -104,30 +104,6 @@ unsigned char keyid[32];
 struct ccnl_relay_s theRelay;
 char suite = CCNL_SUITE_NDNTLV; 
 
-int
-ccnl_run_events()
-{
-    struct timeval now;
-    long usec;
-
-    gettimeofday(&now, 0);
-    while (eventqueue) {
-        struct ccnl_timer_s *t = eventqueue;
-
-        usec = timevaldelta(&(t->timeout), &now);
-        if (usec >= 0)
-            return usec;
-        if (t->fct)
-            (t->fct)(t->node, t->intarg);
-        else if (t->fct2)
-            (t->fct2)(t->aux1, t->aux2);
-        eventqueue = t->next;
-        ccnl_free(t);
-    }
-
-    return -1;
-}
-
 // ----------------------------------------------------------------------
 
 #ifdef USE_ETHERNET

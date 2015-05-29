@@ -250,33 +250,6 @@ static const char theSuite = CCNL_SUITE_IOTTLV;
 static const char theSuite = CCNL_SUITE_NDNTLV;
 #endif
 
-struct timeval*
-ccnl_run_events()
-{
-    static struct timeval now;
-    long usec;
-
-    gettimeofday(&now, 0);
-    while (eventqueue) {
-        struct ccnl_timer_s *t = eventqueue;
-
-        usec = timevaldelta(&(t->timeout), &now);
-        if (usec >= 0) {
-            now.tv_sec = usec / 1000000;
-            now.tv_usec = usec % 1000000;
-            return &now;
-        }
-        if (t->fct)
-            (t->fct)(t->node, t->intarg);
-        else if (t->fct2)
-            (t->fct2)(t->aux1, t->aux2);
-        eventqueue = t->next;
-        ccnl_free(t);
-    }
-
-    return NULL;
-}
-
 void ccnl_ageing(void *relay, void *aux)
 {
     ccnl_do_ageing(relay, aux);
@@ -412,15 +385,13 @@ ccnl_close_socket(EthernetUDP *udp)
 
 // ----------------------------------------------------------------------
 
+// returns the number of millisecs to sleep
 unsigned long
 ccnl_arduino_run_events(struct ccnl_relay_s *relay)
 {
-    struct timeval *timeout;
-    timeout = ccnl_run_events();
-    if (timeout)
-        return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
-    else
-        return 10;
+    long int usec = ccnl_run_events();
+
+    return usec >= 0 ? 1000*usec : 10;
 }
 
 

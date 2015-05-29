@@ -25,7 +25,7 @@
 // ----------------------------------------------------------------------
 #ifdef CCNL_ARDUINO
 
-//typedef int time_t;
+typedef int time_t;
 #define Hz 1000
 
 double CCNL_NOW(void) { return (double) millis() / Hz; }
@@ -109,8 +109,87 @@ timestamp(void)
 #endif // CCNL_UNIX
 
 
+#if defined(CCNL_UNIX) || defined (CCNL_ARDUINO)
 // ----------------------------------------------------------------------
+
+struct ccnl_timer_s {
+    struct ccnl_timer_s *next;
+    struct timeval timeout;
+    void (*fct)(char,int);
+    void (*fct2)(void*,void*);
+    char node;
+    int intarg;
+    void *aux1;
+    void *aux2;
+    int handler;
+};
+
+struct ccnl_timer_s *eventqueue;
+
+void
+ccnl_get_timeval(struct timeval *tv)
+{
+    gettimeofday(tv, NULL);
+}
+
+long
+timevaldelta(struct timeval *a, struct timeval *b) {
+    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
+}
+
+void*
+ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
+                 void *aux1, void *aux2)
+{
+    struct ccnl_timer_s *t, **pp;
+    static int handlercnt;
+
+    t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
+    if (!t)
+        return 0;
+    t->fct2 = fct;
+    gettimeofday(&t->timeout, NULL);
+    usec += t->timeout.tv_usec;
+    t->timeout.tv_sec += usec / 1000000;
+    t->timeout.tv_usec = usec % 1000000;
+    t->aux1 = aux1;
+    t->aux2 = aux2;
+
+    for (pp = &eventqueue; ; pp = &((*pp)->next)) {
+    if (!*pp || (*pp)->timeout.tv_sec > t->timeout.tv_sec ||
+        ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
+         (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
+        t->next = *pp;
+        t->handler = handlercnt++;
+        *pp = t;
+        return t;
+    }
+    }
+    return NULL; // ?
+}
+
+void
+ccnl_rem_timer(void *h)
+{
+    struct ccnl_timer_s **pp;
+
+    for (pp = &eventqueue; *pp; pp = &((*pp)->next)) {
+        if ((void*)*pp == h) {
+            struct ccnl_timer_s *e = *pp;
+            *pp = e->next;
+            ccnl_free(e);
+            break;
+        }
+    }
+}
+
+#endif
+
+// ----------------------------------------------------------------------
+
 #ifdef CCNL_LINUXKERNEL
+
+// we use the kernel's timerlist service, i.e. add_timer()
 
 struct ccnl_timerlist_s {
     struct timer_list tl;
@@ -187,85 +266,36 @@ ccnl_rem_timer(void *p)
         kfree(t);
 }
 
+#else // we have to work through the pending timer requests ourself
+
+// "looper": serves all pending events and returns the number of microseconds
+// when the next event should be triggered.
+int
+ccnl_run_events()
+{
+    static struct timeval now;
+    long usec;
+
+    gettimeofday(&now, 0);
+    while (eventqueue) {
+        struct ccnl_timer_s *t = eventqueue;
+
+        usec = timevaldelta(&(t->timeout), &now);
+        if (usec >= 0)
+            return usec;
+
+        if (t->fct)
+            (t->fct)(t->node, t->intarg);
+        else if (t->fct2)
+            (t->fct2)(t->aux1, t->aux2);
+        eventqueue = t->next;
+        ccnl_free(t);
+    }
+
+    return -1;
+}
+
 #endif // CCNL_LINUXKERNEL
-// ----------------------------------------------------------------------
-
-
-#if defined(CCNL_UNIX) || defined (CCNL_ARDUINO)
-// ----------------------------------------------------------------------
-
-struct ccnl_timer_s {
-    struct ccnl_timer_s *next;
-    struct timeval timeout;
-    void (*fct)(char,int);
-    void (*fct2)(void*,void*);
-    char node;
-    int intarg;
-    void *aux1;
-    void *aux2;
-    int handler;
-};
-
-struct ccnl_timer_s *eventqueue;
-
-void
-ccnl_get_timeval(struct timeval *tv)
-{
-    gettimeofday(tv, NULL);
-}
-
-long
-timevaldelta(struct timeval *a, struct timeval *b) {
-    return 1000000*(a->tv_sec - b->tv_sec) + a->tv_usec - b->tv_usec;
-}
-
-void*
-ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
-                 void *aux1, void *aux2)
-{
-    struct ccnl_timer_s *t, **pp;
-    static int handlercnt;
-
-    t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
-    if (!t)
-        return 0;
-    t->fct2 = fct;
-    gettimeofday(&t->timeout, NULL);
-    usec += t->timeout.tv_usec;
-    t->timeout.tv_sec += usec / 1000000;
-    t->timeout.tv_usec = usec % 1000000;
-    t->aux1 = aux1;
-    t->aux2 = aux2;
-
-    for (pp = &eventqueue; ; pp = &((*pp)->next)) {
-    if (!*pp || (*pp)->timeout.tv_sec > t->timeout.tv_sec ||
-        ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
-         (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
-        t->next = *pp;
-        t->handler = handlercnt++;
-        *pp = t;
-        return t;
-    }
-    }
-    return NULL; // ?
-}
-
-void
-ccnl_rem_timer(void *h)
-{
-    struct ccnl_timer_s **pp;
-
-    for (pp = &eventqueue; *pp; pp = &((*pp)->next)) {
-        if ((void*)*pp == h) {
-            struct ccnl_timer_s *e = *pp;
-            *pp = e->next;
-            ccnl_free(e);
-            break;
-        }
-    }
-}
-
-#endif
 
 // ----------------------------------------------------------------------
 
