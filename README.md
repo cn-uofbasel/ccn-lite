@@ -1,13 +1,19 @@
 # ccn-lite
 
-Note: Currently, the newest development branch is "cistlv" except during the week of May 18, 2015 where it is "ccnxcon2015". These branches include an Android and an Arduino port.
-
 CCN-lite (http://ccn-lite.net/) is a lightweight and cross-compatible
 implementation of Name Based Networking. In particular, it supports
 
 - PARC's Content Centric Networking Protocol, both the old (v0.8) and new (v1.0) variant, http://www.ccnx.org/
 - the Named-Data Networking project, http://named-data.net/
 - the Named-Function Networking project, http://named-function.net/
+
+for several platforms:
+
+- Linux and OSX user space
+- Linux kernel
+- Android
+- Arduino and RFduino
+- OMNet++ (coming soon again)
 
 To learn more about CCN-lite,
 * visit the [tutorial](tutorial/tutorial.md) page,
