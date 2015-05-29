@@ -42,7 +42,7 @@
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
-#define USE_ETHERNET
+#define USE_ETHERNET                   // we co-use addr formatting for BTLE
 // #define USE_FRAG
 #define USE_LOGGING
 #define USE_HMAC256
@@ -78,10 +78,11 @@
 
 void append_to_log(char *line);
 
+#ifdef USE_HMAC256
 const char secret_key[] = "some secret secret secret secret";
 unsigned char keyval[64];
 unsigned char keyid[32];
-
+#endif
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define local_producer(...)             0
@@ -145,38 +146,6 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 }
 #endif // USE_ETHERNET
 
-#ifdef USE_UNIXSOCKET
-int
-ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
-{
-  int sock, bufsize;
-
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("opening datagram socket");
-        return -1;
-    }
-
-    unlink(path);
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
-
-    if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
-        perror("binding name to datagram socket");
-        close(sock);
-        return -1;
-    }
-
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
-    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-
-    return sock;
-
-}
-#endif // USE_UNIXSOCKET
-
-
 int
 ccnl_open_udpdev(int port, struct sockaddr_in *si)
 {
@@ -202,31 +171,6 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
     return s;
 }
 
-#ifdef USE_ETHERNET
-int
-ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
-                unsigned char *data, int datalen)
-{
-    short type = htons(CCNL_ETH_TYPE);
-    unsigned char buf[2000];
-    int hdrlen;
-
-    strcpy((char*)buf, eth2ascii(dst));
-    DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
-             datalen, eth2ascii(src), buf);
-
-    hdrlen = 14;
-    if ((datalen+hdrlen) > sizeof(buf))
-            datalen = sizeof(buf) - hdrlen;
-    memcpy(buf, dst, 6);
-    memcpy(buf+6, src, 6);
-    memcpy(buf+12, &type, sizeof(type));
-    memcpy(buf+hdrlen, data, datalen);
-
-    return sendto(sock, buf, hdrlen + datalen, 0, 0, 0);
-}
-#endif // USE_ETHERNET
-
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
@@ -234,6 +178,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     int rc;
 
     switch(dest->sa.sa_family) {
+#ifdef USE_IPV4
     case AF_INET:
         rc = sendto(ifc->sock,
                     buf->data, buf->datalen, 0,
@@ -241,14 +186,9 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
                  inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
         break;
+#endif
 #ifdef USE_ETHERNET
     case AF_PACKET:
-/*
-        rc = ccnl_eth_sendto(ifc->sock,
-                             dest->eth.sll_addr,
-                             ifc->addr.eth.sll_addr,
-                             buf->data, buf->datalen);
-*/
         rc = jni_bleSend(buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
                  eth2ascii(dest->eth.sll_addr), rc);
@@ -276,10 +216,13 @@ ccnl_close_socket(int s)
     struct sockaddr_un su;
     socklen_t len = sizeof(su);
 
+#ifdef USE_UNIXSOCKET
     if (!getsockname(s, (struct sockaddr*) &su, &len) &&
                                         su.sun_family == AF_UNIX) {
         unlink(su.sun_path);
     }
+#endif
+
     close(s);
 }
 
@@ -319,16 +262,47 @@ void ccnl_ageing(void *relay, void *aux)
 
 // ----------------------------------------------------------------------
 
-
 char *echopath = "/local/echo";
-struct ccnl_prefix_s *echoprefix;
+
+void
+add_udpPort(struct ccnl_relay_s *relay, int port)
+{
+    struct ccnl_if_s *i;
+
+    i = &relay->ifs[relay->ifcount];
+    i->sock = ccnl_open_udpdev(port, &i->addr.ip4);
+    if (i->sock < 0) {
+        DEBUGMSG(WARNING, "sorry, could not open udp device (port %d)\n",
+                 port);
+        return;
+    }
+
+//      i->frag = CCNL_DGRAM_FRAG_NONE;
+
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        i->mtu = CCN_DEFAULT_MTU;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        i->mtu = NDN_DEFAULT_MTU;
+#endif
+
+    i->fwdalli = 1;
+
+    if (relay->defaultInterfaceScheduler)
+        i->sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+    relay->ifcount++;
+    DEBUGMSG(INFO, "UDP interface (%s) configured\n",
+             ccnl_addr2ascii(&i->addr));
+}
 
 // ----------------------------------------------------------------------
 
 void
-ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
-                  int httpport, char *uxpath, int suite, int max_cache_entries,
-                  char *crypto_face_path)
+ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
+                  int suite, int max_cache_entries, char *crypto_face_path)
 {
     struct ccnl_if_s *i;
 
@@ -339,52 +313,13 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
-    
-#ifdef USE_ETHERNET
-    // add (real) eth0 interface with index 0:
-    if (ethdev) {
-        i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
-        i->mtu = 1500;
-        i->reflect = 1;
-        i->fwdalli = 1;
-        if (i->sock >= 0) {
-            relay->ifcount++;
-            DEBUGMSG(INFO, "ETH interface (%s %s) configured\n",
-                     ethdev, ccnl_addr2ascii(&i->addr));
-            if (relay->defaultInterfaceScheduler)
-                i->sched = relay->defaultInterfaceScheduler(relay,
-                                                        ccnl_interface_CTS);
-        } else
-            DEBUGMSG(WARNING, "sorry, could not open eth device\n");
-    }
-#endif // USE_ETHERNET
 
-    if (udpport > 0) {
-        i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_udpdev(udpport, &i->addr.ip4);
-//      i->frag = CCNL_DGRAM_FRAG_NONE;
-
-#ifdef USE_SUITE_CCNB
-        if (suite == CCNL_SUITE_CCNB)
-            i->mtu = CCN_DEFAULT_MTU;
+#ifdef USE_SUITE_CCNTLV
+    add_udpPort(relay, CCN_UDP_PORT);
 #endif
 #ifdef USE_SUITE_NDNTLV
-        if (suite == CCNL_SUITE_NDNTLV)
-            i->mtu = NDN_DEFAULT_MTU;
+    add_udpPort(relay, NDN_UDP_PORT);
 #endif
-        i->fwdalli = 1;
-        if (i->sock >= 0) {
-            relay->ifcount++;
-            DEBUGMSG(INFO, "UDP interface (%s) configured\n",
-                     ccnl_addr2ascii(&i->addr));
-            if (relay->defaultInterfaceScheduler)
-                i->sched = relay->defaultInterfaceScheduler(relay,
-                                                        ccnl_interface_CTS);
-        } else
-            DEBUGMSG(WARNING, "sorry, could not open udp device (port %d)\n",
-                udpport);
-    }
 
 #ifdef USE_HTTP_STATUS
     if (httpport > 0) {
@@ -396,60 +331,6 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     relay->km = ccnl_calloc(1, sizeof(struct ccnl_krivine_s));
     relay->km->configid = -1;
 #endif
-
-#ifdef USE_UNIXSOCKET
-    if (uxpath) {
-        i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
-        i->mtu = 4096;
-        if (i->sock >= 0) {
-            relay->ifcount++;
-            DEBUGMSG(INFO, "UNIX interface (%s) configured\n",
-                     ccnl_addr2ascii(&i->addr));
-            if (relay->defaultInterfaceScheduler)
-                i->sched = relay->defaultInterfaceScheduler(relay,
-                                                        ccnl_interface_CTS);
-        } else
-            DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
-    }
-#ifdef USE_SIGNATURES
-    if(crypto_face_path) {
-        char h[1024];
-        //sending interface + face
-        i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_unixpath(crypto_face_path, &i->addr.ux);
-        i->mtu = 4096;
-        if (i->sock >= 0) {
-            relay->ifcount++;
-            DEBUGMSG(INFO, "new UNIX interface (%s) configured\n",
-                     ccnl_addr2ascii(&i->addr));
-            if (relay->defaultInterfaceScheduler)
-                i->sched = relay->defaultInterfaceScheduler(relay,
-                                                        ccnl_interface_CTS);
-            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);       
-            relay->crypto_path = crypto_face_path;
-        } else
-            DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
-        
-        //receiving interface
-        memset(h,0,sizeof(h));
-        sprintf(h,"%s-2",crypto_face_path);
-        i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_unixpath(h, &i->addr.ux);
-        i->mtu = 4096;
-        if (i->sock >= 0) {
-            relay->ifcount++;
-            DEBUGMSG(INFO, "new UNIX interface (%s) configured\n",
-                     ccnl_addr2ascii(&i->addr));
-            if (relay->defaultInterfaceScheduler)
-                i->sched = relay->defaultInterfaceScheduler(relay,
-                                                        ccnl_interface_CTS);
-            //create_ccnl_crypto_face(relay, crypto_face_path);       
-        } else
-            DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
-    }
-#endif //USE_SIGNATURES
-#endif // USE_UNIXSOCKET
 
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 }
@@ -791,13 +672,16 @@ timer()
     return NULL;
 }
 
+// ----------------------------------------------------------------------
+
 char*
 ccnl_android_init()
 {
     static char done;
-    static char hello[100];
+    static char hello[200];
     time_t now = time(NULL);
-    int dummy = 0;
+    int i, dummy = 0;
+    struct ccnl_prefix_s *echoprefix;
 
     if (done)
         return hello;
@@ -815,7 +699,7 @@ ccnl_android_init()
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, NULL, NDN_UDP_PORT, 8080, NULL,
+    ccnl_relay_config(&theRelay, 8080, NULL,
                       CCNL_SUITE_NDNTLV, 0, NULL);
 
     theLooper = ALooper_forThread();
@@ -824,22 +708,33 @@ ccnl_android_init()
     pipe2(pipeT2R, O_DIRECT);
     pthread_create(&timer_thread, NULL, timer, NULL);
 
-    // UDP and HTTP ports
+    // timer handler
     ALooper_addFd(theLooper, pipeT2R[0], ALOOPER_POLL_CALLBACK,
                   ALOOPER_EVENT_INPUT, ccnl_android_timer_io, &theRelay);
-    ALooper_addFd(theLooper, theRelay.ifs[theRelay.ifcount - 1].sock, 
+
+    // UDP and HTTP ports
+    for (i = 0; i < theRelay.ifcount; i++) {
+        if (theRelay.ifs[i].addr.sa.sa_family = AF_INET)
+            ALooper_addFd(theLooper, theRelay.ifs[i].sock, 
                   ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
                   ccnl_android_udp_io, &theRelay);
+    }
     ALooper_addFd(theLooper, theRelay.http->server, ALOOPER_POLL_CALLBACK,
                   ALOOPER_EVENT_INPUT, ccnl_android_http_accept, &theRelay);
 
 
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 
+#ifdef USE_SUITE_CCNTLV
     strcpy(hello, echopath);
-    echoprefix = ccnl_URItoPrefix(hello, suite, NULL,
-                                  suite == CCNL_SUITE_CCNTLV ? &dummy : NULL);
+    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
+#endif
+#ifdef USE_SUITE_NDNTLV
+    strcpy(hello, echopath);
+    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL, NULL);
+    ccnl_echo_add(&theRelay, echoprefix);
+#endif
 
 #ifdef USE_HMAC256
     ccnl_hmac256_keyval((unsigned char*)secret_key,
@@ -858,7 +753,7 @@ ccnl_android_init()
 char*
 ccnl_android_getTransport()
 {
-    static char addr[50];
+    static char addr[100];
     struct ifreq *ifr;
     struct ifconf ifc;
     int s, i;
@@ -886,9 +781,14 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sin->sin_port = htons(NDN_UDP_PORT);
-            sprintf(addr, "(%s)  UDP %s", ifr[i].ifr_name,
-                    ccnl_addr2ascii((sockunion*)sin));
+            sprintf(addr, "(%s)  UDP    ", ifr[i].ifr_name);
+            for (i = 0; i < theRelay.ifcount; i++) {
+                if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
+                    continue;
+                sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
+                sprintf(addr + strlen(addr), "%s    ",
+                        ccnl_addr2ascii((sockunion*)sin));
+            }
             ccnl_free(ifr);
             return addr;
         }

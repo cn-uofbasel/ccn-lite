@@ -1270,7 +1270,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             i->ccnl_packet.func = ccnl_eth_RX;
             dev_add_pack(&i->ccnl_packet);
         }
-#else
+#elif defined(USE_ETHERNET)
         i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
         if (!i->sock) {
             DEBUGMSG(TRACE, "  could not open device %s\n", devname);
