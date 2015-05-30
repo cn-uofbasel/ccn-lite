@@ -301,11 +301,6 @@ ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     switch(fr->outsuite) {
     case CCNL_SUITE_CCNTLV:
         buf = ccnl_ccntlv_mkFrag(fr, &datalen);
-        {
-          int fd = open("f.bin", O_WRONLY|O_CREAT|O_TRUNC);
-          write(fd, buf->data, buf->datalen);
-          close(fd);
-        }
         break;
     case CCNL_SUITE_IOTTLV:
         buf = ccnl_iottlv_mkFrag(fr, &datalen);
