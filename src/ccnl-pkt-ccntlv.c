@@ -116,6 +116,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     pkt->suite = CCNL_SUITE_CCNTLV;
     pkt->final_block_id = -1;
 
+    // XXX this parsing is not safe for all input data - needs more bound
+    // checks, as some packets with wrong L values can bring this to crash
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
@@ -498,6 +500,50 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                 len, hoplimit, offset, buf);
     return oldoffset - *offset;
 }
+
+#ifdef USE_FRAG
+
+// produces a full FRAG packet. It does not write, just read the fields in *fr
+struct ccnl_buf_s*
+ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
+{
+    unsigned int datalen;
+    struct ccnl_buf_s *buf;
+    struct ccnx_tlvhdr_ccnx2015_s *fp;
+
+    datalen = fr->mtu - sizeof(*fp) - 4;
+    if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
+        datalen = fr->bigpkt->datalen - fr->sendoffs;
+
+    buf = ccnl_buf_new(NULL, sizeof(*fp) + 4 + datalen);
+    if (!buf)
+        return 0;
+    fp = (struct ccnx_tlvhdr_ccnx2015_s*) buf->data;
+    memset(fp, 0, sizeof(*fp));
+    fp->version = CCNX_TLV_V1;
+    fp->pkttype = CCNX_PT_FRAGMENT;
+    fp->hdrlen = sizeof(*fp);
+    fp->pktlen = htons(buf->datalen);
+    *(uint16_t*)(fp+1) = htons(CCNX_TLV_TL_Fragment);
+    *(uint16_t*)((char*)(fp+1) + 2) = htons(datalen);
+    memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
+
+    *(uint16_t*) fp->fill = htons(fr->sendseq & 0x03fff);
+
+    // patch flag field:
+    if (datalen >= fr->bigpkt->datalen) { // single
+        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_SINGLE << 6;
+    } else if (fr->sendoffs == 0) // start
+        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_FIRST << 6;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_LAST << 6;
+    } else
+        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_MID << 6;
+
+    *consumed = datalen;
+    return buf;
+}
+#endif
 
 #endif // NEEDS_PACKET_CRAFTING
 

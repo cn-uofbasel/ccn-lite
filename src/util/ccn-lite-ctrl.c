@@ -1066,7 +1066,7 @@ help:
             fprintf(stderr, "usage: %s [options] CMD ...\n"
        "  [-h] [-k relay-public-key] [-m] [-p private-key]\n"
 #ifdef USE_LOGGING
-       "  [-v (fatal, error, warning, info, debug, trace, verbose)]\n"
+       "  [-v (fatal, error, warning, info, debug, verbose, trace)]\n"
 #endif
        "  [-u ip-address/port | -x ux_path]\n"
        "where CMD is either of\n"
@@ -1077,17 +1077,19 @@ help:
        "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
        "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
        "  newUNIXface   PATH [FACEFLAGS]\n"
-       "  setfrag       FACEID FRAG MTU\n"
        "  destroyface   FACEID\n"
        "  prefixreg     PREFIX FACEID [SUITE]\n"
        "  prefixunreg   PREFIX FACEID [SUITE]\n"
+#ifdef USE_FRAG
+       "  setfrag       FACEID FRAG MTU\n"
+#endif
        "  debug         dump\n"
        "  debug         halt\n"
        "  debug         dump+halt\n"
        "  addContentToCache             ccn-file\n"
        "  removeContentFromCache        ccn-path\n"
        "where FRAG in one of (none, seqd2012, ccnx2013)\n"
-       "      SUITE is one of (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
+       "      SUITE is one of (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
        "-m is a special mode which only prints the interest message of the corresponding command\n",
                     argv[0]);
 

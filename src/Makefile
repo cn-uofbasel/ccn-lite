@@ -90,9 +90,10 @@ obj-m += ccn-lite-lnxkernel.o
 CCNB_LIB =   ccnl-pkt-ccnb.h ccnl-pkt-ccnb.c lib-sha256.c
 CCNTLV_LIB = ccnl-pkt-ccntlv.h ccnl-pkt-ccntlv.c
 CISTLV_LIB = ccnl-pkt-cistlv.h ccnl-pkt-cistlv.c
+IOTTLV_LIB = ccnl-pkt-iottlv.h ccnl-pkt-iottlv.c
 NDNTLV_LIB = ccnl-pkt-ndntlv.h ccnl-pkt-ndntlv.c
 LOCRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
-SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
+SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
 CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-util.c

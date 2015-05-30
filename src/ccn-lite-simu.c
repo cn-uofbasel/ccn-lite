@@ -31,9 +31,10 @@
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
 #define USE_ETHERNET
-//#define USE_FRAG
+#define USE_FRAG
 #define USE_IPV4
-#define USE_SCHEDULER
+#define USE_LOGGING
+//#define USE_SCHEDULER
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
@@ -343,7 +344,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 void
 ccnl_simu_init_node(char node, const char *addr,
-                    int max_cache_entries)
+                    int max_cache_entries, int mtu)
 {
     struct ccnl_relay_s *relay = char2relay(node);
     struct ccnl_if_s *i;
@@ -357,8 +358,10 @@ ccnl_simu_init_node(char node, const char *addr,
     i = &relay->ifs[0];
     i->addr.eth.sll_family = AF_PACKET;
     memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
-    //    i->mtu = 1400;
-    i->mtu = 1200;
+    if (mtu)
+        i->mtu = mtu;
+    else
+        i->mtu = 4096;
     i->reflect = 1;
     i->fwdalli = 1;
     relay->ifcount++;
@@ -385,7 +388,7 @@ ccnl_simu_init_node(char node, const char *addr,
 
 
 void
-ccnl_simu_add_fwd(char node, const char *name, char dstnode)
+ccnl_simu_add_fwd(char node, const char *name, char dstnode, int mtu)
 {
     struct ccnl_relay_s *relay = char2relay(node), *dst = char2relay(dstnode);
     struct ccnl_forward_s *fwd;
@@ -404,8 +407,8 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
     fwd->suite = theSuite;
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
 #ifdef USE_FRAG
-    //    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2012, 1500);
-    fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
+    if (mtu)
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, mtu);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;
@@ -414,7 +417,7 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode)
 
 
 int
-ccnl_simu_init(int max_cache_entries)
+ccnl_simu_init(int max_cache_entries, int mtu)
 {
     static char dat[SIMU_CHUNK_SIZE];
     static char init_was_visited;
@@ -433,21 +436,21 @@ ccnl_simu_init(int max_cache_entries)
 
     // define each node's eth address:
     ccnl_simu_init_node('A', "\x00\x00\x00\x00\x00\x0a",
-                       max_cache_entries);
+                        max_cache_entries, mtu);
     ccnl_simu_init_node('B', "\x00\x00\x00\x00\x00\x0b",
-                       max_cache_entries);
+                        max_cache_entries, mtu);
     ccnl_simu_init_node('C', "\x00\x00\x00\x00\x00\x0c",
-                       max_cache_entries);
+                        max_cache_entries, mtu);
     ccnl_simu_init_node('1', "\x00\x00\x00\x00\x00\x01",
-                       max_cache_entries);
+                        max_cache_entries, mtu);
     ccnl_simu_init_node('2', "\x00\x00\x00\x00\x00\x02",
-                       max_cache_entries);
+                        max_cache_entries, mtu);
 
     // install the system's forwarding pointers:
-    ccnl_simu_add_fwd('A', "/ccnl/simu", '2');
-    ccnl_simu_add_fwd('B', "/ccnl/simu", '2');
-    ccnl_simu_add_fwd('2', "/ccnl/simu", '1');
-    ccnl_simu_add_fwd('1', "/ccnl/simu", 'C');
+    ccnl_simu_add_fwd('A', "/ccnl/simu", '2', mtu);
+    ccnl_simu_add_fwd('B', "/ccnl/simu", '2', mtu);
+    ccnl_simu_add_fwd('2', "/ccnl/simu", '1', mtu);
+    ccnl_simu_add_fwd('1', "/ccnl/simu", 'C', mtu);
 
 /*
     for (i = 0; i < 5; i++)
@@ -562,13 +565,13 @@ ccnl_simu_cleanup(void *dummy, void *dummy2)
 int
 main(int argc, char **argv)
 {
-    int opt;
+  int opt, mtu = 0;
     int max_cache_entries = CCNL_DEFAULT_MAX_CACHE_ENTRIES;
 
     //    srand(time(NULL));
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:g:i:s:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:g:i:m:s:v:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -578,6 +581,9 @@ main(int argc, char **argv)
             break;
         case 'i':
             inter_ccn_interval = atoi(optarg);
+            break;
+        case 'm':
+            mtu = atoi(optarg);
             break;
         case 'v':
             if (isdigit(optarg[0]))
@@ -591,11 +597,13 @@ main(int argc, char **argv)
                 break;
         case 'h':
         default:
-            fprintf(stderr, "Xusage: %s [-h] [-c MAX_CONTENT_ENTRIES] "
-                    "[-g MIN_INTER_PACKET_INTERVAL] "
-                    "[-i MIN_INTER_CCNMSG_INTERVAL] "
-                    "[-s SUITE (ccnb, ccnx2014, iot2014, ndn2013)] "
-                    "[-v DEBUG_LEVEL]\n",
+            fprintf(stderr, "Xusage: %s [-h]\n"
+                    "  [-c MAX_CONTENT_ENTRIES]\n"
+                    "  [-g MIN_INTER_PACKET_INTERVAL]\n"
+                    "  [-i MIN_INTER_CCNMSG_INTERVAL]\n"
+                    "  [-m MTU]\n"
+                    "  [-s SUITE (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)]\n"
+                    "  [-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -612,7 +620,7 @@ main(int argc, char **argv)
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(theSuite));
 
-    ccnl_simu_init(max_cache_entries);
+    ccnl_simu_init(max_cache_entries, mtu);
 
     DEBUGMSG(INFO, "simulation starts\n");
     simu_eventloop();

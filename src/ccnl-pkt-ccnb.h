@@ -1,8 +1,8 @@
 /*
- * @f pkt-ccnb.h
+ * @f ccnl-pkt-ccnb.h
  * @b CCN lite - CCNb wire format constants
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

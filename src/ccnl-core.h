@@ -39,6 +39,7 @@
 #define CCNL_FRAG_NONE          0
 #define CCNL_FRAG_SEQUENCED2012 1
 #define CCNL_FRAG_CCNx2013      2
+#define CCNL_FRAG_SEQUENCED2015 3
 
 // ----------------------------------------------------------------------
 
@@ -149,15 +150,17 @@ struct ccnl_prefix_s {
 };
 
 struct ccnl_frag_s {
-    int protocol; // (0=plain CCNx)
+    int protocol; // fragmentation protocol, 0=none
     int mtu;
     sockunion dest;
-    struct ccnl_buf_s *bigpkt;
+    struct ccnl_buf_s *bigpkt; // outgoing bytes
     unsigned int sendoffs;
+    int outsuite; // suite of outgoing packet
     // transport state, if present:
     int ifndx;
 
-    struct ccnl_buf_s *defrag;
+    // int insuite; // suite of incoming packet series
+    struct ccnl_buf_s *defrag; // incoming bytes
 
     unsigned int sendseq;
     unsigned int losscount;
@@ -240,6 +243,7 @@ struct ccnl_pktdetail_ndntlv_s {
 
 #define CCNL_PKT_REQUEST   0x01 // "Interest"
 #define CCNL_PKT_REPLY     0x02 // "Object", "Data"
+#define CCNL_PKT_FRAGMENT  0x03 // "Fragment"
 
 struct ccnl_pkt_s {
     struct ccnl_buf_s *buf;        // the packet's bytes

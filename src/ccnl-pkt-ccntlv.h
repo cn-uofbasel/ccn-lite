@@ -32,7 +32,7 @@ struct ccnx_tlvhdr_ccnx2015_s {
     unsigned char  pkttype;
     uint16_t       pktlen;
     unsigned char  hoplimit;  // not used for data
-    unsigned char  fill[2];   // fill[0] is errcode
+    unsigned char  fill[2];   // fill[0] is errcode, Frag: flagsAndSeqNr 
     unsigned char  hdrlen;
 } __attribute__((packed));
 
@@ -75,6 +75,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PT_Interest                        0
 #define CCNX_PT_Data                            1
 #define CCNX_PT_NACK                            2 // "Interest Return"
+#define CCNX_PT_FRAGMENT                        3 // fragment
 
 // NACK/Interest Return codes (fill[0]):
 #define CCNX_TLV_NACK_NOROUTE      1
@@ -97,6 +98,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_TLV_TL_Object                      0x0002
 #define CCNX_TLV_TL_ValidationAlgo              0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
+#define CCNX_TLV_TL_Fragment                    0x0005
 
 // global (Sect 3.5.1)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?

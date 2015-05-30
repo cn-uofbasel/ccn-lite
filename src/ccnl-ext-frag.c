@@ -2,7 +2,7 @@
  * @f ccnl-ext-frag.c
  * @b CCN lite extension: fragmentation support (including scheduling interface)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,6 +41,10 @@
  *    including carrying fragments of bigger CCNX objects
  *  - all attributes from SEQUENCED2012 are retained
  *
+ * CCNL_FRAG_SEQUENCED2015
+ *  - CCNTLV and CISTLV define a new fixed header: we use this
+ *    for a simple fragmentation protocol
+ *
  */
 
 // ----------------------------------------------------------------------
@@ -55,7 +59,8 @@ ccnl_frag_new(int protocol, int mtu)
     switch(protocol) {
     case CCNL_FRAG_SEQUENCED2012:
     case CCNL_FRAG_CCNx2013:
-      e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
+    case CCNL_FRAG_SEQUENCED2015:
+        e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
         if (e) {
             e->protocol = protocol;
             e->mtu = mtu;
@@ -76,13 +81,16 @@ void
 ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
                   int ifndx, sockunion *dst)
 {
-    DEBUGMSG(TRACE, "ccnl_frag_reset (%d bytes)\n", buf ? buf->datalen : -1);
+    DEBUGMSG(DEBUG, "ccnl_frag_reset if=%d (%d bytes) dst=%s\n", ifndx,
+             buf ? buf->datalen : -1, ccnl_addr2ascii(dst));
     if (!e)
         return;
     e->ifndx = ifndx;
     memcpy(&e->dest, dst, sizeof(*dst));
     ccnl_free(e->bigpkt);
     e->bigpkt = buf;
+    if (buf)
+        e->outsuite = ccnl_pkt2suite(buf->data, buf->datalen, 0);
     e->sendoffs = 0;
 }
 
@@ -282,13 +290,59 @@ ccnl_frag_getnextCCNx2013(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     return buf;
 }
 
+struct ccnl_buf_s*
+ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
+{
+    struct ccnl_buf_s *buf = 0;
+    unsigned int datalen = 0;
+
+    DEBUGMSG(DEBUG, "ccnl_frag_getnextSEQD2015: datalen=%d\n", datalen);
+
+    switch(fr->outsuite) {
+    case CCNL_SUITE_CCNTLV:
+        buf = ccnl_ccntlv_mkFrag(fr, &datalen);
+        {
+          int fd = open("f.bin", O_WRONLY|O_CREAT|O_TRUNC);
+          write(fd, buf->data, buf->datalen);
+          close(fd);
+        }
+        break;
+    case CCNL_SUITE_IOTTLV:
+        buf = ccnl_iottlv_mkFrag(fr, &datalen);
+        break;
+    default:
+        break;
+    }
+
+    if (buf) {
+        fr->sendseq++;
+
+        fr->sendoffs += datalen;
+        if (fr->sendoffs >= fr->bigpkt->datalen) {
+            ccnl_free(fr->bigpkt);
+            fr->bigpkt = NULL;
+        }
+
+        if (ifndx)
+            *ifndx = fr->ifndx;
+        if (su)
+            memcpy(su, &fr->dest, sizeof(*su));
+
+        DEBUGMSG(DEBUG, "  produced %d bytes fragment, seqnr=%d-1\n",
+                 buf->datalen, fr->sendseq);
+    } else 
+        DEBUGMSG(DEBUG, "  produced NO fragment, seqnr remains at =%d-1\n",
+                 fr->sendseq);
+
+    return buf;
+}
 
 struct ccnl_buf_s*
 ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     if (!fr->bigpkt) return NULL;
 
-    DEBUGMSG(TRACE, "fragmenting %d bytes (@ %d)\n",
+    DEBUGMSG(DEBUG, "fragmenting %d bytes (@ %d)\n",
                                 fr->bigpkt->datalen, fr->sendoffs);
 
     switch (fr->protocol) {
@@ -296,6 +350,8 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
         return ccnl_frag_getnextSEQD2012(fr, ifndx, su);
     case CCNL_FRAG_CCNx2013:
         return ccnl_frag_getnextCCNx2013(fr, ifndx, su);
+    case CCNL_FRAG_SEQUENCED2015:
+        return ccnl_frag_getnextSEQD2015(fr, ifndx, su);
     default:
         return NULL;
     }
@@ -345,7 +401,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
 {
     struct ccnl_buf_s *buf = NULL;
     struct ccnl_frag_s *e = from->frag;
-    DEBUGMSG(TRACE, "  frag %p protocol=%d, flags=%04x, seq=%d (%d)\n",
+    DEBUGMSG(DEBUG, "  frag %p protocol=%d, flags=%04x, seq=%d (%d)\n",
              (void*)e, e->protocol, s->flags, s->ourseq, e->recvseq);
 
     if (e->recvseq != s->ourseq) {
@@ -359,7 +415,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
     }
     switch(s->flags & (CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST)) {
     case CCNL_DTAG_FRAG_FLAG_SINGLE: // single packet
-        DEBUGMSG(DEBUG, "  >> single fragment\n");
+        DEBUGMSG(DEBUG, "  >> single fragment (%d bytes)\n", s->contlen);
         if (e->defrag) {
             DEBUGMSG(WARNING, "    had to drop defrag buf\n");
             ccnl_free(e->defrag);
@@ -375,6 +431,8 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
             ccnl_free(e->defrag);
         }
         e->defrag = ccnl_buf_new(s->content, s->contlen);
+        s->content += s->contlen;
+        s->contlen = 0;
         break;
     case CCNL_DTAG_FRAG_FLAG_LAST: // end of fragment sequence
         DEBUGMSG(DEBUG, "  >> last fragment of a series\n");
@@ -386,6 +444,8 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
         }
         ccnl_free(e->defrag);
         e->defrag = NULL;
+        s->content += s->contlen;
+        s->contlen = 0;
         break;
     case CCNL_DTAG_FRAG_FLAG_MID:  // fragment in the middle of a squence
     default:
@@ -402,6 +462,8 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
             ccnl_free(e->defrag);
             e->defrag = NULL;
         }
+        s->content += s->contlen;
+        s->contlen = 0;
         break;
     }
     // FIXME: we should only bump recvseq if s->ourseq is ahead, or 0
@@ -413,6 +475,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
         unsigned char *frag = buf->data;
         int fraglen = buf->datalen;
         DEBUGMSG(DEBUG, "  >> reassembled fragment is %d bytes\n", buf->datalen);
+        // FIXME: loop over multiple packets in this reassembled frame?
         callback(relay, from, &frag, &fraglen);
         ccnl_free(buf);
     }
@@ -578,6 +641,38 @@ Bail:
     return -1;
 }
 
+
+int
+ccnl_frag_RX_CCNx2015(RX_datagram callback,
+                      struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char bits, uint32_t seqno,
+                      unsigned char **data, int *datalen)
+{
+    struct serialFragPDU_s s;
+
+    DEBUGMSG(DEBUG, "ccnl_frag_RX_CCNx2015 (%d bytes)\n", *datalen);
+    serialFragPDU_init(&s);
+
+    s.ourseq = seqno;
+    s.flags = bits;
+    s.content = *data;
+    s.contlen = *datalen;
+
+    if (from) {
+        if (!from->frag)
+            from->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015,
+                                           relay->ifs[from->ifndx].mtu);
+        if (from->frag && from->frag->protocol != CCNL_FRAG_SEQUENCED2015) {
+            DEBUGMSG(WARNING, "WRONG FRAG PROTOCOL\n");
+            return 0;
+        }
+    }
+    ccnl_frag_RX_serialfragment(callback, relay, from, &s);
+    *data = s.content;
+    *datalen = s.contlen;
+
+    return 0;
+}
 
 #endif // USE_FRAG
 

@@ -22,6 +22,8 @@
  *
  */
 
+#define USE_FRAG
+
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
@@ -48,12 +50,27 @@ void
 hexdump(int lev, unsigned char *base, unsigned char *cp, int len,
         int rawxml, FILE* out)
 {
-    int i, maxi;
+    int i, maxi, lastlen=-1;
+    unsigned char cmp[8], star = 0;
 
     while (len > 0) {
         maxi = len > 8 ? 8 : len;
 
         if (!rawxml) {
+            if (maxi == 8) {
+                if (lastlen == 8 && !memcmp(cmp, cp, 8)) {
+                    if (!star) {
+                        fprintf(out, "*\n");
+                        star = 1;
+                    }
+                    cp += 8;
+                    len -= 8;
+                    continue;
+                }
+                lastlen = 8;
+                memcpy(cmp, cp, 8);
+                star = 0;
+            }
             fprintf(out, "%04zx  ", cp - base);
         }
 
@@ -573,6 +590,8 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         mp = rawxml ? "Content" : "Content\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
+    else if (hp->pkttype == CCNX_PT_FRAGMENT)
+        mp = rawxml ? "Fragment" : "Fragment\\toplevelCtx";
     else
         mp = "unknown";
     if (!rawxml) {
@@ -583,6 +602,21 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
             fprintf(out, "%04zx  hdr.hoplim=%d\n",
                     (unsigned char*) &(hp->hoplimit) - data, hp->hoplimit);
+        if (hp->pkttype == CCNX_PT_FRAGMENT) {
+            struct ccnx_tlvhdr_ccnx2015_s *fp;
+
+            fp = (struct ccnx_tlvhdr_ccnx2015_s*) hp;
+            fprintf(out, "%04zx  hdr.frag: seqnr=0x%05x ",
+                    fp->fill - data, ntohs(*(uint16_t*)fp->fill) & 0x03fff);
+            if ((fp->fill[0] >> 6) == 0x0)
+                fprintf(out, "MID\n");
+            else if ((fp->fill[0] >> 6) == 0x1)
+                fprintf(out, "BEGIN\n");
+            else if ((fp->fill[0] >> 6) == 0x2)
+                fprintf(out, "END\n");
+            else
+                fprintf(out, "SINGLE\n");
+        }
         fprintf(out, "%04zx  hdr.hdrlen=%d\n",
                 (unsigned char*) &(hp->hdrlen) - data, hdrlen);
         if (hp->pkttype == CCNX_PT_NACK) {
@@ -611,11 +645,19 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         fprintf(out, "hdr.end\n");
     }
 
-    // dump the sequence of TLV fields of the message body
     buf = data + hdrlen;
     len = pktlen - hdrlen;
-    ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
+    if (hp->pkttype == CCNX_PT_Interest ||
+             hp->pkttype == CCNX_PT_Data || hp->pkttype == CCNX_PT_NACK) {
+
+        // dump the sequence of TLV fields of the message body
+        ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
                                                         "message", rawxml, out);
+    } else {
+        hexdump(lev, data, buf, len, rawxml, out);
+        buf += len;
+    }
+
     if (!rawxml) {
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
@@ -935,6 +977,7 @@ cistlv_201501(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 
 enum {
     IOT_CTX_TOPLEVEL = 1,
+    IOT_CTX_FRAG,
     IOT_CTX_MSG,
     IOT_CTX_HEADER,
     IOT_CTX_EXCLUSION,
@@ -946,8 +989,10 @@ enum {
 };
 
 static char iottlv_recurse[][3] = {
+    {IOT_CTX_TOPLEVEL, IOT_TLV_Fragment,     IOT_CTX_FRAG},
     {IOT_CTX_TOPLEVEL, IOT_TLV_Request,      IOT_CTX_MSG},
     {IOT_CTX_TOPLEVEL, IOT_TLV_Reply,        IOT_CTX_MSG},
+    {IOT_CTX_FRAG,     IOT_TLV_F_OptFragHdr, IOT_CTX_HEADER},
     {IOT_CTX_MSG,      IOT_TLV_R_OptHeader,  IOT_CTX_HEADER},
     {IOT_CTX_MSG,      IOT_TLV_R_Name,       IOT_CTX_NAME},
     {IOT_CTX_MSG,      IOT_TLV_R_Payload,    IOT_CTX_PAYLOAD},
@@ -968,8 +1013,18 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
     case IOT_CTX_TOPLEVEL:
         cn = "toplevelCtx";
         switch (type) {
+        case IOT_TLV_Fragment:         tn = "Fragment"; break;
         case IOT_TLV_Request:          tn = "Request"; break;
         case IOT_TLV_Reply:            tn = "Reply"; break;
+        default: break;
+        }
+        break;
+    case IOT_CTX_FRAG:
+        cn = "FragCtx";
+        switch (type) {
+        case IOT_TLV_F_OptFragHdr:     tn = "OptFragHeader"; break;
+        case IOT_TLV_F_FlagsAndSeq:    tn = "FlagsAndSeq"; break;
+        case IOT_TLV_F_Payload:        tn = "Payload"; break;
         default: break;
         }
         break;

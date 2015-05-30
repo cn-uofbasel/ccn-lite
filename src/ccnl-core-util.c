@@ -697,10 +697,10 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (*data == 0x04)
         return CCNL_SUITE_CCNB;
     if (*data == 0x01 && len > 1 && // check for CCNx2015 and Cisco collision:
-                                (data[1] != 0x00 &&
-                                 data[1] != 0x01 &&
-                                 data[1] != 0x02 &&
-                                 data[1] != 0x03))
+                                (data[1] != 0x00 && // interest
+                                 data[1] != 0x01 && // data
+                                 data[1] != 0x02 && // interestReturn
+                                 data[1] != 0x03))  // fragment
         return CCNL_SUITE_CCNB;
 #endif
 
@@ -708,6 +708,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (data[0] == CCNX_TLV_V1 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
+            data[1] == CCNX_PT_FRAGMENT ||
             data[1] == CCNX_PT_NACK) 
             return CCNL_SUITE_CCNTLV;
     } 

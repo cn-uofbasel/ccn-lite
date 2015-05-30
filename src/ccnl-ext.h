@@ -2,7 +2,7 @@
  * @f ccnl-ext.h
  * @b header file for CCN lite extentions (forward declarations)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -88,6 +88,11 @@ int ccnl_frag_RX_frag2012(RX_datagram callback, struct ccnl_relay_s *relay,
 
 int ccnl_frag_RX_CCNx2013(RX_datagram callback, struct ccnl_relay_s *relay,
                           struct ccnl_face_s *from,
+                          unsigned char **data, int *datalen);
+
+int ccnl_frag_RX_CCNx2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from,
+                          unsigned char bits, uint32_t seqno,
                           unsigned char **data, int *datalen);
 
 int ccnl_is_fragment(unsigned char *data, int datalen);

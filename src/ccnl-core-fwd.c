@@ -27,7 +27,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_content_s *c;
 
-    DEBUGMSG(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG_CFWD(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path((*pkt)->pfx));
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -79,7 +79,7 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
     switch (pkt->suite) {
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
-        return pkt->s.iottlv.ttl > 0;
+        return pkt->s.iottlv.ttl < 0 || pkt->s.iottlv.ttl > 0;
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
@@ -160,11 +160,11 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return -1;
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
-        DEBUGMSG(DEBUG,
+        DEBUGMSG_CFWD(DEBUG,
             "  created new interest entry %p\n", (void *) i);
     }
     if (i) { // store the I request, for the incoming face (Step 3)
-        DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+        DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
         ccnl_interest_append_pending(i, from);
         ccnl_interest_propagate(relay, i);
     }
@@ -179,12 +179,12 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (!ccnl_pkt_fwdOK(*pkt))
             return -1;
         i = ccnl_interest_new(relay, from, pkt);
-        DEBUGMSG(DEBUG,
+        DEBUGMSG_CFWD(DEBUG,
             "  created new interest entry %p\n", (void *) i);
         ccnl_interest_propagate(relay, i);
     } else {
         if (ccnl_pkt_fwdOK(*pkt) && (from->flags & CCNL_FACE_FLAGS_FWDALLI)) {
-            DEBUGMSG(DEBUG, "  old interest, nevertheless propagated %p\n",
+            DEBUGMSG_CFWD(DEBUG, "  old interest, nevertheless propagated %p\n",
                      (void *) i);
             ccnl_interest_propagate(relay, i);
 =======
@@ -210,7 +210,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
     if (i) { // store the I request, for the incoming face (Step 3)
-        DEBUGMSG(DEBUG, "  appending interest entry %p\n", (void *) i);
+        DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
         ccnl_interest_append_pending(i, from);
     }
     */
@@ -229,11 +229,11 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int rc= -1;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
+    DEBUGMSG_CFWD(DEBUG, "ccnb fwd (%d bytes left)\n", *datalen);
 
     pkt = ccnl_ccnb_bytes2pkt(*data - 2, data, datalen);
     if (!pkt) {
-        DEBUGMSG(WARNING, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
     pkt->type = typ;
@@ -258,7 +258,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     unsigned char **data, int *datalen)
 {
     int rc = 0, num, typ;
-    DEBUGMSG_CFWD(DEBUG, "ccnl_RX_ccnb: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccnb_forwarder: %dB from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     while (rc >= 0 && *datalen > 0) {
@@ -271,10 +271,12 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             continue;
 #ifdef USE_FRAG
         case CCNL_DTAG_FRAGMENT2012:
-            rc = ccnl_frag_RX_frag2012(ccnl_RX_ccnb, relay, from, data, datalen);
+            rc = ccnl_frag_RX_frag2012(ccnl_ccnb_forwarder, relay,
+                                       from, data, datalen);
             continue;
         case CCNL_DTAG_FRAGMENT2013:
-            rc = ccnl_frag_RX_CCNx2013(ccnl_RX_ccnb, relay, from, data, datalen);
+            rc = ccnl_frag_RX_CCNx2013(ccnl_ccnb_forwarder, relay,
+                                       from, data, datalen);
             continue;
 #endif
         default:
@@ -296,43 +298,87 @@ int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int payloadlen, hoplimit, rc = -1;
+    int payloadlen, rc = -1;
     unsigned short hdrlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG_CFWD(DEBUG, "ccnl_RX_ccntlv: %d bytes from face=%p (id=%d.%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder: %dB from face=%p (id=%d.%d)\n",
                   *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CCNX_TLV_V1 ||
-                        *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s))
+                         *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
+        DEBUGMSG_CFWD(DEBUG, "  wrong version (%d)\n", **data);
         return -1;
+    }
 
     hp = (struct ccnx_tlvhdr_ccnx2015_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-    if (hdrlen > *datalen) // not enough bytes for a full header
+fprintf(stderr, "------ hdrlen=%d\n", hdrlen);
+    if (hdrlen > *datalen) { // not enough bytes for a full header
+        DEBUGMSG_CFWD(DEBUG, "  hdrlen too large (%d > %d)\n",
+                      hdrlen, *datalen);
         return -1;
+    }
 
     payloadlen = ntohs(hp->pktlen);
     if (payloadlen < hdrlen ||
-              payloadlen > *datalen) // not enough data to reconstruct message
-            return -1;
+             payloadlen > *datalen) { // not enough data to reconstruct message
+        DEBUGMSG_CFWD(DEBUG, "  pkt too small or too big (%d < %d < %d)\n",
+                 hdrlen, payloadlen, *datalen);
+        return -1;
+    }
     payloadlen -= hdrlen;
 
     *data += hdrlen;
     *datalen -= hdrlen;
 
-    hoplimit = hp->hoplimit - 1;
-    if (hp->pkttype == CCNX_PT_Interest && hoplimit <= 0) { // drop it
-        *data += payloadlen;
-        *datalen -= payloadlen;
-        return 0;
-    } else
-        hp->hoplimit = hoplimit;
+    if (hp->pkttype == CCNX_PT_Interest ||
+#ifdef USE_FRAG
+        hp->pkttype == CCNX_PT_FRAGMENT ||
+#endif
+                                        hp->pkttype == CCNX_PT_NACK) {
+        hp->hoplimit--;
+        if (hp->hoplimit <= 0) { // drop it
+            DEBUGMSG_CFWD(DEBUG, "  pkt dropped because of hop limit\n");
+            *data += payloadlen;
+            *datalen -= payloadlen;
+            return 0;
+        }
+    }
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder (%d bytes left, hdrlen=%d)\n",
                   *datalen, hdrlen);
+
+#ifdef USE_FRAG
+    if (hp->pkttype == CCNX_PT_FRAGMENT) {
+        struct ccnx_tlvhdr_ccnx2015_s *fp = 
+                                   (struct ccnx_tlvhdr_ccnx2015_s *)hp;
+        uint16_t *sp = (uint16_t*) (fp+1);
+        int fraglen = ntohs(*(sp+1));
+
+        if (ntohs(*sp) == CCNX_TLV_TL_Fragment && fraglen == (payloadlen-4)) {
+            *data += 4;
+            *datalen -= 4;
+            payloadlen = fraglen;
+            ccnl_frag_RX_CCNx2015(ccnl_ccntlv_forwarder, relay, from,
+                        fp->fill[0] >> 6,
+                        ntohs(*(uint16_t *)fp->fill) & 0x03fff,
+                        data, &fraglen);
+            DEBUGMSG_CFWD(DEBUG, "  done (fraglen=%d, payloadlen=%d, *datalen=%d)\n",
+                     fraglen, payloadlen, *datalen);
+            *datalen -= payloadlen - fraglen;
+        } else {
+            DEBUGMSG_CFWD(DEBUG, "  problem with frag type or length (%d, %d, %d)\n",
+                     ntohs(*sp), fraglen, payloadlen);
+            *data += payloadlen;
+            *datalen -= payloadlen;
+        }
+        DEBUGMSG_CFWD(TRACE, "  returning after fragment: %d bytes\n", *datalen);
+        return 0;
+    }
+#endif
 
     pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
@@ -343,7 +389,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CCNX_PT_Interest) {
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            //            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
@@ -355,7 +401,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
-            DEBUGMSG(WARNING, "  ccntlv: data pkt type mismatch %d %d\n",
+            DEBUGMSG_CFWD(WARNING, "  ccntlv: data pkt type mismatch %d %d\n",
                      hp->pkttype, pkt->type);
         }
     } // else ignore
@@ -363,6 +409,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 Done:
     free_packet(pkt);
 
+    DEBUGMSG_CFWD(TRACE, "  returning %d bytes\n", *datalen);
     return rc;
 }
 
@@ -412,23 +459,23 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     } else
         hp->hoplim = hoplimit;
 
-    DEBUGMSG(DEBUG, "ccnl_cistlv_forwarder (%d bytes left, hdrlen=%d)\n",
+    DEBUGMSG_CFWD(DEBUG, "ccnl_cistlv_forwarder (%d bytes left, hdrlen=%d)\n",
              *datalen, hdrlen);
 
     pkt = ccnl_cistlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
-        DEBUGMSG(WARNING, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
 
     if (hp->pkttype == CISCO_PT_Interest) {
         if (pkt->type == CISCO_TLV_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            //            DEBUGMSG(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_cistlv_cMatch))
                 goto Done;
         } else {
-            DEBUGMSG(WARNING, "  cistlv: interest pkt type mismatch %d %d\n",
+            DEBUGMSG_CFWD(WARNING, "  cistlv: interest pkt type mismatch %d %d\n",
                      hp->pkttype, pkt->type);
         }
 
@@ -437,7 +484,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
-            DEBUGMSG(WARNING, "  cistlv: data pkt type mismatch %d %d\n",
+            DEBUGMSG_CFWD(WARNING, "  cistlv: data pkt type mismatch %d %d\n",
                      hp->pkttype, pkt->type);
         }
     } // else ignore (Nack...)
@@ -459,21 +506,79 @@ int
 ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int typ, len, rc = -1;
+    int typ, len, rc = -1, enc;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
-    DEBUGMSG_CFWD(TRACE, "ccnl_iottlv_forwarder2 (%d bytes left)\n", *datalen);
-
-    memset(&pkt, 0, sizeof(pkt));
-
-    if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+    DEBUGMSG_CFWD(TRACE, "ccnl_iottlv_forwarder: %dB from face=%p (id=%d.%d)\n",
+             *datalen, (void*)from, relay->id, from ? from->faceid : -1);
+    /*
+    {
+        int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
+        write(fd, *data, *datalen);
+        close(fd);
+    }
+    */
+    while (!ccnl_switch_dehead(data, datalen, &enc));
+/*
+        suite = ccnl_enc2suite(enc);
+    if (suite != CCNL_SUITE_IOTTLV) {
+        DEBUGMSG_CFWD(TRACE, "  wrong encoding? (%d)\n", enc);
         return -1;
+    }
+*/
+
+
+    DEBUGMSG_CFWD(TRACE, "  datalen now %d\n", *datalen);
+
+#ifdef USE_FRAG
+    if (ccnl_iottlv_peekType(*data, *datalen) == IOT_TLV_Fragment) {
+        uint16_t tmp;
+        int payloadlen;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
+            return -1;
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+            return -1;
+        if (typ == IOT_TLV_F_OptFragHdr) { // skip it for the time being
+            *data += len;
+            *datalen -= len;
+            if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+                return -1;
+        }
+        if (typ != IOT_TLV_F_FlagsAndSeq || len < 2) {
+            DEBUGMSG_CFWD(DEBUG, "  no flags and seqrn found (%d)\n", typ);
+            return -1;
+        }
+        tmp = ntohs(*(uint16_t*) *data);
+        *data += len;
+        *datalen -= len;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &payloadlen))
+            return -1;
+        if (typ != IOT_TLV_F_Payload) {
+            DEBUGMSG_CFWD(DEBUG, "  no payload (%d)\n", typ);
+            return -1;
+        }
+        *datalen -= payloadlen;
+        ccnl_frag_RX_CCNx2015(ccnl_iottlv_forwarder, relay, from,
+                              tmp >> 14, tmp & 0x7ff, data, &payloadlen);
+        *datalen += payloadlen;
+
+        DEBUGMSG_CFWD(TRACE, "  returning after fragment: %d bytes\n", *datalen);
+        return 0;
+    } else
+#endif
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
+            return -1;
+
     pkt = ccnl_iottlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+
+    DEBUGMSG_CFWD(DEBUG, "  parsed packet has %d bytes\n", pkt->buf->datalen);
     // typ must be Request or Reply
     pkt->type = typ;
 
