@@ -25,4 +25,4 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-![alt text](doc/ccn-lite-logo-256x66.png)
+![alt text](doc/logo/ccn-lite-logo-256x66.png)
