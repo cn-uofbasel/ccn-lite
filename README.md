@@ -7,7 +7,7 @@ implementation of Name Based Networking. In particular, it supports
 - the Named-Data Networking project, http://named-data.net/
 - the Named-Function Networking project, http://named-function.net/
 
-for several platforms (some of them to be found in dev-master branch):
+for several platforms (some of them to be found in GitHub dev-master branch):
 
 - Linux and OSX user space
 - Linux kernel
@@ -25,4 +25,4 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-![alt text](doc/ccn-lite-logo-256x66.png)
+![alt text](doc/logo/ccn-lite-logo-256x66.png)
