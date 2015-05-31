@@ -788,7 +788,11 @@ free_packet(struct ccnl_pkt_s *pkt)
 char*
 ccnl_addr2ascii(sockunion *su)
 {
-    static char result[64];
+#ifdef USE_UNIXSOCKET
+    static char result[256];
+#else    
+    static char result[25];
+#endif
 
     if (!su)
         return CONSTSTR("(local)");

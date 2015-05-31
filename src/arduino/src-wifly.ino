@@ -1,6 +1,9 @@
-// ccnlite/src.ino
+// ccn-lite/src/arduino/src-wifly.ino
 
-// #define ARDUINO_SHIELD_ETHERNET
+// for the WiFly shield v3.0 (Seeed studio)
+
+// DOES NOT WORK YET !
+
 #define ARDUINO_SHIELD_WIFLY
 
 // ----------------------------------------------------------------------
@@ -14,8 +17,8 @@ SoftwareSerial uart(2, 3);
 WiFly wifi(&uart);
 
 #define SSID   "HUAWEI-E5220-2c3c"
-#define PASSWD "QQN2Y87L"
-#define AUTH   WIFLY_AUTH_WPA2_PSK // or WIFLY_AUTH_WPA1, WIFLY_AUTH_WEP, WIFLY_AUTH_OPEN
+#define PASSWD "yourpasswd"
+#define AUTH   WIFLY_AUTH_WPA2_PSK   // or WIFLY_AUTH_WPA1, WIFLY_AUTH_WEP, WIFLY_AUTH_OPEN
 
 unsigned long time_point = 0;
 

@@ -468,8 +468,9 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
-            DEBUGMSG(DEBUG, "  ccnl_interest_propagate, forwarding via %p\n",
-                   (void*)fwd);
+            DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
+                          ccnl_prefix_to_path(i->pkt->pfx),
+                          ccnl_addr2ascii(&fwd->face->peer));
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
 
             // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
@@ -481,7 +482,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
             matching_face = 1;
 #endif
         } else {
-            DEBUGMSG(DEBUG, "  not forwarded\n");
+            DEBUGMSG_CORE(DEBUG, "  not forwarded\n");
         }
     }
 
@@ -714,7 +715,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
         //Hook for add content to cache by callback:
         if(i && ! i->pending){
-            DEBUGMSG(WARNING, "releasing interest 0x%p OK?\n", (void*)i);
+            DEBUGMSG_CORE(WARNING, "releasing interest 0x%p OK?\n", (void*)i);
             c->flags |= CCNL_CONTENT_FLAGS_STATIC;
             i = ccnl_interest_remove(ccnl, i);
             return 1;
@@ -727,9 +728,10 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
-                DEBUGMSG_CORE(DEBUG, "  forwarding content <%s>\n",
-                         ccnl_prefix_to_path(c->pkt->pfx));
-                DEBUGMSG_CORE(VERBOSE, "--- Serve to face: %d (pkt=%p)\n",
+                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s> to=%s\n",
+                          ccnl_prefix_to_path(i->pkt->pfx),
+                          ccnl_addr2ascii(&pi->face->peer));
+                DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
                 ccnl_nfn_monitor(ccnl, pi->face, c->pkt->pfx,
                                  c->pkt->content, c->pkt->contlen);
@@ -766,7 +768,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-            DEBUGMSG(DEBUG, " timeout: remove interest 0x%p <%s>\n", (void*)i,
+            DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
+                          (void*)i,
                      ccnl_prefix_to_path(i->pkt->pfx));
             i = ccnl_nfn_interest_remove(relay, i);
         } else {

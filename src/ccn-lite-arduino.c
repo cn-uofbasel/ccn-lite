@@ -27,11 +27,6 @@
 // will be accessible under "cli:/<mac-addr-in-hex>/temp"
 unsigned char mac_addr[] = {0x55, 0x42, 0x41, 0x53, 0x45, 0x4c};
 
-// choose a key that is at least 32 bytes long
-const char secret_key[] PROGMEM = "some secret secret secret secret";
-
-#define LOCAL_UDP_PORT  6360   // local UDP port to listen on
-
 // ----------------------------------------------------------------------
 
 #define CCNL_ARDUINO
@@ -64,7 +59,7 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 // #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 //#define USE_ETHERNET
-#define USE_HMAC256
+//#define USE_HMAC256
 //#define USE_HTTP_STATUS
 #define USE_IPV4
 //#define USE_LOGGING
@@ -77,8 +72,8 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 //#define USE_STATS
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 // #define USE_SUITE_CCNTLV
-#define USE_SUITE_IOTTLV
-// #define USE_SUITE_NDNTLV
+// #define USE_SUITE_IOTTLV
+#define USE_SUITE_NDNTLV
 //#define USE_SUITE_LOCALRPC
 //#define USE_UNIXSOCKET
 //#define USE_SIGNATURES
@@ -175,8 +170,12 @@ static char logstr[128];
 // buffer to hold incoming and outgoing packet
 static unsigned char packetBuffer[160];
 
+#ifdef USE_HMAC256
+// choose a key that is at least 32 bytes long
+const char secret_key[] PROGMEM = "some secret secret secret secret";
 unsigned char keyval[64];
 unsigned char keyid[32];
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -190,12 +189,15 @@ ccnl_arduino_getPROGMEMstr(const char* s)
 char*
 inet_ntoa(struct in_addr a)
 {
-    static char result[16];
     unsigned long l = ntohl(a.s_addr);
+    //    static char result[16];
+    //    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
+    //        (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
+    //    return result;
 
-    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
-            (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
-    return result;
+    sprintf_P(logstr, PSTR("%ld.%lu.%lu.%lu"),
+              (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
+    return logstr;
 }
 
 #include "ccnl-ext-debug.c"
@@ -234,9 +236,9 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #include "ccnl-ext-nfn.c"
 #include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
-#include "ccnl-ext-frag.c"
 #include "ccnl-ext-crypto.c"
 */
+//#include "ccnl-ext-frag.c"
 
 // ----------------------------------------------------------------------
 
@@ -318,6 +320,10 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         break;
     }
 
+    DEBUGMSG_MAIN(INFO, "  outgoing data=<%s> to=%s\n",
+                  ccnl_prefix_to_path(pkt->pfx),
+                  ccnl_addr2ascii(&from->peer));
+
     relay->ifs[from->ifndx].sock->beginPacket(
         from->peer.ip4.sin_addr.s_addr,from->peer.ip4.sin_port);
     relay->ifs[from->ifndx].sock->write(packetBuffer + offset,
@@ -391,7 +397,7 @@ ccnl_arduino_run_events(struct ccnl_relay_s *relay)
 {
     long int usec = ccnl_run_events();
 
-    return usec >= 0 ? 1000*usec : 10;
+    return usec >= 0 ? usec/1000 : 10;
 }
 
 
@@ -407,10 +413,24 @@ char sensor_mac[12];
 char* sensor_comp[2] = {sensor_mac, "temp"};
 #endif
 
+void
+debug_delta(char up)
+{
+#ifdef USE_DEBUG
+    if (up && debug_level < TRACE)
+        debug_level++;
+    else if (!up && debug_level > FATAL)
+        debug_level--;
+
+    DEBUGMSG_MAIN(FATAL, "debug level now at %d (%c)\n",
+                  debug_level, ccnl_debugLevelToChar(debug_level));
+#endif
+}
+
 int
 ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac, 
                   unsigned long int IPaddr, unsigned short port,
-                  EthernetUDP *udp, const char *key)
+                  EthernetUDP *udp)
 {
     int i;
 
@@ -423,6 +443,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     Serial.print(  F("  using suite "));
     Serial.println(ccnl_suite2str(theSuite));
 
+    debug_delta(1);
     DEBUGMSG_MAIN(INFO, "configuring the relay\n");
 
     ccnl_core_init();
@@ -460,35 +481,20 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
 #ifdef USE_HMAC256
-    strcpy_P(logstr, key);
+    strcpy_P(logstr, secret_key);
     ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
     ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
 #endif
 
-    sprintf_P(logstr, PSTR("  brkval=%p, stackptr=%p (%d bytes free)"),
+    DEBUGMSG_MAIN(INFO, "  brkval=%p, stackptr=%p (%d bytes free)",
               __brkval, (char *)AVR_STACK_POINTER_REG,
-              (char *)AVR_STACK_POINTER_REG - __brkval);
-    Serial.println(logstr);
+                  (char *)AVR_STACK_POINTER_REG - __brkval);
 
 #ifndef USE_DEBUG
     Serial.println(F("logging not available"));
 #endif
 
     return 0;
-}
-
-void
-debug_delta(char up)
-{
-#ifdef USE_DEBUG
-    if (up && debug_level < TRACE)
-        debug_level++;
-    else if (debug_level > FATAL)
-        debug_level--;
-
-    DEBUGMSG(FATAL, "debug level now at %d (%c)\n",
-             debug_level, ccnl_debugLevelToChar(debug_level));
-#endif
 }
 
 // eof

@@ -121,7 +121,7 @@ struct ccnl_timer_s {
     int intarg;
     void *aux1;
     void *aux2;
-    int handler;
+  //    int handler;
 };
 
 struct ccnl_timer_s *eventqueue;
@@ -142,7 +142,7 @@ ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
                  void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
-    static int handlercnt;
+    //    static int handlercnt;
 
     t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
     if (!t)
@@ -160,7 +160,7 @@ ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
         ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
          (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
         t->next = *pp;
-        t->handler = handlercnt++;
+        //        t->handler = handlercnt++;
         *pp = t;
         return t;
     }
@@ -306,7 +306,7 @@ ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *au
          void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
-    static int handlercnt;
+    //    static int handlercnt;
 
     t = (struct ccnl_timer_s *) ccnl_calloc(1, sizeof(*t));
     if (!t)
@@ -321,7 +321,7 @@ ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *au
         ((*pp)->timeout.tv_sec == t->timeout.tv_sec &&
          (*pp)->timeout.tv_usec > t->timeout.tv_usec)) {
         t->next = *pp;
-        t->handler = handlercnt++;
+        //        t->handler = handlercnt++;
         *pp = t;
         return t;
     }

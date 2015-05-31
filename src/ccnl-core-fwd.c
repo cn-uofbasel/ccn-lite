@@ -27,7 +27,9 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_content_s *c;
 
-    DEBUGMSG_CFWD(DEBUG, "  data=<%s>\n", ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s> from=%s\n",
+                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_addr2ascii(from ? &from->peer : NULL));
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -99,8 +101,10 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
 
-    DEBUGMSG_CFWD(DEBUG, "  handle interest=<%s>\n",
-                  ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s> from=%s\n",
+                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_addr2ascii(from ? &from->peer : NULL));
+
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
         return 0;
@@ -613,8 +617,10 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
+    /*
     DEBUGMSG_CFWD(INFO, "  packet starts with %02x %02x %02x\n",
                   (*data)[0], (*data)[1], (*data)[2]);
+    */
 
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");

@@ -29,11 +29,11 @@ subdirectory called rfduino.
 
   * change directory to .../ccn-lite/src/arduino
 
-  * change the board model in the Makefile
+  * in the Makefile, change the board model
 
-  * define the symbolic link according to your shield:
+  * copy the desired shield-specific ino-file to the src directory
 
-    > % pushd src; rm -f *.ino; ln -s src-ethernet.ino .; popd
+    > % cp src-ethernet.ino src/src.ino
 
   * at the UNIX prompt, type
 
