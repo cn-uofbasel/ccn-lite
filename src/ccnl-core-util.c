@@ -300,7 +300,7 @@ ccnl_componentsToPrefix(char** compvect, unsigned int *complens, int numcomps,
     struct ccnl_prefix_s *p;
     int cnt, i, len, tlen;
     DEBUGMSG(TRACE, "ccnl_componentsToPrefix(suite=%s, uri=%p, nfn=%s)\n",
-             ccnl_suite2str(suite), compvect, nfnexpr);
+             ccnl_suite2str(suite), (void *) compvect, nfnexpr);
     
     cnt = numcomps;
     
