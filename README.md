@@ -25,4 +25,60 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-![alt text](doc/logo/ccn-lite-logo-256x66.png)
+![](doc/logo/ccn-lite-logo-256x66.png)
+
+## Credits
+
+### Release 0.3.0 (Jun 2015)
+
+#### Code contributions:  
+Basil Kohler  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
+
+#### Code and documentation feedback:  
+
+### Release 0.2.0 (Dec 2014)
+
+#### Code contributions:  
+Basil Kohler  
+Christian Mehlis  
+Massimo Monti  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
+
+#### Code and documentation feedback:  
+Samuel Bader  
+Christoph Betschart  
+Nore Derguti  
+Ralph Droms  
+Wilson A. Eghonghon  
+Daniel Federau  
+Ralph Gasser  
+Cedric Geissmann  
+Rasa Liebfried  
+Dario Maggi  
+Frank Müller  
+Marko Obradovic  
+Michaja Pressmar  
+Mihai D. Rapcea  
+Urs Schnurrenberger  
+Thomas Simonsen  
+Alexander Stiemer  
+Ziba Tavassoli  
+Simon Wang  
+Mario Weber  
+
+### Release 0.1.0 (Jul 2013)
+
+#### Code contributions:  
+Stefan Braun  
+Pierre Imai  
+Basil Kohler  
+Thomas Meyer  
+Massimo Monti  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
