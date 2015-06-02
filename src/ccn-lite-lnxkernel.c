@@ -43,26 +43,26 @@
 #define USE_UNIXSOCKET
 
 #define NEEDS_PREFIX_MATCHING
+#define NEEDS_PACKET_CRAFTING // LB: Investigate further, seems like the wrong place to define!
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "ccnl-ext-logging.c"
-
 // ----------------------------------------------------------------------
 
 #define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
+#define local_producer(...)             0
 
 static struct ccnl_relay_s theRelay;
 
 static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
                       struct packet_type *pt, struct net_device *outdev);
 
-void ccnl_udp_data_ready(struct sock *sk, int len);
+void ccnl_udp_data_ready(struct sock *sk);
 
 // ----------------------------------------------------------------------
 
@@ -133,18 +133,19 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_INET:
     {
         struct iovec iov;
+        struct iov_iter iov_iter;
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
 
         iov.iov_base = buf->data;
         iov.iov_len = buf->datalen;
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
 
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = &dest->ip4;
         msg.msg_namelen = sizeof(dest->ip4);
-        msg.msg_iov = &iov;
-        msg.msg_iovlen = 1;
+        msg.msg_iter = iov_iter;
         msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
         oldfs = get_fs();
@@ -179,19 +180,20 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_UNIX:
     {
         struct iovec iov;
+        struct iov_iter iov_iter;
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
 
-        iov.iov_base =  buf->data;
+        iov.iov_base = buf->data;
         iov.iov_len = buf->datalen;
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
 
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = dest; //->ux.sun_path;
         msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
             strlen(dest->ux.sun_path) + 1;
-        msg.msg_iov = &iov;
-        msg.msg_iovlen = 1;
+        msg.msg_iter = iov_iter;
         msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
         oldfs = get_fs();
@@ -322,11 +324,11 @@ ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
 
 
 void
-ccnl_udp_data_ready(struct sock *sk, int len)
+ccnl_udp_data_ready(struct sock *sk)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(DEBUG, "ccnl_udp_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_udp_data_ready\n");
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -351,11 +353,11 @@ Bail:
 
 
 void
-ccnl_ux_data_ready(struct sock *sk, int len)
+ccnl_ux_data_ready(struct sock *sk)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(DEBUG, "ccnl_ux_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_ux_data_ready\n");
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;

@@ -162,9 +162,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-//             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-             ccnl_prefix_to_path_detailed(prefix,1,0,0),
-             ccnl_prefix_to_path_detailed(p,1,0,0),
+             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
+//           ccnl_prefix_to_path_detailed(prefix,1,0,0),
+//           ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,

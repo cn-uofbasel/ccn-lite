@@ -15,7 +15,7 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 CC?=gcc
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0 
 # CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
@@ -83,7 +83,7 @@ ifdef USE_CHEMFLOW
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
-EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
+EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS) -Wno-error=date-time
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
