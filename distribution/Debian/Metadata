@@ -1,9 +1,12 @@
 Package: ccn-lite
-Version: 0.2.1
-Section: base
+Version: <%= version %>
+Section: <%= section %>
 Priority: optional
-Architecture: amd64
+Architecture: <%= arch %>
+Installed-Size: <%= installedSize %>
 Depends: libssl-dev
+Copyright: 2012-<%= year %> Christian Tschudin <christian.tschudin@unibas.ch>
+License: MIT
 Maintainer: Christopher Scherb <christopher.scherb@unibas.ch>
-License: Open Source (MIT)
-Description: CCN-lite is a lightweight and functionally interoperable implementation of different Information Centric Networking (ICN) protocols like NDN and CCNx and include Named Function Networking (NFN). 
+Description: CCN-lite is a lightweight and functionally interoperable implementation of different Information Centric Networking (ICN) protocols like NDN and CCNx and include Named Function Networking (NFN).
+ 
