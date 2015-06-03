@@ -59,4 +59,8 @@ test/unit/unit
 *.sublime-workspace
 *.sublime-project
 
+# distribution files:
+distribution/Debian/ccn-lite
+distribution/Debian/ccn-lite.deb
+
 # eof
