@@ -9,7 +9,7 @@
 
 extern "C" {
   // unfortunately, the Arduino IDE requires absolute path names:
-  #include "/home/tschudin/ccnlite/ccn-lite-20150527/src/ccn-lite-rfduino.c"
+  #include "/home/tschudin/ccnlite/ccn-lite-20150529/src/ccn-lite-rfduino.c"
 //  #include "../../ccn-lite-rfduino.c"
 }
 
@@ -81,7 +81,7 @@ void loop()
        Serial.println(" send done");
    }
 
-   timeout = ccnl_arduino_run_events(&theRelay);
+   timeout = ccnl_rfduino_run_events(&theRelay);
    delay(timeout);
 }
 

@@ -92,7 +92,7 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayTimer(JNIEnv* env,
 }
 
 void
-add_route(char *pfx, struct ccnl_face_s *face)
+add_route(char *pfx, struct ccnl_face_s *face, int mtu)
 {
     struct ccnl_forward_s *fwd;
     char buf[100];
@@ -106,6 +106,11 @@ add_route(char *pfx, struct ccnl_face_s *face)
     strcpy(buf, pfx);
     fwd->prefix = ccnl_URItoPrefix(buf, CCNL_SUITE_NDNTLV, NULL, NULL);
     fwd->face = face;
+#ifdef USE_FRAG
+    if (mtu > 0) {
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, mtu);
+    }
+#endif
     fwd->suite = CCNL_SUITE_NDNTLV;
     fwd->next = theRelay.fib;
     theRelay.fib = fwd;
@@ -133,14 +138,14 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
         len = sizeof(buf);
     (*env)->GetByteArrayRegion(env, data, 0, len, (signed char*) buf);
 
-    ccnl_core_RX(&theRelay, 1, buf, len, (struct sockaddr*) &su, sizeof(su));
+    ccnl_core_RX(&theRelay, 0, buf, len, (struct sockaddr*) &su, sizeof(su));
 
     // hack: when the first packet from the BT LE device is received,
     // (and the FIB is empty), install two forwarding entries
     if (theRelay.faces && (!theRelay.fib || theRelay.fib->tap)) {
         theRelay.faces->flags |= CCNL_FACE_FLAGS_STATIC;
-        add_route("/TinC", theRelay.faces);
-        add_route("/TinF", theRelay.faces);
+        add_route("/TinC", theRelay.faces, 20);
+        add_route("/TinF", theRelay.faces, 20);
         return;
     }
 }

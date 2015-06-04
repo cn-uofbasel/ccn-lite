@@ -42,7 +42,7 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 //#define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-//#define USE_FRAG
+#define USE_FRAG
 #define USE_ETHERNET
 //#define USE_HMAC256
 //#define USE_HTTP_STATUS
@@ -55,7 +55,7 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 //#define USE_NFN_MONITOR
 //#define USE_SCHEDULER
 //#define USE_SUITE_CCNB                 // must select this for USE_MGMT
-// #define USE_SUITE_CCNTLV
+#define USE_SUITE_CCNTLV
 // #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 //#define USE_SUITE_LOCALRPC
@@ -201,16 +201,16 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
 #include "ccnl-core.c"
+#include "ccnl-ext-frag.c"
 #include "ccnl-ext-hmac.c"
-#include "ccnl-ext-http.c"
 
 /*
+#include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
 #include "ccnl-ext-nfn.c"
 #include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
-#include "ccnl-ext-frag.c"
 #include "ccnl-ext-crypto.c"
 */
 
@@ -225,33 +225,6 @@ static const char theSuite = CCNL_SUITE_IOTTLV;
 #elif defined(USE_SUITE_NDNTLV)
 static const char theSuite = CCNL_SUITE_NDNTLV;
 #endif
-
-struct timeval*
-ccnl_run_events()
-{
-    static struct timeval now;
-    long usec;
-
-    gettimeofday(&now, 0);
-    while (eventqueue) {
-        struct ccnl_timer_s *t = eventqueue;
-
-        usec = timevaldelta(&(t->timeout), &now);
-        if (usec >= 0) {
-            now.tv_sec = usec / 1000000;
-            now.tv_usec = usec % 1000000;
-            return &now;
-        }
-        if (t->fct)
-            (t->fct)(t->node, t->intarg);
-        else if (t->fct2)
-            (t->fct2)(t->aux1, t->aux2);
-        eventqueue = t->next;
-        ccnl_free(t);
-    }
-
-    return NULL;
-}
 
 void ccnl_ageing(void *relay, void *aux)
 {
@@ -422,10 +395,10 @@ ccnl_close_socket(EthernetUDP *udp)
 unsigned long
 ccnl_rfduino_run_events(struct ccnl_relay_s *relay)
 {
-    struct timeval *timeout;
-    timeout = ccnl_run_events();
+    unsigned long timeout = ccnl_run_events();
+
     if (timeout)
-        return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
+        return timeout / 1000;
     else
         return 10;
 }
@@ -434,15 +407,6 @@ ccnl_rfduino_run_events(struct ccnl_relay_s *relay)
 // ----------------------------------------------------------------------
 
 struct ccnl_prefix_s *sensorC, *sensorF;
-/*
-int sensorC_len[1];
-int sensorC_len[1];
-#ifdef USE_SUITE_CCNTLV
-char* sensor_comp[1] = {"\x00\x01\x00\x04TinC"};
-#else
-char* sensor_comp[1] = {"TinC"};
-#endif
-*/
 
 void
 debug_delta(char up)
@@ -581,17 +545,6 @@ ccnl_fillmsg(unsigned char *msg, int len)
     ccnl_free(buf);
 
     return len;
-}
-
-unsigned long
-ccnl_arduino_run_events(struct ccnl_relay_s *relay)
-{
-    struct timeval *timeout;
-    timeout = ccnl_run_events();
-    if (timeout)
-        return 1000 * timeout->tv_sec + timeout->tv_usec / 1000;
-    else
-        return 10;
 }
 
 // eof
