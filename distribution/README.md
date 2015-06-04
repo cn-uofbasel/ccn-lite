@@ -16,5 +16,5 @@ Swap to the Debian folder and run 'make'. The Debian file will be generated.
 RPM packets can be used to install software on Red Hat Enterprice Linux and its Derivatives.
 To create RPM packets, the packet installer rpm and rpmbuild must be installed on the system.
 Swap to the RetHat folder and run 'make'. The Debian file will be generated.
-You will find the RPM file in rpmbuild/RPMS/ <% architecture %> /.
+You will find the RPM file in rpmbuild/RPMS/ \< architecture \> /.
 
