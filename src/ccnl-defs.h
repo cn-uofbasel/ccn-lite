@@ -38,8 +38,8 @@
 # define CCNL_MAX_IF_QLEN                1
 # define CCNL_MAX_PACKET_SIZE            108
 # define CCNL_MAX_NAME_COMP              8
-#elif defined(CCNL_ANDROID) // max of UDP and BTLE
-# define CCNL_MAX_INTERFACES             2
+#elif defined(CCNL_ANDROID) // max of BTLE and 2xUDP
+# define CCNL_MAX_INTERFACES             3
 # define CCNL_MAX_IF_QLEN                10
 # define CCNL_MAX_PACKET_SIZE            4096
 # define CCNL_MAX_NAME_COMP              16

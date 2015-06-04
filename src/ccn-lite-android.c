@@ -321,11 +321,11 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
                                                         ccnl_interface_CTS);
     relay->ifcount++;
 
-#ifdef USE_SUITE_CCNTLV
-    add_udpPort(relay, CCN_UDP_PORT);
-#endif
 #ifdef USE_SUITE_NDNTLV
     add_udpPort(relay, NDN_UDP_PORT);
+#endif
+#ifdef USE_SUITE_CCNTLV
+    add_udpPort(relay, CCN_UDP_PORT);
 #endif
 
 #ifdef USE_HTTP_STATUS

@@ -242,11 +242,15 @@ debug_memdump()
 #endif //USE_DEBUG
 
 
-// only in the Ardiono case we wish to control debugging on a module basis
+// only in the Arduino case we wish to control debugging on a module basis
 #ifndef CCNL_ARDUINO
+// core source files
 # define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+// extensions
+# define DEBUGMSG_EFRA(...) DEBUGMSG(__VA_ARGS__)
+// packet formats
 # define DEBUGMSG_PCNX(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_PNDN(...) DEBUGMSG(__VA_ARGS__)

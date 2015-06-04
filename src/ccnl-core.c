@@ -470,7 +470,8 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
             DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
                           ccnl_prefix_to_path(i->pkt->pfx),
-                          ccnl_addr2ascii(&fwd->face->peer));
+                          fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
+                                    : "<tap>");
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
 
             // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
