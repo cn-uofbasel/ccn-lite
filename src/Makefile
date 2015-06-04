@@ -15,7 +15,7 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 CC?=gcc
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0 
 # CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
@@ -83,7 +83,7 @@ ifdef USE_CHEMFLOW
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
-EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS)
+EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS) -Wno-error=date-time
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
@@ -92,7 +92,7 @@ CCNTLV_LIB = ccnl-pkt-ccntlv.h ccnl-pkt-ccntlv.c
 CISTLV_LIB = ccnl-pkt-cistlv.h ccnl-pkt-cistlv.c
 IOTTLV_LIB = ccnl-pkt-iottlv.h ccnl-pkt-iottlv.c
 NDNTLV_LIB = ccnl-pkt-ndntlv.h ccnl-pkt-ndntlv.c
-LOCRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
+LOCALRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
@@ -153,7 +153,7 @@ ccn-lite-lnxkernel:
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
     ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c 
-	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(shell pwd) modules
+	make -C /lib/modules/`uname -r`/build M=`pwd` modules
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot

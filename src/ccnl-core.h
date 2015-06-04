@@ -68,7 +68,7 @@ struct ccnl_if_s { // interface for packet IO
 #ifdef CCNL_LINUXKERNEL
     struct socket *sock;
     struct workqueue_struct *wq;
-    void (*old_data_ready)(struct sock *, int);
+    void (*old_data_ready)(struct sock *);
     struct net_device *netdev;
     struct packet_type ccnl_packet;
 #elif defined(CCNL_ARDUINO)

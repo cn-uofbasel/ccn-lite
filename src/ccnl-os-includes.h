@@ -81,6 +81,7 @@
 #include <linux/moduleparam.h>
 #include <linux/namei.h>
 #include <linux/proc_fs.h>
+#include <linux/socket.h>
 #include <linux/string.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>

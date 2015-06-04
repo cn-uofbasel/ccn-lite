@@ -24,7 +24,6 @@
 
 #ifndef CCNL_LINUXKERNEL
 
-#include "ccnl-ext-debug.c"
 #include "ccnl-os-includes.h"
 
 enum { // abstract machine instruction set

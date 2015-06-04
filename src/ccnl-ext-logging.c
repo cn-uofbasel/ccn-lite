@@ -66,7 +66,10 @@ ccnl_debugLevelToChar(int level)
 #endif
 }
 
-#ifdef CCNL_ARDUINO
+// ----------------------------------------------------------------------
+// _TRACE macro
+
+#ifdef CCNL_ANDROID
 
 #define _TRACE(F,P) do {                    \
     if (debug_level >= TRACE) { char *cp;   \
@@ -86,9 +89,23 @@ ccnl_debugLevelToChar(int level)
 
 #else
 
-#define _TRACE(F,P) if (debug_level >= TRACE)                            \
-                      fprintf(stderr, "[%c] %s: %s() in %s:%d\n",        \
-                              (P), timestamp(), (F), __FILE__, __LINE__)
+#ifdef CCNL_LINUXKERNEL
+
+#define _TRACE(F,P) do {                                    \
+    if (debug_level >= TRACE) {                             \
+        printk("%s: ", THIS_MODULE->name);                  \
+        printk("%s() in %s:%d\n", (F), __FILE__, __LINE__); \
+    }} while (0)
+
+#else
+
+#define _TRACE(F,P) do {                                    \
+    if (debug_level >= TRACE) {                             \
+        fprintf(stderr, "[%c] %s: %s() in %s:%d\n",         \
+                (P), timestamp(), (F), __FILE__, __LINE__); \
+    }} while (0)
+
+#endif // CCNL_LINUXKERNEL
 
 int
 ccnl_debug_str2level(char *s)
@@ -103,7 +120,7 @@ ccnl_debug_str2level(char *s)
     return 1;
 }
 
-#endif // CCNL_ARDUINO
+#endif // CCNL_ANDROID
 
 #define DEBUGSTMT(LVL, ...) do { \
         if ((LVL)>debug_level) break; \

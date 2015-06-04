@@ -343,7 +343,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 {
     struct ccnl_buf_s *msg;
     DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%d\n",
-             (void*) to, ccnl->id, to->faceid, (void*) buf, buf->datalen);
+             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
 
     for (msg = to->outq; msg; msg = msg->next) // already in the queue?
         if (buf_equal(msg, buf)) {
