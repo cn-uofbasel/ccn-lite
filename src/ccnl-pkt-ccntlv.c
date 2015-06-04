@@ -114,7 +114,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         goto Bail;
     pkt->type = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
-    pkt->final_block_id = -1;
+    pkt->val.final_block_id = -1;
 
     // XXX this parsing is not safe for all input data - needs more bound
     // checks, as some packets with wrong L values can bring this to crash
@@ -187,7 +187,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CCNX_TLV_M_ENDChunk:
             if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
-                                 (unsigned int*) &(pkt->final_block_id)) < 0) {
+                              (unsigned int*) &(pkt->val.final_block_id)) < 0) {
                 DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }
@@ -521,7 +521,7 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     fp = (struct ccnx_tlvhdr_ccnx2015_s*) buf->data;
     memset(fp, 0, sizeof(*fp));
     fp->version = CCNX_TLV_V1;
-    fp->pkttype = CCNX_PT_FRAGMENT;
+    fp->pkttype = CCNX_PT_Fragment;
     fp->hdrlen = sizeof(*fp);
     fp->pktlen = htons(buf->datalen);
     *(uint16_t*)(fp+1) = htons(CCNX_TLV_TL_Fragment);

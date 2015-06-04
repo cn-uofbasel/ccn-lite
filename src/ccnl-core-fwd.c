@@ -73,6 +73,25 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return 0;
 }
 
+#ifdef USE_FRAG
+// returning 0 if packet was 
+int
+ccnl_fwd_handleFragment(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                        struct ccnl_pkt_s **pkt, dispatchFct callback)
+{
+    unsigned char *data = (*pkt)->content;
+    int datalen = (*pkt)->contlen;
+
+    ccnl_frag_RX_Sequenced2015(callback, relay, from,
+                               relay->ifs[from->ifndx].mtu,
+                               ((*pkt)->flags >> 2) & 0x03,
+                               (*pkt)->val.seqno, &data, &datalen);
+    free_packet(*pkt);
+    *pkt = NULL;
+    return 0;
+}
+#endif
+
 // ----------------------------------------------------------------------
 // returns 0 if packet should not be forwarded further
 int
@@ -319,7 +338,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     hp = (struct ccnx_tlvhdr_ccnx2015_s*) *data;
     hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-fprintf(stderr, "------ hdrlen=%d\n", hdrlen);
     if (hdrlen > *datalen) { // not enough bytes for a full header
         DEBUGMSG_CFWD(DEBUG, "  hdrlen too large (%d > %d)\n",
                       hdrlen, *datalen);
@@ -340,7 +358,7 @@ fprintf(stderr, "------ hdrlen=%d\n", hdrlen);
 
     if (hp->pkttype == CCNX_PT_Interest ||
 #ifdef USE_FRAG
-        hp->pkttype == CCNX_PT_FRAGMENT ||
+        hp->pkttype == CCNX_PT_Fragment ||
 #endif
                                         hp->pkttype == CCNX_PT_NACK) {
         hp->hoplimit--;
@@ -356,7 +374,7 @@ fprintf(stderr, "------ hdrlen=%d\n", hdrlen);
                   *datalen, hdrlen);
 
 #ifdef USE_FRAG
-    if (hp->pkttype == CCNX_PT_FRAGMENT) {
+    if (hp->pkttype == CCNX_PT_Fragment) {
         struct ccnx_tlvhdr_ccnx2015_s *fp = 
                                    (struct ccnx_tlvhdr_ccnx2015_s *)hp;
         uint16_t *sp = (uint16_t*) (fp+1);
@@ -366,11 +384,10 @@ fprintf(stderr, "------ hdrlen=%d\n", hdrlen);
             *data += 4;
             *datalen -= 4;
             payloadlen = fraglen;
-            ccnl_frag_RX_CCNx2015(ccnl_ccntlv_forwarder, relay, from,
-                        fp->fill[0] >> 6,
-                        ntohs(*(uint16_t *)fp->fill) & 0x03fff,
-                        data, &fraglen);
-            DEBUGMSG_CFWD(DEBUG, "  done (fraglen=%d, payloadlen=%d, *datalen=%d)\n",
+            ccnl_frag_RX_Sequenced2015(ccnl_ccntlv_forwarder, relay, from,
+                        relay->ifs[from->ifndx].mtu, fp->fill[0] >> 6,
+                        ntohs(*(uint16_t *)fp->fill) & 0x03fff, data, &fraglen);
+            DEBUGMSG_CFWD(TRACE, "  done (fraglen=%d, payloadlen=%d, *datalen=%d)\n",
                      fraglen, payloadlen, *datalen);
             *datalen -= payloadlen - fraglen;
         } else {
@@ -510,19 +527,14 @@ int
 ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int typ, len, rc = -1, enc;
+    int rc = -1, enc;
+    unsigned int typ, len;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG_CFWD(TRACE, "ccnl_iottlv_forwarder: %dB from face=%p (id=%d.%d)\n",
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
-    /*
-    {
-        int fd = open("t.bin", O_WRONLY|O_CREAT|O_TRUNC);
-        write(fd, *data, *datalen);
-        close(fd);
-    }
-    */
+
     while (!ccnl_switch_dehead(data, datalen, &enc));
 /*
         suite = ccnl_enc2suite(enc);
@@ -531,69 +543,39 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return -1;
     }
 */
-
-
     DEBUGMSG_CFWD(TRACE, "  datalen now %d\n", *datalen);
 
-#ifdef USE_FRAG
-    if (ccnl_iottlv_peekType(*data, *datalen) == IOT_TLV_Fragment) {
-        uint16_t tmp;
-        int payloadlen;
+    if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+        return -1;
 
-        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
-            return -1;
-        if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
-            return -1;
-        if (typ == IOT_TLV_F_OptFragHdr) { // skip it for the time being
-            *data += len;
-            *datalen -= len;
-            if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
-                return -1;
-        }
-        if (typ != IOT_TLV_F_FlagsAndSeq || len < 2) {
-            DEBUGMSG_CFWD(DEBUG, "  no flags and seqrn found (%d)\n", typ);
-            return -1;
-        }
-        tmp = ntohs(*(uint16_t*) *data);
-        *data += len;
-        *datalen -= len;
-
-        if (ccnl_iottlv_dehead(data, datalen, &typ, &payloadlen))
-            return -1;
-        if (typ != IOT_TLV_F_Payload) {
-            DEBUGMSG_CFWD(DEBUG, "  no payload (%d)\n", typ);
-            return -1;
-        }
-        *datalen -= payloadlen;
-        ccnl_frag_RX_CCNx2015(ccnl_iottlv_forwarder, relay, from,
-                              tmp >> 14, tmp & 0x7ff, data, &payloadlen);
-        *datalen += payloadlen;
-
-        DEBUGMSG_CFWD(TRACE, "  returning after fragment: %d bytes\n", *datalen);
-        return 0;
-    } else
-#endif
-        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
-            return -1;
-
-    pkt = ccnl_iottlv_bytes2pkt(start, data, datalen);
+    pkt = ccnl_iottlv_bytes2pkt(typ, start, data, datalen);
     if (!pkt) {
-        DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(INFO, "  parsing error or no prefix\n");
         goto Done;
     }
-
     DEBUGMSG_CFWD(DEBUG, "  parsed packet has %d bytes\n", pkt->buf->datalen);
-    // typ must be Request or Reply
     pkt->type = typ;
 
-    if (typ == IOT_TLV_Request) {
+    switch (typ) {
+    case IOT_TLV_Request:
         pkt->flags |= CCNL_PKT_REQUEST;
         if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_iottlv_cMatch))
             goto Done;
-    } else { // data packet with content -------------------------------------
+        break;
+    case IOT_TLV_Reply:
         pkt->flags |= CCNL_PKT_REPLY;
         if (ccnl_fwd_handleContent(relay, from, &pkt))
             goto Done;
+        break;
+#ifdef USE_FRAG
+    case IOT_TLV_Fragment:
+        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_iottlv_forwarder))
+            goto Done;
+        break;
+#endif
+    default:
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", typ);
+        goto Done;
     }
     rc = 0;
 Done:
@@ -612,34 +594,41 @@ int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int typ, len, rc = -1;
+    int rc = -1;
+    unsigned int typ, len;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
-    /*
-    DEBUGMSG_CFWD(INFO, "  packet starts with %02x %02x %02x\n",
-                  (*data)[0], (*data)[1], (*data)[2]);
-    */
 
     if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }
-    pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
     if (!pkt) {
-        DEBUGMSG_CFWD(DEBUG, "  parsing error or no prefix\n");
+        DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
         goto Done;
     }
     pkt->type = typ;
-    if (typ == NDN_TLV_Interest) {
-        pkt->flags |= CCNL_PKT_REQUEST;
+    switch (typ) {
+    case NDN_TLV_Interest:
         if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
             goto Done;
-    } else { // data packet with content -------------------------------------
-        pkt->flags |= CCNL_PKT_REPLY;
+        break;
+    case NDN_TLV_Data:
         if (ccnl_fwd_handleContent(relay, from, &pkt))
             goto Done;
+        break;
+#ifdef USE_FRAG
+    case NDN_TLV_Fragment:
+        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_ndntlv_forwarder))
+            goto Done;
+        break;
+#endif
+    default:
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", typ);
+        break;
     }
     rc = 0;
 Done:

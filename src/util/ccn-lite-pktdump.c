@@ -590,7 +590,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         mp = rawxml ? "Content" : "Content\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
-    else if (hp->pkttype == CCNX_PT_FRAGMENT)
+    else if (hp->pkttype == CCNX_PT_Fragment)
         mp = rawxml ? "Fragment" : "Fragment\\toplevelCtx";
     else
         mp = "unknown";
@@ -602,7 +602,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         if (hp->pkttype == CCNX_PT_Interest || hp->pkttype == CCNX_PT_NACK)
             fprintf(out, "%04zx  hdr.hoplim=%d\n",
                     (unsigned char*) &(hp->hoplimit) - data, hp->hoplimit);
-        if (hp->pkttype == CCNX_PT_FRAGMENT) {
+        if (hp->pkttype == CCNX_PT_Fragment) {
             struct ccnx_tlvhdr_ccnx2015_s *fp;
 
             fp = (struct ccnx_tlvhdr_ccnx2015_s*) hp;
@@ -1024,7 +1024,7 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
         switch (type) {
         case IOT_TLV_F_OptFragHdr:     tn = "OptFragHeader"; break;
         case IOT_TLV_F_FlagsAndSeq:    tn = "FlagsAndSeq"; break;
-        case IOT_TLV_F_Payload:        tn = "Payload"; break;
+        case IOT_TLV_F_Data:           tn = "Data"; break;
         default: break;
         }
         break;
@@ -1102,7 +1102,8 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                       unsigned char **buf, int *len, char *cur_tag,
                       int rawxml, FILE* out)
 {
-  int vallen, typ, i;
+    int i;
+    unsigned int vallen, typ;
     unsigned char ctx2, *cp;
     char *n, tmp[100];
 
@@ -1174,23 +1175,24 @@ ndn_type2name(unsigned type)
     char *n;
 
     switch (type) {
-    case NDN_TLV_Interest:      n = "Interest"; break;
-    case NDN_TLV_Data:          n = "Data"; break;
-    case NDN_TLV_Name:          n = "Name"; break;
+    case NDN_TLV_Interest:          n = "Interest"; break;
+    case NDN_TLV_Data:              n = "Data"; break;
+    case NDN_TLV_NDNLP:             n = "NDNLP"; break; // fragment
+    case NDN_TLV_Name:              n = "Name"; break;
     case NDN_TLV_NameComponent:     n = "NameComponent"; break;
-    case NDN_TLV_Selectors:     n = "Selectors"; break;
-    case NDN_TLV_Nonce:         n = "Nonce"; break;
-    case NDN_TLV_Scope:         n = "Scope"; break;
+    case NDN_TLV_Selectors:         n = "Selectors"; break;
+    case NDN_TLV_Nonce:             n = "Nonce"; break;
+    case NDN_TLV_Scope:             n = "Scope"; break;
     case NDN_TLV_InterestLifetime:  n = "InterestLifetime"; break;
     case NDN_TLV_MinSuffixComponents:   n = "MinSuffixComponents"; break;
     case NDN_TLV_MaxSuffixComponents:   n = "MaxSuffixComponents"; break;
     case NDN_TLV_PublisherPublicKeyLocator: n = "PublisherPublicKeyLocator"; break;
-    case NDN_TLV_Exclude:       n = "Exclude"; break;
+    case NDN_TLV_Exclude:           n = "Exclude"; break;
     case NDN_TLV_ChildSelector:     n = "ChildSelector"; break;
     case NDN_TLV_MustBeFresh:       n = "MustBeFresh"; break;
-    case NDN_TLV_Any:           n = "Any"; break;
-    case NDN_TLV_MetaInfo:      n = "MetaInfo"; break;
-    case NDN_TLV_Content:       n = "Content"; break;
+    case NDN_TLV_Any:               n = "Any"; break;
+    case NDN_TLV_MetaInfo:          n = "MetaInfo"; break;
+    case NDN_TLV_Content:           n = "Content"; break;
     case NDN_TLV_SignatureInfo:     n = "SignatureInfo"; break;
     case NDN_TLV_SignatureValue:    n = "SignatureValue"; break;
     case NDN_TLV_ContentType:       n = "ContentType"; break;
@@ -1199,6 +1201,8 @@ ndn_type2name(unsigned type)
     case NDN_TLV_SignatureType:     n = "SignatureType"; break;
     case NDN_TLV_KeyLocator:        n = "KeyLocator"; break;
     case NDN_TLV_KeyLocatorDigest:  n = "KeyLocatorDigest"; break;
+    case NDN_TLV_Frag_BeginEndFields: n = "FragBeginEndFields"; break;
+    case NDN_TLV_NdnlpFragment:     n = "FragmentPayload"; break;
     default:
         n = NULL;
     }
@@ -1207,15 +1211,16 @@ ndn_type2name(unsigned type)
 
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
-               int *len, char *cur_tag, int rawxml, FILE* out)
+               unsigned int *len, char *cur_tag, int rawxml, FILE* out)
 {
-    int typ, vallen, i, maxi;
+    int i, maxi;
+    unsigned int typ, vallen;
     unsigned char *cp;
     char *n, tmp[100];
 
     while (*len > 0) {
         cp = *buf;
-        if (ccnl_ndntlv_dehead(buf, len, &typ, &vallen) < 0)
+        if (ccnl_ndntlv_dehead(buf, (int*) len, &typ, &vallen) < 0)
             return -1;
         if (vallen > *len) {
             fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
@@ -1302,7 +1307,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
 }
 
 static void
-ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
+ndntlv_201311(unsigned char *data, unsigned int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
@@ -1318,6 +1323,7 @@ ndn_init()
 {
     ndntlv_recurse[NDN_TLV_Interest] = 1;
     ndntlv_recurse[NDN_TLV_Data] = 1;
+    ndntlv_recurse[NDN_TLV_Fragment] = 1;
     ndntlv_recurse[NDN_TLV_Name] = 1;
     ndntlv_recurse[NDN_TLV_Selectors] = 1;
     ndntlv_recurse[NDN_TLV_MetaInfo] = 1;
@@ -1466,6 +1472,7 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
     unsigned char *data;
     struct ccnl_pkt_s *pkt;
 
+    // we cheat, by hardwired jump over the outermost container heads
     switch (suite) {
     case CCNL_SUITE_CCNB: {
         data = start + 2;
@@ -1483,17 +1490,19 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_IOTTLV: {
-        data = start + 2;
-        len -= 2;
-
-        pkt = ccnl_iottlv_bytes2pkt(start, &data, &len);
+        unsigned int pkttype, vallen;
+        data = start;
+        if (ccnl_iottlv_dehead(&data, &len, &pkttype, &vallen) < 0)
+            return;
+        pkt = ccnl_iottlv_bytes2pkt(pkttype, start, &data, &len);
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        data = start + 2;
-        len -= 2;
-
-        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &len);
+        unsigned int pkttype, vallen;
+        data = start;
+        if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
+            return;
+        pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, &len);
         break;
     }
     default:

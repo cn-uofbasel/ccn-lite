@@ -86,7 +86,9 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #define ccnl_core_addToCleanup(b)       do{}while(0)
 
 // include only the utils, not the core routines:
+#include "../ccnl-ext.h"
 #include "../ccnl-core-util.c"
+#include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
 
 // ----------------------------------------------------------------------
@@ -223,36 +225,39 @@ ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
 }
 #endif
 
-int ccntlv_isData(unsigned char *buf, int len)
+struct ccnx_tlvhdr_ccnx2015_s*
+ccntlv_isHeader(unsigned char *buf, int len)
 {
     struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
-    unsigned short hdrlen, pktlen; // payloadlen;
 
     if (len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
-        DEBUGMSG(ERROR, "ccntlv header not large enough");
-        return -1;
+        DEBUGMSG(ERROR, "ccntlv header not large enough\n");
+        return NULL;
     }
-    hdrlen = hp->hdrlen; // ntohs(hp->hdrlen);
-    pktlen = ntohs(hp->pktlen);
-    //    payloadlen = ntohs(hp->payloadlen);
-
     if (hp->version != CCNX_TLV_V1) {
         DEBUGMSG(ERROR, "ccntlv version %d not supported\n", hp->version);
-        return -1;
+        return NULL;
     }
-
-    if (pktlen < len) {
+    if (ntohs(hp->pktlen) < len) {
         DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
-                 pktlen, len);
-        return -1;
+                 ntohs(hp->pktlen), len);
+        return NULL;
     }
-    buf += hdrlen;
-    len -= hdrlen;
+    return hp;
+}
 
-    if(hp->pkttype == CCNX_PT_Data)
-        return 1;
-    else
-        return 0;
+int ccntlv_isData(unsigned char *buf, int len)
+{
+    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
+
+    return hp && hp->pkttype == CCNX_PT_Data;
+}
+
+int ccntlv_isFragment(unsigned char *buf, int len)
+{
+    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
+
+    return hp && hp->pkttype == CCNX_PT_Fragment;
 }
 
 #endif // USE_SUITE_CCNTLV
@@ -338,7 +343,8 @@ iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
 // return 1 for Reply, 0 for Request, -1 if invalid
 int iottlv_isReply(unsigned char *buf, int len)
 {
-    int typ, vallen, enc = 1, suite;
+    int enc = 1, suite;
+    unsigned int typ, vallen;
 
     while (!ccnl_switch_dehead(&buf, &len, &enc));
     suite = ccnl_enc2suite(enc);
@@ -354,6 +360,14 @@ int iottlv_isReply(unsigned char *buf, int len)
         return 0;
     return -1;
 }
+
+int iottlv_isFragment(unsigned char *buf, int len)
+{
+    int enc;
+    while (!ccnl_switch_dehead(&buf, &len, &enc));
+    return ccnl_iottlv_peekType(buf, len) == IOT_TLV_Fragment;
+}
+
 
 #endif // USE_SUITE_IOTTLV
 
@@ -379,7 +393,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 
 int ndntlv_isData(unsigned char *buf, int len)
 {
-    int typ, vallen;
+    unsigned int typ, vallen;
 
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
         return -1;
