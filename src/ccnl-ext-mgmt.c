@@ -1418,6 +1418,7 @@ ccnl_mgmt_destroydev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return -1;
 }
 
+#ifdef USE_ECHO
 
 int
 ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -1534,6 +1535,8 @@ Bail:
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;
 }
+
+#endif // USE_ECHO
 
 int
 ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
@@ -1921,8 +1924,10 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_mgmt_setfrag(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroydev"))
         ccnl_mgmt_destroydev(ccnl, orig, prefix, from);
+#ifdef USE_ECHO
     else if (!strcmp(cmd, "echoserver"))
         ccnl_mgmt_echo(ccnl, orig, prefix, from);
+#endif
     else if (!strcmp(cmd, "newface"))
         ccnl_mgmt_newface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "destroyface"))

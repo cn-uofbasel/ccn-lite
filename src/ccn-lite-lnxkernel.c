@@ -24,18 +24,18 @@
 
 #define CCNL_LINUXKERNEL
 
-#define USE_DEBUG
+#define USE_DEBUG               // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 // #define USE_FRAG
 #define USE_ETHERNET
 #define USE_LOGGING
 #define USE_IPV4
-// #define USE_MGMT
+#define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
 // #define USE_SIGNATURES
-#define USE_SUITE_CCNB
+#define USE_SUITE_CCNB          // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
@@ -43,7 +43,6 @@
 #define USE_UNIXSOCKET
 
 #define NEEDS_PREFIX_MATCHING
-#define NEEDS_PACKET_CRAFTING // LB: Investigate further, seems like the wrong place to define!
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
@@ -544,7 +543,7 @@ ccnl_init(void)
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s, "
+    DEBUGMSG(DEBUG, "module parameters: c=%d, e=%s, k=%s, p=%s, s=%s, "
                  "u=%d, v=%s, x=%s\n",
              c, e, k, p, s, u, v, x);
 
