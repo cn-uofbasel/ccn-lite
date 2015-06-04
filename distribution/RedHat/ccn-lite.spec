@@ -1,9 +1,9 @@
 Name:		CCN-Lite
-Version:	00.1	
+Version:	0.2.1	
 Release:	1%{?dist}
-Summary:	CCN-lite is a lightweigt implementation....
+Summary:	CCN-lite
 
-Group:		Application/Internet	
+Group:		Application/Internet
 License:	MIT
 URL:		ccn-lite.net
 
@@ -11,23 +11,25 @@ URL:		ccn-lite.net
 #Requires:	
 
 %description
-
+CCN-Lite is a 
 
 #%prep
 #%setup -q
-
+#copy ccn-lite src into dir, or check it out?
 
 #%build
 #%configure
 #make %{?_smp_mflags}
-
+#make the bin files, 
 
 %install
 #%make_install
-mkdir ../BUILDROOT/CCN-Lite-00.1-1.fc22.x86_64/usr
-mkdir ../BUILDROOT/CCN-Lite-00.1-1.fc22.x86_64/usr/local
-mkdir ../BUILDROOT/CCN-Lite-00.1-1.fc22.x86_64/usr/local/bin
-cp -L $CCNL_HOME/bin/ccn* ../BUILDROOT/CCN-Lite-00.1-1.fc22.x86_64/usr/local/bin
+#use a make install script, which matches the requirements (install from bin...)
+mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr
+mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr/local
+mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr/local/bin
+cp -L $CCNL_HOME/bin/ccn* ../BUILDROOT/%name-%version-%release.%_arch/usr/local/bin
+
 
 %files
 %doc
