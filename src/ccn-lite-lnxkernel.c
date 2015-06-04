@@ -494,19 +494,19 @@ static void *ageing_handler = NULL;
 
 
 module_param(e, charp, 0);
-MODULE_PARM_DESC(ethdevname, "name of ethernet device to serve");
+MODULE_PARM_DESC(e, "name of ethernet device to serve");
 
 module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
 
 module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013");
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013)");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
 
 module_param(v, charp, 0);
-MODULE_PARM_DESC(v, "verbosity level");
+MODULE_PARM_DESC(v, "verbosity level (fatal, error, warning, info, debug, verbose, trace)");
 
 module_param(k, charp, 0);
 MODULE_PARM_DESC(k, "ctrl public key path");
@@ -515,7 +515,7 @@ module_param(p, charp, 0);
 MODULE_PARM_DESC(p, "private key path");
 
 module_param(x, charp, 0);
-MODULE_PARM_DESC(ux_sock_path, "name (path) of mgmt unix socket");
+MODULE_PARM_DESC(x, "name (path) of mgmt unix socket");
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("christian.tschudin@unibas.ch");

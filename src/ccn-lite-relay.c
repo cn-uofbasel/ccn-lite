@@ -774,7 +774,7 @@ usage:
                     "  -u udpport\n"
 
 #ifdef USE_LOGGING
-                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
 #ifdef USE_UNIXSOCKET
                     "  -x unixpath\n"
