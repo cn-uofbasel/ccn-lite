@@ -43,7 +43,7 @@
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
 #define USE_ETHERNET                   // we co-use addr formatting for BTLE
-// #define USE_FRAG
+#define USE_FRAG
 #define USE_LOGGING
 #define USE_HMAC256
 #define USE_HTTP_STATUS
@@ -314,6 +314,13 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
 
+    // use interface 0 for BT low energy
+    relay->ifs[0].mtu = 20;
+    if (relay->defaultInterfaceScheduler)
+        relay->ifs[0].sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+    relay->ifcount++;
+
 #ifdef USE_SUITE_CCNTLV
     add_udpPort(relay, CCN_UDP_PORT);
 #endif
@@ -470,7 +477,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }
 #endif
@@ -714,7 +721,7 @@ ccnl_android_init()
 
     // UDP and HTTP ports
     for (i = 0; i < theRelay.ifcount; i++) {
-        if (theRelay.ifs[i].addr.sa.sa_family = AF_INET)
+        if (theRelay.ifs[i].addr.sa.sa_family == AF_INET)
             ALooper_addFd(theLooper, theRelay.ifs[i].sock, 
                   ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
                   ccnl_android_udp_io, &theRelay);

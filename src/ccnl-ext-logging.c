@@ -69,7 +69,7 @@ ccnl_debugLevelToChar(int level)
 // ----------------------------------------------------------------------
 // _TRACE macro
 
-#ifdef CCNL_ANDROID
+#ifdef CCNL_ARDUINO
 
 #define _TRACE(F,P) do {                    \
     if (debug_level >= TRACE) { char *cp;   \
@@ -120,7 +120,7 @@ ccnl_debug_str2level(char *s)
     return 1;
 }
 
-#endif // CCNL_ANDROID
+#endif // CCNL_ARDUINO
 
 #define DEBUGSTMT(LVL, ...) do { \
         if ((LVL)>debug_level) break; \

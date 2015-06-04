@@ -103,7 +103,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         goto Bail;
     pkt->type = typ;
     pkt->suite = CCNL_SUITE_CISTLV;
-    pkt->final_block_id = -1;
+    pkt->val.final_block_id = -1;
 
     oldpos = *data - start;
     while (ccnl_cistlv_dehead(data, datalen, &typ, &len) == 0) {
@@ -161,7 +161,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CISCO_TLV_FinalSegmentID:
             if (ccnl_cistlv_extractNetworkVarInt(cp, len2,
-                                   (unsigned int*) &pkt->final_block_id) < 0) {
+                               (unsigned int*) &pkt->val.final_block_id) < 0) {
                     DEBUGMSG(WARNING, "error when extracting CISCO_TLV_FinalSegmentID\n");
                     goto Bail;
             }

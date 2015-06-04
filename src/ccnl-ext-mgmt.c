@@ -1764,7 +1764,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
         pkt->pfx = prefix_new;
         pkt->buf = ccnl_mkSimpleInterest(prefix_new, NULL);
-        pkt->final_block_id = -1;
+        pkt->val.final_block_id = -1;
         buffer = buf_dup(pkt->buf);
 
         interest = ccnl_interest_new(ccnl, from, &pkt);

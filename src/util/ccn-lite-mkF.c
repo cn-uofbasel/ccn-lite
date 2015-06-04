@@ -1,8 +1,8 @@
 /*
  * @f util/ccn-lite-mkF.c
- * @b CLI mkFragment: split a large (ccnb) file into a fragment series
+ * @b CLI mkFragment: split a large file into a fragment series
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,23 +21,20 @@
  */
 
 #define USE_FRAG
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
+#define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
 
 // ----------------------------------------------------------------------
 
-int
-ccnl_core_RX_i_or_c(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                    unsigned char **data, int *datalen)
-{
-    return 0;
-}
-
-// ----------------------------------------------------------------------
-
 void 
-file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
-           unsigned int *seqnr, unsigned int seqnrwidth, char noclobber)
+file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
+           int bytelimit, unsigned int *seqnr, unsigned int seqnrwidth,
+           char noclobber)
 {
     struct ccnl_buf_s *fragbuf;
     struct ccnl_frag_s fr;
@@ -45,17 +42,19 @@ file2frags(unsigned char *data, int datalen, char *fileprefix, int bytelimit,
     int cnt = 0, f;
 
     memset(&fr, 0, sizeof(fr));
-    fr.protocol = CCNL_FRAG_CCNx2013;
+    //    fr.protocol = CCNL_FRAG_CCNx2013;
+    fr.protocol = CCNL_FRAG_SEQUENCED2015;
     fr.bigpkt = ccnl_buf_new(data, datalen);
     fr.mtu = bytelimit;
     fr.sendseq = *seqnr;
     fr.sendseqwidth = seqnrwidth;
     fr.flagwidth = 1;
+    fr.outsuite = suite;
 
     //    fragbuf = ccnl_frag_getnext(&fr);
     fragbuf = ccnl_frag_getnext(&fr, NULL, NULL);
     while (fragbuf) {
-        sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
+        sprintf(fname, "%s%03d.frag", fileprefix, cnt);
         if (noclobber && !access(fname, F_OK)) {
             printf("file %s already exists, skipping this name\n", fname);
         } else {
@@ -86,9 +85,15 @@ main(int argc, char *argv[])
     unsigned int bytelimit = 1500, seqnr = 0, seqnrlen = 4;
     char *cmdname = argv[0], *cp, *fname, *fileprefix = "frag";
     char noclobber = 0;
+    int suite = CCNL_SUITE_DEFAULT;
 
-    while ((opt = getopt(argc, argv, "b:f:hns:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "a:b:f:hns:v:")) != -1) {
         switch (opt) {
+        case 'a':
+            seqnr = strtol(optarg, &cp, 0);
+            if (cp && cp[0]== '/' && isdigit(cp[1]))
+                seqnrlen = atoi(cp+1);
+            break;
         case 'b':
             bytelimit = atoi((char*) optarg);
             break;
@@ -99,9 +104,11 @@ main(int argc, char *argv[])
             noclobber = ! noclobber;
             break;
         case 's':
-            seqnr = strtol(optarg, &cp, 0);
-            if (cp && cp[0]== '/' && isdigit(cp[1]))
-                seqnrlen = atoi(cp+1);
+            suite = ccnl_str2suite(optarg);
+            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+                DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
+                goto Usage;
+            }
             break;
         case 'v':
 #ifdef USE_LOGGING
@@ -114,13 +121,15 @@ main(int argc, char *argv[])
 
         case 'h':
         default:
+Usage:
             fprintf(stderr, "usage: %s [options] FILE(S)\n"
+            "  -a NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n"
             "  -b LIMIT    MTU limit (default is 1500)\n"
             "  -f PREFIX   use PREFIX for fragment file names (default: frag)\n"
             "  -n          no-clobber\n"
-            "  -s NUM[/SZ] start with seqnr NUM, SZ Bytes (default: 0/4)\n"
+            "  -s SUITE    (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             ,
             cmdname);
@@ -152,7 +161,8 @@ main(int argc, char *argv[])
         }
         close(fd);
 
-        file2frags(in, len, fileprefix, bytelimit, &seqnr, seqnrlen, noclobber);
+        file2frags(suite, in, len, fileprefix, bytelimit,
+                   &seqnr, seqnrlen, noclobber);
         fname = argv[optind] ? argv[optind++] : NULL;
     } while (fname);
 

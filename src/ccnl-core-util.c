@@ -716,7 +716,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (data[0] == CCNX_TLV_V1 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
-            data[1] == CCNX_PT_FRAGMENT ||
+            data[1] == CCNX_PT_Fragment ||
             data[1] == CCNX_PT_NACK) 
             return CCNL_SUITE_CCNTLV;
     } 
@@ -732,7 +732,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
+        *data == NDN_TLV_Fragment)
         return CCNL_SUITE_NDNTLV;
 #endif
 

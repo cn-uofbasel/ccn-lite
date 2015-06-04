@@ -2,7 +2,7 @@
  * @f pkt-ndntlv.h
  * @b CCN lite - header file for NDN (TLV pkt format March 2014)
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,8 @@
 // Packet types:
 #define NDN_TLV_Interest                0x05
 #define NDN_TLV_Data                    0x06
+#define NDN_TLV_NDNLP                   0x64
+#define NDN_TLV_Fragment                NDN_TLV_NDNLP
 
 // Common fields:
 #define NDN_TLV_Name                    0x07
@@ -61,6 +63,11 @@
 #define NDN_TLV_SignatureType           0x1b
 #define NDN_TLV_KeyLocator              0x1c
 #define NDN_TLV_KeyLocatorDigest        0x1d
+
+// Fragment
+#define NDN_TLV_NdnlpHeader             0x50
+#define NDN_TLV_NdnlpFragment           0x52
+#define NDN_TLV_Frag_BeginEndFields     0x5c
 
 // reserved values:
 /*

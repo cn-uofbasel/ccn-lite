@@ -37,14 +37,14 @@
 #define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
-#define USE_MGMT
+//#define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_STATS
-#define USE_SUITE_CCNB                 // must select this for USE_MGMT
+//#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
@@ -351,6 +351,11 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
         if (suite == CCNL_SUITE_CCNB)
             i->mtu = CCN_DEFAULT_MTU;
 #endif
+#ifdef USE_SUITE_CCNTLV
+        if (suite == CCNL_SUITE_CCNTLV)
+            //            i->mtu = CCN_DEFAULT_MTU;
+            i->mtu = 500;
+#endif
 #ifdef USE_SUITE_NDNTLV
         if (suite == CCNL_SUITE_NDNTLV)
             i->mtu = NDN_DEFAULT_MTU;
@@ -363,6 +368,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
             if (relay->defaultInterfaceScheduler)
                 i->sched = relay->defaultInterfaceScheduler(relay,
                                                         ccnl_interface_CTS);
+            i->mtu = 500;
         } else
             DEBUGMSG(WARNING, "sorry, could not open udp device (port %d)\n",
                 udpport);
@@ -544,7 +550,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
         unsigned char *data;
-        int fd, datalen, typ, len, suite, skip;
+        int fd, datalen, suite, skip;
+        unsigned int typ, len;
         struct ccnl_pkt_s *pk;
 
         if (de->d_name[0] == '.')
@@ -644,7 +651,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
                                                        typ != IOT_TLV_Reply)
                 goto notacontent;
-            pk = ccnl_iottlv_bytes2pkt(olddata, &data, &datalen);
+            pk = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }
 #endif
@@ -657,7 +664,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }
 #endif

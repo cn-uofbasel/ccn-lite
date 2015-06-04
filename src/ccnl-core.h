@@ -241,24 +241,31 @@ struct ccnl_pktdetail_ndntlv_s {
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
 
-#define CCNL_PKT_REQUEST   0x01 // "Interest"
-#define CCNL_PKT_REPLY     0x02 // "Object", "Data"
-#define CCNL_PKT_FRAGMENT  0x03 // "Fragment"
+// packet flags:  0000ebtt
+
+#define CCNL_PKT_REQUEST    0x01 // "Interest"
+#define CCNL_PKT_REPLY      0x02 // "Object", "Data"
+#define CCNL_PKT_FRAGMENT   0x03 // "Fragment"
+#define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
+#define CCNL_PKT_FRAG_END   0x08
 
 struct ccnl_pkt_s {
     struct ccnl_buf_s *buf;        // the packet's bytes
     struct ccnl_prefix_s *pfx;     // prefix/name
     unsigned char *content;        // pointer into the data buffer
     int contlen;
-    unsigned int type;
-    int final_block_id;
+    unsigned int type;   // suite-specific value (outermost type)
+    union {
+        int final_block_id;
+        unsigned int seqno;
+    } val;
     union {
         struct ccnl_pktdetail_ccnb_s   ccnb;
         struct ccnl_pktdetail_ccntlv_s ccntlv;
         struct ccnl_pktdetail_iottlv_s iottlv;
         struct ccnl_pktdetail_ndntlv_s ndntlv;
     } s;                           // suite specific packet details
-    unsigned short flags;
+    unsigned int flags;
     char suite;
 };
 
