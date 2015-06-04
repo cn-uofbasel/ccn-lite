@@ -25,7 +25,7 @@ CCNB_LIB =   ../ccnl-pkt-ccnb.h ../ccnl-pkt-ccnb.c ../lib-sha256.c
 CCNTLV_LIB = ../ccnl-pkt-ccntlv.h ../ccnl-pkt-ccntlv.c
 CISTLV_LIB = ../ccnl-pkt-cisntlv.h ../ccnl-pkt-cistlv.c
 IOTTLV_LIB = ../ccnl-pkt-iottlv.h ../ccnl-pkt-iottlv.c
-LOCRPC_LIB = ../ccnl-pkt-localrpc.h ../ccnl-pkt-localrpc.c
+LOCALRPC_LIB = ../ccnl-pkt-localrpc.h ../ccnl-pkt-localrpc.c ../ccnl-ext-localrpc.c
 NDNTLV_LIB = ../ccnl-pkt-ndntlv.h ../ccnl-pkt-ndntlv.c
 
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${LOCALRPC_LIB} ${NDNTLV_LIB}
@@ -39,7 +39,8 @@ CCNL_CORE_LIB = ../ccnl-defs.h ../ccnl-core.h ../ccnl-core.c
 
 CCNL_PLATFORM_LIB = ../ccnl-includes.h \
                     ../ccnl-ext-debug.c ../ccnl-ext.h ../ccnl-platform.c  \
-                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c ../ccnl-ext-hmac.c
+                    ../ccnl-ext-frag.c ../ccnl-ext-sched.c ../ccnl-ext-hmac.c \
+                    ../ccnl-ext-logging.c
 
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c
@@ -65,7 +66,7 @@ ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c \
 # 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
 
 
-# ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl.h
+# ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB} ../ccnl.h
 
 ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ${CCNB_LIB} \
 		../ccnl-defs.h ccnl-common.c
@@ -83,7 +84,7 @@ ccn-lite-fetch: Makefile ccn-lite-fetch.c \
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} \
-		${LOCRPC_LIB}
+		${LOCALRPC_LIB}
 	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
 
 ccn-lite-simplenfn: Makefile ccn-lite-simplenfn.c \
@@ -92,7 +93,7 @@ ccn-lite-simplenfn: Makefile ccn-lite-simplenfn.c \
 	$(CC) $(CFLAGS) ccn-lite-simplenfn.c -o $@ 
 
 ccn-lite-rpc: Makefile ccn-lite-rpc.c \
-		${NDNTLV_LIB} ${LOCRPC_LIB} ../ccnl-defs.h ccnl-common.c
+		${NDNTLV_LIB} ${LOCALRPC_LIB} ../ccnl-defs.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-rpc.c -o $@ 
 
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl-defs.h ccnl-frag.h

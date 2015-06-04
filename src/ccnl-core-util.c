@@ -224,6 +224,10 @@ ccnl_str2suite(char *cp)
     if (!strcmp(cp, CONSTSTR("iot2014")))
         return CCNL_SUITE_IOTTLV;
 #endif
+#ifdef USE_SUITE_LOCALRPC
+    if (!strcmp(cp, CONSTSTR("localrpc")))
+        return CCNL_SUITE_LOCALRPC;
+#endif
 #ifdef USE_SUITE_NDNTLV
     if (!strcmp(cp, CONSTSTR("ndn2013")))
         return CCNL_SUITE_NDNTLV;
@@ -249,6 +253,10 @@ ccnl_suite2str(int suite)
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
         return CONSTSTR("iot2014");
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    if (suite == CCNL_SUITE_LOCALRPC)
+        return CONSTSTR("localrpc");
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
@@ -772,6 +780,9 @@ free_packet(struct ccnl_pkt_s *pkt)
 #endif
 #ifdef USE_SUITE_IOTTLV
             case CCNL_SUITE_IOTTLV:
+#endif
+#ifdef USE_SUITE_LOCALRPC
+            case CCNL_SUITE_LOCALRPC:
 #endif
             default:
                 break;

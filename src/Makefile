@@ -92,7 +92,7 @@ CCNTLV_LIB = ccnl-pkt-ccntlv.h ccnl-pkt-ccntlv.c
 CISTLV_LIB = ccnl-pkt-cistlv.h ccnl-pkt-cistlv.c
 IOTTLV_LIB = ccnl-pkt-iottlv.h ccnl-pkt-iottlv.c
 NDNTLV_LIB = ccnl-pkt-ndntlv.h ccnl-pkt-ndntlv.c
-LOCRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
+LOCALRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
@@ -153,7 +153,7 @@ ccn-lite-lnxkernel:
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
     ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c 
-	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(shell pwd) modules
+	make -C /lib/modules/`uname -r`/build M=`pwd` modules
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
