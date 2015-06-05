@@ -37,14 +37,14 @@
 #define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
-//#define USE_MGMT
+#define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
 #define USE_STATS
-//#define USE_SUITE_CCNB                 // must select this for USE_MGMT
+#define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
