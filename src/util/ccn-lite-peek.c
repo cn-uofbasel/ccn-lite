@@ -60,7 +60,7 @@ frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
@@ -238,8 +238,11 @@ usage:
             close(fd);
         }
 */
-        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa,
-                    sizeof(struct sockaddr_un));
+        if(ux)
+		    socksize = sizeof(struct sockaddr_un);
+	    else
+		    socksize = sizeof(struct sockaddr_in);
+        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);
         if (rc < 0) {
             perror("sendto");
             myexit(1);
