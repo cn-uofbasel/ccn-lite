@@ -239,7 +239,10 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                 strcpy(fname, "'echoserver'");
             else
 #endif
-            sprintf(fname, fwda[i]->face ? "f%d" : "?", fwda[i]->face->faceid);
+            if(fwda[i]->face)
+                sprintf(fname, "f%d", fwda[i]->face->faceid);
+            else
+                sprintf(fname, "?");
             len += sprintf(txt+len,
                            "<li>via %4s: <font face=courier>%s</font>\n",
                            fname, ccnl_prefix_to_path(fwda[i]->prefix));
@@ -278,19 +281,23 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Interfaces</em></table><ul>\n");
     for (i = 0; i < ccnl->ifcount; i++) {
+#ifdef USE_STATS      
         len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
                        "qlen=%d/%d"
-#ifdef USE_STATS
                        "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u"
-#endif
                        "\n",
                        i, ccnl_addr2ascii(&ccnl->ifs[i].addr),
-                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN
-#ifdef USE_STATS
-                       , ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt
+                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN, 
+                       ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt);
+#else    
+        len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
+                       "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
+                       "qlen=%d/%d"
+                       "\n",
+                       i, ccnl_addr2ascii(&ccnl->ifs[i].addr),
+                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN);
 #endif
-                       );
     }
     len += sprintf(txt+len, "</ul>\n");
 

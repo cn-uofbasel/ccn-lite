@@ -68,12 +68,15 @@ eth2ascii(unsigned char *eth)
 
 #ifdef CCNL_ARDUINO
     sprintf_P(buf, PSTR("%02x:%02x:%02x:%02x:%02x:%02x"),
+          (unsigned char) eth[0], (unsigned char) eth[1],
+          (unsigned char) eth[2], (unsigned char) eth[3],
+          (unsigned char) eth[4], (unsigned char) eth[5]);
 #else
     sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+          (unsigned char) eth[0], (unsigned char) eth[1],
+          (unsigned char) eth[2], (unsigned char) eth[3],
+          (unsigned char) eth[4], (unsigned char) eth[5]);
 #endif
-            (unsigned char) eth[0], (unsigned char) eth[1],
-            (unsigned char) eth[2], (unsigned char) eth[3],
-            (unsigned char) eth[4], (unsigned char) eth[5]);
     return buf;
 }
 
