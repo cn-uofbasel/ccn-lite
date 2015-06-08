@@ -1859,7 +1859,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 #ifdef USE_SIGNATURES
 int
-ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+ccnl_mgmt_validate_signature(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
 {
     
@@ -1934,6 +1934,9 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "prefixreg"))
         ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
+//  TODO: Add ccnl_mgmt_prefixunreg(ccnl, orig, prefix, from)
+//  else if (!strcmp(cmd, "prefixunreg"))
+//      ccnl_mgmt_prefixunreg(ccnl, orig, prefix, from);
 #ifdef USE_DEBUG
     else if (!strcmp(cmd, "addcacheobject"))
         ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
@@ -1967,7 +1970,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (ccnl_is_local_addr(&from->peer)) goto MGMT;
 
 #ifdef USE_SIGNATURES
-    return ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from, cmd);
+    return ccnl_mgmt_validate_signature(ccnl, orig, prefix, from, cmd);
 #endif /*USE_SIGNATURES*/
                    
     DEBUGMSG(TRACE, "  rejecting because src=%s is not a local addr\n",
