@@ -13,8 +13,7 @@ extern "C" {
 //  #include "../../ccn-lite-rfduino.c"
 }
 
-unsigned char msg[23];
-int msglen;
+unsigned char msg[1];
 
 // uint8_t uuid[16] = {0xff, 0xC5, 0x6D, 0xB5, 0xDF, 0xFB, 0x48, 0xD2, 0xB0, 0x60, 0xD0, 0xF5, 0xA7, 0x10, 0x96, 0xff}; //Custom iBeacon UUID
 
@@ -26,13 +25,13 @@ void setup()
   unsigned char *cp;
   int i;
   
+//  override_uart_limit = true;
+//  Serial.begin(38400);
   Serial.begin(9600);
-  delay(200);
   Serial.println();
   Serial.println("ccn-lite-rfduino started");
 
   // start BLE ...
-  //  RFduinoBLE.deviceName = "ccn-lite-rfd";
   // (deviceName length plus the advertisement length must be <= 18 bytes)
   RFduinoBLE.deviceName = "ccn-lite";
   RFduinoBLE.advertisementData = "-rfd";
@@ -45,7 +44,7 @@ void setup()
   RFduinoBLE.begin();
 
   ccnl_rfduino_init(&theRelay);
-  msglen = ccnl_fillmsg(msg, sizeof(msg));
+//  msglen = ccnl_fillmsg(msg, sizeof(msg));
 
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
@@ -74,10 +73,10 @@ void loop()
     }
   }
 
-  if (flag && !announced && msglen > 0) {
+  if (flag && !announced) {
        delay(800);
        announced = 1;
-       Serial.print(RFduinoBLE.send((char*) msg, msglen));
+       Serial.print(RFduinoBLE.send((char*) msg, sizeof(msg)));
        Serial.println(" send done");
    }
 
@@ -108,8 +107,8 @@ void RFduinoBLE_onConnect()
 
 void RFduinoBLE_onReceive(char *data, int len)
 {
-    sprintf(logstr, "received %d bytes", len);
-    Serial.println(logstr);
+//    sprintf(logstr, "received %d bytes", len);
+//    Serial.println(logstr);
 
     ccnl_ll_RX(data, len);
 }

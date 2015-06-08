@@ -19,6 +19,7 @@
  * File history:
  * 2011-10-05 created
  * 2013-05-02 prototyped a new fragment format CCNL_FRAG_TYPE_CCNx2013
+ * 2015-06-06 marked all except BeginEnd2015 frag scheme as obsolete
  */
 
 // ----------------------------------------------------------------------
@@ -41,9 +42,12 @@
  *    including carrying fragments of bigger CCNX objects
  *  - all attributes from SEQUENCED2012 are retained
  *
- * CCNL_FRAG_SEQUENCED2015 ("Begin-End fragmentation")
+ * CCNL_FRAG_SEQUENCED2015
  *  - CCNTLV and CISTLV define a new fixed header: we use this
  *    for a simple fragmentation protocol, also implemented for IOTTLV
+ *
+ * CCNL_FRAG_BEGINEND2015 ("Begin-End fragmentation")
+ *  - cleanup (simplification) of old "sequenced" protocol
  *
  */
 
@@ -57,6 +61,7 @@ ccnl_frag_new(int protocol, int mtu)
     DEBUGMSG_EFRA(TRACE, "ccnl_frag_new proto=%d mtu=%d\n", protocol, mtu);
 
     switch(protocol) {
+#ifdef OBSOLETE_BY_2015_06
     case CCNL_FRAG_SEQUENCED2012:
     case CCNL_FRAG_CCNx2013:
     case CCNL_FRAG_SEQUENCED2015:
@@ -70,6 +75,14 @@ ccnl_frag_new(int protocol, int mtu)
             e->recvseqwidth =   4;
         }
         break;
+#endif
+    case CCNL_FRAG_BEGINEND2015:
+        e = (struct ccnl_frag_s*) ccnl_calloc(1, sizeof(struct ccnl_frag_s));
+        if (e) {
+            e->protocol = protocol;
+            e->mtu = mtu;
+        }
+        break;
     case CCNL_FRAG_NONE:
     default:
         break;
@@ -81,7 +94,7 @@ void
 ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
                   int ifndx, sockunion *dst)
 {
-    DEBUGMSG_EFRA(DEBUG, "ccnl_frag_reset if=%d (%d bytes) dst=%s\n", ifndx,
+    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_reset if=%d (%d bytes) dst=%s\n", ifndx,
              buf ? buf->datalen : -1, ccnl_addr2ascii(dst));
     if (!e)
         return;
@@ -101,6 +114,7 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
 
     if (!e)
       cnt = 1;
+#ifdef OBSOLETE_BY_2015_06
 #ifdef USE_SUITE_CCNB
     else if (e->protocol == CCNL_FRAG_SEQUENCED2012) {
       unsigned char dummy[256];
@@ -159,7 +173,9 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
     else if (e->protocol == CCNL_FRAG_SEQUENCED2015) {
         // ...
         DEBUGMSG_EFRA(FATAL, "frag counting not implemented yet for SEQD2015!\n");
-    } else {
+    }
+#endif // OBSOLETE
+    else {
         DEBUGMSG_EFRA(FATAL, "frag protocol %d not supported?\n", e->protocol);
     }
 
@@ -168,6 +184,7 @@ ccnl_frag_getfragcount(struct ccnl_frag_s *e, int origlen, int *totallen)
     return cnt;
 }
 
+#ifdef OBSOLTE_BY_2015_06
 #ifdef USE_SUITE_CCNB
 struct ccnl_buf_s*
 ccnl_frag_getnextSEQD2012(struct ccnl_frag_s *e, int *ifndx, sockunion *su)
@@ -225,7 +242,7 @@ ccnl_frag_getnextSEQD2012(struct ccnl_frag_s *e, int *ifndx, sockunion *su)
     e->sendoffs += datalen;
     e->sendseq++;
 
-    DEBUGMSG_EFRA(DEBUG, "  e->offset now %d\n", e->sendoffs);
+    DEBUGMSG_EFRA(TRACE, "  e->offset now %d\n", e->sendoffs);
 
     if (ifndx)
         *ifndx = e->ifndx;
@@ -345,10 +362,63 @@ ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
         if (su)
             memcpy(su, &fr->dest, sizeof(*su));
 
-        DEBUGMSG_EFRA(DEBUG, "  produced %d bytes fragment, seqnr=%d-1\n",
+        DEBUGMSG_EFRA(VERBOSE, "  produced %d bytes fragment, seqnr=%d-1\n",
                  buf->datalen, fr->sendseq);
     } else 
-        DEBUGMSG_EFRA(DEBUG, "  produced NO fragment, seqnr remains at =%d-1\n",
+        DEBUGMSG_EFRA(VERBOSE, "  produced NO fragment, seqnr remains at =%d-1\n",
+                 fr->sendseq);
+
+    return buf;
+}
+#endif // OBSOLETE
+
+struct ccnl_buf_s*
+ccnl_frag_getnextBE2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
+{
+    struct ccnl_buf_s *buf = 0;
+    unsigned int datalen = 0;
+
+    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_getnextBE2015: remaining=%d\n",
+                  fr->bigpkt->datalen - fr->sendoffs);
+
+    switch(fr->outsuite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        buf = ccnl_ccntlv_mkFrag(fr, &datalen);
+        break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        buf = ccnl_iottlv_mkFrag(fr, &datalen);
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        buf = ccnl_ndntlv_mkFrag(fr, &datalen);
+        break;
+#endif
+    default:
+        break;
+    }
+
+    if (buf) {
+        fr->sendseq++;
+
+        fr->sendoffs += datalen;
+        if (fr->sendoffs >= fr->bigpkt->datalen) {
+            ccnl_free(fr->bigpkt);
+            fr->bigpkt = NULL;
+        }
+
+        if (ifndx)
+            *ifndx = fr->ifndx;
+        if (su)
+            memcpy(su, &fr->dest, sizeof(*su));
+
+        DEBUGMSG_EFRA(VERBOSE, "  produced %d bytes fragment, seqnr=%d-1\n",
+                 buf->datalen, fr->sendseq);
+    } else 
+        DEBUGMSG_EFRA(VERBOSE, "  produced NO fragment, seqnr remains at =%d-1\n",
                  fr->sendseq);
 
     return buf;
@@ -359,10 +429,11 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     if (!fr->bigpkt) return NULL;
 
-    DEBUGMSG_EFRA(DEBUG, "fragmenting %d bytes (@ %d)\n",
+    DEBUGMSG_EFRA(VERBOSE, "fragmenting %d bytes (@ %d)\n",
                                 fr->bigpkt->datalen, fr->sendoffs);
 
     switch (fr->protocol) {
+#ifdef OBSOLETE_BY_2015_06
 #ifdef USE_SUITE_CCNB
     case CCNL_FRAG_SEQUENCED2012:
         return ccnl_frag_getnextSEQD2012(fr, ifndx, su);
@@ -371,6 +442,9 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 #endif
     case CCNL_FRAG_SEQUENCED2015:
         return ccnl_frag_getnextSEQD2015(fr, ifndx, su);
+#endif
+    case CCNL_FRAG_BEGINEND2015:
+        return ccnl_frag_getnextBE2015(fr, ifndx, su);
     default:
         return NULL;
     }
@@ -412,7 +486,8 @@ serialFragPDU_init(struct serialFragPDU_s *s)
     s->ourseqwidth = s->ourlosswidth = s->yourseqwidth = sizeof(int);
 }
 
-// processes a B+E fragment. Once fully assembled we call the callback
+#ifdef OBSOLETE_BY_2015_06
+// processes a SEQENCED fragment. Once fully assembled we call the callback
 void
 ccnl_frag_RX_serialfragment(RX_datagram callback,
                             struct ccnl_relay_s *relay,
@@ -421,7 +496,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
 {
     struct ccnl_buf_s *buf = NULL;
     struct ccnl_frag_s *e = from->frag;
-    DEBUGMSG_EFRA(DEBUG, "  frag %p protocol=%d, flags=%04x, seq=%d (%d)\n",
+    DEBUGMSG_EFRA(VERBOSE, "  frag %p protocol=%d, flags=%04x, seq=%d (%d)\n",
              (void*)e, e->protocol, s->flags, s->ourseq, e->recvseq);
 
     if (e->recvseq != s->ourseq) {
@@ -432,10 +507,12 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
             ccnl_free(e->defrag);
             e->defrag = NULL;
         }
+        if (e->recvseq > s->ourseq) // old and dup fragment: ignore
+            return;
     }
     switch(s->flags & (CCNL_DTAG_FRAG_FLAG_FIRST|CCNL_DTAG_FRAG_FLAG_LAST)) {
     case CCNL_DTAG_FRAG_FLAG_SINGLE: // single packet
-        DEBUGMSG_EFRA(DEBUG, "  >> single fragment (%d bytes)\n", s->contlen);
+        DEBUGMSG_EFRA(VERBOSE, "  >> single fragment (%d bytes)\n", s->contlen);
         if (e->defrag) {
             DEBUGMSG_EFRA(WARNING, "    had to drop defrag buf\n");
             ccnl_free(e->defrag);
@@ -445,7 +522,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
         callback(relay, from, &s->content, &s->contlen);
         return;
     case CCNL_DTAG_FRAG_FLAG_FIRST: // start of fragment sequence
-        DEBUGMSG_EFRA(DEBUG, "  >> start of fragment series\n");
+        DEBUGMSG_EFRA(VERBOSE, "  >> start of fragment series\n");
         if (e->defrag) {
             DEBUGMSG_EFRA(WARNING, "    had to drop defrag buf\n");
             ccnl_free(e->defrag);
@@ -455,9 +532,9 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
         s->contlen = 0;
         break;
     case CCNL_DTAG_FRAG_FLAG_LAST: // end of fragment sequence
-        DEBUGMSG_EFRA(DEBUG, "  >> last fragment of a series\n");
+        DEBUGMSG_EFRA(VERBOSE, "  >> last fragment of a series\n");
         if (!e->defrag) {
-            DEBUGMSG_EFRA(DEBUG, "  >> no e->defrag?\n");
+            DEBUGMSG_EFRA(VERBOSE, "  >> no e->defrag?\n");
             break;
         }
         buf = ccnl_buf_new(NULL, e->defrag->datalen + s->contlen);
@@ -472,7 +549,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
         break;
     case CCNL_DTAG_FRAG_FLAG_MID:  // fragment in the middle of a squence
     default:
-        DEBUGMSG_EFRA(DEBUG, "  >> fragment in the middle of a series\n");
+        DEBUGMSG_EFRA(VERBOSE, "  >> fragment in the middle of a series\n");
         if (!e->defrag) break;
         buf = ccnl_buf_new(NULL, e->defrag->datalen + s->contlen);
         if (buf) {
@@ -491,13 +568,13 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
     }
     // FIXME: we should only bump recvseq if s->ourseq is ahead, or 0
     e->recvseq = s->ourseq + 1;
-    DEBUGMSG_EFRA(DEBUG, ">>> seq from %d to %d (w=%d)\n", s->ourseq, e->recvseq,
+    DEBUGMSG_EFRA(VERBOSE, ">>> seq from %d to %d (w=%d)\n", s->ourseq, e->recvseq,
         s->ourseqwidth);
 
     if (buf) {
         unsigned char *frag = buf->data;
         int fraglen = buf->datalen;
-        DEBUGMSG_EFRA(DEBUG, "  >> reassembled fragment is %d bytes\n", buf->datalen);
+        DEBUGMSG_EFRA(VERBOSE, "  >> reassembled fragment is %d bytes\n", buf->datalen);
         // FIXME: loop over multiple packets in this reassembled frame?
         callback(relay, from, &frag, &fraglen);
         ccnl_free(buf);
@@ -509,7 +586,7 @@ ccnl_frag_RX_serialfragment(RX_datagram callback,
 #ifdef USE_SUITE_CCNB
 
 #define getNumField(var,len,flag,rem) \
-        DEBUGMSG_EFRA(DEBUG, "  parsing " rem "\n"); \
+        DEBUGMSG_EFRA(TRACE, "  parsing " rem "\n"); \
         if (ccnl_ccnb_unmkBinaryInt(data, datalen, &var, &len) != 0) \
             goto Bail; \
         s.HAS |= flag
@@ -534,7 +611,7 @@ ccnl_frag_RX_frag2012(RX_datagram callback,
         if (typ == CCN_TT_DTAG) {
             switch(num) {
             case CCN_DTAG_CONTENT:
-                DEBUGMSG_EFRA(DEBUG, "  frag content\n");
+                DEBUGMSG_EFRA(TRACE, "  frag content\n");
 //              if (s.content) // error: more than one content entry
                 if (ccnl_ccnb_consume(typ, num, data, datalen, &s.content,&s.contlen) < 0)
                     goto Bail;
@@ -579,7 +656,6 @@ Bail:
     DEBUGMSG_EFRA(WARNING, "* frag bailing\n");
     return -1;
 }
-
 
 int
 ccnl_frag_RX_CCNx2013(RX_datagram callback,
@@ -671,12 +747,12 @@ Bail:
 int
 ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
                            struct ccnl_face_s *from, int mtu,
-                           unsigned char bits, uint32_t seqno,
+                           unsigned int bits, unsigned int seqno,
                            unsigned char **data, int *datalen)
 {
     struct serialFragPDU_s s;
 
-    DEBUGMSG_EFRA(DEBUG, "ccnl_frag_RX_CCNx2015 (%d bytes)\n", *datalen);
+    DEBUGMSG_EFRA(DEBUG, "ccnl_frag_RX_Sequenced2015 (%d bytes)\n", *datalen);
     serialFragPDU_init(&s);
 
     s.ourseq = seqno;
@@ -693,8 +769,122 @@ ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
         }
     }
     ccnl_frag_RX_serialfragment(callback, relay, from, &s);
+
+    /*
     *data = s.content;
     *datalen = s.contlen;
+    */
+
+    return 1;
+}
+#endif // OBSOLETE
+
+int
+ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from, int mtu,
+                          unsigned int bits, unsigned int seqno,
+                          unsigned char **data, int *datalen)
+{
+    struct ccnl_buf_s *buf = NULL;
+    struct ccnl_frag_s *e;
+
+    DEBUGMSG_EFRA(DEBUG, "ccnl_frag_RX_BeginEnd2015 (%d bytes), seqno=%d\n",
+                  *datalen, seqno);
+
+    if (!from) {
+        DEBUGMSG_EFRA(WARNING, "RX_BeginEnd2015: no from value\n");
+        return 0;
+    }
+    if (!from->frag)
+        from->frag = ccnl_frag_new(CCNL_FRAG_BEGINEND2015, mtu);
+    if (!from->frag) {
+        DEBUGMSG_EFRA(WARNING, "no frag alloc\n");
+        return 0;
+    }
+    if (from->frag->protocol != CCNL_FRAG_BEGINEND2015) {
+        DEBUGMSG_EFRA(WARNING, "WRONG FRAG PROTOCOL\n");
+        return 0;
+    }
+
+    e = from->frag;
+    if (e->recvseq != seqno) {
+        // should increase error counter here
+        DEBUGMSG_EFRA(WARNING, "  >> seqnum mismatch: rcvd %d, expected %d\n",
+                      seqno, e->recvseq);
+        if (e->defrag) {
+            DEBUGMSG_EFRA(WARNING, "  >> had to drop defrag buf\n");
+            ccnl_free(e->defrag);
+            e->defrag = NULL;
+        }
+        e->recvseq = seqno;
+    }
+
+    switch(bits & (CCNL_BEFRAG_FLAG_MASK)) {
+    case CCNL_BEFRAG_FLAG_SINGLE: // single packet
+        DEBUGMSG_EFRA(VERBOSE, "  >> single fragment seqno=%d (%d bytes)\n",
+                      seqno, *datalen);
+        if (e->defrag) {
+            DEBUGMSG_EFRA(WARNING, "    had to drop defrag buf\n");
+            ccnl_free(e->defrag);
+            e->defrag = NULL;
+        }
+        e->recvseq++;
+        // no need to copy the buffer:
+        callback(relay, from, data, datalen);
+        return 1;
+    case CCNL_BEFRAG_FLAG_FIRST: // start of fragment sequence
+        DEBUGMSG_EFRA(VERBOSE, "  >> start of fragment series\n");
+        if (e->defrag) {
+            DEBUGMSG_EFRA(WARNING, "    had to drop defrag buf\n");
+            ccnl_free(e->defrag);
+        }
+        e->defrag = ccnl_buf_new(*data, *datalen);
+        break;
+    case CCNL_BEFRAG_FLAG_LAST: // end of fragment sequence
+        DEBUGMSG_EFRA(VERBOSE, "  >> last fragment of a series\n");
+        if (!e->defrag) {
+            DEBUGMSG_EFRA(WARNING, "  >> no e->defrag?\n");
+            break;
+        }
+        buf = ccnl_buf_new(NULL, e->defrag->datalen + *datalen);
+        if (buf) {
+            memcpy(buf->data, e->defrag->data, e->defrag->datalen);
+            memcpy(buf->data + e->defrag->datalen, *data, *datalen);
+        }
+        ccnl_free(e->defrag);
+        e->defrag = NULL;
+        break;
+    case CCNL_BEFRAG_FLAG_MID:  // fragment in the middle of a squence
+    default:
+        DEBUGMSG_EFRA(VERBOSE, "  >> fragment in the middle of a series\n");
+        if (!e->defrag)
+            break;
+        buf = ccnl_buf_new(NULL, e->defrag->datalen + *datalen);
+        if (buf) {
+            memcpy(buf->data, e->defrag->data, e->defrag->datalen);
+            memcpy(buf->data + e->defrag->datalen, *data, *datalen);
+            ccnl_free(e->defrag);
+            e->defrag = buf;
+            buf = NULL;
+        } else {
+            ccnl_free(e->defrag);
+            e->defrag = NULL;
+        }
+        break;
+    }
+    *data += *datalen;
+    *datalen = 0;
+    e->recvseq++;
+
+    if (buf) {
+        unsigned char *frag = buf->data;
+        int fraglen = buf->datalen;
+        DEBUGMSG_EFRA(DEBUG, "  >> reassembled fragment is %d bytes\n",
+                      buf->datalen);
+        // FIXME: loop over multiple packets in this reassembled frame?
+        callback(relay, from, &frag, &fraglen);
+        ccnl_free(buf);
+    }
 
     return 1;
 }

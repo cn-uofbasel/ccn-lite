@@ -172,7 +172,7 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
             goto Bail;
 
         state = IOTPS(pkttype, typ);
-        DEBUGMSG_CFWD(DEBUG, "  state = 0x%04x\n", state);
+        DEBUGMSG_CFWD(TRACE, "  state = 0x%04x\n", state);
         switch (state) {
         case IOTPS(IOT_TLV_Request, IOT_TLV_R_OptHeader):
         case IOTPS(IOT_TLV_Reply, IOT_TLV_R_OptHeader):

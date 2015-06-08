@@ -35,8 +35,8 @@
 
 #if defined(CCNL_ARDUINO)
 # define CCNL_MAX_INTERFACES             1
-# define CCNL_MAX_IF_QLEN                1
-# define CCNL_MAX_PACKET_SIZE            108
+# define CCNL_MAX_IF_QLEN                14
+# define CCNL_MAX_PACKET_SIZE            120
 # define CCNL_MAX_NAME_COMP              8
 #elif defined(CCNL_ANDROID) // max of BTLE and 2xUDP
 # define CCNL_MAX_INTERFACES             3
@@ -181,6 +181,14 @@ enum {
 // ----------------------------------------------------------------------
 // face mgmt protocol:
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ   0x04
+
+// ----------------------------------------------------------------------
+// begin-end fragmentation protocol:
+#define CCNL_BEFRAG_FLAG_MASK        0x03
+#define CCNL_BEFRAG_FLAG_FIRST       0x01
+#define CCNL_BEFRAG_FLAG_MID         0x00
+#define CCNL_BEFRAG_FLAG_LAST        0x02
+#define CCNL_BEFRAG_FLAG_SINGLE      0x03
 
 //#define USE_SIGNATURES
 

@@ -39,7 +39,7 @@ Top level:
 Fragment:
   0 Optional Headers
   1 FlagsAndSeqNr (2 bytes: BEIXnnnn nnnnnnnn)
-  2 Payload
+  2 Data
 
 Request or Reply:
   0 Optional Headers

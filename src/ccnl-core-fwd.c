@@ -27,8 +27,9 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_content_s *c;
 
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s> from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
                   ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
@@ -82,10 +83,15 @@ ccnl_fwd_handleFragment(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *data = (*pkt)->content;
     int datalen = (*pkt)->contlen;
 
-    ccnl_frag_RX_Sequenced2015(callback, relay, from,
-                               relay->ifs[from->ifndx].mtu,
-                               ((*pkt)->flags >> 2) & 0x03,
-                               (*pkt)->val.seqno, &data, &datalen);
+    DEBUGMSG_CFWD(INFO, "  incoming fragment (%d bytes) from=%s\n",
+                  (*pkt)->buf->datalen,
+                  ccnl_addr2ascii(from ? &from->peer : NULL));
+
+    ccnl_frag_RX_BeginEnd2015(callback, relay, from,
+                              relay->ifs[from->ifndx].mtu,
+                              ((*pkt)->flags >> 2) & 0x03,
+                              (*pkt)->val.seqno, &data, &datalen);
+
     free_packet(*pkt);
     *pkt = NULL;
     return 0;
@@ -120,8 +126,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
 
-    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s> from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
                   ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
     if (ccnl_nonce_isDup(relay, *pkt)) {
@@ -292,6 +299,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         case CCN_DTAG_CONTENTOBJ:
             rc = ccnl_ccnb_fwd(relay, from, data, datalen, num);
             continue;
+#ifdef OBSOLETE_BY_2015_06
 #ifdef USE_FRAG
         case CCNL_DTAG_FRAGMENT2012:
             rc = ccnl_frag_RX_frag2012(ccnl_ccnb_forwarder, relay,
@@ -302,6 +310,7 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                                        from, data, datalen);
             continue;
 #endif
+#endif // OBSOLETE
         default:
             DEBUGMSG_CFWD(DEBUG, "  unknown datagram type %d\n", num);
             return -1;
@@ -330,9 +339,9 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder: %dB from face=%p (id=%d.%d)\n",
                   *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-    if (**data != CCNX_TLV_V1 ||
-                         *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
-        DEBUGMSG_CFWD(DEBUG, "  wrong version (%d)\n", **data);
+    if (*datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s) ||
+                                                     **data != CCNX_TLV_V1) {
+        DEBUGMSG_CFWD(DEBUG, "  short header or wrong version (%d)\n", **data);
         return -1;
     }
 
@@ -375,21 +384,24 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #ifdef USE_FRAG
     if (hp->pkttype == CCNX_PT_Fragment) {
-        struct ccnx_tlvhdr_ccnx2015_s *fp = 
-                                   (struct ccnx_tlvhdr_ccnx2015_s *)hp;
-        uint16_t *sp = (uint16_t*) (fp+1);
+        uint16_t *sp = (uint16_t*) *data;
         int fraglen = ntohs(*(sp+1));
 
         if (ntohs(*sp) == CCNX_TLV_TL_Fragment && fraglen == (payloadlen-4)) {
+            uint16_t fragfields; // = *(uint16_t *) &hp->fill;
             *data += 4;
             *datalen -= 4;
             payloadlen = fraglen;
-            ccnl_frag_RX_Sequenced2015(ccnl_ccntlv_forwarder, relay, from,
-                        relay->ifs[from->ifndx].mtu, fp->fill[0] >> 6,
-                        ntohs(*(uint16_t *)fp->fill) & 0x03fff, data, &fraglen);
+
+            memcpy(&fragfields, hp->fill, 2);
+            fragfields = ntohs(fragfields);
+
+            ccnl_frag_RX_BeginEnd2015(ccnl_ccntlv_forwarder, relay, from,
+                            relay->ifs[from->ifndx].mtu, fragfields >> 14,
+                            fragfields & 0x3fff, data, datalen);
+
             DEBUGMSG_CFWD(TRACE, "  done (fraglen=%d, payloadlen=%d, *datalen=%d)\n",
                      fraglen, payloadlen, *datalen);
-            *datalen -= payloadlen - fraglen;
         } else {
             DEBUGMSG_CFWD(DEBUG, "  problem with frag type or length (%d, %d, %d)\n",
                      ntohs(*sp), fraglen, payloadlen);
@@ -398,14 +410,25 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
         DEBUGMSG_CFWD(TRACE, "  returning after fragment: %d bytes\n", *datalen);
         return 0;
+    } else {
+        DEBUGMSG_CFWD(TRACE, "  not a fragment, continueing\n");
     }
 #endif
+
+    if (!from) {
+        DEBUGMSG_CFWD(TRACE, "  local data, datalen=%d\n", *datalen);
+    }
 
     pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+    if (!from) {
+        DEBUGMSG_CFWD(TRACE, "  pkt ok\n");
+//        goto Done;
+    }
+
 
     if (hp->pkttype == CCNX_PT_Interest) {
         if (pkt->type == CCNX_TLV_TL_Interest) {
@@ -637,5 +660,42 @@ Done:
 }
 
 #endif // USE_SUITE_NDNTLV
+
+// ----------------------------------------------------------------------
+
+// insert forwarding entry with a tap - the prefix arg is consumed
+int
+ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+             tapCallback callback)
+{
+    struct ccnl_forward_s *fwd, **fwd2;
+
+    DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (fwd->suite == pfx->suite &&
+                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
+            free_prefix(fwd->prefix);
+            fwd->prefix = NULL;
+            break;
+        }
+    }
+    if (!fwd) {
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd)
+            return -1;
+        fwd2 = &relay->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        fwd->suite = pfx->suite;
+    }
+    fwd->prefix = pfx;
+    fwd->tap = callback;
+
+    return 0;
+}
+
 
 // eof

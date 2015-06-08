@@ -36,10 +36,12 @@
 
 #include "../lib-sha256.c"
 
+/*
 int ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
                                struct ccnl_face_s *from, int mtu,
-                               unsigned char bits, uint32_t seqno,
+                               unsigned int bits, unsigned int seqno,
                                unsigned char **data, int *datalen);
+*/
 
 // ----------------------------------------------------------------------
 
@@ -251,7 +253,7 @@ usage:
 
         for (;;) { // wait for a content pkt (ignore interests)
             unsigned char *cp = out;
-            int enc, suite2;
+            int enc, suite2, len2;
             DEBUGMSG(TRACE, "  waiting for packet\n");
 
             if (block_on_read(sock, wait) <= 0) // timeout
@@ -267,7 +269,8 @@ usage:
             }
 */
             suite2 = -1;
-            while (!ccnl_switch_dehead(&cp, &len, &enc))
+            len2 = len;
+            while (!ccnl_switch_dehead(&cp, &len2, &enc))
                 suite2 = ccnl_enc2suite(enc);
             if (suite2 != -1 && suite2 != suite) {
                 DEBUGMSG(DEBUG, "  unknown suite %d\n", suite);
@@ -275,56 +278,74 @@ usage:
             }
 
 #ifdef USE_FRAG
-            if (isFragment && isFragment(cp, len)) {
-                unsigned int t, len2;
+            if (isFragment && isFragment(cp, len2)) {
+                unsigned int t, len3;
+                DEBUGMSG(DEBUG, "  fragment, %d bytes\n", len2);
                 switch(suite) {
                 case CCNL_SUITE_CCNTLV: {
                     struct ccnx_tlvhdr_ccnx2015_s *hp;
                     hp = (struct ccnx_tlvhdr_ccnx2015_s *) out;
                     cp = out + sizeof(*hp);
-                    len -= sizeof(*hp);
-                    if (ccnl_ccntlv_dehead(&cp, &len, &t, &len2) < 0 ||
+                    len2 -= sizeof(*hp);
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &t, &len3) < 0 ||
                         t != CCNX_TLV_TL_Fragment) {
                         DEBUGMSG(ERROR, "  error parsing fragment\n");
                         continue;
                     }
+                    /*
                     rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
                                       4096, hp->fill[0] >> 6,
                                       ntohs(*(uint16_t*) hp->fill) & 0x03fff,
                                       &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                                      4096, hp->fill[0] >> 6,
+                                      ntohs(*(uint16_t*) hp->fill) & 0x03fff,
+                                      &cp, (int*) &len3);
                     break;
                 }
                 case CCNL_SUITE_IOTTLV: {
                     uint16_t tmp;
 
-                    if (ccnl_iottlv_dehead(&cp, &len, &t, &len2)) // IOT_TLV_Fragment
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) { // IOT_TLV_Fragment
+                        DEBUGMSG(VERBOSE, "problem parsing fragment\n");
                         continue;
+                    }
+                    /*
                     fprintf(stderr, "t=%d len=%d\n", t, len2);
                     if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
                         continue;
-                    fprintf(stderr, "t=%d, len=%d\n", t, len2);
+                    */
+                    DEBUGMSG(VERBOSE, "t=%d, len=%d\n", t, len3);
                     if (t == IOT_TLV_F_OptFragHdr) { // skip it for the time being
-                        cp += len2;
-                        len -= len2;
-                        if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
+                        cp += len3;
+                        len2 -= len3;
+                        if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3))
                             continue;
                     }
-                    if (t != IOT_TLV_F_FlagsAndSeq || len2 < 2) {
-                        DEBUGMSG_CFWD(DEBUG, "  no flags and seqrn found (%d)\n", t);
+                    if (t != IOT_TLV_F_FlagsAndSeq || len3 < 2) {
+                        DEBUGMSG(DEBUG, "  no flags and seqrn found (%d)\n", t);
                         continue;
                     }
                     tmp = ntohs(*(uint16_t*) cp);
-                    cp += len2;
-                    len -= len2;
+                    cp += len3;
+                    len2 -= len3;
 
-                    if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
-                        continue;
-                    if (t != IOT_TLV_F_Data) {
-                        DEBUGMSG_CFWD(DEBUG, "  no payload (%d)\n", t);
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) {
+                        DEBUGMSG(DEBUG, "  cannot parse frag payload\n");
                         continue;
                     }
+                    DEBUGMSG(DEBUG, "  fragment payload len=%d\n", len3);
+                    if (t != IOT_TLV_F_Data) {
+                        DEBUGMSG(DEBUG, "  no payload (%d)\n", t);
+                        continue;
+                    }
+                    /*
                     rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
                              4096, tmp >> 14, tmp & 0x7ff, &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                             4096, tmp >> 14, tmp & 0x3fff, &cp, (int*) &len3);
                     fprintf(stderr, "--\n");
                     break;
                 }

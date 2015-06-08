@@ -40,6 +40,7 @@
 #define CCNL_FRAG_SEQUENCED2012 1
 #define CCNL_FRAG_CCNx2013      2
 #define CCNL_FRAG_SEQUENCED2015 3
+#define CCNL_FRAG_BEGINEND2015  4
 
 // ----------------------------------------------------------------------
 
@@ -183,10 +184,13 @@ struct ccnl_face_s {
     struct ccnl_sched_s *sched;
 };
 
+typedef void (*tapCallback)(struct ccnl_relay_s *, struct ccnl_face_s *,
+                            struct ccnl_prefix_s *, struct ccnl_buf_s *);
+
 struct ccnl_forward_s {
     struct ccnl_forward_s *next;
     struct ccnl_prefix_s *prefix;
-    void (*tap)(struct ccnl_relay_s *, struct ccnl_face_s *, struct ccnl_prefix_s *, struct ccnl_buf_s *);
+    tapCallback tap;
     struct ccnl_face_s *face;
     char suite;
 };

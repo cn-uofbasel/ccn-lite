@@ -452,7 +452,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
         //Only for matching suite
         if (!i->pkt->pfx || fwd->suite != i->pkt->pfx->suite) {
-            DEBUGMSG_CORE(DEBUG, "  not same suite (%d/%d)\n",
+            DEBUGMSG_CORE(VERBOSE, "  not same suite (%d/%d)\n",
                      fwd->suite, i->pkt->pfx ? i->pkt->pfx->suite : -1);
             continue;
         }
@@ -729,8 +729,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
-                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s> to=%s\n",
+                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s to=%s\n",
                           ccnl_prefix_to_path(i->pkt->pfx),
+                          ccnl_suite2str(i->pkt->pfx->suite),
                           ccnl_addr2ascii(&pi->face->peer));
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);

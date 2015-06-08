@@ -559,6 +559,8 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     struct ccnl_buf_s *buf;
     uint16_t tmp = 0;
 
+    DEBUGMSG(TRACE, "ccnl_ndntlv_mkFrag seqno=%d\n", fr->sendseq);
+
     // pre-compute overhead, first
     datalen = fr->bigpkt->datalen - fr->sendoffs;
     if (datalen > fr->mtu)
