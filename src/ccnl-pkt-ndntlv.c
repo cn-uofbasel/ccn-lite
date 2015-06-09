@@ -83,13 +83,19 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     int oldpos;
     unsigned int i, typ, len;
     struct ccnl_prefix_s *p = 0;
+#ifdef USE_HMAC256
+    int validAlgoIsHmac256 = 0;
+#endif
 
-    DEBUGMSG(DEBUG, "extracting NDNTLV packet\n");
+    DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%d\n", *datalen);
 
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
 
+#ifdef USE_HMAC256
+    pkt->hmacStart = start;
+#endif
     switch(pkttype) {
     case NDN_TLV_Interest:
         pkt->flags |= CCNL_PKT_REQUEST;
@@ -233,6 +239,27 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 pkt->flags |= CCNL_PKT_FRAG_END;
             pkt->val.seqno &= 0x3fff;
             break;
+#ifdef USE_HMAC256
+        case NDN_TLV_SignatureInfo:
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                    goto Bail;
+                if (typ == NDN_TLV_SignatureType && i == 1 &&
+                                          *cp == NDN_VAL_SIGNATURE_HMAC256) {
+                    validAlgoIsHmac256 = 1;
+                    break;
+                }
+                cp += i;
+                len2 -= i;
+            }
+            break;
+        case NDN_TLV_SignatureValue:
+            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
+                pkt->hmacLen = oldpos;
+                pkt->hmacSignature = *data;
+            }
+            break;
+#endif
         default:
             break;
         }

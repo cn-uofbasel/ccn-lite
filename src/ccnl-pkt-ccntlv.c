@@ -100,7 +100,8 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 */
 }
 
-// we use one extraction routine for both interest and data pkts
+// We use one extraction procedure for both interest and data pkts.
+// This proc assumes that the packet header was already processed and consumed
 struct ccnl_pkt_s*
 ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
@@ -108,6 +109,9 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     int i;
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
+#ifdef USE_HMAC256
+    int validAlgoIsHmac256 = 0;
+#endif
 
     DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_bytes2pkt len=%d\n", *datalen);
 
@@ -122,9 +126,12 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     }
     p->compcnt = 0;
 
-    // We ignore the TL types of the message for now
-    // content and interests are filled in both cases (and only one exists)
-    // validation is ignored
+#ifdef USE_HMAC256
+    pkt->hmacStart = *data;
+#endif
+    // We ignore the TL types of the message for now:
+    // content and interests are filled in both cases (and only one exists).
+    // Validation info is now collected
     if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || len > *datalen)
         goto Bail;
 
@@ -215,6 +222,22 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             pkt->content = *data;
             pkt->contlen = len;
             break;
+#ifdef USE_HMAC256
+        case CCNX_TLV_TL_ValidationAlgo:
+            cp = *data;
+            len2 = len;
+            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
+                goto Bail;
+            if (typ == CCNX_VALIDALGO_HMAC_SHA256 && len3 == 0)
+                validAlgoIsHmac256 = 1;
+            break;
+        case CCNX_TLV_TL_ValidationPayload:
+            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
+                pkt->hmacLen = *data - pkt->hmacStart - 4;
+                pkt->hmacSignature = *data;
+            }
+            break;
+#endif
         default:
             break;
         }
@@ -236,6 +259,10 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         p->comp[i] = pkt->buf->data + (p->comp[i] - start);
     if (p->nameptr)
         p->nameptr = pkt->buf->data + (p->nameptr - start);
+#ifdef USE_HMAC256
+    pkt->hmacStart = pkt->buf->data + (pkt->hmacStart - start);
+    pkt->hmacSignature = pkt->buf->data + (pkt->hmacSignature - start);
+#endif
 
     return pkt;
 Bail:
