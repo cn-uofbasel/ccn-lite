@@ -3,8 +3,11 @@
 PROFILES=bt-relay-nothing \
 	bt-relay-barebones \
 	bt-relay-vanilla \
+	bt-relay-frag \
+	bt-relay-authCtrl \
 	bt-relay-nfn \
-	bt-relay-all
+	bt-relay-all \
+	bt-all
 
 .PHONY: all ${PROFILES}
 all: ${PROFILES}
@@ -40,6 +43,20 @@ bt-relay-vanilla:
 	TARGET_FNAME=ccn-lite-relay.c \
 	./build-test-helper.sh
 
+bt-relay-frag:
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	MAKE_VARS="USE_FRAG=1" \
+	./build-test-helper.sh
+
+bt-relay-authCtrl:
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	MAKE_VARS="USE_SIGNATURES=1" \
+	./build-test-helper.sh
+
 bt-relay-nfn:
 	@MAKE_TARGETS="clean ccn-nfn-relay" \
 	LOG_FNAME=$@ \
@@ -52,4 +69,9 @@ bt-relay-all:
 	LOG_FNAME=$@ \
 	TARGET_FNAME=ccn-lite-relay.c \
 	SET_VARS="USE_FRAG" \
+	./build-test-helper.sh
+
+bt-all:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
 	./build-test-helper.sh

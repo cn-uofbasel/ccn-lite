@@ -5,13 +5,17 @@
 # The output of the build is stored in /tmp/$LOG_FNAME. If the build failed, the
 # modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
 #
-# Parameters:
+# Parameters (passed in environment variables):
 # 	LOG_FNAME	name of the logfile to write to
 #	TARGET_FNAME	name of the file to change #defines
 #	MAKE_TARGETS	targets that need to be built
 #	MAKE_VARS	variable-value pairs that are sent to the Makefile
 #	SET_VARS	variables that need to be defined
 #	UNSET_VARS	variables that need to be unset
+
+if [ "$MAKE_TARGETS" = "all" ]; then
+  export MAKE_TARGETS="clean all"
+else # one target only, modify some compile time options
 
 # Backup
 cp "$TARGET_FNAME" "$TARGET_FNAME.bak"
@@ -28,6 +32,8 @@ for VAR in $UNSET_VARS; do
   sed -i "s!^\s*#define $VAR!// #define $VAR!" "$TARGET_FNAME"
 done
 
+fi # all
+
 printf "%-30s [..]" "$LOG_FNAME"
 
 # Build and log output
@@ -38,8 +44,12 @@ if [ $? = 0 ]; then
     echo -e "\b\b\b\b[\e[32mok\e[0m]"
 else
     echo -e "\b\b\b\b\b\b\b\b[\e[31mfailed\e[0m]"
-    cp "$TARGET_FNAME" "/tmp/$TARGET_FNAME.$LOG_FNAME"
+    if [ -n "$TARGET_FNAME" ]; then
+        cp "$TARGET_FNAME" "/tmp/$TARGET_FNAME.$LOG_FNAME"
+    fi
 fi
 
 # Replace backup
-mv "$TARGET_FNAME.bak" "$TARGET_FNAME"
+if [ -n "$TARGET_FNAME" ]; then
+    mv "$TARGET_FNAME.bak" "$TARGET_FNAME"
+fi
