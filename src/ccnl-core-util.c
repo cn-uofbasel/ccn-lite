@@ -802,7 +802,7 @@ ccnl_addr2ascii(sockunion *su)
 {
 #ifdef USE_UNIXSOCKET
     static char result[256];
-#else    
+#else
     static char result[25];
 #endif
 
@@ -835,6 +835,7 @@ ccnl_addr2ascii(sockunion *su)
         break;
     }
 
+    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
     return NULL;
 }
 

@@ -249,7 +249,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         DEBUGMSG(WARNING, "unknown transport\n");
         break;
     }
-    rc = 0; // just to silence a compiler warning (if USE_DEBUG is not set)
+    (void) rc; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
 void
@@ -356,7 +356,9 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
+#if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
     struct ccnl_if_s *i;
+#endif
 
     DEBUGMSG(INFO, "configuring relay\n");
 
@@ -568,9 +570,12 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        unsigned char *data;
         int fd, datalen, suite, skip;
+        unsigned char *data;
+        (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
+#if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
         unsigned int typ, len;
+#endif
         struct ccnl_pkt_s *pk;
 
         if (de->d_name[0] == '.')
@@ -706,9 +711,11 @@ Done:
         free_packet(pk);
         ccnl_free(buf);
         continue;
+#if defined(USE_SUITE_CCNB) || defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
 notacontent:
         DEBUGMSG(WARNING, "not a content object (%s)\n", de->d_name);
         ccnl_free(buf);
+#endif
     }
 
     closedir(dir);
