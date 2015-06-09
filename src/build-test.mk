@@ -1,25 +1,55 @@
 # build-test.mk
 
-PROFILES=bt-relay-barebones \
+PROFILES=bt-relay-nothing \
+	bt-relay-barebones \
 	bt-relay-vanilla \
+	bt-relay-nfn \
 	bt-relay-all
 
+.PHONY: all ${PROFILES}
 all: ${PROFILES}
 
+bt-relay-nothing:
+# Build without any USE_*
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	UNSET_VARS="USE_CCNxDIGEST USE_DEBUG USE_DEBUG_MALLOC USE_ECHO \
+		USE_ETHERNET USE_HMAC256 USE_HTTP_STATUS USE_IPV4 USE_MGMT \
+		USE_NACK USE_NFN USE_NFN_NSTRANS USE_NFN_MONITOR USE_SCHEDULER \
+		USE_STATS USE_SUITE_CCNB USE_SUITE_CCNTLV USE_SUITE_CISTLV \
+		USE_SUITE_IOTTLV USE_SUITE_NDNTLV USE_SUITE_LOCALRPC USE_UNIXSOCKET" \
+	./build-test-helper.sh
+
 bt-relay-barebones:
-	@cp ccn-lite-relay.c ccn-lite-relay.c.backup
-	@sed -e 's!#define USE_HMAC256!// #define USE_HMAC256!' <ccn-lite-relay.c >t.c
-	@mv t.c ccn-lite-relay.c
-	@./build-test-helper.sh $@ ccn-lite-relay
-	@mv ccn-lite-relay.c.backup ccn-lite-relay.c
+# Build only with USE_IPV4 and USE_SUITE_NDNTLV
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	SET_VARS="USE_IPV4 USE_SUITE_NDNTLV" \
+	UNSET_VARS="USE_CCNxDIGEST USE_DEBUG USE_DEBUG_MALLOC USE_ECHO \
+		USE_ETHERNET USE_HMAC256 USE_HTTP_STATUS USE_MGMT \
+		USE_NACK USE_NFN USE_NFN_NSTRANS USE_NFN_MONITOR USE_SCHEDULER \
+		USE_STATS USE_SUITE_CCNB USE_SUITE_CCNTLV USE_SUITE_CISTLV \
+		USE_SUITE_IOTTLV USE_SUITE_LOCALRPC USE_UNIXSOCKET" \
+	./build-test-helper.sh
 
 bt-relay-vanilla:
-	@./build-test-helper.sh $@ clean ccn-lite-relay
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	./build-test-helper.sh
+
+bt-relay-nfn:
+	@MAKE_TARGETS="clean ccn-nfn-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	MAKE_VARS="USE_NFN=1" \
+	./build-test-helper.sh
 
 bt-relay-all:
-	@cp ccn-lite-relay.c ccn-lite-relay.c.backup
-	@sed -e 's!//\s*#define USE_FRAG!#define USE_FRAG!' <ccn-lite-relay.c >t.c
-	@mv t.c ccn-lite-relay.c
-	@./build-test-helper.sh $@ ccn-lite-relay
-	@mv ccn-lite-relay.c.backup ccn-lite-relay.c
-
+	@MAKE_TARGETS="clean ccn-lite-relay" \
+	LOG_FNAME=$@ \
+	TARGET_FNAME=ccn-lite-relay.c \
+	SET_VARS="USE_FRAG" \
+	./build-test-helper.sh
