@@ -18,22 +18,26 @@ cp "$TARGET_FNAME" "$TARGET_FNAME.bak"
 
 # Define variables that are commented out
 for VAR in $SET_VARS; do
+#  echo "Defining $VAR..."
   sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$TARGET_FNAME"
 done
 
 # Comment already defined variables
 for VAR in $UNSET_VARS; do
+#  echo "Unsetting $VAR..."
   sed -i "s!^\s*#define $VAR!// #define $VAR!" "$TARGET_FNAME"
 done
+
+printf "%-30s [..]" "$LOG_FNAME"
 
 # Build and log output
 make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
 
 # Print status
 if [ $? = 0 ]; then
-    echo -e "[\e[32mok\e[0m]      $LOG_FNAME"
+    echo -e "\b\b\b\b[\e[32mok\e[0m]"
 else
-    echo -e "[\e[31mfailed\e[0m]  $LOG_FNAME"
+    echo -e "\b\b\b\b\b\b\b\b[\e[31mfailed\e[0m]"
     cp "$TARGET_FNAME" "/tmp/$TARGET_FNAME.$LOG_FNAME"
 fi
 
