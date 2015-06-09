@@ -7,6 +7,7 @@ PROFILES=bt-relay-nothing \
 	bt-relay-authCtrl \
 	bt-relay-nfn \
 	bt-relay-all \
+	bt-lnx-kernel \
 	bt-all
 
 .PHONY: all ${PROFILES}
@@ -71,6 +72,10 @@ bt-relay-all:
 	SET_VARS="USE_FRAG" \
 	./build-test-helper.sh
 
+bt-lnx-kernel:
+	@MAKE_TARGETS="lnx-kernel" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh
 bt-all:
 	@MAKE_TARGETS="all" \
 	LOG_FNAME=$@ \

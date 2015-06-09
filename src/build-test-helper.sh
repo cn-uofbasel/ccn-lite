@@ -14,8 +14,14 @@
 #	UNSET_VARS	variables that need to be unset
 
 if [ "$MAKE_TARGETS" = "all" ]; then
+  unset USE_KRNL
   export MAKE_TARGETS="clean all"
+elif [ "$MAKE_TARGETS" = "lnx-kernel" ]; then
+  export USE_KRNL=1
+  export MAKE_TARGETS=""
 else # one target only, modify some compile time options
+
+unset USE_KRNL
 
 # Backup
 cp "$TARGET_FNAME" "$TARGET_FNAME.bak"

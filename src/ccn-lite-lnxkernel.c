@@ -132,19 +132,18 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_INET:
     {
         struct iovec iov;
-        struct iov_iter iov_iter;
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
 
         iov.iov_base = buf->data;
         iov.iov_len = buf->datalen;
-        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
 
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = &dest->ip4;
         msg.msg_namelen = sizeof(dest->ip4);
-        msg.msg_iter = iov_iter;
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
         msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
         oldfs = get_fs();
@@ -179,20 +178,19 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_UNIX:
     {
         struct iovec iov;
-        struct iov_iter iov_iter;
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
 
         iov.iov_base = buf->data;
         iov.iov_len = buf->datalen;
-        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
 
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = dest; //->ux.sun_path;
         msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
             strlen(dest->ux.sun_path) + 1;
-        msg.msg_iter = iov_iter;
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
         msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
 
         oldfs = get_fs();
