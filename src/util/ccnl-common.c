@@ -44,7 +44,7 @@
 #include <getopt.h>
 #include <limits.h>
 
-extern int getline(char **lineptr, size_t *n, FILE *stream);
+//extern int getline(char **lineptr, size_t *n, FILE *stream);
 
 #include <arpa/inet.h>
 #include <sys/types.h>
