@@ -25,14 +25,14 @@ if [ -n "$MODIFIY_FNAME" ]; then
 
     # Define variables that are commented out
     for VAR in $SET_VARS; do
-    #  echo "Defining $VAR..."
-      sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
+        #  echo "Defining $VAR..."
+        sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
     done
 
     # Comment already defined variables
     for VAR in $UNSET_VARS; do
-    #  echo "Unsetting $VAR..."
-      sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
+        #  echo "Unsetting $VAR..."
+        sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
     done
 fi
 
