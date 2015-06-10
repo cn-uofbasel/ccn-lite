@@ -34,14 +34,7 @@
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
-#include "../lib-sha256.c"
-
-/*
-int ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
-                               struct ccnl_face_s *from, int mtu,
-                               unsigned int bits, unsigned int seqno,
-                               unsigned char **data, int *datalen);
-*/
+// #include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
@@ -105,7 +98,7 @@ usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
             "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
-            "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
+            "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif

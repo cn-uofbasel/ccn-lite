@@ -867,6 +867,8 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
+    
+    (void) base; // silence compiler warning (if USE_DEBUG is not set)
 
     DEBUGMSG_CORE(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
     //    DEBUGMSG_ON(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);

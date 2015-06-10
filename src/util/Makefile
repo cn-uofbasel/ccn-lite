@@ -16,7 +16,8 @@ PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-pktdump \
 	ccn-lite-produce \
 	ccn-lite-rpc \
-	ccn-lite-simplenfn
+	ccn-lite-simplenfn \
+	ccn-lite-valid
 
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
@@ -116,6 +117,11 @@ ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 
 ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
+
+ccn-lite-valid: Makefile ccn-lite-valid.c \
+		${CCNTLV_LIB} ${NDNTLV_LIB} \
+		../ccnl-defs.h ../ccnl-core-util.c
+	$(CC) $(CFLAGS) ccn-lite-valid.c -o $@ 
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-pktdump

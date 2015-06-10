@@ -44,6 +44,8 @@
 #include <getopt.h>
 #include <limits.h>
 
+extern int getline(char **lineptr, size_t *n, FILE *stream);
+
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/select.h>
@@ -51,7 +53,6 @@
 #include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/un.h>
-
 
 #include "base64.c"
 
@@ -402,5 +403,51 @@ int ndntlv_isData(unsigned char *buf, int len)
     return 1;
 }
 #endif // USE_SUITE_NDNTLV
+
+struct key_s {
+    struct key_s *next;
+    unsigned char* key;
+    int keylen;
+};
+
+struct key_s*
+load_keys_from_file(char *path)
+{
+    FILE *fp = fopen(optarg, "r");
+    char *line = NULL;
+    unsigned char *key;
+    size_t klen = 0, keylen;
+    int cnt = 0, read;
+    struct key_s *klist = NULL, *kend = NULL;
+
+    if (!fp) {
+        perror("file open");
+        return NULL;
+    }
+    while ((read = getline(&line, &klen, fp)) != -1) {
+        DEBUGMSG(TRACE, "  read %d bytes\n", read);
+        if (line[read-1] == '\n')
+            line[--read] = '\0';
+        key = base64_decode(line, read, &keylen);
+        if (key && keylen > 0) {
+            struct key_s *k = calloc(1, sizeof(struct key_s*));
+            k->keylen = keylen;
+            k->key = key;
+            if (kend)
+                kend->next = k;
+            else
+                klist = k;
+            kend = k;
+            cnt++;
+            DEBUGMSG(VERBOSE, "  key #%d: %d bytes\n", cnt, (int)keylen);
+            if (keylen < 32) {
+                DEBUGMSG(WARNING, "key #%d: should choose a longer key!\n", cnt);
+            }
+        }
+    }
+    fclose(fp);
+    DEBUGMSG(DEBUG, "read %d keys from file %s\n", cnt, optarg);
+    return klist;
+}
 
 // eof

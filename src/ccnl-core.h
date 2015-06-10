@@ -269,6 +269,11 @@ struct ccnl_pkt_s {
         struct ccnl_pktdetail_iottlv_s iottlv;
         struct ccnl_pktdetail_ndntlv_s ndntlv;
     } s;                           // suite specific packet details
+#ifdef USE_HMAC256
+    unsigned char *hmacStart;
+    int hmacLen;
+    unsigned char *hmacSignature;
+#endif
     unsigned int flags;
     char suite;
 };
