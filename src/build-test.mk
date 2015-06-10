@@ -12,7 +12,8 @@ PROFILES=bt-relay-nothing \
 
 .PHONY: all ${PROFILES}
 all: ${PROFILES}
-	@echo -e "\nSee /tmp/bt-*.log for more details."
+	@echo ""
+	@echo "See /tmp/bt-*.log for more details."
 
 bt-relay-nothing:
 # Build without any USE_*
