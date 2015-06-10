@@ -132,6 +132,9 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_INET:
     {
         struct iovec iov;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0)
+        struct iov_iter iov_iter;
+#endif
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
@@ -142,9 +145,15 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = &dest->ip4;
         msg.msg_namelen = sizeof(dest->ip4);
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,19,0)
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
-        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+#else
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
+        msg.msg_iter = iov_iter;
+#endif
 
         oldfs = get_fs();
         set_fs(KERNEL_DS);
@@ -178,6 +187,9 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_UNIX:
     {
         struct iovec iov;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0)
+        struct iov_iter iov_iter;
+#endif
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
@@ -189,9 +201,15 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         msg.msg_name = dest; //->ux.sun_path;
         msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
             strlen(dest->ux.sun_path) + 1;
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,19,0)
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
-        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+#else
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
+        msg.msg_iter = iov_iter;
+#endif
 
         oldfs = get_fs();
         set_fs(KERNEL_DS);
