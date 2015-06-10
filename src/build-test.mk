@@ -7,7 +7,7 @@ PROFILES=bt-relay-nothing \
 	bt-relay-authCtrl \
 	bt-relay-nfn \
 	bt-relay-all \
-	bt-lnx-kernel \
+	bt-lnxkernel \
 	bt-all
 
 .PHONY: all ${PROFILES}
@@ -42,7 +42,6 @@ bt-relay-barebones:
 bt-relay-vanilla:
 	@MAKE_TARGETS="clean ccn-lite-relay" \
 	LOG_FNAME=$@ \
-	MODIFIY_FNAME=ccn-lite-relay.c \
 	./build-test-helper.sh
 
 bt-relay-frag:
