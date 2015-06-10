@@ -233,7 +233,7 @@ restart:
                             num_of_required_thunks, &config, prefix, suite);
 
     //stores result if computed      
-    if (res && res->data && res->datalen > 0) {
+    if (res && res->datalen > 0) {
         struct ccnl_prefix_s *copy;
         struct ccnl_content_s *c;
 
