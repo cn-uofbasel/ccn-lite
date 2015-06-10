@@ -7,38 +7,34 @@
 #
 # Parameters (passed in environment variables):
 # 	LOG_FNAME	name of the logfile to write to
-#	TARGET_FNAME	name of the file to change #defines
 #	MAKE_TARGETS	targets that need to be built
 #	MAKE_VARS	variable-value pairs that are sent to the Makefile
-#	SET_VARS	variables that need to be defined
-#	UNSET_VARS	variables that need to be unset
+#	MODIFIY_FNAME	name of the file to change #defines
+#	SET_VARS	#define variables that need to be defined
+#	UNSET_VARS	#define variables that need to be unset
 
-if [ "$MAKE_TARGETS" = "all" ]; then
-  unset USE_KRNL
-  export MAKE_TARGETS="clean all"
-elif [ "$MAKE_TARGETS" = "lnx-kernel" ]; then
-  export USE_KRNL=1
-  export MAKE_TARGETS=""
-else # one target only, modify some compile time options
-
+# Undefining all environment variables in this invocation (build variables are passed as MAKE_VARS)
 unset USE_KRNL
+unset USE_FRAG
+unset USE_NFN
+unset USE_SIGNATURES
 
-# Backup
-cp "$TARGET_FNAME" "$TARGET_FNAME.bak"
+if [ -n "$MODIFIY_FNAME" ]; then
+  # Backup
+  cp "$MODIFIY_FNAME" "$MODIFIY_FNAME.bak"
 
-# Define variables that are commented out
-for VAR in $SET_VARS; do
-#  echo "Defining $VAR..."
-  sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$TARGET_FNAME"
-done
+  # Define variables that are commented out
+  for VAR in $SET_VARS; do
+  #  echo "Defining $VAR..."
+    sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
+  done
 
-# Comment already defined variables
-for VAR in $UNSET_VARS; do
-#  echo "Unsetting $VAR..."
-  sed -i "s!^\s*#define $VAR!// #define $VAR!" "$TARGET_FNAME"
-done
-
-fi # all
+  # Comment already defined variables
+  for VAR in $UNSET_VARS; do
+  #  echo "Unsetting $VAR..."
+    sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
+  done
+fi
 
 printf "%-30s [..]" "$LOG_FNAME"
 
@@ -50,12 +46,12 @@ if [ $? = 0 ]; then
     echo -e "\b\b\b\b[\e[32mok\e[0m]"
 else
     echo -e "\b\b\b\b\b\b\b\b[\e[31mfailed\e[0m]"
-    if [ -n "$TARGET_FNAME" ]; then
-        cp "$TARGET_FNAME" "/tmp/$TARGET_FNAME.$LOG_FNAME"
+    if [ -n "$MODIFIY_FNAME" ]; then
+        cp "$MODIFIY_FNAME" "/tmp/$MODIFIY_FNAME.$LOG_FNAME"
     fi
 fi
 
 # Replace backup
-if [ -n "$TARGET_FNAME" ]; then
-    mv "$TARGET_FNAME.bak" "$TARGET_FNAME"
+if [ -n "$MODIFIY_FNAME" ]; then
+    mv "$MODIFIY_FNAME.bak" "$MODIFIY_FNAME"
 fi
