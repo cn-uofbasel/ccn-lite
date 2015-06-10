@@ -1082,5 +1082,4 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
 // eof

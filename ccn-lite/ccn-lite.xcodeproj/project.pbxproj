@@ -1,0 +1,380 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		BC2182041AA5E19500ECCAAB /* ccn-lite-lnxkernel.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccn-lite-lnxkernel.c"; path = "../src/ccn-lite-lnxkernel.c"; sourceTree = "<group>"; };
+		BC2182051AA5E19500ECCAAB /* ccn-lite-minimalrelay */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = "ccn-lite-minimalrelay"; path = "../src/ccn-lite-minimalrelay"; sourceTree = "<group>"; };
+		BC2182061AA5E19500ECCAAB /* ccn-lite-minimalrelay.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccn-lite-minimalrelay.c"; path = "../src/ccn-lite-minimalrelay.c"; sourceTree = "<group>"; };
+		BC2182071AA5E19500ECCAAB /* ccn-lite-minimalrelay.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; name = "ccn-lite-minimalrelay.dSYM"; path = "../src/ccn-lite-minimalrelay.dSYM"; sourceTree = "<group>"; };
+		BC2182081AA5E19500ECCAAB /* ccn-lite-relay */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = "ccn-lite-relay"; path = "../src/ccn-lite-relay"; sourceTree = "<group>"; };
+		BC2182091AA5E19500ECCAAB /* ccn-lite-relay.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccn-lite-relay.c"; path = "../src/ccn-lite-relay.c"; sourceTree = "<group>"; };
+		BC21820A1AA5E19500ECCAAB /* ccn-lite-relay.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; name = "ccn-lite-relay.dSYM"; path = "../src/ccn-lite-relay.dSYM"; sourceTree = "<group>"; };
+		BC21820B1AA5E19500ECCAAB /* ccn-lite-simu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccn-lite-simu.c"; path = "../src/ccn-lite-simu.c"; sourceTree = "<group>"; };
+		BC21820C1AA5E19500ECCAAB /* ccn-nfn-relay */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = "ccn-nfn-relay"; path = "../src/ccn-nfn-relay"; sourceTree = "<group>"; };
+		BC21820D1AA5E19500ECCAAB /* ccn-nfn-relay.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; name = "ccn-nfn-relay.dSYM"; path = "../src/ccn-nfn-relay.dSYM"; sourceTree = "<group>"; };
+		BC21820E1AA5E19500ECCAAB /* ccnl-core-fwd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-core-fwd.c"; path = "../src/ccnl-core-fwd.c"; sourceTree = "<group>"; };
+		BC21820F1AA5E19500ECCAAB /* ccnl-core-util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-core-util.c"; path = "../src/ccnl-core-util.c"; sourceTree = "<group>"; };
+		BC2182101AA5E19500ECCAAB /* ccnl-core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-core.c"; path = "../src/ccnl-core.c"; sourceTree = "<group>"; };
+		BC2182111AA5E19500ECCAAB /* ccnl-core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-core.h"; path = "../src/ccnl-core.h"; sourceTree = "<group>"; };
+		BC2182121AA5E19500ECCAAB /* ccnl-defs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-defs.h"; path = "../src/ccnl-defs.h"; sourceTree = "<group>"; };
+		BC2182131AA5E19500ECCAAB /* ccnl-ext-crypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-crypto.c"; path = "../src/ccnl-ext-crypto.c"; sourceTree = "<group>"; };
+		BC2182141AA5E19500ECCAAB /* ccnl-ext-debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-debug.c"; path = "../src/ccnl-ext-debug.c"; sourceTree = "<group>"; };
+		BC2182151AA5E19500ECCAAB /* ccnl-ext-debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-ext-debug.h"; path = "../src/ccnl-ext-debug.h"; sourceTree = "<group>"; };
+		BC2182161AA5E19500ECCAAB /* ccnl-ext-frag.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-frag.c"; path = "../src/ccnl-ext-frag.c"; sourceTree = "<group>"; };
+		BC2182171AA5E19500ECCAAB /* ccnl-ext-http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-http.c"; path = "../src/ccnl-ext-http.c"; sourceTree = "<group>"; };
+		BC2182181AA5E19500ECCAAB /* ccnl-ext-localrpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-localrpc.c"; path = "../src/ccnl-ext-localrpc.c"; sourceTree = "<group>"; };
+		BC2182191AA5E19500ECCAAB /* ccnl-ext-logging.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-logging.c"; path = "../src/ccnl-ext-logging.c"; sourceTree = "<group>"; };
+		BC21821A1AA5E19500ECCAAB /* ccnl-ext-mgmt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-mgmt.c"; path = "../src/ccnl-ext-mgmt.c"; sourceTree = "<group>"; };
+		BC21821B1AA5E19500ECCAAB /* ccnl-ext-nfn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfn.c"; path = "../src/ccnl-ext-nfn.c"; sourceTree = "<group>"; };
+		BC21821C1AA5E19500ECCAAB /* ccnl-ext-nfn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-ext-nfn.h"; path = "../src/ccnl-ext-nfn.h"; sourceTree = "<group>"; };
+		BC21821D1AA5E19500ECCAAB /* ccnl-ext-nfncommon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfncommon.c"; path = "../src/ccnl-ext-nfncommon.c"; sourceTree = "<group>"; };
+		BC21821E1AA5E19500ECCAAB /* ccnl-ext-nfnkrivine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfnkrivine.c"; path = "../src/ccnl-ext-nfnkrivine.c"; sourceTree = "<group>"; };
+		BC21821F1AA5E19500ECCAAB /* ccnl-ext-nfnmonitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfnmonitor.c"; path = "../src/ccnl-ext-nfnmonitor.c"; sourceTree = "<group>"; };
+		BC2182201AA5E19500ECCAAB /* ccnl-ext-nfnops.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfnops.c"; path = "../src/ccnl-ext-nfnops.c"; sourceTree = "<group>"; };
+		BC2182211AA5E19500ECCAAB /* ccnl-ext-nfnparse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-nfnparse.c"; path = "../src/ccnl-ext-nfnparse.c"; sourceTree = "<group>"; };
+		BC2182221AA5E19500ECCAAB /* ccnl-ext-sched.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-ext-sched.c"; path = "../src/ccnl-ext-sched.c"; sourceTree = "<group>"; };
+		BC2182231AA5E19500ECCAAB /* ccnl-ext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-ext.h"; path = "../src/ccnl-ext.h"; sourceTree = "<group>"; };
+		BC2182241AA5E19500ECCAAB /* ccnl-headers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-headers.h"; path = "../src/ccnl-headers.h"; sourceTree = "<group>"; };
+		BC2182251AA5E19500ECCAAB /* ccnl-os-includes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-os-includes.h"; path = "../src/ccnl-os-includes.h"; sourceTree = "<group>"; };
+		BC2182261AA5E19500ECCAAB /* ccnl-os-time.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-os-time.c"; path = "../src/ccnl-os-time.c"; sourceTree = "<group>"; };
+		BC2182271AA5E19500ECCAAB /* ccnl-pkt-ccnb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-ccnb.c"; path = "../src/ccnl-pkt-ccnb.c"; sourceTree = "<group>"; };
+		BC2182281AA5E19500ECCAAB /* ccnl-pkt-ccnb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-pkt-ccnb.h"; path = "../src/ccnl-pkt-ccnb.h"; sourceTree = "<group>"; };
+		BC2182291AA5E19500ECCAAB /* ccnl-pkt-ccntlv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-ccntlv.c"; path = "../src/ccnl-pkt-ccntlv.c"; sourceTree = "<group>"; };
+		BC21822A1AA5E19500ECCAAB /* ccnl-pkt-ccntlv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-pkt-ccntlv.h"; path = "../src/ccnl-pkt-ccntlv.h"; sourceTree = "<group>"; };
+		BC21822B1AA5E19500ECCAAB /* ccnl-pkt-iottlv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-iottlv.c"; path = "../src/ccnl-pkt-iottlv.c"; sourceTree = "<group>"; };
+		BC21822C1AA5E19500ECCAAB /* ccnl-pkt-iottlv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-pkt-iottlv.h"; path = "../src/ccnl-pkt-iottlv.h"; sourceTree = "<group>"; };
+		BC21822D1AA5E19500ECCAAB /* ccnl-pkt-localrpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-localrpc.c"; path = "../src/ccnl-pkt-localrpc.c"; sourceTree = "<group>"; };
+		BC21822E1AA5E19500ECCAAB /* ccnl-pkt-localrpc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-pkt-localrpc.h"; path = "../src/ccnl-pkt-localrpc.h"; sourceTree = "<group>"; };
+		BC21822F1AA5E19500ECCAAB /* ccnl-pkt-ndntlv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-ndntlv.c"; path = "../src/ccnl-pkt-ndntlv.c"; sourceTree = "<group>"; };
+		BC2182301AA5E19500ECCAAB /* ccnl-pkt-ndntlv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-pkt-ndntlv.h"; path = "../src/ccnl-pkt-ndntlv.h"; sourceTree = "<group>"; };
+		BC2182311AA5E19500ECCAAB /* ccnl-pkt-switch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-pkt-switch.c"; path = "../src/ccnl-pkt-switch.c"; sourceTree = "<group>"; };
+		BC2182321AA5E19500ECCAAB /* ccnl-simu-client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-simu-client.c"; path = "../src/ccnl-simu-client.c"; sourceTree = "<group>"; };
+		BC2182331AA5E19500ECCAAB /* ccnl-uapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ccnl-uapi.c"; path = "../src/ccnl-uapi.c"; sourceTree = "<group>"; };
+		BC2182341AA5E19500ECCAAB /* ccnl-uapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ccnl-uapi.h"; path = "../src/ccnl-uapi.h"; sourceTree = "<group>"; };
+		BC2182351AA5E19500ECCAAB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../src/Makefile; sourceTree = "<group>"; };
+		BC2182371AA5E19500ECCAAB /* base64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = base64.c; sourceTree = "<group>"; };
+		BC2182381AA5E19500ECCAAB /* ccn-lite-ccnb2xml */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-ccnb2xml"; sourceTree = "<group>"; };
+		BC2182391AA5E19500ECCAAB /* ccn-lite-ccnb2xml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-ccnb2xml.c"; sourceTree = "<group>"; };
+		BC21823A1AA5E19500ECCAAB /* ccn-lite-ccnb2xml.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-ccnb2xml.dSYM"; sourceTree = "<group>"; };
+		BC21823B1AA5E19500ECCAAB /* ccn-lite-cryptoserver */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-cryptoserver"; sourceTree = "<group>"; };
+		BC21823C1AA5E19500ECCAAB /* ccn-lite-cryptoserver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-cryptoserver.c"; sourceTree = "<group>"; };
+		BC21823D1AA5E19500ECCAAB /* ccn-lite-cryptoserver.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-cryptoserver.dSYM"; sourceTree = "<group>"; };
+		BC21823E1AA5E19500ECCAAB /* ccn-lite-ctrl */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-ctrl"; sourceTree = "<group>"; };
+		BC21823F1AA5E19500ECCAAB /* ccn-lite-ctrl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-ctrl.c"; sourceTree = "<group>"; };
+		BC2182401AA5E19500ECCAAB /* ccn-lite-ctrl.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-ctrl.dSYM"; sourceTree = "<group>"; };
+		BC2182411AA5E19500ECCAAB /* ccn-lite-deF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-deF.c"; sourceTree = "<group>"; };
+		BC2182421AA5E19500ECCAAB /* ccn-lite-fetch */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-fetch"; sourceTree = "<group>"; };
+		BC2182431AA5E19500ECCAAB /* ccn-lite-fetch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-fetch.c"; sourceTree = "<group>"; };
+		BC2182441AA5E19500ECCAAB /* ccn-lite-fetch.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-fetch.dSYM"; sourceTree = "<group>"; };
+		BC2182451AA5E19500ECCAAB /* ccn-lite-mkC */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-mkC"; sourceTree = "<group>"; };
+		BC2182461AA5E19500ECCAAB /* ccn-lite-mkC.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-mkC.c"; sourceTree = "<group>"; };
+		BC2182471AA5E19500ECCAAB /* ccn-lite-mkC.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-mkC.dSYM"; sourceTree = "<group>"; };
+		BC2182481AA5E19500ECCAAB /* ccn-lite-mkF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-mkF.c"; sourceTree = "<group>"; };
+		BC2182491AA5E19500ECCAAB /* ccn-lite-mkI */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-mkI"; sourceTree = "<group>"; };
+		BC21824A1AA5E19500ECCAAB /* ccn-lite-mkI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-mkI.c"; sourceTree = "<group>"; };
+		BC21824B1AA5E19500ECCAAB /* ccn-lite-mkI.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-mkI.dSYM"; sourceTree = "<group>"; };
+		BC21824C1AA5E19500ECCAAB /* ccn-lite-ndnstream.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = "ccn-lite-ndnstream.py"; sourceTree = "<group>"; };
+		BC21824D1AA5E19500ECCAAB /* ccn-lite-peek */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-peek"; sourceTree = "<group>"; };
+		BC21824E1AA5E19500ECCAAB /* ccn-lite-peek.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-peek.c"; sourceTree = "<group>"; };
+		BC21824F1AA5E19500ECCAAB /* ccn-lite-peek.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-peek.dSYM"; sourceTree = "<group>"; };
+		BC2182501AA5E19500ECCAAB /* ccn-lite-peekcomputation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-peekcomputation.c"; sourceTree = "<group>"; };
+		BC2182511AA5E19500ECCAAB /* ccn-lite-pktdump */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-pktdump"; sourceTree = "<group>"; };
+		BC2182521AA5E19500ECCAAB /* ccn-lite-pktdump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-pktdump.c"; sourceTree = "<group>"; };
+		BC2182531AA5E19500ECCAAB /* ccn-lite-pktdump.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-pktdump.dSYM"; sourceTree = "<group>"; };
+		BC2182541AA5E19500ECCAAB /* ccn-lite-produce */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-produce"; sourceTree = "<group>"; };
+		BC2182551AA5E19500ECCAAB /* ccn-lite-produce.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-produce.c"; sourceTree = "<group>"; };
+		BC2182561AA5E19500ECCAAB /* ccn-lite-produce.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-produce.dSYM"; sourceTree = "<group>"; };
+		BC2182571AA5E19500ECCAAB /* ccn-lite-rpc */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-rpc"; sourceTree = "<group>"; };
+		BC2182581AA5E19500ECCAAB /* ccn-lite-rpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-rpc.c"; sourceTree = "<group>"; };
+		BC2182591AA5E19500ECCAAB /* ccn-lite-rpc.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-rpc.dSYM"; sourceTree = "<group>"; };
+		BC21825A1AA5E19500ECCAAB /* ccn-lite-simplenfn */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "ccn-lite-simplenfn"; sourceTree = "<group>"; };
+		BC21825B1AA5E19500ECCAAB /* ccn-lite-simplenfn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccn-lite-simplenfn.c"; sourceTree = "<group>"; };
+		BC21825C1AA5E19500ECCAAB /* ccn-lite-simplenfn.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = "ccn-lite-simplenfn.dSYM"; sourceTree = "<group>"; };
+		BC21825D1AA5E19500ECCAAB /* ccnl-common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccnl-common.c"; sourceTree = "<group>"; };
+		BC21825E1AA5E19500ECCAAB /* ccnl-crypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccnl-crypto.c"; sourceTree = "<group>"; };
+		BC21825F1AA5E19500ECCAAB /* ccnl-frag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ccnl-frag.h"; sourceTree = "<group>"; };
+		BC2182601AA5E19500ECCAAB /* ccnl-socket.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ccnl-socket.c"; sourceTree = "<group>"; };
+		BC2182611AA5E19500ECCAAB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		BC2181F91AA5E14E00ECCAAB = {
+			isa = PBXGroup;
+			children = (
+				BC2182041AA5E19500ECCAAB /* ccn-lite-lnxkernel.c */,
+				BC2182051AA5E19500ECCAAB /* ccn-lite-minimalrelay */,
+				BC2182061AA5E19500ECCAAB /* ccn-lite-minimalrelay.c */,
+				BC2182071AA5E19500ECCAAB /* ccn-lite-minimalrelay.dSYM */,
+				BC2182081AA5E19500ECCAAB /* ccn-lite-relay */,
+				BC2182091AA5E19500ECCAAB /* ccn-lite-relay.c */,
+				BC21820A1AA5E19500ECCAAB /* ccn-lite-relay.dSYM */,
+				BC21820B1AA5E19500ECCAAB /* ccn-lite-simu.c */,
+				BC21820C1AA5E19500ECCAAB /* ccn-nfn-relay */,
+				BC21820D1AA5E19500ECCAAB /* ccn-nfn-relay.dSYM */,
+				BC21820E1AA5E19500ECCAAB /* ccnl-core-fwd.c */,
+				BC21820F1AA5E19500ECCAAB /* ccnl-core-util.c */,
+				BC2182101AA5E19500ECCAAB /* ccnl-core.c */,
+				BC2182111AA5E19500ECCAAB /* ccnl-core.h */,
+				BC2182121AA5E19500ECCAAB /* ccnl-defs.h */,
+				BC2182131AA5E19500ECCAAB /* ccnl-ext-crypto.c */,
+				BC2182141AA5E19500ECCAAB /* ccnl-ext-debug.c */,
+				BC2182151AA5E19500ECCAAB /* ccnl-ext-debug.h */,
+				BC2182161AA5E19500ECCAAB /* ccnl-ext-frag.c */,
+				BC2182171AA5E19500ECCAAB /* ccnl-ext-http.c */,
+				BC2182181AA5E19500ECCAAB /* ccnl-ext-localrpc.c */,
+				BC2182191AA5E19500ECCAAB /* ccnl-ext-logging.c */,
+				BC21821A1AA5E19500ECCAAB /* ccnl-ext-mgmt.c */,
+				BC21821B1AA5E19500ECCAAB /* ccnl-ext-nfn.c */,
+				BC21821C1AA5E19500ECCAAB /* ccnl-ext-nfn.h */,
+				BC21821D1AA5E19500ECCAAB /* ccnl-ext-nfncommon.c */,
+				BC21821E1AA5E19500ECCAAB /* ccnl-ext-nfnkrivine.c */,
+				BC21821F1AA5E19500ECCAAB /* ccnl-ext-nfnmonitor.c */,
+				BC2182201AA5E19500ECCAAB /* ccnl-ext-nfnops.c */,
+				BC2182211AA5E19500ECCAAB /* ccnl-ext-nfnparse.c */,
+				BC2182221AA5E19500ECCAAB /* ccnl-ext-sched.c */,
+				BC2182231AA5E19500ECCAAB /* ccnl-ext.h */,
+				BC2182241AA5E19500ECCAAB /* ccnl-headers.h */,
+				BC2182251AA5E19500ECCAAB /* ccnl-os-includes.h */,
+				BC2182261AA5E19500ECCAAB /* ccnl-os-time.c */,
+				BC2182271AA5E19500ECCAAB /* ccnl-pkt-ccnb.c */,
+				BC2182281AA5E19500ECCAAB /* ccnl-pkt-ccnb.h */,
+				BC2182291AA5E19500ECCAAB /* ccnl-pkt-ccntlv.c */,
+				BC21822A1AA5E19500ECCAAB /* ccnl-pkt-ccntlv.h */,
+				BC21822B1AA5E19500ECCAAB /* ccnl-pkt-iottlv.c */,
+				BC21822C1AA5E19500ECCAAB /* ccnl-pkt-iottlv.h */,
+				BC21822D1AA5E19500ECCAAB /* ccnl-pkt-localrpc.c */,
+				BC21822E1AA5E19500ECCAAB /* ccnl-pkt-localrpc.h */,
+				BC21822F1AA5E19500ECCAAB /* ccnl-pkt-ndntlv.c */,
+				BC2182301AA5E19500ECCAAB /* ccnl-pkt-ndntlv.h */,
+				BC2182311AA5E19500ECCAAB /* ccnl-pkt-switch.c */,
+				BC2182321AA5E19500ECCAAB /* ccnl-simu-client.c */,
+				BC2182331AA5E19500ECCAAB /* ccnl-uapi.c */,
+				BC2182341AA5E19500ECCAAB /* ccnl-uapi.h */,
+				BC2182351AA5E19500ECCAAB /* Makefile */,
+				BC2182361AA5E19500ECCAAB /* util */,
+			);
+			sourceTree = "<group>";
+		};
+		BC2182361AA5E19500ECCAAB /* util */ = {
+			isa = PBXGroup;
+			children = (
+				BC2182371AA5E19500ECCAAB /* base64.c */,
+				BC2182381AA5E19500ECCAAB /* ccn-lite-ccnb2xml */,
+				BC2182391AA5E19500ECCAAB /* ccn-lite-ccnb2xml.c */,
+				BC21823A1AA5E19500ECCAAB /* ccn-lite-ccnb2xml.dSYM */,
+				BC21823B1AA5E19500ECCAAB /* ccn-lite-cryptoserver */,
+				BC21823C1AA5E19500ECCAAB /* ccn-lite-cryptoserver.c */,
+				BC21823D1AA5E19500ECCAAB /* ccn-lite-cryptoserver.dSYM */,
+				BC21823E1AA5E19500ECCAAB /* ccn-lite-ctrl */,
+				BC21823F1AA5E19500ECCAAB /* ccn-lite-ctrl.c */,
+				BC2182401AA5E19500ECCAAB /* ccn-lite-ctrl.dSYM */,
+				BC2182411AA5E19500ECCAAB /* ccn-lite-deF.c */,
+				BC2182421AA5E19500ECCAAB /* ccn-lite-fetch */,
+				BC2182431AA5E19500ECCAAB /* ccn-lite-fetch.c */,
+				BC2182441AA5E19500ECCAAB /* ccn-lite-fetch.dSYM */,
+				BC2182451AA5E19500ECCAAB /* ccn-lite-mkC */,
+				BC2182461AA5E19500ECCAAB /* ccn-lite-mkC.c */,
+				BC2182471AA5E19500ECCAAB /* ccn-lite-mkC.dSYM */,
+				BC2182481AA5E19500ECCAAB /* ccn-lite-mkF.c */,
+				BC2182491AA5E19500ECCAAB /* ccn-lite-mkI */,
+				BC21824A1AA5E19500ECCAAB /* ccn-lite-mkI.c */,
+				BC21824B1AA5E19500ECCAAB /* ccn-lite-mkI.dSYM */,
+				BC21824C1AA5E19500ECCAAB /* ccn-lite-ndnstream.py */,
+				BC21824D1AA5E19500ECCAAB /* ccn-lite-peek */,
+				BC21824E1AA5E19500ECCAAB /* ccn-lite-peek.c */,
+				BC21824F1AA5E19500ECCAAB /* ccn-lite-peek.dSYM */,
+				BC2182501AA5E19500ECCAAB /* ccn-lite-peekcomputation.c */,
+				BC2182511AA5E19500ECCAAB /* ccn-lite-pktdump */,
+				BC2182521AA5E19500ECCAAB /* ccn-lite-pktdump.c */,
+				BC2182531AA5E19500ECCAAB /* ccn-lite-pktdump.dSYM */,
+				BC2182541AA5E19500ECCAAB /* ccn-lite-produce */,
+				BC2182551AA5E19500ECCAAB /* ccn-lite-produce.c */,
+				BC2182561AA5E19500ECCAAB /* ccn-lite-produce.dSYM */,
+				BC2182571AA5E19500ECCAAB /* ccn-lite-rpc */,
+				BC2182581AA5E19500ECCAAB /* ccn-lite-rpc.c */,
+				BC2182591AA5E19500ECCAAB /* ccn-lite-rpc.dSYM */,
+				BC21825A1AA5E19500ECCAAB /* ccn-lite-simplenfn */,
+				BC21825B1AA5E19500ECCAAB /* ccn-lite-simplenfn.c */,
+				BC21825C1AA5E19500ECCAAB /* ccn-lite-simplenfn.dSYM */,
+				BC21825D1AA5E19500ECCAAB /* ccnl-common.c */,
+				BC21825E1AA5E19500ECCAAB /* ccnl-crypto.c */,
+				BC21825F1AA5E19500ECCAAB /* ccnl-frag.h */,
+				BC2182601AA5E19500ECCAAB /* ccnl-socket.c */,
+				BC2182611AA5E19500ECCAAB /* Makefile */,
+			);
+			name = util;
+			path = ../src/util;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		BC2181FE1AA5E14E00ECCAAB /* ccn-lite */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = BC2182011AA5E14E00ECCAAB /* Build configuration list for PBXLegacyTarget "ccn-lite" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "/Users/blacksheeep/ccn-lite/src";
+			dependencies = (
+			);
+			name = "ccn-lite";
+			passBuildSettingsInEnvironment = 1;
+			productName = "ccn-lite";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		BC2181FA1AA5E14E00ECCAAB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+				ORGANIZATIONNAME = "Christopher Scherb";
+				TargetAttributes = {
+					BC2181FE1AA5E14E00ECCAAB = {
+						CreatedOnToolsVersion = 6.1.1;
+					};
+				};
+			};
+			buildConfigurationList = BC2181FD1AA5E14E00ECCAAB /* Build configuration list for PBXProject "ccn-lite" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = BC2181F91AA5E14E00ECCAAB;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BC2181FE1AA5E14E00ECCAAB /* ccn-lite */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		BC2181FF1AA5E14E00ECCAAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		BC2182001AA5E14E00ECCAAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		BC2182021AA5E14E00ECCAAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		BC2182031AA5E14E00ECCAAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BC2181FD1AA5E14E00ECCAAB /* Build configuration list for PBXProject "ccn-lite" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC2181FF1AA5E14E00ECCAAB /* Debug */,
+				BC2182001AA5E14E00ECCAAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BC2182011AA5E14E00ECCAAB /* Build configuration list for PBXLegacyTarget "ccn-lite" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC2182021AA5E14E00ECCAAB /* Debug */,
+				BC2182031AA5E14E00ECCAAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BC2181FA1AA5E14E00ECCAAB /* Project object */;
+}
