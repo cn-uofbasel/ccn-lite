@@ -43,9 +43,13 @@ make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
 
 # Print status
 if [ $? = 0 ]; then
-    echo -e "\b\b\b\b[\e[32mok\e[0m]"
+    if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
+        echo -e "\b\b\b\b[\e[92mok\e[0m]"
+    else
+        echo -e "\b\b\b\b\b\b\b\b\b[\e[93mwarning\e[0m]"
+    fi
 else
-    echo -e "\b\b\b\b\b\b\b\b[\e[31mfailed\e[0m]"
+    echo -e "\b\b\b\b\b\b\b\b[\e[91mfailed\e[0m]"
     if [ -n "$MODIFIY_FNAME" ]; then
         cp "$MODIFIY_FNAME" "/tmp/$MODIFIY_FNAME.$LOG_FNAME"
     fi
