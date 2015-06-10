@@ -20,20 +20,20 @@ unset USE_NFN
 unset USE_SIGNATURES
 
 if [ -n "$MODIFIY_FNAME" ]; then
-  # Backup
-  cp "$MODIFIY_FNAME" "$MODIFIY_FNAME.bak"
+    # Backup
+    cp "$MODIFIY_FNAME" "$MODIFIY_FNAME.bak"
 
-  # Define variables that are commented out
-  for VAR in $SET_VARS; do
-  #  echo "Defining $VAR..."
-    sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
-  done
+    # Define variables that are commented out
+    for VAR in $SET_VARS; do
+    #  echo "Defining $VAR..."
+      sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
+    done
 
-  # Comment already defined variables
-  for VAR in $UNSET_VARS; do
-  #  echo "Unsetting $VAR..."
-    sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
-  done
+    # Comment already defined variables
+    for VAR in $UNSET_VARS; do
+    #  echo "Unsetting $VAR..."
+      sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
+    done
 fi
 
 printf "%-30s [..]" "$LOG_FNAME"
