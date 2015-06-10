@@ -414,17 +414,19 @@ struct key_s*
 load_keys_from_file(char *path)
 {
     FILE *fp = fopen(optarg, "r");
-    char *line = NULL;
-    unsigned char *key;
-    size_t klen = 0, keylen;
-    int cnt = 0, read;
+    char line[256];
+    int cnt = 0;
     struct key_s *klist = NULL, *kend = NULL;
+
 
     if (!fp) {
         perror("file open");
         return NULL;
     }
-    while ((read = getline(&line, &klen, fp)) != -1) {
+    while (fgets(line, sizeof(line), fp)) {
+        unsigned char *key;
+        size_t keylen;
+        int read = strlen(line);
         DEBUGMSG(TRACE, "  read %d bytes\n", read);
         if (line[read-1] == '\n')
             line[--read] = '\0';
