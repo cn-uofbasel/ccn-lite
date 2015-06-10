@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # A helper script to build specific targets.
-# It prints either 'ok' or 'failed' depending on the outcome of the build.
+# It prints either 'ok', 'warning' or 'failed' depending on the outcome of the build.
 # The output of the build is stored in /tmp/$LOG_FNAME. If the build failed, the
 # modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
 #
