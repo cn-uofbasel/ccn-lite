@@ -33,7 +33,7 @@ ccnl_cistlv_extractNetworkVarInt(unsigned char *buf, int len,
                                  unsigned int *intval)
 {
     int val = 0;
-    
+
     while (len-- > 0) {
         val = (val << 8) | *buf;
         buf++;
@@ -121,7 +121,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
                 if (typ == CISCO_TLV_NameSegment) {
                     // We extract the chunknum to the prefix but keep it in the name component for now
-                    // In the future we possibly want to remove the chunk segment from the name components 
+                    // In the future we possibly want to remove the chunk segment from the name components
                     // and rely on the chunknum field in the prefix.
                   p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
 
@@ -302,10 +302,10 @@ ccnl_cistlv_prepend4BInt(unsigned short type, unsigned int intval,
 // write *before* position buf[offset] the Cisco fixed header,
 // returns total packet len
 int
-ccnl_cistlv_prependFixedHdr(unsigned char ver, 
-                            unsigned char packettype, 
-                            unsigned short payloadlen, 
-                            unsigned char hoplimit, 
+ccnl_cistlv_prependFixedHdr(unsigned char ver,
+                            unsigned char packettype,
+                            unsigned short payloadlen,
+                            unsigned char hoplimit,
                             int *offset, unsigned char *buf)
 {
     // optional headers are not yet supported, only the fixed header
@@ -380,7 +380,7 @@ ccnl_cistlv_prependInterest(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_cistlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
                                         int *offset, unsigned char *buf)
 {
     int len, oldoffset;
@@ -394,7 +394,7 @@ ccnl_cistlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
     *offset -= sizeof(struct ccnx_tlvhdr_cisco201501nack_s);
     memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_cisco201501nack_s));
 */
-    if (ccnl_cistlv_prependFixedHdr(CISCO_TLV_V1, CISCO_TLV_Interest, 
+    if (ccnl_cistlv_prependFixedHdr(CISCO_TLV_V1, CISCO_TLV_Interest,
                                     len, hoplimit, offset, buf) < 0)
         return -1;
 
@@ -403,7 +403,7 @@ ccnl_cistlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_cistlv_prependInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
                                 int *offset, unsigned char *buf)
 {
     return ccnl_cistlv_prependChunkInterestWithHdr(name, offset, buf);
@@ -411,7 +411,7 @@ ccnl_cistlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_cistlv_prependContent(struct ccnl_prefix_s *name, 
+ccnl_cistlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
                            unsigned int *lastchunknum, int *offset,
                            int *contentpos, unsigned char *buf)

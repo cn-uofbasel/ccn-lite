@@ -1,6 +1,6 @@
 /*
  * @f ccnl-ext-logging.c
- * @b CCNL logging 
+ * @b CCNL logging
  *
  * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
@@ -26,11 +26,11 @@ extern int debug_level;
 
 #define FATAL   0  // FATAL
 #define ERROR   1  // ERROR
-#define WARNING 2  // WARNING 
-#define INFO    3  // INFO 
-#define DEBUG   4  // DEBUG 
+#define WARNING 2  // WARNING
+#define INFO    3  // INFO
+#define DEBUG   4  // DEBUG
 #define VERBOSE 5  // VERBOSE
-#define TRACE 	6  // TRACE 
+#define TRACE 	6  // TRACE
 
 char
 ccnl_debugLevelToChar(int level)

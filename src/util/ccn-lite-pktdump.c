@@ -388,7 +388,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
         tn = "Pad";
     } else {
         switch (ctx) {
-        
+
             case CTX_GLOBAL:
                 cn = "global";
                 switch (type) {
@@ -396,7 +396,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 default: break;
                 }
                 break;
-        
+
             case CTX_TOPLEVEL:
                 cn = "toplevelCtx";
                 switch (type) {
@@ -1510,7 +1510,7 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
     }
     if (!pkt) {
         DEBUGMSG(WARNING, "extract (%s): parsing error or no prefix\n",
-                 ccnl_suite2str(suite)); 
+                 ccnl_suite2str(suite));
     }
     write(1, pkt->content, pkt->contlen);
     if (format > 2)

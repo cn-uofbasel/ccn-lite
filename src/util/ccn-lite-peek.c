@@ -42,7 +42,7 @@ unsigned char out[8*CCNL_MAX_PACKET_SIZE];
 int outlen;
 
 int
-frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, 
+frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         unsigned char **data, int *len)
 {
     DEBUGMSG(INFO, "frag_cb\n");
@@ -150,7 +150,7 @@ usage:
 	    break;
         }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
@@ -221,8 +221,8 @@ usage:
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-        len = mkInterest(prefix, 
-                         &nonce, 
+        len = mkInterest(prefix,
+                         &nonce,
                          out, sizeof(out));
 
         DEBUGMSG(DEBUG, "interest has %d bytes\n", len);

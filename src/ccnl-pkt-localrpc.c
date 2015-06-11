@@ -1,6 +1,6 @@
 /*
  * @f ccnl-pkt-localrpc.c
- * @b CCN lite - local RPC Data Representation (RDR) de- and encoding 
+ * @b CCN lite - local RPC Data Representation (RDR) de- and encoding
  *
  * Copyright (C) 2014, Christian Tschudin, University of Basel
  *
@@ -43,7 +43,7 @@
   Note that you have to manage yourself the buffer for unserialization.
   In particluar you should only release it when the representation tree
   does not need access to it anymore.
-  
+
 */
 
 // ----------------------------------------------------------------------

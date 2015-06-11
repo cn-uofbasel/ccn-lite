@@ -224,7 +224,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     if (typ == NDN_TLV_NameComponent) {
                         // TODO: again, includedNonNeg not yet implemented
                         pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                    } 
+                    }
                 }
                 cp += i;
                 len2 -= i;
@@ -376,7 +376,7 @@ ccnl_ndntlv_prependNonNegIntVal(unsigned int val,
 }
 
 int
-ccnl_ndntlv_prependNonNegInt(int type, 
+ccnl_ndntlv_prependNonNegInt(int type,
                              unsigned int val,
                              int *offset, unsigned char *buf)
 {
@@ -432,7 +432,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 
     if(name->chunknum) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *name->chunknum, 
+                                                 *name->chunknum,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;
@@ -500,8 +500,8 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 }
 
 int
-ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
-                           unsigned char *payload, int paylen,  
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
                            int *contentpos, unsigned int *final_block_id,
                            int *offset, unsigned char *buf)
 {
@@ -543,7 +543,7 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
     oldoffset2 = *offset;
     if(final_block_id) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *final_block_id, 
+                                                 *final_block_id,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;

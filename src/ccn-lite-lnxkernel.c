@@ -58,7 +58,7 @@
 
 static struct ccnl_relay_s theRelay;
 
-static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
                       struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk);
@@ -318,7 +318,7 @@ ccnl_schedule_upcall_RX(int ifndx, sockunion *su, struct sk_buff *skb,
 // ----------------------------------------------------------------------
 
 static int
-ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
           struct packet_type *pt, struct net_device *outdev){
     int i;
     sockunion su;
@@ -647,7 +647,7 @@ ccnl_init(void)
             theRelay.ifcount++;
         }
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
-        theRelay.crypto_path = p;    
+        theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
         sprintf(h, "%s-2", p);
@@ -669,8 +669,8 @@ ccnl_init(void)
         theRelay.crypto_path = p;
     }
 #endif /*USE_SIGNATURES*/
-#endif //USE_UNIXSOCKET  
-    
+#endif //USE_UNIXSOCKET
+
     return 0;
 }
 
@@ -720,7 +720,7 @@ ccnl_lnxkernel_cleanup(void)
 
             mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
-            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);                                                                                                                                               
+            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);
 #else
             rc = vfs_unlink(dir->d_inode, p.dentry);
 #endif
@@ -729,7 +729,7 @@ ccnl_lnxkernel_cleanup(void)
             path_put(&p);
         }
     }
-    
+
     if (p) { // also remove the UNIX socket path
         struct path px;
         int rc;

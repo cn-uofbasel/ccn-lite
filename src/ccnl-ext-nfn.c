@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-02-06 <christopher.scherb@unibas.ch>created 
+ * 2014-02-06 <christopher.scherb@unibas.ch>created
  */
 
 #ifdef USE_NFN
@@ -64,11 +64,11 @@ ccnl_nfn_count_required_thunks(char *str)
     return num;
 }
 
-void 
+void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
     DEBUGMSG(TRACE, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
-    
+
     if(!config){
         DEBUGMSG(DEBUG, "nfn_continue_computation: %d not found\n", configid);
         return;
@@ -130,16 +130,16 @@ ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
         if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
             free_prefix(copy);
             return 1;
-        }  
+        }
     }
     free_prefix(copy);
 
     return 0;
 }
 
-int 
+int
 ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
-         struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, 
+         struct ccnl_prefix_s *prefix, struct ccnl_face_s *from,
          struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally)
 {
@@ -179,14 +179,14 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     // TODO: this is not an elegant solution and should be improved on, because the clients cannot send a
     // computation with a routing hint on which the network applies a strategy if the routable name
     // does not exist (because each node will just forward it without ever taking it into an abstract machine).
-    // encoding the routing hint more explicitely as well as additonal information (e.g. already tried names) 
+    // encoding the routing hint more explicitely as well as additonal information (e.g. already tried names)
     // could solve the problem. More generally speaking, additional state describing the exact situation will be required.
-    
+
     if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
-        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK); 
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
             ccnl_interest_propagate(ccnl, interest);
@@ -195,7 +195,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         free_prefix(copy);
         start_locally = 1;
     }
-   
+
     //put packet together
 #if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
     if (prefix->suite == CCNL_SUITE_CCNTLV ||
@@ -226,13 +226,13 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     //search for result here... if found return...
     if (thunk_request)
         num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
-    
+
     ++ccnl->km->numOfRunningComputations;
 restart:
     res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
                             num_of_required_thunks, &config, prefix, suite);
 
-    //stores result if computed      
+    //stores result if computed
     if (res && res->datalen > 0) {
         struct ccnl_prefix_s *copy;
         struct ccnl_content_s *c;

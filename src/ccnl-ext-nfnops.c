@@ -138,7 +138,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (!strncmp((char*)c->content, ":NACK", 5)) {
         DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
-        
+
         return prog ? ccnl_strdup(prog) : NULL;
     }
 */
@@ -229,7 +229,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (!strncmp((char*)c->content, ":NACK", 5)) {
         DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
-        
+
         return prog ? ccnl_strdup(prog) : NULL;
     }
 */

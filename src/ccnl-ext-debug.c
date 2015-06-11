@@ -275,7 +275,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_SUITE_CCNB:
             INDENT(lev+1);
             CONSOLE("minsfx=%d maxsfx=%d aok=%d scope=%d",
-                    pkt->s.ccnb.minsuffix, pkt->s.ccnb.maxsuffix, 
+                    pkt->s.ccnb.minsuffix, pkt->s.ccnb.maxsuffix,
                     pkt->s.ccnb.aok, pkt->s.ccnb.scope);
             if (pkt->s.ccnb.nonce) {
                 CONSOLE(" nonce="); blob(pkt->s.ccnb.nonce);
@@ -307,7 +307,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_SUITE_NDNTLV:
             INDENT(lev+1);
             CONSOLE("minsfx=%d maxsfx=%d mbf=%d scope=%d",
-                    pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix, 
+                    pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix,
                     pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
             if (pkt->s.ndntlv.nonce) {
                 CONSOLE(" nonce="); blob(pkt->s.ndntlv.nonce);
@@ -374,23 +374,23 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
 }
 
 int
-get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, 
+get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
                int *ifndx, int *flags, char **peer, int *type, char **frag)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
     int line = 0;
-    
+
     while (fac) {
 //        INDENT(lev);
-         
+
         faceid[line] = fac->faceid;
         next[line] = (long)(void *) fac->next;
         prev[line] = (long)(void *) fac->prev;
         ifndx[line] = fac->ifndx;
         flags[line] = fac->flags;
         sprintf(peer[line], "%s", ccnl_addr2ascii(&fac->peer));
-        
+
         if (0) {}
 #ifdef USE_IPV4
         if (fac->peer.sa.sa_family == AF_INET)
@@ -406,7 +406,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
 #endif
         else
             type[line] = 0;
-#ifdef USE_FRAG        
+#ifdef USE_FRAG
         if (fac->frag)
             sprintf(frag[line], "fragproto=%s mtu=%d",
                     frag_protocol(fac->frag->protocol), fac->frag->mtu);
@@ -421,7 +421,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
 }
 
 int
-get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, 
+get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid,
         int *suite, int *prefixlen, char **prefix)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
@@ -446,28 +446,28 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
         }
 
         fwd = fwd->next;
-        ++line; 
+        ++line;
     }
     return line;
 }
 
 int
-get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, 
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
         int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
-    
+
     int k;
     for (k = 0; k < top->ifcount; k++) {
 //        INDENT(lev+1);
-        
+
         ifndx[k] = k;
         //        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
         strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
-       
+
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET) {
-            dev[k] = (long) (void *) top->ifs[k].netdev; //%p   
+            dev[k] = (long) (void *) top->ifs[k].netdev; //%p
             devtype[k] = 1;
         } else {
             dev[k] = (long) (void *) top->ifs[k].sock; //%p
@@ -479,7 +479,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 #endif
         if (top->ifs[k].reflect)
             reflect[k] = top->ifs[k].reflect;
-    }   
+    }
     return top->ifcount;
 }
 
@@ -488,10 +488,10 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
         int *last, int *min, int *max, int *retries, long *publisher,
         int *prefixlen, char **prefix)
 {
-    
+
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
-    
+
     int line = 0;
     while (itr) {
 //        INDENT(lev);
@@ -519,10 +519,10 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
                 break;
             }
         get_prefix_dump(lev, itr->pkt->pfx, &prefixlen[line], &prefix[line]);
-        
+
         itr = itr->next;
         ++line;
-    }   
+    }
     return line;
 }
 
@@ -531,7 +531,7 @@ get_pendint_dump(int lev, void *p, char **out){
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
-    
+
     int pos = 0, line = 0;
     while (pir) {
 //        INDENT(lev);
@@ -548,10 +548,10 @@ get_pendint_dump(int lev, void *p, char **out){
 int
 get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         int *last_use, int *served_cnt, int *prefixlen, char **prefix){
-    
+
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) top->contents;
-    
+
     int line = 0;
     while (con) {
 //        INDENT(lev);
@@ -560,9 +560,9 @@ get_content_dump(int lev, void *p, long *content, long *next, long *prev,
         prev[line] = (long)(void *) con->prev;
         last_use[line] = con->last_used;
         served_cnt[line] = con->served_cnt;
-        
+
         get_prefix_dump(lev, con->pkt->pfx, &prefixlen[line], &prefix[line]);
-      
+
         con = con->next;
         ++line;
     }

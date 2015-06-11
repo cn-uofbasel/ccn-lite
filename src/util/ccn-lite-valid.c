@@ -77,11 +77,11 @@ ccnl_parse(unsigned char *data, int datalen)
         }
         break;
     }
-#endif 
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
         unsigned int typ, len2;
-        
+
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
             return NULL;

@@ -36,7 +36,7 @@
 
 // ----------------------------------------------------------------------
 
-char *private_key_path; 
+char *private_key_path;
 char *witness;
 
 // ----------------------------------------------------------------------
@@ -106,7 +106,7 @@ Usage:
         fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
         "  -i FNAME    input file (instead of stdin)\n"
         "  -k FNAME    HMAC256 key (base64 encoded)\n"
-        "  -l LASTCHUNKNUM number of last chunk\n"       
+        "  -l LASTCHUNKNUM number of last chunk\n"
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
@@ -125,7 +125,7 @@ Usage:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto Usage;
 
     if (infname) {
@@ -147,7 +147,7 @@ Usage:
         break;
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        
+
         offs = CCNL_MAX_PACKET_SIZE;
         if (keys) {
             unsigned char keyval[64];
@@ -159,8 +159,8 @@ Usage:
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   NULL, keyval, keyid, &offs, out);
         } else
-            len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
-                          lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
+            len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
+                          lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                           NULL /* Int *contentpos */, &offs, out);
         break;
 #endif
@@ -196,7 +196,7 @@ Usage:
                   NULL, keyval, keyid, &offs, out);
         } else {
             len = ccnl_ndntlv_prependContent(name, body, len,
-                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
+                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   &offs, out);
         }
         break;

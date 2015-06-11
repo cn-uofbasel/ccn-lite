@@ -116,7 +116,7 @@ ccnl_hmac256_sign(unsigned char *keyval, int kvlen,
 int
 ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
                                         unsigned char *payload, int paylen,
-                                        unsigned int *lastchunknum, 
+                                        unsigned int *lastchunknum,
                                         int *contentpos,
                                         unsigned char *keyval, // 64B
                                         unsigned char *keydigest, // 32B
@@ -165,8 +165,8 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
 
 int
-ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name, 
-                           unsigned char *payload, int paylen,  
+ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
                            unsigned int *final_block_id, int *contentpos,
                            unsigned char *keyval, // 64B
                            unsigned char *keydigest, // 32B
@@ -217,7 +217,7 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
     oldoffset2 = *offset;
     if(final_block_id) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *final_block_id, 
+                                                 *final_block_id,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;

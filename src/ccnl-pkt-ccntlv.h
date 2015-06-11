@@ -32,7 +32,7 @@ struct ccnx_tlvhdr_ccnx2015_s {
     unsigned char  pkttype;
     uint16_t       pktlen;
     unsigned char  hoplimit;  // not used for data
-    unsigned char  fill[2];   // fill[0] is errcode, Frag: flagsAndSeqNr 
+    unsigned char  fill[2];   // fill[0] is errcode, Frag: flagsAndSeqNr
     unsigned char  hdrlen;
 } __attribute__((packed));
 

@@ -24,7 +24,7 @@ void setup()
 {
   unsigned char *cp;
   int i;
-  
+
 //  override_uart_limit = true;
 //  Serial.begin(38400);
   Serial.begin(9600);

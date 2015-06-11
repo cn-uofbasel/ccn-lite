@@ -84,7 +84,7 @@
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite = CCNL_SUITE_DEFAULT; 
+char suite = CCNL_SUITE_DEFAULT;
 
 // ----------------------------------------------------------------------
 
@@ -362,12 +362,12 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
 
     DEBUGMSG(INFO, "configuring relay\n");
 
-    relay->max_cache_entries = max_cache_entries;       
+    relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
-    
+
 #ifdef USE_ETHERNET
     // add (real) eth0 interface with index 0:
     if (ethdev) {
@@ -433,11 +433,11 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             if (relay->defaultInterfaceScheduler)
                 i->sched = relay->defaultInterfaceScheduler(relay,
                                                         ccnl_interface_CTS);
-            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);       
+            ccnl_crypto_create_ccnl_crypto_face(relay, crypto_face_path);
             relay->crypto_path = crypto_face_path;
         } else
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
-        
+
         //receiving interface
         memset(h,0,sizeof(h));
         sprintf(h,"%s-2",crypto_face_path);
@@ -451,7 +451,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             if (relay->defaultInterfaceScheduler)
                 i->sched = relay->defaultInterfaceScheduler(relay,
                                                         ccnl_interface_CTS);
-            //create_ccnl_crypto_face(relay, crypto_face_path);       
+            //create_ccnl_crypto_face(relay, crypto_face_path);
         } else
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
     }
@@ -469,7 +469,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
     int i, len, maxfd = -1, rc;
     fd_set readfs, writefs;
     unsigned char buf[CCNL_MAX_PACKET_SIZE];
-    
+
     if (ccnl->ifcount == 0) {
         DEBUGMSG(ERROR, "no socket to work with, not good, quitting\n");
         exit(EXIT_FAILURE);
@@ -585,9 +585,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         strcat(fname, "/");
         strcat(fname, de->d_name);
 
-        if (stat(fname, &s)) { 
-            perror("stat"); 
-            continue; 
+        if (stat(fname, &s)) {
+            perror("stat");
+            continue;
         }
         if (S_ISDIR(s.st_mode))
             continue;
@@ -596,9 +596,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
                  (int) s.st_size);
 
         fd = open(fname, O_RDONLY);
-        if (!fd) { 
-            perror("open"); 
-            continue; 
+        if (!fd) {
+            perror("open");
+            continue;
         }
 
         buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) + s.st_size);
@@ -649,7 +649,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
             break;
         }
-#endif 
+#endif
 #ifdef USE_SUITE_CISTLV
         case CCNL_SUITE_CISTLV: {
             int hdrlen;
@@ -665,7 +665,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             pk = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
             break;
         }
-#endif 
+#endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV: {
             unsigned char *olddata;
@@ -857,7 +857,7 @@ usage:
 
     while (eventqueue)
         ccnl_rem_timer(eventqueue);
-    
+
     ccnl_core_cleanup(&theRelay);
 #ifdef USE_HTTP_STATUS
     theRelay.http = ccnl_http_cleanup(theRelay.http);
