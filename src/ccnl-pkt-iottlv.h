@@ -39,7 +39,7 @@ Top level:
 Fragment:
   0 Optional Headers
   1 FlagsAndSeqNr (2 bytes: BEIXnnnn nnnnnnnn)
-  2 Payload
+  2 Data
 
 Request or Reply:
   0 Optional Headers
@@ -83,7 +83,7 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // inside fragment
 #define IOT_TLV_F_OptFragHdr    0x0
 #define IOT_TLV_F_FlagsAndSeq   0x1
-#define IOT_TLV_F_Payload       0x2
+#define IOT_TLV_F_Data          0x2
 
 // inside request/reply packet
 #define IOT_TLV_R_OptHeader     0x0

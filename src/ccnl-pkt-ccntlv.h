@@ -75,7 +75,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PT_Interest                        0
 #define CCNX_PT_Data                            1
 #define CCNX_PT_NACK                            2 // "Interest Return"
-#define CCNX_PT_FRAGMENT                        3 // fragment
+#define CCNX_PT_Fragment                        3 // fragment
 
 // NACK/Interest Return codes (fill[0]):
 #define CCNX_TLV_NACK_NOROUTE      1

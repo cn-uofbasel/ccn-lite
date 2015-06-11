@@ -77,33 +77,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 int
 ccnl_echo_add(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx)
 {
-    struct ccnl_forward_s *fwd, **fwd2;
-
-    DEBUGMSG(INFO, "adding echo server for <%s>, suite %s\n",
-             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
-
-    for (fwd = relay->fib; fwd; fwd = fwd->next) {
-        if (fwd->suite == pfx->suite &&
-                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
-            free_prefix(fwd->prefix);
-            fwd->prefix = NULL;
-            break;
-        }
-    }
-    if (!fwd) {
-        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
-        if (!fwd)
-            return -1;
-        fwd2 = &relay->fib;
-        while (*fwd2)
-            fwd2 = &((*fwd2)->next);
-        *fwd2 = fwd;
-        fwd->suite = pfx->suite;
-    }
-    fwd->prefix = pfx;
-    fwd->tap = ccnl_echo_request;
-
-    return 0;
+    return ccnl_set_tap(relay, pfx, ccnl_echo_request);
 }
 
 void

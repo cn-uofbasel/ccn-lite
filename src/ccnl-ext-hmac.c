@@ -135,11 +135,15 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
     mdoffset = *offset;
     ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, mdlength, offset, buf);
     endofsign = *offset;
+#ifdef XXX // we skip this
     *offset -= 32;
     memcpy(buf + *offset, keydigest, 32);
     ccnl_ccntlv_prependTL(CCNX_VALIDALGO_KEYID, 32, offset, buf);
     ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 4+32, offset, buf);
     ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4+4+32, offset, buf);
+#endif
+    ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, offset, buf);
+    ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, offset, buf);
 
     len = oldoffset - *offset;
     len += ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
@@ -185,6 +189,7 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
     // to find length from start of content to end of SignatureInfo
     endofsign = *offset;
 
+#ifdef XXX // we skip this
     // keyid
     *offset -= 32;
     memcpy(buf + *offset, keydigest, 32);
@@ -192,6 +197,7 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
         return -1;
     if (ccnl_ndntlv_prependTL(NDN_TLV_KeyLocator, 32+2, offset, buf) < 0)
         return -1;
+#endif
 
     // use NDN_SigTypeVal_SignatureHmacWithSha256
     if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,

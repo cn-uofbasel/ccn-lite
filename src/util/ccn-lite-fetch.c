@@ -150,7 +150,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ, len;
+        unsigned int typ, len;
         unsigned char *start = *data;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
@@ -162,7 +162,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
             return -1;
         }
 
-        pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+        pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
         break;
     }
 #endif
@@ -178,7 +178,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
     }
     *prefix = pkt->pfx;
     pkt->pfx = NULL;
-    *lastchunknum = pkt->final_block_id;
+    *lastchunknum = pkt->val.final_block_id;
     *content = pkt->content;
     *contentlen = pkt->contlen;
     free_packet(pkt);

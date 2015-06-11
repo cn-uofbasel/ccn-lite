@@ -663,18 +663,18 @@ getPrefix(unsigned char *data, int datalen, int *suite)
     }
     case CCNL_SUITE_IOTTLV: {
         unsigned char *start = data - skip;
-        int typ, len;
+        unsigned int typ, len;
 
         if (!ccnl_iottlv_dehead(&data, &datalen, &typ, &len) &&
                                                         typ == IOT_TLV_Reply)
-            pkt = ccnl_iottlv_bytes2pkt(start, &data, &datalen);
+            pkt = ccnl_iottlv_bytes2pkt(typ, start, &data, &datalen);
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        int typ, len;
+        unsigned int typ, len;
         unsigned char *start = data;
         if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len))
-            pkt = ccnl_ndntlv_bytes2pkt(start, &data, &datalen);
+            pkt = ccnl_ndntlv_bytes2pkt(typ, start, &data, &datalen);
         break;
     }
     default:

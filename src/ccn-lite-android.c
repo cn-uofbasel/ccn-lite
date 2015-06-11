@@ -43,7 +43,7 @@
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
 #define USE_ETHERNET                   // we co-use addr formatting for BTLE
-// #define USE_FRAG
+//#define USE_FRAG
 #define USE_LOGGING
 #define USE_HMAC256
 #define USE_HTTP_STATUS
@@ -57,7 +57,7 @@
 #define USE_STATS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
-// #define USE_SUITE_IOTTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 // #define USE_SUITE_LOCALRPC
 // #define USE_UNIXSOCKET
@@ -103,7 +103,6 @@ unsigned char keyid[32];
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRelay;
-char suite = CCNL_SUITE_NDNTLV; 
 
 // ----------------------------------------------------------------------
 
@@ -280,12 +279,10 @@ add_udpPort(struct ccnl_relay_s *relay, int port)
 //      i->frag = CCNL_DGRAM_FRAG_NONE;
 
 #ifdef USE_SUITE_CCNB
-    if (suite == CCNL_SUITE_CCNB)
-        i->mtu = CCN_DEFAULT_MTU;
+    i->mtu = CCN_DEFAULT_MTU;
 #endif
 #ifdef USE_SUITE_NDNTLV
-    if (suite == CCNL_SUITE_NDNTLV)
-        i->mtu = NDN_DEFAULT_MTU;
+    i->mtu = NDN_DEFAULT_MTU;
 #endif
 
     i->fwdalli = 1;
@@ -302,7 +299,7 @@ add_udpPort(struct ccnl_relay_s *relay, int port)
 
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
-                  int suite, int max_cache_entries, char *crypto_face_path)
+                  int max_cache_entries, char *crypto_face_path)
 {
     struct ccnl_if_s *i;
 
@@ -314,11 +311,18 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
 
-#ifdef USE_SUITE_CCNTLV
-    add_udpPort(relay, CCN_UDP_PORT);
-#endif
+    // use interface 0 for BT low energy
+    relay->ifs[0].mtu = 20;
+    if (relay->defaultInterfaceScheduler)
+        relay->ifs[0].sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+    relay->ifcount++;
+
 #ifdef USE_SUITE_NDNTLV
     add_udpPort(relay, NDN_UDP_PORT);
+#endif
+#ifdef USE_SUITE_CCNTLV
+    add_udpPort(relay, CCN_UDP_PORT);
 #endif
 
 #ifdef USE_HTTP_STATUS
@@ -457,7 +461,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
                                                        typ != IOT_TLV_Reply)
                 goto notacontent;
-            pk = ccnl_iottlv_bytes2pkt(olddata, &data, &datalen);
+            pk = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }
 #endif
@@ -470,7 +474,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
             break;
         }
 #endif
@@ -688,7 +692,7 @@ ccnl_android_init()
     done = 1;
 
     time(&theRelay.startup_time);
-    debug_level = DEBUG;
+    debug_level = INFO;
 
     ccnl_core_init();
 
@@ -697,10 +701,8 @@ ccnl_android_init()
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
-    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, 8080, NULL,
-                      CCNL_SUITE_NDNTLV, 0, NULL);
+    ccnl_relay_config(&theRelay, 8080, NULL, 0, NULL);
 
     theLooper = ALooper_forThread();
 
@@ -714,7 +716,7 @@ ccnl_android_init()
 
     // UDP and HTTP ports
     for (i = 0; i < theRelay.ifcount; i++) {
-        if (theRelay.ifs[i].addr.sa.sa_family = AF_INET)
+        if (theRelay.ifs[i].addr.sa.sa_family == AF_INET)
             ALooper_addFd(theLooper, theRelay.ifs[i].sock, 
                   ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
                   ccnl_android_udp_io, &theRelay);
@@ -728,6 +730,11 @@ ccnl_android_init()
 #ifdef USE_SUITE_CCNTLV
     strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
+    ccnl_echo_add(&theRelay, echoprefix);
+#endif
+#ifdef USE_SUITE_IOTTLV
+    strcpy(hello, echopath);
+    echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_IOTTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV

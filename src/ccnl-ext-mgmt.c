@@ -1687,7 +1687,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *components = 0, *h = 0;
     int buflen;
     int num, typ, num_of_components = -1, suite = 2;
-    struct ccnl_prefix_s *prefix_new;
+    struct ccnl_prefix_s *prefix_new, *prefix_new2;
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1727,23 +1727,26 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     ++num_of_components;
     
     prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, NULL);
+    
     ccnl_free(components);
     components = NULL;
     prefix_new->suite = suite;
 
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
              ccnl_prefix_to_path(prefix_new), ccnl_suite2str(suite));
-    
+             
     //Reply MSG
     if (h)
         ccnl_free(h);
     h = ccnl_malloc(300);
-    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
+    
+    prefix_new2 = ccnl_prefix_dup(prefix_new); //FIXME: required, using ccnl_prefix_to_path breaks the prefix parameter.
+    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new2));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
                              "addcacheobject", (char *)h);
     if (h)
         ccnl_free(h);
-
+        
     //Reply MSG END
     {
         struct ccnl_pkt_s *pkt;
@@ -1762,12 +1765,14 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         default:
             break;
         }
+        
         pkt->pfx = prefix_new;
         pkt->buf = ccnl_mkSimpleInterest(prefix_new, NULL);
-        pkt->final_block_id = -1;
+        pkt->val.final_block_id = -1;
         buffer = buf_dup(pkt->buf);
 
         interest = ccnl_interest_new(ccnl, from, &pkt);
+        
         if (!interest)
             return 0;
 
@@ -1859,7 +1864,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
 #ifdef USE_SIGNATURES
 int
-ccnl_mgmt_validate_signatue(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
+ccnl_mgmt_validate_signature(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, char *cmd)
 {
     
@@ -1934,6 +1939,9 @@ int ccnl_mgmt_handle(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_mgmt_destroyface(ccnl, orig, prefix, from);
     else if (!strcmp(cmd, "prefixreg"))
         ccnl_mgmt_prefixreg(ccnl, orig, prefix, from);
+//  TODO: Add ccnl_mgmt_prefixunreg(ccnl, orig, prefix, from)
+//  else if (!strcmp(cmd, "prefixunreg"))
+//      ccnl_mgmt_prefixunreg(ccnl, orig, prefix, from);
 #ifdef USE_DEBUG
     else if (!strcmp(cmd, "addcacheobject"))
         ccnl_mgmt_addcacheobject(ccnl, orig, prefix, from);
@@ -1967,7 +1975,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (ccnl_is_local_addr(&from->peer)) goto MGMT;
 
 #ifdef USE_SIGNATURES
-    return ccnl_mgmt_validate_signatue(ccnl, orig, prefix, from, cmd);
+    return ccnl_mgmt_validate_signature(ccnl, orig, prefix, from, cmd);
 #endif /*USE_SIGNATURES*/
                    
     DEBUGMSG(TRACE, "  rejecting because src=%s is not a local addr\n",

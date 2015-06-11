@@ -41,6 +41,7 @@ src/util/ccn-lite-fetch
 src/util/ccn-lite-pktdump
 src/util/ccn-lite-rpc
 src/util/ccn-lite-simplenfn
+src/util/ccn-lite-valid
 
 # unit tests
 test/unit/prefix-cmp
@@ -62,5 +63,6 @@ test/unit/unit
 # distribution files:
 distribution/Debian/ccn-lite
 distribution/Debian/ccn-lite.deb
+distribution/RedHat/rpmbuild
 
 # eof

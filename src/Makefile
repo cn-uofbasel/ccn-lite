@@ -83,7 +83,7 @@ ifdef USE_CHEMFLOW
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
-EXTRA_CFLAGS := -Wall -g $(OPTCFLAGS) -Wno-error=date-time
+EXTRA_CFLAGS := -g $(OPTCFLAGS) -Wno-error=date-time
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
@@ -153,7 +153,7 @@ ccn-lite-lnxkernel:
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
     ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c 
-	make -C /lib/modules/`uname -r`/build M=`pwd` modules
+	make -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot

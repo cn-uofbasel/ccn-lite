@@ -35,11 +35,11 @@
 
 #if defined(CCNL_ARDUINO)
 # define CCNL_MAX_INTERFACES             1
-# define CCNL_MAX_IF_QLEN                1
-# define CCNL_MAX_PACKET_SIZE            108
+# define CCNL_MAX_IF_QLEN                14
+# define CCNL_MAX_PACKET_SIZE            120
 # define CCNL_MAX_NAME_COMP              8
-#elif defined(CCNL_ANDROID) // max of UDP and BTLE
-# define CCNL_MAX_INTERFACES             2
+#elif defined(CCNL_ANDROID) // max of BTLE and 2xUDP
+# define CCNL_MAX_INTERFACES             3
 # define CCNL_MAX_IF_QLEN                10
 # define CCNL_MAX_PACKET_SIZE            4096
 # define CCNL_MAX_NAME_COMP              16
@@ -63,24 +63,24 @@
 
 enum {
 #ifdef USE_SUITE_CCNB
-  CCNL_SUITE_CCNB,
+  CCNL_SUITE_CCNB = 1,
 #endif
 #ifdef USE_SUITE_CCNTLV
-  CCNL_SUITE_CCNTLV,
+  CCNL_SUITE_CCNTLV = 2,
 #endif
 #ifdef USE_SUITE_CISTLV
-  CCNL_SUITE_CISTLV,
+  CCNL_SUITE_CISTLV = 3,
 #endif
 #ifdef USE_SUITE_IOTTLV
-  CCNL_SUITE_IOTTLV,
+  CCNL_SUITE_IOTTLV = 4,
 #endif
 #ifdef USE_SUITE_LOCALRPC
-  CCNL_SUITE_LOCALRPC,
+  CCNL_SUITE_LOCALRPC = 5,
 #endif
 #ifdef USE_SUITE_NDNTLV
-  CCNL_SUITE_NDNTLV,
+  CCNL_SUITE_NDNTLV = 6,
 #endif
-  CCNL_SUITE_LAST
+  CCNL_SUITE_LAST = 7
 };
 
 #define CCNL_SUITE_DEFAULT (CCNL_SUITE_LAST - 1)
@@ -181,6 +181,14 @@ enum {
 // ----------------------------------------------------------------------
 // face mgmt protocol:
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ   0x04
+
+// ----------------------------------------------------------------------
+// begin-end fragmentation protocol:
+#define CCNL_BEFRAG_FLAG_MASK        0x03
+#define CCNL_BEFRAG_FLAG_FIRST       0x01
+#define CCNL_BEFRAG_FLAG_MID         0x00
+#define CCNL_BEFRAG_FLAG_LAST        0x02
+#define CCNL_BEFRAG_FLAG_SINGLE      0x03
 
 //#define USE_SIGNATURES
 

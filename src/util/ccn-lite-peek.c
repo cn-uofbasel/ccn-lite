@@ -27,28 +27,42 @@
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_FRAG
 #define NEEDS_PACKET_CRAFTING
 
 #define assert(...) do {} while(0)
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
-#include "../lib-sha256.c"
+// #include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
 unsigned char out[8*CCNL_MAX_PACKET_SIZE];
+int outlen;
+
+int
+frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, 
+        unsigned char **data, int *len)
+{
+    DEBUGMSG(INFO, "frag_cb\n");
+
+    memcpy(out, *data, *len);
+    outlen = *len;
+    return 0;
+}
 
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, sock = 0, suite = CCNL_SUITE_NDNTLV;
+    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
     int (*isContent)(unsigned char*, int);
+    int (*isFragment)(unsigned char*, int) = NULL;
     unsigned int chunknum = UINT_MAX;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
@@ -83,8 +97,8 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
-            "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+            "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
 #endif
@@ -152,6 +166,7 @@ usage:
     case CCNL_SUITE_CCNTLV:
         mkInterest = ccntlv_mkInterest;
         isContent = ccntlv_isData;
+        isFragment = ccntlv_isFragment;
         break;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -164,6 +179,7 @@ usage:
     case CCNL_SUITE_IOTTLV:
         mkInterest = iottlv_mkRequest;
         isContent = iottlv_isReply;
+        isFragment = iottlv_isFragment;
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -199,8 +215,11 @@ usage:
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
         int rc;
+        struct ccnl_face_s dummyFace;
 
         DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
+
+        memset(&dummyFace, 0, sizeof(dummyFace));
 
         len = mkInterest(prefix, 
                          &nonce, 
@@ -214,8 +233,11 @@ usage:
             close(fd);
         }
 */
-        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa,
-                    sizeof(struct sockaddr_un));
+        if(ux)
+		    socksize = sizeof(struct sockaddr_un);
+	    else
+		    socksize = sizeof(struct sockaddr_in);
+        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);
         if (rc < 0) {
             perror("sendto");
             myexit(1);
@@ -223,6 +245,8 @@ usage:
         DEBUGMSG(DEBUG, "sendto returned %d\n", rc);
 
         for (;;) { // wait for a content pkt (ignore interests)
+            unsigned char *cp = out;
+            int enc, suite2, len2;
             DEBUGMSG(TRACE, "  waiting for packet\n");
 
             if (block_on_read(sock, wait) <= 0) // timeout
@@ -231,9 +255,101 @@ usage:
 
             DEBUGMSG(DEBUG, "received %d bytes\n", len);
 /*
-            if (len > 0)
-                fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+            {
+                int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC, 0700);
+                write(fd, out, len);
+                close(fd);
+            }
 */
+            suite2 = -1;
+            len2 = len;
+            while (!ccnl_switch_dehead(&cp, &len2, &enc))
+                suite2 = ccnl_enc2suite(enc);
+            if (suite2 != -1 && suite2 != suite) {
+                DEBUGMSG(DEBUG, "  unknown suite %d\n", suite);
+                continue;
+            }
+
+#ifdef USE_FRAG
+            if (isFragment && isFragment(cp, len2)) {
+                unsigned int t, len3;
+                DEBUGMSG(DEBUG, "  fragment, %d bytes\n", len2);
+                switch(suite) {
+                case CCNL_SUITE_CCNTLV: {
+                    struct ccnx_tlvhdr_ccnx2015_s *hp;
+                    hp = (struct ccnx_tlvhdr_ccnx2015_s *) out;
+                    cp = out + sizeof(*hp);
+                    len2 -= sizeof(*hp);
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &t, &len3) < 0 ||
+                        t != CCNX_TLV_TL_Fragment) {
+                        DEBUGMSG(ERROR, "  error parsing fragment\n");
+                        continue;
+                    }
+                    /*
+                    rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
+                                      4096, hp->fill[0] >> 6,
+                                      ntohs(*(uint16_t*) hp->fill) & 0x03fff,
+                                      &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                                      4096, hp->fill[0] >> 6,
+                                      ntohs(*(uint16_t*) hp->fill) & 0x03fff,
+                                      &cp, (int*) &len3);
+                    break;
+                }
+                case CCNL_SUITE_IOTTLV: {
+                    uint16_t tmp;
+
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) { // IOT_TLV_Fragment
+                        DEBUGMSG(VERBOSE, "problem parsing fragment\n");
+                        continue;
+                    }
+                    /*
+                    fprintf(stderr, "t=%d len=%d\n", t, len2);
+                    if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
+                        continue;
+                    */
+                    DEBUGMSG(VERBOSE, "t=%d, len=%d\n", t, len3);
+                    if (t == IOT_TLV_F_OptFragHdr) { // skip it for the time being
+                        cp += len3;
+                        len2 -= len3;
+                        if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3))
+                            continue;
+                    }
+                    if (t != IOT_TLV_F_FlagsAndSeq || len3 < 2) {
+                        DEBUGMSG(DEBUG, "  no flags and seqrn found (%d)\n", t);
+                        continue;
+                    }
+                    tmp = ntohs(*(uint16_t*) cp);
+                    cp += len3;
+                    len2 -= len3;
+
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) {
+                        DEBUGMSG(DEBUG, "  cannot parse frag payload\n");
+                        continue;
+                    }
+                    DEBUGMSG(DEBUG, "  fragment payload len=%d\n", len3);
+                    if (t != IOT_TLV_F_Data) {
+                        DEBUGMSG(DEBUG, "  no payload (%d)\n", t);
+                        continue;
+                    }
+                    /*
+                    rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
+                             4096, tmp >> 14, tmp & 0x7ff, &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                             4096, tmp >> 14, tmp & 0x3fff, &cp, (int*) &len3);
+                    fprintf(stderr, "--\n");
+                    break;
+                }
+                default:
+                    continue;
+                }
+                if (!outlen)
+                    continue;
+                len = outlen;
+            }
+#endif
 
 /*
         {

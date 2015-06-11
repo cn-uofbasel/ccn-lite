@@ -79,6 +79,7 @@ struct ccnl_buf_s* ccnl_frag_fragment(struct ccnl_relay_s *ccnl,
                                         struct ccnl_buf_s *buf);
 */
 
+// returns >=0 if content consumed, buf and len pointers updated
 typedef int (RX_datagram)(struct ccnl_relay_s*, struct ccnl_face_s*,
                           unsigned char**, int*);
 
@@ -90,9 +91,15 @@ int ccnl_frag_RX_CCNx2013(RX_datagram callback, struct ccnl_relay_s *relay,
                           struct ccnl_face_s *from,
                           unsigned char **data, int *datalen);
 
-int ccnl_frag_RX_CCNx2015(RX_datagram callback, struct ccnl_relay_s *relay,
-                          struct ccnl_face_s *from,
-                          unsigned char bits, uint32_t seqno,
+/*
+int ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from, int mtu,
+                          unsigned int bits, unsigned int seqno,
+                          unsigned char **data, int *datalen);
+*/
+int ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from, int mtu,
+                          unsigned int bits, unsigned int seqno,
                           unsigned char **data, int *datalen);
 
 int ccnl_is_fragment(unsigned char *data, int datalen);

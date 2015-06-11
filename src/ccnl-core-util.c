@@ -122,14 +122,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
-             mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
-#undef PREFIX2STR
+             mode, ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void*)md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
@@ -163,8 +157,6 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
              ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-//           ccnl_prefix_to_path_detailed(prefix,1,0,0),
-//           ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -716,7 +708,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (data[0] == CCNX_TLV_V1 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
-            data[1] == CCNX_PT_FRAGMENT ||
+            data[1] == CCNX_PT_Fragment ||
             data[1] == CCNX_PT_NACK) 
             return CCNL_SUITE_CCNTLV;
     } 
@@ -732,7 +724,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
+        *data == NDN_TLV_Fragment)
         return CCNL_SUITE_NDNTLV;
 #endif
 
@@ -801,7 +794,7 @@ ccnl_addr2ascii(sockunion *su)
 {
 #ifdef USE_UNIXSOCKET
     static char result[256];
-#else    
+#else
     static char result[25];
 #endif
 
@@ -834,6 +827,7 @@ ccnl_addr2ascii(sockunion *su)
         break;
     }
 
+    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
     return NULL;
 }
 
@@ -1081,5 +1075,4 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
 // eof

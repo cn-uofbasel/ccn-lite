@@ -383,12 +383,9 @@ public class CcnLiteAndroid extends Activity
             @Override
             public void onCharacteristicChanged(BluetoothGatt gatt,
                                  BluetoothGattCharacteristic characteristic) {
-                    debugMsg("onChChange");
-                    debugMsg("  readChar returns " +
-                             gatt.readCharacteristic(characteristic) +
-                             " cnt=" + 
-                             characteristic.getValue().length);
-                    //                    newData += 1;
+                if (!gatt.readCharacteristic(characteristic)) {
+                    debugMsg("onChChange - readChar returns false");
+                } else {
                     final byte[] val = characteristic.getValue();
                     runOnUiThread(new Runnable() {
                             @Override
@@ -396,32 +393,31 @@ public class CcnLiteAndroid extends Activity
                                 relayRX(bleAddr, val);
                             }
                         });
+                }
             }
-
 
         };
 
     public void bleSend(byte[] data)
     {
-        appendToLog("bleSend");
-
         if (bleConnection == null || bleService == null) {
-            appendToLog("  BLE not initialized");
+            appendToLog("bleSend: BLE not initialized");
             return; // false;
         }
 
         BluetoothGattCharacteristic sendC =
             bleService.getCharacteristic(SEND_UUID);
         if (sendC == null) {
-            appendToLog("  no send characteristic");
+            appendToLog("bleSend: no send characteristic");
             return; // false;
         }
 
         sendC.setValue(data);
         sendC.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         boolean b = bleConnection.writeCharacteristic(sendC);
-        appendToLog("  write Char returns " + b);
-        return; // b;
+        if (!b)
+            appendToLog("bleSend: write characteristics failed");
+        return;
 
     }
 }

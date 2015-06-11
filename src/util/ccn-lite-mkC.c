@@ -46,29 +46,22 @@ main(int argc, char *argv[])
 {
     unsigned char body[64*1024];
     unsigned char out[65*1024];
-    unsigned char key[1024];
-    unsigned char keyval[64];
-    unsigned char keyid[32];
     unsigned char *publisher = out;
-    char keylen = 0, *infname = 0, *outfname = 0;
+    char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
+    struct key_s *keys = NULL;
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
             break;
-        case 'k': {
-            int fd = open(optarg, O_RDONLY);
-            if (fd < 0)
-                perror("file open:");
-            keylen = read(fd, key, sizeof(key));
-            close(fd);
+        case 'k':
+            keys = load_keys_from_file(optarg);
             break;
-        }
         case 'l':
             lastchunknum = atoi(optarg);
             break;
@@ -112,11 +105,11 @@ main(int argc, char *argv[])
 Usage:
         fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
         "  -i FNAME    input file (instead of stdin)\n"
-        "  -k FNAME    HMAC key / publisher private key (CCNB)\n"
+        "  -k FNAME    HMAC256 key (base64 encoded)\n"
         "  -l LASTCHUNKNUM number of last chunk\n"       
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
-//        "  -p DIGEST   publisher fingerprint\n"
+        "  -p DIGEST   publisher fingerprint\n"
         "  -s SUITE    (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
@@ -156,9 +149,12 @@ Usage:
     case CCNL_SUITE_CCNTLV:
         
         offs = CCNL_MAX_PACKET_SIZE;
-        if (keylen > 0) {
-            ccnl_hmac256_keyval(key, keylen, keyval);
-            ccnl_hmac256_keyid(key, keylen, keyid);
+        if (keys) {
+            unsigned char keyval[64];
+            unsigned char keyid[32];
+            // use the first key found in the key file
+            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
             len = ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   NULL, keyval, keyid, &offs, out);
@@ -189,9 +185,12 @@ Usage:
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        if (keylen > 0) {
-            ccnl_hmac256_keyval(key, keylen, keyval);
-            ccnl_hmac256_keyid(key, keylen, keyid);
+        if (keys) {
+            unsigned char keyval[64];
+            unsigned char keyid[32];
+            // use the first key found in the key file
+            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
             len = ccnl_ndntlv_prependSignedContent(name, body, len,
                   lastchunknum == UINT_MAX ? NULL : &lastchunknum,
                   NULL, keyval, keyid, &offs, out);

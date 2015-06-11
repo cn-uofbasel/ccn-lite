@@ -72,6 +72,20 @@ int
 ccnl_ccntlv_dehead(unsigned char **buf, int *len,
                    unsigned int *typ, unsigned int *vallen)
 {
+// Avoiding casting pointers to uint16t -- issue with the RFduino compiler?
+// Workaround:
+    uint16_t tmp;
+
+    if (*len < 4)
+        return -1;
+    memcpy(&tmp, *buf, 2);
+    *typ = ntohs(tmp);
+    memcpy(&tmp, *buf + 2, 2);
+    *vallen = ntohs(tmp);
+    *len -= 4;
+    *buf += 4;
+    return 0;
+/*
     unsigned short *ip;
 
     if (*len < 4)
@@ -83,9 +97,11 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
     *len -= 4;
     *buf += 4;
     return 0;
+*/
 }
 
-// we use one extraction routine for both interest and data pkts
+// We use one extraction procedure for both interest and data pkts.
+// This proc assumes that the packet header was already processed and consumed
 struct ccnl_pkt_s*
 ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
@@ -93,8 +109,11 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     int i;
     unsigned int len, typ, oldpos;
     struct ccnl_prefix_s *p;
+#ifdef USE_HMAC256
+    int validAlgoIsHmac256 = 0;
+#endif
 
-    DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_extract len=%d\n", *datalen);
+    DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_bytes2pkt len=%d\n", *datalen);
 
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
@@ -107,14 +126,18 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     }
     p->compcnt = 0;
 
-    // We ignore the TL types of the message for now
-    // content and interests are filled in both cases (and only one exists)
-    // validation is ignored
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len))
+#ifdef USE_HMAC256
+    pkt->hmacStart = *data;
+#endif
+    // We ignore the TL types of the message for now:
+    // content and interests are filled in both cases (and only one exists).
+    // Validation info is now collected
+    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || len > *datalen)
         goto Bail;
+
     pkt->type = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
-    pkt->final_block_id = -1;
+    pkt->val.final_block_id = -1;
 
     // XXX this parsing is not safe for all input data - needs more bound
     // checks, as some packets with wrong L values can bring this to crash
@@ -124,12 +147,14 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         int len2 = len;
         unsigned int len3;
 
+        if (len > *datalen)
+            goto Bail;
         switch (typ) {
         case CCNX_TLV_M_Name:
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3))
+                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
                     goto Bail;
 
                 switch (typ) {
@@ -160,7 +185,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     } // else out of name component memory: skip
                     break;
                 case CCNX_TLV_N_Meta:
-                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3)) {
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) ||
+                        len > *datalen) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
@@ -187,7 +213,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CCNX_TLV_M_ENDChunk:
             if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
-                                 (unsigned int*) &(pkt->final_block_id)) < 0) {
+                              (unsigned int*) &(pkt->val.final_block_id)) < 0) {
                 DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }
@@ -196,6 +222,22 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             pkt->content = *data;
             pkt->contlen = len;
             break;
+#ifdef USE_HMAC256
+        case CCNX_TLV_TL_ValidationAlgo:
+            cp = *data;
+            len2 = len;
+            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
+                goto Bail;
+            if (typ == CCNX_VALIDALGO_HMAC_SHA256 && len3 == 0)
+                validAlgoIsHmac256 = 1;
+            break;
+        case CCNX_TLV_TL_ValidationPayload:
+            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
+                pkt->hmacLen = *data - pkt->hmacStart - 4;
+                pkt->hmacSignature = *data;
+            }
+            break;
+#endif
         default:
             break;
         }
@@ -217,6 +259,10 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         p->comp[i] = pkt->buf->data + (p->comp[i] - start);
     if (p->nameptr)
         p->nameptr = pkt->buf->data + (p->nameptr - start);
+#ifdef USE_HMAC256
+    pkt->hmacStart = pkt->buf->data + (pkt->hmacStart - start);
+    pkt->hmacSignature = pkt->buf->data + (pkt->hmacSignature - start);
+#endif
 
     return pkt;
 Bail:
@@ -251,9 +297,20 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 
 // write given TL *before* position buf+offset, adjust offset and return len
 int
-ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
+ccnl_ccntlv_prependTL(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf)
 {
+// RFduino compiler has problems with casting pointers to unsigned short?
+// Workaround:
+    uint16_t tmp;
+    buf += *offset;
+    tmp = htons(len);
+    memcpy(buf-2, &tmp, 2);
+    tmp = htons(type);
+    memcpy(buf-4, &tmp, 2);
+    *offset -= 4;
+    return 4;
+/*
     unsigned short *ip;
 
     if (*offset < 4)
@@ -263,6 +320,7 @@ ccnl_ccntlv_prependTL(unsigned int type, unsigned short len,
     *ip = htons(type);
     *offset -= 4;
     return 4;
+*/
 }
 
 // write len bytes *before* position buf[offset], adjust offset
@@ -272,8 +330,9 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 {
     if (*offset < (len + 4))
         return -1;
-    memcpy(buf + *offset - len, blob, len);
     *offset -= len;
+    memcpy(buf + *offset, blob, len);
+
     if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
         return -1;
     return len + 4;
@@ -328,15 +387,6 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx2015_s);
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-/*
-    if (packettype == CCNX_PT_Interest || packettype == CCNX_PT_NACK) {
-        struct ccnx_tlvhdr_ccnx2015nack_s *np;
-        hdrlen += sizeof(*np);
-        *offset -= sizeof(*np);
-        np = (struct ccnx_tlvhdr_ccnx2015nack_s *)(buf + *offset);
-        memset(np, 0, sizeof(*np));
-    }
-*/
     if (*offset < hdrlen || payloadlen < 0)
         return -1;
 
@@ -425,12 +475,9 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
     oldoffset = *offset;
     len = ccnl_ccntlv_prependInterest(name, offset, buf);
-    if (len >= ((1 << 16)-8))
+    if (len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
         return -1;
-/*
-    *offset -= sizeof(struct ccnx_tlvhdr_ccnx201412nack_s);
-    memset(buf + *offset, 0, sizeof(struct ccnx_tlvhdr_ccnx201412nack_s));
-*/
+
     if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Interest, 
                                     len, hoplimit, offset, buf) < 0)
         return -1;
@@ -470,11 +517,6 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                         tloffset - *offset, offset, buf) < 0)
         return -1;
 
-    /*
-    if (contentpos)
-        *contentpos -= *offset;
-    */
-
     return tloffset - *offset;
 }
 
@@ -486,18 +528,22 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   int *offset, unsigned char *buf)
 {
     int len, oldoffset;
-    unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
+    unsigned char hoplimit = 255; // setting to max (content has no hoplimit)
 
     oldoffset = *offset;
 
     len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
                                      contentpos, offset, buf);
-
-    if (len >= ((uint32_t)(1 << 16) - 8))
+    if (len < 0)
         return -1;
 
-    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
-                                len, hoplimit, offset, buf);
+    if (len >= ((uint32_t)1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s))
+        return -1;
+
+    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                    len, hoplimit, offset, buf) < 0)
+        return -1;
+
     return oldoffset - *offset;
 }
 
@@ -510,6 +556,9 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     unsigned int datalen;
     struct ccnl_buf_s *buf;
     struct ccnx_tlvhdr_ccnx2015_s *fp;
+    uint16_t tmp;
+
+    DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_mkFrag seqno=%d\n", fr->sendseq);
 
     datalen = fr->mtu - sizeof(*fp) - 4;
     if (datalen > (fr->bigpkt->datalen - fr->sendoffs))
@@ -521,24 +570,27 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     fp = (struct ccnx_tlvhdr_ccnx2015_s*) buf->data;
     memset(fp, 0, sizeof(*fp));
     fp->version = CCNX_TLV_V1;
-    fp->pkttype = CCNX_PT_FRAGMENT;
+    fp->pkttype = CCNX_PT_Fragment;
     fp->hdrlen = sizeof(*fp);
-    fp->pktlen = htons(buf->datalen);
-    *(uint16_t*)(fp+1) = htons(CCNX_TLV_TL_Fragment);
-    *(uint16_t*)((char*)(fp+1) + 2) = htons(datalen);
+    fp->pktlen = htons(sizeof(*fp) + 4 + datalen);
+
+    tmp = htons(CCNX_TLV_TL_Fragment);
+    memcpy(fp+1, &tmp, 2);
+    tmp = htons(datalen);
+    memcpy((char*)(fp+1) + 2, &tmp, 2);
     memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
 
-    *(uint16_t*) fp->fill = htons(fr->sendseq & 0x03fff);
-
-    // patch flag field:
-    if (datalen >= fr->bigpkt->datalen) { // single
-        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_SINGLE << 6;
-    } else if (fr->sendoffs == 0) // start
-        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_FIRST << 6;
-    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
-        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_LAST << 6;
-    } else
-        fp->fill[0] |= CCNL_DTAG_FRAG_FLAG_MID << 6;
+    tmp = fr->sendseq & 0x03fff;
+    if (datalen >= fr->bigpkt->datalen)   // single
+        tmp |= CCNL_BEFRAG_FLAG_SINGLE << 14;
+    else if (fr->sendoffs == 0)           // start
+        tmp |= CCNL_BEFRAG_FLAG_FIRST  << 14;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs))  // end
+        tmp |= CCNL_BEFRAG_FLAG_LAST   << 14;
+    else                                  // middle
+        tmp |= CCNL_BEFRAG_FLAG_MID    << 14;
+    tmp = htons(tmp);
+    memcpy(fp->fill, &tmp, 2);
 
     *consumed = datalen;
     return buf;

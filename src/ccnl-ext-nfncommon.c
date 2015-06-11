@@ -78,9 +78,11 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
 
     pkt->suite = (*prefix)->suite;
     switch(pkt->suite) {
+#ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
         break;
+#endif
     case CCNL_SUITE_NDNTLV:
         pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
         break;
@@ -90,7 +92,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     pkt->buf = ccnl_mkSimpleInterest(*prefix, &nonce);
     pkt->pfx = *prefix;
     *prefix = NULL;
-    pkt->final_block_id = -1;
+    pkt->val.final_block_id = -1;
 
     i = ccnl_interest_new(ccnl, from, &pkt);
     if (i) {

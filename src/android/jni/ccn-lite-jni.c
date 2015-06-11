@@ -92,7 +92,7 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayTimer(JNIEnv* env,
 }
 
 void
-add_route(char *pfx, struct ccnl_face_s *face)
+add_route(char *pfx, struct ccnl_face_s *face, int suite, int mtu)
 {
     struct ccnl_forward_s *fwd;
     char buf[100];
@@ -101,12 +101,18 @@ add_route(char *pfx, struct ccnl_face_s *face)
     if (!fwd)
         return;
 
-    DEBUGMSG(INFO, "adding a route for prefix %s\n", pfx);
+    DEBUGMSG(INFO, "adding a route for prefix %s (%s)\n",
+             pfx, ccnl_suite2str(suite));
     
     strcpy(buf, pfx);
-    fwd->prefix = ccnl_URItoPrefix(buf, CCNL_SUITE_NDNTLV, NULL, NULL);
+    fwd->prefix = ccnl_URItoPrefix(buf, suite, NULL, NULL);
     fwd->face = face;
-    fwd->suite = CCNL_SUITE_NDNTLV;
+#ifdef USE_FRAG
+    if (mtu > 0) {
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_BEGINEND2015, mtu);
+    }
+#endif
+    fwd->suite = suite;
     fwd->next = theRelay.fib;
     theRelay.fib = fwd;
 }
@@ -121,6 +127,7 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
     unsigned char buf[1024];
     sockunion su;
 
+    len = (*env)->GetArrayLength(env, data);
     DEBUGMSG(DEBUG, "relayRX: %d bytes\n", len);
 
     memset(&su, 0, sizeof(su));
@@ -128,19 +135,28 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
     (*env)->GetByteArrayRegion(env, addr, 0, ETH_ALEN,
                                (signed char*) &su.eth.sll_addr);
 
-    len = (*env)->GetArrayLength(env, data);
     if (len > sizeof(buf))
         len = sizeof(buf);
     (*env)->GetByteArrayRegion(env, data, 0, len, (signed char*) buf);
 
-    ccnl_core_RX(&theRelay, 1, buf, len, (struct sockaddr*) &su, sizeof(su));
+    ccnl_core_RX(&theRelay, 0, buf, len, (struct sockaddr*) &su, sizeof(su));
 
     // hack: when the first packet from the BT LE device is received,
     // (and the FIB is empty), install two forwarding entries
     if (theRelay.faces && (!theRelay.fib || theRelay.fib->tap)) {
         theRelay.faces->flags |= CCNL_FACE_FLAGS_STATIC;
-        add_route("/TinC", theRelay.faces);
-        add_route("/TinF", theRelay.faces);
+#ifdef USE_SUITE_CCNTLV
+        add_route("/TinC", theRelay.faces, CCNL_SUITE_CCNTLV, 20);
+        add_route("/TinF", theRelay.faces, CCNL_SUITE_CCNTLV, 20);
+#endif
+#ifdef USE_SUITE_NDNTLV
+        add_route("/TinC", theRelay.faces, CCNL_SUITE_IOTTLV, 20);
+        add_route("/TinF", theRelay.faces, CCNL_SUITE_IOTTLV, 20);
+#endif
+#ifdef USE_SUITE_NDNTLV
+        add_route("/TinC", theRelay.faces, CCNL_SUITE_NDNTLV, 20);
+        add_route("/TinF", theRelay.faces, CCNL_SUITE_NDNTLV, 20);
+#endif
         return;
     }
 }

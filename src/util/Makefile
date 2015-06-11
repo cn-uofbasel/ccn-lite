@@ -11,15 +11,16 @@ PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-fetch \
 	ccn-lite-mkC \
 	ccn-lite-mkI \
+	ccn-lite-mkF \
 	ccn-lite-peek \
 	ccn-lite-pktdump \
 	ccn-lite-produce \
 	ccn-lite-rpc \
-	ccn-lite-simplenfn
+	ccn-lite-simplenfn \
+	ccn-lite-valid
 
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
-#	ccn-lite-mkF \
 
 CCNB_LIB =   ../ccnl-pkt-ccnb.h ../ccnl-pkt-ccnb.c ../lib-sha256.c
 CCNTLV_LIB = ../ccnl-pkt-ccntlv.h ../ccnl-pkt-ccntlv.c
@@ -102,7 +103,7 @@ ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl-defs.h ccnl-frag.h
 ccn-lite-mkC: Makefile ccn-lite-mkC.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
 
-ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ../ccnl-defs.h ccnl-frag.h
+ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
@@ -116,6 +117,11 @@ ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 
 ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
+
+ccn-lite-valid: Makefile ccn-lite-valid.c \
+		${CCNTLV_LIB} ${NDNTLV_LIB} \
+		../ccnl-defs.h ../ccnl-core-util.c
+	$(CC) $(CFLAGS) ccn-lite-valid.c -o $@ 
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-pktdump

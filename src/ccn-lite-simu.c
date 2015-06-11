@@ -408,7 +408,7 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode, int mtu)
     fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
 #ifdef USE_FRAG
     if (mtu)
-        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_SEQUENCED2015, mtu);
+        fwd->face->frag = ccnl_frag_new(CCNL_FRAG_BEGINEND2015, mtu);
 #endif
     fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
     fwd->next = relay->fib;
@@ -602,7 +602,7 @@ main(int argc, char **argv)
                     "  [-g MIN_INTER_PACKET_INTERVAL]\n"
                     "  [-i MIN_INTER_CCNMSG_INTERVAL]\n"
                     "  [-m MTU]\n"
-                    "  [-s SUITE (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)]\n"
+                    "  [-s SUITE (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)]\n"
                     "  [-v DEBUG_LEVEL]\n",
                     argv[0]);
             exit(EXIT_FAILURE);
