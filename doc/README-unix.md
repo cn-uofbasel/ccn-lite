@@ -1,6 +1,6 @@
 # Prerequisites
 
-CCN-lite requires OpenSSL. You can use the following to install it:
+CCN-lite requires OpenSSL. Use the following to install it:
 * Ubuntu: `sudo apt-get install libssl-dev`
 * OS X: `brew install openssl`
 
