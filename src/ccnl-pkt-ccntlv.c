@@ -43,7 +43,7 @@ ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
                                  unsigned int *intval)
 {
     int val = 0;
-    
+
     while (len-- > 0) {
         val = (val << 8) | *buf;
         buf++;
@@ -377,10 +377,10 @@ ccnl_ccntlv_prependNetworkVarSInt(unsigned short type, int intval,
 // write *before* position buf[offset] the CCNx1.0 fixed header,
 // returns total packet len
 int
-ccnl_ccntlv_prependFixedHdr(unsigned char ver, 
-                            unsigned char packettype, 
-                            unsigned short payloadlen, 
-                            unsigned char hoplimit, 
+ccnl_ccntlv_prependFixedHdr(unsigned char ver,
+                            unsigned char packettype,
+                            unsigned short payloadlen,
+                            unsigned char hoplimit,
                             int *offset, unsigned char *buf)
 {
     // optional headers are not yet supported, only the fixed header
@@ -467,7 +467,7 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
                                         int *offset, unsigned char *buf)
 {
     int len, oldoffset;
@@ -478,7 +478,7 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
     if (len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
         return -1;
 
-    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Interest, 
+    if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Interest,
                                     len, hoplimit, offset, buf) < 0)
         return -1;
 
@@ -487,7 +487,7 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name, 
+ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
                                 int *offset, unsigned char *buf)
 {
     return ccnl_ccntlv_prependChunkInterestWithHdr(name, offset, buf);
@@ -495,7 +495,7 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name, 
+ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
                            unsigned int *lastchunknum, int *contentpos,
                            int *offset, unsigned char *buf)

@@ -477,7 +477,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     if (suite == CCNL_SUITE_CISTLV)
         len += cnt * 4; // add TL size
 #endif
-    
+
     p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
@@ -490,9 +490,9 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 
         if (isnfnfcomp)
             tlen = strlen(nfnexpr);
-        else 
+        else
             tlen = complens[i];
-        
+
         p->comp[i] = p->bytes + len;
         tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
         p->complen[i] = tlen;
@@ -536,7 +536,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         free_prefix(p);
         return NULL;
     }
-    
+
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
         p->complen[i] = prefix->complen[i];
         p->comp[i] = p->bytes + len;
@@ -564,7 +564,7 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
 
     int prefixlen = 0;
 
-    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP) 
+    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP)
         return -1;
     for (i = 0; i < lastcmp; i++) {
         prefixlen += prefix->complen[i];
@@ -595,8 +595,8 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
 }
 
 // TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
-// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level. 
-int 
+// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level.
+int
 ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 {
     if (chunknum >= 0xff) {
@@ -612,7 +612,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[0] = NDN_Marker_SegmentNumber;
             // TODO: this only works for chunknums smaller than 255
             cmp[1] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0) 
+            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
@@ -631,7 +631,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[2] = 0;
             cmp[3] = 1;
             cmp[4] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
+            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
@@ -650,7 +650,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[2] = 0;
             cmp[3] = 1;
             cmp[4] = chunknum;
-            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
+            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
@@ -681,7 +681,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (skip)
         *skip = 0;
 
-    if (len <= 0) 
+    if (len <= 0)
         return -1;
 
     DEBUGMSG_CUTL(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
@@ -709,18 +709,18 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
             data[1] == CCNX_PT_Fragment ||
-            data[1] == CCNX_PT_NACK) 
+            data[1] == CCNX_PT_NACK)
             return CCNL_SUITE_CCNTLV;
-    } 
+    }
 #endif
 
 #ifdef USE_SUITE_CISTLV
     if (data[0] == CISCO_TLV_V1 && len > 1) {
         if (data[1] == CISCO_PT_Interest ||
             data[1] == CISCO_PT_Content ||
-            data[1] == CISCO_PT_Nack) 
+            data[1] == CISCO_PT_Nack)
             return CCNL_SUITE_CISTLV;
-    } 
+    }
 #endif
 
 #ifdef USE_SUITE_NDNTLV
@@ -1037,7 +1037,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #endif
 #ifdef USE_SUITE_CISTLV
     case CCNL_SUITE_CISTLV:
-        len = ccnl_cistlv_prependContentWithHdr(name, payload, paylen, 
+        len = ccnl_cistlv_prependContentWithHdr(name, payload, paylen,
                                                 NULL, // lastchunknum
                                                 &offs, &contentpos, tmp);
         break;

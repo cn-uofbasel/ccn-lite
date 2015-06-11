@@ -161,7 +161,7 @@ dtag2str(int dtag)
         case CCN_DTAG_CCNPDU:
             return "CCNPDU";
     }
-    
+
     // No result found in CCN_DTAG, try CCNL_TAG
     switch (dtag) {
          case CCNL_DTAG_MACSRC:
@@ -195,7 +195,7 @@ dtag2str(int dtag)
              return "DEBUGREQUEST";
 
          case CCNL_DTAG_DEBUGACTION:
-             return "DEBUGACTION";   
+             return "DEBUGACTION";
 
         case CCNL_DTAG_DEBUGREPLY:
             return "DEBUGREPLY";
@@ -281,7 +281,7 @@ dtag2str(int dtag)
         case CCNL_DTAG_COMPLENGTH:
             return "COMPLENGTH";
     }
-    
+
     DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __FUNCTION__, __FILE__, __LINE__);
     return "?";
 }
@@ -308,7 +308,7 @@ tag2str(int tag, int num)
         case CCN_TT_UDATA:
             return "UDATA";
     }
-    
+
     DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __FUNCTION__, __FILE__, __LINE__);
     return "?";
 }
@@ -325,7 +325,7 @@ is_ccn_tt(int tag)
         case CCN_TT_UDATA:
             return 1;
     }
-    
+
     return 0;
 }
 
@@ -341,7 +341,7 @@ lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag
     int look_typ, look_num, rc, rc2;
     unsigned char *old_buf = *buf;
     int old_len = *len;
-    
+
     rc = ccnl_ccnb_dehead(buf, len, num, typ);
     if (ignore_blob_tag && rc == 0 && is_ccn_blob(*typ)) {
         rc2 = ccnl_ccnb_dehead(buf, len, &look_num, &look_typ);
@@ -351,7 +351,7 @@ lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag
             rc = rc2;
         }
     }
-    
+
     *buf = old_buf;
     *len = old_len;
     return rc;
@@ -362,7 +362,7 @@ dehead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
 {
     int look_typ, look_num;
     int rc_dehead, rc_lookahead;
-    
+
     rc_dehead = ccnl_ccnb_dehead(buf, len, num, typ);
     if (ignore_blob_tag && rc_dehead == 0 && is_ccn_blob(*typ)) {
         rc_lookahead = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
@@ -371,7 +371,7 @@ dehead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
             return dehead(buf, len, num, typ, ignore_blob_tag);
         }
     }
-    
+
     return rc_dehead;
 }
 
@@ -389,11 +389,11 @@ print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
 {
     int i;
     if (with_newlines) print_offset(offset);
-    
+
     for (i = 0; i < vallen; ++i) {
         printf("%c", valptr[i]);
     }
-    
+
     if (with_newlines) printf("\n");
 }
 
@@ -401,12 +401,12 @@ void
 print_tag(int offset, int typ, int num, int open_tag, int with_newlines)
 {
     if (open_tag || with_newlines) print_offset(offset);
-    
+
     printf("<");
     if (!open_tag) printf("/");
-    printf("%s", tag2str(typ, num));    
+    printf("%s", tag2str(typ, num));
     printf(">");
-    
+
     if (!open_tag || with_newlines) printf("\n");
 }
 
@@ -426,7 +426,7 @@ void
 print_ccnb(unsigned char **buf, int *len, int offset, int ignore_blob_tag)
 {
     int num, typ, look_num, look_typ, rc;
-    
+
     while (dehead(buf, len, &num, &typ, ignore_blob_tag) == 0) {
         if (num == 0 && typ == 0) {
             break;
@@ -478,7 +478,7 @@ main(int argc, char *argv[])
         perror("read");
         exit(-1);
     }
-    
+
     p_out = out;
     print_ccnb(&p_out, &len, 0, ignore_blob_tag);
     return 0;

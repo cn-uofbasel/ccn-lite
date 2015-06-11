@@ -283,7 +283,7 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
             cp[3] = cmplen;
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
-        } 
+        }
 #endif
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
@@ -566,7 +566,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
             cp[3] = cmplen;
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
-        } 
+        }
         if (suite == CCNL_SUITE_CISTLV) {
             char* oldcp = cp;
             cp = malloc( (cmplen + 4) * (sizeof(char)) );
@@ -576,7 +576,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
             cp[3] = cmplen;
             memcpy(cp + 4, oldcp, cmplen);
             cmplen += 4;
-        } 
+        }
         len3 += ccnl_ccnb_mkBlob(fwdentry+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG,
                        cp, cmplen);
         if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV)
@@ -621,7 +621,7 @@ getPrefix(unsigned char *data, int datalen, int *suite)
     struct ccnl_pkt_s *pkt = NULL;
 
     *suite = ccnl_pkt2suite(data, datalen, &skip);
-    
+
     if (*suite < 0 || *suite >= CCNL_SUITE_LAST) {
         DEBUGMSG(ERROR, "?unknown packet?\n");
         return 0;
@@ -699,7 +699,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     int datalen;
     struct ccnl_prefix_s *prefix;
     char *prefix_string = NULL;
-    
+
     FILE *file = fopen(fname, "r");
     if (!file)
         return 0;
@@ -710,7 +710,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     data = (unsigned char *) ccnl_malloc(sizeof(unsigned char)*datalen);
     fread(data, datalen, 1, file);
     fclose(file);
-    
+
     prefix = getPrefix(data, datalen, suite);
     if (!prefix) {
         DEBUGMSG(ERROR, "  no prefix in file %s\n", fname);
@@ -718,7 +718,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     }
     DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", ccnl_prefix_to_path(prefix));
     prefix_string = ccnl_prefix_to_path_detailed(prefix, 0, 1, 1);
-    
+
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
     out1 = (unsigned char *) ccnl_malloc(sizeof(unsigned char) * 5000);
@@ -736,7 +736,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
 
     len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
 
-    
+
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
     memset(h, '\0', sizeof(h));
@@ -1101,7 +1101,7 @@ help:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto help;
 
     argv += optind-1;
@@ -1134,7 +1134,7 @@ help:
             suite = ccnl_str2suite(argv[3]);
             if (suite < 0 || suite >= CCNL_SUITE_LAST)
                 goto help;
-        } 
+        }
         if (argc < 3)
             goto help;
         len = mkEchoserverRequest(out, argv[2], suite, private_key_path);
@@ -1165,7 +1165,7 @@ help:
             if (suite < 0 || suite >= CCNL_SUITE_LAST) {
                 goto help;
             }
-        } 
+        }
         if (argc < 4)
             goto help;
         len = mkPrefixregRequest(out, 1, argv[2], argv[3], suite, private_key_path);

@@ -265,8 +265,8 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
     r = ifc->queue + ((ifc->qfront + ifc->qlen) % CCNL_MAX_IF_QLEN);
     r->buf = buf;
     memcpy(&r->dst, dest, sizeof(sockunion));
-    r->txdone = tx_done; 
-    r->txdone_face = f; 
+    r->txdone = tx_done;
+    r->txdone_face = f;
     ifc->qlen++;
 
 #ifdef USE_SCHEDULER
@@ -538,7 +538,7 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         return i->pkt->s.ccnb.minsuffix == pkt->s.ccnb.minsuffix &&
-               i->pkt->s.ccnb.maxsuffix == pkt->s.ccnb.maxsuffix && 
+               i->pkt->s.ccnb.maxsuffix == pkt->s.ccnb.maxsuffix &&
                ((!i->pkt->s.ccnb.ppkd && !pkt->s.ccnb.ppkd) ||
                     buf_equal(i->pkt->s.ccnb.ppkd, pkt->s.ccnb.ppkd));
 #endif
@@ -791,7 +791,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (f) {
         if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
                 (f->last_used + CCNL_FACE_TIMEOUT) <= t){
-            f = ccnl_face_remove(relay, f);   
+            f = ccnl_face_remove(relay, f);
     }
         else
             f = f->next;
@@ -867,7 +867,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
-    
+
     (void) base; // silence compiler warning (if USE_DEBUG is not set)
 
     DEBUGMSG_CORE(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);

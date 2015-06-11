@@ -31,7 +31,7 @@
 
 // ----------------------------------------------------------------------
 
-void 
+void
 file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
            int bytelimit, unsigned int *seqnr, unsigned int seqnrwidth,
            char noclobber)

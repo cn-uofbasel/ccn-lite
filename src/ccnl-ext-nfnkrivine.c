@@ -54,7 +54,7 @@ new_closure(char *term, struct environment_s *env)
     return ret;
 }
 
-void 
+void
 push_to_stack(struct stack_s **top, void *content, int type)
 {
     struct stack_s *h;
@@ -145,7 +145,7 @@ stack_len(struct stack_s *s)
 }
 
 // #ifdef XXX
-void 
+void
 print_environment(struct environment_s *env)
 {
    int num = 0;
@@ -158,7 +158,7 @@ print_environment(struct environment_s *env)
    }
 }
 
-void 
+void
 print_result_stack(struct stack_s *stack)
 {
    int num = 0;
@@ -169,7 +169,7 @@ print_result_stack(struct stack_s *stack)
    }
 }
 
-void 
+void
 print_argument_stack(struct stack_s *stack)
 {
    int num = 0;
@@ -184,7 +184,7 @@ print_argument_stack(struct stack_s *stack)
 }
 // #endif
 
-void 
+void
 add_to_environment(struct environment_s **env, char *name,
                    struct closure_s *closure)
 {
@@ -206,7 +206,7 @@ search_in_environment(struct environment_s *env, char *name)
 {
     for (; env; env = env->next)
         if (!strcmp(name, env->name))
-            return env->closure;  
+            return env->closure;
 
     return NULL;
 }
@@ -357,7 +357,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 
     config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) *
                                             config->fox_state->num_of_params);
-        
+
     for (i = 0; i < config->fox_state->num_of_params; ++i) {
         //pop parameter from stack
         config->fox_state->params[i] = pop_from_stack(&config->result_stack);
@@ -495,7 +495,7 @@ handlecontent: //if result was found ---> handle it
                          ccnl_prefix_to_path(mapping->value));
             }
         }
-    }        
+    }
     DEBUGMSG(DEBUG, " FOX continuation: %s\n", contd);
     return ccnl_strdup(contd);
 }
@@ -526,31 +526,31 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         cp2len = strlen(res+end) + strlen("RESOLVENAME()");
         h = strchr(cp, '=');
         namelength = h - cp;
-            
+
         lambda_expr = ccnl_malloc(strlen(h));
         name = ccnl_malloc(namelength);
         cp2 = ccnl_malloc(cp2len);
-            
+
         memset(cp2, 0, cp2len);
         memset(name, 0, namelength);
         memset(lambda_expr, 0, strlen(h));
-            
+
         sprintf(cp2, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
         memcpy(name, cp+3, namelength-3); //copy name without let and endlet
         trim(name);
-   
+
         lambdalen = strlen(h)-strlen(cp2)+11-6;
         memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
         trim(lambda_expr);
         resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
         sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
-            
+
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
         ccnl_free(cp);
         return strdup(contd);
     }
-        
+
     //check if term can be made available, if yes enter it as a var
     //try with searching in global env for an added term!
 
@@ -621,7 +621,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
 // executes a ZAM instruction, returns the term to continue working on
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int thunk_request, int *num_of_required_thunks,
         int *halt, char *dummybuf, int *restart)
 {
@@ -633,7 +633,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct builtin_s *bp;
     char *arg, *contd;
     int tok;
-    
+
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if (config->result_stack) {
@@ -756,7 +756,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                 goto normal;
         } else {
 normal:
-            closure = new_closure(arg, config->env); 
+            closure = new_closure(arg, config->env);
             //configuration->env = NULL;//FIXME new environment?
             push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
             arg = NULL;
@@ -853,7 +853,7 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_CMPLEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))");
     allocAndAdd(env, "ifelse_church",
                 "RESOLVENAME(@expr@yes@no(expr yes no))");
-    
+
     //Operator on integer numbers
     allocAndAdd(env, "eq",
                 "CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))");
@@ -966,7 +966,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
                  stack_len((*config)->argument_stack),
                  stack_len((*config)->result_stack), (*config)->prog);
         (*config)->prog = ZAM_term(ccnl, *config,
-                                (*config)->fox_state->thunk_request, 
+                                (*config)->fox_state->thunk_request,
                                 &(*config)->fox_state->num_of_required_thunks,
                                 &halt, dummybuf, &restart);
         ccnl_free(oldprog);

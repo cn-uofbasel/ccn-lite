@@ -407,7 +407,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
             len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
         len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
     }
-#endif    
+#endif
     out[len++] = 0; // end-of-name
 
     return len;

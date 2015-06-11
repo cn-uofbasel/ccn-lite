@@ -22,7 +22,7 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayInit(JNIEnv* env,
 
     if (ccnLiteClass == NULL) {
         jclass localRefCls = (*env)->FindClass(env,
-                             "ch/unibas/ccn_lite_android/CcnLiteAndroid"); 
+                             "ch/unibas/ccn_lite_android/CcnLiteAndroid");
         if (localRefCls != NULL)
             ccnLiteClass = (*env)->NewGlobalRef(env, localRefCls);
         (*env)->DeleteLocalRef(env, localRefCls);
@@ -103,7 +103,7 @@ add_route(char *pfx, struct ccnl_face_s *face, int suite, int mtu)
 
     DEBUGMSG(INFO, "adding a route for prefix %s (%s)\n",
              pfx, ccnl_suite2str(suite));
-    
+
     strcpy(buf, pfx);
     fwd->prefix = ccnl_URItoPrefix(buf, suite, NULL, NULL);
     fwd->face = face;

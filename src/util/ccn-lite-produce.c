@@ -25,7 +25,7 @@
 #define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
- 
+
 #define USE_SIGNATURES
 
 #define CCNL_MAX_CHUNK_SIZE 4048
@@ -97,7 +97,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-        fprintf(stderr, 
+        fprintf(stderr,
         "Creates a chunked content object stream for the input data and writes them to stdout.\n"
         "usage: %s [options] URL\n"
         "  -c SIZE          size for each chunk (max %d)\n"
@@ -119,7 +119,7 @@ Usage:
     if (suite < 0 || suite >= CCNL_SUITE_LAST)
         goto Usage;
 
-    // mandatory url 
+    // mandatory url
     if (!argv[optind])
         goto Usage;
 
@@ -127,7 +127,7 @@ Usage:
     char url[strlen(url_orig)];
     optind++;
 
-    // optional nfn 
+    // optional nfn
     char *nfnexpr = argv[optind];
 
     int status;
@@ -185,10 +185,10 @@ Usage:
         case CCNL_SUITE_CCNB:
             strcpy(fileext, "ccnb");
             break;
-        case CCNL_SUITE_CCNTLV: 
+        case CCNL_SUITE_CCNTLV:
             strcpy(fileext, "ccntlv");
             break;
-        case CCNL_SUITE_CISTLV: 
+        case CCNL_SUITE_CISTLV:
             strcpy(fileext, "cistlv");
             break;
         case CCNL_SUITE_IOTTLV:
@@ -207,25 +207,25 @@ Usage:
 
         if (chunk_len < chunk_size) {
             is_last = 1;
-        } 
+        }
 
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
 
         switch (suite) {
-        case CCNL_SUITE_CCNTLV: 
-            contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                            (unsigned char *)chunk_buf, chunk_len, 
-                            is_last ? &chunknum : NULL, 
+        case CCNL_SUITE_CCNTLV:
+            contentlen = ccnl_ccntlv_prependContentWithHdr(name,
+                            (unsigned char *)chunk_buf, chunk_len,
+                            is_last ? &chunknum : NULL,
                             NULL, // int *contentpos
                             &offs, out);
             break;
-        case CCNL_SUITE_CISTLV: 
-            contentlen = ccnl_cistlv_prependContentWithHdr(name, 
-                                                           (unsigned char *)chunk_buf, chunk_len, 
-                                                           is_last ? &chunknum : NULL, 
-                                                           &offs, 
+        case CCNL_SUITE_CISTLV:
+            contentlen = ccnl_cistlv_prependContentWithHdr(name,
+                                                           (unsigned char *)chunk_buf, chunk_len,
+                                                           is_last ? &chunknum : NULL,
+                                                           &offs,
                                                            NULL, // int *contentpos
                                                            out);
             break;
@@ -238,8 +238,8 @@ Usage:
             break;
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name,
-                                 (unsigned char *) chunk_buf, chunk_len, 
-                                 NULL, is_last ? &chunknum : NULL, 
+                                 (unsigned char *) chunk_buf, chunk_len,
+                                 NULL, is_last ? &chunknum : NULL,
                                  &offs, out);
             break;
         default:
@@ -266,7 +266,7 @@ Usage:
         if (!is_last) {
             chunk_len = read(f, chunk_buf, chunk_size);
         }
-    } 
+    }
 
     close(f);
     ccnl_free(chunk_buf);
