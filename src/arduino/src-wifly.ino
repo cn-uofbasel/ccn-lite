@@ -28,14 +28,14 @@ void setup()
     Serial.begin(9600);
 
   Serial.println("--------- WIFLY TEST --------");
-  
+
   // wait for initilization of wifly
   delay(1000);
-  
+
   uart.begin(9600);     // WiFly UART Baud Rate: 9600
-  
+
   wifi.reset();
-  
+
   Serial.println("Join " SSID );
   if (wifi.join(SSID, PASSWD, AUTH)) {
     Serial.println("OK");
@@ -214,7 +214,7 @@ void loop()
         ((struct sockaddr_in*) (&sa))->sin_port = udp->remotePort();
         ccnl_core_RX(&theRelay, 0, packetBuffer, len, &sa, sizeof(sa));
     }
- 
+
     timeout = ccnl_arduino_run_events(&theRelay);
 
     while (timeout > 20) {

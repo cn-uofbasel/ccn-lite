@@ -1,4 +1,4 @@
-// 
+//
 
 package ch.unibas.ccn_lite_android;
 
@@ -107,7 +107,7 @@ public class CcnLiteAndroid extends Activity
         tv.setMovementMethod(LinkMovementMethod.getInstance());
 
         debuglevel = (TextView) findViewById(R.id.debuglevel);
- 
+
         tv = (TextView) findViewById(R.id.transport);
         tv.setText("Transport: " + relayGetTransport());
 
@@ -372,7 +372,7 @@ public class CcnLiteAndroid extends Activity
                     if (status == BluetoothGatt.GATT_SUCCESS) {
                         debugMsg("  readChar returns " +
                              gatt.readCharacteristic(characteristic) +
-                             " cnt=" + 
+                             " cnt=" +
                              characteristic.getValue().length);
 //                  broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
 //                        newData -= 1;

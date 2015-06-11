@@ -191,7 +191,7 @@ int ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from, str
 long timevaldelta(struct timeval *a, struct timeval *b);
 #ifdef CCNL_LINUXKERNEL
 int current_time(void);
-#else 
+#else
 double current_time(void);
 #endif
 char *timestamp(void);

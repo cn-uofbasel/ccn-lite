@@ -281,16 +281,16 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     len += sprintf(txt+len, "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
                    "<tr><td><em>Interfaces</em></table><ul>\n");
     for (i = 0; i < ccnl->ifcount; i++) {
-#ifdef USE_STATS      
+#ifdef USE_STATS
         len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
                        "qlen=%d/%d"
                        "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u"
                        "\n",
                        i, ccnl_addr2ascii(&ccnl->ifs[i].addr),
-                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN, 
+                       ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN,
                        ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt);
-#else    
+#else
         len += sprintf(txt+len, "<li><strong>i%d</strong>&nbsp;&nbsp;"
                        "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
                        "qlen=%d/%d"

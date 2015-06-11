@@ -47,7 +47,7 @@ main(int argc, char *argv[])
     uint32_t nonce;
     int isLambda = 0;
     unsigned int chunknum = UINT_MAX;
-    
+
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
@@ -129,7 +129,7 @@ Usage:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto Usage;
 
     /*
@@ -137,10 +137,10 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind],     
-                              packettype,       
-                              argv[optind+1],   
-                              chunknum == UINT_MAX ? NULL : &chunknum); 
+    prefix = ccnl_URItoPrefix(argv[optind],
+                              packettype,
+                              argv[optind+1],
+                              chunknum == UINT_MAX ? NULL : &chunknum);
     if (!prefix) {
         DEBUGMSG(ERROR, "no URI found, aborting\n");
         return -1;
@@ -154,21 +154,21 @@ Usage:
                                    scope, &nonce, out);
         break;
     case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix, 
-                                (int*)&nonce, 
+        len = ccntlv_mkInterest(prefix,
+                                (int*)&nonce,
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_CISTLV:
-        len = cistlv_mkInterest(prefix, 
-                                (int*)&nonce, 
+        len = cistlv_mkInterest(prefix,
+                                (int*)&nonce,
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_IOTTLV:
         len = iottlv_mkRequest(prefix, NULL, out, CCNL_MAX_PACKET_SIZE);
         break;
     case CCNL_SUITE_NDNTLV:
-        len = ndntlv_mkInterest(prefix, 
-                                (int*)&nonce, 
+        len = ndntlv_mkInterest(prefix,
+                                (int*)&nonce,
                                 out,
                                 CCNL_MAX_PACKET_SIZE);
         break;

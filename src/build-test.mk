@@ -13,6 +13,7 @@ PROFILES=bt-relay-nothing \
 
 .PHONY: all ${PROFILES}
 all: ${PROFILES}
+	@make clean > /dev/null
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
 

@@ -38,9 +38,9 @@ int
 ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               char* nfnexpr,
                               unsigned int *chunknum,
-                              int suite, 
-                              unsigned char *out, int out_len, 
-                              int *len, 
+                              int suite,
+                              unsigned char *out, int out_len,
+                              int *len,
                               float wait, int sock, struct sockaddr sa) {
 
     int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
@@ -99,8 +99,8 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
     return 0;
 }
 
-int 
-ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
+int
+ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                              int suite, struct ccnl_prefix_s **prefix,
                              unsigned int *lastchunknum,
                              unsigned char **content, int *contentlen)
@@ -158,7 +158,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
             return -1;
         }
         if (typ != NDN_TLV_Data) {
-            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ); 
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ);
             return -1;
         }
 
@@ -173,7 +173,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
    }
     if (!pkt) {
         DEBUGMSG(WARNING, "extract(%s): parsing error or no prefix\n",
-                 ccnl_suite2str(suite)); 
+                 ccnl_suite2str(suite));
         return -1;
     }
     *prefix = pkt->pfx;
@@ -218,7 +218,7 @@ ccnl_prefix_removeChunkNumComponent(int suite,
     case CCNL_SUITE_NDNTLV:
         if(prefix->comp[prefix->compcnt-1][0] == NDN_Marker_SegmentNumber) {
             prefix->compcnt--;
-        } 
+        }
         break;
 #endif
     default:
@@ -316,7 +316,7 @@ usage:
             udp = "127.0.0.1/6363";
         }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
@@ -343,7 +343,7 @@ usage:
     char *url = argv[optind];
 
     char *nfnexpr = 0;
-    
+
     if (argv[optind+1]) {
         nfnexpr = argv[optind+1];
     }
@@ -372,7 +372,7 @@ usage:
             if (!prefix->chunknum) {
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
-            *prefix->chunknum = *curchunknum; 
+            *prefix->chunknum = *curchunknum;
             DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
@@ -380,12 +380,12 @@ usage:
         }
 
         // Fetch chunk
-        if (ccnl_fetchContentForChunkName(prefix, 
+        if (ccnl_fetchContentForChunkName(prefix,
                                           nfnexpr,
                                           curchunknum,
-                                          suite, 
-                                          out, sizeof(out), 
-                                          &len, 
+                                          suite,
+                                          out, sizeof(out),
+                                          &len,
                                           wait, sock, sa) < 0) {
             retry++;
             DEBUGMSG(WARNING, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
@@ -396,9 +396,9 @@ usage:
             struct ccnl_prefix_s *nextprefix = 0;
 
             // Parse response
-            if (ccnl_extractDataAndChunkInfo(&t, &len, suite, 
+            if (ccnl_extractDataAndChunkInfo(&t, &len, suite,
                                              &nextprefix,
-                                             &lastchunknum, 
+                                             &lastchunknum,
                                              &content, &contlen) < 0) {
                 retry++;
                DEBUGMSG(WARNING, "Could not extract response or it was an interest");
@@ -423,7 +423,7 @@ usage:
                     if (ccnl_prefix_removeChunkNumComponent(suite, prefix) < 0) {
                         retry++;
                         DEBUGMSG(WARNING, "Could not remove chunknum\n");
-                    } 
+                    }
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
@@ -458,7 +458,7 @@ usage:
 Done:
     DEBUGMSG(DEBUG, "Sucessfully fetched content\n");
     close(sock);
-    return 0; 
+    return 0;
 }
 
 // eof

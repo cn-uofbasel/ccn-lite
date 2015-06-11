@@ -94,7 +94,7 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
     DEBUGMSG(INFO, "route hint is <%s>\n", name);
     DEBUGMSG(INFO, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
-                            suite, (expr && *expr) ? expr : NULL, 
+                            suite, (expr && *expr) ? expr : NULL,
                             NULL); // chunknum
 }
 // ----------------------------------------------------------------------
@@ -125,30 +125,30 @@ main(int argc, char *argv[])
             switch (suite) {
 #ifdef USE_SUITE_CCNB
             case CCNL_SUITE_CCNB:
-		if(!udp) 
+		if(!udp)
                     udp = "127.0.0.1/9695";
                 break;
 #endif
 #ifdef USE_SUITE_CCNTLV
             case CCNL_SUITE_CCNTLV:
-		if(!udp) 
+		if(!udp)
                     udp = "127.0.0.1/9695";
                 break;
 #endif
 #ifdef USE_SUITE_IOTTLV
             case CCNL_SUITE_IOTTLV:
-		if(!udp) 
+		if(!udp)
                     udp = "127.0.0.1/6363";
                 break;
 #endif
 #ifdef USE_SUITE_NDNTLV
             case CCNL_SUITE_NDNTLV:
-		if(!udp) 
+		if(!udp)
                     udp = "127.0.0.1/6363";
                 break;
 #endif
             default:
-		if(!udp) 
+		if(!udp)
 	            udp = "127.0.0.1/6363";
 		break;
             }
@@ -192,7 +192,7 @@ usage:
         }
     }
 
-    if (!argv[optind] || argv[optind+1]) 
+    if (!argv[optind] || argv[optind+1])
         goto usage;
 
     srandom(time(NULL));
@@ -247,8 +247,8 @@ usage:
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
-        len = mkInterest(prefix, 
-                         &nonce, 
+        len = mkInterest(prefix,
+                         &nonce,
                          out, sizeof(out));
 
         if(ux)

@@ -58,7 +58,7 @@
 
 static struct ccnl_relay_s theRelay;
 
-static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
                       struct packet_type *pt, struct net_device *outdev);
 
 void ccnl_udp_data_ready(struct sock *sk);
@@ -318,7 +318,7 @@ ccnl_schedule_upcall_RX(int ifndx, sockunion *su, struct sk_buff *skb,
 // ----------------------------------------------------------------------
 
 static int
-ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
           struct packet_type *pt, struct net_device *outdev){
     int i;
     sockunion su;
@@ -508,12 +508,17 @@ static char *k = NULL;
 static char *s = NULL;
 static void *ageing_handler = NULL;
 
+module_param(c, int, 0);
+MODULE_PARM_DESC(c, "max number of cache entries");
 
 module_param(e, charp, 0);
 MODULE_PARM_DESC(e, "name of ethernet device to serve");
 
-module_param(c, int, 0);
-MODULE_PARM_DESC(c, "max number of cache entries");
+module_param(k, charp, 0);
+MODULE_PARM_DESC(k, "ctrl public key path");
+
+module_param(p, charp, 0);
+MODULE_PARM_DESC(p, "private key path");
 
 module_param(s, charp, 0);
 MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013)");
@@ -523,12 +528,6 @@ MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
 
 module_param(v, charp, 0);
 MODULE_PARM_DESC(v, "verbosity level (fatal, error, warning, info, debug, verbose, trace)");
-
-module_param(k, charp, 0);
-MODULE_PARM_DESC(k, "ctrl public key path");
-
-module_param(p, charp, 0);
-MODULE_PARM_DESC(p, "private key path");
 
 module_param(x, charp, 0);
 MODULE_PARM_DESC(x, "name (path) of mgmt unix socket");
@@ -647,7 +646,7 @@ ccnl_init(void)
             theRelay.ifcount++;
         }
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
-        theRelay.crypto_path = p;    
+        theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
         sprintf(h, "%s-2", p);
@@ -669,8 +668,8 @@ ccnl_init(void)
         theRelay.crypto_path = p;
     }
 #endif /*USE_SIGNATURES*/
-#endif //USE_UNIXSOCKET  
-    
+#endif //USE_UNIXSOCKET
+
     return 0;
 }
 
@@ -720,7 +719,7 @@ ccnl_lnxkernel_cleanup(void)
 
             mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
-            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);                                                                                                                                               
+            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);
 #else
             rc = vfs_unlink(dir->d_inode, p.dentry);
 #endif
@@ -729,7 +728,7 @@ ccnl_lnxkernel_cleanup(void)
             path_put(&p);
         }
     }
-    
+
     if (p) { // also remove the UNIX socket path
         struct path px;
         int rc;

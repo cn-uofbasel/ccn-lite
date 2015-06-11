@@ -39,11 +39,11 @@
               android:textSize="10sp"
               android:divider="#ffd763"
               android:dividerHeight="1px"
-              android:listSelector="@android:color/transparent" 
+              android:listSelector="@android:color/transparent"
               android:cacheColorHint="@android:color/transparent"
               android:transcriptMode="alwaysScroll"
               android:stackFromBottom="true"
-              /> 
+              />
 
   <LinearLayout android:id="@+id/footer"
                 android:layout_width="match_parent"

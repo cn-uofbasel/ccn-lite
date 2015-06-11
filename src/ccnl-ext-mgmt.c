@@ -1732,9 +1732,8 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     components = NULL;
     prefix_new->suite = suite;
 
-    prefix_new2 = ccnl_prefix_dup(prefix_new); //FIXME: required, using ccnl_prefix_to_path breaks the prefix parameter.
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
-             ccnl_prefix_to_path(prefix_new2), ccnl_suite2str(suite));
+             ccnl_prefix_to_path(prefix_new), ccnl_suite2str(suite));
              
     //Reply MSG
     if (h)
@@ -1766,16 +1765,13 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         default:
             break;
         }
-        DEBUGMSG(ERROR, "1: CompCnt for prefix: %d, complen4: %d, prefixaddr: %p\n", prefix_new->compcnt, prefix_new->complen[3], prefix_new);
-
+        
         pkt->pfx = prefix_new;
         pkt->buf = ccnl_mkSimpleInterest(prefix_new, NULL);
         pkt->val.final_block_id = -1;
         buffer = buf_dup(pkt->buf);
 
         interest = ccnl_interest_new(ccnl, from, &pkt);
-        
-        DEBUGMSG(ERROR, "2: CompCnt for prefix: %d, complen4: %d, prefixaddr: %p\n", prefix_new->compcnt, prefix_new->complen[3], prefix_new);
         
         if (!interest)
             return 0;

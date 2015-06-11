@@ -420,7 +420,7 @@ Usage:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto Usage;
 
     fileargs = argv + optind + 1;

@@ -303,7 +303,7 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             415, "rpc_forward: expected encoding name", NULL);
         return 0;
     }
-        
+
     cp = ccnl_malloc(param->u.namelen + 1);
     memcpy(cp, param->aux, param->u.namelen);
     cp[param->u.namelen] = '\0';
@@ -441,7 +441,7 @@ ccnl_localrpc_handleReply(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     DEBUGMSG(DEBUG, "ccnl_localrpc_handleReply %d %d\n",
              ccnl_rdr_getType(aux), ccnl_rdr_getType(aux->nextinseq));
-    
+
     return 0;
 }
 
