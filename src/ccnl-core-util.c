@@ -112,6 +112,12 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
+#ifndef CCNL_LINUXKERNEL
+# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
+#else
+# define PREFIX2STR(P) ccnl_prefix_to_path(P)
+#endif
+
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode)
@@ -121,15 +127,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 {
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
-
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
              mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
-#undef PREFIX2STR
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
@@ -162,9 +161,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-            // ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-           ccnl_prefix_to_path_detailed(prefix,1,0,0),
-           ccnl_prefix_to_path_detailed(p,1,0,0),
+             PREFIX2STR(prefix), PREFIX2STR(p),
+           //ccnl_prefix_to_path_detailed(prefix,1,0,0),
+           //ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -941,6 +940,10 @@ One possibility is to not have a '/' before any nfn expression.
                   "%%%02x" : "%c";
             len += sprintf(buf + len, fmt, c);
 #endif
+            if(len > PREFIX_BUFSIZE) {
+                DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
+                break;
+            }
         }
     }
 
