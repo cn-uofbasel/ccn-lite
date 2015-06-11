@@ -1,43 +1,49 @@
 #!/bin/bash
 
-killall ccn-lite-relay
-killall ccn-nfn-relay
-killall python
+
+PACKETTYPE=ndn2013
+
+echo "** killing all CCNL relay and Python instances"
+
+killall ccn-lite-relay 2> /dev/null
+killall ccn-nfn-relay 2> /dev/null
+killall java 2> /dev/null
 
 echo "** starting two CCNL relays"
-$CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9000 -x /tmp/mgmt1.sock 2>/tmp/r0.log &
-$CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt2.sock 2>/tmp/r1.log &
+$CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9000 -x /tmp/mgmt1.sock 2>/tmp/relay0.log &
+$CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt2.sock 2>/tmp/relay1.log &
 
 echo "** in 3 seconds, adding an UDP interface, twice"
 sleep 3
 
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001  | $CCNL_HOME/bin/ccn-lite-ccnb2xml
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock newUDPface any 127.0.0.1 9002  | $CCNL_HOME/bin/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001  | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /tmp/command1.log
 
 echo "** in 3 seconds, registering a prefix, twice"
 sleep 3
 
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /COMPUTE 2 ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml
-
-echo "** in 3 seconds, adding content"
-sleep 3
-
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/bin/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /nfn/node2 2 $PACKETTYPE | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /tmp/command2.log
 
 echo "** in 3 seconds, starting the dummy compute server"
 sleep 3
+java -jar nfn.jar -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 2>&1 >  /tmp/computserver.log &  
 
-python $CCNL_HOME/test/scripts/nfn/dummyanswer_ndn.py & > /dev/null
+echo "** in 8 seconds, probing the NFN system"
+sleep 8
 
-echo "** in 3 seconds, retrieving a computation result"
-sleep 3
+RES=`ccn-lite-simplenfn  -u 127.0.0.1/9000 "call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md" | ccn-lite-pktdump -f 2`
+echo "Result: " $RES
 
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9000 -w 100 "" "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump
 
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock debug dump+halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml >/tmp/r0-end.log
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock debug dump+halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml >/tmp/r1-end.log
+if [ $RES = 3756 ]
+then
+     echo -e "\e[0;92m [OK] Test was successful \e[0;0m"
+else 
+     echo -e "\e[0;91m[FAILED] Sth. went wrong\e[0;0m"
+fi
 
-killall ccn-lite-relay 2>/dev/null
-killall ccn-nfn-relay 2>/dev/null
-killall python 2>/dev/null
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock debug halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /dev/null
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt2.sock debug halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /dev/null
+
+killall ccn-lite-relay 2> /dev/null
+killall ccn-nfn-relay  2> /dev/null
+killall java  2> /dev/null

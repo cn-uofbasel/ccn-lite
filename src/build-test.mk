@@ -8,7 +8,8 @@ PROFILES=bt-relay-nothing \
 	bt-relay-nfn \
 	bt-relay-all \
 	bt-lnxkernel \
-	bt-all
+	bt-all \
+	bt-all-nfn
 
 .PHONY: all ${PROFILES}
 all: ${PROFILES}
@@ -78,4 +79,10 @@ bt-lnxkernel:
 bt-all:
 	@MAKE_TARGETS="clean all" \
 	LOG_FNAME=$@ \
+	./build-test-helper.sh
+
+bt-all-nfn:
+	@MAKE_TARGETS="clean all" \
+	LOG_FNAME=$@ \
+	MAKE_VARS="USE_NFN=1" \
 	./build-test-helper.sh

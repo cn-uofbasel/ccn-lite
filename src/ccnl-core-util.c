@@ -127,6 +127,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 {
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
+
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
              mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
 

@@ -28,530 +28,458 @@
 
 // ----------------------------------------------------------------------
 
-char *ctrl_public_key = 0;
-
-const char *byte_to_binary(int x)
+char*
+dtag2str(int dtag)
 {
-    static char b[9];
-    b[0] = '\0';
+    switch (dtag) {
+        case CCN_DTAG_ANY:
+            return "ANY";
 
-    int z;
-    for (z = 128; z > 0; z >>= 1)
-    {
-        strcat(b, ((x & z) == z) ? "1" : "0");
+        case CCN_DTAG_NAME:
+            return "NAME";
+
+        case CCN_DTAG_COMPONENT:
+            return "COMPONENT";
+
+        case CCN_DTAG_CERTIFICATE:
+            return "CERTIFICATE";
+
+        case CCN_DTAG_CONTENT:
+            return "CONTENT";
+
+        case CCN_DTAG_SIGNEDINFO:
+            return "SIGNEDINFO";
+
+        case CCN_DTAG_CONTENTDIGEST:
+            return "CONTENTDIGEST";
+
+        case CCN_DTAG_INTEREST:
+            return "INTEREST";
+
+        case CCN_DTAG_KEY:
+            return "KEY";
+
+        case CCN_DTAG_KEYLOCATOR:
+            return "KEYLOCATOR";
+
+        case CCN_DTAG_KEYNAME:
+            return "KEYNAME";
+
+        case CCN_DTAG_SIGNATURE:
+            return "SIGNATURE";
+
+        case CCN_DTAG_TIMESTAMP:
+            return "TIMESTAMP";
+
+        case CCN_DTAG_TYPE:
+            return "TYPE";
+
+        case CCN_DTAG_NONCE:
+            return "NONCE";
+
+        case CCN_DTAG_SCOPE:
+            return "SCOPE";
+
+        case CCN_DTAG_EXCLUDE:
+            return "EXCLUDE";
+
+        case CCN_DTAG_ANSWERORIGKIND:
+            return "ANSWERORIGKIND";
+
+        case CCN_DTAG_WITNESS:
+            return "WITNESS";
+
+        case CCN_DTAG_SIGNATUREBITS:
+            return "SIGNATUREBITS";
+
+        case CCN_DTAG_DIGESTALGO:
+            return "DIGESTALGO";
+
+        case CCN_DTAG_FRESHNESS:
+            return "FRESHNESS";
+
+        case CCN_DTAG_FINALBLOCKID:
+            return "FINALBLOCKID";
+
+        case CCN_DTAG_PUBPUBKDIGEST:
+            return "PUBPUBKDIGEST";
+
+        case CCN_DTAG_PUBCERTDIGEST:
+            return "PUBCERTDIGEST";
+
+        case CCN_DTAG_CONTENTOBJ:
+            return "CONTENTOBJ";
+
+        case CCN_DTAG_ACTION:
+            return "ACTION";
+
+        case CCN_DTAG_FACEID:
+            return "FACEID";
+
+        case CCN_DTAG_IPPROTO:
+            return "IPPROTO";
+
+        case CCN_DTAG_HOST:
+            return "HOST";
+
+        case CCN_DTAG_PORT:
+            return "PORT";
+
+        case CCN_DTAG_FWDINGFLAGS:
+            return "FWDINGFLAGS";
+
+        case CCN_DTAG_FACEINSTANCE:
+            return "FACEINSTANCE";
+
+        case CCN_DTAG_FWDINGENTRY:
+            return "FWDINGENTRY";
+
+        case CCN_DTAG_MINSUFFCOMP:
+            return "MINSUFFCOMP";
+
+        case CCN_DTAG_MAXSUFFCOMP:
+            return "MAXSUFFCOMP";
+
+        case CCN_DTAG_SEQNO:
+            return "SEQNO";
+
+        case CCN_DTAG_FragA:
+            return "FragA";
+
+        case CCN_DTAG_FragB:
+            return "FragB";
+
+        case CCN_DTAG_FragC:
+            return "FragC";
+
+        case CCN_DTAG_FragD:
+            return "FragD";
+
+        case CCN_DTAG_FragP:
+            return "FragP";
+
+        case CCN_DTAG_CCNPDU:
+            return "CCNPDU";
     }
+    
+    // No result found in CCN_DTAG, try CCNL_TAG
+    switch (dtag) {
+         case CCNL_DTAG_MACSRC:
+             return "MACSRC";
 
-    return b;
+         case CCNL_DTAG_IP4SRC:
+             return "IP4SRC";
+
+         case CCNL_DTAG_UNIXSRC:
+             return "UNIXSRC";
+
+         case CCNL_DTAG_FRAG:
+             return "FRAG";
+
+         case CCNL_DTAG_FACEFLAGS:
+             return "FACEFLAGS";
+
+         case CCNL_DTAG_DEVINSTANCE:
+             return "DEVINSTANCE";
+
+         case CCNL_DTAG_DEVNAME:
+             return "DEVNAME";
+
+         case CCNL_DTAG_DEVFLAGS:
+             return "DEVFLAGS";
+
+         case CCNL_DTAG_MTU:
+             return "MTU";
+
+         case CCNL_DTAG_DEBUGREQUEST:
+             return "DEBUGREQUEST";
+
+         case CCNL_DTAG_DEBUGACTION:
+             return "DEBUGACTION";   
+
+        case CCNL_DTAG_DEBUGREPLY:
+            return "DEBUGREPLY";
+
+        case CCNL_DTAG_INTERFACE:
+            return "INTERFACE";
+
+        case CCNL_DTAG_NEXT:
+            return "NEXT";
+
+        case CCNL_DTAG_PREV:
+            return "PREV";
+
+        case CCNL_DTAG_IFNDX:
+            return "IFNDX";
+
+        case CCNL_DTAG_IP:
+            return "IP";
+
+        case CCNL_DTAG_ETH:
+            return "ETH";
+
+        case CCNL_DTAG_UNIX:
+            return "UNIX";
+
+        case CCNL_DTAG_PEER:
+            return "PEER";
+
+        case CCNL_DTAG_FWD:
+            return "FWD";
+
+        case CCNL_DTAG_FACE:
+            return "FACE";
+
+        case CCNL_DTAG_ADDRESS:
+            return "ADDRESS";
+
+        case CCNL_DTAG_SOCK:
+            return "SOCK";
+
+        case CCNL_DTAG_REFLECT:
+            return "REFLECT";
+
+        case CCNL_DTAG_PREFIX:
+            return "PREFIX";
+
+        case CCNL_DTAG_INTERESTPTR:
+            return "INTERESTPTR";
+
+        case CCNL_DTAG_LAST:
+            return "LAST";
+
+        case CCNL_DTAG_MIN:
+            return "MIN";
+
+        case CCNL_DTAG_MAX:
+            return "MAX";
+
+        case CCNL_DTAG_RETRIES:
+            return "RETRIES";
+
+        case CCNL_DTAG_PUBLISHER:
+            return "PUBLISHER";
+
+        case CCNL_DTAG_CONTENTPTR:
+            return "CONTENTPTR";
+
+        case CCNL_DTAG_LASTUSE:
+            return "LASTUSE";
+
+        case CCNL_DTAG_SERVEDCTN:
+            return "SERVEDCTN";
+
+        case CCNL_DTAG_VERIFIED:
+            return "VERIFIED";
+
+        case CCNL_DTAG_CALLBACK:
+            return "CALLBACK";
+
+        case CCNL_DTAG_SUITE:
+            return "SUITE";
+
+        case CCNL_DTAG_COMPLENGTH:
+            return "COMPLENGTH";
+    }
+    
+    DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __FUNCTION__, __FILE__, __LINE__);
+    return "?";
+}
+
+char*
+tag2str(int tag, int num)
+{
+    switch (tag) {
+        case CCN_TT_TAG:
+            return "TAG";
+
+        case CCN_TT_DTAG:
+            return dtag2str(num);
+
+        case CCN_TT_ATTR:
+            return "ATTR";
+
+        case CCN_TT_DATTR:
+            return "DATTR";
+
+        case CCN_TT_BLOB:
+            return "BLOB";
+
+        case CCN_TT_UDATA:
+            return "UDATA";
+    }
+    
+    DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __FUNCTION__, __FILE__, __LINE__);
+    return "?";
+}
+
+int
+is_ccn_tt(int tag)
+{
+    switch (tag) {
+        case CCN_TT_TAG:
+        case CCN_TT_DTAG:
+        case CCN_TT_ATTR:
+        case CCN_TT_DATTR:
+        case CCN_TT_BLOB:
+        case CCN_TT_UDATA:
+            return 1;
+    }
+    
+    return 0;
+}
+
+int
+is_ccn_blob(int tag)
+{
+    return tag == CCN_TT_BLOB || tag == CCN_TT_UDATA;
+}
+
+int
+lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
+{
+    int look_typ, look_num, rc, rc2;
+    unsigned char *old_buf = *buf;
+    int old_len = *len;
+    
+    rc = ccnl_ccnb_dehead(buf, len, num, typ);
+    if (ignore_blob_tag && rc == 0 && is_ccn_blob(*typ)) {
+        rc2 = ccnl_ccnb_dehead(buf, len, &look_num, &look_typ);
+        if (rc2 == 0 && is_ccn_tt(look_typ)) {
+            *num = look_num;
+            *typ = look_typ;
+            rc = rc2;
+        }
+    }
+    
+    *buf = old_buf;
+    *len = old_len;
+    return rc;
+}
+
+int
+dehead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
+{
+    int look_typ, look_num;
+    int rc_dehead, rc_lookahead;
+    
+    rc_dehead = ccnl_ccnb_dehead(buf, len, num, typ);
+    if (ignore_blob_tag && rc_dehead == 0 && is_ccn_blob(*typ)) {
+        rc_lookahead = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
+        if (rc_lookahead == 0 && is_ccn_tt(look_typ)) {
+            // If we found BLOB data and inside there is a valid tag, just ignore BLOB and advance
+            return dehead(buf, len, num, typ, ignore_blob_tag);
+        }
+    }
+    
+    return rc_dehead;
 }
 
 void
-print_offset(int offset){
-    int it;
-    for(it = 0; it < offset; ++it)
+print_offset(int offset)
+{
+    int i;
+    for(i = 0; i < offset; ++i) {
         printf(" ");
-}
-
-int 
-print_tag_content(unsigned char **buf, int *len, FILE *stream){
-    while((**buf) !=  0)
-    {
-        printf("%c", **buf);
-        ++(*buf); --(*len);
     }
-    ++(*buf); --(*len);
-    return 0;
 }
 
-int print_tag_content_with_tag(unsigned char **buf, int *len, char *tag, FILE *stream)
+void
+print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
 {
-    int num, typ; 
-    printf("<%s>", tag);
-    ccnl_ccnb_dehead(buf, len, &num, &typ);
-    print_tag_content(buf, len, stream);
-    printf("</%s>\n", tag);
-    return 0;
-}
-
-int 
-handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream);
-
-
-int
-handle_ccn_debugreply_content(unsigned char **buf, int *len, int offset, char* tag, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset); printf("<%s>\n", tag);
-    while(1)
-    {
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-        switch(num)
-        {
-            case CCNL_DTAG_IFNDX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IFNDX", stream);
-               break;
-            case CCNL_DTAG_ADDRESS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ADDRESS", stream);
-               break;
-            case CCNL_DTAG_ETH:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ETH", stream);
-               break;
-            case CCNL_DTAG_SOCK:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "SOCK", stream);
-               break;
-            case CCNL_DTAG_REFLECT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "REFLECT", stream);
-               break;
-            case CCN_DTAG_FACEID:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACEID", stream);
-               break;   
-            case CCNL_DTAG_SUITE:
-               print_offset(offset+4);
-               print_tag_content_with_tag(buf, len, "SUITE", stream);
-               break;
-            case CCNL_DTAG_NEXT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "NEXT", stream);
-               break;
-            case CCNL_DTAG_PREV:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PREV", stream);
-               break;
-            case CCNL_DTAG_FWD:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FWD", stream);
-               break;
-            case CCNL_DTAG_FACEFLAGS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACEFLAGS", stream);
-               break;
-            case CCNL_DTAG_IP:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IP", stream);
-               break;
-            case CCNL_DTAG_UNIX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "UNIX", stream);
-               break;
-            case CCNL_DTAG_PEER:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PEER", stream);
-               break;
-            case CCNL_DTAG_FACE:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FACE", stream);
-               break;
-            case CCNL_DTAG_INTERESTPTR:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "INTERESTPTR", stream);
-               break;
-            case CCNL_DTAG_LAST:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "LAST", stream);
-               break;
-            case CCNL_DTAG_MIN:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MIN", stream);
-               break;
-            case CCNL_DTAG_MAX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MAX", stream);
-               break;
-            case CCNL_DTAG_RETRIES:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "RETRIES", stream);
-               break;
-            case CCNL_DTAG_PUBLISHER:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PUBLISHER", stream);
-               break;
-            case CCNL_DTAG_CONTENTPTR:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "CONTENTPTR", stream);
-               break;
-            case CCNL_DTAG_LASTUSE:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "LASTUSE", stream);
-               break;
-            case CCNL_DTAG_SERVEDCTN:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "SERVEDCTN", stream);
-               break;
-            case CCN_DTAG_ACTION:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "ACTION", stream);
-               break;
-            case CCNL_DTAG_MACSRC:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MACSRC", stream);
-               break;
-            case CCNL_DTAG_IP4SRC:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IP4SRC", stream);
-               break;
-            case CCN_DTAG_IPPROTO:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "IPPROTO", stream);
-               break;
-            case CCN_DTAG_HOST:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "HOST", stream);
-               break;
-            case CCN_DTAG_PORT:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PORT", stream);
-               break;
-            case CCNL_DTAG_FRAG:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "FRAG", stream);
-               break;
-            case CCNL_DTAG_MTU:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "MTU", stream);
-               break;
-            case CCNL_DTAG_DEVFLAGS:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "DEVFLAGS", stream);
-               break;
-            case CCNL_DTAG_DEVNAME:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "DEVNAME", stream);
-               break;
-            case CCN_DTAG_NAME:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "NAME", stream);
-               break;
-            case CCNL_DTAG_PREFIX:
-               print_offset(offset+4); 
-               print_tag_content_with_tag(buf, len, "PREFIX", stream);
-               break;
-            default: 
-              goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</%s>\n", tag);
-    return 0;
-}   
-
-int 
-handle_ccn_debugreply(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-   
-    print_offset(offset); printf("<DEBUGREPLY>\n");
+    int i;
+    if (with_newlines) print_offset(offset);
     
-    while(1)
-    {
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-        switch(num)
-        {
-            case CCNL_DTAG_INTERFACE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "INTERFACE", stream);
-                break;
-            case CCN_DTAG_FACEINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
-                break;
-            case CCN_DTAG_FWDINGENTRY:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FWDINGENTRY", stream);
-                break;
-            case CCN_DTAG_INTEREST:
-                handle_ccn_debugreply_content(buf, len, offset+4, "INTEREST", stream);
-                break;
-            case CCN_DTAG_CONTENT:
-                handle_ccn_debugreply_content(buf, len, offset+4, "CONTENT", stream);
-                break;
-            default:
-                goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</DEBUGREPLY>\n"); 
-    return 0;
-}
-
-int 
-handle_ccn_debugaction(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<DEBUGACTION>");
-    print_tag_content(buf,len,stream);
-    printf("</DEBUGACTION>\n");
-    return 0;
-}
-
-int 
-handle_ccn_action(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<ACTION>");
-    print_tag_content(buf,len,stream);
-    printf("</ACTION>\n");
-    return 0;
-}
-
-int
-handle_ccn_debugrequest(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    
-    print_offset(offset); printf("<DEBUGREQUEST>\n");
-    while(1)
-    {
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) goto Bail;
-        switch(num)
-        {
-            case CCN_DTAG_ACTION:
-                handle_ccn_action(buf, len, offset+4, stream);
-                break;
-            case CCNL_DTAG_DEBUGACTION:
-                handle_ccn_debugaction(buf, len, offset+4, stream);
-                break;
-            default:
-                goto Bail;
-        }
-    }
-    Bail:
-    print_offset(offset); printf("</DEBUGREQUEST>\n");
-    return 0;
-}
-
-#ifdef USE_SIGNATURES
-int 
-handle_ccn_signature(unsigned char **buf, int *buflen, int offset, FILE *stream)
-{
-   int num, typ, i;
-   if(ccnl_ccnb_dehead(buf, buflen, &num, &typ)) return -1; 
-   if (typ != CCN_TT_BLOB) return 0;
-   
-   print_offset(offset);
-   printf("<SIGNATURE>");
-   for(i = 0; i < num; ++i){
-       printf("%c",(*buf)[i]);
-   }
-       
-   printf("</SIGNATURE>\n");
-   
-   *buflen -= (num+1);
-   *buf += (num+1);
-   
-    
-    return 0;
-}
-#endif /*USE_SIGNATURES*/
-
-int 
-handle_ccn_component_content(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset); printf("<COMPONENT>");
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_tag_content(buf,len,stream);
-    printf("</COMPONENT>\n");
-    return 0;
-}
-
-int
-handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream);
-
-int handle_ccn_component_contentobj(unsigned char **buf, int *len, int offset, FILE *stream)
-{
-    int num, typ;
-    print_offset(offset); printf("<COMPONENT>\n");
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    if(typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ) return -1;
-    handle_ccn_content_obj(buf,len,offset+4,stream);
-    
-    print_offset(offset); printf("</COMPONENT>\n");
-    return 0;
-}
-
-int 
-handle_ccn_name(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ, i;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<NAME>\n");
-    
-    for(i = 0; i < 3; ++i)
-    {
-        if(num != CCN_DTAG_COMPONENT) return -1;
-        handle_ccn_component_content(buf, len, offset+4, stream);
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;    
+    for (i = 0; i < vallen; ++i) {
+        printf("%c", valptr[i]);
     }
     
-    // Handle fourth component in case of an interest
-    if(num != CCN_DTAG_COMPONENT) goto Bail;
-    handle_ccn_component_contentobj(buf, len, offset+4, stream);
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
+    if (with_newlines) printf("\n");
+}
+
+void
+print_tag(int offset, int typ, int num, int open_tag, int with_newlines)
+{
+    if (open_tag || with_newlines) print_offset(offset);
     
-    Bail:
-    print_offset(offset); printf("</NAME>\n");
-    return 0;
-}
-
-int 
-handle_ccn_content(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<CONTENT>\n");
-    while(typ != CCN_TT_DTAG){
-        ccnl_ccnb_dehead(buf, len, &num, &typ);
-    }
-    while(1)
-    {
-        switch(num)
-        {
-            case CCN_DTAG_NAME:
-                handle_ccn_name(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_INTEREST:
-                break;
-            case CCNL_DTAG_DEBUGREQUEST:
-                handle_ccn_debugrequest(buf, len, offset+4, stream);
-                break;
-            case CCNL_DTAG_DEBUGREPLY:
-                handle_ccn_debugreply(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_FACEINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "FACEINSTANCE", stream);
-                break;
-            case CCNL_DTAG_DEVINSTANCE:
-                handle_ccn_debugreply_content(buf, len, offset+4, "DEVINSTANCE", stream);
-                break;
-            case CCNL_DTAG_PREFIX:
-                handle_ccn_debugreply_content(buf, len, offset+4, "PREFIX", stream);
-                break;
-            case CCN_DTAG_ACTION:
-                print_offset(offset + 4); print_tag_content_with_tag(buf, len, "ACTION", stream);
-                break;
-            default:
-                //printf("%i,%i\n", num, typ);
-                goto Bail;
-                break;
-        }
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) break;
-    }
-    Bail:
-    print_offset(offset); printf("</CONTENT>\n");
-    return 0;
-}
-
-int 
-handle_ccn_content_obj(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<CONTENTOBJ>\n");
-    while(typ != CCN_TT_DTAG){
-        ccnl_ccnb_dehead(buf, len, &num, &typ);
-    }
-    while(1)
-    {
-        switch(num)
-        {
-            case CCN_DTAG_NAME:
-                handle_ccn_name(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_SIGNATURE:
-                handle_ccn_signature(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_CONTENT:
-                handle_ccn_content(buf, len, offset+4, stream);
-                break;
-            default:
-                goto Bail;
-                break;
-        }
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) break;
-    }
-    Bail:
-    print_offset(offset); printf("</CONTENTOBJ>\n");
-    return 0;
-}
-
-int
-handle_ccn_interest(unsigned char **buf, int *len, int offset, FILE *stream){
-    int num, typ;
-    if(ccnl_ccnb_dehead(buf, len, &num, &typ)) return -1;
-    print_offset(offset); printf("<INTEREST>\n");
-    while(typ != CCN_TT_DTAG){
-        ccnl_ccnb_dehead(buf, len, &num, &typ);
-    }
-    while(1)
-    {
-        switch(num)
-        {
-            case CCN_DTAG_NAME:
-                handle_ccn_name(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_SIGNATURE:
-                handle_ccn_signature(buf, len, offset+4, stream);
-                break;
-            case CCN_DTAG_CONTENT:
-                handle_ccn_content(buf, len, offset+4, stream);
-                break;
-            default:
-                goto Bail;
-                break;
-        }
-        if(ccnl_ccnb_dehead(buf, len, &num, &typ)) break;
-    }
-    Bail:
-    print_offset(offset); printf("</INTEREST>\n");
-    return 0;
-}
-
-int  
-handle_ccn_packet(unsigned char *buf, int len, int offset, FILE *stream){
+    printf("<");
+    if (!open_tag) printf("/");
+    printf("%s", tag2str(typ, num));    
+    printf(">");
     
-    int num, typ;
-    if(ccnl_ccnb_dehead(&buf, &len, &num, &typ)) return -1;
-    switch(num)
-    {
-        case CCN_DTAG_CONTENTOBJ:
-            return handle_ccn_content_obj(&buf, &len, offset, stream);
+    if (!open_tag || with_newlines) printf("\n");
+}
+
+void
+print_blob(unsigned char **buf, int *len, int typ, int num, int offset, int ignore_blob_tag)
+{
+    int vallen;
+    unsigned char *valptr;
+
+    if (!ignore_blob_tag) print_tag(offset, typ, num, 1, 0);
+    ccnl_ccnb_consume(typ, num, buf, len, &valptr, &vallen);
+    print_value(offset, valptr, vallen, 0);
+    if (!ignore_blob_tag) print_tag(offset, typ, num, 0, 0);
+}
+
+void
+print_ccnb(unsigned char **buf, int *len, int offset, int ignore_blob_tag)
+{
+    int num, typ, look_num, look_typ, rc;
+    
+    while (dehead(buf, len, &num, &typ, ignore_blob_tag) == 0) {
+        if (num == 0 && typ == 0) {
             break;
-        case CCN_DTAG_INTEREST:
-            return handle_ccn_interest(&buf, &len, offset, stream);
-            break;
+        }
+
+        rc = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
+        if (is_ccn_blob(typ) && (rc != 0 || !is_ccn_tt(look_typ))) {
+            print_blob(buf, len, typ, num, offset, ignore_blob_tag);
+        }
+        else {
+            int with_newlines = 1;
+            if (ignore_blob_tag && rc == 0 && is_ccn_blob(look_typ)) {
+                with_newlines = 0;
+            }
+
+            print_tag(offset, typ, num, 1, with_newlines);
+            print_ccnb(buf, len, offset+4, ignore_blob_tag);
+            print_tag(offset, typ, num, 0, with_newlines);
+        }
     }
-    return 0;
 }
 
 int
 main(int argc, char *argv[])
 {
-
-    if(argc > 1 && !strcmp(argv[1],"-h")){
-        goto usage;
-    }
-
     unsigned char out[64000];
-    int len;
+    unsigned char *p_out;
+    int len, opt;
+    int ignore_blob_tag = 1;
+
+    while ((opt = getopt(argc, argv, "hb")) != -1) {
+        switch (opt) {
+        case 'b':
+            ignore_blob_tag = 0;
+            break;
+        case 'h':
+        default:
+            fprintf(stderr, "usage: %s [option]\n"
+                            "Parses ccn-lite-ctrl/ccnl-ext-mgmt messages (CCNB) and shows them in XML format.\n"
+                            "  -b include blob tags in the XML tree\n"
+                            "  -h print this message\n"
+                          , argv[0]);
+            exit(-1);
+        }
+    }
 
     len = read(0, out, sizeof(out));
     if (len < 0) {
         perror("read");
         exit(-1);
     }
-    handle_ccn_packet(out, len, 0, stdout);
-    printf("\n");
     
-    return 0;
-    
-    usage:
-    fprintf(stderr, "usage: \n" 
-    " Parse ccn-lite-ctrl/ccnl-ext-mgmt messages and shows it as xml.\n"
-    " To check the status of the signatures, use the ccn-lite-ctrl with publickey.\n"
-    " %s -h print this message.\n",
-            argv[0]);
+    p_out = out;
+    print_ccnb(&p_out, &len, 0, ignore_blob_tag);
     return 0;
 }
