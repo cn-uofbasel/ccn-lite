@@ -11,7 +11,7 @@ PROFILES=bt-relay-nothing \
 	bt-all \
 	bt-all-nfn
 
-.PHONY: all ${PROFILES}
+.PHONY: all ${PROFILES} clean
 all: ${PROFILES}
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
@@ -85,4 +85,8 @@ bt-all-nfn:
 	@MAKE_TARGETS="clean all" \
 	LOG_FNAME=$@ \
 	MAKE_VARS="USE_NFN=1" \
+	./build-test-helper.sh
+
+clean:
+	MAKE_VARS="clean" \
 	./build-test-helper.sh
