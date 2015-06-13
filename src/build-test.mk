@@ -9,7 +9,13 @@ PROFILES=bt-relay-nothing \
 	bt-relay-all \
 	bt-lnxkernel \
 	bt-all \
-	bt-all-nfn
+	bt-all-nfn \
+	bt-pkt-ccnb \
+	bt-pkt-ccntlv \
+	bt-pkt-cistlv \
+	bt-pkt-iottlv \
+	bt-pkt-ndntlv
+
 
 .PHONY: all ${PROFILES}
 all: ${PROFILES}
@@ -87,3 +93,28 @@ bt-all-nfn:
 	LOG_FNAME=$@ \
 	MAKE_VARS="USE_NFN=1" \
 	./build-test-helper.sh
+
+bt-pkt-ccnb:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh ccnb
+
+bt-pkt-ccntlv:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh ccntlv
+
+bt-pkt-cistlv:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh cistlv
+
+bt-pkt-iottlv:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh iottlv
+
+bt-pkt-ndntlv:
+	@MAKE_TARGETS="all" \
+	LOG_FNAME=$@ \
+	./build-test-helper.sh ndntlv

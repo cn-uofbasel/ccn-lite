@@ -38,11 +38,27 @@ fi
 
 printf "%-30s [..]" "$LOG_FNAME"
 
-# Build and log output
-make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
+export RC="ok"
+if [ -n "$1" ]; then
+    make -C util ccn-lite-pktdump >/dev/null
+    export FNAMES=`find ../test/$1 -name "*.$1"`
+    rm -f "/tmp/$LOG_FNAME.log"
+    for VAR in $FNAMES; do
+        ./util/ccn-lite-pktdump <$VAR >> "/tmp/$LOG_FNAME.log" 2>&1
+        if [ $? -ne 0 ]; then
+            export RC="fail"
+        fi
+    done
+else
+    # Build and log output
+    make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
+    if [ $? -ne 0 ]; then
+        export RC="fail"
+    fi
+fi
 
 # Print status
-if [ $? = 0 ]; then
+if [ $RC = "ok" ]; then
     if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
         echo -e "\b\b\b\b[\e[1;92mok\e[0;0m]"
     else
