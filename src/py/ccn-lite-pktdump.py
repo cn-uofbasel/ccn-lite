@@ -22,7 +22,9 @@ File history:
 '''
 
 import sys
-import ccnlite
+
+import ccnlite.ndn
+import ccnlite.util
 
 # ----------------------------------------------------------------------
 
@@ -49,7 +51,7 @@ if __name__ == "__main__":
             if a == '' or b == '':
                 raise EOFError
             infile.seek(-2, 1)
-            suite = ccnlite.whichSuite(ord(a), ord(b))
+            suite = ccnlite.util.whichSuite(ord(a), ord(b))
 
             print "\n# %s" % fn
 
@@ -57,10 +59,10 @@ if __name__ == "__main__":
                 break
             if suite == 'ndn2013':
                 print '# packet format is ndn2013\n#'
-                ccnlite.ndntlv_dump(infile, 0, -1)
+                ccnlite.ndn.ndntlv_dump(infile, 0, -1)
             else:
                 print '# unknown packet format\n#'
-                ccnlite.hexDump(infile, 1, 1, -1)
+                ccnlite.util.hexDump(infile, 1, 1, -1)
 
     except EOFError:
         sys.stdout.flush()

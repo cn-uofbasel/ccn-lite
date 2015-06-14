@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # ccn-lite/src/py/ccnlite/ccnl-ndn.py
 
 '''
@@ -23,8 +25,9 @@ File history:
 '''
 
 import codecs
-import curses.ascii
 import struct
+
+import util
 
 # ----------------------------------------------------------------------
 # reading NDN TLVs
@@ -114,7 +117,7 @@ def ndntlv_dump(f, lev, maxlen):
         if t in ndntlv_recurseSet:
             ndntlv_dump(f, lev+1, l)
         elif l > 0:
-            ccnl_hexDump(f, lev+1, t in ndntlv_isPrint, l)
+            util.hexDump(f, lev+1, t in ndntlv_isPrint, l)
         maxlen -= l
 
 # ----------------------------------------------------------------------

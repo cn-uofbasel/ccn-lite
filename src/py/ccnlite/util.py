@@ -22,6 +22,8 @@ File history:
 2015-06-13 created
 '''
 
+import curses.ascii
+
 # ----------------------------------------------------------------------
 
 def hexDump(f, lev, doPrint, len):
