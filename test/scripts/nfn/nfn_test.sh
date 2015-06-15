@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PACKETTYPELIST=( "ccnb" "ndn2013" "ccnx2015" "cisco2015" "iot2014")
+PACKETTYPELIST="ccnb ndn2013 ccnx2015 cisco2015 iot2014"
 
-for PACKETTYPE in ${PACKETTYPELIST[@]}; do
+for PACKETTYPE in $PACKETTYPELIST; do
 
     #PACKETTYPE=ccnb
 
