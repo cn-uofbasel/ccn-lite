@@ -19,6 +19,8 @@ CCN-lite requires OpenSSL. Use the following to install it:
     export PATH=$PATH:"$CCNL_HOME/bin"
     ```
 
+    To make these variables permanent, add them to your shell's `.rc` file, e.g. `~/.bashrc`.
+
 3.  Build CCN-lite using `make`:
     ```bash
     cd $CCNL_HOME/src
