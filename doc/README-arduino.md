@@ -63,7 +63,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     make serial
     ```
 
-    Use the keys `+` and `-` to increase/decrease the verbosity level. Press
+    Use the keys `+` and `-` to increase and decrease the verbosity level. Press
     `d` to dump the heap.
 
     <pre><code>Terminal ready
@@ -96,7 +96,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
 
 3.  Compile and upload the code by running `verify/compile` and `upload`.
 
-4.  Connect to your device by using the Serial Monitor (Tools > Serial Monitor)
+4.  Connect to your device by using the Serial Monitor (`Tools` > `Serial Monitor`)
     or through the ino command line with:
 
     ```bash
