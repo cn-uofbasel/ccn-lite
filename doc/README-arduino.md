@@ -2,7 +2,7 @@
 [//]: # (TODO: Add 'standard' header to each README?)
 
 This README describes the installation and usage of CCN-lite for the family of
-Arduino boards (Arduino Uno and AtMega328, 2KiB RAM) and the RFduino (32 KiB RAM).
+Arduino boards (Arduino Uno and AtMega328, 2 KiB RAM) and the RFduino (32 KiB RAM).
 
 Because each of these devices come with a different setup including different
 communication shields, this leads to many different profiles that need to be
@@ -66,8 +66,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     Use the keys `+` and `-` to increase/decrease the verbosity level. Press
     `d` to dump the heap.
 
-    <pre><code>
-    Terminal ready
+    <pre><code>Terminal ready
     >>
     [I] 0.301 This is 'ccn-lite-arduino'
     [I] 0.301   ccnl-core: 2015-05-07
@@ -84,8 +83,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     9.622 @@@ mem 0x50f    28 Bytes, allocated by ccnl-core.c:141 @5.552
     9.698 @@@ mem 0x4e8    25 Bytes, allocated by ccnl-core-util.c:637 @0.551
     9.779 @@@ mem 0x4c1    25 Bytes, allocated by ccnl-core-util.c:634 @0.551
-    9.861 @@@ memory dump ends
-    </code></pre>
+    9.861 @@@ memory dump ends</code></pre>
 
 
 # Installation for RFduino
@@ -93,8 +91,8 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
 1.  Install the RFduino support for the Arduino IDE according to:
     http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
 
-2.  Open the file `.../ccn-lite-src/arduino/rfduino/rfduino.ion` in the
-    Arduino IDE
+2.  Open the file `$CCNL_HOME/src/arduino/rfduino/rfduino.ion` in the
+    Arduino IDE.
 
 3.  Compile and upload the code by running `verify/compile` and `upload`.
 
