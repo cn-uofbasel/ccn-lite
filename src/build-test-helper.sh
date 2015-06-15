@@ -51,10 +51,12 @@ if [ -n "$PKT_FORMAT" ]; then
         rm -f "/tmp/$LOG_FNAME.log"
         FNAMES=`find ../test/$PKT_FORMAT -iname "*.$PKT_FORMAT"`
         for FNAME in $FNAMES; do
+            echo "### ccn-lite-pktdump < $FNAME" >> "/tmp/$LOG_FNAME.log"
             ./util/ccn-lite-pktdump < $FNAME >> "/tmp/$LOG_FNAME.log" 2>&1
             if [ $? -ne 0 ]; then
                 RC="fail"
             fi
+            echo "" >> "/tmp/$LOG_FNAME.log"
         done
     fi
 else
