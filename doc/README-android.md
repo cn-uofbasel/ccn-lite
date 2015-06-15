@@ -4,8 +4,10 @@ This README describes the preliminary port of CCN-lite for Android devices.
 
 ## Prerequisites
 
-To build CCN-lite for Android, the Android SDK (https://developer.android.com/sdk) and NDK (https://developer.android.com/tools/sdk/ndk) are both required.
+Follow the [UNIX installation instructions](README-unix.md) to set up the
+CCN-lite sources and relevant environment variables.
 
+To build CCN-lite for Android, the Android SDK (https://developer.android.com/sdk) and NDK (https://developer.android.com/tools/sdk/ndk) are both required.
 
 ## Installation
 

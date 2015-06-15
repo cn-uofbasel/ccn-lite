@@ -2,7 +2,8 @@
 
 ## Prerequisites
 
-Follow the [UNIX installation instructions](README-unix.md).
+Follow the [UNIX installation instructions](README-unix.md) to set up the
+CCN-lite sources and relevant environment variables.
 
 ## Installation
 
