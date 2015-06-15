@@ -1,6 +1,7 @@
 # general patterns:
 *~
 *.o
+*.pyc
 
 # Linux kernel module:
 *.ko

@@ -1,17 +1,20 @@
 #!/bin/bash
 
 # A helper script to build specific targets.
-# It prints either 'ok', 'warning' or 'failed' depending on the outcome of the build.
-# The output of the build is stored in /tmp/$LOG_FNAME. If the build failed, the
-# modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
+# It prints either 'ok', 'warning' or 'failed' depending on the outcome of the
+# build. The output of the build is stored in /tmp/$LOG_FNAME. If the build
+# failed, the modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
 #
 # Parameters (passed in environment variables):
-# 	LOG_FNAME	name of the logfile to write to
-#	MAKE_TARGETS	targets that need to be built
-#	MAKE_VARS	variable-value pairs that are sent to the Makefile
-#	MODIFIY_FNAME	name of the file to change #defines
-#	SET_VARS	#define variables that need to be defined
-#	UNSET_VARS	#define variables that need to be unset
+# 	LOG_FNAME	Name of the logfile to write to.
+#	MAKE_TARGETS	Targets that need to be built.
+#	MAKE_VARS	Variable-value pairs that are sent to the Makefile.
+#	MODIFIY_FNAME	Name of the file to change #defines.
+#	SET_VARS	#define variables that need to be defined.
+#	UNSET_VARS	#define variables that need to be unset.
+#	PKT_FORMAT	Name of the packet format to test. If this variable is
+#			set, the packet format tests are executed instead of
+#			the normal build.
 
 # Undefining all environment variables in this invocation (build variables are passed as MAKE_VARS)
 unset USE_KRNL
@@ -36,26 +39,47 @@ if [ -n "$MODIFIY_FNAME" ]; then
     done
 fi
 
+# Print work
 printf "%-30s [..]" "$LOG_FNAME"
 
-# Build and log output
-make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
-
-# Print status
-if [ $? = 0 ]; then
-    if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
-        echo -e "\b\b\b\b[\e[92mok\e[0m]"
+RC="ok"
+if [ -n "$PKT_FORMAT" ]; then
+    make -C util ccn-lite-pktdump > "/tmp/$LOG_FNAME.log" 2>&1
+    if [ $? -ne 0 ]; then
+        RC="fail"
     else
-        echo -e "\b\b\b\b\b\b\b\b\b[\e[93mwarning\e[0m]"
+        rm -f "/tmp/$LOG_FNAME.log"
+        FNAMES=`find ../test/$PKT_FORMAT -iname "*.$PKT_FORMAT"`
+        for FNAME in $FNAMES; do
+            echo "### ccn-lite-pktdump < $FNAME" >> "/tmp/$LOG_FNAME.log"
+            ./util/ccn-lite-pktdump < $FNAME >> "/tmp/$LOG_FNAME.log" 2>&1
+            if [ $? -ne 0 ]; then
+                RC="fail"
+            fi
+            echo "" >> "/tmp/$LOG_FNAME.log"
+        done
     fi
 else
-    echo -e "\b\b\b\b\b\b\b\b[\e[91mfailed\e[0m]"
+    # Build and log output
+    make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
+    if [ $? -ne 0 ]; then
+        RC="fail"
+    fi
+
+    # Replace backup
     if [ -n "$MODIFIY_FNAME" ]; then
         cp "$MODIFIY_FNAME" "/tmp/$MODIFIY_FNAME.$LOG_FNAME"
+        mv "$MODIFIY_FNAME.bak" "$MODIFIY_FNAME"
     fi
 fi
 
-# Replace backup
-if [ -n "$MODIFIY_FNAME" ]; then
-    mv "$MODIFIY_FNAME.bak" "$MODIFIY_FNAME"
+# Print status
+if [ $RC = "ok" ]; then
+    if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
+        echo -e "\b\b\b\b[\e[1;92mok\e[0;0m]"
+    else
+        echo -e "\b\b\b\b\b\b\b\b\b[\e[1;93mwarning\e[0;0m]"
+    fi
+else
+    echo -e "\b\b\b\b\b\b\b\b[\e[1;91mfailed\e[0;0m]"
 fi

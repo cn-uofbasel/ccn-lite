@@ -265,8 +265,8 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
     r = ifc->queue + ((ifc->qfront + ifc->qlen) % CCNL_MAX_IF_QLEN);
     r->buf = buf;
     memcpy(&r->dst, dest, sizeof(sockunion));
-    r->txdone = tx_done;
-    r->txdone_face = f;
+    r->txdone = tx_done; 
+    r->txdone_face = f; 
     ifc->qlen++;
 
 #ifdef USE_SCHEDULER
@@ -538,7 +538,7 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         return i->pkt->s.ccnb.minsuffix == pkt->s.ccnb.minsuffix &&
-               i->pkt->s.ccnb.maxsuffix == pkt->s.ccnb.maxsuffix &&
+               i->pkt->s.ccnb.maxsuffix == pkt->s.ccnb.maxsuffix && 
                ((!i->pkt->s.ccnb.ppkd && !pkt->s.ccnb.ppkd) ||
                     buf_equal(i->pkt->s.ccnb.ppkd, pkt->s.ccnb.ppkd));
 #endif
@@ -657,7 +657,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
     for (i = ccnl->pit; i;) {
         struct ccnl_pendint_s *pi;
-
+        DEBUGMSG(ERROR, "3: CompCnt for prefix: %d, complen4: %d, prefixaddr: %p\n", i->pkt->pfx->compcnt, i->pkt->pfx->complen[3], (void*) i->pkt->pfx);
         if (!i->pkt->pfx)
             continue;
 
@@ -761,8 +761,10 @@ ccnl_do_ageing(void *ptr, void *dummy)
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
-                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC))
+                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
+          DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);  
             c = ccnl_content_remove(relay, c);
+        }
         else
             c = c->next;
     }
@@ -770,6 +772,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
+            DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);  
             DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                           (void*)i,
                      ccnl_prefix_to_path(i->pkt->pfx));
@@ -780,9 +783,13 @@ ccnl_do_ageing(void *ptr, void *dummy)
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
                      ccnl_prefix_to_path(i->pkt->pfx));
 #ifdef USE_NFN
-            if (i->flags & CCNL_PIT_COREPROPAGATES)
+            if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif
+                DEBUGMSG_CORE(TRACE, "AGING: PROPAGATING INTEREST %p\n", (void*) i);
                 ccnl_interest_propagate(relay, i);
+#ifdef USE_NFN     
+            }
+#endif
 
             i->retries++;
             i = i->next;
@@ -791,7 +798,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (f) {
         if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
                 (f->last_used + CCNL_FACE_TIMEOUT) <= t){
-            f = ccnl_face_remove(relay, f);
+            DEBUGMSG_CORE(TRACE, "AGING: FACE REMOVE %p\n", (void*) f);      
+            f = ccnl_face_remove(relay, f);   
     }
         else
             f = f->next;
@@ -867,7 +875,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
-
+    
     (void) base; // silence compiler warning (if USE_DEBUG is not set)
 
     DEBUGMSG_CORE(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
