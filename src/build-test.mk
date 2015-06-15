@@ -1,25 +1,29 @@
 # build-test.mk
 
-PROFILES=bt-relay-nothing \
+BT_RELAY=bt-relay-nothing \
 	bt-relay-barebones \
 	bt-relay-vanilla \
 	bt-relay-frag \
 	bt-relay-authCtrl \
 	bt-relay-nfn \
-	bt-relay-all \
-	bt-lnxkernel \
-	bt-all \
-	bt-all-nfn \
-	bt-pkt-ccnb \
+	bt-relay-all
+BT_LNXKERNEL=bt-lnxkernel
+BT_ALL=bt-all-vanilla \
+	bt-all-nfn
+BT_PKT=bt-pkt-ccnb \
 	bt-pkt-ccntlv \
 	bt-pkt-cistlv \
 	bt-pkt-iottlv \
 	bt-pkt-ndntlv
+PROFILES=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT}
 
-
-.PHONY: all ${PROFILES}
-all: ${PROFILES}
-	@make clean > /dev/null
+.PHONY: all clean bt-relay bt-all bt-pkt ${PROFILES}
+all: ${PROFILES} clean
+bt-relay: ${BT_RELAY} clean
+bt-all: ${BT_ALL} clean
+bt-pkt: ${BT_PKT} clean
+clean:
+	@make clean > /dev/null 2>&1
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
 
@@ -83,7 +87,7 @@ bt-lnxkernel:
 	MAKE_VARS="USE_KRNL=1" \
 	./build-test-helper.sh
 
-bt-all:
+bt-all-vanilla:
 	@MAKE_TARGETS="clean all" \
 	LOG_FNAME=$@ \
 	./build-test-helper.sh
@@ -95,26 +99,26 @@ bt-all-nfn:
 	./build-test-helper.sh
 
 bt-pkt-ccnb:
-	@MAKE_TARGETS="all" \
+	@PKT_FORMAT="ccnb" \
 	LOG_FNAME=$@ \
-	./build-test-helper.sh ccnb
+	./build-test-helper.sh
 
 bt-pkt-ccntlv:
-	@MAKE_TARGETS="all" \
+	@PKT_FORMAT="ccntlv" \
 	LOG_FNAME=$@ \
-	./build-test-helper.sh ccntlv
+	./build-test-helper.sh
 
 bt-pkt-cistlv:
-	@MAKE_TARGETS="all" \
+	@PKT_FORMAT="cistlv" \
 	LOG_FNAME=$@ \
-	./build-test-helper.sh cistlv
+	./build-test-helper.sh
 
 bt-pkt-iottlv:
-	@MAKE_TARGETS="all" \
+	@PKT_FORMAT="iottlv" \
 	LOG_FNAME=$@ \
-	./build-test-helper.sh iottlv
+	./build-test-helper.sh
 
 bt-pkt-ndntlv:
-	@MAKE_TARGETS="all" \
+	@PKT_FORMAT="ndntlv" \
 	LOG_FNAME=$@ \
-	./build-test-helper.sh ndntlv
+	./build-test-helper.sh

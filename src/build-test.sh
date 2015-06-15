@@ -1,3 +1,3 @@
 #!/bin/bash
 
-make -f build-test.mk
+make -f build-test.mk "$@"
