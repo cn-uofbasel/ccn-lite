@@ -1,4 +1,6 @@
-# ccn-lite
+![](doc/logo/ccn-lite-logo-712x184.png)
+
+[//]: # (TODO: Rework introduction)
 
 CCN-lite (http://ccn-lite.net/) is a lightweight and cross-compatible
 implementation of Name Based Networking. In particular, it supports
@@ -25,19 +27,49 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-![](doc/logo/ccn-lite-logo-256x66.png)
+## Table of contents
+1. [Introduction](#introduction)
+2. [Documentation](#documentation)
+3. [Installation](#installation)
+4. [Tutorial](#tutorial)
+5. [Credits](#credits)
 
+[//]: # (TODO: Add content)
+
+<a name="introduction"/>
+## Introduction
+
+introduction
+
+
+<a name="documentation"/>
+## Documentation
+
+documentation
+
+
+<a name="installation"/>
+## Installation
+
+installation
+
+
+<a name="tutorial"/>
+## Tutorial
+
+tutorial
+
+
+<a name="credits"/>
 ## Credits
 
 ### Release 0.3.0 (Jun 2015)
 
-#### Code contributions:  
-Basil Kohler  
-Christopher Scherb  
-Manolis Sifalakis  
-Christian F. Tschudin  
+#### Code contributions:
+?
 
-#### Code and documentation feedback:  
+#### Code and documentation feedback:
+?
 
 ### Release 0.2.0 (Dec 2014)
 
