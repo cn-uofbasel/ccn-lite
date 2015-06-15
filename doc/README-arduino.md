@@ -1,3 +1,5 @@
+# CCN-lite for Arduino
+
 [//]: # (TODO: Link to the homepage of the specific boards?)
 [//]: # (TODO: Add 'standard' header to each README?)
 
@@ -14,7 +16,7 @@ supported by CCN-lite. Currently, working setups include:
 Planned but not yet supported setups include:
 * Uno with WiFly
 
-# Prerequisites
+## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
@@ -30,7 +32,7 @@ sudo apt-get install gcc-avr
 Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
 
 
-# Installation for Arduino boards
+## Installation for Arduino boards
 
 1.  Change into the source directory related to Arduino:
 
@@ -86,7 +88,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     9.861 @@@ memory dump ends</code></pre>
 
 
-# Installation for RFduino
+## Installation for RFduino
 
 1.  Install the RFduino support for the Arduino IDE according to:
     http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
@@ -104,7 +106,7 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     ```
 
 
-# Compile time options
+## Compile time options
 
 The Arduino's flash memory of 32 KiB limits the number of ccn-lite extensions
 that can be included at the same time. For example, `malloc()` debugging support

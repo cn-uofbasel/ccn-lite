@@ -1,5 +1,5 @@
+# CCN-lite for Docker
 
-# CCN-Lite Docker Tutorial
 This tutorial explains how ccn-lite as well as nfn-scala can be run in a Docker container. This keeps your system clean
 and makes it possible to easily run several nodes on fully isolated system processes.
 

@@ -1,8 +1,10 @@
-# Prerequisites
+# CCN-lite for the Linux kernel
+
+## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md).
 
-# Installation
+## Installation
 
 1.  Define the environment variable `$USE_KRNL` to compile CCN-lite in kernel mode:
 
@@ -32,7 +34,7 @@ Follow the [UNIX installation instructions](README-unix.md).
     tail -f /var/log/syslog
     ```
 
-# Usage
+## Usage
 
 ### Options
 
