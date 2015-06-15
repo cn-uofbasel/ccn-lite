@@ -79,24 +79,21 @@ Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
     9.861 @@@ memory dump ends
 </code></pre>
 
+
 # Installation for RFduino
 
-[//]: # (TODO: Make pretty)
+1.  Install the RFduino support for the Arduino IDE according to:
+    http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
 
-  * install the Arduino IDE (1.6.3)
+2.  Open the file `.../ccn-lite-src/arduino/rfduino/rfduino.ion` in the Arduino IDE
 
-  * from within the IDE, install RFduino support according to http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
+3.  Compile and upload the code by running `verify/compile` and `upload`.
 
-  * open the file .../ccn-lite-src/arduino/rfduino/rfduino.ino
+4.  Connect to your device by using the Serial Monitor (Tools > Serial Monitor) or through the ino command line with:
 
-  * click "verify/compile" (or type ctrl-R)
-
-  * click "upload" (or type ctrl-U)
-
-  * click tools->Serial Monitor (or type ctrl-shift-M), or use the
-  ino tool at the command line:
-
-    > % ino serial
+    ```bash
+    ino serial
+    ```
 
 
 # Compile time options
