@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-# ccn-lite/src/py/ccnlite/ccnl-ndn.py
+# ccn-lite/src/py/ccnlite/ndn2013.py
 
 '''
 CCN-lite module for Python:
@@ -100,7 +98,7 @@ ndntlv_types = {
     0x1d : 'KeyLocatorDigest'
     }
 
-ndntlv_recurseSet = { 0x05, 0x06, 0x07, 0x09, 0x16, 0x1c }
+ndntlv_recurseSet = { 0x05, 0x06, 0x07, 0x09, 0x14, 0x16, 0x1c }
 ndntlv_isPrint = { 0x08, 0x15 }
 
 def ndntlv_dump(f, lev, maxlen):
@@ -120,10 +118,60 @@ def ndntlv_dump(f, lev, maxlen):
             util.hexDump(f, lev+1, t in ndntlv_isPrint, l)
         maxlen -= l
 
-# ----------------------------------------------------------------------
-# writing NDN TLVs
+def ndntlv_isInterest(f):
+    c = f.read(1);
+    f.seek(-1, 1)
+    if c == '':
+        raise EOFError
+    return ord(c) == 0x05
 
-def ndntlv_TorL(x):
+def ndntlv_isData(f):
+    c = f.read(1);
+    f.seek(-1, 1)
+    if c == '':
+        raise EOFError
+    return ord(c) == 0x06
+
+def ndntlv_parseName(f, maxlen):
+    name = []
+    while maxlen > 0:
+        (t, l, maxlen) = ndntlv_readTL(f, maxlen)
+        if t != 0x08:
+            raise EOFError
+        name.append(f.read(l))
+        maxlen -= l
+    return name
+
+def ndntlv_parseInterest(f):
+    (t, l, maxlen) = ndntlv_readTL(f, -1)
+    if t != 0x05:
+        raise EOFError
+    while maxlen == -1 or maxlen > 0:
+        (t, l, maxlen) = ndntlv_readTL(f, -1)
+        if t == 0x07:
+            return ndntlv_parseName(f, l)
+        f.read(l)
+    return None
+
+def ndntlv_parseData(f):
+    (t, l, maxlen) = ndntlv_readTL(f, -1)
+    if t != 0x06:
+        raise EOFError
+    name = None
+    cont = None
+    while maxlen == -1 or maxlen > 0:
+        (t, l, maxlen) = ndntlv_readTL(f, -1)
+        if t == 0x07:
+            name = ndntlv_parseName(f, l)
+        if t == 0x15:
+            cont = f.read(l)
+        f.read(l)
+    return (name, cont)
+
+# ----------------------------------------------------------------------
+# creating NDN TLVs
+
+def ndntlv_mkTorL(x):
     if x < 253:
         buf = bytearray([x])
     if x < 0x10000:
@@ -137,43 +185,22 @@ def ndntlv_TorL(x):
         val8.pack_into(buf, 1, x)
     return buf
 
-def ndntlv_prependTorL(buf, offset, x):
-    if offset < 1:
-        raise EOFError
-    if x < 253:
-        buf[offset-1] = char(x)
-        return 1
-    if x < 0x10000:
-        val2.pack_into(buf, offset-2, x)
-        buf[offset-3] = char(253)
-        return 3
-    if x < 0x100000000L:
-        val4.pack_into(buf, offset-4, x)
-        buf[offset-5] = char(254)
-        return 5
-    val8.pack_into(buf, offset-8, x)
-    buf[offset-9] = char(255)
-    return 9
+def ndntlv_mkName(name):
+    n = ''
+    for i in range(0, len(name)):
+        c = ndntlv_mkTorL(0x08) + ndntlv_mkTorL(len(name[i])) + name[i]
+        n = n + c
+    n = ndntlv_mkTorL(0x07) + ndntlv_mkTorL(len(n)) + n
+    return n
 
-def ndntlv_prependTL(buf, offset, t, l):
-    oldoffset = offset
-    offset -= ndntlv_prepentTorL(buf, offset, l)
-    offset -= ndntlv_prepentTorL(buf, offset, t)
-    return oldoffset - offset
+def ndntlv_mkInterest(name):
+    n = ndntlv_mkName(name);
+    return ndntlv_mkTorL(0x05) + ndntlv_mkTorL(len(n)) + n
 
-def ndntlv_prependBlob(buf, offset, t, blob):
-    oldoffset = offset
-    offset -= len(blob)
-    buf[offset:] = blob
-    offset -= ndntlv_prependTL(buf, offset, t, len)
-    return oldoffset - offset
-
-# ----------------------------------------------------------------------
-# creating NDN packets
-
-# def ndntlv_mkI(name):
-
-# def ndntlv_mkC(name, blob):
+def ndntlv_mkData(name, blob):
+    n = ndntlv_mkName(name);
+    nb = n + ndntlv_mkTorL(0x15) + ndntlv_mkTorL(len(blob)) + blob
+    return ndntlv_mkTorL(0x06) + ndntlv_mkTorL(len(nb)) + nb
   
 
 # eof

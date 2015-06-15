@@ -1,4 +1,4 @@
-# ccn-lite/src/py/ccnlite/ccnl-util.py
+# ccn-lite/src/py/ccnlite/util.py
 
 '''
 CCN-lite module for Python:
@@ -52,6 +52,11 @@ def hexDump(f, lev, doPrint, len):
                 print s
             cnt = 0
             line = ''
+    if cnt != 0:
+        if doPrint:
+            print "%-61s |%s|" % (s, line)
+        else:
+            print s
 
 
 def whichSuite(a, b):

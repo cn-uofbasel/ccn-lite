@@ -224,6 +224,14 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                     (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
         DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
                  inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
+        /*
+        {
+            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC);
+            write(fd, buf->data, buf->datalen);
+            close(fd);
+        }
+        */
+
         break;
 #endif
 #ifdef USE_ETHERNET
