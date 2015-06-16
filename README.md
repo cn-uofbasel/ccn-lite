@@ -37,7 +37,7 @@ Internet of Things (IoT): http://www.riot-os.org/
 7. [Credits](#credits)
 
 
-<a name="gettingstarted"/>
+<a name="gettingstarted"></a>
 ## 1. Getting started
 
 [//]: # (TODO: Add readme file in /doc that covers all other files?)
@@ -47,7 +47,7 @@ For more information about CCN-lite, read the other [documents](doc) or the sour
 If you found a bug or want to report a problem with CCN-lite, feel free to [create an issue](https://github.com/cn-uofbasel/ccn-lite/issues) on GitHub - we appreciate it!
 
 
-<a name="rationale" />
+<a name="rationale"></a>
 ## 2. Rationale for CCN-lite
 
 The original motivation in 2011 for creating CCN-lite was that PARC's CCNx
@@ -152,7 +152,7 @@ including only those features really necessary.  We have strived to make these
 choices as orthogonal as possible and invite you to attempt the same for your
 additions.
 
-<a name="platforms" />
+<a name="platforms"></a>
 ## 4. CCN-lite supported platforms and how to compile
 
 CCN-lite currently supports four platforms. To find out how to install and use CCN-lite on each individual platform, refer to the platform-specific readme files:
@@ -195,7 +195,7 @@ export USE_NACK=1
 make clean all
 ```
 
-<a name="lof" />
+<a name="lof"></a>
 ## 5. Command line tools
 
 The main files (and corresponding executables) in the src directory are:
@@ -251,7 +251,7 @@ The main files (and corresponding executables) in the src directory are:
 ```
 
 
-<a name="links" />
+<a name="links"></a>
 ## 6. Links:
 
 - Source code repository:
@@ -270,7 +270,7 @@ The main files (and corresponding executables) in the src directory are:
   http://named-function.net/
 
 
-<a name="credits" />
+<a name="credits"></a>
 ## 7. Credits
 
 [//]: # (TODO: Link releases)
@@ -287,43 +287,43 @@ The main files (and corresponding executables) in the src directory are:
 ### Release 0.2.0 (Dec 2014)
 
 #### Code contributions:
-Basil Kohler
-Christian Mehlis
-Massimo Monti
-Christopher Scherb
-Manolis Sifalakis
-Christian F. Tschudin
+Basil Kohler  
+Christian Mehlis  
+Massimo Monti  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
 
 #### Code and documentation feedback:
-Samuel Bader
-Christoph Betschart
-Nore Derguti
-Ralph Droms
-Wilson A. Eghonghon
-Daniel Federau
-Ralph Gasser
-Cedric Geissmann
-Rasa Liebfried
-Dario Maggi
-Frank Müller
-Marko Obradovic
-Michaja Pressmar
-Mihai D. Rapcea
-Urs Schnurrenberger
-Thomas Simonsen
-Alexander Stiemer
-Ziba Tavassoli
-Simon Wang
-Mario Weber
+Samuel Bader  
+Christoph Betschart  
+Nore Derguti  
+Ralph Droms  
+Wilson A. Eghonghon  
+Daniel Federau  
+Ralph Gasser  
+Cedric Geissmann  
+Rasa Liebfried  
+Dario Maggi  
+Frank Müller  
+Marko Obradovic  
+Michaja Pressmar  
+Mihai D. Rapcea  
+Urs Schnurrenberger  
+Thomas Simonsen  
+Alexander Stiemer  
+Ziba Tavassoli  
+Simon Wang  
+Mario Weber  
 
 ### Release 0.1.0 (Jul 2013)
 
 #### Code contributions:
-Stefan Braun
-Pierre Imai
-Basil Kohler
-Thomas Meyer
-Massimo Monti
-Christopher Scherb
-Manolis Sifalakis
-Christian F. Tschudin
+Stefan Braun  
+Pierre Imai  
+Basil Kohler  
+Thomas Meyer  
+Massimo Monti  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
