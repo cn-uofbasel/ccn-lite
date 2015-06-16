@@ -2,66 +2,273 @@
 
 [//]: # (TODO: Rework introduction)
 
-CCN-lite (http://ccn-lite.net/) is a lightweight and cross-compatible
-implementation of Name Based Networking. In particular, it supports
+CCN-lite is a reduced and lightweight -- yet functionally
+interoperable -- implementation of the CCNx protocol. It covers:
 
 - PARC's Content Centric Networking Protocol, both the old (v0.8) and new (v1.0) variant, http://www.ccnx.org/
 - the Named-Data Networking project, http://named-data.net/
 - the Named-Function Networking project, http://named-function.net/
+- an experimental and compact encoding for IoT environments
 
-for several platforms:
+CCN-lite supports multiple platforms, including:
 
-- Linux and OSX user space
+- Linux and OS X user space
 - Linux kernel
 - Android
 - Arduino and RFduino
-- OMNet++ (coming soon again)
 
-To learn more about CCN-lite,
-* visit the [tutorial](tutorial/tutorial.md) page,
-* read the other [documents in the /doc directory](doc/000-README-FIRST.md),
-* and read the source code on [GitHub](https://github.com/cn-uofbasel/ccn-lite/), either the master branch or dev-master.
+Support for OMNet++ is planned but not yet available.
+
+CCN-lite is meant as a code base for class room work, experimental
+extensions and simulation experiments. The ISC license makes it an
+excellent starting point for commercial products.
 
 CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
 
-See also the ICN Research Group of the IRTF https://irtf.org/icnrg
 
-## Table of contents
-1. [Introduction](#introduction)
-2. [Documentation](#documentation)
-3. [Installation](#installation)
-4. [Tutorial](#tutorial)
-5. [Credits](#credits)
-
-[//]: # (TODO: Add content)
-
-<a name="introduction"/>
-## Introduction
-
-introduction
+### Table of Contents
+1. [Getting started](#gettingstarted)
+2. [Rationale for CCN-lite](#rationale)
+3. [Extensions](#extensions)
+4. [CCN-lite supported platforms](#platforms)
+5. [Command line tools](#lof)
+6. [Useful links](#links)
+7. [Credits](#credits)
 
 
-<a name="documentation"/>
-## Documentation
+<a name="gettingstarted"/>
+## 1. Getting started
 
-documentation
+[//]: # (TODO: Add readme file in /doc that covers all other files?)
 
-
-<a name="installation"/>
-## Installation
-
-installation
+To start right now with CCN-lite visit the [tutorial](tutorial/tutorial.md). It covers installation on Unix and basic functionality of CCN-lite.
+For more information about CCN-lite, read the other [documents](doc) or the source code on [GitHub](https://github.com/cn-uofbasel/ccn-lite/), either the `master` branch or `dev-master`.
+If you found a bug or want to report a problem with CCN-lite, feel free to [create an issue](https://github.com/cn-uofbasel/ccn-lite/issues) on GitHub - we appreciate it!
 
 
-<a name="tutorial"/>
-## Tutorial
+<a name="rationale" />
+## 2. Rationale for CCN-lite
 
-tutorial
+The original motivation in 2011 for creating CCN-lite was that PARC's CCNx
+router software had grown huge. CCN-lite provides a lean alternative
+for educational purposes and as a stepping stone. It's for those who
+want a simple piece of software for experimentation or own
+development, but who do not need all features of the full thing.
+
+This brings the interesting question of interoperability: What minimum
+functionality is necessary in order to participate in a CCNx network?
+With CCN-lite, we have made a first attempt at identifying that set,
+but we are aware that this set might be incomplete, or may change
+depending on how CCNx evolves. We consider this question of
+"sufficient CCNx functionality" to be of engineering and academic
+interest of its own and welcome contributions from everybody.
+
+Hence, with CCN-lite, we did a race-to-the-bottom and strived for a kind
+of "Level-0" interoperability. Level-0, as we understood it,
+covers:
+
+- ccnb encoding of messages (or any other encoding flavor, including the TLV variants)
+- PIT and FIB, basic CCN data structures
+- longest and exact prefix matching for basic CCN operations,
+  including minsuffixcomp und maxsuffixcomp handling
+- matching of publisher's public key to fight cache poisoning
+- nonce and/or hop limit tracking to avoid loops as a minimal safeguard
+
+As an interoperability goal we set for ourselves the threshold that
+the CCN-lite software must be able to route at the CCN level between
+fully fledged CCNx forwarders. Of course, this is a moving target, but
+we regularly use our tools to interface with the NDN testbed, for
+example.
+
+We deliberately do not cover in our CCN-lite code:
+
+- sophisticated data structures for performance optimizations
+- exclusion filtering in interests
+- all TCP connectivity and the old CCNx cmd line utilities that have TCP
+  hardwired into them
+- crypto functionality which is not our prime concern
+- repository functionality, SYNC server, ...
+
+A second reason to create CCN-lite was the software license (the
+original CCNx project picked GNU, but NDN also has chosen this path)
+where we prefer a Berkeley Software Distribution style of "do whatever
+you want" as we believe that this will help adopting CCN
+technology. Therefore, CCN-lite is released under the ISC license. We
+have learned that several companies have picked up CCN-lite for their
+internal experiments, so we think our license choice was right.
+
+What you get with CCN-lite is:
+
+- a tiny CCNx core (1000-2000 lines of C suffice)
+- multiple platform support
+- partially interoperable management protocol implementation
+- a simple HTTP server to display the relay's internal configuration
+- plus some interesting extensions of our own, see the next section.
+
+<a name="extensions"/>
+## 3. Extensions
+
+In several selected areas we have started our own contributions that are
+now part of CCN-lite:
+
+  a) *Named functions* for letting clients express results
+     instead of accessing only raw data. See also the use of
+     [Scala](https://github.com/cn-uofbasel/nfn-scala)
+     to host function execution and to interface to a NFN network.
+
+  b) Experimental *RPC functionality* for letting neighbors mutually invoke
+     functions, which could be the starting point both for network management
+     functionality and for data marshalling (of interests and data objects)
+     using the TLV encoding.
+
+  c) Clean *packet scheduler support* at chunk level as well as packet or
+     fragment level (symbol USE_SCHEDULER)
+
+  d) *Packet fragmentation* and lost packet detection support for running
+     the CCNx protocol natively over Ethernet (symbol USE_FRAG).
+     This is somehow outdated and waits for protocol specs to
+     emerge.
+
+  Other features that you can switch on and off at compile time are:
+```
+    USE_CCNxDIGEST        // enable digest component (requires crypto lib)
+    USE_CHEMFLOW          // experimental scheduler, src not included
+    USE_DEBUG             // basic data structure dumping
+    USE_DEBUG_MALLOC      // compile with memory armoring
+    USE_ETHERNET          // talk to eth/wlan devices, raw frames
+    USE_FRAG              // enable fragments (to run CCNx over Ethernet)
+    USE_HTTP_STATUS       // provide status info for web browsers
+    USE_LOGGING           // enable log messages
+    ?USE_KITE?            // forthcoming (routing along the return path)
+    USE_MGMT              // react to CCNx mgmt protocol messages
+    USE_NACK              // NACK support (for NFN)
+    USE_NFN               // named function networking
+    USE_SCHEDULER         // rate control at CCNx msg and fragment level
+    USE_SIGNATURES        // authenticate mgmt messages
+    USE_SUITE_*           // multiprotocol (CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC, Cisco2015)
+    USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
+```
+
+The approach for these extensions is that one can tailor a CCN forwarder to
+including only those features really necessary.  We have strived to make these
+choices as orthogonal as possible and invite you to attempt the same for your
+additions.
+
+<a name="platforms" />
+## 4. CCN-lite supported platforms and how to compile
+
+  CCN-lite currently supports four platforms. To find out how to install and use CCN-lite on each individual platform, refer to the platform-specific readme files:
+    - [Unix](doc/README-unix.md)
+    - [Linux kernel](doc/README-kernel.md)
+    - [Android](doc/README-android.md)
+    - [Arduino and RFduino](doc/README-arduino.md)
+
+  Additionally, CCN-lite offers the *ccn-lite-minimalrelay.c* as an exercise in writing the least
+  C code possible in order to get a working NDN forwarder. It has all
+  extra features disabled and only provides UDP connectivity. But
+  hey, it works! And it really is lean, looking at the lines of
+  C code:
+```
+   435 ccn-lite-minimalrelay.c
+  1010 ccnl-core.c
+   701 ccnl-core-fwd.c    // only partially needed
+  1090 ccnl-core-util.c
+   647 ccnl-pkt-ndntlv.c  // only partially needed
+
+   316 ccnl-core.h
+   197 ccnl-defs.h
+   104 ccnl-pkt-ndntlv.h
+```
+
+  If you want named function support (NFN), define an environment variable at the
+  shell level before invoking make:
+  export USE_NFN=1; make clean all
+
+  If you want NFN *and* NACK support, define an additional environment variable
+  before invoking make:
+  export USE_NACK=1; make clean all
+
+<a name="lof" />
+## 5. Command line tools
+
+The main files (and corresponding executables) in the src directory are:
+```
+   ccn-lite-relay.c              CCN-lite forwarder: user space
+
+                                 This code is compiled to three executables,
+                                 depending on compile time environment flags:
+                                   ccn-lite-relay
+                                   ccn-nfn-relay
+                                   ccn-nfn-relay-nack
+
+   ccn-lite-lnxkernel.c          CCN-lite forwarder: Linux kernel module
 
 
-<a name="credits"/>
-## Credits
+   util/ccn-lite-ctrl.c          cmd line program running the CCNx management
+                                 protocol (over Unix sockets). Used for
+                                 configuring a running relay either running
+                                 in user space or as a kernel module
+
+   util/ccn-lite-ccnb2xml.c      simple CCNB packet parser
+
+   util/ccn-lite-cryptoserver.c  used by the kernel module to carry out
+                                 compute intensive crypto operations (in
+                                 user space)
+
+   util/ccn-lite-ctrl.c          management tool to talk to a relay
+
+   util/ccn-lite-fetch.c         fetches both a single chunk content, or
+                                 a series of chunk for larger named data.
+                                 The real content is returned (without
+                                 any protocol bytes)
+
+   util/ccn-lite-mkC.c           simple content composer (to stdout, no crypto)
+
+   util/ccn-lite-mkI.c           simple interest composer (to stdout)
+
+   util/ccn-lite-peek.c          simple interest injector waiting for
+                                 a content chunk, can also be used to
+                                 request named-function results
+
+   util/ccn-lite-pktdump.c       powerful packet dumper for all known packet
+                                 formats. Output is in hexdump style, XML
+                                 or just the pure content.
+
+   util/ccn-lite-produce.c       creates a series of chunks for data that
+                                 does not fit into a single PDU
+
+   util/ccn-lite-rpc.c           send an RPC request and return the reply
+
+   util/ccn-lite-simplenfn.c     a simplified interface to request named-
+                                 function results
+```
+
+
+<a name="links" />
+## 6. Links:
+
+- Source code repository:
+  https://github.com/cn-uofbasel/ccn-lite
+
+- CCN-lite web site:
+  http://www.ccn-lite.net/
+
+- CCNx site:
+  http://www.ccnx.org/
+
+- NDN site:
+  http://named-data.net/
+
+- NFN site:
+  http://named-function.net/
+
+
+<a name="credits" />
+## 7. Credits
+
+[//]: # (TODO: Link releases)
+[//]: # (TODO: Maybe rename 'credits' to changelog or something and add content to release as well?)
 
 ### Release 0.3.0 (Jun 2015)
 
