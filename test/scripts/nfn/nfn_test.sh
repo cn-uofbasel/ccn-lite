@@ -8,7 +8,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
 
     echo "Testing Packet Format" $PACKETTYPE
 
-    echo "** killing all CCNL relay and Python instances"
+    echo "** killing all CCNL relay and Java instances"
 
     killall ccn-lite-relay 2> /dev/null
     killall ccn-nfn-relay 2> /dev/null
