@@ -112,25 +112,25 @@ What you get with CCN-lite is:
 In several selected areas we have started our own contributions that are
 now part of CCN-lite:
 
-  a) *Named functions* for letting clients express results
-     instead of accessing only raw data. See also the use of
-     [Scala](https://github.com/cn-uofbasel/nfn-scala)
-     to host function execution and to interface to a NFN network.
+- *Named functions* for letting clients express results
+  instead of accessing only raw data. See also the use of
+  [Scala](https://github.com/cn-uofbasel/nfn-scala)
+  to host function execution and to interface to a NFN network.
 
-  b) Experimental *RPC functionality* for letting neighbors mutually invoke
-     functions, which could be the starting point both for network management
-     functionality and for data marshalling (of interests and data objects)
-     using the TLV encoding.
+- Experimental *RPC functionality* for letting neighbors mutually invoke
+  functions, which could be the starting point both for network management
+  functionality and for data marshalling (of interests and data objects)
+  using the TLV encoding.
 
-  c) Clean *packet scheduler support* at chunk level as well as packet or
-     fragment level (symbol USE_SCHEDULER)
+- Clean *packet scheduler support* at chunk level as well as packet or
+  fragment level (symbol USE_SCHEDULER)
 
-  d) *Packet fragmentation* and lost packet detection support for running
-     the CCNx protocol natively over Ethernet (symbol USE_FRAG).
-     This is somehow outdated and waits for protocol specs to
-     emerge.
+- *Packet fragmentation* and lost packet detection support for running
+  the CCNx protocol natively over Ethernet (symbol USE_FRAG).
+  This is somehow outdated and waits for protocol specs to
+  emerge.
 
-  Other features that you can switch on and off at compile time are:
+Other features that you can switch on and off at compile time are:
 ```
     USE_CCNxDIGEST        // enable digest component (requires crypto lib)
     USE_CHEMFLOW          // experimental scheduler, src not included
@@ -158,36 +158,45 @@ additions.
 <a name="platforms" />
 ## 4. CCN-lite supported platforms and how to compile
 
-  CCN-lite currently supports four platforms. To find out how to install and use CCN-lite on each individual platform, refer to the platform-specific readme files:
-    - [Unix](doc/README-unix.md)
-    - [Linux kernel](doc/README-kernel.md)
-    - [Android](doc/README-android.md)
-    - [Arduino and RFduino](doc/README-arduino.md)
+CCN-lite currently supports four platforms. To find out how to install and use CCN-lite on each individual platform, refer to the platform-specific readme files:
 
-  Additionally, CCN-lite offers the *ccn-lite-minimalrelay.c* as an exercise in writing the least
-  C code possible in order to get a working NDN forwarder. It has all
-  extra features disabled and only provides UDP connectivity. But
-  hey, it works! And it really is lean, looking at the lines of
-  C code:
+ * [Unix](doc/README-unix.md)
+ * [Linux kernel](doc/README-kernel.md)
+ * [Android](doc/README-android.md)
+ * [Arduino and RFduino](doc/README-arduino.md)
+
+Additionally, CCN-lite offers the *ccn-lite-minimalrelay.c* as an exercise in
+writing the least C code possible in order to get a working NDN forwarder. It
+has all extra features disabled and only provides UDP connectivity. But hey, it
+works! And it really is lean, looking at the lines of C code:
+
 ```
-   435 ccn-lite-minimalrelay.c
-  1010 ccnl-core.c
-   701 ccnl-core-fwd.c    // only partially needed
-  1090 ccnl-core-util.c
-   647 ccnl-pkt-ndntlv.c  // only partially needed
+ 435 ccn-lite-minimalrelay.c
+1010 ccnl-core.c
+ 701 ccnl-core-fwd.c    // only partially needed
+1090 ccnl-core-util.c
+ 647 ccnl-pkt-ndntlv.c  // only partially needed
 
-   316 ccnl-core.h
-   197 ccnl-defs.h
-   104 ccnl-pkt-ndntlv.h
+ 316 ccnl-core.h
+ 197 ccnl-defs.h
+ 104 ccnl-pkt-ndntlv.h
 ```
 
-  If you want named function support (NFN), define an environment variable at the
-  shell level before invoking make:
-  export USE_NFN=1; make clean all
+If you want named function support (NFN), define an environment variable at the
+shell level before invoking make:
 
-  If you want NFN *and* NACK support, define an additional environment variable
-  before invoking make:
-  export USE_NACK=1; make clean all
+```bash
+export USE_NFN=1
+make clean all
+```
+
+If you want NFN and NACK support, define an additional environment variable before invoking make:
+
+```bash
+export USE_NFN=1
+export USE_NACK=1
+make clean all
+```
 
 <a name="lof" />
 ## 5. Command line tools
