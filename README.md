@@ -129,22 +129,22 @@ now part of CCN-lite:
 
 Other features that you can switch on and off at compile time are:
 ```
-    USE_CCNxDIGEST        // enable digest component (requires crypto lib)
-    USE_CHEMFLOW          // experimental scheduler, src not included
-    USE_DEBUG             // basic data structure dumping
-    USE_DEBUG_MALLOC      // compile with memory armoring
-    USE_ETHERNET          // talk to eth/wlan devices, raw frames
-    USE_FRAG              // enable fragments (to run CCNx over Ethernet)
-    USE_HTTP_STATUS       // provide status info for web browsers
-    USE_LOGGING           // enable log messages
-    ?USE_KITE?            // forthcoming (routing along the return path)
-    USE_MGMT              // react to CCNx mgmt protocol messages
-    USE_NACK              // NACK support (for NFN)
-    USE_NFN               // named function networking
-    USE_SCHEDULER         // rate control at CCNx msg and fragment level
-    USE_SIGNATURES        // authenticate mgmt messages
-    USE_SUITE_*           // multiprotocol (CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC, Cisco2015)
-    USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
+USE_CCNxDIGEST        // enable digest component (requires crypto lib)
+USE_CHEMFLOW          // experimental scheduler, src not included
+USE_DEBUG             // basic data structure dumping
+USE_DEBUG_MALLOC      // compile with memory armoring
+USE_ETHERNET          // talk to eth/wlan devices, raw frames
+USE_FRAG              // enable fragments (to run CCNx over Ethernet)
+USE_HTTP_STATUS       // provide status info for web browsers
+USE_LOGGING           // enable log messages
+?USE_KITE?            // forthcoming (routing along the return path)
+USE_MGMT              // react to CCNx mgmt protocol messages
+USE_NACK              // NACK support (for NFN)
+USE_NFN               // named function networking
+USE_SCHEDULER         // rate control at CCNx msg and fragment level
+USE_SIGNATURES        // authenticate mgmt messages
+USE_SUITE_*           // multiprotocol (CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC, Cisco2015)
+USE_UNIXSOCKET        // add UNIX IPC to the set of interfaces
 ```
 
 The approach for these extensions is that one can tailor a CCN forwarder to
@@ -200,54 +200,54 @@ make clean all
 
 The main files (and corresponding executables) in the src directory are:
 ```
-   ccn-lite-relay.c              CCN-lite forwarder: user space
+ccn-lite-relay.c              CCN-lite forwarder: user space
 
-                                 This code is compiled to three executables,
-                                 depending on compile time environment flags:
-                                   ccn-lite-relay
-                                   ccn-nfn-relay
-                                   ccn-nfn-relay-nack
+                              This code is compiled to three executables,
+                              depending on compile time environment flags:
+                                ccn-lite-relay
+                                ccn-nfn-relay
+                                ccn-nfn-relay-nack
 
-   ccn-lite-lnxkernel.c          CCN-lite forwarder: Linux kernel module
+ccn-lite-lnxkernel.c          CCN-lite forwarder: Linux kernel module
 
 
-   util/ccn-lite-ctrl.c          cmd line program running the CCNx management
-                                 protocol (over Unix sockets). Used for
-                                 configuring a running relay either running
-                                 in user space or as a kernel module
+util/ccn-lite-ctrl.c          cmd line program running the CCNx management
+                              protocol (over Unix sockets). Used for
+                              configuring a running relay either running
+                              in user space or as a kernel module
 
-   util/ccn-lite-ccnb2xml.c      simple CCNB packet parser
+util/ccn-lite-ccnb2xml.c      simple CCNB packet parser
 
-   util/ccn-lite-cryptoserver.c  used by the kernel module to carry out
-                                 compute intensive crypto operations (in
-                                 user space)
+util/ccn-lite-cryptoserver.c  used by the kernel module to carry out
+                              compute intensive crypto operations (in
+                              user space)
 
-   util/ccn-lite-ctrl.c          management tool to talk to a relay
+util/ccn-lite-ctrl.c          management tool to talk to a relay
 
-   util/ccn-lite-fetch.c         fetches both a single chunk content, or
-                                 a series of chunk for larger named data.
-                                 The real content is returned (without
-                                 any protocol bytes)
+util/ccn-lite-fetch.c         fetches both a single chunk content, or
+                              a series of chunk for larger named data.
+                              The real content is returned (without
+                              any protocol bytes)
 
-   util/ccn-lite-mkC.c           simple content composer (to stdout, no crypto)
+util/ccn-lite-mkC.c           simple content composer (to stdout, no crypto)
 
-   util/ccn-lite-mkI.c           simple interest composer (to stdout)
+util/ccn-lite-mkI.c           simple interest composer (to stdout)
 
-   util/ccn-lite-peek.c          simple interest injector waiting for
-                                 a content chunk, can also be used to
-                                 request named-function results
+util/ccn-lite-peek.c          simple interest injector waiting for
+                              a content chunk, can also be used to
+                              request named-function results
 
-   util/ccn-lite-pktdump.c       powerful packet dumper for all known packet
-                                 formats. Output is in hexdump style, XML
-                                 or just the pure content.
+util/ccn-lite-pktdump.c       powerful packet dumper for all known packet
+                              formats. Output is in hexdump style, XML
+                              or just the pure content.
 
-   util/ccn-lite-produce.c       creates a series of chunks for data that
-                                 does not fit into a single PDU
+util/ccn-lite-produce.c       creates a series of chunks for data that
+                              does not fit into a single PDU
 
-   util/ccn-lite-rpc.c           send an RPC request and return the reply
+util/ccn-lite-rpc.c           send an RPC request and return the reply
 
-   util/ccn-lite-simplenfn.c     a simplified interface to request named-
-                                 function results
+util/ccn-lite-simplenfn.c     a simplified interface to request named-
+                              function results
 ```
 
 
