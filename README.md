@@ -111,24 +111,21 @@ What you get with CCN-lite is:
 
 In several selected areas we have started our own contributions that are
 now part of CCN-lite:
-
-- *Named functions* for letting clients express results
-  instead of accessing only raw data. See also the use of
-  [Scala](https://github.com/cn-uofbasel/nfn-scala)
+- *Named functions* for letting clients express results instead of accessing
+  only raw data. See also the use of [Scala](https://github.com/cn-uofbasel/nfn-scala)
   to host function execution and to interface to a NFN network.
 
 - Experimental *RPC functionality* for letting neighbors mutually invoke
   functions, which could be the starting point both for network management
-  functionality and for data marshalling (of interests and data objects)
-  using the TLV encoding.
+  functionality and for data marshalling (of interests and data objects) using
+  the TLV encoding.
 
-- Clean *packet scheduler support* at chunk level as well as packet or
-  fragment level (symbol USE_SCHEDULER)
+- Clean *packet scheduler support* at chunk level as well as packet or fragment
+  level (symbol USE_SCHEDULER)
 
-- *Packet fragmentation* and lost packet detection support for running
-  the CCNx protocol natively over Ethernet (symbol USE_FRAG).
-  This is somehow outdated and waits for protocol specs to
-  emerge.
+- *Packet fragmentation* and lost packet detection support for running the CCNx
+  protocol natively over Ethernet (symbol USE_FRAG). This is somehow outdated
+  and waits for protocol specs to emerge.
 
 Other features that you can switch on and off at compile time are:
 ```
