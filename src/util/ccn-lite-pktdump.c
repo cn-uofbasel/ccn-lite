@@ -1076,11 +1076,11 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
         break;
     }
     if (tn) {
-        sprintf(tmp, "%s\\%s", tn, cn);
+        sprintf(tmp, "%s-%s", tn, cn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        sprintf(tmp, "type=0x%04x-%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        sprintf(tmp, "type=0x%04x-ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -1105,7 +1105,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     int i;
     unsigned int vallen, typ;
     unsigned char ctx2, *cp;
-    char *n, tmp[100];
+    char *n, n_old[100], tmp[100];
 
     while (*len > 0) {
         cp = *buf;
@@ -1125,28 +1125,50 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
-
-        fprintf(out, "%04zx  ", cp - base);
+        
+        if(!rawxml)
+            fprintf(out, "%04zx  ", cp - base);
         for (i = 0; i < lev; i++) {
             fprintf(out, "  ");
         }
         for (; cp < *buf; cp++) {
-            fprintf(out, "%02x ", *cp);
+            if(!rawxml)
+                fprintf(out, "%02x ", *cp);
         }
-        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+        if(!rawxml)
+            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
 
         ctx2 = iottlv_must_recurse(ctx, typ);
         if (ctx2) {
+            if (rawxml)
+                fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
+            strcpy(n_old, n);  
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
+                
+            if(rawxml) {
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n_old);
+            }
         } else {
-            hexdump(lev, base, *buf, vallen, rawxml, out);
-            *buf += vallen;
-            *len -= vallen;
-        }
+            if (rawxml && vallen > 0) {
+                fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n", n, vallen);
+                base64dump(lev, base, *buf, vallen, rawxml, out);
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n);
+            } else 
+                hexdump(lev, base, *buf, vallen, rawxml, out);
+           *buf += vallen;
+           *len -= vallen;
+            
+       }
     }
 
     return 0;
