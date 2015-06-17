@@ -404,6 +404,92 @@ int ndntlv_isData(unsigned char *buf, int len)
 }
 #endif // USE_SUITE_NDNTLV
 
+// ----------------------------------------------------------------------
+
+typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+typedef int (*ccnl_isContentFunc)(unsigned char*, int);
+typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
+
+ccnl_mkInterestFunc
+ccnl_suite2mkInterestFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return &ccnl_ccnb_fillInterest;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_mkInterest;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        return &cistlv_mkInterest;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_mkRequest;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return &ndntlv_mkInterest;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+
+ccnl_isContentFunc
+ccnl_suite2isContentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return &ccnb_isContent;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isData;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        return &cistlv_isData;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isReply;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return &ndntlv_isData;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+
+ccnl_isFragmentFunc
+ccnl_suite2isFragmentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isFragment;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isFragment;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
+
 struct key_s {
     struct key_s *next;
     unsigned char* key;

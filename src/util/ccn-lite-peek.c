@@ -60,10 +60,10 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    int (*isContent)(unsigned char*, int);
-    int (*isFragment)(unsigned char*, int) = NULL;
     unsigned int chunknum = UINT_MAX;
+    ccnl_mkInterestFunc mkInterest;
+    ccnl_isContentFunc isContent;
+    ccnl_isFragmentFunc isFragment;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -100,7 +100,7 @@ usage:
             "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -155,41 +155,11 @@ usage:
 
     srandom(time(NULL));
 
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        mkInterest = ccnl_ccnb_fillInterest;
-        isContent = ccnb_isContent;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isData;
-        isFragment = ccntlv_isFragment;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        mkInterest = cistlv_mkInterest;
-        isContent = cistlv_isData;
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        mkInterest = iottlv_mkRequest;
-        isContent = iottlv_isReply;
-        isFragment = iottlv_isFragment;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        isContent = ndntlv_isData;
-        break;
-#endif
-    default:
-        DEBUGMSG(ERROR, "unknown suite\n");
+    mkInterest = ccnl_suite2mkInterestFunc(suite);
+    isContent = ccnl_suite2isContentFunc(suite);
+    isFragment = ccnl_suite2isFragmentFunc(suite);
+    
+    if (!mkInterest || !isContent) {
         exit(-1);
     }
 

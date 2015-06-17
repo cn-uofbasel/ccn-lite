@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PACKETTYPELIST="ccnb ndn2013 ccnx2015 cisco2015 iot2014"
+#PACKETTYPELIST="ndn2013"
 
 for PACKETTYPE in $PACKETTYPELIST; do
 
@@ -15,27 +16,27 @@ for PACKETTYPE in $PACKETTYPELIST; do
     killall java 2> /dev/null
 
     echo "** starting two CCNL relays"
-    $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9000 -x /tmp/mgmt1.sock 2>/tmp/relay0.log &
-    $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt2.sock 2>/tmp/relay1.log &
+    $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9000 -x /tmp/mgmt1.sock 2> "/tmp/$PACKETTYPE-relay0.log" &
+    $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt2.sock 2> "/tmp/$PACKETTYPE-relay1.log" &
 
     echo "** in 3 seconds, adding an UDP interface, twice"
     sleep 3
 
-    $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001  | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /tmp/command1.log
+    $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001  | $CCNL_HOME/bin/ccn-lite-ccnb2xml > "/tmp/$PACKETTYPE-command0.log"
 
     echo "** in 3 seconds, registering a prefix, twice"
     sleep 3
 
-    $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /nfn/node2 2 $PACKETTYPE | $CCNL_HOME/bin/ccn-lite-ccnb2xml > /tmp/command2.log
+    $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /nfn/node2 2 $PACKETTYPE | $CCNL_HOME/bin/ccn-lite-ccnb2xml > "/tmp/$PACKETTYPE-command1.log"
 
     echo "** in 3 seconds, starting the dummy compute server"
     sleep 3
-    java -jar nfn.jar -s $PACKETTYPE -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 2>&1 >  /tmp/computserver.log &
+    java -jar nfn.jar -s $PACKETTYPE -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 2>&1 >  "/tmp/$PACKETTYPE-computserver.log" &
 
     echo "** in 8 seconds, probing the NFN system"
     sleep 8
 
-    RES=`ccn-lite-simplenfn -s $PACKETTYPE -u 127.0.0.1/9000 "call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md" | ccn-lite-pktdump -f 2`
+    RES=`ccn-lite-simplenfn -v trace -s $PACKETTYPE -u '127.0.0.1/9000' 'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' | ccn-lite-pktdump -f 2`
     RC=$?
     echo "Return code: $RC, result: '$RES'"
 
