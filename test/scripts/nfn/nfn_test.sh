@@ -29,7 +29,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
 
     $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /nfn/node2 2 $PACKETTYPE | $CCNL_HOME/bin/ccn-lite-ccnb2xml > "/tmp/$PACKETTYPE-command1.log"
 
-    echo "** in 3 seconds, starting the dummy compute server"
+    echo "** in 3 seconds, starting the NFN compute server"
     sleep 3
     java -jar nfn.jar -s $PACKETTYPE -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 2>&1 >  "/tmp/$PACKETTYPE-computserver.log" &
 
