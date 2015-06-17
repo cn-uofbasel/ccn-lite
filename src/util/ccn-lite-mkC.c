@@ -112,7 +112,7 @@ Usage:
         "  -p DIGEST   publisher fingerprint\n"
         "  -s SUITE    (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
         "  -w STRING   witness\n"
         "Examples:\n"
