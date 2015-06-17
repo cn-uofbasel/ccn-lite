@@ -105,23 +105,12 @@ exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
 }
 // ----------------------------------------------------------------------
 
-void
-parseUdp(char *udp, int suite, char **inet_addr, int *port)
-{
-    if (udp) {
-        *inet_addr = strtok(udp, "/");
-        *port = atoi(strtok(NULL, "/"));
-    } else {
-        *port = ccnl_suite2defaultPort(suite);
-    }
-}
-
 int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
-    char *addr = "127.0.0.1", *udp = NULL, *ux = NULL;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
@@ -184,7 +173,9 @@ usage:
 
     srandom(time(NULL));
     
-    parseUdp(udp, suite, &addr, &port);
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
     
     mkInterest = ccnl_suite2mkInterestFunc(suite);

@@ -406,10 +406,13 @@ int ndntlv_isData(unsigned char *buf, int len)
 
 // ----------------------------------------------------------------------
 
+#ifdef NEEDS_PACKET_CRAFTING
 typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+#endif // NEEDS_PACKET_CRAFTING
 typedef int (*ccnl_isContentFunc)(unsigned char*, int);
 typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
 
+#ifdef NEEDS_PACKET_CRAFTING
 ccnl_mkInterestFunc
 ccnl_suite2mkInterestFunc(int suite)
 {
@@ -439,6 +442,7 @@ ccnl_suite2mkInterestFunc(int suite)
     DEBUGMSG(WARNING, "unknown suite %d\n", suite);
     return NULL;
 }
+#endif // NEEDS_PACKET_CRAFTING
 
 ccnl_isContentFunc
 ccnl_suite2isContentFunc(int suite)
@@ -536,6 +540,43 @@ load_keys_from_file(char *path)
     fclose(fp);
     DEBUGMSG(DEBUG, "read %d keys from file %s\n", cnt, optarg);
     return klist;
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
+{
+    char *tmpAddr = NULL;
+    char *tmpPortStr = NULL;
+    char *end = NULL;
+    int tmpPort;
+    
+    if (!udp) {
+        *addr = "127.0.0.1";
+        *port = ccnl_suite2defaultPort(suite);
+        return 0;
+    }
+    
+    if (!strchr(udp, '/')) {
+        DEBUGMSG(ERROR, "invalid UDP destination, missing port: %s\n", udp);
+        return -1;
+    }
+    tmpAddr = strtok(udp, "/");
+    tmpPortStr = strtok(NULL, "/");
+    if (!tmpPortStr) {
+        DEBUGMSG(ERROR, "invalid UDP destination, empty UDP port: %s/\n", udp);
+        return -1;
+    }
+    tmpPort = strtol(tmpPortStr, &end, 10);
+    if (*end != '\0') {
+        DEBUGMSG(ERROR, "invalid UDP destination, cannot parse port as number: %s\n", tmpPortStr);
+        return -1;
+    }
+    
+    *addr = tmpAddr;
+    *port = tmpPort;
+    return 0;
 }
 
 // eof

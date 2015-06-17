@@ -236,8 +236,8 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
-    char *udp = NULL, *ux = NULL;
+    int len, opt, port, sock = 0, suite = CCNL_SUITE_DEFAULT;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
 
@@ -287,39 +287,16 @@ usage:
             exit(1);
         }
     }
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if (!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if (!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        if (!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if (!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-        default:
-            udp = "127.0.0.1/6363";
-        }
 
     if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
+    
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
@@ -328,15 +305,10 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        char *cp;
         udp = strdup(udp);
         si->sin_family = PF_INET;
-        cp = strtok(udp, "/");
-        if (!cp) { DEBUGMSG(FATAL, "no host\n"); exit(-1); }
-        si->sin_addr.s_addr = inet_addr(cp);
-        cp = strtok(NULL, "/");
-        if (!cp) { DEBUGMSG(FATAL, "no port\n"); exit(-1); }
-        si->sin_port = htons(atoi(cp));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
     }
 
