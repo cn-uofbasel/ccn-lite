@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 break
             if suite == 'ndn2013':
                 print '# packet format is ndn2013\n#'
-                ndn.ndntlv_dump(infile, 0, -1)
+                ndn.dump(infile, 0, -1)
             else:
                 print '# unknown packet format\n#'
                 util.hexDump(infile, 1, 1, -1)
