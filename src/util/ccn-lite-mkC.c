@@ -83,7 +83,7 @@ main(int argc, char *argv[])
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (!ccnl_isSuite(suite)) {
+            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
                 DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
                 goto Usage;
             }
@@ -110,7 +110,7 @@ Usage:
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
-        "  -s SUITE    (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+        "  -s SUITE    (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
         "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
@@ -142,11 +142,9 @@ Usage:
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {
-#ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
         break;
-#endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
 

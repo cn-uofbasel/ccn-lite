@@ -439,7 +439,7 @@ ccnl_suite2mkInterestFunc(int suite)
 #endif
     }
     
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
     return NULL;
 }
 #endif // NEEDS_PACKET_CRAFTING
@@ -470,7 +470,7 @@ ccnl_suite2isContentFunc(int suite)
 #endif
     }
     
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
     return NULL;
 }
 
@@ -488,7 +488,7 @@ ccnl_suite2isFragmentFunc(int suite)
 #endif
     }
     
-    DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
     return NULL;
 }
 
