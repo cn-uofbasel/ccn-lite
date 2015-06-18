@@ -1,4 +1,4 @@
-# ccn-lite/src/py/ccnlite/ccnl-util.py
+# ccn-lite/src/py/ccnlite/util.py
 
 '''
 CCN-lite module for Python:
@@ -52,7 +52,11 @@ def hexDump(f, lev, doPrint, len):
                 print s
             cnt = 0
             line = ''
-
+    if cnt != 0:
+        if doPrint:
+            print "%-61s |%s|" % (s, line)
+        else:
+            print s
 
 def whichSuite(a, b):
     if a == 0x04:
@@ -64,5 +68,8 @@ def whichSuite(a, b):
     if a == 0x05 or a == 0x06 or a == 0x64:
         return 'ndn2013'
     return None
+
+def str2lci(s):
+    return s.split('/')[1:]
 
 # eof

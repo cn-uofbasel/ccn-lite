@@ -26,6 +26,7 @@
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
+#include "ccnl-socket.c"
 
 /*
   use examples:
@@ -43,91 +44,10 @@ Not working yet:
 
 // ----------------------------------------------------------------------
 
-char *unix_path;
 char **fileargs;
 int filecnt;
 
-void
-myexit(int rc)
-{
-    if (unix_path)
-        unlink(unix_path);
-    exit(rc);
-}
-
 // ----------------------------------------------------------------------
-
-int
-udp_open()
-{
-    int s;
-    struct sockaddr_in si;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
-        perror("udp socket");
-        exit(1);
-    }
-    si.sin_addr.s_addr = INADDR_ANY;
-    si.sin_port = htons(0);
-    si.sin_family = PF_INET;
-    if (bind(s, (struct sockaddr *)&si, sizeof(si)) < 0) {
-        perror("udp sock bind");
-        exit(1);
-    }
-
-    return s;
-}
-
-int
-ux_open()
-{
-static char mysockname[200];
- int sock, bufsize;
-    struct sockaddr_un name;
-
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
-    unlink(mysockname);
-
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("opening datagram socket");
-        exit(1);
-    }
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
-    if (bind(sock, (struct sockaddr *) &name,
-             sizeof(struct sockaddr_un))) {
-        perror("binding path name to datagram socket");
-        exit(1);
-    }
-
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
-    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-
-    unix_path = mysockname;
-    return sock;
-}
-
-// ----------------------------------------------------------------------
-
-int
-block_on_read(int sock, float wait)
-{
-    fd_set readfs;
-    struct timeval timeout;
-    int rc;
-
-    FD_ZERO(&readfs);
-    FD_SET(sock, &readfs);
-    timeout.tv_sec = wait;
-    timeout.tv_usec = 1000000.0 * (wait - timeout.tv_sec);
-    rc = select(sock+1, &readfs, NULL, NULL, &timeout);
-    if (rc < 0)
-        perror("select()");
-    return rc;
-}
 
 struct rdr_ds_s*
 loadFile(char **cpp)
@@ -369,9 +289,9 @@ int
 main(int argc, char *argv[])
 {
     unsigned char request[64*1024], reply[64*1024], tmp[10];
-    int cnt, opt, reqlen, replen, sock = 0, switchlen;
+    int cnt, opt, reqlen, replen, port, sock = 0, switchlen;
     struct sockaddr sa;
-    char *udp = "127.0.0.1:6363", *ux = NULL, noreply = 0;
+    char *addr = NULL, *udp = NULL, *ux = NULL, noreply = 0;
     float wait = 3.0;
     struct rdr_ds_s *expr;
 
@@ -407,7 +327,7 @@ Usage:
             "  -n               no-reply (just send)\n"
             "  -u a.b.c.d:port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -422,6 +342,11 @@ Usage:
 
     if (!argv[optind])
         goto Usage;
+
+    if (ccnl_parseUdp(udp, CCNL_SUITE_LOCALRPC, &addr, &port) != 0) {
+        exit(-1);
+    }
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
     fileargs = argv + optind + 1;
     filecnt = argc - optind;
@@ -482,12 +407,10 @@ Usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        char *cp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(cp, ":"));
-        si->sin_port = htons(atoi(strtok(NULL, ":")));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
-        free(cp);
     }
 
     for (cnt = 0; cnt < 3; cnt++) {

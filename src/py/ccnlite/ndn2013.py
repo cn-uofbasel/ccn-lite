@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-# ccn-lite/src/py/ccnlite/ccnl-ndn.py
+# ccn-lite/src/py/ccnlite/ndn2013.py
 
 '''
 CCN-lite module for Python:
@@ -25,6 +23,7 @@ File history:
 '''
 
 import codecs
+import random
 import struct
 
 import util
@@ -36,7 +35,7 @@ val2 = struct.Struct('>H')
 val4 = struct.Struct('>I')
 val8 = struct.Struct('>Q')
 
-def ndntlv_readTorL(f, maxlen):
+def readTorL(f, maxlen):
     if maxlen == 0:
         raise EOFError
     b = f.read(1)
@@ -65,9 +64,9 @@ def ndntlv_readTorL(f, maxlen):
         maxlen = maxlen - 9
     return (val8.unpack(f.read(8))[0], maxlen)
 
-def ndntlv_readTL(f, maxlen):
-    (t, maxlen) = ndntlv_readTorL(f, maxlen)
-    (l, maxlen) = ndntlv_readTorL(f, maxlen)
+def readTL(f, maxlen):
+    (t, maxlen) = readTorL(f, maxlen)
+    (l, maxlen) = readTorL(f, maxlen)
     return (t, l, maxlen)
 
 # ----------------------------------------------------------------------
@@ -100,33 +99,87 @@ ndntlv_types = {
     0x1d : 'KeyLocatorDigest'
     }
 
-ndntlv_recurseSet = { 0x05, 0x06, 0x07, 0x09, 0x16, 0x1c }
+ndntlv_recurseSet = { 0x05, 0x06, 0x07, 0x09, 0x14, 0x16, 0x1c }
 ndntlv_isPrint = { 0x08, 0x15 }
 
-def ndntlv_dump(f, lev, maxlen):
+def dump(f, lev, maxlen):
     while maxlen == -1 or maxlen > 0:
         s = ''
         for i in range(0, lev):
             s = s + '  '
-        (t, l, maxlen) = ndntlv_readTL(f, maxlen)
+        (t, l, maxlen) = readTL(f, maxlen)
         if t in ndntlv_types:
             s = s + ndntlv_types[t]
         else:
             s = s + "type%d" % t
         print s + " (%d bytes)" % l
         if t in ndntlv_recurseSet:
-            ndntlv_dump(f, lev+1, l)
+            dump(f, lev+1, l)
         elif l > 0:
             util.hexDump(f, lev+1, t in ndntlv_isPrint, l)
         maxlen -= l
 
-# ----------------------------------------------------------------------
-# writing NDN TLVs
+def isInterest(f):
+    c = f.read(1);
+    f.seek(-1, 1)
+    if c == '':
+        raise EOFError
+    return ord(c) == 0x05
 
-def ndntlv_TorL(x):
+def isData(f):
+    c = f.read(1);
+    f.seek(-1, 1)
+    if c == '':
+        raise EOFError
+    return ord(c) == 0x06
+
+def parseName(f, maxlen):
+    name = []
+    while maxlen > 0:
+        (t, l, maxlen) = readTL(f, maxlen)
+        if t != 0x08:
+            raise EOFError
+        name.append(f.read(l))
+        maxlen -= l
+    return name
+
+def parseInterest(f):
+    (t, l, maxlen) = readTL(f, -1)
+    if t != 0x05:
+        raise EOFError
+    while maxlen == -1 or maxlen > 0:
+        (t, l, maxlen) = readTL(f, -1)
+        if t == 0x07:
+            return parseName(f, l)
+        f.read(l)
+    return None
+
+def parseData(f):
+    (t, l, maxlen) = readTL(f, -1)
+    if t != 0x06:
+        raise EOFError
+    name = None
+    cont = None
+    try:
+        while maxlen == -1 or maxlen > 0:
+            (t, l, maxlen) = readTL(f, -1)
+            if t == 0x07:
+                name = parseName(f, l)
+            elif t == 0x15:
+                cont = f.read(l)
+            else:
+                f.read(l)
+    except EOFError:
+        pass
+    return (name, cont)
+
+# ----------------------------------------------------------------------
+# creating NDN TLVs
+
+def mkTorL(x):
     if x < 253:
         buf = bytearray([x])
-    if x < 0x10000:
+    elif x < 0x10000:
         buf = bytearray([253, 0, 0])
         val2.pack_into(buf, 1, x)
     elif x < 0x100000000L:
@@ -137,43 +190,31 @@ def ndntlv_TorL(x):
         val8.pack_into(buf, 1, x)
     return buf
 
-def ndntlv_prependTorL(buf, offset, x):
-    if offset < 1:
-        raise EOFError
-    if x < 253:
-        buf[offset-1] = char(x)
-        return 1
-    if x < 0x10000:
-        val2.pack_into(buf, offset-2, x)
-        buf[offset-3] = char(253)
-        return 3
-    if x < 0x100000000L:
-        val4.pack_into(buf, offset-4, x)
-        buf[offset-5] = char(254)
-        return 5
-    val8.pack_into(buf, offset-8, x)
-    buf[offset-9] = char(255)
-    return 9
+def mkName(name):
+    n = ''
+    for i in range(0, len(name)):
+        if type(name[i]) is str:
+            c = name[i]
+        else:
+            c = name[i].getValue().toBytes()
+#        n = n + mkTorL(0x08) + mkTorL(len(name[i])) + name[i]
+        n = n + mkTorL(0x08) + mkTorL(len(name[i])) + c
+    return mkTorL(0x07) + mkTorL(len(n)) + n
 
-def ndntlv_prependTL(buf, offset, t, l):
-    oldoffset = offset
-    offset -= ndntlv_prepentTorL(buf, offset, l)
-    offset -= ndntlv_prepentTorL(buf, offset, t)
-    return oldoffset - offset
+def mkInterest(name):
+    n = mkName(name);
+    nonce = bytearray([0x0a, 0x04, 0, 0, 0, 0])
+    val4.pack_into(nonce, 2, random.getrandbits(32))
+    n = n + nonce
+    return mkTorL(0x05) + mkTorL(len(n)) + n
 
-def ndntlv_prependBlob(buf, offset, t, blob):
-    oldoffset = offset
-    offset -= len(blob)
-    buf[offset:] = blob
-    offset -= ndntlv_prependTL(buf, offset, t, len)
-    return oldoffset - offset
-
-# ----------------------------------------------------------------------
-# creating NDN packets
-
-# def ndntlv_mkI(name):
-
-# def ndntlv_mkC(name, blob):
+def mkData(name, blob):
+    n = mkName(name);
+    meta = mkTorL(0x14) + mkTorL(0) # empty metadata
+    nmb = n + meta + mkTorL(0x15) + mkTorL(len(blob)) + blob
+    nmbs = nmb + bytearray([0x16, 0x03, 0x1b, 0x01, 0x00]) + \
+           bytearray([0x17, 0x00]) # DigestSha256 signature info + empty value
+    return mkTorL(0x06) + mkTorL(len(nmbs)) + nmbs
   
 
 # eof

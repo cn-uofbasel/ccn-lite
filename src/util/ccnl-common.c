@@ -404,6 +404,96 @@ int ndntlv_isData(unsigned char *buf, int len)
 }
 #endif // USE_SUITE_NDNTLV
 
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PACKET_CRAFTING
+typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+#endif // NEEDS_PACKET_CRAFTING
+typedef int (*ccnl_isContentFunc)(unsigned char*, int);
+typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
+
+#ifdef NEEDS_PACKET_CRAFTING
+ccnl_mkInterestFunc
+ccnl_suite2mkInterestFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return &ccnl_ccnb_fillInterest;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_mkInterest;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        return &cistlv_mkInterest;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_mkRequest;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return &ndntlv_mkInterest;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+#endif // NEEDS_PACKET_CRAFTING
+
+ccnl_isContentFunc
+ccnl_suite2isContentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return &ccnb_isContent;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isData;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        return &cistlv_isData;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isReply;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return &ndntlv_isData;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+
+ccnl_isFragmentFunc
+ccnl_suite2isFragmentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isFragment;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isFragment;
+#endif
+    }
+    
+    DEBUGMSG(WARNING, "unknown suite %d\n", suite);
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
+
 struct key_s {
     struct key_s *next;
     unsigned char* key;
@@ -450,6 +540,43 @@ load_keys_from_file(char *path)
     fclose(fp);
     DEBUGMSG(DEBUG, "read %d keys from file %s\n", cnt, optarg);
     return klist;
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
+{
+    char *tmpAddr = NULL;
+    char *tmpPortStr = NULL;
+    char *end = NULL;
+    int tmpPort;
+    
+    if (!udp) {
+        *addr = "127.0.0.1";
+        *port = ccnl_suite2defaultPort(suite);
+        return 0;
+    }
+    
+    if (!strchr(udp, '/')) {
+        DEBUGMSG(ERROR, "invalid UDP destination, missing port: %s\n", udp);
+        return -1;
+    }
+    tmpAddr = strtok(udp, "/");
+    tmpPortStr = strtok(NULL, "/");
+    if (!tmpPortStr) {
+        DEBUGMSG(ERROR, "invalid UDP destination, empty UDP port: %s/\n", udp);
+        return -1;
+    }
+    tmpPort = strtol(tmpPortStr, &end, 10);
+    if (*end != '\0') {
+        DEBUGMSG(ERROR, "invalid UDP destination, cannot parse port as number: %s\n", tmpPortStr);
+        return -1;
+    }
+    
+    *addr = tmpAddr;
+    *port = tmpPort;
+    return 0;
 }
 
 // eof
