@@ -865,10 +865,10 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (!buf) {
         struct ccnl_buf_s *b;
         b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        ccnl_core_addToCleanup(b);
+        //ccnl_core_addToCleanup(b);
         prefix_buf1 = (char*) b->data;
         b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        ccnl_core_addToCleanup(b);
+        //ccnl_core_addToCleanup(b);
         prefix_buf2 = (char*) b->data;
         buf = prefix_buf1;
     } else if (buf == prefix_buf2)
