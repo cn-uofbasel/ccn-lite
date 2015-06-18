@@ -657,7 +657,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
     for (i = ccnl->pit; i;) {
         struct ccnl_pendint_s *pi;
-        DEBUGMSG(ERROR, "3: CompCnt for prefix: %d, complen4: %d, prefixaddr: %p\n", i->pkt->pfx->compcnt, i->pkt->pfx->complen[3], (void*) i->pkt->pfx);
         if (!i->pkt->pfx)
             continue;
 

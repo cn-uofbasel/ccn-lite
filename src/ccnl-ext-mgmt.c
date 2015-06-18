@@ -1687,7 +1687,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *components = 0, *h = 0;
     int buflen;
     int num, typ, num_of_components = -1, suite = 2;
-    struct ccnl_prefix_s *prefix_new, *prefix_new2;
+    struct ccnl_prefix_s *prefix_new;
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1733,15 +1733,14 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     prefix_new->suite = suite;
 
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
-             ccnl_prefix_to_path(prefix_new), ccnl_suite2str(suite));
+             ccnl_prefix_to_path(ccnl_prefix_dup(prefix_new)), ccnl_suite2str(suite));
              
     //Reply MSG
     if (h)
         ccnl_free(h);
     h = ccnl_malloc(300);
     
-    prefix_new2 = ccnl_prefix_dup(prefix_new); //FIXME: required, using ccnl_prefix_to_path breaks the prefix parameter.
-    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new2));
+    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
                              "addcacheobject", (char *)h);
     if (h)

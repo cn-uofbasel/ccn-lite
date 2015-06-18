@@ -101,7 +101,7 @@ ccnl_parse(unsigned char *data, int datalen)
     default:
         DEBUGMSG(INFO, "packet without HMAC\n");
         pkt = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
-        pkt->buf = ccnl_buf_new(buf, datalen);
+        pkt->buf = ccnl_buf_new(NULL, datalen);
         return pkt;
     }
     return pkt;
