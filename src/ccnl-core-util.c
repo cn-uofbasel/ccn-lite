@@ -873,15 +873,14 @@ ccnl_addr2ascii(sockunion *su)
 
 #ifndef CCNL_LINUXKERNEL
 
-static char *prefix_buf1;
-static char *prefix_buf2;
-static char *buf;
-
 char*
 ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
                              int escape_components, int call_slash)
 {
     int len = 0, i, j;
+    static char *prefix_buf1;
+    static char *prefix_buf2;
+    static char *buf;
 
 #ifdef CCNL_ARDUINO
 # define PREFIX_BUFSIZE 50

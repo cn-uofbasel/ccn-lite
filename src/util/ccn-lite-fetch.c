@@ -42,31 +42,15 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               unsigned char *out, int out_len,
                               int *len,
                               float wait, int sock, struct sockaddr sa) {
-
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    switch (suite) {
 #ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
+    if (suite == CCNL_SUITE_CCNB) {
         DEBUGMSG(ERROR, "CCNB not implemented\n");
         exit(-1);
-        break;
+    }
 #endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        mkInterest = cistlv_mkInterest;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        break;
-#endif
-    default:
+    
+    ccnl_mkInterestFunc mkInterest = ccnl_suite2mkInterestFunc(suite);
+    if (!mkInterest) {
         DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
         exit(-1);
     }
