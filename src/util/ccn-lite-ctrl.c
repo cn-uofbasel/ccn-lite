@@ -259,9 +259,8 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
 
     cp = strtok(path, "/");
     while (cp) {
-
-#ifdef USE_SUITE_CCNTLV
         unsigned short cmplen = strlen(cp);
+#ifdef USE_SUITE_CCNTLV
         if (suite == CCNL_SUITE_CCNTLV) {
             char* oldcp = cp;
             cp = malloc( (cmplen + 4) * (sizeof(char)) );

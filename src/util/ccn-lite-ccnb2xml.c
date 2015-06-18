@@ -22,6 +22,11 @@
 
 #define USE_SIGNATURES
 #define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
+#define USE_SUITE_LOCALRPC
+#define USE_SUITE_NDNTLV
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
@@ -282,7 +287,7 @@ dtag2str(int dtag)
             return "COMPLENGTH";
     }
 
-    DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __FUNCTION__, __FILE__, __LINE__);
+    // DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __FUNCTION__, __FILE__, __LINE__);
     return "?";
 }
 
@@ -309,24 +314,14 @@ tag2str(int tag, int num)
             return "UDATA";
     }
 
-    DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __FUNCTION__, __FILE__, __LINE__);
+    // DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __FUNCTION__, __FILE__, __LINE__);
     return "?";
 }
 
 int
-is_ccn_tt(int tag)
+is_ccn_tt(int tag, int num)
 {
-    switch (tag) {
-        case CCN_TT_TAG:
-        case CCN_TT_DTAG:
-        case CCN_TT_ATTR:
-        case CCN_TT_DATTR:
-        case CCN_TT_BLOB:
-        case CCN_TT_UDATA:
-            return 1;
-    }
-
-    return 0;
+    return strcmp("?", tag2str(tag, num)) != 0;
 }
 
 int
@@ -345,7 +340,7 @@ lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag
     rc = ccnl_ccnb_dehead(buf, len, num, typ);
     if (ignore_blob_tag && rc == 0 && is_ccn_blob(*typ)) {
         rc2 = ccnl_ccnb_dehead(buf, len, &look_num, &look_typ);
-        if (rc2 == 0 && is_ccn_tt(look_typ)) {
+        if (rc2 == 0 && is_ccn_tt(look_typ, look_num)) {
             *num = look_num;
             *typ = look_typ;
             rc = rc2;
@@ -366,7 +361,7 @@ dehead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
     rc_dehead = ccnl_ccnb_dehead(buf, len, num, typ);
     if (ignore_blob_tag && rc_dehead == 0 && is_ccn_blob(*typ)) {
         rc_lookahead = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
-        if (rc_lookahead == 0 && is_ccn_tt(look_typ)) {
+        if (rc_lookahead == 0 && is_ccn_tt(look_typ, look_num)) {
             // If we found BLOB data and inside there is a valid tag, just ignore BLOB and advance
             return dehead(buf, len, num, typ, ignore_blob_tag);
         }
@@ -379,7 +374,7 @@ void
 print_offset(int offset)
 {
     int i;
-    for(i = 0; i < offset; ++i) {
+    for (i = 0; i < offset; ++i) {
         printf(" ");
     }
 }
@@ -390,8 +385,12 @@ print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
     int i;
     if (with_newlines) print_offset(offset);
 
-    for (i = 0; i < vallen; ++i) {
-        printf("%c", valptr[i]);
+    if (vallen == 1 && ccnl_isSuite(valptr[0])) {
+        printf("%u", valptr[0]);
+    } else {
+        for (i = 0; i < vallen; ++i) {
+            printf("%c", valptr[i]);    
+        }
     }
 
     if (with_newlines) printf("\n");
@@ -433,7 +432,7 @@ print_ccnb(unsigned char **buf, int *len, int offset, int ignore_blob_tag)
         }
 
         rc = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
-        if (is_ccn_blob(typ) && (rc != 0 || !is_ccn_tt(look_typ))) {
+        if (is_ccn_blob(typ) && (rc != 0 || !is_ccn_tt(look_typ, look_num))) {
             print_blob(buf, len, typ, num, offset, ignore_blob_tag);
         }
         else {
