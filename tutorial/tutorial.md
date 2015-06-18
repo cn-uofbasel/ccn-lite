@@ -1,6 +1,6 @@
 # CCN-lite and NFN Tutorial
 
-Table Of Contents:
+## Table Of Contents:
 - [Introduction](#introduction)
 - [Scenario 1: Simple Content-lookup](#scenario1)
 - [Scenario 2: Content Lookup from NDN Testbed](#scenario2)
@@ -96,7 +96,8 @@ of the relay. Currently the relay expects all files to have the file extension
 Open a new terminal window for relay `B`:
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-relay -v trace -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock -d $CCNL_HOME/test/ndntlv
+$CCNL_HOME/bin/ccn-lite-relay -v trace -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.sock \
+  -d $CCNL_HOME/test/ndntlv
 ```
 
 ### 4. Add a forwarding rule
@@ -120,7 +121,8 @@ the forwarding rule we can then refer to this `face id`.
 
 For creating the face at node `A`, open a new terminal window:
 ```bash
-FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 127.0.0.1 9999 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 For defining the namespace that should become reachable through this face, we
 have to configure a forwarding rule. We choose `/ndn` as namespace (prefix)
@@ -132,7 +134,8 @@ In other words: Relay `A` is technically connected to relay `B` through the UDP
 face, but logically, relay `A` does not yet have the necessary forwarding state
 to reach `B`. To create a forwarding rule (`/ndn ---> B`), we execute:
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
 ```
 
 You might want to verify a relay's configuration through the built-in HTTP
@@ -152,12 +155,14 @@ detects the encoded format (here `ndn2013`) and prints the wire format-encoded
 packet in a somehow readable format.
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 If you want to see only the content use the `-f 2` output format option:
 ```bash
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" | $CCNL_HOME/bin/ccn-lite-pktdump -f 2
+$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 2
 ```
 
 <a name="scenario2"/>
@@ -172,7 +177,8 @@ Peek sends the interest directly to a node in the NDN Testbed. `-w` sets the
 timeout of peek to 10 seconds.
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla/ping" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 192.43.193.111/6363 -w 10 "/ndn/edu/ucla/ping" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 Note: `/ndn/edu/ucla/ping` dynamically creates a new content packet with a
@@ -203,7 +209,8 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/b
 ```
 Now we can destroy the face:
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
 ```
 
 Check again if the face was actually removed.
@@ -212,11 +219,13 @@ Check again if the face was actually removed.
 Connect to the NDN testbed server of the University of Basel by creating a new
 UDP face to the NFD of Basel and then registering the prefix `/ndn`:
 ```bash
-FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363 | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock newUDPface any 192.43.193.111 6363 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID ndn2013 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Send interest to `A` 
@@ -224,7 +233,8 @@ Request data from the Testbed system of the UCLA. The interest will be
 transmitted over the Testbed server of the University of Basel to the Testbed
 system of the UCLA:
 ```bash
-$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 
@@ -239,13 +249,13 @@ complex numeric expression is also shown.
 
 ### 1. Start a NFN-relay
 
-To build a CCN-lite relay with NFN functionality, export the variable:
+To build a CCN-lite relay with NFN functionality, export the variable and rebuild the project:
 ```bash
 export USE_NFN=1
+make
 ```
-and rebuild the project in $CCNL_HOME/bin with `make`:
 
-Or build directly:
+or build it directly:
 ```bash
 make ccn-nfn-relay
 ```
@@ -261,7 +271,8 @@ To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of
 `ccn-lite-peek`. This tool is very similar, but instead of fetching the content
 for a static name it returns the result of a dynamic NFN computation.
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 2" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
 ```
 Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 
@@ -296,13 +307,15 @@ For more complex functions you have to setup the [`nfn-scala`](https://github.co
 In order to interact with the compute server which runs on port 9002 we need to
 setup a new interface.
 ```bash
-FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002 | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
+FACEID=`$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock newUDPface any 127.0.0.1 9002 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml | grep FACEID | sed -e 's/.*\([0-9][0-9]*\).*/\1/'`
 ```
 
 and register the name `/COMPUTE` to this interface. This name is reserved in NFN
 networks for the interaction with a compute server:
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE $FACEID ndn2013 | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock prefixreg /COMPUTE $FACEID ndn2013 \
+  | $CCNL_HOME/bin/ccn-lite-ccnb2xml 
 ```
 
 ### 4. Add (the result of) a dummy function to the cache of the relay
@@ -311,19 +324,22 @@ result can be found (i.e., it is the constant function always returning the
 value 10). This result is added to the local cache of the relay where the NFN
 abstract machines sits:
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/bin/ccn-lite-ccnb2xml
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-nfn-relay-a.sock addContentToCache \
+  $CCNL_HOME/test/ndntlv/nfn/computation_content.ndntlv | $CCNL_HOME/bin/ccn-lite-ccnb2xml
 ```
 
 ### 5. Send a request for a function call:
 To invoke the function call use again `ccn-lite-simplenfn`:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "call 1 /test/data" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
 ```
 The result of the computation is `10`.
 
 One can also combine build in operators and function calls:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 "add 1 (call 1 /test/data)" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 3
 ```
 Now the result will be `11`.
 
@@ -347,7 +363,8 @@ $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $
 ### 2. Start the Scala compute server
 Go to the nfn-scala directory. Start the compute server with:
 ```bash
-sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
+sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nfn-relay-a.sock \
+  --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
 ```
 
 Running this command for the first time may take a while depending on whether
@@ -372,7 +389,8 @@ expression, ...) and returns an integer with the number of words
 To invoke this service over NFN we send the following NFN expression to the
 relay `A`:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 2 /node/nodeA/nfn_service_WordCount 'foo bar'" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 The result of this request should be `2`.
@@ -380,15 +398,19 @@ The result of this request should be `2`.
 You can also count the number of words of the document `/ndn/test/mycontent`
 that you produced in the first scenario:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 2 /node/nodeA/nfn_service_WordCount /ndn/test/mycontent" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 More examples you can try:
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/bin/ccn-lite-pktdump
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/bin/ccn-lite-pktdump
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 2 /node/nodeA/nfn_service_WordCount /node/nodeA/docs/tiny_md" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 3 /node/nodeA/nfn_service_WordCount 'foo bar' /node/nodeA/docs/tiny_md" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 ### 4. Invoke the pandoc service
@@ -398,16 +420,18 @@ To make use of the [Pandoc](http://johnmacfarlane.net/pandoc), you have to insta
 
 This function reformats a document from one format (e.g. markdown GitHub) to
 another format (e.g. HTML) using pandoc. It takes 3 parameters:
-* The name of the document to transform,
+* the name of the document to transform,
 * the name of the initial document format and
-* the name of the target format
+* the name of the target format.
 
 For example `call 4 /ndn/ch/unibas/nfn/nfn_service_Pandoc /name/of/doc 'markdown' 'latex'`.
-A list of all supported formats can be found on the [webpage](http://johnmacfarlane.net/pandoc).
+A list of all supported formats can be found on the [Pandoc homepage](http://johnmacfarlane.net/pandoc).
 
-To invoke the pandoc sevice type:
+To invoke the Pandoc sevice, type:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" | $CCNL_HOME/bin/ccn-lite-pktdump -f 2
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tiny_md 'markdown_github' 'html'" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 2
 ```
 
 Since `tiny_md` is only a small document, the generated HTML document will also
@@ -418,7 +442,9 @@ So far, all results of NFN computations were small and fit into single content
 objects. Next we test what happens if the result is larger by transforming `tutorial_md`:
 
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" | $CCNL_HOME/bin/ccn-lite-pktdump -f 2 
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html'" \
+  | $CCNL_HOME/bin/ccn-lite-pktdump -f 2 
 ```
 
 The result of this computation will not be a document, but a redirect name in
@@ -436,7 +462,9 @@ Therefore `ccn-lite-pktdump` is not necessary.
 
 Call `ccn-lite-fetch` with the redirect name without the prefix `redirect:`:
 ```bash
-$CCNL_HOME/bin/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
+$CCNL_HOME/bin/ccn-lite-fetch -s ndn2013 -u 127.0.0.1/9001 \
+  "/node/nodeA/call 4 %2fnode%2fnodeA%2fnfn_service_Pandoc \
+  %2fnode%2fnodeA%2fdocs%2ftutorial_md 'markdown_github' 'html'" > tutorial.html
 ```
 
 Open the `tutorial.html` file in the browser - it is the HTML page of this tutorial without pictures.
@@ -445,7 +473,9 @@ Open the `tutorial.html` file in the browser - it is the HTML page of this tutor
 ### 6. Function chaining
 One last example shows the chaining of functions. For example, we can convert `tutorial_md` into HTML and count the number of words of the result:
 ```bash
-$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/bin/ccn-lite-pktdump
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
+  "call 2 /node/nodeA/nfn_service_WordCount (call 4 /node/nodeA/nfn_service_Pandoc \
+  /node/nodeA/docs/tutorial_md 'markdown_github' 'html')" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
 <a name="scenario7"/>
@@ -474,13 +504,13 @@ val routerConfig = RouterConfig(config.ccnLiteAddr,
                                 isAlreadyRunning = config.isCCNLiteAlreadyRunning)
 
 // This configuration sets up the compute server
-// "withLocalAm = false" indicates that it should not start an abstract machine alongside the compute server
+// "withLocalAm" indicates whether it should start an abstract machine alongside the compute server
 val computeNodeConfig = ComputeNodeConfig("127.0.0.1",
                                           config.computeServerPort,
                                           config.prefix,
                                           withLocalAM = false)
 
-// Abstraction of a node which runs both the router and the compute server on localhost (over UDP sockets)
+// Abstraction of a node which runs both the router and the compute server on localhost over UDP
 val node = LocalNode(routerConfig, Some(computeNodeConfig))
 
 // Publish services
@@ -563,8 +593,8 @@ class WordCount() extends NFNService {
         case NFNStringValue(s) => splitCount(s)
         case NFNIntValue(i) => 1
         case _ => {
-          val errorMessage = s"$ccnName can only be applied to values of type NFNBinaryDataValue and not $args"
-          throw new NFNServiceArgumentException(errorMessage)
+          val str = s"$ccnName can only be applied to values of type NFNBinaryDataValue and not $args"
+          throw new NFNServiceArgumentException(str)
         }
       }).sum
     )
