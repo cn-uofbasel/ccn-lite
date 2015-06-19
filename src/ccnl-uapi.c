@@ -3,10 +3,13 @@
  *
  *  Created on: Nov 4, 2014
  *      Author: manolis
+ *
+ *  Updated for ccn-lite > v0.1.0: Jun 4, 2015 (manolis)
  */
 
 #include <assert.h>
 #include "ccnl-uapi.h"
+#include "ccnl-common.c"
 
 
 
@@ -17,13 +20,15 @@
 /*
  * per info struct ctors and dtors
  *
+ * FIXME: Implement at least the dtors so as to make sure all the memory pointed
+ * by data members is also free (atm I think I take care of everything manually, but
+ * would be better to be done automatically when freeing the data/mgmt object
+ * instance
+ *
  * they are supposed to take care of creating and
  * initialising the memory layout of the different
  * types of info objects
- *
- * (TBC in time, if they are needed or left NULL)
  */
-
 //ctors
 void * (* info_interest_ndnTlv_ctor)(void *o) = 0;
 void * (* info_content_ndnTlv_ctor)(void *o) = 0;
@@ -33,9 +38,7 @@ void * (* info_interest_ccnXmlb_ctor)(void *o) = 0;
 void * (* info_content_ccnXmlb_ctor)(void *o) = 0;
 void * (* info_cs_data_ctor)(void *o) = 0;
 void * (* info_fib_rule_ctor)(void *o) = 0;
-void * (* info_face_conf_ctor)(void *o) = 0;
-
-
+void * (* info_iface_conf_ctor)(void *o) = 0;
 //dtors
 void (* info_interest_ndnTlv_dtor)(void *o) = 0;
 void (* info_content_ndnTlv_dtor)(void *o) = 0;
@@ -45,38 +48,42 @@ void (* info_interest_ccnXmlb_dtor)(void *o) = 0;
 void (* info_content_ccnXmlb_dtor)(void *o) = 0;
 void (* info_cs_data_dtor)(void *o) = 0;
 void (* info_fib_rule_dtor)(void *o) = 0;
-void (* info_face_conf_dtor)(void *o) = 0;
+void (* info_iface_conf_dtor)(void *o) = 0;
 
 
 #ifndef PLATFORM_SRVCS
-//FIXME: make this complain when not set by a platform
+//FIXME: for now we silence this because the ccn-lite code
+//already has hard-coded defaults for different OS platforms.
+//Better make this complain when not set by a platform though.
 struct platform_vt_s platform_srvcs = {};
 #endif
 
 
-
-
 /*
- * TODO: Local function decls used to populate the vtables. Typically these will be
- * provided by include directives of the headers where these funcs are declared
+ * forward declarations of the functions that will be used to populate the vtables
+ * of the various type objects
  */
-int faces_add(struct info_mgmt_s *mgmt);
+int ifaces_add(struct info_mgmt_s *mgmt);
 int content_add(struct info_mgmt_s *mgmt);
 int fwd_rule_add(struct info_mgmt_s *mgmt);
 int mk_ccnb_interest(struct info_data_s *o);
-
-
+int mk_ndntlv_interest(struct info_data_s *o);
+int mk_ccntlv_interest(struct info_data_s *o);
+int mk_ccnb_content(struct info_data_s *o);
+int mk_ndntlv_content(struct info_data_s *o);
+int mk_ccntlv_content(struct info_data_s *o);
 
 
 
 
 
 /*****************************************************************************
- * vtables that need to be filled for the API to work
+ * vtables describing the object types 
+ * (here they are initialised and chained together to form a hierarchy)
  *****************************************************************************/
 
 /*
- * vtables to be populated for the different suite structs
+ * vtables of suite type objects (to be populated)
  */
 
 //ndntlv
@@ -84,7 +91,7 @@ const struct suite_vt_s ndnTlv_vt = {
         mk_ndntlv_interest,
         mk_ndntlv_content,
         0,0
-    // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
+    // TODO: insert fptrs: rdInterest/rdContent
 };
 
 //ccntlv
@@ -92,7 +99,7 @@ const struct suite_vt_s ccnTlv_vt = {
         mk_ccntlv_interest,
         mk_ccntlv_content,
         0,0
-        // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
+        // TODO: insert fptrs: rdInterest/rdContent
 };
 
 //ccnb
@@ -100,61 +107,14 @@ const struct suite_vt_s ccnXmlb_vt = {
         mk_ccnb_interest,
         mk_ccnb_content,
         0,0
-        // TODO: insert fptrs: mkInterest/mkContent/rdInterest/rdContent
+        // TODO: insert fptrs: rdInterest/rdContent
 };
 
 
 
 
 /*
- * vtables to be populated for the different management structs
- */
-
-// CS data
-const struct info_mgmt_vt_s info_cs_data_vt = {
-        sizeof(struct info_cs_data_s),
-        MGMT_CS,
-        info_cs_data_ctor,
-        info_cs_data_dtor,
-
-        // TODO: assign fptrs for add/rem/set/get
-        content_add,
-        0,0,0
-};
-
-// FIB rules
-const struct info_mgmt_vt_s info_fib_rule_vt = {
-        sizeof (struct info_fib_rule_s),
-        MGMT_FIB,
-        info_fib_rule_ctor,
-        info_fib_rule_dtor,
-
-        // TODO: assign fptrs for add/rem/set/get
-        fwd_rule_add,
-        0,0,0
-};
-
-// FACE conf
-const struct info_mgmt_vt_s info_face_conf_vt = {
-        sizeof (struct info_face_conf_s),
-        MGMT_FACE,
-        info_face_conf_ctor,
-        info_face_conf_dtor,
-
-        // TODO: assign fptrs for add/rem/set/get
-        faces_add,
-        0,0,0
-};
-
-
-
-
-/*****************************************************************************
- * vtables that are pre-filled
- *****************************************************************************/
-
-/*
- * info object type descriptions (fixed vtables)
+ * vtables of I/C type objects per suite (fixed vtables with preset values)
  */
 
 // for attaching to interest_info_ndnTlv_s
@@ -218,15 +178,59 @@ const struct info_data_vt_s   info_content_ccnXmlb_vt = {
 };
 
 
+/*
+ * vtables of managment type objects (to be populated)
+ */
+
+// CS data
+const struct info_mgmt_vt_s info_cs_data_vt = {
+        sizeof(struct info_cs_data_s),
+        MGMT_CS,
+        info_cs_data_ctor,
+        info_cs_data_dtor,
+
+        // TODO: assign fptrs for rem/set/get content
+        content_add,
+        0,0,0
+};
+
+// FIB rules
+const struct info_mgmt_vt_s info_fib_rule_vt = {
+        sizeof (struct info_fib_rule_s),
+        MGMT_FIB,
+        info_fib_rule_ctor,
+        info_fib_rule_dtor,
+
+        // TODO: assign fptrs for rem/set/get fib rules
+        fwd_rule_add,
+        0,0,0
+};
+
+// IFACE conf
+const struct info_mgmt_vt_s info_iface_conf_vt = {
+        sizeof (struct info_iface_conf_s),
+        MGMT_IFACE,
+        info_iface_conf_ctor,
+        info_iface_conf_dtor,
+
+        // TODO: assign fptrs for rem/set/get interfaces
+        ifaces_add,
+        0,0,0
+};
+
+
+
+
 
 /*****************************************************************************
- * type definitions for allocations of management and data objects
+ * named type definitions for type objects
  *****************************************************************************/
 
 /*
- * type definitions for use as in mallocSuiteInfo(), par example
+ * named type definitions for use in mallocSuiteInfo() and other generic
+ * data functions, e.g.
  *
- * mallocSuiteInfo(info_interest_ndnTlv_s)
+ * mallocSuiteInfo(info_interest_ndnTlv_s) creates a struct of type info_interest_ndnTlv_s
  */
 const void * info_interest_ndnTlv_s = &info_interest_ndnTlv_vt;
 const void * info_content_ndnTlv_s = &info_content_ndnTlv_vt;
@@ -234,19 +238,47 @@ const void * info_interest_ccnTlv_s = &info_interest_ccnTlv_vt;
 const void * info_content_ccnTlv_s = &info_content_ccnTlv_vt;
 const void * info_interest_ccnXmlb_s = &info_interest_ccnXmlb_vt;
 const void * info_content_ccnXmlb_s = &info_content_ccnXmlb_vt;
-
 /*
- * type definitions for use in mallocMgmtInfo()
+ * named type definitions for use in mallocMgmtInfo() and other generic
+ * mgmt functions
  */
 const void * info_cs_data_s = &info_cs_data_vt;
 const void * info_fib_rule_s = &info_fib_rule_vt;
-const void * info_face_conf_s = &info_face_conf_vt;
+const void * info_iface_conf_s = &info_iface_conf_vt;
+
+
 
 
 
 /*****************************************************************************
- * exported api generic function definitions
+ * client/user side UAPI implementation
+ *
+ * generic function definitions for all suites
  *****************************************************************************/
+
+/*
+ * from a suite string specified as ccnb/ccntlv/ndntlv (lowercase or CAPITAL)
+ * return the corresponding internal icn_suite_t id
+ */
+int
+suiteStr2Id(char *s)
+{
+    assert(s);
+
+    char *t = strdup (s);
+
+    for (int i = 0 ; t[i] != '\0' ; i++) t[i] = tolower (t[i]);
+
+    for (int i = 1 ; strcmp("N/A", CcnLiteRelay::icn_suite_str_by_fmt[i]) != 0; i++)
+        if (strcmp(s, CcnLiteRelay::icn_suite_str_by_fmt[i]) == 0) {
+            free (t);
+            return i;
+        };
+
+    free (t);
+    return 0;
+};
+
 
 /*
  * allocate an info struct for an I/C object and init memory layout
@@ -272,6 +304,7 @@ mallocSuiteInfo (const void *obj_descr)
 };
 
 
+
 /*
  * free the info struct that describes an I/C object and destroy memory layout
  */
@@ -294,7 +327,7 @@ freeSuiteInfo (struct info_data_s *o)
  * hook for passing an I/C suite-formatted obj to ccn-lite
  */
 int
-processObject (void *relay, struct info_data_s *o, sockunion * from)
+processSuiteData (void *relay, struct info_data_s *o, sockunion * from_addr /*0 if local*/, int rx_iface /*0 if generated locally*/)
 {
     int addr_len = 0;
 
@@ -305,40 +338,44 @@ processObject (void *relay, struct info_data_s *o, sockunion * from)
     // if suite dependent the correct sending function should be selected
     // based on suite info attached to the info_data_s
 
-    if (! from)     // locally generated
+    if (! from_addr)     // locally generated
     {
-        ccnl_core_RX((struct ccnl_relay_s *) relay, -1, (unsigned char*) o->pkt_buf, o->pkt_len, 0, 0);
+        ccnl_core_RX((struct ccnl_relay_s *) relay, -1, (unsigned char*) o->packet_bytes, o->packet_len, 0, 0);
     }
     else            // received from some socket addr
     {
-        switch (from->sa.sa_family)
+        switch (from_addr->sa.sa_family)
         {
 #ifdef USE_ETHERNET
         case AF_PACKET:
-            addr_len = sizeof(from->eth);
+            addr_len = sizeof(from_addr->eth);
             break;
 #endif
+#ifdef USE_IPV4
         case AF_INET:
-            addr_len = sizeof(from->ip4);
+            addr_len = sizeof(from_addr->ip4);
             break;
+#endif
 #ifdef USE_UNIXSOCKET
         case AF_UNIX:
-            addr_len = sizeof(from->ux);
+            addr_len = sizeof(from_addr->ux);
             break;
 #endif
         default:
             return -1;  // error: unsupported socket family
         }
 
-        ccnl_core_RX((struct ccnl_relay_s *) relay, 0, (unsigned char*) o->pkt_buf, o->pkt_len, &(from->sa), addr_len);
-        //ccnl_core_RX((struct ccnl_relay_s *) relay, -1, (unsigned char*) o->pkt_buf, o->pkt_len, &(from->sa), addr_len);
+        ccnl_core_RX((struct ccnl_relay_s *) relay, rx_iface, (unsigned char*) o->packet_bytes, o->packet_len, &(from_addr->sa), addr_len);
     }
 
     return 1;   // success: one packet processed
 };
 
 
-// parse an I suite-formatted obj and gen respective info struct
+/*
+ * parse an I suite-formatted obj and gen respective info struct
+ * TODO: implement
+ */
 struct info_data_s *
 parseInterest(char *pkt_buf, int pkt_len)
 {
@@ -346,12 +383,16 @@ parseInterest(char *pkt_buf, int pkt_len)
 };
 
 
-// parse a C suite-formatted obj and gen respective info struct
+/*
+ * parse a C suite-formatted obj and gen respective info struct
+ * TODO: implement
+ */
 struct info_data_s *
 parseContent(char *pkt_buf, int pkt_len)
 {
     return 0;
 };
+
 
 
 /*
@@ -365,27 +406,37 @@ createRelay (const char * node_name, int cs_inodes, int cs_bytesize, char enable
     if (! r)
         return 0;
 
-    r->max_cache_entries = cs_inodes;
+    ccnl_core_init();
 
+    // config
+    r->max_cache_entries = cs_inodes;
     // TODO: set somewhere the cs storage size
     // TODO: save somewhere a str name for the relay
+    r->aux = aux;       // optional extension to the relay control block
 
+#ifdef USE_SCHEDULER
+    // scheduling at the face level
+    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+    relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
+#else //!USE_SCHEDULER
+    // no scheduling at the face level (only at the interface level for tx pacing)
+    r->defaultFaceScheduler = NULL;
+#endif //USE_SCHEDULER
+
+#ifdef USE_SIGNATURES
+    // TODO: ...
+#endif //USE_SIGNATURES
+
+#ifdef USE_STATS
     if (enable_stats) {
-        r->stats = (struct ccnl_stats_s *) ccnl_calloc (1, sizeof(struct ccnl_stats_s));
         if (platform_srvcs.log_start)
             platform_srvcs.log_start (r, (char *) node_name);
     }
     else
     {
-        r->stats = 0;
         DEBUGMSG(99, "ccnl_create_relay on node %s -- stats logging not activated \n", node_name);
     }
-
-    /* no scheduling at the face level (only at the interface level for tx pacing)
-     */
-    r->defaultFaceScheduler = NULL;
-
-    r->aux = aux;
+#endif //USE_STATS
 
     return (void *) r;
 };
@@ -393,12 +444,15 @@ createRelay (const char * node_name, int cs_inodes, int cs_bytesize, char enable
 
 
 
-// dispose relay state and free
+/*
+ *  dispose relay state and free mem
+ */
 void
 destroyRelay (void *relay)
 {
     struct ccnl_relay_s *r = (struct ccnl_relay_s *) relay;
 
+#ifdef USE_STATS
     if (r->stats) {
         if (platform_srvcs.log_stop)
             platform_srvcs.log_stop (r);
@@ -406,6 +460,7 @@ destroyRelay (void *relay)
         ccnl_free(r->stats);
         r->stats = NULL;
     }
+#endif //USE_STATS
 
     ccnl_core_cleanup(r);
 
@@ -427,13 +482,8 @@ void
 startRelay (void *relay) {
 
     if (!relay) return;
-
     ccnl_do_ageing(relay, 0);
-
     ccnl_set_timer(1000000, ccnl_do_ageing, relay, 0);
-
-    //DEBUGMSG(99, "aging epoch completed for relay %c\n", ((struct ccnl_relay_s *)relay)->id);
-
     return;
 };
 
@@ -441,9 +491,11 @@ startRelay (void *relay) {
 
 /*
  * pause relay op but do not dispose state
+ * TODO: implement
  */
 void
 stopRelay (void *relay) {return;};
+
 
 
 /*
@@ -452,9 +504,8 @@ stopRelay (void *relay) {return;};
 struct info_mgmt_s *
 mallocMgmtInfo (const void *mgmt_descr)
 {
-    struct info_mgmt_vt_s const * mgmt_vt= (struct info_mgmt_vt_s const *) mgmt_descr;
-
-    struct info_mgmt_s * mgmt = (struct info_mgmt_s *) ccnl_calloc(1, mgmt_vt->size);
+    struct info_mgmt_vt_s const *   mgmt_vt= (struct info_mgmt_vt_s const *) mgmt_descr;
+    struct info_mgmt_s *            mgmt = (struct info_mgmt_s *) ccnl_calloc(1, mgmt_vt->size);
 
     assert(mgmt);
     memset (mgmt, 0 , mgmt_vt->size);
@@ -495,27 +546,16 @@ freeMgmtInfo (struct info_mgmt_s *m)
 };
 
 
+
 /****************************************************************************
- * The following are fixed callbacks that the ccn-lite kernel calls to deliver
- * information to the platform through the generic API
+ * ccn-lite side of the UAPI
  *
- * TODO: Probably these need to become more chatty in the information they
- * provide
+ * fixed callbacks that the ccn-lite kernel uses to deliver information to
+ * the host platform. They are wired through the platform_srvcs vt API
+ *
+ * TODO: Probably some of these need to become more chatty in the
+ * reporting their progress
  ****************************************************************************/
-
-/* helper: free a struct ccnl_prefix_s */
-static inline
-void
-_ccnl_prefix_struct_free(struct ccnl_prefix_s *p)
-{
-    ccnl_free(p->comp);
-    ccnl_free(p->complen);
-    ccnl_free(p->path);                // TODO: OLD
-    //ccnl_free(pr->bytes);             // TODO: NEW
-    ccnl_free(p);
-
-    return;
-};
 
 
 /*
@@ -528,53 +568,136 @@ ccnl_ll_TX(
             struct ccnl_relay_s *relay,
             struct ccnl_if_s *ifc,          // fwd "phys" interface
             sockunion *dst,                 // next-hop pkt recipient
-            struct ccnl_buf_s *buf)
+            struct ccnl_buf_s *buf)         // formatted pkt
 {
-    struct envelope_s *     env = (struct envelope_s *) ccnl_malloc(sizeof(struct envelope_s));
-    struct info_data_s *     io;
+    struct envelope_s *     env;
+    struct info_data_s *    io;
 
-    struct ccnl_buf_s       *tmp_buf = 0;
-    struct ccnl_prefix_s    *p = 0;
-    int                     scope=3, aok=3, minsfx=0, maxsfx=CCNL_MAX_NAME_COMP, contlen;
-    unsigned char           *content = 0;
+    unsigned char *         data = (unsigned char *) buf->data;
+    int                     datalen = buf->datalen;
+    struct ccnl_pkt_s *     pkt;
+    unsigned int            i_or_c;
+    int                     aux_arg;
 
     assert(relay && ifc && buf && dst);
 
-    // the following is a hack practically emulating what the
-    // ccnl_core_RX_i_or_c() does in ccnl-core.c, in order to
-    // access the object type and prefix information
-    //
-    // TODO: normally this information should be provided as part
-    // of the signature of this function
-    //
-    unsigned char * tmp_data = buf->data+2;
-    int tmp_datalen = buf->datalen - 2;
-    tmp_buf = ccnl_extract_prefix_nonce_ppkd(
-                &tmp_data,
-                &tmp_datalen,
-                &scope,
-                &aok,
-                &minsfx,
-                &maxsfx,
-                &p,
-                0,
-                0,
-                &content,
-                &contlen);
+    // determine suite and extract the name information
+    switch (ccnl_pkt2suite(buf->data, buf->datalen, &aux_arg))
+    {
 
-    if (tmp_buf->data[0] == 0x01 && tmp_buf->data[1] == 0xd2)
-    // interest pkt
-        io = mallocSuiteInfo(info_interest_ccnXmlb_s);
-    else
-    // content pkt
-        io = mallocSuiteInfo(info_content_ccnXmlb_s);
+    // *** handling peeped from ccnl-core-fwd.c ***
 
-    //io->name = strdup(ccnl_prefix_to_path(p));
-    io->name = ccnl_prefix_to_path(p);  // TODO: should be safe since io is const at the deliverObject call
-    io->pkt_buf = tmp_buf->data;
-    io->pkt_len = tmp_buf->datalen;
+    case CCNL_SUITE_CCNB:
+        // extract I or C info
+        if (ccnl_ccnb_dehead(&data, &datalen, (int *) &i_or_c, &aux_arg) || aux_arg != CCN_TT_DTAG) {
+            DEBUGMSG(WARNING, "Not a valid CCN_XMLB message, although a CCN_XMLB suite was indicated \n");
+            return;
+        }
+
+        // read pkt
+        pkt = ccnl_ccnb_bytes2pkt (data - 2, &data, &datalen);    // -2: ??? (see ccnl-core-fwd.c)
+        if (!pkt) {
+            DEBUGMSG(WARNING, "Not a valid CCN_XMLB message, parsing error or no prefix\n");
+            return;
+        }
+
+        switch (i_or_c) {
+        case CCN_DTAG_INTEREST:
+            pkt->flags |= CCNL_PKT_REQUEST;
+            io = mallocSuiteInfo(info_interest_ccnXmlb_s);
+            break;
+        case CCN_DTAG_CONTENTOBJ:
+            pkt->flags |= CCNL_PKT_REPLY;
+            io = mallocSuiteInfo(info_content_ccnXmlb_s);
+            break;
+        default:
+            DEBUGMSG(WARNING, "Neither an I nor C packet, although a CCN_XMLB suite was indicated \n");
+            free_packet(pkt);
+            return;
+        }
+
+        pkt->type = i_or_c; // not sure why this is needed, it is already in the flags
+
+        break;
+    case CCNL_SUITE_CCNTLV:
+        // extract I or C info
+        i_or_c = ((struct ccnx_tlvhdr_ccnx2015_s*) buf->data)->pkttype;
+        if (i_or_c != CCNX_PT_Interest && i_or_c != CCNX_PT_Data) {
+            DEBUGMSG(WARNING, "Not a valid CCN_TLV message, although a CCN_TLV suite was indicated \n");
+            return;
+        }
+
+        // ??? (see ccnl-core-fwd.c)
+        data += ((struct ccnx_tlvhdr_ccnx2015_s*) buf->data)->hdrlen;
+        datalen -= ((struct ccnx_tlvhdr_ccnx2015_s*) buf->data)->hdrlen;
+
+        // parse pkt
+        pkt = ccnl_ccntlv_bytes2pkt(buf->data, &data, &datalen);
+        if (!pkt) {
+            DEBUGMSG(WARNING, "Not a valid CCN_TLV message, parsing error or no prefix\n");
+            return;
+        }
+
+        switch (i_or_c) {
+        case CCNX_PT_Interest:
+            pkt->flags |= CCNL_PKT_REQUEST;
+            io = mallocSuiteInfo(info_interest_ccnTlv_s);
+            break;
+        case CCNX_PT_Data:
+            pkt->flags |= CCNL_PKT_REPLY;
+            io = mallocSuiteInfo(info_content_ccnTlv_s);
+            break;
+        default:
+            DEBUGMSG(WARNING, "Neither an I nor C packet, although a CCN_TLV suite was indicated \n");
+            free_packet(pkt);
+            return;
+        }
+
+        break;
+    case CCNL_SUITE_NDNTLV:
+        // extract I or C info
+        if (ccnl_ndntlv_dehead(&data, &datalen, &i_or_c, (unsigned int *) &aux_arg) || aux_arg > datalen) {
+            DEBUGMSG(WARNING, "Not a valid NDN_TLV message, although a NDN_TLV suite was indicated \n");
+            return;
+        }
+
+        // parse pkt
+        pkt = ccnl_ndntlv_bytes2pkt(i_or_c, buf->data, &data, &datalen);
+        if (!pkt) {
+            DEBUGMSG(WARNING, "Not a valid CCN_TLV message, parsing error or no prefix\n");
+            return;
+        }
+
+        pkt->type = i_or_c;
+
+        switch (i_or_c) {
+        case NDN_TLV_Interest:
+            pkt->flags |= CCNL_PKT_REQUEST;
+            io = mallocSuiteInfo(info_interest_ndnTlv_s);
+            break;
+        case NDN_TLV_Data:
+            pkt->flags |= CCNL_PKT_REPLY;
+            io = mallocSuiteInfo(info_content_ndnTlv_s);
+            break;
+        default:
+            DEBUGMSG(WARNING, "Neither an I nor C packet, although a CCN_TLV suite was indicated \n");
+            free_packet(pkt);
+            return;
+        }
+
+        break;
+    default:
+        DEBUGMSG(ERROR, "Unknown packet format \n");
+        return;
+    };
+
+    io->name = ccnl_prefix_to_path(pkt->pfx);  // TODO: should be safe since io is const at the deliverObject() call
+    io->chunk_seqn = (pkt->pfx->chunknum) ? ((int) *(pkt->pfx->chunknum)) : -1;
+    io->packet_bytes = pkt->buf->data;
+    io->packet_len = pkt->buf->datalen;
 
     // envelope for data to be delivered to a link
+    env = (struct envelope_s *) ccnl_malloc(sizeof(struct envelope_s));
     env->to = ENV_LINK;
     memcpy (&(env->link.sa_local), &(ifc->addr), sizeof(sockunion));    // local out addr
     memcpy (&(env->link.sa_remote), dst, sizeof(sockunion));            // next hop addr
@@ -582,13 +705,14 @@ ccnl_ll_TX(
     // hand in to platform
     platform_srvcs.deliver_object(relay, io, env);
 
-    _ccnl_prefix_struct_free(p);
-    ccnl_free (tmp_buf);
-    freeSuiteInfo(io);
     ccnl_free (env);
+    free_packet(pkt);
+    freeSuiteInfo(io);
 
     return;
 };
+
+
 
 
 /*
@@ -602,25 +726,44 @@ ccnl_app_RX(
         struct ccnl_content_s *c)
 {
     struct envelope_s *     env = (struct envelope_s *) ccnl_malloc(sizeof(struct envelope_s));
-    struct info_data_s *     io;
-    char                    tmp[10];
-    struct ccnl_prefix_s *  p;
+    struct info_data_s *    io;
 
     assert (relay && c);
 
-    // this is a content pkt so the name should contain a chunk seq num;
-    // separate it in tmp2
-    p = c->name;
-    memcpy(tmp, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-    tmp[p->complen[p->compcnt-1]] = '\0';
+    // Prepare a C data object, and do minimum un-bundling for the content data only -- may
+    // require per suite type checking or algorithm validation
+    // The client should be able to extract more extensive attribute info from the
+    // packet buffer if wished using the parsePacketC() -- (NOTE parsePacketC()
+    // is not implemented yet!)
+    switch(c->pkt->suite) {
+    case CCNL_SUITE_CCNB:
+        io = mallocSuiteInfo(info_content_ccnXmlb_s);
 
-    // prepare info object
-    io = mallocSuiteInfo(info_content_ccnXmlb_s);
-    io->pkt_buf = c->pkt->data;
-    io->pkt_len = c->pkt->datalen;
-    io->name = ccnl_prefix_to_path(c->name); // TODO: should be safe since io is const at the deliverObject call
-    io->chunk_seqn = atoi(tmp+1);            // FIXME: here we asume that the chunk seq num is prefixed by a letter
-                                             // but this is not a safe assumption, since this is not in standard spec
+        ((struct info_content_ccnXmlb_s *) io)->content_bytes = c->pkt->content;
+        ((struct info_content_ccnXmlb_s *) io)->content_len = c->pkt->contlen;
+        break;
+    case CCNL_SUITE_CCNTLV:
+        io = mallocSuiteInfo(info_content_ccnTlv_s);
+
+        ((struct info_content_ccnTlv_s *) io)->content_bytes = c->pkt->content;
+        ((struct info_content_ccnTlv_s *) io)->content_len = c->pkt->contlen;
+        break;
+    case CCNL_SUITE_NDNTLV:
+        io = mallocSuiteInfo(info_content_ndnTlv_s);
+
+        ((struct info_content_ndnTlv_s *) io)->content_bytes = c->pkt->content;
+        ((struct info_content_ndnTlv_s *) io)->content_len = c->pkt->contlen;
+        break;
+    default:
+        DEBUGMSG(WARNING, "Unknown packet format \n");
+        return;
+    }
+
+    // attach the pkt buffer to the base info object, and set name/seqn of the content
+    io->packet_bytes = c->pkt->buf->data;
+    io->packet_len = c->pkt->buf->datalen;
+    io->name = ccnl_prefix_to_path(c->pkt->pfx); // TODO: should be safe since io is const at the deliverObject call
+    io->chunk_seqn = (c->pkt->pfx->chunknum) ? ((int) *(c->pkt->pfx->chunknum)) : -1;
 
     // prepare envelope
     env->to = ENV_APP;
@@ -638,86 +781,17 @@ ccnl_app_RX(
 
 
 /*****************************************************************************
- * non-generic function definitions that are hooked to the API vtables
- *
- * These should be confined to ones that are not to be found in other
- * per-suite source files. They are plugged to the vtables on the ccnlite
- * side.
- *
- * TODO: Clean up and move code where it belongs
- * TODO: Chris must replace these with the correct ones
+ * function hooks of the UAPI vtables
  *****************************************************************************/
 
-#define _TMP_CONTENT_OBJ_MAXSIZE    8192
-#define _TMP_INTEREST_OBJ_MAXSIZE   4096
 
 /*
- * helper: break a string name to name components in ccnl_prefix_s struct
- * TODO: Chris does one already exist somewhere ?
- */
-static
-struct ccnl_prefix_s*
-ccnl_path_to_prefix(const char *path)
-{
-    char *cp;
-    struct ccnl_prefix_s *pr = (struct ccnl_prefix_s*) ccnl_calloc(1, sizeof(*pr));
-
-    if (!pr)
-        return NULL;
-
-    // +1 is for letting a last position to be set to null (see before the return stmt)
-    pr->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP+1 * sizeof(unsigned char**));
-    pr->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-
-    pr->path = (unsigned char*) ccnl_malloc(strlen(path)+1);        // OLD
-    //pr->bytes = (unsigned char*) ccnl_malloc(strlen(path)+1);     // NEW
-
-    if (!pr->comp || !pr->complen || !pr->path) {       // OLD
-    //if (!pr->comp || !pr->complen || !pr->bytes) {    // NEW
-
-        ccnl_free(pr->comp);
-        ccnl_free(pr->complen);
-        ccnl_free(pr->path);                // OLD
-        //ccnl_free(pr->bytes);             // NEW
-        ccnl_free(pr);
-        return NULL;
-    }
-
-    strcpy((char*) pr->path, path);     // OLD
-    //strcpy((char*) pr->bytes, path);  // NEW
-
-    cp = (char*) pr->path;      // OLD
-    //cp = (char*) pr->bytes;   // NEW
-
-    for (path = strtok(cp, "/");
-         path && pr->compcnt < CCNL_MAX_NAME_COMP;
-         path = strtok(NULL, "/"))
-    {
-        pr->comp[pr->compcnt] = (unsigned char*) path;
-        pr->complen[pr->compcnt] = strlen(path);
-        pr->compcnt++;
-    }
-
-    // this compensates for the fact that some functions of ccnl-core.c use the
-    // compcnt value for finding the end of components, while others rely on a
-    // null last component.
-    pr->comp[pr->compcnt] = 0;
-
-    return pr;
-}
-
-
-
-
-
-
-/*
- * add and configure a number of faces
+ * add and configure a number of interfaces
  */
 int
-faces_add(struct info_mgmt_s *mgmt)
+ifaces_add(struct info_mgmt_s *mgmt)
 {
-    struct info_face_conf_s     *faces = (struct info_face_conf_s *) mgmt;
+    struct info_iface_conf_s    *ifaces = (struct info_iface_conf_s *) mgmt;
     struct ccnl_relay_s         *r = (struct ccnl_relay_s *) mgmt->relay;
     struct ccnl_if_s            *i;
     int                         cnt=0;
@@ -727,17 +801,18 @@ faces_add(struct info_mgmt_s *mgmt)
 
     int t;
 
-    for (int k=0 ; faces ; k++ , faces = (struct info_face_conf_s *) faces->base.next)
+    for (int k=0 ; ifaces ; k++ , ifaces = (struct info_iface_conf_s *) ifaces->base.next)
     {
-        i = & (r->ifs[k]);
-
-        t = faces->addr.sa.sa_family;
+        //i = & (r->ifs[k]);
+        assert(ifaces->iface_id <= CCNL_MAX_INTERFACES);
+        i = & (r->ifs[ifaces->iface_id]);
+        t = ifaces->addr.sa.sa_family;
 
         switch (t)
         {
         case AF_PACKET:
             i->addr.eth.sll_family = AF_PACKET;
-            memcpy(i->addr.eth.sll_addr, faces->addr.eth.sll_addr, ETH_ALEN);
+            memcpy(i->addr.eth.sll_addr, ifaces->addr.eth.sll_addr, ETH_ALEN);
             i->mtu = 1400;
             i->reflect = 1;
 #ifdef  PROPAGATE_INTERESTS_SEEN_BEFORE
@@ -747,12 +822,15 @@ faces_add(struct info_mgmt_s *mgmt)
 #endif  // PROPAGATE_INTERESTS_SEEN_BEFORE
 
 #ifdef  USE_SCHEDULER
-            i->sched = ccnl_sched_pktrate_new (ccnl_interface_CTS, r, faces->tx_pace);
+            i->sched = ccnl_sched_pktrate_new (ccnl_interface_CTS, r, ifaces->tx_pace);
 #endif  // USE_SCHEDULER
 
-            r->ifcount++;
             cnt++;
+            r->ifcount++;	// beware! the caller of ifaces_add() can decide to occupy interface
+				            // structs adhocly indexed in the ifs[] of ccnl_relay_s, and therefore
+				            //the ifcount var MUST NOT be used to iterate entries of ifs[]
 
+            DEBUGMSG(INFO, "initialized ethernet interface %d for use with faces\n", ifaces->iface_id);
             break;
 
         // TODO: Add the other cases AF_INET AF_INET6 ...
@@ -762,9 +840,11 @@ faces_add(struct info_mgmt_s *mgmt)
             break;
         }
     };
-
-    return cnt;     // success: number of faces created
+    return cnt;     // success: number of interfaces created
 }
+
+
+
 
 
 /*
@@ -773,70 +853,160 @@ faces_add(struct info_mgmt_s *mgmt)
 int
 content_add (struct info_mgmt_s *mgmt)
 {
-    struct info_cs_data_s       *cs_data = (struct info_cs_data_s *) mgmt;
-    struct ccnl_relay_s         *r = (struct ccnl_relay_s *) mgmt->relay;
+    struct info_data_s *        d_obj;
+    struct info_cs_data_s *     cs_data = (struct info_cs_data_s *) mgmt;
     int                         cnt=0;
-    struct ccnl_buf_s           *bp;
-    struct ccnl_prefix_s        *pp;
-    unsigned char               tmp2[_TMP_CONTENT_OBJ_MAXSIZE];
-    int                         len2 = 0;
+    unsigned char               *data;
+    int                         datalen;
+    struct ccnl_pkt_s           *pkt;
     struct ccnl_content_s       *c = 0;
 
 
-    if (!r)
+    if (!(struct ccnl_relay_s *)cs_data->base.relay)
         return 0;      // no access to the relay state, nothing more to do
 
     for (int k=0 ; cs_data ; k++ , cs_data = (struct info_cs_data_s *) cs_data->base.next)
     {
-        if ( ! (pp = ccnl_path_to_prefix((const char*) (cs_data->name))) )
-            continue;
+        // FIXME: We assume that each cs_data struct provides us with data that fit in one chunk(!).
+        // We must however check and possibly segment the data into multiple content chunks (thereby
+        // each cs_data struct may require the generation of a chain of content data objects!). For
+        // now this is not here ...
 
-        // create a content object
-        //
-        assert (cs_data->data_size < _TMP_CONTENT_OBJ_MAXSIZE);
-        memset (tmp2, 0, _TMP_CONTENT_OBJ_MAXSIZE);
+        // pre-format content data in C pkts before storing them in  CS
+        switch (cs_data->suite) {
+        case CCN_XMLB:
 
-        // FIXME: this is the old API func needs fixing
-        len2 = mkContent((char **) pp->comp, (char *) cs_data->data_buf, cs_data->data_size, tmp2);
+            // prepare a content data object (BEWARE we re talking over the cs_data struct ptrs rather than making copies)
+            d_obj = mallocSuiteInfo (info_content_ccnXmlb_s);
+            ((struct info_content_ccnXmlb_s *) d_obj)->content_bytes = cs_data->data_bytes;   // !!!! ACHTUNG !!!! we assume data fit in one packet and we don't chunkify(!).
+            ((struct info_content_ccnXmlb_s *) d_obj)->content_len = cs_data->data_len;
+            ((struct info_content_ccnXmlb_s *) d_obj)->base.name = cs_data->name;
+            if (cs_data->chunk_seqn >= 0)
+                ((struct info_content_ccnXmlb_s *) d_obj)->base.chunk_seqn = cs_data->chunk_seqn;
+            else
+                ((struct info_content_ccnXmlb_s *) d_obj)->base.chunk_seqn = -1;
 
-        // store data to internal buffer structure
-        //
-        if ( ! (bp = ccnl_buf_new(tmp2, len2)))
-        {
-            _ccnl_prefix_struct_free(pp);
+            // generate C packet from content object
+            if (!createPacketC (d_obj))
+            {
+                // failed creating a C packet for the corresponding suite
+                DEBUGMSG(WARNING, "Creation of CCNx (XMLB) C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            // prepare a ccnl_pkt_s struct
+            // (don't understand the purpose of the next 2 lines .. see ccnl_lite_relay.c:ccnl_populate_content())
+            data = d_obj->packet_bytes; data += 2;
+            datalen = d_obj->packet_len; datalen -= 2;
+            pkt = ccnl_ccnb_bytes2pkt(d_obj->packet_bytes, &data, &datalen);
+
+            if (!pkt) {
+                DEBUGMSG(WARNING, "Description generation of CCNx (XMLB) C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            break;
+        case CCN_TLV:
+
+            // prepare a content data object (BEWARE we re talking over the cs_data struct ptrs rather than making copies)
+            d_obj  = mallocSuiteInfo (info_content_ccnTlv_s);
+            ((struct info_content_ccnTlv_s *) d_obj)->content_bytes = cs_data->data_bytes;   // !!!! ACHTUNG !!!! we assume data fit in one packet and we don't chunkify(!).
+            ((struct info_content_ccnTlv_s *) d_obj)->content_len = cs_data->data_len;
+            ((struct info_content_ccnTlv_s *) d_obj)->base.name = cs_data->name;
+            if (cs_data->chunk_seqn >= 0)
+                ((struct info_content_ccnTlv_s *) d_obj)->base.chunk_seqn = cs_data->chunk_seqn;
+            else
+                ((struct info_content_ccnTlv_s *) d_obj)->base.chunk_seqn = -1;
+
+            // generate C packet from content object
+            if (!createPacketC(d_obj))
+            {
+                // failed creating a C packet for the corresponding suite
+                DEBUGMSG(WARNING, "Creation of CCNx (TLV) C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            // prepare a ccnl_pkt_s struct
+            // (don't understand the purpose of the next 4 lines .. see ccnl_lite_relay.c:ccnl_populate_content())
+            data = d_obj->packet_bytes;
+            datalen = d_obj->packet_len;
+            data += ccnl_ccntlv_getHdrLen(data, datalen);
+            datalen -= ccnl_ccntlv_getHdrLen(data, datalen);
+            pkt = ccnl_ccntlv_bytes2pkt(d_obj->packet_bytes, &data, &datalen);
+
+            if (!pkt) {
+                DEBUGMSG(WARNING, "Description generation of CCNx (TLV) C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            break;
+        case NDN_TLV:
+
+            // prepare a content data object (BEWARE we re talking over the cs_data struct ptrs rather than making copies)
+            d_obj  = mallocSuiteInfo (info_content_ndnTlv_s);
+            ((struct info_content_ndnTlv_s *) d_obj)->content_bytes = cs_data->data_bytes;   // !!!! ACHTUNG !!!! we assume data fit in one packet and we don't chunkify(!).
+            ((struct info_content_ndnTlv_s *) d_obj)->content_len = cs_data->data_len;
+            ((struct info_content_ndnTlv_s *) d_obj)->base.name = cs_data->name;
+            if (cs_data->chunk_seqn >= 0)
+                ((struct info_content_ndnTlv_s *) d_obj)->base.chunk_seqn = cs_data->chunk_seqn;
+            else
+                ((struct info_content_ndnTlv_s *) d_obj)->base.chunk_seqn = -1;
+
+            // generate C packet from content object
+            if (!createPacketC(d_obj))
+            {
+                // failed creating a C packet for the corresponding suite
+                DEBUGMSG(WARNING, "Creation of NDNx C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            // prepare a ccnl_pkt_s struct for ccnl_content_new()
+            // (don't understand the purpose of the next 5 lines .. see ccnl_lite_relay.c:ccnl_populate_content())
+            unsigned int type;
+            unsigned int length;
+            data = d_obj->packet_bytes;
+            datalen = d_obj->packet_len;
+            ccnl_ndntlv_dehead(&data, &datalen, &type, &length);
+            pkt = ccnl_ndntlv_bytes2pkt(type, d_obj->packet_bytes, &data, &datalen);
+
+            if (!pkt) {
+                DEBUGMSG(WARNING, "Description generation of NDNx (TLV) C packet for adding content %s to CS, failed\n", cs_data->name);
+                freeSuiteInfo(d_obj);
+                continue;
+            };
+
+            break;
+        default:
+            DEBUGMSG(WARNING, "Invalid suite provided, will not add content %s to CS\n", cs_data->name);
             continue;
         }
 
-        // prep cs entry and add to cs_db
-        //
-        // FIXME: Figure out what are the last args needed for, since the info is
-        // provided in the bp ptr.
-        c = ccnl_content_new((struct ccnl_relay_s *)cs_data->base.relay, &bp, &pp, NULL, 0, 0);
-
-        if (c)
+        // store in CS
+        if ( (c = ccnl_content_new((struct ccnl_relay_s *)cs_data->base.relay, &pkt)) )
         {
+            ccnl_content_add2cache((struct ccnl_relay_s *)cs_data->base.relay, c);  // we should expect a success code here but this func does not return one.
+
 #ifdef CONTENT_NEVER_EXPIRES
             c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 #endif
-            ccnl_content_add2cache((struct ccnl_relay_s *)cs_data->base.relay, c);  // we should expect a success code here but this func does not return one.
-
             cnt++;
         }
-
-        // these are not needed because control of the pointed data is taken over
-        // at ccnl_content_new. FIXME: This is a bit of "unexpected" practice/convention.
-        //
-        //_ccnl_prefix_struct_free(pp);
-        //ccnl_free(bp);
+        freeSuiteInfo(d_obj);
     }
-
-    return cnt; //success: return the number of content objects added to the cs
+    return cnt;     // return the number of C packets added to the cs
 };
 
 
 
+
 /*
- * add a set of forwarding rules based on MAC addrs
+ * add a set of forwarding rules
+ * TODO: currently based on MAC addrs only, extend for IP addresses too
  */
 int
 fwd_rule_add(struct info_mgmt_s *mgmt)
@@ -845,6 +1015,7 @@ fwd_rule_add(struct info_mgmt_s *mgmt)
     struct ccnl_relay_s *       r = (struct ccnl_relay_s *) mgmt->relay;
     struct ccnl_forward_s *     fwd;
     int                         cnt=0;
+    int                         suite_intdef;
 
     if (!r)
         return 0;  // no access to the relay state, nothing more to do
@@ -853,251 +1024,405 @@ fwd_rule_add(struct info_mgmt_s *mgmt)
     {
         fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
 
-        if ( !(fwd->prefix = ccnl_path_to_prefix(fib_rule->prefix)))
+        // FIXME: need to add proper support for all available suites and harmonise the enums between UAPI and ccnl-defs.h
+        switch (fib_rule->suite) {
+        case CCN_XMLB:
+            suite_intdef = CCNL_SUITE_CCNB;
+            break;
+        case CCN_TLV:
+            suite_intdef = CCNL_SUITE_CCNTLV;
+            break;
+        case NDN_TLV:
+            suite_intdef = CCNL_SUITE_NDNTLV;
+            break;
+        default:
+            DEBUGMSG(WARNING, "Suite %s not supported at the moment through the UAPI\n", ccnl_enc2str(fib_rule->suite));
+            continue;
+        }
+
+
+        if ( !(fwd->prefix = ccnl_URItoPrefix((char *) fib_rule->prefix, suite_intdef, NULL, NULL)))
         {
             ccnl_free(fwd);
-            //return -1;      // error: failed to extract a set of name components from supplied string
+            DEBUGMSG(WARNING, "Failed to create name prefix for %s\n", fib_rule->prefix);
             continue;
         };
 
         fwd->face = ccnl_get_face_or_create(r, fib_rule->dev_id, &(fib_rule->next_hop.sa), sizeof (fib_rule->next_hop.eth));
+        if (! (fwd->face))
+        {
+            DEBUGMSG(WARNING, "could not allocate a new face or find an existing one for dev-id %d\n", fib_rule->dev_id);
+            free_prefix(fwd->prefix);
+            ccnl_free(fwd);
+            continue;
+        }
+        fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
+
+        fwd->suite = suite_intdef;
 
     #ifdef USE_FRAG
         if ( !fwd->face->frag ) // if newly created face, no fragment policy is defined yet
             fwd->face->frag = ccnl_frag_new(CCNL_FRAG_CCNx2013, 1200);
     #endif
 
-        if (! (fwd->face))
-        {
-            _ccnl_prefix_struct_free(fwd->prefix);
-            ccnl_free(fwd);
-            //return -1;          // error: we could not allocate a new face or find an existing one
-            continue;
-        }
-
-        fwd->face->flags |= CCNL_FACE_FLAGS_STATIC;
+        // new fwd rule put at the top of the list
         fwd->next = r->fib;
         r->fib = fwd;
 
-        //
         cnt++;
     }
-
-    //return 1;       // success: 1 FIB entry added
     return cnt;
 };
 
+
+
+
 /*
- * create a prefix from a info_data object
+ * helper: create a ccnl_prefix_s from a name in an info_data_s object (I/C description)
  */
 struct ccnl_prefix_s *
-mk_prefix(struct info_data_s *o){
-    struct ccnl_prefix_s * pref;
+mk_prefix(struct info_data_s *d_obj)
+{
+    char *                  name;
+    struct ccnl_prefix_s *  pfx;
+    int                     suite;
+
+    suite = (int) readSuite(d_obj);
+
+    // FIXME: This is not needed if one harmonises suite enums in UAPI and ccnl-defs.h
+    switch (suite) {
+    case CCN_XMLB:
+        suite = CCNL_SUITE_CCNB;
+        break;
+    case CCN_TLV:
+        suite = CCNL_SUITE_CCNTLV;
+        break;
+    case NDN_TLV:
+        suite = CCNL_SUITE_NDNTLV;
+        break;
+    default:
+        DEBUGMSG(ERROR, "Suite %s not supported at the moment through the UAPI\n", ccnl_enc2str(suite));
+        return NULL;
+    }
+
     //prepare name
-    if (o->name) {
-        pref = ccnl_URItoPrefix(o->name, o, NULL, o->chunk_seqn)
+    if (d_obj->name)    // name provided as one string (possibly encoding non printable %-escaped chars), convert to ccnl_prefix_s
+    {
+        name = (char *) ccnl_malloc (sizeof(char) * (strlen(d_obj->name) +1));
+        strncpy (name, d_obj->name, (strlen(d_obj->name) +1));      // because ccnl_URItoPrefix() modifies the first arg
+
+        if (d_obj->chunk_seqn >=0)
+            pfx = ccnl_URItoPrefix(name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
+        else
+            pfx = ccnl_URItoPrefix(name, suite, NULL, NULL);
+
+        ccnl_free(name);
     }
-    else if(o->name_components){
-        int numOfComps = 0;
-        int complens[CCNL_MAX_NAME_COMP];
-        char ** comps = o->name_components;
-        while (*comps)) {
-            complens[numOfComps] = strlen(*comps)
-            ++numOfComps;
-            ++(*comps);
-        }
+    else if(d_obj->name_components) // name provided as a set of name components adhocly organised, manually
+    {
+        // FIXME:
+        // the rationale of name components is that some of them may contain (NFN) expressions
+        // and so the assumption is that ccn-lite has a function that takes such a vector and
+        // converts it to the internal ccnl_prefix_s; but currently there isn't any available.
+        // Providing a Components2Prefix() here is messy cause the ccnl_prefix_s has more
+        // sophisticated suite-based semnatics unlike the high level component vector of strings
+        // in info_data_s, which the user cares about
+        //
+        // Quick patch: convert to a single string and then process as member "name"
+
+        int namelen = 0;
+        for (int i = 0; d_obj->name_components[i]!= NULL; i++)
+            namelen += strlen(d_obj->name_components[i]);
+        char * name = (char *) ccnl_malloc (1+ sizeof(char) * namelen);
         
-        int suite = -1:
-        int s = o->vtable->suite;
+        memset (name, 0, namelen+1);
+        for (int i = 0; d_obj->name_components[i]!= NULL; i++)
+            strcat(name, d_obj->name_components[i]);
         
-        if (s == CCN_XMLB){
-            suite = CCNL_SUITE_CCNB;
-        }
-        else if(s == CCN_TLV){
-            suite = CCNL_SUITE_CCNTLV;
-        }
-        else if(s == NDN_TLV){
-            suite = CCNL_SUITE_NDNTLV;
-        }
+        if (d_obj->chunk_seqn >=0)
+            pfx = ccnl_URItoPrefix (name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
+        else
+            pfx = ccnl_URItoPrefix (name, suite, NULL, NULL);
         
-        
-        pref = ccnl_componentsToPrefix(o->name_components, complens, numOfComps, suite, NULL, o->chunk_seqn);
+        ccnl_free(name);
     }
-    return pref;
+    else
+        return NULL;    // nothing happened
+
+    return pfx;
 }
+
+
 
 
 /*
  * create a ccnb interest packet
  */
 int
-mk_ccnb_interest(struct info_data_s *o)
+mk_ccnb_interest(struct info_data_s *d_obj)
 {
-#ifdef old_version
-    struct info_interest_ccnXmlb_s *    i_info = (struct info_interest_ccnXmlb_s *) o;
-    struct ccnl_prefix_s *              pp = 0;
-    unsigned char                       tmp2[_TMP_INTEREST_OBJ_MAXSIZE];
-    int                                 nonce = rand();
-    int                                 len = 0;
+    assert (d_obj);
 
-    assert (i_info);
+    struct info_interest_ccnXmlb_s *    i_obj = (struct info_interest_ccnXmlb_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+    int                                 digest_len = 0, ppkd_len = 0;
 
-//    /*
-     * FIXME: NOTE that as things are here, to create an interest we do not look at the
-     * chunk_seqn field of the info_interest_ccnXmlb_s struct passed to us to determine
-     * the last component as a chunk num. In principle we SHOULD(!) because in this way
-     * we can differentiate prefixes from exact names, and because this MAY make easier
-     * the juggling with conventions on how chunk naming should be formed at the last
-     * component
-//     */
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no I pkt created
 
-    // name must be supplied
-    if (i_info->base.name)      // name supplied as a string
-    {
-        pp = ccnl_path_to_prefix(i_info->base.name);
-        assert (pp);
+    if (i_obj->content_digest) digest_len = unescape_component(i_obj->content_digest);
+    if (i_obj->ppkd) ppkd_len = unescape_component(i_obj->ppkd);
 
-        /* create actual ccnb Interest pkt
-         */
-        memset (tmp2, 0, _TMP_INTEREST_OBJ_MAXSIZE);
-        len = mkInterest((char **) pp->comp, (unsigned int *) &nonce, (unsigned char *) tmp2);
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
 
-        _ccnl_prefix_struct_free(pp);
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
 
-        if (!len) return -1;                        // error: could not create interest
-    }
-    else if ( *(i_info->base.name_components))        // name supplied as a set of components
-    {
-        // check that 1 past the last name component is a null component (sanity)
-        for (int i = 0 ; i<=CCNL_MAX_NAME_COMP ; i++ ) {
-            if (i_info->base.name_components[i] == 0) break;
-            if (i == CCNL_MAX_NAME_COMP) return 0;  // nothing to be done the components set supplied is not correct
-        }
+    d_obj->packet_len = ccnl_ccnb_mkInterest(
+                                pfx,
+                                i_obj->min_suffix,
+                                i_obj->max_suffix,
+                                (unsigned char*) i_obj->content_digest, digest_len,
+                                (unsigned char*) i_obj->ppkd, ppkd_len,
+                                i_obj->scope,
+                                &i_obj->nonce,
+                                d_obj->packet_bytes);
 
-        /* create actual ccnb Interest pkt
-         */
-        memset (tmp2, 0, _TMP_INTEREST_OBJ_MAXSIZE);
-        len = mkInterest((char **) i_info->base.name_components, (unsigned int *) &nonce, (unsigned char *) tmp2);
+    free_prefix(pfx); // CHECK: make sure this is not leaving dangling pointers in the relay state?
 
-        if (!len) return -1;       // error: could not create interest
-    }
-    else                // name has not been supplied neither as string nor as list of components
-        return 0;       // nothing to be done on our end
-
-
-    i_info->base.pkt_buf = (unsigned char *) ccnl_malloc (len);
-    memcpy (i_info->base.pkt_buf, tmp2, len);
-    i_info->base.pkt_len = len;
-    i_info->nonce = nonce;
-
-    return 1;       // success: 1 interest pkt created
-#endif
-    
-    struct ccnl_prefix_s * pref = mk_prefix(o);
-    o->pkt_buf = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    len = ccnl_ccnb_fillInterest(pref, NULL, o->pkt_buf, CCNL_MAX_PACKET_SIZE);
-    
-    return 1;
-
+    return 1;   // one I pkt created
 };
+
+
 
 
 /*
  * create a ccntlv interest packet
  */
-//TODO add offset to o->pkt_buf
 int
-mk_ccntlv_interest(struct info_data_s *o)
+mk_ccntlv_interest(struct info_data_s *d_obj)
 {
-    struct ccnl_prefix_s * pref = mk_prefix(o);
+    assert (d_obj);
 
-    int offs = CCNL_MAX_PACKET_SIZE;
-    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    o->pkt_len = ccnl_ccntlv_prependInterestWithHdr(pref, &offs, tmp);
+    struct info_interest_ccnTlv_s *    i_obj = (struct info_interest_ccnTlv_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no I pkt created
+
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
+
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+
+    d_obj->packet_len = ccntlv_mkInterest(
+                                    pfx,
+                                    (int *) &i_obj->nonce,
+                                    d_obj->packet_bytes,
+                                    CCNL_MAX_PACKET_SIZE);
     
-    o->pkt_buf = tmp + offs;
-    
-    return 1;
+    free_prefix(pfx);   // CHECK: make sure this is not leaving dangling pointers in the relay state?
+    return 1;   // one I pkt created
 }
+
+
+
 
 /*
  * create a ndntlv interest packet
  */
 int
-mk_ndntlv_interest(struct info_data_s *o)
+mk_ndntlv_interest(struct info_data_s *d_obj)
 {
-    struct ccnl_prefix_s * pref = mk_prefix(o);
-    
-    int offs = CCNL_MAX_PACKET_SIZE;
-    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    
-    struct info_interest_ndnTlv_s *ii = (struct info_interest_ndnTlv_s *)o
-    o->pkt_len = ccnl_ndntlv_prependInterest(pref, -1, ii->nonce, &offs, tmp);
-    
-    o->pkt_buf = tmp + offs;
-    
-    return 1;
+    assert (d_obj);
+
+    struct info_interest_ndnTlv_s *    i_obj = (struct info_interest_ndnTlv_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no I pkt created
+
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
+
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+
+    d_obj->packet_len = ndntlv_mkInterest(pfx,
+                            (int *) &i_obj->nonce,
+                            d_obj->packet_bytes,
+                            CCNL_MAX_PACKET_SIZE);
+
+    free_prefix(pfx);   // CHECK: make sure this is not leaving dangling pointers in the relay state?
+    return 1;   // one I pkt created
 }
+
+
 
 /*
  * create a ccnb content packet
  */
 int
-mk_ccnb_content(struct info_data_s *o)
+mk_ccnb_content(struct info_data_s *d_obj)
 {
-    struct ccnl_prefix_s * pref = mk_prefix(o);
-    int contentpos = 0;
+    assert (d_obj);
+
+    struct info_content_ccnXmlb_s *    c_obj = (struct info_content_ccnXmlb_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no C pkt created
+
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
+
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+
+    // CHECK: hmm is this not too simplistic ? .. not having to provide publisher key ?
+    d_obj->packet_len = ccnl_ccnb_fillContent(pfx, c_obj->content_bytes, c_obj->content_len, NULL, d_obj->packet_bytes);
     
-    struct info_content_ccnXmlb_s *ic = (struct info_content_ccnXmlb_s *)o:
-    
-    o->pkt_buf = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    o->pkt_len = ccnl_ccnb_fillContent(pref, ic->data, ic->datalen, &contentpos, o->pkt_buf);
-    
-    return 1;
+    // did it fit in one pkt ?
+    if (d_obj->packet_len > CCNL_MAX_PACKET_SIZE ) {
+        DEBUGMSG(ERROR, "Content data too big; cannot fit in one CCNx (XMLB fmt) C packet\n");
+        return 0;   // no C pkt created (FIXME: well ccnl_ccnb_fillContent() wrote off the buffer boundary, so we probably have a buffer overflow error)
+    }
+
+    return 1;   // 1 C pkt created
 }
+
 
 /*
  * create a ccnb content packet
  */
 int
-mk_ccntlv_content(struct info_data_s *o)
+mk_ccntlv_content(struct info_data_s *d_obj)
 {
-    struct ccnl_prefix_s * pref = mk_prefix(o);
-    int contentpos = 0;
-    int offs = CCNL_MAX_PACKET_SIZE;
-    
-    struct info_content_ccnTlv_s *ic = (struct info_content_ccnTlv_s *)o:
-    
-    char * tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    
-    o->pkt_len = ccnl_ccntlv_prependContentWithHdr(pref, ic->data, ic->datalen
-                                      NULL, // lastchunknum
-                                      &offs, &contentpos, tmp);
-    
-    o->pkt_buf = tmp + offs;
-    return 1;
+    assert (d_obj);
+
+    struct info_content_ccnTlv_s *     c_obj = (struct info_content_ccnTlv_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+    int                                 data_offset;
+    int                                 r=0;
+
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no C pkt created
+
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
+
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    data_offset = CCNL_MAX_PACKET_SIZE;
+
+    /*  TODO: *** This seems to be an incomplete feature at the moment (relies on #define USE_HMAC256 in ccnl-uapi.h) ***
+    if (c_obj->keyid_bytes) {
+        unsigned char keyval[64];
+        unsigned char keyid[32];
+
+        // use the key to generate signature info
+        ccnl_hmac256_keyval(c_obj->keyid_bytes, c_obj->keyid_len, keyval);
+        ccnl_hmac256_keyid(c_obj->keyid_bytes, c_obj->keyid_len, keyid);
+
+        // create C pkt with signed content
+        r = ccnl_ccntlv_prependSignedContentWithHdr(
+                                       pfx,
+                                       c_obj->content_bytes,
+                                       c_obj->content_len,
+                                       NULL,
+                                       NULL,
+                                       keyval,
+                                       keyid,
+                                       &data_offset,
+                                       d_obj->packet_bytes);
+    } else
+    */
+        // create C pkt with unsigned content
+        r = ccnl_ccntlv_prependContentWithHdr(
+                                       pfx,
+                                       c_obj->content_bytes,
+                                       c_obj->content_len,
+                                       NULL,
+                                       NULL,
+                                       &data_offset,
+                                       d_obj->packet_bytes);
+
+    if (r == -1) {
+        // content did not fit in one packet
+        DEBUGMSG(ERROR, "Content data too big; cannot fit in one CCNx (TLV fmt) C packet\n");
+        return 0;   // no C pkt created
+    } else
+        d_obj->packet_len = r;
+
+    // the packet buffer was filled from the end towards the start
+    // so we need move the data to the start of the buffer
+    memcpy(d_obj->packet_bytes, d_obj->packet_bytes + data_offset, d_obj->packet_len);
+
+    return 1;   // one C pkt succesfully created
 }
+
+
+
 
 /*
  * create a ccnb content packet
  */
 int
-mk_ndntlv_content(struct info_data_s *o)
+mk_ndntlv_content(struct info_data_s *d_obj)
 {
-    struct ccnl_prefix_s * pref = mk_prefix(o);
-    int contentpos = 0;
-    int offs = CCNL_MAX_PACKET_SIZE;
-    
-    struct info_content_ndnTlv_s *ic = (struct info_content_ndnTlv_s *)o:
-    
-    char *tmp = ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
-    
-    o->pkt_len = ccnl_ndntlv_prependContent(pref, ic->data, ic->datalen,
-                                            &offs, &contentpos, NULL, tmp);
-    
-    o->pkt_buf = tmp + offs;
-    return 1;
+    assert (d_obj);
 
+    struct info_content_ndnTlv_s *     c_obj = (struct info_content_ndnTlv_s *) d_obj;
+    struct ccnl_prefix_s *              pfx;
+    int                                 data_offset;
+    int                                 r=0;
+
+    if (! (pfx = mk_prefix(d_obj)))
+        return 0;       // no C pkt created
+
+    if (d_obj->packet_bytes && d_obj->packet_len && d_obj->packet_len < CCNL_MAX_PACKET_SIZE)
+        ccnl_free (d_obj->packet_bytes);
+
+    if (!d_obj->packet_bytes) d_obj->packet_bytes = (unsigned char *) ccnl_malloc(sizeof(char) * CCNL_MAX_PACKET_SIZE);
+    data_offset = CCNL_MAX_PACKET_SIZE;
+
+    /* TODO: *** This seems to be an incomplete feature at the moment (relies on #define USE_HMAC256 in ccnl-uapi.h) ***
+    if (c_obj->sigkey_bytes) {
+        unsigned char keyval[64];
+        unsigned char keyid[32];
+
+        // use key to generate signature info
+        ccnl_hmac256_keyval(c_obj->sigkey_bytes, c_obj->sigkey_len, keyval);
+        ccnl_hmac256_keyid(c_obj->sigkey_bytes, c_obj->sigkey_len, keyid);
+
+        // create signed C pkt
+        r = ccnl_ndntlv_prependSignedContent(
+                                pfx,
+                                c_obj->content_bytes, c_obj->content_len,
+                                NULL, NULL,
+                                keyval, keyid,
+                                &data_offset,
+                                d_obj->packet_bytes);
+    } else
+    */
+        // create unsigned C pkt
+        r = ccnl_ndntlv_prependContent(
+                                pfx,
+                                c_obj->content_bytes, c_obj->content_len,
+                                NULL, NULL,
+                                &data_offset,
+                                d_obj->packet_bytes);
+
+
+    if (r == -1) {
+        // content did not fit in one packet
+        DEBUGMSG(ERROR, "Content data too big; cannot fit in one NDNx C packet\n");
+        return 0;   // no C pkt created
+    } else
+        d_obj->packet_len = r;
+
+    // the packet buffer was filled from the end towards the start
+    // so we need move the data to the start of the buffer
+    memcpy(d_obj->packet_bytes, d_obj->packet_bytes + data_offset, d_obj->packet_len);
+
+    return 1;   // 1 C pkt created
 }
 
 

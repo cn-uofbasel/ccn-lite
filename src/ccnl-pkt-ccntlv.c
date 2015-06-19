@@ -132,7 +132,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // We ignore the TL types of the message for now:
     // content and interests are filled in both cases (and only one exists).
     // Validation info is now collected
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || len > *datalen)
+    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen)
         goto Bail;
 
     pkt->type = typ;
@@ -147,14 +147,14 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         int len2 = len;
         unsigned int len3;
 
-        if (len > *datalen)
+        if ( (int)len > *datalen)
             goto Bail;
         switch (typ) {
         case CCNX_TLV_M_Name:
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
+                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || (int)len>*datalen)
                     goto Bail;
 
                 switch (typ) {
@@ -186,7 +186,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     break;
                 case CCNX_TLV_N_Meta:
                     if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) ||
-                        len > *datalen) {
+                        (int)len > *datalen) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
@@ -475,7 +475,7 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
 
     oldoffset = *offset;
     len = ccnl_ccntlv_prependInterest(name, offset, buf);
-    if (len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
+    if ( (unsigned int)len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
         return -1;
 
     if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Interest, 
@@ -537,7 +537,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
     if (len < 0)
         return -1;
 
-    if (len >= ((uint32_t)1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s))
+    if ((unsigned int)len >= ((uint32_t)1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s))
         return -1;
 
     if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,

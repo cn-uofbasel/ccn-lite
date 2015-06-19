@@ -572,8 +572,8 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
 
-    DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s>\n",
-             (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx));
+    DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
+             (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx), ((*pkt)->pfx->chunknum)? *((*pkt)->pfx->chunknum) : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)
@@ -612,9 +612,9 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *cit;
 
-    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s\n",
+    DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
-                  (void*)c, ccnl_prefix_to_path(c->pkt->pfx));
+                  (void*)c, ccnl_prefix_to_path(c->pkt->pfx), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (c == cit) {
             DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
@@ -845,6 +845,7 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
+
 
 #include "ccnl-pkt-switch.c"
 

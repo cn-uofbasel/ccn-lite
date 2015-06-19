@@ -23,6 +23,8 @@
  * 2014-11-05 merged from pkt-ccnb-dec.c and pkt-ccnb-enc.c
  */
 
+
+
 #ifdef USE_SUITE_CCNB
 
 #include "ccnl-pkt-ccnb.h"
@@ -115,7 +117,8 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     DEBUGMSG(TRACE, "ccnl_ccnb_extract\n");
 
-    pkt = ccnl_calloc(1, sizeof(*pkt));
+    //pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
     pkt->suite = CCNL_SUITE_CCNB;

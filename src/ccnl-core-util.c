@@ -938,7 +938,7 @@ One possibility is to not have a '/' before any nfn expression.
                   (char*)PSTR("%%%02x") : (char*)PSTR("%c");
             len += sprintf_P(buf + len, fmt, c);
 #else
-                  "%%%02x" : "%c";
+                  (char *) "%%%02x" : (char *) "%c";
             len += sprintf(buf + len, fmt, c);
 #endif
         }
