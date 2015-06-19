@@ -21,6 +21,9 @@
  * 2013-10-17 extended <christopher.scherb@unibas.ch>
  */
 
+
+#ifndef CCNL_UAPI_H_    // if CCNL_UAPI_H_ is defined then the following config is taken care elsewhere in the code composite
+
 #define USE_IPV4
 
 #define USE_LOGGING
@@ -91,6 +94,13 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-core-util.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
+
+#else // CCNL_UAPI_H_ is defined
+
+#include "base64.c"
+
+#endif // CCNL_UAPI_H_
+
 
 // ----------------------------------------------------------------------
 
@@ -231,7 +241,7 @@ ccntlv_isHeader(unsigned char *buf, int len)
 {
     struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
 
-    if (len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
+    if ((unsigned int)len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
         DEBUGMSG(ERROR, "ccntlv header not large enough\n");
         return NULL;
     }
@@ -430,7 +440,7 @@ load_keys_from_file(char *path)
             line[--read] = '\0';
         key = base64_decode(line, read, &keylen);
         if (key && keylen > 0) {
-            struct key_s *k = calloc(1, sizeof(struct key_s*));
+            struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
             k->keylen = keylen;
             k->key = key;
             if (kend)
