@@ -60,7 +60,7 @@ def printIt(pkts):
         print content
 
 print
-print '*** testing NFN support in Pythin. Expect the following 8 lines:'
+print '*** testing NFN support in Python. Expect the following 8 lines:'
 print '2'
 print '4'
 print '6'

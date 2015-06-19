@@ -20,20 +20,12 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 File history:
 Nov 2014    created
 2015-06-15  <christian.tschudin@unibas.ch> adapted for ccn-lite
-            (removed all dependencies on pyndn, must still do it for asyncio)
+            (removed all dependencies from pyndn and from asyncio)
 '''
-
-try:
-    # Use builtin asyncio on Python 3.4+, or Tulip on Python 3.3
-    import asyncio
-except ImportError:
-    # Use Trollius on Python <= 3.2
-    import trollius as asyncio
 
 import cStringIO
 import importlib
 # import logging
-import signal
 import socket
 import sys
 import time
@@ -45,9 +37,9 @@ import util
 
 # logging.basicConfig()
 
-class NFNproxy():
+class NFNproxy(object):
 
-    class FunctionRetriever():
+    class FunctionRetriever(object):
 
         def __init__(self, argNum, resultHandle):
             self.dataList = range(argNum)
@@ -74,49 +66,30 @@ class NFNproxy():
         def onData(self, data):
             self.notifyFunction(data, self.index)
 
-    #Starts a NFN proxy that will listen on the specified port and react to interests.
-    #Currently no concurrent processing of interests is implemented, the server will block until the current computation is done.
-    #Parameters:
-    #    listenPort
-    #        the port the server is going to listen for interests on. Register this port as a UDPFace in a ccn-nfn-relay
-    #    faceIP, facePort
-    #        the address of the ccn-nfn-relay that should be used for expressing interests and answering with data
-    def __init__(self, listenPort, faceIP, facePort):
-        self.interrupted = False
-        signal.signal(signal.SIGINT, self.onExit)
+    '''
+    __init__ starts a NFN proxy that will listen on the specified
+    port and react to interests. Currently no parallel processing
+    of interests is implemented by the proxy: it will block until
+    the current computation is done (but it uses parallel resolution
+    of arguments).
 
+    Parameters:
+    listenPort   - the port where the proxy is listening for interests
+    gwIP, gwPort - the IPv4 UDP address of the gateway (ccn-nfn-relay)
+    '''
+    def __init__(self, listenPort, gwIP, gwPort):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(("127.0.0.1", listenPort))
-
-        self.loop = asyncio.get_event_loop()
         self._access = client.Access()
-        self._access.connect(faceIP, facePort)
+        self._access.connect(gwIP, gwPort)
 
         print "NFN proxy server listening on UDP port", listenPort, "."
 
-        while (self.interrupted == False):
-            # print "Waiting for interests..."
+        while True:
             pkt, addr = self._sock.recvfrom(8192)
-            #Server will block until computation is done
-            self.processingInterest = True
-            self.loop.call_soon(self.stopLoopWhenDone)
-
             name = ndn.parseInterest(cStringIO.StringIO(pkt))
-            self.onInterest(name, addr)
-            self.loop.run_forever()
-
-    def onReceivedData(self, data): # ignore data
-        pass
-
-    def stopLoopWhenDone(self):
-        if (self.processingInterest == False):
-            self.loop.stop()
-        else:
-            self.loop.call_later(0.5, self.stopLoopWhenDone)
-
-    def onInterest(self, name, addr):
-        expression = name[-2]
-        self.resolve(expression,
+            expression = name[-2]
+            self.resolve(expression,
                      lambda data: self.returnData(addr, name, data))
 
     def returnData(self, addr, name, result):
@@ -126,12 +99,6 @@ class NFNproxy():
             pkt = result[0]
         self._sock.sendto(pkt, addr)
         self.processingInterest = False
-
-    def onExit(self, signal, frame):
-        self.interrupted = True
-        self.processingInterest = False
-        print "Shutting down..."
-        sys.exit(0)
 
     def resolve(self, expression, resultHandle):
 #        print "resolving ", expression
@@ -143,7 +110,8 @@ class NFNproxy():
         idxRightParam = expression.rfind(')')
         idxSpace = expression.find(' ')
                   
-        if ((idxLeftParam > -1) and ((idxSpace < 0) or idxLeftParam < idxSpace) and (idxRightParam == len(expression)-1)):
+        if ((idxLeftParam > -1) and ((idxSpace < 0) or idxLeftParam < idxSpace)
+                                      and (idxRightParam == len(expression)-1)):
             #   Format 'myfunc(mydata)'
             functionName = expression[:idxLeftParam]
             interior = expression[idxLeftParam+1:-1]

@@ -27,7 +27,7 @@ smoke signal with Python code:
 ## The API
 
 Requesting content via Python is simple and done in five lines of
-code. Attach to a ICN network and call `getLabaledContent`, or
+code. Attach to a ICN network and call `getLabeledContent`, or
 `getLabeledResult`in the case of named-functions:
 
 ```python
