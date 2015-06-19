@@ -1,4 +1,4 @@
-# ccn-lite/src/py/myNamedFunctions.py
+# ccn-lite/src/py/pubfunc/myNamedFunctions.py
 
 import cStringIO
 import ccnlite.ndn2013 as ndn

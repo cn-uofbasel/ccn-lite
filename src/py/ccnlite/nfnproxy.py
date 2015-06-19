@@ -1,8 +1,7 @@
-# ccn-lite/src/py/ccnlite/nfnserver.py
+# ccn-lite/src/py/ccnlite/nfnproxy.py
 
 '''
-CCN-lite module for Python:
-a NFN server supporting the publishing of user defined Python functions
+NFN proxy supporting the publishing of user defined Python functions
 
 Copyright (C) 2014, Michaja Pressmar, University of Basel
 
@@ -46,7 +45,7 @@ import util
 
 # logging.basicConfig()
 
-class NFNserver():
+class NFNproxy():
 
     class FunctionRetriever():
 
@@ -75,7 +74,7 @@ class NFNserver():
         def onData(self, data):
             self.notifyFunction(data, self.index)
 
-    #Starts a NFN server that will listen on the specified port and react to interests.
+    #Starts a NFN proxy that will listen on the specified port and react to interests.
     #Currently no concurrent processing of interests is implemented, the server will block until the current computation is done.
     #Parameters:
     #    listenPort
@@ -93,7 +92,7 @@ class NFNserver():
         self._access = client.Access()
         self._access.connect(faceIP, facePort)
 
-        print "Server listening on port", listenPort, "."
+        print "NFN proxy server listening on UDP port", listenPort, "."
 
         while (self.interrupted == False):
             # print "Waiting for interests..."
@@ -189,10 +188,10 @@ class NFNserver():
     def buildFunctionRetriever(self, functionName, arguments, resultHandle):
         idxDot = functionName.rfind('/')
         if (idxDot >= 0):
-            moduleName = functionName[1:idxDot]
+            moduleName = 'pubfunc.' + functionName[1:idxDot]
             moduleName.replace('/', '.')
+            module = importlib.import_module(moduleName)
             functionName = functionName[idxDot+1:]
-            module = __import__(moduleName)
             callFunc = getattr(module, functionName)
         else:
             callFunc = globals()[functionName]
