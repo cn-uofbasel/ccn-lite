@@ -134,6 +134,12 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
             goto done;
+        if (pfx->chunknum || nam->chunknum) {
+            if (!pfx->chunknum || !nam->chunknum)
+                goto done;
+            if (*pfx->chunknum != *nam->chunknum)
+                goto done;
+        }
 #ifdef USE_NFN
         if (nam->nfnflags != pfx->nfnflags)
             goto done;
@@ -147,6 +153,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
             goto done;
         }
     }
+    // FIXME: we must also inspect chunknum here!
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
     DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
