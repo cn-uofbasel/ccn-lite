@@ -657,6 +657,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
     for (i = ccnl->pit; i;) {
         struct ccnl_pendint_s *pi;
+
         if (!i->pkt->pfx)
             continue;
 
@@ -760,10 +761,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
-                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
-          DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);  
+                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC))
             c = ccnl_content_remove(relay, c);
-        }
         else
             c = c->next;
     }
@@ -771,7 +770,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-            DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);  
             DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                           (void*)i,
                      ccnl_prefix_to_path(i->pkt->pfx));
@@ -782,13 +780,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
                      ccnl_prefix_to_path(i->pkt->pfx));
 #ifdef USE_NFN
-            if (i->flags & CCNL_PIT_COREPROPAGATES){
+            if (i->flags & CCNL_PIT_COREPROPAGATES)
 #endif
-                DEBUGMSG_CORE(TRACE, "AGING: PROPAGATING INTEREST %p\n", (void*) i);
                 ccnl_interest_propagate(relay, i);
-#ifdef USE_NFN     
-            }
-#endif
 
             i->retries++;
             i = i->next;
@@ -797,7 +791,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (f) {
         if (!(f->flags & CCNL_FACE_FLAGS_STATIC) &&
                 (f->last_used + CCNL_FACE_TIMEOUT) <= t){
-            DEBUGMSG_CORE(TRACE, "AGING: FACE REMOVE %p\n", (void*) f);      
             f = ccnl_face_remove(relay, f);   
     }
         else

@@ -63,9 +63,7 @@
 #define NDN_TLV_SignatureType           0x1b
 #define NDN_TLV_KeyLocator              0x1c
 #define NDN_TLV_KeyLocatorDigest        0x1d
-#define NDN_VAL_SIGTYPE_DIGESTSHA256    0x00
-#define NDN_VAL_SIGTYPE_SHA256WITHRSA   0x01
-#define NDN_VAL_SIGTYPE_HMAC256         0x04
+#define NDN_VAL_SIGNATURE_HMAC256       0x04
 
 // Fragment
 #define NDN_TLV_NdnlpHeader             0x50
