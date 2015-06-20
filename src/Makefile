@@ -109,6 +109,15 @@ CCNL_PLATFORM_LIB = ccnl-os-includes.h \
 
 NFN_LIB = ccnl-ext-nfn.c krivine.c krivine-common.c
 
+OMNET_DEPS = ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-defs.h \
+             ccnl-ext-crypto.c ccnl-ext-debug.c ccnl-ext-debug.h ccnl-ext-echo.c \
+             ccnl-ext-frag.c ccnl-ext.h ccnl-ext-hmac.c ccnl-ext-http.c \
+             ccnl-ext-localrpc.c ccnl-ext-logging.c ccnl-ext-mgmt.c ccnl-ext-sched.c \
+             ccnl-pkt-ccnb.c ccnl-pkt-ccnb.h ccnl-pkt-ccntlv.c ccnl-pkt-ccntlv.h \
+             ccnl-pkt-cistlv.c ccnl-pkt-cistlv.h ccnl-pkt-iottlv.c ccnl-pkt-iottlv.h \
+             ccnl-pkt-localrpc.c ccnl-pkt-localrpc.h ccnl-pkt-ndntlv.c ccnl-pkt-ndntlv.h \
+             ccnl-pkt-switch.c ccnl-uapi.c ccnl-uapi.h lib-sha256.c \
+             util/base64.c util/ccnl-common.c \
 
 # ----------------------------------------------------------------------
 
@@ -137,15 +146,24 @@ ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${EXTMAKE}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 
-ccn-lite-omnet:  ${SUITE_LIBS} \
-	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-	ccn-lite-omnet.c 
-	rm -rf omnet/src/ccn-lite/*
+#ccn-lite-omnet:  ${SUITE_LIBS} \
+#	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
+#	ccn-lite-omnet.c 
+#	rm -rf omnet/src/ccn-lite/*
+#	rm -rf ccn-lite-omnet.tgz
+#	cp -a $^ omnet/src/ccn-lite/
+#	mv omnet ccn-lite-omnet
+#	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
+#	mv ccn-lite-omnet omnet
+
+ccn-lite-omnet:  ${OMNET_DEPS}
+	rm -rf ccn-lite-omnet
 	rm -rf ccn-lite-omnet.tgz
-	cp -a $^ omnet/src/ccn-lite/
-	mv omnet ccn-lite-omnet
+	cp -a omnet ccn-lite-omnet
+	cp -a $^ ccn-lite-omnet/src/ccn-lite/
 	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
-	mv ccn-lite-omnet omnet
+	rm -rf ccn-lite-omnet
+
 
 ccn-lite-lnxkernel:
 	make modules
@@ -172,6 +190,6 @@ clean:
 	${EXTMAKECLEAN}
 	rm -rf *~ *.o ${PROGS}
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
-	rm -rf omnet/src/ccn-lite/*
 	rm -rf ccn-lite-omnet.tgz
+	rm -rf ccn-lite-omnet
 	make -C util clean

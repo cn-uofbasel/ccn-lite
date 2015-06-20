@@ -661,8 +661,6 @@ static inline int           setMgmt (struct info_mgmt_s *m) {return m->vtable->s
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-nfn.c"
-#include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
 #include "ccnl-ext-frag.c"
 #include "ccnl-ext-crypto.c"
