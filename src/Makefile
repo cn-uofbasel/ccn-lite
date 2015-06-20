@@ -146,16 +146,6 @@ ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${EXTMAKE}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 
-#ccn-lite-omnet:  ${SUITE_LIBS} \
-#	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-#	ccn-lite-omnet.c 
-#	rm -rf omnet/src/ccn-lite/*
-#	rm -rf ccn-lite-omnet.tgz
-#	cp -a $^ omnet/src/ccn-lite/
-#	mv omnet ccn-lite-omnet
-#	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
-#	mv ccn-lite-omnet omnet
-
 ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 	rm -rf ccn-lite-omnet.tgz
