@@ -174,20 +174,19 @@ In brief the omnet part consists of:
 
 4.c) Last, and most IMPORTANT: what to expect from it!
 
-The code base of ccn-lite-omnet is far from complete, and far from
-satisfying everyone's wish list! The intend (so far at least) has not 
-to been to provide "a service" to the ICN community, but rather to 
-provide a "starting point". Having taken care of the boring part of
-the basic functionality, you should be able to build on top of this 
-code-base the functionality you want to have for your experiments/
-research.
+The code base of ccn-lite-omnet is far from complete (may even have bugs that
+went unoticed), and far from satisfying everyone's wish list! The intend (so
+far at least) has not to been to provide "a service" to the ICN community, but
+rather to provide a "starting point". Having taken care of the boring part of
+the basic functionality, you should be able to build on top of this code-base
+the functionality you want to have for your experiments/ research.
 
-(Or if you feel up to it why not even re-develop the basic functionality 
+(Or if you feel up to it why not even re-develop the basic functionality
 better, to get over its constraints and caveats).
 
-The main starting point for building up your wish list would typically 
-be the Ccn class. Either by extending it e.g. to integrate transport 
-intelligence, CS management, etc .. or by writing an application layer 
-that talks to it (and hosts your application logic).
+The main starting point for building up your wish list would typically be the
+Ccn class. Either by extending it e.g. to integrate transport intelligence, CS
+management, etc .. or by writing an application layer that talks to it (and
+hosts your application logic).
 
 # eof
