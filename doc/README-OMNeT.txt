@@ -107,28 +107,35 @@ Finally, build the ccn-lite-omnet project
  (Menu) Project -> Build Project
 
 
-__Important__: 
+__Important Note__: 
 
 INET needs to be installed and already built before
 you attempt to build ccn-lite-omnet, and in the same workspace
 
 ---
 
-4) Further documentation and code examples
+4) Further documentation and code
+
+4.a) Contents of the bundle you generated in (2)
 
 At this point you're ready to build your own topologies and
 experiment with CCN in OMNeT++. To get you started if you re
-not too familiar with OMNeT++ and INET, in the in the
-ccn-lite project you will find the following
+not too familiar with OMNeT++ and INET, in the ccn-lite-omnet
+project you will find the following sub-directories
 
-  topologies/   folder containing simple toy-topologies 
-  compounds/    folder containing vanilla NED definition for
-		a CCN node over Ethernet (used in the
-		example scenario)
-  simulations/  folder with one example scenario that uses
-                one of the topologies
-                (You can use this for unit testing, the scenario
-                files for each node are provided as .cfgs)
+  src/		Source code base for integrating ccn-lite
+                in omnet. Therein the ccn-lite/ sub-directory 
+		contains the parts of the ccn-lite source tree
+		used in omnet
+  topologies/   Contains a couple of simple example topologies
+  compounds/    Contains a vanilla NED definition for a CCN 
+		node over Ethernet (as used in the unit-test
+		simulation scenario). This NED glues together
+		INET functionality with the Ccn module in src.
+  simulations/  An example simulation scenario for unit-tests 
+		and for kickstarting your games with ccn-lite-omnet.
+                Role files for each node in the scenario are 
+		provided in the .cfg file included.
 
 Some additional developer's documentation providing an
 overview of the software architecture of the OMNeT++ wrapper
@@ -136,5 +143,51 @@ of CCN-lite, the current scenario configuration options, the
 OMNeT++ message definitions and the function of the various
 modules, can be found in the doc/omnet/ directory of the
 CCN-lite source tree.
+
+
+4.b) Key parts of the omnet code base
+
+In brief the omnet part consists of:
+
+- A class that abstracts away the integration with INET (CcnInet).
+
+- A class that implements all the Ccn related functionality (Ccn),
+  which inherits directly from CcnInet.
+
+- A class that provides a c++ interface to the ccn-lite code (CcnCore), 
+  and takes care of making it reentrant so that multiple ccn-lite 
+  node incarnations can be instantiated in the same omnet process. 
+  The Ccn class encapsulates CcnCore.
+
+- A class that is the "deus ex-machina" of a ccn simulation scenario
+  (CcnAdmin). It initialises the nodes and topology and makes things 
+  you would like to simulate happen "by fate" during the simulation 
+  (e.g. changes in the state of nodes, failures, initiation of requests,
+  updates of CSs, etc). This class can be used to compensate for the 
+  lack of established routing protocol implementations, cache 
+  replacement policies, etc ; in a centralised and organised way.
+
+- A number of other suport classes such as CcnContext, that wraps 
+  ccn packets exchanged between ccn-lite nodes; TimerList, that is
+  used for event services to ccn-lite nodes, etc.
+
+
+4.c) Last, and most IMPORTANT: what to expect from it!
+
+The code base of ccn-lite-omnet is far from complete, and far from
+satisfying everyone's wish list! The intend (so far at least) has not 
+to been to provide "a service" to the ICN community, but rather to 
+provide a "starting point". Having taken care of the boring part of
+the basic functionality, you should be able to build on top of this 
+code-base the functionality you want to have for your experiments/
+research.
+
+(Or if you feel up to it why not even re-develop the basic functionality 
+better, to get over its constraints and caveats).
+
+The main starting point for building up your wish list would typically 
+be the Ccn class. Either by extending it e.g. to integrate transport 
+intelligence, CS management, etc .. or by writing an application layer 
+that talks to it (and hosts your application logic).
 
 # eof
