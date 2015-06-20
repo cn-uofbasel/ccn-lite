@@ -164,7 +164,6 @@ ccn-lite-omnet:  ${OMNET_DEPS}
 	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
 	rm -rf ccn-lite-omnet
 
-
 ccn-lite-lnxkernel:
 	make modules
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
