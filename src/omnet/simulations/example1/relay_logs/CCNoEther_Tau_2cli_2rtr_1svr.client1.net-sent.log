@@ -1,0 +1,10 @@
+#####################
+# sent_log Node CCNoEther_Tau_2cli_2rtr_1svr.client1.net
+#####################
+# time	 sent i		 sent c		 sent i+c
+1	 1.000000	 ?	 1.000000
+10	 0.111111	 ?	 0.111111
+10	 inf	 ?	 inf
+10	 inf	 ?	 inf
+10	 inf	 ?	 inf
+10	 inf	 ?	 inf
