@@ -160,6 +160,7 @@ ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 	rm -rf ccn-lite-omnet.tgz
 	cp -a omnet ccn-lite-omnet
+	mkdir ccn-lite-omnet/src/ccn-lite 
 	cp -a $^ ccn-lite-omnet/src/ccn-lite/
 	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
 	rm -rf ccn-lite-omnet
