@@ -224,7 +224,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     if (typ == NDN_TLV_NameComponent) {
                         // TODO: again, includedNonNeg not yet implemented
                         pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
-                    } 
+                    }
                 }
                 cp += i;
                 len2 -= i;
@@ -245,7 +245,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_SignatureType && i == 1 &&
-                                          *cp == NDN_VAL_SIGNATURE_HMAC256) {
+                                          *cp == NDN_VAL_SIGTYPE_HMAC256) {
                     validAlgoIsHmac256 = 1;
                     break;
                 }
@@ -376,7 +376,7 @@ ccnl_ndntlv_prependNonNegIntVal(unsigned int val,
 }
 
 int
-ccnl_ndntlv_prependNonNegInt(int type, 
+ccnl_ndntlv_prependNonNegInt(int type,
                              unsigned int val,
                              int *offset, unsigned char *buf)
 {
@@ -432,7 +432,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 
     if(name->chunknum) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *name->chunknum, 
+                                                 *name->chunknum,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;
@@ -500,19 +500,19 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 }
 
 int
-ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, 
-                           unsigned char *payload, int paylen,  
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
                            int *contentpos, unsigned int *final_block_id,
                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
+    unsigned char signatureType = NDN_VAL_SIGTYPE_DIGESTSHA256;
 
     if (contentpos)
         *contentpos = *offset - paylen;
 
     // fill in backwards
 
-/*
     // mandatory (empty for now)
     if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureValue, 0, offset, buf) < 0)
         return -1;
@@ -525,39 +525,38 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
         return -1;
 
     // use NDN_SigTypeVal_SignatureSha256WithRsa because this is default in ndn client libs
-    if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, signatureType, 1,
-                offset, buf)< 0)
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_SignatureType, &signatureType, 1,
+                offset, buf) < 0)
         return 1;
 
     // Groups KeyLocator and Signature Type with stored len
     if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, oldoffset2 - *offset, offset, buf) < 0)
         return -1;
-*/
 
     // mandatory
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
                                 offset, buf) < 0)
         return -1;
 
-    // to find length of optional MetaInfo fields
+    // to find length of optional (?) MetaInfo fields
     oldoffset2 = *offset;
     if(final_block_id) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
-                                                 *final_block_id, 
+                                                 *final_block_id,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;
 
         // optional
-        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset, offset, buf) < 0)
+        if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
+                                  offset, buf) < 0)
             return -1;
     }
 
-/*
     // mandatory (empty for now)
-    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset, offset, buf) < 0)
+    if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset,
+                              offset, buf) < 0)
         return -1;
-*/
 
     // mandatory
     if (ccnl_ndntlv_prependName(name, offset, buf))

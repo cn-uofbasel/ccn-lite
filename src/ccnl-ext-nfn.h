@@ -16,7 +16,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * 2014-04-04 created 
+ * 2014-04-04 created
  */
 
 #ifndef CCNL_EXT_NFN_H
@@ -86,14 +86,14 @@ struct configuration_s{
     char *prog;
     struct stack_s *result_stack;
     struct stack_s *argument_stack;
-    struct environment_s *env; 
+    struct environment_s *env;
     struct environment_s *global_dict;
     struct fox_machine_state_s *fox_state;
     struct ccnl_prefix_s *prefix;
-    
+
     struct configuration_s *next;
     struct configuration_s *prev;
-   
+
     double starttime;
     double endtime;
     int thunk;

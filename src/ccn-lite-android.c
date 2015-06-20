@@ -305,7 +305,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
 
     DEBUGMSG(INFO, "configuring relay\n");
 
-    relay->max_cache_entries = max_cache_entries;       
+    relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
@@ -371,9 +371,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         strcat(fname, "/");
         strcat(fname, de->d_name);
 
-        if (stat(fname, &s)) { 
-            perror("stat"); 
-            continue; 
+        if (stat(fname, &s)) {
+            perror("stat");
+            continue;
         }
         if (S_ISDIR(s.st_mode))
             continue;
@@ -382,9 +382,9 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
                  (int) s.st_size);
 
         fd = open(fname, O_RDONLY);
-        if (!fd) { 
-            perror("open"); 
-            continue; 
+        if (!fd) {
+            perror("open");
+            continue;
         }
 
         buf = (struct ccnl_buf_s *) ccnl_malloc(sizeof(*buf) + s.st_size);
@@ -435,7 +435,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             pk = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
             break;
         }
-#endif 
+#endif
 #ifdef USE_SUITE_CISTLV
         case CCNL_SUITE_CISTLV: {
             int hdrlen;
@@ -451,7 +451,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             pk = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
             break;
         }
-#endif 
+#endif
 #ifdef USE_SUITE_IOTTLV
         case CCNL_SUITE_IOTTLV: {
             unsigned char *olddata;
@@ -558,7 +558,7 @@ ccnl_android_udp_io(int fd, int events, void *data)
             if ((len = recvfrom(relay->ifs[i].sock, buf, sizeof(buf),
                                 MSG_DONTWAIT,
                                 (struct sockaddr*) &src_addr, &addrlen)) > 0) {
-                    
+
                 DEBUGMSG(TRACE, "android_udp_io - input event %d\n", len);
                 if (src_addr.sa.sa_family == AF_INET) {
                     ccnl_core_RX(relay, i, buf, len,
@@ -717,7 +717,7 @@ ccnl_android_init()
     // UDP and HTTP ports
     for (i = 0; i < theRelay.ifcount; i++) {
         if (theRelay.ifs[i].addr.sa.sa_family == AF_INET)
-            ALooper_addFd(theLooper, theRelay.ifs[i].sock, 
+            ALooper_addFd(theLooper, theRelay.ifs[i].sock,
                   ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
                   ccnl_android_udp_io, &theRelay);
     }

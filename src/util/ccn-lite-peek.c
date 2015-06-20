@@ -42,7 +42,7 @@ unsigned char out[8*CCNL_MAX_PACKET_SIZE];
 int outlen;
 
 int
-frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from, 
+frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         unsigned char **data, int *len)
 {
     DEBUGMSG(INFO, "frag_cb\n");
@@ -55,15 +55,15 @@ frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *udp = NULL, *ux = NULL;
+    int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    int (*isContent)(unsigned char*, int);
-    int (*isFragment)(unsigned char*, int) = NULL;
     unsigned int chunknum = UINT_MAX;
+    ccnl_mkInterestFunc mkInterest;
+    ccnl_isContentFunc isContent;
+    ccnl_isFragmentFunc isFragment;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -100,7 +100,7 @@ usage:
             "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -113,83 +113,22 @@ usage:
             exit(1);
         }
     }
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if(!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if(!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        if(!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        if(!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if(!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-        default:
-	    if(!udp)
-               udp = "127.0.0.1/6363";
-	    break;
-        }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
 
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        mkInterest = ccnl_ccnb_fillInterest;
-        isContent = ccnb_isContent;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isData;
-        isFragment = ccntlv_isFragment;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        mkInterest = cistlv_mkInterest;
-        isContent = cistlv_isData;
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        mkInterest = iottlv_mkRequest;
-        isContent = iottlv_isReply;
-        isFragment = iottlv_isFragment;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        isContent = ndntlv_isData;
-        break;
-#endif
-    default:
-        DEBUGMSG(ERROR, "unknown suite\n");
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
+
+    mkInterest = ccnl_suite2mkInterestFunc(suite);
+    isContent = ccnl_suite2isContentFunc(suite);
+    isFragment = ccnl_suite2isFragmentFunc(suite);
+    
+    if (!mkInterest || !isContent) {
         exit(-1);
     }
 
@@ -202,8 +141,8 @@ usage:
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
         udp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
-        si->sin_port = htons(atoi(strtok(NULL, "/")));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
     }
 
@@ -221,8 +160,8 @@ usage:
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-        len = mkInterest(prefix, 
-                         &nonce, 
+        len = mkInterest(prefix,
+                         &nonce,
                          out, sizeof(out));
 
         DEBUGMSG(DEBUG, "interest has %d bytes\n", len);

@@ -486,8 +486,8 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 
     // This part stores the stack pointer low and high byte indirectly
     // using the X registers (r26,27), which is what I want.
-    "in    r0, __SP_L__    \n\t" 
-    "st    x+, r0          \n\t" 
+    "in    r0, __SP_L__    \n\t"
+    "st    x+, r0          \n\t"
     "in    r0, __SP_H__    \n\t"
     "st    x+, r0          \n\t"
   ::);

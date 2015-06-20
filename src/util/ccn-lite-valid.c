@@ -77,11 +77,11 @@ ccnl_parse(unsigned char *data, int datalen)
         }
         break;
     }
-#endif 
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
         unsigned int typ, len2;
-        
+
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
             return NULL;
@@ -101,7 +101,7 @@ ccnl_parse(unsigned char *data, int datalen)
     default:
         DEBUGMSG(INFO, "packet without HMAC\n");
         pkt = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
-        pkt->buf = ccnl_buf_new(buf, datalen);
+        pkt->buf = ccnl_buf_new(NULL, datalen);
         return pkt;
     }
     return pkt;

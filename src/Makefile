@@ -14,27 +14,34 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
 CC?=gcc
 
+# Get version of gcc with two digits, e.g. 40902
+GCC_VERSION := $(shell ${CC} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/')
+GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
+
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0 
+CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
 # CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
-LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux -Wno-error=date-time
+LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
+ifeq ($(GCC_GTEQ_40900),1)
+    LINUX_CFLAGS += -Wno-error=date-time
+endif
 
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
 
-EXTLIBS=  -lcrypto 
+EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
 
 # CCNL_NFN_MONITOR to log messages to nfn-scala montior
-NFNFLAGS += -DUSE_NFN -DUSE_NFN_MONITOR
+NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 
-PROGS = 
+PROGS =
 INST_PROGS= ccn-lite-relay \
-            ccn-lite-minimalrelay 
+            ccn-lite-minimalrelay
 
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)
@@ -42,7 +49,7 @@ ifeq ($(uname_S),Linux)
     EXTLIBS += -lrt
     ifdef USE_KRNL
         $(info *** With Linux Kernel ***)
-        PROGS += ccn-lite-lnxkernel 
+        PROGS += ccn-lite-lnxkernel
     endif
 
     # Some investigation needed to compile ccn-lite-simu with OSX
@@ -67,7 +74,7 @@ endif
 
 ifdef USE_NACK
     $(info *** With NFN_NACK ***)
-    INST_PROGS += ccn-lite-relay-nack 
+    INST_PROGS += ccn-lite-relay-nack
     ifdef USE_NFN
         INST_PROGS += ccn-nfn-relay-nack
     endif
@@ -83,7 +90,10 @@ ifdef USE_CHEMFLOW
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
-EXTRA_CFLAGS := -g $(OPTCFLAGS) -Wno-error=date-time
+EXTRA_CFLAGS := -g $(OPTCFLAGS)
+ifeq ($(GCC_GTEQ_40900),1)
+    EXTRA_CFLAGS += -Wno-error=date-time
+endif
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o
 
@@ -101,7 +111,7 @@ CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-ut
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
                  ccnl-ext-echo.c ccnl-ext-hmac.c ccnl-ext-mgmt.c \
-		 ccnl-ext-http.c  ccnl-ext-crypto.c 
+		 ccnl-ext-http.c  ccnl-ext-crypto.c
 
 CCNL_PLATFORM_LIB = ccnl-os-includes.h \
                     ccnl-ext-debug.c ccnl-ext.h ccnl-ext-logging.c \
@@ -128,17 +138,17 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $<
 
-ccn-nfn-relay: ${CCNL_RELAY_LIB} 
+ccn-nfn-relay: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
 
 ccn-nfn-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 
 ccn-lite-relay: ${CCNL_RELAY_LIB}
-	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS} 
+	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 
 ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
-	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS} 
+	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
@@ -160,7 +170,7 @@ ccn-lite-lnxkernel:
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
-    ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c 
+    ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c
 	make -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
 
 datastruct.pdf: datastruct.dot

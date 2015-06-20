@@ -388,7 +388,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
         tn = "Pad";
     } else {
         switch (ctx) {
-        
+
             case CTX_GLOBAL:
                 cn = "global";
                 switch (type) {
@@ -396,7 +396,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 default: break;
                 }
                 break;
-        
+
             case CTX_TOPLEVEL:
                 cn = "toplevelCtx";
                 switch (type) {
@@ -1076,11 +1076,11 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
         break;
     }
     if (tn) {
-        sprintf(tmp, "%s\\%s", tn, cn);
+        sprintf(tmp, "%s-%s", tn, cn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        sprintf(tmp, "type=0x%04x-%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        sprintf(tmp, "type=0x%04x-ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -1105,7 +1105,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     int i;
     unsigned int vallen, typ;
     unsigned char ctx2, *cp;
-    char *n, tmp[100];
+    char *n, n_old[100], tmp[100];
 
     while (*len > 0) {
         cp = *buf;
@@ -1125,28 +1125,50 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
-
-        fprintf(out, "%04zx  ", cp - base);
+        
+        if(!rawxml)
+            fprintf(out, "%04zx  ", cp - base);
         for (i = 0; i < lev; i++) {
             fprintf(out, "  ");
         }
         for (; cp < *buf; cp++) {
-            fprintf(out, "%02x ", *cp);
+            if(!rawxml)
+                fprintf(out, "%02x ", *cp);
         }
-        fprintf(out, "-- <%s, len=%d>\n", n, vallen);
+        if(!rawxml)
+            fprintf(out, "-- <%s, len=%d>\n", n, vallen);
 
         ctx2 = iottlv_must_recurse(ctx, typ);
         if (ctx2) {
+            if (rawxml)
+                fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
+            strcpy(n_old, n);  
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
+                
+            if(rawxml) {
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n_old);
+            }
         } else {
-            hexdump(lev, base, *buf, vallen, rawxml, out);
-            *buf += vallen;
-            *len -= vallen;
-        }
+            if (rawxml && vallen > 0) {
+                fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n", n, vallen);
+                base64dump(lev, base, *buf, vallen, rawxml, out);
+                for (i = 0; i < lev; i++) {
+                        fprintf(out, "  ");
+                }
+                fprintf(out, "</%s>\n", n);
+            } else 
+                hexdump(lev, base, *buf, vallen, rawxml, out);
+           *buf += vallen;
+           *len -= vallen;
+            
+       }
     }
 
     return 0;
@@ -1466,7 +1488,7 @@ localrpc_201405(unsigned char *data, int len, int rawxml, FILE* out)
 
 // ----------------------------------------------------------------------
 
-void
+int
 emit_content_only(unsigned char *start, int len, int suite, int format)
 {
     unsigned char *data;
@@ -1493,7 +1515,7 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         unsigned int pkttype, vallen;
         data = start;
         if (ccnl_iottlv_dehead(&data, &len, &pkttype, &vallen) < 0)
-            return;
+            return -1;
         pkt = ccnl_iottlv_bytes2pkt(pkttype, start, &data, &len);
         break;
     }
@@ -1501,35 +1523,42 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         unsigned int pkttype, vallen;
         data = start;
         if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
-            return;
+            return -1;
         pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, &len);
         break;
     }
     default:
-        return;
+        return -1;
     }
     if (!pkt) {
         DEBUGMSG(WARNING, "extract (%s): parsing error or no prefix\n",
-                 ccnl_suite2str(suite)); 
+                 ccnl_suite2str(suite));
+        return -1;
     }
     write(1, pkt->content, pkt->contlen);
     if (format > 2)
         write(1, "\n", 1);
     free_packet(pkt);
+
+    return 0;
 }
 
 // ----------------------------------------------------------------------
 
-void
+// returns 0 on success, -1 on error, 1 on "warning"
+int
 dump_content(int lev, unsigned char *base, unsigned char *data,
              int len, int format, int suite, FILE *out)
 {
     char *forced;
     int enc, oldlen = len;
     unsigned char *olddata = data;
+    int rc = 0;
 
-    if (len == 0)
-       goto done;
+    if (len == 0) {
+        rc = -1;
+        goto done;
+    }
 
     if (suite >= 0) {
         forced = "forced";
@@ -1561,10 +1590,8 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
             suite = ccnl_pkt2suite(olddata, oldlen, NULL);
     }
 
-    if (format >= 2) {
-        emit_content_only(data, len, suite, format);
-        return;
-    }
+    if (format >= 2)
+        return emit_content_only(data, len, suite, format);
 
     switch (suite) {
     case CCNL_SUITE_CCNB:
@@ -1611,6 +1638,7 @@ dump_content(int lev, unsigned char *base, unsigned char *data,
         ndntlv_201311(data, len, format == 1, out);
         break;
     default:
+        rc = -1;
         if (format == 0) {
             indent("#   ", lev);
             printf("unknown pkt format, showing plain hex\n");
@@ -1624,6 +1652,8 @@ done:
         }
         break;
     }
+
+    return rc;
 }
 
 // ----------------------------------------------------------------------
@@ -1665,7 +1695,7 @@ help:
                     "  -h           this help\n"
                     "  -s SUITE     (ccnb, ccnx2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+                    "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
                     ,
                     argv[0]);
@@ -1693,9 +1723,7 @@ help:
     if (format == 0)
         printf("# ccn-lite-pktdump, parsing %d byte%s\n", len, len!=1 ? "s":"");
 
-    dump_content(0, data, data, len, format, suite, out);
-
-    return 0;
+    return dump_content(0, data, data, len, format, suite, out);
 }
 #endif
 

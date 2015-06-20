@@ -115,10 +115,10 @@ sign(char* private_key_path, unsigned char *msg, int msg_len,
     RSA *rsa = (RSA *) PEM_read_RSAPrivateKey(fp,NULL,NULL,NULL);
     fclose(fp);
     if(!rsa) return 0;
-    
+
     unsigned char md[SHA256_DIGEST_LENGTH];
     sha(msg, msg_len, md);
-    
+
     //Compute signatur
     int err = RSA_sign(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int*)sig_len, rsa);
     if(!err){
@@ -138,15 +138,15 @@ verify(char* public_key_path, unsigned char *msg, int msg_len,
         printf("Could not find public key\n");
         return 0;
     }
-    
+
     RSA *rsa = (RSA *) PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
     if(!rsa) return 0;
     fclose(fp);
-    
+
     //Compute Hash
     unsigned char md[SHA256_DIGEST_LENGTH];
     sha(msg, msg_len, md);
-    
+
     //Verify signature
     int verified = RSA_verify(NID_sha256, md, SHA256_DIGEST_LENGTH, (unsigned char*)sig, (unsigned int)sig_len, rsa);
     if(!verified){
@@ -161,29 +161,29 @@ add_signature(unsigned char *out, char *private_key_path,
               unsigned char *file, unsigned int fsize)
 {
     int len;
-    
+
     unsigned char sig[2048];
     unsigned int sig_len;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_SIGNATURE, CCN_TT_DTAG);
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_NAME, CCN_TT_DTAG, "SHA256");
     len += ccnl_ccnb_mkStrBlob(out + len, CCN_DTAG_WITNESS, CCN_TT_DTAG, "");
-    
+
     if(!sign(private_key_path, (unsigned char*)file, fsize, (unsigned char*)sig, &sig_len)) return 0;
     //printf("SIGLEN: %d\n",sig_len);
     sig[sig_len]=0;
-    
+
     //add signaturebits bits...
     len += ccnl_ccnb_mkHeader(out + len, CCN_DTAG_SIGNATUREBITS, CCN_TT_DTAG);
     len += ccnl_ccnb_addBlob(out + len, (char*)sig, sig_len);
     out[len++] = 0; // end signaturebits
-    
+
     out[len++] = 0; // end signature
-    
+
     /*char *publickey = "/home/blacksheeep/.ssh/publickey.pem";
     int verified = verify(publickey, file, fsize, sig, sig_len);
     printf("Verified: %d\n", verified);*/
-    
+
     return len;
 }
 #endif /*USE_SIGNATURES*/

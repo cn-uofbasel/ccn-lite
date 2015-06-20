@@ -68,7 +68,7 @@ void loop()
 #endif
         default:
             Serial.println();
-            break;      
+            break;
        }
     }
 
@@ -84,7 +84,7 @@ void loop()
         ((struct sockaddr_in*) (&sa))->sin_port = udp->remotePort();
         ccnl_core_RX(&theRelay, 0, packetBuffer, len, &sa, sizeof(sa));
     }
- 
+
     delay(ccnl_arduino_run_events(&theRelay));
 }
 

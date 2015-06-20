@@ -114,7 +114,7 @@ usage:
             "  -f PREFIX   use PREFIX for output file names (default: defrag)\n"
             "  -n          no-clobber\n",
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             cmdname);
             exit(1);

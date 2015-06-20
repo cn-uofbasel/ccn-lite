@@ -428,7 +428,7 @@ debug_delta(char up)
 }
 
 int
-ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac, 
+ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   unsigned long int IPaddr, unsigned short port,
                   EthernetUDP *udp)
 {

@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-03-14 created 
+ * 2014-03-14 created
  */
 
 // ----------------------------------------------------------------------
@@ -358,7 +358,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         return NULL;
 
 #if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-    if (config->suite == CCNL_SUITE_CCNTLV || 
+    if (config->suite == CCNL_SUITE_CCNTLV ||
                                          config->suite == CCNL_SUITE_CISTLV)
         offset = 4;
 #endif
@@ -390,7 +390,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         }
 
     }
-    
+
     len += sprintf((char *)name->bytes + offset + len, ")");
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
@@ -462,7 +462,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     return NULL;
 }
 
-char * 
+char *
 ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                    struct ccnl_prefix_s *prefix)
 {
@@ -470,7 +470,7 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct thunk_s *thunk;
 
     DEBUGMSG(TRACE, "ccnl_nfn_add_thunk()\n");
-    
+
     if (ccnl_nfnprefix_isTHUNK(new_prefix)) {
         new_prefix->comp[new_prefix->compcnt-2] = new_prefix->comp[new_prefix->compcnt-1];
         --new_prefix->compcnt;
@@ -524,12 +524,12 @@ ccnl_nfn_remove_thunk(struct ccnl_relay_s *ccnl, char* thunkid){
     DBL_LINKED_LIST_REMOVE(ccnl->km->thunk_list, thunk);
 }
 
-int 
+int
 ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
 {
     struct ccnl_prefix_s *prefix = ccnl_prefix_dup(config->prefix);
     char reply_content[100];
-    int thunk_time = (int)config->thunk_time; 
+    int thunk_time = (int)config->thunk_time;
     struct ccnl_content_s *c;
 
     DEBUGMSG(TRACE, "ccnl_nfn_reply_thunk()\n");
@@ -694,7 +694,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
             len += sprintf(buf + len, " %.*s", con->len+2, str);
-            
+
             ccnl_free(str);
             break;
 

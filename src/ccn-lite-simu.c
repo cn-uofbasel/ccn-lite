@@ -491,7 +491,7 @@ ccnl_simu_phase_two(void *ptr, void *dummy)
 
 void
 simu_eventloop()
-{ 
+{
     static struct timeval now;
     long usec;
 

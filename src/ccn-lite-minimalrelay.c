@@ -60,11 +60,11 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define FATAL   0 // FATAL
 #define ERROR   1 // ERROR
-#define WARNING 2 // WARNING 
-#define INFO    3 // INFO 
-#define DEBUG   4 // DEBUG 
-#define TRACE   5 // TRACE 
-#define VERBOSE 6 // VERBOSE 
+#define WARNING 2 // WARNING
+#define INFO    3 // INFO
+#define DEBUG   4 // DEBUG
+#define TRACE   5 // TRACE
+#define VERBOSE 6 // VERBOSE
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
@@ -308,7 +308,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 {
     int i, maxfd = -1, rc;
     fd_set readfs, writefs;
-    
+
     if (ccnl->ifcount == 0) {
         fprintf(stderr, "no socket to work with, not good, quitting\n");
         exit(EXIT_FAILURE);

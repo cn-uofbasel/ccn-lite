@@ -478,8 +478,8 @@ ccnl_iottlv_prependRequest(struct ccnl_prefix_s *name, int *ttl,
 
 // write Reply pktr *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_iottlv_prependReply(struct ccnl_prefix_s *name, 
-                         unsigned char *payload, int paylen, 
+ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
+                         unsigned char *payload, int paylen,
                          int *offset, int *contentpos,
                          unsigned int *final_block_id,
                          unsigned char *buf)
@@ -524,7 +524,7 @@ ccnl_iottlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     if (datalen > fr->mtu)
         datalen = fr->mtu;
     offset = sizeof(test);
-    len = datalen + 
+    len = datalen +
              ccnl_iottlv_prependTL(IOT_TLV_F_Data, datalen, &offset, test);
     len += ccnl_iottlv_prependTL(IOT_TLV_F_FlagsAndSeq, 2, &offset, test) + 2;
     ccnl_iottlv_prependTL(IOT_TLV_Fragment, len, &offset, test);

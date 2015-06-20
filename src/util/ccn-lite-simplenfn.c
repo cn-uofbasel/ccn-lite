@@ -22,8 +22,10 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
-#define USE_SUITE_NDNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
+// #define USE_SUITE_LOCALRPC
+#define USE_SUITE_NDNTLV
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -40,7 +42,7 @@ myprint(char *str, ...)
 // ----------------------------------------------------------------------
 
 struct ccnl_prefix_s*
-expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
+exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
 {
     char *cp = expr, *name = 0;
     char tmp[1024];
@@ -87,6 +89,10 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
         struct ccnl_lambdaTerm_s *lt;
 //            char *cp = expr;
         lt = ccnl_lambdaStrToTerm(1, &expr, myprint);
+        if (!lt) {
+            DEBUGMSG(ERROR, "could not parse as lambda term: %s\n", expr);
+            exit(-1);
+        }
         ccnl_lambdaTermToStr(tmp, lt, ' ');
         expr = tmp;
     }
@@ -94,7 +100,7 @@ expr_to_NFNprefix(char *defaultNFNpath, int suite, char *expr)
     DEBUGMSG(INFO, "route hint is <%s>\n", name);
     DEBUGMSG(INFO, "lambda expression is <%s>\n", (expr && *expr) ? expr : NULL);
     return ccnl_URItoPrefix(name ? name : defaultNFNpath,
-                            suite, (expr && *expr) ? expr : NULL, 
+                            suite, (expr && *expr) ? expr : NULL,
                             NULL); // chunknum
 }
 // ----------------------------------------------------------------------
@@ -103,14 +109,14 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT;
-    char *udp = "127.0.0.1/6363", *ux = NULL;
+    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    int (*isContent)(unsigned char*, int);
+    ccnl_mkInterestFunc mkInterest;
+    ccnl_isContentFunc isContent;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -122,36 +128,6 @@ main(int argc, char *argv[])
             if (opt < 0 || opt >= CCNL_SUITE_LAST)
                 goto usage;
             suite = opt;
-            switch (suite) {
-#ifdef USE_SUITE_CCNB
-            case CCNL_SUITE_CCNB:
-		if(!udp) 
-                    udp = "127.0.0.1/9695";
-                break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-            case CCNL_SUITE_CCNTLV:
-		if(!udp) 
-                    udp = "127.0.0.1/9695";
-                break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-            case CCNL_SUITE_IOTTLV:
-		if(!udp) 
-                    udp = "127.0.0.1/6363";
-                break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-            case CCNL_SUITE_NDNTLV:
-		if(!udp) 
-                    udp = "127.0.0.1/6363";
-                break;
-#endif
-            default:
-		if(!udp) 
-	            udp = "127.0.0.1/6363";
-		break;
-            }
             break;
         case 'u':
             udp = optarg;
@@ -175,10 +151,10 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] NFNexpr\n"
             "  -n NFNPATH       default prefix towards some NFN node(s)\n"
-            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2014, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -192,38 +168,19 @@ usage:
         }
     }
 
-    if (!argv[optind] || argv[optind+1]) 
+    if (!argv[optind] || argv[optind+1])
         goto usage;
 
     srandom(time(NULL));
-
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        mkInterest = ccnl_ccnb_fillInterest;
-        isContent = ccnb_isContent;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isData;
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        mkInterest = iottlv_mkRequest;
-        isContent = iottlv_isReply;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        isContent = ndntlv_isData;
-        break;
-#endif
-    default:
-        DEBUGMSG(ERROR, "unknown suite %d\n", suite);
+    
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
+    
+    mkInterest = ccnl_suite2mkInterestFunc(suite);
+    isContent = ccnl_suite2isContentFunc(suite);
+    if (!mkInterest || !isContent) {
         exit(-1);
     }
 
@@ -234,21 +191,20 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
-        si->sin_port = htons(atoi(strtok(NULL, "/")));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
     }
 
-    prefix = expr_to_NFNprefix(defaultNFNpath, suite, argv[optind]);
+    prefix = exprToNfnPrefix(defaultNFNpath, suite, argv[optind]);
     if (!prefix)
         goto done;
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
-        len = mkInterest(prefix, 
-                         &nonce, 
+        len = mkInterest(prefix,
+                         &nonce,
                          out, sizeof(out));
 
         if(ux)

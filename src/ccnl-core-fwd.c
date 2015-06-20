@@ -20,7 +20,7 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-// returning 0 if packet was 
+// returning 0 if packet was
 int
 ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                        struct ccnl_pkt_s **pkt)
@@ -75,7 +75,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 }
 
 #ifdef USE_FRAG
-// returning 0 if packet was 
+// returning 0 if packet was
 int
 ccnl_fwd_handleFragment(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         struct ccnl_pkt_s **pkt, dispatchFct callback)
@@ -179,7 +179,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     for (i = relay->pit; i; i = i->next)
         if (ccnl_interest_isSame(i, *pkt))
             break;
-        
+
     if (!i) { // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
         if (ccnl_nfn_RX_request(relay, from, pkt))
@@ -198,7 +198,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         ccnl_interest_append_pending(i, from);
         ccnl_interest_propagate(relay, i);
     }
-        
+
     /*
     if (!i) { // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
