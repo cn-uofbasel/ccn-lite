@@ -112,6 +112,12 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
+#ifndef CCNL_LINUXKERNEL
+# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
+#else
+# define PREFIX2STR(P) ccnl_prefix_to_path(P)
+#endif
+
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode)
@@ -122,18 +128,18 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
              mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
-#undef PREFIX2STR
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
             goto done;
+        if (pfx->chunknum || nam->chunknum) {
+            if (!pfx->chunknum || !nam->chunknum)
+                goto done;
+            if (*pfx->chunknum != *nam->chunknum)
+                goto done;
+        }
 #ifdef USE_NFN
         if (nam->nfnflags != pfx->nfnflags)
             goto done;
@@ -147,6 +153,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
             goto done;
         }
     }
+    // FIXME: we must also inspect chunknum here!
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
     DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
@@ -162,9 +169,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-            // ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-           ccnl_prefix_to_path_detailed(prefix,1,0,0),
-           ccnl_prefix_to_path_detailed(p,1,0,0),
+             PREFIX2STR(prefix), PREFIX2STR(p),
+             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
+             // ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -289,6 +296,36 @@ ccnl_suite2defaultPort(int suite)
         return NDN_UDP_PORT;
 #endif
     return NDN_UDP_PORT;
+}
+
+int
+ccnl_isSuite(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return 1;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return 1;
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return 1;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return 1;
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    if (suite == CCNL_SUITE_LOCALRPC)
+        return 1;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return 1;
+#endif
+    return 0;
 }
 
 // ----------------------------------------------------------------------
