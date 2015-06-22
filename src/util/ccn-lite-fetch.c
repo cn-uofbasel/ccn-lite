@@ -48,7 +48,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         exit(-1);
     }
 #endif
-    
+
     ccnl_mkInterestFunc mkInterest = ccnl_suite2mkInterestFunc(suite);
     if (!mkInterest) {
         DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
@@ -276,7 +276,7 @@ usage:
         goto usage;
 
     srandom(time(NULL));
-    
+
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
     }

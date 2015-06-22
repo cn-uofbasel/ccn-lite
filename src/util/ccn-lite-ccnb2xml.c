@@ -389,7 +389,7 @@ print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
         printf("%u", valptr[0]);
     } else {
         for (i = 0; i < vallen; ++i) {
-            printf("%c", valptr[i]);    
+            printf("%c", valptr[i]);
         }
     }
 

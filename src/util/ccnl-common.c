@@ -563,13 +563,13 @@ ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
     char *tmpPortStr = NULL;
     char *end = NULL;
     int tmpPort;
-    
+
     if (!udp) {
         *addr = "127.0.0.1";
         *port = ccnl_suite2defaultPort(suite);
         return 0;
     }
-    
+
     if (!strchr(udp, '/')) {
         DEBUGMSG(ERROR, "invalid UDP destination, missing port: %s\n", udp);
         return -1;
@@ -585,7 +585,7 @@ ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
         DEBUGMSG(ERROR, "invalid UDP destination, cannot parse port as number: %s\n", tmpPortStr);
         return -1;
     }
-    
+
     *addr = tmpAddr;
     *port = tmpPort;
     return 0;

@@ -172,12 +172,12 @@ usage:
         goto usage;
 
     srandom(time(NULL));
-    
+
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
-    
+
     mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
     if (!mkInterest || !isContent) {
