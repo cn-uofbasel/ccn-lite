@@ -364,7 +364,7 @@ ccnl_frag_getnextSEQD2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 
         DEBUGMSG_EFRA(VERBOSE, "  produced %d bytes fragment, seqnr=%d-1\n",
                  buf->datalen, fr->sendseq);
-    } else 
+    } else
         DEBUGMSG_EFRA(VERBOSE, "  produced NO fragment, seqnr remains at =%d-1\n",
                  fr->sendseq);
 
@@ -417,7 +417,7 @@ ccnl_frag_getnextBE2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 
         DEBUGMSG_EFRA(VERBOSE, "  produced %d bytes fragment, seqnr=%d-1\n",
                  buf->datalen, fr->sendseq);
-    } else 
+    } else
         DEBUGMSG_EFRA(VERBOSE, "  produced NO fragment, seqnr remains at =%d-1\n",
                  fr->sendseq);
 
@@ -726,7 +726,7 @@ ccnl_frag_RX_CCNx2013(RX_datagram callback,
                 ccnl_frag_RX_serialfragment(callback, relay, from, &s);
             else
                 DEBUGMSG_EFRA(WARNING, "WRONG FRAG PROTOCOL\n");
-        } else 
+        } else
             ccnl_frag_RX_serialfragment(callback, relay, from, &s);
     }
 

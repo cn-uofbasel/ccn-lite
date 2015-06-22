@@ -448,7 +448,7 @@ ccnl_suite2mkInterestFunc(int suite)
         return &ndntlv_mkInterest;
 #endif
     }
-    
+
     DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
                       suite, __FUNCTION__, __LINE__);
     return NULL;
@@ -480,7 +480,7 @@ ccnl_suite2isContentFunc(int suite)
         return &ndntlv_isData;
 #endif
     }
-    
+
     DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
                       suite, __FUNCTION__, __LINE__);
     return NULL;
@@ -499,7 +499,7 @@ ccnl_suite2isFragmentFunc(int suite)
         return &iottlv_isFragment;
 #endif
     }
-    
+
     DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n",
                     suite, __FUNCTION__, __LINE__);
     return NULL;

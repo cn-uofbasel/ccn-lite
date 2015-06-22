@@ -117,7 +117,7 @@ struct ccnl_relay_s {
 
 #ifdef USE_NFN
     struct ccnl_krivine_s *km;
-#endif   
+#endif
 
   /*
     struct ccnl_face_s *crypto_face;

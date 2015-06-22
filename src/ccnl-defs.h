@@ -121,7 +121,7 @@ enum {
 #define CCNL_DTAG_INTERFACE     99202 // interface list
 #define CCNL_DTAG_NEXT          99203 // next pointer e.g. for faceinstance
 #define CCNL_DTAG_PREV          99204 // prev pointer e.g. for faceinstance
-#define CCNL_DTAG_IFNDX         99205 
+#define CCNL_DTAG_IFNDX         99205
 #define CCNL_DTAG_IP            99206
 #define CCNL_DTAG_ETH           99207
 #define CCNL_DTAG_UNIX          99208
