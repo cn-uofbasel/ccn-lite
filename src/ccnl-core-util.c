@@ -112,12 +112,6 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
-
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode)
@@ -129,7 +123,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
-             mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
+             mode, ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void*)md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
@@ -169,7 +163,7 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             PREFIX2STR(prefix), PREFIX2STR(p),
+             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
              // ccnl_prefix_to_path_detailed(prefix,1,0,0),
              // ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
