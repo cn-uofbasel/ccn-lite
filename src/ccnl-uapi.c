@@ -857,7 +857,7 @@ content_add (struct info_mgmt_s *mgmt)
     struct info_cs_data_s *     cs_data = (struct info_cs_data_s *) mgmt;
     int                         cnt=0;
     unsigned char               *data;
-    int                         datalen;
+    int                         datalen=0, hdrlen=0;
     struct ccnl_pkt_s           *pkt;
     struct ccnl_content_s       *c = 0;
 
@@ -933,8 +933,9 @@ content_add (struct info_mgmt_s *mgmt)
             // (don't understand the purpose of the next 4 lines .. see ccnl_lite_relay.c:ccnl_populate_content())
             data = d_obj->packet_bytes;
             datalen = d_obj->packet_len;
-            data += ccnl_ccntlv_getHdrLen(data, datalen);
-            datalen -= ccnl_ccntlv_getHdrLen(data, datalen);
+            hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+            data += hdrlen;
+            datalen -= hdrlen;
             pkt = ccnl_ccntlv_bytes2pkt(d_obj->packet_bytes, &data, &datalen);
 
             if (!pkt) {
