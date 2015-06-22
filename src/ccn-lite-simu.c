@@ -140,6 +140,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     int dataoffset;
     struct ccnl_content_s *c;
     struct ccnl_pkt_s *pkt;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     relay = char2relay(node);
     if (!relay)
@@ -151,7 +152,8 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     //    p->suite = suite;
     pkt = ccnl_calloc(1, sizeof(*pkt));
     pkt->pfx = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(pkt->pfx));
+    DEBUGMSG(VERBOSE, "  %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
     pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = len;
@@ -170,6 +172,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
     struct ccnl_relay_s *relay = char2relay(node);
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_client_tx node=%c: request %s #%d\n",
              node, name, seqn);
@@ -181,7 +184,8 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(TRACE, "  create interest for %s\n", ccnl_prefix_to_path(p));
+    DEBUGMSG(TRACE, "  create interest for %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, p));
     buf = ccnl_mkSimpleInterest(p, &nonce);
     free_prefix(p);
 

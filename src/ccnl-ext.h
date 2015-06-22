@@ -33,12 +33,20 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 
 // ccnl-core-util.c
 #ifndef CCNL_LINUXKERNEL
-   char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+   char* ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+                                int ccntlv_skip, int escape_components,
+                                int call_slash);
+#  define ccnl_prefix2path(BUF, LEN, P) ccnl_prefix2pathDetailed((BUF), (LEN), (P), 1, 0, 0)
 #else
-   char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+   char* ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr);
 #endif
+
+#ifdef CCNL_ARDUINO
+#  define CCNL_PREFIX_BUFSIZE 50
+#else
+#  define CCNL_PREFIX_BUFSIZE 2048
+#endif
+
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);

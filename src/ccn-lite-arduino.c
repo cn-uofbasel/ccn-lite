@@ -266,6 +266,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int offset = sizeof(packetBuffer);
     double d;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG_MAIN(VERBOSE, "local_producer %d bytes\n", pkt->buf->datalen);
 
@@ -321,7 +322,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     DEBUGMSG_MAIN(INFO, "  outgoing data=<%s> to=%s\n",
-                  ccnl_prefix_to_path(pkt->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx),
                   ccnl_addr2ascii(&from->peer));
 
     relay->ifs[from->ifndx].sock->beginPacket(
@@ -433,6 +434,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   EthernetUDP *udp)
 {
     int i;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     Serial.println(F("This is 'ccn-lite-arduino'"));
     Serial.println(F("  ccnl-core: " CCNL_VERSION));
@@ -478,7 +480,8 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     sensor.comp = (unsigned char**) sensor_comp;
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
-    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
+    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, &sensor));
 
 #ifdef USE_HMAC256
     strcpy_P(logstr, secret_key);

@@ -233,21 +233,34 @@ ccnl_close_socket(struct socket *s)
 // ----------------------------------------------------------------------
 
 char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
+ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
-    static char prefix_buf[4096];
-    int len= 0, i;
+    int i;
+    char *tmpBuf = buf;
+    int tmpLen = buflen;
 
-    if (!pr)
-        return NULL;
+    if (!pr) goto fail;
+
     for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
-        else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
+        char *format;
+        if (!strncmp("call", (char*) pr->comp[i], 4)
+                && strncmp("NFN", (char*) pr->comp[pr->compcnt-1], 3)) {
+            format = "%.*s";
+        else {
+            format = "/%.*s";
+        }
+
+        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, format,
+                                        pr->complen[i], pr->comp[i]) {
+            goto fail;
+        }
     }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
+
+    return buf;
+
+fail:
+    DEBUGMSG(ERROR, "could not create prefix path string of prefix: %p", (void *) pr);
+    return NULL;
 }
 
 // ----------------------------------------------------------------------

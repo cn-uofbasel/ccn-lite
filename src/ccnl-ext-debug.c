@@ -137,6 +137,7 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_pkt_s      *pkt = (struct ccnl_pkt_s      *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
     int i, k;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
 #define INDENT(lev)   for (i = 0; i < lev; i++) CONSOLE("  ")
 
@@ -152,7 +153,8 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_PREFIX:
         INDENT(lev);
         CONSOLE("%p PREFIX len=%d val=%s\n",
-               (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+               (void *) pre, pre->compcnt,
+               ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pre));
         break;
     case CCNL_RELAY:
         INDENT(lev);
@@ -364,13 +366,19 @@ int
 get_prefix_dump(int lev, void *p, int *len, char** val)
 {
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
-//    int i;
-//    INDENT(lev);
-    //*prefix =  (void *) pre;
+
     *len = pre->compcnt;
-    //*val = ccnl_prefix_to_path(pre);
-    sprintf(*val, "%s", ccnl_prefix_to_path(pre));
-    return 1;
+    // FIXME: The method does not receive the buffer size of *val
+    // Thus it *CANNOT* ensure that there is no buffer overflow!
+    // To give the method prefix2path a somewhat reasonable length restriction,
+    // it gets CCNL_PREFIX_BUFSIZE.
+    // A correct fix would be to change the signature to pass length of val.
+    ccnl_prefix2path(*val, CCNL_PREFIX_BUFSIZE, pre);
+    if (*val) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 int

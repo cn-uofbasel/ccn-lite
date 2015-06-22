@@ -148,13 +148,14 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     struct ccnl_buf_s *res = NULL;
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
+    DEBUGSTMT(DEBUG, ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
     DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
-             (void*)ccnl, ccnl_prefix_to_path(prefix),
-             (void*)from, (void*)config);
+             (void *) ccnl, prefixBuf, (void *) from, (void *) config);
 
     //    prefix = ccnl_prefix_dup(prefix);
-    DEBUGMSG(DEBUG, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "Namecomps: %s \n", prefixBuf);
 
     if (config){
         suite = config->suite;
@@ -185,7 +186,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
-        DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
+        DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
@@ -298,6 +299,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     TRACEIN();
 #ifdef USE_NACK
@@ -318,7 +320,8 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             ccnl_content_add2cache(relay, c);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
-                  faceid, ccnl_prefix_to_path(c->pkt->pfx));
+                     faceid,
+                     ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);

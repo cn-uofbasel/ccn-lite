@@ -235,8 +235,10 @@ void tempInX(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int offset = sizeof(packetBuffer), i, len;
     double d;
     unsigned char *cp, c;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    DEBUGMSG_MAIN(VERBOSE, "tempInX %s bytes\n", ccnl_prefix_to_path(p));
+    DEBUGMSG_MAIN(VERBOSE, "tempInX %s bytes\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, p));
 
     if (p->compcnt != 1)
         return;
@@ -396,11 +398,13 @@ void
 set_sensorName(char *name, int suite)
 {
     struct ccnl_prefix_s *p;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     strcpy_P(logstr, name);
     p = ccnl_URItoPrefix(logstr, suite, NULL, NULL);
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s (%s)\n",
-           ccnl_prefix_to_path(p), ccnl_suite2str(suite));
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, p),
+                  ccnl_suite2str(suite));
 
     ccnl_set_tap(&theRelay, p, tempInX);
 }

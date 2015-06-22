@@ -92,6 +92,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     if (*restart) {
         DEBUGMSG(DEBUG, "---to do: OP_FIND restart\n");
@@ -132,7 +133,9 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return ccnl_strdup(prog);
     }
 
-    DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {
@@ -180,6 +183,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     //    print_argument_stack(config->argument_stack);
     //    print_result_stack(config->result_stack);
@@ -223,7 +227,9 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return prog ? ccnl_strdup(prog) : NULL;
     }
 
-    DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {

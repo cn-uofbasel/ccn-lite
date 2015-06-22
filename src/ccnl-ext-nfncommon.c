@@ -110,9 +110,10 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     int resultpos = 0;
     struct ccnl_pkt_s *pkt;
     struct ccnl_content_s *c;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
-             ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, *prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
@@ -352,6 +353,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 {
     struct ccnl_prefix_s *name;
     int it, len = 0, offset = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     name = ccnl_prefix_new(config->suite, 2);
     if (!name)
@@ -373,9 +375,9 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     for (it = 0; it < config->fox_state->num_of_params; ++it) {
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
-            char *pref_str = ccnl_prefix_to_path(
-                                      (struct ccnl_prefix_s*)stack->content);
-            len += sprintf((char*)name->bytes + offset + len, " %s", pref_str);
+            ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE,
+                             (struct ccnl_prefix_s*) stack->content);
+            len += sprintf((char*)name->bytes + offset + len, " %s", prefixBuf);
         } else if (stack->type == STACK_TYPE_INT) {
             len += sprintf((char*)name->bytes + offset + len, " %d",
                            *(int*)stack->content);
@@ -419,11 +421,14 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     struct prefix_mapping_s *iter;
     struct ccnl_content_s *content;
     struct ccnl_prefix_s *prefixchunkzero;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
-             ccnl_prefix_to_path(prefix), ccnl_suite2str(prefix->suite));
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_suite2str(prefix->suite));
 
-    DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "Searching local for content %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
@@ -667,6 +672,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
     int len, j;
     struct stack_s *entry;
     struct const_s *con;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(DEBUG, "exclude parameter: %d\n", exclude_param);
     if (exclude_param >= 0){
@@ -687,8 +693,9 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             len += sprintf(buf + len, " %d", *((int*)entry->content));
             break;
         case STACK_TYPE_PREFIX:
-            len += sprintf(buf + len, " %s",
-                           ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
+            ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE,
+                             (struct ccnl_prefix_s*)entry->content);
+            len += sprintf(buf + len, " %s", prefixBuf);
             break;
         case STACK_TYPE_CONST:
             con = (struct const_s *)entry->content;

@@ -237,6 +237,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct rdr_ds_s *param)
 {
     int cnt = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(DEBUG, "rpc_cacheRemove\n");
 
@@ -266,7 +267,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_content_s *tmp = c->next;
                 ccnl_content_remove(relay, c);
                 DEBUGMSG(DEBUG, "content %s removed\n",
-                         ccnl_prefix_to_path(prefix));
+                         ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
                 cnt++;
                 c = tmp;
             } else
