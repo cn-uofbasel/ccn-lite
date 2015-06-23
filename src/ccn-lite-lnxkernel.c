@@ -259,8 +259,9 @@ ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
     return buf;
 
 fail:
-    DEBUGMSG(ERROR, "could not create prefix path string of prefix: %p", (void *) pr);
-    return NULL;
+    DEBUGMSG(ERROR, "could not create prefix path string of prefix: %p\n", (void *) pr);
+    buf[0] = '\0';
+    return buf;
 }
 
 // ----------------------------------------------------------------------

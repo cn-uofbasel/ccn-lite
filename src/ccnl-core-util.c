@@ -978,8 +978,9 @@ ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     return buf;
 
 fail:
-    DEBUGMSG_CUTL(ERROR, "could not create prefix path string of prefix: %p", (void *) pr);
-    return NULL;
+    DEBUGMSG_CUTL(ERROR, "could not create prefix path string of prefix: %p\n", (void *) pr);
+    buf[0] = '\0';
+    return buf; // FIXME: prefixBuf exists, we shouldn't return NULL
 }
 
 #endif // CCNL_LINUXKERNEL
