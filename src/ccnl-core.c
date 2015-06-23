@@ -434,7 +434,9 @@ void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     int rc = 0;
 #ifdef USE_NACK
     int matching_face = 0;
@@ -573,7 +575,9 @@ struct ccnl_content_s*
 ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
              (void*) *pkt,
@@ -616,7 +620,9 @@ struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *cit;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
@@ -658,7 +664,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_interest_s *i;
     struct ccnl_face_s *f;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     int cnt = 0;
     DEBUGMSG_CORE(TRACE, "ccnl_content_serve_pending\n");
 
@@ -765,7 +773,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
     struct ccnl_content_s *c = relay->contents;
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     time_t t = CCNL_NOW();
     DEBUGMSG_CORE(TRACE, "ageing t=%d\n", (int)t);
 

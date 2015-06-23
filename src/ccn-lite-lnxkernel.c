@@ -246,12 +246,12 @@ ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
         if (!strncmp("call", (char*) pr->comp[i], 4)
                 && strncmp("NFN", (char*) pr->comp[pr->compcnt-1], 3)) {
             format = "%.*s";
-        else {
+        } else {
             format = "/%.*s";
         }
 
         if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, format,
-                                        pr->complen[i], pr->comp[i]) {
+                                        pr->complen[i], pr->comp[i])) {
             goto fail;
         }
     }

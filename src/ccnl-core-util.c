@@ -136,7 +136,9 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 {
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
+#ifdef USE_LOGGING
     char prefixBuf1[CCNL_PREFIX_BUFSIZE], prefixBuf2[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
              ccnl_matchMode2str(mode),
@@ -179,7 +181,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
                   int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
     unsigned char *md;
+#ifdef USE_LOGGING
     char prefixBuf1[CCNL_PREFIX_BUFSIZE], prefixBuf2[CCNL_PREFIX_BUFSIZE];
+#endif
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",

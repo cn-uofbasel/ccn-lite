@@ -26,7 +26,9 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                        struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
@@ -126,7 +128,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
@@ -673,7 +677,9 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
              tapCallback callback)
 {
     struct ccnl_forward_s *fwd, **fwd2;
+#ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
              ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx),

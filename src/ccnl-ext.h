@@ -32,6 +32,7 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 
 // ccnl-core-util.c
+int ccnl_trySnprintfAndForward(char **buf, int *buflen, const char *format, ...);
 #ifndef CCNL_LINUXKERNEL
    char* ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                                 int ccntlv_skip, int escape_components,
@@ -43,8 +44,10 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 
 #ifdef CCNL_ARDUINO
 #  define CCNL_PREFIX_BUFSIZE 50
+#elif defined(CCNL_LINUXKERNEL)
+#  define CCNL_PREFIX_BUFSIZE 256
 #else
-#  define CCNL_PREFIX_BUFSIZE 2048
+#  define CCNL_PREFIX_BUFSIZE 512
 #endif
 
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,

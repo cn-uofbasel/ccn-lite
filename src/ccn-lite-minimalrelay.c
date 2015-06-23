@@ -58,6 +58,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 // ----------------------------------------------------------------------
 // "replacement lib"
 
+#define USE_LOGGING // flag to enable stack initializations of logging variables
+                    // e.g. char prefixBuf[CCNL_PREFIX_BUFSIZE]
+
 #define FATAL   0 // FATAL
 #define ERROR   1 // ERROR
 #define WARNING 2 // WARNING
@@ -126,7 +129,7 @@ int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 char* ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);
 #define ccnl_prefix2path(BUF, LEN, P) ccnl_prefix2pathDetailed(BUF, LEN, P, 1, 0, 0)
-#define CCNL_PREFIX_BUFSIZE 2048
+#define CCNL_PREFIX_BUFSIZE 512
 
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
