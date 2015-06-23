@@ -670,7 +670,7 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 {
     struct ccnl_forward_s *fwd, **fwd2;
 
-    DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
+    DEBUGMSG_CFWD(INFO, "setting tap for <%s>, suite %s\n",
              ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
