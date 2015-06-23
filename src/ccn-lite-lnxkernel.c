@@ -260,7 +260,9 @@ ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
 
 fail:
     DEBUGMSG(ERROR, "could not create prefix path string of prefix: %p\n", (void *) pr);
-    buf[0] = '\0';
+    if (buflen > 0) {
+        buf[0] = '\0';
+    }
     return buf;
 }
 
