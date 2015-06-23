@@ -138,17 +138,11 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
     char prefixBuf1[CCNL_PREFIX_BUFSIZE], prefixBuf2[CCNL_PREFIX_BUFSIZE];
 
-<<<<<<< HEAD
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
              ccnl_matchMode2str(mode),
              ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, pfx),
              ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, nam),
              (void*) md);
-=======
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
-             ccnl_matchMode2str(mode),
-             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
->>>>>>> dev-master
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
