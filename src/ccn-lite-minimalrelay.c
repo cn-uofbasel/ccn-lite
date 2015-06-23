@@ -130,7 +130,7 @@ char* ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
 
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
 
 //----------------------------------------------------------------------
 

@@ -160,8 +160,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                  ccnl_suite2str(suite));
         return -1;
     }
-    *prefix = pkt->pfx;
-    pkt->pfx = NULL;
+    *prefix = ccnl_prefix_dup(pkt->pfx);
     *lastchunknum = pkt->val.final_block_id;
     *content = pkt->content;
     *contentlen = pkt->contlen;
@@ -313,7 +312,7 @@ usage:
     // For CCNTLV always start with the first chunk because of exact content match
     // This means it can only fetch chunked data and not single content-object data
     if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV) {
-        curchunknum = malloc(sizeof(int));
+        curchunknum = ccnl_malloc(sizeof(unsigned int));
         *curchunknum = 0;
     }
 
@@ -329,7 +328,7 @@ usage:
             if (!prefix->chunknum) {
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
-            *prefix->chunknum = *curchunknum;
+            *(prefix->chunknum) = *curchunknum;
             DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum,
                      ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
         } else {
@@ -366,12 +365,12 @@ usage:
                 prefix = nextprefix;
 
                 // Check if the fetched content is a chunk
-                if (!prefix->chunknum) {
+                if (!(prefix->chunknum)) {
                     // Response is not chunked, print content and exit
                     write(1, content, contlen);
                     goto Done;
                 } else {
-                    int chunknum = *prefix->chunknum;
+                    int chunknum = *(prefix->chunknum);
 
                     // allocate curchunknum because it is the first fetched chunk
                     if(!curchunknum) {
