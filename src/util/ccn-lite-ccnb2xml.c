@@ -287,7 +287,7 @@ dtag2str(int dtag)
             return "COMPLENGTH";
     }
 
-    // DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __FUNCTION__, __FILE__, __LINE__);
+    // DEBUGMSG(WARNING, "DTAG '%d' is missing in %s of %s:%d\n", dtag, __func__, __FILE__, __LINE__);
     return "?";
 }
 
@@ -314,7 +314,7 @@ tag2str(int tag, int num)
             return "UDATA";
     }
 
-    // DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __FUNCTION__, __FILE__, __LINE__);
+    // DEBUGMSG(WARNING, "CCN_TT tag '%d' is missing in %s of %s:%d\n", tag, __func__, __FILE__, __LINE__);
     return "?";
 }
 
