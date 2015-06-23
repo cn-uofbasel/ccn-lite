@@ -112,6 +112,21 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
+char*
+ccnl_matchMode2str(int mode)
+{
+    switch (mode) {
+    case CMP_EXACT:
+        return CONSTSTR("CMP_EXACT");
+    case CMP_MATCH:
+        return CONSTSTR("CMP_MATCH");
+    case CMP_LONGEST:
+        return CONSTSTR("CMP_LONGEST");
+    }
+
+    return CONSTSTR("?");
+}
+
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode)
@@ -123,7 +138,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
-             mode, ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void*)md);
+             ccnl_matchMode2str(mode), ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void*)md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
