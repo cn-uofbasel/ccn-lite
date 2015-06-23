@@ -137,8 +137,9 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
-             ccnl_matchMode2str(mode), ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void*)md);
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
+             ccnl_matchMode2str(mode),
+             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
