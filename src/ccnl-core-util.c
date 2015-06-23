@@ -112,7 +112,7 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
-char*
+const char*
 ccnl_matchMode2str(int mode)
 {
     switch (mode) {
@@ -252,7 +252,7 @@ ccnl_str2suite(char *cp)
     return -1;
 }
 
-char*
+const char*
 ccnl_suite2str(int suite)
 {
 #ifdef USE_SUITE_CCNB

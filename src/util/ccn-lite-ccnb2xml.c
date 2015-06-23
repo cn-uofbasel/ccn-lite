@@ -33,7 +33,7 @@
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 dtag2str(int dtag)
 {
     switch (dtag) {
@@ -291,7 +291,7 @@ dtag2str(int dtag)
     return "?";
 }
 
-char*
+const char*
 tag2str(int tag, int num)
 {
     switch (tag) {

@@ -42,7 +42,7 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
 
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
