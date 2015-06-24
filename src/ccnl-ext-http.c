@@ -245,10 +245,11 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             else
                 sprintf(fname, "?");
 
+            // FIXME: Use ccnl_snprintfPrefixPath directly
             len += sprintf(txt+len,
                            "<li>via %4s: <font face=courier>%s</font>\n",
                            fname,
-                           ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, fwda[i]->prefix));
+                           ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, fwda[i]->prefix));
         }
         ccnl_free(fwda);
     }

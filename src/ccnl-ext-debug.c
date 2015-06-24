@@ -154,7 +154,7 @@ ccnl_dump(int lev, int typ, void *p)
         INDENT(lev);
         CONSOLE("%p PREFIX len=%d val=%s\n",
                (void *) pre, pre->compcnt,
-               ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pre));
+               ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pre));
         break;
     case CCNL_RELAY:
         INDENT(lev);
@@ -365,20 +365,24 @@ get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
 int
 get_prefix_dump(int lev, void *p, int *len, char** val)
 {
+    int numChars;
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
 
-    *len = pre->compcnt;
-    // FIXME: The method does not receive the buffer size of *val
-    // Thus it *CANNOT* ensure that there is no buffer overflow!
-    // To give the method ccnl_snprintfPrefixPath a somewhat reasonable length restriction,
-    // it gets CCNL_PREFIX_BUFSIZE.
-    // A correct fix would be to change the signature to pass length of val.
-    ccnl_snprintfPrefixPath(*val, CCNL_PREFIX_BUFSIZE, pre);
-    if (*val) {
-        return 1;
-    } else {
+    if (!(*val)) {
         return 0;
     }
+
+    // FIXME: This method does not receive the buffer size of *val.
+    // Thus it *CANNOT* ensure that there is no buffer overflow!
+    // In order to give ccnl_snprintfPrefixPath a reasonable size restriction,
+    // it is called with NULL and 0 to determine the number of characters needed
+    // to store the prefix path.
+    numChars = ccnl_snprintfPrefixPath(NULL, 0, pre);
+    if (numChars < 0) {
+        return 0;
+    }
+    ccnl_snprintfPrefixPath(*val, numChars, pre);
+    *len = pre->compcnt;
 }
 
 int

@@ -384,9 +384,9 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
     DEBUGMSG_CORE(TRACE, "ccnl_new_interest\n");
-             //             char prefixBuf[CCNL_PREFIX_BUFSIZE];
-             //             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
-             //             ccnl_suite2str((*pkt)->pfx->suite));
+//                char prefixBuf[CCNL_PREFIX_BUFSIZE];
+//                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
+//                ccnl_suite2str((*pkt)->pfx->suite));
 
     if (!i)
         return NULL;
@@ -473,7 +473,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
             DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
-                          ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx),
+                          ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx),
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
                                     : "<tap>");
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
@@ -581,7 +581,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
              (void*) *pkt,
-             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
              ((*pkt)->pfx->chunknum) ? *((*pkt)->pfx->chunknum) : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
@@ -627,7 +627,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
                   (void*)c,
-                  ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx),
                   (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
 
     for (cit = ccnl->contents; cit; cit = cit->next) {
@@ -747,7 +747,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s to=%s\n",
-                          ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx),
+                          ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx),
                           ccnl_suite2str(i->pkt->pfx->suite),
                           ccnl_addr2ascii(&pi->face->peer));
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
@@ -795,13 +795,13 @@ ccnl_do_ageing(void *ptr, void *dummy)
             DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
             DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                           (void*)i,
-                     ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx));
+                          ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx));
             i = ccnl_nfn_interest_remove(relay, i);
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
-                     ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx));
+                          ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, i->pkt->pfx));
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif

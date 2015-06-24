@@ -692,8 +692,8 @@ ccnl_ll_TX(
         return;
     };
 
-    // TODO: Check if it works with stack allocated char array
-    io->name = ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx);  // TODO: should be safe since io is const at the deliverObject() call
+    // FIXME: Check if it works with stack allocated char array
+    io->name = ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx);  // TODO: should be safe since io is const at the deliverObject() call
     io->chunk_seqn = (pkt->pfx->chunknum) ? ((int) *(pkt->pfx->chunknum)) : -1;
     io->packet_bytes = pkt->buf->data;
     io->packet_len = pkt->buf->datalen;
@@ -766,8 +766,8 @@ ccnl_app_RX(
     io->packet_bytes = c->pkt->buf->data;
     io->packet_len = c->pkt->buf->datalen;
 
-    // TODO: Check if it works with stack allocated char array
-    io->name = ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx); // TODO: should be safe since io is const at the deliverObject call
+    // FIXME: Check if it works with stack allocated char array
+    io->name = ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx); // TODO: should be safe since io is const at the deliverObject call
     io->chunk_seqn = (c->pkt->pfx->chunknum) ? ((int) *(c->pkt->pfx->chunknum)) : -1;
 
     // prepare envelope
