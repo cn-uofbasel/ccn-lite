@@ -28,7 +28,8 @@ CCN-Lite is a
 mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr
 mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr/local
 mkdir ../BUILDROOT/%name-%version-%release.%_arch/usr/local/bin
-cp -L $CCNL_HOME/bin/ccn* ../BUILDROOT/%name-%version-%release.%_arch/usr/local/bin
+pwd
+cp -L ../../../../bin/ccn* ../BUILDROOT/%name-%version-%release.%_arch/usr/local/bin
 
 
 %files
