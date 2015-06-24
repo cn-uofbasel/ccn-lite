@@ -1,0 +1,4 @@
+#!/bin/sh
+cd `dirname $0`
+../src/ccn_lite_omnet_too -n .:../src $*
+# for shared lib, use: opp_run -l ../src/ccn_lite_omnet_too -n .:../src $*

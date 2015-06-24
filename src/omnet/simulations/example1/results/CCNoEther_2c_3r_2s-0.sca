@@ -1,0 +1,785 @@
+version 2
+run CCNoEther_2c_3r_2s-0-20150620-03:38:05-17023
+attr configname CCNoEther_2c_3r_2s
+attr datetime 20150620-03:38:05
+attr experiment CCNoEther_2c_3r_2s
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvars2 $repetition=0
+attr measurement ""
+attr network unibas.ccnlite.topology.CCNoEther_Tau_2cli_2rtr_1svr
+attr processid 17023
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"frames/sec sent" 	0.89791972944779
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"frames/sec rcvd" 	0.89791972944779
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"bits/sec sent" 	461.04096653828
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"bits/sec rcvd" 	4018.1091602125
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"rx channel idle (%)" 	99.995924423977
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	"rx channel utilization (%)" 	0.0040755760228972
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPkFromHL:count 	11
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPkFromHL:sum(packetBytes) 	706
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPkOk:count 	11
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	rxPkOk:sum(packetBytes) 	6153
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	txPk:count 	11
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	txPk:sum(packetBytes) 	706
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	passedUpPk:count 	11
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac 	passedUpPk:sum(packetBytes) 	6153
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	decapPk:count 	11
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	decapPk:sum(packetBytes) 	5955
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	encapPk:count 	11
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap 	encapPk:sum(packetBytes) 	498
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"frames/sec sent" 	2.0407266578359
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"frames/sec rcvd" 	1.2244359947015
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"bits/sec sent" 	1116.6856271678
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"bits/sec rcvd" 	5501.7990695255
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"rx channel idle (%)" 	99.994419837027
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	"rx channel utilization (%)" 	0.0055801629731864
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPkFromHL:count 	25
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPkFromHL:sum(packetBytes) 	1710
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPkOk:count 	15
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	rxPkOk:sum(packetBytes) 	8425
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	txPk:count 	25
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	txPk:sum(packetBytes) 	1710
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	passedUpPk:count 	15
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac 	passedUpPk:sum(packetBytes) 	8425
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	decapPk:count 	15
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	decapPk:sum(packetBytes) 	8155
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	encapPk:count 	25
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap 	encapPk:sum(packetBytes) 	1255
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"frames/sec sent" 	0.89791972944779
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"frames/sec rcvd" 	0.89791972944779
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"bits/sec sent" 	4018.1091602125
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"bits/sec rcvd" 	461.04096653828
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"rx channel idle (%)" 	99.999481492171
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	"rx channel utilization (%)" 	0.00051850782922294
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPkFromHL:count 	11
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPkFromHL:sum(packetBytes) 	6153
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPkOk:count 	11
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	rxPkOk:sum(packetBytes) 	706
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	txPk:count 	11
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	txPk:sum(packetBytes) 	6153
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	passedUpPk:count 	11
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac 	passedUpPk:sum(packetBytes) 	706
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	decapPk:count 	11
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	decapPk:sum(packetBytes) 	498
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	encapPk:count 	11
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap 	encapPk:sum(packetBytes) 	5955
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"frames/sec sent" 	1.2244359947015
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"frames/sec rcvd" 	2.0407266578359
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"bits/sec sent" 	5501.7990695255
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"bits/sec rcvd" 	1116.6856271678
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"rx channel idle (%)" 	99.998752707867
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	"rx channel utilization (%)" 	0.0012472921332693
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPkFromHL:count 	15
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPkFromHL:sum(packetBytes) 	8425
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPkOk:count 	25
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	rxPkOk:sum(packetBytes) 	1710
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	txPk:count 	15
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	txPk:sum(packetBytes) 	8425
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	passedUpPk:count 	25
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac 	passedUpPk:sum(packetBytes) 	1710
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	decapPk:count 	25
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	decapPk:sum(packetBytes) 	1255
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	encapPk:count 	15
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap 	encapPk:sum(packetBytes) 	8155
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"frames/sec sent" 	2.4488719894031
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"frames/sec rcvd" 	1.6325813262687
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"bits/sec sent" 	1325.6560369302
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"bits/sec rcvd" 	7327.024992294
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"rx channel idle (%)" 	99.992568489803
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	"rx channel utilization (%)" 	0.0074315101971752
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPkFromHL:count 	30
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPkFromHL:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPkOk:count 	20
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	rxPkOk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	txPk:count 	30
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	txPk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	passedUpPk:count 	20
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac 	passedUpPk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	decapPk:count 	20
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	decapPk:sum(packetBytes) 	10860
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	encapPk:count 	30
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap 	encapPk:sum(packetBytes) 	1480
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"frames/sec sent" 	1.6325813262687
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"frames/sec rcvd" 	2.4488719894031
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"bits/sec sent" 	7327.024992294
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"bits/sec rcvd" 	1325.6560369302
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"rx channel idle (%)" 	99.998517616156
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	"rx channel utilization (%)" 	0.001482383844252
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPkFromHL:count 	20
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPkFromHL:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPkOk:count 	30
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	rxPkOk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	txPk:count 	20
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	txPk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	passedUpPk:count 	30
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac 	passedUpPk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	decapPk:count 	30
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	decapPk:sum(packetBytes) 	1480
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	encapPk:count 	20
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap 	encapPk:sum(packetBytes) 	10860
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"frames/sec sent" 	2.4488719894031
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"frames/sec rcvd" 	1.6325813262687
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"bits/sec sent" 	1325.6560369302
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"bits/sec rcvd" 	7327.024992294
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"rx channel idle (%)" 	99.992568489803
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	"rx channel utilization (%)" 	0.0074315101971752
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPkFromHL:count 	30
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPkFromHL:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPkOk:count 	20
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	rxPkOk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	txPk:count 	30
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	txPk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	passedUpPk:count 	20
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac 	passedUpPk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	decapPk:count 	20
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	decapPk:sum(packetBytes) 	10860
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	encapPk:count 	30
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap 	encapPk:sum(packetBytes) 	1480
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"simulated time" 	12.25053825999
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	full-duplex 	1
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"frames/sec sent" 	1.6325813262687
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"frames/sec rcvd" 	2.4488719894031
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"bits/sec sent" 	7327.024992294
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"bits/sec rcvd" 	1325.6560369302
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"rx channel idle (%)" 	99.998517616156
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	"rx channel utilization (%)" 	0.001482383844252
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkNotForUs:count 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkNotForUs:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkNotForUs
+attr title  "packets dropped/not for us, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkIfaceDown:count 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkIfaceDown:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkIfaceDown
+attr title  "packets dropped/interface down, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkBitError:count 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	droppedPkBitError:sum(packetBytes) 	0
+attr interpolationmode  none
+attr source  dropPkBitError
+attr title  "packets dropped/bit error, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPkFromHL:count 	20
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPkFromHL:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units received, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units received, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	txPausePkUnits:count 	0
+attr interpolationmode  none
+attr title  "pause units sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	txPausePkUnits:sum 	0
+attr interpolationmode  none
+attr title  "pause units sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPkOk:count 	30
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	rxPkOk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	txPk:count 	20
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	txPk:sum(packetBytes) 	11220
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	passedUpPk:count 	30
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac 	passedUpPk:sum(packetBytes) 	2030
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	pauseSent:count 	0
+attr title  "pause sent, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	pauseSent:sum 	0
+attr title  "pause sent, sum"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	decapPk:count 	30
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	decapPk:sum(packetBytes) 	1480
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, sum(packetBytes)"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	encapPk:count 	20
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, count"
+scalar CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap 	encapPk:sum(packetBytes) 	10860
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, sum(packetBytes)"

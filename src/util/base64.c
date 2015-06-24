@@ -22,7 +22,7 @@ static int mod_table[] = {0, 2, 1};
 void
 base64_build_decoding_table(void) {
 
-    decoding_table = malloc(256);
+    decoding_table = (char *) malloc(256);
     int i;
     for (i = 0; i < 64; i++)
         decoding_table[(unsigned char) encoding_table[i]] = i;
@@ -36,15 +36,15 @@ char
 
     *output_length = 4 * ((input_length + 2) / 3) + 1;
 
-    char *encoded_data = malloc(*output_length);
+    char *encoded_data = (char *) malloc(*output_length);
     memset(encoded_data, '\0', *output_length);
     if (encoded_data == NULL) return NULL;
     int i, j;
-    for (i = 0, j = 0; i < input_length;) {
+    for (i = 0, j = 0; (unsigned int) i < input_length;) {
 
-        uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
-        uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
-        uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
+        uint32_t octet_a = (unsigned int) i < input_length ? (unsigned char)data[i++] : 0;
+        uint32_t octet_b = (unsigned int) i < input_length ? (unsigned char)data[i++] : 0;
+        uint32_t octet_c = (unsigned int) i < input_length ? (unsigned char)data[i++] : 0;
 
         uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
 
@@ -74,7 +74,7 @@ unsigned char
     if (data[input_length - 1] == '=') (*output_length)--;
     if (data[input_length - 2] == '=') (*output_length)--;
 
-    unsigned char *decoded_data = malloc(*output_length);
+    unsigned char *decoded_data = (unsigned char *) malloc(*output_length);
     if (decoded_data == NULL) return NULL;
 
     for (i = 0, j = 0; i < input_length;) {

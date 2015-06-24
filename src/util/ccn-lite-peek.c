@@ -127,7 +127,7 @@ usage:
     mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
     isFragment = ccnl_suite2isFragmentFunc(suite);
-    
+
     if (!mkInterest || !isContent) {
         exit(-1);
     }

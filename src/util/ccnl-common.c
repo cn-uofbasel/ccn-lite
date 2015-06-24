@@ -21,6 +21,9 @@
  * 2013-10-17 extended <christopher.scherb@unibas.ch>
  */
 
+
+#ifndef CCNL_UAPI_H_    // if CCNL_UAPI_H_ is defined then the following config is taken care elsewhere in the code composite
+
 #define USE_IPV4
 
 #define USE_LOGGING
@@ -91,6 +94,13 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-core-util.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
+
+#else // CCNL_UAPI_H_ is defined
+
+#include "base64.c"
+
+#endif // CCNL_UAPI_H_
+
 
 // ----------------------------------------------------------------------
 
@@ -231,7 +241,7 @@ ccntlv_isHeader(unsigned char *buf, int len)
 {
     struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
 
-    if (len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
+    if ((unsigned int)len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
         DEBUGMSG(ERROR, "ccntlv header not large enough\n");
         return NULL;
     }
@@ -438,8 +448,9 @@ ccnl_suite2mkInterestFunc(int suite)
         return &ndntlv_mkInterest;
 #endif
     }
-    
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+
+    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
+                      suite, __func__, __LINE__);
     return NULL;
 }
 #endif // NEEDS_PACKET_CRAFTING
@@ -469,8 +480,9 @@ ccnl_suite2isContentFunc(int suite)
         return &ndntlv_isData;
 #endif
     }
-    
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+
+    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
+                      suite, __func__, __LINE__);
     return NULL;
 }
 
@@ -487,8 +499,9 @@ ccnl_suite2isFragmentFunc(int suite)
         return &iottlv_isFragment;
 #endif
     }
-    
-    DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n", suite, __FUNCTION__, __LINE__);
+
+    DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n",
+                    suite, __func__, __LINE__);
     return NULL;
 }
 
@@ -508,7 +521,6 @@ load_keys_from_file(char *path)
     int cnt = 0;
     struct key_s *klist = NULL, *kend = NULL;
 
-
     if (!fp) {
         perror("file open");
         return NULL;
@@ -522,7 +534,7 @@ load_keys_from_file(char *path)
             line[--read] = '\0';
         key = base64_decode(line, read, &keylen);
         if (key && keylen > 0) {
-            struct key_s *k = calloc(1, sizeof(struct key_s*));
+            struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
             k->keylen = keylen;
             k->key = key;
             if (kend)
@@ -551,13 +563,13 @@ ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
     char *tmpPortStr = NULL;
     char *end = NULL;
     int tmpPort;
-    
+
     if (!udp) {
         *addr = "127.0.0.1";
         *port = ccnl_suite2defaultPort(suite);
         return 0;
     }
-    
+
     if (!strchr(udp, '/')) {
         DEBUGMSG(ERROR, "invalid UDP destination, missing port: %s\n", udp);
         return -1;
@@ -573,7 +585,7 @@ ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
         DEBUGMSG(ERROR, "invalid UDP destination, cannot parse port as number: %s\n", tmpPortStr);
         return -1;
     }
-    
+
     *addr = tmpAddr;
     *port = tmpPort;
     return 0;
