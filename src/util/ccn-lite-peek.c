@@ -151,7 +151,7 @@ usage:
 
     DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
              argv[optind], argv[optind+1],
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();

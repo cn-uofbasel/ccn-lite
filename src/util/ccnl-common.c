@@ -75,7 +75,7 @@ int debug_level = WARNING;
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
 // FIXME: Is this actually needed? Duplicate from ccnl-ext.h
-// #define ccnl_prefix2path(P) ccnl_prefix2pathDetailed(P, 1, 0, 0)
+// #define ccnl_snprintfPrefixPath(P) ccnl_snprintfPrefixPathDetailed(P, 1, 0, 0)
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);

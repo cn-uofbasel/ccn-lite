@@ -233,7 +233,7 @@ ccnl_close_socket(struct socket *s)
 // ----------------------------------------------------------------------
 
 int
-ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
+ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
     int i, numChars;
     char *tmpBuf = buf;

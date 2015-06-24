@@ -228,8 +228,8 @@ struct ccnl_prefix_s *ccnl_URItoPrefix(char *uri, int suite, char *nfnexpr, unsi
 int ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
 struct ccnl_prefix_s *ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-//int ccnl_prefix2path(char* buf, int buflen, struct ccnl_prefix_s *pr);
-//int ccnl_prefix2pathDetailed(char* buf, int buflen, struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
+//int ccnl_snprintfPrefixPath(char* buf, int buflen, struct ccnl_prefix_s *pr);
+//int ccnl_snprintfPrefixPathDetailed(char* buf, int buflen, struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 char* ccnl_lambdaParseVar(char **cpp);
 struct ccnl_lambdaTerm_s *ccnl_lambdaStrToTerm(int lev, char **cp, int (*prt)(char *fmt, ...));
 int ccnl_lambdaTermToStr(char *cfg, struct ccnl_lambdaTerm_s *t, char last);

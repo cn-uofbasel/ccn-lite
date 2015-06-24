@@ -251,7 +251,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         DEBUGMSG(DEBUG, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
         DEBUGMSG(DEBUG, "LOCAL PREFIX: %s\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pref));
+                 ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -386,7 +386,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             break;
         case STACK_TYPE_PREFIX:
             DEBUGMSG(DEBUG, "  info: Parameter %d %s\n", i,
-                     ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE,
+                     ccnl_snprintfPrefixPath(prefixBuf1, CCNL_PREFIX_BUFSIZE,
                                       (struct ccnl_prefix_s*) config->fox_state->params[i]->content));
             break;
         default:
@@ -449,7 +449,7 @@ local_compute:
     config->local_done = 1;
     pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
     DEBUGMSG(DEBUG, "Prefix local computation: %s\n",
-             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, pref));
+             ccnl_snprintfPrefixPath(prefixBuf1, CCNL_PREFIX_BUFSIZE, pref));
     interest = ccnl_nfn_query2interest(ccnl, &pref, config);
     if (pref)
         free_prefix(pref);
@@ -496,8 +496,8 @@ handlecontent: //if result was found ---> handle it
                 mapping->value = ccnl_prefix_dup(c->pkt->pfx);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 DEBUGMSG(DEBUG, "Created a mapping %s - %s\n",
-                         ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, mapping->key),
-                         ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, mapping->value));
+                         ccnl_snprintfPrefixPath(prefixBuf1, CCNL_PREFIX_BUFSIZE, mapping->key),
+                         ccnl_snprintfPrefixPath(prefixBuf2, CCNL_PREFIX_BUFSIZE, mapping->value));
             }
         }
     }
@@ -953,7 +953,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         sprintf(prog, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
         setup_global_environment(&global_dict);
         DEBUGMSG(DEBUG, "PREFIX %s\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+                 ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
         *config = new_config(ccnl, prog, global_dict, thunk_request,
                              start_locally, num_of_required_thunks,
                              prefix, ccnl->km->configid, suite);

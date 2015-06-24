@@ -142,8 +142,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
              ccnl_matchMode2str(mode),
-             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, pfx),
-             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, nam),
+             ccnl_snprintfPrefixPath(prefixBuf1, CCNL_PREFIX_BUFSIZE, pfx),
+             ccnl_snprintfPrefixPath(prefixBuf2, CCNL_PREFIX_BUFSIZE, nam),
              (void*) md);
 
     if (mode == CMP_EXACT) {
@@ -187,8 +187,8 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, prefix),
-             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, p),
+             ccnl_snprintfPrefixPath(prefixBuf1, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_snprintfPrefixPath(prefixBuf2, CCNL_PREFIX_BUFSIZE, p),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -924,9 +924,9 @@ ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ..
 
 #ifndef CCNL_LINUXKERNEL
 
-// FIXME: rename ccnl_prefix2path to ccnl_snprintfPrefixPath to show similarities to snprintf!
+// FIXME: rename ccnl_snprintfPrefixPath to ccnl_snprintfPrefixPath to show similarities to snprintf!
 int
-ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
 {
     int i, j, numChars;
@@ -1099,7 +1099,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     int len = 0, contentpos = 0, offs;
 
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, name), paylen);
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, name), paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;

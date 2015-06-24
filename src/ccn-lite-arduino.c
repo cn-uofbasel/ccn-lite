@@ -322,7 +322,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     DEBUGMSG_MAIN(INFO, "  outgoing data=<%s> to=%s\n",
-                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx),
+                  ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx),
                   ccnl_addr2ascii(&from->peer));
 
     relay->ifs[from->ifndx].sock->beginPacket(
@@ -481,7 +481,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n",
-                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, &sensor));
+                  ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, &sensor));
 
 #ifdef USE_HMAC256
     strcpy_P(logstr, secret_key);

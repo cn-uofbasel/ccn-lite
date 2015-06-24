@@ -34,7 +34,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     struct ccnl_prefix_s *pfx2 = NULL;
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx);
+    ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx);
     DEBUGMSG(DEBUG, "echo request for <%s>\n", prefixBuf);
 
 //    if (pfx->chunknum) {

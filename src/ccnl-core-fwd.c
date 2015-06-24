@@ -31,7 +31,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
-                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
+                  ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
@@ -133,7 +133,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
     DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
-                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
+                  ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
@@ -440,7 +440,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             // char prefixBuf[CCNL_PREFIX_BUFSIZE];
-            // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
+            // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
@@ -523,7 +523,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (pkt->type == CISCO_TLV_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             //            char prefixBuf[CCNL_PREFIX_BUFSIZE];
-            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
+            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_cistlv_cMatch))
                 goto Done;
         } else {
@@ -682,7 +682,7 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 #endif
 
     DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx),
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx),
              ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {

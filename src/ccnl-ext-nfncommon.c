@@ -113,7 +113,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, *prefix), ccnl_suite2str((*prefix)->suite),
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, *prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
@@ -375,7 +375,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     for (it = 0; it < config->fox_state->num_of_params; ++it) {
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
-            ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE,
+            ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE,
                              (struct ccnl_prefix_s*) stack->content);
             len += sprintf((char*)name->bytes + offset + len, " %s", prefixBuf);
         } else if (stack->type == STACK_TYPE_INT) {
@@ -424,11 +424,11 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
              ccnl_suite2str(prefix->suite));
 
     DEBUGMSG(DEBUG, "Searching local for content %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+             ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
@@ -693,7 +693,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             len += sprintf(buf + len, " %d", *((int*)entry->content));
             break;
         case STACK_TYPE_PREFIX:
-            ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE,
+            ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE,
                              (struct ccnl_prefix_s*)entry->content);
             len += sprintf(buf + len, " %s", prefixBuf);
             break;

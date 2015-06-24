@@ -34,12 +34,12 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 // ccnl-core-util.c
 int ccnl_snprintfAndForward(char **buf, int *buflen, const char *format, ...);
 #ifndef CCNL_LINUXKERNEL
-   int ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+   int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                                    int ccntlv_skip, int escape_components,
                                    int call_slash);
-#  define ccnl_prefix2path(BUF, LEN, P) ccnl_prefix2pathDetailed((BUF), (LEN), (P), 1, 0, 0)
+#  define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
 #else
-   int ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr);
+   int ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr);
 #endif
 
 #ifdef CCNL_ARDUINO

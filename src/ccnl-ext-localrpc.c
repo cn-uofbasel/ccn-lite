@@ -267,7 +267,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_content_s *tmp = c->next;
                 ccnl_content_remove(relay, c);
                 DEBUGMSG(DEBUG, "content %s removed\n",
-                         ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+                         ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
                 cnt++;
                 c = tmp;
             } else
