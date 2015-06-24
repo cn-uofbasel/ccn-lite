@@ -943,6 +943,10 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     // Conform to snprintf standard
     assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
+    // TODO: Add better output if pr == NULL
+    // Resulting string should probably be "(null)", like printf("%p", (void*)pr)
+    if (!pr) goto fail;
+
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
         numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("nfn"));
@@ -1022,9 +1026,10 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     return totalLen;
 
 fail:
-    DEBUGMSG_CUTL(ERROR,
-                  "An encoding error occured while creating path of prefix: %p\n",
-                  (void *) pr);
+    if (pr) {
+        DEBUGMSG_CUTL(ERROR, "An encoding error occured while creating path of prefix: %p\n",
+                      (void *) pr);
+    }
 
     if (buf && buflen > 0) {
         buf[0] = '\0';

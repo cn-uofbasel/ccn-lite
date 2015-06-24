@@ -243,6 +243,9 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
     // Conform to snprintf standard
     assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
+    // TODO: Handle pr == NULL better. Resulting string should be "(null)" like printf("%p")
+    if (!pr) goto fail;
+
     for (i = 0; i < pr->compcnt; i++) {
         char *format;
         if (!strncmp("call", (char*) pr->comp[i], 4)
@@ -261,9 +264,11 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
     return totalLen;
 
 fail:
-    DEBUGMSG_CUTL(ERROR,
-                  "An encoding error occured while creating path of prefix: %p\n",
-                  (void *) pr);
+    if (pr) {
+        DEBUGMSG_CUTL(ERROR,
+                      "An encoding error occured while creating path of prefix: %p\n",
+                      (void *) pr);
+    }
 
     if (buf && buflen > 0) {
         buf[0] = '\0';
