@@ -258,7 +258,7 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
         totalLen += numChars;
     }
 
-    return buf;
+    return totalLen;
 
 fail:
     DEBUGMSG_CUTL(ERROR,
