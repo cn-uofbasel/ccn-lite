@@ -90,7 +90,7 @@ ifdef USE_CHEMFLOW
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
-EXTRA_CFLAGS := -g $(OPTCFLAGS)
+EXTRA_CFLAGS := -g $(OPTCFLAGS) -std=gnu99
 ifeq ($(GCC_GTEQ_40900),1)
     EXTRA_CFLAGS += -Wno-error=date-time
 endif
