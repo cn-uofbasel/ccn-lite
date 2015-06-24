@@ -924,7 +924,13 @@ ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ..
 
 #ifndef CCNL_LINUXKERNEL
 
-// FIXME: rename ccnl_snprintfPrefixPath to ccnl_snprintfPrefixPath to show similarities to snprintf!
+char*
+ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
+{
+    ccnl_snprintfPrefixPath(buf, buflen, pr);
+    return buf;
+}
+
 int
 ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
