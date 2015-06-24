@@ -199,7 +199,7 @@ interests to the testbed.
 ### 1. Shutdown relay `B` 
 To properly shutdown a relay we can use `ccn-lite-ctrl`:
 ```bash
-$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt 
+$CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml
 ```
 
 ### 2. Remove face to `B` 
