@@ -921,15 +921,14 @@ ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ..
     return numChars;
 }
 
-
-#ifndef CCNL_LINUXKERNEL
-
 char*
 ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
     ccnl_snprintfPrefixPath(buf, buflen, pr);
     return buf;
 }
+
+#ifndef CCNL_LINUXKERNEL
 
 int
 ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
