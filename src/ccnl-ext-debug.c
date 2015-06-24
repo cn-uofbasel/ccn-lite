@@ -383,6 +383,7 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
     }
     ccnl_snprintfPrefixPath(*val, numChars, pre);
     *len = pre->compcnt;
+    return 1;
 }
 
 int
