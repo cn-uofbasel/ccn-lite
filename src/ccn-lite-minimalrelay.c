@@ -126,8 +126,9 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 
-char* ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
+int ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+                                int ccntlv_skip, int escape_components,
+                                int call_slash);
 #define ccnl_prefix2path(BUF, LEN, P) ccnl_prefix2pathDetailed(BUF, LEN, P, 1, 0, 0)
 #define CCNL_PREFIX_BUFSIZE 512
 

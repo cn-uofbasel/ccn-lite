@@ -896,51 +896,66 @@ ccnl_addr2ascii(sockunion *su)
 // ----------------------------------------------------------------------
 
 int
-ccnl_trySnprintfAndForward(char **buf, int *buflen, const char *format, ...)
+ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ...)
 {
-    int charsWritten;
+    int numChars;
     va_list args;
     va_start(args, format);
 
 #ifdef CCNL_ARDUINO
-    charsWritten = vsnprintf_P(*buf, *buflen, format, args);
+    numChars = vsnprintf_P(*buf, *buflen, format, args);
 #else
-    charsWritten = vsnprintf(*buf, *buflen, format, args);
+    numChars = vsnprintf(*buf, *buflen, format, args);
 #endif
-    if (charsWritten < 0 || charsWritten >= *buflen) {
-        return 0;
+
+    if (numChars > 0) {
+        if (numChars >= *buflen) {
+            *buflen = 0;
+        } else {
+            *buflen -= numChars;
+            if (*buf) *buf += numChars;
+        }
     }
 
-    *buf += charsWritten;
-    *buflen -= charsWritten;
-
     va_end(args);
-    return 1;
+    return numChars;
 }
+
 
 #ifndef CCNL_LINUXKERNEL
 
-char*
+// FIXME: rename ccnl_prefix2path to ccnl_snprintfPrefixPath to show similarities to snprintf!
+int
 ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
 {
-    int i, j;
+    int i, j, numChars;
     char *tmpBuf = buf;
-    int tmpLen = buflen;
+    unsigned int remLen = buflen;
+    int totalLen = 0;
     int skip = 0;
 
-    if (!pr) goto fail;
+    // Conform to snprintf standard
+    assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
 #ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
-        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, CONSTSTR("nfn")))
-            goto fail;
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, CONSTSTR("thunk")))
-            goto fail;
-    if (pr->nfnflags)
-        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, CONSTSTR("[")))
-            goto fail;
+    if (pr->nfnflags & CCNL_PREFIX_NFN) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("nfn"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
+
+    if (pr->nfnflags & CCNL_PREFIX_THUNK) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("thunk"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
+
+    if (pr->nfnflags) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("["));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
 #endif
 
 #if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
@@ -965,12 +980,14 @@ ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                 || (strncmp("call", (char*) pr->comp[i]+skip, 4)
                     && strncmp("(call", (char*) pr->comp[i]+skip, 5))) {
 #endif
-            if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, CONSTSTR("/")))
-                goto fail;
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("/"));
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
 #ifdef USE_NFN
         } else {
-            if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, CONSTSTR(" ")))
-                goto fail;
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR(" "));
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
         }
 #endif
 
@@ -983,25 +1000,33 @@ ccnl_prefix2pathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                 format = CONSTSTR("%c");
             }
 
-            if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, format, c))
-                goto fail;
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, format, c);
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
         }
     }
 
 #ifdef USE_NFN
-    if (pr->nfnflags)
-        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, "]"))
-            goto fail;
+    if (pr->nfnflags) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("]"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
 #endif
 
-    return buf;
+    return totalLen;
 
 fail:
-    DEBUGMSG_CUTL(ERROR, "could not create prefix path string of prefix: %p\n", (void *) pr);
-    if (buflen > 0) {
+    DEBUGMSG_CUTL(ERROR,
+                  "An encoding error occured while creating path of prefix: %p\n",
+                  (void *) pr);
+
+    if (buf && buflen > 0) {
         buf[0] = '\0';
     }
-    return buf; // FIXME: prefixBuf exists, we shouldn't return NULL
+
+    // numChars holds the return value of the last call of ccnl_snprintfAndForward
+    return numChars;
 }
 
 #endif // CCNL_LINUXKERNEL

@@ -232,14 +232,16 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
-char*
+int
 ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
-    int i;
+    int i, numChars;
     char *tmpBuf = buf;
-    int tmpLen = buflen;
+    unsigned int remLen = buflen;
+    int totalLen = 0;
 
-    if (!pr) goto fail;
+    // Conform to snprintf standard
+    assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
     for (i = 0; i < pr->compcnt; i++) {
         char *format;
@@ -250,20 +252,25 @@ ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
             format = "/%.*s";
         }
 
-        if (!ccnl_trySnprintfAndForward(&tmpBuf, &tmpLen, format,
-                                        pr->complen[i], pr->comp[i])) {
-            goto fail;
-        }
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, format,
+                                           pr->complen[i], pr->comp[i]);
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
     }
 
     return buf;
 
 fail:
-    DEBUGMSG(ERROR, "could not create prefix path string of prefix: %p\n", (void *) pr);
-    if (buflen > 0) {
+    DEBUGMSG_CUTL(ERROR,
+                  "An encoding error occured while creating path of prefix: %p\n",
+                  (void *) pr);
+
+    if (buf && buflen > 0) {
         buf[0] = '\0';
     }
-    return buf;
+
+    // numChars holds the return value of the last call of ccnl_snprintfAndForward
+    return numChars;
 }
 
 // ----------------------------------------------------------------------
