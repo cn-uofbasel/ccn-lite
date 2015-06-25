@@ -232,7 +232,8 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
-// TODO: Fix code duplication with ccnl_snprintfPrefixPathDetailed
+// TODO: What is the use of this function compared to ccnl_snprintfPrefixPathDetailed?
+// Why not simply use ccnl_snprintfPrefixPathDetailed in the kernel as well...?
 int
 ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
@@ -268,15 +269,15 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
     return totalLen;
 
 fail:
-    DEBUGMSG_CUTL(ERROR,
-                  "An encoding error occured while creating path of prefix: %p\n",
-                  (void *) pr);
+    // numChars holds the return value of the last call of ccnl_snprintfAndForward
+    assert(numChars < 0);
+
+    DEBUGMSG_CUTL(ERROR, "Encoding error %d occured while creating path of prefix: %p\n",
+                  numChars, (void *) pr);
 
     if (buf && buflen > 0) {
         buf[0] = '\0';
     }
-
-    // numChars holds the return value of the last call of ccnl_snprintfAndForward
     return numChars;
 }
 

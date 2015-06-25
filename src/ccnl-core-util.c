@@ -1025,17 +1025,19 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     }
 #endif
 
+    // TODO: Output warning if totalLen >= buflen?
     return totalLen;
 
 fail:
-    DEBUGMSG_CUTL(ERROR, "An encoding error occured while creating path of prefix: %p\n",
-                  (void *) pr);
+    // numChars holds the return value of the last call of ccnl_snprintfAndForward
+    assert(numChars < 0);
+
+    DEBUGMSG_CUTL(ERROR, "Encoding error %d occured while creating path of prefix: %p\n",
+                  numChars, (void *) pr);
 
     if (buf && buflen > 0) {
         buf[0] = '\0';
     }
-
-    // numChars holds the return value of the last call of ccnl_snprintfAndForward
     return numChars;
 }
 
