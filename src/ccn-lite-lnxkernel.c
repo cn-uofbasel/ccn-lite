@@ -232,6 +232,7 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
+// TODO: Fix code duplication with ccnl_snprintfPrefixPathDetailed
 int
 ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
@@ -243,8 +244,11 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
     // Conform to snprintf standard
     assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
-    // TODO: Handle pr == NULL better. Resulting string should be "(null)" like printf("%p")
-    if (!pr) goto fail;
+    if (!pr) {
+        numChars = snprintf(buf, buflen, "%p", NULL);
+        if (numChars < 0) goto fail;
+        return numChars;
+    }
 
     for (i = 0; i < pr->compcnt; i++) {
         char *format;
@@ -264,11 +268,9 @@ ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
     return totalLen;
 
 fail:
-    if (pr) {
-        DEBUGMSG_CUTL(ERROR,
-                      "An encoding error occured while creating path of prefix: %p\n",
-                      (void *) pr);
-    }
+    DEBUGMSG_CUTL(ERROR,
+                  "An encoding error occured while creating path of prefix: %p\n",
+                  (void *) pr);
 
     if (buf && buflen > 0) {
         buf[0] = '\0';
