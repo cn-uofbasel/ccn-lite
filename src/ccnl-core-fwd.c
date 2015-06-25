@@ -681,9 +681,9 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 #endif
 
-    DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx),
-             ccnl_suite2str(pfx->suite));
+    DEBUGMSG_CFWD(INFO, "setting tap for <%s>, suite %s\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx),
+                  ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         if (fwd->suite == pfx->suite &&
