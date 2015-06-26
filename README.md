@@ -279,10 +279,14 @@ util/ccn-lite-simplenfn.c     a simplified interface to request named-
 ### Release 0.3.0 (Jun 2015)
 
 #### Code contributions:
-?
+Lukas Beck  
+Christopher Scherb  
+Manolis Sifalakis  
+Christian F. Tschudin  
 
 #### Code and documentation feedback:
-?
+Dima Mansour  
+Urs Schnurrenberger  
 
 ### Release 0.2.0 (Dec 2014)
 
