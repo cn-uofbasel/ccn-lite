@@ -172,12 +172,12 @@ usage:
         goto usage;
 
     srandom(time(NULL));
-    
+
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
-    
+
     mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
     if (!mkInterest || !isContent) {
@@ -207,10 +207,11 @@ usage:
                          &nonce,
                          out, sizeof(out));
 
-        if(ux)
-		    socksize = sizeof(struct sockaddr_un);
-	   else
-		    socksize = sizeof(struct sockaddr_in);
+        if(ux) {
+            socksize = sizeof(struct sockaddr_un);
+        } else {
+            socksize = sizeof(struct sockaddr_in);
+        }
         if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, socksize) < 0) {
             perror("sendto");
             myexit(1);

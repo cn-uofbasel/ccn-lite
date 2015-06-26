@@ -127,7 +127,7 @@ usage:
     mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
     isFragment = ccnl_suite2isFragmentFunc(suite);
-    
+
     if (!mkInterest || !isContent) {
         exit(-1);
     }
@@ -172,10 +172,11 @@ usage:
             close(fd);
         }
 */
-        if(ux)
-		    socksize = sizeof(struct sockaddr_un);
-	    else
-		    socksize = sizeof(struct sockaddr_in);
+        if (ux) {
+            socksize = sizeof(struct sockaddr_un);
+        } else
+            socksize = sizeof(struct sockaddr_in);
+        }
         rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);
         if (rc < 0) {
             perror("sendto");

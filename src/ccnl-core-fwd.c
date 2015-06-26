@@ -339,7 +339,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG_CFWD(DEBUG, "ccnl_ccntlv_forwarder: %dB from face=%p (id=%d.%d)\n",
                   *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
-    if (*datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s) ||
+    if ( (unsigned int) *datalen < sizeof(struct ccnx_tlvhdr_ccnx2015_s) ||
                                                      **data != CCNX_TLV_V1) {
         DEBUGMSG_CFWD(DEBUG, "  short header or wrong version (%d)\n", **data);
         return -1;
@@ -624,7 +624,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || len > *datalen) {
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }
@@ -670,7 +670,7 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 {
     struct ccnl_forward_s *fwd, **fwd2;
 
-    DEBUGMSG(INFO, "setting tap for <%s>, suite %s\n",
+    DEBUGMSG_CFWD(INFO, "setting tap for <%s>, suite %s\n",
              ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {

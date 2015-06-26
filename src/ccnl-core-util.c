@@ -112,11 +112,20 @@ const char *compile_string = ""
 
 #ifdef NEEDS_PREFIX_MATCHING
 
-#ifndef CCNL_LINUXKERNEL
-# define PREFIX2STR(P) ccnl_prefix_to_path_detailed((P), 1, 0, 0)
-#else
-# define PREFIX2STR(P) ccnl_prefix_to_path(P)
-#endif
+const char*
+ccnl_matchMode2str(int mode)
+{
+    switch (mode) {
+    case CMP_EXACT:
+        return CONSTSTR("CMP_EXACT");
+    case CMP_MATCH:
+        return CONSTSTR("CMP_MATCH");
+    case CMP_LONGEST:
+        return CONSTSTR("CMP_LONGEST");
+    }
+
+    return CONSTSTR("?");
+}
 
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
@@ -128,12 +137,19 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
 
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%d) prefix=<%s> of? name=<%s> digest=%p\n",
-             mode, PREFIX2STR(pfx), PREFIX2STR(nam), (void*)md);
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
+             ccnl_matchMode2str(mode),
+             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
             goto done;
+        if (pfx->chunknum || nam->chunknum) {
+            if (!pfx->chunknum || !nam->chunknum)
+                goto done;
+            if (*pfx->chunknum != *nam->chunknum)
+                goto done;
+        }
 #ifdef USE_NFN
         if (nam->nfnflags != pfx->nfnflags)
             goto done;
@@ -147,6 +163,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
             goto done;
         }
     }
+    // FIXME: we must also inspect chunknum here!
     rc = (mode == CMP_EXACT) ? 0 : i;
 done:
     DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
@@ -162,9 +179,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             PREFIX2STR(prefix), PREFIX2STR(p),
-           //ccnl_prefix_to_path_detailed(prefix,1,0,0),
-           //ccnl_prefix_to_path_detailed(p,1,0,0),
+             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
+             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
+             // ccnl_prefix_to_path_detailed(p,1,0,0),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -235,7 +252,7 @@ ccnl_str2suite(char *cp)
     return -1;
 }
 
-char*
+const char*
 ccnl_suite2str(int suite)
 {
 #ifdef USE_SUITE_CCNB
@@ -873,15 +890,14 @@ ccnl_addr2ascii(sockunion *su)
 
 #ifndef CCNL_LINUXKERNEL
 
-static char *prefix_buf1;
-static char *prefix_buf2;
-static char *buf;
-
 char*
 ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
                              int escape_components, int call_slash)
 {
     int len = 0, i, j;
+    static char *prefix_buf1;
+    static char *prefix_buf2;
+    static char *buf;
 
 #ifdef CCNL_ARDUINO
 # define PREFIX_BUFSIZE 50
@@ -895,10 +911,10 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (!buf) {
         struct ccnl_buf_s *b;
         b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        ccnl_core_addToCleanup(b);
+        //ccnl_core_addToCleanup(b);
         prefix_buf1 = (char*) b->data;
         b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        ccnl_core_addToCleanup(b);
+        //ccnl_core_addToCleanup(b);
         prefix_buf2 = (char*) b->data;
         buf = prefix_buf1;
     } else if (buf == prefix_buf2)
@@ -968,7 +984,7 @@ One possibility is to not have a '/' before any nfn expression.
                   (char*)PSTR("%%%02x") : (char*)PSTR("%c");
             len += sprintf_P(buf + len, fmt, c);
 #else
-                  "%%%02x" : "%c";
+                  (char *) "%%%02x" : (char *) "%c";
             len += sprintf(buf + len, fmt, c);
 #endif
             if(len > PREFIX_BUFSIZE) {

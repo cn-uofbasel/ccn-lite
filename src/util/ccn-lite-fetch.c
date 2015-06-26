@@ -42,31 +42,15 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               unsigned char *out, int out_len,
                               int *len,
                               float wait, int sock, struct sockaddr sa) {
-
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    switch (suite) {
 #ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
+    if (suite == CCNL_SUITE_CCNB) {
         DEBUGMSG(ERROR, "CCNB not implemented\n");
         exit(-1);
-        break;
+    }
 #endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        break;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        mkInterest = cistlv_mkInterest;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        break;
-#endif
-    default:
+
+    ccnl_mkInterestFunc mkInterest = ccnl_suite2mkInterestFunc(suite);
+    if (!mkInterest) {
         DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
         exit(-1);
     }
@@ -176,8 +160,7 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
                  ccnl_suite2str(suite));
         return -1;
     }
-    *prefix = pkt->pfx;
-    pkt->pfx = NULL;
+    *prefix = ccnl_prefix_dup(pkt->pfx);
     *lastchunknum = pkt->val.final_block_id;
     *content = pkt->content;
     *contentlen = pkt->contlen;
@@ -292,7 +275,7 @@ usage:
         goto usage;
 
     srandom(time(NULL));
-    
+
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
     }
@@ -328,7 +311,7 @@ usage:
     // For CCNTLV always start with the first chunk because of exact content match
     // This means it can only fetch chunked data and not single content-object data
     if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV) {
-        curchunknum = malloc(sizeof(int));
+        curchunknum = ccnl_malloc(sizeof(unsigned int));
         *curchunknum = 0;
     }
 
@@ -344,7 +327,7 @@ usage:
             if (!prefix->chunknum) {
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
-            *prefix->chunknum = *curchunknum;
+            *(prefix->chunknum) = *curchunknum;
             DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
@@ -379,12 +362,12 @@ usage:
                 prefix = nextprefix;
 
                 // Check if the fetched content is a chunk
-                if (!prefix->chunknum) {
+                if (!(prefix->chunknum)) {
                     // Response is not chunked, print content and exit
                     write(1, content, contlen);
                     goto Done;
                 } else {
-                    int chunknum = *prefix->chunknum;
+                    int chunknum = *(prefix->chunknum);
 
                     // allocate curchunknum because it is the first fetched chunk
                     if(!curchunknum) {

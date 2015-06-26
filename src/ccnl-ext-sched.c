@@ -104,7 +104,7 @@ static struct cf_server *server = NULL;
 // callback from the CCNL timer; execute pending reactions
 static void ccnl_sched_cf_timeout(void *aux1, void *aux2)
 {
-    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __func__);
 
     cf_engine_execute_pending_reactions_and_set_timer(engine, ccnl_cf_now());
 }
@@ -114,7 +114,7 @@ static int ccnl_sched_cf_engine_set_timer(struct cf_engine *e, void *userptr, cf
 {
     struct timeval tv;
 
-    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __func__);
 
     // stop the currently running timer
     if (engine_timer) {
@@ -140,7 +140,7 @@ static void ccnl_sched_cf_queue_serve_cb(struct cf_queue *q, void *userptr, cf_t
 {
     struct ccnl_sched_s *s = userptr;
 
-    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __func__);
 
     if (CF_OK == cf_queue_dequeue_packet(q, 1)) {
         DEBUGMSG(VERBOSE, "  cf_dequeue successful; CTS\n");
@@ -162,7 +162,7 @@ static struct cf_queue_op_cb qcb = {
 
 int ccnl_sched_init()
 {
-    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __func__);
 #ifdef USE_CHEMFLOW
     cf_debug_level = 0;
     // create chemflow core
@@ -220,7 +220,7 @@ int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_
     struct cf_reaction *r1, *r2;
     cf_time now;
 
-    DEBUGMSG(TRACE, "%s()\n", __FUNCTION__);
+    DEBUGMSG(TRACE, "%s()\n", __func__);
 
     if (inter_packet_interval) {
         law = CF_LAW_MASS_ACTION;

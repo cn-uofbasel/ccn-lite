@@ -39,7 +39,7 @@ def hexDump(f, lev, doPrint, len):
             raise EOFError
         s = s + '%02x ' % ord(c)
         if not curses.ascii.isprint(c):
-            c = '?'
+            c = '.'
         line = line + c
         len -= 1
         cnt += 1

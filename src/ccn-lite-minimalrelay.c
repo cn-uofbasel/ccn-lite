@@ -75,7 +75,11 @@ int inet_aton(const char *cp, struct in_addr *inp);
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
 
-#define DEBUGSTMT(LVL, ...)             do {} while(0)
+#define DEBUGSTMT(LVL, ...) do { \
+        if ((LVL)>debug_level) break; \
+        __VA_ARGS__; \
+     } while (0)
+
 #define TRACEIN(...)                    do {} while(0)
 #define TRACEOUT(...)                   do {} while(0)
 
@@ -129,7 +133,7 @@ char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
 
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
 
 //----------------------------------------------------------------------
 

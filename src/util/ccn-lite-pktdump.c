@@ -1125,7 +1125,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             sprintf(tmp, "type=%hu", (unsigned short)typ);
             n = tmp;
         }
-        
+
         if(!rawxml)
             fprintf(out, "%04zx  ", cp - base);
         for (i = 0; i < lev; i++) {
@@ -1144,11 +1144,11 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);  
+            strcpy(n_old, n);
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
-                
+
             if(rawxml) {
                 for (i = 0; i < lev; i++) {
                         fprintf(out, "  ");
@@ -1163,11 +1163,11 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                         fprintf(out, "  ");
                 }
                 fprintf(out, "</%s>\n", n);
-            } else 
+            } else
                 hexdump(lev, base, *buf, vallen, rawxml, out);
            *buf += vallen;
            *len -= vallen;
-            
+
        }
     }
 

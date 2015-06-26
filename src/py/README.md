@@ -1,50 +1,49 @@
 # CCN-lite Python client library
 
-preliminary readme file, code is still work-in-progress
+This directory collects a few ICN applications written in Python. The
+underlying library (i.e. Python package) is in the `ccnlite` directory
+and currently only supports the `ndn2013` wire format.
 
-a) start two NFN relays, configure them (setup.sh below)
-   % ../ccn-nfn-relay -s ndn2013 -u 9000 -x /tmp/mgmt1.sock -t 9000 -v debug
-   % ../ccn-nfn-relay -s ndn2013 -u 9001 -x /tmp/mgmt2.sock -t 9001 -v debug
-   % ./setup.sh
-b) start NFN server/proxy in Python at port 9002
-   % ./ccn-nfn-server.py
-c) run the demo:
-   % ./ccn-test-nfnsrv.py
-d) peek and pktdump in Python:
-   % ./ccn-lite-peek.py /test/data | ../util/ccn-lite-pktdump
-   % ./ccn-lite-peek.py /test/data >/tmp/pkt.bin
-   % ./ccn-lite-pktdump.py </tmp/pkt.bin
+This set of utilities will not be expanded and serves mostly as
+example.  However, the one and important application is
+`ccn-nfn-proxy.py` which serves to publish and execute named functions
+written in Python.
 
-TODO:
-- parse argv to set UDP port, in most files
+Apps in this directory:
+- ccn-lite-peek.py
+- ccn-lite-pktdump.py
+- ccn-nfn-proxy.py
+
+## Smoke test
+
+As a simple test, fire up an echo server (written in C) and fetch a
+smoke signal with Python code:
+
+```bash
+../ccn-lite-relay -o /the/name/of/the/echo -s ndn2013 -u 9876 &
+./ccn-lite-peek.py -u 127.0.0.1/9876 -c /the/name/of/the/echo
+```
+
+## The API
+
+Requesting content via Python is simple and done in five lines of
+code. Attach to a ICN network and call `getLabeledContent`, or
+`getLabeledResult`in the case of named-functions:
+
+```python
+import ccnlite.client
+nw = ccnlite.client.Access()
+nw.connect("127.0.0.1", 9876)
+pkts = nw.getLabeledContent("/the/name/of/the/echo", raw=False)
+print pkts[0]
+```
+
+## Named Function support
+
+Named functions to be published must be placed in a module file in
+the `pubfunc` directory. See `pubfunc/myNamedFunctions.py` for an example
+and `ccn-lite/test/py/nfnproxy-test.py` for how to invoked these functions.
+
+## TODOs
+
 - fix ccn-lite-pktdump.py to also work for stdin
-- add explicit prefix for named-functions (security!)
-
----
-
-setup.sh:
-
-#Script to set up faces, content and register prefix
-#to test the simplesend.py and simpleserve.py programs
-#requires two ccn-nfn-relays to run, 
-#	one on port 9000 listening to /tmp/mgmt1.sock
-#	one on port 9001 listening to /tmp/mgmt2.sock
-
-#util-path directory
-# P_UTIL="./../ccn-lite/util"
-P_UTIL="../../util"
-#directory which contains the example content file computation-content.ndntlv
-P_CONTENT="."
-
-
-#Connect mgmt1 with mgmt2
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001 | $P_UTIL/ccn-lite-ccnb2xml
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /pynfn 2 | $P_UTIL/ccn-lite-ccnb2xml
-
-#Connect mgmt2 with computeserver
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt2.sock newUDPface any 127.0.0.1 9002 | $P_UTIL/ccn-lite-ccnb2xml
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt2.sock prefixreg /pynfn 2 | $P_UTIL/ccn-lite-ccnb2xml
-
-#Add content to mgmt2, register it
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt2.sock addContentToCache $P_CONTENT/computation_content.ndntlv | $P_UTIL/ccn-lite-ccnb2xml
-$P_UTIL/ccn-lite-ctrl -x /tmp/mgmt1.sock prefixreg /test 2 | $P_UTIL/ccn-lite-ccnb2xml
