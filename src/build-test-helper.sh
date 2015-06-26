@@ -29,13 +29,15 @@ if [ -n "$MODIFIY_FNAME" ]; then
     # Define variables that are commented out
     for VAR in $SET_VARS; do
         #  echo "Defining $VAR..."
-        sed -i "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME"
+        sed -e "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME" > "$MODIFIY_FNAME.sed"
+        mv "$MODIFIY_FNAME.sed" "$MODIFIY_FNAME"
     done
 
     # Comment already defined variables
     for VAR in $UNSET_VARS; do
         #  echo "Unsetting $VAR..."
-        sed -i "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME"
+        sed -e "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME" > "$MODIFIY_FNAME.sed"
+        mv "$MODIFIY_FNAME.sed" "$MODIFIY_FNAME"
     done
 fi
 
@@ -76,10 +78,10 @@ fi
 # Print status
 if [ $RC = "ok" ]; then
     if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
-        echo -e "\b\b\b\b[\e[1;92mok\e[0;0m]"
+        echo $'\b\b\b\b[\e[1;92mok\e[0;0m]'
     else
-        echo -e "\b\b\b\b\b\b\b\b\b[\e[1;93mwarning\e[0;0m]"
+        echo $'\b\b\b\b\b\b\b\b\b[\e[1;93mwarning\e[0;0m]'
     fi
 else
-    echo -e "\b\b\b\b\b\b\b\b[\e[1;91mfailed\e[0;0m]"
+    echo $'\b\b\b\b\b\b\b\b[\e[1;91mfailed\e[0;0m]'
 fi
