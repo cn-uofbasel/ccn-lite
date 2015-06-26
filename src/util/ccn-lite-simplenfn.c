@@ -207,10 +207,11 @@ usage:
                          &nonce,
                          out, sizeof(out));
 
-        if(ux)
-		    socksize = sizeof(struct sockaddr_un);
-	   else
-		    socksize = sizeof(struct sockaddr_in);
+        if(ux) {
+            socksize = sizeof(struct sockaddr_un);
+        } else {
+            socksize = sizeof(struct sockaddr_in);
+        }
         if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, socksize) < 0) {
             perror("sendto");
             myexit(1);

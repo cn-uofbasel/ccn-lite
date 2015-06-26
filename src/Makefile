@@ -25,7 +25,7 @@ CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
 ifeq ($(GCC_GTEQ_40900),1)
-    LINUX_CFLAGS += -Wno-error=date-time
+    LINUX_CFLAGS += -Wno-date-time
 endif
 
 # OSX, ignore deprecated warnings for libssl
@@ -92,7 +92,7 @@ endif
 
 EXTRA_CFLAGS := -g $(OPTCFLAGS) -std=gnu99
 ifeq ($(GCC_GTEQ_40900),1)
-    EXTRA_CFLAGS += -Wno-error=date-time
+    EXTRA_CFLAGS += -Wno-date-time
 endif
 obj-m += ccn-lite-lnxkernel.o
 #ccn-lite-lnxkernel-objs += ccnl-ext-crypto.o

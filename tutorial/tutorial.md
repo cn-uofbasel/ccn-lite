@@ -271,7 +271,7 @@ Now the result will be `11`.
 In this scenario we install a full implementation of the compute server instead of just a dummy implementation. The compute server implementation can be found in the project [nfn-scala](https://github.com/cn-uofbasel/nfn-scala). It is written in Scala and requires some installation steps. 
 
 ### 0. Installation nfn-scala 
-Follow the installation instructions of nfn-scala. You mainly have to make sure that a JDK and sbt is installed.
+Follow the installation instructions of nfn-scala. 
 
 ### 1. Again, start a NFN-relay
 Start a nfn-relay. We again add the content you produced in the first scenario.
