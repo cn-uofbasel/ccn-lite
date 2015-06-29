@@ -37,6 +37,8 @@ const char*
 dtag2str(int dtag)
 {
     switch (dtag) {
+
+    // Try DTAGs defined in ccnl-pkt-ccnb.h
     case CCN_DTAG_ANY:            return "ANY";
     case CCN_DTAG_NAME:           return "NAME";
     case CCN_DTAG_COMPONENT:      return "COMPONENT";
@@ -80,10 +82,8 @@ dtag2str(int dtag)
     case CCN_DTAG_FragD:          return "FragD";
     case CCN_DTAG_FragP:          return "FragP";
     case CCN_DTAG_CCNPDU:         return "CCNPDU";
-    }
 
-    // No result found in CCN_DTAG, try CCNL_TAG
-    switch (dtag) {
+    // Try DTAGs defined in ccnl-defs.h
     case CCNL_DTAG_MACSRC:        return "MACSRC";
     case CCNL_DTAG_IP4SRC:        return "IP4SRC";
     case CCNL_DTAG_UNIXSRC:       return "UNIXSRC";

@@ -1,4 +1,5 @@
 # build-test.mk
+SHELL := /bin/bash
 
 # Set NO_CORES to the number of logical cores available, if not already set
 OS:=$(shell sh -c 'uname -s 2> /dev/null || echo not')
@@ -35,7 +36,7 @@ bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
 
 echo-cores:
-	@printf '\e[3mBuilding using $(NO_CORES) cores:\e[0m\n'
+	@tput sitm; echo "Building using $(NO_CORES) cores:"; tput ritm
 
 clean:
 	@make clean > /dev/null 2>&1
