@@ -331,14 +331,14 @@ is_ccn_blob(int tag)
 }
 
 int
-lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
+lookahead(unsigned char **buf, int *len, int *num, int *typ, bool ignoreBlobTag)
 {
     int look_typ, look_num, rc, rc2;
     unsigned char *old_buf = *buf;
     int old_len = *len;
 
     rc = ccnl_ccnb_dehead(buf, len, num, typ);
-    if (ignore_blob_tag && rc == 0 && is_ccn_blob(*typ)) {
+    if (ignoreBlobTag && rc == 0 && is_ccn_blob(*typ)) {
         rc2 = ccnl_ccnb_dehead(buf, len, &look_num, &look_typ);
         if (rc2 == 0 && is_ccn_tt(look_typ, look_num)) {
             *num = look_num;
@@ -353,17 +353,17 @@ lookahead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag
 }
 
 int
-dehead(unsigned char **buf, int *len, int *num, int *typ, int ignore_blob_tag)
+dehead(unsigned char **buf, int *len, int *num, int *typ, bool ignoreBlobTag)
 {
     int look_typ, look_num;
     int rc_dehead, rc_lookahead;
 
     rc_dehead = ccnl_ccnb_dehead(buf, len, num, typ);
-    if (ignore_blob_tag && rc_dehead == 0 && is_ccn_blob(*typ)) {
-        rc_lookahead = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
+    if (ignoreBlobTag && rc_dehead == 0 && is_ccn_blob(*typ)) {
+        rc_lookahead = lookahead(buf, len, &look_num, &look_typ, ignoreBlobTag);
         if (rc_lookahead == 0 && is_ccn_tt(look_typ, look_num)) {
             // If we found BLOB data and inside there is a valid tag, just ignore BLOB and advance
-            return dehead(buf, len, num, typ, ignore_blob_tag);
+            return dehead(buf, len, num, typ, ignoreBlobTag);
         }
     }
 
@@ -380,10 +380,9 @@ print_offset(int offset)
 }
 
 void
-print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
+print_value(int offset, unsigned char *valptr, int vallen)
 {
     int i;
-    if (with_newlines) print_offset(offset);
 
     if (vallen == 1 && ccnl_isSuite(valptr[0])) {
         printf("%u", valptr[0]);
@@ -392,58 +391,56 @@ print_value(int offset, unsigned char *valptr, int vallen, int with_newlines)
             printf("%c", valptr[i]);
         }
     }
-
-    if (with_newlines) printf("\n");
 }
 
 void
-print_tag(int offset, int typ, int num, int open_tag, int with_newlines)
+print_tag(int offset, int typ, int num, bool openTag, bool withNewlines)
 {
-    if (open_tag || with_newlines) print_offset(offset);
+    if (openTag || withNewlines) print_offset(offset);
 
     printf("<");
-    if (!open_tag) printf("/");
+    if (!openTag) printf("/");
     printf("%s", tag2str(typ, num));
     printf(">");
 
-    if (!open_tag || with_newlines) printf("\n");
+    if (!openTag || withNewlines) printf("\n");
 }
 
 void
-print_blob(unsigned char **buf, int *len, int typ, int num, int offset, int ignore_blob_tag)
+print_blob(unsigned char **buf, int *len, int typ, int num, int offset, bool ignoreBlobTag)
 {
     int vallen;
     unsigned char *valptr;
 
-    if (!ignore_blob_tag) print_tag(offset, typ, num, 1, 0);
+    if (!ignoreBlobTag) print_tag(offset, typ, num, true, false);
     ccnl_ccnb_consume(typ, num, buf, len, &valptr, &vallen);
-    print_value(offset, valptr, vallen, 0);
-    if (!ignore_blob_tag) print_tag(offset, typ, num, 0, 0);
+    print_value(offset, valptr, vallen);
+    if (!ignoreBlobTag) print_tag(offset, typ, num, false, false);
 }
 
 void
-print_ccnb(unsigned char **buf, int *len, int offset, int ignore_blob_tag)
+print_ccnb(unsigned char **buf, int *len, int offset, bool ignoreBlobTag)
 {
     int num, typ, look_num, look_typ, rc;
 
-    while (dehead(buf, len, &num, &typ, ignore_blob_tag) == 0) {
+    while (dehead(buf, len, &num, &typ, ignoreBlobTag) == 0) {
         if (num == 0 && typ == 0) {
             break;
         }
 
-        rc = lookahead(buf, len, &look_num, &look_typ, ignore_blob_tag);
+        rc = lookahead(buf, len, &look_num, &look_typ, ignoreBlobTag);
         if (is_ccn_blob(typ) && (rc != 0 || !is_ccn_tt(look_typ, look_num))) {
-            print_blob(buf, len, typ, num, offset, ignore_blob_tag);
+            print_blob(buf, len, typ, num, offset, ignoreBlobTag);
         }
         else {
-            int with_newlines = 1;
-            if (ignore_blob_tag && rc == 0 && is_ccn_blob(look_typ)) {
-                with_newlines = 0;
+            bool withNewlines = true;
+            if (ignoreBlobTag && rc == 0 && is_ccn_blob(look_typ)) {
+                withNewlines = false;
             }
 
-            print_tag(offset, typ, num, 1, with_newlines);
-            print_ccnb(buf, len, offset+4, ignore_blob_tag);
-            print_tag(offset, typ, num, 0, with_newlines);
+            print_tag(offset, typ, num, true, withNewlines);
+            print_ccnb(buf, len, offset+4, ignoreBlobTag);
+            print_tag(offset, typ, num, false, withNewlines);
         }
     }
 }
@@ -454,12 +451,12 @@ main(int argc, char *argv[])
     unsigned char out[64000];
     unsigned char *p_out;
     int len, opt;
-    int ignore_blob_tag = 1;
+    bool ignoreBlobTag = true;
 
     while ((opt = getopt(argc, argv, "hb")) != -1) {
         switch (opt) {
         case 'b':
-            ignore_blob_tag = 0;
+            ignoreBlobTag = false;
             break;
         case 'h':
         default:
@@ -479,6 +476,6 @@ main(int argc, char *argv[])
     }
 
     p_out = out;
-    print_ccnb(&p_out, &len, 0, ignore_blob_tag);
+    print_ccnb(&p_out, &len, 0, ignoreBlobTag);
     return 0;
 }
