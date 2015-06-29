@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PACKETTYPELIST="ccnb ndn2013 iot2014 ccnx2015" #cisco2015
+PACKETTYPELIST="ccnb ndn2013 ccnx2015" #cisco2015 iot2014  
 #PACKETTYPELIST="ndn2013"
 
 for PACKETTYPE in $PACKETTYPELIST; do
@@ -40,7 +40,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
     RC=$?
     echo "Return code: $RC, result: '$RES'"
 
-    if [ 0 -ne $RC ] || [ 3756 -ne $RES ]; then
+    if [ 0 -ne $RC ] || [ 3744 -ne $RES ]; then
          echo -e "\e[0;91m[FAILED] Something went wrong\e[0;0m"
     else
          echo -e "\e[0;92m [OK] Test was successful \e[0;0m"
