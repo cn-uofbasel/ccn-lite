@@ -743,6 +743,11 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
                              (char*) h, strlen((char*)h));
 
+    memset(h, '\0', sizeof(h));
+    sprintf((char*)h, "%d", *prefix->chunknum);
+    len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
+                            (char*) h, strlen((char*)h));
+
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCN_DTAG_NAME, CCN_TT_DTAG,  // content
                              (char*) stmt, len3);
     contentobj[len2++] = 0; // end-of-contentobj
