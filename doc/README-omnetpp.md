@@ -26,7 +26,7 @@ has been a major version jump (INET Framework 3.0.0).
     ```
 
     This target generates an OMNeT++ archive bundle named `ccn-lite-omnet.tgz`
-    in the current directory.
+    in the `src` directory.
 
 2.  Import the archive bundle as an existing project into OMNeT++:
 
