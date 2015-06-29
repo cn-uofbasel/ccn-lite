@@ -46,7 +46,7 @@ printf "%-30s [..]" "$LOG_FNAME"
 
 RC="ok"
 if [ -n "$PKT_FORMAT" ]; then
-    make -C util ccn-lite-pktdump > "/tmp/$LOG_FNAME.log" 2>&1
+    make -j$NO_CORES -C util ccn-lite-pktdump > "/tmp/$LOG_FNAME.log" 2>&1
     if [ $? -ne 0 ]; then
         RC="fail"
     else
@@ -63,7 +63,7 @@ if [ -n "$PKT_FORMAT" ]; then
     fi
 else
     # Build and log output
-    make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
+    make -j$NO_CORES -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
     if [ $? -ne 0 ]; then
         RC="fail"
     fi

@@ -1,5 +1,16 @@
 # build-test.mk
 
+# Set NO_CORES to the number of logical cores available, if not already set
+OS:=$(shell sh -c 'uname -s 2> /dev/null || echo not')
+ifeq ($(OS),Linux)
+    NO_CORES?=$(shell grep -c ^processor /proc/cpuinfo)
+else ifeq ($(OS),Darwin) # Assume OS X
+    NO_CORES?=$(shell sysctl -n hw.ncpu)
+else
+    NO_CORES?=1
+endif
+export NO_CORES
+
 BT_RELAY=bt-relay-nothing \
 	bt-relay-barebones \
 	bt-relay-vanilla \
@@ -18,10 +29,14 @@ BT_PKT=bt-pkt-ccnb \
 PROFILES=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT}
 
 .PHONY: all clean bt-relay bt-all bt-pkt ${PROFILES}
-all: ${PROFILES} clean
+all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
+
+echo-cores:
+	@printf '\e[3mBuilding using $(NO_CORES) cores:\e[0m\n'
+
 clean:
 	@make clean > /dev/null 2>&1
 	@echo ''
