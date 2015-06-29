@@ -104,20 +104,21 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 ccnl_enc2str(int enc)
 {
     switch(enc) {
-    case CCNL_ENC_CCNB:      return "ccnb";
-    case CCNL_ENC_NDN2013:   return "ndn2013";
-    case CCNL_ENC_CCNX2014:  return "ccnbx2014";
-    case CCNL_ENC_IOT2014:   return "iot2014";
-    case CCNL_ENC_LOCALRPC:  return "localrpc";
+    case CCNL_ENC_CCNB:      return CONSTSTR("ccnb");
+    case CCNL_ENC_NDN2013:   return CONSTSTR("ndn2013");
+    case CCNL_ENC_CCNX2014:  return CONSTSTR("ccnbx2014");
+    case CCNL_ENC_IOT2014:   return CONSTSTR("iot2014");
+    case CCNL_ENC_LOCALRPC:  return CONSTSTR("localrpc");
+    case CCNL_ENC_CISCO2015: return CONSTSTR("cisco2015");
     default:
         break;
     }
 
-    return "?";
+    return CONSTSTR("?");
 }
 
 // ----------------------------------------------------------------------
@@ -153,7 +154,7 @@ ccnl_enc2str(int enc)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
-                     char *maxSuffix, unsigned char *digest, int dlen,
+                     const char *maxSuffix, unsigned char *digest, int dlen,
                      unsigned char *publisher, int plen, char *scope,
                      uint32_t *nonce, unsigned char *out)
 {
