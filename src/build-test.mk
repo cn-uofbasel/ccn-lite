@@ -36,7 +36,7 @@ bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
 
 echo-cores:
-	@tput sitm; echo "Building using $(NO_CORES) cores:"; tput ritm
+	@bash -c 'printf "\e[3mBuilding using $(NO_CORES) cores:\e[0m\n"'
 
 clean:
 	@make clean > /dev/null 2>&1
