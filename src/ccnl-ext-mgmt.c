@@ -1684,9 +1684,9 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                     struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     unsigned char *buf;
-    unsigned char *components = 0, *h = 0, *h2 = 0;
+    unsigned char *components = 0, *h = 0, *h2 = 0, *h3 = 0;
     int buflen;
-    unsigned int chunknum = 0;
+    unsigned int chunknum = 0, chunkflag = 0;
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
 
@@ -1703,6 +1703,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             break; // end
         extractStr(h, CCNL_DTAG_SUITE);
         extractStr(h2, CCNL_DTAG_CHUNKNUM);
+        extractStr(h3, CCNL_DTAG_CHUNKFLAG);
         if (h) {
             suite = strtol((const char*)h, NULL, 0);
             ccnl_free(h);
@@ -1710,6 +1711,10 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if(h2){
            chunknum = strtol((const char*)h2, NULL, 0);
            ccnl_free(h2);
+        }
+        if(h3){
+           chunkflag = strtol((const char*)h3, NULL, 0);
+           ccnl_free(h3);
            break;
         }
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0)
@@ -1731,8 +1736,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             goto Bail;
     }
     ++num_of_components;
-
-    prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, &chunknum);
+    prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, chunkflag ? &chunknum : NULL);
 
     ccnl_free(components);
     components = NULL;

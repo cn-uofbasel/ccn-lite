@@ -146,6 +146,7 @@ enum {
 #define CCNL_DTAG_SUITE         99300
 #define CCNL_DTAG_COMPLENGTH    99301
 #define CCNL_DTAG_CHUNKNUM      99302
+#define CCNL_DTAG_CHUNKFLAG     99303
 
 
 // ----------------------------------------------------------------------
