@@ -8,7 +8,7 @@ processes.
 ## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md) to set up the
-CCN-lite sources (in particular [`Dockerfile`](Dockerfile)) and relevant
+CCN-lite sources (in particular [`Dockerfile`](../Dockerfile)) and relevant
 environment variables.
 
 CCN-lite for Docker obviously requires a working Docker installation. For more
@@ -19,26 +19,26 @@ of Docker.
 
 1.  Define environment variables:
 
-    - `$DOCKER_NAME` that refers to your username from
-      [Docker Hub](https://hub.docker.com/):
+    -  `$DOCKER_NAME` that refers to your username from
+       [Docker Hub](https://hub.docker.com/):
 
-        ```bash
-        DOCKER_NAME=<your Docker Hub username>
-        ```
+       ```bash
+       DOCKER_NAME=<your Docker Hub username>
+       ```
 
-        If you are not using Docker Hub, you can choose a name freely, for
-        example your user account name:
+       If you are not using Docker Hub, you can choose a name freely, for
+       example your user account name:
 
-        ```bash
-        DOCKER_NAME=$(whoami)
-        ```
+       ```bash
+       DOCKER_NAME=$(whoami)
+       ```
 
-    - `$SUDO` to enable usage of `sudo` on Linux machines but disable it on OS X:
+    -  `$SUDO` to enable usage of `sudo` on Linux machines but disable it on OS X:
 
-        ```bash
-        UNAME_OS=$(uname -s 2>/dev/null || echo not)
-        if [ "$UNAME_OS" = "Linux" ]; then SUDO="sudo"; else SUDO=""; fi
-        ```
+       ```bash
+       UNAME_OS=$(uname -s 2>/dev/null || echo not)
+       if [ "$UNAME_OS" = "Linux" ]; then SUDO="sudo"; else SUDO=""; fi
+      ```
 
 2.  Build the Docker container. *Do not forget to put the `.` at the end.*
 
@@ -56,10 +56,9 @@ of Docker.
     $SUDO docker run -p 9000:9000/udp --name ccnl "$DOCKER_NAME/ccn-lite:devel"
     ```
 
-    Option `-p` connects the internal to the external port: `9000 --> 9000`. `--name` assigns the
-    running container a named handle, without the flag a random name is chosen.
-
-    To run the container in the background, add option `-d`.
+    Option `-p` connects the internal to the external port: `9000 --> 9000`.
+    `--name` assigns the running container a named handle, without the flag a
+    random name is chosen. To run the container in the background, add option `-d`.
 
     Without any additional arguments, Docker runs the default command specified
     by `CMD` in the Dockerfile. To run a custom command (for example using
@@ -91,12 +90,12 @@ of Docker.
 
 ## Debugging
 
-In order to debug the container, the following commands can prove useful:
+In order to debug the container, the following commands might prove useful:
 
-- `$SUDO docker ps` lists the running containers. Add option `-a` to see all
-  containers.
+-  `$SUDO docker ps` lists the running containers. Add option `-a` to see all
+   containers.
 
-- `$SUDO docker exec -i -t ccnl /bin/bash` starts a Bash shell *inside* the
-  container.
+-  `$SUDO docker exec -i -t ccnl /bin/bash` starts a Bash shell *inside* the
+   container.
 
-- `$SUDO docker logs ccnl` fetches the output of the CCN-lite container.
+-  `$SUDO docker logs ccnl` fetches the output of the CCN-lite container.
