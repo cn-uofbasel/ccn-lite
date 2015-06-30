@@ -46,6 +46,10 @@ has been a major version jump (INET Framework 3.0.0).
 
     `Project > Build Project`
 
+5.  Run the example simulation `example1`:
+
+    `Project > Run`
+
 
 ## Documentation
 
