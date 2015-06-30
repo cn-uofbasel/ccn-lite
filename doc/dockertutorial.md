@@ -54,7 +54,9 @@ Here are the commands:
 cd nfn-scala
 docker build -t yourname/nfn-scala:devel .
 docker run -d -p 9000:9000/udp --name nfnscala yourname/nfn-scala:devel
-# Only when done or something went wrong
+```
+Only when done or something went wrong
+```bash
 docker stop nfnscala && docker rm nfnscala
 ```
 
