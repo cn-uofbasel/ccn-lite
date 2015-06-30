@@ -178,7 +178,7 @@ files:
  * [OMNeT++](doc/README-omnetpp.md)
 
 Additionally, CCN-lite has a pre-built [Dockerfile](Dockerfile) to enable the usage of
-[Docker](https://www.docker.com/) with CCN-lite, see the
+[Docker](https://www.docker.com/) with CCN-lite. See the
 [Docker-specific readme file](doc/README-docker.md) for more information.
 
 ### Named function support
