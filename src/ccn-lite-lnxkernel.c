@@ -521,7 +521,7 @@ module_param(p, charp, 0);
 MODULE_PARM_DESC(p, "private key path");
 
 module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013)");
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
