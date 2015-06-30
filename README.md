@@ -151,8 +151,8 @@ Featue             | Description
 `USE_MGMT`         | React to CCNx management protocol messages.
 `USE_NACK`         | NACK support for NFN.
 `USE_NFN`          | Enable named function networking.
-`USE_NFN_NSTRANS`  | ???
-`USE_NFN_MONITOR`  | ???
+`USE_NFN_NSTRANS`  | Namespace translation for NFN.
+`USE_NFN_MONITOR`  | Message logging for nfn-scala.
 `USE_SCHEDULER`    | Rate control at CCNx msg and fragment level.
 `USE_SIGNATURES`   | Authenticate management messages.
 `USE_STATS`        | Enable statistics.
