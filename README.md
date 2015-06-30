@@ -177,7 +177,7 @@ files:
  * [Arduino and RFduino](doc/README-arduino.md)
  * [OMNeT++](doc/README-omnetpp.md)
 
-Additionally, CCN-lite has a pre-built Dockerfile to enable the usage of
+Additionally, CCN-lite has a pre-built [Dockerfile](Dockerfile) to enable the usage of
 [Docker](https://www.docker.com/) with CCN-lite, see the
 [Docker-specific readme file](doc/README-docker.md) for more information.
 
@@ -226,7 +226,7 @@ with CCN-lite are the following:
 
 | Tool                           | Description                                 |
 | :----------------------------- | :------------------------------------------ |
-| `ccn-lite-relay.c`             | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>ccn-lite-relay</li><li>ccn-nfn-relay</li><li>ccn-nfn-relay-nack</li></ul> |
+| `ccn-lite-relay.c`             | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul> |
 | `ccn-lite-lnxkernel.c`         | CCN-lite forwarder: Linux kernel module     |
 | `util/ccn-lite-ctrl.c`         | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module. |
 | `util/ccn-lite-ccnb2xml.c`     | Simple CCNB packet parser                   |
