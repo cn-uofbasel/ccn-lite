@@ -64,8 +64,8 @@ In the ccn-lite-omnet project you will find the following sub-directories:
 Some additional developer's documentation providing an overview of the software
 architecture of the OMNeT++ wrapper of CCN-lite, the current scenario
 configuration options, the OMNeT++ message definitions and the function of the
-various modules can be found in the `$CCNL_HOME/src/doc/omnet/` directory of the
-CCN-lite source tree.
+various modules is described in the getting started document found at
+`$CCNL_HOME/doc/internal/omnetpp-getting-started.pdf`.
 
 
 ### OMNeT++ code base
