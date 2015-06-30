@@ -14,25 +14,21 @@ several commands are run to compile CCN-Lite and setup some variables and expose
 In Ubuntu you will have to provide sudo privileges by using `sudo docker ...` instead of `docker`.
 ```bash
 cd $CCNL_HOME
-docker build -t yourname/ccn-lite:devel .     (do not forget to put the (.) at the end)
+docker build -t yourname/ccn-lite:devel .  (do not forget to put the (.) at the end)
 ```
 With the -t flag you can give your container a name, which is usually your username from dockerhub (or any other name if you do not use dockerhub), the name of the container and a version flag at the end.
 
-Now you need to run the container:
 ```bash
-docker run -i -t -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /bin/bash
+docker run -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel 
 ```
-In the previous command we run the container in the demon mode in the background (-d), contact the internal port to the external port (-p) and give the running container a named handle (otherwise a random name is chosen) . We use /bin/bash to run an interactive shell.
-
-Now you can open the shell of the container using this command: 
+The previous command runs the container, connects the internal port to the external port (`-p`) and
+gives the running container a named handle (otherwise a random name is chosen).
+Since there are no additional arguments after the container name, the default command is run (`CMD` statement of the Dockerfile).
+If you want to run a different command in the container, you can start it with the following instead:
 ```bash
-docker exec -i -t ccnl /bin/bash
+docker run -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -d test/ndntlv -s ndn2013 -v 99 -u 9000
 ```
-You are in the home directory /var/ccn-lite/ now, and here you can start the relay in the container (you should add all content objects from a directory to the cache of the relay using -d)
-```bash
-bin/ccn-nfn-relay -s ndn2013 -v 99 -u 9000 -d test/ndntlv
-```
-Now you should be able to send CCN requests to the container by using your locally installed ccn-lite-peek utility (after starting the relay locally).
+Now you should be able to send CCN requests to the container by using your locally installed ccn-lite-peek utility.
 On Ubuntu, you can send the requests to 127.0.0.1. To send on OSX you have to get the IP with `boot2docker ip` (that is the address of the virtual machine running on VirtualBox).
 ```bash
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u x.x.x.x/9000 "/ndn/simple" | $CCNL_HOME/bin/ccn-lite-pktdump
@@ -57,8 +53,10 @@ Here are the commands:
 ```bash
 cd nfn-scala
 docker build -t yourname/nfn-scala:devel .
-docker run -d -p 9000:9000/udp --name nfnscala yourname/nfn-scala:devel
-# Only when done or something went wrong
+docker run -p 9000:9000/udp --name nfnscala yourname/nfn-scala:devel
+```
+Only when done or something went wrong
+```bash
 docker stop nfnscala && docker rm nfnscala
 ```
 
