@@ -134,30 +134,30 @@ part of CCN-lite:
 
 Other features that you can switch on and off at compile time are:
 
-| Featue             | Description
-| :----------------- | :------------------------------------------------------ |
-| `USE_CCNxDIGEST`   | Enable digest component, requires crypto lib.           |
-| `USE_CHEMFLOW`     | Experimental scheduler based on chemical networking, source not included. |
-| `USE_DEBUG`        | Basic data structure dumping.                           |
-| `USE_DEBUG_MALLOC` | Compile with memory armoring.                           |
-| `USE_ECHO`         | Enable an echo prefix, returning the current time.      |
-| `USE_ETHERNET`     | Talk to Ethernet or W-LAN devices, raw frames.          |
-| `USE_FRAG`         | Enable fragments, to run CCNx over Ethernet.            |
-| `USE_HMAC256`      | Enables hash-based authentification codes.              |
-| `USE_HTTP_STATUS`  | Provide status info for web browsers-                   |
-| `USE_IPV4`         | Enable IP support.                                      |
-| `USE_LOGGING`      | Enable log messages                                     |
-| `USE_KITE`         | Routing along the return path, not yet supported        |
-| `USE_MGMT`         | React to CCNx management protocol messages              |
-| `USE_NACK`         | NACK support for NFN                                    |
-| `USE_NFN`          | Enable named function networking                        |
-| `USE_NFN_NSTRANS`  | ???                                                     |
-| `USE_NFN_MONITOR`  | ???                                                     |
-| `USE_SCHEDULER`    | Rate control at CCNx msg and fragment level             |
-| `USE_SIGNATURES`   | Authenticate management messages                        |
-| `USE_STATS`        | Enable statistics                                       |
-| `USE_SUITE_*`      | Enable a specific protocol: CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC or CISCO2015 |
-| `USE_UNIXSOCKET`   | Add UNIX IPC to the set of interfaces                   |
+Featue             | Description
+:----------------- | :---------------------------------------------------------
+`USE_CCNxDIGEST`   | Enable digest component, requires crypto lib.
+`USE_CHEMFLOW`     | Experimental scheduler based on chemical networking, source not included.
+`USE_DEBUG`        | Basic data structure dumping.
+`USE_DEBUG_MALLOC` | Compile with memory armoring.
+`USE_ECHO`         | Enable an echo prefix, returning the current time.
+`USE_ETHERNET`     | Talk to Ethernet or W-LAN devices, raw frames.
+`USE_FRAG`         | Enable fragments, to run CCNx over Ethernet.
+`USE_HMAC256`      | Enables hash-based authentification codes.
+`USE_HTTP_STATUS`  | Provide status info for web browsers.
+`USE_IPV4`         | Enable IP support.
+`USE_LOGGING`      | Enable log messages.
+`USE_KITE`         | Routing along the return path, not yet supported.
+`USE_MGMT`         | React to CCNx management protocol messages.
+`USE_NACK`         | NACK support for NFN.
+`USE_NFN`          | Enable named function networking.
+`USE_NFN_NSTRANS`  | ???
+`USE_NFN_MONITOR`  | ???
+`USE_SCHEDULER`    | Rate control at CCNx msg and fragment level.
+`USE_SIGNATURES`   | Authenticate management messages.
+`USE_STATS`        | Enable statistics.
+`USE_SUITE_*`      | Enable a specific protocol: CCNB, NDN2013, CCNx2014, IOT2014, LOCALRPC or CISCO2015.
+`USE_UNIXSOCKET`   | Add UNIX IPC to the set of interfaces.
 
 The approach for these extensions is that one can tailor a CCN forwarder to
 including only those features really necessary.  We have strived to make these
@@ -224,23 +224,23 @@ really is lean, looking at the lines of C code:
 The main command line tools and their corresponding source file that are shipped
 with CCN-lite are the following:
 
-| Tool                           | Description                                 |
-| :----------------------------- | :------------------------------------------ |
-| `ccn-lite-relay.c`             | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul> |
-| `ccn-lite-lnxkernel.c`         | CCN-lite forwarder: Linux kernel module     |
-| `util/ccn-lite-ctrl.c`         | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module. |
-| `util/ccn-lite-ccnb2xml.c`     | Simple CCNB packet parser                   |
-| `util/ccn-lite-cryptoserver.c` | Used by the kernel module to carry out compute intensive crypto operations in user instead of kernel space. |
-| `util/ccn-lite-fetch.c`        | Fetches both a single chunk content or a series of chunks for larger named data. Only the content is returned without any protocol bytes. |
-| `util/ccn-lite-mkC.c`          | Simple content composer, to stdout, without crypto. |
-| `util/ccn-lite-mkF.c`          | Simple tool to split a large file into a fragment series. |
-| `util/ccn-lite-mkI.c`          | Simple interest composer, to stdout.        |
-| `util/ccn-lite-peek.c`         | Simple interest injector waiting for a content chunk, can also be used to request named-function results. |
-| `util/ccn-lite-pktdump.c`      | Powerful packet dumper for all known packet formats. Output is in hexdump style, XML or content only. |
-| `util/ccn-lite-produce.c`      | Creates a series of chunks for data that does not fit into a single PDU. |
-| `util/ccn-lite-rpc.c`          | Send an RPC request and return the reply.   |
-| `util/ccn-lite-simplenfn.c`    | Simplified interface to request named-function results. |
-| `util/ccn-lite-valid.c`        | Demo application for validating a packet's signature. |
+Tool                           | Description
+:----------------------------- | :---------------------------------------------
+`ccn-lite-relay.c`             | CCN-lite forwarder: user space.<br /> This file is compiled into three executables, depending on compile time environment flags: <ul><li>`ccn-lite-relay`</li><li>`ccn-nfn-relay`</li><li>`ccn-nfn-relay-nack`</li></ul>
+`ccn-lite-lnxkernel.c`         | CCN-lite forwarder: Linux kernel module
+`util/ccn-lite-ctrl.c`         | Command line program running the CCNx management protocol (over Unix sockets). Used for configuring a running relay either running in user space or as a kernel module.
+`util/ccn-lite-ccnb2xml.c`     | Simple CCNB packet parser
+`util/ccn-lite-cryptoserver.c` | Used by the kernel module to carry out compute intensive crypto operations in user instead of kernel space.
+`util/ccn-lite-fetch.c`        | Fetches both a single chunk content or a series of chunks for larger named data. Only the content is returned without any protocol bytes.
+`util/ccn-lite-mkC.c`          | Simple content composer, to stdout, without crypto.
+`util/ccn-lite-mkF.c`          | Simple tool to split a large file into a fragment series.
+`util/ccn-lite-mkI.c`          | Simple interest composer, to stdout.
+`util/ccn-lite-peek.c`         | Simple interest injector waiting for a content chunk, can also be used to request named-function results.
+`util/ccn-lite-pktdump.c`      | Powerful packet dumper for all known packet formats. Output is in hexdump style, XML or content only.
+`util/ccn-lite-produce.c`      | Creates a series of chunks for data that does not fit into a single PDU.
+`util/ccn-lite-rpc.c`          | Send an RPC request and return the reply.
+`util/ccn-lite-simplenfn.c`    | Simplified interface to request named-function results.
+`util/ccn-lite-valid.c`        | Demo application for validating a packet's signature.
 
 <a name="links"></a>
 ## 6. Links:
