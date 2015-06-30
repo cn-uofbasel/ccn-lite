@@ -1,16 +1,17 @@
 # CCN-lite for Arduino
 
 [//]: # (TODO: Link to the homepage of the specific boards?)
-[//]: # (TODO: Add 'standard' header to each README?)
 
 This README describes the installation and usage of CCN-lite for the family of
-Arduino boards (Arduino Uno and AtMega328, 2 KiB RAM) and the RFduino (32 KiB RAM).
+Arduino boards ([Arduino Uno](https://www.arduino.cc/en/Main/ArduinoBoardUno)
+and [AtMega328](http://www.atmel.com/devices/atmega328.aspx), 2 KiB RAM) and the
+[RFduino](http://www.rfduino.com/) (32 KiB RAM).
 
 Because each of these devices come with a different setup including different
 communication shields, this leads to many different profiles that need to be
 supported by CCN-lite. Currently, working setups include:
 * Uno with Ethernet shield (UDP)
-* AtMega 328 with Ethernet shield (UDP)
+* AtMega328 with Ethernet shield (UDP)
 * RFduino with Bluetooth low energy
 
 Planned but not yet supported setups include:
@@ -21,15 +22,15 @@ Planned but not yet supported setups include:
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
 
-The installation for Arduino boards depends on `gcc-avr` and `ino`
-(http://inotool.org/). For Ubuntu, you can install `gcc-avr` using the
+The installation for Arduino boards depends on `gcc-avr` and
+[`ino`](http://inotool.org/). For Ubuntu, you can install `gcc-avr` using the
 following command:
 
 ```bash
 sudo apt-get install gcc-avr
 ```
 
-Building CCN-lite for RFduino depends on the Arduino IDE (http://arduino.cc/).
+Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/).
 
 
 ## Installation for Arduino boards
