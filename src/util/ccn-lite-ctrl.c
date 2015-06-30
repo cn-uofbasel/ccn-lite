@@ -695,7 +695,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
 {
     long len = 0, len1 = 0, len2 = 0, len3 = 0;
     unsigned char *contentobj, *stmt, *out1, h[10], *data;
-    int datalen;
+    int datalen, chunkflag;
     struct ccnl_prefix_s *prefix;
     char *prefix_string = NULL;
 
@@ -746,21 +746,18 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     if(!prefix->chunknum){
       prefix->chunknum = ccnl_malloc(sizeof(int));
       *prefix->chunknum = 0;
+      chunkflag = 0;
+    }else{
+      chunkflag = 1;
     }
-    
+
     memset(h, '\0', sizeof(h));
     sprintf((char*)h, "%d", *prefix->chunknum);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
                             (char*) h, strlen((char*)h));
 
     memset(h, '\0', sizeof(h));
-    if(prefix->chunknum){
-      sprintf((char*)h, "%d", 1);
-    }
-    else{
-      sprintf((char*)h, "%d", 0);
-    }
-
+    sprintf((char*)h, "%d", chunkflag);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
                             (char*) h, strlen((char*)h));
 
