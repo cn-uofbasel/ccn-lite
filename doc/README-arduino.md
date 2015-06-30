@@ -1,7 +1,5 @@
 # CCN-lite for Arduino
 
-[//]: # (TODO: Link to the homepage of the specific boards?)
-
 This README describes the installation and usage of CCN-lite for the family of
 Arduino boards ([Arduino Uno](https://www.arduino.cc/en/Main/ArduinoBoardUno)
 and [AtMega328](http://www.atmel.com/devices/atmega328.aspx), 2 KiB RAM) and the
