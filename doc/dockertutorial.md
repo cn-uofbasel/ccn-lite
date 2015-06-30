@@ -26,7 +26,7 @@ gives the running container a named handle (otherwise a random name is chosen).
 Since there are no additional arguments after the container name, the default command is run (`CMD` statement of the Dockerfile).
 If you want to run a different command in the container, you can start it with the following instead:
 ```bash
-docker run -d -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -d test/ndntlv -s ndn2013 -v 99 -u 9000
+docker run -p 9000:9000/udp --name ccnl yourname/ccn-lite:devel /var/ccn-lite/bin/ccn-nfn-relay -d test/ndntlv -s ndn2013 -v 99 -u 9000
 ```
 Now you should be able to send CCN requests to the container by using your locally installed ccn-lite-peek utility.
 On Ubuntu, you can send the requests to 127.0.0.1. To send on OSX you have to get the IP with `boot2docker ip` (that is the address of the virtual machine running on VirtualBox).
@@ -53,7 +53,7 @@ Here are the commands:
 ```bash
 cd nfn-scala
 docker build -t yourname/nfn-scala:devel .
-docker run -d -p 9000:9000/udp --name nfnscala yourname/nfn-scala:devel
+docker run -p 9000:9000/udp --name nfnscala yourname/nfn-scala:devel
 ```
 Only when done or something went wrong
 ```bash
