@@ -174,7 +174,7 @@ usage:
 */
         if (ux) {
             socksize = sizeof(struct sockaddr_un);
-        } else
+        } else {
             socksize = sizeof(struct sockaddr_in);
         }
         rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);

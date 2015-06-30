@@ -895,9 +895,9 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
                              int escape_components, int call_slash)
 {
     int len = 0, i, j;
-    static char *prefix_buf1;
+    /*static char *prefix_buf1;
     static char *prefix_buf2;
-    static char *buf;
+    static char *buf;*/
 
 #ifdef CCNL_ARDUINO
 # define PREFIX_BUFSIZE 50
@@ -908,7 +908,7 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (!pr)
         return NULL;
 
-    if (!buf) {
+    /*if (!buf) {
         struct ccnl_buf_s *b;
         b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
         //ccnl_core_addToCleanup(b);
@@ -921,7 +921,8 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         buf = prefix_buf1;
     else
         buf = prefix_buf2;
-
+    */
+    char *buf = ccnl_malloc(PREFIX_BUFSIZE);
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN)
         len += sprintf(buf + len, "nfn");
