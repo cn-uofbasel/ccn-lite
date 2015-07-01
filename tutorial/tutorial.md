@@ -10,6 +10,7 @@
 - [Scenario 6: Creating and Publishing your own Named Function](#scenario6)
 
 
+
 <a name="introduction"/>
 ## Introduction
 
@@ -47,6 +48,7 @@ environment which is responsible to carry out the actual computations.
 ![scenario function call](scenario-function-call.png)
 
 
+
 <a name="scenario1"/>
 ## Scenario 1: Simple content-lookup
 
@@ -57,9 +59,11 @@ instance of the CCN-lite relay. The cache of relay `B` is populated with some
 content and a forwarding rule is setup from node `A` to node `B`. Interests are
 send to node `A`.
 
+
 ### 0. Installing CCN-lite
 
 Install CCN-lite by following the [Unix readme](../doc/README-unix.md).
+
 
 ### 1. Producing content
 
@@ -72,6 +76,7 @@ stdin, so type something and press `Enter` after executing the following line:
 ```bash
 $CCNL_HOME/bin/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/ndntlv/mycontent.ndntlv
 ```
+
 
 ### 2. Starting `ccn-lite-relay` for node `A`
 
@@ -86,6 +91,7 @@ $CCNL_HOME/bin/ccn-lite-mkC -s ndn2013 "/ndn/test/mycontent" > $CCNL_HOME/test/n
 $CCNL_HOME/bin/ccn-lite-relay -v trace -s ndn2013 -u 9998 -x /tmp/mgmt-relay-a.sock
 ```
 
+
 ### 3. Starting `ccn-lite-relay` for node `B`
 
 We start the relay for `B` similarly to relay `A` but on a different port.
@@ -99,7 +105,9 @@ $CCNL_HOME/bin/ccn-lite-relay -v trace -s ndn2013 -u 9999 -x /tmp/mgmt-relay-b.s
   -d $CCNL_HOME/test/ndntlv
 ```
 
+
 ### 4. Add a forwarding rule
+
 The two relays are not yet connected to each other. We want to add a forwarding
 rule from node `A` to node `B` which is a mapping of a prefix to an outgoing
 face. Thus, we first need to create the face on relay `A` followed by defining
@@ -143,7 +151,9 @@ server. Just point your browser to `http://127.0.0.1:6363/`.
 This ends the configuration part and we are ready to use the two-node setup for
 experiments.
 
+
 ### 5. Send Interest for Name `/ndn/test/mycontent/` to `A`
+
 The `ccn-lite-peek` utility encodes the specified name in a interest with the
 according suite and sends it to a socket. In this case we want `ccn-lite-peek`
 to send an interest to relay `A`. Relay `A` will receive the interest, forward
@@ -163,6 +173,8 @@ If you want to see only the content use the `-f 2` output format option:
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 "/ndn/test/mycontent" \
   | $CCNL_HOME/bin/ccn-lite-pktdump -f 2
 ```
+
+
 
 <a name="scenario2"/>
 ## Scenario 2: Content lookup from NDN Testbed
@@ -185,6 +197,8 @@ limited lifetime and random name extension. Due to the network level caching,
 repeating the above command might return a copy instead of triggering a new
 response. Try it out!
 
+
+
 <a name="scenario3"/>
 ## Scenario 3: Connecting a CCN-lite relay to the NDN Testbed
 
@@ -196,12 +210,15 @@ interests to the testbed.
 
 
 ### 1. Shutdown relay `B`
+
 To properly shutdown a relay we can use `ccn-lite-ctrl`:
 ```bash
 $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-b.sock debug halt | $CCNL_HOME/bin/ccn-lite-ccnb2xml
 ```
 
+
 ### 2. Remove face to `B`
+
 To see the current configuration of the face, use:
 ```bash
 $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock debug dump | $CCNL_HOME/bin/ccn-lite-ccnb2xml
@@ -214,7 +231,9 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock destroyface $FACEID \
 
 Check again if the face was actually removed.
 
+
 ### 3. Connecting node `A` directly to the NDN Testbed
+
 Connect to the NDN testbed server of the University of Basel by creating a new
 UDP face to the NFD of Basel and then registering the prefix `/ndn`:
 ```bash
@@ -227,7 +246,9 @@ $CCNL_HOME/bin/ccn-lite-ctrl -x /tmp/mgmt-relay-a.sock prefixreg /ndn $FACEID nd
   | $CCNL_HOME/bin/ccn-lite-ccnb2xml
 ```
 
+
 ### 4. Send interest to `A`
+
 Request data from the Testbed system of the UCLA. The interest will be
 transmitted over the Testbed server of the University of Basel to the Testbed
 system of the UCLA:
@@ -235,6 +256,7 @@ system of the UCLA:
 $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" \
   | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
+
 
 
 <a name="scenario4"/>
@@ -245,6 +267,7 @@ $CCNL_HOME/bin/ccn-lite-peek -s ndn2013 -u 127.0.0.1/9998 -w 10 "/ndn/edu/ucla" 
 This scenario consists of a single NFN node `A`. In this demo, we will request
 the network to execute a simple built-in operation: `add 1 2`. A slightly more
 complex numeric expression is also shown.
+
 
 ### 1. Start a NFN-relay
 
@@ -266,6 +289,7 @@ The `ccn-nfn-relay` can be started similar to the ccn-lite-relay:
 $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt-nfn-relay-a.sock
 ```
 
+
 ### 2. Send a NFN request
 
 To send a NFN request, we can use the `ccn-lite-simplenfn` tool instead of
@@ -281,26 +305,32 @@ Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 
 <a name="scenario5"/>
 ## Scenario 5: Named Function Networking (NFN) demo
+
 In this scenario we run a full implementation of the compute server. The compute
 server binary can be found under `$CCNL_HOME/test/scripts/nfn/nfn.jar`. The
 binary is compiled from the source of the project
-[nfn-scala](https://github.com/cn-uofbasel/nfn-scala), written in scala.
+[nfn-scala](https://github.com/cn-uofbasel/nfn-scala), written in [Scala](http://www.scala-lang.org/).
+
 
 ### 0. Prerequisites
+
 In order to run the compute server, Java needs to be installed:
 
-- Ubuntu: `sudo apt-get install openjdk-7-jre
+- Ubuntu: `sudo apt-get install openjdk-7-jre`
 - OS X: Java 7 should already be available. If not, download and install directly from [Oracle](http://java.com/).
 
 
 ### 1. Start a NFN-relay
+
 Start a `ccn-nfn-relay`. We again add the content you produced in the first
 scenario.
 ```bash
 $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
 ```
 
+
 ### 2. Start the Scala compute server
+
 Start the compute server with:
 
 ```bash
@@ -318,7 +348,9 @@ There are also two named functions (or services) published:
 `/node/nodeA/nfn_service_WordCount` and `/node/nodaA/nfn_service_Pandoc`. We
 explain later how they can be used.
 
+
 ### 3. Send a NFN expression with a word count function call
+
 We are going to invoke the `WordCount` service. This function takes a variable
 number of arguments of any type (string, integer, name, another call
 expression, ...) and returns an integer with the number of words:
@@ -362,7 +394,9 @@ $CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
   "add (call 2 /node/nodeA/nfn_service_WordCount 'foo bar') 40" | $CCNL_HOME/bin/ccn-lite-pktdump
 ```
 
+
 ### 4. Invoke the pandoc service
+
 The example compute server also includes the [Pandoc](http://johnmacfarlane.net/pandoc)
 service. To make use of it, you have to install Pandoc itself:
 * Ubuntu: `sudo apt-get install pandoc`
@@ -391,7 +425,9 @@ $CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
 Since `tiny_md` is only a small document, the generated HTML document will also
 fit into a single content object.
 
+
 ### 5. Invoke the pandoc service with a large document
+
 So far, all results of NFN computations were small and fit into single content
 objects. Next we test what happens if the result is larger by transforming `tutorial_md`:
 
@@ -426,6 +462,7 @@ tutorial without pictures.
 
 
 ### 6. Function chaining
+
 One last example shows the chaining of functions. For example, we can convert
 `tutorial_md` into HTML and count the number of words of the result:
 
@@ -439,15 +476,20 @@ $CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
 
 <a name="scenario6"/>
 ## Scenario 6: Creating and Publishing your own Named Function
+
 So far, we have been using a binary of the compute server with predefined
 services. In this scenario, we are first going to look at the compute server
 start script as well as how an implemented service looks like. Then, we are
 going to implement a new service called `revert`.
 
+
 ### 0. Installing NFN-scala
+
 Follow the installation instructions of [nfn-scala](https://github.com/cn-uofbasel/nfn-scala).
 
+
 ### 1. Compile and start the Scala compute server
+
 To run the Scala compute server from source, call `sbt` with `runnables.production.ComputeServerStarter`:
 
 ```bash
@@ -455,7 +497,9 @@ sbt 'runMain runnables.production.ComputeServerStarter --mgmtsocket /tmp/mgmt-nf
   --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA'
 ```
 
+
 ### 2. Explaining StandaloneComputeServer
+
 Currently all running targets exist within the project itself in the `runnables`
 package. We will only discuss `StandaloneComputeServer` found in `src/main/scala/runnables/production`.
 You might be able to understand what is going on even if you do not know any
@@ -502,7 +546,9 @@ node += PandocTestDocuments.tutorialMd(node.localPrefix)
 node += PandocTestDocuments.tinyMd(node.localPrefix)
 ```
 
+
 ### 3. Introduction to service implementation
+
 We now take a closer look to an exemplary service implementation that reverses
 a given `String`, found in `/src/main/scala/nfn/service/Reverse.scala`.
 You should be able to grasp what it does even without knowing Scala.
@@ -573,6 +619,7 @@ class WordCount() extends NFNService {
 }
 ```
 
+
 ### 4. Implementing and publishing a custom service
 
 If you want to use an IDE (e.g. IntelliJ IDEA or Eclipse with Scala plugin) you
@@ -589,6 +636,7 @@ to the `StandaloneComputeServer`. If you used the above mention package, you do
 not have to import anything. If you choose a different place you need to import
 the class accordingly.
 
+
 ### 5. Test your service
 
 After rerunning both the `ccn-nfn-relay` as well as the compute server, you
@@ -600,8 +648,9 @@ e.g. `/node/nodeA/my_package_ToUpper`.
 Optionally you can send us a [pull request](https://github.com/cn-uofbasel/ccn-lite/pulls)
 or an email with the code of your service and we will publish it to the testbed.
 
+
 ### 6. Uninstall sbt and downloaded libraries
-Use the following to uninstall nfn-scala and its dependencies:
-* Delete the local nfn-scala repository
+Use the following to uninstall NFN-scala and its dependencies:
+* Delete the local NFN-scala repository
 * Uninstall sbt (and remove `~/.sbt` if it still exists)
 * Remove `~/.ivy2` (this will of course also delete all your cached Java jars if you are using ivy)
