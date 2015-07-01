@@ -306,10 +306,11 @@ Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 <a name="scenario5"/>
 ## Scenario 5: Named Function Networking (NFN) demo
 
-In this scenario we run a full implementation of the compute server. The compute
-server binary can be found under `$CCNL_HOME/test/scripts/nfn/nfn.jar`. The
-binary is compiled from the source of the project
-[nfn-scala](https://github.com/cn-uofbasel/nfn-scala), written in [Scala](http://www.scala-lang.org/).
+In this scenario we run a full implementation of the compute server:
+[NFN-scala](https://github.com/cn-uofbasel/nfn-scala). A precompiled binary is
+available in the release downloads of [release v0.1.0 of nfn-scala](https://github.com/cn-uofbasel/nfn-scala/releases/tag/v0.1.0).
+
+
 
 
 ### 0. Prerequisites
@@ -319,6 +320,11 @@ In order to run the compute server, Java needs to be installed:
 - Ubuntu: `sudo apt-get install openjdk-7-jre`
 - OS X: Java 7 should already be available. If not, download and install directly from [Oracle](http://java.com/).
 
+Additionally, the Java binary is also needed:
+
+```bash
+wget https://github.com/cn-uofbasel/nfn-scala/releases/download/v0.1.0/nfn.jar
+```
 
 ### 1. Start a NFN-relay
 
@@ -328,13 +334,12 @@ scenario.
 $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
 ```
 
-
 ### 2. Start the Scala compute server
 
 Start the compute server with:
 
 ```bash
-java -jar $CCNL_HOME/test/scripts/nfn/nfn.jar --mgmtsocket /tmp/mgmt-nfn-relay-a.sock \
+java -jar nfn.jar --mgmtsocket /tmp/mgmt-nfn-relay-a.sock \
   --ccnl-port 9001 --cs-port 9002 --debug --ccnl-already-running /node/nodeA
 ```
 
