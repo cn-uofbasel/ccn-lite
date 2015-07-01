@@ -40,16 +40,16 @@ To build CCN-lite for Android, the Android SDK
     GUI, and define some environment variables:
 
     ```bash
-    android &
     export PATH=$PATH:/opt/android-sdk-linux/tools/
     export ANDROID_HOME=/opt/android-sdk-linux
     export PATH=$PATH:/opt/android-ndk-r10d/
+    android &
     ```
 
     In the GUI, select the three Android SDK "Tools", "Platform-tools" and
     "Build-tools". I also included the ARM EABI v7a System Image.
 
-2.  Change to the Android sub-directory:
+2.  Change to the Android sub-directory of CCN-lite:
 
     ```bash
     cd ccn-lite/src/android
