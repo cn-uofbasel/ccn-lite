@@ -814,7 +814,7 @@ usage:
                     "  -o echo_prefix\n"
 #endif
                     "  -p crypto_face_ux_socket\n"
-                    "  -s SUITE (ccnb, ccnx2015, iot2014, ndn2013)\n"
+                    "  -s SUITE (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
                     "  -u udpport (can be specified twice)\n"
 
