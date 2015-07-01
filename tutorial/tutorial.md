@@ -6,9 +6,8 @@
 - [Scenario 2: Content Lookup from NDN Testbed](#scenario2)
 - [Scenario 3: Connecting CCNL with NDN Testbed](#scenario3)
 - [Scenario 4: Simple NFN request](#scenario4)
-- [Scenario 5: NFN request with Compute Server Interaction](#scenario5)
-- [Scenario 6: Full Named Function Networking (NFN) demo](#scenario6)
-- [Scenario 7: Creating and Publishing your own Named Function](#scenario7)
+- [Scenario 5: Named Function Networking (NFN) demo](#scenario5)
+- [Scenario 6: Creating and Publishing your own Named Function](#scenario6)
 
 
 <a name="introduction"/>
@@ -281,7 +280,7 @@ Try out more complex expression evaluations, for example `mult 23 (add 4 456)`.
 
 
 <a name="scenario5"/>
-## Scenario 5: full Named Function Networking (NFN) demo
+## Scenario 5: Named Function Networking (NFN) demo
 In this scenario we run a full implementation of the compute server. The compute
 server binary can be found under `$CCNL_HOME/test/scripts/nfn/nfn.jar`. The
 binary is compiled from the source of the project
@@ -438,8 +437,8 @@ $CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 \
 
 
 
-<a name="scenario7"/>
-## Scenario 7: Creating and Publishing your own Named Function
+<a name="scenario6"/>
+## Scenario 6: Creating and Publishing your own Named Function
 So far, we have been using a binary of the compute server with predefined
 services. In this scenario, we are first going to look at the compute server
 start script as well as how an implemented service looks like. Then, we are
