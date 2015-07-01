@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ ! -f nfn.jar ]; then
+    echo "No NFN executable available, downloading..."
+    wget https://github.com/cn-uofbasel/nfn-scala/releases/download/v0.1.0/nfn.jar &> /dev/null
+fi
+
+
 PACKETTYPELIST='ccnb ndn2013 ccnx2015 iot2014' #cisco2015   
 #PACKETTYPELIST='ndn2013'
 
