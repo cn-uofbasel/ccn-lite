@@ -3,6 +3,7 @@ MAINTAINER Basil Kohler<basil.kohler@gmail.com>
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV CCNL_HOME /var/ccn-lite
+ENV PATH "$PATH:$CCNL_HOME/bin"
 ENV CCNL_PORT 9000
 ENV USE_NFN 1
 
