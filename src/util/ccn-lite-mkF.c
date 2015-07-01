@@ -20,6 +20,7 @@
  * 2013-07-06  created
  */
 
+#define USE_DEBUG
 #define USE_FRAG
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
@@ -43,7 +44,8 @@ file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
 
     memset(&fr, 0, sizeof(fr));
     //    fr.protocol = CCNL_FRAG_CCNx2013;
-    fr.protocol = CCNL_FRAG_SEQUENCED2015;
+    // fr.protocol = CCNL_FRAG_SEQUENCED2015;
+    fr.protocol = CCNL_FRAG_BEGINEND2015;
     fr.bigpkt = ccnl_buf_new(data, datalen);
     fr.mtu = bytelimit;
     fr.sendseq = *seqnr;
