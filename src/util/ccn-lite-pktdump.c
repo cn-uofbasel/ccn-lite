@@ -1535,11 +1535,13 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
                  ccnl_suite2str(suite));
         return -1;
     }
-    write(1, pkt->content, pkt->contlen);
-    if (format > 2)
-        write(1, "\n", 1);
-    free_packet(pkt);
 
+    printf("%.*s", pkt->contlen, pkt->content);
+    if (format > 2) {
+        printf("\n");
+    }
+
+    free_packet(pkt);
     return 0;
 }
 
