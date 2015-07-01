@@ -311,8 +311,6 @@ In this scenario we run a full implementation of the compute server:
 available in the release downloads of [release v0.1.0 of nfn-scala](https://github.com/cn-uofbasel/nfn-scala/releases/tag/v0.1.0).
 
 
-
-
 ### 0. Prerequisites
 
 In order to run the compute server, Java needs to be installed:
@@ -326,6 +324,7 @@ Additionally, the Java binary is also needed:
 wget https://github.com/cn-uofbasel/nfn-scala/releases/download/v0.1.0/nfn.jar
 ```
 
+
 ### 1. Start a NFN-relay
 
 Start a `ccn-nfn-relay`. We again add the content you produced in the first
@@ -333,6 +332,7 @@ scenario.
 ```bash
 $CCNL_HOME/bin/ccn-nfn-relay -v trace -u 9001 -x /tmp/mgmt-nfn-relay-a.sock -d $CCNL_HOME/test/ndntlv
 ```
+
 
 ### 2. Start the Scala compute server
 
