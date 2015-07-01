@@ -1,16 +1,18 @@
 # CCN-lite for Arduino
 
-This README describes the installation and usage of CCN-lite for the family of
-Arduino boards ([Arduino Uno](https://www.arduino.cc/en/Main/ArduinoBoardUno)
-and [AtMega328](http://www.atmel.com/devices/atmega328.aspx), 2 KiB RAM) and the
-[RFduino](http://www.rfduino.com/) (32 KiB RAM).
+This README describes the installation and usage of CCN-lite for the
+family of Arduino boards ([Arduino
+Uno](https://www.arduino.cc/en/Main/ArduinoBoardUno) and
+[AtMega328](http://www.atmel.com/devices/atmega328.aspx), 32KiB Flash,
+2 KiB RAM) and the [RFduino](http://www.rfduino.com/) (128KiB Flash,
+32 KiB RAM).
 
 Because each of these devices come with a different setup including different
 communication shields, this leads to many different profiles that need to be
 supported by CCN-lite. Currently, working setups include:
 * Uno with Ethernet shield (UDP)
 * AtMega328 with Ethernet shield (UDP)
-* RFduino with Bluetooth low energy
+* RFduino with Bluetooth Low Energy
 
 Planned but not yet supported setups include:
 * Uno with WiFly
@@ -20,7 +22,10 @@ Planned but not yet supported setups include:
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
 
-The installation for Arduino boards depends on `gcc-avr` and
+Note that the glue code for Arduino is in a sub-directory of the CCN-lite C sources and that the Arduino build process does an ```#include``` of the full
+C code from that parent directory.
+
+Moreover, the installation for Arduino boards depends on `gcc-avr` and
 [`ino`](http://inotool.org/). For Ubuntu, you can install `gcc-avr` using the
 following command:
 
@@ -28,10 +33,10 @@ following command:
 sudo apt-get install gcc-avr
 ```
 
-Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/).
+Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/), which you must first download.
 
 
-## Installation for Arduino boards
+## Installation for Arduino boards (non-RFduino case)
 
 1.  Change into the source directory related to Arduino:
 
@@ -93,12 +98,13 @@ Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/).
     http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
 
 2.  Open the file `$CCNL_HOME/src/arduino/rfduino/rfduino.ion` in the
-    Arduino IDE.
+    Arduino IDE and update: You have to provide the absolute path of
+    the C file to be included.
 
 3.  Compile and upload the code by running `verify/compile` and `upload`.
 
-4.  Connect to your device by using the Serial Monitor (`Tools` > `Serial Monitor`)
-    or through the ino command line with:
+4.  Connect to your device by using the Serial Monitor (inside the IDE: `Tools` > `Serial Monitor`)
+    or at command line level through ```ino``` with:
 
     ```bash
     ino serial
@@ -119,10 +125,12 @@ definitions in the form of:
 #define USE_*
 ```
 
-[//]: # (TODO: Add list of options)
+## Accessing your Arduino or RFduino
 
-Currently, only the following combinations were tested for the Arduino
-environment:
-* opt
-* opt
-* opt
+The files ```ccn-lite-arduino.c``` and ```ccn-lite-rfduino.c``` define
+under which name the CPU's internal temperature sensor can be
+accessed. Currently it is
+
+* ```/aabbccddeeff/temp```for the Arduino boards, where the device's MAC address is the first name component (see the output of the serial console)
+
+* ```/TinC``` and ```/TinF``` for the RFduino, for accessing the temperature in Celcius or Farenheit, respectively.
