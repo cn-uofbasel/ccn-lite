@@ -6,7 +6,7 @@ Architecture: <%= arch %>
 Installed-Size: <%= installedSize %>
 Depends: libssl-dev
 Copyright: 2012-<%= year %> Christian Tschudin <christian.tschudin@unibas.ch>
-License: MIT
+License: ISC
 Maintainer: Christopher Scherb <christopher.scherb@unibas.ch>
 Description: CCN-lite is a lightweight and functionally interoperable implementation of different Information Centric Networking (ICN) protocols like NDN and CCNx and include Named Function Networking (NFN).
  
