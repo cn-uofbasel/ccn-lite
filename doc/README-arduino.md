@@ -3,9 +3,8 @@
 This README describes the installation and usage of CCN-lite for the
 family of Arduino boards ([Arduino
 Uno](https://www.arduino.cc/en/Main/ArduinoBoardUno) and
-[AtMega328](http://www.atmel.com/devices/atmega328.aspx), 32KiB Flash,
-2 KiB RAM) and the [RFduino](http://www.rfduino.com/) (128KiB Flash,
-32 KiB RAM).
+[AtMega328](http://www.atmel.com/devices/atmega328.aspx), 32KiB Flash, 2 KiB
+RAM) and the [RFduino](http://www.rfduino.com/) (128KiB Flash, 32 KiB RAM).
 
 Because each of these devices come with a different setup including different
 communication shields, this leads to many different profiles that need to be
@@ -17,13 +16,14 @@ supported by CCN-lite. Currently, working setups include:
 Planned but not yet supported setups include:
 * Uno with WiFly
 
+The platform-specific code for Arduino is located in the sub-directory
+`$CCNL_HOME/src/arduino`. The main CCN-lite sources get included (`#include`)
+during the Arduino build process.
+
 ## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
-
-Note that the glue code for Arduino is in a sub-directory of the CCN-lite C sources and that the Arduino build process does an ```#include``` of the full
-C code from that parent directory.
 
 Moreover, the installation for Arduino boards depends on `gcc-avr` and
 [`ino`](http://inotool.org/). For Ubuntu, you can install `gcc-avr` using the
@@ -33,10 +33,12 @@ following command:
 sudo apt-get install gcc-avr
 ```
 
-Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/), which you must first download.
+Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
 
-## Installation for Arduino boards (non-RFduino case)
+## Installation for Arduino boards
+
+*See [below](#installation-for-rfduino) for the installation for RFduino.*
 
 1.  Change into the source directory related to Arduino:
 
@@ -94,17 +96,27 @@ Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/), 
 
 ## Installation for RFduino
 
-1.  Install the RFduino support for the Arduino IDE according to:
+1.  Install the RFduino support for the Arduino IDE according to the quick start
+    guide:
+
     http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
 
-2.  Open the file `$CCNL_HOME/src/arduino/rfduino/rfduino.ion` in the
-    Arduino IDE and update: You have to provide the absolute path of
-    the C file to be included.
+2.  Change the absolute path of the `#include` of `src/ccn-lite-rfduino.c` in
+    `src/arduino/rfduino/rfduino.ino` to match your CCN-lite home directory
+    `$CCNL_HOME`:
+
+    ```bash
+    cd $CCNL_HOME/src/arduino/rfduino
+    sed "s|\(^\s*#define CCN_LITE_RFDUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-rfduino.c\"|" rfduino.ino > rfduino.ino.sed
+    mv rfduino.ino.sed rfduino.ino
+    ```
+
+    This is because the Arduino IDE does not support relative `#include` paths.
 
 3.  Compile and upload the code by running `verify/compile` and `upload`.
 
-4.  Connect to your device by using the Serial Monitor (inside the IDE: `Tools` > `Serial Monitor`)
-    or at command line level through ```ino``` with:
+4.  Connect to your device by using the Serial Monitor (inside the IDE:
+    `Tools > Serial Monitor`) or on the command line with `ino`:
 
     ```bash
     ino serial
@@ -113,7 +125,7 @@ Building CCN-lite for RFduino depends on the [Arduino IDE](http://arduino.cc/), 
 
 ## Compile time options
 
-The Arduino's flash memory of 32 KiB limits the number of ccn-lite extensions
+The Arduino's flash memory of 32 KiB limits the number of CCN-lite extensions
 that can be included at the same time. For example, `malloc()` debugging support
 cannot be enabled at the same time as HMAC signature generation. Note that size
 is not an issue for the RFduino because of its 128 KiB flash memory.
@@ -125,12 +137,9 @@ definitions in the form of:
 #define USE_*
 ```
 
-## Accessing your Arduino or RFduino
+## Predefined content
 
-The files ```ccn-lite-arduino.c``` and ```ccn-lite-rfduino.c``` define
-under which name the CPU's internal temperature sensor can be
-accessed. Currently it is
+To simplify debugging and testing the relays they already contain predefined content: the CPU's internal temperature. Both `ccn-lite-arduino.c` and `ccn-lite-rfduino.c` define under which name the content is addressed:
 
-* ```/aabbccddeeff/temp```for the Arduino boards, where the device's MAC address is the first name component (see the output of the serial console)
-
-* ```/TinC``` and ```/TinF``` for the RFduino, for accessing the temperature in Celcius or Farenheit, respectively.
+ - `ccn-lite-arduino.c`: `/aabbccddeeff/temp`, where the device's MAC address is the first name component. The MAC address is reported in the initial output of the serial console.
+ - `ccn-lite-rfduino.c`: `/TinC` and `/TinF`, returning the temperature in Celcius and Farenheit, respectively.

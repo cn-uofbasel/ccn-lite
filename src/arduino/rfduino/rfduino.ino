@@ -9,8 +9,8 @@
 
 extern "C" {
   // unfortunately, the Arduino IDE requires absolute path names:
-  #include "/home/tschudin/ccnlite/ccn-lite-20150529/src/ccn-lite-rfduino.c"
-//  #include "../../ccn-lite-rfduino.c"
+  #define CCN_LITE_RFDUINO_C "/home/ubuntu/ccn-lite/src/ccn-lite-rfduino.c"
+  #include CCN_LITE_RFDUINO_C
 }
 
 unsigned char msg[1];
@@ -121,4 +121,3 @@ void RFduinoBLE_onDisconnect()
 }
 
 // eof
-
