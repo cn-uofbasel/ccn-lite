@@ -33,8 +33,7 @@ Internet of Things (IoT): http://www.riot-os.org/
 6. [Useful links](#links)
 7. [Credits](#credits)
 
-[//]: # (TODO: Reference the internal documents somehow somewhere!)
-[//]: # (TODO: Add readme file in /doc that covers all other files?)
+[//]: # (TODO: Reference README-internal.md somewhere...)
 
 <a name="gettingstarted"></a>
 ## 1. Getting started

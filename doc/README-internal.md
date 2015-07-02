@@ -13,9 +13,9 @@ Document                                                    | Description
 ## Technical (internal) docs
 Document                                                  | Description
 :-------------------------------------------------------- | :----------------
-[ccnl_crypto_system.txt](internal/ccnl_crypto_system.txt) | description of the CCN-lite crypto system
+[ccnl-crypto-system.txt](internal/ccnl-crypto-system.txt) | description of the CCN-lite crypto system
 [ccnl-datastruct.dot](internal/ccnl-datastruct.dot), [ccnl-datastruct.pdf](internal/ccnl-datastruct.pdf) | graphical description of the data structures used in CCN-lite
-[ccnl_mgmt_packet_structure.txt](internal/ccnl-mgmt-packet-structure.txt) | description of the management packet structure
-[ccnl_nfn_setup.txt](internal/ccnl-nfn-setup.txt)         | short description of the CCN-lite NFN system
+[ccnl-mgmt-packet-structure.txt](internal/ccnl-mgmt-packet-structure.txt) | description of the management packet structure
+[ccnl-nfn-setup.txt](internal/ccnl-nfn-setup.txt)         | short description of the CCN-lite NFN system
 [omnetpp-getting-started.pdf](internal/omnetpp-getting-started.pdf) | description of the CCN-lite for OMNeT++ system
 [rts-cts-20120802.txt](internal/rts-cts-20120802.txt)     | internal discussion regarding RTS/CTS call sequence (in German)
