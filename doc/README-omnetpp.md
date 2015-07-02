@@ -12,8 +12,8 @@ bundle has been tested with:
 * OMNeT++ 4.5 and
 * INET Framework 2.4.0
 
-Although not guaranteed, the bundle should work with newer versions unless there
-has been a major version jump (INET Framework 3.0.0).
+Although not guaranteed, the bundle should work with newer versions *unless there
+has been a major version jump* (INET Framework 3.0.0).
 
 ## Installation
 
