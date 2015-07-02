@@ -48,6 +48,7 @@ src/util/ccn-lite-valid
 test/unit/prefix-cmp
 test/unit/unit
 test/scripts/nfn/nfn.jar
+test/scripts/nfn/temp-service-library/*
 
 
 # OSX:
