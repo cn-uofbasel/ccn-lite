@@ -1,7 +1,5 @@
 ![](doc/logo/ccn-lite-logo-712x184.png)
 
-[//]: # (TODO: Rework introduction)
-
 CCN-lite is a reduced and lightweight -- yet functionally
 interoperable -- implementation of the CCNx protocol. It covers:
 
