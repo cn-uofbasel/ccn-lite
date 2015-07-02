@@ -922,7 +922,7 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     else
         buf = prefix_buf2;
     */
-    char *buf = ccnl_malloc(PREFIX_BUFSIZE);
+    char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN)
         len += sprintf(buf + len, "nfn");
