@@ -1,77 +1,74 @@
 # CCN-lite for Android
 
-This README describes the preliminary port of CCN-lite for Android devices.
+This README describes the preliminary port of CCN-lite for Android devices. The
+port is a fully functional CCN/NDN forwarder with BlueTooth Low Energy support.
 
-The Android port is a fully functional CCN/NDN forwarder with
-BlueTooth Low Energy support.
+It mostly is a C program, only containing Java code for the user interface and
+compiled using the Android's Native Developer Kit. Check
+[CCN-lite's release page](https://github.com/cn-uofbasel/ccn-lite/releases) for
+a precompiled binary for all Android-supported CPUs.
 
-It has a little bit of Java code (for the UI) but otherwise is an
-ordinary C program that is compiled with Android's Native Developer
-Kit (NDK) -- the app will ship with binary code for all
-Android-supported CPUs.
+The platform-specific code for Android is located in the sub-directory
+`src/android` of CCN-lite. The main CCN-lite sources get included (`#include`) during the
+Android build process.
 
-## What you get
 
-* So far, the main use of the CCN-lite Android app is for local demos (the relay can serve content, for example) and for BTLE debugging.
-* All CCN-lite debugging output is shown in the app's main screen where the debugging level can be changed intercactively.
-* The HTTP status console also works and is available at port 8080.
+## Remarks
 
-## Limitations
+The main use of CCN-lite for Android is for local demonstrations and Bluetooth
+Low Energy debugging. For example, the relay can serve content. The debugging
+output is shown in the application's main screen with an option to change the
+debugging level interactively. Additionally, the HTTP status console also works
+and is available at port 8080.
 
-* Screen refresh is not handled well (when you change screen orientation)
-* BlueTooth re-connect is not handled well
-* The CCN-lite Android port requires SDK v18: We should also support earlier versions if BTLE is not required.
+Currently, the application has the following issues:
+ - Screen refresh has issues when the screen orientation
+ - Bluetooth reconnectivity is not fully supported
+ - The CCN-lite Android port currently requires SDK 18. Ideally, earlier versions
+   should be supported as well if Bluetooth Low Energy is not required.
+
 
 ## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md) to set up
-the CCN-lite sources and relevant environment variables. Note that the
-glue code for Android is in a sub-directory of the CCN-lite C sources
-and that the Android build process does an ```#include``` of the full
-C code from that parent directory.
+the CCN-lite sources and relevant environment variables.
 
-To build CCN-lite for Android, the Android SDK
-(https://developer.android.com/sdk) and NDK
-(https://developer.android.com/tools/sdk/ndk) are both required.
+To build CCN-lite for Android, the
+[Android SDK](https://developer.android.com/sdk) and
+[NDK](https://developer.android.com/tools/sdk/ndk) are both required. Do not
+forget to adapt/define your environment variables `$PATH` and `$ANDROID_HOME`.
 
-## Installation (for Ubuntu)
 
-1.  Download the Android SDK and the NDK, select the packages with the
-    GUI, and define some environment variables:
+## Installation
+
+1.  Change to the Android directory of CCN-lite and start the Android GUI:
 
     ```bash
-    export PATH=$PATH:/opt/android-sdk-linux/tools/
-    export ANDROID_HOME=/opt/android-sdk-linux
-    export PATH=$PATH:/opt/android-ndk-r10d/
+    cd $CCNL_HOME/src/android
     android &
     ```
 
-    In the GUI, select the three Android SDK "Tools", "Platform-tools" and
-    "Build-tools". I also included the ARM EABI v7a System Image.
+    Select the three Android SDKs "Tools", "Platform-tools" and "Build-tools".
+    Optionally, you can include the ARM EABI v7a System image as well.
 
-2.  Change to the Android sub-directory of CCN-lite:
+    See `AndroidManifest.xml` for the already defined Android project.
 
-    ```bash
-    cd ccn-lite/src/android
-    ```
-
-3.  The Android project is already defined, see AndroidManifest.xml
-
-4.  Build the native code of CCN-lite using the NDK (you may have
-    to specify which is the target, see ```android list targets```
-    for possible values).
+2.  Build the native code of CCN-lite using the NDK:
 
     ```bash
     ndk-build
     ```
 
-5.  Build the Android application:
+    Notice that you may have to specify which target. Use `android list targets`
+    for a list of possible targets.
+
+3.  Build the Android application:
 
     ```bash
     ant debug
     ```
 
-6.  Install the build on your device or the emulator. Your phone or tablet
+4.  Install the build on your device or the emulator. Your phone or tablet
     must have USB debugging enabled and be connected to your development
     environment via USB:
 
@@ -79,7 +76,6 @@ To build CCN-lite for Android, the Android SDK
     adb install -r bin/ccn-lite-android-debug.apk
     ```
 
-7.  Start your BTLE device *before* you start the CCN-lite app: discovery
-    (by the app) is only done at startup time.
+5.  Start your Bluetooth Low Energy device.
 
-eof
+6.  Start the CCN-lite application.
