@@ -4,7 +4,7 @@ Release:	1%{?dist}
 Summary:	CCN-lite
 
 Group:		Application/Internet
-License:	MIT
+License:	ISC
 URL:		ccn-lite.net
 
 #BuildRequires:	

@@ -78,10 +78,10 @@ fi
 # Print status
 if [ $RC = "ok" ]; then
     if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
-        echo $'\b\b\b\b[\e[1;92mok\e[0;0m]'
+        echo $'\b\b\b\b[\e[1;32mok\e[0;0m]'
     else
-        echo $'\b\b\b\b\b\b\b\b\b[\e[1;93mwarning\e[0;0m]'
+        echo $'\b\b\b\b\b\b\b\b\b[\e[1;33mwarning\e[0;0m]'
     fi
 else
-    echo $'\b\b\b\b\b\b\b\b[\e[1;91mfailed\e[0;0m]'
+    echo $'\b\b\b\b\b\b\b\b[\e[1;31mfailed\e[0;0m]'
 fi

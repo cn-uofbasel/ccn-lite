@@ -62,6 +62,7 @@
 #include "../ccnl-os-includes.h"
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
+#include "../ccnl-ext.h"
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
