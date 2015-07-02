@@ -1,16 +1,16 @@
 # CCN-lite for Android
 
 This README describes the preliminary port of CCN-lite for Android devices. The
-port is a fully functional CCN/NDN forwarder with BlueTooth Low Energy support.
+port is a fully functional CCN/NDN forwarder with Bluetooth Low Energy support.
 
-It mostly is a C program, only containing Java code for the user interface and
-compiled using the Android's Native Developer Kit. Check
-[CCN-lite's release page](https://github.com/cn-uofbasel/ccn-lite/releases) for
+It mostly is a C program, containing Java code only for the user interface and
+compiled using the Android's Native Developer Kit. Check the
+[release page](https://github.com/cn-uofbasel/ccn-lite/releases) of CCN-lite for
 a precompiled binary for all Android-supported CPUs.
 
 The platform-specific code for Android is located in the sub-directory
-`src/android` of CCN-lite. The main CCN-lite sources get included (`#include`) during the
-Android build process.
+`$CCNL_HOME/src/android`. The main CCN-lite sources get included (`#include`)
+during the Android build process.
 
 
 ## Remarks
@@ -21,9 +21,9 @@ output is shown in the application's main screen with an option to change the
 debugging level interactively. Additionally, the HTTP status console also works
 and is available at port 8080.
 
-Currently, the application has the following issues:
- - Screen refresh has issues when the screen orientation
- - Bluetooth reconnectivity is not fully supported
+Currently known issues include:
+ - Screen refresh has issues when the screen orientation changes
+ - Reconnecting to a Bluetooth device is not fully supported
  - The CCN-lite Android port currently requires SDK 18. Ideally, earlier versions
    should be supported as well if Bluetooth Low Energy is not required.
 
@@ -68,13 +68,14 @@ forget to adapt/define your environment variables `$PATH` and `$ANDROID_HOME`.
     ant debug
     ```
 
-4.  Install the build on your device or the emulator. Your phone or tablet
-    must have USB debugging enabled and be connected to your development
-    environment via USB:
+4.  Install the build on your device or the emulator:
 
     ```bash
     adb install -r bin/ccn-lite-android-debug.apk
     ```
+
+    Notice that your device must have USB debugging enabled and be connected to
+    your development environment via USB.
 
 5.  Start your Bluetooth Low Energy device.
 
