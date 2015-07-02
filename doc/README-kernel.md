@@ -47,7 +47,7 @@ modinfo ./ccn-lite-lnxkernel.ko
 
 [//]: # (Add link to document, more information on key options)
 
-The following describes options special to the kernel, for all other options, see the documentation of `ccn-lite-relay`.
+The following describes options special to the kernel. For all other options, see the output of `ccn-lite-relay -h`.
 
 * `k` - path to the public key used to verify messages sent from `ccn-lite-ctrl`
 * `p` - path to the private key
@@ -60,9 +60,7 @@ You can control the module via `ccn-lite-ctrl` through the UNIX socket. For exam
 sudo $CCNL_HOME/bin/ccn-lite-ctrl debug dump | ccn-lite-ccnb2xml
 ```
 
-[//]: # (Add link to document)
-
-Notice that you need to use `sudo` issuing the control command to access the UNIX socket. For more information about `ccn-lite-ctrl`, see [?](?).
+Notice that you need to use `sudo` issuing the control command to access the UNIX socket. Type `ccn-lite-ctrl -h` to see all available commands.
 
 ### Removal
 
