@@ -1707,14 +1707,17 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         if (h) {
             suite = strtol((const char*)h, NULL, 0);
             ccnl_free(h);
+            h=0;
         }
         if(h2){
            chunknum = strtol((const char*)h2, NULL, 0);
            ccnl_free(h2);
+           h2=0;
         }
         if(h3){
            chunkflag = strtol((const char*)h3, NULL, 0);
            ccnl_free(h3);
+           h3=0;
            break;
         }
         if (ccnl_ccnb_consume(typ, num, &buf, &buflen, 0, 0) < 0)
