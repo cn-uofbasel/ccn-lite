@@ -57,7 +57,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
     RC=$?
     #echo "Return code: $RC, result: '$RES'"
 
-    if [ 0 -ne "$RC" ] || [ 3744 -ne "$RES" ]; then
+    if [ 0 -ne "$RC" ] || [ 3558 -ne "$RES" ]; then
          echo $'\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\e[1;31mFAILED\e[0;0m]                                \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b'
     else
          echo $'\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\e[1;32mOK\e[0;0m]                                \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b'
