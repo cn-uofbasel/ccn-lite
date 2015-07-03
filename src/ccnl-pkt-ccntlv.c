@@ -228,8 +228,10 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             len2 = len;
             if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
                 goto Bail;
-            if (typ == CCNX_VALIDALGO_HMAC_SHA256 && len3 == 0)
+            if (typ == CCNX_VALIDALGO_HMAC_SHA256) {
+                // ignore keyId and other algo dependent data ... && len3 == 0)
                 validAlgoIsHmac256 = 1;
+            }
             break;
         case CCNX_TLV_TL_ValidationPayload:
             if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
