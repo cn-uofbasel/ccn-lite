@@ -117,7 +117,7 @@ ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
 
-ccn-lite-valid: Makefile ccn-lite-valid.c \
+ccn-lite-valid: Makefile ccn-lite-valid.c ccnl-common.c \
 		${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h ../ccnl-core-util.c
 	$(CC) $(CFLAGS) ccn-lite-valid.c -o $@ 

@@ -518,7 +518,7 @@ struct key_s {
 struct key_s*
 load_keys_from_file(char *path)
 {
-    FILE *fp = fopen(optarg, "r");
+    FILE *fp = fopen(path, "r");
     char line[256];
     int cnt = 0;
     struct key_s *klist = NULL, *kend = NULL;
