@@ -13,8 +13,9 @@ exit_error_msg () {
 
 if [ -z "$CCNL_HOME" ]
 then
-    echo $SET_CCNL_HOME_VAR
-    exit 1
+    export CCNL_HOME="../../"
+    #echo $SET_CCNL_HOME_VAR
+    #exit 1
 fi
 
 if [ ! -f "$CCNL_HOME/src/ccn-lite-relay" ]
