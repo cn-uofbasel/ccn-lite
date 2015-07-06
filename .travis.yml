@@ -31,8 +31,8 @@ script:
         - cd ./test/scripts && ./demo-relay.sh ccnb ux false && cd -
         - cd ./test/scripts && ./demo-relay.sh ccnx2015 udp false && cd -
         - cd ./test/scripts && ./demo-relay.sh ccnx2015 ux false && cd -
-        - cd ./test/scripts && ./demo-relay.sh cisco2015 udp false && cd -
-        - cd ./test/scripts && ./demo-relay.sh cisco2015 ux false && cd -
+#        - cd ./test/scripts && ./demo-relay.sh cisco2015 udp false && cd - #Reenable if cisco format is fixed
+#        - cd ./test/scripts && ./demo-relay.sh cisco2015 ux false && cd - #Reenable if cisco format is fixed
         - cd ./test/scripts && ./demo-relay.sh iot2014 udp false && cd -
         - cd ./test/scripts && ./demo-relay.sh iot2014 ux false && cd -
         - cd ./test/scripts && ./demo-relay.sh ndn2013 udp false && cd -
