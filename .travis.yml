@@ -17,9 +17,9 @@ branches:
 install:
         - sudo apt-get update -y 
         - sudo apt-get install -y libssl-dev build-essential
-        - uname -a
+        - sudo apt-get install linux-headers-$(uname -r)
 
 script:
         - cd src 
-        - ls /lib/modules
+        - ls ./build-test.sh 
         - cd -
