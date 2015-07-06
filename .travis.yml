@@ -20,7 +20,7 @@ install:
 
 script:
         - cd src 
-        - make clean all 
+        - sh build-test.sh
         - cd -
 
 after_success:
