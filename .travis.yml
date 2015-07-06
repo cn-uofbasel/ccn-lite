@@ -1,5 +1,10 @@
 language: C
 
+
+compiler: 
+        - clang
+        - gcc
+
 os:
         - linux
         - osx
@@ -9,7 +14,11 @@ branches:
                 - master
                 - dev-master
 
-before_install:
-        sudo apt-get update && sudo apt-get install -y libssl-dev
+install:
+        - sudo apt-get update 
+        - sudo apt-get install -y libssl-dev
 
-        
+script:
+        - cd src 
+        - sh build-test.sh
+        - cd -
