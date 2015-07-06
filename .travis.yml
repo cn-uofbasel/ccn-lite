@@ -27,8 +27,6 @@ script:
         - make clean all
           #        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
         - cd -
-
-after_success:
         - cd ./test/scripts && ./demo-relay.sh ccnb udp false && cd -
         - cd ./test/scripts && ./demo-relay.sh ccnb ux false && cd -
         - cd ./test/scripts && ./demo-relay.sh ccnx2015 udp false && cd -
