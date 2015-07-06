@@ -20,6 +20,7 @@
  * 2013-07-06  created
  */
 
+#define USE_LOGGING
 #define USE_DEBUG
 #define USE_FRAG
 #define USE_SUITE_CCNB
@@ -35,7 +36,7 @@
 void
 file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
            int bytelimit, unsigned int *seqnr, unsigned int seqnrwidth,
-           char noclobber)
+           bool noclobber)
 {
     struct ccnl_buf_s *fragbuf;
     struct ccnl_frag_s fr;
@@ -86,7 +87,7 @@ main(int argc, char *argv[])
     int opt, len, fd;
     unsigned int bytelimit = 1500, seqnr = 0, seqnrlen = 4;
     char *cmdname = argv[0], *cp, *fname, *fileprefix = "frag";
-    char noclobber = 0;
+    bool noclobber = false;
     int suite = CCNL_SUITE_DEFAULT;
 
     while ((opt = getopt(argc, argv, "a:b:f:hns:v:")) != -1) {
@@ -103,21 +104,18 @@ main(int argc, char *argv[])
             fileprefix = optarg;
             break;
         case 'n':
-            noclobber = ! noclobber;
+            noclobber = true;
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-                DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
+            if (!ccnl_isSuite(suite)) {
+                DEBUGMSG(ERROR, "Unsupported suite %s\n", optarg);
                 goto Usage;
             }
             break;
         case 'v':
 #ifdef USE_LOGGING
-            if (isdigit(optarg[0]))
-                debug_level = atoi(optarg);
-            else
-                debug_level = ccnl_debug_str2level(optarg);
+            debug_level = ccnl_debug_str2level(optarg);
 #endif
             break;
 
@@ -138,6 +136,8 @@ Usage:
             exit(1);
         }
     }
+
+    DEBUGMSG(INFO, "Using suite %d:%s\n", suite, ccnl_suite2str(suite));
 
     fname = argv[optind] ? argv[optind++] : "-";
     do {
