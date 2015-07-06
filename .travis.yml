@@ -6,7 +6,7 @@ os:
 
 env:
 #        - USE_NFN=1 USE_NACK=1 #Fix NACKS and reenable this
-#        - USE_NFN=1
+        - USE_NFN=1
 
 compiler: 
         - clang
