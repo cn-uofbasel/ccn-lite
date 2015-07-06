@@ -1,0 +1,29 @@
+language: C
+
+os:
+        - linux
+        - osx
+
+env:
+#        - USE_NFN=1 USE_NACK=1 #Fix NACKS and reenable this
+        - USE_NFN=1
+
+compiler: 
+        - clang
+        - gcc
+
+branches:
+        only:
+                - master
+                - dev-master
+
+install:
+        - sudo apt-get update -y 
+        - sudo apt-get install -y libssl-dev build-essential
+#        - sudo apt-get install linux-headers-$(uname -r)
+
+script:
+        - cd src 
+        - make clean all
+          #        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
+        - cd -
