@@ -22,3 +22,8 @@ script:
         - cd src 
         - make clean all 
         - cd -
+
+after_success:
+        - cd ./test/scripts/nfn
+        - sh nfn_test.sh
+        - cd -
