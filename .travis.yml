@@ -16,7 +16,7 @@ branches:
 
 install:
         - sudo apt-get update 
-        - sudo apt-get install -y libssl-dev
+        - sudo apt-get install -y libssl-dev build-essential
 
 script:
         - cd src 
