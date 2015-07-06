@@ -3,6 +3,7 @@
 CC?=gcc
 CFLAGS=-Wall -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 -Werror
 EXTLIBS=-lcrypto
+CREATE_BIN=mkdir -p ../../bin && ln -s $@ ../../bin/$@
 
 PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-cryptoserver\
@@ -35,7 +36,7 @@ CCNL_CORE_LIB = ../ccnl-defs.h ../ccnl-core.h ../ccnl-core.c
 
 # CCNL_RELAY_LIB = ../ccn-lite-relay.c ${SUITE_LIBS} \
 #                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
-#                  ../ccnl-ext-mgmt.c ../ccnl-ext-http.c ../ccnl-ext-crypto.c 
+#                  ../ccnl-ext-mgmt.c ../ccnl-ext-http.c ../ccnl-ext-crypto.c
 
 CCNL_PLATFORM_LIB = ../ccnl-includes.h \
                     ../ccnl-ext-debug.c ../ccnl-ext.h ../ccnl-platform.c  \
@@ -61,66 +62,75 @@ all: $(PROGS)
 ccn-lite-ccnb2xml: Makefile ccn-lite-ccnb2xml.c \
 		${CCNB_LIB} ../ccnl-defs.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ccnb2xml.c -o $@ ${EXTLIBS}
-
-# ccn-lite-peek: Makefile ccn-lite-peek.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl.h ../ccnl-core-util.c
-# 	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
-
-
-# ccn-lite-pktdump: Makefile ccn-lite-pktdump.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB} ../ccnl.h
+	@${CREATE_BIN}
 
 ccn-lite-ctrl: Makefile ccn-lite-ctrl.c ${CCNB_LIB} \
 		../ccnl-defs.h ccnl-common.c
 	$(CC) $(CFLAGS) ccn-lite-ctrl.c -o $@ ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-peek: Makefile ccn-lite-peek.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h ../ccnl-core-util.c
-	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-peek.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-fetch: Makefile ccn-lite-fetch.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h ../ccnl-core-util.c ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-fetch.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-pktdump: Makefile ccn-lite-pktdump.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} \
 		${LOCALRPC_LIB}
-	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-pktdump.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-simplenfn: Makefile ccn-lite-simplenfn.c \
 		${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h ../ccnl-core-util.c
-	$(CC) $(CFLAGS) ccn-lite-simplenfn.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-simplenfn.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-rpc: Makefile ccn-lite-rpc.c \
 		${NDNTLV_LIB} ${LOCALRPC_LIB} ../ccnl-defs.h ccnl-common.c
-	$(CC) $(CFLAGS) ccn-lite-rpc.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-rpc.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-deF: Makefile ccn-lite-deF.c ${CCNB_LIB} ../ccnl-defs.h ccnl-frag.h
-	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-deF.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-mkC: Makefile ccn-lite-mkC.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-mkC.c -o $@ ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-mkF: Makefile ccn-lite-mkF.c ${CCNB_LIB} ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
-	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-mkF.c -o $@
+	@${CREATE_BIN}
 
 ccn-lite-mkI: Makefile ccn-lite-mkI.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
-	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-mkI.c -o $@
+	@${CREATE_BIN}
 
 #ccn-lite-peekcomputation: Makefile ccn-lite-peekcomputation.c ${CCNB_LIB} ../ccnl.h  ccnl-common.c
-#	$(CC) $(CFLAGS) ccn-lite-peekcomputation.c -o $@ 
+#	$(CC) $(CFLAGS) ccn-lite-peekcomputation.c -o $@
+#	@ln -s $@ ../../bin
 
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-produce: Makefile ccn-lite-produce.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ../ccnl-defs.h
 	$(CC) $(CFLAGS) ccn-lite-produce.c -o $@ ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-valid: Makefile ccn-lite-valid.c ccnl-common.c \
 		${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h ../ccnl-core-util.c
-	$(CC) $(CFLAGS) ccn-lite-valid.c -o $@ 
+	$(CC) $(CFLAGS) ccn-lite-valid.c -o $@
+	@${CREATE_BIN}
 
 demo: $(PROGS)
 	./ccn-lite-mkI /ccn-lite/says/hello/world/äöü | ./ccn-lite-pktdump
@@ -134,3 +144,4 @@ uninstall:
 
 clean:
 	rm -rf *~ $(PROGS)
+	rm -rf ../../bin
