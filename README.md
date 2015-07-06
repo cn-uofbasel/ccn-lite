@@ -25,7 +25,7 @@ Internet of Things (IoT): http://www.riot-os.org/
 
 
 ### Table of Contents
-1. [Getting started](#gettingstarted)
+1. [Getting started](#1-getting-started)
 2. [Rationale for CCN-lite](#rationale)
 3. [Extensions](#extensions)
 4. [CCN-lite supported platforms](#platforms)
