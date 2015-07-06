@@ -29,14 +29,13 @@ script:
         - cd -
 
 after_success:
-        - cd ./test/scripts
-        - demo-relay.sh ccnb udp false
-        - demo-relay.sh ccnb ux false 
-        - demo-relay.sh ccnx2015 udp false
-        - demo-relay.sh ccnx2015 ux false 
-        - demo-relay.sh cisco2015 udp false 
-        - demo-relay.sh cisco2015 ux false 
-        - demo-relay.sh iot2014 udp false 
-        - demo-relay.sh iot2014 ux false
-        - demo-relay.sh ndn2013 udp false 
-        - demo-relay.sh ndn2013 ux false 
+        - cd ./test/scripts && demo-relay.sh ccnb udp false && cd -
+        - cd ./test/scripts && demo-relay.sh ccnb ux false && cd -
+        - cd ./test/scripts && demo-relay.sh ccnx2015 udp false && cd -
+        - cd ./test/scripts && demo-relay.sh ccnx2015 ux false && cd -
+        - cd ./test/scripts && demo-relay.sh cisco2015 udp false && cd -
+        - cd ./test/scripts && demo-relay.sh cisco2015 ux false && cd -
+        - cd ./test/scripts && demo-relay.sh iot2014 udp false && cd -
+        - cd ./test/scripts && demo-relay.sh iot2014 ux false && cd -
+        - cd ./test/scripts && demo-relay.sh ndn2013 udp false && cd -
+        - cd ./test/scripts && demo-relay.sh ndn2013 ux false && cd -
