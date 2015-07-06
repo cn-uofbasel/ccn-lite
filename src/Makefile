@@ -20,7 +20,6 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
 CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
-# CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
@@ -31,6 +30,7 @@ endif
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
 
+CREATE_BIN=mkdir -p ../bin && ln -s $@ ../bin/$@
 EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
@@ -137,30 +137,36 @@ all: ${PROGS}
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $<
+	@${CREATE_BIN}
 
 ccn-nfn-relay: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-nfn-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-relay: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
 	ccnl-simu-client.c
 	${EXTMAKE}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 	rm -rf ccn-lite-omnet.tgz
 	cp -a omnet ccn-lite-omnet
-	mkdir ccn-lite-omnet/src/ccn-lite 
+	mkdir ccn-lite-omnet/src/ccn-lite
 	cp -a $^ ccn-lite-omnet/src/ccn-lite/
 	tar -zcvf ccn-lite-omnet.tgz ccn-lite-omnet
 	rm -rf ccn-lite-omnet
@@ -185,11 +191,10 @@ uninstall:
 	cd ${INSTALL_PATH}/bin && rm -f ${PROGS} && cd - > /dev/null \
 	&& cd util && +make uninstall && cd ..
 
-
 clean:
 	${EXTMAKECLEAN}
 	rm -rf *~ *.o ${PROGS}
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf ccn-lite-omnet.tgz
-	rm -rf ccn-lite-omnet
+	rm -rf ../bin
 	+make -C util clean
