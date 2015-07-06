@@ -1150,7 +1150,7 @@ help:
     } else if (!strcmp(argv[1], "echoserver")) {
         if (argc > 3) {
             suite = ccnl_str2suite(argv[3]);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite))
                 goto help;
         }
         if (argc < 3)
@@ -1180,7 +1180,7 @@ help:
     } else if (!strcmp(argv[1], "prefixreg")) {
         if (argc > 4) {
             suite = ccnl_str2suite(argv[4]);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+            if (!ccnl_isSuite(suite)) {
                 goto help;
             }
         }

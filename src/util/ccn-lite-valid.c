@@ -47,7 +47,7 @@ ccnl_parse(unsigned char *data, int datalen)
     if (suite == -1)
         suite = ccnl_pkt2suite(data, datalen, &skip);
 
-    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+    if (!ccnl_isSuite(suite)) {
         DEBUGMSG(WARNING, "?unknown packet format? %d bytes starting with 0x%02x at offset %zd\n",
                      datalen, *data, data - base);
         return NULL;

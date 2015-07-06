@@ -903,7 +903,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
         if (suite == -1)
             suite = ccnl_pkt2suite(data, datalen, &skip);
 
-        if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+        if (!ccnl_isSuite(suite)) {
             DEBUGMSG_CORE(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
                      ifndx, datalen, *data, data - base);
             return;

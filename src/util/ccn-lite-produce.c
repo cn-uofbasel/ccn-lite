@@ -116,7 +116,7 @@ Usage:
         }
     }
 
-    if (suite < 0 || suite >= CCNL_SUITE_LAST)
+    if (!ccnl_isSuite(suite))
         goto Usage;
 
     // mandatory url
