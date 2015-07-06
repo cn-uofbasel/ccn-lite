@@ -82,6 +82,8 @@ if [ $RC = "ok" ]; then
     else
         echo $'\b\b\b\b\b\b\b\b\b[\e[1;33mwarning\e[0;0m]'
     fi
+    exit 0
 else
     echo $'\b\b\b\b\b\b\b\b[\e[1;31mfailed\e[0;0m]'
+    exit 1
 fi
