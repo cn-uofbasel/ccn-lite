@@ -30,7 +30,7 @@ endif
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
 
-CREATE_BIN=mkdir -p ../bin && ln -s $@ ../bin/$@
+CREATE_BIN=mkdir -p ../bin && cd ../bin && ln -s ../src/$@ $@
 EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=

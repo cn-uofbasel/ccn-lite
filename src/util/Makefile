@@ -3,7 +3,8 @@
 CC?=gcc
 CFLAGS=-Wall -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 -Werror
 EXTLIBS=-lcrypto
-CREATE_BIN=mkdir -p ../../bin && ln -s $@ ../../bin/$@
+CREATE_BIN=mkdir -p ../../bin && cd ../../bin && ln -s ../src/util/$@ $@
+
 
 PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-cryptoserver\
