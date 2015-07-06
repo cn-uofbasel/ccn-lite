@@ -22,8 +22,3 @@ script:
         - cd src 
         - sh build-test.sh
         - cd -
-
-after_success:
-        - cd ./test/scripts/nfn
-        - sh nfn_test.sh
-        - cd -
