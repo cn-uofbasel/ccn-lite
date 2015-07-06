@@ -1,0 +1,15 @@
+language: C
+
+os:
+        - linux
+        - osx
+
+branches:
+        only:
+                - master
+                - dev-master
+
+before_install:
+        sudo apt-get update && sudo apt-get install -y libssl-dev
+
+        
