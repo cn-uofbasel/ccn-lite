@@ -5,8 +5,7 @@ os:
         - osx
 
 env:
-        - USE_NFN=1
-        - USE_NACK=1
+        - USE_NFN=1 USE_NACK=1
 
 compiler: 
         - clang
