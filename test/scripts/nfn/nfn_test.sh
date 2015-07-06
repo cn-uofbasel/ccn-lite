@@ -6,6 +6,7 @@ if [ ! -f nfn.jar ]; then
     echo $'\b\b\b\e[1;32mdone\e[0;0m]'
 fi
 
+EXITCODE=0
 
 PACKETTYPELIST='ccnb ndn2013 ccnx2015 iot2014' #cisco2015
 #PACKETTYPELIST='ndn2013'
@@ -59,6 +60,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
 
     if [ 0 -ne "$RC" ] || [ 3558 -ne "$RES" ]; then
          echo $'\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\e[1;31mFAILED\e[0;0m]                                \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b'
+	 EXITCODE = 1
     else
          echo $'\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\e[1;32mOK\e[0;0m]                                \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b'
     fi
@@ -71,3 +73,5 @@ for PACKETTYPE in $PACKETTYPELIST; do
     killall java  2> /dev/null
 
 done
+exit $EXITCODE
+

@@ -37,5 +37,5 @@ script:
         - cd ./test/scripts && ./demo-relay.sh iot2014 ux false && cd -
         - cd ./test/scripts && ./demo-relay.sh ndn2013 udp false && cd -
         - cd ./test/scripts && ./demo-relay.sh ndn2013 ux false && cd -
-
+        - export PATH=$PATH:../../../bin
         - cd ./test/scripts/nfn && ./nfn_test.sh && cd - 
