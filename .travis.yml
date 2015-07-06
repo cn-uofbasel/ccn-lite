@@ -6,7 +6,7 @@ compiler:
         - gcc
 
 os:
-        - linux
+#        - linux
         - osx
 
 branches:
