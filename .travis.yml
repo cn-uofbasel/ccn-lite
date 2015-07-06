@@ -1,4 +1,4 @@
-language: C
+language: c
 
 os:
         - linux
@@ -27,3 +27,16 @@ script:
         - make clean all
           #        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
         - cd -
+
+after_success:
+        - cd ./test/scripts
+        - demo-relay.sh ccnb udp false
+        - demo-relay.sh ccnb ux false 
+        - demo-relay.sh ccnx2015 udp false
+        - demo-relay.sh ccnx2015 ux false 
+        - demo-relay.sh cisco2015 udp false 
+        - demo-relay.sh cisco2015 ux false 
+        - demo-relay.sh iot2014 udp false 
+        - demo-relay.sh iot2014 ux false
+        - demo-relay.sh ndn2013 udp false 
+        - demo-relay.sh ndn2013 ux false 
