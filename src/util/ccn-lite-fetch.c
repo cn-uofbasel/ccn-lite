@@ -288,7 +288,6 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
         si->sin_addr.s_addr = inet_addr(addr);
         si->sin_port = htons(port);
