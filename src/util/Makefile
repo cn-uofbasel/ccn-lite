@@ -116,7 +116,7 @@ ccn-lite-mkI: Makefile ccn-lite-mkI.c ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} ..
 
 #ccn-lite-peekcomputation: Makefile ccn-lite-peekcomputation.c ${CCNB_LIB} ../ccnl.h  ccnl-common.c
 #	$(CC) $(CFLAGS) ccn-lite-peekcomputation.c -o $@
-#	@ln -s $@ ../../bin
+#	@${CREATE_BIN}
 
 ccn-lite-cryptoserver: Makefile ccn-lite-cryptoserver.c
 	$(CC) $(CFLAGS) ccn-lite-cryptoserver.c -o $@ ${EXTLIBS}
