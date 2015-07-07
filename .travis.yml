@@ -7,7 +7,7 @@ os:
 env:
 #        - USE_NFN=1 USE_NACK=1 #Fix NACKS and reenable this
         - USE_NFN=1
-        - CCNL_HOME="."
+        - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite"
         - PATH=$PATH:"$CCNL_HOME/bin"
 
 compiler:
@@ -25,18 +25,22 @@ install:
 #        - sudo apt-get install linux-headers-$(uname -r)
 
 script:
-        - cd src
-        - make clean all
-          #        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
-        - cd -
-        - cd ./test/scripts && ./demo-relay.sh ccnb udp false && cd -
-        - cd ./test/scripts && ./demo-relay.sh ccnb ux false && cd -
-        - cd ./test/scripts && ./demo-relay.sh ccnx2015 udp false && cd -
-        - cd ./test/scripts && ./demo-relay.sh ccnx2015 ux false && cd -
-#        - cd ./test/scripts && ./demo-relay.sh cisco2015 udp false && cd - #Reenable if cisco format is fixed
-#        - cd ./test/scripts && ./demo-relay.sh cisco2015 ux false && cd - #Reenable if cisco format is fixed
-        - cd ./test/scripts && ./demo-relay.sh iot2014 udp false && cd -
-        - cd ./test/scripts && ./demo-relay.sh iot2014 ux false && cd -
-        - cd ./test/scripts && ./demo-relay.sh ndn2013 udp false && cd -
-        - cd ./test/scripts && ./demo-relay.sh ndn2013 ux false && cd -
-        - cd ./test/scripts/nfn && ./nfn_test.sh && cd -
+        - cd $CCNL_HOME/src
+        - make clean
+        - make -j8 all
+#        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
+
+        - cd $CCNL_HOME/test/scripts
+        - ./demo-relay.sh ccnb udp false
+        - ./demo-relay.sh ccnb ux false
+        - ./demo-relay.sh ccnx2015 udp false
+        - ./demo-relay.sh ccnx2015 ux false
+#        - ./demo-relay.sh cisco2015 udp false #Reenable if cisco format is fixed
+#        - ./demo-relay.sh cisco2015 ux false #Reenable if cisco format is fixed
+        - ./demo-relay.sh iot2014 udp false
+        - ./demo-relay.sh iot2014 ux false
+        - ./demo-relay.sh ndn2013 udp false
+        - ./demo-relay.sh ndn2013 ux false
+
+        - cd $CCNL_HOME/test/scripts/nfn
+        - ./nfn_test.sh
