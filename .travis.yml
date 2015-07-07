@@ -24,10 +24,16 @@ install:
 
 script:
         - cd $CCNL_HOME/src
+
+        # Run build-test.sh
+        - make clean
+        - ./build-test.sh echo-cores bt-relay bt-all bt-pkt # Remove arguments when bt-lnxkernel compiles
+
+        # Build again for test scripts
         - make clean
         - make -j8 all
-#        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
 
+        # Run all demo relay test scripts
         - cd $CCNL_HOME/test/scripts
         - ./demo-relay.sh ccnb udp false
         - ./demo-relay.sh ccnb ux false
@@ -40,5 +46,6 @@ script:
         - ./demo-relay.sh ndn2013 udp false
         - ./demo-relay.sh ndn2013 ux false
 
+        # Run nfn_test script
         - cd $CCNL_HOME/test/scripts/nfn
 #        - ./nfn_test.sh #Reenable when cisco format is fixed
