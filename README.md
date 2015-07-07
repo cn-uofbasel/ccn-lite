@@ -31,7 +31,10 @@ Internet of Things (IoT): http://www.riot-os.org/
 4. [CCN-lite supported platforms](#platforms)
 5. [Command line tools](#lof)
 6. [Useful links](#links)
-7. [Credits](#credits)
+7. [Tentative roadmap](#roadmap)
+8. [Changelog](#changelog)
+9. [Credits](#credits)
+
 
 [//]: # (TODO: Reference README-internal.md somewhere...)
 
@@ -48,6 +51,7 @@ available on [GitHub](https://github.com/cn-uofbasel/ccn-lite/), either the
 with CCN-lite, feel free to
 [create an issue](https://github.com/cn-uofbasel/ccn-lite/issues) on GitHub - we
 appreciate it!
+
 
 
 <a name="rationale"></a>
@@ -107,6 +111,8 @@ What you get with CCN-lite is:
 - a simple HTTP server to display the relay's internal configuration
 - plus some interesting extensions of our own, see the next section.
 
+
+
 <a name="extensions"></a>
 ## 3. Extensions
 
@@ -160,6 +166,8 @@ The approach for these extensions is that one can tailor a CCN forwarder to
 including only those features really necessary.  We have strived to make these
 choices as orthogonal as possible and invite you to attempt the same for your
 additions.
+
+
 
 <a name="platforms"></a>
 ## 4. CCN-lite supported platforms and how to compile
@@ -215,6 +223,8 @@ really is lean, looking at the lines of C code:
  104 ccnl-pkt-ndntlv.h
 ```
 
+
+
 <a name="lof"></a>
 ## 5. Command line tools
 
@@ -239,29 +249,56 @@ Tool                           | Description
 `util/ccn-lite-simplenfn.c`    | Simplified interface to request named-function results.
 `util/ccn-lite-valid.c`        | Demo application for validating a packet's signature.
 
+
+
 <a name="links"></a>
 ## 6. Links:
 
-- Source code repository:
-  https://github.com/cn-uofbasel/ccn-lite
+ - Source code repository:
+   https://github.com/cn-uofbasel/ccn-lite
+ - CCN-lite web site:
+   http://www.ccn-lite.net/
+ - CCNx site:
+   http://www.ccnx.org/
+ - NDN site:
+   http://named-data.net/
+ - NFN site:
+   http://named-function.net/
 
-- CCN-lite web site:
-  http://www.ccn-lite.net/
 
-- CCNx site:
-  http://www.ccnx.org/
 
-- NDN site:
-  http://named-data.net/
+<a name="roadmap"></a>
+## 7. Tentative roadmap
 
-- NFN site:
-  http://named-function.net/
+ - Security (key management, signed computations and trust schematas)
+ - Data access control
+ - Better selector support for NDN
+ - RIOT re-integration
+ - Manifests
+
+
+
+<a name="changelog"></a>
+## 8. Changelog
+
+### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.3.0) (Jul 2015)
+
+ - Demonstrated interoperability with now-stabilized CCNx1.0, which can run
+   side-by-side with NDN in a single CCN-lite relay
+ - OMNeT++ integration is back, as it has been requested many times
+ - New platforms and transport:
+    - Arduino and RFduino
+    - Android and Bluetooth Low Energy
+ - New functionality: "begin-end" fragmentation for CCNx1.0 and NDN
+ - Improved build quality for Ubuntu and OSX
+ - Improved READMEs all over the release, easy tutorials
+ - Named Function Networking (NFN) over NDN now has Python bindings to make the
+   publishing of named functions easier.
+
 
 
 <a name="credits"></a>
-## 7. Credits
-
-[//]: # (TODO: Maybe rename 'credits' to changelog or something and add content to release as well?)
+## 9. Credits
 
 ### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.3.0) (Jul 2015)
 
@@ -274,6 +311,7 @@ Christian F. Tschudin
 #### Code and documentation feedback:
 Dima Mansour  
 Urs Schnurrenberger  
+
 
 ### [Release 0.2.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.2.0) (Dec 2014)
 
@@ -306,6 +344,7 @@ Alexander Stiemer
 Ziba Tavassoli  
 Simon Wang  
 Mario Weber  
+
 
 ### [Release 0.1.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.1.0) (Jul 2013)
 
