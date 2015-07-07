@@ -7,8 +7,10 @@ os:
 env:
 #        - USE_NFN=1 USE_NACK=1 #Fix NACKS and reenable this
         - USE_NFN=1
+        - CCNL_HOME="."
+        - PATH=$PATH:"$CCNL_HOME/bin"
 
-compiler: 
+compiler:
         - clang
         - gcc
 
@@ -18,12 +20,12 @@ branches:
                 - dev-master
 
 install:
-        - sudo apt-get update -y 
+        - sudo apt-get update -y
         - sudo apt-get install -y libssl-dev build-essential
 #        - sudo apt-get install linux-headers-$(uname -r)
 
 script:
-        - cd src 
+        - cd src
         - make clean all
           #        - ./build-test.sh #Reenable if kernel problems on travis-ci are fixed
         - cd -
@@ -37,5 +39,4 @@ script:
         - cd ./test/scripts && ./demo-relay.sh iot2014 ux false && cd -
         - cd ./test/scripts && ./demo-relay.sh ndn2013 udp false && cd -
         - cd ./test/scripts && ./demo-relay.sh ndn2013 ux false && cd -
-        - export PATH=$PATH:../../../bin
-        - cd ./test/scripts/nfn && ./nfn_test.sh && cd - 
+        - cd ./test/scripts/nfn && ./nfn_test.sh && cd -
