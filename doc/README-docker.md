@@ -65,16 +65,14 @@ information, visit the
     name:
 
     ```bash
-    drun -p 9000:9000/udp --name ccnl $img ccn-nfn-relay -v trace -u 9000 \
-      -d test/cistlv -s cisco2015
+    drun -p 9000:9000/udp --name ccnl $img ccn-nfn-relay -v trace -u 9000 -d test/cistlv -s cisco2015
     ```
 
 4.  Test if the container is running correctly by requesting a content object:
 
     ```bash
     HOST_IP=$(ifconfig docker0 | sed -n 's/.*inet addr:\(.*\) Bcast.*/\1/p')
-    drun $img ccn-lite-peek -s ndn2013 -u $HOST_IP/9000 /ndn/simple \
-      | drun -i $img ccn-lite-pktdump
+    drun $img ccn-lite-peek -s ndn2013 -u $HOST_IP/9000 /ndn/simple | drun -i $img ccn-lite-pktdump
     ```
 
     Notice that the Docker container of `ccn-lite-peek` connects to port 9000 of the host. All Docker containers are run in an isolated network environment and only connected to the host via the virtual network device `docker0`. In order to access the host from inside a container, we need to obtain the host's IP address, listed in `docker0` (`$HOST_IP`).
