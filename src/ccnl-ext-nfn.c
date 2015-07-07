@@ -302,7 +302,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     TRACEIN();
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c)) {
-        ccnl_nfn_nack_local_computation(relay, c->pkt, c->pkt->pfx,
+        ccnl_nfn_nack_local_computation(relay, c->pkt->buf, c->pkt->pfx,
                                         from, c->pkt->pfx->suite);
         return -1;
     }

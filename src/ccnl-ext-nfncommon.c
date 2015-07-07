@@ -589,9 +589,9 @@ ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     nack = ccnl_nfn_result2content(ccnl, &prefix,
                                     (unsigned char*)":NACK", 5);
     ccnl_nfn_monitor(ccnl, from, nack->pkt->pfx,
-                     nack->pkt->content, nack->pkt->contentlen);
+                     nack->pkt->content, nack->pkt->contlen);
     DEBUGMSG(WARNING, "+++ nack->pkt is %p\n", (void*) nack->pkt);
-    ccnl_face_enqueue(ccnl, from, nack->pkt);
+    ccnl_face_enqueue(ccnl, from, nack->pkt->buf);
 }
 #endif // USE_NACK
 
@@ -615,7 +615,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
         ccnl_free(face);
 #ifdef USE_NACK
     else
-        ccnl_nack_reply(relay, i->pkt->pfx, face, i->suite);
+        ccnl_nack_reply(relay, i->pkt->pfx, face, i->pkt->suite);
 #endif
     i->from = NULL;
     i = ccnl_interest_remove(relay, i);
