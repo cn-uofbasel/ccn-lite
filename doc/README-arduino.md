@@ -96,10 +96,21 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
 ## Installation for RFduino
 
-1.  Install the RFduino support for the Arduino IDE according to the quick start
+1-old.  *Outdated!* Install the RFduino support for the Arduino IDE according to the quick start
     guide:
 
     http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
+
+1a. Go to the RFduino README on GitHub:
+
+    https://github.com/RFduino/RFduino/blob/master/README.md
+
+1b. Follow the instructions, but add ond additional step:
+
+    After you have configure your additional board manager for RFduino,
+    *first* download the "Arduino SAM Boards" (32bits ARM Cortex-M3).
+
+    Only the download and install "RFduino Boards".
 
 2.  Change the absolute path of the `#include` of `src/ccn-lite-rfduino.c` in
     `src/arduino/rfduino/rfduino.ino` to match your CCN-lite home directory
