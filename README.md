@@ -36,7 +36,6 @@ Internet of Things (IoT): http://www.riot-os.org/
 9. [Credits](#credits)
 
 
-[//]: # (TODO: Reference README-internal.md somewhere...)
 
 <a name="gettingstarted"></a>
 ## 1. Getting started
