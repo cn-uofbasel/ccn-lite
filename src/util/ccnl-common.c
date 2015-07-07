@@ -502,8 +502,8 @@ ccnl_suite2isFragmentFunc(int suite)
 #endif
     }
 
-    DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n",
-                    suite, __func__, __LINE__);
+    DEBUGMSG(DEBUG, "unknown suite %d in %s of %s:%d\n",
+                    suite, __func__, __FILE__, __LINE__);
     return NULL;
 }
 
