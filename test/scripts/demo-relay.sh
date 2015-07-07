@@ -38,28 +38,28 @@ CON=$2
 USEKRNL=$3
 
 # suite setup
-if [ $SUITE = "ccnb" ] 
+if [ $SUITE = "ccnb" ]
 then
     DIR="ccnb"
     FWD="/ccnx/0.7.1/doc/technical"
     FNAME="NameEnumerationProtocol.txt"
-elif [ $SUITE = "ccnx2015" ] 
+elif [ $SUITE = "ccnx2015" ]
 then
     DIR="ccntlv"
     FWD="ccnx"
 #    FNAME="simple"
     FNAME="long"
-elif [ $SUITE = "cisco2015" ] 
+elif [ $SUITE = "cisco2015" ]
 then
     DIR="cistlv"
     FWD="/ccn-lite/20150106/src"
     FNAME="ccnl-ext-debug.h"
-elif [ $SUITE = "iot2014" ] 
+elif [ $SUITE = "iot2014" ]
 then
     DIR="iottlv"
     FWD="/ccn-lite/20141204/src"
     FNAME="ccnl-ext-debug.h"
-elif [ $SUITE = "ndn2013" ] 
+elif [ $SUITE = "ndn2013" ]
 then
     DIR="ndntlv"
     FWD="ndn"
@@ -103,7 +103,7 @@ fi
 # ----------------------------------------------------------------------
 
 echo -n "killing all ccn-lite-relay instances... "
-killall ccn-lite-relay
+killall ccn-lite-relay 2> /dev/null
 
 echo "starting relay A, with a link to relay B"
 
@@ -153,7 +153,7 @@ $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug dump | $CCNL_HOME/src/util/ccn-l
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXA debug halt > /dev/null &
 $CCNL_HOME/src/util/ccn-lite-ctrl -x $UXB debug halt > /dev/null &
 
-if [ $RESULT = '0' ] 
+if [ $RESULT = '0' ]
 then
     echo "=== PKTDUMP.start >>>"
     $CCNL_HOME/src/util/ccn-lite-pktdump < /tmp/res
@@ -164,7 +164,7 @@ else
 fi
 
 sleep 1
-killall ccn-lite-relay > /dev/null
+killall ccn-lite-relay 2> /dev/null
 
 if [ "$USEKRNL" = true ]
 then
