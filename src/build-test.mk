@@ -96,7 +96,7 @@ bt-relay-nfn:
 bt-relay-nack:
 	@MAKE_TARGETS="clean ccn-lite-relay-nack" \
 	LOG_FNAME=$@ \
-	MAKE_VARS="USE_NACK=1" \
+	MAKE_VARS="USE_NFN=1 USE_NACK=1" \
 	./build-test-helper.sh
 
 bt-relay-nfn-nack:
