@@ -53,7 +53,7 @@ for PACKETTYPE in $PACKETTYPELIST; do
     #echo '** in 8 seconds, probing the NFN system'
     sleep 8
 
-    RES=`ccn-lite-simplenfn -s "$PACKETTYPE" -u '127.0.0.1/9000' 'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' 2> /dev/null | ccn-lite-pktdump -f 2`
+    RES=`$CCNL_HOME/bin/ccn-lite-simplenfn -s "$PACKETTYPE" -u '127.0.0.1/9000' 'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' 2> /dev/null | $CCNL_HOME/bin/ccn-lite-pktdump -f 2`
     RC=$?
     #echo "Return code: $RC, result: '$RES'"
 
