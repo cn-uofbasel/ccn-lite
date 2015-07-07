@@ -18,6 +18,8 @@ BT_RELAY=bt-relay-nothing \
 	bt-relay-frag \
 	bt-relay-authCtrl \
 	bt-relay-nfn \
+	bt-relay-nack \
+	bt-relay-nfn-nack \
 	bt-relay-all
 BT_LNXKERNEL=bt-lnxkernel
 BT_ALL=bt-all-vanilla \
@@ -89,6 +91,18 @@ bt-relay-nfn:
 	@MAKE_TARGETS="clean ccn-nfn-relay" \
 	LOG_FNAME=$@ \
 	MAKE_VARS="USE_NFN=1" \
+	./build-test-helper.sh
+
+bt-relay-nack:
+	@MAKE_TARGETS="clean ccn-lite-relay-nack" \
+	LOG_FNAME=$@ \
+	MAKE_VARS="USE_NACK=1" \
+	./build-test-helper.sh
+
+bt-relay-nfn-nack:
+	@MAKE_TARGETS="clean ccn-nfn-relay ccn-lite-relay-nack ccn-nfn-relay-nack" \
+	LOG_FNAME=$@ \
+	MAKE_VARS="USE_NFN=1 USE_NACK=1" \
 	./build-test-helper.sh
 
 bt-relay-all:
