@@ -94,7 +94,7 @@ We deliberately do not cover in our CCN-lite code:
 - exclusion filtering in interests
 - all TCP connectivity and the old CCNx cmd line utilities that have TCP
   hardwired into them
-- crypto functionality which is not our prime concern
+- crypto functionality which is not our prime concern (yet)
 - repository functionality, SYNC server, ...
 
 A second reason to create CCN-lite was the software license (the original CCNx
@@ -272,11 +272,13 @@ Tool                           | Description
 <a name="roadmap"></a>
 ## 7. Tentative roadmap
 
+Work has started for the next release 0.4 (Dec 2015?), where the focus
+should be on the following areas:
+ - Manifests
  - Security (key management, signed computations and trust schematas)
  - Data access control
  - Better selector support for NDN
  - RIOT re-integration
- - Manifests
 
 
 
