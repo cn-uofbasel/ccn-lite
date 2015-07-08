@@ -1,6 +1,6 @@
 section:=base
 arch:=amd64
-version:=0.2.1
+version:=0.3.0
 installedSize:=$(shell du -ks ccn-lite/usr|cut -f 1)
 year:=$(shell date +"%Y")
 
