@@ -85,7 +85,7 @@ elif [ "$CON" = "ux" ]
 then
     SOCKETA=
     SOCKETB=
-    FACETOB="newUNIXface $UXA"
+    FACETOA="newUNIXface $UXA"
     FACETOB="newUNIXface $UXB"
     PEEKADDR=
 else
