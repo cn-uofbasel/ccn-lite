@@ -48,4 +48,4 @@ script:
 
         # Run nfn_test script
         - cd $CCNL_HOME/test/scripts/nfn
-#        - ./nfn_test.sh #Reenable when cisco format is fixed
+        - ./nfn_test.sh #Reenable ccnx, cisco format is fixed
