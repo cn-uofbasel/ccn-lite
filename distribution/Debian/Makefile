@@ -22,7 +22,7 @@ deb:
 	sed -i 's/<%= year %>/${year}/g' ccn-lite/DEBIAN/control
 	sed -i 's/<%= year %>/${year}/g' ccn-lite/DEBIAN/copyright
 	dpkg --build ccn-lite
-	rm -r ./ccn-lite	
+	#rm -r ./ccn-lite	
 	
 clean:
 	rm -rf ./ccn-lite

@@ -9,7 +9,7 @@ A binary installer depends on a platform. Thus it is not possible to use a amd64
 ## Debian
 Debian packets (*.deb) can be used to install software on Debian and its Derivatives.
 To create Debian packets, the packet installer dpkg must be installed on the system.
-Swap to the Debian folder and run 'make'. The Debian file will be generated.
+Swap to the Debian folder and run 'sudo make'. The Debian file will be generated.
 
 
 ## Red Hat
