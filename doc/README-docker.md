@@ -8,6 +8,14 @@ Running a CCN-lite relay inside a Docker container can help keeping your system
 clean and makes it possible to run several nodes on fully isolated system
 processes.
 
+The [CCN-lite repository on Docker Hub](https://registry.hub.docker.com/u/cnuofbasel/ccn-lite/) contains a number of tags corresponding to different branches/tags:
+
+tag name | GitHub branch/tag
+:------- | :----------------
+`latest` | [`master`](https://github.com/cn-uofbasel/ccn-lite/tree/master)
+`dev`    | [`dev-master`](https://github.com/cn-uofbasel/ccn-lite/tree/dev-master)
+`0.3.0`  | [`0.3.0`](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0)
+`0.2.0`  | [`0.2.0`](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.2.0)
 
 
 ## Prerequisites
@@ -20,29 +28,38 @@ information, visit the
 
 ## Installation
 
-1.  Define helper environment variables and aliases:
+1.  Choose a tag of the CCN-lite Docker image (see above) by defining a variable
+    `$img`. To use the newest release, use tag `0.3.0`:
+
+    ```bash
+    img="cnuofbasel/ccn-lite:0.3.0"
+    ```
+
+    To use the newest development version, use `dev`:
 
     ```bash
     img="cnuofbasel/ccn-lite:dev"
+    ```
 
+2.  Define additional environment variables and aliases:
+
+    ```bash
     UNAME_OS=$(uname -s 2> /dev/null || echo not)
     if [ "$UNAME_OS" = "Linux" ]; then sudo="sudo"; else sudo=""; fi
 
     alias drun="$sudo docker run"
     ```
 
-     - `$img` is a shortcut to the CCN-lite container image name.
-     - `$sudo` enables the conditional usage of `sudo` on Linux machines without
-       enabling it on OS X.
-     - `drun` is an alias to run Docker containers.
+    `$sudo` enables the conditional usage of `sudo` on Linux machines without
+    enabling it on OS X. `drun` is an alias to run Docker containers.
 
-2.  Pull the Docker container from [Docker Hub](https://registry.hub.docker.com/u/cnuofbasel/ccn-lite/):
+3.  Pull the Docker image from [Docker Hub](https://registry.hub.docker.com/u/cnuofbasel/ccn-lite/):
 
     ```bash
     $sudo docker pull $img
     ```
 
-3.  Run the container:
+4.  Run the container:
 
     ```bash
     drun -p 9000:9000/udp --name ccnl $img
@@ -68,7 +85,7 @@ information, visit the
     drun -p 9000:9000/udp --name ccnl $img ccn-nfn-relay -v trace -u 9000 -d test/cistlv -s cisco2015
     ```
 
-4.  Test if the container is running correctly by requesting a content object:
+5.  Test if the container is running correctly by requesting a content object:
 
     ```bash
     HOST_IP=$(ifconfig docker0 | sed -n 's/.*inet addr:\(.*\) Bcast.*/\1/p')
@@ -79,7 +96,7 @@ information, visit the
 
     To redirect the output of `ccn-lite-peek` to `ccn-lite-pktdump`, we need to pass option `-i`. `-i` enables an interactive mode so that `ccn-lite-pktdump` can read from the host's `stdin`.
 
-5.  Stop the container (`stop`) and remove it (`rm`). This might take some seconds.
+6.  Stop the container (`stop`) and remove it (`rm`). This might take some seconds.
 
     ```bash
     $sudo docker stop ccnl && $sudo docker rm ccnl
