@@ -7,7 +7,7 @@ if [ ! -f nfn.jar ]; then
 fi
 
 EXITCODE=0
-PACKETTYPELIST='ccnb ndn2013 ccnx2015 iot2014' #cisco2015
+PACKETTYPELIST='ccnb ndn2013 iot2014' #ccnx2015 cisco2015
 #PACKETTYPELIST='ndn2013'
 DEBUGOUT="FALSE"
 echo "Testing NFN with a sample computation. Two NFN nodes, one is connected to a NFN scala computation server:"
