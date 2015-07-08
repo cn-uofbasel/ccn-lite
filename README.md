@@ -285,7 +285,7 @@ should be on the following areas:
 <a name="changelog"></a>
 ## 8. Changelog
 
-### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.3.0) (Jul 2015)
+### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
  - Demonstrated interoperability with now-stabilized CCNx1.0, which can run
    side-by-side with NDN in a single CCN-lite relay
@@ -304,7 +304,7 @@ should be on the following areas:
 <a name="credits"></a>
 ## 9. Credits
 
-### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.3.0) (Jul 2015)
+### [Release 0.3.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.3.0) (Jul 2015)
 
 #### Code contributions:
 Lukas Beck  
@@ -333,7 +333,7 @@ Marco Dieter Vogt
 Akan Yilmaz   
 
 
-### [Release 0.2.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.2.0) (Dec 2014)
+### [Release 0.2.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.2.0) (Dec 2014)
 
 #### Code contributions:
 Basil Kohler  
@@ -366,7 +366,7 @@ Simon Wang
 Mario Weber  
 
 
-### [Release 0.1.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.1.0) (Jul 2013)
+### [Release 0.1.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.1.0) (Jul 2013)
 
 #### Code contributions:
 Stefan Braun  
