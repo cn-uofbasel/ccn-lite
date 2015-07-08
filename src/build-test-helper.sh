@@ -6,15 +6,15 @@
 # failed, the modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
 #
 # Parameters (passed in environment variables):
-# 	LOG_FNAME	Name of the logfile to write to.
-#	MAKE_TARGETS	Targets that need to be built.
-#	MAKE_VARS	Variable-value pairs that are sent to the Makefile.
-#	MODIFIY_FNAME	Name of the file to change #defines.
-#	SET_VARS	#define variables that need to be defined.
-#	UNSET_VARS	#define variables that need to be unset.
-#	PKT_FORMAT	Name of the packet format to test. If this variable is
-#			set, the packet format tests are executed instead of
-#			the normal build.
+#    LOG_FNAME       Name of the logfile to write to.
+#    MAKE_TARGETS    Targets that need to be built.
+#    MAKE_VARS       Variable-value pairs that are sent to the Makefile.
+#    MODIFIY_FNAME   Name of the file to change #defines.
+#    SET_VARS        #define variables that need to be defined.
+#    UNSET_VARS      #define variables that need to be unset.
+#    PKT_FORMAT      Name of the packet format to test. If this variable is
+#                    set, the packet format tests are executed instead of
+#                    the normal build.
 
 # Undefining all environment variables in this invocation (build variables are passed as MAKE_VARS)
 unset USE_KRNL
