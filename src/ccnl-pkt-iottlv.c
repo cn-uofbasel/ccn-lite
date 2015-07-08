@@ -2,7 +2,7 @@
  * @f ccnl-pkt-iottlv.c
  * @b CCN lite - dense IOT packet format parsing and composing
  *
- * Copyright (C) 2014, Christian Tschudin, University of Basel
+ * Copyright (C) 2014-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,9 +19,6 @@
  * File history:
  * 2014-11-05 created
  */
-
-#ifndef PKT_IOTTLV_C
-#define PKT_IOTTLV_C
 
 #ifdef USE_SUITE_IOTTLV
 
@@ -61,6 +58,8 @@ ccnl_iottlv_peekType(unsigned char *buf, int len)
         return -1;
     if (*buf)
         return *buf >> 6;
+    buf++;
+    len--;
     if (ccnl_iottlv_varlenint(&buf, &len, &typ) < 0)
         return -1;
     return typ;
@@ -69,7 +68,7 @@ ccnl_iottlv_peekType(unsigned char *buf, int len)
 // parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_iottlv_dehead(unsigned char **buf, int *len,
-                   int *typ, int *vallen)
+                   unsigned int *typ, unsigned int *vallen)
 {
     if (*len < 1)
         return -1;
@@ -92,7 +91,8 @@ ccnl_iottlv_dehead(unsigned char **buf, int *len,
 struct ccnl_prefix_s *
 ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
 {
-    int typ, len = datalen, len2;
+    int len = datalen;
+    unsigned int typ, len2;
     struct ccnl_prefix_s *p;
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
@@ -140,63 +140,144 @@ ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
 }
 
 // we use one extraction routine for both request and reply pkts
-struct ccnl_buf_s*
-ccnl_iottlv_extract(unsigned char *start, unsigned char **data, int *datalen,
-                    struct ccnl_prefix_s **name, int *ttl,
-                    unsigned char **content, int *contlen)
+struct ccnl_pkt_s*
+ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
+                      unsigned char **data, int *datalen)
 {
+    struct ccnl_pkt_s *pkt;
     unsigned char *cp, tmp[10];
-    int len, typ, len2, cplen;
-    struct ccnl_prefix_s *n = NULL;
-    struct ccnl_buf_s *buf;
+    int cplen, len2;
+    unsigned int typ, len, state;
 
-    DEBUGMSG(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
+    DEBUGMSG_PIOT(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
+    /*
+    {
+        int fd = open("s.bin", O_WRONLY|O_CREAT|O_TRUNC);
+        write(fd, *data, *datalen);
+        close(fd);
+    }
+    */
 
-    if (content)
-        *content = NULL;
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
+    pkt->suite = CCNL_SUITE_IOTTLV;
+    pkt->val.final_block_id = -1;
+    pkt->s.iottlv.ttl = -1;
+
+#define IOTPS(C,L)   (((C)<<4)|(L))  // parse state: combines current state
 
     while (*datalen) {
         if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
             goto Bail;
-        switch (typ) {
-        case IOT_TLV_R_OptHeader:
+
+        state = IOTPS(pkttype, typ);
+        DEBUGMSG_CFWD(TRACE, "  state = 0x%04x\n", state);
+        switch (state) {
+        case IOTPS(IOT_TLV_Request, IOT_TLV_R_OptHeader):
+        case IOTPS(IOT_TLV_Reply, IOT_TLV_R_OptHeader):
         {
             cp = *data;
             cplen = len;
-            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
-                if (typ == IOT_TLV_H_HopLim && len2 == 1 && ttl)
-                    *ttl = *cp;
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
+                if (typ == IOT_TLV_H_HopLim && len2 == 1) {
+                    if (*cp > 0)
+                        *cp -= 1;
+                    pkt->s.iottlv.ttl = *cp;
+                }
                 cp += len2;
                 cplen -= len2;
             }
             break;
         }
-        case IOT_TLV_R_Name:
+
+        case IOTPS(IOT_TLV_Request, IOT_TLV_R_Name):
+        case IOTPS(IOT_TLV_Reply, IOT_TLV_R_Name):
             cp = *data;
             cplen = len;
-            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
                 if (typ == IOT_TLV_N_PathName) {
-                    if (n)
-                        free_prefix(n);
-                    n = ccnl_iottlv_parseHierarchicalName(cp, len2);
-                    if (!n)
+                    if (!pkt->pfx)
+                        pkt->pfx = ccnl_iottlv_parseHierarchicalName(cp, len2);
+                    if (!pkt->pfx)
                         goto Bail;
                 }
                 cp += len2;
                 cplen -= len2;
             }
             break;
-        case IOT_TLV_R_Payload:
+
+        case IOTPS(IOT_TLV_Fragment, IOT_TLV_F_FlagsAndSeq): {
+            uint16_t fragFields;
+            if (len < 2) {
+                DEBUGMSG_CFWD(DEBUG, "  no flags and seqno found (%d)\n", typ);
+                goto Bail;
+            }
+            fragFields = ntohs(*(uint16_t*) *data);
+            pkt->val.seqno = fragFields & 0x7ff;
+            pkt->flags |= (fragFields >> 14) << 2;
+            break;
+        }
+
+        case IOTPS(IOT_TLV_Request, IOT_TLV_R_Payload):
+        case IOTPS(IOT_TLV_Reply, IOT_TLV_R_Payload):
             cp = *data;
             cplen = len;
-            if (!ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
-                if (content && typ == IOT_TLV_PL_Data) {
-                    *content = cp;
-                    *contlen = len2;
+            if (!ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
+                if (typ == IOT_TLV_PL_Data) {
+                    pkt->content = cp;
+                    pkt->contlen = len2;
 		}
 	    }
             break;
+
+        case IOTPS(IOT_TLV_Fragment, IOT_TLV_F_Data):
+            pkt->content = *data;
+            pkt->contlen = len;
+            break;
+/*
+#ifdef USE_FRAG
+    if (ccnl_iottlv_peekType(*data, *datalen) == IOT_TLV_Fragment) {
+        uint16_t tmp;
+        unsigned int payloadlen;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len)) // IOT_TLV_Fragment
+            return -1;
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+            return -1;
+        if (typ == IOT_TLV_F_OptFragHdr) { // skip it for the time being
+            *data += len;
+            *datalen -= len;
+            if (ccnl_iottlv_dehead(data, datalen, &typ, &len))
+                return -1;
+        }
+        if (typ != IOT_TLV_F_FlagsAndSeq || len < 2) {
+            DEBUGMSG_CFWD(DEBUG, "  no flags and seqrn found (%d)\n", typ);
+            return -1;
+        }
+        tmp = ntohs(*(uint16_t*) *data);
+        *data += len;
+        *datalen -= len;
+
+        if (ccnl_iottlv_dehead(data, datalen, &typ, &payloadlen))
+            return -1;
+        if (typ != IOT_TLV_F_Payload) {
+            DEBUGMSG_CFWD(DEBUG, "  no payload (%d)\n", typ);
+            return -1;
+        }
+        *datalen -= payloadlen;
+        ccnl_frag_RX_Sequenced2015(ccnl_iottlv_forwarder, relay, from,
+                              relay->ifs[from->ifndx].mtu,
+                              tmp >> 14, tmp & 0x7ff, data, (int*) &payloadlen);
+        *datalen += payloadlen;
+
+        DEBUGMSG_CFWD(TRACE, "  returning after fragment: %d bytes\n", *datalen);
+        return 0;
+    } else
+#endif
+*/
         default:
+            fprintf(stderr, "  iottlv unknown state 0x%04x\n", state);
             break;
         }
         *data += len;
@@ -205,39 +286,58 @@ ccnl_iottlv_extract(unsigned char *start, unsigned char **data, int *datalen,
     if (*datalen > 0)
         goto Bail;
 
-// we receive a nacked packet (without switch code), we need to add
-// it when creating the packet buffer
-    len = sizeof(tmp);
-    len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &len, tmp);
-    if (len2 < 0) {
-        DEBUGMSG(ERROR, "prending code should not return -1\n");
+// if we received a naked packet (without switch code), we need to add
+// a switch code when creating the packet buffer
+    if (*start != 0x80) {
+        len = sizeof(tmp);
+        len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, (int*) &len, tmp);
+        if (len2 < 0) {
+            DEBUGMSG(ERROR, "prending code should not return -1\n");
+            len2 = 0;
+        }
+        start -= len2;
+    } else
         len2 = 0;
-    }
-    start -= len2;
-    buf = ccnl_buf_new(start, *data - start);
-    if (buf && len2)
-        memcpy(buf->data, tmp + len, len2);
+    pkt->buf = ccnl_buf_new(start, *data - start);
+    if (!pkt->buf)
+        goto Bail;
+    if (pkt->buf && len2)
+        memcpy(pkt->buf->data, tmp + len, len2);
 
     // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (content && *content)
-        *content = buf->data + (*content - start);
-    if (name) {
-        if (n) {
-            int i;
-            for (i = 0; i < n->compcnt; i++)
-                n->comp[i] = buf->data + (n->comp[i] - start);
-            if (n->nameptr)
-                n->nameptr = buf->data + (n->nameptr - start);
-        }
-        *name = n;
-    } else
-        free_prefix(n);
+    if (pkt->content)
+        pkt->content = pkt->buf->data + (pkt->content - start);
+    if (pkt->pfx) {
+        int i;
+        for (i = 0; i < pkt->pfx->compcnt; i++)
+            pkt->pfx->comp[i] = pkt->buf->data + (pkt->pfx->comp[i] - start);
+        if (pkt->pfx->nameptr)
+            pkt->pfx->nameptr = pkt->buf->data + (pkt->pfx->nameptr - start);
+    }
 
-    return buf;
+    return pkt;
 Bail:
-    free_prefix(n);
+    free_packet(pkt);
     return NULL;
 }
+
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+// returns: 0=match, -1=otherwise
+int
+ccnl_iottlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    assert(p);
+    assert(p->suite == CCNL_SUITE_IOTTLV);
+
+    if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
+        return -1;
+    return 0;
+}
+
+#endif
 
 // ----------------------------------------------------------------------
 // packet composition
@@ -316,6 +416,10 @@ ccnl_iottlv_prependName(struct ccnl_prefix_s *name,
 
     int oldoffset = *offset, cnt;
 
+    if (name->chunknum) {
+        DEBUGMSG(ERROR, "writing IOT2014 name: chunk number not supported\n");
+    }
+
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
         if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
@@ -374,8 +478,8 @@ ccnl_iottlv_prependRequest(struct ccnl_prefix_s *name, int *ttl,
 
 // write Reply pktr *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_iottlv_prependReply(struct ccnl_prefix_s *name, 
-                         unsigned char *payload, int paylen, 
+ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
+                         unsigned char *payload, int paylen,
                          int *offset, int *contentpos,
                          unsigned int *final_block_id,
                          unsigned char *buf)
@@ -403,9 +507,93 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
+#ifdef USE_FRAG
+
+// produces a full FRAG packet. It does not write, just read the fields in *fr
+struct ccnl_buf_s*
+ccnl_iottlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
+{
+    unsigned char test[20];
+    int offset, hdrlen, len, len2;
+    unsigned int datalen;
+    struct ccnl_buf_s *buf;
+    uint16_t tmp = 0;
+
+    // test size, first
+    datalen = fr->bigpkt->datalen - fr->sendoffs - 9;
+    if (datalen > fr->mtu)
+        datalen = fr->mtu;
+    offset = sizeof(test);
+    len = datalen +
+             ccnl_iottlv_prependTL(IOT_TLV_F_Data, datalen, &offset, test);
+    len += ccnl_iottlv_prependTL(IOT_TLV_F_FlagsAndSeq, 2, &offset, test) + 2;
+    ccnl_iottlv_prependTL(IOT_TLV_Fragment, len, &offset, test);
+    hdrlen = sizeof(test) - offset + 2 + 2; // adj for flagAndSeq, switch code
+
+    // with real values:
+    datalen = fr->bigpkt->datalen - fr->sendoffs;
+    if (datalen > (fr->mtu - hdrlen))
+        datalen = fr->mtu - hdrlen;
+
+    buf = ccnl_buf_new(NULL, hdrlen + datalen); // 2 bytes for switch code
+    if (!buf)
+        return 0;
+    offset = buf->datalen;
+    len = ccnl_iottlv_prependBlob(IOT_TLV_F_Data,
+                 fr->bigpkt->data + fr->sendoffs, datalen, &offset, buf->data);
+    if (len <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+
+    // flags and sequence number
+    if (datalen >= fr->bigpkt->datalen) { // single
+        tmp |= CCNL_DTAG_FRAG_FLAG_SINGLE << 14;
+    } else if (fr->sendoffs == 0) // start
+        tmp |= CCNL_DTAG_FRAG_FLAG_FIRST << 14;
+    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+        tmp |= CCNL_DTAG_FRAG_FLAG_LAST << 14;
+    } else
+        tmp |= CCNL_DTAG_FRAG_FLAG_MID << 14;
+    tmp |= fr->sendseq & 0x07ff;
+    tmp = htons(tmp);
+    len2 = ccnl_iottlv_prependBlob(IOT_TLV_F_FlagsAndSeq, (unsigned char*)
+                                   &tmp, sizeof(tmp), &offset, buf->data);
+    if (len2 <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+    // main header
+    len2 = ccnl_iottlv_prependTL(IOT_TLV_Fragment, len, &offset, buf->data);
+    if (len2 <= 0) {
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+
+    // encoding switch:
+    len2 = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, buf->data);
+    if (len2 < 0) {
+        DEBUGMSG(ERROR, "  prending code should not return -1\n");
+        ccnl_free(buf);
+        return NULL;
+    }
+    len += len2;
+
+    if (offset > 0) {
+        DEBUGMSG(TRACE, "  iottlv fragment: shift by %d bytes\n", offset);
+        memmove(buf->data, buf->data + offset, len);
+        buf->datalen = len;
+    }
+
+    *consumed = datalen;
+    return buf;
+}
+#endif
+
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // USE_SUITE_IOTTLV
-#endif // PKT_IOTTLV_C
 
 // eof

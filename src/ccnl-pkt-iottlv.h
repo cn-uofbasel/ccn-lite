@@ -20,9 +20,6 @@
  * 2014-11-05 created
  */
 
-#ifndef PKT_IOTTLV_H
-#define PKT_IOTTLV_H
-
 // ----------------------------------------------------------------------
 // Header
 
@@ -35,9 +32,14 @@
 
 Top level:
   0 reserved
-  1 reserved
+  1 Fragment
   2 Request (aka Interest)
   3 Reply (aka Data/Content)
+
+Fragment:
+  0 Optional Headers
+  1 FlagsAndSeqNr (2 bytes: BEIXnnnn nnnnnnnn)
+  2 Data
 
 Request or Reply:
   0 Optional Headers
@@ -74,8 +76,14 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // ----------------------------------------------------------------------
 // TLV message
 
+#define IOT_TLV_Fragment        0x1
 #define IOT_TLV_Request         0x2
 #define IOT_TLV_Reply           0x3
+
+// inside fragment
+#define IOT_TLV_F_OptFragHdr    0x0
+#define IOT_TLV_F_FlagsAndSeq   0x1
+#define IOT_TLV_F_Data          0x2
 
 // inside request/reply packet
 #define IOT_TLV_R_OptHeader     0x0
@@ -111,7 +119,5 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // inside validation
 #define IOT_TLV_V_AlgoType      0x0
 #define IOT_TLV_V_Bits          0x1
-
-#endif // PKT_IOTTLV_H
 
 // eof

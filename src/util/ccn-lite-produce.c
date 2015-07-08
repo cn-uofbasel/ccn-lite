@@ -22,8 +22,10 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
- 
+
 #define USE_SIGNATURES
 
 #define CCNL_MAX_CHUNK_SIZE 4048
@@ -40,7 +42,8 @@ main(int argc, char *argv[])
     char *publisher = 0;
     char *infname = 0, *outdirname = 0, *outfname;
     int f, fout, contentlen = 0, opt, plen;
-    int suite = CCNL_SUITE_DEFAULT;
+    //    int suite = CCNL_SUITE_DEFAULT;
+    int suite = CCNL_SUITE_CCNTLV;
     int chunk_size = CCNL_MAX_CHUNK_SIZE;
     struct ccnl_prefix_s *name;
 
@@ -94,7 +97,7 @@ main(int argc, char *argv[])
         case 'h':
         default:
 Usage:
-        fprintf(stderr, 
+        fprintf(stderr,
         "Creates a chunked content object stream for the input data and writes them to stdout.\n"
         "usage: %s [options] URL\n"
         "  -c SIZE          size for each chunk (max %d)\n"
@@ -102,9 +105,9 @@ Usage:
         "  -i FNAME         input file (instead of stdin)\n"
         "  -o DIR           output dir (instead of stdout), filename default is cN, otherwise specify -f\n"
         "  -p DIGEST        publisher fingerprint\n"
-        "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+        "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
         ,
         argv[0],
@@ -113,10 +116,10 @@ Usage:
         }
     }
 
-    if (suite < 0 || suite >= CCNL_SUITE_LAST)
+    if (!ccnl_isSuite(suite))
         goto Usage;
 
-    // mandatory url 
+    // mandatory url
     if (!argv[optind])
         goto Usage;
 
@@ -124,7 +127,7 @@ Usage:
     char url[strlen(url_orig)];
     optind++;
 
-    // optional nfn 
+    // optional nfn
     char *nfnexpr = argv[optind];
 
     int status;
@@ -182,8 +185,14 @@ Usage:
         case CCNL_SUITE_CCNB:
             strcpy(fileext, "ccnb");
             break;
-        case CCNL_SUITE_CCNTLV: 
+        case CCNL_SUITE_CCNTLV:
             strcpy(fileext, "ccntlv");
+            break;
+        case CCNL_SUITE_CISTLV:
+            strcpy(fileext, "cistlv");
+            break;
+        case CCNL_SUITE_IOTTLV:
+            strcpy(fileext, "iottlv");
             break;
         case CCNL_SUITE_NDNTLV:
             strcpy(fileext, "ndntlv");
@@ -198,26 +207,40 @@ Usage:
 
         if (chunk_len < chunk_size) {
             is_last = 1;
-        } 
+        }
 
         strcpy(url, url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
+
         switch (suite) {
-        case CCNL_SUITE_CCNTLV: 
-            contentlen = ccnl_ccntlv_prependContentWithHdr(name, 
-                                                           (unsigned char *)chunk_buf, chunk_len, 
-                                                           is_last ? &chunknum : NULL, 
-                                                           &offs, 
+        case CCNL_SUITE_CCNTLV:
+            contentlen = ccnl_ccntlv_prependContentWithHdr(name,
+                            (unsigned char *)chunk_buf, chunk_len,
+                            is_last ? &chunknum : NULL,
+                            NULL, // int *contentpos
+                            &offs, out);
+            break;
+        case CCNL_SUITE_CISTLV:
+            contentlen = ccnl_cistlv_prependContentWithHdr(name,
+                                                           (unsigned char *)chunk_buf, chunk_len,
+                                                           is_last ? &chunknum : NULL,
+                                                           &offs,
                                                            NULL, // int *contentpos
                                                            out);
             break;
+        case CCNL_SUITE_IOTTLV:
+            ccnl_iottlv_prependReply(name, (unsigned char *) chunk_buf,
+                                     chunk_len, &offs, NULL,
+                                     is_last ? &chunknum : NULL, out);
+            ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, out);
+            contentlen = CCNL_MAX_PACKET_SIZE - offs;
+            break;
         case CCNL_SUITE_NDNTLV:
-            contentlen = ccnl_ndntlv_prependContent(name, 
-                                                    (unsigned char *) chunk_buf, chunk_len, 
-                                                    &offs, NULL,
-                                                    is_last ? &chunknum : NULL, 
-                                                    out);
+            contentlen = ccnl_ndntlv_prependContent(name,
+                                 (unsigned char *) chunk_buf, chunk_len,
+                                 NULL, is_last ? &chunknum : NULL,
+                                 &offs, out);
             break;
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
@@ -226,7 +249,8 @@ Usage:
         }
 
         if (outdirname) {
-            DEBUGMSG(INFO, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+//            DEBUGMSG(INFO, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
 
@@ -242,7 +266,7 @@ Usage:
         if (!is_last) {
             chunk_len = read(f, chunk_buf, chunk_size);
         }
-    } 
+    }
 
     close(f);
     ccnl_free(chunk_buf);

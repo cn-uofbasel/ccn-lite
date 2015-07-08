@@ -24,7 +24,6 @@
 
 #ifndef CCNL_LINUXKERNEL
 
-#include "ccnl-ext-debug.c"
 #include "ccnl-os-includes.h"
 
 enum { // abstract machine instruction set
@@ -55,7 +54,7 @@ new_closure(char *term, struct environment_s *env)
     return ret;
 }
 
-void 
+void
 push_to_stack(struct stack_s **top, void *content, int type)
 {
     struct stack_s *h;
@@ -65,6 +64,7 @@ push_to_stack(struct stack_s **top, void *content, int type)
 
     h = ccnl_calloc(1, sizeof(struct stack_s));
     if (h) {
+        DEBUGMSG(TRACE, "push_to_stack: %p\n", (void*)h);
         h->next = *top;
         h->content = content;
         h->type = type;
@@ -87,7 +87,8 @@ pop_from_stack(struct stack_s **top)
 
 struct stack_s *
 pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
-                                 struct configuration_s *config) // , int *restart)
+                                 struct configuration_s *config)
+                                 // , int *restart)
 {
     unsigned char *res = NULL;
     struct stack_s *elm = pop_from_stack(&config->result_stack);
@@ -95,6 +96,8 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
 
     if (!elm)
         return NULL;
+    DEBUGMSG(TRACE, "pop_or_resolve_from_RS: conf=%p, elm=%p, type=%d\n",
+             (void*)config, (void*)elm, elm->type);
     if (elm->type == STACK_TYPE_THUNK) {
         res = (unsigned char *)elm->content;
         if (res && !strncmp((char *)res, "THUNK", 5)) {
@@ -103,7 +106,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
                 config->thunk = 1;
                 config->starttime = CCNL_NOW();
                 config->endtime = config->starttime+config->thunk_time; //TODO: determine number from interest
-                DEBUGMSG(DEBUG, "Wating %f sec for Thunk\n", config->thunk_time);
+                DEBUGMSG(DEBUG, "Waiting %f sec for Thunk\n", config->thunk_time);
             }
             c = ccnl_nfn_resolve_thunk(ccnl, config, res);
             if(!c)
@@ -114,13 +117,13 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
                 return NULL;
 
             struct stack_s *elm1 = ccnl_calloc(1, sizeof(struct stack_s));
-            if (isdigit(*c->content)) {
+            if (isdigit(*c->pkt->content)) {
                 int *integer = ccnl_malloc(sizeof(int));
-                *integer = (int)strtol((char*)c->content, NULL, 0);
+                *integer = (int)strtol((char*)c->pkt->content, NULL, 0);
                 elm1->content = (void*)integer;
                 elm1->type = STACK_TYPE_INT;
             } else {
-                elm1->content = c->name;
+                elm1->content = c->pkt->pfx;
                 elm1->type = STACK_TYPE_PREFIX;
             }
             elm1->next = NULL;
@@ -142,7 +145,7 @@ stack_len(struct stack_s *s)
 }
 
 // #ifdef XXX
-void 
+void
 print_environment(struct environment_s *env)
 {
    int num = 0;
@@ -155,7 +158,7 @@ print_environment(struct environment_s *env)
    }
 }
 
-void 
+void
 print_result_stack(struct stack_s *stack)
 {
    int num = 0;
@@ -166,7 +169,7 @@ print_result_stack(struct stack_s *stack)
    }
 }
 
-void 
+void
 print_argument_stack(struct stack_s *stack)
 {
    int num = 0;
@@ -181,7 +184,7 @@ print_argument_stack(struct stack_s *stack)
 }
 // #endif
 
-void 
+void
 add_to_environment(struct environment_s **env, char *name,
                    struct closure_s *closure)
 {
@@ -203,7 +206,7 @@ search_in_environment(struct environment_s *env, char *name)
 {
     for (; env; env = env->next)
         if (!strcmp(name, env->name))
-            return env->closure;  
+            return env->closure;
 
     return NULL;
 }
@@ -327,11 +330,10 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int thunk_request, int *restart, int *halt,
         int *num_of_required_thunks, char *prog, char *arg, char *contd)
 {
-    struct stack_s *h;
     int local_search = 0, i;
     int parameter_number = 0;
     struct ccnl_content_s *c = NULL;
-    struct ccnl_prefix_s *pref, *pref2;
+    struct ccnl_prefix_s *pref;
     struct ccnl_interest_s *interest;
 
     DEBUGMSG(DEBUG, "---to do: FOX <%s>\n", arg);
@@ -342,14 +344,20 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         goto recontinue;
     }
 
-    h = pop_or_resolve_from_result_stack(ccnl, config);
-    //TODO CHECK IF INT
-    config->fox_state->num_of_params = *(int*)h->content;
+    {
+        struct stack_s *h;
+        h = pop_or_resolve_from_result_stack(ccnl, config);
+        assert(h);
+        //TODO CHECK IF INT
+        config->fox_state->num_of_params = *(int*)h->content;
+        h->next = NULL;
+        ccnl_nfn_freeStack(h);
+    }
     DEBUGMSG(DEBUG, "NUM OF PARAMS: %d\n", config->fox_state->num_of_params);
 
     config->fox_state->params = ccnl_malloc(sizeof(struct ccnl_stack_s *) *
                                             config->fox_state->num_of_params);
-        
+
     for (i = 0; i < config->fox_state->num_of_params; ++i) {
         //pop parameter from stack
         config->fox_state->params[i] = pop_from_stack(&config->result_stack);
@@ -393,8 +401,9 @@ recontinue: //loop by reentering after timeout of the interest...
         // search for a result
         c = ccnl_nfn_local_content_search(ccnl, config, pref);
         set_propagate_of_interests_to_1(ccnl, pref);
+        free_prefix(pref);
         //TODO Check? //TODO remove interest here?
-        if (c){
+        if (c) {
 	    DEBUGMSG(DEBUG, "Result was found\n");
             goto handlecontent;
 	}
@@ -410,12 +419,16 @@ recontinue: //loop by reentering after timeout of the interest...
     pref = create_namecomps(ccnl, config, parameter_number, thunk_request,
                         config->fox_state->params[parameter_number]->content);
     c = ccnl_nfn_local_content_search(ccnl, config, pref);
-    if (c)
+    if (c) {
+        free_prefix(pref);
         goto handlecontent;
+    }
 
     // Result not in cache, search over the network
-    pref2 = ccnl_prefix_dup(pref);
-    interest = ccnl_nfn_query2interest(ccnl, &pref2, config);
+//    pref2 = ccnl_prefix_dup(pref);
+    interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+    if (pref)
+        free_prefix(pref);
     if (interest) {
         ccnl_interest_propagate(ccnl, interest);
         DEBUGMSG(DEBUG, "  new interest's face is %d\n", interest->from->faceid);
@@ -433,13 +446,15 @@ local_compute:
     DEBUGMSG(DEBUG, "Prefix local computation: %s\n",
              ccnl_prefix_to_path(pref));
     interest = ccnl_nfn_query2interest(ccnl, &pref, config);
+    if (pref)
+        free_prefix(pref);
     if (interest)
         ccnl_interest_propagate(ccnl, interest);
 
 handlecontent: //if result was found ---> handle it
     if (c) {
 #ifdef USE_NACK
-        if (!strncmp((char*)c->content, ":NACK", 5)) {
+        if (!strncmp((char*)c->pkt->content, ":NACK", 5)) {
             DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
             ++config->fox_state->it_routable_param;
             return prog ? ccnl_strdup(prog) : NULL;
@@ -448,8 +463,8 @@ handlecontent: //if result was found ---> handle it
         if (thunk_request) { //if thunk_request push thunkid on the stack
 
             --(*num_of_required_thunks);
-            char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->name);
-            char *time_required = (char *)c->content;
+            char *thunkid = ccnl_nfn_add_thunk(ccnl, config, c->pkt->pfx);
+            char *time_required = (char *)c->pkt->content;
             int thunk_time = strtol(time_required, NULL, 10);
             thunk_time = thunk_time > 0 ? thunk_time : NFN_DEFAULT_WAITING_TIME;
             config->thunk_time = config->thunk_time > thunk_time ?
@@ -462,9 +477,9 @@ handlecontent: //if result was found ---> handle it
                 ccnl_nfn_reply_thunk(ccnl, config);
             }
         } else {
-            if (isdigit(*c->content)) {
+            if (isdigit(*c->pkt->content)) {
                 int *integer = ccnl_malloc(sizeof(int));
-                *integer = strtol((char*)c->content, 0, 0);
+                *integer = strtol((char*)c->pkt->content, 0, 0);
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             } else {
                 struct prefix_mapping_s *mapping;
@@ -473,14 +488,14 @@ handlecontent: //if result was found ---> handle it
                 push_to_stack(&config->result_stack, name, STACK_TYPE_PREFIX);
                 mapping = ccnl_malloc(sizeof(struct prefix_mapping_s));
                 mapping->key = ccnl_prefix_dup(name); //TODO COPY
-                mapping->value = ccnl_prefix_dup(c->name);
+                mapping->value = ccnl_prefix_dup(c->pkt->pfx);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 DEBUGMSG(DEBUG, "Created a mapping %s - %s\n",
                          ccnl_prefix_to_path(mapping->key),
                          ccnl_prefix_to_path(mapping->value));
             }
         }
-    }        
+    }
     DEBUGMSG(DEBUG, " FOX continuation: %s\n", contd);
     return ccnl_strdup(contd);
 }
@@ -511,31 +526,31 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         cp2len = strlen(res+end) + strlen("RESOLVENAME()");
         h = strchr(cp, '=');
         namelength = h - cp;
-            
+
         lambda_expr = ccnl_malloc(strlen(h));
         name = ccnl_malloc(namelength);
         cp2 = ccnl_malloc(cp2len);
-            
+
         memset(cp2, 0, cp2len);
         memset(name, 0, namelength);
         memset(lambda_expr, 0, strlen(h));
-            
+
         sprintf(cp2, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
         memcpy(name, cp+3, namelength-3); //copy name without let and endlet
         trim(name);
-   
+
         lambdalen = strlen(h)-strlen(cp2)+11-6;
         memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
         trim(lambda_expr);
         resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
         sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
-            
+
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
         ccnl_free(cp);
         return strdup(contd);
     }
-        
+
     //check if term can be made available, if yes enter it as a var
     //try with searching in global env for an added term!
 
@@ -549,10 +564,9 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
             // is disgit...
             int *integer = ccnl_malloc(sizeof(int));
             *integer = strtol(cp, &end, 0);
-            if (end && *end){
+            if (end && *end)
                 end = 0;
-            }
-            if(end)
+            if (end)
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);
             else
                 ccnl_free(integer);
@@ -607,7 +621,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
 // executes a ZAM instruction, returns the term to continue working on
 char*
-ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config, 
+ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         int thunk_request, int *num_of_required_thunks,
         int *halt, char *dummybuf, int *restart)
 {
@@ -619,7 +633,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct builtin_s *bp;
     char *arg, *contd;
     int tok;
-    
+
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if (config->result_stack) {
@@ -742,7 +756,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                 goto normal;
         } else {
 normal:
-            closure = new_closure(arg, config->env); 
+            closure = new_closure(arg, config->env);
             //configuration->env = NULL;//FIXME new environment?
             push_to_stack(&config->argument_stack, closure, STACK_TYPE_CLOSURE);
             arg = NULL;
@@ -839,7 +853,7 @@ setup_global_environment(struct environment_s **env)
                 "CLOSURE(OP_CMPLEQ_CHURCH);RESOLVENAME(@op(@x(@y x y op)))");
     allocAndAdd(env, "ifelse_church",
                 "RESOLVENAME(@expr@yes@no(expr yes no))");
-    
+
     //Operator on integer numbers
     allocAndAdd(env, "eq",
                 "CLOSURE(OP_CMPEQ);RESOLVENAME(@op(@x(@y x y op)))");
@@ -880,18 +894,19 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
         if (stack->type == STACK_TYPE_PREFIX) {
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-                memcpy(res+pos, (char*)cont->content, cont->contentlen);
-                pos += cont->contentlen;
+                memcpy(res+pos, (char*)cont->pkt->content, cont->pkt->contlen);
+                pos += cont->pkt->contlen;
             }
         } else if (stack->type == STACK_TYPE_PREFIXRAW) {
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
 /*
-                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->pkt,
-                         cont->pkt ? cont->pkt->datalen : -1);
+                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->buf,
+                         cont->buf ? cont->buf->datalen : -1);
 */
-                memcpy(res+pos, (char*)cont->pkt->data, cont->pkt->datalen);
-                pos += cont->pkt->datalen;
+                memcpy(res+pos, (char*)cont->pkt->buf->data,
+                       cont->pkt->buf->datalen);
+                pos += cont->pkt->buf->datalen;
             }
         } else if (stack->type == STACK_TYPE_INT) {
             //h = ccnl_buf_new(NULL, 10);
@@ -951,7 +966,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
                  stack_len((*config)->argument_stack),
                  stack_len((*config)->result_stack), (*config)->prog);
         (*config)->prog = ZAM_term(ccnl, *config,
-                                (*config)->fox_state->thunk_request, 
+                                (*config)->fox_state->thunk_request,
                                 &(*config)->fox_state->num_of_required_thunks,
                                 &halt, dummybuf, &restart);
         ccnl_free(oldprog);
@@ -972,7 +987,6 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     print_result_stack((*config)->result_stack);
 */
 
-    print_result_stack((*config)->result_stack);
     return Krivine_exportResultStack(ccnl, *config);
 }
 

@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkC.c
  * @b CLI mkContent, write to Stdout
  *
- * Copyright (C) 2013, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,9 +22,13 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
+#define USE_HMAC256
 #define USE_SIGNATURES
+
+#define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
@@ -32,7 +36,7 @@
 
 // ----------------------------------------------------------------------
 
-char *private_key_path; 
+char *private_key_path;
 char *witness;
 
 // ----------------------------------------------------------------------
@@ -40,34 +44,36 @@ char *witness;
 int
 main(int argc, char *argv[])
 {
-
-    // char *private_key_path; 
-    // char *witness;
     unsigned char body[64*1024];
     unsigned char out[65*1024];
-    char *publisher = 0;
+    unsigned char *publisher = out;
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
-    private_key_path = 0;
-    witness = 0;
+    struct key_s *keys = NULL;
 
-    while ((opt = getopt(argc, argv, "hi:k:l:n:o:p:s:v:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
         case 'i':
             infname = optarg;
             break;
         case 'k':
-            private_key_path = optarg;
+            keys = load_keys_from_file(optarg);
+            break;
+        case 'l':
+            lastchunknum = atoi(optarg);
+            break;
+        case 'n':
+            chunknum = atoi(optarg);
             break;
         case 'o':
             outfname = optarg;
             break;
         case 'p':
-            publisher = optarg;
-            plen = unescape_component(publisher);
+            publisher = (unsigned char*) optarg;
+            plen = unescape_component((char*) publisher);
             if (plen != 32) {
                 DEBUGMSG(ERROR,
                   "publisher key digest has wrong length (%d instead of 32)\n",
@@ -75,11 +81,12 @@ main(int argc, char *argv[])
                 exit(-1);
             }
             break;
-        case 'l':
-            lastchunknum = atoi(optarg);
-            break;
-        case 'n':
-            chunknum = atoi(optarg);
+        case 's':
+            suite = ccnl_str2suite(optarg);
+            if (!ccnl_isSuite(suite)) {
+                DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
+                goto Usage;
+            }
             break;
         case 'v':
 #ifdef USE_LOGGING
@@ -93,26 +100,19 @@ main(int argc, char *argv[])
         case 'w':
             witness = optarg;
             break;
-        case 's':
-            suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST) {
-                DEBUGMSG(ERROR, "Unsupported suite %d\n", suite);
-                goto Usage;
-            }
-            break;
         case 'h':
         default:
 Usage:
         fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
         "  -i FNAME    input file (instead of stdin)\n"
-        "  -k FNAME    publisher private key (CCNB)\n"
-        "  -l LASTCHUNKNUM number of last chunk\n"       
+        "  -k FNAME    HMAC256 key (base64 encoded)\n"
+        "  -l LASTCHUNKNUM number of last chunk\n"
         "  -n CHUNKNUM chunknum\n"
         "  -o FNAME    output file (instead of stdout)\n"
         "  -p DIGEST   publisher fingerprint\n"
-        "  -s SUITE    (ccnb, ccnx2014, iot2014, ndn2013)\n"
+        "  -s SUITE    (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+        "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
         "  -w STRING   witness\n"
         "Examples:\n"
@@ -125,7 +125,7 @@ Usage:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto Usage;
 
     if (infname) {
@@ -136,22 +136,45 @@ Usage:
         f = 0;
     len = read(f, body, sizeof(body));
     close(f);
+    memset(out, 0, sizeof(out));
 
     name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {
+#ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
         len = ccnl_ccnb_fillContent(name, body, len, NULL, out);
         break;
+#endif
+#ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
+
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ccntlv_prependContentWithHdr(name, body, len, 
-            lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
-            &offs, 
-            NULL, // Int *contentpos
-            out);
+        if (keys) {
+            unsigned char keyval[64];
+            unsigned char keyid[32];
+            // use the first key found in the key file
+            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
+            len = ccnl_ccntlv_prependSignedContentWithHdr(name, body, len,
+                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  NULL, keyval, keyid, &offs, out);
+        } else
+            len = ccnl_ccntlv_prependContentWithHdr(name, body, len,
+                          lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                          NULL /* Int *contentpos */, &offs, out);
         break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        offs = CCNL_MAX_PACKET_SIZE;
+        len = ccnl_cistlv_prependContentWithHdr(name, body, len,
+                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  NULL, &offs, out);
+        break;
+#endif
+#ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
         offs = CCNL_MAX_PACKET_SIZE;
         if (ccnl_iottlv_prependReply(name, body, len, &offs, NULL,
@@ -160,13 +183,26 @@ Usage:
             return -1;
         len = CCNL_MAX_PACKET_SIZE - offs;
         break;
+#endif
+#ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         offs = CCNL_MAX_PACKET_SIZE;
-        len = ccnl_ndntlv_prependContent(name, body, len, &offs,
-                                         NULL, 
-                                         lastchunknum == UINT_MAX ? NULL : &lastchunknum, 
-                                         out);
+        if (keys) {
+            unsigned char keyval[64];
+            unsigned char keyid[32];
+            // use the first key found in the key file
+            ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+            ccnl_hmac256_keyid(keys->key, keys->keylen, keyid);
+            len = ccnl_ndntlv_prependSignedContent(name, body, len,
+                  lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  NULL, keyval, keyid, &offs, out);
+        } else {
+            len = ccnl_ndntlv_prependContent(name, body, len,
+                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum,
+                  &offs, out);
+        }
         break;
+#endif
     default:
         break;
     }

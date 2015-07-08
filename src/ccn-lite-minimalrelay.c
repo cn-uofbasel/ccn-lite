@@ -21,10 +21,13 @@
  * 2014-11-05 small code cleanups, now using NDNTLV as default encoding
  */
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +38,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/un.h>
 
 #include <arpa/inet.h>
@@ -48,26 +52,39 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #undef USE_NFN
 
+#define USE_IPV4
 #define USE_SUITE_NDNTLV
+#define NEEDS_PREFIX_MATCHING
 
 // ----------------------------------------------------------------------
 // "replacement lib"
 
-#define FATAL   94 // FATAL
-#define ERROR   95 // ERROR
-#define WARNING 96 // WARNING 
-#define INFO    97 // INFO 
-#define DEBUG   98 // DEBUG 
-#define TRACE   99 // TRACE 
-#define VERBOSE 100 // VERBOSE 
+#define FATAL   0 // FATAL
+#define ERROR   1 // ERROR
+#define WARNING 2 // WARNING
+#define INFO    3 // INFO
+#define DEBUG   4 // DEBUG
+#define TRACE   5 // TRACE
+#define VERBOSE 6 // VERBOSE
 
 #define DEBUGMSG(LVL, ...) do {       \
         if ((LVL)>debug_level) break;   \
         fprintf(stderr, __VA_ARGS__);   \
     } while (0)
-#define DEBUGSTMT(LVL, ...)             do {} while(0)
+# define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
+
+#define DEBUGSTMT(LVL, ...) do { \
+        if ((LVL)>debug_level) break; \
+        __VA_ARGS__; \
+     } while (0)
+
 #define TRACEIN(...)                    do {} while(0)
 #define TRACEOUT(...)                   do {} while(0)
+
+#define CONSTSTR(s)                     s
 
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
@@ -80,8 +97,8 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define free_prefix(p)  do{ if(p) \
                 free_4ptr_list(p->bytes,p->comp,p->complen,p); } while(0)
-#define free_content(c) do{ free_prefix(c->name); \
-                        free_2ptr_list(c->pkt, c); } while(0)
+#define free_content(c) do{ /* free_prefix(c->name); */ free_packet(c->pkt); \
+                        ccnl_free(c); } while(0)
 
 #define ccnl_frag_new(a,b)                      NULL
 #define ccnl_frag_destroy(e)                    do {} while(0)
@@ -92,28 +109,33 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define ccnl_nfn_monitor(a,b,c,d,e)     do{}while(0)
 
-#define ccnl_print_stats(x,y)           do{}while(0)
 #define ccnl_app_RX(x,y)                do{}while(0)
 
 #define ccnl_ll_TX(r,i,a,b)             sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
 #define ccnl_close_socket(s)            close(s)
 
 #define compute_ccnx_digest(b) NULL
+#define local_producer(...)             0
 
 //----------------------------------------------------------------------
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 
+void free_packet(struct ccnl_pkt_s *pkt);
+
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+
 char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);
+#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
+bool ccnl_isSuite(int suite);
 
 //----------------------------------------------------------------------
 
@@ -133,6 +155,8 @@ ccnl_buf_new(void *data, int len)
 
 // ----------------------------------------------------------------------
 // timer support and event server
+// copied from ccnl-os-time.c
+// (because we do not want to have includes beyond the core CCN logic)
 
 void
 ccnl_get_timeval(struct timeval *tv)
@@ -290,7 +314,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 {
     int i, maxfd = -1, rc;
     fd_set readfs, writefs;
-    
+
     if (ccnl->ifcount == 0) {
         fprintf(stderr, "no socket to work with, not good, quitting\n");
         exit(EXIT_FAILURE);
@@ -356,7 +380,7 @@ main(int argc, char **argv)
         switch (opt) {
         case 's':
             opt = ccnl_str2suite(optarg);
-            if (opt >= CCNL_SUITE_CCNB && opt < CCNL_SUITE_LAST)
+            if (opt >= 0 && opt < CCNL_SUITE_LAST)
                 suite = opt;
             else
                 fprintf(stderr, "Suite parameter <%s> ignored.\n", optarg);

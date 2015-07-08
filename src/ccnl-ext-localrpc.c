@@ -262,7 +262,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         prefix = ccnl_URItoPrefix(p, CCNL_SUITE_DEFAULT, NULL, NULL);
 
         while (c) {
-            if (!ccnl_prefix_cmp(c->name, NULL, prefix, CMP_EXACT)) {
+            if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, prefix, CMP_EXACT)) {
                 struct ccnl_content_s *tmp = c->next;
                 ccnl_content_remove(relay, c);
                 DEBUGMSG(DEBUG, "content %s removed\n",
@@ -303,7 +303,7 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             415, "rpc_forward: expected encoding name", NULL);
         return 0;
     }
-        
+
     cp = ccnl_malloc(param->u.namelen + 1);
     memcpy(cp, param->aux, param->u.namelen);
     cp[param->u.namelen] = '\0';
@@ -386,7 +386,7 @@ rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         memcpy(cp, param->aux, param->u.namelen);
         cp[param->u.namelen] = '\0';
         if (!strcmp(cp, "/rpc/config/compileString")) {
-            val = ccnl_rdr_mkStr((char*)compile_string());
+          val = ccnl_rdr_mkStr((char*)compile_string);
         } else if (!strcmp(cp, "/rpc/config/localTime")) {
             time_t t = time(NULL);
             char *p = ctime(&t);
@@ -441,7 +441,7 @@ ccnl_localrpc_handleReply(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     DEBUGMSG(DEBUG, "ccnl_localrpc_handleReply %d %d\n",
              ccnl_rdr_getType(aux), ccnl_rdr_getType(aux->nextinseq));
-    
+
     return 0;
 }
 

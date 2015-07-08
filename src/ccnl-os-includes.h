@@ -22,23 +22,27 @@
 
 #ifndef CCNL_LINUXKERNEL
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <getopt.h>
-#include <unistd.h>
-#include <fcntl.h>
 
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/un.h>
-#include <sys/utsname.h>
+#ifdef CCNL_UNIX
+
+# include <time.h>
+# include <getopt.h>
+# include <unistd.h>
+# include <fcntl.h>
+# include <sys/ioctl.h>
+# include <sys/select.h>
+# include <sys/socket.h>
+# include <sys/time.h>
+# include <sys/un.h>
+# include <sys/utsname.h>
 
 #if !(defined(_BSD_SOURCE) || defined(SVID_SOURCE))
 #  define __USE_MISC
@@ -65,6 +69,7 @@
 #ifdef USE_CCNxDIGEST
 #  include <openssl/sha.h>
 #endif
+#endif // CCNL_UNIX
 
 #else // else we are compiling for the Linux kernel
 
@@ -77,6 +82,7 @@
 #include <linux/moduleparam.h>
 #include <linux/namei.h>
 #include <linux/proc_fs.h>
+#include <linux/socket.h>
 #include <linux/string.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>

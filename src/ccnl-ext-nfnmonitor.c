@@ -138,13 +138,17 @@ ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
                  unsigned char *data,
                  int len)
 {
-    char monitorpacket[CCNL_MAX_PACKET_SIZE];
+    TRACEIN();
 
-    int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
-                              ntohs(face->peer.ip4.sin_port),
-                              pr, data, len, monitorpacket);
-    ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
+    if (face) {
+        char monitorpacket[CCNL_MAX_PACKET_SIZE];
+        int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
+                                           ntohs(face->peer.ip4.sin_port),
+                                           pr, data, len, monitorpacket);
+        ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
+    }
 
+    TRACEOUT();
     return 0;
 }
 

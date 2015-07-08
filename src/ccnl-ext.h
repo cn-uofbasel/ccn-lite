@@ -2,7 +2,7 @@
  * @f ccnl-ext.h
  * @b header file for CCN lite extentions (forward declarations)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,9 @@
  * 2013-03-30 created
  */
 
-#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES) || defined(USE_SUITE_IOTTLV) | defined(USE_SUITE_LOCALRPC)
+#pragma once
+
+#if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES) || defined(USE_SUITE_LOCALRPC)
 # define NEEDS_PACKET_CRAFTING
 #endif
 
@@ -32,14 +34,21 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 
 // ccnl-core-util.c
-char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
+#ifndef CCNL_LINUXKERNEL
+   char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);
+#  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+#else
+   char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+#endif
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
+bool ccnl_isSuite(int suite);
+
+struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)
@@ -73,6 +82,7 @@ struct ccnl_buf_s* ccnl_frag_fragment(struct ccnl_relay_s *ccnl,
                                         struct ccnl_buf_s *buf);
 */
 
+// returns >=0 if content consumed, buf and len pointers updated
 typedef int (RX_datagram)(struct ccnl_relay_s*, struct ccnl_face_s*,
                           unsigned char**, int*);
 
@@ -82,6 +92,17 @@ int ccnl_frag_RX_frag2012(RX_datagram callback, struct ccnl_relay_s *relay,
 
 int ccnl_frag_RX_CCNx2013(RX_datagram callback, struct ccnl_relay_s *relay,
                           struct ccnl_face_s *from,
+                          unsigned char **data, int *datalen);
+
+/*
+int ccnl_frag_RX_Sequenced2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from, int mtu,
+                          unsigned int bits, unsigned int seqno,
+                          unsigned char **data, int *datalen);
+*/
+int ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
+                          struct ccnl_face_s *from, int mtu,
+                          unsigned int bits, unsigned int seqno,
                           unsigned char **data, int *datalen);
 
 int ccnl_is_fragment(unsigned char *data, int datalen);
@@ -109,13 +130,12 @@ int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
 void ZAM_init();
 
-struct ccnl_interest_s* 
+struct ccnl_interest_s*
 ccnl_nfn_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                    int suite, struct ccnl_buf_s **buf,
-                    struct ccnl_prefix_s **p, int minsfx, int maxsfx);
+                    struct ccnl_pkt_s **p);
 
 int
 ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -170,7 +190,7 @@ int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
               struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 #else
-# define ccnl_mgmt(r,b, p,f)  0
+# define ccnl_mgmt(r,b, p,f)  do{}while(0)
 #endif
 
 // ----------------------------------------------------------------------
@@ -215,8 +235,10 @@ int ccnl_is_local_addr(sockunion *su);
 void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                 sockunion *dest, struct ccnl_buf_s *buf);
 
-#ifndef CCNL_LINUXKERNEL
-void ccnl_close_socket(int s);
+#ifdef CCNL_ARDUINO
+  void ccnl_close_socket(EthernetUDP *s);
+#elif !defined(CCNL_LINUXKERNEL)
+  void ccnl_close_socket(int s);
 #endif
 
 // eof

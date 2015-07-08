@@ -138,7 +138,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (!strncmp((char*)c->content, ":NACK", 5)) {
         DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
-        
+
         return prog ? ccnl_strdup(prog) : NULL;
     }
 */
@@ -229,7 +229,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (!strncmp((char*)c->content, ":NACK", 5)) {
         DEBUGMSG(DEBUG, "NACK RECEIVED, going to next parameter\n");
         ++config->fox_state->it_routable_param;
-        
+
         return prog ? ccnl_strdup(prog) : NULL;
     }
 */
@@ -400,16 +400,19 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     if (s2->type == STACK_TYPE_CONST && s1->type == STACK_TYPE_PREFIX) {
         struct ccnl_prefix_s *p = (struct ccnl_prefix_s*) s1->content;
         struct const_s *con = (struct const_s *) s2->content;
-        int suite = -1;
+        int suite = ccnl_str2suite(con->str);
         DEBUGMSG(DEBUG, "  original packet format: %s\n", con->str);
 
+        /*
         if (!strcmp(con->str, "ccnb"))
             suite = CCNL_SUITE_CCNB;
         else if (!strcmp(con->str, "ccnx2014"))
             suite = CCNL_SUITE_CCNTLV;
+        else if (!strcmp(con->str, "cisco2015"))
+            suite = CCNL_SUITE_CISTLV;
         else if (!strcmp(con->str, "ndn2013"))
             suite = CCNL_SUITE_NDNTLV;
-
+        */
         if (suite < 0)
             goto out;
         DEBUGMSG(DEBUG, " >> changing PREFIX suite from %d to %d\n",

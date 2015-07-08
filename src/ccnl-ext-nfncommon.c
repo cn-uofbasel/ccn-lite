@@ -17,7 +17,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * File history:
- * 2014-03-14 created 
+ * 2014-03-14 created
  */
 
 // ----------------------------------------------------------------------
@@ -59,21 +59,47 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
                         struct ccnl_prefix_s **prefix,
                         struct configuration_s *config)
 {
-    struct ccnl_buf_s *buf;
     int nonce = rand();
+    struct ccnl_pkt_s *pkt;
+    struct ccnl_face_s *from;
+    struct ccnl_interest_s *i;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_query2interest()\n");
+    DEBUGMSG(TRACE, "nfn_query2interest(configID=%d)\n", config->configid);
 
-    struct ccnl_face_s * from = ccnl_malloc(sizeof(struct ccnl_face_s));
+    from = ccnl_malloc(sizeof(struct ccnl_face_s));
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!from || !pkt) {
+        free_2ptr_list(from, pkt);
+        return NULL;
+    }
     from->faceid = config->configid;
     from->last_used = CCNL_NOW();
     from->outq = NULL;
-    DEBUGMSG(DEBUG, "  Configuration ID: %d\n", config->configid);
 
-    buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    pkt->suite = (*prefix)->suite;
+    switch(pkt->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+#endif
+    case CCNL_SUITE_NDNTLV:
+        pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+    default:
+        break;
+    }
+    pkt->buf = ccnl_mkSimpleInterest(*prefix, &nonce);
+    pkt->pfx = *prefix;
+    *prefix = NULL;
+    pkt->val.final_block_id = -1;
 
-    return ccnl_interest_new(ccnl, from, (*prefix)->suite, &buf, prefix, 0, 0);
-//    return ccnl_interest_new(ccnl, FROM, (*prefix)->suite, &buf, prefix, 0, 0);
+    i = ccnl_interest_new(ccnl, from, &pkt);
+    if (i) {
+        DEBUGMSG(TRACE, "  new interest %p, from=%p, i->from=%p\n",
+                 (void*)i, (void*)from, (void*)i->from);
+    }
+    return i;
 }
 
 struct ccnl_content_s *
@@ -81,19 +107,32 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
                         struct ccnl_prefix_s **prefix,
                         unsigned char *resultstr, int resultlen)
 {
-    struct ccnl_buf_s *buf;
     int resultpos = 0;
+    struct ccnl_pkt_s *pkt;
+    struct ccnl_content_s *c;
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
              ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
-    buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
-    if (!buf)
+    pkt = ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
         return NULL;
 
-    return ccnl_content_new(ccnl, (*prefix)->suite, &buf, prefix,
-                            NULL, buf->data + resultpos, resultlen);
+    pkt->buf = ccnl_mkSimpleContent(*prefix, resultstr, resultlen, &resultpos);
+    if (!pkt->buf) {
+        ccnl_free(pkt);
+        return NULL;
+    }
+    pkt->pfx = *prefix;
+    *prefix = NULL;
+    pkt->content = pkt->buf->data + resultpos;
+    pkt->contlen = resultlen;
+
+    c = ccnl_content_new(ccnl, &pkt);
+    if (!c)
+        free_packet(pkt);
+    return c;
 }
 
 // ----------------------------------------------------------------------
@@ -195,6 +234,7 @@ ccnl_nfn_freeStack(struct stack_s* s)
             t = (struct thunk_s *)s->content;
             free_prefix(t->prefix);
             free_prefix(t->reduced_prefix);
+            ccnl_free(s->content);
             break;
         case STACK_TYPE_INT:
         default:
@@ -209,9 +249,19 @@ ccnl_nfn_freeStack(struct stack_s* s)
 void
 ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
 {
+    DEBUGMSG(VERBOSE, "nfn_freeMachineState %p\n", (void*)f);
+
     if (!f)
         return;
-    if(!f->thunk)ccnl_free(f->thunk);
+    if (f->thunk)
+        ccnl_free(f->thunk);
+    if (f->params) {
+        struct stack_s **s;
+        int i = f->num_of_params;
+        for (s = f->params; i > 0; s++, i--)
+            ccnl_nfn_freeStack(*s);
+        ccnl_free(f->params);
+    }
     /*while (f->prefix_mapping) {
         struct prefix_mapping_s *m = f->prefix_mapping;
         //FIXME: WHY SEGFAULT HERE???
@@ -225,6 +275,7 @@ ccnl_nfn_freeMachineState(struct fox_machine_state_s* f)
         free_prefix(m->value);
     }*/
     ccnl_free(f);
+    TRACEOUT();
 }
 
 void
@@ -281,12 +332,12 @@ int trim(char *str){  // inplace, returns len after shrinking
 
 // ----------------------------------------------------------------------
 
-#ifndef USE_UTIL
+// #ifndef USE_UTIL
 void
 set_propagate_of_interests_to_1(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pref){
     struct ccnl_interest_s *interest = NULL;
     for(interest = ccnl->pit; interest; interest = interest->next){
-        if(!ccnl_prefix_cmp(interest->prefix, 0, pref, CMP_EXACT)){
+        if(!ccnl_prefix_cmp(interest->pkt->pfx, 0, pref, CMP_EXACT)){
             interest->flags |= CCNL_PIT_COREPROPAGATES;
             /*interest->last_used = CCNL_NOW();
             interest->retries = 0;
@@ -306,8 +357,9 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     if (!name)
         return NULL;
 
-#ifdef USE_SUITE_CCNTLV
-    if (config->suite == CCNL_SUITE_CCNTLV)
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    if (config->suite == CCNL_SUITE_CCNTLV ||
+                                         config->suite == CCNL_SUITE_CISTLV)
         offset = 4;
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
@@ -338,11 +390,18 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         }
 
     }
-    
+
     len += sprintf((char *)name->bytes + offset + len, ")");
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len, &offset,
+                              name->bytes + name->complen[1]);
+        len += 4;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (config->suite == CCNL_SUITE_CISTLV) {
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, len, &offset,
                               name->bytes + name->complen[1]);
         len += 4;
     }
@@ -367,8 +426,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
-        if (!ccnl_prefix_cmp(prefix, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+        if (content->pkt->pfx->suite == prefix->suite &&
+                    !ccnl_prefix_cmp(prefix, 0, content->pkt->pfx, CMP_EXACT))
             return content;
     }
 
@@ -378,10 +437,14 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     prefixchunkzero = ccnl_prefix_dup(prefix);
     ccnl_prefix_addChunkNum(prefixchunkzero, 0);
     for (content = ccnl->contents; content; content = content->next) {
-        if (!ccnl_prefix_cmp(prefixchunkzero, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+        if (content->pkt->pfx->suite == prefix->suite &&
+           !ccnl_prefix_cmp(prefixchunkzero, 0, content->pkt->pfx, CMP_EXACT)) {
+            free_prefix(prefixchunkzero);
             return content;
+        }
     }
+    free_prefix(prefixchunkzero);
+    prefixchunkzero = 0;
 
     if (!config || !config->fox_state || !config->fox_state->prefix_mapping)
         return NULL;
@@ -389,8 +452,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     for (iter = config->fox_state->prefix_mapping; iter; iter = iter->next) {
         if (!ccnl_prefix_cmp(prefix, 0, iter->key, CMP_EXACT)) {
             for (content = ccnl->contents; content; content = content->next) {
-                if (!ccnl_prefix_cmp(iter->value, 0, content->name, CMP_EXACT)
-                                            && content->suite == prefix->suite)
+                if (content->pkt->pfx->suite == prefix->suite &&
+                 !ccnl_prefix_cmp(iter->value, 0, content->pkt->pfx, CMP_EXACT))
                     return content;
             }
         }
@@ -399,7 +462,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     return NULL;
 }
 
-char * 
+char *
 ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                    struct ccnl_prefix_s *prefix)
 {
@@ -407,7 +470,7 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct thunk_s *thunk;
 
     DEBUGMSG(TRACE, "ccnl_nfn_add_thunk()\n");
-    
+
     if (ccnl_nfnprefix_isTHUNK(new_prefix)) {
         new_prefix->comp[new_prefix->compcnt-2] = new_prefix->comp[new_prefix->compcnt-1];
         --new_prefix->compcnt;
@@ -461,12 +524,12 @@ ccnl_nfn_remove_thunk(struct ccnl_relay_s *ccnl, char* thunkid){
     DBL_LINKED_LIST_REMOVE(ccnl->km->thunk_list, thunk);
 }
 
-int 
+int
 ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
 {
     struct ccnl_prefix_s *prefix = ccnl_prefix_dup(config->prefix);
     char reply_content[100];
-    int thunk_time = (int)config->thunk_time; 
+    int thunk_time = (int)config->thunk_time;
     struct ccnl_content_s *c;
 
     DEBUGMSG(TRACE, "ccnl_nfn_reply_thunk()\n");
@@ -476,7 +539,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     c = ccnl_nfn_result2content(ccnl, &prefix, (unsigned char*)reply_content,
                                 strlen(reply_content));
     if (c) {
-        set_propagate_of_interests_to_1(ccnl, c->name);
+        set_propagate_of_interests_to_1(ccnl, c->pkt->pfx);
         ccnl_content_add2cache(ccnl, c);
         ccnl_content_serve_pending(ccnl, c);
     }
@@ -484,14 +547,25 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
 }
 
 struct ccnl_content_s *
-ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config, unsigned char *thunk){
-    DEBUGMSG(TRACE, "ccnl_nfn_resolve_thunk()\n");
-    struct ccnl_interest_s *interest = ccnl_nfn_get_interest_for_thunk(ccnl, config, thunk);
+ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl,
+                       struct configuration_s *config, unsigned char *thunk)
+{
+    struct ccnl_interest_s *interest;
 
-    if(interest){
+    DEBUGMSG(TRACE, "ccnl_nfn_resolve_thunk()\n");
+
+    interest = ccnl_nfn_get_interest_for_thunk(ccnl, config, thunk);
+    if (interest) {
+        struct ccnl_content_s *c;
+
         interest->last_used = CCNL_NOW();
-        struct ccnl_content_s *c = NULL;
-        if((c = ccnl_nfn_local_content_search(ccnl, config, interest->prefix)) != NULL){
+        if ((c = ccnl_nfn_local_content_search(ccnl, config,
+                                               interest->pkt->pfx)) != NULL) {
+            if (interest->from && interest->from->faceid < 0) {
+                struct ccnl_face_s *f = interest->from;
+                interest->from = NULL;
+                ccnl_face_remove(ccnl, f);
+            }
             interest = ccnl_interest_remove(ccnl, interest);
             return c;
         }
@@ -499,7 +573,7 @@ ccnl_nfn_resolve_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config
     }
     return NULL;
 }
-#endif //USE_UTIL
+// #endif //USE_UTIL
 
 
 #ifdef USE_NACK
@@ -514,9 +588,10 @@ ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
     }
     nack = ccnl_nfn_result2content(ccnl, &prefix,
                                     (unsigned char*)":NACK", 5);
-    ccnl_nfn_monitor(ccnl, from, nack->name, nack->content, nack->contentlen);
+    ccnl_nfn_monitor(ccnl, from, nack->pkt->pfx,
+                     nack->pkt->content, nack->pkt->contlen);
     DEBUGMSG(WARNING, "+++ nack->pkt is %p\n", (void*) nack->pkt);
-    ccnl_face_enqueue(ccnl, from, nack->pkt);
+    ccnl_face_enqueue(ccnl, from, nack->pkt->buf);
 }
 #endif // USE_NACK
 
@@ -524,21 +599,31 @@ struct ccnl_interest_s*
 ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
 {
     int faceid = 0;
+    struct ccnl_face_s *face;
 
-    if (i && i->from)
-        faceid = i->from->faceid;
+    if (!i) {
+        DEBUGMSG(WARNING, "nfn_interest_remove: should remove NULL interest\n");
+        return NULL;
+    }
+
+    face = i->from;
+    if (face)
+        faceid = face->faceid;
     DEBUGMSG(DEBUG, "ccnl_nfn_interest_remove %d\n", faceid);
 
+    if (faceid < 0)
+        ccnl_free(face);
 #ifdef USE_NACK
-    if (faceid >= 0)
-        ccnl_nack_reply(relay, i->prefix, i->from, i->suite);
+    else
+        ccnl_nack_reply(relay, i->pkt->pfx, face, i->pkt->suite);
 #endif
-
+    i->from = NULL;
     i = ccnl_interest_remove(relay, i);
 
     if (faceid < 0)
         ccnl_nfn_continue_computation(relay, -faceid, 1);
 
+    TRACEOUT();
     return i;
 }
 
@@ -560,7 +645,7 @@ ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p)
 int
 ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
-    return !memcmp(c->content, ":NACK", 5);
+    return !memcmp(c->pkt->content, ":NACK", 5);
 }
 
 void
@@ -609,7 +694,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
             len += sprintf(buf + len, " %.*s", con->len+2, str);
-            
+
             ccnl_free(str);
             break;
 
@@ -648,21 +733,38 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
         len += p->complen[i];
     }
 
-#ifdef USE_SUITE_CCNTLV
-    if (p->suite == CCNL_SUITE_CCNTLV)
+    switch (p->suite) {
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    case CCNL_SUITE_CCNTLV:
+    case CCNL_SUITE_CISTLV:
         offset = 4;
+        break;
 #endif
+    default:
+        break;
+    }
     p->comp[i] = (unsigned char*)(bytes + len);
     p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
                                                 config->fox_state,
                                                 parameter_num);
+    switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV
-    if (p->suite == CCNL_SUITE_CCNTLV) {
+    case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[i],
-                              &offset, (unsigned char*) bytes + len);
+                              &offset, p->comp[i]);
         p->complen[i] += 4;
-    }
+        break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[i],
+                              &offset, p->comp[i]);
+        p->complen[i] += 4;
+        break;
+#endif
+    default:
+        break;
+    }
     len += p->complen[i];
 
     p->bytes = ccnl_realloc(bytes, len);
@@ -688,22 +790,40 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
         p->nfnflags |= CCNL_PREFIX_THUNK;
 
     p->comp[0] = (unsigned char*) bytes;
-    len = p->complen[0] = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));
+    len = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));
+    p->complen[0] = len;
 
-#ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV)
+    switch (p->suite) {
+#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
+    case CCNL_SUITE_CCNTLV:
+    case CCNL_SUITE_CISTLV:
         offset = 4;
+        break;
 #endif
+    default:
+        break;
+    }
     p->comp[1] = (unsigned char*) (bytes + len);
     p->complen[1] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
                                                 config->fox_state, -1);
+    switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV) {
+    case CCNL_SUITE_CCNTLV:
         ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, p->complen[1],
                               &offset, p->comp[1]);
         p->complen[1] += 4;
-    }
+        break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, p->complen[1],
+                              &offset, p->comp[1]);
+        p->complen[1] += 4;
+        break;
+#endif
+    default:
+        break;
+    }
     len += p->complen[1];
 
     p->bytes = ccnl_realloc(bytes, len);

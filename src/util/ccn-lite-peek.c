@@ -2,7 +2,7 @@
  * @f util/ccn-lite-peek.c
  * @b request content: send an interest, wait for reply, output to stdout
  *
- * Copyright (C) 2013-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,30 +23,47 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_FRAG
 #define NEEDS_PACKET_CRAFTING
 
+#define assert(...) do {} while(0)
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
+// #include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
 unsigned char out[8*CCNL_MAX_PACKET_SIZE];
+int outlen;
+
+int
+frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+        unsigned char **data, int *len)
+{
+    DEBUGMSG(INFO, "frag_cb\n");
+
+    memcpy(out, *data, *len);
+    outlen = *len;
+    return 0;
+}
 
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *udp = NULL, *ux = NULL;
+    int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    int (*isContent)(unsigned char*, int);
     unsigned int chunknum = UINT_MAX;
+    ccnl_mkInterestFunc mkInterest;
+    ccnl_isContentFunc isContent;
+    ccnl_isFragmentFunc isFragment;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -55,7 +72,7 @@ main(int argc, char *argv[])
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite))
                 goto usage;
             break;
         case 'u':
@@ -80,10 +97,10 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
-            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
-            "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
+            "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -96,69 +113,22 @@ usage:
             exit(1);
         }
     }
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if(!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if(!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        if(!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if(!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-        default:
-	    if(!udp)
-               udp = "127.0.0.1/6363";
-	    break;
-        }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
 
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        mkInterest = ccnl_ccnb_fillInterest;
-        isContent = ccnb_isContent;
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        isContent = ccntlv_isData;
-        break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        mkInterest = iottlv_mkRequest;
-        isContent = iottlv_isReply;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        isContent = ndntlv_isData;
-        break;
-#endif
-    default:
-        DEBUGMSG(ERROR, "unknown suite\n");
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
+
+    mkInterest = ccnl_suite2mkInterestFunc(suite);
+    isContent = ccnl_suite2isContentFunc(suite);
+    isFragment = ccnl_suite2isFragmentFunc(suite);
+
+    if (!mkInterest || !isContent) {
         exit(-1);
     }
 
@@ -169,10 +139,9 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
-        si->sin_port = htons(atoi(strtok(NULL, "/")));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
     }
 
@@ -183,23 +152,41 @@ usage:
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
+        int rc;
+        struct ccnl_face_s dummyFace;
 
-        len = mkInterest(prefix, 
-                         &nonce, 
+        DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
+
+        memset(&dummyFace, 0, sizeof(dummyFace));
+
+        len = mkInterest(prefix,
+                         &nonce,
                          out, sizeof(out));
 
-
-	if(ux)
-		socksize = sizeof(struct sockaddr_un);
-	else
-		socksize = sizeof(struct sockaddr_in);
-        if (sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize) < 0) {
+        DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
+/*
+        {
+            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+*/
+        if (ux) {
+            socksize = sizeof(struct sockaddr_un);
+        } else {
+            socksize = sizeof(struct sockaddr_in);
+        }
+        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);
+        if (rc < 0) {
             perror("sendto");
             myexit(1);
         }
+        DEBUGMSG(DEBUG, "sendto returned %d\n", rc);
 
         for (;;) { // wait for a content pkt (ignore interests)
-            int rc;
+            unsigned char *cp = out;
+            int enc, suite2, len2;
+            DEBUGMSG(TRACE, "  waiting for packet\n");
 
             if (block_on_read(sock, wait) <= 0) // timeout
                 break;
@@ -207,10 +194,109 @@ usage:
 
             DEBUGMSG(DEBUG, "received %d bytes\n", len);
 /*
-            if (len > 0)
-                fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
+            {
+                int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC, 0700);
+                write(fd, out, len);
+                close(fd);
+            }
 */
+            suite2 = -1;
+            len2 = len;
+            while (!ccnl_switch_dehead(&cp, &len2, &enc))
+                suite2 = ccnl_enc2suite(enc);
+            if (suite2 != -1 && suite2 != suite) {
+                DEBUGMSG(DEBUG, "  unknown suite %d\n", suite);
+                continue;
+            }
 
+#ifdef USE_FRAG
+            if (isFragment && isFragment(cp, len2)) {
+                unsigned int t, len3;
+                DEBUGMSG(DEBUG, "  fragment, %d bytes\n", len2);
+                switch(suite) {
+                case CCNL_SUITE_CCNTLV: {
+                    struct ccnx_tlvhdr_ccnx2015_s *hp;
+                    hp = (struct ccnx_tlvhdr_ccnx2015_s *) out;
+                    cp = out + sizeof(*hp);
+                    len2 -= sizeof(*hp);
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &t, &len3) < 0 ||
+                        t != CCNX_TLV_TL_Fragment) {
+                        DEBUGMSG(ERROR, "  error parsing fragment\n");
+                        continue;
+                    }
+                    /*
+                    rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
+                                      4096, hp->fill[0] >> 6,
+                                      ntohs(*(uint16_t*) hp->fill) & 0x03fff,
+                                      &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                                      4096, hp->fill[0] >> 6,
+                                      ntohs(*(uint16_t*) hp->fill) & 0x03fff,
+                                      &cp, (int*) &len3);
+                    break;
+                }
+                case CCNL_SUITE_IOTTLV: {
+                    uint16_t tmp;
+
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) { // IOT_TLV_Fragment
+                        DEBUGMSG(VERBOSE, "problem parsing fragment\n");
+                        continue;
+                    }
+                    /*
+                    fprintf(stderr, "t=%d len=%d\n", t, len2);
+                    if (ccnl_iottlv_dehead(&cp, &len, &t, &len2))
+                        continue;
+                    */
+                    DEBUGMSG(VERBOSE, "t=%d, len=%d\n", t, len3);
+                    if (t == IOT_TLV_F_OptFragHdr) { // skip it for the time being
+                        cp += len3;
+                        len2 -= len3;
+                        if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3))
+                            continue;
+                    }
+                    if (t != IOT_TLV_F_FlagsAndSeq || len3 < 2) {
+                        DEBUGMSG(DEBUG, "  no flags and seqrn found (%d)\n", t);
+                        continue;
+                    }
+                    tmp = ntohs(*(uint16_t*) cp);
+                    cp += len3;
+                    len2 -= len3;
+
+                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) {
+                        DEBUGMSG(DEBUG, "  cannot parse frag payload\n");
+                        continue;
+                    }
+                    DEBUGMSG(DEBUG, "  fragment payload len=%d\n", len3);
+                    if (t != IOT_TLV_F_Data) {
+                        DEBUGMSG(DEBUG, "  no payload (%d)\n", t);
+                        continue;
+                    }
+                    /*
+                    rc = ccnl_frag_RX_Sequenced2015(frag_cb, NULL, &dummyFace,
+                             4096, tmp >> 14, tmp & 0x7ff, &cp, (int*) &len2);
+                    */
+                    rc = ccnl_frag_RX_BeginEnd2015(frag_cb, NULL, &dummyFace,
+                             4096, tmp >> 14, tmp & 0x3fff, &cp, (int*) &len3);
+                    fprintf(stderr, "--\n");
+                    break;
+                }
+                default:
+                    continue;
+                }
+                if (!outlen)
+                    continue;
+                len = outlen;
+            }
+#endif
+
+/*
+        {
+            int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, len);
+            close(fd);
+        }
+*/
             rc = isContent(out, len);
             if (rc < 0) {
                 DEBUGMSG(ERROR, "error when checking type of packet\n");

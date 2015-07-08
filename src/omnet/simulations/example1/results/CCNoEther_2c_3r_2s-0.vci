@@ -1,0 +1,258 @@
+file 34467 1434764355                                           
+version 2
+run CCNoEther_2c_3r_2s-0-20150620-03:38:05-17023
+attr configname CCNoEther_2c_3r_2s
+attr datetime 20150620-03:38:05
+attr experiment CCNoEther_2c_3r_2s
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvars2 $repetition=0
+attr measurement ""
+attr network unibas.ccnlite.topology.CCNoEther_Tau_2cli_2rtr_1svr
+attr processid 17023
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+
+vector 9  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 5  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 0  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 25  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 26  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 34  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 57  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 53  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 48  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 61  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 62  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 70  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 81  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 77  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 72  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 85  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 86  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 94  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 93  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 89  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 84  CCNoEther_Tau_2cli_2rtr_1svr.server1.eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 73  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 74  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 82  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[1].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 69  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 65  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 60  CCNoEther_Tau_2cli_2rtr_1svr.router2.eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 49  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 50  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 58  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[2].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 33  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 29  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 24  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 1  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 2  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 10  CCNoEther_Tau_2cli_2rtr_1svr.client1.eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 21  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 17  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 12  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 37  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 38  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 46  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 45  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 41  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 36  CCNoEther_Tau_2cli_2rtr_1svr.router1.eth[1].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 13  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 14  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 22  CCNoEther_Tau_2cli_2rtr_1svr.client2.eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+0	10254 265 23 405 1.00000592 10.000066239991 11 64 66 706 45316
+1	10519 275 59 551 1.0001578 10.000468999991 11 559 563 6153 3441779
+2	10794 275 59 551 1.0001578 10.000468999991 11 559 563 6153 3441779
+5	11069 130 22 294 1 10 11 64 66 706 45316
+9	11199 130 21 284 1 10 11 45 48 498 22554
+10	11329 286 60 552 1.0001578 10.000468999991 11 541 545 5955 3223835
+12	11615 631 74 953 2.00000576 12.250067839991 25 64 73 1710 117330
+13	12246 400 202 1155 2.00015636 12.250537799991 15 559 563 8425 4732095
+14	12646 400 202 1155 2.00015636 12.250537799991 15 559 563 8425 4732095
+17	13046 375 69 786 2 12.25 25 64 73 1710 117330
+21	13421 375 64 776 2 12.25 25 45 55 1255 63415
+22	13796 400 203 1156 2.00015636 12.250537799991 15 541 545 8155 4433655
+24	14196 286 58 550 1.0001573 10.000468499991 11 559 563 6153 3441779
+25	14482 276 24 412 1.00000642 10.000066739991 11 64 66 706 45316
+26	14758 276 24 412 1.00000642 10.000066739991 11 64 66 706 45316
+29	15034 287 56 533 1.00011162 10.000329379991 11 559 563 6153 3441779
+33	15321 287 55 532 1.00011162 10.000329379991 11 541 545 5955 3223835
+34	15608 276 25 414 1.00000642 10.000066739991 11 45 48 498 22554
+36	15884 400 200 1154 2.00015586 12.250537299991 15 559 563 8425 4732095
+37	16284 631 75 960 2.00000626 12.250068339991 25 64 73 1710 117330
+38	16915 631 75 960 2.00000626 12.250068339991 25 64 73 1710 117330
+41	17546 400 192 1152 2.0001105 12.250491619991 15 559 563 8425 4732095
+45	17946 400 191 1151 2.0001105 12.250491619991 15 541 545 8155 4433655
+46	18346 631 76 962 2.00000626 12.250068339991 25 45 55 1255 63415
+48	18977 759 30 975 1.00001234 12.250074259991 30 64 73 2030 137810
+49	19736 532 52 1147 1.00011162 12.250491619991 20 559 563 11220 6294500
+50	20268 532 52 1147 1.00011162 12.250491619991 20 559 563 11220 6294500
+53	20800 759 28 965 1.00000642 12.250068339991 30 64 73 2030 137810
+57	21559 759 27 964 1.00000642 12.250068339991 30 45 55 1480 73540
+58	22318 532 53 1149 1.00011162 12.250491619991 20 541 545 10860 5897060
+60	22850 530 51 1143 1.00011112 12.250491119991 20 559 563 11220 6294500
+61	23380 760 31 981 1.00001284 12.250074759991 30 64 73 2030 137810
+62	24140 760 31 981 1.00001284 12.250074759991 30 64 73 2030 137810
+65	24900 533 49 1140 1.00006544 12.250445439991 20 559 563 11220 6294500
+69	25433 533 48 1139 1.00006544 12.250445439991 20 541 545 10860 5897060
+70	25966 760 32 983 1.00001284 12.250074759991 30 45 55 1480 73540
+72	26726 760 37 988 1.00001876 12.250080679991 30 64 73 2030 137810
+73	27486 533 45 1135 1.00006544 12.250445439991 20 559 563 11220 6294500
+74	28019 533 45 1135 1.00006544 12.250445439991 20 559 563 11220 6294500
+77	28552 760 35 986 1.00001284 12.250074759991 30 64 73 2030 137810
+81	29312 760 34 985 1.00001284 12.250074759991 30 45 55 1480 73540
+82	30072 533 46 1137 1.00006544 12.250445439991 20 541 545 10860 5897060
+84	30605 532 44 1128 1.00006494 12.250444939991 20 559 563 11220 6294500
+85	31137 760 38 989 1.00001926 12.250081179991 30 64 73 2030 137810
+86	31897 760 38 989 1.00001926 12.250081179991 30 64 73 2030 137810
+89	32657 525 42 993 1.00001926 12.250081179991 20 559 563 11220 6294500
+93	33182 525 41 992 1.00001926 12.250081179991 20 541 545 10860 5897060
+94	33707 760 39 990 1.00001926 12.250081179991 30 45 55 1480 73540

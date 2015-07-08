@@ -23,7 +23,9 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
+#define USE_LOGGING
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -36,37 +38,32 @@ int
 ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               char* nfnexpr,
                               unsigned int *chunknum,
-                              int suite, 
-                              unsigned char *out, int out_len, 
-                              int *len, 
+                              int suite,
+                              unsigned char *out, int out_len,
+                              int *len,
                               float wait, int sock, struct sockaddr sa) {
-
-    int (*mkInterest)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-    switch (suite) {
 #ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
+    if (suite == CCNL_SUITE_CCNB) {
         DEBUGMSG(ERROR, "CCNB not implemented\n");
         exit(-1);
-        break;
+    }
 #endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        mkInterest = ccntlv_mkInterest;
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        mkInterest = ndntlv_mkInterest;
-        break;
-#endif
-    default:
-        DEBUGMSG(ERROR, "unknown suite %d\n", suite);
+
+    ccnl_mkInterestFunc mkInterest = ccnl_suite2mkInterestFunc(suite);
+    if (!mkInterest) {
+        DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
         exit(-1);
     }
 
     int nonce = random();
     *len = mkInterest(prefix, &nonce, out, out_len);
-
+/*
+        {
+            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, *len);
+            close(fd);
+        }
+*/
     if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
         perror("sendto");
         myexit(1);
@@ -76,69 +73,80 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
         return -1;
     }
     *len = recv(sock, out, out_len, 0);
-
+/*
+        {
+            int fd = open("incoming.bin", O_WRONLY|O_CREAT|O_TRUNC);
+            write(fd, out, *len);
+            close(fd);
+        }
+*/
     return 0;
 }
 
-int 
-ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen, 
-                             int suite, 
-                             struct ccnl_prefix_s **prefix,
+int
+ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
+                             int suite, struct ccnl_prefix_s **prefix,
                              unsigned int *lastchunknum,
-                             unsigned char **content, int *contentlen) {
+                             unsigned char **content, int *contentlen)
+{
+    struct ccnl_pkt_s *pkt = NULL;
+
     switch (suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
-        *datalen -= 8;
-        *data += 8;
-        int hdrlen = 8;
+        int hdrlen;
+        unsigned char *start = *data;
 
-        // TODO: return -1 for non-content-objects
         if (ccntlv_isData(*data, *datalen) < 0) {
             DEBUGMSG(WARNING, "Received non-content-object\n");
             return -1;
         }
-
-        if (ccnl_ccntlv_extract(hdrlen,
-                               data, datalen,
-                               prefix,
-                               0, 0, // keyid/keyidlen
-                               lastchunknum,
-                               content, contentlen) == NULL) {
-            DEBUGMSG(WARNING, "Error in ccntlv_extract\n");
+        hdrlen = ccnl_ccntlv_getHdrLen(*data, *datalen);
+        if (hdrlen < 0)
             return -1;
-        } 
 
-        return 0;
+        *data += hdrlen;
+        *datalen -= hdrlen;
+
+        pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        int hdrlen;
+        unsigned char *start = *data;
+
+        if (cistlv_isData(*data, *datalen) < 0) {
+            DEBUGMSG(WARNING, "Received non-content-object\n");
+            return -1;
+        }
+        hdrlen = ccnl_cistlv_getHdrLen(*data, *datalen);
+        if (hdrlen < 0)
+            return -1;
+
+        *data += hdrlen;
+        *datalen -= hdrlen;
+
+        pkt = ccnl_cistlv_bytes2pkt(start, data, datalen);
         break;
     }
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ, len;
-        unsigned char *cp = *data;
-        struct ccnl_buf_s *buf = 0;
+        unsigned int typ, len;
+        unsigned char *start = *data;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
             DEBUGMSG(WARNING, "could not dehead\n");
             return -1;
         }
-        if(typ != NDN_TLV_Data) {
-            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ); 
+        if (typ != NDN_TLV_Data) {
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ);
             return -1;
         }
 
-        buf = ccnl_ndntlv_extract(*data - cp, data, datalen,
-                                  0, 0, 0, 0, 
-                                  lastchunknum,
-                                  prefix, 
-                                  NULL, 0, 0, 
-                                  content, contentlen);
-        if (!buf) {
-            DEBUGMSG(WARNING, "ndntlv_extract: parsing error or no prefix\n"); 
-            return -1;
-        } 
-        return 0;
+        pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
         break;
     }
 #endif
@@ -147,8 +155,18 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
         DEBUGMSG(WARNING, "extractDataAndChunkInfo: suite %d not implemented\n", suite);
         return -1;
    }
+    if (!pkt) {
+        DEBUGMSG(WARNING, "extract(%s): parsing error or no prefix\n",
+                 ccnl_suite2str(suite));
+        return -1;
+    }
+    *prefix = ccnl_prefix_dup(pkt->pfx);
+    *lastchunknum = pkt->val.final_block_id;
+    *content = pkt->content;
+    *contentlen = pkt->contlen;
+    free_packet(pkt);
 
-   return -2;
+    return 0;
 }
 
 int
@@ -167,11 +185,23 @@ ccnl_prefix_removeChunkNumComponent(int suite,
         }
         break;
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        // TODO: asumes that chunk is at the end!
+        if(prefix->comp[prefix->compcnt-1][1] == CISCO_TLV_NameSegment) {
+            prefix->compcnt--;
+        } else {
+            DEBUGMSG(WARNING, "Tried to remove chunknum from CISTLV prefix, but either prefix does not have a chunknum "
+                              "or the last component is not the chunknum.");
+            return -1;
+        }
+        break;
+#endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         if(prefix->comp[prefix->compcnt-1][0] == NDN_Marker_SegmentNumber) {
             prefix->compcnt--;
-        } 
+        }
         break;
 #endif
     default:
@@ -189,8 +219,8 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int len, opt, sock = 0, suite = CCNL_SUITE_DEFAULT;
-    char *udp = NULL, *ux = NULL;
+    int len, opt, port, sock = 0, suite = CCNL_SUITE_DEFAULT;
+    char *addr = NULL, *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
 
@@ -198,8 +228,10 @@ main(int argc, char *argv[])
         switch (opt) {
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite)) {
+                DEBUGMSG(ERROR, "Unsupported suite %s\n", optarg);
                 goto usage;
+            }
             break;
         case 'u':
             udp = optarg;
@@ -224,10 +256,10 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
-            "  -s SUITE         (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is 127.0.0.1/6363)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -w timeout       in sec (float)\n"
             "  -x ux_path_name  UNIX IPC: use this instead of UDP\n"
@@ -240,33 +272,18 @@ usage:
             exit(1);
         }
     }
-    switch (suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        if (!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        if (!udp)
-            udp = "127.0.0.1/9695";
-        break;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        if (!udp)
-            udp = "127.0.0.1/6363";
-        break;
-#endif
-        default:
-            udp = "127.0.0.1/6363";
-        }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto usage;
 
     srandom(time(NULL));
+
+    if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
+        exit(-1);
+    }
+
+    DEBUGMSG(TRACE, "using suite %d:%s\n", suite, ccnl_suite2str(suite));
+    DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
@@ -275,17 +292,16 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(strtok(udp, "/"));
-        si->sin_port = htons(atoi(strtok(NULL, "/")));
+        si->sin_addr.s_addr = inet_addr(addr);
+        si->sin_port = htons(port);
         sock = udp_open();
     }
 
     char *url = argv[optind];
 
     char *nfnexpr = 0;
-    
+
     if (argv[optind+1]) {
         nfnexpr = argv[optind+1];
     }
@@ -297,8 +313,8 @@ usage:
 
     // For CCNTLV always start with the first chunk because of exact content match
     // This means it can only fetch chunked data and not single content-object data
-    if(suite == CCNL_SUITE_CCNTLV) {
-        curchunknum = malloc(sizeof(int));
+    if (suite == CCNL_SUITE_CCNTLV || suite == CCNL_SUITE_CISTLV) {
+        curchunknum = ccnl_malloc(sizeof(unsigned int));
         *curchunknum = 0;
     }
 
@@ -310,12 +326,11 @@ usage:
 
     while (retry < maxretry) {
 
-
         if (curchunknum) {
             if (!prefix->chunknum) {
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
-            *prefix->chunknum = *curchunknum; 
+            *(prefix->chunknum) = *curchunknum;
             DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
@@ -323,39 +338,39 @@ usage:
         }
 
         // Fetch chunk
-        if (ccnl_fetchContentForChunkName(prefix, 
+        if (ccnl_fetchContentForChunkName(prefix,
                                           nfnexpr,
                                           curchunknum,
-                                          suite, 
-                                          out, sizeof(out), 
-                                          &len, 
+                                          suite,
+                                          out, sizeof(out),
+                                          &len,
                                           wait, sock, sa) < 0) {
             retry++;
             DEBUGMSG(WARNING, "timeout\n");//, retry number %d of %d\n", retry, maxretry);
         } else {
 
-            unsigned int lastchunknum = UINT_MAX;
+            unsigned int lastchunknum;
             unsigned char *t = &out[0];
             struct ccnl_prefix_s *nextprefix = 0;
 
             // Parse response
-            if (ccnl_extractDataAndChunkInfo(&t, &len, suite, 
+            if (ccnl_extractDataAndChunkInfo(&t, &len, suite,
                                              &nextprefix,
-                                             &lastchunknum, 
+                                             &lastchunknum,
                                              &content, &contlen) < 0) {
                 retry++;
-               DEBUGMSG(WARNING, "Could not extract response or it was an interest");
+               DEBUGMSG(WARNING, "Could not extract response or it was an interest\n");
             } else {
 
                 prefix = nextprefix;
 
                 // Check if the fetched content is a chunk
-                if (!prefix->chunknum) {
+                if (!(prefix->chunknum)) {
                     // Response is not chunked, print content and exit
                     write(1, content, contlen);
                     goto Done;
                 } else {
-                    int chunknum = *prefix->chunknum;
+                    int chunknum = *(prefix->chunknum);
 
                     // allocate curchunknum because it is the first fetched chunk
                     if(!curchunknum) {
@@ -366,16 +381,16 @@ usage:
                     if (ccnl_prefix_removeChunkNumComponent(suite, prefix) < 0) {
                         retry++;
                         DEBUGMSG(WARNING, "Could not remove chunknum\n");
-                    } 
+                    }
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
                     if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
-                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d\n", *curchunknum, contlen);
+                        DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != UINT_MAX && lastchunknum == chunknum) {
+                        if (lastchunknum != -1 && lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;
@@ -384,7 +399,7 @@ usage:
                     } else {
                         // retry if the fetched chunk
                         retry++;
-                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d\n", *curchunknum, chunknum);
+                        DEBUGMSG(WARNING, "Could not find chunk %d, extracted chunknum is %d (lastchunk=%d)\n", *curchunknum, chunknum, lastchunknum);
                     }
                 }
             }
@@ -401,7 +416,7 @@ usage:
 Done:
     DEBUGMSG(DEBUG, "Sucessfully fetched content\n");
     close(sock);
-    return 0; 
+    return 0;
 }
 
 // eof

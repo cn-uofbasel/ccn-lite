@@ -20,19 +20,21 @@
  * 2014-10-30 created <christopher.scherb@unibas.ch
  */
 
-#ifndef CCNL_EXT_DEBUG_H
-#define CCNL_EXT_DEBUG_H
-
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
+
 struct mhdr {
     struct mhdr *next;
     char *fname;
     int lineno, size;
-    char *tstamp;
-} *mem;
+#ifdef CCNL_ARDUINO
+    double tstamp;
+#else
+    char *tstamp; // Linux kernel (no double), also used for CCNL_UNIX
 #endif
+} *mem;
 
+#endif // USE_DEBUG_MALLOC
 
 #ifndef CCNL_LINUXKERNEL
 struct ccnl_stats_s {
@@ -53,7 +55,8 @@ struct ccnl_stats_s {
     double log_sent_t_i;
     double log_sent_t_c;
 };
-#endif
-#endif
+#endif // CCNL_LINUXKERNEL
 
-#endif //CCNL_EXT_DEBUG_H
+#endif // USE_DEBUG
+
+// eof

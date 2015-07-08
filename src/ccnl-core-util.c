@@ -2,7 +2,7 @@
  * @f ccnl-core-util.c
  * @b CCN lite, common utility procedures (used by utils as well as relays)
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,18 +20,20 @@
  * 2014-06-18 created
  */
 
-#ifndef CCNL_CORE_UTIL_H
-#define CCNL_CORE_UTIL_H
+//#ifndef CCNL_CORE_UTIL_H
+//#define CCNL_CORE_UTIL_H
 
 #include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
-const char*
-compile_string(void)
-{
-    static const char *cp = ""
+#ifdef CCNL_ARDUINO
+const char compile_string[] PROGMEM = ""
+#else
+const char *compile_string = ""
+#endif
+
 #ifdef USE_CCNxDIGEST
         "CCNxDIGEST, "
 #endif
@@ -41,11 +43,17 @@ compile_string(void)
 #ifdef USE_DEBUG_MALLOC
         "DEBUG_MALLOC, "
 #endif
+#ifdef USE_ECHO
+        "ECHO, "
+#endif
 #ifdef USE_ETHERNET
         "ETHERNET, "
 #endif
 #ifdef USE_FRAG
         "FRAG, "
+#endif
+#ifdef USE_HMAC256
+        "HMAC256, "
 #endif
 #ifdef USE_HTTP_STATUS
         "HTTP_STATUS, "
@@ -83,6 +91,9 @@ compile_string(void)
 #ifdef USE_SUITE_CCNTLV
         "SUITE_CCNTLV, "
 #endif
+#ifdef USE_SUITE_CISTLV
+        "SUITE_CISTLV, "
+#endif
 #ifdef USE_SUITE_IOTTLV
         "SUITE_IOTTLV, "
 #endif
@@ -96,8 +107,100 @@ compile_string(void)
         "UNIXSOCKET, "
 #endif
         ;
-  return cp;
+
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+const char*
+ccnl_matchMode2str(int mode)
+{
+    switch (mode) {
+    case CMP_EXACT:
+        return CONSTSTR("CMP_EXACT");
+    case CMP_MATCH:
+        return CONSTSTR("CMP_MATCH");
+    case CMP_LONGEST:
+        return CONSTSTR("CMP_LONGEST");
+    }
+
+    return CONSTSTR("?");
 }
+
+int
+ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
+                struct ccnl_prefix_s *nam, int mode)
+/* returns -1 if no match at all (all modes) or exact match failed
+   returns  0 if full match (CMP_EXACT)
+   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
+{
+    int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
+    unsigned char *comp;
+
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
+             ccnl_matchMode2str(mode),
+             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
+
+    if (mode == CMP_EXACT) {
+        if (plen != nam->compcnt)
+            goto done;
+        if (pfx->chunknum || nam->chunknum) {
+            if (!pfx->chunknum || !nam->chunknum)
+                goto done;
+            if (*pfx->chunknum != *nam->chunknum)
+                goto done;
+        }
+#ifdef USE_NFN
+        if (nam->nfnflags != pfx->nfnflags)
+            goto done;
+#endif
+    }
+    for (i = 0; i < plen && i < nam->compcnt; ++i) {
+        comp = i < pfx->compcnt ? pfx->comp[i] : md;
+        clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
+        if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
+            rc = mode == CMP_EXACT ? -1 : i;
+            goto done;
+        }
+    }
+    // FIXME: we must also inspect chunknum here!
+    rc = (mode == CMP_EXACT) ? 0 : i;
+done:
+    DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
+             pfx->compcnt, plen, nam->compcnt, rc);
+    return rc;
+}
+
+int
+ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
+                  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
+{
+    unsigned char *md;
+    struct ccnl_prefix_s *p = c->pkt->pfx;
+
+    DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
+             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
+             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
+             // ccnl_prefix_to_path_detailed(p,1,0,0),
+             minsuffix, maxsuffix);
+
+    // CONFORM: we do prefix match, honour min. and maxsuffix,
+
+    // NON-CONFORM: "Note that to match a ContentObject must satisfy
+    // all of the specifications given in the Interest Message."
+    // >> CCNL does not honour the exclusion filtering
+
+    if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
+         (prefix->compcnt + maxsuffix) < (p->compcnt + 1)) {
+        DEBUGMSG(TRACE, "  mismatch in # of components\n");
+        return 0;
+    }
+
+    md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
+    return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
+}
+
+#endif
 
 // ----------------------------------------------------------------------
 
@@ -110,53 +213,129 @@ ccnl_is_local_addr(sockunion *su)
     if (su->sa.sa_family == AF_UNIX)
         return -1;
 #endif
+#ifdef USE_IPV4
     if (su->sa.sa_family == AF_INET)
         return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
+#endif
     return 0;
 }
 
 int
 ccnl_str2suite(char *cp)
 {
+    if (!cp)
+        return -1;
 #ifdef USE_SUITE_CCNB
-    if (!strcmp(cp, "ccnb"))
+    if (!strcmp(cp, CONSTSTR("ccnb")))
         return CCNL_SUITE_CCNB;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    if (!strcmp(cp, "ccnx2014"))
+    if (!strcmp(cp, CONSTSTR("ccnx2015")))
         return CCNL_SUITE_CCNTLV;
 #endif
+#ifdef USE_SUITE_CISTLV
+    if (!strcmp(cp, "cisco2015"))
+        return CCNL_SUITE_CISTLV;
+#endif
 #ifdef USE_SUITE_IOTTLV
-    if (!strcmp(cp, "iot2014"))
+    if (!strcmp(cp, CONSTSTR("iot2014")))
         return CCNL_SUITE_IOTTLV;
 #endif
+#ifdef USE_SUITE_LOCALRPC
+    if (!strcmp(cp, CONSTSTR("localrpc")))
+        return CCNL_SUITE_LOCALRPC;
+#endif
 #ifdef USE_SUITE_NDNTLV
-    if (!strcmp(cp, "ndn2013"))
+    if (!strcmp(cp, CONSTSTR("ndn2013")))
         return CCNL_SUITE_NDNTLV;
 #endif
     return -1;
 }
 
-char*
+const char*
 ccnl_suite2str(int suite)
 {
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB)
-        return "ccnb";
+        return CONSTSTR("ccnb");
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return "ccnx2014";
+        return CONSTSTR("ccnx2015");
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return "cisco2015";
 #endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
-        return "iot2014";
+        return CONSTSTR("iot2014");
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    if (suite == CCNL_SUITE_LOCALRPC)
+        return CONSTSTR("localrpc");
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
-        return "ndn2013";
+        return CONSTSTR("ndn2013");
 #endif
-    return "?";
+    return CONSTSTR("?");
+}
+
+int
+ccnl_suite2defaultPort(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return CCN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return NDN_UDP_PORT;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return NDN_UDP_PORT;
+#endif
+    return NDN_UDP_PORT;
+}
+
+bool
+ccnl_isSuite(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return true;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return true;
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return true;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return true;
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    if (suite == CCNL_SUITE_LOCALRPC)
+        return true;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return true;
+#endif
+    return false;
 }
 
 // ----------------------------------------------------------------------
@@ -227,6 +406,17 @@ ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
         break;
     }
 #endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        unsigned short *sp = (unsigned short*) dst;
+        *sp++ = htons(CISCO_TLV_NameComponent);
+        len = srclen;
+        *sp++ = htons(len);
+        memcpy(sp, src, len);
+        len += 2*sizeof(unsigned short);
+        break;
+    }
+#endif
     default:
         len = srclen;
         memcpy(dst, src, len);
@@ -241,7 +431,7 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
 {
     int len = strlen(src);
 
-    DEBUGMSG(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+    DEBUGMSG_CUTL(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
 
     if (*offset < len)
         return -1;
@@ -255,6 +445,17 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
             return -1;
         *sp-- = htons(len);
         *sp = htons(CCNX_TLV_N_NameSegment);
+        len += 2*sizeof(unsigned short);
+        *offset -= 2*sizeof(unsigned short);
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV) {
+        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
+        if (*offset < 4)
+            return -1;
+        *sp-- = htons(len);
+        *sp = htons(CISCO_TLV_NameComponent);
         len += 2*sizeof(unsigned short);
         *offset -= 2*sizeof(unsigned short);
     }
@@ -293,89 +494,78 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
     return i;
 }
 
+// turn an URI into an internal prefix (watch out: this modifies the uri string)
 struct ccnl_prefix_s *
-ccnl_componentsToPrefix(char** compvect, unsigned int *complens, int numcomps,
-                        int suite, char *nfnexpr, unsigned int *chunknum)
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 {
     struct ccnl_prefix_s *p;
+    char *compvect[CCNL_MAX_NAME_COMP];
+    unsigned int complens[CCNL_MAX_NAME_COMP];
     int cnt, i, len, tlen;
-    DEBUGMSG(TRACE, "ccnl_componentsToPrefix(suite=%s, uri=%p, nfn=%s)\n",
-             ccnl_suite2str(suite), (void *) compvect, nfnexpr);
-    
-    cnt = numcomps;
-    
+
+    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+             ccnl_suite2str(suite), uri, nfnexpr);
+
+    if (strlen(uri))
+        cnt = ccnl_URItoComponents(compvect, complens, uri);
+    else
+        cnt = 0;
+
     if (nfnexpr && *nfnexpr)
-    cnt += 1;
-    
+        cnt += 1;
+
     p = ccnl_prefix_new(suite, cnt);
     if (!p)
-    return NULL;
-    
+        return NULL;
+
     for (i = 0, len = 0; i < cnt; i++) {
         if (i == (cnt-1) && nfnexpr && *nfnexpr)
-        len += strlen(nfnexpr);
+            len += strlen(nfnexpr);
         else
-        len += complens[i];//strlen(compvect[i]);
+            len += complens[i];//strlen(compvect[i]);
     }
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-    len += cnt * 4; // add TL size
+        len += cnt * 4; // add TL size
 #endif
-    
-    p->bytes = ccnl_malloc(len);
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        len += cnt * 4; // add TL size
+#endif
+
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
     }
-    
+
     for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
         int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
         char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
-        
+
         if (isnfnfcomp)
-        tlen = strlen(nfnexpr);
+            tlen = strlen(nfnexpr);
         else
-        tlen = complens[i];
-        
+            tlen = complens[i];
+
         p->comp[i] = p->bytes + len;
         tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
         p->complen[i] = tlen;
         len += tlen;
     }
-    
+
     p->compcnt = cnt;
 #ifdef USE_NFN
     if (nfnexpr && *nfnexpr)
-    p->nfnflags |= CCNL_PREFIX_NFN;
+        p->nfnflags |= CCNL_PREFIX_NFN;
 #endif
-    
+
     if(chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
-    
-    return p;
-    
-}
 
-// turn an URI into an internal prefix (watch out: this modifies the uri string)
-struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
-{
-    char *compvect[CCNL_MAX_NAME_COMP];
-    unsigned int complens[CCNL_MAX_NAME_COMP];
-    int cnt;
-    
-    DEBUGMSG(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, nfnexpr);
-    
-    if (strlen(uri))
-    cnt = ccnl_URItoComponents(compvect, complens, uri);
-    else
-    cnt = 0;
-    
-    return ccnl_componentsToPrefix(compvect, complens, cnt, suite, nfnexpr, chunknum);
-    
+    return p;
 }
 
 struct ccnl_prefix_s*
@@ -396,12 +586,12 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
         len += prefix->complen[i];
-    p->bytes = ccnl_malloc(len);
+    p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
         free_prefix(p);
         return NULL;
     }
-    
+
     for (i = 0, len = 0; i < prefix->compcnt; i++) {
         p->complen[i] = prefix->complen[i];
         p->comp[i] = p->bytes + len;
@@ -410,7 +600,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     }
 
     if (prefix->chunknum) {
-        p->chunknum = ccnl_malloc(sizeof(int));
+        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *prefix->chunknum;
     }
 
@@ -429,7 +619,7 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
 
     int prefixlen = 0;
 
-    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP) 
+    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP)
         return -1;
     for (i = 0; i < lastcmp; i++) {
         prefixlen += prefix->complen[i];
@@ -460,12 +650,12 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
 }
 
 // TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
-// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level. 
-int 
+// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level.
+int
 ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 {
     if (chunknum >= 0xff) {
-      DEBUGMSG(WARNING, "addChunkNum is only implemented for "
+      DEBUGMSG_CUTL(WARNING, "addChunkNum is only implemented for "
                "chunknum smaller than 0xff (%d)\n", chunknum);
         return -1;
     }
@@ -477,11 +667,11 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[0] = NDN_Marker_SegmentNumber;
             // TODO: this only works for chunknums smaller than 255
             cmp[1] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0) 
+            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0)
                 return -1;
-            if(prefix->chunknum == NULL) {
-                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
-            }
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -496,18 +686,37 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
             cmp[2] = 0;
             cmp[3] = 1;
             cmp[4] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0) 
+            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
                 return -1;
-            if(prefix->chunknum == NULL) {
-                prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
-            }
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            *prefix->chunknum = chunknum;
+        }
+        break;
+#endif
+
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV: {
+            unsigned char cmp[5];
+            // TODO: this only works for chunknums smaller than 255
+            cmp[0] = 0;
+            cmp[1] = CISCO_TLV_NameSegment;
+            cmp[2] = 0;
+            cmp[3] = 1;
+            cmp[4] = chunknum;
+            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
+                return -1;
+            if (prefix->chunknum)
+                ccnl_free(prefix->chunknum);
+            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
 #endif
 
         default:
-            DEBUGMSG(WARNING,
+            DEBUGMSG_CUTL(WARNING,
                      "add chunk number not implemented for suite %d\n",
                      prefix->suite);
             return -1;
@@ -527,8 +736,10 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     if (skip)
         *skip = 0;
 
-    if (len <= 0) 
+    if (len <= 0)
         return -1;
+
+    DEBUGMSG_CUTL(TRACE, "pkt2suite %d %d\n", data[0], data[1]);
 
     while (!ccnl_switch_dehead(&data, &len, &enc))
         suite = ccnl_enc2suite(enc);
@@ -538,21 +749,38 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
         return suite;
 
 #ifdef USE_SUITE_CCNB
-    if (*data == 0x01 || *data == 0x04)
+    if (*data == 0x04)
+        return CCNL_SUITE_CCNB;
+    if (*data == 0x01 && len > 1 && // check for CCNx2015 and Cisco collision:
+                                (data[1] != 0x00 && // interest
+                                 data[1] != 0x01 && // data
+                                 data[1] != 0x02 && // interestReturn
+                                 data[1] != 0x03))  // fragment
         return CCNL_SUITE_CCNB;
 #endif
 
 #ifdef USE_SUITE_CCNTLV
-    if (data[0] == CCNX_TLV_V0 && len > 1) {
+    if (data[0] == CCNX_TLV_V1 && len > 1) {
         if (data[1] == CCNX_PT_Interest ||
             data[1] == CCNX_PT_Data ||
-            data[1] == CCNX_PT_NACK) 
+            data[1] == CCNX_PT_Fragment ||
+            data[1] == CCNX_PT_NACK)
             return CCNL_SUITE_CCNTLV;
-    } 
+    }
+#endif
+
+#ifdef USE_SUITE_CISTLV
+    if (data[0] == CISCO_TLV_V1 && len > 1) {
+        if (data[1] == CISCO_PT_Interest ||
+            data[1] == CISCO_PT_Content ||
+            data[1] == CISCO_PT_Nack)
+            return CCNL_SUITE_CISTLV;
+    }
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
+        *data == NDN_TLV_Fragment)
         return CCNL_SUITE_NDNTLV;
 #endif
 
@@ -572,12 +800,61 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     return -1;
 }
 
+void
+free_packet(struct ccnl_pkt_s *pkt)
+{
+    if (pkt) {
+        if (pkt->pfx) {
+            switch (pkt->pfx->suite) {
+#ifdef USE_SUITE_CCNB
+            case CCNL_SUITE_CCNB:
+                ccnl_free(pkt->s.ccnb.nonce);
+                ccnl_free(pkt->s.ccnb.ppkd);
+                break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+            case CCNL_SUITE_CCNTLV:
+                ccnl_free(pkt->s.ccntlv.keyid);
+                break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+            case CCNL_SUITE_NDNTLV:
+                ccnl_free(pkt->s.ndntlv.nonce);
+                ccnl_free(pkt->s.ndntlv.ppkl);
+                break;
+#endif
+#ifdef USE_SUITE_CISTLV
+            case CCNL_SUITE_CISTLV:
+#endif
+#ifdef USE_SUITE_IOTTLV
+            case CCNL_SUITE_IOTTLV:
+#endif
+#ifdef USE_SUITE_LOCALRPC
+            case CCNL_SUITE_LOCALRPC:
+#endif
+            default:
+                break;
+            }
+            free_prefix(pkt->pfx);
+        }
+        ccnl_free(pkt->buf);
+        ccnl_free(pkt);
+    }
+}
+
 // ----------------------------------------------------------------------
 
 char*
 ccnl_addr2ascii(sockunion *su)
 {
-    static char result[130];
+#ifdef USE_UNIXSOCKET
+    static char result[256];
+#else
+    static char result[25];
+#endif
+
+    if (!su)
+        return CONSTSTR("(local)");
 
     switch (su->sa.sa_family) {
 #ifdef USE_ETHERNET
@@ -589,19 +866,23 @@ ccnl_addr2ascii(sockunion *su)
         return result;
     }
 #endif
+#ifdef USE_IPV4
     case AF_INET:
-        sprintf(result, "%s/%d", inet_ntoa(su->ip4.sin_addr),
+        sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
         return result;
+#endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
-        strcpy(result, su->ux.sun_path);
+        strncpy(result, su->ux.sun_path, sizeof(result)-1);
+        result[sizeof(result)-1] = 0;
         return result;
 #endif
     default:
         break;
     }
 
+    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
     return NULL;
 }
 
@@ -609,33 +890,39 @@ ccnl_addr2ascii(sockunion *su)
 
 #ifndef CCNL_LINUXKERNEL
 
-static char *prefix_buf1;
-static char *prefix_buf2;
-static char *buf;
-
 char*
 ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
                              int escape_components, int call_slash)
 {
     int len = 0, i, j;
+    /*static char *prefix_buf1;
+    static char *prefix_buf2;
+    static char *buf;*/
+
+#ifdef CCNL_ARDUINO
+# define PREFIX_BUFSIZE 50
+#else
+# define PREFIX_BUFSIZE 2048
+#endif
 
     if (!pr)
         return NULL;
 
-    if (!buf) {
+    /*if (!buf) {
         struct ccnl_buf_s *b;
-        b = ccnl_buf_new(NULL, 2048);
-        ccnl_core_addToCleanup(b);
+        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
+        //ccnl_core_addToCleanup(b);
         prefix_buf1 = (char*) b->data;
-        b = ccnl_buf_new(NULL, 2048);
-        ccnl_core_addToCleanup(b);
+        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
+        //ccnl_core_addToCleanup(b);
         prefix_buf2 = (char*) b->data;
         buf = prefix_buf1;
     } else if (buf == prefix_buf2)
         buf = prefix_buf1;
     else
         buf = prefix_buf2;
-
+    */
+    char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN)
         len += sprintf(buf + len, "nfn");
@@ -661,11 +948,19 @@ One possibility is to not have a '/' before any nfn expression.
 
     int skip = 0;
 
-#if defined(USE_SUITE_CCNTLV) && defined(USE_NFN)
-    // In the future it is possibly helpful to see the type information in the logging output
-    // However, this does not work with NFN because it uses this function to create the names in NFN expressions
+#if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
+    // In the future it is possibly helpful to see the type information
+    // in the logging output. However, this does not work with NFN because
+    // it uses this function to create the names in NFN expressions
     // resulting in CCNTLV type information names within expressions.
-    if (pr->suite == CCNL_SUITE_CCNTLV && ccntlv_skip)
+    if (ccntlv_skip && (0
+#ifdef USE_SUITE_CCNTLV
+       || pr->suite == CCNL_SUITE_CCNTLV
+#endif
+#ifdef USE_SUITE_CISTLV
+       || pr->suite == CCNL_SUITE_CISTLV
+#endif
+                         ))
         skip = 4;
 #endif
 
@@ -683,10 +978,20 @@ One possibility is to not have a '/' before any nfn expression.
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            if (c < 0x20 || c == 0x7f || (escape_components && c == '/' ))
-                len += sprintf(buf + len, "%%%02x", c);
-            else 
-                len += sprintf(buf + len, "%c", c);
+            char *fmt;
+            fmt = (c < 0x20 || c == 0x7f
+                            || (escape_components && c == '/' )) ?
+#ifdef CCNL_ARDUINO
+                  (char*)PSTR("%%%02x") : (char*)PSTR("%c");
+            len += sprintf_P(buf + len, fmt, c);
+#else
+                  (char *) "%%%02x" : (char *) "%c";
+            len += sprintf(buf + len, fmt, c);
+#endif
+            if(len > PREFIX_BUFSIZE) {
+                DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
+                break;
+            }
         }
     }
 
@@ -700,10 +1005,7 @@ One possibility is to not have a '/' before any nfn expression.
     return buf;
 }
 
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr){
-    return ccnl_prefix_to_path_detailed(pr, 1, 0, 0);
-}
+#endif // CCNL_LINUXKERNEL
 
 // ----------------------------------------------------------------------
 
@@ -716,7 +1018,7 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     unsigned char *tmp;
     int len = 0, offs;
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
@@ -729,6 +1031,11 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
+        break;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        len = ccnl_cistlv_prependInterestWithHdr(name, &offs, tmp);
         break;
 #endif
 #ifdef USE_SUITE_IOTTLV
@@ -766,10 +1073,10 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
 
-    DEBUGMSG(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
+    DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
              ccnl_prefix_to_path(name), paylen);
 
-    tmp = ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
     switch (name->suite) {
@@ -780,8 +1087,16 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, 
+    case CCNL_SUITE_CCNTLV: {
+        unsigned int lcn = 0; // lastchunknum
+        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
+                                                &contentpos, &offs, tmp);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        len = ccnl_cistlv_prependContentWithHdr(name, payload, paylen,
                                                 NULL, // lastchunknum
                                                 &offs, &contentpos, tmp);
         break;
@@ -801,7 +1116,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &offs, &contentpos, NULL, tmp);
+                                         &contentpos, NULL, &offs, tmp);
         break;
 #endif
     default:
@@ -819,8 +1134,4 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // CCNL_LINUXKERNEL
-
-#endif // CCNL_CORE_UTIL_H
 // eof

@@ -20,7 +20,7 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2014-12-23"
+#define CCNL_VERSION "2015-05-07"
 
 #ifndef CCNL_DEFS_H
 #define CCNL_DEFS_H
@@ -33,8 +33,22 @@
 
 #define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
-#define CCNL_MAX_INTERFACES             10
-#define CCNL_MAX_PACKET_SIZE            8096
+#if defined(CCNL_ARDUINO)
+# define CCNL_MAX_INTERFACES             1
+# define CCNL_MAX_IF_QLEN                14
+# define CCNL_MAX_PACKET_SIZE            120
+# define CCNL_MAX_NAME_COMP              8
+#elif defined(CCNL_ANDROID) // max of BTLE and 2xUDP
+# define CCNL_MAX_INTERFACES             3
+# define CCNL_MAX_IF_QLEN                10
+# define CCNL_MAX_PACKET_SIZE            4096
+# define CCNL_MAX_NAME_COMP              16
+#else
+# define CCNL_MAX_INTERFACES             10
+# define CCNL_MAX_IF_QLEN                64
+# define CCNL_MAX_PACKET_SIZE            8096
+# define CCNL_MAX_NAME_COMP              64
+#endif
 
 #define CCNL_CONTENT_TIMEOUT            30 // sec
 #define CCNL_INTEREST_TIMEOUT           4  // sec
@@ -43,34 +57,46 @@
 // #define CCNL_FACE_TIMEOUT    60 // sec
 #define CCNL_FACE_TIMEOUT       15 // sec
 
-#define CCNL_MAX_NAME_COMP      64
-#define CCNL_MAX_IF_QLEN        64
-
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #define CCNL_MAX_NONCES                 256 // for detected dups
 
 
 enum {
-  CCNL_SUITE_CCNB,
-  CCNL_SUITE_CCNTLV,
-  CCNL_SUITE_IOTTLV,
-  CCNL_SUITE_LOCALRPC,
-  CCNL_SUITE_NDNTLV,
-  CCNL_SUITE_LAST
+#ifdef USE_SUITE_CCNB
+  CCNL_SUITE_CCNB = 1,
+#endif
+#ifdef USE_SUITE_CCNTLV
+  CCNL_SUITE_CCNTLV = 2,
+#endif
+#ifdef USE_SUITE_CISTLV
+  CCNL_SUITE_CISTLV = 3,
+#endif
+#ifdef USE_SUITE_IOTTLV
+  CCNL_SUITE_IOTTLV = 4,
+#endif
+#ifdef USE_SUITE_LOCALRPC
+  CCNL_SUITE_LOCALRPC = 5,
+#endif
+#ifdef USE_SUITE_NDNTLV
+  CCNL_SUITE_NDNTLV = 6,
+#endif
+  CCNL_SUITE_LAST = 7
 };
 
-#define CCNL_SUITE_DEFAULT CCNL_SUITE_NDNTLV
+#define CCNL_SUITE_DEFAULT (CCNL_SUITE_LAST - 1)
 
 // ----------------------------------------------------------------------
 // our own packet format extension for switching encodings:
 // 0x80 followed by:
+// (add new encodings at the end)
 
 enum {
   CCNL_ENC_CCNB,
   CCNL_ENC_NDN2013,
   CCNL_ENC_CCNX2014,
   CCNL_ENC_IOT2014,
-  CCNL_ENC_LOCALRPC
+  CCNL_ENC_LOCALRPC,
+  CCNL_ENC_CISCO2015
 };
 
 // ----------------------------------------------------------------------
@@ -95,7 +121,7 @@ enum {
 #define CCNL_DTAG_INTERFACE     99202 // interface list
 #define CCNL_DTAG_NEXT          99203 // next pointer e.g. for faceinstance
 #define CCNL_DTAG_PREV          99204 // prev pointer e.g. for faceinstance
-#define CCNL_DTAG_IFNDX         99205 
+#define CCNL_DTAG_IFNDX         99205
 #define CCNL_DTAG_IP            99206
 #define CCNL_DTAG_ETH           99207
 #define CCNL_DTAG_UNIX          99208
@@ -119,6 +145,8 @@ enum {
 #define CCNL_DTAG_CALLBACK      99226
 #define CCNL_DTAG_SUITE         99300
 #define CCNL_DTAG_COMPLENGTH    99301
+#define CCNL_DTAG_CHUNKNUM      99302
+#define CCNL_DTAG_CHUNKFLAG     99303
 
 
 // ----------------------------------------------------------------------
@@ -155,6 +183,14 @@ enum {
 // ----------------------------------------------------------------------
 // face mgmt protocol:
 #define CCNL_DTAG_FRAG_FLAG_STATUSREQ   0x04
+
+// ----------------------------------------------------------------------
+// begin-end fragmentation protocol:
+#define CCNL_BEFRAG_FLAG_MASK        0x03
+#define CCNL_BEFRAG_FLAG_FIRST       0x01
+#define CCNL_BEFRAG_FLAG_MID         0x00
+#define CCNL_BEFRAG_FLAG_LAST        0x02
+#define CCNL_BEFRAG_FLAG_SINGLE      0x03
 
 //#define USE_SIGNATURES
 

@@ -2,7 +2,7 @@
  * @f util/ccn-lite-mkI.c
  * @b CLI mkInterest, write to Stdout
  *
- * Copyright (C) 2013-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2013-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
@@ -46,7 +47,7 @@ main(int argc, char *argv[])
     uint32_t nonce;
     int isLambda = 0;
     unsigned int chunknum = UINT_MAX;
-    
+
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
@@ -118,9 +119,9 @@ Usage:
             "  -n CHUNKNUM positive integer for chunk interest\n"
             "  -o FNAME   output file (instead of stdout)\n"
             "  -p DIGEST  publisher fingerprint\n"
-            "  -s SUITE   (ccnb, ccnx2014, iot2014, ndn2013)\n"
+            "  -s SUITE   (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, trace, verbose)\n"
+            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
             "  -x LEN     maX additional components\n",
             argv[0]);
@@ -128,7 +129,7 @@ Usage:
         }
     }
 
-    if (!argv[optind]) 
+    if (!argv[optind])
         goto Usage;
 
     /*
@@ -136,10 +137,10 @@ Usage:
         i = ccnl_lambdaStrToComponents(prefix, argv[optind]);
     else
     */
-    prefix = ccnl_URItoPrefix(argv[optind],     
-                              packettype,       
-                              argv[optind+1],   
-                              chunknum == UINT_MAX ? NULL : &chunknum); 
+    prefix = ccnl_URItoPrefix(argv[optind],
+                              packettype,
+                              argv[optind+1],
+                              chunknum == UINT_MAX ? NULL : &chunknum);
     if (!prefix) {
         DEBUGMSG(ERROR, "no URI found, aborting\n");
         return -1;
@@ -153,16 +154,21 @@ Usage:
                                    scope, &nonce, out);
         break;
     case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix, 
-                                (int*)&nonce, 
+        len = ccntlv_mkInterest(prefix,
+                                (int*)&nonce,
                                 out, CCNL_MAX_PACKET_SIZE);
-        break;
+	break;
+    case CCNL_SUITE_CISTLV:
+        len = cistlv_mkInterest(prefix,
+                                (int*)&nonce,
+                                out, CCNL_MAX_PACKET_SIZE);
+	break;
     case CCNL_SUITE_IOTTLV:
         len = iottlv_mkRequest(prefix, NULL, out, CCNL_MAX_PACKET_SIZE);
         break;
     case CCNL_SUITE_NDNTLV:
-        len = ndntlv_mkInterest(prefix, 
-                                (int*)&nonce, 
+        len = ndntlv_mkInterest(prefix,
+                                (int*)&nonce,
                                 out,
                                 CCNL_MAX_PACKET_SIZE);
         break;

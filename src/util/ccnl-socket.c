@@ -156,7 +156,7 @@ request_content(int sock, int (*sendproc)(int,char*,unsigned char*,int),
         perror("sendto");
         myexit(1);
     }
-    
+
     rc = block_on_read(sock, wait);
     if (rc == 1) {
         len2 = recv(sock, buf, sizeof(buf), 0);

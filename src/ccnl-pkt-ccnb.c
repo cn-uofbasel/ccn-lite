@@ -2,7 +2,7 @@
  * @f pkt-ccnb.c
  * @b CCN lite - parse, create and manipulate CCNb formatted packets
  *
- * Copyright (C) 2011-14, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,8 +23,7 @@
  * 2014-11-05 merged from pkt-ccnb-dec.c and pkt-ccnb-enc.c
  */
 
-#ifndef PKT_CCNB_C
-#define PKT_CCNB_C
+
 
 #ifdef USE_SUITE_CCNB
 
@@ -108,30 +107,40 @@ ccnl_ccnb_data2uint(unsigned char *cp, int len)
     return val;
 }
 
-struct ccnl_buf_s*
-ccnl_ccnb_extract(unsigned char **data, int *datalen,
-                  int *scope, int *aok, int *min, int *max,
-                  struct ccnl_prefix_s **prefix,
-                  struct ccnl_buf_s **nonce,
-                  struct ccnl_buf_s **ppkd,
-                  unsigned char **content, int *contlen)
+struct ccnl_pkt_s*
+ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
-    unsigned char *start = *data - 2 /* account for outer TAG hdr */, *cp;
+    struct ccnl_pkt_s *pkt;
+    unsigned char *cp;
     int num, typ, len, oldpos;
     struct ccnl_prefix_s *p;
-    struct ccnl_buf_s *buf, *n = 0, *pub = 0;
+
     DEBUGMSG(TRACE, "ccnl_ccnb_extract\n");
 
-    p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
-    p->compcnt = 0;
-    if (!p)
+    //pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
         return NULL;
+    pkt->suite = CCNL_SUITE_CCNB;
+    pkt->val.final_block_id = -1;
+    pkt->s.ccnb.scope = 3;
+    pkt->s.ccnb.aok = 3;
+    pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+
+    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNB, CCNL_MAX_NAME_COMP);
+    if (!p) {
+        ccnl_free(pkt);
+        return NULL;
+    }
+    p->compcnt = 0;
 
     oldpos = *data - start;
     while (ccnl_ccnb_dehead(data, datalen, &num, &typ) == 0) {
-        if (num==0 && typ==0) break; // end
+        if (num==0 && typ==0) // end
+            break;
         if (typ == CCN_TT_DTAG) {
-            if (num == CCN_DTAG_NAME) {
+            switch (num) {
+            case CCN_DTAG_NAME:
                 p->nameptr = start + oldpos;
                 for (;;) {
                     if (ccnl_ccnb_dehead(data, datalen, &num, &typ) != 0)
@@ -161,59 +170,73 @@ ccnl_ccnb_extract(unsigned char **data, int *datalen,
                     }
                 }
 #endif
-                oldpos = *data - start;
-                continue;
-            }
-            if (num == CCN_DTAG_SCOPE || num == CCN_DTAG_NONCE ||
-                num == CCN_DTAG_MINSUFFCOMP || num == CCN_DTAG_MAXSUFFCOMP ||
-                                         num == CCN_DTAG_PUBPUBKDIGEST) {
-                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0) goto Bail;
-                if (num == CCN_DTAG_SCOPE && len == 1 && scope)
-                    *scope = isdigit(*cp) && (*cp < '3') ? *cp - '0' : -1;
-                if (num == CCN_DTAG_ANSWERORIGKIND && aok)
-                    *aok = ccnl_ccnb_data2uint(cp, len);
-                if (num == CCN_DTAG_MINSUFFCOMP && min)
-                    *min = ccnl_ccnb_data2uint(cp, len);
-                if (num == CCN_DTAG_MAXSUFFCOMP && max)
-                    *max = ccnl_ccnb_data2uint(cp, len);
-                if (num == CCN_DTAG_NONCE && !n)
-                    n = ccnl_buf_new(cp, len);
-                if (num == CCN_DTAG_PUBPUBKDIGEST && !pub)
-                    pub = ccnl_buf_new(cp, len);
-                if (num == CCN_DTAG_EXCLUDE) {
-                    DEBUGMSG(DEBUG, "'exclude' field ignored\n");
-                } else {
-                    oldpos = *data - start;
-                    continue;
-                }
-            }
-            if (num == CCN_DTAG_CONTENT) {
-                if (ccnl_ccnb_consume(typ, num, data, datalen, content, contlen) < 0)
+                break;
+            case CCN_DTAG_CONTENT:
+                if (ccnl_ccnb_consume(typ, num, data, datalen,
+                                      &pkt->content, &pkt->contlen) < 0)
                     goto Bail;
                 oldpos = *data - start;
                 continue;
+            case CCN_DTAG_SCOPE:
+            case CCN_DTAG_ANSWERORIGKIND:
+            case CCN_DTAG_MINSUFFCOMP:
+            case CCN_DTAG_MAXSUFFCOMP:
+            case CCN_DTAG_NONCE:
+            case CCN_DTAG_PUBPUBKDIGEST:
+                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0)
+                    goto Bail;
+                switch (num) {
+                case CCN_DTAG_SCOPE:
+                    if (len == 1)
+                        pkt->s.ccnb.scope = isdigit(*cp) && (*cp < '3') ?
+                            *cp - '0' : -1;
+                    break;
+                case CCN_DTAG_ANSWERORIGKIND:
+                    pkt->s.ccnb.aok = ccnl_ccnb_data2uint(cp, len);
+                    break;
+                case CCN_DTAG_MINSUFFCOMP:
+                    pkt->s.ccnb.minsuffix = ccnl_ccnb_data2uint(cp, len);
+                    break;
+                case CCN_DTAG_MAXSUFFCOMP:
+                    pkt->s.ccnb.maxsuffix = ccnl_ccnb_data2uint(cp, len);
+                    break;
+                case CCN_DTAG_NONCE:
+                    if (!pkt->s.ccnb.nonce)
+                        pkt->s.ccnb.nonce = ccnl_buf_new(cp, len);
+                    break;
+                case CCN_DTAG_PUBPUBKDIGEST:
+                    if (!pkt->s.ccnb.ppkd)
+                        pkt->s.ccnb.ppkd = ccnl_buf_new(cp, len);
+                    break;
+                case CCN_DTAG_EXCLUDE:
+                    DEBUGMSG(WARNING, "ccnb 'exclude' field ignored\n");
+                    break;
+                }
+                break;
+            default:
+                if (ccnl_ccnb_hunt_for_end(data, datalen, &cp, &len) < 0)
+                    goto Bail;
             }
+            oldpos = *data - start;
+            continue;
         }
-        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0) goto Bail;
+        if (ccnl_ccnb_consume(typ, num, data, datalen, 0, 0) < 0)
+            goto Bail;
         oldpos = *data - start;
     }
-    if (prefix)    *prefix = p;    else free_prefix(p);
-    if (nonce)     *nonce = n;     else ccnl_free(n);
-    if (ppkd)      *ppkd = pub;    else ccnl_free(pub);
-
-    buf = ccnl_buf_new(start, *data - start);
+    pkt->pfx = p;
+    pkt->buf = ccnl_buf_new(start, *data - start);
     // carefully rebase ptrs to new buf because of 64bit pointers:
-    if (content)
-        *content = buf->data + (*content - start);
+    if (pkt->content)
+        pkt->content = pkt->buf->data + (pkt->content - start);
     for (num = 0; num < p->compcnt; num++)
-            p->comp[num] = buf->data + (p->comp[num] - start);
+            p->comp[num] = pkt->buf->data + (p->comp[num] - start);
     if (p->nameptr)
-        p->nameptr = buf->data + (p->nameptr - start);
+        p->nameptr = pkt->buf->data + (p->nameptr - start);
 
-    return buf;
+    return pkt;
 Bail:
-    free_prefix(p);
-    free_2ptr_list(n, pub);
+    free_packet(pkt);
     return NULL;
 }
 
@@ -247,6 +270,26 @@ ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen,
     *datalen = len-1;
     return 0;
 }
+
+// ----------------------------------------------------------------------
+
+#ifdef NEEDS_PREFIX_MATCHING
+
+// returns: 0=match, -1=otherwise
+int
+ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
+{
+    assert(p);
+    assert(p->suite == CCNL_SUITE_CCNB);
+
+    if (!ccnl_i_prefixof_c(p->pfx, p->s.ccnb.minsuffix, p->s.ccnb.maxsuffix, c))
+        return -1;
+    if (p->s.ccnb.ppkd && !buf_equal(p->s.ccnb.ppkd, c->pkt->s.ccnb.ppkd))
+        return -1;
+    // FIXME: should check stale bit in aok here
+    return 0;
+}
+#endif
 
 // ----------------------------------------------------------------------
 // ccnb encoding support
@@ -367,7 +410,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
             len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
         len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
     }
-#endif    
+#endif
     out[len++] = 0; // end-of-name
 
     return len;
@@ -421,6 +464,5 @@ ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // USE_SUITE_CCNB
-#endif // PKT_CCNB_C
 
 // eof

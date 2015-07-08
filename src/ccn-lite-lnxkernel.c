@@ -24,39 +24,44 @@
 
 #define CCNL_LINUXKERNEL
 
-#define USE_DEBUG
+#define USE_DEBUG               // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 // #define USE_FRAG
 #define USE_ETHERNET
-// #define USE_MGMT
+#define USE_LOGGING
+#define USE_IPV4
+#define USE_MGMT
 #undef USE_NFN
 #undef USE_NFN_MONITOR
 // #define USE_SCHEDULER
-#define USE_SUITE_CCNB
+// #define USE_SIGNATURES
+#define USE_SUITE_CCNB          // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 #define USE_UNIXSOCKET
-// #define USE_SIGNATURES
+
+#define NEEDS_PREFIX_MATCHING
 
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "ccnl-os-time.c"
-
 // ----------------------------------------------------------------------
 
+#define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
-#define ccnl_print_stats(x,y)           do{}while(0)
 #define ccnl_app_RX(x,y)                do{}while(0)
+#define local_producer(...)             0
 
 static struct ccnl_relay_s theRelay;
 
-static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+static int ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
                       struct packet_type *pt, struct net_device *outdev);
 
-void ccnl_udp_data_ready(struct sock *sk, int len);
+void ccnl_udp_data_ready(struct sock *sk);
 
 // ----------------------------------------------------------------------
 
@@ -102,6 +107,8 @@ ccnl_free(void *ptr)
 }
 
 #include "ccnl-ext-debug.c"
+#include "ccnl-os-time.c"
+#include "ccnl-ext-logging.c"
 
 static void ccnl_lnxkernel_cleanup(void);
 char* ccnl_addr2ascii(sockunion *su);
@@ -110,8 +117,8 @@ void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
-    DEBUGMSG(TRACE, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n", buf ? buf->datalen : -1,
-             ifc, ifc ? ifc->sock : NULL);
+    DEBUGMSG(DEBUG, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
+             buf ? buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
         return;
@@ -125,6 +132,9 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_INET:
     {
         struct iovec iov;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0)
+        struct iov_iter iov_iter;
+#endif
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
@@ -135,9 +145,15 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = &dest->ip4;
         msg.msg_namelen = sizeof(dest->ip4);
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,19,0)
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
-        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+#else
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
+        msg.msg_iter = iov_iter;
+#endif
 
         oldfs = get_fs();
         set_fs(KERNEL_DS);
@@ -171,20 +187,29 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     case AF_UNIX:
     {
         struct iovec iov;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0)
+        struct iov_iter iov_iter;
+#endif
         struct msghdr msg;
         int rc;
         mm_segment_t oldfs;
 
-        iov.iov_base =  buf->data;
+        iov.iov_base = buf->data;
         iov.iov_len = buf->datalen;
 
         memset(&msg, 0, sizeof(msg));
         msg.msg_name = dest; //->ux.sun_path;
         msg.msg_namelen = offsetof(struct sockaddr_un, sun_path) +
             strlen(dest->ux.sun_path) + 1;
+        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,19,0)
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
-        msg.msg_flags = MSG_DONTWAIT | MSG_NOSIGNAL;
+#else
+        iov_iter_init(&iov_iter, READ, &iov, 1, iov.iov_len);
+        msg.msg_iter = iov_iter;
+#endif
 
         oldfs = get_fs();
         set_fs(KERNEL_DS);
@@ -264,7 +289,7 @@ ccnl_upcall_RX(struct work_struct *work)
 {
     struct ccnl_upcall_s *uc = (struct ccnl_upcall_s*) work;
 
-    DEBUGMSG(TRACE, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
+    DEBUGMSG(DEBUG, "ccnl_upcall_RX, ifndx=%d, %d bytes\n", uc->ifndx, uc->datalen);
 
     ccnl_core_RX(&theRelay, uc->ifndx, uc->data, uc->datalen,
                  &uc->su.sa, sizeof(uc->su));
@@ -293,7 +318,7 @@ ccnl_schedule_upcall_RX(int ifndx, sockunion *su, struct sk_buff *skb,
 // ----------------------------------------------------------------------
 
 static int
-ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev, 
+ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
           struct packet_type *pt, struct net_device *outdev){
     int i;
     sockunion su;
@@ -314,11 +339,11 @@ ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
 
 
 void
-ccnl_udp_data_ready(struct sock *sk, int len)
+ccnl_udp_data_ready(struct sock *sk)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(TRACE, "ccnl_udp_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_udp_data_ready\n");
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -330,7 +355,7 @@ ccnl_udp_data_ready(struct sock *sk, int len)
         su.sa.sa_family = AF_INET;
         su.ip4.sin_addr.s_addr = ((struct iphdr *)skb_network_header(skb))->saddr;
         su.ip4.sin_port = udp_hdr(skb)->source;
-        DEBUGMSG(TRACE, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(DEBUG, "ccnl_udp_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data + sizeof(struct udphdr),
                                 skb->len - sizeof(struct udphdr));
@@ -343,11 +368,11 @@ Bail:
 
 
 void
-ccnl_ux_data_ready(struct sock *sk, int len)
+ccnl_ux_data_ready(struct sock *sk)
 {
     struct sk_buff *skb;
     int i, err;
-    DEBUGMSG(TRACE, "ccnl_ux_data_ready %d bytes\n", len);
+    DEBUGMSG(DEBUG, "ccnl_ux_data_ready\n");
 
     if ((skb = skb_recv_datagram(sk, 0, 1, &err)) == NULL)
         goto Bail;
@@ -361,7 +386,7 @@ ccnl_ux_data_ready(struct sock *sk, int len)
             memcpy(&su, u->addr->name, u->addr->len);
         else
             su.sa.sa_family = 0;
-        DEBUGMSG(TRACE, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
+        DEBUGMSG(DEBUG, "ccnl_ux_data_ready2: if=%d, %d bytes, src=%s\n",
                  i, skb->len, ccnl_addr2ascii(&su));
 
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
@@ -391,7 +416,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
     struct net_device *dev;
 
-    DEBUGMSG(TRACE, "ccnl_open_ethdev %s\n", devname);
+    DEBUGMSG(DEBUG, "ccnl_open_ethdev %s\n", devname);
 
     dev = dev_get_by_name(&init_net, devname);
     if (!dev)
@@ -421,16 +446,15 @@ ccnl_open_udpdev(int port, struct sockaddr_in *sin)
         return NULL;
     }
 
-    DEBUGMSG(INFO, "UDP socket is %p\n", s);
-
     sin->sin_family = AF_INET;
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
     sin->sin_port = htons(port);
     rc = s->ops->bind(s, (struct sockaddr*) sin, sizeof(*sin));
     if (rc < 0) {
-        DEBUGMSG(ERROR, "Error %d binding UDP socket\n", rc);
+        DEBUGMSG(ERROR, "Error %d binding UDP socket (port %d)\n", rc, port);
         goto Bail;
     }
+    DEBUGMSG(INFO, "UDP port %d opened, socket is %p\n", port, s);
 
     return s;
 Bail:
@@ -445,7 +469,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     struct socket *s;
     int rc;
 
-    DEBUGMSG(TRACE, "ccnl_open_unixpath %s\n", path);
+    DEBUGMSG(DEBUG, "ccnl_open_unixpath %s\n", path);
 
     rc = sock_create(AF_UNIX, SOCK_DGRAM, 0, &s);
     if (rc < 0) {
@@ -478,27 +502,17 @@ static char *x = CCNL_DEFAULT_UNIXSOCKNAME;
 static int c = CCNL_DEFAULT_MAX_CACHE_ENTRIES; // no memory by default
 static int suite = CCNL_SUITE_DEFAULT;
 static int u = 0; // u = CCN_UDP_PORT?
-static int v = 0;
+static char *v = NULL;
 static char *p = NULL;
 static char *k = NULL;
 static char *s = NULL;
 static void *ageing_handler = NULL;
 
-
-module_param(e, charp, 0);
-MODULE_PARM_DESC(ethdevname, "name of ethernet device to serve");
-
 module_param(c, int, 0);
 MODULE_PARM_DESC(c, "max number of cache entries");
 
-module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (0=ccnb, 1=ccntlv, 2=ndntlv)");
-
-module_param(u, int, 0);
-MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
-
-module_param(v, int, 0);
-MODULE_PARM_DESC(v, "verbosity level");
+module_param(e, charp, 0);
+MODULE_PARM_DESC(e, "name of ethernet device to serve");
 
 module_param(k, charp, 0);
 MODULE_PARM_DESC(k, "ctrl public key path");
@@ -506,8 +520,17 @@ MODULE_PARM_DESC(k, "ctrl public key path");
 module_param(p, charp, 0);
 MODULE_PARM_DESC(p, "private key path");
 
+module_param(s, charp, 0);
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)");
+
+module_param(u, int, 0);
+MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
+
+module_param(v, charp, 0);
+MODULE_PARM_DESC(v, "verbosity level (fatal, error, warning, info, debug, verbose, trace)");
+
 module_param(x, charp, 0);
-MODULE_PARM_DESC(ux_sock_path, "name (path) of mgmt unix socket");
+MODULE_PARM_DESC(x, "name (path) of mgmt unix socket");
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("christian.tschudin@unibas.ch");
@@ -516,35 +539,29 @@ static int __init
 ccnl_init(void)
 {
     struct ccnl_if_s *i;
-    if (v >= 0)
-        debug_level = v;
 
-    suite = ccnl_str2suite(s);
-    if (suite < 0 || suite >= CCNL_SUITE_LAST)
+    if (v) {
+        debug_level = ccnl_debug_str2level(v);
+    }
+    if (s) {
+        suite = ccnl_str2suite(s);
+    }
+    if (!ccnl_isSuite(suite)) {
         suite = CCNL_SUITE_DEFAULT;
+    }
 
     DEBUGMSG(INFO, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string());
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    DEBUGMSG(DEBUG, "modul parameters: c=%d, e=%s, k=%s, p=%s, s=%s,"
-                 "u=%d, v=%d, x=%s\n",
+    DEBUGMSG(DEBUG, "module parameters: c=%d, e=%s, k=%s, p=%s, s=%s, "
+                 "u=%d, v=%s, x=%s\n",
              c, e, k, p, s, u, v, x);
 
-#ifdef USE_SUITE_CCNB
-    if (suite == CCNL_SUITE_CCNB) {
-        if (u < 0)
-            u = CCN_UDP_PORT;
-    }
-#endif
-#ifdef USE_SUITE_NDNTLV
-    if (suite == CCNL_SUITE_NDNTLV) {
-        if (u < 0)
-            u = NDN_UDP_PORT;
-    }
-#endif
+    if (u <= 0)
+        u = ccnl_suite2defaultPort(suite);
 
     ccnl_core_init();
     theRelay.max_cache_entries = c;
@@ -627,7 +644,7 @@ ccnl_init(void)
             theRelay.ifcount++;
         }
         ccnl_crypto_create_ccnl_crypto_face(&theRelay, p);
-        theRelay.crypto_path = p;    
+        theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
         sprintf(h, "%s-2", p);
@@ -649,8 +666,8 @@ ccnl_init(void)
         theRelay.crypto_path = p;
     }
 #endif /*USE_SIGNATURES*/
-#endif //USE_UNIXSOCKET  
-    
+#endif //USE_UNIXSOCKET
+
     return 0;
 }
 
@@ -700,7 +717,7 @@ ccnl_lnxkernel_cleanup(void)
 
             mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
-            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);                                                                                                                                               
+            rc = vfs_unlink(dir->d_inode, p.dentry, NULL);
 #else
             rc = vfs_unlink(dir->d_inode, p.dentry);
 #endif
@@ -709,7 +726,7 @@ ccnl_lnxkernel_cleanup(void)
             path_put(&p);
         }
     }
-    
+
     if (p) { // also remove the UNIX socket path
         struct path px;
         int rc;

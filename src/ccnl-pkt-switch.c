@@ -20,9 +20,6 @@
  * 2014-12-21 created
  */
 
-#ifndef PKT_SWITCH_C
-#define PKT_SWITCH_C
-
 // see ccnl-defs.h for the ENC constants
 
 int
@@ -40,31 +37,28 @@ ccnl_switch_dehead(unsigned char **buf, int *len, int *code)
     return -1;
 }
 
-char*
-ccnl_enc2str(int enc)
-{
-    switch(enc) {
-    case CCNL_ENC_CCNB:      return "ccnb";
-    case CCNL_ENC_NDN2013:   return "ndn2013";
-    case CCNL_ENC_CCNX2014:  return "ccnbx2014";
-    case CCNL_ENC_IOT2014:   return "iot2014";
-    case CCNL_ENC_LOCALRPC:  return "localrpc";
-    default:
-        break;
-    }
-
-    return "?";
-}
-
 int
 ccnl_enc2suite(int enc)
 {
     switch(enc) {
+#ifdef USE_SUITE_CCNB
     case CCNL_ENC_CCNB:      return CCNL_SUITE_CCNB;
+#endif
+#ifdef USE_SUITE_NDNTLV
     case CCNL_ENC_NDN2013:   return CCNL_SUITE_NDNTLV;
+#endif
+#ifdef USE_SUITE_CCNTLV
     case CCNL_ENC_CCNX2014:  return CCNL_SUITE_CCNTLV;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_ENC_CISCO2015: return CCNL_SUITE_CISTLV;
+#endif
+#ifdef USE_SUITE_IOTTLV
     case CCNL_ENC_IOT2014:   return CCNL_SUITE_IOTTLV;
+#endif
+#ifdef USE_SUITE_LOCALRPC
     case CCNL_ENC_LOCALRPC:  return CCNL_SUITE_LOCALRPC;
+#endif
     default:
         break;
     }
@@ -117,7 +111,5 @@ ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf)
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-
-#endif // PKT_SWITCH_C
 
 // eof

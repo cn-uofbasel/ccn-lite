@@ -2,7 +2,7 @@
  * @f ccnl-core.h
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-13, Christian Tschudin, University of Basel
+ * Copyright (C) 2011-15, Christian Tschudin, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,18 +39,19 @@
 #define CCNL_FRAG_NONE          0
 #define CCNL_FRAG_SEQUENCED2012 1
 #define CCNL_FRAG_CCNx2013      2
-
-#define CCNL_CONTENT_FLAGS_STATIC  0x01
-#define CCNL_CONTENT_FLAGS_STALE   0x02
+#define CCNL_FRAG_SEQUENCED2015 3
+#define CCNL_FRAG_BEGINEND2015  4
 
 // ----------------------------------------------------------------------
 
 typedef union {
     struct sockaddr sa;
+#ifdef USE_IPV4
+    struct sockaddr_in ip4;
+#endif
 #ifdef USE_ETHERNET
     struct sockaddr_ll eth;
 #endif
-    struct sockaddr_in ip4;
 #ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;
 #endif
@@ -68,9 +69,11 @@ struct ccnl_if_s { // interface for packet IO
 #ifdef CCNL_LINUXKERNEL
     struct socket *sock;
     struct workqueue_struct *wq;
-    void (*old_data_ready)(struct sock *, int);
+    void (*old_data_ready)(struct sock *);
     struct net_device *netdev;
     struct packet_type ccnl_packet;
+#elif defined(CCNL_ARDUINO)
+    EthernetUDP *sock;
 #else
     int sock;
 #endif
@@ -82,10 +85,16 @@ struct ccnl_if_s { // interface for packet IO
     int qfront; // index of next packet to send
     struct ccnl_txrequest_s queue[CCNL_MAX_IF_QLEN];
     struct ccnl_sched_s *sched;
+
+#ifdef USE_STATS
+    uint32_t rx_cnt, tx_cnt;
+#endif
 };
 
 struct ccnl_relay_s {
+#ifndef CCNL_ARDUINO
     time_t startup_time;
+#endif
     int id;
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
@@ -101,14 +110,20 @@ struct ccnl_relay_s {
                                                  void(*cts_done)(void*,void*));
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*));
+#ifdef USE_HTTP_STATUS
     struct ccnl_http_s *http;
+#endif
     void *aux;
 
+#ifdef USE_NFN
     struct ccnl_krivine_s *km;
-    
+#endif
+
+  /*
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
     char *crypto_path;
+  */
 };
 
 struct ccnl_buf_s {
@@ -136,15 +151,17 @@ struct ccnl_prefix_s {
 };
 
 struct ccnl_frag_s {
-    int protocol; // (0=plain CCNx)
+    int protocol; // fragmentation protocol, 0=none
     int mtu;
     sockunion dest;
-    struct ccnl_buf_s *bigpkt;
+    struct ccnl_buf_s *bigpkt; // outgoing bytes
     unsigned int sendoffs;
+    int outsuite; // suite of outgoing packet
     // transport state, if present:
     int ifndx;
 
-    struct ccnl_buf_s *defrag;
+    // int insuite; // suite of incoming packet series
+    struct ccnl_buf_s *defrag; // incoming bytes
 
     unsigned int sendseq;
     unsigned int losscount;
@@ -167,45 +184,27 @@ struct ccnl_face_s {
     struct ccnl_sched_s *sched;
 };
 
+typedef void (*tapCallback)(struct ccnl_relay_s *, struct ccnl_face_s *,
+                            struct ccnl_prefix_s *, struct ccnl_buf_s *);
+
 struct ccnl_forward_s {
     struct ccnl_forward_s *next;
     struct ccnl_prefix_s *prefix;
+    tapCallback tap;
     struct ccnl_face_s *face;
     char suite;
 };
 
-struct ccnl_ccnb_id_s { // interest details
-    int minsuffix, maxsuffix, aok;
-    struct ccnl_buf_s *ppkd;       // publisher public key digest
-};
-
-struct ccnl_ccntlv_id_s { // interest details
-    struct ccnl_buf_s *keyid;       // publisher keyID
-};
-
-struct ccnl_ndntlv_id_s { // interest details
-    int minsuffix, maxsuffix, mbf;
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
-};
-
-#define CCNL_PIT_COREPROPAGATES    0x01
-#define CCNL_PIT_TRACED            0x02
-
 struct ccnl_interest_s {
-    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_interest_s *next, *prev;
+    struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
     struct ccnl_pendint_s *pending; // linked list of faces wanting that content
-    struct ccnl_prefix_s *prefix;
-    int flags;
+    unsigned short flags;
+#define CCNL_PIT_COREPROPAGATES    0x01
+#define CCNL_PIT_TRACED            0x02
     int last_used;
     int retries;
-    union {
-        struct ccnl_ccnb_id_s ccnb;
-        struct ccnl_ccntlv_id_s ccntlv;
-        struct ccnl_ndntlv_id_s ndntlv;
-    } details;
-    char suite;
 };
 
 struct ccnl_pendint_s { // pending interest
@@ -214,37 +213,81 @@ struct ccnl_pendint_s { // pending interest
     int last_used;
 };
 
-struct ccnl_ccnb_cd_s { // content details
-    struct ccnl_buf_s *ppkd;       // publisher public key digest
-};
-
-struct ccnl_ccntlv_cd_s { // content details
-    struct ccnl_buf_s *keyid;       // publisher keyID
-};
-
-struct ccnl_ndntlv_cd_s { // content details
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
-};
-
 struct ccnl_content_s {
-    struct ccnl_buf_s *pkt; // full datagram
     struct ccnl_content_s *next, *prev;
-    struct ccnl_prefix_s *name;
-    struct ccnl_buf_s *ppkd; // publisher public key digest
-    int flags;
-    unsigned char *content; // pointer into the data buffer
-    int contentlen;
+    struct ccnl_pkt_s *pkt;
+    unsigned short flags;
+#define CCNL_CONTENT_FLAGS_STATIC  0x01
+#define CCNL_CONTENT_FLAGS_STALE   0x02
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
     int last_used;
     int served_cnt;
+};
+
+struct ccnl_pktdetail_ccnb_s {
+    int minsuffix, maxsuffix, aok, scope;
+    struct ccnl_buf_s *nonce;
+    struct ccnl_buf_s *ppkd;        // publisher public key digest
+};
+
+struct ccnl_pktdetail_ccntlv_s {
+    struct ccnl_buf_s *keyid;       // publisher keyID
+};
+
+struct ccnl_pktdetail_iottlv_s {
+    int ttl;
+};
+
+struct ccnl_pktdetail_ndntlv_s {
+    int minsuffix, maxsuffix, mbf, scope;
+    struct ccnl_buf_s *nonce;      // nonce
+    struct ccnl_buf_s *ppkl;       // publisher public key locator
+};
+
+// packet flags:  0000ebtt
+
+#define CCNL_PKT_REQUEST    0x01 // "Interest"
+#define CCNL_PKT_REPLY      0x02 // "Object", "Data"
+#define CCNL_PKT_FRAGMENT   0x03 // "Fragment"
+#define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
+#define CCNL_PKT_FRAG_END   0x08
+
+struct ccnl_pkt_s {
+    struct ccnl_buf_s *buf;        // the packet's bytes
+    struct ccnl_prefix_s *pfx;     // prefix/name
+    unsigned char *content;        // pointer into the data buffer
+    int contlen;
+    unsigned int type;   // suite-specific value (outermost type)
     union {
-        struct ccnl_ccnb_cd_s ccnb;
-        struct ccnl_ccntlv_cd_s ccntlv;
-        struct ccnl_ndntlv_cd_s ndntlv;
-    } details;
+        int final_block_id;
+        unsigned int seqno;
+    } val;
+    union {
+        struct ccnl_pktdetail_ccnb_s   ccnb;
+        struct ccnl_pktdetail_ccntlv_s ccntlv;
+        struct ccnl_pktdetail_iottlv_s iottlv;
+        struct ccnl_pktdetail_ndntlv_s ndntlv;
+    } s;                           // suite specific packet details
+#ifdef USE_HMAC256
+    unsigned char *hmacStart;
+    int hmacLen;
+    unsigned char *hmacSignature;
+#endif
+    unsigned int flags;
     char suite;
 };
+
+typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
+                           unsigned char**, int*);
+typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
+
+struct ccnl_suite_s {
+    dispatchFct RX;
+    cMatchFct cMatch;
+};
+
+// ----------------------------------------------------------------------
 
 struct ccnl_lambdaTerm_s {
     char *v;
