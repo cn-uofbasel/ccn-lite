@@ -1,8 +1,9 @@
 ![](doc/logo/ccn-lite-logo-712x184.png)
 
-Jump to the [Table of Contents](#toc)
+*Jump to the [Table of Contents](#toc)*
+
 CCN-lite is a reduced and lightweight -- yet functionally
-interoperable -- implementation of the CCNx protocol. It covers:
+interoperable -- implementation of the CCNx and NDN protocols. It covers:
 
 - PARC's [Content Centric Networking Protocol](http://www.ccnx.org/), both the old (v0.8) and new (v1.0) variant,
 - the [Named-Data Networking project](http://named-data.net/),
