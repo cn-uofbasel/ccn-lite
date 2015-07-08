@@ -1,5 +1,6 @@
 ![](doc/logo/ccn-lite-logo-712x184.png)
 
+Jump to the [Table of Contents](#toc)
 CCN-lite is a reduced and lightweight -- yet functionally
 interoperable -- implementation of the CCNx protocol. It covers:
 
@@ -24,8 +25,9 @@ CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
 
 
+<a name="toc"></a>
 ### Table of Contents
-1. [Getting started](#1-getting-started)
+1. [Getting started](#gettingstarted)
 2. [Rationale for CCN-lite](#rationale)
 3. [Extensions](#extensions)
 4. [CCN-lite supported platforms](#platforms)
@@ -307,9 +309,25 @@ Christopher Scherb
 Manolis Sifalakis  
 Christian F. Tschudin  
 
-#### Code and documentation feedback:
-Dima Mansour  
-Urs Schnurrenberger  
+#### Feedback and other contributions:
+Fateh Al-Mufti   
+Frederik Brix   
+Patrick Buder   
+Daniel Federau   
+Ilir Fetai   
+Nenad Kokeza   
+David Kordsmeier   
+Dima Mansour   
+Marc Mosko   
+Mihai Daniel Rapcea   
+Fabian Rauschenbach   
+Yanick Salzmann   
+Maarten Schenk   
+Urs Schnurrenberger   
+Marco Suter   
+Marc-Andrea Tarnutzer   
+Marco Dieter Vogt   
+Akan Yilmaz   
 
 
 ### [Release 0.2.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/v0.2.0) (Dec 2014)
