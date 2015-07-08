@@ -96,23 +96,15 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
 ## Installation for RFduino
 
-1. *Outdated!* (Install the RFduino support for the Arduino IDE according
-    to the quick start guide):
-
-    http://www.rfduino.com/wp-content/uploads/2014/04/RFduino.Quick_.Start_.Guide_.pdf
-
-2. New: Go to the RFduino README on GitHub:
+1.  Intall the RFduino support for the Arduino IDE according to the GitHub
+    README:
 
     https://github.com/RFduino/RFduino/blob/master/README.md
 
-3. Follow the instructions, but add one additional step:
+    Follow the instructions but add one additional step: After you have configured your additional board manager for RFduino, *first*
+    download the "Arduino SAM Boards" (32bits ARM Cortex-M3). Only then download and install "RFduino Boards".
 
-    After you have configure your additional board manager for RFduino,
-    *first* download the "Arduino SAM Boards" (32bits ARM Cortex-M3).
-
-    Only then download and install "RFduino Boards".
-
-4.  Change the absolute path of the `#include` of `src/ccn-lite-rfduino.c` in
+2.  Change the absolute path of the `#include` of `src/ccn-lite-rfduino.c` in
     `src/arduino/rfduino/rfduino.ino` to match your CCN-lite home directory
     `$CCNL_HOME`:
 
@@ -124,9 +116,9 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
     This is because the Arduino IDE does not support relative `#include` paths.
 
-5.  Compile and upload the code by running `verify/compile` and `upload`.
+3.  Compile and upload the code by running `verify/compile` and `upload`.
 
-6.  Connect to your device by using the Serial Monitor (inside the IDE:
+4.  Connect to your device by using the Serial Monitor (inside the IDE:
     `Tools > Serial Monitor`) or on the command line with `ino`:
 
     ```bash
