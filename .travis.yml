@@ -27,24 +27,11 @@ script:
 
         # Run build-test.sh
         - make clean
-        - ./build-test.sh echo-cores bt-relay bt-all bt-pkt # Remove arguments when bt-lnxkernel compiles
+	- ./build-test.sh echo-cores bt-relay bt-all bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 # bt-lnxkernel and bt-demo-cisco2015 removed because they fail
 
         # Build again for test scripts
         - make clean
         - make -j8 all
-
-        # Run all demo relay test scripts
-        - cd $CCNL_HOME/test/scripts
-        - ./demo-relay.sh ccnb udp false
-        - ./demo-relay.sh ccnb ux false
-        - ./demo-relay.sh ccnx2015 udp false
-        - ./demo-relay.sh ccnx2015 ux false
-#        - ./demo-relay.sh cisco2015 udp false #Reenable if cisco format is fixed
-#        - ./demo-relay.sh cisco2015 ux false #Reenable if cisco format is fixed
-        - ./demo-relay.sh iot2014 udp false
-        - ./demo-relay.sh iot2014 ux false
-        - ./demo-relay.sh ndn2013 udp false
-        - ./demo-relay.sh ndn2013 ux false
 
         # Run nfn_test script
         - cd $CCNL_HOME/test/scripts/nfn
