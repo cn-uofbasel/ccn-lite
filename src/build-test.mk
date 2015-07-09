@@ -16,6 +16,8 @@ else
     PRINT_LOG=( exit 1 )
 endif
 
+PKT_FORMATS:=ccnb ccntlv cistlv iottlv ndntlv
+SUITES:=ccnb ccnx2015 cisco2015 iot2014 ndn2013
 BT_RELAY:=bt-relay-nothing \
 	bt-relay-barebones \
 	bt-relay-vanilla \
@@ -28,18 +30,16 @@ BT_RELAY:=bt-relay-nothing \
 BT_LNXKERNEL:=bt-lnxkernel
 BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
-BT_PKT:=bt-pkt-ccnb \
-	bt-pkt-ccntlv \
-	bt-pkt-cistlv \
-	bt-pkt-iottlv \
-	bt-pkt-ndntlv
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT}
+BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
+BT_DEMO:=$(addprefix bt-demo-,${SUITES})
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT} ${BT_DEMO}
 
-.PHONY: all clean bt-relay bt-all bt-pkt ${PROFILES}
+.PHONY: echo-cores all clean bt-relay bt-all bt-pkt bt-demo ${PROFILES}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
+bt-demo: ${BT_DEMO} clean
 
 echo-cores:
 	@bash -c 'printf "\e[3mBuilding using $(NO_CORES) cores:\e[0m\n"'
@@ -124,12 +124,14 @@ bt-relay-all:
 	MAKE_VARS="USE_FRAG=1 USE_SIGNATURES=1" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
+
 bt-lnxkernel:
 	@MODE="make" \
 	TARGET=$@ \
 	MAKE_TARGETS="ccn-lite-lnxkernel" \
 	MAKE_VARS="USE_KRNL=1" \
 	./build-test-helper.sh || ${PRINT_LOG}
+
 
 bt-all-vanilla:
 	@MODE="make" \
@@ -144,32 +146,16 @@ bt-all-nfn:
 	MAKE_VARS="USE_NFN=1" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
-bt-pkt-ccnb:
+
+${BT_PKT}:
 	@MODE="pkt-format" \
 	TARGET=$@ \
-	PKT_FORMAT="ccnb" \
+	PKT_FORMAT=$(@:bt-pkt-%=%) \
 	./build-test-helper.sh || ${PRINT_LOG}
 
-bt-pkt-ccntlv:
-	@MODE="pkt-format" \
-	TARGET=$@ \
-	PKT_FORMAT="ccntlv" \
-	./build-test-helper.sh || ${PRINT_LOG}
 
-bt-pkt-cistlv:
-	@MODE="pkt-format" \
+${BT_DEMO}:
+	@MODE="demo-relay" \
 	TARGET=$@ \
-	PKT_FORMAT="cistlv" \
-	./build-test-helper.sh || ${PRINT_LOG}
-
-bt-pkt-iottlv:
-	@MODE="pkt-format" \
-	TARGET=$@ \
-	PKT_FORMAT="iottlv" \
-	./build-test-helper.sh || ${PRINT_LOG}
-
-bt-pkt-ndntlv:
-	@MODE="pkt-format" \
-	TARGET=$@ \
-	PKT_FORMAT="ndntlv" \
+	SUITE=$(@:bt-demo-%=%) \
 	./build-test-helper.sh || ${PRINT_LOG}
