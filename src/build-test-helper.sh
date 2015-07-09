@@ -22,9 +22,9 @@
 #        PKT_FORMAT    Name of the packet format to test.
 #
 #   "demo-relay"
-#      Runs the demo-relay with the provided packet format.
+#      Runs the demo-relay with the provided suite.
 #      Parameters:
-#        PKT_FORMAT    Name of the packet format to test.
+#        SUITE         Name of the suite to test.
 
 
 
@@ -115,17 +115,21 @@ build-test-packet-format() {
 #
 # Parameters:
 #     $1    log file
-#     $2    packet format
+#     $2    suite
 #     $3    relay mode (ux or udp)
 build-test-demo-relay() {
     local logfile=$1
-    local pktFormat=$2
+    local suite=$2
     local relayMode=$3
     local useKernel="false"
+    local rc
 
-    echo "$ ../test/scripts/demo-relay.sh $pktFormat $relayMode $useKernel" >> "$logfile"
-    ../test/scripts/demo-relay.sh "$pktFormat" "$relayMode $useKernel" >> "$logfile" 2>&1
+    echo "$ ../test/scripts/demo-relay.sh $suite $relayMode $useKernel" >> "$logfile"
+    ../test/scripts/demo-relay.sh "$suite" "$relayMode" "$useKernel" >> "$logfile" 2>&1
+    rc=$?
     echo "" >> "$logfile"
+
+    return $rc
 }
 
 ### Main script:
@@ -166,12 +170,13 @@ elif [ "$MODE" = "pkt-format" ]; then
 
 elif [ "$MODE" = "demo-relay" ]; then
 
-    build-test-make "$LOGFILE" USE_NFN=1 clean all
+    echo "$ make all USE_NFN=1" >> "$LOGFILE"
+    make all USE_NFN=1 >> "$LOGFILE"
     if [ $? -ne 0 ]; then
         RC=1
     else
-        for M in "ux udp"; do
-            build-test-demo-relay "$LOGFILE" "$PKT_FORMAT" "$M"
+        for M in "ux" "udp"; do
+            build-test-demo-relay "$LOGFILE" "$SUITE" "$M"
             if [ $? -ne 0 ]; then RC=1; fi
         done
     fi
