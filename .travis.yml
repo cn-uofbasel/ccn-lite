@@ -27,7 +27,7 @@ script:
 
         # Run build-test.sh
         - make clean
-	- ./build-test.sh echo-cores bt-relay bt-all bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 # bt-lnxkernel and bt-demo-cisco2015 removed because they fail
+        - ./build-test.sh echo-cores bt-relay bt-all bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 # bt-lnxkernel and bt-demo-cisco2015 removed because they fail
 
         # Build again for test scripts
         - make clean
