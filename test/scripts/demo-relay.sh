@@ -1,41 +1,55 @@
-#!/bin/sh
+#!/bin/bash
 
 # demo-relay.sh -- test/demo for ccn-lite: CCNx relaying
-USAGE="usage: sh demo-relay.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE= ccnb, ccnx2015, cisco2015, iot2014, ndn2013\n CHANNEL= udp, ux\n KERNELMODULE= true, false"
-SET_CCNL_HOME_VAR="set system variable CCNL_HOME to your local CCN-Lite installation (.../ccn-lite) and run 'make clean all' in CCNL_HOME/src"
-COMPILE_CCNL="run 'make clean all' in CCNL_HOME/src"
+SUITES=("ccnb" "ccnx2015" "cisco2015" "iot2014" "ndn2013")
+CHANNELS=("udp" "ux")
+KERNELMODULES=("true" "false")
+USAGE="usage: sh demo-relay.sh SUITE CHANNEL KERNELMODULE\nwhere\n  SUITE =        ${SUITES[@]}\n CHANNEL =      ${CHANNELS[@]}\n KERNELMODULE = ${KERNELMODULES[@]}"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-exit_error_msg () {
-    echo $1
-    echo $USAGE
-    exit 1
-}
+# Load utils
+source "$DIR/utils.sh"
 
-if [ -z "$CCNL_HOME" ]
-then
-    export CCNL_HOME="../../"
-    #echo $SET_CCNL_HOME_VAR
-    #exit 1
-fi
-
-if [ ! -f "$CCNL_HOME/src/ccn-lite-relay" ]
-then
-    echo $COMPILE_CCNL
-    exit 1
-fi
-
+# Check parameters
 if [ "$#" -lt 3 ]; then
-    exit_error_msg "illegal number of parameters"
+    echo "Error: illegal number of parameters" 1>&2
+    echo -e "$USAGE"
+    exit 1
 fi
+
+# Check SUITE
+SUITE=$1
+if ! containsElement "$SUITE" "${SUITES[@]}"; then
+    echo "Error: unknown SUITE '$SUITE'" 1>&2
+    echo -e "$USAGE"
+    exit 1
+fi
+
+# Check CON
+CON=$2
+if ! containsElement "$CON" "${CHANNELS[@]}"; then
+    echo "Error: unknown CHANNEL '$CON'" 1>&2
+    echo -e "$USAGE"
+    exit 1
+fi
+
+# Check USEKRNL
+USEKRNL=$3
+if ! containsElement "$USEKRNL" "${KERNELMODULES[@]}"; then
+    echo "Error: unknown KERNELMODULE '$USEKRNL'" 1>&2
+    echo -e "$USAGE"
+    exit 1
+fi
+
+# Check CCNL_HOME and binaries
+check-and-set-ccnl-home "$DIR/../.."
+check-ccn-lite
+
 
 PORTA=9998
 PORTB=9999
 UXA=/tmp/ccn-lite-relay-$$-a.sock
 UXB=/tmp/ccn-lite-relay-$$-b.sock
-
-SUITE=$1
-CON=$2
-USEKRNL=$3
 
 # suite setup
 if [ $SUITE = "ccnb" ]
