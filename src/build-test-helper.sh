@@ -25,7 +25,11 @@
 #      Runs the demo-relay with the provided suite.
 #      Parameters:
 #        SUITE         Name of the suite to test.
-
+#
+#   "nfn-test"
+#      Runs the nfn-test script with the provided suite.
+#      Parameters:
+#        SUITE         Name of the suite to test.
 
 
 ### Functions:
@@ -132,6 +136,24 @@ build-test-demo-relay() {
     return $rc
 }
 
+# Runs the nfn-test.sh script.
+#
+# Parameters:
+#     $1    log file
+#     $2    suite
+build-test-nfn-test() {
+    local logfile=$1
+    local suite=$2
+    local rc
+
+    echo "$ ../test/scripts/nfn/nfn_test.sh -v $suite" >> "$logfile"
+    ../test/scripts/nfn/nfn_test.sh -v "$suite" &>> "$logfile"
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
 ### Main script:
 
 unset USE_KRNL
@@ -179,6 +201,17 @@ elif [ "$MODE" = "demo-relay" ]; then
             build-test-demo-relay "$LOGFILE" "$SUITE" "$M"
             if [ $? -ne 0 ]; then RC=1; fi
         done
+    fi
+
+elif [ "$MODE" = "nfn-test" ]; then
+
+    echo "$ make all USE_NFN=1" >> "$LOGFILE"
+    make all USE_NFN=1 >> "$LOGFILE"
+    if [ $? -ne 0 ]; then
+        RC=1
+    else
+        build-test-nfn-test "$LOGFILE" "$SUITE"
+        RC=$?
     fi
 
 else

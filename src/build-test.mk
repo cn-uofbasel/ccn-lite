@@ -32,7 +32,8 @@ BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
 BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
 BT_DEMO:=$(addprefix bt-demo-,${SUITES})
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT} ${BT_DEMO}
+BT_NFN:=$(addprefix bt-nfn-,${SUITES})
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
 
 .PHONY: echo-cores all clean bt-relay bt-all bt-pkt bt-demo ${PROFILES}
 all: echo-cores ${PROFILES} clean
@@ -40,12 +41,13 @@ bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
 bt-demo: ${BT_DEMO} clean
+bt-nfn: ${BT_NFN} clean
 
 echo-cores:
 	@bash -c 'printf "\e[3mBuilding using $(NO_CORES) cores:\e[0m\n"'
 
 clean:
-	@make clean > /dev/null 2>&1
+	@make clean USE_NFN=1 USE_NACK=1 > /dev/null 2>&1
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
 
@@ -158,4 +160,11 @@ ${BT_DEMO}:
 	@MODE="demo-relay" \
 	TARGET=$@ \
 	SUITE=$(@:bt-demo-%=%) \
+	./build-test-helper.sh || ${PRINT_LOG}
+
+
+${BT_NFN}:
+	@MODE="nfn-test" \
+	TARGET=$@ \
+	SUITE=$(@:bt-nfn-%=%) \
 	./build-test-helper.sh || ${PRINT_LOG}
