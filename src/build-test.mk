@@ -28,12 +28,13 @@ BT_RELAY:=bt-relay-nothing \
 	bt-relay-nfn-nack \
 	bt-relay-all
 BT_LNXKERNEL:=bt-lnxkernel
+BT_OMNET:=bt-omnet
 BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
 BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
 BT_DEMO:=$(addprefix bt-demo-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
 
 .PHONY: echo-cores all clean bt-relay bt-all bt-pkt bt-demo ${PROFILES}
 all: echo-cores ${PROFILES} clean
@@ -134,6 +135,12 @@ bt-lnxkernel:
 	MAKE_VARS="USE_KRNL=1" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
+
+bt-omnet:
+	@MODE="make" \
+	TARGET=$@ \
+	MAKE_TARGETS="ccn-lite-omnet" \
+	./build-test-helper.sh || ${PRINT_LOG}
 
 bt-all-vanilla:
 	@MODE="make" \
