@@ -183,7 +183,7 @@ ${BT_DEMO}: bt-all-vanilla
 	@MODE="demo-relay" \
 	TARGET=$@ \
 	SUITE=$(@:bt-demo-%=%) \
-	WITH_KRNL="false"
+	WITH_KRNL="false" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 ${BT_DEMO_KRNL}: bt-all-vanilla bt-lnxkernel
