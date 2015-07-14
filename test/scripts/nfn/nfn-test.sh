@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# nfn_test.sh -- test/demo for ccn-lite with NFN
+# nfn-test.sh -- test/demo for ccn-lite with NFN
 # Environment variables
 SUITES=("ccnb" "ccnx2015" "cisco2015" "iot2014" "ndn2013")
 USAGE="usage: nfn-test.sh [-v] SUITE \nwhere\n  SUITE =   ${SUITES[@]}\n  -v        enable verbose output"

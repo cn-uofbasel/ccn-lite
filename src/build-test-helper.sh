@@ -146,8 +146,8 @@ build-test-nfn-test() {
     local suite=$2
     local rc
 
-    echo "$ ../test/scripts/nfn/nfn_test.sh -v $suite" >> "$logfile"
-    ../test/scripts/nfn/nfn_test.sh -v "$suite" &>> "$logfile"
+    echo "$ ../test/scripts/nfn/nfn-test.sh -v $suite" >> "$logfile"
+    ../test/scripts/nfn/nfn-test.sh -v "$suite" &>> "$logfile"
     rc=$?
     echo "" >> "$logfile"
 
