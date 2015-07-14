@@ -909,7 +909,7 @@ ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ..
 #endif
 
     if (numChars > 0) {
-        if (numChars >= *buflen) {
+        if (((unsigned int) numChars) >= *buflen) {
             *buflen = 0;
         } else {
             *buflen -= numChars;
