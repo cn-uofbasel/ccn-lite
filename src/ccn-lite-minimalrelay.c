@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -140,6 +141,7 @@ int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s 
 char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 const char* ccnl_suite2str(int suite);
+bool ccnl_isSuite(int suite);
 
 //----------------------------------------------------------------------
 

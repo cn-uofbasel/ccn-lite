@@ -20,6 +20,8 @@
  * 2013-03-30 created
  */
 
+#pragma once
+
 #if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES) || defined(USE_SUITE_LOCALRPC)
 # define NEEDS_PACKET_CRAFTING
 #endif
@@ -56,6 +58,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
+bool ccnl_isSuite(int suite);
 
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 

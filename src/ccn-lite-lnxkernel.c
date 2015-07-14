@@ -552,7 +552,7 @@ module_param(p, charp, 0);
 MODULE_PARM_DESC(p, "private key path");
 
 module_param(s, charp, 0);
-MODULE_PARM_DESC(s, "suite (ccnb, ccnx2014, iot2014, ndn2013)");
+MODULE_PARM_DESC(s, "suite (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)");
 
 module_param(u, int, 0);
 MODULE_PARM_DESC(u, "UDP port (default is 6363 for ndntlv, 9695 for ccnb)");
@@ -571,17 +571,15 @@ ccnl_init(void)
 {
     struct ccnl_if_s *i;
 
-    if (isdigit(v[0])) {
-        debug_level = v[0] - '0';
-        v++;
-        while (isdigit(*v))
-            debug_level = 10 * debug_level + *(v++) - '0';
-    } else
+    if (v) {
         debug_level = ccnl_debug_str2level(v);
-
-    suite = ccnl_str2suite(s);
-    if (suite < 0 || suite >= CCNL_SUITE_LAST)
+    }
+    if (s) {
+        suite = ccnl_str2suite(s);
+    }
+    if (!ccnl_isSuite(suite)) {
         suite = CCNL_SUITE_DEFAULT;
+    }
 
     DEBUGMSG(INFO, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);

@@ -446,6 +446,7 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     case CCNL_FRAG_BEGINEND2015:
         return ccnl_frag_getnextBE2015(fr, ifndx, su);
     default:
+        DEBUGMSG_EFRA(VERBOSE, "  unknown protocol %d\n", fr->protocol);
         return NULL;
     }
 }

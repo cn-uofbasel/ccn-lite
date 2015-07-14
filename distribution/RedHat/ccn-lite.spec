@@ -1,10 +1,10 @@
 Name:		CCN-Lite
-Version:	0.2.1	
+Version:	0.3.0	
 Release:	1%{?dist}
 Summary:	CCN-lite
 
 Group:		Application/Internet
-License:	MIT
+License:	ISC
 URL:		ccn-lite.net
 
 #BuildRequires:	

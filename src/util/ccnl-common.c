@@ -62,6 +62,7 @@
 #include "../ccnl-os-includes.h"
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
+#include "../ccnl-ext.h"
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
@@ -105,20 +106,21 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 ccnl_enc2str(int enc)
 {
     switch(enc) {
-    case CCNL_ENC_CCNB:      return "ccnb";
-    case CCNL_ENC_NDN2013:   return "ndn2013";
-    case CCNL_ENC_CCNX2014:  return "ccnbx2014";
-    case CCNL_ENC_IOT2014:   return "iot2014";
-    case CCNL_ENC_LOCALRPC:  return "localrpc";
+    case CCNL_ENC_CCNB:      return CONSTSTR("ccnb");
+    case CCNL_ENC_NDN2013:   return CONSTSTR("ndn2013");
+    case CCNL_ENC_CCNX2014:  return CONSTSTR("ccnbx2014");
+    case CCNL_ENC_IOT2014:   return CONSTSTR("iot2014");
+    case CCNL_ENC_LOCALRPC:  return CONSTSTR("localrpc");
+    case CCNL_ENC_CISCO2015: return CONSTSTR("cisco2015");
     default:
         break;
     }
 
-    return "?";
+    return CONSTSTR("?");
 }
 
 // ----------------------------------------------------------------------
@@ -154,7 +156,7 @@ ccnl_enc2str(int enc)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
-                     char *maxSuffix, unsigned char *digest, int dlen,
+                     const char *maxSuffix, unsigned char *digest, int dlen,
                      unsigned char *publisher, int plen, char *scope,
                      uint32_t *nonce, unsigned char *out)
 {
@@ -501,8 +503,8 @@ ccnl_suite2isFragmentFunc(int suite)
 #endif
     }
 
-    DEBUGMSG(DEBUG, "unknown suite %d in %s:%d\n",
-                    suite, __func__, __LINE__);
+    DEBUGMSG(DEBUG, "unknown suite %d in %s of %s:%d\n",
+                    suite, __func__, __FILE__, __LINE__);
     return NULL;
 }
 
@@ -517,7 +519,7 @@ struct key_s {
 struct key_s*
 load_keys_from_file(char *path)
 {
-    FILE *fp = fopen(optarg, "r");
+    FILE *fp = fopen(path, "r");
     char line[256];
     int cnt = 0;
     struct key_s *klist = NULL, *kend = NULL;

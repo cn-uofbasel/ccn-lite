@@ -73,7 +73,7 @@ main(int argc, char *argv[])
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite))
                 goto usage;
             break;
         case 'u':
@@ -140,7 +140,6 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
         si->sin_addr.s_addr = inet_addr(addr);
         si->sin_port = htons(port);
@@ -175,7 +174,7 @@ usage:
 */
         if (ux) {
             socksize = sizeof(struct sockaddr_un);
-        } else
+        } else {
             socksize = sizeof(struct sockaddr_in);
         }
         rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);

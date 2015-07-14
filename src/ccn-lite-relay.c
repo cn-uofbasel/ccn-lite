@@ -776,7 +776,7 @@ main(int argc, char **argv)
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite))
                 goto usage;
             break;
         case 't':
@@ -814,7 +814,7 @@ usage:
                     "  -o echo_prefix\n"
 #endif
                     "  -p crypto_face_ux_socket\n"
-                    "  -s SUITE (ccnb, ccnx2015, iot2014, ndn2013)\n"
+                    "  -s SUITE (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
                     "  -u udpport (can be specified twice)\n"
 

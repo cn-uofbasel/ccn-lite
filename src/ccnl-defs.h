@@ -20,7 +20,7 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2015-05-07"
+#define CCNL_VERSION "2015-07-07"
 
 #ifndef CCNL_DEFS_H
 #define CCNL_DEFS_H
@@ -145,6 +145,8 @@ enum {
 #define CCNL_DTAG_CALLBACK      99226
 #define CCNL_DTAG_SUITE         99300
 #define CCNL_DTAG_COMPLENGTH    99301
+#define CCNL_DTAG_CHUNKNUM      99302
+#define CCNL_DTAG_CHUNKFLAG     99303
 
 
 // ----------------------------------------------------------------------

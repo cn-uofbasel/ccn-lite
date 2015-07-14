@@ -1535,11 +1535,13 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
                  ccnl_suite2str(suite));
         return -1;
     }
-    write(1, pkt->content, pkt->contlen);
-    if (format > 2)
-        write(1, "\n", 1);
-    free_packet(pkt);
 
+    printf("%.*s", pkt->contlen, pkt->content);
+    if (format > 2) {
+        printf("\n");
+    }
+
+    free_packet(pkt);
     return 0;
 }
 
@@ -1673,7 +1675,7 @@ main(int argc, char *argv[])
         switch (opt) {
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite))
                 goto help;
             break;
         case 'f':
@@ -1693,7 +1695,7 @@ help:
                     "usage: %s [options] <encoded_data\n"
                     "  -f FORMAT    (0=readable, 1=rawxml, 2=content, 3=content+newline)\n"
                     "  -h           this help\n"
-                    "  -s SUITE     (ccnb, ccnx2015, iot2014, ndn2013)\n"
+                    "  -s SUITE     (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif

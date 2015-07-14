@@ -315,34 +315,34 @@ ccnl_suite2defaultPort(int suite)
     return NDN_UDP_PORT;
 }
 
-int
+bool
 ccnl_isSuite(int suite)
 {
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB)
-        return 1;
+        return true;
 #endif
 #ifdef USE_SUITE_CCNTLV
     if (suite == CCNL_SUITE_CCNTLV)
-        return 1;
+        return true;
 #endif
 #ifdef USE_SUITE_CISTLV
     if (suite == CCNL_SUITE_CISTLV)
-        return 1;
+        return true;
 #endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)
-        return 1;
+        return true;
 #endif
 #ifdef USE_SUITE_LOCALRPC
     if (suite == CCNL_SUITE_LOCALRPC)
-        return 1;
+        return true;
 #endif
 #ifdef USE_SUITE_NDNTLV
     if (suite == CCNL_SUITE_NDNTLV)
-        return 1;
+        return true;
 #endif
-    return 0;
+    return false;
 }
 
 // ----------------------------------------------------------------------

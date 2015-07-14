@@ -229,8 +229,10 @@ main(int argc, char *argv[])
         switch (opt) {
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite < 0 || suite >= CCNL_SUITE_LAST)
+            if (!ccnl_isSuite(suite)) {
+                DEBUGMSG(ERROR, "Unsupported suite %s\n", optarg);
                 goto usage;
+            }
             break;
         case 'u':
             udp = optarg;
@@ -280,6 +282,8 @@ usage:
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
     }
+
+    DEBUGMSG(TRACE, "using suite %d:%s\n", suite, ccnl_suite2str(suite));
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
     if (ux) { // use UNIX socket
@@ -289,7 +293,6 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        udp = strdup(udp);
         si->sin_family = PF_INET;
         si->sin_addr.s_addr = inet_addr(addr);
         si->sin_port = htons(port);
@@ -359,7 +362,7 @@ usage:
                                              &lastchunknum,
                                              &content, &contlen) < 0) {
                 retry++;
-               DEBUGMSG(WARNING, "Could not extract response or it was an interest");
+               DEBUGMSG(WARNING, "Could not extract response or it was an interest\n");
             } else {
 
                 prefix = nextprefix;

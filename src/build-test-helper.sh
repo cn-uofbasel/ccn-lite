@@ -1,87 +1,233 @@
 #!/bin/bash
 
-# A helper script to build specific targets.
-# It prints either 'ok', 'warning' or 'failed' depending on the outcome of the
-# build. The output of the build is stored in /tmp/$LOG_FNAME. If the build
-# failed, the modified file $TARGET_FNAME is stored in /tmp/$TARGET_FNAME.$LOG_FNAME.
+# A helper script to execute all build-test commands.
 #
 # Parameters (passed in environment variables):
-# 	LOG_FNAME	Name of the logfile to write to.
-#	MAKE_TARGETS	Targets that need to be built.
-#	MAKE_VARS	Variable-value pairs that are sent to the Makefile.
-#	MODIFIY_FNAME	Name of the file to change #defines.
-#	SET_VARS	#define variables that need to be defined.
-#	UNSET_VARS	#define variables that need to be unset.
-#	PKT_FORMAT	Name of the packet format to test. If this variable is
-#			set, the packet format tests are executed instead of
-#			the normal build.
+#   TARGET  Name of the target. Also used for the log file name.
+#   MODE    Executes different commands for each mode: "make", "pkt-format" and "demo-relay". Each mode requires different variables.
 
-# Undefining all environment variables in this invocation (build variables are passed as MAKE_VARS)
+# Modes:
+#   "make"
+#      Invokes the CCN-lite Makefile with the passed variables and targets
+#      Parameters:
+#        MAKE_TARGETS  Targets that need to be built.
+#        MAKE_VARS     (optional) Variable-value pairs that are sent to the Makefile.
+#        MODIFIY_FILE  (optional) Name of the file to change #defines.
+#        SET_VARS      (optional) #define variables that need to be defined.
+#        UNSET_VARS    (optional) #define variables that need to be unset.
+#
+#   "pkt-format"
+#      Executes the packet format tests by compiling ccn-lite-pktdump and let pktdump parse all available test packets from the specified packet format.
+#      Parameters:
+#        PKT_FORMAT    Name of the packet format to test.
+#
+#   "demo-relay"
+#      Runs the demo-relay with the provided suite.
+#      Parameters:
+#        SUITE         Name of the suite to test.
+#
+#   "nfn-test"
+#      Runs the nfn-test script with the provided suite.
+#      Parameters:
+#        SUITE         Name of the suite to test.
+
+
+### Functions:
+
+# Modifies the '#define' variables in a provided file:
+#
+# Parameters:
+#     $1    filename of the file to modify
+#     $2    list of variables that need to be set and are commented out
+#     $3    list of variables that are set and need to be commented out
+#
+# This function modifies the passed file.
+build-test-modify-defines() {
+    local file=$1
+    local setVariables=$2
+    local unsetVariables=$3
+
+    # Define variables that are commented out
+    for var in $setVariables; do
+        sed -e "s!^\s*//\s*#define $var!#define $var!" "$file" > "$file.sed"
+        mv "$file.sed" "$file"
+    done
+
+    # Comment already defined variables
+    for var in $unsetVariables; do
+        sed -e "s!^\s*#define $var!// #define $var!" "$file" > "$file.sed"
+        mv "$file.sed" "$file"
+    done
+}
+
+# Builds ccn-lite and logs the output in a specified log file.
+#
+# Parameters:
+#     $1    log file
+#     $2... parameters passed to make
+build-test-make() {
+    # TODO: fix $NO_CORES!
+    local logfile=$1; shift
+    local rc=0
+
+    echo "$ make clean" >> "$logfile"
+    make clean >> "$logfile" 2>&1
+    echo "" >> "$logfile"
+
+    echo "$ make -j$NO_CORES -k $@" >> "$logfile"
+    make -j$NO_CORES -k -B $@ >> "$logfile" 2>&1
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+# Tests a specific packet format by feeding all available test files to
+# ccn-lite-pktdump.
+#
+# Parameters:
+#     $1    log file
+#     $2    packet format
+build-test-packet-format() {
+    local logfile=$1;
+    local pktFormat=$2;
+
+    echo "$ make -C util ccn-lite-pktdump" >> "$logfile"
+    make -C util ccn-lite-pktdump >> "$logfile"
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    echo "" >> "$logfile"
+
+    local rc=0
+    local files=""
+
+    files=$(find ../test/$pktFormat -iname "*.$pktFormat")
+    for file in $files; do
+        echo "$ ccn-lite-pktdump < $file" >> "$logfile"
+        ./util/ccn-lite-pktdump < $file >> "$logfile" 2>&1
+        if [ $? -ne 0 ]; then
+            rc=1
+        fi
+        echo "" >> "$logfile"
+    done
+
+    return $rc
+}
+
+# Runs the demo-relay.sh script.
+#
+# Parameters:
+#     $1    log file
+#     $2    suite
+#     $3    relay mode (ux or udp)
+build-test-demo-relay() {
+    local logfile=$1
+    local suite=$2
+    local relayMode=$3
+    local useKernel="false"
+    local rc
+
+    echo "$ ../test/scripts/demo-relay.sh $suite $relayMode $useKernel" >> "$logfile"
+    ../test/scripts/demo-relay.sh "$suite" "$relayMode" "$useKernel" >> "$logfile" 2>&1
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+# Runs the nfn-test.sh script.
+#
+# Parameters:
+#     $1    log file
+#     $2    suite
+build-test-nfn-test() {
+    local logfile=$1
+    local suite=$2
+    local rc
+
+    echo "$ ../test/scripts/nfn/nfn-test.sh -v $suite" >> "$logfile"
+    ../test/scripts/nfn/nfn-test.sh -v "$suite" &>> "$logfile"
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+### Main script:
+
 unset USE_KRNL
 unset USE_FRAG
 unset USE_NFN
 unset USE_SIGNATURES
+LOGFILE="/tmp/$TARGET.log"
+RC=0
 
-if [ -n "$MODIFIY_FNAME" ]; then
-    # Backup
-    cp "$MODIFIY_FNAME" "$MODIFIY_FNAME.bak"
+printf "%-30s [..]" "$TARGET"
 
-    # Define variables that are commented out
-    for VAR in $SET_VARS; do
-        #  echo "Defining $VAR..."
-        sed -e "s!^\s*//\s*#define $VAR!#define $VAR!" "$MODIFIY_FNAME" > "$MODIFIY_FNAME.sed"
-        mv "$MODIFIY_FNAME.sed" "$MODIFIY_FNAME"
-    done
+rm -f "$LOGFILE"
 
-    # Comment already defined variables
-    for VAR in $UNSET_VARS; do
-        #  echo "Unsetting $VAR..."
-        sed -e "s!^\s*#define $VAR!// #define $VAR!" "$MODIFIY_FNAME" > "$MODIFIY_FNAME.sed"
-        mv "$MODIFIY_FNAME.sed" "$MODIFIY_FNAME"
-    done
-fi
+if [ "$MODE" = "make" ]; then
 
-# Print work
-printf "%-30s [..]" "$LOG_FNAME"
+    if [ -n "$MODIFIY_FILE" ]; then
+        cp "$MODIFIY_FILE" "$MODIFIY_FILE.bak"
+        echo "Modifying $MODIFIY_FILE..." >> "$LOGFILE"
+        build-test-modify-defines "$MODIFIY_FILE" "$SET_VARS" "$UNSET_VARS"
+        if [ $? -ne 0 ]; then RC=1; fi
+        echo "" >> "$LOGFILE"
+    fi
 
-RC="ok"
-if [ -n "$PKT_FORMAT" ]; then
-    make -C util ccn-lite-pktdump > "/tmp/$LOG_FNAME.log" 2>&1
+    build-test-make "$LOGFILE" $MAKE_VARS $MAKE_TARGETS
+    if [ $? -ne 0 ]; then RC=1; fi
+
+    if [ -n "$MODIFIY_FILE" ]; then
+        cp "$MODIFIY_FILE" "/tmp/$MODIFIY_FILE.$TARGET"
+        mv "$MODIFIY_FILE.bak" "$MODIFIY_FILE"
+    fi
+
+elif [ "$MODE" = "pkt-format" ]; then
+
+    build-test-packet-format "$LOGFILE" "$PKT_FORMAT"
+    if [ $? -ne 0 ]; then RC=1; fi
+
+elif [ "$MODE" = "demo-relay" ]; then
+
+    echo "$ make all USE_NFN=1" >> "$LOGFILE"
+    make all USE_NFN=1 >> "$LOGFILE"
     if [ $? -ne 0 ]; then
-        RC="fail"
+        RC=1
     else
-        rm -f "/tmp/$LOG_FNAME.log"
-        FNAMES=`find ../test/$PKT_FORMAT -iname "*.$PKT_FORMAT"`
-        for FNAME in $FNAMES; do
-            echo "### ccn-lite-pktdump < $FNAME" >> "/tmp/$LOG_FNAME.log"
-            ./util/ccn-lite-pktdump < $FNAME >> "/tmp/$LOG_FNAME.log" 2>&1
-            if [ $? -ne 0 ]; then
-                RC="fail"
-            fi
-            echo "" >> "/tmp/$LOG_FNAME.log"
+        for M in "ux" "udp"; do
+            build-test-demo-relay "$LOGFILE" "$SUITE" "$M"
+            if [ $? -ne 0 ]; then RC=1; fi
         done
     fi
-else
-    # Build and log output
-    make -k $MAKE_VARS $MAKE_TARGETS > "/tmp/$LOG_FNAME.log" 2>&1
+
+elif [ "$MODE" = "nfn-test" ]; then
+
+    echo "$ make all USE_NFN=1" >> "$LOGFILE"
+    make all USE_NFN=1 >> "$LOGFILE"
     if [ $? -ne 0 ]; then
-        RC="fail"
+        RC=1
+    else
+        build-test-nfn-test "$LOGFILE" "$SUITE"
+        RC=$?
     fi
 
-    # Replace backup
-    if [ -n "$MODIFIY_FNAME" ]; then
-        cp "$MODIFIY_FNAME" "/tmp/$MODIFIY_FNAME.$LOG_FNAME"
-        mv "$MODIFIY_FNAME.bak" "$MODIFIY_FNAME"
-    fi
+else
+
+    echo "Error! Unknown build-test-helper mode: '$MODE'" >> "$LOGFILE"
+    RC=2
+
 fi
 
-# Print status
-if [ $RC = "ok" ]; then
-    if ! grep --quiet -i "warning" "/tmp/$LOG_FNAME.log"; then
-        echo $'\b\b\b\b[\e[1;92mok\e[0;0m]'
+if [ $RC -eq 0 ]; then
+    if ! grep --quiet -i "warning" "$LOGFILE"; then
+        echo $'\b\b\b\b[\e[1;32mok\e[0;0m]'
     else
-        echo $'\b\b\b\b\b\b\b\b\b[\e[1;93mwarning\e[0;0m]'
+        echo $'\b\b\b\b\b\b\b\b\b[\e[1;33mwarning\e[0;0m]'
     fi
 else
-    echo $'\b\b\b\b\b\b\b\b[\e[1;91mfailed\e[0;0m]'
+    echo $'\b\b\b\b\b\b\b\b[\e[1;31mfailed\e[0;0m]'
 fi
+exit $RC

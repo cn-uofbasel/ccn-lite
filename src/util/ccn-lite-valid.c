@@ -47,7 +47,7 @@ ccnl_parse(unsigned char *data, int datalen)
     if (suite == -1)
         suite = ccnl_pkt2suite(data, datalen, &skip);
 
-    if (suite < 0 || suite >= CCNL_SUITE_LAST) {
+    if (!ccnl_isSuite(suite)) {
         DEBUGMSG(WARNING, "?unknown packet format? %d bytes starting with 0x%02x at offset %zd\n",
                      datalen, *data, data - base);
         return NULL;
@@ -116,6 +116,7 @@ main(int argc, char *argv[])
     int opt, cnt, rc, len = 0, exitBehavior = 0, signLen = 32;
     struct ccnl_pkt_s *pkt;
     unsigned char keyval[64], signature[32];
+    char *keyfile = NULL;
     struct key_s *keys = NULL;
 
     base64_build_decoding_table();
@@ -126,7 +127,7 @@ main(int argc, char *argv[])
             exitBehavior = atoi(optarg);
             break;
         case 'k':
-            keys = load_keys_from_file(optarg);
+            keyfile = optarg;
             break;
         case 'v':
 #ifdef USE_LOGGING
@@ -151,6 +152,9 @@ Usage:
             exit(1);
         }
     }
+
+    keys = load_keys_from_file(keyfile);
+
     if (!keys) {
         fprintf(stderr, "no key, aborting\n");
         goto Usage;

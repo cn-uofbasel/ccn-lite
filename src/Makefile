@@ -20,7 +20,6 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
 CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
-# CCNLCFLAGS=-Wall -pedantic -std=c99 -g -O0
 
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
@@ -31,6 +30,7 @@ endif
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS=-Wno-error=deprecated-declarations
 
+CREATE_BIN=mkdir -p ../bin && cd ../bin && ln -f -s ../src/$@ $@
 EXTLIBS=  -lcrypto
 EXTMAKE=
 EXTMAKECLEAN=
@@ -132,29 +132,35 @@ OMNET_DEPS = ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-defs.
 # ----------------------------------------------------------------------
 
 all: ${PROGS}
-	make -C util
+	+make -C util
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $<
+	@${CREATE_BIN}
 
 ccn-nfn-relay: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-nfn-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-relay: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
 	ccnl-simu-client.c
 	${EXTMAKE}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
 
 ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
@@ -166,12 +172,12 @@ ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 
 ccn-lite-lnxkernel:
-	make modules
+	+make modules
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
     ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c
-	make -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
+	+make -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
@@ -179,17 +185,16 @@ datastruct.pdf: datastruct.dot
 	rm -f datastruct.ps
 
 install: all
-	install ${INST_PROGS} ${INSTALL_PATH}/bin && cd util && make install && cd ..
+	install ${INST_PROGS} ${INSTALL_PATH}/bin && cd util && +make install && cd ..
 
 uninstall:
 	cd ${INSTALL_PATH}/bin && rm -f ${PROGS} && cd - > /dev/null \
-	&& cd util && make uninstall && cd ..
-
+	&& cd util && +make uninstall && cd ..
 
 clean:
 	${EXTMAKECLEAN}
 	rm -rf *~ *.o ${PROGS}
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf ccn-lite-omnet.tgz
-	rm -rf ccn-lite-omnet
-	make -C util clean
+	rm -rf ../bin
+	+make -C util clean

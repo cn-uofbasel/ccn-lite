@@ -1,6 +1,6 @@
 section:=base
 arch:=amd64
-version:=0.2.1
+version:=0.3.0
 installedSize:=$(shell du -ks ccn-lite/usr|cut -f 1)
 year:=$(shell date +"%Y")
 
@@ -22,7 +22,7 @@ deb:
 	sed -i 's/<%= year %>/${year}/g' ccn-lite/DEBIAN/control
 	sed -i 's/<%= year %>/${year}/g' ccn-lite/DEBIAN/copyright
 	dpkg --build ccn-lite
-	rm -r ./ccn-lite	
+	#rm -r ./ccn-lite	
 	
 clean:
 	rm -rf ./ccn-lite
