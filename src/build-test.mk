@@ -52,6 +52,9 @@ clean:
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
 
+clean-logs:
+	rm -rf /tmp/bt-*.log
+
 bt-relay-nothing:
 # Build without any USE_*
 	@MODE="make" \
