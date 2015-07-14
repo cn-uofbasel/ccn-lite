@@ -578,7 +578,7 @@ ccnl_ll_TX(
     struct ccnl_pkt_s *     pkt;
     unsigned int            i_or_c;
     int                     aux_arg;
-    char                    prefix_buf[CCNL_PREFIX_BUFSIZE];
+    char                    prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     assert(relay && ifc && buf && dst);
 
