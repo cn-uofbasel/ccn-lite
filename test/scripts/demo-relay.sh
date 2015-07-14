@@ -123,8 +123,12 @@ echo "starting relay A, with a link to relay B"
 
 if [ "$USEKRNL" = true ]
 then
-    rmmod ccn_lite_lnxkernel
-    insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=99 s=$SUITE $SOCKETA x=$UXA
+    rmmod ccn_lite_lnxkernel 2> /dev/null
+    insmod $CCNL_HOME/src/ccn-lite-lnxkernel.ko v=trace s=$SUITE $SOCKETA x=$UXA
+    RC=$?
+    if [ $RC -ne "0" ]; then
+        exit $RC
+    fi
 else
     $CCNL_HOME/src/ccn-lite-relay -v trace -s $SUITE $SOCKETA -x $UXA 2>/tmp/a.log &
 fi

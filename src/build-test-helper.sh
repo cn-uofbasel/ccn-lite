@@ -25,6 +25,7 @@
 #      Runs the demo-relay with the provided suite.
 #      Parameters:
 #        SUITE         Name of the suite to test.
+#        WITH_KRNL     If "true", use the kernel version instead of the normal one.
 #
 #   "nfn-test"
 #      Runs the nfn-test script with the provided suite.
@@ -121,11 +122,12 @@ build-test-packet-format() {
 #     $1    log file
 #     $2    suite
 #     $3    relay mode (ux or udp)
+#     $4    use kernel ("true" or "false")
 build-test-demo-relay() {
     local logfile=$1
     local suite=$2
     local relayMode=$3
-    local useKernel="false"
+    local useKernel=$4
     local rc
 
     echo "$ ../test/scripts/demo-relay.sh $suite $relayMode $useKernel" >> "$logfile"
@@ -192,13 +194,20 @@ elif [ "$MODE" = "pkt-format" ]; then
 
 elif [ "$MODE" = "demo-relay" ]; then
 
-    echo "$ make all USE_NFN=1" >> "$LOGFILE"
-    make all USE_NFN=1 >> "$LOGFILE"
+    if [ "$WITH_KRNL" = "true" ]; then
+        MAKE_VARS="USE_KRNL=1"
+    else
+        MAKE_VARS=""
+        WITH_KRNL="false"
+    fi
+
+    echo "$ make all $MAKE_VARS" >> "$LOGFILE"
+    make all $MAKE_VARS >> "$LOGFILE"
     if [ $? -ne 0 ]; then
         RC=1
     else
         for M in "ux" "udp"; do
-            build-test-demo-relay "$LOGFILE" "$SUITE" "$M"
+            build-test-demo-relay "$LOGFILE" "$SUITE" "$M" "$WITH_KRNL"
             if [ $? -ne 0 ]; then RC=1; fi
         done
     fi
