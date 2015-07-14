@@ -111,7 +111,7 @@ ccnl_free(void *ptr)
 #include "ccnl-ext-logging.c"
 
 static void ccnl_lnxkernel_cleanup(void);
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
