@@ -5,7 +5,7 @@ os:
         - osx
 
 env:
-        - USE_NFN=1 USE_NACK=1 CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+        - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
 
 compiler:
         - clang
