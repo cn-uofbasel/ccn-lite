@@ -19,9 +19,6 @@ check-binary-exists() {
     local errorMsg=$2
 
     if [ ! -f "$CCNL_HOME/bin/$binary" ]; then
-        echo "\$CCNL_HOME=$CCNL_HOME"
-        echo "\$ ls \$CCNL_HOME/bin"
-        ls "$CCNL_HOME/bin"
         echo "Error: $errorMsg"
         exit 1
     fi
