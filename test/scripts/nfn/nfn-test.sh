@@ -4,7 +4,6 @@
 # Environment variables
 SUITES=("ccnb" "ccnx2015" "cisco2015" "iot2014" "ndn2013")
 USAGE="usage: nfn-test.sh [-v] SUITE \nwhere\n  SUITE =   ${SUITES[@]}\n  -v        enable verbose output"
-NFN_JAR="$CCNL_HOME/test/scripts/nfn/nfn.jar"
 RC=0
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 VERBOSE=0
@@ -36,6 +35,9 @@ fi
 # Check CCNL_HOME and binaries
 check-and-set-ccnl-home "$DIR/../../.."
 check-ccn-nfn
+
+# Set NFN_JAR after checking CCNL_HOME
+NFN_JAR="$CCNL_HOME/test/scripts/nfn/nfn.jar"
 check-nfn "$NFN_JAR"
 
 # Start test
