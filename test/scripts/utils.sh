@@ -49,7 +49,7 @@ check-nfn() {
 
     if [ ! -f "$nfnFile" ]; then
         printf "%-47s [..]" "Info: cannot find NFN binary, downloading"
-        wget -O "$nfnFile" https://github.com/cn-uofbasel/nfn-scala/releases/download/v0.1.0/nfn.jar &> /dev/null
+        wget -O "$nfnFile" https://github.com/cn-uofbasel/nfn-scala/releases/download/v0.1.0/nfn.jar > /dev/null 2>&1
         if [ $? -ne 0 ]; then
             print-back 8
             echo $'[\e[1;31mfailed\e[0;0m]'
