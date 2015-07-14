@@ -220,7 +220,8 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int len, opt, port, sock = 0, suite = CCNL_SUITE_DEFAULT;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
     char prefixBuf[CCNL_PREFIX_BUFSIZE];

@@ -560,7 +560,7 @@ load_keys_from_file(char *path)
 // ----------------------------------------------------------------------
 
 int
-ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
+ccnl_parseUdp(char *udp, int suite, const char **addr, int *port)
 {
     char *tmpAddr = NULL;
     char *tmpPortStr = NULL;

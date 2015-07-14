@@ -56,7 +56,8 @@ int
 main(int argc, char *argv[])
 {
     int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;

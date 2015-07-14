@@ -138,7 +138,7 @@ int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s 
 #define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed(BUF, LEN, P, 1, 0, 0)
 #define CCNL_PREFIX_BUFSIZE 512
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 const char* ccnl_suite2str(int suite);
 bool ccnl_isSuite(int suite);

@@ -851,7 +851,7 @@ free_packet(struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 ccnl_addr2ascii(sockunion *su)
 {
 #ifdef USE_UNIXSOCKET
@@ -1004,7 +1004,7 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            char *format;
+            const char *format;
             if (c < 0x20 || c == 0x7f || (escape_components && c == '/')) {
                 format = CONSTSTR("%%%02x");
             } else {

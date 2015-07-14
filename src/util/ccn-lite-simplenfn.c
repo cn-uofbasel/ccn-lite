@@ -110,7 +110,8 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;

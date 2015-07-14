@@ -80,7 +80,7 @@ eth2ascii(unsigned char *eth)
     return buf;
 }
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 // ----------------------------------------------------------------------
 
