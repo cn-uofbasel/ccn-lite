@@ -944,7 +944,7 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
     if (!pr) {
-        numChars = snprintf(buf, buflen, "%p", NULL);
+        numChars = snprintf(buf, buflen, "%p", (void *) NULL);
         if (numChars < 0) goto fail;
         return numChars;
     }
