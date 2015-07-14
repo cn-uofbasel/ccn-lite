@@ -70,7 +70,7 @@ build-test-make() {
     local logfile=$1; shift
     local rc=0
 
-    echo "$ make clean" >> "$logfile"
+    echo "$ make clean USE_NFN=1 USE_NACK=1" >> "$logfile"
     make clean >> "$logfile" 2>&1
     echo "" >> "$logfile"
 
