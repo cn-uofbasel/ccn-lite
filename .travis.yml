@@ -1,30 +1,37 @@
+sudo: false # Enable container-based infrastructure
+
 language: c
 
-os:
-        - linux
-        - osx
+# cache: apt # Enable caching on APT when it is available for our repo
 
-env:
-        - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+os:
+    - linux
+    - osx
 
 compiler:
-        - clang
-        - gcc
+    - clang
+    - gcc
 
 branches:
-        only:
-                - master
-                - dev-master
+    only:
+        - master
+        - dev-master
 
-install:
-        - sudo apt-get update -y
-        - sudo apt-get install -y libssl-dev build-essential
-#        - sudo apt-get install linux-headers-$(uname -r)
+env:
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+
+addons:
+    apt:
+        packages:
+            - libssl-dev
+            - build-essential
+#            - linux-headers-$(uname -r)
 
 script:
-        # Run build-test.sh
-        # Ideally, build-test should be run without specifying the targets.
-        # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-ccnx2015, bt-nfn-cisco2015 removed because they fail
-        - cd $CCNL_HOME/src
-        - make clean
-        - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
+    # Run build-test.sh
+    # Ideally, build-test should be run without specifying the targets.
+    # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-ccnx2015, bt-nfn-cisco2015 removed because they fail
+    - cd $CCNL_HOME/src
+    - make clean
+    - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
+    - echo /tmp/bt-nfn-ccnb.log # Output to check if downloading nfn.jar works accordingly
