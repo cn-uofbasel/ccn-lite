@@ -1,4 +1,4 @@
-sudo: required # Disabled container-based infrastructure for now
+sudo: false # Enable container-based infrastructure
 
 language: c
 
