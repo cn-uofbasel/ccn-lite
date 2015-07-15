@@ -72,7 +72,7 @@ build-test-make() {
     local rc=0
 
     echo "$ make clean USE_NFN=1 USE_NACK=1" >> "$logfile"
-    make clean >> "$logfile" 2>&1
+    make clean USE_NFN=1 USE_NACK=1 >> "$logfile" 2>&1
     echo "" >> "$logfile"
 
     echo "$ make -j$NO_CORES -k $@" >> "$logfile"
@@ -93,8 +93,8 @@ build-test-packet-format() {
     local logfile=$1;
     local pktFormat=$2;
 
-    echo "$ make -C util ccn-lite-pktdump" >> "$logfile"
-    make -C util ccn-lite-pktdump >> "$logfile"
+    echo "$ make -j$NO_CORES -C util ccn-lite-pktdump" >> "$logfile"
+    make -j$NO_CORES -C util ccn-lite-pktdump >> "$logfile"
     if [ $? -ne 0 ]; then
         return 1
     fi
@@ -201,8 +201,8 @@ elif [ "$MODE" = "demo-relay" ]; then
         WITH_KRNL="false"
     fi
 
-    echo "$ make all $MAKE_VARS" >> "$LOGFILE"
-    make all $MAKE_VARS >> "$LOGFILE"
+    echo "$ make -j$NO_CORES all $MAKE_VARS" >> "$LOGFILE"
+    make -j$NO_CORES all $MAKE_VARS >> "$LOGFILE"
     if [ $? -ne 0 ]; then
         RC=1
     else
@@ -214,8 +214,8 @@ elif [ "$MODE" = "demo-relay" ]; then
 
 elif [ "$MODE" = "nfn-test" ]; then
 
-    echo "$ make all USE_NFN=1" >> "$LOGFILE"
-    make all USE_NFN=1 >> "$LOGFILE"
+    echo "$ make -j$NO_CORES all USE_NFN=1" >> "$LOGFILE"
+    make -j$NO_CORES all USE_NFN=1 >> "$LOGFILE"
     if [ $? -ne 0 ]; then
         RC=1
     else
