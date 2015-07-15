@@ -27,7 +27,10 @@
 // #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
 
+#ifndef USE_NFN
 #define USE_NFN
+#endif
+
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
