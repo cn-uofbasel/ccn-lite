@@ -27,6 +27,7 @@
 // #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
 
+#define USE_NFN
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
@@ -206,6 +207,11 @@ usage:
         len = mkInterest(prefix,
                          &nonce,
                          out, sizeof(out));
+
+        DEBUGMSG(TRACE,
+                 "sending interest(prefix=%s, suite=%s)",
+                 ccnl_prefix_to_path(prefix),
+                 ccnl_suite2str(suite));
 
         if(ux) {
             socksize = sizeof(struct sockaddr_un);
