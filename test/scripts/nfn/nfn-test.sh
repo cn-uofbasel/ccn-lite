@@ -49,25 +49,25 @@ echo -n "$(date "+[%F %T]") Starting two CCN-lite relays..."
 PID1=$!
 "$CCNL_HOME/bin/ccn-nfn-relay" -v trace -u 9001 -x /tmp/mgmt2.sock &> "/tmp/nfn-test-$SUITE-relay1.log" &
 PID2=$!
-sleep 3
+sleep 4
 echo " Done!"
 
 echo "$(date "+[%F %T]") Adding UPD interface..."
 echo "$(date "+[%F %T]") $ ccn-lite-ctrl newUDPface any 127.0.0.1 9001 | ccn-lite-ccnb2xml"
 FACEID=$("$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001 | "$CCNL_HOME/bin/ccn-lite-ccnb2xml" | grep FACEID | sed -e 's/^[^0-9]*\([0-9]\+\).*/\1/')
-sleep 3
+sleep 4
 echo " Done!"
 
 echo "$(date "+[%F %T]") Registering prefix..."
 echo "$(date "+[%F %T]") $ ccn-lite-ctrl prefixreg /nfn/node2 $FACEID $SUITE | ccn-lite-ccnb2xml"
 "$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock prefixreg /nfn/node2 "$FACEID" "$SUITE" | "$CCNL_HOME/bin/ccn-lite-ccnb2xml"
-sleep 3
+sleep 4
 echo " Done!"
 
 echo -n "$(date "+[%F %T]") Starting NFN compute server..."
 java -jar "$NFN_JAR" -s "$SUITE" -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 &> "/tmp/nfn-test-$SUITE-computserver.log" &
 PID3=$!
-sleep 8
+sleep 12
 echo " Done!"
 
 echo "$(date "+[%F %T]") $ $CCNL_HOME/bin/ccn-lite-simplenfn -s "$SUITE" -u '127.0.0.1/9000'" "'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' | $CCNL_HOME/bin/ccn-lite-pktdump -s $SUITE -f 2"
