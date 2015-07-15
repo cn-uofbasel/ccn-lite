@@ -214,10 +214,8 @@ elif [ "$MODE" = "demo-relay" ]; then
 
 elif [ "$MODE" = "nfn-test" ]; then
 
-    export USE_NFN=1
-    echo "$ make -j$NO_CORES all USE_NFN=1" >> "$LOGFILE"
-    make -j$NO_CORES all >> "$LOGFILE"
-    unset USE_NFN
+    echo "$ make -j$NO_CORES clean all USE_NFN=1" >> "$LOGFILE"
+    make -j$NO_CORES clean all USE_NFN=1 >> "$LOGFILE"
     if [ $? -ne 0 ]; then
         RC=1
     else
