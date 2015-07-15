@@ -140,11 +140,11 @@ ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	@${CREATE_BIN}
 
 ccn-nfn-relay: ${CCNL_RELAY_LIB}
-	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
 
 ccn-nfn-relay-nack: ${CCNL_RELAY_LIB}
-	${CC} -o $@ ${CCNLCFLAGS} ${NFNFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
 
 ccn-lite-relay: ${CCNL_RELAY_LIB}
