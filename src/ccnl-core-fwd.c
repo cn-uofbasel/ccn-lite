@@ -190,8 +190,18 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return -1;
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
+
+#ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
-            "  created new interest entry %p\n", (void *) i);
+                      "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",
+                      (void *) i,
+                      ccnl_prefix_to_path(i->pkt->pfx),
+                      i->pkt->pfx->nfnflags);
+#else
+        DEBUGMSG_CFWD(DEBUG,
+                      "  created new interest entry %p (prefix=%s)\n",
+                      (void *) i, ccnl_prefix_to_path(i->pkt->pfx));
+#endif
     }
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
