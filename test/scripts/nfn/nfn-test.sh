@@ -45,30 +45,30 @@ echo -n "Killing all CCN-lite relay and Java instances..."
 killall ccn-lite-relay 2> /dev/null
 killall ccn-nfn-relay 2> /dev/null
 killall java 2> /dev/null
-sleep 1
+sleep 3
 echo " Done!"
 
 echo -n "Starting two CCN-lite relays..."
 "$CCNL_HOME/bin/ccn-nfn-relay" -v trace -u 9000 -x /tmp/mgmt1.sock &> "/tmp/nfn-test-$SUITE-relay0.log" &
 "$CCNL_HOME/bin/ccn-nfn-relay" -v trace -u 9001 -x /tmp/mgmt2.sock &> "/tmp/nfn-test-$SUITE-relay1.log" &
-sleep 1
+sleep 3
 echo " Done!"
 
 echo "Adding UPD interface..."
 echo "$ ccn-lite-ctrl newUDPface any 127.0.0.1 9001 | ccn-lite-ccnb2xml"
 "$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001  | "$CCNL_HOME/bin/ccn-lite-ccnb2xml"
-sleep 1
+sleep 3
 echo " Done!"
 
 echo "Registering prefix..."
 echo "$ ccn-lite-ctrl prefixreg /nfn/node2 2 $SUITE | ccn-lite-ccnb2xml"
 "$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock prefixreg /nfn/node2 2 "$SUITE" | "$CCNL_HOME/bin/ccn-lite-ccnb2xml"
-sleep 1
+sleep 3
 echo " Done!"
 
 echo -n "Starting NFN compute server..."
 java -jar "$NFN_JAR" -s "$SUITE" -m /tmp/mgmt2.sock -o 9001 -p 9002 -d -r /nfn/node2 &> "/tmp/nfn-test-$SUITE-computserver.log" &
-sleep 5
+sleep 8
 echo " Done!"
 
 echo "$ $CCNL_HOME/bin/ccn-lite-simplenfn -s "$SUITE" -u '127.0.0.1/9000'" "'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' | $CCNL_HOME/bin/ccn-lite-pktdump -s $SUITE -f 2"
