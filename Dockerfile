@@ -7,7 +7,7 @@ ENV PATH "$PATH:$CCNL_HOME/bin"
 ENV CCNL_PORT 9000
 ENV USE_NFN 1
 
-RUN apt-get -y update && apt-get install -y libssl-dev build-essential wget
+RUN apt-get -y update && apt-get install -y libssl-dev build-essential wget openjdk-7-jre
 
 ADD . /var/ccn-lite
 WORKDIR /var/ccn-lite
