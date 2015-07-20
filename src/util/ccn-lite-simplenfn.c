@@ -212,7 +212,7 @@ usage:
                          out, sizeof(out));
 
         DEBUGMSG(TRACE,
-                 "sending interest(prefix=%s, suite=%s)",
+                 "sending interest(prefix=%s, suite=%s)\n",
                  ccnl_prefix_to_path(prefix),
                  ccnl_suite2str(suite));
 
