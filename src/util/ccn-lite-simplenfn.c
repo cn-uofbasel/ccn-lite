@@ -122,6 +122,7 @@ main(int argc, char *argv[])
     float wait = 3.0;
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -214,7 +215,7 @@ usage:
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)",
-                 ccnl_prefix_to_path(prefix),
+                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
                  ccnl_suite2str(suite));
 
         if(ux) {
