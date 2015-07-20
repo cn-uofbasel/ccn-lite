@@ -34,16 +34,13 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 
 // ccnl-core-util.c
-int ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ...);
+int ccnl_snprintfAndForward(char **buf, unsigned int *buflen,
+                            const char *format, ...);
 char* ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr);
-#ifndef CCNL_LINUXKERNEL
-   int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
-                                   int ccntlv_skip, int escape_components,
-                                   int call_slash);
-#  define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
-#else
-   int ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr);
-#endif
+int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen,
+                                    struct ccnl_prefix_s *pr, int ccntlv_skip,
+                                    int escape_components, int call_slash);
+#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
 
 #ifdef CCNL_ARDUINO
 #  define CCNL_PREFIX_BUFSIZE 50

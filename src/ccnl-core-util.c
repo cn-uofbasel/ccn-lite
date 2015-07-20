@@ -928,8 +928,6 @@ ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
     return buf;
 }
 
-#ifndef CCNL_LINUXKERNEL
-
 int
 ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
@@ -1040,8 +1038,6 @@ fail:
     }
     return numChars;
 }
-
-#endif // CCNL_LINUXKERNEL
 
 // ----------------------------------------------------------------------
 

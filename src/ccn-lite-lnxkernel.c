@@ -232,57 +232,6 @@ ccnl_close_socket(struct socket *s)
 
 // ----------------------------------------------------------------------
 
-// TODO: What is the use of this function compared to ccnl_snprintfPrefixPathDetailed?
-// Why not simply use ccnl_snprintfPrefixPathDetailed in the kernel as well...?
-int
-ccnl_snprintfPrefixPath(char *buf, int buflen, struct ccnl_prefix_s *pr)
-{
-    int i, numChars;
-    char *tmpBuf = buf;
-    unsigned int remLen = buflen;
-    int totalLen = 0;
-
-    // Conform to snprintf standard
-    assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
-
-    if (!pr) {
-        numChars = snprintf(buf, buflen, "%p", NULL);
-        if (numChars < 0) goto fail;
-        return numChars;
-    }
-
-    for (i = 0; i < pr->compcnt; i++) {
-        char *format;
-        if (!strncmp("call", (char*) pr->comp[i], 4)
-                && strncmp("NFN", (char*) pr->comp[pr->compcnt-1], 3)) {
-            format = "%.*s";
-        } else {
-            format = "/%.*s";
-        }
-
-        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, format,
-                                           pr->complen[i], pr->comp[i]);
-        if (numChars < 0) goto fail;
-        totalLen += numChars;
-    }
-
-    return totalLen;
-
-fail:
-    // numChars holds the return value of the last call of ccnl_snprintfAndForward
-    assert(numChars < 0);
-
-    DEBUGMSG_CUTL(ERROR, "Encoding error %d occured while creating path of prefix: %p\n",
-                  numChars, (void *) pr);
-
-    if (buf && buflen > 0) {
-        buf[0] = '\0';
-    }
-    return numChars;
-}
-
-// ----------------------------------------------------------------------
-
 #include "ccnl-core.c"
 
 #include "ccnl-ext-frag.c"
