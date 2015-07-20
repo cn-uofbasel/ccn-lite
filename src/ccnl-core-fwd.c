@@ -30,10 +30,18 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 #endif
 
+#ifdef USE_NFN
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) from=%s\n",
+                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_suite2str((*pkt)->suite),
+                  (*pkt)->pfx->nfnflags,
+                  ccnl_addr2ascii(from ? &from->peer : NULL));
+#else
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
+#endif
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -45,9 +53,12 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif /* USE_SUITE_CCNB && USE_SIGNATURES*/
 
     // CONFORM: Step 1:
-    for (c = relay->contents; c; c = c->next)
-        if (buf_equal(c->pkt->buf, (*pkt)->buf))
+    for (c = relay->contents; c; c = c->next) {
+        if (buf_equal(c->pkt->buf, (*pkt)->buf)) {
+            DEBUGMSG_CFWD(TRACE, "  content is duplicate, ignoring\n");
             return 0; // content is dup, do nothing
+        }
+    }
 
     c = ccnl_content_new(relay, pkt);
     if (!c)
@@ -196,8 +207,18 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return -1;
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
+
+#ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
-            "  created new interest entry %p\n", (void *) i);
+                      "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",
+                      (void *) i,
+                      ccnl_prefix_to_path(i->pkt->pfx),
+                      i->pkt->pfx->nfnflags);
+#else
+        DEBUGMSG_CFWD(DEBUG,
+                      "  created new interest entry %p (prefix=%s)\n",
+                      (void *) i, ccnl_prefix_to_path(i->pkt->pfx));
+#endif
     }
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);

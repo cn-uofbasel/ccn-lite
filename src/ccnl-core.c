@@ -383,10 +383,12 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
-    DEBUGMSG_CORE(TRACE, "ccnl_new_interest\n");
-//                char prefixBuf[CCNL_PREFIX_BUFSIZE];
-//                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
-//                ccnl_suite2str((*pkt)->pfx->suite));
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+
+    DEBUGMSG_CORE(TRACE,
+                  "ccnl_new_interest(prefix=%s, suite=%s)\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (*pkt)->pfx),
+                  ccnl_suite2str((*pkt)->pfx->suite));
 
     if (!i)
         return NULL;

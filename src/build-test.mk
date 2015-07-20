@@ -10,11 +10,15 @@ else
 endif
 export NO_CORES
 
+# Check VERBOSE variable
 ifdef VERBOSE
     PRINT_LOG=( echo "Contents of /tmp/$@.log:"; cat "/tmp/$@.log"; echo; exit 1 )
 else
     PRINT_LOG=( exit 1 )
 endif
+
+# Get effective user id (0 for root)
+EUID:=$(shell sh -c 'id -u')
 
 PKT_FORMATS:=ccnb ccntlv cistlv iottlv ndntlv
 SUITES:=ccnb ccnx2015 cisco2015 iot2014 ndn2013
@@ -33,15 +37,24 @@ BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
 BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
 BT_DEMO:=$(addprefix bt-demo-,${SUITES})
+BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
 
-.PHONY: echo-cores all clean bt-relay bt-all bt-pkt bt-demo ${PROFILES}
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
+# Include BT_DEMO_KRNL only on Linux under root
+ifeq ($(OS),Linux)
+    ifeq ($(EUID),0)
+        PROFILES+=${BT_DEMO_KRNL}
+	endif
+endif
+
+.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
 bt-pkt: ${BT_PKT} clean
 bt-demo: ${BT_DEMO} clean
+bt-demo-krnl: ${BT_DEMO_KRNL} clean
 bt-nfn: ${BT_NFN} clean
 
 echo-cores:
@@ -51,6 +64,9 @@ clean:
 	@make clean USE_NFN=1 USE_NACK=1 > /dev/null 2>&1
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
+
+clean-logs:
+	rm -rf /tmp/bt-*.log
 
 bt-relay-nothing:
 # Build without any USE_*
@@ -156,21 +172,28 @@ bt-all-nfn:
 	./build-test-helper.sh || ${PRINT_LOG}
 
 
-${BT_PKT}:
+${BT_PKT}: bt-all-vanilla
 	@MODE="pkt-format" \
 	TARGET=$@ \
 	PKT_FORMAT=$(@:bt-pkt-%=%) \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 
-${BT_DEMO}:
+${BT_DEMO}: bt-all-vanilla
 	@MODE="demo-relay" \
 	TARGET=$@ \
 	SUITE=$(@:bt-demo-%=%) \
+	WITH_KRNL="false" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
+${BT_DEMO_KRNL}: bt-all-vanilla bt-lnxkernel
+	@MODE="demo-relay" \
+	TARGET=$@ \
+	SUITE=$(@:bt-demo-krnl-%=%) \
+	WITH_KRNL="true" \
+	./build-test-helper.sh || ${PRINT_LOG}
 
-${BT_NFN}:
+${BT_NFN}: bt-all-nfn
 	@MODE="nfn-test" \
 	TARGET=$@ \
 	SUITE=$(@:bt-nfn-%=%) \
