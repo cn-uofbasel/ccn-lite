@@ -865,23 +865,27 @@ ccnl_addr2ascii(sockunion *su)
         // FIXME: eth2ascii is only available with USE_DEBUG! This function should be as well
         numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/0x%04x",
                             eth2ascii(ll->sll_addr), ntohs(ll->sll_protocol));
+        break;
     }
 #endif
 #ifdef USE_IPV4
-    case AF_INET:
+    case AF_INET: {
         numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/%u",
                             inet_ntoa(su->ip4.sin_addr),
                             ntohs(su->ip4.sin_port));
+        break;
+    }
 #endif
 #ifdef USE_UNIXSOCKET
-    case AF_UNIX:
+    case AF_UNIX: {
         numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s", su->ux.sun_path);
+        break;
+    }
 #endif
     default:
         break;
     }
 
-    (void) buf; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
     if (numChars < 0) {
         return NULL;
     }
