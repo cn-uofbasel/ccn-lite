@@ -17,7 +17,6 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
              -Winline \
-             -Wlogical-op \
              -Wmissing-include-dirs \
              -Wnested-externs \
              -Wpointer-arith \
@@ -43,6 +42,9 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              #-Wundef \
              #-Wwrite-strings \
              #-Wextra
+
+# The following warning is disabled because it is GCC-specific.
+             #-Wlogical-op \
 
 # Linux flags
 LINUX_CFLAGS:=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
