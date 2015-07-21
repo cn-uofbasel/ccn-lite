@@ -22,7 +22,6 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wstrict-aliasing \
              -Wstrict-overflow=3 \
              -Wswitch-enum \
-             -Wunreachable-code \
              -Wunused
 
 # CCN-lite contains code that does not conform with the following warnings.
@@ -40,6 +39,7 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              #-Wstrict-prototypes \
              #-Wswitch-default \
              #-Wundef \
+             #-Wunreachable-code \
              #-Wwrite-strings \
              #-Wextra
 
