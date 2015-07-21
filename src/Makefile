@@ -50,7 +50,7 @@ ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 
 ccn-lite-lnxkernel:
-	+make modules
+	$(MAKE) modules
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} ${CCNL_CORE_LIB} \
@@ -75,4 +75,4 @@ clean:
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf ccn-lite-omnet.tgz
 	rm -rf ../bin
-	+make -C util clean
+	$(MAKE) -C util clean
