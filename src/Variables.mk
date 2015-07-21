@@ -11,39 +11,25 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
 CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
-             -Waggregate-return \
              -Wfloat-equal \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
-             -Winline \
              -Wmissing-include-dirs \
-             -Wnested-externs \
-             -Wpointer-arith \
-             -Wstrict-aliasing \
-             -Wstrict-overflow=3 \
-             -Wswitch-enum \
-             -Wunused
 
 # CCN-lite contains code that does not conform with the following warnings.
 # All of these should be enabled eventually.
-             #-Wbad-function-cast \
+             #-Wextra
              #-Wcast-align \
              #-Wcast-qual \
              #-Wconversion \
-             #-Wformat=2 \
              #-Wmissing-declarations \
              #-Wmissing-prototypes \
-             #-Wold-style-definition \
-             #-Wredundant-decls \
              #-Wshadow \
-             #-Wstrict-prototypes \
-             #-Wswitch-default \
              #-Wundef \
              #-Wunreachable-code \
              #-Wwrite-strings \
-             #-Wextra
 
-# The following warning is disabled because it is GCC-specific.
+# The following warning is disabled because it is not supported by Clang.
              #-Wlogical-op \
 
 # Linux flags
