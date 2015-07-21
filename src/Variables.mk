@@ -12,7 +12,6 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 # general flags used on both linux and OSX
 CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Waggregate-return \
-             -Wcast-align \
              -Wfloat-equal \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
@@ -29,6 +28,7 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
 # CCN-lite contains code that does not conform with the following warnings.
 # All of these should be enabled eventually.
              #-Wbad-function-cast \
+             #-Wcast-align \
              #-Wcast-qual \
              #-Wconversion \
              #-Wformat=2 \
