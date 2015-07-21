@@ -15,7 +15,6 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
              -Wmissing-include-dirs \
-             -Wunreachable-code \
              -Wundef
 
 # CCN-lite contains code that does not conform with the following warnings.
