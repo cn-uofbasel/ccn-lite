@@ -183,7 +183,6 @@ ccnl_cmpfib(const void *a, const void *b)
         if (p2->complen[i] > len)
             return -1;
     }
-    return 0;
 }
 
 int
