@@ -844,14 +844,16 @@ free_packet(struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 ccnl_addr2ascii(sockunion *su)
 {
 #ifdef USE_UNIXSOCKET
-    static char result[256];
+#   define CCNL_ADDR2ASCII_SIZE 256
 #else
-    static char result[25];
+#   define CCNL_ADDR2ASCII_SIZE 25
 #endif
+    static char buf[CCNL_ADDR2ASCII_SIZE];
+    int numChars = -1;
 
     if (!su)
         return CONSTSTR("(local)");
@@ -860,30 +862,31 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_ETHERNET
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->eth;
-        strcpy(result, eth2ascii(ll->sll_addr));
-        sprintf(result+strlen(result), "/0x%04x",
-            ntohs(ll->sll_protocol));
-        return result;
+        // FIXME: eth2ascii is only available with USE_DEBUG! This function should be as well
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/0x%04x",
+                            eth2ascii(ll->sll_addr), ntohs(ll->sll_protocol));
     }
 #endif
 #ifdef USE_IPV4
     case AF_INET:
-        sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
-                ntohs(su->ip4.sin_port));
-        return result;
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/%u",
+                            inet_ntoa(su->ip4.sin_addr),
+                            ntohs(su->ip4.sin_port));
 #endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX:
-        strncpy(result, su->ux.sun_path, sizeof(result)-1);
-        result[sizeof(result)-1] = 0;
-        return result;
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s", su->ux.sun_path);
 #endif
     default:
         break;
     }
 
-    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
-    return NULL;
+    (void) buf; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4 nor USE_UNIXSOCKET is set)
+    if (numChars < 0) {
+        return NULL;
+    }
+
+    return buf;
 }
 
 // ----------------------------------------------------------------------
