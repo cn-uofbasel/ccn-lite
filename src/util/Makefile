@@ -1,6 +1,7 @@
 # ccnl/util/Makefile
 
-include ../Variables.mk
+MAKEFILE_PATH=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(MAKEFILE_PATH)/../Variables.mk
 
 CCNLCFLAGS+=-DUSE_UTIL
 CREATE_BIN=mkdir -p ../../bin && cd ../../bin && ln -f -s ../src/util/$@ $@

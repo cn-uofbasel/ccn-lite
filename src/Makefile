@@ -8,7 +8,8 @@
 #  for named-function support (NFN), export               USE_NFN=1
 #  for NACK support in NFN, export                        USE_NACK=1
 
-include Variables.mk
+MAKEFILE_PATH=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(MAKEFILE_PATH)/Variables.mk
 
 all: ${PROGS}
 	$(MAKE) -C util
