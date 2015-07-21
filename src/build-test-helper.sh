@@ -232,7 +232,7 @@ else
 fi
 
 if [ $RC -eq 0 ]; then
-    if ! grep --quiet -i "warning" "$LOGFILE"; then
+    if ! grep --quiet -i " warning:" "$LOGFILE"; then
         echo $'\b\b\b\b[\e[1;32mok\e[0;0m]'
     else
         echo $'\b\b\b\b\b\b\b\b\b[\e[1;33mwarning\e[0;0m]'
