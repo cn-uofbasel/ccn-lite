@@ -186,7 +186,7 @@ inet_ntoa(struct in_addr a)
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 // selectively enable/disable logging messages per module
 
