@@ -18,24 +18,26 @@ branches:
         - dev-master
 
 env:
-    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin" ARDUINO_LIB="$CCNL_HOME/src/arduino/lib"
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" ARDUINO_HOME="/home/travis/arduino-1.0.6" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin":"$ARDUINO_HOME"
 
 addons:
     apt:
         packages:
             - libssl-dev
             - build-essential
-            - arduino
-            - arduino-core
+            - gcc-avr
+            - avr-libc
             - python-pip
 #            - linux-headers-$(uname -r)
 
 install:
     # Install dependencies for Arduino compilation
+    - wget http://downloads.arduino.cc/arduino-1.0.6-linux64.tgz
+    - tar xf arduino-1.0.6-linux64.tar.xz
+    - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
+    - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
+    #- pip install --user jinja2 pyserial configobj ordereddict argparse glob2
     - pip install --user ino
-    - mkdir -p "$ARDUINO_LIB"
-    - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_LIB/EthernetShieldW5200"
-    - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_LIB/WiFiShield"
 
 script:
     # Run build-test.sh
@@ -50,13 +52,13 @@ script:
     - cd $CCNL_HOME/src/arduino
 
     - cp src-ethernet.ino src/src.ino
-    - sed -i 's/^BOARD=.*$/BOARD=atmega328/' Makefile
+    - export BOARD=atmega328
     - make clean all
-    - sed -i 's/^BOARD=.*$/BOARD=uno/' Makefile
+    - export BOARD=uno
     - make clean all
 
     - cp src-wifly.ino src/src.ino
-    - sed -i 's/^BOARD=.*$/BOARD=atmega328/' Makefile
+    - export BOARD=atmega328
     - make clean all
-    - sed -i 's/^BOARD=.*$/BOARD=uno/' Makefile
+    - export BOARD=uno
     - make clean all
