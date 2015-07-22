@@ -54,9 +54,9 @@ script:
     - cd $CCNL_HOME/src/arduino
 
     - cp src-ethernet.ino src/src.ino
-    - make clean all BOARD=atmega328 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_]\+!!g'
-    - make clean all BOARD=uno 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_]\+!!g'
+    - make clean all BOARD=atmega328 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_-]\+!!g'
+    - make clean all BOARD=uno 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_-]\+!!g'
 
     - cp src-wifly.ino src/src.ino
-    - make clean all BOARD=atmega328 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_]\+!!g'
-    - make clean all BOARD=uno 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_]\+!!g'
+    - make clean all BOARD=atmega328 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_-]\+!!g'
+    - make clean all BOARD=uno 2>&1 | tee /tmp/bt-arduino-ethernet-atmega328.log | sed 's! -\(mmcu\|[fID]\)[a-zA-Z0-9/=_-]\+!!g'
