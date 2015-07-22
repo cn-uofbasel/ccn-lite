@@ -18,7 +18,7 @@ branches:
         - dev-master
 
 env:
-    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" ARDUINO_HOME="/home/travis/arduino-1.0.6" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin":"$ARDUINO_HOME"
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin"
 
 addons:
     apt:
@@ -34,8 +34,8 @@ install:
     # Install dependencies for Arduino compilation
     - wget http://downloads.arduino.cc/arduino-1.0.6-linux64.tgz
     - tar xf arduino-1.0.6-linux64.tgz
-    - pwd
-    - ls
+    - export ARDUINO_HOME="`pwd`/arduino-1.0.6"
+    - export PATH=$PATH:"$ARDUINO_HOME"
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
     - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
     #- pip install --user jinja2 pyserial configobj ordereddict argparse glob2
