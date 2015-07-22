@@ -32,7 +32,8 @@ addons:
 
 install:
     # Install dependencies for Arduino compilation
-    - pip install ino
+    - pip install --user --upgrade pip
+    - pip install --user ino
     - mkdir -p "$ARDUINO_LIB"
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_LIB/EthernetShieldW5200"
     - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_LIB/WiFiShield"
