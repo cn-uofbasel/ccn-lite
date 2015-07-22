@@ -55,12 +55,12 @@ script:
 
     - cp src-ethernet.ino src/src.ino
     - export BOARD=atmega328
-    - make clean all
+    - make clean all > /tmp/bt-arduino-ethernet-atmega328.log
     - export BOARD=uno
-    - make clean all
+    - make clean all > /tmp/bt-arduino-ethernet-uno.log
 
     - cp src-wifly.ino src/src.ino
     - export BOARD=atmega328
-    - make clean all
+    - make clean all > /tmp/bt-arduino-wifly-atmega328.log
     - export BOARD=uno
-    - make clean all
+    - make clean all > /tmp/bt-arduino-wifly-uno.log
