@@ -18,14 +18,24 @@ branches:
         - dev-master
 
 env:
-    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin" ARDUINO_LIB="$CCNL_HOME/src/arduino/lib"
 
 addons:
     apt:
         packages:
             - libssl-dev
             - build-essential
+            - arduino
+            - arduino-core
+            - python-pip
 #            - linux-headers-$(uname -r)
+
+install:
+    # Install dependencies for Arduino compilation
+    - pip install ino
+    - mkdir -p "$ARDUINO_LIB"
+    - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_LIB/EthernetShieldW5200"
+    - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_LIB/WiFiShield"
 
 script:
     # Run build-test.sh
@@ -34,3 +44,19 @@ script:
     - cd $CCNL_HOME/src
     - make clean
     - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-omnet bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
+
+
+    # Build Arduino (should be merged into build-test eventually)
+    - cd $CCNL_HOME/src/arduino
+
+    - cp src-ethernet.ino src/src.ino
+    - sed -i 's/^BOARD=.*$/BOARD=atmega328/' Makefile
+    - make clean all
+    - sed -i 's/^BOARD=.*$/BOARD=uno/' Makefile
+    - make clean all
+
+    - cp src-wifly.ino src/src.ino
+    - sed -i 's/^BOARD=.*$/BOARD=atmega328/' Makefile
+    - make clean all
+    - sed -i 's/^BOARD=.*$/BOARD=uno/' Makefile
+    - make clean all
