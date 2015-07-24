@@ -20,8 +20,9 @@ endif
 # Get effective user id (0 for root)
 EUID:=$(shell sh -c 'id -u')
 
-PKT_FORMATS:=ccnb ccntlv cistlv iottlv ndntlv
-SUITES:=ccnb ccnx2015 cisco2015 iot2014 ndn2013
+# Check if ino and arduino are available
+INO_ARDUINO_RC:=$(shell { which ino && which arduino; } > /dev/null; echo $$?)
+
 BT_RELAY:=bt-relay-nothing \
 	bt-relay-barebones \
 	bt-relay-vanilla \
@@ -35,10 +36,18 @@ BT_LNXKERNEL:=bt-lnxkernel
 BT_OMNET:=bt-omnet
 BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
+
+PKT_FORMATS:=ccnb ccntlv cistlv iottlv ndntlv
 BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
+
+SUITES:=ccnb ccnx2015 cisco2015 iot2014 ndn2013
 BT_DEMO:=$(addprefix bt-demo-,${SUITES})
 BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
+
+SHIELDS:=ethernet wifly
+BOARDS:=atmega328 uno
+BT_ARDUINO:=$(foreach S,$(SHIELDS),$(foreach B,$(BOARDS),bt-arduino-$(S)-$(B)))
 
 PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
 # Include BT_DEMO_KRNL only on Linux under root
@@ -47,8 +56,12 @@ ifeq ($(OS),Linux)
         PROFILES+=${BT_DEMO_KRNL}
 	endif
 endif
+# Include Ardunio compilation only if available
+ifeq ($(INO_ARDUINO_RC),0)
+    PROFILES+=${BT_ARDUINO}
+endif
 
-.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL}
+.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_ARDUINO}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
@@ -56,6 +69,7 @@ bt-pkt: ${BT_PKT} clean
 bt-demo: ${BT_DEMO} clean
 bt-demo-krnl: ${BT_DEMO_KRNL} clean
 bt-nfn: ${BT_NFN} clean
+bt-arduino: ${BT_ARDUINO} clean
 
 echo-cores:
 	@bash -c 'printf "\e[3mBuilding using $(NO_CORES) cores:\e[0m\n"'
@@ -158,6 +172,7 @@ bt-omnet:
 	MAKE_TARGETS="ccn-lite-omnet" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
+
 bt-all-vanilla:
 	@MODE="make" \
 	TARGET=$@ \
@@ -169,6 +184,15 @@ bt-all-nfn:
 	TARGET=$@ \
 	MAKE_TARGETS="all" \
 	MAKE_VARS="USE_NFN=1" \
+	./build-test-helper.sh || ${PRINT_LOG}
+
+
+${BT_ARDUINO}:
+	@SPLIT=$(@:bt-arduino-%=%); \
+	MODE="arduino" \
+	TARGET=$@ \
+	SHIELD=$${SPLIT%-*} \
+	BOARD=$${SPLIT#*-} \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 
@@ -186,12 +210,14 @@ ${BT_DEMO}: bt-all-vanilla
 	WITH_KRNL="false" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
+
 ${BT_DEMO_KRNL}: bt-all-vanilla bt-lnxkernel
 	@MODE="demo-relay" \
 	TARGET=$@ \
 	SUITE=$(@:bt-demo-krnl-%=%) \
 	WITH_KRNL="true" \
 	./build-test-helper.sh || ${PRINT_LOG}
+
 
 ${BT_NFN}: bt-all-nfn
 	@MODE="nfn-test" \

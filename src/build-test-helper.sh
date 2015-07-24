@@ -31,6 +31,12 @@
 #      Runs the nfn-test script with the provided suite.
 #      Parameters:
 #        SUITE         Name of the suite to test.
+#
+#   "arduino"
+#      Compiles CCN-lite for Arduino using the provided board and shield.
+#      Parameters:
+#        BOARD         Name of the board.
+#        SHIELD        Name of the network shield.
 
 
 ### Functions:
@@ -156,6 +162,33 @@ build-test-nfn-test() {
     return $rc
 }
 
+build-test-arduino() {
+    local logfile=$1
+    local shield=$2
+    local board=$3
+    local shieldFile="src-$shield.ino"
+    local rc
+
+    if [ ! -f "$shieldFile" ]; then
+        echo "Error: source file '$shieldFile' for shield '$shield' not found." >> "$logfile"
+        return 1
+    fi
+
+    echo "$ cp "$shieldFile" src/src.ino" >> "$logfile"
+    cp "$shieldFile" src/src.ino >> "$logfile"
+
+    echo "$ make clean" >> "$logfile"
+    make clean >> "$logfile" 2>&1
+
+    echo "$ make all BOARD=\"$board\"" >> "$logfile"
+    make all BOARD="$board" >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
 ### Main script:
 
 unset USE_KRNL
@@ -223,6 +256,13 @@ elif [ "$MODE" = "nfn-test" ]; then
         build-test-nfn-test "$LOGFILE" "$SUITE"
         RC=$?
     fi
+
+elif [ "$MODE" = "arduino" ]; then
+
+    cd arduino
+    build-test-arduino "$LOGFILE" "$SHIELD" "$BOARD"
+    RC=$?
+    cd ..
 
 else
 
