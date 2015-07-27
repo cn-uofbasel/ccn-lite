@@ -18,7 +18,11 @@
 
 EthernetUDP Udp;
 
-#include "../../ccn-lite-arduino.c"
+extern "C" {
+  // unfortunately, the Arduino IDE requires absolute path names:
+  #define CCN_LITE_ARDUINO_C "/home/ubuntu/ccn-lite/src/ccn-lite-arduino.c"
+  #include CCN_LITE_ARDUINO_C
+}
 
 void setup()
 {

@@ -1,26 +1,25 @@
 # Makefile
 
-# TODO: rename to ARDUINO_BOARD
-BOARD?=atmega328
-#BOARD?=uno
+ARDUINO_PKG?=arduino
+ARDUINO_ARCH?=avr
+ARDUINO_BOARD?=uno
 
-ifdef ARDUINO_HOME
-    ARDUINO_PARAM:=-d $(ARDUINO_HOME)
-else
-    ARDUINO_PARAM:=
-endif
+.PHONY: build verify upload mkdir setboard clean
 
-all:
-	ino build -m ${BOARD} -v ${ARDUINO_PARAM}
+build: verify
+verify: mkdir setboard
+	arduino --verify --pref build.path=build -v src/src.ino
 
-init:
-	ino init ${ARDUINO_PARAM}
+upload: mkdir setboard
+	arduino --upload --pref build.path=build -v src/src.ino
 
-upload:
-	ino upload -m ${BOARD} ${ARDUINO_PARAM}
+#serial: Not yet available on Arduino IDE command line
 
-serial:
-	ino serial
+mkdir:
+	mkdir -p build
+
+setboard:
+	arduino --board "${ARDUINO_PKG}:${ARDUINO_ARCH}:${ARDUINO_BOARD}" --save-prefs
 
 clean:
-	ino clean
+	rm -rf ./build

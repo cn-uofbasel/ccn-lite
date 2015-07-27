@@ -44,6 +44,9 @@ src/util/ccn-lite-rpc
 src/util/ccn-lite-simplenfn
 src/util/ccn-lite-valid
 
+# arduino binaries
+src/arduino/build
+
 # unit tests
 test/unit/prefix-cmp
 test/unit/unit
