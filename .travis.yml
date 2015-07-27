@@ -39,6 +39,7 @@ install:
     - export PATH=$PATH:"$CCNL_HOME/src/arduino"
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
     - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
+    - arduino --pref "boardsmanager.additional.urls=http://rfduino.com/package_rfduino_index.json" --install-boards "RFduino:RFduino"
 
 script:
     # Run build-test.sh
