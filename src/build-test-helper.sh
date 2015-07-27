@@ -180,8 +180,19 @@ build-test-arduino() {
     echo "$ cp "$shieldFile" src/src.ino" >> "$logfile"
     cp "$shieldFile" src/src.ino >> "$logfile"
 
-    echo "$ sed \"s|\(^\s*#define CCN_LITE_ARDUINO_C\).*$|\1 \\\"$CCNL_HOME/src/ccn-lite-arduino.c\\\"|\" src/src.ino > src/src.ino.sed" >> "$logfile"
-    sed "s|\(^\s*#define CCN_LITE_ARDUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-arduino.c\"|" src/src.ino > src/src.ino.sed
+    build-test-build-duino "$logfile" "ar" "$board"
+    rc=$?
+    return $rc
+}
+
+build-test-build-duino() {
+    local logfile=$1
+    local prefix=$2
+    local board=$3
+    local rc
+
+    echo "$ sed \"s|\(^\s*#define CCN_LITE_${prefix^^}DUINO_C\).*$|\1 \\\"$CCNL_HOME/src/ccn-lite-${prefix}duino.c\\\"|\" src/src.ino > src/src.ino.sed" >> "$logfile"
+    sed "s|\(^\s*#define CCN_LITE_${prefix^^}DUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-${prefix}duino.c\"|" src/src.ino > src/src.ino.sed
 
     echo "$ mv src/src.ino.sed src/src.ino" >> "$logfile"
     mv src/src.ino.sed src/src.ino >> "$logfile"
@@ -270,6 +281,13 @@ elif [ "$MODE" = "arduino" ]; then
 
     cd arduino
     build-test-arduino "$LOGFILE" "$SHIELD" "$BOARD"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "rfduino" ]; then
+
+    cd rfduino
+    build-test-build-duino "$LOGFILE" "rf" "RFduino"
     RC=$?
     cd ..
 

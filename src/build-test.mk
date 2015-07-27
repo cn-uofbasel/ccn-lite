@@ -45,6 +45,7 @@ BT_DEMO:=$(addprefix bt-demo-,${SUITES})
 BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
 
+BT_RFDUINO:=bt-rfduino
 SHIELDS:=ethernet wifly
 BOARDS:=uno
 BT_ARDUINO:=$(foreach S,$(SHIELDS),$(foreach B,$(BOARDS),bt-arduino-$(S)-$(B)))
@@ -58,10 +59,10 @@ ifeq ($(OS),Linux)
 endif
 # Include Ardunio compilation only if available
 ifeq ($(INO_ARDUINO_RC),0)
-    PROFILES+=${BT_ARDUINO}
+    PROFILES+=${BT_RFDUINO} ${BT_ARDUINO}
 endif
 
-.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_ARDUINO}
+.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_RFDUINO} ${BT_ARDUINO}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
@@ -184,6 +185,12 @@ bt-all-nfn:
 	TARGET=$@ \
 	MAKE_TARGETS="all" \
 	MAKE_VARS="USE_NFN=1" \
+	./build-test-helper.sh || ${PRINT_LOG}
+
+
+bt-rfduino:
+	@MODE="rfduino" \
+	TARGET=$@ \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 
