@@ -33,7 +33,7 @@ addons:
 install:
     # Install dependencies for Arduino compilation
     - wget http://downloads.arduino.cc/arduino-1.6.5-linux64.tar.xz
-    - tar xf arduino-1.6.5-linux64.tgz
+    - tar xf arduino-1.6.5-linux64.tar.xz
     - export ARDUINO_HOME="`pwd`/arduino-1.6.5"
     - export PATH=$PATH:"$ARDUINO_HOME"
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
@@ -46,3 +46,11 @@ script:
     - cd $CCNL_HOME/src
     - make clean
     - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-arduino bt-pkt bt-omnet bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
+
+
+
+
+    #arduino --verify --board RFduino:RFduino:RFduino -v rfduino/rfduino.ino
+    #arduino --install-boards "arduino:sam"
+    #arduino --pref "boardsmanager.additional.urls=http://rfduino.com/package_rfduino_index.json" --install-boards "RFduino:RFduino"
+    #arduino --board "RFduino:RFduino:RFduino" --save-prefs
