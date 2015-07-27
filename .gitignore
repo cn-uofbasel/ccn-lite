@@ -46,6 +46,7 @@ src/util/ccn-lite-valid
 
 # arduino binaries
 src/arduino/build
+src/rfduino/build
 
 # unit tests
 test/unit/prefix-cmp
