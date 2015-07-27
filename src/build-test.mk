@@ -20,8 +20,8 @@ endif
 # Get effective user id (0 for root)
 EUID:=$(shell sh -c 'id -u')
 
-# Check if ino and arduino are available
-INO_ARDUINO_RC:=$(shell { which ino && which arduino; } > /dev/null; echo $$?)
+# Check if arduino is available
+INO_ARDUINO_RC:=$(shell which arduino > /dev/null; echo $$?)
 
 BT_RELAY:=bt-relay-nothing \
 	bt-relay-barebones \
@@ -46,7 +46,7 @@ BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
 
 SHIELDS:=ethernet wifly
-BOARDS:=atmega328 uno
+BOARDS:=uno
 BT_ARDUINO:=$(foreach S,$(SHIELDS),$(foreach B,$(BOARDS),bt-arduino-$(S)-$(B)))
 
 PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
