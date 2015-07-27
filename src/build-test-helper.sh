@@ -174,6 +174,9 @@ build-test-arduino() {
         return 1
     fi
 
+    echo "$ mkdir -p src" >> "$logfile"
+    mkdir -p src >> "$logfile"
+
     echo "$ cp "$shieldFile" src/src.ino" >> "$logfile"
     cp "$shieldFile" src/src.ino >> "$logfile"
 
@@ -181,7 +184,7 @@ build-test-arduino() {
     sed "s|\(^\s*#define CCN_LITE_ARDUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-arduino.c\"|" src/src.ino > src/src.ino.sed
 
     echo "$ mv src/src.ino.sed src/src.ino" >> "$logfile"
-    mv src/src.ino.sed src/src.ino
+    mv src/src.ino.sed src/src.ino >> "$logfile"
 
     echo "$ make clean" >> "$logfile"
     make clean >> "$logfile" 2>&1
