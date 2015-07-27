@@ -35,7 +35,8 @@ install:
     - wget http://downloads.arduino.cc/arduino-1.6.5-linux64.tar.xz
     - tar xf arduino-1.6.5-linux64.tar.xz
     - export ARDUINO_HOME="`pwd`/arduino-1.6.5"
-    - export PATH=$PATH:"$ARDUINO_HOME"
+    - mv "$CCNL_HOME/src/arduino/arduino-headless" "$CCNL_HOME/src/arduino/arduino"
+    - export PATH=$PATH:"$CCNL_HOME/src/arduino"
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
     - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
 
