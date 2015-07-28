@@ -26,7 +26,7 @@
 #ifdef CCNL_ARDUINO
 
 // FIXME: Quick hack to fix missing definition of "time_t".
-typedef int time_t;
+typedef long int time_t;
 #define Hz 1000
 
 double CCNL_NOW(void) { return (double) millis() / Hz; }
