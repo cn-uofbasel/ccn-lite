@@ -38,8 +38,8 @@ install:
 
     # Start Xvfb X server dummy and create script that starts arduino through it
     - if [ ! -f /tmp/.X99-lock ]; then Xvfb :99 -nolisten tcp -screen :99 1280x800x24 & fi
-    - echo -n '#!/bin/bash\nDISPLAY=:99 $ARDUINO_HOME/arduino $@' > /tmp/arduino
-    - export PATH=$PATH:"/tmp"
+    - echo -n '#!/bin/bash\nDISPLAY=:99 $ARDUINO_HOME/arduino $@' > arduino
+    - export PATH=$PATH:"`pwd`"
 
     # Install shields and RFduino board
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
