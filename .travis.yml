@@ -31,12 +31,17 @@ addons:
 #            - linux-headers-$(uname -r)
 
 install:
-    # Install dependencies for Arduino compilation
+    # Install Arduino
     - wget http://downloads.arduino.cc/arduino-1.6.5-linux64.tar.xz
     - tar xf arduino-1.6.5-linux64.tar.xz
     - export ARDUINO_HOME="`pwd`/arduino-1.6.5"
-    - mv "$CCNL_HOME/src/arduino/arduino-headless" "$CCNL_HOME/src/arduino/arduino"
-    - export PATH=$PATH:"$CCNL_HOME/src/arduino"
+
+    # Start Xvfb X server dummy and create script that starts arduino through it
+    - if [ ! -f /tmp/.X99-lock ]; then Xvfb :99 -nolisten tcp -screen :99 1280x800x24 & fi
+    - echo -n '#!/bin/bash\nDISPLAY=:99 $ARDUINO_HOME/arduino $@' > /tmp/arduino
+    - export PATH=$PATH:"/tmp"
+
+    # Install shields and RFduino board
     - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
     - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
     - arduino --pref "boardsmanager.additional.urls=http://rfduino.com/package_rfduino_index.json" --install-boards "RFduino:RFduino"
