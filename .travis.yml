@@ -37,7 +37,7 @@ install:
     - export ARDUINO_HOME="`pwd`/arduino-1.6.5"
 
     # Start Xvfb X server dummy and create script that starts arduino through it
-    - if [ ! -f /tmp/.X99-lock ]; then Xvfb :99 -nolisten tcp -screen :99 1280x800x24 > /dev/null & fi
+    - if [ ! -f /tmp/.X99-lock ]; then Xvfb :99 -nolisten tcp -screen :99 1280x800x24 > /dev/null 2>&1 & fi
     - printf '#!/bin/bash\nDISPLAY=:99 $ARDUINO_HOME/arduino $@\n' > arduino
     - chmod +x arduino
     - export PATH=$PATH:"`pwd`"
