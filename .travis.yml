@@ -26,6 +26,10 @@ addons:
             - libssl-dev
             - build-essential
             - ant
+
+            # Needed for aapt of Android SDK
+            - lib32stdc++6
+            - lib32z1
 #            - linux-headers-$(uname -r)
 
 install:
