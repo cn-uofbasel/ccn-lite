@@ -38,6 +38,15 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #undef sprintf_P
 #define sprintf_P(...) sprintf(__VA_ARGS__)
 
+// Add missing _P variants of snprintf
+#ifndef snprintf_P
+#define snprintf_P(...) snprintf(__VA_ARGS__)
+#endif
+
+#ifndef vsnprintf_P
+#define vsnprintf_P(...) vsnprintf(__VA_ARGS__)
+#endif
+
 
 //#define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
