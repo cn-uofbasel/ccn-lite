@@ -205,12 +205,6 @@ build-test-build-duino() {
     local board=$3
     local rc
 
-    echo "$ sed \"s|\(^\s*#define CCN_LITE_${prefix^^}DUINO_C\).*$|\1 \\\"$CCNL_HOME/src/ccn-lite-${prefix}duino.c\\\"|\" src/src.ino > src/src.ino.sed" >> "$logfile"
-    sed "s|\(^\s*#define CCN_LITE_${prefix^^}DUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-${prefix}duino.c\"|" src/src.ino > src/src.ino.sed
-
-    echo "$ mv src/src.ino.sed src/src.ino" >> "$logfile"
-    mv src/src.ino.sed src/src.ino >> "$logfile"
-
     echo "$ make clean" >> "$logfile"
     make clean >> "$logfile" 2>&1
 
