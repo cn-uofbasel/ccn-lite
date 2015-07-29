@@ -21,7 +21,8 @@ endif
 EUID:=$(shell sh -c 'id -u')
 
 # Check if arduino is available
-INO_ARDUINO_RC:=$(shell which arduino > /dev/null; echo $$?)
+ARDUINO_RC:=$(shell which arduino > /dev/null; echo $$?)
+ANDROID_RC:=$(shell { which android && which ndk-build && which ant; } > /dev/null; echo $$?)
 
 BT_RELAY:=bt-relay-nothing \
 	bt-relay-barebones \
@@ -37,6 +38,13 @@ BT_OMNET:=bt-omnet
 BT_ALL:=bt-all-vanilla \
 	bt-all-nfn
 
+SHIELDS:=ethernet wifly
+BOARDS:=uno
+BT_ARDUINO:=$(foreach S,$(SHIELDS),$(foreach B,$(BOARDS),bt-arduino-$(S)-$(B)))
+BT_RFDUINO:=bt-rfduino
+
+BT_ANDROID:=bt-android
+
 PKT_FORMATS:=ccnb ccntlv cistlv iottlv ndntlv
 BT_PKT:=$(addprefix bt-pkt-,${PKT_FORMATS})
 
@@ -45,24 +53,29 @@ BT_DEMO:=$(addprefix bt-demo-,${SUITES})
 BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
 
-BT_RFDUINO:=bt-rfduino
-SHIELDS:=ethernet wifly
-BOARDS:=uno
-BT_ARDUINO:=$(foreach S,$(SHIELDS),$(foreach B,$(BOARDS),bt-arduino-$(S)-$(B)))
-
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL} ${BT_PKT} ${BT_DEMO} ${BT_NFN}
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL}
+PROFILES_STR:=relay, lnxkernel, omnet, all,
+ifeq ($(ARDUINO_RC),0)
+    PROFILES+=${BT_ARDUINO} ${BT_RFDUINO}
+    PROFILES_STR+=arduino, rfduino,
+endif
+ifeq ($(ANDROID_RC),0)
+    PROFILES+=${BT_ANDROID}
+    PROFILES_STR+=android,
+endif
+PROFILES+=${BT_PKT} ${BT_DEMO}
+PROFILES_STR+=pkt, demo,
 # Include BT_DEMO_KRNL only on Linux under root
 ifeq ($(OS),Linux)
     ifeq ($(EUID),0)
         PROFILES+=${BT_DEMO_KRNL}
+        PROFILES_STR+=demo-krnl,
 	endif
 endif
-# Include Ardunio compilation only if available
-ifeq ($(INO_ARDUINO_RC),0)
-    PROFILES+=${BT_RFDUINO} ${BT_ARDUINO}
-endif
+PROFILES+=${BT_NFN}
+PROFILES_STR+=nfn
 
-.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_RFDUINO} ${BT_ARDUINO}
+.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_RFDUINO} ${BT_ARDUINO} ${BT_ANDROID}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
@@ -73,7 +86,7 @@ bt-nfn: ${BT_NFN} clean
 bt-arduino: ${BT_ARDUINO} clean
 
 echo-cores:
-	@bash -c 'printf "\e[3mBuilding using $(NO_CORES) cores:\e[0m\n"'
+	@bash -c 'printf "\e[3mBuilding \e[1m$(PROFILES_STR)\e[0m\e[3m using \e[1m$(NO_CORES) cores:\e[0m\n"'
 
 clean:
 	@make clean USE_NFN=1 USE_NACK=1 > /dev/null 2>&1
@@ -188,18 +201,23 @@ bt-all-nfn:
 	./build-test-helper.sh || ${PRINT_LOG}
 
 
-bt-rfduino:
-	@MODE="rfduino" \
-	TARGET=$@ \
-	./build-test-helper.sh || ${PRINT_LOG}
-
-
 ${BT_ARDUINO}:
 	@SPLIT=$(@:bt-arduino-%=%); \
 	MODE="arduino" \
 	TARGET=$@ \
 	SHIELD=$${SPLIT%-*} \
 	BOARD=$${SPLIT#*-} \
+	./build-test-helper.sh || ${PRINT_LOG}
+
+bt-rfduino:
+	@MODE="rfduino" \
+	TARGET=$@ \
+	./build-test-helper.sh || ${PRINT_LOG}
+
+
+bt-android:
+	@MODE="android" \
+	TARGET=$@ \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 

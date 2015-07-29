@@ -37,7 +37,9 @@
 #      Parameters:
 #        BOARD         Name of the board.
 #        SHIELD        Name of the network shield.
-
+#
+#   "android"
+#      Compiles CCN-lite for Android.
 
 ### Functions:
 
@@ -162,6 +164,12 @@ build-test-nfn-test() {
     return $rc
 }
 
+# Uses the specified shield file and compiles it.
+#
+# Parameters:
+#     $1    log file
+#     $2    shield name
+#     $3    board
 build-test-arduino() {
     local logfile=$1
     local shield=$2
@@ -185,6 +193,12 @@ build-test-arduino() {
     return $rc
 }
 
+# Compiles (RF|Ar)duino.
+#
+# Parameters:
+#     $1    log file
+#     $2    prefix: "rf" or "ar"
+#     $3    board
 build-test-build-duino() {
     local logfile=$1
     local prefix=$2
@@ -202,6 +216,31 @@ build-test-build-duino() {
 
     echo "$ make verify ARDUINO_BOARD=\"$board\"" >> "$logfile"
     make verify ARDUINO_BOARD="$board" >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+build-test-android() {
+    local logfile=$1
+    local rc
+
+    echo "$ ndk-build clean" >> "$logfile"
+    ndk-build clean >> "$logfile" 2>&1
+
+    echo "$ ant clean" >> "$logfile"
+    ant clean >> "$logfile" 2>&1
+
+    echo "$ ndk-build" >> "$logfile"
+    ndk-build >> "$logfile" 2>&1
+
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ ant debug" >> "$logfile"
+    ant debug >> "$logfile" 2>&1
 
     rc=$?
     echo "" >> "$logfile"
@@ -288,6 +327,13 @@ elif [ "$MODE" = "rfduino" ]; then
 
     cd rfduino
     build-test-build-duino "$LOGFILE" "rf" "RFduino"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "android" ]; then
+
+    cd android
+    build-test-android "$LOGFILE"
     RC=$?
     cd ..
 
