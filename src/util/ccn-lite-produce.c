@@ -245,7 +245,6 @@ Usage:
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
             goto Error;
-            break;
         }
 
         if (outdirname) {

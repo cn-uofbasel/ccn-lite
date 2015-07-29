@@ -1,0 +1,16 @@
+#!/bin/bash
+# Run arduino command in a Xvfb session (dummy X server)
+
+i=99
+while [ -f /tmp/.X$i-lock ]; do
+    i=$(($i + 1))
+done
+echo "Using $i..."
+Xvfb :$i -nolisten tcp -screen :$i 1280x800x24 &
+xvfb=$!
+
+DISPLAY=:$i $ARDUINO_HOME/arduino $@
+RC=$?
+
+kill $xvfb
+exit $RC

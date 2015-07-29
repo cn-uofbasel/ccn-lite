@@ -18,8 +18,6 @@ Module.symvers
 src/ccn-lite-minimalrelay
 src/ccn-lite-relay
 src/ccn-lite-simu
-src/arduino/.build/*
-src/arduino/lib/.holder
 
 # nfn-binaries
 src/ccn-lite-relay-nack
@@ -43,6 +41,17 @@ src/util/ccn-lite-pktdump
 src/util/ccn-lite-rpc
 src/util/ccn-lite-simplenfn
 src/util/ccn-lite-valid
+
+# arduino binaries
+src/arduino/build
+src/arduino/src/src.ino
+src/rfduino/build
+
+# android binaries
+src/android/bin
+src/android/gen
+src/android/libs
+src/android/obj
 
 # unit tests
 test/unit/prefix-cmp
