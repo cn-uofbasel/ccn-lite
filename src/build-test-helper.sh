@@ -31,7 +31,15 @@
 #      Runs the nfn-test script with the provided suite.
 #      Parameters:
 #        SUITE         Name of the suite to test.
-
+#
+#   "arduino"
+#      Compiles CCN-lite for Arduino using the provided board and shield.
+#      Parameters:
+#        BOARD         Name of the board.
+#        SHIELD        Name of the network shield.
+#
+#   "android"
+#      Compiles CCN-lite for Android.
 
 ### Functions:
 
@@ -156,6 +164,84 @@ build-test-nfn-test() {
     return $rc
 }
 
+# Uses the specified shield file and compiles it.
+#
+# Parameters:
+#     $1    log file
+#     $2    shield name
+#     $3    board
+build-test-arduino() {
+    local logfile=$1
+    local shield=$2
+    local board=$3
+    local shieldFile="src-$shield.ino"
+    local rc
+
+    if [ ! -f "$shieldFile" ]; then
+        echo "Error: source file '$shieldFile' for shield '$shield' not found." >> "$logfile"
+        return 1
+    fi
+
+    echo "$ mkdir -p src" >> "$logfile"
+    mkdir -p src >> "$logfile"
+
+    echo "$ cp "$shieldFile" src/src.ino" >> "$logfile"
+    cp "$shieldFile" src/src.ino >> "$logfile"
+
+    build-test-build-duino "$logfile" "ar" "$board"
+    rc=$?
+    return $rc
+}
+
+# Compiles (RF|Ar)duino.
+#
+# Parameters:
+#     $1    log file
+#     $2    prefix: "rf" or "ar"
+#     $3    board
+build-test-build-duino() {
+    local logfile=$1
+    local prefix=$2
+    local board=$3
+    local rc
+
+    echo "$ make clean" >> "$logfile"
+    make clean >> "$logfile" 2>&1
+
+    echo "$ make verify ARDUINO_BOARD=\"$board\"" >> "$logfile"
+    make verify ARDUINO_BOARD="$board" >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+build-test-android() {
+    local logfile=$1
+    local rc
+
+    echo "$ ndk-build clean" >> "$logfile"
+    ndk-build clean >> "$logfile" 2>&1
+
+    echo "$ ant clean" >> "$logfile"
+    ant clean >> "$logfile" 2>&1
+
+    echo "$ ndk-build" >> "$logfile"
+    ndk-build >> "$logfile" 2>&1
+
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ ant debug" >> "$logfile"
+    ant debug >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
 ### Main script:
 
 unset USE_KRNL
@@ -223,6 +309,27 @@ elif [ "$MODE" = "nfn-test" ]; then
         build-test-nfn-test "$LOGFILE" "$SUITE"
         RC=$?
     fi
+
+elif [ "$MODE" = "arduino" ]; then
+
+    cd arduino
+    build-test-arduino "$LOGFILE" "$SHIELD" "$BOARD"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "rfduino" ]; then
+
+    cd rfduino
+    build-test-build-duino "$LOGFILE" "rf" "RFduino"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "android" ]; then
+
+    cd android
+    build-test-android "$LOGFILE"
+    RC=$?
+    cd ..
 
 else
 

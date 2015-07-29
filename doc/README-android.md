@@ -41,21 +41,17 @@ forget to adapt/define your environment variables `$PATH` and `$ANDROID_HOME`.
 
 ## Installation
 
-1.  Change to the Android directory of CCN-lite and start the Android GUI:
+1.  Install Android SDK *Tools*, *Platform-tools* and *Build-tools* as well as
+    your target API, for example Android 5.1.1 (API 22):
+
+    ```bash
+    android update sdk --no-ui --all --filter tools,platform-tools,build-tools-22.0.1,android-22
+    ```
+
+2.  Change to the Android directory of CCN-lite and build the native code using the NDK:
 
     ```bash
     cd $CCNL_HOME/src/android
-    android &
-    ```
-
-    Select the three Android SDKs "Tools", "Platform-tools" and "Build-tools".
-    Optionally, you can include the ARM EABI v7a System image as well.
-
-    See `AndroidManifest.xml` for the already defined Android project.
-
-2.  Build the native code of CCN-lite using the NDK:
-
-    ```bash
     ndk-build
     ```
 
