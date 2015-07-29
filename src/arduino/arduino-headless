@@ -1,15 +1,16 @@
 #!/bin/bash
 # Run arduino command in a Xvfb session (dummy X server)
-Xvfb :1 -nolisten tcp -screen :1 1280x800x24 &
-xvfb="$!"
-xvfb_id=1
-sleep 1
 
-if ! ps -p $xvfb > /dev/null; then
-    Xvfb :2 -nolisten tcp -screen :2 1280x800x24 &
-    xvfb="$!"
-    xvfb_id=2
-fi
+i=99
+while [ -f /tmp/.X$i-lock ]; do
+    i=$(($i + 1))
+done
+echo "Using $i..."
+Xvfb :$i -nolisten tcp -screen :$i 1280x800x24 &
+xvfb=$!
 
-DISPLAY=:$xvfb_id $ARDUINO_HOME/arduino $@
-kill -9 $xvfb
+DISPLAY=:$i $ARDUINO_HOME/arduino $@
+RC=$?
+
+kill $xvfb
+exit $RC
