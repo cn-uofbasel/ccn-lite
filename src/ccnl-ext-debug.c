@@ -471,7 +471,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 //        INDENT(lev+1);
 
         ifndx[k] = k;
-        // FIXME: Pass size of addr[k] and replace with snprintf
+        // TODO: Pass size of addr[k] and replace with snprintf
         sprintf(addr[k], "%s", ccnl_addr2ascii(&top->ifs[k].addr));
 
 #ifdef CCNL_LINUXKERNEL
