@@ -67,19 +67,25 @@ eth2ascii(unsigned char *eth)
 #define ETH2ASCII_SIZE 19
     static char buf[ETH2ASCII_SIZE];
     const char* format = CONSTSTR("%02x:%02x:%02x:%02x:%02x:%02x");
+    int numChars = -1;
 
     // TODO: Somehow avoid code duplication because of snprintf_P vs. snprintf
 #ifdef CCNL_ARDUINO
-    snprintf_P(buf, ETH2ASCII_SIZE, format,
+    numChars = snprintf_P(buf, ETH2ASCII_SIZE, format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
 #else
-    snprintf(buf, ETH2ASCII_SIZE, format,
+    numChars = snprintf(buf, ETH2ASCII_SIZE, format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
 #endif
+
+    if (numChars < 0) {
+        return NULL;
+    }
+
     return buf;
 }
 
