@@ -553,12 +553,11 @@ get_pendint_dump(int lev, void *p, char **out){
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
 
-    int pos = 0, line = 0;
+    int line = 0;
     while (pir) {
 //        INDENT(lev);
-        pos = 0;
         // TODO: Pass size of out[line] and replace with snprintf
-        pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
+        sprintf(out[line], "%p PENDINT next=%p face=%p last=%d",
                (void *) pir, (void *) pir->next,
                (void *) pir->face, pir->last_used);
         pir = pir->next;
