@@ -385,6 +385,8 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
     //*prefix =  (void *) pre;
     *len = pre->compcnt;
     //*val = ccnl_prefix_to_path(pre);
+
+    // TODO: Pass size of val and replace with snprintf
     sprintf(*val, "%s", ccnl_prefix_to_path(pre));
     return 1;
 }
@@ -405,6 +407,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         prev[line] = (long)(void *) fac->prev;
         ifndx[line] = fac->ifndx;
         flags[line] = fac->flags;
+        // TODO: Pass size of peer[line] and replace with snprintf
         sprintf(peer[line], "%s", ccnl_addr2ascii(&fac->peer));
 
         if (0) {}
@@ -423,9 +426,11 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         else
             type[line] = 0;
 #ifdef USE_FRAG
-        if (fac->frag)
+        if (fac->frag) {
+            // TODO: Pass size of frag[line] and replace with snprintf
             sprintf(frag[line], "fragproto=%s mtu=%d",
                     frag_protocol(fac->frag->protocol), fac->frag->mtu);
+        }
         else
 #endif
             frag[line][0] = '\0';
@@ -552,6 +557,7 @@ get_pendint_dump(int lev, void *p, char **out){
     while (pir) {
 //        INDENT(lev);
         pos = 0;
+        // TODO: Pass size of out[line] and replace with snprintf
         pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
                (void *) pir, (void *) pir->next,
                (void *) pir->face, pir->last_used);
