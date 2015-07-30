@@ -471,8 +471,8 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 //        INDENT(lev+1);
 
         ifndx[k] = k;
-        //        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
-        strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
+        // FIXME: Pass size of addr[k] and replace with snprintf
+        sprintf(addr[k], "%s", ccnl_addr2ascii(&top->ifs[k].addr));
 
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET) {
