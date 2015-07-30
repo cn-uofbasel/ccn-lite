@@ -34,6 +34,8 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 
 // ccnl-core-util.c
+int ccnl_snprintfAndForward(char **buf, unsigned int *buflen,
+                            const char *format, ...);
 #ifndef CCNL_LINUXKERNEL
    char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
                     int ccntlv_skip, int escape_components, int call_slash);
