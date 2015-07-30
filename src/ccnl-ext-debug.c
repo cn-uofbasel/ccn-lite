@@ -108,11 +108,18 @@ blob(struct ccnl_buf_s *buf)
 char*
 frag_protocol(int e)
 {
+#define FRAG_PROTOCOL_BUF_SIZE 100
     static char* names[] = { "none", "sequenced2012", "ccnx2013" };
-    static char buf[100];
+    static char buf[FRAG_PROTOCOL_BUF_SIZE];
+    int numChars;
+
     if (e >= 0 && e <= 2)
         return names[e];
-    sprintf(buf, "%d", e);
+
+    numChars = snprintf(buf, FRAG_PROTOCOL_BUF_SIZE, "%d", e);
+    if (numChars < 0) {
+        return NULL;
+    }
     return buf;
 }
 #endif
