@@ -895,6 +895,32 @@ ccnl_addr2ascii(sockunion *su)
 
 // ----------------------------------------------------------------------
 
+int
+ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ...)
+{
+    int numChars;
+    va_list args;
+    va_start(args, format);
+
+#ifdef CCNL_ARDUINO
+    numChars = vsnprintf_P(*buf, *buflen, format, args);
+#else
+    numChars = vsnprintf(*buf, *buflen, format, args);
+#endif
+
+    if (numChars > 0) {
+        if (((unsigned int) numChars) >= *buflen) {
+            *buflen = 0;
+        } else {
+            *buflen -= numChars;
+            if (*buf) *buf += numChars;
+        }
+    }
+
+    va_end(args);
+    return numChars;
+}
+
 #ifndef CCNL_LINUXKERNEL
 
 char*
