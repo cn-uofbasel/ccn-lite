@@ -234,7 +234,7 @@ ccnl_str2suite(char *cp)
         return CCNL_SUITE_CCNTLV;
 #endif
 #ifdef USE_SUITE_CISTLV
-    if (!strcmp(cp, "cisco2015"))
+    if (!strcmp(cp, CONSTSTR("cisco2015")))
         return CCNL_SUITE_CISTLV;
 #endif
 #ifdef USE_SUITE_IOTTLV
@@ -265,7 +265,7 @@ ccnl_suite2str(int suite)
 #endif
 #ifdef USE_SUITE_CISTLV
     if (suite == CCNL_SUITE_CISTLV)
-        return "cisco2015";
+        return CONSTSTR("cisco2015");
 #endif
 #ifdef USE_SUITE_IOTTLV
     if (suite == CCNL_SUITE_IOTTLV)

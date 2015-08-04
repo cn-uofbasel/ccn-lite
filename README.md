@@ -25,6 +25,8 @@ excellent starting point for commercial products.
 CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
 
+[![Build Status](https://travis-ci.org/cn-uofbasel/ccn-lite.svg?branch=master)](https://travis-ci.org/cn-uofbasel/ccn-lite)
+
 
 <a name="toc"></a>
 ### Table of Contents
@@ -313,24 +315,24 @@ Manolis Sifalakis
 Christian F. Tschudin  
 
 #### Feedback and other contributions:
-Fateh Al-Mufti   
-Frederik Brix   
-Patrick Buder   
-Daniel Federau   
-Ilir Fetai   
-Nenad Kokeza   
-David Kordsmeier   
-Dima Mansour   
-Marc Mosko   
-Mihai Daniel Rapcea   
-Fabian Rauschenbach   
-Yanick Salzmann   
-Maarten Schenk   
-Urs Schnurrenberger   
-Marco Suter   
-Marc-Andrea Tarnutzer   
-Marco Dieter Vogt   
-Akan Yilmaz   
+Fateh Al-Mufti  
+Frederik Brix  
+Patrick Buder  
+Daniel Federau  
+Ilir Fetai  
+Nenad Kokeza  
+David Kordsmeier  
+Dima Mansour  
+Marc Mosko  
+Mihai Daniel Rapcea  
+Fabian Rauschenbach  
+Yanick Salzmann  
+Maarten Schenk  
+Urs Schnurrenberger  
+Marco Suter  
+Marc-Andrea Tarnutzer  
+Marco Dieter Vogt  
+Akan Yilmaz  
 
 
 ### [Release 0.2.0](https://github.com/cn-uofbasel/ccn-lite/releases/tag/0.2.0) (Dec 2014)
