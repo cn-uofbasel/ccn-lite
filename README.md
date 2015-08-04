@@ -25,6 +25,8 @@ excellent starting point for commercial products.
 CCN-lite has been included in the RIOT operating system for the
 Internet of Things (IoT): http://www.riot-os.org/
 
+[![Build Status](https://travis-ci.org/cn-uofbasel/ccn-lite.svg?branch=master)](https://travis-ci.org/cn-uofbasel/ccn-lite)
+
 
 <a name="toc"></a>
 ### Table of Contents
