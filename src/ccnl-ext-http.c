@@ -204,9 +204,6 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     struct ccnl_interest_s *ipt;
     struct ccnl_buf_s *bpt;
 
-
-
-
     numChars = ccnl_snprintfAndForward(&buf, &remLen, "%s",
         "HTTP/1.1 200 OK\n\r"
         "Content-Type: text/html; charset=utf-8\n\r"
