@@ -37,7 +37,7 @@ ccnl_nfn_krivine_str2const(char *str){
     len = (ccp - str);
     c = ccnl_calloc(1, sizeof(*c) + len);
     c->len = len-1;
-    strncpy(c->str, str+1, len-1);
+    memcpy(c->str, str+1, len-1);
 
     return c;
 }
@@ -45,10 +45,7 @@ ccnl_nfn_krivine_str2const(char *str){
 char *
 ccnl_nfn_krivine_const2str(struct const_s * con){ //may be unsafe
     char *c = ccnl_calloc(con->len+3, sizeof(*c));
-    strncpy(c+1, con->str, con->len);
-    c[0] = '\'';
-    c[con->len+1] = '\'';
-    c[con->len+2] = '\0';
+    snprintf(c, con->len+3, "'%.*s'", con->len, con->str);
     return c;
 }
 
