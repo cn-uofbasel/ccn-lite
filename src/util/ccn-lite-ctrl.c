@@ -29,6 +29,7 @@
 #define USE_SUITE_NDNTLV
 
 #define USE_SIGNATURES
+#define USE_UNIXSOCKET
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
@@ -871,8 +872,7 @@ ccnl_crypto_ux_open(char *frompath)
     exit(1);
     }
     unlink(frompath);
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    ccnl_setUnixSocketPath(&name, frompath);
     if (bind(sock, (struct sockaddr *) &name,
          sizeof(struct sockaddr_un))) {
     perror("binding name to datagram socket");
@@ -910,8 +910,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     int rc;
 
     /* Construct name of socket to send to. */
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    ccnl_setUnixSocketPath(&name, topath);
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,

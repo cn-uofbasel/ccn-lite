@@ -26,6 +26,7 @@
 #define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
+#define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -287,8 +288,7 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;

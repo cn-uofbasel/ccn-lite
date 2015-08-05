@@ -140,8 +140,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
 
     unlink(path);
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    ccnl_setUnixSocketPath(ux, path);
 
     if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");

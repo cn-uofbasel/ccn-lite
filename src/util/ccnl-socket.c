@@ -84,6 +84,8 @@ udp_sendto(int sock, char *dest, unsigned char *data, int len)
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_UNIXSOCKET
+
 int
 ux_open()
 {
@@ -99,8 +101,8 @@ ux_open()
         perror("opening datagram socket");
         exit(1);
     }
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
+
+    ccnl_setUnixSocketPath(&name, mysockname);
     if (bind(sock, (struct sockaddr *) &name,
              sizeof(struct sockaddr_un))) {
         perror("binding path name to datagram socket");
@@ -119,12 +121,13 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 {
     struct sockaddr_un name;
 
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    ccnl_setUnixSocketPath(&name, topath);
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &name,
                   sizeof(struct sockaddr_un));
 }
+
+#endif //USE_UNIXSOCKET
 
 // ----------------------------------------------------------------------
 
