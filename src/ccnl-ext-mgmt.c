@@ -810,6 +810,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     unsigned char *buf;
     int buflen, num, typ;
+    sockunion su;
+    size_t sizeSockAddr = 0;
     unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
         *path, *frag, *flags;
     char *cp = "newface cmd failed";
@@ -858,9 +860,9 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     // should (re)verify that action=="newface"
 
+
 #ifdef USE_ETHERNET
     if (macsrc && host && port) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
                  macsrc, host, port);
         memset(&su, 0, sizeof(su));
@@ -871,30 +873,30 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                    su.eth.sll_addr+2, su.eth.sll_addr+3,
                    su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
         // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
+            sizeSockAddr = sizeof(struct sockaddr_ll);
         }
     } else
 #endif
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                  ip4src, proto, host, port);
         su.sa.sa_family = AF_INET;
         inet_aton((const char*)host, &su.ip4.sin_addr);
         su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
         // not implmented yet: honor the requested ip4src parameter
-        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_in));
+        sizeSockAddr = sizeof(struct sockaddr_in);
     }
 #ifdef USE_UNIXSOCKET
     if (path) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
         ccnl_setSockunionUnixPath(&su, (char*) path);
-        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_un));
+        sizeSockAddr = sizeof(struct sockaddr_un);
     }
 #endif
+
+    if (sizeSockAddr > 0) {
+        f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeSockAddr);
+    }
 
     if (f) {
         int flagval = flags ?
