@@ -78,7 +78,7 @@ ccnl_debugLevelToChar(int level)
           Serial.print("] ");               \
           Serial.print(timestamp());        \
           Serial.print(": ");               \
-          strcpy_P(logstr, PSTR(__FILE__)); \ //TODO: replace with snprintf
+          strcpy_P(logstr, PSTR(__FILE__)); /*TODO: replace with snprintf*/ \
           cp = logstr + strlen(logstr);     \
           while (cp >= logstr && *cp != '/') cp--; \
           Serial.print(cp+1);               \
