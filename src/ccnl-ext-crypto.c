@@ -378,6 +378,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       int verified = ccnl_crypto_extract_verify_reply(&buf, &buflen, &seqnum);
       unsigned char *msg, *msg2;
       char cmd[500];
+      int numChars;
       int len = ccnl_crypto_extract_msg(&buf, &buflen, &msg), len2 = 0;
       struct ccnl_face_s *from;
       //DEBUGMSG(DEBUG,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
@@ -404,11 +405,13 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
                          &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
-      if (p->complen[2] < sizeof(cmd)) {
-            memcpy(cmd, p->comp[2], p->complen[2]);
-            cmd[p->complen[2]] = '\0';
-      } else
-            strcpy(cmd, "cmd-is-too-long-to-display");
+      numChars = snprintf(cmd, sizeof(cmd), "%.*s", p->complen[2],
+                          p->comp[2]);
+      if (numChars >= sizeof(cmd)) {
+         DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
+                  p->complen[2], p->comp[2], p->complen[2]+1, sizeof(cmd));
+      }
+
       msg2_buf = ccnl_buf_new((char *)msg2, len2);
       ccnl_mgmt_handle(ccnl, msg2_buf, p, from, cmd, verified);
       ccnl_free(msg2_buf);
