@@ -482,8 +482,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
     DEBUGMSG(DEBUG, "UNIX socket is %p\n", (void*)s);
 
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    ccnl_setUnixSocketPath(ux, path);
     rc = s->ops->bind(s, (struct sockaddr*) ux,
                 offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {

@@ -893,6 +893,21 @@ ccnl_addr2ascii(sockunion *su)
     return buf;
 }
 
+#ifdef USE_UNIXSOCKET
+int
+ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path)
+{
+    ux->sun_family = AF_UNIX;
+    return snprintf(ux->sun_path, CCNL_ARRAY_SIZE(ux->sun_path), "%s", path);
+}
+
+int
+ccnl_setSockunionUnixPath(sockunion *su, const char *path) {
+    su->sa.sa_family = AF_UNIX;
+    return ccnl_setUnixSocketPath(&su->ux, path);
+}
+#endif
+
 // ----------------------------------------------------------------------
 
 int

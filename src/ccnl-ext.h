@@ -50,6 +50,12 @@ const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
 bool ccnl_isSuite(int suite);
 
+const char* ccnl_addr2ascii(sockunion *su);
+#ifdef USE_UNIXSOCKET
+int ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path);
+int ccnl_setSockunionUnixPath(sockunion *su, const char *path);
+#endif
+
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 
 #ifdef USE_CCNxDIGEST

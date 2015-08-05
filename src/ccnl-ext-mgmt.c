@@ -890,8 +890,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (path) {
         sockunion su;
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
-        su.sa.sa_family = AF_UNIX;
-        strcpy(su.ux.sun_path, (char*) path);
+        ccnl_setSockunionUnixPath(&su, (char*) path);
         f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
                                     &su.sa, sizeof(struct sockaddr_un));
     }
