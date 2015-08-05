@@ -78,7 +78,7 @@ ccnl_debugLevelToChar(int level)
           Serial.print("] ");               \
           Serial.print(timestamp());        \
           Serial.print(": ");               \
-          strcpy_P(logstr, PSTR(__FILE__)); \
+          strcpy_P(logstr, PSTR(__FILE__)); \ //TODO: replace with snprintf
           cp = logstr + strlen(logstr);     \
           while (cp >= logstr && *cp != '/') cp--; \
           Serial.print(cp+1);               \
@@ -226,7 +226,7 @@ debug_memdump()
                   h->size);
         Serial.print(logstr);
         // remove the "src/../" prefix:
-        strcpy_P(logstr, h->fname);
+        strcpy_P(logstr, h->fname); // TODO: replace with snprintf
         Serial.print(getBaseName(logstr));
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
