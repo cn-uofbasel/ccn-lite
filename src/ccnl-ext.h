@@ -51,6 +51,10 @@ int ccnl_str2suite(char *str);
 bool ccnl_isSuite(int suite);
 
 const char* ccnl_addr2ascii(sockunion *su);
+#ifdef USE_IPV4
+int ccnl_setIpSocketAddr(struct sockaddr_in *ip4, const char *addr, uint16_t port);
+int ccnl_setSockunionIpAddr(sockunion *su, const char *addr, uint16_t port);
+#endif
 #ifdef USE_UNIXSOCKET
 int ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path);
 int ccnl_setSockunionUnixPath(sockunion *su, const char *path);
