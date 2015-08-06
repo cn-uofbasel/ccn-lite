@@ -30,6 +30,7 @@
 
 #define USE_SIGNATURES
 #define USE_UNIXSOCKET
+#define USE_IPV4
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 
@@ -893,10 +894,8 @@ udp_sendto(int sock, char *address, int port,
 {
     int rc;
     struct sockaddr_in si_other;
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(port);
-    if (inet_aton(address, &si_other.sin_addr)==0) {
-          DEBUGMSG(ERROR, "inet_aton() failed\n");
+    if (ccnl_setIpSocketAddr(&si_other, address, port) == 0) {
+          DEBUGMSG(ERROR, "ccnl_setIpSocketAddr() failed\n");
           exit(1);
     }
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &si_other,
@@ -1032,8 +1031,8 @@ main(int argc, char *argv[])
     unsigned char *recvbuffer = 0, *recvbuffer2 = 0;
     int recvbufferlen = 0, recvbufferlen2 = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
-    char *udp = "0.0.0.0";
-    int port = 0;
+    char udp[256];
+    unsigned int port = 0;
     int use_udp = 0;
     unsigned char out[CCNL_MAX_PACKET_SIZE];
     int len;
@@ -1069,10 +1068,9 @@ main(int argc, char *argv[])
 #endif
             break;
         case 'u':
-            udp = strdup(optarg);
-            port = strtol(strtok(udp, "/"), NULL, 0);
+            sscanf(optarg, "%255[^/]/%u", udp, &port);
             use_udp = 1;
-printf("udp: <%s> <%d>\n", udp, port);
+            printf("udp: <%s> <%d>\n", udp, port);
             break;
         case 'x':
             ux = optarg;

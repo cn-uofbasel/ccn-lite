@@ -72,12 +72,11 @@ int
 udp_sendto(int sock, char *dest, unsigned char *data, int len)
 {
     struct sockaddr_in dst;
-    char buf[256];
-    strcpy(buf, dest);
+    char addr[256];
+    unsigned int port;
 
-    dst.sin_family = PF_INET;
-    dst.sin_addr.s_addr = inet_addr(strtok(buf, "/"));
-    dst.sin_port = htons(atoi(strtok(NULL, "/")));
+    sscanf(dest, "%255[^/]/%u", addr, &port);
+    ccnl_setIpSocketAddr(&dst, addr, port);
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &dst, sizeof(dst));
 }

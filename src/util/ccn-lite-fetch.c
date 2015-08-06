@@ -26,6 +26,7 @@
 #define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
+#define USE_IPV4
 #define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
@@ -292,9 +293,7 @@ usage:
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 

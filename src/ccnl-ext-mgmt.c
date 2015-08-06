@@ -879,11 +879,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
 #ifdef USE_IPV4
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
-        DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
-                 ip4src, proto, host, port);
-        su.sa.sa_family = AF_INET;
-        inet_aton((const char*)host, &su.ip4.sin_addr);
-        su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
+        uint16_t uPort = (uint16_t) strtoul((const char*) port, NULL, 0);
+        DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%u\n",
+                 ip4src, proto, host, uPort);
+        ccnl_setSockunionIpAddr(&su, (const char*) host, uPort);
         // not implmented yet: honor the requested ip4src parameter
         sizeSockAddr = sizeof(struct sockaddr_in);
     } else

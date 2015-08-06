@@ -109,11 +109,8 @@ ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port,
                                char *data, int len)
 {
     struct sockaddr_in si_other;
-
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(port);
-    if (inet_aton(address, &si_other.sin_addr)==0) {
-          fprintf(stderr, "inet_aton() failed\n");
+    if (ccnl_setIpSocketAddr(&si_other, address, port) == 0) {
+          fprintf(stderr, "ccnl_setIpSocketAddr() failed\n");
           exit(1);
     }
     return sendto(sock, data, len, 0,
