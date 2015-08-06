@@ -405,11 +405,11 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
                          &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
-      numChars = snprintf(cmd, sizeof(cmd), "%.*s", p->complen[2],
+      numChars = snprintf(cmd, CCNL_ARRAY_SIZE(cmd), "%.*s", p->complen[2],
                           p->comp[2]);
-      if (numChars >= sizeof(cmd)) {
+      if (numChars >= CCNL_ARRAY_SIZE(cmd)) {
          DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
-                  p->complen[2], p->comp[2], p->complen[2]+1, sizeof(cmd));
+                  p->complen[2], p->comp[2], p->complen[2]+1, CCNL_ARRAY_SIZE(cmd));
       }
 
       msg2_buf = ccnl_buf_new((char *)msg2, len2);
