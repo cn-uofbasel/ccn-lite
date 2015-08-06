@@ -123,7 +123,7 @@ struct in_addr {
 };
 
 struct sockaddr_in {
-    unsigned char sa_family;
+    unsigned char sin_family;
     unsigned short sin_port;
     struct in_addr sin_addr;
 };
@@ -199,6 +199,8 @@ inet_ntoa(struct in_addr a)
               (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
     return logstr;
 }
+
+#define inet_aton(c,i)                  (0)
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
@@ -449,7 +451,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     ccnl_core_init();
 
     theRelay.ifcount = 1;
-    theRelay.ifs[0].addr.ip4.sa_family = AF_INET;
+    theRelay.ifs[0].addr.ip4.sin_family = AF_INET;
     theRelay.ifs[0].addr.ip4.sin_addr.s_addr = IPaddr;
     theRelay.ifs[0].addr.ip4.sin_port = port;
     theRelay.ifs[0].sock = udp;
