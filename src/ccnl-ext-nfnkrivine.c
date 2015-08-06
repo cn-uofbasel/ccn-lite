@@ -511,7 +511,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
     DEBUGMSG(DEBUG, "---to do: resolveNAME <%s>\n", arg);
 
     //function definition
-    if (!strncmp(cp, "let", 3)) {
+    if (strncmp(cp, "let", 3) == 0) {
         int i, end = 0, cp2len, namelength, lambdalen;
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
