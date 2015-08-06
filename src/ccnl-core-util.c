@@ -893,7 +893,29 @@ ccnl_addr2ascii(sockunion *su)
     return buf;
 }
 
+
+#ifdef USE_IPV4
+
+int
+ccnl_setIpSocketAddr(struct sockaddr_in *ip4, const char *addr, uint16_t port)
+{
+    ip4->sin_family = AF_INET;
+    ip4->sin_port = htons(port);
+    return inet_aton(addr, &ip4->sin_addr);
+}
+
+int
+ccnl_setSockunionIpAddr(sockunion *su, const char *addr, uint16_t port)
+{
+    su->sa.sa_family = AF_INET;
+    return ccnl_setIpSocketAddr(&su->ip4, addr, port);
+}
+
+#endif
+
+
 #ifdef USE_UNIXSOCKET
+
 int
 ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path)
 {
@@ -906,6 +928,7 @@ ccnl_setSockunionUnixPath(sockunion *su, const char *path) {
     su->sa.sa_family = AF_UNIX;
     return ccnl_setUnixSocketPath(&su->ux, path);
 }
+
 #endif
 
 // ----------------------------------------------------------------------
