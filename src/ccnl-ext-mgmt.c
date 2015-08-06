@@ -877,6 +877,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
     } else
 #endif
+#ifdef USE_IPV4
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                  ip4src, proto, host, port);
@@ -885,14 +886,18 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
         // not implmented yet: honor the requested ip4src parameter
         sizeSockAddr = sizeof(struct sockaddr_in);
-    }
+    } else
+#endif
 #ifdef USE_UNIXSOCKET
     if (path) {
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
         ccnl_setSockunionUnixPath(&su, (char*) path);
         sizeSockAddr = sizeof(struct sockaddr_un);
-    }
+    } else
 #endif
+    {
+        DEBUGMSG(INFO, "Could not create new face.");
+    }
 
     if (sizeSockAddr > 0) {
         f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeSockAddr);
@@ -1294,7 +1299,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 #endif
 
-// #ifdef USE_UDP
+#ifdef USE_IPV4
     if (ip4src && port) {
         cp = "newUDPdev cmd worked";
         DEBUGMSG(TRACE, "  adding UDP device ip4src=%s, port=%s\n",
@@ -1353,7 +1358,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip4src, port, frag);
-// #endif // USE_UDP
+#endif // USE_IPV4
 
 Bail:
 
