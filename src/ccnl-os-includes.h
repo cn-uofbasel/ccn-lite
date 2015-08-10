@@ -103,7 +103,9 @@
 #include <net/ip.h>
 #include <net/af_unix.h>
 
+// TODO: Replace obsolete simple_* functions with kstrto* variants.
 #define strtol(s,p,b)	simple_strtol(s,p,b)
+#define strtoul(s,p,b)  simple_strtoul(s,p,b)
 #define inet_aton(s,p)	(p)->s_addr = in_aton(s)
 #define USE_ETHERNET
 
