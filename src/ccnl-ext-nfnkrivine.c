@@ -640,8 +640,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if (config->result_stack) {
-             prog = ccnl_malloc(strlen((char*)config->result_stack->content)+1);
-             strcpy(prog, config->result_stack->content);
+             prog = strdup(config->result_stack->content);
              return prog;
          }
          DEBUGMSG(DEBUG, "no result returned\n");
