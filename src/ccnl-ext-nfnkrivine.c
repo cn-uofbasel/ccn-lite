@@ -39,6 +39,8 @@ enum { // abstract machine instruction set
     ZAM_TAILAPPLY
 };
 
+#define CCNL_NFNKRIVINE_DUMMYBUF_SIZE 2000
+
 // ------------------------------------------------------------------
 // Machine state functions
 
@@ -940,7 +942,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
 
     if (!*config && strlen(expression) == 0)
         return 0;
-    dummybuf = ccnl_malloc(2000);
+    dummybuf = ccnl_malloc(CCNL_NFNKRIVINE_DUMMYBUF_SIZE);
     if (!*config) {
         char *prog;
         struct environment_s *global_dict = NULL;
