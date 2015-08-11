@@ -933,6 +933,51 @@ ccnl_setSockunionUnixPath(sockunion *su, const char *path) {
 
 // ----------------------------------------------------------------------
 
+// This method functions similarily to snprintf. It writes formatted output into
+// the provided buffer, given that there is enough buffer capacity.
+// The method returns the updated buffer position to continue to work on. If an
+// encoding error occurs, it returns NULL.
+// Additionally it updates both buflen and totalLen. totalLen represents the
+// total number of characters that would have been written if buffer capacity
+// had been sufficiently large, not counting the nulll terminator.
+// If an error occurs or the buffer has not enough capacity, buflen is set to 0.
+// Otherwise it is incremented.
+//
+// Similar to snprintf, if the provided buflen is 0, totalLen is still updated
+// correctly and buf can be NULL. This is useful to calculate the needed amount
+// of buffer capacity.
+//
+// This method is meant to use in multiple sequential calls to build a string.
+char*
+ccnl_snprintf(char *buf, unsigned int *buflen, unsigned int *totalLen, const char *format, ...)
+{
+    int numChars;
+    va_list args;
+
+    va_start(args, format);
+    #ifdef CCNL_ARDUINO
+        numChars = vsnprintf_P(buf, *buflen, format, args);
+    #else
+        numChars = vsnprintf(buf, *buflen, format, args);
+    #endif
+    va_end(args);
+
+    if (numChars < 0) {
+        *buflen = 0;
+        return NULL;
+    }
+
+    if (((unsigned int) numChars) >= *buflen) {
+        *buflen = 0;
+    } else {
+        *buflen -= numChars;
+        if (buf) buf += numChars;
+    }
+
+    *totalLen += numChars;
+    return buf;
+}
+
 int
 ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ...)
 {
