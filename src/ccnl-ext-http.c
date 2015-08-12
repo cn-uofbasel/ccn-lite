@@ -259,7 +259,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fwda[i] = fwd;
         qsort(fwda, cnt, sizeof(fwd), ccnl_cmpfib);
         for (i = 0; i < cnt; i++) {
-            char fname[16];
+            char fname[16]; // FIXME: remove variable, not needed
 #ifdef USE_ECHO
             if (fwda[i]->tap)
                 numChars = snprintf(fname, 16, "%s", "'echoserver'");
