@@ -30,7 +30,7 @@
 
 #ifdef CCNL_ARDUINO
 #  define CONSOLE(FMT, ...)   do { \
-     sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__); \
+     snprintf_P(logstr, LOGSTRLEN, PSTR(FMT), ##__VA_ARGS__); \
      Serial.print(logstr); \
      Serial.print("\r"); \
    } while(0)
