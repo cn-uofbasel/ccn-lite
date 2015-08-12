@@ -30,7 +30,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     char *s, *cp;
     struct ccnl_buf_s *reply;
     unsigned char *ucp;
-    int len, enc;
+    int len, enc, cpLen;
     struct ccnl_prefix_s *pfx2 = NULL;
 
     DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
@@ -55,8 +55,9 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     t = time(NULL);
     s = ccnl_prefix_to_path(pfx);
 
-    cp = ccnl_malloc(strlen(s) + 60);
-    snprintf(cp, strlen(s) + 60, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
+    cpLen = strlen(s) + 60;
+    cp = ccnl_malloc(cpLen);
+    snprintf(cp, cpLen, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
 
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
     ccnl_free(cp);
