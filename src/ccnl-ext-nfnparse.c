@@ -117,42 +117,49 @@ ccnl_lambdaStrToTerm(int lev, char **cp, int (*prt)(char* fmt, ...))
     return t;
 }
 
-int
-ccnl_lambdaTermToStr(char *cfg, struct ccnl_lambdaTerm_s *t, char last)
+char*
+_ccnl_lambdaTermToStr(char *buf, unsigned int *buflen, unsigned int *totalLen, struct ccnl_lambdaTerm_s *t, char last)
 {
-    int len = 0;
-
     if (t->v && t->m) { // Lambda (sequence)
-        len += sprintf(cfg + len, "(%c%s", LAMBDACHAR, t->v);
-        len += ccnl_lambdaTermToStr(cfg + len, t->m, 'a');
-        len += sprintf(cfg + len, ")");
-        return len;
-    }
-    if (t->v) { // (single) variable
+        buf = ccnl_snprintf(buf, buflen, totalLen, "(%c%s", LAMBDACHAR, t->v);
+        buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, 'a');
+        buf = ccnl_snprintf(buf, buflen, totalLen, ")");
+    } else if (t->v) { // (single) variable
         if (isalnum(last))
-            len += sprintf(cfg + len, " %s", t->v);
-        else
-            len += sprintf(cfg + len, "%s", t->v);
-        return len;
-    }
-    // application (sequence)
-#ifdef CORRECT_PARENTHESES
-    len += sprintf(cfg + len, "(");
-    len += printKRIVINE(cfg + len, t->m, '(');
-    len += printKRIVINE(cfg + len, t->n, 'a');
-    len += sprintf(cfg + len, ")");
-#else
-    if (t->n->v && !t->n->m) {
-        len += ccnl_lambdaTermToStr(cfg + len, t->m, last);
-        len += ccnl_lambdaTermToStr(cfg + len, t->n, 'a');
+            buf = ccnl_snprintf(buf, buflen, totalLen, " ");
+        buf = ccnl_snprintf(buf, buflen, totalLen, "%s", t->v);
+    } else if (t->n->v && !t->n->m) {
+        buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, last);
+        buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->n, 'a');
     } else {
-        len += ccnl_lambdaTermToStr(cfg + len, t->m, last);
-        len += sprintf(cfg + len, " (");
-        len += ccnl_lambdaTermToStr(cfg + len, t->n, '(');
-        len += sprintf(cfg + len, ")");
+        buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, last);
+        buf = ccnl_snprintf(buf, buflen, totalLen, " (");
+        buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->n, '(');
+        buf = ccnl_snprintf(buf, buflen, totalLen, ")");
     }
-#endif
-    return len;
+
+    return buf;
+}
+
+int
+ccnl_lambdaTermToStr(char *buf, unsigned int buflen, struct ccnl_lambdaTerm_s *t, char last)
+{
+    unsigned int remLen = buflen, totalLen = 0;
+    buf = _ccnl_lambdaTermToStr(buf, &remLen, &totalLen, t, last);
+
+    if (!buf) {
+        DEBUGMSG(ERROR, "An encoding error occured while transforming lambdaTerm %p to string.\n",
+                 (void*) t);
+        return -2;
+    }
+
+    if (totalLen >= buflen) {
+        DEBUGMSG(ERROR, "Buffer has not enough capacity to store lambdaTerm as string. Available: %u, needed: %u.\n",
+                 buflen, totalLen+1);
+        return -1;
+    }
+
+    return totalLen;
 }
 
 void

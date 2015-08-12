@@ -591,15 +591,15 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
         tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "TAILAPPLY");
     } else if (term_is_lambda(t)) {
-        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
         tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "GRAB(%s);RESOLVENAME(%s)",
                                t->v, dummybuf);
     } else if (term_is_app(t)) {
-        ccnl_lambdaTermToStr(dummybuf, t->n, 0);
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->n, 0);
         tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));",
                                dummybuf);
 
-        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
         tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "RESOLVENAME(%s)",
                                dummybuf);
     } else {

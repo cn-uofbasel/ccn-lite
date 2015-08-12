@@ -100,7 +100,7 @@ exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
             DEBUGMSG(ERROR, "could not parse as lambda term: %s\n", expr);
             exit(-1);
         }
-        ccnl_lambdaTermToStr(tmp, lt, ' ');
+        ccnl_lambdaTermToStr(tmp, CCNL_ARRAY_SIZE(tmp), lt, ' ');
         expr = tmp;
     }
 
