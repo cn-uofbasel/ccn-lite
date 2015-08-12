@@ -30,7 +30,7 @@
 
 #ifdef CCNL_ARDUINO
 #  define CONSOLE(FMT, ...)   do { \
-     snprintf_P(logstr, LOGSTRLEN, PSTR(FMT), ##__VA_ARGS__); \
+     snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR(FMT), ##__VA_ARGS__); \
      Serial.print(logstr); \
      Serial.print("\r"); \
    } while(0)
@@ -41,9 +41,10 @@
 static char android_logstr[1024];
 void jni_append_to_log(char *line);
 
-#  define CONSOLE(...)        do { sprintf(android_logstr, __VA_ARGS__); \
-                                   jni_append_to_log(android_logstr); \
-                              } while(0)
+#  define CONSOLE(...)        do { \
+     snprintf(android_logstr, CCNL_ARRAY_SIZE(android_logstr), __VA_ARGS__); \
+     jni_append_to_log(android_logstr); \
+   } while(0)
 #  define CONSTSTR(s)         s
 
 #elif !defined(CCNL_LINUXKERNEL)
