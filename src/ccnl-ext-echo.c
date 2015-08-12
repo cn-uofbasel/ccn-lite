@@ -69,6 +69,12 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     while (!ccnl_switch_dehead(&ucp, &len, &enc)); // for iot2014 encoding
 
+    // TODO: This is probably not the right way to send the reply. Instead, it
+    // should be correctly enqueued into the relay's queues.
+    // This is because ccnl_echo_request is already called inside a ccnl_core_RX
+    // phase. It results in the callee depending on an interest which gets
+    // removed in this call.
+    should probably add to the queue, not directly handle it!
     ccnl_core_suites[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
     ccnl_free(reply);
 }
