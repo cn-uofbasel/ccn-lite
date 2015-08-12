@@ -16,6 +16,7 @@ branches:
     only:
         - master
         - dev-master
+        - safe-strings
 
 env:
     - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin"
