@@ -51,7 +51,7 @@
 
 // ----------------------------------------------------------------------
 
-#define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
+#define assert(p) do{if(!(p)){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define local_producer(...)             0
