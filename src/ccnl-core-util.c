@@ -887,6 +887,7 @@ ccnl_addr2ascii(sockunion *su)
     }
 
     if (numChars < 0) {
+        DEBUGMSG(INFO, "Could not convert address, returning NULL.\n");
         return NULL;
     }
 
