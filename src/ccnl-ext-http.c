@@ -244,22 +244,21 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fwda[i] = fwd;
         qsort(fwda, cnt, sizeof(fwd), ccnl_cmpfib);
         for (i = 0; i < cnt; i++) {
-            char fname[16]; // FIXME: remove variable, not needed
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "<li>via ");
+
 #ifdef USE_ECHO
             if (fwda[i]->tap)
-                snprintf(fname, 16, "%s", "'echoserver'");
+                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "'echoserver'");
             else
 #endif
             if(fwda[i]->face)
-                snprintf(fname, 16, "f%d", fwda[i]->face->faceid);
+                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "f%d", fwda[i]->face->faceid);
             else
-                snprintf(fname, 16, "?");
-            // FIXME!!
-            //if (numChars < 0) goto fail;
+                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "?");
 
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
-                "<li>via %4s: <font face=courier>%s</font></li>\n",
-                fname, ccnl_prefix_to_path(fwda[i]->prefix));
+                ": <font face=courier>%s</font></li>\n",
+                ccnl_prefix_to_path(fwda[i]->prefix));
         }
         ccnl_free(fwda);
     }
