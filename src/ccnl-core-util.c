@@ -947,12 +947,15 @@ ccnl_setSockunionUnixPath(sockunion *su, const char *path) {
 // correctly and buf can be NULL. This is useful to calculate the needed amount
 // of buffer capacity.
 //
-// This method is meant to use in multiple sequential calls to build a string.
+// This method is meant to use in multiple sequential calls to build a string,
+// and doing error checking afterwards (buf == NULL? totalLen >= buffer length?).
 char*
 ccnl_snprintf(char *buf, unsigned int *buflen, unsigned int *totalLen, const char *format, ...)
 {
     int numChars;
     va_list args;
+
+    assert(buf != NULL || (buf == NULL && *buflen == 0));
 
     va_start(args, format);
     #ifdef CCNL_ARDUINO
@@ -975,6 +978,8 @@ ccnl_snprintf(char *buf, unsigned int *buflen, unsigned int *totalLen, const cha
     }
 
     *totalLen += numChars;
+
+    assert(buf != NULL || (buf == NULL && *buflen == 0));
     return buf;
 }
 
