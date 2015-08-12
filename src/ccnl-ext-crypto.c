@@ -106,7 +106,7 @@ ccnl_crypto_create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int 
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, typ);
     memset(h, 0, 100);
-    sprintf(h, "%d", txid);
+    snprintf(h, CCNL_ARRAY_SIZE(h), "%d", txid);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, h);
     if(!strcmp(typ, "verify"))
         len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // content
@@ -454,7 +454,8 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           struct ccnl_content_s *c = 0;
           struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
           unsigned char *content = 0;
-          char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+          unsigned int htLen = 20;
+          char *ht = (char *) ccnl_malloc(sizeof(char)*htLen);
           int contlen;
           pkt = ccnl_ccnb_extract(&out, &len1, 0, 0, 0, 0,
                                   &prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -470,7 +471,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           prefix_a->compcnt = 2;
           prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
           prefix_a->comp[0] = "mgmt";
-          sprintf(ht, "seqnum-%d", -seqnum);
+          snprintf(ht, htLen, "seqnum-%d", -seqnum);
           prefix_a->comp[1] = ht;
           prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
           prefix_a->complen[0] = strlen("mgmt");
