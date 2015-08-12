@@ -407,6 +407,11 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
 
       numChars = snprintf(cmd, CCNL_ARRAY_SIZE(cmd), "%.*s", p->complen[2],
                           p->comp[2]);
+      if (numChars < 0) {
+          DEBUGMSG(WARNING, "An encoding error occured while creating command \"%.*s\".\n",
+                   p->complen[2], p->comp[2]);
+      }
+
       if (numChars >= CCNL_ARRAY_SIZE(cmd)) {
          DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
                   p->complen[2], p->comp[2], p->complen[2]+1, CCNL_ARRAY_SIZE(cmd));
