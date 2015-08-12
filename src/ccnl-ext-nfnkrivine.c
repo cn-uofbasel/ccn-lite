@@ -507,7 +507,10 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
                 char *arg, char *contd)
 {
     struct ccnl_lambdaTerm_s *t;
-    char res[1000], *cp = arg;
+    char res[1000];
+    char *cp = arg, *tmpRes = res;
+    unsigned int remLen = CCNL_ARRAY_SIZE(res), totalLen = 0;
+    bool success = true;
 
     DEBUGMSG(DEBUG, "---to do: resolveNAME <%s>\n", arg);
 
@@ -549,10 +552,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
         ccnl_free(cp);
-        if (!contd) {
-            return NULL;
-        }
-        return strdup(contd);
+        return contd ? strdup(contd) : NULL;
     }
 
     //check if term can be made available, if yes enter it as a var
@@ -560,12 +560,11 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
     t = ccnl_lambdaStrToTerm(0, &cp, NULL);
     ccnl_free(arg);
-
     if (term_is_var(t)) {
         char *end = 0;
         cp = t->v;
         if (isdigit(*cp)) {
-            // is disgit...
+            // is digit...
             int *integer = ccnl_malloc(sizeof(int));
             *integer = strtol(cp, &end, 0);
             if (end && *end)
@@ -585,62 +584,47 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }
-        if (end) {
-            if (contd)
-                snprintf(res, CCNL_ARRAY_SIZE(res), "TAILAPPLY;%s", contd);
-            else
-                snprintf(res, CCNL_ARRAY_SIZE(res), "TAILAPPLY");
-        } else {
-            if (contd)
-                snprintf(res, CCNL_ARRAY_SIZE(res), "ACCESS(%s);TAILAPPLY;%s", t->v, contd);
-            else
-                snprintf(res, CCNL_ARRAY_SIZE(res), "ACCESS(%s);TAILAPPLY", t->v);
-        }
-        ccnl_lambdaFreeTerm(t);
-        return ccnl_strdup(res);
-    }
-    if (term_is_lambda(t)) {
-        char *var;
-        var = t->v;
-        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-        if (contd)
-            snprintf(res, CCNL_ARRAY_SIZE(res), "GRAB(%s);RESOLVENAME(%s);%s", var, dummybuf, contd);
-        else
-            snprintf(res, CCNL_ARRAY_SIZE(res), "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
-        ccnl_lambdaFreeTerm(t);
-        return ccnl_strdup(res);
-    }
-    if (term_is_app(t)) {
-        char *tmpBuf = res;
-        unsigned int remLen = CCNL_ARRAY_SIZE(res), totalLen = 0;
 
+        if (!end)
+            tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "ACCESS(%s);",
+                                   t->v);
+
+        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "TAILAPPLY");
+    } else if (term_is_lambda(t)) {
+        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
+        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "GRAB(%s);RESOLVENAME(%s)",
+                               t->v, dummybuf);
+    } else if (term_is_app(t)) {
         ccnl_lambdaTermToStr(dummybuf, t->n, 0);
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));", dummybuf);
+        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));",
+                               dummybuf);
 
         ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "RESOLVENAME(%s)", dummybuf);
-
-        if (contd)
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ";%s", contd);
-
-        ccnl_lambdaFreeTerm(t);
-
-        if (!tmpBuf) {
-            assert(remLen == 0);
-            DEBUGMSG(ERROR, "Encoding error occured while constructing term app result.\n");
-            return NULL;
-        }
-
-        if (totalLen >= CCNL_ARRAY_SIZE(res)) {
-            assert(remLen == 0);
-            DEBUGMSG(ERROR, "result buffer has not enough capacity to store result. Available: %zu, needed: %d.\n",
-                     CCNL_ARRAY_SIZE(res), totalLen+1);
-            return NULL;
-        }
-
-        return ccnl_strdup(res);
+        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "RESOLVENAME(%s)",
+                               dummybuf);
+    } else {
+        DEBUGMSG(ERROR, "Invalid lambda term encountered (no lambda, app or var). <v=%s, m=%p, n=%p>\n",
+                 t->v, (void*)t->m, (void*)t->n);
+        success = false;
     }
-    return NULL;
+    ccnl_lambdaFreeTerm(t);
+
+    if (contd && success)
+        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, ";%s", contd);
+
+
+    if (!tmpRes) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "Encoding error in ccnl_snprintf occured while resolving name.\n");
+        return NULL;
+    }
+    if (totalLen >= CCNL_ARRAY_SIZE(res)) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "Result buffer has not enough capacity to store result. Available: %zu, needed: %d.\n",
+                 CCNL_ARRAY_SIZE(res), totalLen+1);
+        return NULL;
+    }
+    return success ? ccnl_strdup(res) : NULL;
 }
 
 // executes a ZAM instruction, returns the term to continue working on
