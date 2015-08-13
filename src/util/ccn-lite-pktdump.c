@@ -536,7 +536,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -885,7 +885,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (cistlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -1144,7 +1144,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
