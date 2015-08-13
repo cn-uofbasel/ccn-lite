@@ -380,6 +380,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                    int *restart, int *halt, char *prog, char *pending,
                    struct stack_s **stack)
 {
+    int cpLen;
     char *cp = NULL;
     struct stack_s *s1, *s2;
 
@@ -426,8 +427,9 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         s1 = NULL;
 
         if (pending) {
-            cp = ccnl_malloc(strlen(pending)+1);
-            strcpy(cp, pending);
+            cpLen = strlen(pending) + 1;
+            cp = ccnl_malloc(cpLen);
+            snprintf(cp, cpLen, "%s", pending);
         }
     } else {
 out:
