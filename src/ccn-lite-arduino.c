@@ -430,6 +430,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   EthernetUDP *udp)
 {
     int i;
+    unsigned int offset;
 
     Serial.println(F("This is 'ccn-lite-arduino'"));
     Serial.println(F("  ccnl-core: " CCNL_VERSION));
@@ -459,19 +460,22 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     sensor.suite = theSuite;
+    sensor_len[0] = sizeof(sensor_mac);
 #ifdef USE_SUITE_CCNTLV
     sensor_mac[1] = 1;
     sensor_mac[3] = 12;
-    for (i = 0; i < 6; i++)
-        sprintf_P(sensor_mac + 4 + 2*i, PSTR("%02x"), mac[i]);
-    sensor_len[0] = sizeof(sensor_mac);
     sensor_len[1] = 8; // 4 + strlen("temp");
+    offset = 4;
 #else
-    for (i = 0; i < 6; i++)
-        sprintf_P(sensor_mac + 2*i, PSTR("%02x"), mac[i]);
-    sensor_len[0] = sizeof(sensor_mac);
     sensor_len[1] = strlen(sensor_comp[1]);
+    offset = 0;
 #endif
+    for (i = 0; i < 6; i++) {
+        unsigned int j = offset + 2*i;
+        snprintf_P(sensor_mac+j, CCNL_ARRAY_SIZE(sensor_mac)-j,
+                   PSTR("%02x"), mac[i]);
+    }
+
     sensor.comp = (unsigned char**) sensor_comp;
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
