@@ -190,12 +190,7 @@ char*
 inet_ntoa(struct in_addr a)
 {
     unsigned long l = ntohl(a.s_addr);
-    //    static char result[16];
-    //    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
-    //        (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
-    //    return result;
-
-    sprintf_P(logstr, PSTR("%ld.%lu.%lu.%lu"),
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("%ld.%lu.%lu.%lu"),
               (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
     return logstr;
 }
@@ -275,7 +270,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
 
     d = GetTemp();
-    sprintf_P(logstr, PSTR("@%s  %d.%1d C"), timestamp(),
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("@%s  %d.%1d C"), timestamp(),
               (int)d, (int)(10*(d - (int)d)));
     switch (pkt->pfx->suite) {
 
