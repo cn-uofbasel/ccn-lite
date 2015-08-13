@@ -193,7 +193,7 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
     unsigned char buf[2000];
     int hdrlen;
 
-    strcpy((char*)buf, eth2ascii(dst));
+    snprintf((char*) buf, CCNL_ARRAY_SIZE(buf), "%s", eth2ascii(dst));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
 
@@ -588,10 +588,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
-        strcat(fname, "/");
-        strcat(fname, de->d_name);
-
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s/%s", path, de->d_name);
         if (stat(fname, &s)) {
             perror("stat");
             continue;
