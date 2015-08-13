@@ -440,7 +440,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     Serial.println(F("  ccnl-core: " CCNL_VERSION));
     Serial.println(F("  compile time: " __DATE__ " "  __TIME__));
     Serial.print(  F("  compile options: "));
-    strcpy_P(logstr, compile_string);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", compile_string);
     Serial.println(logstr);
     Serial.print(  F("  using suite "));
     Serial.println(ccnl_suite2str(theSuite));
@@ -483,7 +483,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
 
 #ifdef USE_HMAC256
-    strcpy_P(logstr, secret_key);
+    snprintf(logstr, CCNL_ARRAY_SIZE(logstr), "%s", secret_key);
     ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
     ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
 #endif
