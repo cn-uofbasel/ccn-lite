@@ -182,8 +182,8 @@ unsigned char keyid[32];
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
 {
-    strcpy_P(logstr + LOGSTROFFS, s);
-    return logstr + LOGSTROFFS;
+    snprintf_P(logstr+LOGSTROFFS, CCNL_ARRAY_SIZE(logstr)-LOGSTROFFS, "%s", s);
+    return logstr+LOGSTROFFS;
 }
 
 char*
