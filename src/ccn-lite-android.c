@@ -28,6 +28,8 @@
 
 #include <arpa/inet.h>
 #include <linux/if.h>
+#include <linux/if_packet.h>
+#include <linux/if_ether.h>
 #include <linux/in.h>
 #include <linux/sockios.h>
 #include <sys/stat.h>

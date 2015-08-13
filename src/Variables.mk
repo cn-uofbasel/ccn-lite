@@ -40,6 +40,10 @@ endif
 # OSX, ignore deprecated warnings for libssl
 OSX_CFLAGS:=-Wno-error=deprecated-declarations
 
+# Android, disable Werror because of non-standardized libraries
+ANDROID_CFLAGS:=$(CCNLCFLAGS) -Wno-error
+
+
 CREATE_BIN=mkdir -p ../bin && cd ../bin && ln -f -s ../src/$@ $@
 EXTLIBS:=  -lcrypto
 EXTMAKE:=
