@@ -173,7 +173,7 @@ unsigned char keyid[32];
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
 {
-    strcpy_P(logstr + LOGSTROFFS, s);
+    snprintf_P(logstr+LOGSTROFFS, CCNL_ARRAY_SIZE(logstr)-LOGSTROFFS, "%s", s);
     return logstr + LOGSTROFFS;
 }
 
@@ -406,7 +406,7 @@ set_sensorName(char *name, int suite)
 {
     struct ccnl_prefix_s *p;
 
-    strcpy_P(logstr, name);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", name);
     p = ccnl_URItoPrefix(logstr, suite, NULL, NULL);
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s (%s)\n",
            ccnl_prefix_to_path(p), ccnl_suite2str(suite));
@@ -442,7 +442,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
     Serial.println("  ccnl-core: " CCNL_VERSION);
     Serial.println("  compile time: " __DATE__ " "  __TIME__);
     Serial.print(  "  compile options: ");
-    strcpy_P(logstr, PSTR(compile_string));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", PSTR(compile_string));
     Serial.println(logstr);
 
 #ifdef USE_DEBUG
@@ -479,7 +479,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 #endif
 
 #ifdef USE_HMAC256
-    strcpy_P(logstr, secret_key);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", secret_key);
     ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
     ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
 #endif
