@@ -715,13 +715,16 @@ void*
 debug_strdup(const char *s, const char *fn, int lno, char *tstamp)
 #endif
 {
-    char *cp;
+    char *cp; int cpLen;
 
     if (!s)
         return NULL;
-    cp = (char*) debug_malloc(strlen(s)+1, fn, lno, tstamp);
+
+    cpLen = strlen(s)+1;
+    cp = (char*) debug_malloc(cpLen, fn, lno, tstamp);
     if (cp)
-        strcpy(cp, s);
+        snprintf(cp, cpLen, "%s", s);
+
     return cp;
 }
 
