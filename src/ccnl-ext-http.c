@@ -201,12 +201,12 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     struct ccnl_interest_s *ipt;
     struct ccnl_buf_s *bpt;
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "HTTP/1.1 200 OK\n\r"
         "Content-Type: text/html; charset=utf-8\n\r"
         "Connection: close\n\r\n\r");
 
-   tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+   tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "<!DOCTYPE html>\n"
         "<html>\n"
         "<head><title>ccn-lite-relay status</title>\n"
@@ -232,7 +232,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         " (started %s)</font></td></tr>\n</table>\n", cp);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Forwarding table</em></td></tr></table>\n<ul>\n");
 
@@ -244,7 +244,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fwda[i] = fwd;
         qsort(fwda, cnt, sizeof(fwd), ccnl_cmpfib);
         for (i = 0; i < cnt; i++) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "<li>via ");
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "<li>via ");
 
 #ifdef USE_ECHO
             if (fwda[i]->tap)
@@ -262,9 +262,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         }
         ccnl_free(fwda);
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "</ul>\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Faces</em></td></tr></table>\n<ul>\n");
 
@@ -282,7 +282,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
                 fa[i]->faceid, fa[i]->ifndx, ccnl_addr2ascii(&(fa[i]->peer)));
 
             if (fa[i]->flags & CCNL_FACE_FLAGS_STATIC)
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "static");
+                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "static");
             else
                 tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%.1fsec",
                     fa[i]->last_used + CCNL_FACE_TIMEOUT - CCNL_NOW());
@@ -292,9 +292,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         }
         ccnl_free(fa);
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "</ul>\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Interfaces</em></td></tr></table>\n<ul>\n");
 
@@ -312,10 +312,10 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt);
 #endif
 
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "</li>\n");
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</li>\n");
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "</ul>\n");
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Misc stats</em></td></tr></table>\n<ul>\n");
 
@@ -329,9 +329,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         "<li>Content chunks: %d (max=%d)</li>\n",
         ccnl->contentcnt, ccnl->max_cache_entries);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "</ul>\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Config</em></td></tr></table><table borders=0>\n");
 
@@ -366,7 +366,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         "<tr><td>compile.ccnl_core_version:</td>"
         "<td></td><td>%s</td>\n", CCNL_VERSION);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s",
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "</table>\n\n"
         "<p></p><hr></body></html>\n");
 
