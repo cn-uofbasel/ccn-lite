@@ -263,7 +263,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 // ----------------------------------------------------------------------
 
-char *echopath = "/local/echo";
+const char *echopath = "/local/echo";
 
 void
 add_udpPort(struct ccnl_relay_s *relay, int port)
@@ -369,9 +369,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
-        strcat(fname, "/");
-        strcat(fname, de->d_name);
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s/%s", path, de->d_name);
 
         if (stat(fname, &s)) {
             perror("stat");
@@ -729,18 +727,16 @@ ccnl_android_init()
 
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 
+    snprintf(hello, CCNL_ARRAY_SIZE(hello), "%s", echopath);
 #ifdef USE_SUITE_CCNTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_IOTTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_IOTTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
@@ -752,7 +748,7 @@ ccnl_android_init()
                         strlen(secret_key), keyid);
 #endif
 
-    sprintf(hello, "ccn-lite-android, %s",
+    snprintf(hello, CCNL_ARRAY_SIZE(hello), "ccn-lite-android, %s",
             ctime(&theRelay.startup_time) + 4);
 
     return hello;
