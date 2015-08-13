@@ -501,7 +501,8 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int startChunk
         memcpy(name_buf, name, name_len + 1);   // overwrite the suite prefix by shifting the name string to the beginning of the buffer
 
 #ifdef EMBED_CHUNKS_IN_NAMES
-    char * listof_chunk_names = (char *) malloc (numChunks * (name_len + _CHUNK_POSTFIX_MAXCHAR + 1));
+    unsigned int chunk_name_length = name_len + _CHUNK_POSTFIX_MAXCHAR + 1;
+    char * listof_chunk_names = (char *) malloc (numChunks * chunk_name_length);
 #endif
 
     for (i = 0 ; i < numChunks ; i++)
@@ -526,9 +527,10 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int startChunk
         //
         // here is the former approach (enable with macrodef EMBED_CHUNKS_IN_NAMES)
 #ifdef EMBED_CHUNKS_IN_NAMES
-        char * name_with_chunk_buf = &listof_chunk_names[(name_len+_CHUNK_POSTFIX_MAXCHAR+1) * i];
-        strcpy(name_with_chunk_buf, name_buf);  // copy name at an integer offset of name_len+_CHUNK_POSTFIX_MAXCHAR+1
-        sprintf(name_with_chunk_buf + name_len, "/c%d", i+startChunk); // append postfix with chunk num (embedded in the same string)
+        char * name_with_chunk_buf = &listof_chunk_names[chunk_name_length * i];
+        // copy name at an integer offset of name_len+_CHUNK_POSTFIX_MAXCHAR+1
+        // and append postfix with chunk num (embedded in the same string)
+        snprintf(name_with_chunk_buf, chunk_name_length, "%s/c%d", name_buf, i+startChunk);
         cs_data->name = name_with_chunk_buf;
         cs_data->chunk_seqn = -1;
 #else
