@@ -786,15 +786,21 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sprintf(addr, "(%s)  UDP    ", ifr[i].ifr_name);
+            char *tmpBuf = addr;
+            unsigned int remLen = CCNL_ARRAY_SIZE(addr), totalLen = 0;
+
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(%s)  UDP    ", ifr[i].ifr_name);
             for (i = 0; i < theRelay.ifcount; i++) {
                 if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
                     continue;
                 sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
-                sprintf(addr + strlen(addr), "%s    ",
+                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s    ",
                         ccnl_addr2ascii((sockunion*)sin));
             }
             ccnl_free(ifr);
+
+            if (!tmpBuf) return NULL;
+            if (totalLen >= CCNL_ARRAY_SIZE(addr)) return NULL;
             return addr;
         }
     }
