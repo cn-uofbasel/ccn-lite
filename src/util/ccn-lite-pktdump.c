@@ -1435,16 +1435,16 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
                 printf("  ");
             printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
         } else if (typ == LRPC_FLATNAME) {
+            unsigned int maxlen = CCNL_ARRAY_SIZE(tmp) - 6;
+
             printf("%04zx  ", *buf - base);
             for (i = 0; i <= lev; i++)
                 printf("  ");
-            strcpy(tmp, "\"");
-            i = sizeof(tmp) - 6;
-            if (vallen < i)
-                i = vallen;
-            memcpy(tmp+1, *buf, i);
-            strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-            printf("%s\n", tmp);
+
+            printf("\"%.*s\"", maxlen, *buf);
+            if (vallen > maxlen)
+                printf("...");
+            printf("\n");
         } else if (vallen > 0)
             hexdump(lev, base, *buf, vallen, rawxml, out);
         *buf += vallen;
