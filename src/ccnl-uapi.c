@@ -1110,7 +1110,7 @@ mk_prefix(struct info_data_s *d_obj)
     if (d_obj->name)    // name provided as one string (possibly encoding non printable %-escaped chars), convert to ccnl_prefix_s
     {
         name = (char *) ccnl_malloc (sizeof(char) * (strlen(d_obj->name) +1));
-        strncpy (name, d_obj->name, (strlen(d_obj->name) +1));      // because ccnl_URItoPrefix() modifies the first arg
+        snprintf(name, strlen(d_obj->name) + 1, "%s", d_obj->name); // because ccnl_URItoPrefix() modifies the first arg
 
         if (d_obj->chunk_seqn >=0)
             pfx = ccnl_URItoPrefix(name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
