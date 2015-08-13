@@ -104,7 +104,7 @@ add_route(char *pfx, struct ccnl_face_s *face, int suite, int mtu)
     DEBUGMSG(INFO, "adding a route for prefix %s (%s)\n",
              pfx, ccnl_suite2str(suite));
 
-    strcpy(buf, pfx);
+    snprintf(buf, CCNL_ARRAY_SIZE(buf), "%s", pfx);
     fwd->prefix = ccnl_URItoPrefix(buf, suite, NULL, NULL);
     fwd->face = face;
 #ifdef USE_FRAG
