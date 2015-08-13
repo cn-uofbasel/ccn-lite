@@ -104,7 +104,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", (char*) devname);
     if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
         perror("ethsock ioctl get hw addr");
         return -1;
