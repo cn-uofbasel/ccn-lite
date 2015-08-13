@@ -180,25 +180,27 @@ Usage:
     unsigned int chunknum = 0;
 
     char outpathname[255];
-    char fileext[10];
+    char *fileext;
     switch (suite) {
         case CCNL_SUITE_CCNB:
-            strcpy(fileext, "ccnb");
+            fileext = "ccnb";
             break;
         case CCNL_SUITE_CCNTLV:
-            strcpy(fileext, "ccntlv");
+            fileext = "ccntlv";
             break;
         case CCNL_SUITE_CISTLV:
-            strcpy(fileext, "cistlv");
+            fileext = "cistlv";
             break;
         case CCNL_SUITE_IOTTLV:
-            strcpy(fileext, "iottlv");
+            fileext = "iottlv";
             break;
         case CCNL_SUITE_NDNTLV:
-            strcpy(fileext, "ndntlv");
+            fileext = "ndntlv";
             break;
         default:
-            DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
+            DEBUGMSG(WARNING, "fileext for suite %d not implemented, using 'dat'.\n", suite);
+            fileext = "dat";
+            break;
     }
 
     chunk_len = 1;
