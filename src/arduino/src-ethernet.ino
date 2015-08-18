@@ -27,7 +27,7 @@ extern "C" {
 void setup()
 {
     Serial.begin(9600);
-    strcpy_P(logstr, PSTR(">>"));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR(">>"));
     Serial.println(logstr);
 
 #ifdef USE_DEBUG
