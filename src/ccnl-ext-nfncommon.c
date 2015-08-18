@@ -494,7 +494,8 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     thunk = ccnl_calloc(1, sizeof(struct thunk_s));
     thunk->prefix = new_prefix;
     thunk->reduced_prefix = create_prefix_for_content_on_result_stack(ccnl, config);
-    sprintf(thunk->thunkid, "THUNK%d", ccnl->km->thunkid++);
+    snprintf(thunk->thunkid, CCNL_ARRAY_SIZE(thunk->thunkid), "THUNK%d",
+             ccnl->km->thunkid++);
     DBL_LINKED_LIST_ADD(ccnl->km->thunk_list, thunk);
     DEBUGMSG(DEBUG, "Created new thunk with id: %s\n", thunk->thunkid);
     return ccnl_strdup(thunk->thunkid);
@@ -550,7 +551,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     DEBUGMSG(TRACE, "ccnl_nfn_reply_thunk()\n");
 
     memset(reply_content, 0, 100);
-    sprintf(reply_content, "%d", thunk_time);
+    snprintf(reply_content, CCNL_ARRAY_SIZE(reply_content), "%d", thunk_time);
     c = ccnl_nfn_result2content(ccnl, &prefix, (unsigned char*)reply_content,
                                 strlen(reply_content));
     if (c) {
