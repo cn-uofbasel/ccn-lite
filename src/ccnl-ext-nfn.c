@@ -147,7 +147,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     int thunk_request = 0;
     struct ccnl_buf_s *res = NULL;
     char str[CCNL_MAX_PACKET_SIZE];
-    int i, len = 0;
+    unsigned int remLen = CCNL_ARRAY_SIZE(str), totalLen = 0, offset = 0;
+    char *tmpStr = str;
+    int i;
 
     DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
              (void*)ccnl, ccnl_prefix_to_path(prefix),
@@ -198,28 +200,22 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     //put packet together
 #if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-    if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                        prefix->suite == CCNL_SUITE_CISTLV) {
-        len = prefix->complen[prefix->compcnt-1] - 4;
-        memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
-        str[len] = '\0';
-    } else
-#endif
-    {
-        len = prefix->complen[prefix->compcnt-1];
-        memcpy(str, prefix->comp[prefix->compcnt-1], len);
-        str[len] = '\0';
+    if (prefix->suite == CCNL_SUITE_CCNTLV
+            || prefix->suite == CCNL_SUITE_CISTLV) {
+        offset = 4;
     }
-    if (prefix->compcnt > 1)
-        len += sprintf(str + len, " ");
-    for (i = 0; i < prefix->compcnt-1; i++) {
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-        if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                      prefix->suite == CCNL_SUITE_CISTLV)
-            len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
-        else
 #endif
-            len += sprintf(str+len,"/%.*s",prefix->complen[i],prefix->comp[i]);
+    tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, "%.*s",
+        prefix->complen[prefix->compcnt-1] - offset,
+        prefix->comp[prefix->compcnt-1] + offset);
+
+    if (prefix->compcnt > 1)
+        tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, " ");
+
+    for (i = 0; i < prefix->compcnt-1; i++) {
+        tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, "/%.*s",
+            prefix->complen[i] - offset,
+            prefix->comp[i] + offset);
     }
 
     DEBUGMSG(DEBUG, "expr is <%s>\n", str);
