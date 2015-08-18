@@ -446,8 +446,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
 
         //receiving interface
-        memset(h,0,sizeof(h));
-        sprintf(h,"%s-2",crypto_face_path);
+        memset(h, 0, CCNL_ARRAY_SIZE(h));
+        snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", crypto_face_path);
         i = &relay->ifs[relay->ifcount];
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         i->mtu = 4096;
