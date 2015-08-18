@@ -677,40 +677,43 @@ ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags)
 }
 
 int
-ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
-                            int exclude_param)
+ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen,
+                            struct fox_machine_state_s *s, int exclude_param)
 {
-    int len, j;
+    char *tmpBuf = buf;
+    unsigned int remLen = buflen, totalLen = 0;
+    int j;
     struct stack_s *entry;
     struct const_s *con;
 
     DEBUGMSG(DEBUG, "exclude parameter: %d\n", exclude_param);
-    if (exclude_param >= 0){
-        len = sprintf(buf, "(@x call %d", s->num_of_params);
-    }
-    else{
-        len = sprintf(buf, "call %d", s->num_of_params);
-    }
+
+    if (exclude_param >= 0)
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(@x ");
+
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "call %d",
+                           s->num_of_params);
 
     for (j = 0; j < s->num_of_params; j++) {
         if (j == exclude_param) {
-            len += sprintf(buf + len, " x");
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " x");
             continue;
         }
         entry = s->params[j];
         switch (entry->type) {
         case STACK_TYPE_INT:
-            len += sprintf(buf + len, " %d", *((int*)entry->content));
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d",
+                                   *((int*)entry->content));
             break;
         case STACK_TYPE_PREFIX:
-            len += sprintf(buf + len, " %s",
-                           ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s",
+                ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
             break;
         case STACK_TYPE_CONST:
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
-            len += sprintf(buf + len, " %.*s", con->len+2, str);
-
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %.*s",
+                                   con->len+2, str);
             ccnl_free(str);
             break;
 
@@ -721,8 +724,20 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
         }
     }
     if (exclude_param >= 0)
-        len += sprintf(buf + len, ")");
-    return len;
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
+
+    if (!tmpBuf) {
+        DEBUGMSG(ERROR, "An encoding error occured while filling call expression.\n");
+        return -2;
+    }
+
+    if (totalLen >= buflen) {
+        DEBUGMSG(ERROR, "Buffer has not enough capacity for call expression. Available: %u, needed: %u\n",
+                 buflen, totalLen + 1);
+        return -1;
+    }
+
+    return totalLen;
 }
 
 struct ccnl_prefix_s *
@@ -761,6 +776,7 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
     }
     p->comp[i] = (unsigned char*)(bytes + len);
     p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                CCNL_MAX_PACKET_SIZE - len - offset,
                                                 config->fox_state,
                                                 parameter_num);
     switch (p->suite) {
@@ -821,6 +837,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     }
     p->comp[1] = (unsigned char*) (bytes + len);
     p->complen[1] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                CCNL_MAX_PACKET_SIZE - len - offset,
                                                 config->fox_state, -1);
     switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV

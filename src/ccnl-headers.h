@@ -136,7 +136,7 @@ int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 void ccnl_nfnprefix_set(struct ccnl_prefix_s *p, unsigned int flags);
 void ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags);
-int ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s, int exclude_param);
+int ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen, struct fox_machine_state_s *s, int exclude_param);
 struct ccnl_prefix_s *ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request, struct configuration_s *config, int parameter_num);
 struct ccnl_prefix_s *ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite);
 struct ccnl_interest_s *ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s **prefix, struct configuration_s *config);
