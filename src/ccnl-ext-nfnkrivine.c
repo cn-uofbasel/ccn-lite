@@ -520,7 +520,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
         DEBUGMSG(DEBUG, " fct definition: %s\n", cp);
-        strcpy(res, cp+3);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "%s", cp+3);
         for (i = 0; i < strlen(res); ++i) {
             if (!strncmp(res+i, "endlet", 6)) {
                 end = i;
