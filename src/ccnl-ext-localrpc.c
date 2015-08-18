@@ -35,7 +35,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
         return t;
     /*
     if (t < LRPC_APPLICATION) {
-        sprintf(tmp, "v%02x", t);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "v%02x", t);
         n = tmp;
     } else
     */
@@ -278,8 +278,9 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         param = param->nextinseq;
     }
     {
-        char *p = ccnl_malloc(100);
-        sprintf(p, "rpc_cacheRemove: removed %d entries\n", cnt);
+        unsigned int pLen = 100;
+        char *p = ccnl_malloc(pLen);
+        snprintf(p, pLen, "rpc_cacheRemove: removed %d entries\n", cnt);
         ccnl_emit_RpcReturn(relay, from, nonce, 415, p, NULL);
         ccnl_free(p);
     }
