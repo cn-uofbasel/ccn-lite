@@ -722,7 +722,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         ccnl_free(h->content);
         ccnl_free(h);
 
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", "CLOSURE(FOX);RESOLVENAME(@op(");
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "CLOSURE(FOX);RESOLVENAME(@op(");
 
 	// ... @x(@y y x 2 op)));TAILAPPLY";
         for (i = 0; i < num_params; ++i) {
@@ -733,7 +733,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         }
         tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d op", num_params);
         for (i = 0; i < num_params+2; ++i) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s", ")");
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
         }
 
         if (contd) {
