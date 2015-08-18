@@ -141,12 +141,17 @@ ccnl_debug_str2level(char *s)
 
 #elif defined(CCNL_ANDROID)
 
-#  define DEBUGMSG(LVL, ...) do { int len;          \
+#  define DEBUGMSG(LVL, ...) do {                   \
+        char *_buf = android_logstr;                \
+        unsigned int _rem = CCNL_ARRAY_SIZE(android_logstr);  \
+        unsigned int _tot = 0;                      \
         if ((LVL)>debug_level) break;               \
-        len = sprintf(android_logstr, "[%c] %s: ",  \
-            ccnl_debugLevelToChar(LVL),             \
+        _buf = ccnl_snprintf(_buf, &_rem, &_tot,    \
+            "[%c] %s: ",                            \
+            ccnl_debugLevelToChar((LVL)),           \
             timestamp());                           \
-        len += sprintf(android_logstr+len, __VA_ARGS__);   \
+        _buf = ccnl_snprintf(_buf, &_rem, &_tot,    \
+            __VA_ARGS__);                           \
         jni_append_to_log(android_logstr);          \
     } while (0)
 
