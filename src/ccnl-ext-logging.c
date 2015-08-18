@@ -78,7 +78,7 @@ ccnl_debugLevelToChar(int level)
           Serial.print("] ");               \
           Serial.print(timestamp());        \
           Serial.print(": ");               \
-          strcpy_P(logstr, PSTR(__FILE__)); /*TODO: replace with snprintf*/ \
+          snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", PSTR(__FILE__)); \
           cp = logstr + strlen(logstr);     \
           while (cp >= logstr && *cp != '/') cp--; \
           Serial.print(cp+1);               \
@@ -158,7 +158,7 @@ ccnl_debug_str2level(char *s)
           Serial.print("[");            \
           Serial.print(ccnl_debugLevelToChar(debug_level)); \
           Serial.print("] ");           \
-          sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__); \
+          snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR((FMT)), ##__VA_ARGS__); \
           Serial.print(timestamp());    \
           Serial.print(" ");            \
           Serial.print(logstr);         \
@@ -221,12 +221,12 @@ debug_memdump()
     CONSOLE("[M] %s: @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
 #ifdef CCNL_ARDUINO
-        sprintf_P(logstr, PSTR("addr %p %5d Bytes, "),
+        snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("addr %p %5d Bytes, "),
                   (int)((unsigned char *)h + sizeof(struct mhdr)),
                   h->size);
         Serial.print(logstr);
         // remove the "src/../" prefix:
-        strcpy_P(logstr, h->fname); // TODO: replace with snprintf
+        snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", h->fname);
         Serial.print(getBaseName(logstr));
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
