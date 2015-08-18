@@ -376,7 +376,7 @@ void build_decoding_table(void);
 char *base64_encode(const char *data, size_t input_length, size_t *output_length);
 unsigned char *base64_decode(const char *data, size_t input_length, size_t *output_length);
 void base64_cleanup(void);
-int ccnl_ext_nfnmonitor_record(char *toip, int toport, struct ccnl_prefix_s *prefix, unsigned char *data, int datalen, char *res);
+int ccnl_ext_nfnmonitor_record(char *toip, int toport, struct ccnl_prefix_s *prefix, unsigned char *data, int datalen, char *res, unsigned int reslen);
 int ccnl_ext_nfnmonitor_udpSendTo(int sock, char *address, int port, char *data, int len);
 int ccnl_ext_nfnmonitor_sendToMonitor(struct ccnl_relay_s *ccnl, char *content, int contentlen);
 int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face, struct ccnl_prefix_s *pr, unsigned char *data, int len);

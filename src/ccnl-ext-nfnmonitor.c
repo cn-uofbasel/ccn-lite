@@ -41,34 +41,49 @@
 int
 ccnl_ext_nfnmonitor_record(char* toip, int toport,
                            struct ccnl_prefix_s *prefix, unsigned char *data,
-                           int datalen, char *res)
+                           int datalen, char *res, unsigned int reslen)
 {
     char name[CCNL_MAX_PACKET_SIZE];
-    int len = 0, i;
+    char *tmpBuf = name;
+    unsigned int remLen = CCNL_ARRAY_SIZE(name), totalLen = 0;
+    int i;
     struct timespec ts;
     long timestamp_milli;
 
+    // Build name
     for (i = 0; i < prefix->compcnt; ++i) {
-        len += sprintf(name+len, "/%s", prefix->comp[i]);
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "/%.*s",
+                               prefix->complen[i], prefix->comp[i]);
     }
+    if (!tmpBuf)
+        DEBUGMSG(ERROR, "Encoding error occured while constructing name from prefix.\n");
 
-    len = 0;
-    len += sprintf(res + len, "{\n");
-    len += sprintf(res + len, "\"packetLog\":{\n");
+    if (totalLen >= CCNL_ARRAY_SIZE(name))
+        DEBUGMSG(ERROR, "Name buffer has not enough capacity for prefix. Available: %zu, needed: %u\n",
+                 CCNL_ARRAY_SIZE(name), totalLen + 1);
 
-//      len += sprintf(res + len, "\"from\":{\n");
-//      len += sprintf(res + len, "\"host\": %d,\n", fromip);
-//      len += sprintf(res + len, "\"port\": %d\n", fromport);
-//      len += sprintf(res + len, "\"type\": \"NFNNode\", \n");
-//      len += sprintf(res + len, "\"prefix\": \"docrepo1\"\n");
-//      len += sprintf(res + len, "},\n"); //from
 
-    len += sprintf(res + len, "\"to\":{\n");
-    len += sprintf(res + len, "\"host\": \"%s\",\n", toip);
-    len += sprintf(res + len, "\"port\": %d\n", toport);
-    len += sprintf(res + len, "},\n"); //to
+    // Build res
+    tmpBuf = res;
+    remLen = reslen;
+    totalLen = 0;
 
-    len += sprintf(res + len, "\"isSent\": %s,\n", "true");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "{\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"packetLog\":{\n");
+
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"from\":{\n");
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"host\": %d,\n", fromip);
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"port\": %d\n", fromport);
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"type\": \"NFNNode\", \n");
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"prefix\": \"docrepo1\"\n");
+//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "},\n"); //from
+
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"to\":{\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"host\": \"%s\",\n", toip);
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"port\": %d\n", toport);
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "},\n"); //to
+
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"isSent\": %s,\n", "true");
 
 #ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
     clock_serv_t cclock;
@@ -78,30 +93,42 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
     mach_port_deallocate(mach_task_self(), cclock);
     ts.tv_sec = mts.tv_sec;
     ts.tv_nsec = mts.tv_nsec;
-
 #else
     clock_gettime(CLOCK_REALTIME, &ts);
 #endif
 
     timestamp_milli = ((ts.tv_sec) * 1000000000 + (ts.tv_nsec ));
-    len += sprintf(res + len, "\"timestamp\": %lu,\n", timestamp_milli);
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"timestamp\": %lu,\n",
+                           timestamp_milli);
 
-    len += sprintf(res + len, "\"packet\":{\n");
-    len += sprintf(res + len, "\"type\": \"%s\",\n", data != NULL ? "content" : "interest" );
-    len += sprintf(res + len, "\"name\": \"%s\"\n", name);
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"packet\":{\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"type\": \"%s\",\n",
+                           data != NULL ? "content" : "interest" );
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"name\": \"%s\"\n", name);
 
     if(data){
             //size_t newlen;
             //char *newdata = base64_encode(data, datalen, &newlen);
-
-            len += sprintf(res + len, ",\"data\": \"%s\"\n", data);
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ",\"data\": \"%s\"\n",
+                                   data);
     }
-    len += sprintf(res + len, "}\n"); //packet
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n"); //packet
 
-    len += sprintf(res + len, "}\n"); //packetlog
-    len += sprintf(res + len, "}\n");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n"); //packetlog
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n");
 
-    return len;
+    if (!tmpBuf) {
+        DEBUGMSG(ERROR, "An encoding error occured while constructing monitor recording.\n");
+        return -2;
+    }
+
+    if (totalLen >= reslen) {
+        DEBUGMSG(ERROR, "Result buffer has not enough capacity for monitor recording. Available: %u, needed: %u\n",
+                 reslen, totalLen + 1);
+        return -1;
+    }
+
+    return totalLen;
 }
 
 int
@@ -141,7 +168,8 @@ ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
         char monitorpacket[CCNL_MAX_PACKET_SIZE];
         int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
                                            ntohs(face->peer.ip4.sin_port),
-                                           pr, data, len, monitorpacket);
+                                           pr, data, len, monitorpacket,
+                                           CCNL_ARRAY_SIZE(monitorpacket));
         ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
     }
 
