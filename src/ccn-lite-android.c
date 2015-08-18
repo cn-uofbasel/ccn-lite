@@ -34,6 +34,7 @@
 #include <linux/sockios.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <android/looper.h>
 
@@ -214,10 +215,9 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 void
 ccnl_close_socket(int s)
 {
+#ifdef USE_UNIXSOCKET
     struct sockaddr_un su;
     socklen_t len = sizeof(su);
-
-#ifdef USE_UNIXSOCKET
     if (!getsockname(s, (struct sockaddr*) &su, &len) &&
                                         su.sun_family == AF_UNIX) {
         unlink(su.sun_path);
@@ -229,8 +229,9 @@ ccnl_close_socket(int s)
 
 // ----------------------------------------------------------------------
 
-static int inter_ccn_interval = 0; // in usec
-static int inter_pkt_interval = 0; // in usec
+// TODO The variables below are never used:
+// static int inter_ccn_interval = 0; // in usec
+// static int inter_pkt_interval = 0; // in usec
 
 #ifdef USE_SCHEDULER
 struct ccnl_sched_s*
@@ -303,8 +304,6 @@ void
 ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
                   int max_cache_entries, char *crypto_face_path)
 {
-    struct ccnl_if_s *i;
-
     DEBUGMSG(INFO, "configuring relay\n");
 
     relay->max_cache_entries = max_cache_entries;
@@ -363,7 +362,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
         unsigned char *data;
-        int fd, datalen, typ, len, suite, skip;
+        unsigned int typ, len;
+        int fd, datalen, suite, skip;
         struct ccnl_pkt_s *pk;
 
         if (de->d_name[0] == '.')
@@ -527,6 +527,7 @@ ccnl_android_timer_io(int fd, int events, void *data)
 
     len = read(pipeT2R[0], &c, 1);
     DEBUGMSG(TRACE, "timer_io %d\n", len);
+    (void) len; // silence compiler warning
 
     timer_usec = ccnl_run_events();
     pthread_mutex_unlock(&timer_mutex);
@@ -685,8 +686,8 @@ ccnl_android_init()
 {
     static char done;
     static char hello[200];
-    time_t now = time(NULL);
-    int i, dummy = 0;
+    int i;
+    unsigned int dummy = 0;
     struct ccnl_prefix_s *echoprefix;
 
     if (done)
@@ -709,6 +710,8 @@ ccnl_android_init()
     theLooper = ALooper_forThread();
 
     // launch timer thread
+    // FIXME: This function is a Linux specific implementation, should probably
+    // be replaced with a POSIX function call or similar.
     pipe2(pipeT2R, O_DIRECT);
     pthread_create(&timer_thread, NULL, timer, NULL);
 
