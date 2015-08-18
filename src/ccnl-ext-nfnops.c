@@ -275,9 +275,9 @@ op_builtin_cmpeqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     cp = (i1 == i2) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -293,9 +293,9 @@ op_builtin_cmpleqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     cp = (i2 <= i1) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -311,9 +311,9 @@ op_builtin_cmpeq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     pop2int();
     cp = (i1 == i2) ? "1" : "0";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -329,9 +329,9 @@ op_builtin_cmpleq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     pop2int();
     cp = (i2 <= i1) ? "1" : "0";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
