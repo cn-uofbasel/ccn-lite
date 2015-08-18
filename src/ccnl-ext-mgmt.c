@@ -162,7 +162,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_pkt_s *pkt;
 
                 DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
-                sprintf(uri, "/mgmt/seqnum-%d", it);
+                snprintf(uri, CCNL_ARRAY_SIZE(uri), "/mgmt/seqnum-%d", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
                 pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
                 pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
@@ -189,7 +189,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
                 prefix_a->comp[0] = (unsigned char *)"mgmt";
-                sprintf((char*)ht, "seqnum-%d", it);
+                snprintf((char*)ht, 20, "seqnum-%d", it);
                 prefix_a->comp[1] = ht;
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
@@ -291,31 +291,31 @@ ccnl_mgmt_create_interface_stmt(int num_interfaces, int *interfaceifndx, long *i
             len3 += ccnl_ccnb_mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
 
             memset(str, 0, 100);
-            sprintf(str, "%d", interfaceifndx[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interfaceifndx[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
 
             memset(str, 0, 100);
-            sprintf(str, "%s", interfaceaddr[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%s", interfaceaddr[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
 
             memset(str, 0, 100);
             if(interfacedevtype[it] == 1)
             {
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
             }
             else if(interfacedevtype[it] == 2)
             {
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             else{
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
 
             memset(str, 0, 100);
-            sprintf(str, "%d", interfacereflect[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interfacereflect[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str);
 
             stmt[len3++] = 0; //end of fwd;
@@ -336,23 +336,23 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", faceid[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", faceid[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", (void *)facenext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)facenext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", (void *)faceprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)faceprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%d", faceifndx[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", faceifndx[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%02x", faceflags[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%02x", faceflags[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
@@ -365,7 +365,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         else if(facetype[it] == AF_UNIX)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
         else{
-            sprintf(str,"peer=?");
+            snprintf(str, CCNL_ARRAY_SIZE(str), "peer=?");
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
         }
         // FIXME: dump frag information if present
@@ -386,23 +386,23 @@ ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface
          len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwd[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwd[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwdnext[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwdnext[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwdface[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwdface[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%d", fwdfaceid[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%d", fwdfaceid[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%d", suite[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%d", suite[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, str);
 
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it]);
@@ -426,35 +426,35 @@ ccnl_mgmt_create_interest_stmt(int num_interests, long *interest, long *interest
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interest[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interest[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestnext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestnext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestlast[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestlast[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LAST, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestmin[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestmin[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MIN, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestmax[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestmax[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MAX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestretries[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestretries[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestpublisher[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestpublisher[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
 
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it]);
@@ -476,23 +476,23 @@ ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) content[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) content[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) contentnext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) contentnext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) contentprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) contentprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", contentlast_use[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", contentlast_use[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", contentserved_cnt[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", contentserved_cnt[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
 
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it]);
@@ -940,7 +940,7 @@ Bail:
 
     // prepare FACEINSTANCE
     len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    sprintf((char *)retstr,"newface:  %s", cp);
+    snprintf((char *)retstr, CCNL_ARRAY_SIZE(retstr), "newface:  %s", cp);
     len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
     if (macsrc)
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
@@ -959,7 +959,7 @@ Bail:
     if (flags)
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
     if (f) {
-        sprintf((char *)faceidstr,"%i",f->faceid);
+        snprintf((char *)faceidstr, CCNL_ARRAY_SIZE(faceidstr), "%i",f->faceid);
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
     }
 
@@ -1522,7 +1522,7 @@ Bail:
 
     //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", (int)suite[0]);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
@@ -1663,7 +1663,7 @@ Bail:
 
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", (int)suite[0]);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
@@ -1758,7 +1758,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         ccnl_free(h);
     h = ccnl_malloc(300);
 
-    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
+    snprintf((char *)h, 300, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
                              "addcacheobject", (char *)h);
     if (h)
