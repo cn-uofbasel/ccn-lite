@@ -516,7 +516,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
     //function definition
     if (strncmp(cp, "let", 3) == 0) {
-        int i, end = 0, cp2len, namelength, lambdalen;
+        int i, end = 0, cp2len, namelength, lambdalen, resolvetermlen;
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
         DEBUGMSG(DEBUG, " fct definition: %s\n", cp);
@@ -539,15 +539,16 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         memset(name, 0, namelength);
         memset(lambda_expr, 0, strlen(h));
 
-        sprintf(cp2, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
+        snprintf(cp2, cp2len, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
         memcpy(name, cp+3, namelength-3); //copy name without let and endlet
         trim(name);
 
         lambdalen = strlen(h)-strlen(cp2)+11-6;
         memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
         trim(lambda_expr);
-        resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
-        sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
+        resolvetermlen = strlen("RESOLVENAME()")+strlen(lambda_expr);
+        resolveterm = ccnl_malloc(resolvetermlen);
+        snprintf(resolveterm, resolvetermlen, "RESOLVENAME(%s)", lambda_expr);
 
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
@@ -935,7 +936,7 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
 
         case STACK_TYPE_INT:
             //h = ccnl_buf_new(NULL, 10);
-            //sprintf((char*)h->data, "%d", *(int*)stack->content);
+            //snprintf((char*)h->data, 10, "%d", *(int*)stack->content);
             //h->datalen = strlen((char*)h->data);
             buf = ccnl_snprintf(buf, &remLen, &totalLen, "%d", *(int*)stack->content);
             break;
