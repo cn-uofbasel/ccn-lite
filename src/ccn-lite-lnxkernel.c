@@ -79,9 +79,12 @@ static char*
 inet_ntoa(struct in_addr in)
 {
     static char buf[16];
-    unsigned int i, len = 0, a = ntohl(in.s_addr);
+    char *tmpBuf = buf;
+    unsigned int remLen = CCNL_ARRAY_SIZE(buf), totalLen = 0;
+    unsigned int i, a = ntohl(in.s_addr);
     for (i = 0; i < 4; i++) {
-        len += sprintf(buf+len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s%d",
+                               i ? "." : "", 0xff & (a >> 8*(3-i)));
     }
     return buf;
 }
@@ -650,7 +653,7 @@ ccnl_init(void)
         theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
-        sprintf(h, "%s-2", p);
+        snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", p);
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         if (i->sock) {
             DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");
