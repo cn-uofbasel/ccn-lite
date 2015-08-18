@@ -348,7 +348,9 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
                                           struct configuration_s *config)
 {
     struct ccnl_prefix_s *name;
-    int it, len = 0, offset = 0;
+    char *tmpBuf;
+    unsigned int remLen, totalLen = 0;
+    int it, offset = 0;
 
     name = ccnl_prefix_new(config->suite, 2);
     if (!name)
@@ -361,49 +363,65 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
     name->compcnt = 1;
-    //len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN")); //FIXME: AT THE END?
-    name->complen[1] = len;
-    name->comp[0] = name->bytes + offset + len;
+    //totalLen = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN")); //FIXME: AT THE END?
+    name->complen[1] = totalLen;
+    name->comp[0] = name->bytes + offset + totalLen;
+    tmpBuf = (char*) name->comp[0];
+    remLen = CCNL_MAX_PACKET_SIZE - offset - totalLen;
 
-    len += sprintf((char *)name->bytes + offset + len, "(call %d",
-                   config->fox_state->num_of_params);
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(call %d",
+                           config->fox_state->num_of_params);
     for (it = 0; it < config->fox_state->num_of_params; ++it) {
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
             char *pref_str = ccnl_prefix_to_path(
                                       (struct ccnl_prefix_s*)stack->content);
-            len += sprintf((char*)name->bytes + offset + len, " %s", pref_str);
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s", pref_str);
         } else if (stack->type == STACK_TYPE_INT) {
-            len += sprintf((char*)name->bytes + offset + len, " %d",
-                           *(int*)stack->content);
-
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d", *(int*)stack->content);
         } else if (stack->type == STACK_TYPE_CONST) {
             struct const_s *con = stack->content;
             DEBUGMSG(DEBUG, "strlen: %d str: %.*s \n", con->len, con->len+2, ccnl_nfn_krivine_const2str(con));
-            len += sprintf((char*)name->bytes + offset + len, " %.*s", con->len+2, ccnl_nfn_krivine_const2str(con));
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %.*s",
+                                   con->len+2, ccnl_nfn_krivine_const2str(con));
         } else {
             DEBUGMSG(WARNING, "Invalid stack type %d\n", stack->type);
+            free_prefix(name);
             return NULL;
         }
 
     }
 
-    len += sprintf((char *)name->bytes + offset + len, ")");
+    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
+
+    if (!tmpBuf) {
+        DEBUGMSG(ERROR, "An encoding error occured while constructing prefix.\n");
+        free_prefix(name);
+        return NULL;
+    }
+
+    if (totalLen >= CCNL_MAX_PACKET_SIZE - offset) {
+        DEBUGMSG(ERROR, "Prefix name for content does not fit into CCNL_MAX_PACKET_SIZE. Available: %u, needed: %u.\n",
+                 CCNL_MAX_PACKET_SIZE - offset, totalLen);
+        free_prefix(name);
+        return NULL;
+    }
+
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
-        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len, &offset,
+        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, totalLen, &offset,
                               name->bytes + name->complen[1]);
-        len += 4;
+        totalLen += 4;
     }
 #endif
 #ifdef USE_SUITE_CISTLV
     if (config->suite == CCNL_SUITE_CISTLV) {
-        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, len, &offset,
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, totalLen, &offset,
                               name->bytes + name->complen[1]);
-        len += 4;
+        totalLen += 4;
     }
 #endif
-    name->complen[0] = len;
+    name->complen[0] = totalLen;
     return name;
 }
 
