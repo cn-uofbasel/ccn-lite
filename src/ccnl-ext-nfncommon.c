@@ -402,7 +402,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 
     if (totalLen >= CCNL_MAX_PACKET_SIZE - offset) {
         DEBUGMSG(ERROR, "Prefix name for content does not fit into CCNL_MAX_PACKET_SIZE. Available: %u, needed: %u.\n",
-                 CCNL_MAX_PACKET_SIZE - offset, totalLen);
+                 CCNL_MAX_PACKET_SIZE - offset, totalLen+1);
         free_prefix(name);
         return NULL;
     }
