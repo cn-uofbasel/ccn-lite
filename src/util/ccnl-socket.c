@@ -92,7 +92,7 @@ ux_open()
     int sock, bufsize;
     struct sockaddr_un name;
 
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
+    snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-lite-peek-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);

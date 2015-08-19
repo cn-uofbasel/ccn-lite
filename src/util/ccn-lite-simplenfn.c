@@ -87,7 +87,7 @@ exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
 /*
         // if expr has not the form (@x ...) then add it
         if (expr && !strchr(expr, '@')) {
-            sprintf(tmp, "@x (%s)", expr);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "@x (%s)", expr);
             expr = tmp;
         }
 */

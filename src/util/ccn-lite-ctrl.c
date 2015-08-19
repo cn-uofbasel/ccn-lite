@@ -443,7 +443,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
     unsigned char faceinst[2000];
 //    char num[20];
 
-//    sprintf(num, "%d", faceID);
+//    snprintf(num, CCNL_ARRAY_SIZE(num), "%d", faceID);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -489,7 +489,7 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
     unsigned char faceinst[2000];
 //    char num[20];
 
-//    sprintf(num, "%d", faceID);
+//    snprintf(num, CCNL_ARRAY_SIZE(num), "%d", faceID);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -741,7 +741,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *suite);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", *suite);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
                              (char*) h, strlen((char*)h));
 
@@ -754,12 +754,12 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     }
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *prefix->chunknum);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", *prefix->chunknum);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
                             (char*) h, strlen((char*)h));
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", chunkflag);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", chunkflag);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
                             (char*) h, strlen((char*)h));
 
@@ -927,7 +927,7 @@ make_next_seg_debug_interest(int num, char *out)
     int len = 0;
     unsigned char cp[100];
 
-    sprintf((char*)cp, "seqnum-%d", num);
+    snprintf((char*)cp, CCNL_ARRAY_SIZE(cp), "seqnum-%d", num);
 
     len = ccnl_ccnb_mkHeader((unsigned char *)out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader((unsigned char *)out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -1210,7 +1210,7 @@ help:
         int hasNext = 0;
 
         // socket for receiving
-        sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
+        snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-light-ctrl-%d.sock", getpid());
 
         if (!use_udp)
             sock = ccnl_crypto_ux_open(mysockname);
@@ -1263,10 +1263,10 @@ help:
             char sigoutput[200];
 
             if (verified) {
-                sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, CCNL_ARRAY_SIZE(sigoutput), "All parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             } else {
-                sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, CCNL_ARRAY_SIZE(sigoutput), "NOT all parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }
         }

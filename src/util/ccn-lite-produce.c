@@ -250,7 +250,7 @@ Usage:
         }
 
         if (outdirname) {
-            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+            snprintf(outpathname, CCNL_ARRAY_SIZE(outpathname), "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
 //            DEBUGMSG(INFO, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);
