@@ -90,6 +90,8 @@ echo-cores:
 
 clean:
 	@make clean USE_NFN=1 USE_NACK=1 > /dev/null 2>&1
+	@if [ 0 -eq "${ANDROID_RC}" ]; then cd android && ndk-build clean > /dev/null && ant clean > /dev/null && cd ..; fi
+	@if [ 0 -eq "${ARDUINO_RC}" ]; then cd arduino && make clean > /dev/null && cd ..; cd rfduino && make clean > /dev/null && cd ..; fi
 	@echo ''
 	@echo 'See /tmp/bt-*.log for more details.'
 
