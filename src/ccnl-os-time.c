@@ -50,7 +50,7 @@ timestamp(void)
     static char ts[12];
     uint32_t m = millis();
 
-    sprintf_P(ts, PSTR("%lu.%03d"), m / 1000, (int)(m % 1000));
+    snprintf_P(ts, CCNL_ARRAY_SIZE(ts), PSTR("%lu.%03d"), m / 1000, (int)(m % 1000));
 
     return ts;
 }
@@ -83,7 +83,7 @@ timestamp(void)
 {
     static char ts[16], *cp;
 
-    sprintf(ts, "%.4g", CCNL_NOW());
+    snprintf(ts, CCNL_ARRAY_SIZE(ts), "%.4g", CCNL_NOW());
     cp = strchr(ts, '.');
     if (!cp)
         strcat(ts, ".0000");
