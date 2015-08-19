@@ -589,9 +589,9 @@ CcnCore::addL2FwdRule (const char *contentName, const char *peerAddr, int localN
     assert (contentName);
     assert (peerAddr);
 
-    sprintf (peerAddrStr, "%2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X",
-            (unsigned char) peerAddr[0], (unsigned char) peerAddr[1], (unsigned char) peerAddr[2],
-            (unsigned char) peerAddr[3], (unsigned char) peerAddr[4], (unsigned char) peerAddr[5]);
+    snprintf (peerAddrStr, 20, "%2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X",
+             (unsigned char) peerAddr[0], (unsigned char) peerAddr[1], (unsigned char) peerAddr[2],
+             (unsigned char) peerAddr[3], (unsigned char) peerAddr[4], (unsigned char) peerAddr[5]);
 
     name = name_buf = strdup(contentName);
     suite_id = extractSuiteFromName (&name, NULL);
@@ -759,7 +759,7 @@ CcnCore::requestContent(const char *contentName, const int seqNum)
     if (seqNum >= 0)
     {
         name_buf = (char *) realloc (name_buf, name_len + _CHUNK_POSTFIX_MAXCHAR + 1);
-        sprintf((name_buf + name_len), "/c%d", seqNum);
+        snprintf((name_buf + name_len), _CHUNK_POSTFIX_MAXCHAR + 1, "/c%d", seqNum);
         i_obj->name = name_buf;
     }
     else    // no chunk index given
@@ -983,7 +983,7 @@ CcnCore::toMACFace (const char *dstAddr, const char *srcAddr, const char typeIor
         return false;
     }
 
-    sprintf (chunk_str, "%d", chunk);
+    snprintf (chunk_str, 10, "%d", chunk);
     pktInfo += ", From:" + ctx->getSrcAddress802().str()
             + ", To:" + ctx->getDstAddress802().str()
             + ", Naming Obj:" + std::string(name)
