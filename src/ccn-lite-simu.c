@@ -250,27 +250,22 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     int i;
     char tmp[200], tmp2[10];
+    char *tmpBuf = tmp;
+    unsigned int remLen = CCNL_ARRAY_SIZE(tmp), totalLen = 0;
     struct ccnl_prefix_s *p = c->pkt->pfx;
+    unsigned int offset = 0;
 
     if (theSuite == CCNL_SUITE_CCNTLV || theSuite == CCNL_SUITE_CISTLV) {
-        tmp[0] = '\0';
-        for (i = 0; i < p->compcnt-1; i++) {
-            strcat((char*)tmp, "/");
-            tmp[strlen(tmp) + p->complen[i] - 4] = '\0';
-            memcpy(tmp + strlen(tmp), p->comp[i]+4, p->complen[i]-4);
-        }
-        memcpy(tmp2, p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
-        tmp2[p->complen[p->compcnt-1]-4] = '\0';
-    } else {
-        tmp[0] = '\0';
-        for (i = 0; i < p->compcnt-1; i++) {
-            strcat((char*)tmp, "/");
-            tmp[strlen(tmp) + p->complen[i]] = '\0';
-            memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
-        }
-        memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-        tmp2[p->complen[p->compcnt-1]] = '\0';
+        offset = 4;
     }
+
+    for (i = 0; i < p->compcnt-1; i++) {
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "/%.*s",
+                               p->complen[i] - offset, p->comp[i] + offset);
+    }
+
+    snprintf(tmp2, CCNL_ARRAY_SIZE(tmp2), "%.*s",
+             p->complen[p->compcnt-1] - offset, p->comp[p->compcnt-1] + offset);
 
     DEBUGMSG(INFO, "app delivery at node %c, name=%s%s\n",
              relay2char(ccnl), tmp, tmp2);
