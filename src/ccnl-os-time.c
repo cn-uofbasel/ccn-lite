@@ -81,17 +81,8 @@ current_time(void)
 char*
 timestamp(void)
 {
-    static char ts[16], *cp;
-
-    snprintf(ts, CCNL_ARRAY_SIZE(ts), "%.4g", CCNL_NOW());
-    cp = strchr(ts, '.');
-    if (!cp)
-        strcat(ts, ".0000");
-    else if (strlen(cp) > 5)
-        cp[5] = '\0';
-    else while (strlen(cp) < 5)
-        strcat(cp, "0");
-
+    static char ts[16];
+    snprintf(ts, CCNL_ARRAY_SIZE(ts), "%.4f", CCNL_NOW());
     return ts;
 }
 
