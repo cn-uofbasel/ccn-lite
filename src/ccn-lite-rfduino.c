@@ -183,8 +183,8 @@ inet_ntoa(struct in_addr a)
     static char result[16];
     unsigned long l = ntohl(a.s_addr);
 
-    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
-            (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
+    snprintf_P(result, CCNL_ARRAY_SIZE(result), PSTR("%ld.%lu.%lu.%lu"),
+               (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
     return result;
 }
 
@@ -265,8 +265,8 @@ void tempInX(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     c = cp[3];
     d = GetTemp(c == 'C' ? CELSIUS : FAHRENHEIT);
 
-    sprintf_P(logstr, PSTR("%03u %d.%1d"), (millis() / 1000) % 1000,
-              (int)d, (int)(10*(d - (int)d)));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("%03u %d.%1d"),
+               (millis() / 1000) % 1000, (int)d, (int)(10*(d - (int)d)));
 
     if (strlen(logstr) > 8) // so that with ndn2013, the reply fits in 20B
         logstr[8] = '\0';
@@ -502,7 +502,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
   ::);
 }
 */
-/*    sprintf_P(logstr, PSTR("  brkval=%p, stackptr=%p (%d bytes free)"),
+/*    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("  brkval=%p, stackptr=%p (%d bytes free)"),
               __brkval, (char *)AVR_STACK_POINTER_REG,
               (char *)AVR_STACK_POINTER_REG - __brkval);
     Serial.println(logstr);
