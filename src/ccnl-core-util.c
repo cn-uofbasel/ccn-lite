@@ -963,7 +963,7 @@ ccnl_snprintf(char *buf, unsigned int *buflen, unsigned int *totalLen, const cha
     int numChars;
     va_list args;
 
-    assert(buf != NULL || (buf == NULL && *buflen == 0));
+    assert((buf != NULL || *buflen == 0) && "buf can be (null) only if buflen is zero");
 
     va_start(args, format);
     #ifdef CCNL_ARDUINO
