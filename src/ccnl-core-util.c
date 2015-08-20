@@ -1010,14 +1010,14 @@ ccnl_snprintf(char **buf, unsigned int *buflen, unsigned int *totalLen, const ch
 }
 
 char*
-ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
+ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr)
 {
     ccnl_snprintfPrefixPath(buf, buflen, pr);
     return buf;
 }
 
 int
-ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
 {
     int i, j;
@@ -1030,7 +1030,7 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
     if (!pr) {
         int numChars = snprintf(buf, buflen, "%p", (void *) NULL);
         if (numChars < 0) goto encodingError;
-        if (numChars >= buflen) goto notEnoughCapacity;
+        else if ((unsigned int) numChars >= buflen) goto notEnoughCapacity;
         return numChars;
     }
 

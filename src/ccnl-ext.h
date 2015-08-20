@@ -36,8 +36,8 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 // ccnl-core-util.c
 int ccnl_snprintf(char **buf, unsigned int *buflen, unsigned int *totalLen,
                     const char *format, ...);
-char* ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr);
-int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen,
+char* ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr);
+int ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen,
                                     struct ccnl_prefix_s *pr, int ccntlv_skip,
                                     int escape_components, int call_slash);
 #define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
