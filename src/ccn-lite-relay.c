@@ -191,14 +191,13 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 {
     short type = htons(CCNL_ETH_TYPE);
     unsigned char buf[2000];
-    int hdrlen;
+    int hdrlen = 14;
 
     snprintf((char*) buf, CCNL_ARRAY_SIZE(buf), "%s", eth2ascii(dst));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
 
-    hdrlen = 14;
-    if ((datalen+hdrlen) > sizeof(buf))
+    if ((datalen+hdrlen) > (int) sizeof(buf))
             datalen = sizeof(buf) - hdrlen;
     memcpy(buf, dst, 6);
     memcpy(buf+6, src, 6);

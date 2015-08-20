@@ -521,7 +521,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
     //function definition
     if (strncmp(cp, "let", 3) == 0) {
-        int i, end = 0, cp2len, namelength, lambdalen, resolvetermlen;
+        unsigned int i, end = 0, cp2len, namelength, lambdalen, resolvetermlen;
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
         DEBUGMSG(DEBUG, " fct definition: %s\n", cp);

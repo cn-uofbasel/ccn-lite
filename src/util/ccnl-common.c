@@ -303,7 +303,7 @@ int cistlv_isData(unsigned char *buf, int len)
 
     TRACEIN();
 
-    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
+    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
         DEBUGMSG(ERROR, "cistlv header not large enough");
         return -1;
     }

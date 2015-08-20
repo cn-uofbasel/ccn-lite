@@ -388,12 +388,12 @@ usage:
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
-                    if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
+                    if (chunknum == 0 || (curchunknum && (int) *curchunknum == chunknum)) {
                         DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != -1 && lastchunknum == chunknum) {
+                        if ((int) lastchunknum != -1 && (int) lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;

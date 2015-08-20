@@ -429,7 +429,7 @@ rpc_getBuiltinFct(struct rdr_ds_s *var)
     if (var->type != LRPC_FLATNAME)
         return NULL;
     while (x->name) {
-        if (strlen(x->name) == var->u.namelen &&
+        if ((int) strlen(x->name) == var->u.namelen &&
             !memcmp(x->name, var->aux, var->u.namelen))
             return x->fct;
         x++;

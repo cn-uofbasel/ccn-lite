@@ -1819,7 +1819,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     unsigned char *buf;
     unsigned char **components = 0;
-    unsigned int num_of_components = -1;
+    int num_of_components = -1;
     int buflen, i;
     int num, typ;
     char *answer = "Failed to remove content";
@@ -1993,7 +1993,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     char cmd[1000];
     int numChars = snprintf(cmd, sizeof(cmd), "%.*s", prefix->complen[2],
                             prefix->comp[2]);
-    if (numChars >= sizeof(cmd)) {
+    if (numChars > 0 && (unsigned int) numChars >= sizeof(cmd)) {
         DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
                  prefix->complen[2], prefix->comp[2], prefix->complen[2]+1, sizeof(cmd));
     }

@@ -73,11 +73,11 @@ ccnl_hmac256_keysetup(SHA256_CTX_t *ctx, unsigned char *keyval, int kvlen,
     unsigned char buf[64];
     int i;
 
-    if (kvlen > sizeof(buf))
+    if (kvlen > (int) sizeof(buf))
         kvlen = sizeof(buf);
     for (i = 0; i < kvlen; i++, keyval++)
         buf[i] = *keyval ^ pad;
-    while (i < sizeof(buf))
+    while (i < (int) sizeof(buf))
         buf[i++] = 0 ^ pad;
 
     ccnl_SHA256_Init(ctx);

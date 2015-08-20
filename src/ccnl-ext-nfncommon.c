@@ -315,7 +315,7 @@ ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl)
 int trim(char *str){  // inplace, returns len after shrinking
     int i;
     while(str[0] != '\0' && str[0] == ' '){
-        for(i = 0; i < strlen(str); ++i)
+        for(i = 0; i < (int) strlen(str); ++i)
             str[i] = str[i+1];
     }
     for(i = strlen(str)-1; i >=0; ++i){
@@ -401,7 +401,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         return NULL;
     }
 
-    if (totalLen >= CCNL_MAX_PACKET_SIZE - offset) {
+    if ((int) totalLen >= CCNL_MAX_PACKET_SIZE - offset) {
         DEBUGMSG(ERROR, "Prefix name for content does not fit into CCNL_MAX_PACKET_SIZE. Available: %u, needed: %u.\n",
                  CCNL_MAX_PACKET_SIZE - offset, totalLen+1);
         free_prefix(name);

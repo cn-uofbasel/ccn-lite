@@ -15,11 +15,11 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
              -Wmissing-include-dirs \
-             -Wundef
+             -Wundef \
+             -Wextra -Wno-unused-parameter
 
 # CCN-lite contains code that does not conform with the following warnings.
 # All of these should be enabled eventually.
-             #-Wextra
              #-Wcast-align \
              #-Wcast-qual \
              #-Wconversion \

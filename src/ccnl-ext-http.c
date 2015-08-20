@@ -94,7 +94,7 @@ ccnl_http_anteselect(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http,
         if (*maxfd <= http->server)
             *maxfd = http->server + 1;
     } else {
-        if (http->inlen < sizeof(http->in))
+        if (http->inlen < (int) sizeof(http->in))
             FD_SET(http->client, readfs);
         if (http->outlen > 0)
             FD_SET(http->client, writefs);
