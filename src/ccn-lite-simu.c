@@ -153,7 +153,7 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     pkt = ccnl_calloc(1, sizeof(*pkt));
     pkt->pfx = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
     DEBUGMSG(VERBOSE, "  %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
     pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = len;
@@ -185,7 +185,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
     DEBUGMSG(TRACE, "  create interest for %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, p));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p));
     buf = ccnl_mkSimpleInterest(p, &nonce);
     free_prefix(p);
 

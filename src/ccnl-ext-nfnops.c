@@ -134,7 +134,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
 
     DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
              prog, pending);
 #ifdef USE_NACK
 /*
@@ -228,7 +228,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
 
     DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
              prog, pending);
 #ifdef USE_NACK
 /*

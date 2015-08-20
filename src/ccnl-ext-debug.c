@@ -171,7 +171,7 @@ ccnl_dump(int lev, int typ, void *p)
         INDENT(lev);
         CONSOLE("%p PREFIX len=%d val=%s\n",
                (void *) pre, pre->compcnt,
-               ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pre));
+               ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pre));
         break;
     case CCNL_RELAY:
         INDENT(lev);

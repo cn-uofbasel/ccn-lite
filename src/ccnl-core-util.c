@@ -142,8 +142,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
              ccnl_matchMode2str(mode),
-             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, pfx),
-             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, nam),
+             ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1), pfx),
+             ccnl_prefix2path(prefixBuf2, CCNL_ARRAY_SIZE(prefixBuf2), nam),
              (void*) md);
 
     if (mode == CMP_EXACT) {
@@ -187,8 +187,8 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, prefix),
-             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, p),
+             ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1), prefix),
+             ccnl_prefix2path(prefixBuf2, CCNL_ARRAY_SIZE(prefixBuf2), p),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -1203,7 +1203,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     int len = 0, contentpos = 0, offs;
 
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, name), paylen);
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), name), paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;

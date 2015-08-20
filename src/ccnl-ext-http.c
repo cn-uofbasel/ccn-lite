@@ -259,7 +259,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
                 ": <font face=courier>%s</font></li>\n",
-                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, fwda[i]->prefix));
+                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), fwda[i]->prefix));
         }
         ccnl_free(fwda);
     }

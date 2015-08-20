@@ -110,7 +110,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, *prefix), ccnl_suite2str((*prefix)->suite),
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), *prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
@@ -377,7 +377,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s",
-                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, (struct ccnl_prefix_s*) stack->content));
+                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (struct ccnl_prefix_s*) stack->content));
         } else if (stack->type == STACK_TYPE_INT) {
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d", *(int*)stack->content);
         } else if (stack->type == STACK_TYPE_CONST) {
@@ -438,11 +438,11 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
              ccnl_suite2str(prefix->suite));
 
     DEBUGMSG(DEBUG, "Searching local for content %s\n",
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
@@ -712,7 +712,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen,
             break;
         case STACK_TYPE_PREFIX:
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s",
-                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE,
+                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf),
                     (struct ccnl_prefix_s*)entry->content));
             break;
         case STACK_TYPE_CONST:

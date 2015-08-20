@@ -253,7 +253,7 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         DEBUGMSG(DEBUG, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
         DEBUGMSG(DEBUG, "LOCAL PREFIX: %s\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pref));
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -997,7 +997,7 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
         snprintf(prog, len, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
         setup_global_environment(&global_dict);
         DEBUGMSG(DEBUG, "PREFIX %s\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         *config = new_config(ccnl, prog, global_dict, thunk_request,
                              start_locally, num_of_required_thunks,
                              prefix, ccnl->km->configid, suite);

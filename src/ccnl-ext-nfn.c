@@ -152,7 +152,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     int i;
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    DEBUGSTMT(DEBUG, ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+    DEBUGSTMT(DEBUG, ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
     DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
              (void *) ccnl, prefixBuf, (void *) from, (void *) config);
 
@@ -189,7 +189,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
         DEBUGMSG(DEBUG, "   checking local available of %s\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, copy));
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
@@ -318,7 +318,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             ccnl_content_add2cache(relay, c);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                      faceid,
-                     ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx));
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);
