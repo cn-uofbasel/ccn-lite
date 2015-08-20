@@ -1,7 +1,8 @@
 sudo: false # Enable container-based infrastructure
 
 language: c
-
+jdk:
+    - oraclejdk8
 # cache: apt # Enable caching on APT when it is available for our repo
 
 os:
