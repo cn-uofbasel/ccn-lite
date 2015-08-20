@@ -1028,39 +1028,29 @@ int
 ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                          int ccntlv_skip, int escape_components, int call_slash)
 {
-    int i, j, numChars;
+    int i, j;
     char *tmpBuf = buf;
-    unsigned int remLen = buflen;
-    int totalLen = 0;
-    int skip = 0;
+    unsigned int remLen = buflen, totalLen = 0, skip = 0;
 
     // Conform to snprintf standard
     assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
 
     if (!pr) {
-        numChars = snprintf(buf, buflen, "%p", (void *) NULL);
-        if (numChars < 0) goto fail;
+        int numChars = snprintf(buf, buflen, "%p", (void *) NULL);
+        if (numChars < 0) goto encodingError;
+        if (numChars >= buflen) goto notEnoughCapacity;
         return numChars;
     }
 
 #ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN) {
-        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("nfn"));
-        if (numChars < 0) goto fail;
-        totalLen += numChars;
-    }
+    if (pr->nfnflags & CCNL_PREFIX_NFN)
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR("nfn"));
 
-    if (pr->nfnflags & CCNL_PREFIX_THUNK) {
-        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("thunk"));
-        if (numChars < 0) goto fail;
-        totalLen += numChars;
-    }
+    if (pr->nfnflags & CCNL_PREFIX_THUNK)
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR("thunk"));
 
-    if (pr->nfnflags) {
-        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("["));
-        if (numChars < 0) goto fail;
-        totalLen += numChars;
-    }
+    if (pr->nfnflags)
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR("["));
 #endif
 
 #if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
@@ -1085,14 +1075,10 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                 || (strncmp("call", (char*) pr->comp[i]+skip, 4)
                     && strncmp("(call", (char*) pr->comp[i]+skip, 5))) {
 #endif
-            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("/"));
-            if (numChars < 0) goto fail;
-            totalLen += numChars;
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR("/"));
 #ifdef USE_NFN
         } else {
-            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR(" "));
-            if (numChars < 0) goto fail;
-            totalLen += numChars;
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR(" "));
         }
 #endif
 
@@ -1105,34 +1091,33 @@ ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
                 format = CONSTSTR("%c");
             }
 
-            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, format, c);
-            if (numChars < 0) goto fail;
-            totalLen += numChars;
+            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, format, c);
         }
     }
 
 #ifdef USE_NFN
     if (pr->nfnflags) {
-        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("]"));
-        if (numChars < 0) goto fail;
-        totalLen += numChars;
+        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, CONSTSTR("]"));
     }
 #endif
 
-    // TODO: Output warning if totalLen >= buflen?
+    if (!tmpBuf) goto encodingError;
+    if (totalLen >= buflen) goto notEnoughCapacity;
     return totalLen;
 
-fail:
-    // numChars holds the return value of the last call of ccnl_snprintfAndForward
-    assert(numChars < 0);
+notEnoughCapacity:
+    DEBUGMSG_CUTL(WARNING, "Buffer has not enough capacity for prefix name. Available: %u, needed: %u\n",
+                  buflen, totalLen+1);
+    return totalLen;
 
-    DEBUGMSG_CUTL(ERROR, "Encoding error %d occured while creating path of prefix: %p\n",
-                  numChars, (void *) pr);
+encodingError:
+    DEBUGMSG_CUTL(ERROR, "Encoding error occured while creating path of prefix: %p\n",
+                  (void *) pr);
 
     if (buf && buflen > 0) {
         buf[0] = '\0';
     }
-    return numChars;
+    return -1;
 }
 
 // ----------------------------------------------------------------------
