@@ -589,8 +589,12 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 
     // pre-compute overhead, first
     datalen = fr->bigpkt->datalen - fr->sendoffs;
-    if (datalen > fr->mtu)
+    if (fr->mtu < 0) {
+        DEBUGMSG(WARNING, "MTU value of fragment is negative: %d, setting fragment datalen to 0.\n", fr->mtu);
+        datalen = 0;
+    } else if (datalen > (unsigned int) fr->mtu)
         datalen = fr->mtu;
+
     offset = sizeof(test);
     hdrlen = ccnl_ndntlv_prependTL(NDN_TLV_NdnlpFragment, datalen,
                                    &offset, test);
@@ -601,7 +605,11 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 
     // with real values:
     datalen = fr->bigpkt->datalen - fr->sendoffs;
-    if (datalen > (fr->mtu - hdrlen))
+    if (fr->mtu - hdrlen < 0) {
+        DEBUGMSG(WARNING, "(MTU value - hdrlen) is negative: %d - %d = %d, setting fragment datalen to 0.\n",
+                 fr->mtu, hdrlen, fr->mtu-hdrlen);
+        datalen = 0;
+    } else if (datalen > (unsigned int) (fr->mtu - hdrlen))
         datalen = fr->mtu - hdrlen;
 
     buf = ccnl_buf_new(NULL, datalen + hdrlen);
