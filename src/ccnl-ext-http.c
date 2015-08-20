@@ -210,12 +210,14 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<!DOCTYPE html>\n"
         "<html>\n"
-        "<head><title>ccn-lite-relay status</title>\n"
-        "<style type=\"text/css\">\n"
-        "body {font-family: sans-serif;}\n"
-        "</style>\n"
-        "<meta content=\"text/html; charset=utf-8\" http-equiv=\"content-type\">\n"
-        "</head>\n<body>\n"
+        "<head>\n"
+        "  <meta charset=\"utf-8\"/>\n"
+        "  <title>ccn-lite-relay status</title>\n"
+        "  <style type=\"text/css\">\n"
+        "    body {font-family: sans-serif;}\n"
+        "  </style>\n"
+        "</head>\n"
+        "<body>\n"
         "<table borders=0>\n"
         "<tr><td><a href=\"\">[refresh]</a>&nbsp;&nbsp;</td>");
 
@@ -231,10 +233,10 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 
     cp = ctime(&ccnl->startup_time);
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        " (started %s)</font></td></tr>\n</table>\n", cp);
+        " (started %s)</font></td></tr>\n</table>\n\n", cp);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+        "<p>\n<table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Forwarding table</em></td></tr></table>\n<ul>\n");
 
     for (fwd = ccnl->fib, cnt = 0; fwd; fwd = fwd->next, cnt++);
@@ -263,10 +265,10 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         }
         ccnl_free(fwda);
     }
-    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n\n");
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+        "<p>\n<table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Faces</em></td></tr></table>\n<ul>\n");
 
     for (f = ccnl->faces, cnt = 0; f; f = f->next, cnt++);
@@ -293,10 +295,10 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         }
         ccnl_free(fa);
     }
-    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n\n");
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+        "<p>\n<table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Interfaces</em></td></tr></table>\n<ul>\n");
 
     for (i = 0; i < ccnl->ifcount; i++) {
@@ -315,9 +317,9 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 
         ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</li>\n");
     }
-    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n\n");
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
+        "<p>\n<table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Misc stats</em></td></tr></table>\n<ul>\n");
 
     for (cnt = 0, bpt = ccnl->nonces; bpt; bpt = bpt->next, cnt++);
@@ -334,42 +336,45 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
-        "<tr><td><em>Config</em></td></tr></table><table borders=0>\n");
+        "<tr><td><em>Config</em></td></tr></table>\n"
+        "<table borders=0>\n");
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>content.timeout:</td>"
-        "<td align=right> %d</td><td></td>\n", CCNL_CONTENT_TIMEOUT);
+        "<td align=right> %d</td><td></td></tr>\n", CCNL_CONTENT_TIMEOUT);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>face.timeout:</td>"
-        "<td align=right> %d</td><td></td>\n", CCNL_FACE_TIMEOUT);
+        "<td align=right> %d</td><td></td></tr>\n", CCNL_FACE_TIMEOUT);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>interest.maxretransmit:</td>"
-        "<td align=right> %d</td><td></td>\n", CCNL_MAX_INTEREST_RETRANSMIT);
+        "<td align=right> %d</td><td></td></tr>\n", CCNL_MAX_INTEREST_RETRANSMIT);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>interest.timeout:</td>"
-        "<td align=right> %d</td><td></td>\n", CCNL_INTEREST_TIMEOUT);
+        "<td align=right> %d</td><td></td></tr>\n", CCNL_INTEREST_TIMEOUT);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>nonces.max:</td>"
-        "<td align=right> %d</td><td></td>\n", CCNL_MAX_NONCES);
+        "<td align=right> %d</td><td></td></tr>\n", CCNL_MAX_NONCES);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "<tr><td>compile.featureset:</td><td></td><td> %s</td>\n", compile_string);
+        "<tr><td>compile.featureset:</td><td></td><td> %s</td></tr>\n", compile_string);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>compile.time:</td>"
-        "<td></td><td>%s %s</td>\n", __DATE__, __TIME__);
+        "<td></td><td>%s %s</td></tr>\n", __DATE__, __TIME__);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>compile.ccnl_core_version:</td>"
-        "<td></td><td>%s</td>\n", CCNL_VERSION);
+        "<td></td><td>%s</td></tr>\n", CCNL_VERSION);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "</table>\n\n"
-        "<p></p><hr></body></html>\n");
+        "<p><hr />\n"
+        "</body>\n"
+        "</html>\n");
 
     if (!tmpBuf) {
         DEBUGMSG(ERROR, "Encoding error occured while building HTTP result.\n");
