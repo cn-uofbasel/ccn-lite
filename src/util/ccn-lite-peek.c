@@ -58,11 +58,13 @@ int
 main(int argc, char *argv[])
 {
     int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     unsigned int chunknum = UINT_MAX;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
     ccnl_isFragmentFunc isFragment;
@@ -146,8 +148,8 @@ usage:
 
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 
-    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
-            argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n", argv[optind], argv[optind+1],
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();

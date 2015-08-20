@@ -117,13 +117,15 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -213,7 +215,7 @@ usage:
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)\n",
-                 ccnl_prefix_to_path(prefix),
+                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
                  ccnl_suite2str(suite));
 
         if(ux) {

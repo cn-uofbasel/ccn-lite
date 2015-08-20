@@ -293,7 +293,8 @@ main(int argc, char *argv[])
     unsigned char request[64*1024], reply[64*1024], tmp[10];
     int cnt, opt, reqlen, replen, port, sock = 0, switchlen;
     struct sockaddr sa;
-    char *addr = NULL, *udp = NULL, *ux = NULL, noreply = 0;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL, noreply = 0;
     float wait = 3.0;
     struct rdr_ds_s *expr;
 

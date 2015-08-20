@@ -200,6 +200,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     struct ccnl_forward_s *fwd;
     struct ccnl_interest_s *ipt;
     struct ccnl_buf_s *bpt;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
         "HTTP/1.1 200 OK\n\r"
@@ -258,7 +259,7 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
 
             tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
                 ": <font face=courier>%s</font></li>\n",
-                ccnl_prefix_to_path(fwda[i]->prefix));
+                ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, fwda[i]->prefix));
         }
         ccnl_free(fwda);
     }

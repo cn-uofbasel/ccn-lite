@@ -38,13 +38,20 @@ char* ccnl_snprintf(char *buf, unsigned int *buflen, unsigned int *totalLen,
                     const char *format, ...);
 int ccnl_snprintfAndForward(char **buf, unsigned int *buflen,
                             const char *format, ...);
-#ifndef CCNL_LINUXKERNEL
-   char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+char* ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr);
+int ccnl_snprintfPrefixPathDetailed(char *buf, int buflen,
+                                    struct ccnl_prefix_s *pr, int ccntlv_skip,
+                                    int escape_components, int call_slash);
+#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
+
+#ifdef CCNL_ARDUINO
+#  define CCNL_PREFIX_BUFSIZE 50
+#elif defined(CCNL_LINUXKERNEL)
+#  define CCNL_PREFIX_BUFSIZE 256
 #else
-   char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+#  define CCNL_PREFIX_BUFSIZE 512
 #endif
+
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);

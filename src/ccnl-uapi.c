@@ -78,7 +78,7 @@ int mk_ccntlv_content(struct info_data_s *o);
 
 
 /*****************************************************************************
- * vtables describing the object types 
+ * vtables describing the object types
  * (here they are initialised and chained together to form a hierarchy)
  *****************************************************************************/
 
@@ -578,6 +578,7 @@ ccnl_ll_TX(
     struct ccnl_pkt_s *     pkt;
     unsigned int            i_or_c;
     int                     aux_arg;
+    char                    prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     assert(relay && ifc && buf && dst);
 
@@ -691,7 +692,8 @@ ccnl_ll_TX(
         return;
     };
 
-    io->name = ccnl_prefix_to_path(pkt->pfx);  // TODO: should be safe since io is const at the deliverObject() call
+    // FIXME: Check if it works with stack allocated char array
+    io->name = ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, pkt->pfx);  // TODO: should be safe since io is const at the deliverObject() call
     io->chunk_seqn = (pkt->pfx->chunknum) ? ((int) *(pkt->pfx->chunknum)) : -1;
     io->packet_bytes = pkt->buf->data;
     io->packet_len = pkt->buf->datalen;
@@ -727,6 +729,7 @@ ccnl_app_RX(
 {
     struct envelope_s *     env = (struct envelope_s *) ccnl_malloc(sizeof(struct envelope_s));
     struct info_data_s *    io;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     assert (relay && c);
 
@@ -762,7 +765,9 @@ ccnl_app_RX(
     // attach the pkt buffer to the base info object, and set name/seqn of the content
     io->packet_bytes = c->pkt->buf->data;
     io->packet_len = c->pkt->buf->datalen;
-    io->name = ccnl_prefix_to_path(c->pkt->pfx); // TODO: should be safe since io is const at the deliverObject call
+
+    // FIXME: Check if it works with stack allocated char array
+    io->name = ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, c->pkt->pfx); // TODO: should be safe since io is const at the deliverObject call
     io->chunk_seqn = (c->pkt->pfx->chunknum) ? ((int) *(c->pkt->pfx->chunknum)) : -1;
 
     // prepare envelope
@@ -1135,16 +1140,16 @@ mk_prefix(struct info_data_s *d_obj)
         for (int i = 0; d_obj->name_components[i]!= NULL; i++)
             namelen += strlen(d_obj->name_components[i]);
         char * name = (char *) ccnl_malloc (1+ sizeof(char) * namelen);
-        
+
         memset (name, 0, namelen+1);
         for (int i = 0; d_obj->name_components[i]!= NULL; i++)
             strcat(name, d_obj->name_components[i]);
-        
+
         if (d_obj->chunk_seqn >=0)
             pfx = ccnl_URItoPrefix (name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
         else
             pfx = ccnl_URItoPrefix (name, suite, NULL, NULL);
-        
+
         ccnl_free(name);
     }
     else
@@ -1221,7 +1226,7 @@ mk_ccntlv_interest(struct info_data_s *d_obj)
                                     (int *) &i_obj->nonce,
                                     d_obj->packet_bytes,
                                     CCNL_MAX_PACKET_SIZE);
-    
+
     free_prefix(pfx);   // CHECK: make sure this is not leaving dangling pointers in the relay state?
     return 1;   // one I pkt created
 }
@@ -1280,7 +1285,7 @@ mk_ccnb_content(struct info_data_s *d_obj)
 
     // CHECK: hmm is this not too simplistic ? .. not having to provide publisher key ?
     d_obj->packet_len = ccnl_ccnb_fillContent(pfx, c_obj->content_bytes, c_obj->content_len, NULL, d_obj->packet_bytes);
-    
+
     // did it fit in one pkt ?
     if (d_obj->packet_len > CCNL_MAX_PACKET_SIZE ) {
         DEBUGMSG(ERROR, "Content data too big; cannot fit in one CCNx (XMLB fmt) C packet\n");
@@ -1425,5 +1430,3 @@ mk_ndntlv_content(struct info_data_s *d_obj)
 
     return 1;   // 1 C pkt created
 }
-
-

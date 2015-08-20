@@ -136,10 +136,15 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 {
     int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
     unsigned char *comp;
+#ifdef USE_LOGGING
+    char prefixBuf1[CCNL_PREFIX_BUFSIZE], prefixBuf2[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
              ccnl_matchMode2str(mode),
-             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
+             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, pfx),
+             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, nam),
+             (void*) md);
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
@@ -176,12 +181,14 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
                   int minsuffix, int maxsuffix, struct ccnl_content_s *c)
 {
     unsigned char *md;
+#ifdef USE_LOGGING
+    char prefixBuf1[CCNL_PREFIX_BUFSIZE], prefixBuf2[CCNL_PREFIX_BUFSIZE];
+#endif
     struct ccnl_prefix_s *p = c->pkt->pfx;
 
     DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
-             // ccnl_prefix_to_path_detailed(p,1,0,0),
+             ccnl_prefix2path(prefixBuf1, CCNL_PREFIX_BUFSIZE, prefix),
+             ccnl_prefix2path(prefixBuf2, CCNL_PREFIX_BUFSIZE, p),
              minsuffix, maxsuffix);
 
     // CONFORM: we do prefix match, honour min. and maxsuffix,
@@ -1010,65 +1017,51 @@ ccnl_snprintfAndForward(char **buf, unsigned int *buflen, const char *format, ..
     return numChars;
 }
 
-#ifndef CCNL_LINUXKERNEL
-
 char*
-ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
-                             int escape_components, int call_slash)
+ccnl_prefix2path(char *buf, int buflen, struct ccnl_prefix_s *pr)
 {
-    int len = 0, i, j;
-    /*static char *prefix_buf1;
-    static char *prefix_buf2;
-    static char *buf;*/
+    ccnl_snprintfPrefixPath(buf, buflen, pr);
+    return buf;
+}
 
-#ifdef CCNL_ARDUINO
-# define PREFIX_BUFSIZE 50
-#else
-# define PREFIX_BUFSIZE 2048
-#endif
-
-    if (!pr)
-        return NULL;
-
-    /*if (!buf) {
-        struct ccnl_buf_s *b;
-        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        //ccnl_core_addToCleanup(b);
-        prefix_buf1 = (char*) b->data;
-        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        //ccnl_core_addToCleanup(b);
-        prefix_buf2 = (char*) b->data;
-        buf = prefix_buf1;
-    } else if (buf == prefix_buf2)
-        buf = prefix_buf1;
-    else
-        buf = prefix_buf2;
-    */
-    char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
-#ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
-        len += sprintf(buf + len, "nfn");
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-        len += sprintf(buf + len, "thunk");
-    if (pr->nfnflags)
-        len += sprintf(buf + len, "[");
-#endif
-
-/*
-Not sure why a component starting with a call is not printed with a leading '/'
-A call should also be printed with a '/' because this function prints a prefix
-and prefix components are visually separated with a leading '/'.
-One possibility is to not have a '/' before any nfn expression.
-#ifdef USE_NFN
-        if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-            !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
-            len += sprintf(buf + len, "%.*s",
-                           pr->complen[i]-skip, pr->comp[i]+skip);
-        } else
-#endif
-*/
-
+int
+ccnl_snprintfPrefixPathDetailed(char *buf, int buflen, struct ccnl_prefix_s *pr,
+                         int ccntlv_skip, int escape_components, int call_slash)
+{
+    int i, j, numChars;
+    char *tmpBuf = buf;
+    unsigned int remLen = buflen;
+    int totalLen = 0;
     int skip = 0;
+
+    // Conform to snprintf standard
+    assert((buf != NULL || buflen == 0) && "buf can be (null) only if buflen is zero");
+
+    if (!pr) {
+        numChars = snprintf(buf, buflen, "%p", (void *) NULL);
+        if (numChars < 0) goto fail;
+        return numChars;
+    }
+
+#ifdef USE_NFN
+    if (pr->nfnflags & CCNL_PREFIX_NFN) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("nfn"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
+
+    if (pr->nfnflags & CCNL_PREFIX_THUNK) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("thunk"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
+
+    if (pr->nfnflags) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("["));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
+#endif
 
 #if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
     // In the future it is possibly helpful to see the type information
@@ -1088,46 +1081,59 @@ One possibility is to not have a '/' before any nfn expression.
 
     for (i = 0; i < pr->compcnt; i++) {
 #ifdef USE_NFN
-        if((strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5)) || call_slash)
-        {
+        if (call_slash
+                || (strncmp("call", (char*) pr->comp[i]+skip, 4)
+                    && strncmp("(call", (char*) pr->comp[i]+skip, 5))) {
 #endif
-            len += sprintf(buf + len, "/");
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("/"));
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
 #ifdef USE_NFN
-        }else{
-            len += sprintf(buf + len, " ");
+        } else {
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR(" "));
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
         }
 #endif
 
         for (j = skip; j < pr->complen[i]; j++) {
             char c = pr->comp[i][j];
-            char *fmt;
-            fmt = (c < 0x20 || c == 0x7f
-                            || (escape_components && c == '/' )) ?
-#ifdef CCNL_ARDUINO
-                  (char*)PSTR("%%%02x") : (char*)PSTR("%c");
-            len += sprintf_P(buf + len, fmt, c);
-#else
-                  (char *) "%%%02x" : (char *) "%c";
-            len += sprintf(buf + len, fmt, c);
-#endif
-            if(len > PREFIX_BUFSIZE) {
-                DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
-                break;
+            const char *format;
+            if (c < 0x20 || c == 0x7f || (escape_components && c == '/')) {
+                format = CONSTSTR("%%%02x");
+            } else {
+                format = CONSTSTR("%c");
             }
+
+            numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, format, c);
+            if (numChars < 0) goto fail;
+            totalLen += numChars;
         }
     }
 
 #ifdef USE_NFN
-    if (pr->nfnflags)
-        len += sprintf(buf + len, "]");
+    if (pr->nfnflags) {
+        numChars = ccnl_snprintfAndForward(&tmpBuf, &remLen, CONSTSTR("]"));
+        if (numChars < 0) goto fail;
+        totalLen += numChars;
+    }
 #endif
 
-    buf[len] = '\0';
+    // TODO: Output warning if totalLen >= buflen?
+    return totalLen;
 
-    return buf;
+fail:
+    // numChars holds the return value of the last call of ccnl_snprintfAndForward
+    assert(numChars < 0);
+
+    DEBUGMSG_CUTL(ERROR, "Encoding error %d occured while creating path of prefix: %p\n",
+                  numChars, (void *) pr);
+
+    if (buf && buflen > 0) {
+        buf[0] = '\0';
+    }
+    return numChars;
 }
-
-#endif // CCNL_LINUXKERNEL
 
 // ----------------------------------------------------------------------
 
@@ -1193,10 +1199,11 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 {
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
     int len = 0, contentpos = 0, offs;
 
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-             ccnl_prefix_to_path(name), paylen);
+             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, name), paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;

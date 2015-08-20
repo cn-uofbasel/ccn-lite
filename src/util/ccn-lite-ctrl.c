@@ -699,7 +699,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     unsigned char *contentobj, *stmt, *out1, h[10], *data;
     int datalen, chunkflag;
     struct ccnl_prefix_s *prefix;
-    char *prefix_string = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     FILE *file = fopen(fname, "r");
     if (!file)
@@ -717,8 +717,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
         DEBUGMSG(ERROR, "  no prefix in file %s\n", fname);
         return -1;
     }
-    DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", ccnl_prefix_to_path(prefix));
-    prefix_string = ccnl_prefix_to_path_detailed(prefix, 0, 1, 1);
+    ccnl_snprintfPrefixPathDetailed(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix, 0, 1, 1);
+    DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", prefixBuf);
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
@@ -733,9 +733,9 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    DEBUGMSG(DEBUG, "NAME:%s\n", prefix_string);
+    DEBUGMSG(DEBUG, "NAME:%s\n", prefixBuf);
 
-    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
+    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefixBuf);
 
 
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
