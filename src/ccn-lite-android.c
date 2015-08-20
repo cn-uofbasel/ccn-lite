@@ -792,12 +792,12 @@ ccnl_android_getTransport()
             char *tmpBuf = addr;
             unsigned int remLen = CCNL_ARRAY_SIZE(addr), totalLen = 0;
 
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(%s)  UDP    ", ifr[i].ifr_name);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(%s)  UDP    ", ifr[i].ifr_name);
             for (i = 0; i < theRelay.ifcount; i++) {
                 if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
                     continue;
                 sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s    ",
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "%s    ",
                         ccnl_addr2ascii((sockunion*)sin));
             }
             ccnl_free(ifr);

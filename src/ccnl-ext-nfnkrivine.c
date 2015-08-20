@@ -592,21 +592,21 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         }
 
         if (!end)
-            tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "ACCESS(%s);",
+            ccnl_snprintf(&tmpRes, &remLen, &totalLen, "ACCESS(%s);",
                                    t->v);
 
-        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "TAILAPPLY");
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "TAILAPPLY");
     } else if (term_is_lambda(t)) {
         ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
-        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "GRAB(%s);RESOLVENAME(%s)",
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "GRAB(%s);RESOLVENAME(%s)",
                                t->v, dummybuf);
     } else if (term_is_app(t)) {
         ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->n, 0);
-        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));",
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));",
                                dummybuf);
 
         ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
-        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, "RESOLVENAME(%s)",
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "RESOLVENAME(%s)",
                                dummybuf);
     } else {
         DEBUGMSG(ERROR, "Invalid lambda term encountered (no lambda, app or var). <v=%s, m=%p, n=%p>\n",
@@ -616,7 +616,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
     ccnl_lambdaFreeTerm(t);
 
     if (contd && success)
-        tmpRes = ccnl_snprintf(tmpRes, &remLen, &totalLen, ";%s", contd);
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, ";%s", contd);
 
 
     if (!tmpRes) {
@@ -728,22 +728,22 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         ccnl_free(h->content);
         ccnl_free(h);
 
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "CLOSURE(FOX);RESOLVENAME(@op(");
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "CLOSURE(FOX);RESOLVENAME(@op(");
 
 	// ... @x(@y y x 2 op)));TAILAPPLY";
         for (i = 0; i < num_params; ++i) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "@x%d(", i);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "@x%d(", i);
         }
         for (i = num_params - 1; i >= 0; --i) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " x%d", i);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " x%d", i);
         }
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d op", num_params);
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d op", num_params);
         for (i = 0; i < num_params+2; ++i) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
         }
 
         if (contd) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ";%s", contd);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ";%s", contd);
         }
 
         if (!tmpBuf) {
@@ -926,7 +926,7 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
         case STACK_TYPE_PREFIX:
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-                buf = ccnl_snprintf(buf, &remLen, &totalLen, "%.*s",
+                ccnl_snprintf(&buf, &remLen, &totalLen, "%.*s",
                                     cont->pkt->contlen, (char*) cont->pkt->content);
             }
             break;
@@ -934,7 +934,7 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
         case STACK_TYPE_PREFIXRAW:
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-                buf = ccnl_snprintf(buf, &remLen, &totalLen, "%.*s",
+                ccnl_snprintf(&buf, &remLen, &totalLen, "%.*s",
                                     cont->pkt->buf->datalen, (char*)cont->pkt->buf->data);
             }
             break;
@@ -943,7 +943,7 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
             //h = ccnl_buf_new(NULL, 10);
             //snprintf((char*)h->data, 10, "%d", *(int*)stack->content);
             //h->datalen = strlen((char*)h->data);
-            buf = ccnl_snprintf(buf, &remLen, &totalLen, "%d", *(int*)stack->content);
+            ccnl_snprintf(&buf, &remLen, &totalLen, "%d", *(int*)stack->content);
             break;
 
         default:

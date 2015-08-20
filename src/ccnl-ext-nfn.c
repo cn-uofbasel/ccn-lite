@@ -207,15 +207,15 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         offset = 4;
     }
 #endif
-    tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, "%.*s",
+    ccnl_snprintf(&tmpStr, &remLen, &totalLen, "%.*s",
         prefix->complen[prefix->compcnt-1] - offset,
         prefix->comp[prefix->compcnt-1] + offset);
 
     if (prefix->compcnt > 1)
-        tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, " ");
+        ccnl_snprintf(&tmpStr, &remLen, &totalLen, " ");
 
     for (i = 0; i < prefix->compcnt-1; i++) {
-        tmpStr = ccnl_snprintf(tmpStr, &remLen, &totalLen, "/%.*s",
+        ccnl_snprintf(&tmpStr, &remLen, &totalLen, "/%.*s",
             prefix->complen[i] - offset,
             prefix->comp[i] + offset);
     }

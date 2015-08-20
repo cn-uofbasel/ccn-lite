@@ -146,11 +146,11 @@ ccnl_debug_str2level(char *s)
         unsigned int _rem = CCNL_ARRAY_SIZE(android_logstr);  \
         unsigned int _tot = 0;                      \
         if ((LVL)>debug_level) break;               \
-        _buf = ccnl_snprintf(_buf, &_rem, &_tot,    \
+        ccnl_snprintf(&_buf, &_rem, &_tot,    \
             "[%c] %s: ",                            \
             ccnl_debugLevelToChar((LVL)),           \
             timestamp());                           \
-        _buf = ccnl_snprintf(_buf, &_rem, &_tot,    \
+        ccnl_snprintf(&_buf, &_rem, &_tot,    \
             __VA_ARGS__);                           \
         jni_append_to_log(android_logstr);          \
     } while (0)

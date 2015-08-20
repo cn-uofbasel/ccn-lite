@@ -202,12 +202,12 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     struct ccnl_buf_s *bpt;
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "HTTP/1.1 200 OK\n\r"
         "Content-Type: text/html; charset=utf-8\n\r"
         "Connection: close\n\r\n\r");
 
-   tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+   ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<!DOCTYPE html>\n"
         "<html>\n"
         "<head><title>ccn-lite-relay status</title>\n"
@@ -220,20 +220,20 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
         "<tr><td><a href=\"\">[refresh]</a>&nbsp;&nbsp;</td>");
 
     uname(&uts);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<td>ccn-lite-relay Status Page &nbsp;&nbsp; node <strong>%s (%d)</strong></td></tr>\n",
         uts.nodename, getpid());
 
     t = time(NULL);
     cp = ctime(&t);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td></td><td><font size=-1>%s &nbsp;&nbsp;", cp);
 
     cp = ctime(&ccnl->startup_time);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         " (started %s)</font></td></tr>\n</table>\n", cp);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Forwarding table</em></td></tr></table>\n<ul>\n");
 
@@ -245,27 +245,27 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fwda[i] = fwd;
         qsort(fwda, cnt, sizeof(fwd), ccnl_cmpfib);
         for (i = 0; i < cnt; i++) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "<li>via ");
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "<li>via ");
 
 #ifdef USE_ECHO
             if (fwda[i]->tap)
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "'echoserver'");
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "'echoserver'");
             else
 #endif
             if(fwda[i]->face)
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "f%d", fwda[i]->face->faceid);
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "f%d", fwda[i]->face->faceid);
             else
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "?");
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "?");
 
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
                 ": <font face=courier>%s</font></li>\n",
                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), fwda[i]->prefix));
         }
         ccnl_free(fwda);
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Faces</em></td></tr></table>\n<ul>\n");
 
@@ -277,30 +277,30 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             fa[i] = f;
         qsort(fa, cnt, sizeof(f), ccnl_cmpfaceid);
         for (i = 0; i < cnt; i++) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
                 "<li><strong>f%d</strong> (via i%d) &nbsp;"
                 "peer=<font face=courier>%s</font> &nbsp;ttl=",
                 fa[i]->faceid, fa[i]->ifndx, ccnl_addr2ascii(&(fa[i]->peer)));
 
             if (fa[i]->flags & CCNL_FACE_FLAGS_STATIC)
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "static");
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "static");
             else
-                tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%.1fsec",
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "%.1fsec",
                     fa[i]->last_used + CCNL_FACE_TIMEOUT - CCNL_NOW());
 
             for (j = 0, bpt = fa[i]->outq; bpt; bpt = bpt->next, j++);
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " &nbsp;qlen=%d</li>\n", j);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " &nbsp;qlen=%d</li>\n", j);
         }
         ccnl_free(fa);
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Interfaces</em></td></tr></table>\n<ul>\n");
 
     for (i = 0; i < ccnl->ifcount; i++) {
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
             "<li><strong>i%d</strong>&nbsp;&nbsp;"
             "addr=<font face=courier>%s</font>&nbsp;&nbsp;"
             "qlen=%d/%d",
@@ -308,66 +308,66 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
             ccnl->ifs[i].qlen, CCNL_MAX_IF_QLEN);
 
 #ifdef USE_STATS
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
             "&nbsp;&nbsp;rx=%u&nbsp;&nbsp;tx=%u",
             ccnl->ifs[i].rx_cnt, ccnl->ifs[i].tx_cnt);
 #endif
 
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</li>\n");
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</li>\n");
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Misc stats</em></td></tr></table>\n<ul>\n");
 
     for (cnt = 0, bpt = ccnl->nonces; bpt; bpt = bpt->next, cnt++);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "<li>Nonces: %d</li>\n", cnt);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "<li>Nonces: %d</li>\n", cnt);
 
     for (cnt = 0, ipt = ccnl->pit; ipt; ipt = ipt->next, cnt++);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "<li>Pending interests: %d</li>\n", cnt);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "<li>Pending interests: %d</li>\n", cnt);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<li>Content chunks: %d (max=%d)</li>\n",
         ccnl->contentcnt, ccnl->max_cache_entries);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "</ul>\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "</ul>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "\n<p><table borders=0 width=100%% bgcolor=#e0e0ff>"
         "<tr><td><em>Config</em></td></tr></table><table borders=0>\n");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>content.timeout:</td>"
         "<td align=right> %d</td><td></td>\n", CCNL_CONTENT_TIMEOUT);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>face.timeout:</td>"
         "<td align=right> %d</td><td></td>\n", CCNL_FACE_TIMEOUT);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>interest.maxretransmit:</td>"
         "<td align=right> %d</td><td></td>\n", CCNL_MAX_INTEREST_RETRANSMIT);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>interest.timeout:</td>"
         "<td align=right> %d</td><td></td>\n", CCNL_INTEREST_TIMEOUT);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>nonces.max:</td>"
         "<td align=right> %d</td><td></td>\n", CCNL_MAX_NONCES);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>compile.featureset:</td><td></td><td> %s</td>\n", compile_string);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>compile.time:</td>"
         "<td></td><td>%s %s</td>\n", __DATE__, __TIME__);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<tr><td>compile.ccnl_core_version:</td>"
         "<td></td><td>%s</td>\n", CCNL_VERSION);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen,
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "</table>\n\n"
         "<p></p><hr></body></html>\n");
 

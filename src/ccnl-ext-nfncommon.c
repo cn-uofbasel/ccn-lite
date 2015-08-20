@@ -371,19 +371,19 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
     tmpBuf = (char*) name->comp[0];
     remLen = CCNL_MAX_PACKET_SIZE - offset - totalLen;
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(call %d",
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(call %d",
                            config->fox_state->num_of_params);
     for (it = 0; it < config->fox_state->num_of_params; ++it) {
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %s",
                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (struct ccnl_prefix_s*) stack->content));
         } else if (stack->type == STACK_TYPE_INT) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d", *(int*)stack->content);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d", *(int*)stack->content);
         } else if (stack->type == STACK_TYPE_CONST) {
             struct const_s *con = stack->content;
             DEBUGMSG(DEBUG, "strlen: %d str: %.*s \n", con->len, con->len+2, ccnl_nfn_krivine_const2str(con));
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %.*s",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %.*s",
                                    con->len+2, ccnl_nfn_krivine_const2str(con));
         } else {
             DEBUGMSG(WARNING, "Invalid stack type %d\n", stack->type);
@@ -393,7 +393,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 
     }
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
 
     if (!tmpBuf) {
         DEBUGMSG(ERROR, "An encoding error occured while constructing prefix.\n");
@@ -694,31 +694,31 @@ ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen,
     DEBUGMSG(DEBUG, "exclude parameter: %d\n", exclude_param);
 
     if (exclude_param >= 0)
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "(@x ");
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(@x ");
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "call %d",
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "call %d",
                            s->num_of_params);
 
     for (j = 0; j < s->num_of_params; j++) {
         if (j == exclude_param) {
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " x");
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " x");
             continue;
         }
         entry = s->params[j];
         switch (entry->type) {
         case STACK_TYPE_INT:
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %d",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d",
                                    *((int*)entry->content));
             break;
         case STACK_TYPE_PREFIX:
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %s",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %s",
                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf),
                     (struct ccnl_prefix_s*)entry->content));
             break;
         case STACK_TYPE_CONST:
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, " %.*s",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %.*s",
                                    con->len+2, str);
             ccnl_free(str);
             break;
@@ -730,7 +730,7 @@ ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen,
         }
     }
     if (exclude_param >= 0)
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ")");
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
 
     if (!tmpBuf) {
         DEBUGMSG(ERROR, "An encoding error occured while filling call expression.\n");

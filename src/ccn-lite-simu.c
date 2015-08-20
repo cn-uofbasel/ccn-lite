@@ -264,7 +264,7 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
 
     for (i = 0; i < p->compcnt-1; i++) {
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "/%.*s",
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "/%.*s",
                                p->complen[i] - offset, p->comp[i] + offset);
     }
 

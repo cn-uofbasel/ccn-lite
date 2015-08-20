@@ -83,7 +83,7 @@ inet_ntoa(struct in_addr in)
     unsigned int remLen = CCNL_ARRAY_SIZE(buf), totalLen = 0;
     unsigned int i, a = ntohl(in.s_addr);
     for (i = 0; i < 4; i++) {
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "%s%d",
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "%s%d",
                                i ? "." : "", 0xff & (a >> 8*(3-i)));
     }
     return buf;

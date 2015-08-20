@@ -52,7 +52,7 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
 
     // Build name
     for (i = 0; i < prefix->compcnt; ++i) {
-        tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "/%.*s",
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "/%.*s",
                                prefix->complen[i], prefix->comp[i]);
     }
     if (!tmpBuf)
@@ -68,22 +68,22 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
     remLen = reslen;
     totalLen = 0;
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "{\n");
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"packetLog\":{\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "{\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"packetLog\":{\n");
 
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"from\":{\n");
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"host\": %d,\n", fromip);
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"port\": %d\n", fromport);
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"type\": \"NFNNode\", \n");
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"prefix\": \"docrepo1\"\n");
-//      tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "},\n"); //from
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"from\":{\n");
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"host\": %d,\n", fromip);
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"port\": %d\n", fromport);
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"type\": \"NFNNode\", \n");
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"prefix\": \"docrepo1\"\n");
+//      ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "},\n"); //from
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"to\":{\n");
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"host\": \"%s\",\n", toip);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"port\": %d\n", toport);
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "},\n"); //to
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"to\":{\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"host\": \"%s\",\n", toip);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"port\": %d\n", toport);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "},\n"); //to
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"isSent\": %s,\n", "true");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"isSent\": %s,\n", "true");
 
 #ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
     clock_serv_t cclock;
@@ -98,24 +98,24 @@ ccnl_ext_nfnmonitor_record(char* toip, int toport,
 #endif
 
     timestamp_milli = ((ts.tv_sec) * 1000000000 + (ts.tv_nsec ));
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"timestamp\": %lu,\n",
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"timestamp\": %lu,\n",
                            timestamp_milli);
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"packet\":{\n");
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"type\": \"%s\",\n",
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"packet\":{\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"type\": \"%s\",\n",
                            data != NULL ? "content" : "interest" );
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "\"name\": \"%s\"\n", name);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "\"name\": \"%s\"\n", name);
 
     if(data){
             //size_t newlen;
             //char *newdata = base64_encode(data, datalen, &newlen);
-            tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, ",\"data\": \"%s\"\n",
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ",\"data\": \"%s\"\n",
                                    data);
     }
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n"); //packet
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "}\n"); //packet
 
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n"); //packetlog
-    tmpBuf = ccnl_snprintf(tmpBuf, &remLen, &totalLen, "}\n");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "}\n"); //packetlog
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "}\n");
 
     if (!tmpBuf) {
         DEBUGMSG(ERROR, "An encoding error occured while constructing monitor recording.\n");

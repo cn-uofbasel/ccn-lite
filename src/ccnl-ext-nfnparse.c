@@ -121,21 +121,21 @@ char*
 _ccnl_lambdaTermToStr(char *buf, unsigned int *buflen, unsigned int *totalLen, struct ccnl_lambdaTerm_s *t, char last)
 {
     if (t->v && t->m) { // Lambda (sequence)
-        buf = ccnl_snprintf(buf, buflen, totalLen, "(%c%s", LAMBDACHAR, t->v);
+        ccnl_snprintf(&buf, buflen, totalLen, "(%c%s", LAMBDACHAR, t->v);
         buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, 'a');
-        buf = ccnl_snprintf(buf, buflen, totalLen, ")");
+        ccnl_snprintf(&buf, buflen, totalLen, ")");
     } else if (t->v) { // (single) variable
         if (isalnum(last))
-            buf = ccnl_snprintf(buf, buflen, totalLen, " ");
-        buf = ccnl_snprintf(buf, buflen, totalLen, "%s", t->v);
+            ccnl_snprintf(&buf, buflen, totalLen, " ");
+        ccnl_snprintf(&buf, buflen, totalLen, "%s", t->v);
     } else if (t->n->v && !t->n->m) {
         buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, last);
         buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->n, 'a');
     } else {
         buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->m, last);
-        buf = ccnl_snprintf(buf, buflen, totalLen, " (");
+        ccnl_snprintf(&buf, buflen, totalLen, " (");
         buf = _ccnl_lambdaTermToStr(buf, buflen, totalLen, t->n, '(');
-        buf = ccnl_snprintf(buf, buflen, totalLen, ")");
+        ccnl_snprintf(&buf, buflen, totalLen, ")");
     }
 
     return buf;
