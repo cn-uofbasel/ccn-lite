@@ -312,7 +312,7 @@ ccnl_cistlv_prependFixedHdr(unsigned char ver,
     unsigned char hdrlen = sizeof(struct cisco_tlvhdr_201501_s);
     struct cisco_tlvhdr_201501_s *hp;
 
-    if (*offset < hdrlen || payloadlen < 0)
+    if (*offset < hdrlen)
         return -1;
 
     *offset -= sizeof(struct cisco_tlvhdr_201501_s);

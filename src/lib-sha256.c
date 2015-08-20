@@ -133,7 +133,7 @@ const sha2_word32 K256[64] _MEMLOCATION_ = {
 };
 
 /* Initial hash value H for SHA-256: */
-const static sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
+static const sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
 	0x6a09e667UL,
 	0xbb67ae85UL,
 	0x3c6ef372UL,

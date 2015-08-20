@@ -389,7 +389,7 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx2015_s);
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    if (*offset < hdrlen || payloadlen < 0)
+    if (*offset < hdrlen)
         return -1;
 
     *offset -= sizeof(struct ccnx_tlvhdr_ccnx2015_s);

@@ -343,7 +343,7 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
 {
     struct ccnl_buf_s *msg;
     DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%d\n",
-             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
+             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? (int) buf->datalen : -1);
 
     for (msg = to->outq; msg; msg = msg->next) // already in the queue?
         if (buf_equal(msg, buf)) {
@@ -586,7 +586,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
              (void*) *pkt,
              ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
-             ((*pkt)->pfx->chunknum) ? *((*pkt)->pfx->chunknum) : -1);
+             ((*pkt)->pfx->chunknum) ? (int) *((*pkt)->pfx->chunknum) : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)
@@ -632,7 +632,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                   ccnl->contentcnt, ccnl->max_cache_entries,
                   (void*)c,
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), c->pkt->pfx),
-                  (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+                  (c->pkt->pfx->chunknum)? (int) *(c->pkt->pfx->chunknum) : -1);
 
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (c == cit) {

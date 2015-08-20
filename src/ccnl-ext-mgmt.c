@@ -1494,7 +1494,7 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 
     // should (re)verify that action=="prefixreg"
-    if (suite && *suite >= 0 && *suite < CCNL_SUITE_LAST && p->compcnt > 0) {
+    if (suite && ccnl_isSuite(*suite) && p->compcnt > 0) {
         p->suite = *suite;
         DEBUGMSG(TRACE, "mgmt: activating echo server for %s, suite=%s\n",
                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p), ccnl_suite2str(*suite));

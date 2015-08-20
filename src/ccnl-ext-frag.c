@@ -95,7 +95,7 @@ ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
                   int ifndx, sockunion *dst)
 {
     DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_reset if=%d (%d bytes) dst=%s\n", ifndx,
-             buf ? buf->datalen : -1, ccnl_addr2ascii(dst));
+             buf ? (int) buf->datalen : -1, ccnl_addr2ascii(dst));
     if (!e)
         return;
     e->ifndx = ifndx;
