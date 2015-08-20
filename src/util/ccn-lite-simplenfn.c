@@ -215,7 +215,7 @@ usage:
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)\n",
-                 ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix),
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
                  ccnl_suite2str(suite));
 
         if(ux) {

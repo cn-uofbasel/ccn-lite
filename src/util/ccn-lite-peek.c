@@ -149,7 +149,7 @@ usage:
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 
     DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n", argv[optind], argv[optind+1],
-             ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();

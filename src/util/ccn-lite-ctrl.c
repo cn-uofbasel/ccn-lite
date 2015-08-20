@@ -717,7 +717,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
         DEBUGMSG(ERROR, "  no prefix in file %s\n", fname);
         return -1;
     }
-    ccnl_snprintfPrefixPathDetailed(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix, 0, 1, 1);
+    ccnl_snprintfPrefixPathDetailed(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix, 0, 1, 1);
     DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", prefixBuf);
 
     //Create ccn-lite-ctrl interest object with signature to add content...

@@ -333,11 +333,11 @@ usage:
             }
             *(prefix->chunknum) = *curchunknum;
             DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum,
-                     ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
             DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n",
-                     ccnl_prefix2path(prefixBuf, CCNL_PREFIX_BUFSIZE, prefix));
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         }
 
         // Fetch chunk
