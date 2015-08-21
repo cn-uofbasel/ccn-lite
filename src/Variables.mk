@@ -12,6 +12,7 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 # general flags used on both linux and OSX
 CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wextra -Wno-unused-parameter \
+             -Wcast-qual \
              -Wfloat-equal \
              -Wformat-security -Wformat-y2k \
              -Winit-self \

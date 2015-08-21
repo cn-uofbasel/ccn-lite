@@ -646,7 +646,7 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
         return NULL;
     h->next = mem;
     mem = h;
-    h->fname = (char *) fn;
+    h->fname = fn;
     h->lineno = lno;
     h->size = s;
 #ifdef CCNL_ARDUINO
@@ -710,7 +710,7 @@ debug_realloc(void *p, int s, const char *fn, int lno)
             return NULL;
     } else
         h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
-    h->fname = (char *) fn;
+    h->fname = fn;
     h->lineno = lno;
     h->size = s;
     h->next = mem;

@@ -273,7 +273,7 @@ void ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len
 	}
 	while (len >= SHA256_BLOCK_LENGTH) {
 		/* Process as many complete blocks as we can */
-		ccnl_SHA256_Transform(context, (sha2_word32*)data);
+		ccnl_SHA256_Transform(context, (const sha2_word32*)data);
 		context->bitcount += SHA256_BLOCK_LENGTH << 3;
 		len -= SHA256_BLOCK_LENGTH;
 		data += SHA256_BLOCK_LENGTH;

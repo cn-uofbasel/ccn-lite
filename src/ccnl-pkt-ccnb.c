@@ -329,7 +329,7 @@ ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt)
 
 int
 ccnl_ccnb_mkField(unsigned char *out, unsigned int num, int typ,
-                  unsigned char *data, int datalen)
+                  const unsigned char *data, int datalen)
 {
     int len;
 

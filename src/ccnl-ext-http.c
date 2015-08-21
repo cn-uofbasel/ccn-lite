@@ -154,16 +154,18 @@ ccnl_http_postselect(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http,
 int
 ccnl_cmpfaceid(const void *a, const void *b)
 {
-    int aa = (*(struct ccnl_face_s**)a)->faceid;
-    int bb = (*(struct ccnl_face_s**)b)->faceid;
+    struct ccnl_face_s* const * fa = (struct ccnl_face_s* const*) a;
+    struct ccnl_face_s* const * fb = (struct ccnl_face_s* const*) b;
+    int aa = (*fa)->faceid;
+    int bb = (*fb)->faceid;
     return  aa - bb;
 }
 
 int
 ccnl_cmpfib(const void *a, const void *b)
 {
-    struct ccnl_prefix_s *p1 = (*(struct ccnl_forward_s**)a)->prefix;
-    struct ccnl_prefix_s *p2 = (*(struct ccnl_forward_s**)b)->prefix;
+    struct ccnl_prefix_s *p1 = (*(struct ccnl_forward_s* const*)a)->prefix;
+    struct ccnl_prefix_s *p2 = (*(struct ccnl_forward_s* const*)b)->prefix;
     int i, len, r;
     for (i = 0; ; i++) {
         if (p1->compcnt <= i) {

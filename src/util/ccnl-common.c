@@ -155,7 +155,7 @@ ccnl_enc2str(int enc)
 
 #ifdef NEEDS_PACKET_CRAFTING
 int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
+ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, const char *minSuffix,
                      const char *maxSuffix, unsigned char *digest, int dlen,
                      unsigned char *publisher, int plen, char *scope,
                      uint32_t *nonce, unsigned char *out)
@@ -183,11 +183,11 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
 
     if (minSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MINSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) minSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) minSuffix,
                                  strlen(minSuffix));
     if (maxSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MAXSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) maxSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) maxSuffix,
                                  strlen(maxSuffix));
     if (publisher)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_PUBPUBKDIGEST,

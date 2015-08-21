@@ -206,10 +206,10 @@ ccnl_debug_str2level(char *s)
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
 
-char *
-getBaseName(char *fn)
+const char *
+getBaseName(const char *fn)
 {
-    char *cp = fn + strlen(fn);
+    const char *cp = fn + strlen(fn);
 
     for (cp--; cp >= fn; cp--)
         if (*cp == '/')
