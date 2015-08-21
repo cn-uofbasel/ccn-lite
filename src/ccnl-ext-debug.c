@@ -95,7 +95,7 @@ const char* ccnl_addr2ascii(sockunion *su);
 // ----------------------------------------------------------------------
 
 static void
-blob(struct ccnl_buf_s *buf)
+debug_blob(struct ccnl_buf_s *buf)
 {
     unsigned char *cp = buf->data;
     unsigned int i;
@@ -297,12 +297,12 @@ ccnl_dump(int lev, int typ, void *p)
                     pkt->s.ccnb.minsuffix, pkt->s.ccnb.maxsuffix,
                     pkt->s.ccnb.aok, pkt->s.ccnb.scope);
             if (pkt->s.ccnb.nonce) {
-                CONSOLE(" nonce="); blob(pkt->s.ccnb.nonce);
+                CONSOLE(" nonce="); debug_blob(pkt->s.ccnb.nonce);
             }
             CONSOLE("\n");
             if (pkt->s.ccnb.ppkd) {
                 INDENT(lev+1);
-                CONSOLE("ppkd="); blob(pkt->s.ccnb.ppkd);
+                CONSOLE("ppkd="); debug_blob(pkt->s.ccnb.ppkd);
                 CONSOLE("\n");
             }
             break;
@@ -311,7 +311,7 @@ ccnl_dump(int lev, int typ, void *p)
         case CCNL_SUITE_CCNTLV:
             if (pkt->s.ccntlv.keyid) {
                 INDENT(lev+1);
-                CONSOLE("keyid="); blob(pkt->s.ccntlv.keyid);
+                CONSOLE("keyid="); debug_blob(pkt->s.ccntlv.keyid);
                 CONSOLE("\n");
             }
             break;
@@ -329,12 +329,12 @@ ccnl_dump(int lev, int typ, void *p)
                     pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix,
                     pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
             if (pkt->s.ndntlv.nonce) {
-                CONSOLE(" nonce="); blob(pkt->s.ndntlv.nonce);
+                CONSOLE(" nonce="); debug_blob(pkt->s.ndntlv.nonce);
             }
             CONSOLE("\n");
             if (pkt->s.ndntlv.ppkl) {
                 INDENT(lev+1);
-                CONSOLE("ppkl="); blob(pkt->s.ndntlv.ppkl);
+                CONSOLE("ppkl="); debug_blob(pkt->s.ndntlv.ppkl);
                 CONSOLE("\n");
             }
             break;
