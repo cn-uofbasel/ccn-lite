@@ -847,12 +847,12 @@ usage:
 #ifdef USE_ECHO
     if (echopfx) {
         struct ccnl_prefix_s *pfx;
-        char *dup = ccnl_strdup(echopfx);
+        char *echoPfxDup = ccnl_strdup(echopfx);
 
-        pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
+        pfx = ccnl_URItoPrefix(echoPfxDup, suite, NULL, NULL);
         if (pfx)
             ccnl_echo_add(&theRelay, pfx);
-        ccnl_free(dup);
+        ccnl_free(echoPfxDup);
     }
 #endif
 
