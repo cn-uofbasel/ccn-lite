@@ -11,12 +11,12 @@ GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
 CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
+             -Wextra -Wno-unused-parameter \
              -Wfloat-equal \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
              -Wmissing-include-dirs \
-             -Wundef \
-             -Wextra -Wno-unused-parameter
+             -Wundef
 
 # CCN-lite contains code that does not conform with the following warnings.
 # All of these should be enabled eventually.
