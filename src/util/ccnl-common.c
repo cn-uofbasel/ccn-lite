@@ -531,11 +531,11 @@ load_keys_from_file(char *path)
     while (fgets(line, sizeof(line), fp)) {
         unsigned char *key;
         size_t keylen;
-        int read = strlen(line);
-        DEBUGMSG(TRACE, "  read %d bytes\n", read);
-        if (line[read-1] == '\n')
-            line[--read] = '\0';
-        key = base64_decode(line, read, &keylen);
+        int linelen = strlen(line);
+        DEBUGMSG(TRACE, "  read %d bytes\n", linelen);
+        if (line[linelen-1] == '\n')
+            line[--linelen] = '\0';
+        key = base64_decode(line, linelen, &keylen);
         if (key && keylen > 0) {
             struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
             k->keylen = keylen;
