@@ -359,7 +359,7 @@ ccnl_relay_udp(struct ccnl_relay_s *relay, int port)
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
                   int udpport1, int udpport2, int httpport,
-                  char *uxpath, int suite, int max_cache_entries,
+                  char *uxpath, int _suite, int max_cache_entries,
                   char *crypto_face_path)
 {
 #if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
@@ -576,7 +576,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        int fd, datalen, suite, skip;
+        int fd, datalen, _suite, skip;
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
@@ -617,10 +617,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             continue;
         }
         buf->datalen = datalen;
-        suite = ccnl_pkt2suite(buf->data, datalen, &skip);
+        _suite = ccnl_pkt2suite(buf->data, datalen, &skip);
 
         pk = NULL;
-        switch (suite) {
+        switch (_suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
             unsigned char *start;

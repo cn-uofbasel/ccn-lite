@@ -17,16 +17,15 @@ CCNLCFLAGS:=-g -O0 -ansi -pedantic -std=c99 -Wall -Werror \
              -Wformat-security -Wformat-y2k \
              -Winit-self \
              -Wmissing-include-dirs \
+             -Wshadow \
              -Wundef
 
 # CCN-lite contains code that does not conform with the following warnings.
 # All of these should be enabled eventually.
              #-Wcast-align \
-             #-Wcast-qual \
              #-Wconversion \
              #-Wmissing-declarations \
              #-Wmissing-prototypes \
-             #-Wshadow \
              #-Wwrite-strings \
 
 # The following warning is disabled because it is not supported by Clang.
