@@ -310,8 +310,8 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         //Check if prefix match and it is a nfn request
         if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
                                         i_it->from && i_it->from->faceid < 0) {
-            struct ccnl_face_s *from = i_it->from;
-            int faceid = - from->faceid;
+            struct ccnl_face_s *from2 = i_it->from;
+            int faceid = - from2->faceid;
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
@@ -323,7 +323,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);
             i_it = ccnl_interest_remove(relay, i_it);
-            ccnl_face_remove(relay, from);
+            ccnl_face_remove(relay, from2);
             ++found;
             //goto Done;
         } else

@@ -362,10 +362,10 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
     i1 = *(int *)h->content;
     if (i1) {
-        struct stack_s *stack = pop_from_stack(&config->argument_stack);
+        struct stack_s *stack2 = pop_from_stack(&config->argument_stack);
         DEBUGMSG(DEBUG, "Execute if\n");
         pop_from_stack(&config->argument_stack);
-        push_to_stack(&config->argument_stack, stack->content,
+        push_to_stack(&config->argument_stack, stack2->content,
                       STACK_TYPE_CLOSURE);
     } else {
         DEBUGMSG(DEBUG, "Execute else\n");
