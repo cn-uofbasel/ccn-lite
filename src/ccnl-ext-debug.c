@@ -65,19 +65,18 @@ void jni_append_to_log(char *line);
 char*
 eth2ascii(unsigned char *eth)
 {
-#define ETH2ASCII_SIZE 19
-    static char buf[ETH2ASCII_SIZE];
+    static char buf[19];
     const char* format = CONSTSTR("%02x:%02x:%02x:%02x:%02x:%02x");
     int numChars = -1;
 
     // TODO: Somehow avoid code duplication because of snprintf_P vs. snprintf
 #ifdef CCNL_ARDUINO
-    numChars = snprintf_P(buf, ETH2ASCII_SIZE, format,
+    numChars = snprintf_P(buf, CCNL_ARRAY_SIZE(buf), format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
 #else
-    numChars = snprintf(buf, ETH2ASCII_SIZE, format,
+    numChars = snprintf(buf, CCNL_ARRAY_SIZE(buf), format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
