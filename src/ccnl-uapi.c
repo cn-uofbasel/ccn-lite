@@ -1135,20 +1135,26 @@ mk_prefix(struct info_data_s *d_obj)
         // in info_data_s, which the user cares about
         //
         // Quick patch: convert to a single string and then process as member "name"
+        char * tmpname;
+        unsigned int remlen, totallen;
+        unsigned int namelen = 0;
 
-        int namelen = 0;
-        for (int i = 0; d_obj->name_components[i]!= NULL; i++)
+        for (int i = 0; d_obj->name_components[i] != NULL; i++)
             namelen += strlen(d_obj->name_components[i]);
-        char * name = (char *) ccnl_malloc (1+ sizeof(char) * namelen);
+        name = (char *) ccnl_malloc(1 + sizeof(char) * namelen);
+        if (!name)
+            return NULL;
 
-        memset (name, 0, namelen+1);
-        for (int i = 0; d_obj->name_components[i]!= NULL; i++)
-            strcat(name, d_obj->name_components[i]);
+        tmpname = name;
+        remlen = namelen+1;
+        totallen = 0;
+        for (int i = 0; d_obj->name_components[i] != NULL; i++)
+            ccnl_snprintf(&tmpname, &remlen, &totallen, "%s", d_obj->name_components[i]);
 
         if (d_obj->chunk_seqn >=0)
-            pfx = ccnl_URItoPrefix (name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
+            pfx = ccnl_URItoPrefix(name, suite, NULL, (unsigned int *) &d_obj->chunk_seqn);
         else
-            pfx = ccnl_URItoPrefix (name, suite, NULL, NULL);
+            pfx = ccnl_URItoPrefix(name, suite, NULL, NULL);
 
         ccnl_free(name);
     }
