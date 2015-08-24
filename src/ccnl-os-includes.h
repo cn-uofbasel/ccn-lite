@@ -111,4 +111,17 @@
 
 #endif // CCNL_LINUXKERNEL
 
+// Mark sprintf and strcpy and strcat variants as deprecated. Use snprintf or ccnl_snprintf instead.
+char* strcpy   (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf' instead")));
+char* strcpy_P (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strncpy  (char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf' instead")));
+char* strncpy_P(char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strcat   (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf' instead")));
+char* strcat_P (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strncat  (char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf' instead")));
+char* strncat_P(char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf_P' instead")));
+
+int sprintf(char* str, const char* format, ...)                    __attribute__((deprecated("use 'snprintf' instead")));
+int sprintf_P(char* str, const char* format, ...)                  __attribute__((deprecated("use 'snprintf_P' instead")));
+
 // eof
