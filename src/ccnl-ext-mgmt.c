@@ -513,6 +513,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int *faceid, *faceifndx, *faceflags, *facetype; //store face-info
     long *facenext, *faceprev;
     char **facepeer, **facefrag;
+    unsigned int facepeerlen = 50, facefraglen = 50;
 
     int *fwdfaceid, *suite ,*fwdprefixlen;
     long *fwd, *fwdnext, *fwdface;
@@ -547,8 +548,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     facepeer = (char**)ccnl_malloc(num_faces*sizeof(char*));
     facefrag = (char**)ccnl_malloc(num_faces*sizeof(char*));
     for(it = 0; it <num_faces; ++it) {
-        facepeer[it] = (char*)ccnl_malloc(50*sizeof(char));
-        facefrag[it] = (char*)ccnl_malloc(50*sizeof(char));
+        facepeer[it] = (char*)ccnl_malloc(facepeerlen*sizeof(char));
+        facefrag[it] = (char*)ccnl_malloc(facefraglen*sizeof(char));
     }
     faceid = (int*)ccnl_malloc(num_faces*sizeof(int));
     facenext = (long*)ccnl_malloc(num_faces*sizeof(long));
@@ -647,7 +648,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
-                           faceflags, facepeer, facetype, facefrag);
+                           faceflags, facepeer, facepeerlen, facetype,
+                           facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
@@ -667,7 +669,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
-                           faceflags, facepeer, facetype, facefrag);
+                           faceflags, facepeer, facepeerlen, facetype,
+                           facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
             get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,

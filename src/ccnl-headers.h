@@ -57,7 +57,7 @@ void ccnl_dump(int lev, int typ, void *p);
 int get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next);
 int get_prefix_dump(int lev, void *p, int *len, char **val);
 int get_num_faces(void *p);
-int get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, int *ifndx, int *flags, char **peer, int *type, char **frag);
+int get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, int *ifndx, int *flags, char **peer, unsigned int peerlen, int *type, char **frag, unsigned int fraglen);
 int get_num_fwds(void *p);
 int get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, int *suite, int *prefixlen, char **prefix);
 int get_num_interface(void *p);

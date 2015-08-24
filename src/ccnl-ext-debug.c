@@ -404,7 +404,8 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
 
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
-               int *ifndx, int *flags, char **peer, int *type, char **frag)
+               int *ifndx, int *flags, char **peer, unsigned int peerlen,
+               int *type, char **frag, unsigned int fraglen)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -418,8 +419,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         prev[line] = (long)(void *) fac->prev;
         ifndx[line] = fac->ifndx;
         flags[line] = fac->flags;
-        // TODO: Pass size of peer[line] and replace with snprintf
-        sprintf(peer[line], "%s", ccnl_addr2ascii(&fac->peer));
+        snprintf(peer[line], peerlen, "%s", ccnl_addr2ascii(&fac->peer));
 
         if (0) {}
 #ifdef USE_IPV4
@@ -438,8 +438,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
             type[line] = 0;
 #ifdef USE_FRAG
         if (fac->frag) {
-            // TODO: Pass size of frag[line] and replace with snprintf
-            sprintf(frag[line], "fragproto=%s mtu=%d",
+            snprintf(frag[line], fraglen, "fragproto=%s mtu=%d",
                     frag_protocol(fac->frag->protocol), fac->frag->mtu);
         }
         else
