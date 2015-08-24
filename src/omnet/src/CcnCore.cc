@@ -267,14 +267,23 @@ CcnLiteRelay::opp_deliver (void *relay, struct CcnLiteRelay::info_data_s const *
         }
         else    // we receive a list of name components
         {
+            char * tmpname;
+            unsigned int remlen, totallen = 0;
+
             for (int i=0 ; io->name_components[i] ; i++)
                 name_len += strlen (io->name_components[i]);
 
             name = (char *) malloc (name_len * sizeof (char) + 1);
-            name[0] = '\0';
+            if (!name) {
+                opp_error("Cannot allocate %d bytes for name.", name_len * sizeof (char) + 1);
+                return;
+            }
 
+            tmpname = name;
+            remlen = name_len + 1;
+            totallen = 0;
             for (int i=0 ; io->name_components[i] ; i++)
-                strcat (name, io->name_components[i]);
+                ccnl_snprintf(&tmpname, &remlen, &totallen, "%s", io->name_components[i]);
 
             mdl->deliverContent(name, io->chunk_seqn, (char*) io->packet_bytes, io->packet_len);
         }
