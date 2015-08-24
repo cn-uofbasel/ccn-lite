@@ -165,7 +165,7 @@ extern char *__brkval;
 
 // scratchpad memory
 static char logstr[128];
-#define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+#define LOGSTROFFS 36  // where to put a %s parameter for the snprintf_P
 
 // buffer to hold incoming and outgoing packet
 static unsigned char packetBuffer[160];

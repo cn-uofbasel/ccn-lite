@@ -460,7 +460,7 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
     int line = 0;
     while (fwd) {
 //        INDENT(lev);
-        /*pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
+        /*pos += snprintf(out[line] + pos,  outlen - pos, "%p FWD next=%p face=%p (id=%d)",
                 (void *) fwd, (void *) fwd->next,
                 (void *) fwd->face, fwd->face->faceid);*/
         outfwd[line] = (long)(void *) fwd;

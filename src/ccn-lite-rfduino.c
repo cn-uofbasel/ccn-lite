@@ -96,7 +96,7 @@ ccnl_rfduino_get_MAC_addr(unsigned char *addr) // 6 bytes
 
 // scratchpad memory
 static char logstr[128];
-#define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+#define LOGSTROFFS 36  // where to put a %s parameter for the snprintf_P
 
 // ----------------------------------------------------------------------
 // dummy types
