@@ -61,10 +61,10 @@ int get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, int *i
 int get_num_fwds(void *p);
 int get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, int *suite, int *prefixlen, char **prefix);
 int get_num_interface(void *p);
-int get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, int *devtype, int *reflect);
+int get_interface_dump(int lev, void *p, int *ifndx, char **addr, unsigned int addrlen, long *dev, int *devtype, int *reflect);
 int get_num_interests(void *p);
 int get_interest_dump(int lev, void *p, long *interest, long *next, long *prev, int *last, int *min, int *max, int *retries, long *publisher, int *prefixlen, char **prefix);
-int get_pendint_dump(int lev, void *p, char **out);
+int get_pendint_dump(int lev, void *p, char **out, unsigned int outlen);
 int get_num_contents(void *p);
 int get_content_dump(int lev, void *p, long *content, long *next, long *prev, int *last_use, int *served_cnt, int *prefixlen, char **prefix);
 #endif

@@ -522,6 +522,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int *interfaceifndx, *interfacedevtype, *interfacereflect;
     long *interfacedev;
     char **interfaceaddr;
+    unsigned int interfaceaddrlen = 130;
 
     int *interestlast, *interestmin, *interestmax, *interestretries, *interestprefixlen;
     long *interest, *interestnext, *interestprev, *interestpublisher;
@@ -577,7 +578,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     num_interfaces = get_num_interface(ccnl);
     interfaceaddr = (char**)ccnl_malloc(num_interfaces*sizeof(char*));
     for(it = 0; it <num_interfaces; ++it)
-        interfaceaddr[it] = (char*)ccnl_malloc(130*sizeof(char));
+        interfaceaddr[it] = (char*)ccnl_malloc(interfaceaddrlen*sizeof(char));
     interfaceifndx = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     interfacedev = (long*)ccnl_malloc(num_interfaces*sizeof(long));
     interfacedevtype = (int*)ccnl_malloc(num_interfaces*sizeof(int));
@@ -652,8 +653,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                            facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
-                             interfacedev, interfacedevtype, interfacereflect);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfaceaddrlen,
+                               interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, interestprev,
                               interestlast, interestmin, interestmax,
                               interestretries, interestpublisher,
@@ -673,8 +674,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                            facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
-                             interfacedev, interfacedevtype, interfacereflect);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfaceaddrlen,
+                               interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, interestprev,
                               interestlast, interestmin, interestmax,
                               interestretries, interestpublisher,

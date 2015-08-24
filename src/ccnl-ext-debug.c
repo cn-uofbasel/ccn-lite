@@ -483,8 +483,8 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
 }
 
 int
-get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
-        int *devtype, int *reflect)
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, unsigned int addrlen,
+                   long *dev, int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
 
@@ -493,8 +493,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 //        INDENT(lev+1);
 
         ifndx[k] = k;
-        // TODO: Pass size of addr[k] and replace with snprintf
-        sprintf(addr[k], "%s", ccnl_addr2ascii(&top->ifs[k].addr));
+        snprintf(addr[k], addrlen, "%s", ccnl_addr2ascii(&top->ifs[k].addr));
 
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET) {
@@ -558,7 +557,8 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
 }
 
 int
-get_pendint_dump(int lev, void *p, char **out){
+get_pendint_dump(int lev, void *p, char **out, unsigned int outlen)
+{
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
@@ -566,8 +566,7 @@ get_pendint_dump(int lev, void *p, char **out){
     int line = 0;
     while (pir) {
 //        INDENT(lev);
-        // TODO: Pass size of out[line] and replace with snprintf
-        sprintf(out[line], "%p PENDINT next=%p face=%p last=%d",
+        snprintf(out[line], outlen, "%p PENDINT next=%p face=%p last=%d",
                (void *) pir, (void *) pir->next,
                (void *) pir->face, pir->last_used);
         pir = pir->next;
