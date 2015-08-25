@@ -120,7 +120,7 @@ LOCALRPC_LIB := ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
 SUITE_LIBS :=   ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 
 
-CCNL_CORE_LIB := ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-util.c
+CCNL_CORE_LIB := ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-util.c ccnl-core-pfx.c
 
 CCNL_RELAY_LIB := ccn-lite-relay.c ${SUITE_LIBS} \
                   ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
@@ -133,7 +133,7 @@ CCNL_PLATFORM_LIB := ccnl-os-includes.h \
 
 NFN_LIB := ccnl-ext-nfn.c krivine.c krivine-common.c
 
-OMNET_DEPS := ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-defs.h \
+OMNET_DEPS := ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-core-pfx.c ccnl-defs.h \
               ccnl-ext-crypto.c ccnl-ext-debug.c ccnl-ext-debug.h ccnl-ext-echo.c \
               ccnl-ext-frag.c ccnl-ext.h ccnl-ext-hmac.c ccnl-ext-http.c \
               ccnl-ext-localrpc.c ccnl-ext-logging.c ccnl-ext-mgmt.c ccnl-ext-sched.c \

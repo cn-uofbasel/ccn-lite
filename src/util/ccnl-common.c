@@ -94,6 +94,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 // include only the utils, not the core routines:
 #include "../ccnl-ext.h"
 #include "../ccnl-core-util.c"
+#include "../ccnl-core-pfx.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
 

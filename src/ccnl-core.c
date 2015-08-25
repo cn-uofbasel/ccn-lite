@@ -1031,5 +1031,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 }
 
 #include "ccnl-core-util.c"
+#include "ccnl-core-pfx.c"
 
 // eof

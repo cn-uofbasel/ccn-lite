@@ -36,20 +36,6 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 // ccnl-core-util.c
 int ccnl_snprintf(char **buf, unsigned int *buflen, unsigned int *totalLen,
                     const char *format, ...);
-char* ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr);
-int ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen,
-                                    struct ccnl_prefix_s *pr, int ccntlv_skip,
-                                    int escape_components, int call_slash);
-#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
-
-#ifdef CCNL_ARDUINO
-#  define CCNL_PREFIX_BUFSIZE 50
-#elif defined(CCNL_LINUXKERNEL)
-#  define CCNL_PREFIX_BUFSIZE 256
-#else
-#  define CCNL_PREFIX_BUFSIZE 512
-#endif
-
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
@@ -68,6 +54,22 @@ int ccnl_setSockunionUnixPath(sockunion *su, const char *path);
 #endif
 
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+
+// ccnl-core-pfx.c
+char* ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr);
+int ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen,
+                                    struct ccnl_prefix_s *pr, int ccntlv_skip,
+                                    int escape_components, int call_slash);
+#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
+
+#ifdef CCNL_ARDUINO
+#  define CCNL_PREFIX_BUFSIZE 50
+#elif defined(CCNL_LINUXKERNEL)
+#  define CCNL_PREFIX_BUFSIZE 256
+#else
+#  define CCNL_PREFIX_BUFSIZE 512
+#endif
+
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)

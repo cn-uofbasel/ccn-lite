@@ -211,6 +211,7 @@ const char* ccnl_addr2ascii(sockunion *su);
 #define DEBUGMSG_CORE(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_CUTL(...) DEBUGMSG_OFF(__VA_ARGS__)
+#define DEBUGMSG_CPFX(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_PCNX(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_PIOT(...) DEBUGMSG_OFF(__VA_ARGS__)

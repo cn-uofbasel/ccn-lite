@@ -53,12 +53,12 @@ ccn-lite-ctrl: ccn-lite-ctrl.c Makefile ${CCNB_LIB} ../ccnl-defs.h \
 	@${CREATE_BIN}
 
 ccn-lite-peek: ccn-lite-peek.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
-		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c
+		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c ../ccnl-core-pfx.c
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 
 ccn-lite-fetch: ccn-lite-fetch.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
-		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c ccnl-common.c
+		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c ../ccnl-core-pfx.c ccnl-common.c
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 
@@ -68,7 +68,7 @@ ccn-lite-pktdump: ccn-lite-pktdump.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
 	@${CREATE_BIN}
 
 ccn-lite-simplenfn: ccn-lite-simplenfn.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
-		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c
+		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c ../ccnl-core-pfx.c
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 
@@ -112,7 +112,7 @@ ccn-lite-produce: ccn-lite-produce.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
 
 ccn-lite-valid: ccn-lite-valid.c Makefile ccnl-common.c \
 		${CCNTLV_LIB} ${NDNTLV_LIB} \
-		../ccnl-defs.h ../ccnl-core-util.c
+		../ccnl-defs.h ../ccnl-core-util.c ../ccnl-core-pfx.c
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 

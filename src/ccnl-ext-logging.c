@@ -253,6 +253,7 @@ debug_memdump()
 # define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CPFX(...) DEBUGMSG(__VA_ARGS__)
 // extensions
 # define DEBUGMSG_EFRA(...) DEBUGMSG(__VA_ARGS__)
 // packet formats
