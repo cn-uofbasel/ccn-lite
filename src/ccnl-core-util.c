@@ -734,10 +734,20 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 
 // ----------------------------------------------------------------------
 
+// FIXME!
+// This method currently does not correctly distinguish between CCNTLV and
+// CISTLV. The reason is that this method only looks at the first two unsigned
+// chars. However, CCNTLV and CISTLV both have many overlapping TLV definitions,
+// starting by CCNX_TLV_V1 == CISCO_TLV_V1. In the current implementation CCNTLV
+// is almost always picked whether the packet is CCNTLV or CISTLV.
+// This is obviously a problem and should be fixed. However fixing this is not
+// quite straight-forward because it means that this method has to look at more
+// data than the two first chars. Ideally this method should try parsing the
+// packet in each suite's encoding and return the (hopefully) remaining one.
 int
 ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 {
-    int enc, suite = -1;
+    int enc = -1, suite = -1;
     unsigned char *olddata = data;
 
     if (skip)
