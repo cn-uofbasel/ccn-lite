@@ -23,6 +23,7 @@ EUID:=$(shell sh -c 'id -u')
 # Check if arduino is available
 ARDUINO_RC:=$(shell which arduino > /dev/null; echo $$?)
 ANDROID_RC:=$(shell { which android && which ndk-build && which ant; } > /dev/null; echo $$?)
+OMNET_RC:=$(shell { which omnetpp && test -d $(INET_HOME); } > /dev/null; echo $$?)
 
 BT_RELAY:=bt-relay-nothing \
 	bt-relay-barebones \
@@ -53,8 +54,12 @@ BT_DEMO:=$(addprefix bt-demo-,${SUITES})
 BT_DEMO_KRNL:=$(addprefix bt-demo-krnl-,${SUITES})
 BT_NFN:=$(addprefix bt-nfn-,${SUITES})
 
-PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_OMNET} ${BT_ALL}
-PROFILES_STR:=relay, lnxkernel, omnet, all,
+PROFILES:=${BT_RELAY} ${BT_LNXKERNEL} ${BT_ALL}
+PROFILES_STR:=relay, lnxkernel, all,
+ifeq ($(OMNET_RC),0)
+    PROFILES+=${BT_OMNET}
+    PROFILES_STR+=omnet,
+endif
 ifeq ($(ARDUINO_RC),0)
     PROFILES+=${BT_ARDUINO} ${BT_RFDUINO}
     PROFILES_STR+=arduino, rfduino,
@@ -75,7 +80,7 @@ endif
 PROFILES+=${BT_NFN}
 PROFILES_STR+=nfn
 
-.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_RFDUINO} ${BT_ARDUINO} ${BT_ANDROID}
+.PHONY: echo-cores all clean clean-logs bt-relay bt-all bt-pkt bt-demo ${PROFILES} ${BT_DEMO_KRNL} ${BT_OMNET} ${BT_RFDUINO} ${BT_ARDUINO} ${BT_ANDROID}
 all: echo-cores ${PROFILES} clean
 bt-relay: ${BT_RELAY} clean
 bt-all: ${BT_ALL} clean
@@ -183,9 +188,8 @@ bt-lnxkernel:
 
 
 bt-omnet:
-	@MODE="make" \
+	@MODE="omnet" \
 	TARGET=$@ \
-	MAKE_TARGETS="ccn-lite-omnet" \
 	./build-test-helper.sh || ${PRINT_LOG}
 
 

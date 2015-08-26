@@ -40,6 +40,9 @@
 #
 #   "android"
 #      Compiles CCN-lite for Android.
+#
+#   "omnet"
+#      Compiles CCN-lite for OMNeT++.
 
 ### Functions:
 
@@ -242,6 +245,33 @@ build-test-android() {
     return $rc
 }
 
+build-test-omnet() {
+    local logfile=$1
+    local rc
+
+    # Add custom CFLAGS
+    cp `opp_configfilepath` ./Makefile.inc
+    echo "CFLAGS+=-pedantic -Wall -Wextra -Wno-unused-parameter -Wcast-qual -Wfloat-equal -Wformat-security -Wformat-y2k -Winit-self -Wmissing-include-dirs -Wshadow -Wundef" >> Makefile.inc
+    export OMNETPP_CONFIGFILE="Makefile.inc"
+
+    echo "$ opp_makemake -f --deep \"-I\$INET_HOME/src\" -linet <...>" >> "$logfile"
+    opp_makemake -f --deep "-I$INET_HOME/src/linklayer/ieee80211/radio" "-I$INET_HOME/src/networklayer/routing/aodv" "-I$INET_HOME/src/networklayer/common" "-I$INET_HOME/src/networklayer/icmpv6" "-I$INET_HOME/src" "-I$INET_HOME/src/world/obstacles" "-I$INET_HOME/src/networklayer/xmipv6" "-I$INET_HOME/src/networklayer/contract" "-I$INET_HOME/src/networklayer/autorouting/ipv4" "-I$INET_HOME/src/util" "-I$INET_HOME/src/linklayer/common" "-I$INET_HOME/src/transport/contract" "-I$INET_HOME/src/status" "-I$INET_HOME/src/linklayer/radio/propagation" "-I$INET_HOME/src/linklayer/ieee80211/radio/errormodel" "-I$INET_HOME/src/linklayer/radio" "-I$INET_HOME/src/util/headerserializers/tcp" "-I$INET_HOME/src/networklayer/ipv4" "-I$INET_HOME/src/mobility/contract" "-I$INET_HOME/src/util/headerserializers/ipv4" "-I$INET_HOME/src/base" "-I$INET_HOME/src/util/headerserializers" "-I$INET_HOME/src/world/radio" "-I$INET_HOME/src/linklayer/ieee80211/mac" "-I$INET_HOME/src/networklayer/ipv6" "-I$INET_HOME/src/transport/sctp" "-I$INET_HOME/src/util/headerserializers/udp" "-I$INET_HOME/src/networklayer/ipv6tunneling" "-I$INET_HOME/src/applications/pingapp" "-I$INET_HOME/src/battery/models" "-I$INET_HOME/src/util/headerserializers/ipv6" "-I$INET_HOME/src/util/headerserializers/sctp" "-I$INET_HOME/src/linklayer/contract" "-I$INET_HOME/src/transport/tcp_common" "-I$INET_HOME/src/networklayer/arp" "-I$INET_HOME/src/transport/udp" "-L$INET_HOME/out/gcc-debug/src" -linet -DINET_IMPORT "-KINET_PROJ=$INET_HOME" >> "$logfile" 2>&1
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ make depend" >> "$logfile"
+    make depend >> "$logfile" 2>&1
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ make -j$NO_CORES" >> "$logfile"
+    make -j$NO_CORES >> "$logfile" 2>&1
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
 ### Main script:
 
 unset USE_KRNL
@@ -330,6 +360,20 @@ elif [ "$MODE" = "android" ]; then
     build-test-android "$LOGFILE"
     RC=$?
     cd ..
+
+elif [ "$MODE" = "omnet" ]; then
+
+    build-test-make "$LOGFILE" "ccn-lite-omnet"
+    if [ $? -ne 0 ]; then
+        RC=1
+    else
+        tar xf ccn-lite-omnet.tgz
+        cd ccn-lite-omnet/src
+        build-test-omnet "$LOGFILE"
+        RC=$?
+        cd ../..
+        rm -rf ccn-lite-omnet
+    fi
 
 else
 
