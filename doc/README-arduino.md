@@ -96,7 +96,7 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
 ## Installation for RFduino
 
-1.  Intall the RFduino support for the Arduino IDE according to the GitHub
+1.  Install the RFduino support for the Arduino IDE according to the GitHub
     README:
 
     https://github.com/RFduino/RFduino/blob/master/README.md
