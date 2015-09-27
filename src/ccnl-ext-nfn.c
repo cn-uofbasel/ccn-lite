@@ -299,6 +299,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
 
+    DEBUGMSG_CFWD(INFO, "data in rx result %.*s\n", c->pkt->contlen, c->pkt->content);
     TRACEIN();
 #ifdef USE_NACK
     if (ccnl_nfnprefix_contentIsNACK(c)) {
@@ -317,6 +318,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
             ccnl_content_add2cache(relay, c);
+	    DEBUGMSG_CFWD(INFO, "data in rx resulti after add to cache %.*s\n", c->pkt->contlen, c->pkt->content);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                   faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;

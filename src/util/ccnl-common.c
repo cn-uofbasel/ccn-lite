@@ -37,7 +37,7 @@
 
 // ----------------------------------------------------------------------
 
-#include <ctype.h>
+//#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
