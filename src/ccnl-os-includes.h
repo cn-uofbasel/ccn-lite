@@ -44,7 +44,7 @@
 # include <sys/un.h>
 # include <sys/utsname.h>
 
-#if !(defined(_BSD_SOURCE) || defined(SVID_SOURCE))
+#ifndef _DEFAULT_SOURCE
 #  define __USE_MISC
 #endif
 
@@ -52,7 +52,7 @@
 #include <netinet/in.h>
 #include <net/if.h> // IFNAMSIZE, if_nametoindex
 
-#if !(defined(_BSD_SOURCE) || defined(SVID_SOURCE))
+#ifdef _DEFAULT_SOURCE
   int inet_aton(const char *cp, struct in_addr *inp);
 #endif
 
