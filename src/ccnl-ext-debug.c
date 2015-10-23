@@ -202,6 +202,10 @@ ccnl_dump(int lev, int typ, void *p)
             else if (fac->peer.sa.sa_family == AF_INET)
                 CONSOLE(" ip=%s", ccnl_addr2ascii(&fac->peer));
 #endif
+#ifdef USE_IPV6
+            else if (fac->peer.sa.sa_family == AF_INET6)
+                CONSOLE(" ip=%s", ccnl_addr2ascii(&fac->peer));
+#endif
 #ifdef USE_ETHERNET
             else if (fac->peer.sa.sa_family == AF_PACKET)
                 CONSOLE(" eth=%s", ccnl_addr2ascii(&fac->peer));
@@ -395,6 +399,10 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
 #ifdef USE_IPV4
         if (fac->peer.sa.sa_family == AF_INET)
             type[line] = AF_INET;
+#endif
+#ifdef USE_IPV6
+        if (fac->peer.sa.sa_family == AF_INET6)
+            type[line] = AF_INET6;
 #endif
 #ifdef USE_ETHERNET
         else if (fac->peer.sa.sa_family == AF_PACKET)

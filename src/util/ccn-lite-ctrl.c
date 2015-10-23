@@ -177,7 +177,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
 
 
 int
-mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
+mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *ip6src, char *port,
            char *frag, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
@@ -197,6 +197,8 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *port,
     len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, "newdev");
     if (ip4src)
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
+    if (ip6src)
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, ip6src);
     if (port)
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_PORT, CCN_TT_DTAG, port);
     if (frag)
@@ -324,7 +326,7 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
 }
 
 int
-mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
+mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src,
          char *host, char *port, char *flags, char *private_key_path)
 {
     int len = 0, len1 = 0, len2 = 0, len3 = 0;
@@ -346,6 +348,10 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src,
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, macsrc);
     if (ip4src) {
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, ip4src);
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
+    }
+    if (ip6src) {
+        len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, ip6src);
         len3 += ccnl_ccnb_mkStrBlob(faceinst+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
     }
     if (host)
@@ -1090,10 +1096,12 @@ help:
        "where CMD is either of\n"
        "  newETHdev     DEVNAME [ETHTYPE [FRAG [DEVFLAGS]]]\n"
        "  newUDPdev     IP4SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
+       "  newUDP6dev    IP6SRC|any [PORT [FRAG [DEVFLAGS]]]\n"
        "  destroydev    DEVNDX\n"
        "  echoserver    PREFIX [SUITE]\n"
        "  newETHface    MACSRC|any MACDST ETHTYPE [FACEFLAGS]\n"
        "  newUDPface    IP4SRC|any IP4DST PORT [FACEFLAGS]\n"
+       "  newUDP6face   IP6SRC|any IP6DST PORT [FACEFLAGS]\n"
        "  newUNIXface   PATH [FACEFLAGS]\n"
        "  destroyface   FACEID\n"
        "  prefixreg     PREFIX FACEID [SUITE]\n"
@@ -1139,7 +1147,14 @@ help:
     } else if (!strcmp(argv[1], "newUDPdev")) {
         if (argc < 3)
             goto help;
-        len = mkNewUDPDevRequest(out, argv[2],
+        len = mkNewUDPDevRequest(out, argv[2], NULL,
+                 argc > 3 ? argv[3] : "9695",
+                 argc > 4 ? argv[4] : "0",
+                 argc > 5 ? argv[5] : "0", private_key_path);
+    } else if (!strcmp(argv[1], "newUDP6dev")) {
+        if (argc < 3)
+            goto help;
+        len = mkNewUDPDevRequest(out, NULL, argv[2],
                  argc > 3 ? argv[3] : "9695",
                  argc > 4 ? argv[4] : "0",
                  argc > 5 ? argv[5] : "0", private_key_path);
@@ -1156,12 +1171,14 @@ help:
         if (argc < 3)
             goto help;
         len = mkEchoserverRequest(out, argv[2], suite, private_key_path);
-    } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1], "newUDPface")) {
+    } else if (!strcmp(argv[1], "newETHface")||!strcmp(argv[1],
+                "newUDPface")||!strcmp(argv[1], "newUDP6face")) {
         if (argc < 5)
             goto help;
         len = mkNewFaceRequest(out,
                        !strcmp(argv[1], "newETHface") ? argv[2] : NULL,
                        !strcmp(argv[1], "newUDPface") ? argv[2] : NULL,
+                       !strcmp(argv[1], "newUDP6face") ? argv[2] : NULL,
                        argv[3], argv[4],
                        argc > 5 ? argv[5] : "0x0001", private_key_path);
     } else if (!strcmp(argv[1], "newUNIXface")) {

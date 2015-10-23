@@ -60,6 +60,11 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
             return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
                         s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
 #endif
+#ifdef USE_IPV6
+        case AF_INET6:
+        return ((memcmp(s1->ip6.sin6_addr.s6_addr, s2->ip6.sin6_addr.s6_addr, 16) == 0) ||
+                        s1->ip6.sin6_port == s2->ip6.sin6_port) ? 0 : -1;
+#endif
 #ifdef USE_UNIXSOCKET
         case AF_UNIX:
             return strcmp(s1->ux.sun_path, s2->ux.sun_path);
