@@ -290,7 +290,7 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
     for (cnt = 0, p = etherqueue; p; p = p->next, cnt++);
 
-    DEBUGMSG(TRACE, "eth(simu)_ll_TX to %s len=%d (qlen=%d) [0x%02x 0x%02x]\n",
+    DEBUGMSG(TRACE, "eth(simu)_ll_TX to %s len=%zd (qlen=%d) [0x%02x 0x%02x]\n",
              ccnl_addr2ascii(dst), buf->datalen, cnt,
              buf->data[0], buf->data[1]);
     DEBUGMSG(TRACE, "  src=%s\n", ccnl_addr2ascii(&ifc->addr));

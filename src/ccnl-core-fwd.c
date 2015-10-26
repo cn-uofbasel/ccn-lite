@@ -97,7 +97,7 @@ ccnl_fwd_handleFragment(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     unsigned char *data = (*pkt)->content;
     int datalen = (*pkt)->contlen;
 
-    DEBUGMSG_CFWD(INFO, "  incoming fragment (%d bytes) from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming fragment (%zd bytes) from=%s\n",
                   (*pkt)->buf->datalen,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
@@ -574,8 +574,8 @@ int
 ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int rc = -1, enc;
-    unsigned int typ, len;
+    int rc = -1, enc, len;
+    unsigned int typ;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
@@ -600,7 +600,7 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(INFO, "  parsing error or no prefix\n");
         goto Done;
     }
-    DEBUGMSG_CFWD(DEBUG, "  parsed packet has %d bytes\n", pkt->buf->datalen);
+    DEBUGMSG_CFWD(DEBUG, "  parsed packet has %zd bytes\n", pkt->buf->datalen);
     pkt->type = typ;
 
     switch (typ) {
@@ -641,8 +641,8 @@ int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int rc = -1;
-    unsigned int typ, len;
+    int rc = -1, len;
+    unsigned int typ;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 

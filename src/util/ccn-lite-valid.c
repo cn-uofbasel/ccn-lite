@@ -80,7 +80,8 @@ ccnl_parse(unsigned char *data, int datalen)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        unsigned int typ, len2;
+        unsigned int typ;
+        int len2;
 
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");

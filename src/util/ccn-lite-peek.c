@@ -211,7 +211,8 @@ usage:
 
 #ifdef USE_FRAG
             if (isFragment && isFragment(cp, len2)) {
-                unsigned int t, len3;
+                unsigned int t;
+                int len3;
                 DEBUGMSG(DEBUG, "  fragment, %d bytes\n", len2);
                 switch(suite) {
                 case CCNL_SUITE_CCNTLV: {

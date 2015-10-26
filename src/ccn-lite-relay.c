@@ -608,7 +608,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
-        unsigned int typ, len;
+        unsigned int typ;
+        int len;
 #endif
         struct ccnl_pkt_s *pk;
 

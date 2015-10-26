@@ -572,7 +572,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #endif
 
     if(chunknum) {
-        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+        p->chunknum = (int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *chunknum;
     }
 
@@ -611,7 +611,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     }
 
     if (prefix->chunknum) {
-        p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+        p->chunknum = (int*) ccnl_malloc(sizeof(int));
         *p->chunknum = *prefix->chunknum;
     }
 
@@ -682,7 +682,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
-            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -701,7 +701,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
-            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -720,7 +720,7 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
                 return -1;
             if (prefix->chunknum)
                 ccnl_free(prefix->chunknum);
-            prefix->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
             *prefix->chunknum = chunknum;
         }
         break;
@@ -913,6 +913,8 @@ char*
 ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
                              int escape_components, int call_slash)
 {
+    (void) ccntlv_skip;
+    (void) call_slash;
     int len = 0, i, j;
     /*static char *prefix_buf1;
     static char *prefix_buf2;
