@@ -36,7 +36,8 @@
 //#define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS
-#define USE_IPV6
+#define USE_IPV4
+//#define USE_IPV6
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
