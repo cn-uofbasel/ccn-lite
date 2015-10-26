@@ -219,12 +219,12 @@ ccnl_is_local_addr(sockunion *su)
 #endif
 #ifdef USE_IPV6
     if (su->sa.sa_family == AF_INET6) {
-        static const unsigned char localhost_bytes[] =
+        static const unsigned char loopback_bytes[] =
                     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
-        static const unsigned char mapped_ipv4_localhost[] =
+        static const unsigned char mapped_ipv4_loopback[] =
                     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1 };
-        return ((memcmp(su->ip6.sin6_addr.s6_addr, localhost_bytes, 16) == 0) ||
-                (memcmp(su->ip6.sin6_addr.s6_addr, mapped_ipv4_localhost, 16) == 0));
+        return ((memcmp(su->ip6.sin6_addr.s6_addr, loopback_bytes, 16) == 0) ||
+                (memcmp(su->ip6.sin6_addr.s6_addr, mapped_ipv4_loopback, 16) == 0));
     }
 
 #endif
