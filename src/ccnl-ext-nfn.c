@@ -238,7 +238,7 @@ restart:
         struct ccnl_content_s *c;
 
         DEBUGMSG(INFO,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
-                 res->datalen, res->data, res->datalen, ccnl->km->numOfRunningComputations);
+                 (int)res->datalen, res->data, (int)res->datalen, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
             // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
             ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
