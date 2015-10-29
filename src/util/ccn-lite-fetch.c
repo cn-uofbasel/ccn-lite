@@ -134,7 +134,8 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        unsigned int typ, len;
+        unsigned int typ;
+        int len;
         unsigned char *start = *data;
 
         if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {

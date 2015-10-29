@@ -94,7 +94,7 @@ void
 ccnl_frag_reset(struct ccnl_frag_s *e, struct ccnl_buf_s *buf,
                   int ifndx, sockunion *dst)
 {
-    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_reset if=%d (%d bytes) dst=%s\n", ifndx,
+    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_reset if=%d (%zd bytes) dst=%s\n", ifndx,
              buf ? buf->datalen : -1, ccnl_addr2ascii(dst));
     if (!e)
         return;
@@ -378,7 +378,7 @@ ccnl_frag_getnextBE2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
     struct ccnl_buf_s *buf = 0;
     unsigned int datalen = 0;
 
-    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_getnextBE2015: remaining=%d\n",
+    DEBUGMSG_EFRA(VERBOSE, "ccnl_frag_getnextBE2015: remaining=%zd\n",
                   fr->bigpkt->datalen - fr->sendoffs);
 
     switch(fr->outsuite) {
@@ -415,7 +415,7 @@ ccnl_frag_getnextBE2015(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
         if (su)
             memcpy(su, &fr->dest, sizeof(*su));
 
-        DEBUGMSG_EFRA(VERBOSE, "  produced %d bytes fragment, seqnr=%d-1\n",
+        DEBUGMSG_EFRA(VERBOSE, "  produced %zd bytes fragment, seqnr=%d-1\n",
                  buf->datalen, fr->sendseq);
     } else
         DEBUGMSG_EFRA(VERBOSE, "  produced NO fragment, seqnr remains at =%d-1\n",
@@ -429,7 +429,7 @@ ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su)
 {
     if (!fr->bigpkt) return NULL;
 
-    DEBUGMSG_EFRA(VERBOSE, "fragmenting %d bytes (@ %d)\n",
+    DEBUGMSG_EFRA(VERBOSE, "fragmenting %zd bytes (@ %d)\n",
                                 fr->bigpkt->datalen, fr->sendoffs);
 
     switch (fr->protocol) {
@@ -880,7 +880,7 @@ ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
     if (buf) {
         unsigned char *frag = buf->data;
         int fraglen = buf->datalen;
-        DEBUGMSG_EFRA(DEBUG, "  >> reassembled fragment is %d bytes\n",
+        DEBUGMSG_EFRA(DEBUG, "  >> reassembled fragment is %zd bytes\n",
                       buf->datalen);
         // FIXME: loop over multiple packets in this reassembled frame?
         callback(relay, from, &frag, &fraglen);

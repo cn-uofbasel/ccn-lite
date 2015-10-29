@@ -144,7 +144,7 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_BUF:
         while (buf) {
             INDENT(lev);
-            CONSOLE("%p BUF len=%d next=%p\n", (void *) buf, buf->datalen,
+            CONSOLE("%p BUF len=%zd next=%p\n", (void *) buf, buf->datalen,
                 (void *) buf->next);
             buf = buf->next;
         }

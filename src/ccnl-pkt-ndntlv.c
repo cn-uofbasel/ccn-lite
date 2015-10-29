@@ -65,7 +65,7 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, unsigned int *vallen)
+                   unsigned int *typ, int *vallen)
 {
   if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
@@ -80,8 +80,8 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                       unsigned char **data, int *datalen)
 {
     struct ccnl_pkt_s *pkt;
-    int oldpos;
-    unsigned int i, typ, len;
+    int oldpos, len, i;
+    unsigned int typ;
     struct ccnl_prefix_s *p = 0;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
@@ -142,7 +142,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 if (typ == NDN_TLV_NameComponent &&
                             p->compcnt < CCNL_MAX_NAME_COMP) {
                     if(cp[0] == NDN_Marker_SegmentNumber) {
-                      p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+                      p->chunknum = (int*) ccnl_malloc(sizeof(int));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
                         // it is implemented for encode, the decode is not yet implemented
                         *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);

@@ -131,7 +131,7 @@ struct ccnl_relay_s {
 
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;
-    unsigned int datalen;
+    ssize_t datalen;
     unsigned char data[1];
 };
 
@@ -141,9 +141,9 @@ struct ccnl_prefix_s {
     int compcnt;
     char suite;
     unsigned char *nameptr; // binary name (for fast comparison)
-    unsigned int   namelen; // valid length of name memory
+    ssize_t namelen; // valid length of name memory
     unsigned char *bytes;   // memory for name component copies
-    unsigned int *chunknum; // -1 to disable
+    int *chunknum; // -1 to disable
 #ifdef USE_NFN
     unsigned int nfnflags;
 # define CCNL_PREFIX_NFN   0x01

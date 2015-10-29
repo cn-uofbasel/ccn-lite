@@ -40,7 +40,7 @@ Note:
 // convert network order byte array into local unsigned integer value
 int
 ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
-                                 unsigned int *intval)
+                                 int *intval)
 {
     int val = 0;
 
@@ -70,7 +70,7 @@ ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
 // parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_ccntlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, unsigned int *vallen)
+                   unsigned int *typ, int *vallen)
 {
 // Avoiding casting pointers to uint16t -- issue with the RFduino compiler?
 // Workaround:
@@ -106,8 +106,8 @@ struct ccnl_pkt_s*
 ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
     struct ccnl_pkt_s *pkt;
-    int i;
-    unsigned int len, typ, oldpos;
+    int i, len;
+    unsigned int typ, oldpos;
     struct ccnl_prefix_s *p;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
@@ -145,7 +145,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
         int len2 = len;
-        unsigned int len3;
+        int len3;
 
         if ( (int)len > *datalen)
             goto Bail;
@@ -164,7 +164,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // possibly want to remove the chunk segment from the
                     // name components and rely on the chunknum field in
                     // the prefix.
-                  p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+                  p->chunknum = (int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
                                                          p->chunknum) < 0) {
@@ -213,7 +213,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CCNX_TLV_M_ENDChunk:
             if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
-                              (unsigned int*) &(pkt->val.final_block_id)) < 0) {
+                              (int*) &(pkt->val.final_block_id)) < 0) {
                 DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }

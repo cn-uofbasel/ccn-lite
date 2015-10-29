@@ -491,8 +491,8 @@ static int
 ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
               unsigned char **buf, int *len, char *cur_tag, int rawxml, FILE* out)
 {
-    unsigned int vallen, typ;
-    int i;
+    unsigned int typ;
+    int i, vallen;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
 
@@ -1102,8 +1102,8 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                       unsigned char **buf, int *len, char *cur_tag,
                       int rawxml, FILE* out)
 {
-    int i;
-    unsigned int vallen, typ;
+    int i, vallen;
+    unsigned int typ;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
 
@@ -1233,10 +1233,10 @@ ndn_type2name(unsigned type)
 
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
-               unsigned int *len, char *cur_tag, int rawxml, FILE* out)
+               int *len, char *cur_tag, int rawxml, FILE* out)
 {
-    int i, maxi;
-    unsigned int typ, vallen;
+    int i, maxi, vallen;
+    unsigned int typ;
     unsigned char *cp;
     char *n, tmp[100];
 
@@ -1329,7 +1329,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
 }
 
 static void
-ndntlv_201311(unsigned char *data, unsigned int len, int rawxml, FILE* out)
+ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
 
@@ -1512,7 +1512,8 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_IOTTLV: {
-        unsigned int pkttype, vallen;
+        unsigned int pkttype;
+        int vallen;
         data = start;
         if (ccnl_iottlv_dehead(&data, &len, &pkttype, &vallen) < 0)
             return -1;
@@ -1520,7 +1521,8 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        unsigned int pkttype, vallen;
+        unsigned int pkttype;
+        int vallen;
         data = start;
         if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
             return -1;
