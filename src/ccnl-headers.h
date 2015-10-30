@@ -47,7 +47,6 @@ void ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-debug.c */
-const char *compile_string(void);
 //struct ccnl_buf_s *ccnl_buf_new(void *data, int len);
 
 #ifdef USE_DEBUG
@@ -130,7 +129,6 @@ int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig, struct ccnl_pr
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-nfn.c */
 #ifdef USE_NFN
-const char *compile_string(void);
 int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
@@ -301,14 +299,12 @@ int ccnl_ccntlv_fillContentWithHdr(struct ccnl_prefix_s *name, unsigned char *pa
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ndntlv.c */
 #ifdef USE_SUITE_NDNTLV
-const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-pkt-ndntlv.c */
-const char *compile_string(void);
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, int *typ, int *vallen);
 struct ccnl_buf_s *ccnl_ndntlv_extract(int hdrlen, unsigned char **data, int *datalen, int *scope, int *mbf, int *min, int *max, unsigned int *final_block_id, struct ccnl_prefix_s **prefix, struct ccnl_prefix_s **tracing, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkl, unsigned char **content, int *contlen);
@@ -373,7 +369,6 @@ int ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen);
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-nfnmonitor.c */
 #ifdef USE_NFN_MONITOR
-const char *compile_string(void);
 void build_decoding_table(void);
 char *base64_encode(const char *data, size_t input_length, size_t *output_length);
 unsigned char *base64_decode(const char *data, size_t input_length, size_t *output_length);
