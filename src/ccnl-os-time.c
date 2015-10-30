@@ -22,8 +22,10 @@
  *   ccnl_timer_s to the '#ifndef CCNL_LINUXKERNEL' section
  */
 
+#include "ccnl-headers.h"
 // ----------------------------------------------------------------------
 #ifdef CCNL_ARDUINO
+
 
 // typedef int time_t;
 #define Hz 1000
@@ -138,7 +140,7 @@ timevaldelta(struct timeval *a, struct timeval *b) {
 }
 
 void*
-ccnl_set_timer(uint32_t usec, void (*fct)(void *aux1, void *aux2),
+ccnl_set_timer(uint64_t usec, void (*fct)(void *aux1, void *aux2),
                  void *aux1, void *aux2)
 {
     struct ccnl_timer_s *t, **pp;
@@ -271,7 +273,7 @@ ccnl_rem_timer(void *p)
 // "looper": serves all pending events and returns the number of microseconds
 // when the next event should be triggered.
 int
-ccnl_run_events()
+ccnl_run_events(void)
 {
     static struct timeval now;
     long usec;
