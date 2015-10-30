@@ -3,8 +3,6 @@
 
 
 //data structure forward declarations
-struct ccnx_tlvhdr_ccnx201409_s *hdrptr;
-struct rdr_ds_s *ds;
 
 
 //CCNL INCLUDES
