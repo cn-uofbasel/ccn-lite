@@ -28,12 +28,12 @@ struct ccnl_buf_s *ccnl_face_dequeue(struct ccnl_relay_s *ccnl, struct ccnl_face
 void ccnl_face_CTS_done(void *ptr, int cnt, int len);
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 int ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to, struct ccnl_buf_s *buf);
-struct ccnl_interest_s *ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, char suite, struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix, int minsuffix, int maxsuffix);
+struct ccnl_interest_s* ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
 int ccnl_interest_append_pending(struct ccnl_interest_s *i, struct ccnl_face_s *from);
 void ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 struct ccnl_interest_s *ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 int ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, int minsuffix, int maxsuffix, struct ccnl_content_s *c);
-struct ccnl_content_s *ccnl_content_new(struct ccnl_relay_s *ccnl, char suite, struct ccnl_buf_s **pkt, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **ppk, unsigned char *content, int contlen);
+struct ccnl_content_s *ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt);
 struct ccnl_content_s *ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 struct ccnl_content_s *ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 int ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
@@ -197,11 +197,13 @@ double current_time(void);
 char *timestamp(void);
 #if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
 void ccnl_get_timeval(struct timeval *tv);
-void *ccnl_set_timer(int usec, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
+void *ccnl_set_timer(uint64_t usec, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
 void *ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
 void ccnl_rem_timer(void *h);
 #endif
 
+void *ccnl_calloc(size_t nmemb, size_t size);
+void ccnl_free(void *ptr);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-sched.c */
@@ -220,7 +222,7 @@ struct ccnl_sched_s *ccnl_sched_packetratelimiter_new(int inter_packet_interval,
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-core-util.c */
-char* ccnl_suite2str(int suite);
+const char* ccnl_suite2str(int suite);
 int hex2int(char c);
 int unescape_component(char *comp);
 int ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
