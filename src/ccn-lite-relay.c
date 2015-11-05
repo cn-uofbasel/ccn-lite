@@ -39,6 +39,7 @@
 #define USE_IPV4
 //#define USE_IPV6
 #define USE_MGMT
+#define USE_MANIFEST
 // #define USE_NACK
 // #define USE_NFN
 #define USE_NFN_NSTRANS
@@ -76,6 +77,7 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
+#include "ccnl-ext-manifest.c"
 #include "ccnl-ext-nfn.c"
 #include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"

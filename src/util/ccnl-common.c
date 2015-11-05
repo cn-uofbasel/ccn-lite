@@ -96,6 +96,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-core-util.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
+#include "../ccnl-ext-manifest.c"
 
 #else // CCNL_UAPI_H_ is defined
 
