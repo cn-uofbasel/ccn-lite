@@ -249,7 +249,7 @@ int ccnl_ccnb_forwarder(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, uns
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* pkt-ccnb-dec.c */
-static int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len, unsigned char **valptr, int *vallen);
+int ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len, unsigned char **valptr, int *vallen);
 int ccnl_ccnb_data2uint(unsigned char *cp, int len);
 struct ccnl_buf_s *ccnl_ccnb_extract(unsigned char **data, int *datalen, int *scope, int *aok, int *min, int *max, struct ccnl_prefix_s **prefix, struct ccnl_buf_s **nonce, struct ccnl_buf_s **ppkd, unsigned char **content, int *contlen);
 int ccnl_ccnb_unmkBinaryInt(unsigned char **data, int *datalen, unsigned int *result, unsigned char *width);
