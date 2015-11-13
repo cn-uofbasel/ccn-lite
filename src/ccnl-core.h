@@ -315,5 +315,9 @@ struct ccnl_lambdaTerm_s {
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
 
+// ----------------------------------------------------------------------
+
+#define CCNL_ARRAY_SIZE(a)  (sizeof(a) / sizeof((a)[0]))
+
 #endif /*CCNL_CORE*/
 // eof

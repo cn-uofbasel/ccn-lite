@@ -629,7 +629,7 @@ static inline int           setMgmt (struct info_mgmt_s *m) {return m->vtable->s
       if ((LVL)<=PLATFORM_LOG_THRESHOLD) \
       { \
         char pbuf[200]; \
-        sprintf(pbuf, __VA_ARGS__);  \
+        snprintf(pbuf, CCNL_ARRAY_SIZE(pbuf), __VA_ARGS__);  \
         platform_srvcs.log(pbuf); \
       } \
       break; \

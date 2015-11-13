@@ -22,6 +22,8 @@
 
 #define USE_SUITE_NDNTLV
 #define USE_SUITE_LOCALRPC
+#define USE_IPV4
+#define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -219,7 +221,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
     if (t < LRPC_NOT_SERIALIZED)
         return t;
     if (t < LRPC_APPLICATION) {
-        sprintf(tmp, "v%02x", t);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "v%02x", t);
         n = tmp;
     } else switch (t) {
     case LRPC_APPLICATION:
@@ -291,7 +293,8 @@ main(int argc, char *argv[])
     unsigned char request[64*1024], reply[64*1024], tmp[10];
     int cnt, opt, reqlen, replen, port, sock = 0, switchlen;
     struct sockaddr sa;
-    char *addr = NULL, *udp = NULL, *ux = NULL, noreply = 0;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL, noreply = 0;
     float wait = 3.0;
     struct rdr_ds_s *expr;
 
@@ -402,14 +405,11 @@ Usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 

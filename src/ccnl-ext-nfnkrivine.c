@@ -39,6 +39,8 @@ enum { // abstract machine instruction set
     ZAM_TAILAPPLY
 };
 
+#define CCNL_NFNKRIVINE_DUMMYBUF_SIZE 2000
+
 // ------------------------------------------------------------------
 // Machine state functions
 
@@ -242,13 +244,16 @@ create_namecomps(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                  int parameter_number, int thunk_request,
                  struct ccnl_prefix_s *prefix)
 {
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+
     DEBUGMSG(TRACE, "create_namecomps\n");
     if (config->start_locally ||
                 ccnl_nfn_local_content_search(ccnl, config, prefix)) {
         //local computation name components
         DEBUGMSG(DEBUG, "content local available\n");
         struct ccnl_prefix_s *pref = ccnl_nfnprefix_mkComputePrefix(config, prefix->suite);
-        DEBUGMSG(DEBUG, "LOCAL PREFIX: %s\n", ccnl_prefix_to_path(pref));
+        DEBUGMSG(DEBUG, "LOCAL PREFIX: %s\n",
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pref));
         return pref;
     }
     return ccnl_nfnprefix_mkCallPrefix(prefix, thunk_request,
@@ -335,6 +340,8 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     struct ccnl_content_s *c = NULL;
     struct ccnl_prefix_s *pref;
     struct ccnl_interest_s *interest;
+    char prefixBuf1[CCNL_PREFIX_BUFSIZE];
+    char prefixBuf2[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(DEBUG, "---to do: FOX <%s>\n", arg);
     ccnl_free(arg);
@@ -381,8 +388,8 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
             break;
         case STACK_TYPE_PREFIX:
             DEBUGMSG(DEBUG, "  info: Parameter %d %s\n", i,
-                     ccnl_prefix_to_path((struct ccnl_prefix_s*)
-                                      config->fox_state->params[i]->content));
+                     ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1),
+                                      (struct ccnl_prefix_s*) config->fox_state->params[i]->content));
             break;
         default:
             break;
@@ -445,7 +452,7 @@ local_compute:
     config->local_done = 1;
     pref = ccnl_nfnprefix_mkComputePrefix(config, config->suite);
     DEBUGMSG(DEBUG, "Prefix local computation: %s\n",
-             ccnl_prefix_to_path(pref));
+             ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1), pref));
     interest = ccnl_nfn_query2interest(ccnl, &pref, config);
     if (pref)
         free_prefix(pref);
@@ -500,8 +507,8 @@ handlecontent: //if result was found ---> handle it
                 mapping->value = ccnl_prefix_dup(c->pkt->pfx);
                 DBL_LINKED_LIST_ADD(config->fox_state->prefix_mapping, mapping);
                 DEBUGMSG(DEBUG, "Created a mapping %s - %s\n",
-                         ccnl_prefix_to_path(mapping->key),
-                         ccnl_prefix_to_path(mapping->value));
+                         ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1), mapping->key),
+                         ccnl_prefix2path(prefixBuf2, CCNL_ARRAY_SIZE(prefixBuf2), mapping->value));
             }
         }
     }
@@ -514,18 +521,20 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
                 char *arg, char *contd)
 {
     struct ccnl_lambdaTerm_s *t;
-    char res[1000], *cp = arg;
-    int len;
+    char res[1000];
+    char *cp = arg, *tmpRes = res;
+    unsigned int remLen = CCNL_ARRAY_SIZE(res), totalLen = 0;
+    bool success = true;
 
     DEBUGMSG(DEBUG, "---to do: resolveNAME <%s>\n", arg);
 
     //function definition
-    if (!strncmp(cp, "let", 3)) {
-        int i, end = 0, cp2len, namelength, lambdalen;
+    if (strncmp(cp, "let", 3) == 0) {
+        unsigned int i, end = 0, cp2len, namelength, lambdalen, resolvetermlen;
         char *h, *cp2, *name, *lambda_expr, *resolveterm;
 
         DEBUGMSG(DEBUG, " fct definition: %s\n", cp);
-        strcpy(res, cp+3);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "%s", cp+3);
         for (i = 0; i < strlen(res); ++i) {
             if (!strncmp(res+i, "endlet", 6)) {
                 end = i;
@@ -544,20 +553,21 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         memset(name, 0, namelength);
         memset(lambda_expr, 0, strlen(h));
 
-        sprintf(cp2, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
+        snprintf(cp2, cp2len, "RESOLVENAME(%s)", res+end+7); //add 7 to overcome endlet
         memcpy(name, cp+3, namelength-3); //copy name without let and endlet
         trim(name);
 
         lambdalen = strlen(h)-strlen(cp2)+11-6;
         memcpy(lambda_expr, h+1, lambdalen); //copy lambda expression without =
         trim(lambda_expr);
-        resolveterm = ccnl_malloc(strlen("RESOLVENAME()")+strlen(lambda_expr));
-        sprintf(resolveterm, "RESOLVENAME(%s)", lambda_expr);
+        resolvetermlen = strlen("RESOLVENAME()")+strlen(lambda_expr);
+        resolveterm = ccnl_malloc(resolvetermlen);
+        snprintf(resolveterm, resolvetermlen, "RESOLVENAME(%s)", lambda_expr);
 
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
         ccnl_free(cp);
-        return strdup(contd);
+        return contd ? ccnl_strdup(contd) : NULL;
     }
 
     //check if term can be made available, if yes enter it as a var
@@ -565,12 +575,11 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
     t = ccnl_lambdaStrToTerm(0, &cp, NULL);
     ccnl_free(arg);
-
     if (term_is_var(t)) {
         char *end = 0;
         cp = t->v;
         if (isdigit(*cp)) {
-            // is disgit...
+            // is digit...
             int *integer = ccnl_malloc(sizeof(int));
             *integer = strtol(cp, &end, 0);
             if (end && *end)
@@ -590,42 +599,47 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
             push_to_stack(&config->result_stack, prefix, STACK_TYPE_PREFIX);
             end = (char*)1;
         }
-        if (end) {
-            if (contd)
-                sprintf(res, "TAILAPPLY;%s", contd);
-            else
-                sprintf(res, "TAILAPPLY");
-        } else {
-            if (contd)
-                sprintf(res, "ACCESS(%s);TAILAPPLY;%s", t->v, contd);
-            else
-                sprintf(res, "ACCESS(%s);TAILAPPLY", t->v);
-        }
-        ccnl_lambdaFreeTerm(t);
-        return ccnl_strdup(res);
+
+        if (!end)
+            ccnl_snprintf(&tmpRes, &remLen, &totalLen, "ACCESS(%s);",
+                                   t->v);
+
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "TAILAPPLY");
+    } else if (term_is_lambda(t)) {
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "GRAB(%s);RESOLVENAME(%s)",
+                               t->v, dummybuf);
+    } else if (term_is_app(t)) {
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->n, 0);
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "CLOSURE(RESOLVENAME(%s));",
+                               dummybuf);
+
+        ccnl_lambdaTermToStr(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, t->m, 0);
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, "RESOLVENAME(%s)",
+                               dummybuf);
+    } else {
+        DEBUGMSG(ERROR, "Invalid lambda term encountered (no lambda, app or var). <v=%s, m=%p, n=%p>\n",
+                 t->v, (void*)t->m, (void*)t->n);
+        success = false;
     }
-    if (term_is_lambda(t)) {
-        char *var;
-        var = t->v;
-        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-        if (contd)
-            sprintf(res, "GRAB(%s);RESOLVENAME(%s);%s", var, dummybuf, contd);
-        else
-            sprintf(res, "GRAB(%s);RESOLVENAME(%s)", var, dummybuf);
-        ccnl_lambdaFreeTerm(t);
-        return ccnl_strdup(res);
+    ccnl_lambdaFreeTerm(t);
+
+    if (contd && success)
+        ccnl_snprintf(&tmpRes, &remLen, &totalLen, ";%s", contd);
+
+
+    if (!tmpRes) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "Encoding error in ccnl_snprintf occured while resolving name.\n");
+        return NULL;
     }
-    if (term_is_app(t)) {
-        ccnl_lambdaTermToStr(dummybuf, t->n, 0);
-        len = sprintf(res, "CLOSURE(RESOLVENAME(%s));", dummybuf);
-        ccnl_lambdaTermToStr(dummybuf, t->m, 0);
-        len += sprintf(res+len, "RESOLVENAME(%s)", dummybuf);
-        if (contd)
-            len += sprintf(res+len, ";%s", contd);
-        ccnl_lambdaFreeTerm(t);
-        return ccnl_strdup(res);
+    if (totalLen >= CCNL_ARRAY_SIZE(res)) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "Result buffer has not enough capacity to store result. Available: %zu, needed: %d.\n",
+                 CCNL_ARRAY_SIZE(res), totalLen+1);
+        return NULL;
     }
-    return NULL;
+    return success ? ccnl_strdup(res) : NULL;
 }
 
 // executes a ZAM instruction, returns the term to continue working on
@@ -646,8 +660,7 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     //pop closure
     if (!prog || strlen(prog) == 0) {
          if (config->result_stack) {
-             prog = ccnl_malloc(strlen((char*)config->result_stack->content)+1);
-             strcpy(prog, config->result_stack->content);
+             prog = strdup(config->result_stack->content);
              return prog;
          }
          DEBUGMSG(DEBUG, "no result returned\n");
@@ -707,38 +720,54 @@ ZAM_term(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         push_to_stack(&config->argument_stack, fclosure, STACK_TYPE_CLOSURE);
 
         if (contd)
-            sprintf(dummybuf, "%s;%s", code, contd);
+            snprintf(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, "%s;%s", code, contd);
         else
-            strcat(dummybuf, code);
+            snprintf(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, "%s", code);
         ccnl_free(code);
         return ccnl_strdup(dummybuf);
     }
     case ZAM_CALL:
     {
         struct stack_s *h = pop_or_resolve_from_result_stack(ccnl, config);
-        int i, offset, num_params = *(int *)h->content;
-        char name[5];
+        int i, num_params = *(int *)h->content;
+        char *tmpBuf = dummybuf;
+        unsigned int remLen = CCNL_NFNKRIVINE_DUMMYBUF_SIZE, totalLen = 0;
 
         DEBUGMSG(DEBUG, "---to do: CALL <%s>\n", arg);
         ccnl_free(h->content);
         ccnl_free(h);
-        sprintf(dummybuf, "CLOSURE(FOX);RESOLVENAME(@op(");
+
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "CLOSURE(FOX);RESOLVENAME(@op(");
+
 	// ... @x(@y y x 2 op)));TAILAPPLY";
-        offset = strlen(dummybuf);
         for (i = 0; i < num_params; ++i) {
-            sprintf(name, "x%d", i);
-            offset += sprintf(dummybuf+offset, "@%s(", name);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "@x%d(", i);
         }
         for (i = num_params - 1; i >= 0; --i) {
-            sprintf(name, "x%d", i);
-            offset += sprintf(dummybuf+offset, " %s", name);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " x%d", i);
         }
-        offset += sprintf(dummybuf + offset, " %d", num_params);
-        offset += sprintf(dummybuf+offset, " op");
-        for (i = 0; i < num_params+2; ++i)
-            offset += sprintf(dummybuf + offset, ")");
-        if (contd)
-            sprintf(dummybuf + offset, ";%s", contd);
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d op", num_params);
+        for (i = 0; i < num_params+2; ++i) {
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
+        }
+
+        if (contd) {
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ";%s", contd);
+        }
+
+        if (!tmpBuf) {
+            assert(remLen == 0);
+            DEBUGMSG(ERROR, "Encoding error occured while creating ZAM_term.\n");
+            return NULL;
+        }
+
+        if (totalLen >= CCNL_NFNKRIVINE_DUMMYBUF_SIZE) {
+            assert(remLen == 0);
+            DEBUGMSG(ERROR, "dummybuf is not big enough to hold result term of ZAM_CALL. Needed: %d, available: %d.\n",
+                     totalLen+1, CCNL_NFNKRIVINE_DUMMYBUF_SIZE);
+            return NULL;
+        }
+
         return ccnl_strdup(dummybuf);
     }
     case ZAM_CLOSURE:
@@ -805,9 +834,10 @@ normal:
 
         ccnl_free(stack);
         if (contd) //build new term
-            sprintf(dummybuf, "%s;%s", code, contd);
+            snprintf(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, "%s;%s", code, contd);
         else
-            strcpy(dummybuf, code);
+            snprintf(dummybuf, CCNL_NFNKRIVINE_DUMMYBUF_SIZE, "%s", code);
+
         if (config->env)
             ccnl_nfn_releaseEnvironment(&config->env);
         config->env = closure->env; //set environment from closure
@@ -895,39 +925,58 @@ Krivine_exportResultStack(struct ccnl_relay_s *ccnl,
                           struct configuration_s *config)
 {
     char res[64000]; //TODO longer???
-    int pos = 0;
+    char *buf = res;
+    unsigned int remLen = CCNL_ARRAY_SIZE(res), totalLen = 0;
     struct stack_s *stack;
     struct ccnl_content_s *cont;
 
     while ((stack = pop_or_resolve_from_result_stack(ccnl, config))) {
-        if (stack->type == STACK_TYPE_PREFIX) {
+        switch (stack->type) {
+        case STACK_TYPE_PREFIX:
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-                memcpy(res+pos, (char*)cont->pkt->content, cont->pkt->contlen);
-                pos += cont->pkt->contlen;
+                ccnl_snprintf(&buf, &remLen, &totalLen, "%.*s",
+                                    cont->pkt->contlen, (char*) cont->pkt->content);
             }
-        } else if (stack->type == STACK_TYPE_PREFIXRAW) {
+            break;
+
+        case STACK_TYPE_PREFIXRAW:
             cont = ccnl_nfn_local_content_search(ccnl, config, stack->content);
             if (cont) {
-/*
-                DEBUGMSG(DEBUG, "  PREFIXRAW packet: %p %d\n", (void*) cont->buf,
-                         cont->buf ? cont->buf->datalen : -1);
-*/
-                memcpy(res+pos, (char*)cont->pkt->buf->data,
-                       cont->pkt->buf->datalen);
-                pos += cont->pkt->buf->datalen;
+                ccnl_snprintf(&buf, &remLen, &totalLen, "%.*s",
+                                    cont->pkt->buf->datalen, (char*)cont->pkt->buf->data);
             }
-        } else if (stack->type == STACK_TYPE_INT) {
+            break;
+
+        case STACK_TYPE_INT:
             //h = ccnl_buf_new(NULL, 10);
-            //sprintf((char*)h->data, "%d", *(int*)stack->content);
+            //snprintf((char*)h->data, 10, "%d", *(int*)stack->content);
             //h->datalen = strlen((char*)h->data);
-            pos += sprintf(res + pos, "%d", *(int*)stack->content);
+            ccnl_snprintf(&buf, &remLen, &totalLen, "%d", *(int*)stack->content);
+            break;
+
+        default:
+            DEBUGMSG(INFO, "Encountered non-result stack result %d. Ignoring...\n", stack->type);
+            break;
         }
         ccnl_free(stack->content);
         ccnl_free(stack);
     }
 
-    return ccnl_buf_new(res, pos);
+    if (!buf) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "An encoding error occured while exporting content to buffer.\n");
+        return NULL;
+    }
+
+    if (totalLen >= CCNL_ARRAY_SIZE(res)) {
+        assert(remLen == 0);
+        DEBUGMSG(ERROR, "Buffer has not enough capacity for result. Available: %zu, needed: %d.\n",
+                 CCNL_ARRAY_SIZE(res), totalLen+1);
+        return NULL;
+    }
+
+    return ccnl_buf_new(res, totalLen+1);
 }
 
 // executes (loops over) a Lambda expression: tries to run to termination,
@@ -942,20 +991,22 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
     int steps = 0, halt = 0, restart = 1;
     int len = strlen("CLOSURE(HALT);RESOLVENAME()") + strlen(expression) + 1;
     char *dummybuf;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "Krivine_reduction()\n");
 
     if (!*config && strlen(expression) == 0)
         return 0;
-    dummybuf = ccnl_malloc(2000);
+    dummybuf = ccnl_malloc(CCNL_NFNKRIVINE_DUMMYBUF_SIZE);
     if (!*config) {
         char *prog;
         struct environment_s *global_dict = NULL;
 
         prog = ccnl_malloc(len*sizeof(char));
-        sprintf(prog, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
+        snprintf(prog, len, "CLOSURE(HALT);RESOLVENAME(%s)", expression);
         setup_global_environment(&global_dict);
-        DEBUGMSG(DEBUG, "PREFIX %s\n", ccnl_prefix_to_path(prefix));
+        DEBUGMSG(DEBUG, "PREFIX %s\n",
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         *config = new_config(ccnl, prog, global_dict, thunk_request,
                              start_locally, num_of_required_thunks,
                              prefix, ccnl->km->configid, suite);

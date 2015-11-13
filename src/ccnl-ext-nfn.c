@@ -147,14 +147,17 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     int thunk_request = 0;
     struct ccnl_buf_s *res = NULL;
     char str[CCNL_MAX_PACKET_SIZE];
-    int i, len = 0;
+    unsigned int remLen = CCNL_ARRAY_SIZE(str), totalLen = 0, offset = 0;
+    char *tmpStr = str;
+    int i;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
+    DEBUGSTMT(DEBUG, ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
     DEBUGMSG(TRACE, "ccnl_nfn(%p, %s, %p, config=%p)\n",
-             (void*)ccnl, ccnl_prefix_to_path(prefix),
-             (void*)from, (void*)config);
+             (void *) ccnl, prefixBuf, (void *) from, (void *) config);
 
     //    prefix = ccnl_prefix_dup(prefix);
-    DEBUGMSG(DEBUG, "Namecomps: %s \n", ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "Namecomps: %s \n", prefixBuf);
 
     if (config){
         suite = config->suite;
@@ -185,7 +188,8 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
         copy->compcnt -= (1 + thunk_request);
-        DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
+        DEBUGMSG(DEBUG, "   checking local available of %s\n",
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
@@ -198,28 +202,22 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     //put packet together
 #if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-    if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                        prefix->suite == CCNL_SUITE_CISTLV) {
-        len = prefix->complen[prefix->compcnt-1] - 4;
-        memcpy(str, prefix->comp[prefix->compcnt-1] + 4, len);
-        str[len] = '\0';
-    } else
-#endif
-    {
-        len = prefix->complen[prefix->compcnt-1];
-        memcpy(str, prefix->comp[prefix->compcnt-1], len);
-        str[len] = '\0';
+    if (prefix->suite == CCNL_SUITE_CCNTLV
+            || prefix->suite == CCNL_SUITE_CISTLV) {
+        offset = 4;
     }
-    if (prefix->compcnt > 1)
-        len += sprintf(str + len, " ");
-    for (i = 0; i < prefix->compcnt-1; i++) {
-#if defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)
-        if (prefix->suite == CCNL_SUITE_CCNTLV ||
-                                      prefix->suite == CCNL_SUITE_CISTLV)
-            len += sprintf(str+len,"/%.*s",prefix->complen[i]-4,prefix->comp[i]+4);
-        else
 #endif
-            len += sprintf(str+len,"/%.*s",prefix->complen[i],prefix->comp[i]);
+    ccnl_snprintf(&tmpStr, &remLen, &totalLen, "%.*s",
+        prefix->complen[prefix->compcnt-1] - offset,
+        prefix->comp[prefix->compcnt-1] + offset);
+
+    if (prefix->compcnt > 1)
+        ccnl_snprintf(&tmpStr, &remLen, &totalLen, " ");
+
+    for (i = 0; i < prefix->compcnt-1; i++) {
+        ccnl_snprintf(&tmpStr, &remLen, &totalLen, "/%.*s",
+            prefix->complen[i] - offset,
+            prefix->comp[i] + offset);
     }
 
     DEBUGMSG(DEBUG, "expr is <%s>\n", str);
@@ -298,6 +296,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG_CFWD(INFO, "data in rx result %.*s\n", c->pkt->contlen, c->pkt->content);
     TRACEIN();
@@ -312,20 +311,21 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         //Check if prefix match and it is a nfn request
         if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
                                         i_it->from && i_it->from->faceid < 0) {
-            struct ccnl_face_s *from = i_it->from;
-            int faceid = - from->faceid;
+            struct ccnl_face_s *from2 = i_it->from;
+            int faceid = - from2->faceid;
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
             ccnl_content_add2cache(relay, c);
 	    DEBUGMSG_CFWD(INFO, "data in rx resulti after add to cache %.*s\n", c->pkt->contlen, c->pkt->content);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
-                  faceid, ccnl_prefix_to_path(c->pkt->pfx));
+                     faceid,
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);
             i_it = ccnl_interest_remove(relay, i_it);
-            //ccnl_face_remove(relay, from);
+            ccnl_face_remove(relay, from2);
             ++found;
             //goto Done;
         } else

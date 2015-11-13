@@ -76,7 +76,8 @@ int debug_level = WARNING;
 #define ccnl_free(p)                    free(p)
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
-#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+// FIXME: Is this actually needed? Duplicate from ccnl-ext.h
+// #define ccnl_snprintfPrefixPath(P) ccnl_snprintfPrefixPathDetailed(P, 1, 0, 0)
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
@@ -94,6 +95,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 // include only the utils, not the core routines:
 #include "../ccnl-ext.h"
 #include "../ccnl-core-util.c"
+#include "../ccnl-core-pfx.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
 #include "../ccnl-ext-manifest.c"
@@ -156,7 +158,7 @@ ccnl_enc2str(int enc)
 
 #ifdef NEEDS_PACKET_CRAFTING
 int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
+ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, const char *minSuffix,
                      const char *maxSuffix, unsigned char *digest, int dlen,
                      unsigned char *publisher, int plen, char *scope,
                      uint32_t *nonce, unsigned char *out)
@@ -184,11 +186,11 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
 
     if (minSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MINSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) minSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) minSuffix,
                                  strlen(minSuffix));
     if (maxSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MAXSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) maxSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) maxSuffix,
                                  strlen(maxSuffix));
     if (publisher)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_PUBPUBKDIGEST,
@@ -304,7 +306,7 @@ int cistlv_isData(unsigned char *buf, int len)
 
     TRACEIN();
 
-    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
+    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
         DEBUGMSG(ERROR, "cistlv header not large enough");
         return -1;
     }
@@ -534,11 +536,11 @@ load_keys_from_file(char *path)
     while (fgets(line, sizeof(line), fp)) {
         unsigned char *key;
         size_t keylen;
-        int read = strlen(line);
-        DEBUGMSG(TRACE, "  read %d bytes\n", read);
-        if (line[read-1] == '\n')
-            line[--read] = '\0';
-        key = base64_decode(line, read, &keylen);
+        int linelen = strlen(line);
+        DEBUGMSG(TRACE, "  read %d bytes\n", linelen);
+        if (line[linelen-1] == '\n')
+            line[--linelen] = '\0';
+        key = base64_decode(line, linelen, &keylen);
         if (key && keylen > 0) {
             struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
             k->keylen = keylen;
@@ -563,7 +565,7 @@ load_keys_from_file(char *path)
 // ----------------------------------------------------------------------
 
 int
-ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
+ccnl_parseUdp(char *udp, int suite, const char **addr, int *port)
 {
     char *tmpAddr = NULL;
     char *tmpPortStr = NULL;

@@ -16,24 +16,20 @@ supported by CCN-lite. Currently, working setups include:
 Planned but not yet supported setups include:
 * Uno with WiFly
 
-The platform-specific code for Arduino is located in the sub-directory
-`$CCNL_HOME/src/arduino`. The main CCN-lite sources get included (`#include`)
-during the Arduino build process.
+The platform-specific code for Arduino and RFduino is located in the
+sub-directory `$CCNL_HOME/src/arduino` and `$CCNL_HOME/src/rfduino`
+respectively. The main CCN-lite sources get included (`#include`) during the
+build process.
+
 
 ## Prerequisites
 
 Follow the [UNIX installation instructions](README-unix.md) to set up the
 CCN-lite sources and relevant environment variables.
 
-Moreover, the installation for Arduino boards depends on `gcc-avr` and
-[`ino`](http://inotool.org/). For Ubuntu, you can install `gcc-avr` using the
-following command:
-
-```bash
-sudo apt-get install gcc-avr
-```
-
-Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
+CCN-lite for Arduino and RFduino requires the
+[Arduino IDE](http://arduino.cc/), version 1.5.8 or newer and the libraries of
+the used shields.
 
 
 ## Installation for Arduino boards
@@ -46,11 +42,15 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
     cd $CCNL_HOME/src/arduino
     ```
 
-2.  Change the `$BOARD` variable in the `Makefile` to match your board:
+2.  Specify your board by defining the environment variable `$ARDUINO_BOARD`:
 
     ```bash
-    sed -i 's/^BOARD=.*$/BOARD=<yourboard>/' Makefile
+    export ARDUINO_BOARD="uno"
     ```
+
+    Notice that the Makefile assumes default values `$ARDUINO_BOARD="uno"` and
+    `$ARDUINO_ARCH="avr"`. To build for an Arduino SAM, specify
+    `export ARDUINO_ARCH="sam"`.
 
 3.  Copy the `src-*.ino` file matching your shield into the `src` directory.
     For example, using the Ethernet shield, type:
@@ -62,13 +62,14 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 4.  Build CCN-lite and upload the binaries:
 
     ```bash
-    make all upload
+    make build upload
     ```
 
-5.  Connect to your device and see the debug output:
+5.  Connect to your device using the Arduino IDE's Serial Monitor (inside the
+    IDE: `Tools > Serial Monitor`) to see the debug output:
 
     ```bash
-    make serial
+    arduino src/src.ino
     ```
 
     Use the keys `+` and `-` to increase and decrease the verbosity level. Press
@@ -96,33 +97,32 @@ Building CCN-lite for RFduino requires the [Arduino IDE](http://arduino.cc/).
 
 ## Installation for RFduino
 
-1.  Install the RFduino support for the Arduino IDE according to the GitHub
-    README:
-
-    https://github.com/RFduino/RFduino/blob/master/README.md
-
-    Follow the instructions but add one additional step: After you have configured your additional board manager for RFduino, *first*
-    download the "Arduino SAM Boards" (32bits ARM Cortex-M3). Only then download and install "RFduino Boards".
-
-2.  Change the absolute path of the `#include` of `src/ccn-lite-rfduino.c` in
-    `src/arduino/rfduino/rfduino.ino` to match your CCN-lite home directory
-    `$CCNL_HOME`:
+1.  Intall the RFduino support for the Arduino IDE according to the [GitHub
+    README](https://github.com/RFduino/RFduino/blob/master/README.md). You can
+    use Arduino's command line interface to install the board:
 
     ```bash
-    cd $CCNL_HOME/src/arduino/rfduino
-    sed "s|\(^\s*#define CCN_LITE_RFDUINO_C\).*$|\1 \"$CCNL_HOME/src/ccn-lite-rfduino.c\"|" rfduino.ino > rfduino.ino.sed
-    mv rfduino.ino.sed rfduino.ino
+    arduino --pref "boardsmanager.additional.urls=http://rfduino.com/package_rfduino_index.json" \
+    --install-boards "RFduino:RFduino"
     ```
 
-    This is because the Arduino IDE does not support relative `#include` paths.
-
-3.  Compile and upload the code by running `verify/compile` and `upload`.
-
-4.  Connect to your device by using the Serial Monitor (inside the IDE:
-    `Tools > Serial Monitor`) or on the command line with `ino`:
+2.  Change into the source directory related to RFduino:
 
     ```bash
-    ino serial
+    cd $CCNL_HOME/src/rfduino
+    ```
+
+3.  Build CCN-lite and upload the binaries:
+
+    ```bash
+    make build upload
+    ```
+
+4.  Connect to your device using the Arduino IDE's Serial Monitor (inside the
+    IDE: `Tools > Serial Monitor`) to see the debug output:
+
+    ```bash
+    arduino src/src.ino
     ```
 
 

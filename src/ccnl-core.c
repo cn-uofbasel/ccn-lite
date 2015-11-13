@@ -260,7 +260,7 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
 
     DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
                   (void*)ifc, (void*)buf,
-                  buf ? buf->datalen : -1, ifc ? ifc->qlen : -1);
+                  buf ? (int) buf->datalen : -1, ifc ? ifc->qlen : -1);
 
     if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
         DEBUGMSG_CORE(WARNING, "  DROPPING buf=%p\n", (void*)buf);
@@ -347,8 +347,8 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf)
 {
     struct ccnl_buf_s *msg;
-    DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%zd\n",
-             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
+    DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%d\n",
+             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? (int) buf->datalen : -1);
 
     for (msg = to->outq; msg; msg = msg->next) // already in the queue?
         if (buf_equal(msg, buf)) {
@@ -388,9 +388,13 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
+
     DEBUGMSG_CORE(TRACE,
                   "ccnl_new_interest(prefix=%s, suite=%s)\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->pfx->suite));
 
     if (!i)
@@ -439,6 +443,9 @@ void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     int rc = 0;
 #ifdef USE_NACK
     int matching_face = 0;
@@ -475,7 +482,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
             DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
-                          ccnl_prefix_to_path(i->pkt->pfx),
+                          ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx),
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
                                     : "<tap>");
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
@@ -578,9 +585,14 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
     (void) ccnl;
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
-             (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx), ((*pkt)->pfx->chunknum)? *((*pkt)->pfx->chunknum) : -1);
+             (void*) *pkt,
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
+             ((*pkt)->pfx->chunknum) ? (int) *((*pkt)->pfx->chunknum) : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)
@@ -618,10 +630,16 @@ struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *cit;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
-                  (void*)c, ccnl_prefix_to_path(c->pkt->pfx), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+                  (void*)c,
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), c->pkt->pfx),
+                  (c->pkt->pfx->chunknum)? (int) *(c->pkt->pfx->chunknum) : -1);
+
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (c == cit) {
             DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
@@ -656,6 +674,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_interest_s *i;
     struct ccnl_face_s *f;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     int cnt = 0;
     DEBUGMSG_CORE(TRACE, "ccnl_content_serve_pending\n");
 
@@ -736,7 +757,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s to=%s\n",
-                          ccnl_prefix_to_path(i->pkt->pfx),
+                          ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx),
                           ccnl_suite2str(i->pkt->pfx->suite),
                           ccnl_addr2ascii(&pi->face->peer));
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
@@ -763,6 +784,9 @@ ccnl_do_ageing(void *ptr, void *dummy)
     struct ccnl_content_s *c = relay->contents;
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
     time_t t = CCNL_NOW();
     DEBUGMSG_CORE(TRACE, "ageing t=%d\n", (int)t);
 
@@ -782,13 +806,13 @@ ccnl_do_ageing(void *ptr, void *dummy)
             DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
             DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                           (void*)i,
-                     ccnl_prefix_to_path(i->pkt->pfx));
+                          ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx));
             i = ccnl_nfn_interest_remove(relay, i);
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
-                     ccnl_prefix_to_path(i->pkt->pfx));
+                          ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx));
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif
@@ -1014,5 +1038,6 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
 }
 
 #include "ccnl-core-util.c"
+#include "ccnl-core-pfx.c"
 
 // eof

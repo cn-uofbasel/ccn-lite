@@ -24,6 +24,7 @@
 
 #define USE_SUITE_CCNB
 #define USE_SIGNATURES
+#define USE_UNIXSOCKET
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
@@ -38,8 +39,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     int rc;
 
     /* Construct name of socket to send to. */
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    ccnl_setUnixSocketPath(&name, topath);
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
@@ -64,8 +64,7 @@ ccnl_crypto_ux_open(char *frompath)
         exit(1);
     }
     unlink(frompath);
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    ccnl_setUnixSocketPath(&name, frompath);
     if (bind(sock, (struct sockaddr *) &name,
              sizeof(struct sockaddr_un))) {
         perror("\tbinding name to datagram socket");
@@ -138,8 +137,8 @@ handle_verify(unsigned char **buf, int *buflen, int sock, char *callback){
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, "verify");
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, (char*) txid_s);
-    memset(h,0,sizeof(h));
-    sprintf(h,"%d", verified);
+    memset(h, 0, sizeof(h));
+    snprintf(h, CCNL_ARRAY_SIZE(h), "%d", verified);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_VERIFIED, CCN_TT_DTAG, h);
     len3 += ccnl_ccnb_mkBlob(component_buf + len3, CCN_DTAG_CONTENTDIGEST, CCN_TT_DTAG, (char*) content, contentlen);
 
@@ -148,8 +147,8 @@ handle_verify(unsigned char **buf, int *buflen, int sock, char *callback){
 
     msg[len++] = 0; // end-of contentobj
 
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", ux_path);
+    memset(h, 0, sizeof(h));
+    snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", ux_path);
     if(len > CCNL_MAX_PACKET_SIZE) return 0;
     ux_sendto(sock, h, msg, len);
     printf("\t complete, answered to: %s len: %d\n", ux_path, len);
@@ -219,8 +218,8 @@ handle_sign(unsigned char **buf, int *buflen, int sock, char *callback){
 
     msg[len++] = 0; // end-o
 
-    memset(h,0,sizeof(h));
-    sprintf(h,"%s-2", ux_path);
+    memset(h, 0, sizeof(h));
+    snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", ux_path);
     if(len > CCNL_MAX_PACKET_SIZE) return 0;
     ux_sendto(sock, h, msg, len);
     printf("\t complete, answered to: %s len: %d\n", ux_path, len);

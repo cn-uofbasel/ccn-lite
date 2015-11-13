@@ -46,7 +46,7 @@ reassembly_done(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     char fname[512];
     int f;
 
-    sprintf(fname, "%s%03d.ccnb", fileprefix, cnt);
+    snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s%03d.ccnb", fileprefix, cnt);
     if (noclobber && !access(fname, F_OK)) {
         printf("file %s already exists, exiting\n", fname);
         exit(-1);

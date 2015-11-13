@@ -107,7 +107,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", (char*) devname);
     if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
         perror("ethsock ioctl get hw addr");
         return -1;
@@ -143,8 +143,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
 
     unlink(path);
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    ccnl_setUnixSocketPath(ux, path);
 
     if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");
@@ -220,14 +219,13 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 {
     short type = htons(CCNL_ETH_TYPE);
     unsigned char buf[2000];
-    int hdrlen;
+    int hdrlen = 14;
 
-    strcpy((char*)buf, eth2ascii(dst));
+    snprintf((char*) buf, CCNL_ARRAY_SIZE(buf), "%s", eth2ascii(dst));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
 
-    hdrlen = 14;
-    if ((datalen+hdrlen) > sizeof(buf))
+    if ((datalen+hdrlen) > (int) sizeof(buf))
             datalen = sizeof(buf) - hdrlen;
     memcpy(buf, dst, 6);
     memcpy(buf+6, src, 6);
@@ -389,7 +387,7 @@ ccnl_relay_udp(struct ccnl_relay_s *relay, int port)
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
                   int udpport1, int udpport2, int httpport,
-                  char *uxpath, int suite, int max_cache_entries,
+                  char *uxpath, int _suite, int max_cache_entries,
                   char *crypto_face_path)
 {
 #if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
@@ -475,8 +473,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
 
         //receiving interface
-        memset(h,0,sizeof(h));
-        sprintf(h,"%s-2",crypto_face_path);
+        memset(h, 0, CCNL_ARRAY_SIZE(h));
+        snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", crypto_face_path);
         i = &relay->ifs[relay->ifcount];
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         i->mtu = 4096;
@@ -606,7 +604,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        int fd, datalen, suite, skip;
+        int fd, datalen, _suite, skip;
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
@@ -618,10 +616,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
-        strcat(fname, "/");
-        strcat(fname, de->d_name);
-
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s/%s", path, de->d_name);
         if (stat(fname, &s)) {
             perror("stat");
             continue;
@@ -651,10 +646,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             continue;
         }
         buf->datalen = datalen;
-        suite = ccnl_pkt2suite(buf->data, datalen, &skip);
+        _suite = ccnl_pkt2suite(buf->data, datalen, &skip);
 
         pk = NULL;
-        switch (suite) {
+        switch (_suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
             unsigned char *start;
@@ -881,12 +876,12 @@ usage:
 #ifdef USE_ECHO
     if (echopfx) {
         struct ccnl_prefix_s *pfx;
-        char *dup = ccnl_strdup(echopfx);
+        char *echoPfxDup = ccnl_strdup(echopfx);
 
-        pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
+        pfx = ccnl_URItoPrefix(echoPfxDup, suite, NULL, NULL);
         if (pfx)
             ccnl_echo_add(&theRelay, pfx);
-        ccnl_free(dup);
+        ccnl_free(echoPfxDup);
     }
 #endif
 

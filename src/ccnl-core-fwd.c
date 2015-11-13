@@ -26,17 +26,20 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                        struct ccnl_pkt_s **pkt)
 {
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
 #ifdef USE_NFN
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   (*pkt)->pfx->nfnflags,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     DEBUGMSG_CFWD(INFO, "data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 #endif
@@ -139,9 +142,12 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 
@@ -209,12 +215,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",
                       (void *) i,
-                      ccnl_prefix_to_path(i->pkt->pfx),
+                      ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx),
                       i->pkt->pfx->nfnflags);
 #else
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s)\n",
-                      (void *) i, ccnl_prefix_to_path(i->pkt->pfx));
+                      (void *) i,
+                      ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), i->pkt->pfx));
 #endif
     }
     if (i) { // store the I request, for the incoming face (Step 3)
@@ -457,7 +464,8 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CCNX_PT_Interest) {
         if (pkt->type == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            // char prefixBuf[CCNL_PREFIX_BUFSIZE];
+            // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ccntlv_cMatch))
                 goto Done;
         } else {
@@ -502,7 +510,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CISCO_TLV_V1 ||
-                        *datalen < sizeof(struct cisco_tlvhdr_201501_s))
+                        *datalen < (int) sizeof(struct cisco_tlvhdr_201501_s))
         return -1;
 
     hp = (struct cisco_tlvhdr_201501_s*) *data;
@@ -539,7 +547,8 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (hp->pkttype == CISCO_PT_Interest) {
         if (pkt->type == CISCO_TLV_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
-            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix_to_path(pkt->pfx));
+            //            char prefixBuf[CCNL_PREFIX_BUFSIZE];
+            //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
             if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_cistlv_cMatch))
                 goto Done;
         } else {
@@ -693,9 +702,13 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
              tapCallback callback)
 {
     struct ccnl_forward_s *fwd, **fwd2;
+#ifdef USE_LOGGING
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 
     DEBUGMSG_CFWD(INFO, "setting tap for <%s>, suite %s\n",
-             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pfx),
+                  ccnl_suite2str(pfx->suite));
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         if (fwd->suite == pfx->suite &&

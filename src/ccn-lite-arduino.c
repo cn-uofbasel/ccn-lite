@@ -55,7 +55,7 @@ unsigned char mac_addr[] = {0x55, 0x42, 0x41, 0x53, 0x45, 0x4c};
  */
 
 //#define USE_CCNxDIGEST
-#define USE_DEBUG                      // must select this for USE_MGMT
+//#define USE_DEBUG                      // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 //#define USE_FRAG
 //#define USE_ETHERNET
@@ -123,7 +123,7 @@ struct in_addr {
 };
 
 struct sockaddr_in {
-    unsigned char sa_family;
+    unsigned char sin_family;
     unsigned short sin_port;
     struct in_addr sin_addr;
 };
@@ -165,7 +165,7 @@ extern char *__brkval;
 
 // scratchpad memory
 static char logstr[128];
-#define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+#define LOGSTROFFS 36  // where to put a %s parameter for the snprintf_P
 
 // buffer to hold incoming and outgoing packet
 static unsigned char packetBuffer[160];
@@ -182,23 +182,20 @@ unsigned char keyid[32];
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
 {
-    strcpy_P(logstr + LOGSTROFFS, s);
-    return logstr + LOGSTROFFS;
+    snprintf_P(logstr+LOGSTROFFS, CCNL_ARRAY_SIZE(logstr)-LOGSTROFFS, "%s", s);
+    return logstr+LOGSTROFFS;
 }
 
 char*
 inet_ntoa(struct in_addr a)
 {
     unsigned long l = ntohl(a.s_addr);
-    //    static char result[16];
-    //    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
-    //        (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
-    //    return result;
-
-    sprintf_P(logstr, PSTR("%ld.%lu.%lu.%lu"),
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("%ld.%lu.%lu.%lu"),
               (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
     return logstr;
 }
+
+#define inet_aton(c,i)                  (0)
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
@@ -207,13 +204,14 @@ inet_ntoa(struct in_addr a)
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 // selectively enable/disable logging messages per module
 
 #define DEBUGMSG_CORE(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_CUTL(...) DEBUGMSG_OFF(__VA_ARGS__)
+#define DEBUGMSG_CPFX(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_PCNX(...) DEBUGMSG_OFF(__VA_ARGS__)
 #define DEBUGMSG_PIOT(...) DEBUGMSG_OFF(__VA_ARGS__)
@@ -266,6 +264,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     int offset = sizeof(packetBuffer);
     double d;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG_MAIN(VERBOSE, "local_producer %d bytes\n", pkt->buf->datalen);
 
@@ -273,7 +272,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
 
     d = GetTemp();
-    sprintf_P(logstr, PSTR("@%s  %d.%1d C"), timestamp(),
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("@%s  %d.%1d C"), timestamp(),
               (int)d, (int)(10*(d - (int)d)));
     switch (pkt->pfx->suite) {
 
@@ -321,7 +320,7 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     DEBUGMSG_MAIN(INFO, "  outgoing data=<%s> to=%s\n",
-                  ccnl_prefix_to_path(pkt->pfx),
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx),
                   ccnl_addr2ascii(&from->peer));
 
     relay->ifs[from->ifndx].sock->beginPacket(
@@ -433,12 +432,14 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   EthernetUDP *udp)
 {
     int i;
+    unsigned int offset;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     Serial.println(F("This is 'ccn-lite-arduino'"));
     Serial.println(F("  ccnl-core: " CCNL_VERSION));
     Serial.println(F("  compile time: " __DATE__ " "  __TIME__));
     Serial.print(  F("  compile options: "));
-    strcpy_P(logstr, compile_string);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", compile_string);
     Serial.println(logstr);
     Serial.print(  F("  using suite "));
     Serial.println(ccnl_suite2str(theSuite));
@@ -449,7 +450,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     ccnl_core_init();
 
     theRelay.ifcount = 1;
-    theRelay.ifs[0].addr.ip4.sa_family = AF_INET;
+    theRelay.ifs[0].addr.ip4.sin_family = AF_INET;
     theRelay.ifs[0].addr.ip4.sin_addr.s_addr = IPaddr;
     theRelay.ifs[0].addr.ip4.sin_port = port;
     theRelay.ifs[0].sock = udp;
@@ -462,26 +463,30 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     sensor.suite = theSuite;
+    sensor_len[0] = sizeof(sensor_mac);
 #ifdef USE_SUITE_CCNTLV
     sensor_mac[1] = 1;
     sensor_mac[3] = 12;
-    for (i = 0; i < 6; i++)
-        sprintf_P(sensor_mac + 4 + 2*i, PSTR("%02x"), mac[i]);
-    sensor_len[0] = sizeof(sensor_mac);
     sensor_len[1] = 8; // 4 + strlen("temp");
+    offset = 4;
 #else
-    for (i = 0; i < 6; i++)
-        sprintf_P(sensor_mac + 2*i, PSTR("%02x"), mac[i]);
-    sensor_len[0] = sizeof(sensor_mac);
     sensor_len[1] = strlen(sensor_comp[1]);
+    offset = 0;
 #endif
+    for (i = 0; i < 6; i++) {
+        unsigned int j = offset + 2*i;
+        snprintf_P(sensor_mac+j, CCNL_ARRAY_SIZE(sensor_mac)-j,
+                   PSTR("%02x"), mac[i]);
+    }
+
     sensor.comp = (unsigned char**) sensor_comp;
     sensor.complen = sensor_len;
     sensor.compcnt = 2;
-    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n", ccnl_prefix_to_path(&sensor));
+    DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), &sensor));
 
 #ifdef USE_HMAC256
-    strcpy_P(logstr, secret_key);
+    snprintf(logstr, CCNL_ARRAY_SIZE(logstr), "%s", secret_key);
     ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
     ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
 #endif

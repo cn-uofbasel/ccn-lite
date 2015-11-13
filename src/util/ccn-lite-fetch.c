@@ -26,6 +26,8 @@
 #define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
+#define USE_IPV4
+#define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -221,9 +223,11 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int len, opt, port, sock = 0, suite = CCNL_SUITE_DEFAULT;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     while ((opt = getopt(argc, argv, "hs:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -288,14 +292,11 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 
@@ -332,10 +333,12 @@ usage:
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
             *(prefix->chunknum) = *curchunknum;
-            DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
+            DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum,
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
-            DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n", ccnl_prefix_to_path(prefix));
+            DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n",
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         }
 
         // Fetch chunk
@@ -386,12 +389,12 @@ usage:
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
-                    if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
+                    if (chunknum == 0 || (curchunknum && (int) *curchunknum == chunknum)) {
                         DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != -1 && lastchunknum == chunknum) {
+                        if ((int) lastchunknum != -1 && (int) lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;

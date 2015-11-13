@@ -14,10 +14,15 @@
 #
 LOCAL_PATH := $(call my-dir)
 
+# Get path and include Variables.mk
+MAKEFILE_PATH=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(MAKEFILE_PATH)/../../Variables.mk
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := ccn-lite-android
 LOCAL_SRC_FILES := ccn-lite-jni.c
 LOCAL_LDLIBS    := -landroid
+LOCAL_CFLAGS    += $(ANDROID_CFLAGS)
 
 include $(BUILD_SHARED_LIBRARY)

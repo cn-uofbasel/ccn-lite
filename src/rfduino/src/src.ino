@@ -9,8 +9,8 @@
 
 extern "C" {
   // unfortunately, the Arduino IDE requires absolute path names:
-  #define CCN_LITE_RFDUINO_C "/home/ubuntu/ccn-lite/src/ccn-lite-rfduino.c"
-  #include CCN_LITE_RFDUINO_C
+  #define CCN_LITE_C "/home/ubuntu/ccn-lite/src/ccn-lite-rfduino.c"
+  #include CCN_LITE_C
 }
 
 unsigned char msg[1];
@@ -107,7 +107,7 @@ void RFduinoBLE_onConnect()
 
 void RFduinoBLE_onReceive(char *data, int len)
 {
-//    sprintf(logstr, "received %d bytes", len);
+//    snprintf(logstr, CCNL_ARRAY_SIZE(logstr), "received %d bytes", len);
 //    Serial.println(logstr);
 
     ccnl_ll_RX(data, len);

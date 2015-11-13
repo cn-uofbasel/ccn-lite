@@ -78,7 +78,7 @@ ccnl_debugLevelToChar(int level)
           Serial.print("] ");               \
           Serial.print(timestamp());        \
           Serial.print(": ");               \
-          strcpy_P(logstr, PSTR(__FILE__)); \
+          snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", PSTR(__FILE__)); \
           cp = logstr + strlen(logstr);     \
           while (cp >= logstr && *cp != '/') cp--; \
           Serial.print(cp+1);               \
@@ -141,12 +141,17 @@ ccnl_debug_str2level(char *s)
 
 #elif defined(CCNL_ANDROID)
 
-#  define DEBUGMSG(LVL, ...) do { int len;          \
+#  define DEBUGMSG(LVL, ...) do {                   \
+        char *_buf = android_logstr;                \
+        unsigned int _rem = CCNL_ARRAY_SIZE(android_logstr);  \
+        unsigned int _tot = 0;                      \
         if ((LVL)>debug_level) break;               \
-        len = sprintf(android_logstr, "[%c] %s: ",  \
-            ccnl_debugLevelToChar(LVL),             \
+        ccnl_snprintf(&_buf, &_rem, &_tot,    \
+            "[%c] %s: ",                            \
+            ccnl_debugLevelToChar((LVL)),           \
             timestamp());                           \
-        len += sprintf(android_logstr+len, __VA_ARGS__);   \
+        ccnl_snprintf(&_buf, &_rem, &_tot,    \
+            __VA_ARGS__);                           \
         jni_append_to_log(android_logstr);          \
     } while (0)
 
@@ -158,7 +163,7 @@ ccnl_debug_str2level(char *s)
           Serial.print("[");            \
           Serial.print(ccnl_debugLevelToChar(debug_level)); \
           Serial.print("] ");           \
-          sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__); \
+          snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR((FMT)), ##__VA_ARGS__); \
           Serial.print(timestamp());    \
           Serial.print(" ");            \
           Serial.print(logstr);         \
@@ -201,10 +206,10 @@ ccnl_debug_str2level(char *s)
 #ifdef USE_DEBUG
 #ifdef USE_DEBUG_MALLOC
 
-char *
-getBaseName(char *fn)
+const char *
+getBaseName(const char *fn)
 {
-    char *cp = fn + strlen(fn);
+    const char *cp = fn + strlen(fn);
 
     for (cp--; cp >= fn; cp--)
         if (*cp == '/')
@@ -221,12 +226,12 @@ debug_memdump()
     CONSOLE("[M] %s: @@@ memory dump starts\n", timestamp());
     for (h = mem; h; h = h->next) {
 #ifdef CCNL_ARDUINO
-        sprintf_P(logstr, PSTR("addr %p %5d Bytes, "),
+        snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("addr %p %5d Bytes, "),
                   (int)((unsigned char *)h + sizeof(struct mhdr)),
                   h->size);
         Serial.print(logstr);
         // remove the "src/../" prefix:
-        strcpy_P(logstr, h->fname);
+        snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", h->fname);
         Serial.print(getBaseName(logstr));
         CONSOLE(":%d @%d.%03d\n", h->lineno,
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
@@ -248,6 +253,7 @@ debug_memdump()
 # define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CPFX(...) DEBUGMSG(__VA_ARGS__)
 // extensions
 # define DEBUGMSG_EFRA(...) DEBUGMSG(__VA_ARGS__)
 // packet formats

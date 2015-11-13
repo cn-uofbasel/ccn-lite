@@ -31,7 +31,18 @@
 #      Runs the nfn-test script with the provided suite.
 #      Parameters:
 #        SUITE         Name of the suite to test.
-
+#
+#   "arduino"
+#      Compiles CCN-lite for Arduino using the provided board and shield.
+#      Parameters:
+#        BOARD         Name of the board.
+#        SHIELD        Name of the network shield.
+#
+#   "android"
+#      Compiles CCN-lite for Android.
+#
+#   "omnet"
+#      Compiles CCN-lite for OMNeT++.
 
 ### Functions:
 
@@ -156,6 +167,111 @@ build-test-nfn-test() {
     return $rc
 }
 
+# Uses the specified shield file and compiles it.
+#
+# Parameters:
+#     $1    log file
+#     $2    shield name
+#     $3    board
+build-test-arduino() {
+    local logfile=$1
+    local shield=$2
+    local board=$3
+    local shieldFile="src-$shield.ino"
+    local rc
+
+    if [ ! -f "$shieldFile" ]; then
+        echo "Error: source file '$shieldFile' for shield '$shield' not found." >> "$logfile"
+        return 1
+    fi
+
+    echo "$ mkdir -p src" >> "$logfile"
+    mkdir -p src >> "$logfile"
+
+    echo "$ cp "$shieldFile" src/src.ino" >> "$logfile"
+    cp "$shieldFile" src/src.ino >> "$logfile"
+
+    build-test-build-duino "$logfile" "ar" "$board"
+    rc=$?
+    return $rc
+}
+
+# Compiles (RF|Ar)duino.
+#
+# Parameters:
+#     $1    log file
+#     $2    prefix: "rf" or "ar"
+#     $3    board
+build-test-build-duino() {
+    local logfile=$1
+    local prefix=$2
+    local board=$3
+    local rc
+
+    echo "$ make clean" >> "$logfile"
+    make clean >> "$logfile" 2>&1
+
+    echo "$ make verify ARDUINO_BOARD=\"$board\"" >> "$logfile"
+    make verify ARDUINO_BOARD="$board" >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+build-test-android() {
+    local logfile=$1
+    local rc
+
+    echo "$ ndk-build clean" >> "$logfile"
+    ndk-build clean >> "$logfile" 2>&1
+
+    echo "$ ant clean" >> "$logfile"
+    ant clean >> "$logfile" 2>&1
+
+    echo "$ ndk-build" >> "$logfile"
+    ndk-build >> "$logfile" 2>&1
+
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ ant debug" >> "$logfile"
+    ant debug >> "$logfile" 2>&1
+
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
+build-test-omnet() {
+    local logfile=$1
+    local rc
+
+    # Add custom CFLAGS
+    cp `opp_configfilepath` ./Makefile.inc
+    echo "CFLAGS+=-pedantic -Wall -Wextra -Wno-unused-parameter -Wcast-qual -Wfloat-equal -Wformat-security -Wformat-y2k -Winit-self -Wmissing-include-dirs -Wshadow -Wundef" >> Makefile.inc
+    export OMNETPP_CONFIGFILE="Makefile.inc"
+
+    echo "$ opp_makemake -f --deep \"-I\$INET_HOME/src\" -linet <...>" >> "$logfile"
+    opp_makemake -f --deep "-I$INET_HOME/src/linklayer/ieee80211/radio" "-I$INET_HOME/src/networklayer/routing/aodv" "-I$INET_HOME/src/networklayer/common" "-I$INET_HOME/src/networklayer/icmpv6" "-I$INET_HOME/src" "-I$INET_HOME/src/world/obstacles" "-I$INET_HOME/src/networklayer/xmipv6" "-I$INET_HOME/src/networklayer/contract" "-I$INET_HOME/src/networklayer/autorouting/ipv4" "-I$INET_HOME/src/util" "-I$INET_HOME/src/linklayer/common" "-I$INET_HOME/src/transport/contract" "-I$INET_HOME/src/status" "-I$INET_HOME/src/linklayer/radio/propagation" "-I$INET_HOME/src/linklayer/ieee80211/radio/errormodel" "-I$INET_HOME/src/linklayer/radio" "-I$INET_HOME/src/util/headerserializers/tcp" "-I$INET_HOME/src/networklayer/ipv4" "-I$INET_HOME/src/mobility/contract" "-I$INET_HOME/src/util/headerserializers/ipv4" "-I$INET_HOME/src/base" "-I$INET_HOME/src/util/headerserializers" "-I$INET_HOME/src/world/radio" "-I$INET_HOME/src/linklayer/ieee80211/mac" "-I$INET_HOME/src/networklayer/ipv6" "-I$INET_HOME/src/transport/sctp" "-I$INET_HOME/src/util/headerserializers/udp" "-I$INET_HOME/src/networklayer/ipv6tunneling" "-I$INET_HOME/src/applications/pingapp" "-I$INET_HOME/src/battery/models" "-I$INET_HOME/src/util/headerserializers/ipv6" "-I$INET_HOME/src/util/headerserializers/sctp" "-I$INET_HOME/src/linklayer/contract" "-I$INET_HOME/src/transport/tcp_common" "-I$INET_HOME/src/networklayer/arp" "-I$INET_HOME/src/transport/udp" "-L$INET_HOME/out/gcc-debug/src" -linet -DINET_IMPORT "-KINET_PROJ=$INET_HOME" >> "$logfile" 2>&1
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ make depend" >> "$logfile"
+    make depend >> "$logfile" 2>&1
+    rc=$?
+    if [ $rc -ne 0 ]; then return $rc; fi
+
+    echo "$ make -j$NO_CORES" >> "$logfile"
+    make -j$NO_CORES >> "$logfile" 2>&1
+    rc=$?
+    echo "" >> "$logfile"
+
+    return $rc
+}
+
 ### Main script:
 
 unset USE_KRNL
@@ -224,6 +340,41 @@ elif [ "$MODE" = "nfn-test" ]; then
         RC=$?
     fi
 
+elif [ "$MODE" = "arduino" ]; then
+
+    cd arduino
+    build-test-arduino "$LOGFILE" "$SHIELD" "$BOARD"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "rfduino" ]; then
+
+    cd rfduino
+    build-test-build-duino "$LOGFILE" "rf" "RFduino"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "android" ]; then
+
+    cd android
+    build-test-android "$LOGFILE"
+    RC=$?
+    cd ..
+
+elif [ "$MODE" = "omnet" ]; then
+
+    build-test-make "$LOGFILE" "ccn-lite-omnet"
+    if [ $? -ne 0 ]; then
+        RC=1
+    else
+        tar xf ccn-lite-omnet.tgz
+        cd ccn-lite-omnet/src
+        build-test-omnet "$LOGFILE"
+        RC=$?
+        cd ../..
+        rm -rf ccn-lite-omnet
+    fi
+
 else
 
     echo "Error! Unknown build-test-helper mode: '$MODE'" >> "$LOGFILE"
@@ -232,7 +383,7 @@ else
 fi
 
 if [ $RC -eq 0 ]; then
-    if ! grep --quiet -i "warning" "$LOGFILE"; then
+    if ! grep --quiet -i " warning:" "$LOGFILE"; then
         echo $'\b\b\b\b[\e[1;32mok\e[0;0m]'
     else
         echo $'\b\b\b\b\b\b\b\b\b[\e[1;33mwarning\e[0;0m]'

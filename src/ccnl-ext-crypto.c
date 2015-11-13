@@ -77,8 +77,7 @@ ccnl_crypto_create_ccnl_crypto_face(struct ccnl_relay_s *relay, char *ux_path)
 {
     sockunion su;
     DEBUGMSG(DEBUG, "  adding UNIX face unixsrc=%s\n", ux_path);
-    su.sa.sa_family = AF_UNIX;
-    strcpy(su.ux.sun_path, (char*) ux_path);
+    ccnl_setSockunionUnixPath(&su, (char*) ux_path);
     relay->crypto_face = ccnl_get_face_or_create(relay, -1, &su.sa, sizeof(struct sockaddr_un));
     if(!relay->crypto_face) return 0;
     relay->crypto_face->flags = CCNL_FACE_FLAGS_STATIC;
@@ -107,7 +106,7 @@ ccnl_crypto_create_ccnl_sign_verify_msg(char *typ, int txid, char *content, int 
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCNL_DTAG_CALLBACK, CCN_TT_DTAG, callback);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_TYPE, CCN_TT_DTAG, typ);
     memset(h, 0, 100);
-    sprintf(h, "%d", txid);
+    snprintf(h, CCNL_ARRAY_SIZE(h), "%d", txid);
     len3 += ccnl_ccnb_mkStrBlob(component_buf+len3, CCN_DTAG_SEQNO, CCN_TT_DTAG, h);
     if(!strcmp(typ, "verify"))
         len3 += ccnl_ccnb_mkBlob(component_buf+len3, CCN_DTAG_SIGNATURE, CCN_TT_DTAG,  // content
@@ -379,6 +378,7 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       int verified = ccnl_crypto_extract_verify_reply(&buf, &buflen, &seqnum);
       unsigned char *msg, *msg2;
       char cmd[500];
+      int numChars;
       int len = ccnl_crypto_extract_msg(&buf, &buflen, &msg), len2 = 0;
       struct ccnl_face_s *from;
       //DEBUGMSG(DEBUG,"VERIFIED: %d, MSG_LEN: %d\n", verified, len);
@@ -405,11 +405,18 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
       buf1 = ccnl_ccnb_extract(&msg2, &len2, &scope, &aok, &minsfx,
                          &maxsfx, &p, &nonce, &ppkd, &content, &contlen);
 
-      if (p->complen[2] < sizeof(cmd)) {
-            memcpy(cmd, p->comp[2], p->complen[2]);
-            cmd[p->complen[2]] = '\0';
-      } else
-            strcpy(cmd, "cmd-is-too-long-to-display");
+      numChars = snprintf(cmd, CCNL_ARRAY_SIZE(cmd), "%.*s", p->complen[2],
+                          p->comp[2]);
+      if (numChars < 0) {
+          DEBUGMSG(WARNING, "An encoding error occured while creating command \"%.*s\".\n",
+                   p->complen[2], p->comp[2]);
+      }
+
+      if (numChars >= CCNL_ARRAY_SIZE(cmd)) {
+         DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
+                  p->complen[2], p->comp[2], p->complen[2]+1, CCNL_ARRAY_SIZE(cmd));
+      }
+
       msg2_buf = ccnl_buf_new((char *)msg2, len2);
       ccnl_mgmt_handle(ccnl, msg2_buf, p, from, cmd, verified);
       ccnl_free(msg2_buf);
@@ -447,7 +454,8 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           struct ccnl_content_s *c = 0;
           struct ccnl_buf_s *nonce=0, *ppkd=0, *pkt = 0;
           unsigned char *content = 0;
-          char *ht = (char *) ccnl_malloc(sizeof(char)*20);
+          unsigned int htLen = 20;
+          char *ht = (char *) ccnl_malloc(sizeof(char)*htLen);
           int contlen;
           pkt = ccnl_ccnb_extract(&out, &len1, 0, 0, 0, 0,
                                   &prefix_a, &nonce, &ppkd, &content, &contlen);
@@ -463,13 +471,12 @@ ccnl_mgmt_crypto(struct ccnl_relay_s *ccnl, char *type, unsigned char *buf, int 
           prefix_a->compcnt = 2;
           prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
           prefix_a->comp[0] = "mgmt";
-          sprintf(ht, "seqnum-%d", -seqnum);
+          snprintf(ht, htLen, "seqnum-%d", -seqnum);
           prefix_a->comp[1] = ht;
           prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
           prefix_a->complen[0] = strlen("mgmt");
           prefix_a->complen[1] = strlen(ht);
-          c = ccnl_content_new(ccnl, CCNL_SUITE_CCNB, &pkt, &prefix_a, &ppkd,
-                                content, contlen);
+          c = ccnl_content_new(ccnl, &pkt);
           if (!c) goto Done;
 
           ccnl_content_serve_pending(ccnl, c);

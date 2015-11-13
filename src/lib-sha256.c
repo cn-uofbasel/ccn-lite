@@ -65,7 +65,7 @@ typedef uint64_t sha2_word64;	/* Exactly 8 bytes */
 
 // reversal macros
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define REVERSE32(w,x)	{ \
 	sha2_word32 tmp = (w); \
 	tmp = (tmp >> 16) | (tmp << 16); \
@@ -79,7 +79,7 @@ typedef uint64_t sha2_word64;	/* Exactly 8 bytes */
 	(x) = ((tmp & 0xffff0000ffff0000ULL) >> 16) | \
 	      ((tmp & 0x0000ffff0000ffffULL) << 16); \
 }
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+#endif /* __BYTE_ORDER == __LITTLE_ENDIAN */
 
 #define MEMSET_BZERO(p,l)	memset((p), 0, (l))
 #define MEMCPY_BCOPY(d,s,l)	memcpy((d), (s), (l))
@@ -133,7 +133,7 @@ const sha2_word32 K256[64] _MEMLOCATION_ = {
 };
 
 /* Initial hash value H for SHA-256: */
-const static sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
+static const sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
 	0x6a09e667UL,
 	0xbb67ae85UL,
 	0x3c6ef372UL,
@@ -179,15 +179,15 @@ void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
 
 	j = 0;
 	do {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 		/* Copy data while converting to host byte order */
 		REVERSE32(*data++,W256[j]);
 		/* Apply the SHA-256 compression function to update a..h */
 		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256_(j) + W256[j];
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
+#else /* __BYTE_ORDER == __LITTLE_ENDIAN */
 		/* Apply the SHA-256 compression function to update a..h with copy */
 		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256_(j) + (W256[j] = *data++);
-#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+#endif /* __BYTE_ORDER == __LITTLE_ENDIAN */
 		T2 = Sigma0_256(a) + Maj(a, b, c);
 		h = g;
 		g = f;
@@ -205,7 +205,7 @@ void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
 		/* Part of the message block expansion: */
 		s0 = W256[(j+1)&0x0f];
 		s0 = sigma0_256(s0);
-		s1 = W256[(j+14)&0x0f];	
+		s1 = W256[(j+14)&0x0f];
 		s1 = sigma1_256(s1);
 
 		/* Apply the SHA-256 compression function to update a..h */
@@ -273,7 +273,7 @@ void ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len
 	}
 	while (len >= SHA256_BLOCK_LENGTH) {
 		/* Process as many complete blocks as we can */
-		ccnl_SHA256_Transform(context, (sha2_word32*)data);
+		ccnl_SHA256_Transform(context, (const sha2_word32*)data);
 		context->bitcount += SHA256_BLOCK_LENGTH << 3;
 		len -= SHA256_BLOCK_LENGTH;
 		data += SHA256_BLOCK_LENGTH;
@@ -297,7 +297,7 @@ void ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
 	/* If no digest buffer is passed, we don't bother doing this: */
 	if (digest != (sha2_byte*)0) {
 		usedspace = (context->bitcount >> 3) % SHA256_BLOCK_LENGTH;
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 		/* Convert FROM host byte order */
 		REVERSE64(context->bitcount,context->bitcount);
 #endif
@@ -331,7 +331,7 @@ void ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
 		/* Final transform: */
 		ccnl_SHA256_Transform(context, (sha2_word32*)context->buffer);
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 		{
 			/* Convert TO host byte order */
 			int	j;

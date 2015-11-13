@@ -162,7 +162,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_pkt_s *pkt;
 
                 DEBUGMSG(INFO, "  .. adding to cache %d %d bytes\n", len4, len5);
-                sprintf(uri, "/mgmt/seqnum-%d", it);
+                snprintf(uri, CCNL_ARRAY_SIZE(uri), "/mgmt/seqnum-%d", it);
                 pkt = ccnl_calloc(1, sizeof(*pkt));
                 pkt->pfx = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNB, NULL, NULL);
                 pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
@@ -178,6 +178,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 struct ccnl_buf_s *pkt = 0;
                 unsigned char *content = 0, *cp = buf2;
                 unsigned char *ht = (unsigned char *) ccnl_malloc(sizeof(char)*20);
+                char prefixBuf[CCNL_PREFIX_BUFSIZE];
                 int contlen;
                 pkt = ccnl_ccnb_extract(&cp, &len5, 0, 0, 0, 0,
                                 &prefix_a, NULL, NULL, &content, &contlen);
@@ -185,11 +186,12 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 if (!pkt) {
                      DEBUGMSG(WARNING, " parsing error\n");
                 }
-                DEBUGMSG(INFO, " prefix is %s\n", ccnl_prefix_to_path(prefix_a));
+                DEBUGMSG(INFO, " prefix is %s\n",
+                         ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix_a));
                 prefix_a->compcnt = 2;
                 prefix_a->comp = (unsigned char **) ccnl_malloc(sizeof(unsigned char*)*2);
                 prefix_a->comp[0] = (unsigned char *)"mgmt";
-                sprintf((char*)ht, "seqnum-%d", it);
+                snprintf((char*)ht, 20, "seqnum-%d", it);
                 prefix_a->comp[1] = ht;
                 prefix_a->complen = (int *) ccnl_malloc(sizeof(int)*2);
                 prefix_a->complen[0] = strlen("mgmt");
@@ -291,31 +293,31 @@ ccnl_mgmt_create_interface_stmt(int num_interfaces, int *interfaceifndx, long *i
             len3 += ccnl_ccnb_mkHeader(stmt+len3, CCNL_DTAG_INTERFACE, CCN_TT_DTAG);
 
             memset(str, 0, 100);
-            sprintf(str, "%d", interfaceifndx[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interfaceifndx[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
 
             memset(str, 0, 100);
-            sprintf(str, "%s", interfaceaddr[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%s", interfaceaddr[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ADDRESS, CCN_TT_DTAG, str);
 
             memset(str, 0, 100);
             if(interfacedevtype[it] == 1)
             {
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, str);
             }
             else if(interfacedevtype[it] == 2)
             {
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
             else{
-                 sprintf(str, "%p", (void *) interfacedev[it]);
+                 snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interfacedev[it]);
                  len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SOCK, CCN_TT_DTAG, str);
             }
 
             memset(str, 0, 100);
-            sprintf(str, "%d", interfacereflect[it]);
+            snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interfacereflect[it]);
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_REFLECT, CCN_TT_DTAG, str);
 
             stmt[len3++] = 0; //end of fwd;
@@ -336,23 +338,23 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", faceid[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", faceid[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", (void *)facenext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)facenext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%p", (void *)faceprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)faceprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%d", faceifndx[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", faceifndx[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IFNDX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str,"%02x", faceflags[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%02x", faceflags[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
@@ -365,7 +367,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         else if(facetype[it] == AF_UNIX)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_UNIX, CCN_TT_DTAG, facepeer[it]);
         else{
-            sprintf(str,"peer=?");
+            snprintf(str, CCNL_ARRAY_SIZE(str), "peer=?");
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PEER, CCN_TT_DTAG, str);
         }
         // FIXME: dump frag information if present
@@ -386,23 +388,23 @@ ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface
          len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwd[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwd[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FWD, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwdnext[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwdnext[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%p", (void *)fwdface[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *)fwdface[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_FACE, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%d", fwdfaceid[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%d", fwdfaceid[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, str);
 
          memset(str, 0, 100);
-         sprintf(str, "%d", suite[it]);
+         snprintf(str, CCNL_ARRAY_SIZE(str), "%d", suite[it]);
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, str);
 
          len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, fwdprefix[it]);
@@ -426,35 +428,35 @@ ccnl_mgmt_create_interest_stmt(int num_interests, long *interest, long *interest
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interest[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interest[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_INTERESTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestnext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestnext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestlast[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestlast[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LAST, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestmin[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestmin[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MIN, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestmax[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestmax[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_MAX, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", interestretries[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", interestretries[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_RETRIES, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) interestpublisher[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) interestpublisher[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PUBLISHER, CCN_TT_DTAG, str);
 
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, interestprefix[it]);
@@ -476,23 +478,23 @@ ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) content[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) content[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_CONTENTPTR, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) contentnext[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) contentnext[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_NEXT, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%p", (void *) contentprev[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%p", (void *) contentprev[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREV, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", contentlast_use[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", contentlast_use[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_LASTUSE, CCN_TT_DTAG, str);
 
         memset(str, 0, 100);
-        sprintf(str, "%d", contentserved_cnt[it]);
+        snprintf(str, CCNL_ARRAY_SIZE(str), "%d", contentserved_cnt[it]);
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_SERVEDCTN, CCN_TT_DTAG, str);
 
         len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_PREFIX, CCN_TT_DTAG, cprefix[it]);
@@ -511,6 +513,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int *faceid, *faceifndx, *faceflags, *facetype; //store face-info
     long *facenext, *faceprev;
     char **facepeer, **facefrag;
+    unsigned int facepeerlen = 50, facefraglen = 50;
 
     int *fwdfaceid, *suite ,*fwdprefixlen;
     long *fwd, *fwdnext, *fwdface;
@@ -519,6 +522,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     int *interfaceifndx, *interfacedevtype, *interfacereflect;
     long *interfacedev;
     char **interfaceaddr;
+    unsigned int interfaceaddrlen = 130;
 
     int *interestlast, *interestmin, *interestmax, *interestretries, *interestprefixlen;
     long *interest, *interestnext, *interestprev, *interestpublisher;
@@ -545,8 +549,8 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     facepeer = (char**)ccnl_malloc(num_faces*sizeof(char*));
     facefrag = (char**)ccnl_malloc(num_faces*sizeof(char*));
     for(it = 0; it <num_faces; ++it) {
-        facepeer[it] = (char*)ccnl_malloc(50*sizeof(char));
-        facefrag[it] = (char*)ccnl_malloc(50*sizeof(char));
+        facepeer[it] = (char*)ccnl_malloc(facepeerlen*sizeof(char));
+        facefrag[it] = (char*)ccnl_malloc(facefraglen*sizeof(char));
     }
     faceid = (int*)ccnl_malloc(num_faces*sizeof(int));
     facenext = (long*)ccnl_malloc(num_faces*sizeof(long));
@@ -574,7 +578,7 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     num_interfaces = get_num_interface(ccnl);
     interfaceaddr = (char**)ccnl_malloc(num_interfaces*sizeof(char*));
     for(it = 0; it <num_interfaces; ++it)
-        interfaceaddr[it] = (char*)ccnl_malloc(130*sizeof(char));
+        interfaceaddr[it] = (char*)ccnl_malloc(interfaceaddrlen*sizeof(char));
     interfaceifndx = (int*)ccnl_malloc(num_interfaces*sizeof(int));
     interfacedev = (long*)ccnl_malloc(num_interfaces*sizeof(long));
     interfacedevtype = (int*)ccnl_malloc(num_interfaces*sizeof(int));
@@ -645,11 +649,12 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
-                           faceflags, facepeer, facetype, facefrag);
+                           faceflags, facepeer, facepeerlen, facetype,
+                           facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
-                             interfacedev, interfacedevtype, interfacereflect);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfaceaddrlen,
+                               interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, interestprev,
                               interestlast, interestmin, interestmax,
                               interestretries, interestpublisher,
@@ -665,11 +670,12 @@ ccnl_mgmt_debug(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             ccnl_dump(0, CCNL_RELAY, ccnl);
 
             get_faces_dump(0, ccnl, faceid, facenext, faceprev, faceifndx,
-                           faceflags, facepeer, facetype, facefrag);
+                           faceflags, facepeer, facepeerlen, facetype,
+                           facefrag, facefraglen);
             get_fwd_dump(0, ccnl, fwd, fwdnext, fwdface, fwdfaceid, suite,
                          fwdprefixlen, fwdprefix);
-            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr,
-                             interfacedev, interfacedevtype, interfacereflect);
+            get_interface_dump(0, ccnl, interfaceifndx, interfaceaddr, interfaceaddrlen,
+                               interfacedev, interfacedevtype, interfacereflect);
             get_interest_dump(0,ccnl, interest, interestnext, interestprev,
                               interestlast, interestmin, interestmax,
                               interestretries, interestpublisher,
@@ -810,7 +816,9 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 {
     unsigned char *buf;
     int buflen, num, typ;
-    unsigned char *action, *macsrc, *ip4src, *ip6src, *proto, *host, *port,
+    sockunion su;
+    size_t sizeSockAddr = 0;
+    unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
         *path, *frag, *flags;
     char *cp = "newface cmd failed";
     int rc = -1;
@@ -859,9 +867,9 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     // should (re)verify that action=="newface"
 
+
 #ifdef USE_ETHERNET
     if (macsrc && host && port) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
                  macsrc, host, port);
         memset(&su, 0, sizeof(su));
@@ -872,11 +880,13 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                    su.eth.sll_addr+2, su.eth.sll_addr+3,
                    su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
         // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
+            sizeSockAddr = sizeof(struct sockaddr_ll);
         }
     } else
 #endif
+#ifdef USE_IPV4
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
+<<<<<<< HEAD
         sockunion su;
 #ifdef USE_IPV4
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
@@ -895,16 +905,30 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
                                     &su.sa, sizeof(struct sockaddr_in));
     }
+=======
+        uint16_t uPort = (uint16_t) strtoul((const char*) port, NULL, 0);
+        DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%u\n",
+                 ip4src, proto, host, uPort);
+        ccnl_setSockunionIpAddr(&su, (const char*) host, uPort);
+        // not implmented yet: honor the requested ip4src parameter
+        sizeSockAddr = sizeof(struct sockaddr_in);
+    } else
+#endif
+>>>>>>> 6d960bab936072c22dea29df64a32e2c3650bb6c
 #ifdef USE_UNIXSOCKET
     if (path) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
-        su.sa.sa_family = AF_UNIX;
-        strcpy(su.ux.sun_path, (char*) path);
-        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_un));
-    }
+        ccnl_setSockunionUnixPath(&su, (char*) path);
+        sizeSockAddr = sizeof(struct sockaddr_un);
+    } else
 #endif
+    {
+        DEBUGMSG(INFO, "Could not create new face.");
+    }
+
+    if (sizeSockAddr > 0) {
+        f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeSockAddr);
+    }
 
     if (f) {
         int flagval = flags ?
@@ -949,7 +973,7 @@ Bail:
 
     // prepare FACEINSTANCE
     len3 = ccnl_ccnb_mkHeader(faceinst_buf, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
-    sprintf((char *)retstr,"newface:  %s", cp);
+    snprintf((char *)retstr, CCNL_ARRAY_SIZE(retstr), "newface:  %s", cp);
     len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, (char*) retstr);
     if (macsrc)
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
@@ -972,7 +996,7 @@ Bail:
     if (flags)
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_FACEFLAGS, CCN_TT_DTAG, (char *) flags);
     if (f) {
-        sprintf((char *)faceidstr,"%i",f->faceid);
+        snprintf((char *)faceidstr, CCNL_ARRAY_SIZE(faceidstr), "%i",f->faceid);
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char *) faceidstr);
     }
 
@@ -1398,11 +1422,15 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_IPV4
     DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip4src, port, frag);
+<<<<<<< HEAD
 #elif defined(USE_IPV6)
     DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip6src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip6src, port, frag);
 #endif
 // #endif // USE_UDP
+=======
+#endif // USE_IPV4
+>>>>>>> 6d960bab936072c22dea29df64a32e2c3650bb6c
 
 Bail:
 
@@ -1482,6 +1510,7 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *suite=0, h[10];
     char *cp = "echoserver cmd failed";
     int rc = -1;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     int len = 0, len3;
 
@@ -1538,10 +1567,10 @@ ccnl_mgmt_echo(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 
     // should (re)verify that action=="prefixreg"
-    if (suite && *suite >= 0 && *suite < CCNL_SUITE_LAST && p->compcnt > 0) {
+    if (suite && ccnl_isSuite(*suite) && p->compcnt > 0) {
         p->suite = *suite;
         DEBUGMSG(TRACE, "mgmt: activating echo server for %s, suite=%s\n",
-                 ccnl_prefix_to_path(p), ccnl_suite2str(*suite));
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p), ccnl_suite2str(*suite));
         ccnl_echo_add(ccnl, ccnl_prefix_clone(p));
         cp = "echoserver cmd worked";
     } else {
@@ -1565,11 +1594,12 @@ Bail:
     // prepare FWDENTRY
     len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG,
+                                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p)); // prefix
 
     //    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", (int)suite[0]);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
@@ -1600,6 +1630,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *action, *faceid, *suite=0, h[10];
     char *cp = "prefixreg cmd failed";
     int rc = -1;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     int len = 0, len3;
 //    unsigned char contentobj[2000];
@@ -1667,7 +1698,8 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         p->suite = suite[0];
 
         DEBUGMSG(TRACE, "mgmt: adding prefix %s to faceid=%s, suite=%s\n",
-                 ccnl_prefix_to_path(p), faceid, ccnl_suite2str(suite[0]));
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p),
+                 faceid, ccnl_suite2str(suite[0]));
 
         for (f = ccnl->faces; f && f->faceid != fi; f = f->next);
         if (!f) goto Bail;
@@ -1706,11 +1738,12 @@ Bail:
     // prepare FWDENTRY
     len3 = ccnl_ccnb_mkHeader(fwdentry_buf, CCNL_DTAG_PREFIX, CCN_TT_DTAG);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_ACTION, CCN_TT_DTAG, cp);
-    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG, ccnl_prefix_to_path(p)); // prefix
+    len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_NAME, CCN_TT_DTAG,
+                                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p)); // prefix
 
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCN_DTAG_FACEID, CCN_TT_DTAG, (char*) faceid);
     memset(h,0,sizeof(h));
-    sprintf((char*)h, "%d", (int)suite[0]);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", (int)suite[0]);
     len3 += ccnl_ccnb_mkStrBlob(fwdentry_buf+len3, CCNL_DTAG_SUITE, CCN_TT_DTAG, (char*) h);
     fwdentry_buf[len3++] = 0; // end-of-fwdentry
 
@@ -1741,6 +1774,7 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned int chunknum = 0, chunkflag = 0;
     int num, typ, num_of_components = -1, suite = 2;
     struct ccnl_prefix_s *prefix_new;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     buf = prefix->comp[3];
     buflen = prefix->complen[3];
@@ -1798,14 +1832,16 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     prefix_new->suite = suite;
 
     DEBUGMSG(TRACE, "  mgmt: adding object %s to cache (suite=%s)\n",
-             ccnl_prefix_to_path(ccnl_prefix_dup(prefix_new)), ccnl_suite2str(suite));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix_new),
+             ccnl_suite2str(suite));
 
     //Reply MSG
     if (h)
         ccnl_free(h);
     h = ccnl_malloc(300);
 
-    sprintf((char *)h, "received add to cache request, inizializing callback for %s", ccnl_prefix_to_path(prefix_new));
+    snprintf((char *)h, 300, "received add to cache request, inizializing callback for %s",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix_new));
     ccnl_mgmt_return_ccn_msg(ccnl, orig, prefix, from,
                              "addcacheobject", (char *)h);
     if (h)
@@ -1856,7 +1892,7 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     unsigned char *buf;
     unsigned char **components = 0;
-    unsigned int num_of_components = -1;
+    int num_of_components = -1;
     int buflen, i;
     int num, typ;
     char *answer = "Failed to remove content";
@@ -2028,11 +2064,12 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
           struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
-    if (prefix->complen[2] < sizeof(cmd)) {
-        memcpy(cmd, prefix->comp[2], prefix->complen[2]);
-        cmd[prefix->complen[2]] = '\0';
-    } else
-        strcpy(cmd, "cmd-is-too-long-to-display");
+    int numChars = snprintf(cmd, sizeof(cmd), "%.*s", prefix->complen[2],
+                            prefix->comp[2]);
+    if (numChars > 0 && (unsigned int) numChars >= sizeof(cmd)) {
+        DEBUGMSG(WARNING, "Command \"%.*s\" does not fit into buffer. Needed: %d, available: %zu.\n",
+                 prefix->complen[2], prefix->comp[2], prefix->complen[2]+1, sizeof(cmd));
+    }
 
     DEBUGMSG(TRACE, "ccnl_mgmt request \"%s\"\n", cmd);
 

@@ -154,7 +154,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || (int)len>*datalen)
+                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || (int) len>*datalen)
                     goto Bail;
 
                 switch (typ) {
@@ -226,7 +226,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         case CCNX_TLV_TL_ValidationAlgo:
             cp = *data;
             len2 = len;
-            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || len>*datalen)
+            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || (int) len>*datalen)
                 goto Bail;
             if (typ == CCNX_VALIDALGO_HMAC_SHA256) {
                 // ignore keyId and other algo dependent data ... && len3 == 0)
@@ -389,7 +389,7 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx2015_s);
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    if (*offset < hdrlen || payloadlen < 0)
+    if (*offset < hdrlen)
         return -1;
 
     *offset -= sizeof(struct ccnx_tlvhdr_ccnx2015_s);

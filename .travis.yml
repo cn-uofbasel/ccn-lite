@@ -19,19 +19,55 @@ branches:
         - dev-master
 
 env:
-    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin":"/home/travis/.local/bin"
 
 addons:
     apt:
         packages:
             - libssl-dev
             - build-essential
+            - ant
+
+            # Needed for aapt of Android SDK
+            - lib32stdc++6
+            - lib32z1
 #            - linux-headers-$(uname -r)
+
+install:
+    # Install Arduino
+    - wget http://downloads.arduino.cc/arduino-1.6.5-linux64.tar.xz
+    - tar xf arduino-1.6.5-linux64.tar.xz
+    - export ARDUINO_HOME="`pwd`/arduino-1.6.5"
+
+    # Start Xvfb X server dummy and create script that starts arduino through it
+    - if [ ! -f /tmp/.X99-lock ]; then Xvfb :99 -nolisten tcp -screen :99 1280x800x24 > /dev/null 2>&1 & fi
+    - printf '#!/bin/bash\nDISPLAY=:99 $ARDUINO_HOME/arduino $@\n' > arduino
+    - chmod +x arduino
+    - export PATH="$PATH:`pwd`"
+
+    # Install shields and RFduino board
+    - git clone https://github.com/Seeed-Studio/Ethernet_Shield_W5200.git "$ARDUINO_HOME/libraries/EthernetShieldW5200"
+    - git clone https://github.com/Seeed-Studio/WiFi_Shield.git "$ARDUINO_HOME/libraries/WiFiShield"
+    - arduino --pref "boardsmanager.additional.urls=http://rfduino.com/package_rfduino_index.json" --install-boards "RFduino:RFduino" > /tmp/install-rfduino.log
+
+    # Install Android SDK
+    - wget http://dl.google.com/android/android-sdk_r24.3.3-linux.tgz
+    - tar xf android-sdk_r24.3.3-linux.tgz
+    - export ANDROID_HOME="`pwd`/android-sdk-linux"
+    - export PATH="$PATH:$ANDROID_HOME/tools"
+    - ( sleep 1 && while [ 1 ]; do sleep 1; echo y; done ) | android update sdk --no-ui --all --filter tools,platform-tools,build-tools-22.0.1,android-22
+
+    # Install Android NDK
+    - wget http://dl.google.com/android/ndk/android-ndk-r10e-linux-x86_64.bin
+    - chmod a+x android-ndk-r10e-linux-x86_64.bin
+    - ./android-ndk-r10e-linux-x86_64.bin > /dev/null
+    - export PATH="$PATH:`pwd`/android-ndk-r10e"
 
 script:
     # Run build-test.sh
     # Ideally, build-test should be run without specifying the targets.
-    # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-ccnx2015, bt-nfn-cisco2015 removed because they fail
+    # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-cisco2015 removed because they fail
+    # Additionally, there is currently no way to install OMNeT++ automated on Travis CI.
     - cd $CCNL_HOME/src
     - make clean
-    - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-omnet bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
+    - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-arduino bt-rfduino bt-android bt-pkt bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-ccnx2015 bt-nfn-iot2014 bt-nfn-ndn2013

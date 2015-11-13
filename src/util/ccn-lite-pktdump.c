@@ -475,13 +475,13 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
     }
     if (tn) {
         if(!rawxml)
-            sprintf(tmp, "%s\\%s", tn, cn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s\\%s", tn, cn);
         else
-            sprintf(tmp, "%s", tn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s", tn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -502,7 +502,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
           fprintf(stderr, "\n%04zx ** CCNTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -511,7 +511,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         n = ccnl_ccntlv_type2name(ctx, typ, rawxml);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -536,7 +536,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -824,13 +824,13 @@ ccnl_cistlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
 
     if (tn) {
         if(!rawxml)
-            sprintf(tmp, "%s\\%s", tn, cn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s\\%s", tn, cn);
         else
-            sprintf(tmp, "%s", tn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s", tn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -851,7 +851,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
           fprintf(stderr, "\n%04zx ** CISTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -860,7 +860,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         n = ccnl_cistlv_type2name(ctx, typ, rawxml);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -885,7 +885,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (cistlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -1076,11 +1076,11 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
         break;
     }
     if (tn) {
-        sprintf(tmp, "%s-%s", tn, cn);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s-%s", tn, cn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x-%s", type, cn);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x-%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x-ctx=%d", type, ctx);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x-ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -1113,7 +1113,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
             fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -1122,7 +1122,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         n = ccnl_iottlv_type2name(ctx, typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -1144,7 +1144,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -1253,7 +1253,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
 
         n = ndn_type2name(typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -1371,7 +1371,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
         dorecurse = 0;
     /*
     if (*cp && *cp < LRPC_APPLICATION) { // private type value
-        sprintf(tmp, "Variable=v%02x", *cp);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "Variable=v%02x", *cp);
         n = tmp;
         *buf += 1;
         *len -= 1;
@@ -1410,7 +1410,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
             case LRPC_NONCE:
                 n = "Nonce"; break;
             default:
-                sprintf(tmp, "Type=0x%x", (unsigned short)typ);
+                snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "Type=0x%x", (unsigned short)typ);
                 n = tmp;
                 break;
             }
@@ -1435,16 +1435,16 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
                 printf("  ");
             printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
         } else if (typ == LRPC_FLATNAME) {
+            unsigned int maxlen = CCNL_ARRAY_SIZE(tmp) - 6;
+
             printf("%04zx  ", *buf - base);
             for (i = 0; i <= lev; i++)
                 printf("  ");
-            strcpy(tmp, "\"");
-            i = sizeof(tmp) - 6;
-            if (vallen < i)
-                i = vallen;
-            memcpy(tmp+1, *buf, i);
-            strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-            printf("%s\n", tmp);
+
+            printf("\"%.*s\"", maxlen, *buf);
+            if (vallen > (int) maxlen)
+                printf("...");
+            printf("\n");
         } else if (vallen > 0)
             hexdump(lev, base, *buf, vallen, rawxml, out);
         *buf += vallen;

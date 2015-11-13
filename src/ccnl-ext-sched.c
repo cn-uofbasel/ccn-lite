@@ -235,7 +235,7 @@ int cfnl_sched_create_default_rnet(struct ccnl_sched_s *sched, int inter_packet_
     }
 
     // create reaction network
-    sprintf(name, "%p", sched);
+    snprintf(name, CCNL_ARRAY_SIZE(name), "%p", sched);
     sched->rn = cf_rnet_create(engine, name, cf_handle_null);
     if (!sched->rn)
         goto err_out;

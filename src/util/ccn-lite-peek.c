@@ -28,6 +28,8 @@
 #define USE_SUITE_NDNTLV
 
 #define USE_FRAG
+#define USE_IPV4
+#define USE_UNIXSOCKET
 #define NEEDS_PACKET_CRAFTING
 
 #define assert(...) do {} while(0)
@@ -56,11 +58,13 @@ int
 main(int argc, char *argv[])
 {
     int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     unsigned int chunknum = UINT_MAX;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
     ccnl_isFragmentFunc isFragment;
@@ -134,21 +138,18 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 
-    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
-            argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n", argv[optind], argv[optind+1],
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();

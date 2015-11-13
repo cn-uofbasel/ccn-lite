@@ -59,6 +59,9 @@ int inet_aton(const char *cp, struct in_addr *inp);
 // ----------------------------------------------------------------------
 // "replacement lib"
 
+#define USE_LOGGING // flag to enable stack initializations of logging variables
+                    // e.g. char prefixBuf[CCNL_PREFIX_BUFSIZE]
+
 #define FATAL   0 // FATAL
 #define ERROR   1 // ERROR
 #define WARNING 2 // WARNING
@@ -74,6 +77,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 # define DEBUGMSG_CORE(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CFWD(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_CUTL(...) DEBUGMSG(__VA_ARGS__)
+# define DEBUGMSG_CPFX(...) DEBUGMSG(__VA_ARGS__)
 # define DEBUGMSG_PIOT(...) DEBUGMSG(__VA_ARGS__)
 
 #define DEBUGSTMT(LVL, ...) do { \
@@ -128,11 +132,14 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 
-char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+char* ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr);
+int ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr,
+                                int ccntlv_skip, int escape_components,
+                                int call_slash);
+#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed(BUF, LEN, P, 1, 0, 0)
+#define CCNL_PREFIX_BUFSIZE 512
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 const char* ccnl_suite2str(int suite);
 bool ccnl_isSuite(int suite);
