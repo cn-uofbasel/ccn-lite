@@ -65,7 +65,7 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, int *vallen)
+                   int *typ, int *vallen)
 {
   if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
@@ -118,7 +118,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
     oldpos = *data - start;
-    while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
+    while (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) == 0) {
         unsigned char *cp = *data;
         int len2 = len;
 
@@ -137,7 +137,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
             p->nameptr = start + oldpos;
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_NameComponent &&
                             p->compcnt < CCNL_MAX_NAME_COMP) {
@@ -170,7 +170,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
                     goto Bail;
                 switch(typ) {
                 case NDN_TLV_MinSuffixComponents:
@@ -206,7 +206,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             break;
         case NDN_TLV_MetaInfo:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_ContentType) {
                     // Not used
@@ -219,7 +219,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
-                    if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                    if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
                         goto Bail;
                     if (typ == NDN_TLV_NameComponent) {
                         // TODO: again, includedNonNeg not yet implemented
@@ -242,7 +242,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 #ifdef USE_HMAC256
         case NDN_TLV_SignatureInfo:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_SignatureType && i == 1 &&
                                           *cp == NDN_VAL_SIGTYPE_HMAC256) {
@@ -278,7 +278,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     if (pkt->content)
         pkt->content = pkt->buf->data + (pkt->content - start);
     if (p) {
-        for (i = 0; i < (unsigned int) p->compcnt; i++)
+        for (i = 0; i < p->compcnt; i++)
             p->comp[i] = pkt->buf->data + (p->comp[i] - start);
         if (p->nameptr)
             p->nameptr = pkt->buf->data + (p->nameptr - start);

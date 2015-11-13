@@ -648,7 +648,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
+    if (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) || (int) len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }
