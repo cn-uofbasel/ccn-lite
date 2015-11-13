@@ -11,6 +11,7 @@ PROGS:=ccn-lite-ccnb2xml \
        ccn-lite-cryptoserver\
        ccn-lite-ctrl \
        ccn-lite-fetch \
+       ccn-lite-flic \
        ccn-lite-mkC \
        ccn-lite-mkI \
        ccn-lite-mkF \
@@ -59,6 +60,11 @@ ccn-lite-peek: ccn-lite-peek.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
 
 ccn-lite-fetch: ccn-lite-fetch.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
 		${NDNTLV_LIB} ../ccnl-defs.h ../ccnl-core-util.c ../ccnl-core-pfx.c ccnl-common.c
+	${CC} -o $@ ${CCNLCFLAGS} $<
+	@${CREATE_BIN}
+
+ccn-lite-flic: ccn-lite-flic.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} \
+		${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 

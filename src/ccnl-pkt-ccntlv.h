@@ -99,6 +99,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_TLV_TL_ValidationAlgo              0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
 #define CCNX_TLV_TL_Fragment                    0x0005
+#define CCNX_TLV_TL_Manifest                    0x0006
 
 // global (Sect 3.5.1)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?

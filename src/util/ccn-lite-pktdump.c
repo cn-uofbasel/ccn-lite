@@ -352,6 +352,7 @@ enum {
 static char ccntlv_recurse[][3] = {
     {CTX_TOPLEVEL, CCNX_TLV_TL_Interest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_Object, CTX_MSG},
+    {CTX_TOPLEVEL, CCNX_TLV_TL_Manifest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_ValidationAlgo, CTX_VALIDALGO},
     {CTX_MSG, CCNX_TLV_M_Name, CTX_NAME},
     {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
@@ -402,6 +403,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_TL_Interest:          tn = "Interest"; break;
                 case CCNX_TLV_TL_Object:            tn = "Object"; break;
+                case CCNX_TLV_TL_Manifest:          tn = "Manifest"; break;
                 case CCNX_TLV_TL_ValidationAlgo:    tn = "ValidationAlgo"; break;
                 case CCNX_TLV_TL_ValidationPayload: tn = "ValidationPayload"; break;
                 default: break;
@@ -587,7 +589,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     if (hp->pkttype == CCNX_PT_Interest)
         mp = rawxml ? "Interest" : "Interest\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Data)
-        mp = rawxml ? "Content" : "Content\\toplevelCtx";
+        mp = rawxml ? "Content" : "Data\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Fragment)

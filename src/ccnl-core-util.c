@@ -420,7 +420,8 @@ free_packet(struct ccnl_pkt_s *pkt)
 #endif
 #ifdef USE_SUITE_CCNTLV
             case CCNL_SUITE_CCNTLV:
-                ccnl_free(pkt->s.ccntlv.keyid);
+                ccnl_free(pkt->s.ccntlv.objHashRestr);
+                ccnl_free(pkt->s.ccntlv.keyIdRestr);
                 break;
 #endif
 #ifdef USE_SUITE_NDNTLV

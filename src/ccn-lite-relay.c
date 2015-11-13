@@ -33,6 +33,7 @@
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
 #define USE_ETHERNET
+//#define USE_FLIC
 //#define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS
@@ -40,6 +41,7 @@
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
+#define USE_NAMELESS                   // must select this for USE_FLIC
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER

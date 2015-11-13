@@ -160,6 +160,48 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
+#ifdef USE_CCNxMANIFEST
+// write Content packet *before* buf[offs], adjust offs and return bytes used
+int
+ccnl_ccntlv_prependSignedManifestWithHdr(struct ccnl_prefix_s *name,
+                                         unsigned char *payload, int paylen,
+                                         unsigned char *keyval, // 64B
+                                         unsigned char *keydigest, // 32B
+                                         int *offset, unsigned char *buf,
+                                         int *mlen)
+{
+    int mdlength = 32, mdoffset, endofsign, oldoffset;
+    uint32_t len;
+    unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
+
+    if (*offset < (8 + paylen + 4+32 + 3*4+32))
+        return -1;
+
+    oldoffset = *offset;
+
+    *offset -= mdlength; // reserve space for the digest
+    mdoffset = *offset;
+    ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, mdlength, offset, buf);
+    endofsign = *offset;
+    ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, offset, buf);
+    ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, offset, buf);
+
+    len = oldoffset - *offset;
+    len += ccnl_ccntlv_prependManifest(name, payload, paylen, offset, buf);
+    if (len >= (((uint32_t)1 << 16) - 8)) {
+        DEBUGMSG(ERROR, "payload to sign is too large\n");
+        return -1;
+    }
+    if (mlen)
+        *mlen = len;
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+                      buf + mdoffset, &mdlength);
+    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                len, hoplimit, offset, buf);
+    return oldoffset - *offset;
+}
+#endif // USR_CCNxMANIFEST
+
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_NDNTLV

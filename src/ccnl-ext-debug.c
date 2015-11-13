@@ -94,14 +94,18 @@ const char* ccnl_addr2ascii(sockunion *su);
 // ----------------------------------------------------------------------
 
 static void
+debug_array(unsigned char *cp, int len)
+{
+    while (len-- > 0)
+        CONSOLE("%02x", *cp++);
+}
+
+static void
 debug_blob(struct ccnl_buf_s *buf)
 {
-    unsigned char *cp = buf->data;
-    unsigned int i;
-
-    for (i = 0; i < buf->datalen; i++, cp++)
-        CONSOLE("%02x", *cp);
+    debug_array(buf->data, buf->datalen);
 }
+
 
 #ifdef USE_FRAG
 
@@ -308,9 +312,16 @@ ccnl_dump(int lev, int typ, void *p)
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-            if (pkt->s.ccntlv.keyid) {
+            if (pkt->s.ccntlv.objHashRestr) {
                 INDENT(lev+1);
-                CONSOLE("keyid="); debug_blob(pkt->s.ccntlv.keyid);
+                CONSOLE("objHash=");
+                debug_array(pkt->s.ccntlv.objHashRestr, 32);
+                CONSOLE("\n");
+            }
+            if (pkt->s.ccntlv.keyIdRestr) {
+                INDENT(lev+1);
+                CONSOLE("keyID=");
+                debug_blob(pkt->s.ccntlv.keyIdRestr);
                 CONSOLE("\n");
             }
             break;

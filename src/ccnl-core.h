@@ -232,7 +232,8 @@ struct ccnl_pktdetail_ccnb_s {
 };
 
 struct ccnl_pktdetail_ccntlv_s {
-    struct ccnl_buf_s *keyid;       // publisher keyID
+    unsigned char *objHashRestr;         // ObjectHashRestriction
+    struct ccnl_buf_s *keyIdRestr;       // publisher keyID restriction
 };
 
 struct ccnl_pktdetail_iottlv_s {
