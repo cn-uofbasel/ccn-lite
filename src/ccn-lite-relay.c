@@ -286,7 +286,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     (void) rc; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
-void
+int
 ccnl_close_socket(int s)
 {
     struct sockaddr_un su;
@@ -296,7 +296,7 @@ ccnl_close_socket(int s)
                                         su.sun_family == AF_UNIX) {
         unlink(su.sun_path);
     }
-    close(s);
+    return close(s);
 }
 
 // ----------------------------------------------------------------------

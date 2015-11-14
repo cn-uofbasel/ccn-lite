@@ -259,7 +259,7 @@ void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 #ifdef CCNL_ARDUINO
   void ccnl_close_socket(EthernetUDP *s);
 #elif !defined(CCNL_LINUXKERNEL)
-  void ccnl_close_socket(int s);
+  int ccnl_close_socket(int s);
 #endif
 
 // eof
