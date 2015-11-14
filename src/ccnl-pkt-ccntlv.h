@@ -99,7 +99,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_TLV_TL_ValidationAlgo              0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
 #define CCNX_TLV_TL_Fragment                    0x0005
-#define CCNX_TLV_TL_Manifest                    0x0006
+#define CCNX_TLV_TL_Manifest                    0x0006 // top level manifest
 
 // global (Sect 3.5.1)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?
@@ -155,5 +155,9 @@ struct ccnx_tlvhdr_ccnx201409_s {
 
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
+
+#define CCNX_MANIFEST_HASH_LIST 0x0101
+#define CCNX_MANIFEST_POINTER 0x0101
+#define CCNX_MANIFEST_POINTER_TYPE 0x0102
 
 // eof

@@ -599,17 +599,61 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
 #ifdef USE_CCNxMANIFEST
 
-// write Manifest payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependManifest(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
+ccnl_ccntlv_prependPointer(int ptype, struct ccnl_prefix_s *name,
+                           unsigned char *digest, int digest_length,
                            int *offset, unsigned char *buf)
 {
     int tloffset = *offset;
 
+    // Prepend the elements of a pointer
+    if (ccnl_ccntlv_prependBlob(CCNX_MANIFEST_POINTER_TYPE, &ptype, sizeof(ptype), offset, buf) < 0)
+        return -1;
+    if (name) {
+        if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
+            return -1;
+    }
+    if (ccnl_ccntlv_prependBlob(CCNX_TLV_M_ObjHashRestriction, digest, digest_length, offset, buf) < 0)
+        return -1;
+
+    // Wrap the stuff before in a pointer TLV
+    if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_POINTER, tloffset - *offset, offset, buf) < 0)
+        return -1;
+
+    return tloffset - *offset;
+}
+
+int
+ccnl_ccntlv_prependHashList(int *ptypes, struct ccnl_prefix_s **names,
+                           unsigned char **digests, int digest_length,
+                           int num_pointers, int *offset, unsigned char *buf)
+{
+    int i;
+    int tloffset = *offset;
+
+    // Prepend each pointer
+    for (i = 0; i < num_pointers; i++) {
+        if (ccnl_ccntlv_prependPointer(ptype[i], names[i], digests[i], digest_length, offset, buf) < 0)
+            return -1;
+    }
+
+    // Wrap the stuff before in a pointer TLV
+    if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_HASH_LIST, tloffset - *offset, offset, buf) < 0)
+        return -1;
+
+    return tloffset - *offset;
+}
+
+// write Manifest payload *before* buf[offs], adjust offs and return bytes used
+int
+ccnl_ccntlv_prependManifest(int *ptypes, struct ccnl_prefix_s **names,
+                           unsigned char **digests, int digest_length,
+                           int num_pointers, int *offset, unsigned char *buf)
+{
+    int tloffset = *offset;
+
     // fill in backwards
-    if (ccnl_ccntlv_prependBlob(CCNX_TLV_M_Payload, payload, paylen,
-                                                        offset, buf) < 0)
+    if (ccnl_ccntlv_prependHashList(ptypes, names, digests, digest_length, num_pointers, offset, buf) < 0)
         return -1;
 
     if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
@@ -624,16 +668,16 @@ ccnl_ccntlv_prependManifest(struct ccnl_prefix_s *name,
 
 // write Manifest packet *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependManifestWithHdr(struct ccnl_prefix_s *name,
-                                   unsigned char *payload, int paylen,
-                                   int *offset, unsigned char *buf, int *mlen)
+ccnl_ccntlv_prependManifestWithHdr(int *ptypes, struct ccnl_prefix_s **names,
+                                   unsigned char **digests, int digest_length,
+                                   int num_pointers, int *offset, unsigned char *buf, int *mlen)
 {
     int len, oldoffset;
     unsigned char hoplimit = 255; // setting to max (content has no hoplimit)
 
     oldoffset = *offset;
 
-    len = ccnl_ccntlv_prependManifest(name, payload, paylen, offset, buf);
+    len = ccnl_ccntlv_prependManifest(ptypes, names, digests, digest_length, num_pointers, offset, buf);
     if (len < 0)
         return -1;
 
