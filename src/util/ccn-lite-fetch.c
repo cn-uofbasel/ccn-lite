@@ -58,7 +58,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
     }
 
     int nonce = random();
-    *len = mkInterest(prefix, &nonce, out, out_len);
+    *len = mkInterest(prefix, &nonce, NULL, out, out_len);
 /*
         {
             int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);

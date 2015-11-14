@@ -34,6 +34,7 @@
 #define NEEDS_PACKET_CRAFTING // for IOTTLV
 
 #include "ccnl-common.c"
+#include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
@@ -352,6 +353,7 @@ enum {
 static char ccntlv_recurse[][3] = {
     {CTX_TOPLEVEL, CCNX_TLV_TL_Interest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_Object, CTX_MSG},
+    {CTX_TOPLEVEL, CCNX_TLV_TL_Manifest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_ValidationAlgo, CTX_VALIDALGO},
     {CTX_MSG, CCNX_TLV_M_Name, CTX_NAME},
     {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
@@ -402,6 +404,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_TL_Interest:          tn = "Interest"; break;
                 case CCNX_TLV_TL_Object:            tn = "Object"; break;
+                case CCNX_TLV_TL_Manifest:          tn = "Manifest"; break;
                 case CCNX_TLV_TL_ValidationAlgo:    tn = "ValidationAlgo"; break;
                 case CCNX_TLV_TL_ValidationPayload: tn = "ValidationPayload"; break;
                 default: break;
@@ -412,6 +415,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_M_Name:       tn = "Name"; break;
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
+                case CCNX_TLV_M_ObjHashRestriction: tn = "ObjHashRestriction"; break;
                 case CCNX_TLV_M_ENDChunk:   tn = "EndChunk"; break;
                 default: break;
                 }
@@ -568,7 +572,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 void
 ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
-    unsigned char *buf;
+    unsigned char *buf, *msgstart;
     char *mp;
     unsigned short hdrlen, pktlen; // payloadlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
@@ -587,7 +591,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     if (hp->pkttype == CCNX_PT_Interest)
         mp = rawxml ? "Interest" : "Interest\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Data)
-        mp = rawxml ? "Content" : "Content\\toplevelCtx";
+        mp = rawxml ? "Content" : "Data\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Fragment)
@@ -645,7 +649,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         fprintf(out, "hdr.end\n");
     }
 
-    buf = data + hdrlen;
+    msgstart = buf = data + hdrlen;
     len = pktlen - hdrlen;
     if (hp->pkttype == CCNX_PT_Interest ||
              hp->pkttype == CCNX_PT_Data || hp->pkttype == CCNX_PT_NACK) {
@@ -659,6 +663,20 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     }
 
     if (!rawxml) {
+        SHA256_CTX_t ctx;
+        unsigned char objhash[SHA256_DIGEST_LENGTH];
+        int i;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, buf - msgstart);
+        ccnl_SHA256_Final(objhash, &ctx);
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, lev);
+        fprintf(out, "pkt.hash=");
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(out, "%02x", objhash[i]);
+        fprintf(out, "\n");
+
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
         fprintf(out, "pkt.end\n");

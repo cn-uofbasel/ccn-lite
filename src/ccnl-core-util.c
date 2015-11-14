@@ -693,7 +693,8 @@ free_packet(struct ccnl_pkt_s *pkt)
 #endif
 #ifdef USE_SUITE_CCNTLV
             case CCNL_SUITE_CCNTLV:
-                ccnl_free(pkt->s.ccntlv.keyid);
+                ccnl_free(pkt->s.ccntlv.objHashRestr);
+                ccnl_free(pkt->s.ccntlv.keyIdRestr);
                 break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -915,13 +916,13 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+        len = ccnl_ccnb_fillInterest(name, NULL, NULL, tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
+        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp, 0);
         break;
 #endif
 #ifdef USE_SUITE_CISTLV

@@ -235,7 +235,8 @@ struct ccnl_pktdetail_ccnb_s {
 };
 
 struct ccnl_pktdetail_ccntlv_s {
-    struct ccnl_buf_s *keyid;       // publisher keyID
+    unsigned char *objHashRestr;         // ObjectHashRestriction
+    struct ccnl_buf_s *keyIdRestr;       // publisher keyID restriction
 };
 
 struct ccnl_pktdetail_iottlv_s {
@@ -276,6 +277,9 @@ struct ccnl_pkt_s {
     unsigned char *hmacStart;
     int hmacLen;
     unsigned char *hmacSignature;
+#endif
+#ifdef USE_NAMELESS
+    unsigned char md[32]; // message digest (ObjHash)
 #endif
     unsigned int flags;
     char suite;

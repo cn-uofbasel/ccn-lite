@@ -209,8 +209,7 @@ usage:
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
-        len = mkInterest(prefix,
-                         &nonce,
+        len = mkInterest(prefix, &nonce, NULL,
                          out, sizeof(out));
 
         DEBUGMSG(TRACE,
