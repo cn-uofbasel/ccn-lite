@@ -228,6 +228,7 @@ int
 ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
                   unsigned char *out, int outlen)
 {
+    (void) dummy;
      int len, offset;
 
      offset = outlen;
@@ -285,14 +286,15 @@ int
 cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
                   unsigned char *out, int outlen)
 {
-     int len, offset;
+    (void) dummy;
+    int len, offset;
 
-     offset = outlen;
-     len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
-     if (len > 0)
-         memmove(out, out + offset, len);
+    offset = outlen;
+    len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
+    if (len > 0)
+        memmove(out, out + offset, len);
 
-     return len;
+    return len;
 }
 #endif
 
@@ -342,6 +344,7 @@ int
 iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
                  unsigned char *out, int outlen)
 {
+    (void) dummy;
     int offset, hoplim = 16;
 
     offset = outlen;
