@@ -50,7 +50,7 @@ main(int argc, char *argv[])
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
-    struct ccnl_prefix_s *name;
+    struct ccnl_prefix_s *name = NULL;
     int suite = CCNL_SUITE_DEFAULT;
     struct key_s *keys = NULL;
 
@@ -138,7 +138,8 @@ Usage:
     close(f);
     memset(out, 0, sizeof(out));
 
-    name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
+    if (strlen(argv[optind]))
+        name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
     switch (suite) {

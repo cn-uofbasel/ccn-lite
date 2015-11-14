@@ -34,6 +34,7 @@
 #define NEEDS_PACKET_CRAFTING // for IOTTLV
 
 #include "ccnl-common.c"
+#include "../lib-sha256.c"
 
 // ----------------------------------------------------------------------
 
@@ -570,7 +571,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 void
 ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
-    unsigned char *buf;
+    unsigned char *buf, *msgstart;
     char *mp;
     unsigned short hdrlen, pktlen; // payloadlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
@@ -647,7 +648,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         fprintf(out, "hdr.end\n");
     }
 
-    buf = data + hdrlen;
+    msgstart = buf = data + hdrlen;
     len = pktlen - hdrlen;
     if (hp->pkttype == CCNX_PT_Interest ||
              hp->pkttype == CCNX_PT_Data || hp->pkttype == CCNX_PT_NACK) {
@@ -661,6 +662,20 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     }
 
     if (!rawxml) {
+        SHA256_CTX_t ctx;
+        unsigned char objhash[SHA256_DIGEST_LENGTH];
+        int i;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, msgstart - data);
+        ccnl_SHA256_Final(objhash, &ctx);
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, lev);
+        fprintf(out, "pkt.hash=");
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(out, "%02x", objhash[i]);
+        fprintf(out, "\n");
+
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
         fprintf(out, "pkt.end\n");
