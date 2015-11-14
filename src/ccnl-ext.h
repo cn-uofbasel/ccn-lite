@@ -21,9 +21,10 @@
  */
 
 #pragma once
-
 #if defined(USE_FRAG) || defined(USE_MGMT) || defined(USE_NFN) || defined(USE_SIGNATURES) || defined(USE_SUITE_LOCALRPC)
-# define NEEDS_PACKET_CRAFTING
+# ifndef NEEDS_PACKET_CRAFTING
+#  define NEEDS_PACKET_CRAFTING
+# endif
 #endif
 
 // ----------------------------------------------------------------------
@@ -107,10 +108,18 @@ int ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
 
 int ccnl_is_fragment(unsigned char *data, int datalen);
 #else
+#ifndef ccnl_frag_new
 # define ccnl_frag_new(e,u)   NULL
+#endif
+#ifndef ccnl_frag_destroy
 # define ccnl_frag_destroy(e) do{}while(0)
+#endif
+#ifndef ccnl_frag_handle_fragment
 # define ccnl_frag_handle_fragment(r,f,data,len)    ccnl_buf_new(data,len)
+#endif
+#ifndef ccnl_is_fragment
 # define ccnl_is_fragment(d,l)  0
+#endif
 #endif // USE_FRAG
 
 #ifdef USE_SUITE_LOCALRPC
@@ -198,7 +207,9 @@ int ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *buf,
               struct ccnl_prefix_s *prefix, struct ccnl_face_s *from);
 
 #else
+#ifndef ccnl_mgmt
 # define ccnl_mgmt(r,b, p,f)  do{}while(0)
+#endif
 #endif
 
 // ----------------------------------------------------------------------
@@ -212,7 +223,9 @@ void ccnl_sched_destroy(struct ccnl_sched_s *s);
 
 #else
 # define ccnl_sched_CTS_done(S,C,L)     do{}while(0)
+#ifndef ccnl_sched_destroy
 # define ccnl_sched_destroy(S)          do{}while(0)
+#endif
 #endif
 
 // ----------------------------------------------------------------------
