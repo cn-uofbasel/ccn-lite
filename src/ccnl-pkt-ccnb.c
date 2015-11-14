@@ -420,6 +420,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
 
 int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
+                       unsigned char *objHashRestr,
                        unsigned char *out, int outlen)
 {
     int len = 0;

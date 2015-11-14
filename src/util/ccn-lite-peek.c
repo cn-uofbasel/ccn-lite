@@ -57,7 +57,7 @@ frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
+    int cnt, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
     const char *addr = NULL;
     char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
@@ -68,9 +68,20 @@ main(int argc, char *argv[])
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
     ccnl_isFragmentFunc isFragment;
+    unsigned char *objHashRestr = 0;
 
-    while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hd:n:s:u:v:w:x:")) != -1) {
         switch (opt) {
+        case 'd':
+            if (strlen(optarg) != 64)
+                break;
+            ccnl_free(objHashRestr);
+            objHashRestr = ccnl_malloc(32);
+            for (cnt = 0; cnt < 32; cnt++) {
+                objHashRestr[cnt] = hex2int(optarg[2*cnt]) * 16 +
+                                                   hex2int(optarg[2*cnt + 1]);
+            }
+            break;
         case 'n':
             chunknum = atoi(optarg);
             break;
@@ -100,6 +111,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            "  -d DIGEST        content digest\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
             "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
@@ -152,16 +164,14 @@ usage:
              ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
-        int nonce = random();
-        int rc;
+        int nonce = random(), rc, len;
         struct ccnl_face_s dummyFace;
 
         DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-        len = mkInterest(prefix,
-                         &nonce,
+        len = mkInterest(prefix, &nonce, objHashRestr,
                          out, sizeof(out));
 
         DEBUGMSG(DEBUG, "interest has %d bytes\n", len);

@@ -415,6 +415,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_M_Name:       tn = "Name"; break;
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
+                case CCNX_TLV_M_ObjHashRestriction: tn = "ObjHashRestriction"; break;
                 case CCNX_TLV_M_ENDChunk:   tn = "EndChunk"; break;
                 default: break;
                 }
@@ -667,7 +668,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         int i;
 
         ccnl_SHA256_Init(&ctx);
-        ccnl_SHA256_Update(&ctx, msgstart, msgstart - data);
+        ccnl_SHA256_Update(&ctx, msgstart, buf - msgstart);
         ccnl_SHA256_Final(objhash, &ctx);
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);

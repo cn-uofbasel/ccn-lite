@@ -276,6 +276,16 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     }
 #endif
 
+#ifdef USE_NAMELESS
+    {
+        SHA256_CTX_t ctx;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, *data - msgstart);
+        ccnl_SHA256_Final(pkt->md, &ctx);
+    }
+#endif
+
 //    if (*datalen > 0)
 //        goto Bail;
 
@@ -311,6 +321,18 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
     assert(p);
     assert(p->suite == CCNL_SUITE_CCNTLV);
+
+#ifdef USE_NAMELESS
+    if (p->s.ccntlv.objHashRestr) {
+        /*
+        unsigned char *cp = p->s.ccntlv.objHashRestr;
+        DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_cMatch ObjHashRestr\n");
+        DEBUGMSG_PCNX(TRACE, "  want %02x%02x%02x..., have %02x%02x%02x...\n",
+                      cp[0], cp[1], cp[2], c->pkt->md[0], c->pkt->md[1], c->pkt->md[2]);
+        */
+        return memcmp(p->s.ccntlv.objHashRestr, c->pkt->md, 32);
+    }
+#endif
 
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
@@ -484,31 +506,33 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 }
 
 // write Interest payload *before* buf[offs], adjust offs and return bytes used
+// (len has number of bytes already written a the end of the packet)
 int
 ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
-                            int *offset, unsigned char *buf)
+                            int *offset, unsigned char *buf, int len)
 {
     int oldoffset = *offset;
 
     if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
-                                        oldoffset - *offset, offset, buf) < 0)
+                                        oldoffset - *offset + len, offset, buf) < 0)
         return -1;
 
-    return oldoffset - *offset;
+    return oldoffset - *offset + len;
 }
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
+// (len has number of bytes already written a the end of the packet)
 int
-ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
-                                        int *offset, unsigned char *buf)
+ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
+                                   int *offset, unsigned char *buf, int len)
 {
-    int len, oldoffset;
+    int oldoffset;
     unsigned char hoplimit = 64; // setting hoplimit to max valid value?
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_prependInterest(name, offset, buf);
+    len = ccnl_ccntlv_prependInterest(name, offset, buf, len);
     if ( (unsigned int)len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
         return -1;
 
@@ -517,14 +541,6 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
         return -1;
 
     return oldoffset - *offset;
-}
-
-// write Interest packet *before* buf[offs], adjust offs and return bytes used
-int
-ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
-                                int *offset, unsigned char *buf)
-{
-    return ccnl_ccntlv_prependChunkInterestWithHdr(name, offset, buf);
 }
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used

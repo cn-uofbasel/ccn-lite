@@ -227,12 +227,16 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
-     int len, offset;
+     int len = 0, offset;
 
      offset = outlen;
-     len = ccnl_ccntlv_prependChunkInterestWithHdr(name, &offset, out);
+     if (objHashRestr)
+         len = ccnl_ccntlv_prependBlob(CCNX_TLV_M_ObjHashRestriction,
+                                       objHashRestr, 32, &offset, out);
+     len += ccnl_ccntlv_prependInterestWithHdr(name, &offset, out, len);
      if (len > 0)
          memmove(out, out + offset, len);
 
@@ -284,6 +288,7 @@ int ccntlv_isFragment(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
      int len, offset;
@@ -341,6 +346,7 @@ int cistlv_isData(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
+                 unsigned char *objHashRestr,
                  unsigned char *out, int outlen)
 {
     int offset, hoplim = 16;
@@ -393,6 +399,7 @@ int iottlv_isFragment(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
+                  unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
     int len, offset;
@@ -421,7 +428,7 @@ int ndntlv_isData(unsigned char *buf, int len)
 // ----------------------------------------------------------------------
 
 #ifdef NEEDS_PACKET_CRAFTING
-typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, unsigned char*, int);
 #endif // NEEDS_PACKET_CRAFTING
 typedef int (*ccnl_isContentFunc)(unsigned char*, int);
 typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);

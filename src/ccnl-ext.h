@@ -262,4 +262,7 @@ void ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
   void ccnl_close_socket(int s);
 #endif
 
+#if defined(USE_HMAC256) || defined(USE_NAMELESS)
+#  include "lib-sha256.c"
+#endif
 // eof
