@@ -25,6 +25,10 @@
 
 #include "ccnl-pkt-ccntlv.h"
 
+#ifndef DEBUGMSG_PCNX
+# define DEBUGMSG_PCNX(...) DEBUGMSG(__VA_ARGS__)
+#endif
+
 /* ----------------------------------------------------------------------
 Note:
   For a CCNTLV prefix, we store the name components INCLUDING
@@ -40,7 +44,7 @@ Note:
 // convert network order byte array into local unsigned integer value
 int
 ccnl_ccnltv_extractNetworkVarInt(unsigned char *buf, int len,
-                                 int *intval)
+                                 unsigned int *intval)
 {
     int val = 0;
 
@@ -70,7 +74,7 @@ ccnl_ccntlv_getHdrLen(unsigned char *data, int len)
 // parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_ccntlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, int *vallen)
+                   unsigned int *typ, unsigned int *vallen)
 {
 // Avoiding casting pointers to uint16t -- issue with the RFduino compiler?
 // Workaround:
@@ -132,7 +136,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // We ignore the TL types of the message for now:
     // content and interests are filled in both cases (and only one exists).
     // Validation info is now collected
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen)
+    if (ccnl_ccntlv_dehead(data, datalen, &typ, (unsigned int*) &len) || (int) len > *datalen)
         goto Bail;
 
     pkt->type = typ;
@@ -142,7 +146,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // XXX this parsing is not safe for all input data - needs more bound
     // checks, as some packets with wrong L values can bring this to crash
     oldpos = *data - start;
-    while (ccnl_ccntlv_dehead(data, datalen, &typ, &len) == 0) {
+    while (ccnl_ccntlv_dehead(data, datalen, &typ, (unsigned int*) &len) == 0) {
         unsigned char *cp = *data, *cp2;
         int len2 = len;
         int len3;
@@ -154,7 +158,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             p->nameptr = start + oldpos;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) || (int)len>*datalen)
+                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, (unsigned int*) &len3) || (int)len>*datalen)
                     goto Bail;
 
                 switch (typ) {
@@ -167,7 +171,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                   p->chunknum = (int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
-                                                         p->chunknum) < 0) {
+                                                         (unsigned int*) p->chunknum) < 0) {
                         DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
                         goto Bail;
                     }
@@ -185,7 +189,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     } // else out of name component memory: skip
                     break;
                 case CCNX_TLV_N_Meta:
-                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, &len3) ||
+                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, (unsigned int*) &len3) ||
                         (int)len > *datalen) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
@@ -213,7 +217,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CCNX_TLV_M_ENDChunk:
             if (ccnl_ccnltv_extractNetworkVarInt(cp, len,
-                              (int*) &(pkt->val.final_block_id)) < 0) {
+                              (unsigned int*) &(pkt->val.final_block_id)) < 0) {
                 DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_ENDChunk\n");
                 goto Bail;
             }
@@ -389,7 +393,7 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     unsigned char hdrlen = sizeof(struct ccnx_tlvhdr_ccnx2015_s);
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
-    if (*offset < hdrlen || payloadlen < 0)
+    if (*offset < hdrlen)
         return -1;
 
     *offset -= sizeof(struct ccnx_tlvhdr_ccnx2015_s);
@@ -583,7 +587,7 @@ ccnl_ccntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     memcpy((char*)(fp+1) + 4, fr->bigpkt->data + fr->sendoffs, datalen);
 
     tmp = fr->sendseq & 0x03fff;
-    if (datalen >= fr->bigpkt->datalen)   // single
+    if ((int) datalen >= fr->bigpkt->datalen)   // single
         tmp |= CCNL_BEFRAG_FLAG_SINGLE << 14;
     else if (fr->sendoffs == 0)           // start
         tmp |= CCNL_BEFRAG_FLAG_FIRST  << 14;

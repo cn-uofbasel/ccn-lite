@@ -581,7 +581,7 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 {
     unsigned char test[20];
     int offset, hdrlen;
-    unsigned int datalen;
+    int datalen;
     struct ccnl_buf_s *buf;
     uint16_t tmp = 0;
 
@@ -618,7 +618,7 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
         tmp |= CCNL_DTAG_FRAG_FLAG_SINGLE << 14;
     } else if (fr->sendoffs == 0)                    // start
         tmp |= CCNL_DTAG_FRAG_FLAG_FIRST << 14;
-    else if(datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
+    else if((unsigned) datalen >= (fr->bigpkt->datalen - fr->sendoffs)) { // end
         tmp |= CCNL_DTAG_FRAG_FLAG_LAST << 14;
     } else
         tmp |= CCNL_DTAG_FRAG_FLAG_MID << 14;        // middle

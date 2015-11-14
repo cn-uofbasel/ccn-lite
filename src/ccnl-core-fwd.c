@@ -502,7 +502,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CISCO_TLV_V1 ||
-                        *datalen < sizeof(struct cisco_tlvhdr_201501_s))
+                        *datalen < (int) sizeof(struct cisco_tlvhdr_201501_s))
         return -1;
 
     hp = (struct cisco_tlvhdr_201501_s*) *data;
