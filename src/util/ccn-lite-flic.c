@@ -89,19 +89,30 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
                 return -1;
             }
 
+            // Read in the content object (or manifest, doesn't matter...)
             len = read(f, body, sizeof(body));
             close(f);
             memset(out, 0, sizeof(out));
 
-            // TODO: parse the content object from the file to get the name
-            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
+            // Parse the packet
+            int skip;
+            int suite = ccnl_pkt2suite(body, len, &skip);
 
-            // char *uri = uris[i];
-            // if (uri) {
-            //     names[i] = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-            //     if (!name)
-            //         return -1;
-            // }
+            unsigned char *start, *data;
+            data = start = body + skip;
+            len -= skip;
+
+            int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
+            data += hdrlen;
+            len -= hdrlen;
+
+            // Convert the raw bytes to a ccnl packet type
+            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+
+            // Extract the name, type, and digest to construct the pointer. 
+            names[i] = pkt->pfx;
+            ptypes[i] = pkt->type;
+            digests[i] = pkt->md;
         } else {
             return -1;
         }
