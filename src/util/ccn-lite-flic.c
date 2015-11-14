@@ -64,7 +64,7 @@ flic_fetch()
 
 int
 flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
-                    char **fnames, int num_files)
+                    char **fnames, char *uri, int num_files)
 {
     unsigned char body[64*1024], out[64*1024]; // 64K
     int i, f, len, offs, msgLen;
@@ -109,7 +109,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             // Convert the raw bytes to a ccnl packet type
             struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
 
-            // Extract the name, type, and digest to construct the pointer. 
+            // Extract the name, type, and digest to construct the pointer.
             names[i] = pkt->pfx;
             ptypes[i] = pkt->type;
             digests[i] = pkt->md;
@@ -119,11 +119,6 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
     }
 
     // Now, build the manifest from the ptypes, names, and digests
-
-    len = read(f, body, sizeof(body));
-    close(f);
-    memset(out, 0, sizeof(out));
-
     if (uri) {
         name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
         if (!name)
@@ -131,63 +126,33 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
     }
 
     offs = sizeof(out); // set to the end of the buffer
+    len = ccnl_ccntlv_prependManifestWithHdr(ptypes, names, digests, SHA256_DIGEST_LENGTH,
+        num_pointers, &offs, out, &msgLen);
 
+    if (len <= 0) {
+        DEBUGMSG(ERROR, "internal error: empty packet\n");
+        return -1;
+    }
 
+    if (outprefix) {
+        f = creat(outprefix, 0666);
+        if (f < 0) {
+            perror("file open:");
+            return -1;
+        }
+    } else
+        f = 1;
 
-    len = ccnl_ccntlv_prependManifestWithHdr(name, body, len, &offs, out, &msgLen);
+    write(f, out + offs, len);
+    close(f);
 
-
-
-    // for (i = 0; i < num_files; i++) {
-        // if (fname) {
-        //     f = open(fname, O_RDONLY);
-        //     if (f < 0) {
-        //         perror("file open:");
-        //         return -1;
-        //     }
-        // } else
-        //     f = 0;
-    //     len = read(f, body, sizeof(body));
-    //     close(f);
-    //     memset(out, 0, sizeof(out));
-    //
-        // if (uri) {
-        //     name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-        //     if (!name)
-        //         return -1;
-        // }
-    //
-    //     offs = sizeof(out); // set to the end of the buffer
-    //
-    //     int num_pointers = num_files;
-    //
-    //     len = ccnl_ccntlv_prependManifestWithHdr(name, body, len, &offs, out, &msgLen);
-    //
-    //     if (len <= 0) {
-    //         DEBUGMSG(ERROR, "internal error: empty packet\n");
-    //         return -1;
-    //     }
-    //
-    //     if (outprefix) {
-    //         f = creat(outprefix, 0666);
-    //         if (f < 0) {
-    //             perror("file open:");
-    //             return -1;
-    //         }
-    //     } else
-    //         f = 1;
-    //
-    //     write(f, out + offs, len);
-    //     close(f);
-    //
-    //     ccnl_SHA256_Init(&ctx);
-    //     ccnl_SHA256_Update(&ctx, out + sizeof(out) - msgLen, msgLen);
-    //     ccnl_SHA256_Final(md, &ctx);
-    //     fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
-    //     for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    //         fprintf(stderr, "%02x", md[i]);
-    //     fprintf(stderr, "\n");
-    // }
+    ccnl_SHA256_Init(&ctx);
+    ccnl_SHA256_Update(&ctx, out + sizeof(out) - msgLen, msgLen);
+    ccnl_SHA256_Final(md, &ctx);
+    fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+    for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        fprintf(stderr, "%02x", md[i]);
+    fprintf(stderr, "\n");
 
     return 0;
 }
