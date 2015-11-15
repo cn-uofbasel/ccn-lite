@@ -109,9 +109,16 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             // Convert the raw bytes to a ccnl packet type
             struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
 
+            int packet_type = 0;
+            int packet_length = 0;
+            if (ccnl_ccntlv_dehead(&pkt->content, &len, &packet_type, &packet_length) < 0)
+                return 1;
+
+            printf("TYPE = %d\n", packet_type);
+
             // Extract the name, type, and digest to construct the pointer.
+            ptypes[i] = packet_type;
             names[i] = pkt->pfx;
-            ptypes[i] = pkt->type;
             digests[i] = pkt->md;
         } else {
             return -1;
@@ -201,7 +208,9 @@ Usage:
             goto Usage;
         if ((optind + 1) < argc)
             uri = argv[optind+1];
-        flic_produce(packettype, outprefix, keys, argv[optind], uri);
+
+        // CAWDO: left off here
+        flic_produceFromFiles(packettype, outprefix, keys, argv[optind], uri);
     } else {
         if (optind > argc)
             goto Usage;
