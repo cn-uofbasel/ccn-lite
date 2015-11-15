@@ -332,7 +332,6 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
     return len;
 }
 
-<<<<<<< HEAD
 // fill in the compVector (watch out: this modifies the uri string)
 int
 ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
@@ -788,14 +787,6 @@ ccnl_addr2ascii(sockunion *su)
 int
 ccnl_setIpSocketAddr(struct sockaddr_in *ip4, const char *addr, uint16_t port)
 {
-<<<<<<< HEAD
-    (void) ccntlv_skip;
-    (void) call_slash;
-    int len = 0, i, j;
-    /*static char *prefix_buf1;
-    static char *prefix_buf2;
-    static char *buf;*/
-=======
     ip4->sin_family = AF_INET;
     ip4->sin_port = htons(port);
     return inet_aton(addr, &ip4->sin_addr);
@@ -807,7 +798,6 @@ ccnl_setSockunionIpAddr(sockunion *su, const char *addr, uint16_t port)
     su->sa.sa_family = AF_INET;
     return ccnl_setIpSocketAddr(&su->ip4, addr, port);
 }
->>>>>>> 6d960bab936072c22dea29df64a32e2c3650bb6c
 
 #endif
 
