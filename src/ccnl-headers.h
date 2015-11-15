@@ -178,7 +178,6 @@ void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int 
 void ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig, struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, int suite);
 int ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 int ccnl_nfn(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix, struct ccnl_face_s *from, struct configuration_s *config, struct ccnl_interest_s *interest, int suite, int start_locally);
-struct ccnl_interest_s *ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, int suite, struct ccnl_buf_s **buf, struct ccnl_prefix_s **p, int minsfx, int maxsfx);
 int ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_content_s *c);
 #endif
 
