@@ -107,8 +107,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
     unsigned char *msgstart;
     struct ccnl_pkt_s *pkt;
-    int i;
-    unsigned int len, msglen, typ, oldpos;
+    int i, len, msglen;
+    unsigned int typ, oldpos;
     struct ccnl_prefix_s *p;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
@@ -244,7 +244,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 #ifdef USE_HMAC256
     if (*datalen > 0) {
         unsigned char *cp;
-        unsigned int len2, len3;
+        int len2, len3;
 
         if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen)
             goto Bail;

@@ -884,7 +884,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
     } else
 #endif
-#ifdef USE_IPV4
+
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         uint16_t uPort = (uint16_t) strtoul((const char*) port, NULL, 0);
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%u\n",
@@ -896,17 +896,14 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #endif
 #ifdef USE_UNIXSOCKET
     if (path) {
+        sockunion su;
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
         ccnl_setSockunionUnixPath(&su, (char*) path);
-        sizeSockAddr = sizeof(struct sockaddr_un);
+        f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(struct sockaddr_un));
     } else
 #endif
     {
         DEBUGMSG(INFO, "Could not create new face.");
-    }
-
-    if (sizeSockAddr > 0) {
-        f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeSockAddr);
     }
 
     if (f) {

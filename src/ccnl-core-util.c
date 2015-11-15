@@ -332,7 +332,6 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
     return len;
 }
 
-<<<<<<< HEAD
 // fill in the compVector (watch out: this modifies the uri string)
 int
 ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
