@@ -144,7 +144,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, (int*) &msglen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
-        unsigned int len2, len3;
+        int len2, len3;
 
         if ( len > msglen)
             goto Bail;
@@ -154,8 +154,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             len2 = len;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) ||
-                                                                   len3 > len2)
+                if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) || len3 > len2)
                     goto Bail;
 
                 switch (typ) {
