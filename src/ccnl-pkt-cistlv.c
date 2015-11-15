@@ -30,7 +30,7 @@
 // convert network order byte array into local unsigned integer value
 int
 ccnl_cistlv_extractNetworkVarInt(unsigned char *buf, int len,
-                                 unsigned int *intval)
+                                 int *intval)
 {
     int val = 0;
 
@@ -123,7 +123,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     // We extract the chunknum to the prefix but keep it in the name component for now
                     // In the future we possibly want to remove the chunk segment from the name components
                     // and rely on the chunknum field in the prefix.
-                  p->chunknum = (unsigned int*) ccnl_malloc(sizeof(int));
+                  p->chunknum = (int*) ccnl_malloc(sizeof(int));
 
                     if (ccnl_cistlv_extractNetworkVarInt(cp,
                                                          len2, p->chunknum) < 0) {
@@ -161,7 +161,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
             break;
         case CISCO_TLV_FinalSegmentID:
             if (ccnl_cistlv_extractNetworkVarInt(cp, len2,
-                               (unsigned int*) &pkt->val.final_block_id) < 0) {
+                               (int*) &pkt->val.final_block_id) < 0) {
                     DEBUGMSG(WARNING, "error when extracting CISCO_TLV_FinalSegmentID\n");
                     goto Bail;
             }

@@ -50,12 +50,12 @@
 # define CCNL_MAX_NAME_COMP              64
 #endif
 
-#define CCNL_CONTENT_TIMEOUT            30 // sec
-#define CCNL_INTEREST_TIMEOUT           4  // sec
-#define CCNL_MAX_INTEREST_RETRANSMIT    2
+#define CCNL_CONTENT_TIMEOUT            300 // sec
+#define CCNL_INTEREST_TIMEOUT           40  // sec
+#define CCNL_MAX_INTEREST_RETRANSMIT    20
 
 // #define CCNL_FACE_TIMEOUT    60 // sec
-#define CCNL_FACE_TIMEOUT       15 // sec
+#define CCNL_FACE_TIMEOUT       150 // sec
 
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
 #define CCNL_MAX_NONCES                 256 // for detected dups
@@ -105,13 +105,14 @@ enum {
 // management protocol: (ccnl-ext-mgmt.c)
 #define CCNL_DTAG_MACSRC        99001 // newface: which L2 interface
 #define CCNL_DTAG_IP4SRC        99002 // newface: which L3 interface
-#define CCNL_DTAG_UNIXSRC       99003 // newface: which UNIX path
-#define CCNL_DTAG_FRAG          99004 // fragmentation protocol, see core.h
-#define CCNL_DTAG_FACEFLAGS     99005 //
-#define CCNL_DTAG_DEVINSTANCE   99006 // adding/removing a device/interface
-#define CCNL_DTAG_DEVNAME       99007 // name of interface (eth0, wlan0)
-#define CCNL_DTAG_DEVFLAGS      99008 //
-#define CCNL_DTAG_MTU           99009 //
+#define CCNL_DTAG_IP6SRC        99003 // newface: which L3 interface
+#define CCNL_DTAG_UNIXSRC       99004 // newface: which UNIX path
+#define CCNL_DTAG_FRAG          99005 // fragmentation protocol, see core.h
+#define CCNL_DTAG_FACEFLAGS     99006 //
+#define CCNL_DTAG_DEVINSTANCE   99007 // adding/removing a device/interface
+#define CCNL_DTAG_DEVNAME       99008 // name of interface (eth0, wlan0)
+#define CCNL_DTAG_DEVFLAGS      99009 //
+#define CCNL_DTAG_MTU           99010 //
 
 #define CCNL_DTAG_DEBUGREQUEST  99100 //
 #define CCNL_DTAG_DEBUGACTION   99101 // dump, halt, dump+halt

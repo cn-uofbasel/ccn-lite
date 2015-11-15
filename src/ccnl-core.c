@@ -60,6 +60,11 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
             return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
                         s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
 #endif
+#ifdef USE_IPV6
+        case AF_INET6:
+        return ((memcmp(s1->ip6.sin6_addr.s6_addr, s2->ip6.sin6_addr.s6_addr, 16) == 0) &&
+                        s1->ip6.sin6_port == s2->ip6.sin6_port) ? 0 : -1;
+#endif
 #ifdef USE_UNIXSOCKET
         case AF_UNIX:
             return strcmp(s1->ux.sun_path, s2->ux.sun_path);
@@ -253,7 +258,7 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
 {
     struct ccnl_txrequest_s *r;
 
-    DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%d (qlen=%d)\n",
+    DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
                   (void*)ifc, (void*)buf,
                   buf ? (int) buf->datalen : -1, ifc ? ifc->qlen : -1);
 
@@ -342,8 +347,8 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf)
 {
     struct ccnl_buf_s *msg;
-    DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%d\n",
-             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? (int) buf->datalen : -1);
+    DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%zd\n",
+             (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
 
     for (msg = to->outq; msg; msg = msg->next) // already in the queue?
         if (buf_equal(msg, buf)) {
@@ -578,6 +583,7 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 struct ccnl_content_s*
 ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
 {
+    (void) ccnl;
     struct ccnl_content_s *c;
 #ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
@@ -777,6 +783,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 void
 ccnl_do_ageing(void *ptr, void *dummy)
 {
+    (void) dummy;
     struct ccnl_relay_s *relay = (struct ccnl_relay_s*) ptr;
     struct ccnl_content_s *c = relay->contents;
     struct ccnl_interest_s *i = relay->pit;

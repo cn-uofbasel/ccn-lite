@@ -44,7 +44,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#if !(defined(_BSD_SOURCE) && defined(SVID_SOURCE))
+#ifndef _DEFAULT_SOURCE
 int inet_aton(const char *cp, struct in_addr *inp);
 #endif
 

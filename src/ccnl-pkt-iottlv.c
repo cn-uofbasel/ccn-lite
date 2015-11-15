@@ -68,7 +68,7 @@ ccnl_iottlv_peekType(unsigned char *buf, int len)
 // parse TL (returned in typ and vallen) and adjust buf and len
 int
 ccnl_iottlv_dehead(unsigned char **buf, int *len,
-                   unsigned int *typ, unsigned int *vallen)
+                   unsigned int *typ, int *vallen)
 {
     if (*len < 1)
         return -1;
@@ -92,7 +92,8 @@ struct ccnl_prefix_s *
 ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
 {
     int len = datalen;
-    unsigned int typ, len2;
+    unsigned int typ;
+    int len2;
     struct ccnl_prefix_s *p;
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
@@ -146,8 +147,8 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
 {
     struct ccnl_pkt_s *pkt;
     unsigned char *cp, tmp[10];
-    int cplen, len2;
-    unsigned int typ, len, state;
+    int cplen, len, len2;
+    unsigned int typ, state;
 
     DEBUGMSG_PIOT(DEBUG, "ccnl_iottlv_extract len=%d\n", *datalen);
     /*
@@ -179,7 +180,7 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
         {
             cp = *data;
             cplen = len;
-            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
                 if (typ == IOT_TLV_H_HopLim && len2 == 1) {
                     if (*cp > 0)
                         *cp -= 1;
@@ -195,7 +196,7 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
         case IOTPS(IOT_TLV_Reply, IOT_TLV_R_Name):
             cp = *data;
             cplen = len;
-            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
+            while (cplen > 0 && !ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
                 if (typ == IOT_TLV_N_PathName) {
                     if (!pkt->pfx)
                         pkt->pfx = ccnl_iottlv_parseHierarchicalName(cp, len2);
@@ -223,7 +224,7 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
         case IOTPS(IOT_TLV_Reply, IOT_TLV_R_Payload):
             cp = *data;
             cplen = len;
-            if (!ccnl_iottlv_dehead(&cp, &cplen, &typ, (unsigned int *)&len2)) {
+            if (!ccnl_iottlv_dehead(&cp, &cplen, &typ, &len2)) {
                 if (typ == IOT_TLV_PL_Data) {
                     pkt->content = cp;
                     pkt->contlen = len2;

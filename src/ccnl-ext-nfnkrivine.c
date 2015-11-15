@@ -412,6 +412,7 @@ recontinue: //loop by reentering after timeout of the interest...
         //TODO Check? //TODO remove interest here?
         if (c) {
 	    DEBUGMSG(DEBUG, "Result was found\n");
+            DEBUGMSG_CFWD(INFO, "data after result was found %.*s\n", c->pkt->contlen, c->pkt->content);
             goto handlecontent;
 	}
     }
@@ -484,7 +485,15 @@ handlecontent: //if result was found ---> handle it
                 ccnl_nfn_reply_thunk(ccnl, config);
             }
         } else {
-            if (isdigit(*c->pkt->content)) {
+            int isANumber = 1, i = 0;
+	    for(i = 0; i < c->pkt->contlen; ++i){
+	    	if(!isdigit(c->pkt->content[i])){
+		    isANumber = 0;
+		    break;
+		}
+	    }
+	    
+            if (isANumber){
                 int *integer = ccnl_malloc(sizeof(int));
                 *integer = strtol((char*)c->pkt->content, 0, 0);
                 push_to_stack(&config->result_stack, integer, STACK_TYPE_INT);

@@ -38,6 +38,7 @@
 #define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
+//#define USE_IPV6
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
@@ -181,6 +182,31 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
     }
     len = sizeof(*si);
     getsockname(s, (struct sockaddr*) si, &len);
+
+    return s;
+}
+#elif defined(USE_IPV6)
+int
+ccnl_open_udpdev(int port, struct sockaddr_in6 *sin)
+{
+    int s;
+    unsigned int len;
+
+    s = socket(PF_INET6, SOCK_DGRAM, 0);
+    if (s < 0) {
+        perror("udp socket");
+        return -1;
+    }
+
+    sin->sin6_addr = in6addr_any;
+    sin->sin6_port = htons(port);
+    sin->sin6_family = PF_INET6;
+    if(bind(s, (struct sockaddr *)sin, sizeof(*sin)) < 0) {
+        perror("udp sock bind");
+        return -1;
+    }
+    len = sizeof(*sin);
+    getsockname(s, (struct sockaddr*) sin, &len);
 
     return s;
 }
@@ -582,7 +608,8 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
-        unsigned int typ, len;
+        unsigned int typ;
+        int len;
 #endif
         struct ccnl_pkt_s *pk;
 

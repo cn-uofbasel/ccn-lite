@@ -28,6 +28,7 @@
 
 #define USE_LOGGING
 #define CCNL_UNIX
+#define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _SVID_SOURCE
 
@@ -37,7 +38,7 @@
 
 // ----------------------------------------------------------------------
 
-#include <ctype.h>
+//#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -365,7 +366,8 @@ iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
 int iottlv_isReply(unsigned char *buf, int len)
 {
     int enc = 1, suite;
-    unsigned int typ, vallen;
+    unsigned int typ;
+    int vallen;
 
     while (!ccnl_switch_dehead(&buf, &len, &enc));
     suite = ccnl_enc2suite(enc);
@@ -415,7 +417,8 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 
 int ndntlv_isData(unsigned char *buf, int len)
 {
-    unsigned int typ, vallen;
+    unsigned int typ;
+    int vallen;
 
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
         return -1;

@@ -86,6 +86,7 @@ dtag2str(int dtag)
     // Try DTAGs defined in ccnl-defs.h
     case CCNL_DTAG_MACSRC:        return "MACSRC";
     case CCNL_DTAG_IP4SRC:        return "IP4SRC";
+    case CCNL_DTAG_IP6SRC:        return "IP6SRC";
     case CCNL_DTAG_UNIXSRC:       return "UNIXSRC";
     case CCNL_DTAG_FRAG:          return "FRAG";
     case CCNL_DTAG_FACEFLAGS:     return "FACEFLAGS";

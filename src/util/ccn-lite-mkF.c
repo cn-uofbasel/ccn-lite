@@ -61,7 +61,7 @@ file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
         if (noclobber && !access(fname, F_OK)) {
             printf("file %s already exists, skipping this name\n", fname);
         } else {
-            printf("new fragment, len=%d / %d --> %s\n",
+            printf("new fragment, len=%zd / %d --> %s\n",
                    fragbuf->datalen, fr.sendseq, fname);
             f = creat(fname, 0666);
             if (f < 0)

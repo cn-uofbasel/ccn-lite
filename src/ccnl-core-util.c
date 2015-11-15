@@ -123,6 +123,17 @@ ccnl_is_local_addr(sockunion *su)
     if (su->sa.sa_family == AF_INET)
         return su->ip4.sin_addr.s_addr == htonl(0x7f000001);
 #endif
+#ifdef USE_IPV6
+    if (su->sa.sa_family == AF_INET6) {
+        static const unsigned char loopback_bytes[] =
+                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+        static const unsigned char mapped_ipv4_loopback[] =
+                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1 };
+        return ((memcmp(su->ip6.sin6_addr.s6_addr, loopback_bytes, 16) == 0) ||
+                (memcmp(su->ip6.sin6_addr.s6_addr, mapped_ipv4_loopback, 16) == 0));
+    }
+
+#endif
     return 0;
 }
 
@@ -482,6 +493,14 @@ ccnl_addr2ascii(sockunion *su)
                             ntohs(su->ip4.sin_port));
         break;
     }
+#endif
+#ifdef USE_IPV6
+    case AF_INET6: {
+        char str[INET6_ADDRSTRLEN];
+        sprintf(result, "%s/%u", inet_ntop(AF_INET6, su->ip6.sin6_addr.s6_addr, str, INET6_ADDRSTRLEN),
+                ntohs(su->ip6.sin6_port));
+        return result;
+                   }
 #endif
 #ifdef USE_UNIXSOCKET
     case AF_UNIX: {

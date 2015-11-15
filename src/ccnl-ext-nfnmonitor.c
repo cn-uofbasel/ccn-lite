@@ -166,10 +166,19 @@ ccnl_nfn_monitor(struct ccnl_relay_s *ccnl,
 
     if (face) {
         char monitorpacket[CCNL_MAX_PACKET_SIZE];
+#ifdef USE_IPV4
         int l = ccnl_ext_nfnmonitor_record(inet_ntoa(face->peer.ip4.sin_addr),
                                            ntohs(face->peer.ip4.sin_port),
-                                           pr, data, len, monitorpacket,
-                                           CCNL_ARRAY_SIZE(monitorpacket));
+                                           pr, data, len, monitorpacket);
+#elif defined(USE_IPV6)
+        char str[INET6_ADDRSTRLEN];
+        int l = ccnl_ext_nfnmonitor_record((char*) inet_ntop(AF_INET6,
+                                                             face->peer.ip6.sin6_addr.s6_addr,
+                                                             str,
+                                                             INET6_ADDRSTRLEN),
+                                           ntohs(face->peer.ip6.sin6_port), pr,
+                                           data, len, monitorpacket);
+#endif
         ccnl_ext_nfnmonitor_sendToMonitor(ccnl, monitorpacket, l);
     }
 

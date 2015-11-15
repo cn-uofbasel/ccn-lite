@@ -236,7 +236,7 @@ restart:
         struct ccnl_content_s *c;
 
         DEBUGMSG(INFO,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
-                 (int)res->datalen, res->data, (int)res->datalen, ccnl->km->numOfRunningComputations);
+                 res->datalen, res->data, res->datalen, ccnl->km->numOfRunningComputations);
         if (config && config->fox_state->thunk_request) {
             // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
             ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
@@ -325,7 +325,11 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i_it->from = NULL;
             ccnl_nfn_continue_computation(relay, faceid, 0);
             i_it = ccnl_interest_remove(relay, i_it);
+<<<<<<< HEAD
+            ccnl_face_remove(relay, from2);
+=======
             //ccnl_face_remove(relay, from);
+>>>>>>> default_source
             ++found;
             //goto Done;
         } else

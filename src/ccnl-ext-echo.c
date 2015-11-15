@@ -48,7 +48,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
         pfx->comp[pfx->compcnt-1][1] == CCNX_TLV_N_Chunk) {
         pfx2 = ccnl_prefix_dup(pfx);
         pfx2->compcnt--;
-        pfx2->chunknum = (unsigned int*) ccnl_malloc(sizeof(unsigned int));
+        pfx2->chunknum = (int*) ccnl_malloc(sizeof(unsigned int));
         *(pfx2->chunknum) = 0;
         pfx = pfx2;
     }

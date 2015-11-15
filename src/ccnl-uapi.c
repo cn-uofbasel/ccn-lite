@@ -356,6 +356,11 @@ processSuiteData (void *relay, struct info_data_s *o, sockunion * from_addr /*0 
             addr_len = sizeof(from_addr->ip4);
             break;
 #endif
+#ifdef USE_IPV6
+        case AF_INET6:
+            addr_len = sizeof(from_addr->ip6);
+            break;
+#endif
 #ifdef USE_UNIXSOCKET
         case AF_UNIX:
             addr_len = sizeof(from_addr->ux);
