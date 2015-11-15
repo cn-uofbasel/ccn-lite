@@ -278,7 +278,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     if (pkt->content)
         pkt->content = pkt->buf->data + (pkt->content - start);
     if (p) {
-        for (i = 0; i < p->compcnt; i++)
+        for (i = 0; i < (unsigned int) p->compcnt; i++)
             p->comp[i] = pkt->buf->data + (p->comp[i] - start);
         if (p->nameptr)
             p->nameptr = pkt->buf->data + (p->nameptr - start);
