@@ -893,7 +893,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         // not implmented yet: honor the requested ip4src parameter
         sizeSockAddr = sizeof(struct sockaddr_in);
     } else
-#endif
+    
 #ifdef USE_UNIXSOCKET
     if (path) {
         sockunion su;
