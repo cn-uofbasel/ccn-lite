@@ -211,7 +211,7 @@ usage:
 
 #ifdef USE_FRAG
             if (isFragment && isFragment(cp, len2)) {
-                unsigned int t;
+                int t;
                 int len3;
                 DEBUGMSG(DEBUG, "  fragment, %d bytes\n", len2);
                 switch(suite) {
@@ -220,7 +220,7 @@ usage:
                     hp = (struct ccnx_tlvhdr_ccnx2015_s *) out;
                     cp = out + sizeof(*hp);
                     len2 -= sizeof(*hp);
-                    if (ccnl_ccntlv_dehead(&cp, &len2, &t, &len3) < 0 ||
+                    if (ccnl_ccntlv_dehead(&cp, &len2, (unsigned*)&t, (unsigned*) &len3) < 0 ||
                         t != CCNX_TLV_TL_Fragment) {
                         DEBUGMSG(ERROR, "  error parsing fragment\n");
                         continue;
@@ -240,7 +240,7 @@ usage:
                 case CCNL_SUITE_IOTTLV: {
                     uint16_t tmp;
 
-                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) { // IOT_TLV_Fragment
+                    if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3)) { // IOT_TLV_Fragment
                         DEBUGMSG(VERBOSE, "problem parsing fragment\n");
                         continue;
                     }
@@ -253,7 +253,7 @@ usage:
                     if (t == IOT_TLV_F_OptFragHdr) { // skip it for the time being
                         cp += len3;
                         len2 -= len3;
-                        if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3))
+                        if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3))
                             continue;
                     }
                     if (t != IOT_TLV_F_FlagsAndSeq || len3 < 2) {
@@ -264,7 +264,7 @@ usage:
                     cp += len3;
                     len2 -= len3;
 
-                    if (ccnl_iottlv_dehead(&cp, &len2, &t, &len3)) {
+                    if (ccnl_iottlv_dehead(&cp, &len2, (unsigned*) &t, &len3)) {
                         DEBUGMSG(DEBUG, "  cannot parse frag payload\n");
                         continue;
                     }

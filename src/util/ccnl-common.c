@@ -411,7 +411,7 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 
 int ndntlv_isData(unsigned char *buf, int len)
 {
-    unsigned int typ;
+    int typ;
     int vallen;
 
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
