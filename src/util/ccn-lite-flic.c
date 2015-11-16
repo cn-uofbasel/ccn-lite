@@ -135,6 +135,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
 
     // Now, build the manifest from the ptypes, names, and digests
     if (uri) {
+        printf("manifest has a name: %s\n", uri);
         name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
         if (!name)
             return -1;
@@ -231,8 +232,10 @@ Usage:
 
     if (outprefix && fnames) {
       	char *uri = NULL;
-        if ((optind + 1) < argc)
-            uri = argv[optind+1];
+        if (optind < argc)
+            uri = argv[optind];
+        else
+            goto Usage;
 
         flic_produceFromFiles(packettype, outprefix, keys, fnames, uri, num_files);
     } else {
