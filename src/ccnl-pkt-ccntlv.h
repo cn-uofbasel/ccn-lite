@@ -139,6 +139,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PAYLDTYPE_Manifest                 3
 
 // manifest related defines
+
 // ManifestBody := HashGroup+
 // HashGroup :=  [MetaData] (DataPointer | ManifestPointer)+
 // DataPointer := HashValue
@@ -151,10 +152,10 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_MANIFEST_HG_METADATA               1
 #define CCNX_MANIFEST_HG_PTR2DATA               2
 #define CCNX_MANIFEST_HG_PTR2MANIFEST           3
-#define CCNX_MANIFEST_MT_NAME                   1
-#define CCNX_MANIFEST_MT_BLOCKSIZE              2
-#define CCNX_MANIFEST_MT_OVERALLDATASIZE        3
-#define CCNX_MANIFEST_MT_OVERALLDATASHA256      4
+#define CCNX_MANIFEST_MT_NAME                   0 // == CCNX_TLV_M_Name
+#define CCNX_MANIFEST_MT_BLOCKSIZE              1
+#define CCNX_MANIFEST_MT_OVERALLDATASIZE        2
+#define CCNX_MANIFEST_MT_OVERALLDATASHA256      3
 
 // validation algorithms (Sect 3.6.4.1)
 #define CCNX_VALIDALGO_CRC32C                   2

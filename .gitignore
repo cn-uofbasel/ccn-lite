@@ -35,6 +35,7 @@ src/util/ccn-lite-localrpc
 src/util/ccn-lite-mkC
 src/util/ccn-lite-mkF
 src/util/ccn-lite-mkI
+src/util/ccn-lite-mkM
 src/util/ccn-lite-peek
 src/util/ccn-lite-peekcomputation
 src/util/ccn-lite-pktdump

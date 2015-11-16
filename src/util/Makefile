@@ -13,8 +13,9 @@ PROGS:=ccn-lite-ccnb2xml \
        ccn-lite-fetch \
        ccn-lite-flic \
        ccn-lite-mkC \
-       ccn-lite-mkI \
        ccn-lite-mkF \
+       ccn-lite-mkI \
+       ccn-lite-mkM \
        ccn-lite-peek \
        ccn-lite-pktdump \
        ccn-lite-produce \
@@ -99,6 +100,11 @@ ccn-lite-mkF: ccn-lite-mkF.c Makefile ${CCNB_LIB} ${CCNB_LIB} ${CCNTLV_LIB} \
 
 ccn-lite-mkI: ccn-lite-mkI.c Makefile ${CCNB_LIB} ${CCNTLV_LIB} ${NDNTLV_LIB} \
 		../ccnl-defs.h
+	${CC} -o $@ ${CCNLCFLAGS} $<
+	@${CREATE_BIN}
+
+ccn-lite-mkM: ccn-lite-mkM.c Makefile ${CCNB_LIB} ${CCNB_LIB} ${CCNTLV_LIB} \
+		${NDNTLV_LIB} ../ccnl-defs.h
 	${CC} -o $@ ${CCNLCFLAGS} $<
 	@${CREATE_BIN}
 
