@@ -817,7 +817,6 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     unsigned char *buf;
     int buflen, num, typ;
     sockunion su;
-    size_t sizeSockAddr = 0;
     unsigned char *action, *macsrc, *ip4src, *proto, *host, *port,
         *path, *frag, *flags;
     char *cp = "newface cmd failed";
@@ -832,7 +831,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     DEBUGMSG(TRACE, "ccnl_mgmt_newface from=%p, ifndx=%d\n",
              (void*) from, from->ifndx);
-    action = macsrc = ip4src = ip6src = proto = host = port = NULL;
+    action = macsrc = ip4src = proto = host = port = NULL;
     path = frag = flags = NULL;
 
     buf = prefix->comp[3];
@@ -854,7 +853,6 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         extractStr(action, CCN_DTAG_ACTION);
         extractStr(macsrc, CCNL_DTAG_MACSRC);
         extractStr(ip4src, CCNL_DTAG_IP4SRC);
-        extractStr(ip6src, CCNL_DTAG_IP6SRC);
         extractStr(path, CCNL_DTAG_UNIXSRC);
         extractStr(proto, CCN_DTAG_IPPROTO);
         extractStr(host, CCN_DTAG_HOST);
@@ -880,10 +878,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                    su.eth.sll_addr+2, su.eth.sll_addr+3,
                    su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
         // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-            sizeSockAddr = sizeof(struct sockaddr_ll);
         }
     } else
 #endif
+
 
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         uint16_t uPort = (uint16_t) strtoul((const char*) port, NULL, 0);
@@ -891,12 +889,10 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                  ip4src, proto, host, uPort);
         ccnl_setSockunionIpAddr(&su, (const char*) host, uPort);
         // not implmented yet: honor the requested ip4src parameter
-        sizeSockAddr = sizeof(struct sockaddr_in);
     } else
     
 #ifdef USE_UNIXSOCKET
     if (path) {
-        sockunion su;
         DEBUGMSG(TRACE, "  adding UNIX face unixsrc=%s\n", path);
         ccnl_setSockunionUnixPath(&su, (char*) path);
         f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(struct sockaddr_un));
@@ -931,9 +927,6 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 #ifdef USE_IPV4
         DEBUGMSG(TRACE, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
                  macsrc, ip4src, proto, host, port, frag, flags);
-#elif defined(USE_IPV6)
-        DEBUGMSG(TRACE, "  newface request for (macsrc=%s ip6src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
-                 macsrc, ip6src, proto, host, port, frag, flags);
 #endif
     }
     rc = 0;
@@ -955,10 +948,6 @@ Bail:
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_MACSRC, CCN_TT_DTAG, (char*) macsrc);
     if (ip4src) {
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP4SRC, CCN_TT_DTAG, (char*) ip4src);
-        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
-    }
-    if (ip6src) {
-        len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCNL_DTAG_IP6SRC, CCN_TT_DTAG, (char*) ip6src);
         len3 += ccnl_ccnb_mkStrBlob(faceinst_buf+len3, CCN_DTAG_IPPROTO, CCN_TT_DTAG, "17");
     }
     if (host)
@@ -990,7 +979,6 @@ Bail:
     ccnl_free(action);
     ccnl_free(macsrc);
     ccnl_free(ip4src);
-    ccnl_free(ip6src);
     ccnl_free(proto);
     ccnl_free(host);
     ccnl_free(port);
