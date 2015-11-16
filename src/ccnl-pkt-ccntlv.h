@@ -156,12 +156,6 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_MANIFEST_MT_OVERALLDATASIZE        3
 #define CCNX_MANIFEST_MT_OVERALLDATASHA256      4
 
-// old - to be removed
-#define CCNX_MANIFEST_HASH_LIST 0x0100
-#define CCNX_MANIFEST_HASH_LIST_NAME 0x0101
-#define CCNX_MANIFEST_POINTER_TYPE_MANIFEST 0x0102
-#define CCNX_MANIFEST_POINTER_TYPE_CONTENT 0x0103
-
 // validation algorithms (Sect 3.6.4.1)
 #define CCNX_VALIDALGO_CRC32C                   2
 #define CCNX_VALIDALGO_HMAC_SHA256              4

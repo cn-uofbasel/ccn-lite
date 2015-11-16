@@ -604,12 +604,11 @@ ccnl_ccntlv_prependPointer(int ptype, unsigned char *digest, int digest_length,
 {
     int tloffset = *offset;
 
-    // Wrap the stuff before in a pointer TLV
     if (ptype == CCNX_TLV_TL_Manifest) {
-        if (ccnl_ccntlv_prependBlob(CCNX_MANIFEST_HG_PTR2DATA, digest, digest_length, offset, buf) < 0)
+        if (ccnl_ccntlv_prependBlob(CCNX_MANIFEST_HG_PTR2MANIFEST, digest, digest_length, offset, buf) < 0)
             return -1;
     } else {
-        if (ccnl_ccntlv_prependBlob(CCNX_MANIFEST_HG_PTR2MANIFEST, digest, digest_length, offset, buf) < 0)
+        if (ccnl_ccntlv_prependBlob(CCNX_MANIFEST_HG_PTR2DATA, digest, digest_length, offset, buf) < 0)
             return -1;
     }
 
@@ -632,10 +631,23 @@ ccnl_ccntlv_prependHashGroup(int *ptypes, struct ccnl_prefix_s *name,
 
     // Prepend the name, if given
     if (name) {
-        if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_MT_NAME, tloffset - *offset, offset, buf) < 0)
+	printf("appending a name!\n");
+	int nameend = *offset;
+	int cnt;
+	for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {
+            if (*offset < name->complen[cnt])
+                return -1;
+            *offset -= name->complen[cnt];
+            memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
+	}
+	
+        // Wrap up the name in a TLV
+        if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_MT_NAME, nameend - *offset, offset, buf) < 0)
+	    return -1;
+
+        // Wrap up the name in the metadata TLV
+        if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_HG_METADATA, nameend - *offset, offset, buf) < 0)
 	    return -1;	
-        if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_HG_METADATA, tloffset - *offset, offset, buf) < 0)
-            return -1;
     }
 
     // Wrap the stuff before in a pointer TLV
