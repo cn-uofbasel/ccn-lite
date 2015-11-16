@@ -138,6 +138,29 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PAYLDTYPE_Link                     2
 #define CCNX_PAYLDTYPE_Manifest                 3
 
+// manifest related defines
+// ManifestBody := HashGroup+
+// HashGroup :=  [MetaData] (DataPointer | ManifestPointer)+
+// DataPointer := HashValue
+// ManifestPointer := HashValue
+// MetaData := Property*
+// Property := Name | DataBlockSize | OverallDataSize |
+//             OverallDataSHA256Digest |  ...
+
+#define CCNX_MANIFEST_HASHGROUP                 1
+#define CCNX_MANIFEST_HG_METADATA               1
+#define CCNX_MANIFEST_HG_PTR2DATA               2
+#define CCNX_MANIFEST_HG_PTR2MANIFEST           3
+#define CCNX_MANIFEST_MT_NAME                   1
+#define CCNX_MANIFEST_MT_BLOCKSIZE              2
+#define CCNX_MANIFEST_MT_OVERALLDATASIZE        3
+#define CCNX_MANIFEST_MT_OVERALLDATASHA256      4
+
+// old - to be removed
+#define CCNX_MANIFEST_HASH_LIST 0x0101
+#define CCNX_MANIFEST_POINTER 0x0101
+#define CCNX_MANIFEST_POINTER_TYPE 0x0102
+
 // validation algorithms (Sect 3.6.4.1)
 #define CCNX_VALIDALGO_CRC32C                   2
 #define CCNX_VALIDALGO_HMAC_SHA256              4
@@ -155,9 +178,5 @@ struct ccnx_tlvhdr_ccnx201409_s {
 
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
-
-#define CCNX_MANIFEST_HASH_LIST 0x0101
-#define CCNX_MANIFEST_POINTER 0x0101
-#define CCNX_MANIFEST_POINTER_TYPE 0x0102
 
 // eof
