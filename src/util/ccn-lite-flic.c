@@ -107,18 +107,25 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             data += hdrlen;
             len -= hdrlen;
 
+	    unsigned char *copydata = data;
+	    int copylen = len;
+
             // Convert the raw bytes to a ccnl packet type
-            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &len);
+            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &copydata, &copylen);
 
-            int packet_type = 0;
-            int packet_length = 0;
-            if (ccnl_ccntlv_dehead(&pkt->content, &len, (unsigned int *) &packet_type, &packet_length) < 0)
-                return 1;
+	    printf("Parsing the %dth packet\n", i);
 
-            printf("TYPE = %d\n", packet_type);
+            int tl_type = 0;
+            int tl_length = 0;
+            if (ccnl_ccntlv_dehead(&data, &len, (unsigned int *) &tl_type, &tl_length) < 0) {
+		printf("An error occurred!\n");
+                return -1;
+	    }
+
+            printf("TYPE = %d\n", tl_type);
 
             // Extract the name, type, and digest to construct the pointer.
-            ptypes[i] = packet_type;
+            ptypes[i] = tl_type;
             names[i] = pkt->pfx;
             memcpy(digests[i], pkt->md, SHA256_DIGEST_LENGTH);
         } else {
@@ -133,6 +140,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             return -1;
     }
 
+    printf("Encoding the FLIC...\n");
     offs = sizeof(out); // set to the end of the buffer
     len = ccnl_ccntlv_prependManifestWithHdr(name, &ptypes, names, &digests, SHA256_DIGEST_LENGTH,
         &num_pointers, 1, &offs, out, &msgLen);
@@ -172,14 +180,28 @@ main(int argc, char *argv[])
 {
     char *outprefix = 0;
     int opt, packettype = CCNL_SUITE_CCNTLV;
-//    struct key_s *keys = NULL;
+    struct key_s *keys = NULL;
+    char **fnames = NULL;
+    int num_files = 0;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hk:p:s:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hk:p:s:v:f:")) != -1) {
         switch (opt) {
+	case 'f':
+	    if (!fnames) {
+		fnames = ccnl_malloc(sizeof(char));
+                fnames[0] = ccnl_malloc(strlen(optarg));
+		strcpy(fnames[0], optarg);
+	    } else {
+		fnames = ccnl_realloc(fnames, sizeof(char) * (num_files + 1));
+		fnames[num_files] = ccnl_malloc(strlen(optarg));
+		strcpy(fnames[num_files], optarg);
+	    }
+            num_files++;
+	    break;
         case 'k':
- //           keys = load_keys_from_file(optarg);
+            keys = load_keys_from_file(optarg);
             break;
         case 'p':
             outprefix = optarg;
@@ -203,15 +225,16 @@ Usage:
         }
     }
 
-    if (outprefix) {
-      //  char *uri = NULL;
-        if (optind >= argc)
-            goto Usage;
-  //      if ((optind + 1) < argc)
-    //        uri = argv[optind+1];
+    printf("Creating a FLIC from the following packets:\n");
+    for (int i = 0; i < num_files; i++) 
+	printf("\t%s\n", fnames[i]);
 
-        // CAWDO: left off here
-//        flic_produceFromFiles(packettype, outprefix, keys, argv[optind], uri);
+    if (outprefix && fnames) {
+      	char *uri = NULL;
+        if ((optind + 1) < argc)
+            uri = argv[optind+1];
+
+        flic_produceFromFiles(packettype, outprefix, keys, fnames, uri, num_files);
     } else {
         if (optind > argc)
             goto Usage;
