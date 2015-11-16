@@ -156,8 +156,9 @@ struct ccnx_tlvhdr_ccnx201409_s {
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
 
-#define CCNX_MANIFEST_HASH_LIST 0x0101
-#define CCNX_MANIFEST_POINTER 0x0101
-#define CCNX_MANIFEST_POINTER_TYPE 0x0102
+#define CCNX_MANIFEST_HASH_LIST 0x0100
+#define CCNX_MANIFEST_HASH_LIST_NAME 0x0101
+#define CCNX_MANIFEST_POINTER_TYPE_MANIFEST 0x0102
+#define CCNX_MANIFEST_POINTER_TYPE_CONTENT 0x0103
 
 // eof

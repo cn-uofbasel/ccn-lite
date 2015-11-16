@@ -64,7 +64,7 @@ flic_fetch()
 
 int
 flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
-                    char **fnames, char *uri, int num_files)
+                      char **fnames, char *uri, int num_files)
 {
     unsigned char body[64*1024], out[64*1024]; // 64K
     int i, f, len, offs, msgLen;
@@ -119,7 +119,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             // Extract the name, type, and digest to construct the pointer.
             ptypes[i] = packet_type;
             names[i] = pkt->pfx;
-            digests[i] = pkt->md;
+            memcpy(digests[i], pkt->md, SHA256_DIGEST_LENGTH);
         } else {
             return -1;
         }
@@ -133,8 +133,8 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
     }
 
     offs = sizeof(out); // set to the end of the buffer
-    len = ccnl_ccntlv_prependManifestWithHdr(ptypes, names, digests, SHA256_DIGEST_LENGTH,
-        num_pointers, &offs, out, &msgLen);
+    len = ccnl_ccntlv_prependManifestWithHdr(&ptypes, &names, &digests, SHA256_DIGEST_LENGTH,
+        &num_pointers, 1, &offs, out, &msgLen);
 
     if (len <= 0) {
         DEBUGMSG(ERROR, "internal error: empty packet\n");
