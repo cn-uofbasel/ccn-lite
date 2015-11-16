@@ -705,6 +705,11 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
+#ifdef USE_NAMELESS
+            if (i->pkt->s.ccntlv.objHashRestr &&
+                      !memcmp(c->pkt->md, i->pkt->s.ccntlv.objHashRestr, 32))
+                break;
+#endif
             if (ccnl_prefix_cmp(c->pkt->pfx, NULL, i->pkt->pfx, CMP_EXACT)) {
                 // XX must also check keyid
                 i = i->next;

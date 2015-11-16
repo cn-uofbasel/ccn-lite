@@ -36,7 +36,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   ccnl_suite2str((*pkt)->suite),
                   (*pkt)->pfx->nfnflags,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
-    DEBUGMSG_CFWD(INFO, "data %.*s\n", (*pkt)->contlen, (*pkt)->content);
+    DEBUGMSG_CFWD(VERBOSE, "    data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
@@ -56,15 +56,16 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     // CONFORM: Step 1:
     for (c = relay->contents; c; c = c->next) {
         if (buf_equal(c->pkt->buf, (*pkt)->buf)) {
-            DEBUGMSG_CFWD(TRACE, "  content is duplicate, ignoring\n");
+            DEBUGMSG_CFWD(VERBOSE, "  content is duplicate, ignoring\n");
             return 0; // content is dup, do nothing
         }
     }
 
     c = ccnl_content_new(relay, pkt);
-    DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
     if (!c)
         return 0;
+    DEBUGMSG_CFWD(TRACE, "data after creating content %.*s\n",
+                  c->pkt->contlen, c->pkt->content);
 
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
@@ -83,7 +84,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
         DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
         ccnl_content_add2cache(relay, c);
-    	DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
+    	DEBUGMSG_CFWD(TRACE, "data after adding content %.*s\n", c->pkt->contlen, c->pkt->content);
     } else {
         DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
         free_content(c);
