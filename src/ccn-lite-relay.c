@@ -33,7 +33,7 @@
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
 #define USE_ETHERNET
-//#define USE_FLIC
+#define USE_FLIC
 //#define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS

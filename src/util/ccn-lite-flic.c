@@ -27,6 +27,7 @@
 
 #define USE_CCNxMANIFEST
 #define USE_HMAC256
+#define USE_NAMELESS
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -96,7 +97,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
 
             // Parse the packet
             int skip;
-            int suite = ccnl_pkt2suite(body, len, &skip);
+            ccnl_pkt2suite(body, len, &skip);
 
             unsigned char *start, *data;
             data = start = body + skip;
@@ -107,11 +108,11 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
             len -= hdrlen;
 
             // Convert the raw bytes to a ccnl packet type
-            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &data, &len);
 
             int packet_type = 0;
             int packet_length = 0;
-            if (ccnl_ccntlv_dehead(&pkt->content, &len, &packet_type, &packet_length) < 0)
+            if (ccnl_ccntlv_dehead(&pkt->content, &len, (unsigned int *) &packet_type, &packet_length) < 0)
                 return 1;
 
             printf("TYPE = %d\n", packet_type);
@@ -133,7 +134,7 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
     }
 
     offs = sizeof(out); // set to the end of the buffer
-    len = ccnl_ccntlv_prependManifestWithHdr(&ptypes, &names, &digests, SHA256_DIGEST_LENGTH,
+    len = ccnl_ccntlv_prependManifestWithHdr(name, &ptypes, names, &digests, SHA256_DIGEST_LENGTH,
         &num_pointers, 1, &offs, out, &msgLen);
 
     if (len <= 0) {
@@ -171,14 +172,14 @@ main(int argc, char *argv[])
 {
     char *outprefix = 0;
     int opt, packettype = CCNL_SUITE_CCNTLV;
-    struct key_s *keys = NULL;
+//    struct key_s *keys = NULL;
 
     progname = argv[0];
 
     while ((opt = getopt(argc, argv, "hk:p:s:v:")) != -1) {
         switch (opt) {
         case 'k':
-            keys = load_keys_from_file(optarg);
+ //           keys = load_keys_from_file(optarg);
             break;
         case 'p':
             outprefix = optarg;
@@ -203,14 +204,14 @@ Usage:
     }
 
     if (outprefix) {
-        char *uri = NULL;
+      //  char *uri = NULL;
         if (optind >= argc)
             goto Usage;
-        if ((optind + 1) < argc)
-            uri = argv[optind+1];
+  //      if ((optind + 1) < argc)
+    //        uri = argv[optind+1];
 
         // CAWDO: left off here
-        flic_produceFromFiles(packettype, outprefix, keys, argv[optind], uri);
+//        flic_produceFromFiles(packettype, outprefix, keys, argv[optind], uri);
     } else {
         if (optind > argc)
             goto Usage;
