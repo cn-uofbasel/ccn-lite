@@ -81,9 +81,9 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
     fseek(f, 0, SEEK_END);
     long length = ftell(f);
 
-    printf("Creating FLIC from %s\n", fname);
-    printf("... file size  = %ld\n", length);
-    printf("... block size = %d\n", block_size);
+    DEBUGMSG(INFO, "Creating FLIC from %s\n", fname);
+    DEBUGMSG(INFO, "... file size  = %ld\n", length);
+    DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
     int num_blocks = ((length - 1) / block_size) + 1;
     int offset = length - block_size;
@@ -100,25 +100,25 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
     int chunk_number = num_blocks;
     int index = 1;
     for (; offset >= 0; offset -= block_size, chunk_number--, index++) {
-        printf("Processing block at offset %d\n", offset);
+        DEBUGMSG(DEBUG, "Processing block at offset %d\n", offset);
         memset(body, 0, block_size);
         fseek(f, block_size * (index * -1), SEEK_END);
         num_bytes = fread(body, sizeof(unsigned char), block_size, f);
         if (num_bytes != block_size) {
-            printf("Read from offset %d failed.\n", offset);
+            DEBUGMSG(FATAL, "Read from offset %d failed.\n", offset);
             return -1;
         }
 
-        printf("Creating a data packet with %d bytes\n", num_bytes);
+        DEBUGMSG(DEBUG, "Creating a data packet with %d bytes\n", num_bytes);
 
         int offs = MAX_BLOCK_SIZE;
         memset(data_out, 0, MAX_BLOCK_SIZE);
         len = ccnl_ccntlv_prependContentWithHdr(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
         if (len == -1) {
-            printf("wtf!\n");
+            DEBUGMSG(FATAL, "wtf!\n");
             return -1;
         }
-        printf("new offs = %d\n", offs);
+        DEBUGMSG(DEBUG, "new offs = %d\n", offs);
 
         char *chunk_fname = NULL;
         asprintf(&chunk_fname, "%s-%d", targetprefix, chunk_number);
@@ -134,10 +134,14 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
         ccnl_SHA256_Init(&ctx);
         ccnl_SHA256_Update(&ctx, data_out + MAX_BLOCK_SIZE - len, len);
         ccnl_SHA256_Final(md, &ctx);
-        fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
-        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-            fprintf(stderr, "%02x", md[i]);
-        fprintf(stderr, "\n");
+        {
+            char tmp[256];
+            int u;
+            u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                u += sprintf(tmp+u, "%02x", md[i]);
+            DEBUGMSG(VERBOSE, "%s\n", tmp);
+        }
     }
 
     // keep a current manifest until it fills up, hash it, and then add it to the next current manifest
@@ -265,7 +269,7 @@ main(int argc, char *argv[])
         case 'b':
             block_size = atoi(optarg);
             if (block_size > MAX_BLOCK_SIZE) {
-                printf("Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE);
+                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE);
                 goto Usage;
             }
             break;
@@ -287,12 +291,13 @@ Usage:
     if (targetprefix) {
       	char *uri = NULL;
         char *fname = NULL;
-        if (optind < argc - 1) {
-            fname = argv[optind];
-            uri = argv[optind + 1];
-        } else {
+        if (optind >= argc)
             goto Usage;
-        }
+        fname = argv[optind++];
+        if (optind < argc)
+            uri = argv[optind++];
+        if (optind < argc)
+            goto Usage;
 
         flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, uri);
     } else {
