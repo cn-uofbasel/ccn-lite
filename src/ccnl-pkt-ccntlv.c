@@ -394,8 +394,7 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 // the given unsigned integer val *before* position buf[offset], adjust offset
 // and return number of bytes prepended. 0 is represented as %x00
 int
-ccnl_ccntlv_prependNetworkVarUInt(unsigned short type, unsigned int intval,
-                                  int *offset, unsigned char *buf)
+ccnl_ccntlv_prependUInt(unsigned int intval,int *offset, unsigned char *buf)
 {
     int offs = *offset;
     int len = 0;
@@ -408,8 +407,18 @@ ccnl_ccntlv_prependNetworkVarUInt(unsigned short type, unsigned int intval,
             break;
     }
     *offset = offs;
+    return len;
+}
 
-    if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
+// prepend unsigned integer val (and its type) *before* position buf[offset]
+int
+ccnl_ccntlv_prependNetworkVarUInt(unsigned short typ, unsigned int intval,
+                                  int *offset, unsigned char *buf)
+{
+    int len;
+
+    len = ccnl_ccntlv_prependUInt(intval, offset, buf);
+    if (ccnl_ccntlv_prependTL(typ, len, offset, buf) < 0)
         return -1;
     return len + 4;
 }
@@ -455,12 +464,13 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     return hdrlen + payloadlen;
 }
 
-// write given prefix and chunknum *before* buf[offs], adjust offset
-// and return bytes used
+// write given prefix componnents and chunknum *before* buf[offs], adjust
+// offset and return bytes used
 int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf,
-                        unsigned int *lastchunknum) {
+ccnl_ccntlv_prependNameComponents(struct ccnl_prefix_s *name,
+                                  int *offset, unsigned char *buf,
+                                  unsigned int *lastchunknum)
+{
 
     int nameend, cnt;
 
@@ -497,11 +507,28 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
         *offset -= name->complen[cnt];
         memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, nameend - *offset,
-                              offset, buf) < 0)
+
+    return nameend - *offset;
+}
+
+// write given prefix and chunknum *before* buf[offs], adjust offset
+// and return bytes used
+int
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf,
+                        unsigned int *lastchunknum)
+{
+    int len, len2;
+
+    len = ccnl_ccntlv_prependNameComponents(name, offset, buf, lastchunknum);
+    if (len < 0)
         return -1;
 
-    return 0;
+    len2 = ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, len, offset, buf);
+    if (len2 < 0)
+        return -1;
+
+    return len + len2;
 }
 
 // write Interest payload *before* buf[offs], adjust offs and return bytes used

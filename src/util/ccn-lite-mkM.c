@@ -71,24 +71,26 @@ ccnl_parseVar(char **cpp)
 }
 
 void
-ccnl_printExpr(struct list_s *t, char last)
+ccnl_printExpr(struct list_s *t, char last, char *out)
 {
     if (!t)
         return;
     if (t->var) {
-        printf("%s", t->var);
+        strcat(out, t->var);
         return;
     }
-    printf("(");
+    strcat(out, "(");
     last = '(';
     do {
         if (last != '(')
-            printf(" ");
-        ccnl_printExpr(t->first, last);
+            strcat(out, " ");
+        out += strlen(out);
+        ccnl_printExpr(t->first, last, out);
+        out += strlen(out);
         last = 'a';
         t = t->rest;
     } while (t);
-    printf(")");
+    strcat(out, ")");
     return;
 }
 
@@ -110,7 +112,7 @@ ccnl_strToList(int lev, char **cp)
             if (!s)
                 return 0;
             if (**cp != ')') {
-                printf("parse error: missing )\n");
+                DEBUGMSG(FATAL, "parse error: missing )\n");
                 return 0;
             } else {
                 *cp += 1;
@@ -130,50 +132,103 @@ ccnl_strToList(int lev, char **cp)
 
 // ----------------------------------------------------------------------
 
-int
-emit(struct list_s *t, int *pos, int len)
+void
+hash2digest(unsigned char *md, char *cp)
 {
-    char *cp = "??";
+    int cnt;
+    for (cnt = 0; cnt < 32; cnt++, cp += 2) {
+        md[cnt] = hex2int(cp[0]) * 16 + hex2int(cp[1]);
+    }
+}
 
-    if (!t)
-        return 0;
-    if (t->var) {
-        switch(t->var[0]) {
+
+// ----------------------------------------------------------------------
+
+int
+emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
+{
+    int typ = -1, len2;
+    char *cp = "??", dummy[200];
+    struct ccnl_prefix_s *pfx = NULL;
+
+    if (!lst)
+        return len;
+
+    DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
+    if (lst->var) { // atomic
+        switch(lst->var[0]) {
         case 'a':
-            cp = "T=about (metadata)"; break;
+            cp = "T=about (metadata)";
+            typ = CCNX_MANIFEST_HG_METADATA;
+            break;
         case 'b':
-            cp = "T=block size"; break;
+            cp = "T=block size";
+            typ = CCNX_MANIFEST_MT_BLOCKSIZE;
+            break;
         case 'd':
-            cp = "T=data hash ptr"; break;
+            cp = "T=data hash ptr";
+            typ = CCNX_MANIFEST_HG_PTR2DATA;
+            break;
         case 'g':
-            cp = "T=hash pointer group"; break;
+            cp = "T=hash pointer group";
+            typ = CCNX_MANIFEST_HASHGROUP;
+            break;
         case 'l':
-            cp = "T=locator"; break;
+            cp = "T=locator";
+            typ = CCNX_MANIFEST_MT_NAME;
+            break;
         case 'm':
-            cp = "T=manifest"; break;
+            cp = "T=manifest";
+            typ = CCNX_TLV_TL_Manifest;
+            break;
         case 'n':
-            cp = "T=name"; break;
+            cp = "T=name";
+            typ = CCNX_TLV_M_Name;
+            break;
         case 's':
-            cp = "T=data size"; break;
+            cp = "T=data size";
+            typ = CCNX_MANIFEST_MT_OVERALLDATASIZE;
+            break;
         case 't':
-            cp = "T=tree hash ptr"; break;
+            cp = "T=tree hash ptr";
+            typ = CCNX_MANIFEST_HG_PTR2MANIFEST;
+            break;
         case '/':
-            cp = t->var; len++; break;
+            pfx = ccnl_URItoPrefix(lst->var, CCNL_SUITE_CCNTLV, NULL, NULL);
+            cp = ccnl_prefix2path(dummy, sizeof(dummy), pfx);
+            len2 = ccnl_ccntlv_prependNameComponents(pfx, offset, buf, NULL);
+            break;
         case '0':
-            cp = t->var; len++; break;
+            cp = "hash value";
+            *offset -= 32;
+            hash2digest(buf + *offset, lst->var + 2); // start after "0x"
+            len2 = 32;
+            break;
         default:
-            if (isdigit(t->var[0])) {
-                cp = t->var; len++;
+            if (isdigit(lst->var[0])) {
+                int v = atoi(lst->var);
+                len2 = ccnl_ccntlv_prependUInt((unsigned int)v, offset, buf);
+                cp = "int value";
+            } else {
+                DEBUGMSG(FATAL, "error: unknown tag?\n");
             }
             break;
         }
-        printf("  %s, L=%d\n", cp, len);
-        *pos -= 1;
-        return len + 1;
+        if (typ >= 0) {
+            len2 = ccnl_ccntlv_prependTL((unsigned short) typ, len, offset, buf);
+            len += len2;
+        } else {
+            len = len2;
+        }
+        DEBUGMSG(DEBUG, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
+        
+        return len;
     }
 
-    int len2 = emit(t->rest, pos, 0);
-    return len + emit(t->first, pos, len2);
+    // non-atomic
+    len2 = emit(lst->rest, 0, offset, buf);
+    DEBUGMSG(TRACE, "   rest: len2=%d, len=%d\n", len2, len);
+    return emit(lst->first, len2, offset, buf) + len;
 }
 
 
@@ -246,17 +301,26 @@ Usage:
     if (optind < argc)
         goto Usage;
 
-    printf("Parsing m-expression:\n  <%s>\n", sexpr);
+    DEBUGMSG(DEBUG, "Parsing m-expression:\n  <%s>\n", sexpr);
 
     t = ccnl_strToList(0, &sexpr);
     if (t) {
-        int pos = 100;
-        printf("Parsed expression:\n");
-        ccnl_printExpr(t->first, ' ');
-        printf("\n");
-        emit(t->first, &pos, 0);
-        printf("Position after emit: %d\n", pos);
-       
+        unsigned char buf[64*1024];
+        char out[2048];
+        int offset = sizeof(buf);
+        
+        DEBUGMSG(INFO, "Parsed expression:\n");
+        ccnl_printExpr(t->first, ' ', out);
+        DEBUGMSG(INFO, "%s\n", out);
+
+        DEBUGMSG(DEBUG, "start to fill from the end:\n");
+        emit(t->first, 0, &offset, buf);
+        DEBUGMSG(TRACE, "total number of message bytes = %d\n",
+                 (int)(sizeof(buf) - offset));
+        ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                    sizeof(buf) - offset, 255, &offset, buf);
+
+        write(1, buf + offset, sizeof(buf) - offset);
     }
 
     return 0;
