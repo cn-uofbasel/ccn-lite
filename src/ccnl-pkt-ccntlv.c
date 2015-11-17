@@ -610,6 +610,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
     len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
                                      contentpos, offset, buf);
+
     if (len < 0)
         return -1;
 
@@ -667,14 +668,14 @@ ccnl_ccntlv_prependHashGroup(int *ptypes, struct ccnl_prefix_s *name,
             *offset -= name->complen[cnt];
             memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
 	}
-	
+
         // Wrap up the name in a TLV
         if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_MT_NAME, nameend - *offset, offset, buf) < 0)
 	    return -1;
 
         // Wrap up the name in the metadata TLV
         if (ccnl_ccntlv_prependTL(CCNX_MANIFEST_HG_METADATA, nameend - *offset, offset, buf) < 0)
-	    return -1;	
+	    return -1;
     }
 
     // Wrap the stuff before in a pointer TLV
