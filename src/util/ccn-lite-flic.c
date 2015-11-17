@@ -29,6 +29,8 @@
 #define USE_HMAC256
 #define USE_NAMELESS
 
+#define MAX_BLOCK_SIZE (64*1024)
+
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
@@ -40,136 +42,198 @@ char *progname;
 void
 usage(int exitval)
 {
-    fprintf(stderr, "usage 1: %s [options] URI                  (fetch)\n"
-            "usage 2: %s -p FILENAMEPREFIX [options] FILE [URI] (produce)\n"
-            "  -k FNAME    HMAC256 key (base64 encoded)\n"
+    fprintf(stderr, "usage: %s -p TARGETPREFIX [options] FILE [URI]\n"
+            "  -b SIZE    Block size (default is 64K)\n"
+            "  -k FNAME   HMAC256 key (base64 encoded)\n"
             "  -s SUITE   (ccnx2015)\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            , progname, progname);
+            , progname);
     exit(exitval);
-}
-
-
-// ----------------------------------------------------------------------
-
-void
-flic_fetch()
-{
-    fprintf(stderr, "fetch not implemented yet\n");
-    exit(1);
 }
 
 // ----------------------------------------------------------------------
 
 int
-flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
-                      char **fnames, char *uri, int num_files)
+flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int block_size,
+    char *fname, char *uri)
 {
-    unsigned char body[64*1024], out[64*1024]; // 64K
-    int i, f, len, offs, msgLen;
-    struct ccnl_prefix_s *name = NULL;
+    FILE *f;
+    int num_bytes, len, i;
+    // int i, f, len, offs, msgLen;
+    // struct ccnl_prefix_s *name = NULL;
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH];
 
-    fprintf(stderr, "produce ...\n");
+    // int num_pointers = 1;
+    // int *ptypes = ccnl_malloc(num_pointers * sizeof(ptypes));
+    // struct ccnl_prefix_s **names = ccnl_malloc(num_pointers * sizeof(struct ccnl_prefix_s));
+    // unsigned char **digests = ccnl_malloc(num_pointers * sizeof(unsigned char*));
 
-    int num_pointers = num_files;
-    int *ptypes = ccnl_malloc(num_pointers * sizeof(ptypes));
-    struct ccnl_prefix_s **names = ccnl_malloc(num_pointers * sizeof(struct ccnl_prefix_s));
-    unsigned char **digests = ccnl_malloc(num_pointers * sizeof(unsigned char*));
-    for (i = 0; i < num_pointers; i++) {
-        digests[i] = ccnl_malloc(SHA256_DIGEST_LENGTH);
-
-        char *fname = fnames[i];
-        if (fname) {
-            f = open(fname, O_RDONLY);
-            if (f < 0) {
-                perror("file open:");
-                return -1;
-            }
-
-            // Read in the content object (or manifest, doesn't matter...)
-            len = read(f, body, sizeof(body));
-            close(f);
-            memset(out, 0, sizeof(out));
-
-            // Parse the packet
-            int skip;
-            ccnl_pkt2suite(body, len, &skip);
-
-            unsigned char *start, *data;
-            data = start = body + skip;
-            len -= skip;
-
-            int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
-            data += hdrlen;
-            len -= hdrlen;
-
-	    unsigned char *copydata = data;
-	    int copylen = len;
-
-            // Convert the raw bytes to a ccnl packet type
-            struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &copydata, &copylen);
-
-	    printf("Parsing the %dth packet\n", i);
-
-            int tl_type = 0;
-            int tl_length = 0;
-            if (ccnl_ccntlv_dehead(&data, &len, (unsigned int *) &tl_type, &tl_length) < 0) {
-		printf("An error occurred!\n");
-                return -1;
-	    }
-
-            printf("TYPE = %d\n", tl_type);
-
-            // Extract the name, type, and digest to construct the pointer.
-            ptypes[i] = tl_type;
-            names[i] = pkt->pfx;
-            memcpy(digests[i], pkt->md, SHA256_DIGEST_LENGTH);
-        } else {
-            return -1;
-        }
-    }
-
-    // Now, build the manifest from the ptypes, names, and digests
-    if (uri) {
-        printf("manifest has a name: %s\n", uri);
-        name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-        if (!name)
-            return -1;
-    }
-
-    printf("Encoding the FLIC...\n");
-    offs = sizeof(out); // set to the end of the buffer
-    len = ccnl_ccntlv_prependManifestWithHdr(name, &ptypes, names, &digests, SHA256_DIGEST_LENGTH,
-        &num_pointers, 1, &offs, out, &msgLen);
-
-    if (len <= 0) {
-        DEBUGMSG(ERROR, "internal error: empty packet\n");
+    f = fopen(fname, "rb");
+    if (f == NULL) {
+        perror("file open:");
         return -1;
     }
 
-    if (outprefix) {
-        f = creat(outprefix, 0666);
-        if (f < 0) {
+    // get the number of blocks (leaves)
+    fseek(f, 0, SEEK_END);
+    long length = ftell(f);
+
+    printf("Creating FLIC from %s\n", fname);
+    printf("... file size  = %ld\n", length);
+    printf("... block size = %d\n", block_size);
+
+    int num_blocks = ((length - 1) / block_size) + 1;
+    int offset = length - block_size;
+    if (length % block_size != 0) {
+        offset = length - (length % block_size);
+    }
+
+    // TODO: need to correct this
+    // int max_pointers = 0;
+
+    unsigned char *body = ccnl_malloc(MAX_BLOCK_SIZE);
+    unsigned char *data_out = ccnl_malloc(MAX_BLOCK_SIZE);
+
+    int chunk_number = num_blocks;
+    int index = 1;
+    for (; offset >= 0; offset -= block_size, chunk_number--, index++) {
+        printf("Processing block at offset %d\n", offset);
+        memset(body, 0, block_size);
+        fseek(f, block_size * (index * -1), SEEK_END);
+        num_bytes = fread(body, sizeof(unsigned char), block_size, f);
+        if (num_bytes != block_size) {
+            printf("Read from offset %d failed.\n", offset);
+            return -1;
+        }
+
+        printf("Creating a data packet with %d bytes\n", num_bytes);
+
+        int offs = MAX_BLOCK_SIZE;
+        memset(data_out, 0, MAX_BLOCK_SIZE);
+        len = ccnl_ccntlv_prependContentWithHdr(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
+        if (len == -1) {
+            printf("wtf!\n");
+            return -1;
+        }
+        printf("new offs = %d\n", offs);
+
+        char *chunk_fname = NULL;
+        asprintf(&chunk_fname, "%s-%d", targetprefix, chunk_number);
+        FILE *cf = fopen(chunk_fname, "wb");
+        if (cf == NULL) {
             perror("file open:");
             return -1;
         }
-    } else
-        f = 1;
 
-    write(f, out + offs, len);
-    close(f);
+        fwrite(data_out + offs, 1, len, cf);
+        fclose(cf);
 
-    ccnl_SHA256_Init(&ctx);
-    ccnl_SHA256_Update(&ctx, out + sizeof(out) - msgLen, msgLen);
-    ccnl_SHA256_Final(md, &ctx);
-    fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
-    for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-        fprintf(stderr, "%02x", md[i]);
-    fprintf(stderr, "\n");
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, data_out + MAX_BLOCK_SIZE - len, len);
+        ccnl_SHA256_Final(md, &ctx);
+        fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(stderr, "%02x", md[i]);
+        fprintf(stderr, "\n");
+    }
+
+    // keep a current manifest until it fills up, hash it, and then add it to the next current manifest
+
+    //
+    // for (i = 0; i < num_pointers; i++) {
+    //     digests[i] = ccnl_malloc(SHA256_DIGEST_LENGTH);
+    //
+    //     char *fname = fnames[i];
+    //     if (fname) {
+    //         f = open(fname, O_RDONLY);
+    //         if (f < 0) {
+    //             perror("file open:");
+    //             return -1;
+    //         }
+    //
+    //         // Read in the content object (or manifest, doesn't matter...)
+    //         len = read(f, body, sizeof(body));
+    //         close(f);
+    //         memset(out, 0, sizeof(out));
+    //
+    //         // Parse the packet
+    //         int skip;
+    //         ccnl_pkt2suite(body, len, &skip);
+    //
+    //         unsigned char *start, *data;
+    //         data = start = body + skip;
+    //         len -= skip;
+    //
+    //         int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
+    //         data += hdrlen;
+    //         len -= hdrlen;
+    //
+	//     unsigned char *copydata = data;
+	//     int copylen = len;
+    //
+    //         // Convert the raw bytes to a ccnl packet type
+    //         struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &copydata, &copylen);
+    //
+	//     printf("Parsing the %dth packet\n", i);
+    //
+    //         int tl_type = 0;
+    //         int tl_length = 0;
+    //         if (ccnl_ccntlv_dehead(&data, &len, (unsigned int *) &tl_type, &tl_length) < 0) {
+	// 	printf("An error occurred!\n");
+    //             return -1;
+	//     }
+    //
+    //         printf("TYPE = %d\n", tl_type);
+    //
+    //         // Extract the name, type, and digest to construct the pointer.
+    //         ptypes[i] = tl_type;
+    //         names[i] = pkt->pfx;
+    //         memcpy(digests[i], pkt->md, SHA256_DIGEST_LENGTH);
+    //     } else {
+    //         return -1;
+    //     }
+    // }
+    //
+    // // Now, build the manifest from the ptypes, names, and digests
+    // if (uri) {
+    //     printf("manifest has a name: %s\n", uri);
+    //     name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
+    //     if (!name)
+    //         return -1;
+    // }
+    //
+    // printf("Encoding the FLIC...\n");
+    // offs = sizeof(out); // set to the end of the buffer
+    // len = ccnl_ccntlv_prependManifestWithHdr(name, &ptypes, names, &digests, SHA256_DIGEST_LENGTH,
+    //     &num_pointers, 1, &offs, out, &msgLen);
+    //
+    // if (len <= 0) {
+    //     DEBUGMSG(ERROR, "internal error: empty packet\n");
+    //     return -1;
+    // }
+    //
+    // if (outprefix) {
+    //     f = creat(outprefix, 0666);
+    //     if (f < 0) {
+    //         perror("file open:");
+    //         return -1;
+    //     }
+    // } else
+    //     f = 1;
+    //
+    // write(f, out + offs, len);
+    // close(f);
+    //
+    // ccnl_SHA256_Init(&ctx);
+    // ccnl_SHA256_Update(&ctx, out + sizeof(out) - msgLen, msgLen);
+    // ccnl_SHA256_Final(md, &ctx);
+    // fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+    // for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    //     fprintf(stderr, "%02x", md[i]);
+    // fprintf(stderr, "\n");
 
     return 0;
 }
@@ -179,38 +243,32 @@ flic_produceFromFiles(int pktype, char *outprefix, struct key_s *keys,
 int
 main(int argc, char *argv[])
 {
-    char *outprefix = 0;
+    char *targetprefix = NULL;
     int opt, packettype = CCNL_SUITE_CCNTLV;
     struct key_s *keys = NULL;
-    char **fnames = NULL;
-    int num_files = 0;
+    int block_size = MAX_BLOCK_SIZE; // 64K by default
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hk:p:s:v:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "hk:p:s:v:f:b:")) != -1) {
         switch (opt) {
-	case 'f':
-	    if (!fnames) {
-		fnames = ccnl_malloc(sizeof(char));
-                fnames[0] = ccnl_malloc(strlen(optarg));
-		strcpy(fnames[0], optarg);
-	    } else {
-		fnames = ccnl_realloc(fnames, sizeof(char) * (num_files + 1));
-		fnames[num_files] = ccnl_malloc(strlen(optarg));
-		strcpy(fnames[num_files], optarg);
-	    }
-            num_files++;
-	    break;
         case 'k':
             keys = load_keys_from_file(optarg);
             break;
         case 'p':
-            outprefix = optarg;
+            targetprefix = optarg;
             break;
         case 's':
             packettype = ccnl_str2suite(optarg);
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
                 break;
+        case 'b':
+            block_size = atoi(optarg);
+            if (block_size > MAX_BLOCK_SIZE) {
+                printf("Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE);
+                goto Usage;
+            }
+            break;
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
@@ -226,22 +284,19 @@ Usage:
         }
     }
 
-    printf("Creating a FLIC from the following packets:\n");
-    for (int i = 0; i < num_files; i++) 
-	printf("\t%s\n", fnames[i]);
-
-    if (outprefix && fnames) {
+    if (targetprefix) {
       	char *uri = NULL;
-        if (optind < argc)
-            uri = argv[optind];
-        else
+        char *fname = NULL;
+        if (optind < argc - 1) {
+            fname = argv[optind];
+            uri = argv[optind + 1];
+        } else {
             goto Usage;
+        }
 
-        flic_produceFromFiles(packettype, outprefix, keys, fnames, uri, num_files);
+        flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, uri);
     } else {
-        if (optind > argc)
-            goto Usage;
-        flic_fetch();
+        goto Usage;
     }
 
     return 0;

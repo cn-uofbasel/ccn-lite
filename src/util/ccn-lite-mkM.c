@@ -256,7 +256,7 @@ Usage:
         printf("\n");
         emit(t->first, &pos, 0);
         printf("Position after emit: %d\n", pos);
-       
+
     }
 
     return 0;

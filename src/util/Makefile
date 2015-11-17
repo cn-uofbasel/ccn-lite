@@ -15,7 +15,6 @@ PROGS:=ccn-lite-ccnb2xml \
        ccn-lite-mkC \
        ccn-lite-mkF \
        ccn-lite-mkI \
-       ccn-lite-mkM \
        ccn-lite-peek \
        ccn-lite-pktdump \
        ccn-lite-produce \
