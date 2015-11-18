@@ -136,7 +136,7 @@ void
 hash2digest(unsigned char *md, char *cp)
 {
     int cnt;
-    for (cnt = 0; cnt < 32; cnt++, cp += 2) {
+    for (cnt = 0; cnt < SHA256_DIGEST_LENGTH; cnt++, cp += 2) {
         md[cnt] = hex2int(cp[0]) * 16 + hex2int(cp[1]);
     }
 }
@@ -200,9 +200,9 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             break;
         case '0':
             cp = "hash value";
-            *offset -= 32;
+            *offset -= SHA256_DIGEST_LENGTH;
             hash2digest(buf + *offset, lst->var + 2); // start after "0x"
-            len2 = 32;
+            len2 = SHA256_DIGEST_LENGTH;
             break;
         default:
             if (isdigit(lst->var[0])) {

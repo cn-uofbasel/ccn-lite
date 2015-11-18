@@ -54,6 +54,231 @@ usage(int exitval)
 }
 
 // ----------------------------------------------------------------------
+// copied from ccn-lite-mkM.c
+
+struct list_s {
+    char *var;
+    struct list_s *first;
+    struct list_s *rest;
+};
+
+int
+emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
+{
+    int typ = -1, len2;
+    char *cp = "??", dummy[200];
+    struct ccnl_prefix_s *pfx = NULL;
+
+    if (!lst)
+        return len;
+
+    DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
+    if (lst->var) { // atomic
+        switch(lst->var[0]) {
+        case 'a':
+            cp = "T=about (metadata)";
+            typ = CCNX_MANIFEST_HG_METADATA;
+            break;
+        case 'b':
+            cp = "T=block size";
+            typ = CCNX_MANIFEST_MT_BLOCKSIZE;
+            break;
+        case 'd':
+            cp = "T=data hash ptr";
+            typ = CCNX_MANIFEST_HG_PTR2DATA;
+            break;
+        case 'g':
+            cp = "T=hash pointer group";
+            typ = CCNX_MANIFEST_HASHGROUP;
+            break;
+        case 'l':
+            cp = "T=locator";
+            typ = CCNX_MANIFEST_MT_NAME;
+            break;
+        case 'm':
+            cp = "T=manifest";
+            typ = CCNX_TLV_TL_Manifest;
+            break;
+        case 'n':
+            cp = "T=name";
+            typ = CCNX_TLV_M_Name;
+            break;
+        case 's':
+            cp = "T=data size";
+            typ = CCNX_MANIFEST_MT_OVERALLDATASIZE;
+            break;
+        case 't':
+            cp = "T=tree hash ptr";
+            typ = CCNX_MANIFEST_HG_PTR2MANIFEST;
+            break;
+        case '/':
+            pfx = ccnl_URItoPrefix(lst->var, CCNL_SUITE_CCNTLV, NULL, NULL);
+            cp = ccnl_prefix2path(dummy, sizeof(dummy), pfx);
+            len2 = ccnl_ccntlv_prependNameComponents(pfx, offset, buf, NULL);
+            break;
+        case '0':
+            cp = "hash value";
+            *offset -= SHA256_DIGEST_LENGTH;
+            // hash2digest(buf + *offset, lst->var + 2); // start after "0x"
+            memcpy(buf + *offset, lst->var, SHA256_DIGEST_LENGTH);
+            len2 = SHA256_DIGEST_LENGTH;
+            break;
+        default:
+            if (isdigit(lst->var[0])) {
+                int v = atoi(lst->var);
+                len2 = ccnl_ccntlv_prependUInt((unsigned int)v, offset, buf);
+                cp = "int value";
+            } else {
+                DEBUGMSG(FATAL, "error: unknown tag?\n");
+            }
+            break;
+        }
+        if (typ >= 0) {
+            len2 = ccnl_ccntlv_prependTL((unsigned short) typ, len, offset, buf);
+            len += len2;
+        } else {
+            len = len2;
+        }
+        DEBUGMSG(DEBUG, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
+        
+        return len;
+    }
+
+    // non-atomic
+    len2 = emit(lst->rest, 0, offset, buf);
+    DEBUGMSG(TRACE, "   rest: len2=%d, len=%d\n", len2, len);
+    return emit(lst->first, len2, offset, buf) + len;
+}
+
+void
+ccnl_printExpr(struct list_s *t, char last, char *out)
+{
+    if (!t)
+        return;
+    if (t->var) {
+        strcat(out, t->var);
+        return;
+    }
+    strcat(out, "(");
+    last = '(';
+    do {
+        if (last != '(')
+            strcat(out, " ");
+        out += strlen(out);
+        ccnl_printExpr(t->first, last, out);
+        out += strlen(out);
+        last = 'a';
+        t = t->rest;
+    } while (t);
+    strcat(out, ")");
+    return;
+}
+
+// ----------------------------------------------------------------------
+// manifest API
+
+struct list_s*
+ccnl_manifest_atomic(char *var)
+{
+    // note: var is not freed upon freeing this node
+    struct list_s *node;
+
+    node = ccnl_calloc(1, sizeof(*node));
+    node->first = ccnl_calloc(1, sizeof(*var));
+    node->first->var = var;
+    return node;
+}
+
+struct list_s*
+ccnl_manifest_getEmptyTemplate(void)
+{
+    struct list_s *m;
+
+    m = ccnl_manifest_atomic("mfst");
+    m->rest = ccnl_calloc(1, sizeof(struct list_s));
+    m->rest->first = ccnl_manifest_atomic("grp");
+    return m;
+}
+
+// typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
+// md is the hash value (array of 32 bytes) to be stored
+void
+ccnl_manifest_prependHash(struct list_s *m, char *typ, char *md)
+{
+    // note: typ and md are not freed upon freeing this list
+    struct list_s *grp = m->rest->first;
+    struct list_s *hentry = ccnl_calloc(1, sizeof(*hentry));
+
+    hentry->first = ccnl_manifest_atomic(typ);
+    hentry->first->rest = ccnl_manifest_atomic(md);
+    hentry->rest = grp->rest;
+    grp->rest = hentry;
+}
+
+
+void
+ccnl_manifest_setMetaData(struct list_s *m, int blockSize,
+                          int totalSize, unsigned char* totalDigest)
+{
+}
+
+void
+ccnl_manifest_free(struct list_s *m)
+{
+    if (!m)
+        return;
+    ccnl_manifest_free(m->first);
+    ccnl_manifest_free(m->rest);
+    ccnl_free(m);
+}
+
+// serializes the manifest, returns its digest
+int
+ccnl_manifest2packet(struct list_s *m, int *offset, unsigned char *buf,
+                     unsigned char *digest)
+{
+    int oldoffset = *offset, len;
+    SHA256_CTX_t ctx;
+
+    len = emit(m, 0, offset, buf);
+    ccnl_SHA256_Init(&ctx);
+    ccnl_SHA256_Update(&ctx, buf + *offset, len);
+    ccnl_SHA256_Final(digest, &ctx);
+
+    ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                len, 255, offset, buf);
+    
+    return oldoffset - *offset;
+}
+
+void
+ccnl_manifest_test()
+{
+    unsigned char buf[2014], md[SHA256_DIGEST_LENGTH];
+    int offset = sizeof(buf), len;
+    struct list_s *m;
+//    char out[1024];
+
+    m = ccnl_manifest_getEmptyTemplate();
+//    out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
+    ccnl_manifest_prependHash(m, "dptr", "0xabcd");
+    ccnl_manifest_prependHash(m, "dptr", "0xef01");
+    ccnl_manifest_prependHash(m, "tptr", "0x2345");
+//    out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
+
+    len = ccnl_manifest2packet(m, &offset, buf, md);
+    write(1, buf+offset, len);
+
+    fprintf(stderr, "--> 0x");
+    for (len = 0; len < (int)sizeof(md); len++)
+        fprintf(stderr, "%02x", md[len]);
+    fprintf(stderr, "\n");
+
+    ccnl_manifest_free(m);
+    fprintf(stderr, "done\n");
+}
+
+// ----------------------------------------------------------------------
 
 int
 flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int block_size,
@@ -287,6 +512,9 @@ Usage:
             usage(1);
         }
     }
+
+    ccnl_manifest_test();
+    exit(1);
 
     if (targetprefix) {
       	char *uri = NULL;
