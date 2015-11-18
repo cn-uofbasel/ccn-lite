@@ -299,9 +299,9 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH + 2];
 
-    // NOTE: workaround the error that occurs when the first byte of a hash is a digit
-    // ... prepending "0x.." to the hash makes the emit() case for hash digests be caught.
-    // "0x..."
+    // NOTE(@Christian): workaround the error that occurs when the first byte of a hash
+    // is a digit ... prepending "0x.." to the hash makes the emit() case for hash
+    // digests be caught.
     md[0] = '0';
     md[1] = 'x';
 
