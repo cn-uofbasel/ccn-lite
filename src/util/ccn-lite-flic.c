@@ -83,6 +83,10 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             cp = "T=block size";
             typ = CCNX_MANIFEST_MT_BLOCKSIZE;
             break;
+        case 'c': // can be removed for manifests
+            cp = "T=content";
+            typ = CCNX_TLV_TL_Object;
+            break;
         case 'd':
             cp = "T=data hash ptr";
             typ = CCNX_MANIFEST_HG_PTR2DATA;
@@ -102,6 +106,10 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
         case 'n':
             cp = "T=name";
             typ = CCNX_TLV_M_Name;
+            break;
+        case 'p': // can be removed for manifests
+            cp = "T=payload";
+            typ = CCNX_TLV_M_Payload;
             break;
         case 's':
             cp = "T=data size";
@@ -128,8 +136,10 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
                 int v = atoi(lst->var);
                 len2 = ccnl_ccntlv_prependUInt((unsigned int)v, offset, buf);
                 cp = "int value";
-            } else {
-                DEBUGMSG(FATAL, "error: unknown tag?\n");
+            } else { // treat as a blob
+                len2 = strlen(lst->var);
+                *offset -= len2;
+                memcpy(buf + *offset, lst->var, len2);
             }
             break;
         }
