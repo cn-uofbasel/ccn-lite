@@ -520,6 +520,9 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
 {
     int len, len2;
 
+    if (!name)
+        return 0;
+
     len = ccnl_ccntlv_prependNameComponents(name, offset, buf, lastchunknum);
     if (len < 0)
         return -1;
@@ -539,7 +542,7 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
+    if (ccnl_ccntlv_prependName(name, offset, buf, NULL) < 0)
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset + len, offset, buf) < 0)
@@ -586,7 +589,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum))
+    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum) < 0)
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
@@ -700,7 +703,7 @@ ccnl_ccntlv_prependManifest(struct ccnl_prefix_s *manifest_name, int **ptypes, s
             return -1;
     }
 
-    if (ccnl_ccntlv_prependName(manifest_name, offset, buf, NULL))
+    if (ccnl_ccntlv_prependName(manifest_name, offset, buf, NULL) < 0)
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Manifest, tloffset - *offset, offset, buf) < 0)

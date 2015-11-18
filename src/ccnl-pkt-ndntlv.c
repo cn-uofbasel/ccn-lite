@@ -490,7 +490,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
                                 offset, buf) < 0)
         return -1;*/
 
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
                               offset, buf) < 0)
@@ -559,7 +559,7 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
         return -1;
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
 
     // mandatory

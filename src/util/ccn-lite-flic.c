@@ -112,7 +112,7 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
         DEBUGMSG(DEBUG, "Creating a data packet with %d bytes\n", num_bytes);
 
         int offs = MAX_BLOCK_SIZE;
-        memset(data_out, 0, MAX_BLOCK_SIZE);
+        // memset(data_out, 0, MAX_BLOCK_SIZE);
         len = ccnl_ccntlv_prependContentWithHdr(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
         if (len == -1) {
             DEBUGMSG(FATAL, "wtf!\n");
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
     char *targetprefix = NULL;
     int opt, packettype = CCNL_SUITE_CCNTLV;
     struct key_s *keys = NULL;
-    int block_size = MAX_BLOCK_SIZE; // 64K by default
+    int block_size = MAX_BLOCK_SIZE - 256; // 64K by default
 
     progname = argv[0];
 
@@ -268,8 +268,8 @@ main(int argc, char *argv[])
                 break;
         case 'b':
             block_size = atoi(optarg);
-            if (block_size > MAX_BLOCK_SIZE) {
-                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE);
+            if (block_size > (MAX_BLOCK_SIZE-256)) {
+                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE - 256);
                 goto Usage;
             }
             break;

@@ -369,7 +369,7 @@ ccnl_cistlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_cistlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_cistlv_prependTL(CISCO_TLV_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -432,7 +432,7 @@ ccnl_cistlv_prependContent(struct ccnl_prefix_s *name,
             return -1;
     }
 
-    if (ccnl_cistlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf) < 0)
         return -1;
 
     if (ccnl_cistlv_prependTL(CISCO_TLV_Content,

@@ -273,7 +273,7 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
         return -1;
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
 
     // mandatory
