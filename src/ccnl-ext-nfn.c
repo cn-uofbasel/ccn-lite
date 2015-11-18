@@ -171,7 +171,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (ccnl_nfnprefix_isTHUNK(prefix))
         thunk_request = 1;
 
-
     // Checks first if the interest has a routing hint and then searches for it locally.
     // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
     // Without this mechanism, there will be situations where several nodes "overtake" a computation
@@ -184,6 +183,7 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
+	
         copy->compcnt -= (1 + thunk_request);
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
