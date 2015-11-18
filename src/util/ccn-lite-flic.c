@@ -119,8 +119,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
         case '0':
             cp = "hash value";
             *offset -= SHA256_DIGEST_LENGTH;
-            // hash2digest(buf + *offset, lst->var + 2); // start after "0x"
-            memcpy(buf + *offset, lst->var, SHA256_DIGEST_LENGTH);
+            memcpy(buf + *offset, (lst->var + 2), SHA256_DIGEST_LENGTH);
             len2 = SHA256_DIGEST_LENGTH;
             break;
         default:
@@ -140,7 +139,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             len = len2;
         }
         DEBUGMSG(DEBUG, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
-        
+
         return len;
     }
 
@@ -184,8 +183,9 @@ ccnl_manifest_atomic(char *var)
     struct list_s *node;
 
     node = ccnl_calloc(1, sizeof(*node));
-    node->first = ccnl_calloc(1, sizeof(*var));
-    node->first->var = var;
+    node->first = ccnl_calloc(1, sizeof(*node));
+    node->first->var = NULL;
+    asprintf(&(node->first->var), "%s", var);
     return node;
 }
 
@@ -247,7 +247,7 @@ ccnl_manifest2packet(struct list_s *m, int *offset, unsigned char *buf,
 
     ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                 len, 255, offset, buf);
-    
+
     return oldoffset - *offset;
 }
 
@@ -257,14 +257,14 @@ ccnl_manifest_test()
     unsigned char buf[2014], md[SHA256_DIGEST_LENGTH];
     int offset = sizeof(buf), len;
     struct list_s *m;
-//    char out[1024];
+    // char out[1024];
 
     m = ccnl_manifest_getEmptyTemplate();
-//    out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
+    // out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
     ccnl_manifest_prependHash(m, "dptr", "0xabcd");
     ccnl_manifest_prependHash(m, "dptr", "0xef01");
     ccnl_manifest_prependHash(m, "tptr", "0x2345");
-//    out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
+    // out[0] = '\0'; ccnl_printExpr(m, '(', out); fprintf(stderr, "%s\n", out);
 
     len = ccnl_manifest2packet(m, &offset, buf, md);
     write(1, buf+offset, len);
@@ -286,15 +286,14 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
 {
     FILE *f;
     int num_bytes, len, i;
-    // int i, f, len, offs, msgLen;
-    // struct ccnl_prefix_s *name = NULL;
     SHA256_CTX_t ctx;
-    unsigned char md[SHA256_DIGEST_LENGTH];
+    unsigned char md[SHA256_DIGEST_LENGTH + 2];
 
-    // int num_pointers = 1;
-    // int *ptypes = ccnl_malloc(num_pointers * sizeof(ptypes));
-    // struct ccnl_prefix_s **names = ccnl_malloc(num_pointers * sizeof(struct ccnl_prefix_s));
-    // unsigned char **digests = ccnl_malloc(num_pointers * sizeof(unsigned char*));
+    // NOTE: workaround the error that occurs when the first byte of a hash is a digit
+    // ... prepending "0x.." to the hash makes the emit() case for hash digests be caught.
+    // "0x..."
+    md[0] = '0';
+    md[1] = 'x';
 
     f = fopen(fname, "rb");
     if (f == NULL) {
@@ -316,16 +315,20 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
         offset = length - (length % block_size);
     }
 
-    // TODO: need to correct this
-    // int max_pointers = 0;
+    // NOTE: we should play with this
+    int max_pointers = 10;
+    int num_pointers = 0;
 
     unsigned char *body = ccnl_malloc(MAX_BLOCK_SIZE);
     unsigned char *data_out = ccnl_malloc(MAX_BLOCK_SIZE);
 
+    struct list_s *m = ccnl_manifest_getEmptyTemplate();
+
     int chunk_number = num_blocks;
     int index = 1;
+    int manifest_number = 0;
     for (; offset >= 0; offset -= block_size, chunk_number--, index++) {
-        DEBUGMSG(DEBUG, "Processing block at offset %d\n", offset);
+        DEBUGMSG(VERBOSE, "Processing block at offset %d\n", offset);
         memset(body, 0, block_size);
         fseek(f, block_size * (index * -1), SEEK_END);
         num_bytes = fread(body, sizeof(unsigned char), block_size, f);
@@ -334,17 +337,39 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
             return -1;
         }
 
-        DEBUGMSG(DEBUG, "Creating a data packet with %d bytes\n", num_bytes);
+        DEBUGMSG(VERBOSE, "Creating a data packet with %d bytes\n", num_bytes);
 
+        // Build the content to start
         int offs = MAX_BLOCK_SIZE;
-        // memset(data_out, 0, MAX_BLOCK_SIZE);
-        len = ccnl_ccntlv_prependContentWithHdr(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
+        len = ccnl_ccntlv_prependContent(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
         if (len == -1) {
-            DEBUGMSG(FATAL, "wtf!\n");
             return -1;
         }
-        DEBUGMSG(DEBUG, "new offs = %d\n", offs);
 
+        // Compute the hash of the content
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, data_out + MAX_BLOCK_SIZE - len, len);
+        ccnl_SHA256_Final(md + 2, &ctx);
+        {
+            char tmp[256];
+            int u;
+            u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                u += sprintf(tmp+u, "%02x", md[i + 2]);
+            DEBUGMSG(VERBOSE, "%s\n", tmp);
+        }
+
+        // Prepend the hash to the current manifest
+        ccnl_manifest_prependHash(m, "dptr", (char *) md);
+        num_pointers++;
+
+        // Prepend the fixed header
+        if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data, len, 255, &offs, data_out) < 0) {
+            DEBUGMSG(VERBOSE, "Failed to prepend the fixed header.\n");
+            return -1;
+        }
+
+        // Save the file to disk
         char *chunk_fname = NULL;
         asprintf(&chunk_fname, "%s-%d", targetprefix, chunk_number);
         FILE *cf = fopen(chunk_fname, "wb");
@@ -356,113 +381,59 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
         fwrite(data_out + offs, 1, len, cf);
         fclose(cf);
 
-        ccnl_SHA256_Init(&ctx);
-        ccnl_SHA256_Update(&ctx, data_out + MAX_BLOCK_SIZE - len, len);
-        ccnl_SHA256_Final(md, &ctx);
-        {
-            char tmp[256];
-            int u;
-            u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
-            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-                u += sprintf(tmp+u, "%02x", md[i]);
-            DEBUGMSG(VERBOSE, "%s\n", tmp);
+        // Finally, check to see if we need to cap the current manifest and
+        // move onto the next one
+        if (num_pointers == max_pointers) {
+            unsigned char *manifest_buffer = ccnl_malloc(MAX_BLOCK_SIZE);
+            int manifest_offset = MAX_BLOCK_SIZE;
+
+            // Dump the binary format of the manifest
+            len = ccnl_manifest2packet(m, &manifest_offset, manifest_buffer, md + 2);
+
+            // Save the packet to disk
+            char *manifest_fname = NULL;
+            asprintf(&manifest_fname, "%s-manifest-%d", targetprefix, manifest_number++);
+            FILE *mf = fopen(manifest_fname, "wb");
+            if (mf == NULL) {
+                perror("file open:");
+                return -1;
+            }
+            fwrite(manifest_buffer + manifest_offset, 1, len, mf);
+            fclose(mf);
+
+            // Allocate the next one
+            // NOTE: this leaks memory.
+            m = ccnl_manifest_getEmptyTemplate();
+
+            // Append the hash of the previous manifest (to make the connection)
+            // and reset the pointer count
+            ccnl_manifest_prependHash(m, "tptr", (char *) md);
+            num_pointers = 1;
         }
     }
 
-    // keep a current manifest until it fills up, hash it, and then add it to the next current manifest
+    unsigned char *root_buffer = ccnl_malloc(block_size);
+    int root_offset = block_size;
+    len = ccnl_manifest2packet(m, &root_offset, root_buffer, md + 2);
+    {
+        char tmp[256];
+        int u;
+        u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            u += sprintf(tmp+u, "%02x", md[i + 2]);
+        DEBUGMSG(VERBOSE, "%s\n", tmp);
+    }
 
-    //
-    // for (i = 0; i < num_pointers; i++) {
-    //     digests[i] = ccnl_malloc(SHA256_DIGEST_LENGTH);
-    //
-    //     char *fname = fnames[i];
-    //     if (fname) {
-    //         f = open(fname, O_RDONLY);
-    //         if (f < 0) {
-    //             perror("file open:");
-    //             return -1;
-    //         }
-    //
-    //         // Read in the content object (or manifest, doesn't matter...)
-    //         len = read(f, body, sizeof(body));
-    //         close(f);
-    //         memset(out, 0, sizeof(out));
-    //
-    //         // Parse the packet
-    //         int skip;
-    //         ccnl_pkt2suite(body, len, &skip);
-    //
-    //         unsigned char *start, *data;
-    //         data = start = body + skip;
-    //         len -= skip;
-    //
-    //         int hdrlen = ccnl_ccntlv_getHdrLen(data, len);
-    //         data += hdrlen;
-    //         len -= hdrlen;
-    //
-	//     unsigned char *copydata = data;
-	//     int copylen = len;
-    //
-    //         // Convert the raw bytes to a ccnl packet type
-    //         struct ccnl_pkt_s *pkt = ccnl_ccntlv_bytes2pkt(start, &copydata, &copylen);
-    //
-	//     printf("Parsing the %dth packet\n", i);
-    //
-    //         int tl_type = 0;
-    //         int tl_length = 0;
-    //         if (ccnl_ccntlv_dehead(&data, &len, (unsigned int *) &tl_type, &tl_length) < 0) {
-	// 	printf("An error occurred!\n");
-    //             return -1;
-	//     }
-    //
-    //         printf("TYPE = %d\n", tl_type);
-    //
-    //         // Extract the name, type, and digest to construct the pointer.
-    //         ptypes[i] = tl_type;
-    //         names[i] = pkt->pfx;
-    //         memcpy(digests[i], pkt->md, SHA256_DIGEST_LENGTH);
-    //     } else {
-    //         return -1;
-    //     }
-    // }
-    //
-    // // Now, build the manifest from the ptypes, names, and digests
-    // if (uri) {
-    //     printf("manifest has a name: %s\n", uri);
-    //     name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-    //     if (!name)
-    //         return -1;
-    // }
-    //
-    // printf("Encoding the FLIC...\n");
-    // offs = sizeof(out); // set to the end of the buffer
-    // len = ccnl_ccntlv_prependManifestWithHdr(name, &ptypes, names, &digests, SHA256_DIGEST_LENGTH,
-    //     &num_pointers, 1, &offs, out, &msgLen);
-    //
-    // if (len <= 0) {
-    //     DEBUGMSG(ERROR, "internal error: empty packet\n");
-    //     return -1;
-    // }
-    //
-    // if (outprefix) {
-    //     f = creat(outprefix, 0666);
-    //     if (f < 0) {
-    //         perror("file open:");
-    //         return -1;
-    //     }
-    // } else
-    //     f = 1;
-    //
-    // write(f, out + offs, len);
-    // close(f);
-    //
-    // ccnl_SHA256_Init(&ctx);
-    // ccnl_SHA256_Update(&ctx, out + sizeof(out) - msgLen, msgLen);
-    // ccnl_SHA256_Final(md, &ctx);
-    // fprintf(stderr, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
-    // for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    //     fprintf(stderr, "%02x", md[i]);
-    // fprintf(stderr, "\n");
+    // Save the root manifest
+    char *root_fname = NULL;
+    asprintf(&root_fname, "%s-root", targetprefix);
+    FILE *mf = fopen(root_fname, "wb");
+    if (mf == NULL) {
+        perror("file open:");
+        return -1;
+    }
+    fwrite(root_buffer + root_offset, 1, len, mf);
+    fclose(mf);
 
     return 0;
 }
@@ -512,9 +483,6 @@ Usage:
             usage(1);
         }
     }
-
-    ccnl_manifest_test();
-    exit(1);
 
     if (targetprefix) {
       	char *uri = NULL;
