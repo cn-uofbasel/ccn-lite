@@ -42,14 +42,18 @@ char *progname;
 void
 usage(int exitval)
 {
-    fprintf(stderr, "usage: %s -p TARGETPREFIX [options] FILE [URI]\n"
+    fprintf(stderr, "usage: %s -p TARGETPREFIX [options] FILE [URI]  (producing)\n"
+                    "       %s [options] URI                         (retrieving)\n"
             "  -b SIZE    Block size (default is 64K)\n"
+            "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
+            "  -o FNAME   outfile\n"
             "  -s SUITE   (ccnx2015)\n"
+            "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
-            "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
+            "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            , progname);
+            , progname, progname);
     exit(exitval);
 }
 
@@ -450,20 +454,98 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
 
 // ----------------------------------------------------------------------
 
+#ifdef WORKINPROGRESS
+
+struct ccnl_pkt_s*
+flic_lookup(int sock, struct ccnl_prefix_s *locator,
+            unsigned char *objHashRestr)
+{
+    int cnt = 0;
+    struct ccnl_pkt_s *interest;
+    
+    for (i = 0; i < 3; i++) {
+        // send interest
+        // receive or timeout
+    }
+}
+
+void
+flic_do_dataPtr(int sock, struct ccnl_prefix_s *locator,
+                unsigned char *objHashRestr, int fd)
+{
+    struct ccnl_pkt_s *pkt = flic_lookup(locator, objHashRestr);
+    write(fd, pkt->content, pkt->contlen);
+}
+
+void
+flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
+                    unsigned char *objHashRestr, int fd)
+{
+    struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
+    unsigned char *msg = pkt->hmacstart;
+    int msglen = pkt->hmaclen, len;
+    unsigned int typ;
+
+    if (ccnl_dehead(&typ, &len) < 0)
+        goto Bail;
+    if (typ != Manifest)
+        goto Bail;
+    if (ccnl_dehead(&typ, &len) < 0)
+        goto Bail;
+    if (typ == Meta)
+        skip
+        if (ccnl_dehead(&typ, &len) < 0)
+            goto Bail;
+    if (typ != Grp)
+        goto Bail;
+    while ( ccnl_dehead(&typ, &len) >= 0) {
+        if (typ != t && typ != d) {
+        } else {
+        if (typ == t)
+    }
+    
+    
+}
+#endif
+
+// ----------------------------------------------------------------------
+
 int
 main(int argc, char *argv[])
 {
-    char *targetprefix = NULL;
-    int opt, packettype = CCNL_SUITE_CCNTLV;
+    char *targetprefix = NULL, *outfname = NULL;
+    char *uri = NULL, *udp = "127.0.0.1:6969";
+    int opt, packettype = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
     int block_size = MAX_BLOCK_SIZE - 256; // 64K by default
+    unsigned char *objHashRestr = NULL;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hk:p:s:v:f:b:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:f:k:o:p:s:u:v:")) != -1) {
         switch (opt) {
+        case 'b':
+            block_size = atoi(optarg);
+            if (block_size > (MAX_BLOCK_SIZE-256)) {
+                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE - 256);
+                goto Usage;
+            }
+            break;
+        case 'd':
+            if (strlen(optarg) != 64)
+                break;
+            ccnl_free(objHashRestr);
+            objHashRestr = ccnl_malloc(32);
+            for (i = 0; i < 32; i++) {
+                objHashRestr[i] = hex2int(optarg[2*i]) * 16 +
+                                                   hex2int(optarg[2*i + 1]);
+            }
+            break;
         case 'k':
             keys = load_keys_from_file(optarg);
+            break;
+        case 'o':
+            outfname = optarg;
             break;
         case 'p':
             targetprefix = optarg;
@@ -472,12 +554,8 @@ main(int argc, char *argv[])
             packettype = ccnl_str2suite(optarg);
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
                 break;
-        case 'b':
-            block_size = atoi(optarg);
-            if (block_size > (MAX_BLOCK_SIZE-256)) {
-                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE - 256);
-                goto Usage;
-            }
+        case 'u':
+            udp = optarg;
             break;
         case 'v':
 #ifdef USE_LOGGING
@@ -495,7 +573,6 @@ Usage:
     }
 
     if (targetprefix) {
-      	char *uri = NULL;
         char *fname = NULL;
         if (optind >= argc)
             goto Usage;
@@ -507,7 +584,24 @@ Usage:
 
         flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, uri);
     } else {
-        goto Usage;
+        struct ccnl_prefix_s *locator;
+        int fd;
+
+        if (optind >= argc)
+            goto Usage;
+        uri = argv[optind++];
+        if (optind < argc)
+            goto Usage;
+
+        if (outfname)
+            fd = open(outfname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+        else
+            fd = 1;
+
+        locator = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
+//        flic_do_manifestPtr(locator, objHashRestr, fd);
+        DEBUGMSG(FATAL, "sorry, FLIC retrieving not implemented yet\n");
+        close(fd);
     }
 
     return 0;
