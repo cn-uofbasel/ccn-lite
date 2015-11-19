@@ -27,6 +27,7 @@
 
 #define USE_CCNxMANIFEST
 #define USE_HMAC256
+#define USE_IPV4
 #define USE_NAMELESS
 
 #define MAX_BLOCK_SIZE (64*1024)
@@ -34,6 +35,7 @@
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"
+#include "ccnl-socket.c"
 
 // ----------------------------------------------------------------------
 
@@ -61,7 +63,9 @@ usage(int exitval)
 // copied from ccn-lite-mkM.c
 
 struct list_s {
-    char *var;
+    char typ;
+    unsigned char *var;
+    int varlen;
     struct list_s *first;
     struct list_s *rest;
 };
@@ -70,15 +74,15 @@ int
 emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
 {
     int typ = -1, len2;
-    char *cp = "??", dummy[200];
-    struct ccnl_prefix_s *pfx = NULL;
+    char *cp = "??"; //, dummy[200];
+//    struct ccnl_prefix_s *pfx = NULL;
 
     if (!lst)
         return len;
 
     DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
-    if (lst->var) { // atomic
-        switch(lst->var[0]) {
+    if (lst->typ) { // atomic
+        switch(lst->typ) {
         case 'a':
             cp = "T=about (metadata)";
             typ = CCNX_MANIFEST_HG_METADATA;
@@ -123,12 +127,15 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             cp = "T=tree hash ptr";
             typ = CCNX_MANIFEST_HG_PTR2MANIFEST;
             break;
+/*
         case '/':
             pfx = ccnl_URItoPrefix(lst->var, CCNL_SUITE_CCNTLV, NULL, NULL);
             cp = ccnl_prefix2path(dummy, sizeof(dummy), pfx);
             len2 = ccnl_ccntlv_prependNameComponents(pfx, offset, buf, NULL);
             break;
-        case '0':
+*/
+        case '@':
+/*
             cp = "hash value";
             *offset -= SHA256_DIGEST_LENGTH;
             memcpy(buf + *offset, (lst->var + 2), SHA256_DIGEST_LENGTH);
@@ -140,10 +147,13 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
                 len2 = ccnl_ccntlv_prependUInt((unsigned int)v, offset, buf);
                 cp = "int value";
             } else { // treat as a blob
-                len2 = strlen(lst->var);
-                *offset -= len2;
-                memcpy(buf + *offset, lst->var, len2);
-            }
+*/
+            len2 = lst->varlen;
+            *offset -= len2;
+            memcpy(buf + *offset, lst->var, len2);
+            break;
+        default:
+            DEBUGMSG(FATAL, "unknown type\n");
             break;
         }
         if (typ >= 0) {
@@ -168,10 +178,16 @@ ccnl_printExpr(struct list_s *t, char last, char *out)
 {
     if (!t)
         return;
+    if (t->typ) {
+        sprintf(out, "atomic %c\n", t->typ);
+        return;
+    }
+/*
     if (t->var) {
         strcat(out, t->var);
         return;
     }
+*/
     strcat(out, "(");
     last = '(';
     do {
@@ -198,8 +214,26 @@ ccnl_manifest_atomic(char *var)
 
     node = ccnl_calloc(1, sizeof(*node));
     node->first = ccnl_calloc(1, sizeof(*node));
-    node->first->var = NULL;
-    asprintf(&(node->first->var), "%s", var);
+    node->first->typ = var[0];
+//    node->first->var = NULL;
+//    asprintf(&(node->first->var), "%s", var);
+    return node;
+}
+
+struct list_s*
+ccnl_manifest_atomic_blob(unsigned char *blob, int len)
+{
+    // note: blob is not freed upon freeing this node
+    struct list_s *node;
+
+    node = ccnl_calloc(1, sizeof(*node));
+    node->first = ccnl_calloc(1, sizeof(*node));
+    node->first->typ = '@';
+    node->first->var = ccnl_malloc(32);
+    memcpy(node->first->var, blob, 32);
+    node->first->varlen = len;
+//    node->first->var = NULL;
+//    asprintf(&(node->first->var), "%s", var);
     return node;
 }
 
@@ -217,14 +251,14 @@ ccnl_manifest_getEmptyTemplate(void)
 // typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
 // md is the hash value (array of 32 bytes) to be stored
 void
-ccnl_manifest_prependHash(struct list_s *m, char *typ, char *md)
+ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 {
     // note: typ and md are not freed upon freeing this list
     struct list_s *grp = m->rest->first;
     struct list_s *hentry = ccnl_calloc(1, sizeof(*hentry));
 
     hentry->first = ccnl_manifest_atomic(typ);
-    hentry->first->rest = ccnl_manifest_atomic(md);
+    hentry->first->rest = ccnl_manifest_atomic_blob(md, 32);
     hentry->rest = grp->rest;
     grp->rest = hentry;
 }
@@ -265,6 +299,7 @@ ccnl_manifest2packet(struct list_s *m, int *offset, unsigned char *buf,
     return oldoffset - *offset;
 }
 
+/*
 void
 ccnl_manifest_test()
 {
@@ -291,6 +326,7 @@ ccnl_manifest_test()
     ccnl_manifest_free(m);
     fprintf(stderr, "done\n");
 }
+*/
 
 // ----------------------------------------------------------------------
 
@@ -301,13 +337,13 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
     FILE *f;
     int num_bytes, len, i;
     SHA256_CTX_t ctx;
-    unsigned char md[SHA256_DIGEST_LENGTH + 2];
+    unsigned char md[SHA256_DIGEST_LENGTH];
 
     // NOTE(@Christian): workaround the error that occurs when the first byte of a hash
     // is a digit ... prepending "0x.." to the hash makes the emit() case for hash
     // digests be caught.
-    md[0] = '0';
-    md[1] = 'x';
+//    md[0] = '0';
+//    md[1] = 'x';
 
     f = fopen(fname, "rb");
     if (f == NULL) {
@@ -324,37 +360,45 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
     int num_blocks = ((length - 1) / block_size) + 1;
+/*
     int offset = length - block_size;
     if (length % block_size != 0) {
         offset = length - (length % block_size);
     }
+*/
+    int offset = (num_blocks - 1) * block_size;
 
     // NOTE: we should play with this
     int max_pointers = 10;
     int num_pointers = 0;
 
-    unsigned char *body = ccnl_malloc(MAX_BLOCK_SIZE);
-    unsigned char *data_out = ccnl_malloc(MAX_BLOCK_SIZE);
+static unsigned char body[MAX_BLOCK_SIZE];
+static unsigned char data_out[MAX_BLOCK_SIZE + 256];
 
     struct list_s *m = ccnl_manifest_getEmptyTemplate();
 
     int chunk_number = num_blocks;
     int index = 1;
     int manifest_number = 0;
+    int offs;
     for (; offset >= 0; offset -= block_size, chunk_number--, index++) {
-        DEBUGMSG(VERBOSE, "Processing block at offset %d\n", offset);
-        memset(body, 0, block_size);
-        fseek(f, block_size * (index * -1), SEEK_END);
-        num_bytes = fread(body, sizeof(unsigned char), block_size, f);
-        if (num_bytes != block_size) {
-            DEBUGMSG(FATAL, "Read from offset %d failed.\n", offset);
+        int bytesToRead = length - offset;
+        if (bytesToRead > block_size)
+            bytesToRead = block_size;
+        DEBUGMSG(INFO, "Processing block at offset %d (len=%d)\n",
+                 offset, bytesToRead);
+        fseek(f, offset, SEEK_SET);
+        num_bytes = fread(body, sizeof(unsigned char), bytesToRead, f);
+        if (num_bytes != bytesToRead) {
+            DEBUGMSG(FATAL, "Read %dB from offset %d failed.\n",
+                     bytesToRead, offset);
             return -1;
         }
 
         DEBUGMSG(VERBOSE, "Creating a data packet with %d bytes\n", num_bytes);
 
         // Build the content to start
-        int offs = MAX_BLOCK_SIZE;
+        offs = sizeof(data_out);
         len = ccnl_ccntlv_prependContent(NULL, body, num_bytes, NULL, NULL, &offs, data_out);
         if (len == -1) {
             return -1;
@@ -362,23 +406,26 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
 
         // Compute the hash of the content
         ccnl_SHA256_Init(&ctx);
-        ccnl_SHA256_Update(&ctx, data_out + MAX_BLOCK_SIZE - len, len);
-        ccnl_SHA256_Final(md + 2, &ctx);
+        ccnl_SHA256_Update(&ctx, data_out + offs, len);
+        ccnl_SHA256_Final(md, &ctx);
         {
             char tmp[256];
-            int u;
-            u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+            int u = 0;
+//            u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
+            u = sprintf(tmp, "  ");
             for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-                u += sprintf(tmp+u, "%02x", md[i + 2]);
-            DEBUGMSG(VERBOSE, "%s\n", tmp);
+                u += sprintf(tmp+u, "%02x", md[i]);
+            DEBUGMSG(INFO, "%s (%d)\n", tmp, len);
         }
 
         // Prepend the hash to the current manifest
-        ccnl_manifest_prependHash(m, "dptr", (char *) md);
+        ccnl_manifest_prependHash(m, "dptr", md);
         num_pointers++;
 
         // Prepend the fixed header
-        if (ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data, len, 255, &offs, data_out) < 0) {
+        len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                          len, 255, &offs, data_out);
+        if (len <= 0) {
             DEBUGMSG(VERBOSE, "Failed to prepend the fixed header.\n");
             return -1;
         }
@@ -402,7 +449,7 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
             int manifest_offset = MAX_BLOCK_SIZE;
 
             // Dump the binary format of the manifest
-            len = ccnl_manifest2packet(m, &manifest_offset, manifest_buffer, md + 2);
+            len = ccnl_manifest2packet(m, &manifest_offset, manifest_buffer, md);
 
             // Save the packet to disk
             char *manifest_fname = NULL;
@@ -421,20 +468,20 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
 
             // Append the hash of the previous manifest (to make the connection)
             // and reset the pointer count
-            ccnl_manifest_prependHash(m, "tptr", (char *) md);
+            ccnl_manifest_prependHash(m, "tptr", md);
             num_pointers = 1;
         }
     }
 
-    unsigned char *root_buffer = ccnl_malloc(block_size);
-    int root_offset = block_size;
-    len = ccnl_manifest2packet(m, &root_offset, root_buffer, md + 2);
+    unsigned char *root_buffer = ccnl_malloc(block_size + 256);
+    int root_offset = block_size + 256;
+    len = ccnl_manifest2packet(m, &root_offset, root_buffer, md);
     {
         char tmp[256];
         int u;
         u = sprintf(tmp, "  ObjectHash%d is 0x", SHA256_DIGEST_LENGTH);
         for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-            u += sprintf(tmp+u, "%02x", md[i + 2]);
+            u += sprintf(tmp+u, "%02x", md[i]);
         DEBUGMSG(VERBOSE, "%s\n", tmp);
     }
 
@@ -454,12 +501,36 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int blo
 
 // ----------------------------------------------------------------------
 
-#ifdef WORKINPROGRESS
+struct sockaddr relay;
 
 struct ccnl_pkt_s*
 flic_lookup(int sock, struct ccnl_prefix_s *locator,
             unsigned char *objHashRestr)
 {
+    char dummy[256];
+    unsigned char *data;
+    unsigned char pkt[4096];
+    int datalen, len, rc;
+
+    DEBUGMSG(INFO, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy), locator));
+    len = ccntlv_mkInterest(locator, NULL, objHashRestr, pkt, sizeof(pkt));
+    DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
+
+    rc = sendto(sock, pkt, len, 0, &relay, sizeof(relay));
+    if (rc < 0) {
+        perror("sendto");
+        myexit(1);
+    }
+    DEBUGMSG(DEBUG, "sendto returned %d\n", rc);
+
+    len = recv(sock, pkt, sizeof(pkt), 0);
+    DEBUGMSG(DEBUG, "recv returned %d\n", len);
+
+    data = pkt + 8;
+    datalen = len - 8;
+    return ccnl_ccntlv_bytes2pkt(pkt, &data, &datalen);
+    
+/*
     int cnt = 0;
     struct ccnl_pkt_s *interest;
     
@@ -467,13 +538,15 @@ flic_lookup(int sock, struct ccnl_prefix_s *locator,
         // send interest
         // receive or timeout
     }
+*/
+    return 0;
 }
 
 void
 flic_do_dataPtr(int sock, struct ccnl_prefix_s *locator,
                 unsigned char *objHashRestr, int fd)
 {
-    struct ccnl_pkt_s *pkt = flic_lookup(locator, objHashRestr);
+    struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
     write(fd, pkt->content, pkt->contlen);
 }
 
@@ -482,31 +555,48 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd)
 {
     struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
-    unsigned char *msg = pkt->hmacstart;
-    int msglen = pkt->hmaclen, len;
+    unsigned char *msg;
+    int msglen, len, len2;
     unsigned int typ;
 
-    if (ccnl_dehead(&typ, &len) < 0)
+    if (!pkt)
+        return;
+    msg = pkt->buf->data + 8; // hmacStart;
+    msglen = pkt->buf->datalen - 8; // hmacLen;
+    DEBUGMSG(DEBUG, "hmaclen %d\n", msglen);
+    if (ccnl_ccntlv_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
-    if (typ != Manifest)
+    if (typ != CCNX_TLV_TL_Manifest)
         goto Bail;
-    if (ccnl_dehead(&typ, &len) < 0)
-        goto Bail;
-    if (typ == Meta)
-        skip
-        if (ccnl_dehead(&typ, &len) < 0)
-            goto Bail;
-    if (typ != Grp)
-        goto Bail;
-    while ( ccnl_dehead(&typ, &len) >= 0) {
-        if (typ != t && typ != d) {
-        } else {
-        if (typ == t)
+    while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
+        if (typ != CCNX_MANIFEST_HASHGROUP) {
+            msg += len2;
+            len -= len2;
+            continue;
+        }
+        DEBUGMSG(DEBUG, "hash group\n");
+        while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
+            DEBUGMSG(DEBUG, "  loop\n");
+            if (len2 != 32 || (typ != CCNX_MANIFEST_HG_PTR2DATA &&
+                               typ != CCNX_MANIFEST_HG_PTR2MANIFEST)) {
+                DEBUGMSG(DEBUG, "skip %d %d\n", typ, len2);
+                len -= len2;
+                msg += len2;
+                continue;
+            }
+            if (typ == CCNX_MANIFEST_HG_PTR2DATA)
+                flic_do_dataPtr(sock, NULL, msg, fd);
+            else
+                flic_do_manifestPtr(sock, NULL, msg, fd);
+            len -= len2;
+            msg += len2;
+        }
     }
-    
-    
+    return;
+Bail:
+    DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
+    return;
 }
-#endif
 
 // ----------------------------------------------------------------------
 
@@ -514,7 +604,7 @@ int
 main(int argc, char *argv[])
 {
     char *targetprefix = NULL, *outfname = NULL;
-    char *uri = NULL, *udp = "127.0.0.1:6969";
+    char *uri = NULL, *udp = strdup("127.0.0.1/9695");
     int opt, packettype = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
     int block_size = MAX_BLOCK_SIZE - 256; // 64K by default
@@ -585,7 +675,9 @@ Usage:
         flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, uri);
     } else {
         struct ccnl_prefix_s *locator;
-        int fd;
+        int fd, port, sock;
+        const char *addr = NULL;
+        struct sockaddr_in *si;
 
         if (optind >= argc)
             goto Usage;
@@ -593,14 +685,22 @@ Usage:
         if (optind < argc)
             goto Usage;
 
+        if (ccnl_parseUdp(udp, CCNL_SUITE_CCNTLV, &addr, &port) != 0) {
+            exit(-1);
+        }
+        DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
+        si = (struct sockaddr_in*) &relay;
+        ccnl_setIpSocketAddr(si, addr, port);
+        sock = udp_open();
+
         if (outfname)
             fd = open(outfname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
         else
             fd = 1;
 
         locator = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-//        flic_do_manifestPtr(locator, objHashRestr, fd);
-        DEBUGMSG(FATAL, "sorry, FLIC retrieving not implemented yet\n");
+        flic_do_manifestPtr(sock, locator, objHashRestr, fd);
+//        DEBUGMSG(FATAL, "sorry, FLIC retrieving not implemented yet\n");
         close(fd);
     }
 

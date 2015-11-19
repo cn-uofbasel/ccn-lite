@@ -160,6 +160,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         *pkt = NULL;
         return 0;
     }
+    
+#ifdef USE_SUITE_CCNTLV
+    if ((*pkt)->pfx->suite == CCNL_SUITE_CCNTLV &&
+        (*pkt)->s.ccntlv.objHashRestr) {
+        DEBUGMSG_CFWD(DEBUG, "    ObjHashRestriction %02x%02x...%02x\n", (*pkt)->s.ccntlv.objHashRestr[0], (*pkt)->s.ccntlv.objHashRestr[1], (*pkt)->s.ccntlv.objHashRestr[31]);
+    }
+#endif
 
 #ifdef USE_SUITE_CCNB
     if ((*pkt)->suite == CCNL_SUITE_CCNB && (*pkt)->pfx->compcnt == 4 &&
