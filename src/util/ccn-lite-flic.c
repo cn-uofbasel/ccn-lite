@@ -484,15 +484,16 @@ flic_lookup(int sock, struct ccnl_prefix_s *locator,
 
 void
 flic_do_dataPtr(int sock, struct ccnl_prefix_s *locator,
-                unsigned char *objHashRestr, int fd)
+                unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
     write(fd, pkt->content, pkt->contlen);
+    ccnl_SHA256_Update(total, pkt->content, pkt->contlen);
 }
 
 void
 flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
-                    unsigned char *objHashRestr, int fd)
+                    unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
     unsigned char *msg;
@@ -518,9 +519,9 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
         while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == CCNX_MANIFEST_HG_PTR2DATA)
-                    flic_do_dataPtr(sock, NULL, msg, fd);
+                    flic_do_dataPtr(sock, NULL, msg, fd, total);
                 else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST)
-                    flic_do_manifestPtr(sock, NULL, msg, fd);
+                    flic_do_manifestPtr(sock, NULL, msg, fd, total);
             }
             msg += len2;
             len -= len2;
@@ -616,6 +617,8 @@ Usage:
         int fd, port, sock;
         const char *addr = NULL;
         struct sockaddr_in *si;
+        SHA256_CTX_t total;
+        unsigned char md[SHA256_DIGEST_LENGTH];
 
         if (optind >= argc)
             goto Usage;
@@ -636,9 +639,20 @@ Usage:
         else
             fd = 1;
 
+        ccnl_SHA256_Init(&total);
         locator = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-        flic_do_manifestPtr(sock, locator, objHashRestr, fd);
+        flic_do_manifestPtr(sock, locator, objHashRestr, fd, &total);
         close(fd);
+
+        ccnl_SHA256_Final(md, &total);
+        {
+            char tmp[256];
+            int u = 0, j;
+            u = sprintf(tmp, "  ");
+            for (j = 0; j < SHA256_DIGEST_LENGTH; j++)
+                u += sprintf(tmp+u, "%02x", md[j]);
+            DEBUGMSG(INFO, "Total SHA256 is %s\n", tmp);
+        }
     }
 
     return 0;
