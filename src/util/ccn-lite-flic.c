@@ -209,32 +209,42 @@ ccnl_printExpr(struct list_s *t, char last, char *out)
 struct list_s*
 ccnl_manifest_atomic(char *var)
 {
-    // note: var is not freed upon freeing this node
     struct list_s *node;
 
     node = ccnl_calloc(1, sizeof(*node));
     node->first = ccnl_calloc(1, sizeof(*node));
     node->first->typ = var[0];
-//    node->first->var = NULL;
-//    asprintf(&(node->first->var), "%s", var);
+
     return node;
 }
 
 struct list_s*
 ccnl_manifest_atomic_blob(unsigned char *blob, int len)
 {
-    // note: blob is not freed upon freeing this node
     struct list_s *node;
 
     node = ccnl_calloc(1, sizeof(*node));
     node->first = ccnl_calloc(1, sizeof(*node));
     node->first->typ = '@';
-    node->first->var = ccnl_malloc(32);
-    memcpy(node->first->var, blob, 32);
+    node->first->var = ccnl_malloc(len);
+    memcpy(node->first->var, blob, len);
     node->first->varlen = len;
-//    node->first->var = NULL;
-//    asprintf(&(node->first->var), "%s", var);
+
     return node;
+}
+
+struct list_s*
+ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
+{
+    static unsigned char dummy[256];
+    int offset, len;
+
+    offset = sizeof(dummy);
+    len = ccnl_ccntlv_prependNameComponents(pfx, &offset, dummy, NULL);
+    if (len < 0)
+        return 0;
+
+    return ccnl_manifest_atomic_blob(dummy + offset, len);
 }
 
 struct list_s*
@@ -245,6 +255,7 @@ ccnl_manifest_getEmptyTemplate(void)
     m = ccnl_manifest_atomic("mfst");
     m->rest = ccnl_calloc(1, sizeof(struct list_s));
     m->rest->first = ccnl_manifest_atomic("grp");
+
     return m;
 }
 
@@ -268,6 +279,20 @@ void
 ccnl_manifest_setMetaData(struct list_s *m, int blockSize,
                           int totalSize, unsigned char* totalDigest)
 {
+    // current hashgroup
+}
+
+// void ccnl_manifest_prependHashGroup()
+
+void
+ccnl_manifest_setName(struct list_s *m, struct ccnl_prefix_s *pfx)
+{
+    struct list_s *n = ccnl_calloc(1, sizeof(*n));
+
+    n->first = ccnl_manifest_atomic("name");
+    n->first->rest = ccnl_manifest_atomic_prefix(pfx);
+    n->rest = m->rest->first;
+    m->rest->first = n;
 }
 
 void
@@ -275,6 +300,8 @@ ccnl_manifest_free(struct list_s *m)
 {
     if (!m)
         return;
+    if (m->typ == '@')
+        ccnl_free(m->var);
     ccnl_manifest_free(m->first);
     ccnl_manifest_free(m->rest);
     ccnl_free(m);
@@ -332,7 +359,7 @@ ccnl_manifest_test()
 
 int
 flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys, int block_size,
-    char *fname, char *uri)
+    char *fname, struct ccnl_prefix_s *name)
 {
     FILE *f;
     int num_bytes, len, i;
@@ -473,6 +500,8 @@ static unsigned char data_out[MAX_BLOCK_SIZE + 256];
         }
     }
 
+    if (name)
+        ccnl_manifest_setName(m, name);
     unsigned char *root_buffer = ccnl_malloc(block_size + 256);
     int root_offset = block_size + 256;
     len = ccnl_manifest2packet(m, &root_offset, root_buffer, md);
@@ -663,16 +692,20 @@ Usage:
     }
 
     if (targetprefix) {
+        struct ccnl_prefix_s *name = NULL;
         char *fname = NULL;
+        
         if (optind >= argc)
             goto Usage;
         fname = argv[optind++];
-        if (optind < argc)
+        if (optind < argc) {
             uri = argv[optind++];
+            name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
+        }
         if (optind < argc)
             goto Usage;
 
-        flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, uri);
+        flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, name);
     } else {
         struct ccnl_prefix_s *locator;
         int fd, port, sock;
