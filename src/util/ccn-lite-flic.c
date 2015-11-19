@@ -456,35 +456,29 @@ flic_lookup(int sock, struct ccnl_prefix_s *locator,
     char dummy[256];
     unsigned char *data;
     unsigned char pkt[4096];
-    int datalen, len, rc;
+    int datalen, len, rc, cnt;
 
     DEBUGMSG(INFO, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy), locator));
     len = ccntlv_mkInterest(locator, NULL, objHashRestr, pkt, sizeof(pkt));
     DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 
-    rc = sendto(sock, pkt, len, 0, &relay, sizeof(relay));
-    if (rc < 0) {
-        perror("sendto");
-        myexit(1);
-    }
-    DEBUGMSG(DEBUG, "sendto returned %d\n", rc);
+    for (cnt = 0; cnt < 3; cnt++) {
+        rc = sendto(sock, pkt, len, 0, &relay, sizeof(relay));
+        DEBUGMSG(TRACE, "sendto returned %d\n", rc);
+        if (rc < 0) {
+            perror("sendto");
+            return NULL;
+        }
+        if (block_on_read(sock, 3) > 0) {
+            len = recv(sock, pkt, sizeof(pkt), 0);
+            DEBUGMSG(DEBUG, "recv returned %d\n", len);
 
-    len = recv(sock, pkt, sizeof(pkt), 0);
-    DEBUGMSG(DEBUG, "recv returned %d\n", len);
-
-    data = pkt + 8;
-    datalen = len - 8;
-    return ccnl_ccntlv_bytes2pkt(pkt, &data, &datalen);
-    
-/*
-    int cnt = 0;
-    struct ccnl_pkt_s *interest;
-    
-    for (i = 0; i < 3; i++) {
-        // send interest
-        // receive or timeout
+            data = pkt + 8;
+            datalen = len - 8;
+            return ccnl_ccntlv_bytes2pkt(pkt, &data, &datalen);
+        }
+        DEBUGMSG(WARNING, "timeout after block_on_read - %d\n", cnt);
     }
-*/
     return 0;
 }
 
@@ -507,9 +501,9 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
 
     if (!pkt)
         return;
-    msg = pkt->buf->data + 8; // hmacStart;
-    msglen = pkt->buf->datalen - 8; // hmacLen;
-    DEBUGMSG(DEBUG, "hmaclen %d\n", msglen);
+    msg = pkt->buf->data + 8;
+    msglen = pkt->buf->datalen - 8;
+
     if (ccnl_ccntlv_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
     if (typ != CCNX_TLV_TL_Manifest)
@@ -520,22 +514,16 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
             len -= len2;
             continue;
         }
-        DEBUGMSG(DEBUG, "hash group\n");
+        DEBUGMSG(TRACE, "hash group\n");
         while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
-            DEBUGMSG(DEBUG, "  loop\n");
-            if (len2 != SHA256_DIGEST_LENGTH || (typ != CCNX_MANIFEST_HG_PTR2DATA &&
-                               typ != CCNX_MANIFEST_HG_PTR2MANIFEST)) {
-                DEBUGMSG(DEBUG, "skip %d %d\n", typ, len2);
-                len -= len2;
-                msg += len2;
-                continue;
+            if (len2 == SHA256_DIGEST_LENGTH) {
+                if (typ == CCNX_MANIFEST_HG_PTR2DATA)
+                    flic_do_dataPtr(sock, NULL, msg, fd);
+                else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST)
+                    flic_do_manifestPtr(sock, NULL, msg, fd);
             }
-            if (typ == CCNX_MANIFEST_HG_PTR2DATA)
-                flic_do_dataPtr(sock, NULL, msg, fd);
-            else
-                flic_do_manifestPtr(sock, NULL, msg, fd);
-            len -= len2;
             msg += len2;
+            len -= len2;
         }
     }
     return;
