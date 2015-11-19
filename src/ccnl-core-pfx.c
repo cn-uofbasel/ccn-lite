@@ -438,7 +438,10 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 char*
 ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr)
 {
-    ccnl_snprintfPrefixPath(buf, buflen, pr);
+    if (!pr || !pr->compcnt)
+        strcpy(buf, "nil");
+    else
+        ccnl_snprintfPrefixPath(buf, buflen, pr);
     return buf;
 }
 

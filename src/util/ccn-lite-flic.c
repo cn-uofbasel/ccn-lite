@@ -87,7 +87,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             typ = CCNX_MANIFEST_HG_METADATA;
             break;
         case 'b':
-            cp = "T=block size";
+            cp = "T=meta block size";
             typ = CCNX_MANIFEST_MT_BLOCKSIZE;
             break;
         case 'c': // can be removed for manifests
@@ -102,8 +102,12 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             cp = "T=hash pointer group";
             typ = CCNX_MANIFEST_HASHGROUP;
             break;
+        case 'h':
+            cp = "T=meta overall hash";
+            typ = CCNX_MANIFEST_MT_OVERALLDATASHA256;
+            break;
         case 'l':
-            cp = "T=locator";
+            cp = "T=meta locator";
             typ = CCNX_MANIFEST_MT_NAME;
             break;
         case 'm':
@@ -119,7 +123,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             typ = CCNX_TLV_M_Payload;
             break;
         case 's':
-            cp = "T=data size";
+            cp = "T=meta overall data size";
             typ = CCNX_MANIFEST_MT_OVERALLDATASIZE;
             break;
         case 't':
@@ -210,7 +214,15 @@ ccnl_manifest_atomic_blob(unsigned char *blob, int len)
     return node;
 }
 
-// struct list_s* ccnl_manifest_atomic_uint(unsigned int val) ...
+struct list_s*
+ccnl_manifest_atomic_uint(unsigned int val)
+{
+    unsigned char tmp[16];
+    int offs = sizeof(tmp), len;
+
+    len = ccnl_ccntlv_prependUInt(val, &offs, tmp);
+    return ccnl_manifest_atomic_blob(tmp + offs, len);
+}
 
 struct list_s*
 ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
@@ -243,8 +255,7 @@ ccnl_manifest_getEmptyTemplate(void)
 void
 ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 {
-    // note: typ and md are not freed upon freeing this list
-    struct list_s *grp = m->rest->first;
+    struct list_s *grp = m->rest->first; // m must NOT have a name, yet
     struct list_s *hentry = ccnl_calloc(1, sizeof(*hentry));
 
     hentry->first = ccnl_manifest_atomic(typ);
@@ -254,11 +265,47 @@ ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 }
 
 
+// applies to the current hashgroup
 void
-ccnl_manifest_setMetaData(struct list_s *m, int blockSize,
-                          int totalSize, unsigned char* totalDigest)
+ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
+                          int blockSize, long totalSize,
+                          unsigned char* totalDigest)
 {
-    // applies to the current hashgroup
+    struct list_s *grp = m->rest->first;
+    struct list_s *meta = ccnl_calloc(1, sizeof(struct list_s));
+
+    meta->first = ccnl_manifest_atomic("about");
+    if (totalDigest) {
+        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
+        e->first = ccnl_manifest_atomic("hash");
+        e->first->rest = ccnl_manifest_atomic_blob(totalDigest,
+                                                   SHA256_DIGEST_LENGTH);
+        e->rest = meta->first->rest;
+        meta->first->rest = e;
+    }
+    if (totalSize >= 0) {
+        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
+        e->first = ccnl_manifest_atomic("size");
+        e->first->rest = ccnl_manifest_atomic_uint(totalSize);
+        e->rest = meta->first->rest;
+        meta->first->rest = e;
+    }
+    if (blockSize >= 0) {
+        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
+        e->first = ccnl_manifest_atomic("blocksz");
+        e->first->rest = ccnl_manifest_atomic_uint(blockSize);
+        e->rest = meta->first->rest;
+        meta->first->rest = e;
+    }
+    if (locator) {
+        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
+        e->first = ccnl_manifest_atomic("locator");
+        e->first->rest = ccnl_manifest_atomic_prefix(locator);
+        e->rest = meta->first->rest;
+        meta->first->rest = e;
+    }
+    meta->rest =  grp->rest;
+    grp->rest = meta;
 }
 
 void
@@ -373,24 +420,34 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
                      int block_size, char *fname, struct ccnl_prefix_s *name)
 {
     static unsigned char body[MAX_BLOCK_SIZE];
-    FILE *f;
-    int num_bytes, len, chunk_number, manifest_number = 0;
-    unsigned char md[SHA256_DIGEST_LENGTH];
+    int f, num_bytes, len, chunk_number, manifest_number = 0;
+    SHA256_CTX_t ctx;
+    unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
     struct list_s *m = ccnl_manifest_getEmptyTemplate();
     long length, offset;
     // NOTE: we should play with this
     int max_pointers = 10;
     int num_pointers = 0;
     
-    f = fopen(fname, "rb");
-    if (f == NULL) {
+    f = open(fname, O_RDONLY);
+    if (f < 0) {
         perror("file open:");
         return;
     }
 
+    // compute overall SHA256
+    ccnl_SHA256_Init(&ctx);
+    for (;;) {
+        len = read(f, body, sizeof(body));
+        if (len <= 0)
+            break;
+        ccnl_SHA256_Update(&ctx, body, len);
+    }
+    ccnl_SHA256_Final(total, &ctx);
+    
     // get the number of blocks (leaf nodes)
-    fseek(f, 0, SEEK_END);
-    length = ftell(f);
+    length = lseek(f, 0, SEEK_END);
+
     chunk_number = ((length - 1) / block_size) + 1;
 
     DEBUGMSG(INFO, "Creating FLIC from %s\n", fname);
@@ -404,8 +461,8 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
             len = block_size;
 
         DEBUGMSG(INFO, "flic: block at offset %ld (len=%d)\n", offset, len);
-        fseek(f, offset, SEEK_SET);
-        num_bytes = fread(body, sizeof(unsigned char), len, f);
+        lseek(f, offset, SEEK_SET);
+        num_bytes = read(f, body, len);
         if (num_bytes != len) {
             DEBUGMSG(FATAL, "Read %dB from offset %ld failed.\n",
                      len, offset);
@@ -428,8 +485,10 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
             fname = NULL;
             if (offset)
                 asprintf(&fname, "%s-manifest-%d", targetprefix, manifest_number++);
-            else
+            else {
                 asprintf(&fname, "%s-root", targetprefix);
+                ccnl_manifest_setMetaData(m, NULL, block_size, length, total);
+            }
             flic_manifest2file(m, offset ? NULL : name, fname, md);
             free(fname);
 
@@ -441,7 +500,7 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
         }
     }
 
-    fclose(f);
+    close(f);
     ccnl_manifest_free(m);
 }
 
@@ -458,7 +517,8 @@ flic_lookup(int sock, struct ccnl_prefix_s *locator,
     unsigned char pkt[4096];
     int datalen, len, rc, cnt;
 
-    DEBUGMSG(INFO, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy), locator));
+    DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
+                                                       locator));
     len = ccntlv_mkInterest(locator, NULL, objHashRestr, pkt, sizeof(pkt));
     DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 
