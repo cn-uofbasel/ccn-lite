@@ -250,22 +250,29 @@ ccnl_manifest_getEmptyTemplate(void)
     return m;
 }
 
+void
+ccnl_manifest_prepend(struct list_s *where, char *typ, struct list_s *what)
+{
+    struct list_s *elmnt = ccnl_calloc(1, sizeof(*elmnt));
+
+    elmnt->first = ccnl_manifest_atomic(typ);
+    elmnt->first->rest = what;
+    elmnt->rest = where->rest;
+    where->rest = elmnt;
+}
+
+
 // typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
 // md is the hash value (array of 32 bytes) to be stored
 void
 ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 {
-    struct list_s *grp = m->rest->first; // m must NOT have a name, yet
-    struct list_s *hentry = ccnl_calloc(1, sizeof(*hentry));
-
-    hentry->first = ccnl_manifest_atomic(typ);
-    hentry->first->rest = ccnl_manifest_atomic_blob(md, SHA256_DIGEST_LENGTH);
-    hentry->rest = grp->rest;
-    grp->rest = hentry;
+    ccnl_manifest_prepend(m->rest->first /* hash grp */, typ, 
+                          ccnl_manifest_atomic_blob(md, SHA256_DIGEST_LENGTH));
 }
 
 
-// applies to the current hashgroup
+// this defines the current hashgroup's metadata
 void
 ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
                           int blockSize, long totalSize,
@@ -275,35 +282,23 @@ ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
     struct list_s *meta = ccnl_calloc(1, sizeof(struct list_s));
 
     meta->first = ccnl_manifest_atomic("about");
-    if (totalDigest) {
-        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
-        e->first = ccnl_manifest_atomic("hash");
-        e->first->rest = ccnl_manifest_atomic_blob(totalDigest,
-                                                   SHA256_DIGEST_LENGTH);
-        e->rest = meta->first->rest;
-        meta->first->rest = e;
-    }
-    if (totalSize >= 0) {
-        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
-        e->first = ccnl_manifest_atomic("size");
-        e->first->rest = ccnl_manifest_atomic_uint(totalSize);
-        e->rest = meta->first->rest;
-        meta->first->rest = e;
-    }
-    if (blockSize >= 0) {
-        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
-        e->first = ccnl_manifest_atomic("blocksz");
-        e->first->rest = ccnl_manifest_atomic_uint(blockSize);
-        e->rest = meta->first->rest;
-        meta->first->rest = e;
-    }
-    if (locator) {
-        struct list_s *e = ccnl_calloc(1, sizeof(struct list_s));
-        e->first = ccnl_manifest_atomic("locator");
-        e->first->rest = ccnl_manifest_atomic_prefix(locator);
-        e->rest = meta->first->rest;
-        meta->first->rest = e;
-    }
+
+    if (totalDigest)
+        ccnl_manifest_prepend(meta->first, "hash",
+                              ccnl_manifest_atomic_blob(totalDigest,
+                                                        SHA256_DIGEST_LENGTH));
+    if (totalSize >= 0)
+        ccnl_manifest_prepend(meta->first, "size",
+                              ccnl_manifest_atomic_uint(totalSize));
+    
+    if (blockSize >= 0)
+        ccnl_manifest_prepend(meta->first, "blocksz",
+                              ccnl_manifest_atomic_uint(blockSize));
+
+    if (locator)
+        ccnl_manifest_prepend(meta->first, "locator",
+                              ccnl_manifest_atomic_prefix(locator));
+
     meta->rest =  grp->rest;
     grp->rest = meta;
 }
