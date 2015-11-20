@@ -1389,7 +1389,23 @@ ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
     // dump the sequence of TLV fields, should start with a name TLV
     ndn_parse_sequence(0, data, &buf, &len, "payload", rawxml, out);
     if (!rawxml) {
-        fprintf(out, "%04zx  pkt.end\n", buf - data);
+        SHA256_CTX_t ctx;
+        unsigned char objhash[SHA256_DIGEST_LENGTH];
+        int i;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, data, buf - data);
+        ccnl_SHA256_Final(objhash, &ctx);
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, 0);
+        fprintf(out, "pkt.hash=");
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(out, "%02x", objhash[i]);
+        fprintf(out, "\n");
+
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, 0);
+        fprintf(out, "pkt.end\n");
     }
 }
 

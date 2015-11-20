@@ -79,6 +79,7 @@ struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                       unsigned char **data, int *datalen)
 {
+    unsigned char *msgstart;
     struct ccnl_pkt_s *pkt;
     int oldpos, len, i;
     unsigned int typ;
@@ -93,9 +94,6 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     if (!pkt)
         return NULL;
 
-#ifdef USE_HMAC256
-    pkt->hmacStart = start;
-#endif
     switch(pkttype) {
     case NDN_TLV_Interest:
         pkt->flags |= CCNL_PKT_REQUEST;
@@ -112,6 +110,11 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
         DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkttype);
         goto Bail;
     }
+
+#ifdef USE_HMAC256
+    pkt->hmacStart = start;
+#endif
+    msgstart = start;
 
     pkt->suite = CCNL_SUITE_NDNTLV;
     pkt->s.ndntlv.scope = 3;
@@ -270,6 +273,18 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     if (*datalen > 0)
         goto Bail;
 
+#ifdef USE_NAMELESS
+    {
+        SHA256_CTX_t ctx;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, *data - msgstart);
+        ccnl_SHA256_Final(pkt->md, &ctx);
+    }
+#else
+    (void) msgstart;
+#endif
+
     pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
@@ -300,6 +315,18 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
     assert(p);
     assert(p->suite == CCNL_SUITE_NDNTLV);
+
+#ifdef USE_NAMELESS
+    if (p->s.ndntlv.dataHashRestr) {
+        /*
+        unsigned char *cp = p->s.ndntlv.dataHashRestr;
+        DEBUGMSG_PCNX(TRACE, "ccnl_ndntlv_cMatch DataHashRestr\n");
+        DEBUGMSG_PCNX(TRACE, "  want %02x%02x%02x..., have %02x%02x%02x...\n",
+                      cp[0], cp[1], cp[2], c->pkt->md[0], c->pkt->md[1], c->pkt->md[2]);
+        */
+        return memcmp(p->s.ccntlv.objHashRestr, c->pkt->md, 32);
+    }
+#endif
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;
