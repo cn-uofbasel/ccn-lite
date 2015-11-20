@@ -563,11 +563,13 @@ void
 flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
-    struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
+    struct ccnl_pkt_s *pkt;
     unsigned char *msg;
     int msglen, len, len2;
     unsigned int typ;
 
+TailRecurse:
+    pkt = flic_lookup(sock, locator, objHashRestr);
     if (!pkt)
         return;
     msg = pkt->buf->data + 8;
@@ -588,8 +590,13 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == CCNX_MANIFEST_HG_PTR2DATA)
                     flic_do_dataPtr(sock, NULL, msg, fd, total);
-                else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST)
+                else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
+                    if (len == SHA256_DIGEST_LENGTH) {
+                        objHashRestr = msg;
+                        goto TailRecurse;
+                    }
                     flic_do_manifestPtr(sock, NULL, msg, fd, total);
+                }
             }
             msg += len2;
             len -= len2;
