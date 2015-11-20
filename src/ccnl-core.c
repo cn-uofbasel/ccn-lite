@@ -258,9 +258,9 @@ ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
 {
     struct ccnl_txrequest_s *r;
 
-    // DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%zd (qlen=%d)\n",
-    //               (void*)ifc, (void*)buf,
-    //               buf ? (int) buf->datalen : -1, ifc ? ifc->qlen : -1);
+    DEBUGMSG_CORE(TRACE, "enqueue interface=%p buf=%p len=%d (qlen=%d)\n",
+                  (void*)ifc, (void*)buf,
+                  buf ? (int) buf->datalen : -1, ifc ? ifc->qlen : -1);
 
     if (ifc->qlen >= CCNL_MAX_IF_QLEN) {
         DEBUGMSG_CORE(WARNING, "  DROPPING buf=%p\n", (void*)buf);

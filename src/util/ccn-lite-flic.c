@@ -328,6 +328,16 @@ ccnl_manifest_free(struct list_s *m)
 
 static unsigned char out[64*1024];
 
+static char*
+digest2str(unsigned char *md)
+{
+    static char tmp[80];
+    int i;
+    for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        sprintf(tmp + 2*i, "%02x", md[i]);
+    return tmp;
+}
+
 int
 flic_namelessObj2file(unsigned char *data, int len,
                       char *fname, unsigned char *digest)
@@ -347,14 +357,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     ccnl_SHA256_Init(&ctx);
     ccnl_SHA256_Update(&ctx, out + offset, len);
     ccnl_SHA256_Final(digest, &ctx);
-    {
-        char tmp[256];
-        int u = 0, i;
-        u = sprintf(tmp, "  ");
-        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
-            u += sprintf(tmp+u, "%02x", digest[i]);
-        DEBUGMSG(DEBUG, "%s (%d)\n", tmp, len);
-    }
+    DEBUGMSG(DEBUG, "  %s (%d)\n", digest2str(digest), len);
 
     len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                       len, 255, &offset, out);
@@ -373,18 +376,35 @@ flic_namelessObj2file(unsigned char *data, int len,
                             
 void
 flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
-                   char *fname, unsigned char *digest)
+                   struct key_s *keys, char *fname, unsigned char *digest)
 {
     SHA256_CTX_t ctx;
-    int offset = sizeof(out), len, f;
+    int offset = sizeof(out), mdoffset, mdlen = SHA256_DIGEST_LENGTH, len, f;
 
     if (name)
         ccnl_manifest_prepend(m, "name", ccnl_manifest_atomic_prefix(name));
+
+    if (keys) {
+        offset -= mdlen;
+        mdoffset = offset;
+        ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, 32, &offset, out);
+        ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
+        ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
+    }
 
     len = emit(m, 0, &offset, out);
     ccnl_SHA256_Init(&ctx);
     ccnl_SHA256_Update(&ctx, out + offset, len);
     ccnl_SHA256_Final(digest, &ctx);
+
+    if (keys) {
+        // use the first key found in the key file
+        unsigned char keyval[64];
+        ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+        ccnl_hmac256_sign(keyval, sizeof(keyval), out + offset, len,
+                          out + mdoffset, &mdlen);
+        len = sizeof(out) - offset;
+    }
 
     len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                       len, 255, &offset, out);
@@ -409,7 +429,7 @@ flic_produceFromFile(int pktype, char *targetprefix,
     int f, num_bytes, len, chunk_number, manifest_number = 0;
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
-    struct list_s *m = ccnl_manifest_getEmptyTemplate();
+    struct list_s *m;
     long length, offset;
     // NOTE: we should play with this
     int max_pointers = 10;
@@ -440,6 +460,7 @@ flic_produceFromFile(int pktype, char *targetprefix,
     DEBUGMSG(INFO, "... file size  = %ld\n", length);
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
+    m = ccnl_manifest_getEmptyTemplate();
     while (chunk_number > 0) {
         offset = (long) block_size * --chunk_number;
         len = length - offset;
@@ -469,13 +490,14 @@ flic_produceFromFile(int pktype, char *targetprefix,
         // move onto the next one
         if (num_pointers == max_pointers || offset == 0) {
             fname = NULL;
-            if (offset)
+            if (offset) {
                 asprintf(&fname, "%s-manifest-%d", targetprefix, manifest_number++);
-            else {
+                flic_manifest2file(m, NULL, NULL, fname, md);
+            } else {
                 asprintf(&fname, "%s-root", targetprefix);
                 ccnl_manifest_setMetaData(m, 0, meta, block_size, length,total);
+                flic_manifest2file(m, name, keys, fname, md);
             }
-            flic_manifest2file(m, offset ? NULL : name, fname, md);
             free(fname);
 
             ccnl_manifest_free(m);
@@ -691,14 +713,7 @@ Usage:
         close(fd);
 
         ccnl_SHA256_Final(md, &total);
-        {
-            char tmp[256];
-            int u = 0, j;
-            u = sprintf(tmp, "  ");
-            for (j = 0; j < SHA256_DIGEST_LENGTH; j++)
-                u += sprintf(tmp+u, "%02x", md[j]);
-            DEBUGMSG(INFO, "Total SHA256 is %s\n", tmp);
-        }
+        DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
     }
 
     return 0;
