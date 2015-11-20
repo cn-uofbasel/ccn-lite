@@ -23,7 +23,7 @@
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_CISTLV
 // #define USE_SUITE_IOTTLV
-// #define USE_SUITE_NDNTLV
+#define USE_SUITE_NDNTLV
 
 #define USE_CCNxMANIFEST
 #define USE_HMAC256
@@ -517,7 +517,7 @@ flic_produceFromFile(int pktype, char *targetprefix,
 struct sockaddr relay;
 
 struct ccnl_pkt_s*
-flic_lookup(int sock, struct ccnl_prefix_s *locator,
+flic_lookup(int sock, int suite, struct ccnl_prefix_s *locator,
             unsigned char *objHashRestr)
 {
     char dummy[256];
@@ -551,16 +551,16 @@ flic_lookup(int sock, struct ccnl_prefix_s *locator,
 }
 
 void
-flic_do_dataPtr(int sock, struct ccnl_prefix_s *locator,
+flic_do_dataPtr(int sock, int suite, struct ccnl_prefix_s *locator,
                 unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
-    struct ccnl_pkt_s *pkt = flic_lookup(sock, locator, objHashRestr);
+    struct ccnl_pkt_s *pkt = flic_lookup(sock, suite, locator, objHashRestr);
     write(fd, pkt->content, pkt->contlen);
     ccnl_SHA256_Update(total, pkt->content, pkt->contlen);
 }
 
 void
-flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
+flic_do_manifestPtr(int sock, int suite, struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt;
@@ -569,7 +569,7 @@ flic_do_manifestPtr(int sock, struct ccnl_prefix_s *locator,
     unsigned int typ;
 
 TailRecurse:
-    pkt = flic_lookup(sock, locator, objHashRestr);
+    pkt = flic_lookup(sock, suite, locator, objHashRestr);
     if (!pkt)
         return;
     msg = pkt->buf->data + 8;
@@ -589,13 +589,13 @@ TailRecurse:
         while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == CCNX_MANIFEST_HG_PTR2DATA)
-                    flic_do_dataPtr(sock, NULL, msg, fd, total);
+                    flic_do_dataPtr(sock, suite, NULL, msg, fd, total);
                 else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
                         goto TailRecurse;
                     }
-                    flic_do_manifestPtr(sock, NULL, msg, fd, total);
+                    flic_do_manifestPtr(sock, suite, NULL, msg, fd, total);
                 }
             }
             msg += len2;
@@ -616,7 +616,7 @@ main(int argc, char *argv[])
     char *targetprefix = NULL, *outfname = NULL;
     char *udp = strdup("127.0.0.1/9695");
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
-    int opt, packettype = CCNL_SUITE_CCNTLV, i;
+    int opt, suite = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
     int block_size = 4096 - 8 - 8; // nameless obj will be exactly 4096B
     unsigned char *objHashRestr = NULL;
@@ -655,8 +655,8 @@ main(int argc, char *argv[])
             targetprefix = optarg;
             break;
         case 's':
-            packettype = ccnl_str2suite(optarg);
-            if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
+            suite = ccnl_str2suite(optarg);
+            if (suite >= 0 && suite < CCNL_SUITE_LAST)
                 break;
         case 'u':
             udp = optarg;
@@ -687,7 +687,7 @@ Usage:
         if (optind < argc)
             goto Usage;
 
-        flic_produceFromFile(packettype, targetprefix, keys, block_size,
+        flic_produceFromFile(suite, targetprefix, keys, block_size,
                              fname, uri, metadataUri);
     } else { // retrieve a manifest tree
         int fd, port, sock;
@@ -716,7 +716,7 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
-        flic_do_manifestPtr(sock, uri, objHashRestr, fd, &total);
+        flic_do_manifestPtr(sock, suite, uri, objHashRestr, fd, &total);
         close(fd);
 
         ccnl_SHA256_Final(md, &total);
