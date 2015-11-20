@@ -179,7 +179,11 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             break;
         case 'l':
             cp = "T=locator";
-            typ = CCNX_MANIFEST_MT_NAME;
+            typ = CCNX_MANIFEST_MT_LOCATOR;
+            break;
+        case 'x':
+            cp = "T=xternal metadata URI";
+            typ = CCNX_MANIFEST_MT_EXTERNALMETADATA;
             break;
         case 'm':
             cp = "T=manifest";

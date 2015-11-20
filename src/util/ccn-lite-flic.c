@@ -49,6 +49,7 @@ usage(int exitval)
             "  -b SIZE    Block size (default is 64K)\n"
             "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
+            "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
             "  -s SUITE   (ccnx2015)\n"
             "  -u a.b.c.d/port  UDP destination\n"
@@ -108,7 +109,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             break;
         case 'l':
             cp = "T=meta locator";
-            typ = CCNX_MANIFEST_MT_NAME;
+            typ = CCNX_MANIFEST_MT_LOCATOR;
             break;
         case 'm':
             cp = "T=manifest";
@@ -130,6 +131,10 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             cp = "T=tree hash ptr";
             typ = CCNX_MANIFEST_HG_PTR2MANIFEST;
             break;
+        case 'x':
+            cp = "T=external metadata URI";
+            typ = CCNX_MANIFEST_MT_EXTERNALMETADATA;
+            break;
         case '@': // blob
             cp = "blob";
             len2 = lst->varlen;
@@ -146,7 +151,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
         } else {
             len = len2;
         }
-        DEBUGMSG(DEBUG, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
+        DEBUGMSG(VERBOSE, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
 
         return len;
     }
@@ -275,6 +280,7 @@ ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 // this defines the current hashgroup's metadata
 void
 ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
+                          struct ccnl_prefix_s *metadataUri,
                           int blockSize, long totalSize,
                           unsigned char* totalDigest)
 {
@@ -283,6 +289,9 @@ ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
 
     meta->first = ccnl_manifest_atomic("about");
 
+    if (metadataUri)
+        ccnl_manifest_prepend(meta->first, "xternalMetadata",
+                              ccnl_manifest_atomic_prefix(metadataUri));
     if (totalDigest)
         ccnl_manifest_prepend(meta->first, "hash",
                               ccnl_manifest_atomic_blob(totalDigest,
@@ -290,11 +299,9 @@ ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
     if (totalSize >= 0)
         ccnl_manifest_prepend(meta->first, "size",
                               ccnl_manifest_atomic_uint(totalSize));
-    
     if (blockSize >= 0)
         ccnl_manifest_prepend(meta->first, "blocksz",
                               ccnl_manifest_atomic_uint(blockSize));
-
     if (locator)
         ccnl_manifest_prepend(meta->first, "locator",
                               ccnl_manifest_atomic_prefix(locator));
@@ -303,22 +310,7 @@ ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
     grp->rest = meta;
 }
 
-void
-ccnl_manifest_prependNewHashGroup()
-{
-    //
-}
-
-void
-ccnl_manifest_setName(struct list_s *m, struct ccnl_prefix_s *pfx)
-{
-    struct list_s *n = ccnl_calloc(1, sizeof(*n));
-
-    n->first = ccnl_manifest_atomic("name");
-    n->first->rest = ccnl_manifest_atomic_prefix(pfx);
-    n->rest = m->rest->first;
-    m->rest->first = n;
-}
+// todo: void ccnl_manifest_prependNewHashGroup() { ... } 
 
 void
 ccnl_manifest_free(struct list_s *m)
@@ -361,7 +353,7 @@ flic_namelessObj2file(unsigned char *data, int len,
         u = sprintf(tmp, "  ");
         for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
             u += sprintf(tmp+u, "%02x", digest[i]);
-        DEBUGMSG(INFO, "%s (%d)\n", tmp, len);
+        DEBUGMSG(DEBUG, "%s (%d)\n", tmp, len);
     }
 
     len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
@@ -371,8 +363,7 @@ flic_namelessObj2file(unsigned char *data, int len,
 
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     if (f < 0) {
-        perror("file open:");
-        return -1;
+        perror("file open:"); return -1;
     }
     write(f, out + offset, len);
     close(f);
@@ -388,7 +379,7 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
     int offset = sizeof(out), len, f;
 
     if (name)
-        ccnl_manifest_setName(m, name);
+        ccnl_manifest_prepend(m, "name", ccnl_manifest_atomic_prefix(name));
 
     len = emit(m, 0, &offset, out);
     ccnl_SHA256_Init(&ctx);
@@ -401,8 +392,7 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
     // Save the packet to disk
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     if (f < 0) {
-        perror("file open:");
-        return;
+        perror("file open:"); return;
     }
     write(f, out + offset, len);
     close(f);
@@ -411,8 +401,9 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
 // ----------------------------------------------------------------------
 
 void
-flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
-                     int block_size, char *fname, struct ccnl_prefix_s *name)
+flic_produceFromFile(int pktype, char *targetprefix,
+                     struct key_s *keys, int block_size, char *fname,
+                     struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
 {
     static unsigned char body[MAX_BLOCK_SIZE];
     int f, num_bytes, len, chunk_number, manifest_number = 0;
@@ -482,7 +473,7 @@ flic_produceFromFile(int pktype, char *targetprefix, struct key_s *keys,
                 asprintf(&fname, "%s-manifest-%d", targetprefix, manifest_number++);
             else {
                 asprintf(&fname, "%s-root", targetprefix);
-                ccnl_manifest_setMetaData(m, NULL, block_size, length, total);
+                ccnl_manifest_setMetaData(m, 0, meta, block_size, length,total);
             }
             flic_manifest2file(m, offset ? NULL : name, fname, md);
             free(fname);
@@ -594,15 +585,16 @@ int
 main(int argc, char *argv[])
 {
     char *targetprefix = NULL, *outfname = NULL;
-    char *uri = NULL, *udp = strdup("127.0.0.1/9695");
+    char *udp = strdup("127.0.0.1/9695");
+    struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
     int opt, packettype = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
-    int block_size = MAX_BLOCK_SIZE - 256; // 64K by default
+    int block_size = 4096 - 8 - 8; // nameless obj will be exactly 4096B
     unsigned char *objHashRestr = NULL;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hb:d:f:k:o:p:s:u:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:f:k:m:o:p:s:u:v:")) != -1) {
         switch (opt) {
         case 'b':
             block_size = atoi(optarg);
@@ -623,6 +615,9 @@ main(int argc, char *argv[])
             break;
         case 'k':
             keys = load_keys_from_file(optarg);
+            break;
+        case 'm':
+            metadataUri = ccnl_URItoPrefix(optarg, CCNL_SUITE_CCNTLV,NULL,NULL);
             break;
         case 'o':
             outfname = optarg;
@@ -653,22 +648,19 @@ Usage:
     }
 
     if (targetprefix) {
-        struct ccnl_prefix_s *name = NULL;
         char *fname = NULL;
         
         if (optind >= argc)
             goto Usage;
         fname = argv[optind++];
-        if (optind < argc) {
-            uri = argv[optind++];
-            name = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-        }
+        if (optind < argc)
+            uri = ccnl_URItoPrefix(argv[optind++], CCNL_SUITE_CCNTLV,NULL,NULL);
         if (optind < argc)
             goto Usage;
 
-        flic_produceFromFile(packettype, targetprefix, keys, block_size, fname, name);
+        flic_produceFromFile(packettype, targetprefix, keys, block_size,
+                             fname, uri, metadataUri);
     } else { // retrieve a manifest tree
-        struct ccnl_prefix_s *locator;
         int fd, port, sock;
         const char *addr = NULL;
         struct sockaddr_in *si;
@@ -677,7 +669,7 @@ Usage:
 
         if (optind >= argc)
             goto Usage;
-        uri = argv[optind++];
+        uri = ccnl_URItoPrefix(argv[optind++], CCNL_SUITE_CCNTLV, NULL, NULL);
         if (optind < argc)
             goto Usage;
 
@@ -695,8 +687,7 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
-        locator = ccnl_URItoPrefix(uri, CCNL_SUITE_CCNTLV, NULL, NULL);
-        flic_do_manifestPtr(sock, locator, objHashRestr, fd, &total);
+        flic_do_manifestPtr(sock, uri, objHashRestr, fd, &total);
         close(fd);
 
         ccnl_SHA256_Final(md, &total);

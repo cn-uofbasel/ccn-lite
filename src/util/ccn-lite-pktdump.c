@@ -362,7 +362,8 @@ static char ccntlv_recurse[][3] = {
     {CTX_MFST, CCNX_TLV_M_Name, CTX_NAME},
     {CTX_MFST, CCNX_MANIFEST_HASHGROUP, CTX_MFST_HASHGRP},
     {CTX_MFST_HASHGRP, CCNX_MANIFEST_HG_METADATA, CTX_MFST_HASHGRP_METADATA},
-    {CTX_MFST_HASHGRP_METADATA, CCNX_MANIFEST_MT_NAME, CTX_NAME},
+    {CTX_MFST_HASHGRP_METADATA, CCNX_MANIFEST_MT_LOCATOR, CTX_NAME},
+    {CTX_MFST_HASHGRP_METADATA, CCNX_MANIFEST_MT_EXTERNALMETADATA, CTX_NAME},
     {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
     {CTX_VALIDALGO, CCNX_VALIDALGO_HMAC_SHA256, CTX_VALIDALGODEPEND},
     {0,0,0}
@@ -460,6 +461,8 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
             case CTX_MFST_HASHGRP_METADATA:
                 cn = "manifestMetaDataCtx";
                 switch (type) {
+                case CCNX_MANIFEST_MT_LOCATOR:          tn = "Locator"; break;
+                case CCNX_MANIFEST_MT_EXTERNALMETADATA: tn = "ExternalMetaData"; break;
                 case CCNX_MANIFEST_MT_BLOCKSIZE:        tn = "BlockSize"; break;
                 case CCNX_MANIFEST_MT_OVERALLDATASIZE:  tn = "DataSize"; break;
                 case CCNX_MANIFEST_MT_OVERALLDATASHA256: tn = "DataSHA256"; break;
