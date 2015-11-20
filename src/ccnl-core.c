@@ -737,6 +737,11 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
+#ifdef USE_NAMELESS
+            if (i->pkt->s.ndntlv.dataHashRestr &&
+                      !memcmp(c->pkt->md, i->pkt->s.ndntlv.dataHashRestr, 32))
+                break;
+#endif
             if (!ccnl_i_prefixof_c(i->pkt->pfx, i->pkt->s.ndntlv.minsuffix,
                        i->pkt->s.ndntlv.maxsuffix, c)) {
                 // XX must also check i->ppkl,

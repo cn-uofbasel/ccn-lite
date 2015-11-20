@@ -245,6 +245,7 @@ struct ccnl_pktdetail_iottlv_s {
 
 struct ccnl_pktdetail_ndntlv_s {
     int minsuffix, maxsuffix, mbf, scope;
+    unsigned char *dataHashRestr;  // requesting via implicit hash
     struct ccnl_buf_s *nonce;      // nonce
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
