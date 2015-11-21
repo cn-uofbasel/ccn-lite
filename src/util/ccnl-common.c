@@ -293,9 +293,8 @@ cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
                   unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
-     int len, offset;
+     int len, offset = outlen;
 
-     offset = outlen;
      len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
      if (len > 0)
          memmove(out, out + offset, len);
@@ -402,16 +401,44 @@ int iottlv_isFragment(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *objHashRestr,
+                  unsigned char *dataHashRestr,
                   unsigned char *out, int outlen)
 {
-    int len, offset;
+    int len = 0, offset = outlen;
+#ifdef USE_NAMELESS     
+    struct ccnl_prefix_s name2;
+    name2.comp = 0;
 
-    offset = outlen;
-    len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
+    if (dataHashRestr) {
+        int oldpos;
+        DEBUGMSG(TRACE, "adding dataHashRestr as implicit digest\n");
+        memcpy(&name2, name, sizeof(*name));
+        name2.compcnt = name->compcnt + 1;
+        name2.comp = ccnl_malloc(name2.compcnt * sizeof(unsigned char*));
+        name2.complen = ccnl_malloc(name2.compcnt * sizeof(int));
+        memcpy(name2.comp,name->comp,name->compcnt * sizeof(unsigned char*));
+        memcpy(name2.complen, name->complen, name->compcnt * sizeof(int));
+        name2.comp[name->compcnt] = dataHashRestr;
+        name2.complen[name->compcnt] = SHA256_DIGEST_LENGTH;
+        oldpos = offset;
+        ccnl_ndntlv_prependNonNegInt(NDN_TLV_MaxSuffixComponents, 0,
+                                     &offset, out);
+        ccnl_ndntlv_prependTL(NDN_TLV_Selectors, oldpos - offset, &offset, out);
+        name = &name2;
+        len += oldpos - offset;
+    }
+#endif
+
+    len += ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
 
+#ifdef USE_NAMELESS
+    if (name2.comp) {
+        ccnl_free(name2.comp);
+        ccnl_free(name2.complen);
+    }
+#endif
     return len;
 }
 #endif // NEEDS_PACKET_CRAFTING

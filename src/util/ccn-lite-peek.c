@@ -29,6 +29,7 @@
 
 #define USE_FRAG
 #define USE_IPV4
+#define USE_NAMELESS
 #define USE_UNIXSOCKET
 #define NEEDS_PACKET_CRAFTING
 
@@ -177,7 +178,7 @@ usage:
         DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 /*
         {
-            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
+          int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC, 0666);
             write(fd, out, len);
             close(fd);
         }

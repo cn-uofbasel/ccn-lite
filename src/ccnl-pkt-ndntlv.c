@@ -180,8 +180,14 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(cp, i);
                     break;
                 case NDN_TLV_MaxSuffixComponents:
-//                    fprintf(stderr, "setting to %d\n", (int)ccnl_ndntlv_nonNegInt(cp, i));
                     pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, i);
+                    if (pkt->s.ndntlv.maxsuffix == 0 && p &&
+                               p->complen[p->compcnt-1] == 32) { // impl digest
+                        DEBUGMSG(TRACE, "  found dataHashRestr\n");
+                        pkt->s.ndntlv.dataHashRestr = ccnl_malloc(32);
+                        memcpy(pkt->s.ndntlv.dataHashRestr,
+                               p->comp[p->compcnt-1], 32);
+                    }
                     break;
                 case NDN_TLV_MustBeFresh:
                     pkt->s.ndntlv.mbf = 1;
@@ -285,7 +291,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     (void) msgstart;
 #endif
 
-    pkt->pfx = p;
+//    pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
         goto Bail;
@@ -324,7 +330,7 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
         DEBUGMSG_PCNX(TRACE, "  want %02x%02x%02x..., have %02x%02x%02x...\n",
                       cp[0], cp[1], cp[2], c->pkt->md[0], c->pkt->md[1], c->pkt->md[2]);
         */
-        return memcmp(p->s.ccntlv.objHashRestr, c->pkt->md, 32);
+        return memcmp(p->s.ndntlv.dataHashRestr, c->pkt->md, 32);
     }
 #endif
 
@@ -456,6 +462,9 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
                         int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, cnt;
+
+    if (!name)
+        return 0;
 
     if(name->chunknum) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
