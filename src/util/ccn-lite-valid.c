@@ -70,8 +70,9 @@ ccnl_parse(unsigned char *data, int datalen)
             return NULL;
         }
         if (pkt->type != CCNX_TLV_TL_Interest &&
-                                            pkt->type != CCNX_TLV_TL_Object) {
-          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%d)\n",
+            pkt->type != CCNX_TLV_TL_Object &&
+                                          pkt->type != CCNX_TLV_TL_Manifest) {
+          DEBUGMSG(INFO, "ccnx2015: none of Interest, Data or Manifest (%d)\n",
                    pkt->type);
             return pkt;
         }
@@ -180,18 +181,16 @@ Usage:
         if (exitBehavior == 1) {
             DEBUGMSG(INFO, "no signature data found\n");
         }
-    }
-
-    // validate packet
-    if (pkt->hmacLen) {
+    } else { // validate packet
         cnt = 1;
+        DEBUGMSG(DEBUG, "checking signature on %d bytes\n", pkt->hmacLen);
         while (keys) {
             DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
             ccnl_hmac256_keyval((unsigned char*) keys->key, keys->keylen,
                 keyval);
-            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen,
-                signature, &signLen);
-            if (!memcmp(signature, pkt->hmacSignature, 32)) {
+            ccnl_hmac256_sign(keyval, sizeof(keyval), pkt->hmacStart,
+                              pkt->hmacLen, signature, &signLen);
+            if (!memcmp(signature, pkt->hmacSignature, sizeof(signature))) {
                 DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
                 break;
             }

@@ -48,6 +48,7 @@ usage(int exitval)
                     "       %s [options] URI                         (retrieving)\n"
             "  -b SIZE    Block size (default is 64K)\n"
             "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
+            "  -e N       0=drop-if-nosig-or-inval, 1=warn-if-nosig-or-inval, 2=warn-inval\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
             "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
@@ -380,6 +381,7 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
 {
     SHA256_CTX_t ctx;
     int offset = sizeof(out), mdoffset, mdlen = SHA256_DIGEST_LENGTH, len, f;
+    int endOfValidation = 0;
 
     if (name)
         ccnl_manifest_prepend(m, "name", ccnl_manifest_atomic_prefix(name));
@@ -388,6 +390,7 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
         offset -= mdlen;
         mdoffset = offset;
         ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, 32, &offset, out);
+        endOfValidation = offset;
         ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
         ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
     }
@@ -400,6 +403,8 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
     if (keys) {
         // use the first key found in the key file
         unsigned char keyval[64];
+        len = endOfValidation - offset;
+        DEBUGMSG(DEBUG, "creating signature for %d bytes\n", len);
         ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
         ccnl_hmac256_sign(keyval, sizeof(keyval), out + offset, len,
                           out + mdoffset, &mdlen);
@@ -559,8 +564,9 @@ flic_do_dataPtr(int sock, int suite, struct ccnl_prefix_s *locator,
     ccnl_SHA256_Update(total, pkt->content, pkt->contlen);
 }
 
-void
-flic_do_manifestPtr(int sock, int suite, struct ccnl_prefix_s *locator,
+int
+flic_do_manifestPtr(int sock, int suite, int exitBehavior, struct key_s *keys,
+                    struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt;
@@ -571,7 +577,7 @@ flic_do_manifestPtr(int sock, int suite, struct ccnl_prefix_s *locator,
 TailRecurse:
     pkt = flic_lookup(sock, suite, locator, objHashRestr);
     if (!pkt)
-        return;
+        return -1;
     msg = pkt->buf->data + 8;
     msglen = pkt->buf->datalen - 8;
 
@@ -579,6 +585,44 @@ TailRecurse:
         goto Bail;
     if (typ != CCNX_TLV_TL_Manifest)
         goto Bail;
+
+    if (keys) {
+        if (!pkt->hmacLen) {
+            if (exitBehavior == 0) {
+                DEBUGMSG(FATAL, "no signature data found, packet dropped\n");
+                return -1;
+            }
+            if (exitBehavior == 1) {
+                DEBUGMSG(INFO, "no signature data found\n");
+            }
+        } else {
+            int cnt = 1;
+            DEBUGMSG(DEBUG, "checking signature on %d bytes\n", pkt->hmacLen);
+            while (keys) {
+                unsigned char keyval[SHA256_BLOCK_LENGTH];
+                unsigned char signature[SHA256_DIGEST_LENGTH];
+                int signLen = SHA256_DIGEST_LENGTH;
+                DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
+                ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+                ccnl_hmac256_sign(keyval, sizeof(keyval), pkt->hmacStart,
+                                  pkt->hmacLen, signature, &signLen);
+                if (!memcmp(signature, pkt->hmacSignature, sizeof(signature))) {
+                    DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
+                    break;
+                }
+                keys = keys->next;
+                cnt++;
+            }
+            if (!keys) {
+                if (exitBehavior == 0) {
+                    DEBUGMSG(FATAL, "invalid signature, no output\n");
+                    return -1;
+                }
+                DEBUGMSG(FATAL, "invalid signature\n");
+            }
+        }
+    }
+
     while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
         if (typ != CCNX_MANIFEST_HASHGROUP) {
             msg += len2;
@@ -593,19 +637,21 @@ TailRecurse:
                 else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
+                        keys = NULL;
                         goto TailRecurse;
                     }
-                    flic_do_manifestPtr(sock, suite, NULL, msg, fd, total);
+                    flic_do_manifestPtr(sock, suite, exitBehavior, 0,
+                                        NULL, msg, fd, total);
                 }
             }
             msg += len2;
             len -= len2;
         }
     }
-    return;
+    return 0;
 Bail:
     DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
-    return;
+    return -1;
 }
 
 // ----------------------------------------------------------------------
@@ -616,14 +662,14 @@ main(int argc, char *argv[])
     char *targetprefix = NULL, *outfname = NULL;
     char *udp = strdup("127.0.0.1/9695");
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
-    int opt, suite = CCNL_SUITE_CCNTLV, i;
+    int opt, exitBehavior = 0, suite = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
     int block_size = 4096 - 8 - 8; // nameless obj will be exactly 4096B
     unsigned char *objHashRestr = NULL;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hb:d:f:k:m:o:p:s:u:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:e:f:k:m:o:p:s:u:v:")) != -1) {
         switch (opt) {
         case 'b':
             block_size = atoi(optarg);
@@ -641,6 +687,9 @@ main(int argc, char *argv[])
                 objHashRestr[i] = hex2int(optarg[2*i]) * 16 +
                                                    hex2int(optarg[2*i + 1]);
             }
+            break;
+        case 'e':
+            exitBehavior = atoi(optarg);
             break;
         case 'k':
             keys = load_keys_from_file(optarg);
@@ -716,11 +765,13 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
-        flic_do_manifestPtr(sock, suite, uri, objHashRestr, fd, &total);
+        if (!flic_do_manifestPtr(sock, suite, exitBehavior, keys, uri,
+                                objHashRestr, fd, &total)) {
+            ccnl_SHA256_Final(md, &total);
+            DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
+        }
         close(fd);
 
-        ccnl_SHA256_Final(md, &total);
-        DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
     }
 
     return 0;

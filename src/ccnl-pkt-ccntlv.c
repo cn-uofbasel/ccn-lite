@@ -135,6 +135,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                                                     (int) msglen > *datalen)
         goto Bail;
 
+    *datalen -= msglen;
+
     pkt->type = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
     pkt->val.final_block_id = -1;
@@ -236,16 +238,17 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         }
         *data += len;
         msglen -= len;
+
         oldpos = *data - start;
     }
-    *datalen -= *data - msgstart;
 
 #ifdef USE_HMAC256
     if (*datalen > 0) {
         unsigned char *cp;
         int len2, len3;
 
-        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen)
+        DEBUGMSG_PCNX(TRACE, "parsing validation algo len=%d\n", *datalen);
+        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) < 0 || (int) len > *datalen)
             goto Bail;
         if (typ != CCNX_TLV_TL_ValidationAlgo)
             goto Bail;
@@ -260,7 +263,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         *data += len;
         *datalen -= len;
 
-        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) ||
+        DEBUGMSG_PCNX(TRACE, "parsing validation payload len=%d\n", *datalen);
+        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) < 0 ||
                                                         (int) len > *datalen)
             goto Bail;
         if (typ != CCNX_TLV_TL_ValidationPayload)
@@ -272,6 +276,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         }
         *data += len;
         *datalen -= len;
+        DEBUGMSG_PCNX(TRACE, "parsing validation sections done\n");
     }
 #endif
 
@@ -285,8 +290,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     }
 #endif
 
-//    if (*datalen > 0)
-//        goto Bail;
+    //    if (*datalen > 0)
+    //        goto Bail;
 
     pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
