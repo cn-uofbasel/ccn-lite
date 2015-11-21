@@ -334,6 +334,8 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     }
 #endif
 
+    if (!p->pfx)
+        return -1;
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     // TODO: check keyid

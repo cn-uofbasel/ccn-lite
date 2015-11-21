@@ -414,7 +414,8 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
              ccnl_prefix2path(prefixBuf1, CCNL_ARRAY_SIZE(prefixBuf1), prefix),
              ccnl_prefix2path(prefixBuf2, CCNL_ARRAY_SIZE(prefixBuf2), p),
              minsuffix, maxsuffix);
-
+    if (!prefix || !p)
+        return 0;
     // CONFORM: we do prefix match, honour min. and maxsuffix,
 
     // NON-CONFORM: "Note that to match a ContentObject must satisfy
@@ -438,7 +439,10 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 char*
 ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr)
 {
-    ccnl_snprintfPrefixPath(buf, buflen, pr);
+    if (pr)
+        ccnl_snprintfPrefixPath(buf, buflen, pr);
+    else
+        strcpy(buf, "nil");
     return buf;
 }
 
@@ -501,15 +505,11 @@ ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen, struct ccnl_pref
 #endif
 
         for (j = skip; j < pr->complen[i]; j++) {
-            char c = pr->comp[i][j];
-            const char *format;
-            if (c < 0x20 || c == 0x7f || (escape_components && c == '/')) {
-                format = CONSTSTR("%%%02x");
-            } else {
-                format = CONSTSTR("%c");
-            }
-
-            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, format, c);
+            unsigned char c = pr->comp[i][j];
+            if (c < 0x20 || c >= 0x7f || (escape_components && c == '/'))
+                ccnl_snprintf(&tmpBuf,&remLen,&totalLen, CONSTSTR("%%%02x"), c);
+            else
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, CONSTSTR("%c"), c);
         }
     }
 

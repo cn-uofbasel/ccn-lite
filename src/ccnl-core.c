@@ -592,7 +592,7 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
              (void*) *pkt,
              ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
-             ((*pkt)->pfx->chunknum) ? (int) *((*pkt)->pfx->chunknum) : -1);
+                  ((*pkt)->pfx && (*pkt)->pfx->chunknum) ? (int) *((*pkt)->pfx->chunknum) : -1);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)
@@ -638,7 +638,7 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                   ccnl->contentcnt, ccnl->max_cache_entries,
                   (void*)c,
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), c->pkt->pfx),
-                  (c->pkt->pfx->chunknum)? (int) *(c->pkt->pfx->chunknum) : -1);
+                  (c->pkt->pfx && c->pkt->pfx->chunknum)? (int) *(c->pkt->pfx->chunknum) : -1);
 #ifdef USE_NAMELESS
     DEBUGMSG_CORE(TRACE, "  hash=%02x%02x%02x%02x...\n",
                   c->pkt->md[0], c->pkt->md[1], c->pkt->md[2], c->pkt->md[3]);

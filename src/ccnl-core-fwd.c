@@ -174,7 +174,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
 
     for (c = relay->contents; c; c = c->next) {
-        if (c->pkt->pfx->suite != (*pkt)->pfx->suite)
+        if (c->pkt->pfx && c->pkt->pfx->suite != (*pkt)->pfx->suite)
             continue;
         if (cMatch(*pkt, c))
             continue;
