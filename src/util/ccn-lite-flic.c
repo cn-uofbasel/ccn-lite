@@ -64,6 +64,25 @@ usage(int exitval)
 }
 
 // ----------------------------------------------------------------------
+
+int (*flic_prependTL)(unsigned short type, unsigned short len,
+                      int *offset, unsigned char *buf);
+int (*flic_prependUInt)(unsigned int intval,int *offset, unsigned char *buf);
+int (*flic_prependNameComponents)(struct ccnl_prefix_s *name, int *offset,
+                               unsigned char *buf, unsigned int *lastchunknum);
+int (*flic_prependContent)(struct ccnl_prefix_s *name, unsigned char *payload,
+                           int paylen, unsigned int *lastchunknum,
+                           int *contentpos, int *offset, unsigned char *buf);
+int (*flic_prependFixedHdr)(unsigned char ver, unsigned char packettype,
+                            unsigned short payloadlen, unsigned char hoplimit,
+                            int *offset, unsigned char *buf);
+int (*flic_dehead)(unsigned char **buf, int *len,unsigned int *typ,int *vallen);
+struct ccnl_pkt_s* (*flic_bytes2pkt)(unsigned char *start,
+                                     unsigned char **data, int *datalen);
+int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
+                 unsigned char *objHashRestr, unsigned char *out, int outlen);
+
+// ----------------------------------------------------------------------
 // copied from ccn-lite-mkM.c
 
 struct list_s {
@@ -149,7 +168,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
             break;
         }
         if (typ >= 0) {
-            len2 = ccnl_ccntlv_prependTL((unsigned short) typ, len, offset, buf);
+            len2 = flic_prependTL((unsigned short) typ, len, offset, buf);
             len += len2;
         } else {
             len = len2;
@@ -228,7 +247,7 @@ ccnl_manifest_atomic_uint(unsigned int val)
     unsigned char tmp[16];
     int offs = sizeof(tmp), len;
 
-    len = ccnl_ccntlv_prependUInt(val, &offs, tmp);
+    len = flic_prependUInt(val, &offs, tmp);
     return ccnl_manifest_atomic_blob(tmp + offs, len);
 }
 
@@ -239,7 +258,7 @@ ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
     int offset, len;
 
     offset = sizeof(dummy);
-    len = ccnl_ccntlv_prependNameComponents(pfx, &offset, dummy, NULL);
+    len = flic_prependNameComponents(pfx, &offset, dummy, NULL);
     if (len < 0)
         return 0;
 
@@ -379,8 +398,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     if ((len+8) > offset)
         return -1;
 
-    len = ccnl_ccntlv_prependContent(NULL, data, len, NULL, NULL,
-                                     &offset, out);
+    len = flic_prependContent(NULL, data, len, NULL, NULL, &offset, out);
     if (len < 0)
         return -1;
 
@@ -390,7 +408,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     ccnl_SHA256_Final(digest, &ctx);
     DEBUGMSG(DEBUG, "  %s (%d)\n", digest2str(digest), len);
 
-    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+    len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                       len, 255, &offset, out);
     if (len < 0)
         return -1;
@@ -422,10 +440,10 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
     if (keys) {
         offset -= mdlen;
         mdoffset = offset;
-        ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationPayload, 32, &offset, out);
+        flic_prependTL(CCNX_TLV_TL_ValidationPayload, 32, &offset, out);
         endOfValidation = offset;
-        ccnl_ccntlv_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
-        ccnl_ccntlv_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
+        flic_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
+        flic_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
     }
 
     len = emit(m, 0, &offset, out);
@@ -444,7 +462,7 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
         len = sizeof(out) - offset;
     }
 
-    len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+    len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                       len, 255, &offset, out);
 
     // Save the packet to disk
@@ -559,7 +577,7 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
 
     DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
                                                        locator));
-    len = ccntlv_mkInterest(locator, NULL, objHashRestr, out, sizeof(out));
+    len = flic_mkInterest(locator, NULL, objHashRestr, out, sizeof(out));
     DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 
     for (cnt = 0; cnt < 3; cnt++) {
@@ -575,7 +593,7 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
 
             data = out + 8;
             datalen = len - 8;
-            return ccnl_ccntlv_bytes2pkt(out, &data, &datalen);
+            return flic_bytes2pkt(out, &data, &datalen);
         }
         DEBUGMSG(WARNING, "timeout after block_on_read - %d\n", cnt);
     }
@@ -619,7 +637,7 @@ TailRecurse:
     msg = pkt->buf->data + 8;
     msglen = pkt->buf->datalen - 8;
 
-    if (ccnl_ccntlv_dehead(&msg, &msglen, &typ, &len) < 0)
+    if (flic_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
     if (typ != CCNX_TLV_TL_Manifest)
         goto Bail;
@@ -661,14 +679,14 @@ TailRecurse:
         }
     }
 
-    while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
+    while (flic_dehead(&msg, &len, &typ, &len2) >= 0) {
         if (typ != CCNX_MANIFEST_HASHGROUP) {
             msg += len2;
             len -= len2;
             continue;
         }
         DEBUGMSG(TRACE, "hash group\n");
-        while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
+        while (flic_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == CCNX_MANIFEST_HG_PTR2DATA) {
                     if (flic_do_dataPtr(sock, sa, suite, NULL, msg,
@@ -770,6 +788,22 @@ Usage:
         }
     }
 
+    switch(suite) {
+    case CCNL_SUITE_CCNTLV:
+      flic_prependTL = ccnl_ccntlv_prependTL;
+      flic_prependUInt = ccnl_ccntlv_prependUInt;
+      flic_prependNameComponents = ccnl_ccntlv_prependNameComponents;
+      flic_prependContent = ccnl_ccntlv_prependContent;
+      flic_prependFixedHdr = ccnl_ccntlv_prependFixedHdr;
+      flic_dehead = ccnl_ccntlv_dehead;
+      flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
+      flic_mkInterest = ccntlv_mkInterest;
+      break;
+    case CCNL_SUITE_NDNTLV:
+    default:
+      break;
+    }
+
     if (dirpath) {
         struct stat s;
         char *fname = NULL;
@@ -786,7 +820,7 @@ Usage:
             goto Usage;
         fname = argv[optind++];
         if (optind < argc)
-            uri = ccnl_URItoPrefix(argv[optind++], CCNL_SUITE_CCNTLV,NULL,NULL);
+            uri = ccnl_URItoPrefix(argv[optind++], suite, NULL, NULL);
         if (optind < argc)
             goto Usage;
 
@@ -801,7 +835,7 @@ Usage:
 
         if (optind >= argc)
             goto Usage;
-        uri = ccnl_URItoPrefix(argv[optind++], CCNL_SUITE_CCNTLV, NULL, NULL);
+        uri = ccnl_URItoPrefix(argv[optind++], suite, NULL, NULL);
         if (optind < argc)
             goto Usage;
 
