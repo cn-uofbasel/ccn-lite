@@ -474,7 +474,9 @@ flic_produceFromFile(int pktype, char *dirpath,
     // NOTE: we should play with this
     int max_pointers = (block_size - 4 - 4) / (32+4); // 10;
     int num_pointers = 0;
-    
+
+    DEBUGMSG(DEBUG, "max_pointers per manifest is %d\n", max_pointers);
+
     f = open(fname, O_RDONLY);
     if (f < 0) {
         perror("file open:");
@@ -553,7 +555,6 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
 {
     char dummy[256];
     unsigned char *data;
-//    unsigned char pkt[4096];
     int datalen, len, rc, cnt;
 
     DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
@@ -606,8 +607,12 @@ flic_do_manifestPtr(int sock, struct sockaddr *sa, int suite, int exitBehavior,
     unsigned char *msg;
     int msglen, len, len2;
     unsigned int typ;
+    int depth = 0;
 
 TailRecurse:
+    (void) depth;
+    DEBUGMSG(INFO, "manifest %d\n", depth++);
+
     pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
     if (!pkt)
         return -1;
