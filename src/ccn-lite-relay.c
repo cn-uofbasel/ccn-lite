@@ -136,7 +136,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 int
 ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
 {
-  int sock, bufsize;
+    int sock, bufsize;
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -153,7 +153,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
         return -1;
     }
 
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    bufsize = CCNL_MAX_SOCK_SPACE;
     setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
@@ -250,8 +250,10 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         rc = sendto(ifc->sock,
                     buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
-        DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
-                 inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
+        DEBUGMSG(DEBUG, "udp sendto(%d Bytes) to %s/%d returned %d/%d\n",
+                 (int) buf->datalen,
+                 inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port),
+                 rc, errno);
         /*
         {
             int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC);
@@ -277,8 +279,8 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         rc = sendto(ifc->sock,
                     buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ux, sizeof(struct sockaddr_un));
-        DEBUGMSG(DEBUG, "unix sendto %s returned %d\n",
-                 dest->ux.sun_path, rc);
+        DEBUGMSG(DEBUG, "unix sendto(%d Bytes) to %s returned %d\n",
+                 (int) buf->datalen, dest->ux.sun_path, rc);
         break;
 #endif
     default:
@@ -623,8 +625,10 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             perror("stat");
             continue;
         }
-        if (S_ISDIR(s.st_mode))
+        if (S_ISDIR(s.st_mode)) {
+            ccnl_populate_cache(ccnl, fname);
             continue;
+        }
 
         DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name,
                  (int) s.st_size);

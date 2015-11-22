@@ -49,7 +49,7 @@ myexit(int rc)
 int
 udp_open()
 {
-    int s;
+  int s, bufsize;
     struct sockaddr_in si;
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
@@ -64,6 +64,10 @@ udp_open()
         perror("udp sock bind");
         exit(1);
     }
+
+    bufsize = CCNL_MAX_SOCK_SPACE;
+    setsockopt(s, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(s, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     return s;
 }
@@ -89,10 +93,10 @@ int
 ux_open()
 {
     static char mysockname[200];
-    int sock, bufsize;
+    int sock, bufsize, rc;
     struct sockaddr_un name;
 
-    snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-lite-peek-%d.sock", getpid());
+    snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-lite-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -108,8 +112,8 @@ ux_open()
         exit(1);
     }
 
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
-    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    bufsize = CCNL_MAX_SOCK_SPACE;
+    rc = setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     unix_path = mysockname;

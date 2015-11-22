@@ -311,6 +311,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     return pkt;
 Bail:
+    DEBUGMSG_PCNX(TRACE, "problem parsing CCNTLV packet\n");
     free_packet(pkt);
     return NULL;
 }

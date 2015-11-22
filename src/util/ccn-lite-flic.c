@@ -29,6 +29,7 @@
 #define USE_HMAC256
 #define USE_IPV4
 #define USE_NAMELESS
+#define USE_UNIXSOCKET
 
 #define MAX_BLOCK_SIZE (64*1024)
 
@@ -44,9 +45,9 @@ char *progname;
 void
 usage(int exitval)
 {
-    fprintf(stderr, "usage: %s -p TARGETPREFIX [options] FILE [URI]  (producing)\n"
-                    "       %s [options] URI                         (retrieving)\n"
-            "  -b SIZE    Block size (default is 64K)\n"
+    fprintf(stderr, "usage: %s -p DIRPATH [options] FILE [URI]  (producing)\n"
+                    "       %s [options] URI                    (retrieving)\n"
+            "  -b SIZE    Block size (default is 4K)\n"
             "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
             "  -e N       0=drop-if-nosig-or-inval, 1=warn-if-nosig-or-inval, 2=warn-inval\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
@@ -57,6 +58,7 @@ usage(int exitval)
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
+            "  -x PATH    usa UNIX IPC instead od UDP\n"
             , progname, progname);
     exit(exitval);
 }
@@ -339,12 +341,40 @@ digest2str(unsigned char *md)
     return tmp;
 }
 
+char*
+digest2fname(char *dirpath, char isRoot, unsigned char *digest)
+{
+    char *hex = digest2str(digest), *dir = NULL;
+    char *head, *tail;
+
+    if (isRoot) {
+        head = "zz";
+        tail = hex;
+    } else {
+        head = hex;
+        tail = hex + 2;
+    }
+
+    asprintf(&dir, "%s/%c%c", dirpath, head[0], head[1]);
+    if (mkdir(dir, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", dir);
+        exit(-1);
+    }
+    free(dir);
+
+    dir = NULL;
+    asprintf(&dir, "%s/%c%c/%s", dirpath, head[0], head[1], tail);
+
+    return dir;
+}
+
 int
 flic_namelessObj2file(unsigned char *data, int len,
-                      char *fname, unsigned char *digest)
+                      char *dirpath, unsigned char *digest)
 {
     SHA256_CTX_t ctx;
     int f, offset = sizeof(out);
+    char *fname;
 
     if ((len+8) > offset)
         return -1;
@@ -365,7 +395,9 @@ flic_namelessObj2file(unsigned char *data, int len,
     if (len < 0)
         return -1;
 
+    fname = digest2fname(dirpath, 0, digest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+    free(fname);
     if (f < 0) {
         perror("file open:"); return -1;
     }
@@ -376,12 +408,13 @@ flic_namelessObj2file(unsigned char *data, int len,
 }
                             
 void
-flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
-                   struct key_s *keys, char *fname, unsigned char *digest)
+flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
+                   struct key_s *keys, char *dirpath, unsigned char *digest)
 {
     SHA256_CTX_t ctx;
     int offset = sizeof(out), mdoffset, mdlen = SHA256_DIGEST_LENGTH, len, f;
     int endOfValidation = 0;
+    char *fname;
 
     if (name)
         ccnl_manifest_prepend(m, "name", ccnl_manifest_atomic_prefix(name));
@@ -415,7 +448,9 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
                                       len, 255, &offset, out);
 
     // Save the packet to disk
+    fname = digest2fname(dirpath, isRoot, digest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+    free(fname);
     if (f < 0) {
         perror("file open:"); return;
     }
@@ -426,18 +461,18 @@ flic_manifest2file(struct list_s *m, struct ccnl_prefix_s *name,
 // ----------------------------------------------------------------------
 
 void
-flic_produceFromFile(int pktype, char *targetprefix,
+flic_produceFromFile(int pktype, char *dirpath,
                      struct key_s *keys, int block_size, char *fname,
                      struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
 {
     static unsigned char body[MAX_BLOCK_SIZE];
-    int f, num_bytes, len, chunk_number, manifest_number = 0;
+    int f, num_bytes, len, chunk_number;
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
     struct list_s *m;
     long length, offset;
     // NOTE: we should play with this
-    int max_pointers = 10;
+    int max_pointers = (block_size - 4 - 4) / (32+4); // 10;
     int num_pointers = 0;
     
     f = open(fname, O_RDONLY);
@@ -482,10 +517,7 @@ flic_produceFromFile(int pktype, char *targetprefix,
         }
 
         DEBUGMSG(VERBOSE, "Creating a data packet with %d bytes\n", len);
-        fname = NULL;
-        asprintf(&fname, "%s-%d", targetprefix, chunk_number);
-        flic_namelessObj2file(body, len, fname, md);
-        free(fname);
+        flic_namelessObj2file(body, len, dirpath, md);
 
         // Prepend the hash to the current manifest
         ccnl_manifest_prependHash(m, "dptr", md);
@@ -494,16 +526,12 @@ flic_produceFromFile(int pktype, char *targetprefix,
         // Finally, check to see if we need to cap the current manifest and
         // move onto the next one
         if (num_pointers == max_pointers || offset == 0) {
-            fname = NULL;
-            if (offset) {
-                asprintf(&fname, "%s-manifest-%d", targetprefix, manifest_number++);
-                flic_manifest2file(m, NULL, NULL, fname, md);
-            } else {
-                asprintf(&fname, "%s-root", targetprefix);
+            if (offset)
+                flic_manifest2file(m, 0, NULL, NULL, dirpath, md);
+            else {
                 ccnl_manifest_setMetaData(m, 0, meta, block_size, length,total);
-                flic_manifest2file(m, name, keys, fname, md);
+                flic_manifest2file(m, 1, name, keys, dirpath, md);
             }
-            free(fname);
 
             ccnl_manifest_free(m);
             m = ccnl_manifest_getEmptyTemplate();
@@ -519,54 +547,59 @@ flic_produceFromFile(int pktype, char *targetprefix,
 
 // ----------------------------------------------------------------------
 
-struct sockaddr relay;
-
 struct ccnl_pkt_s*
-flic_lookup(int sock, int suite, struct ccnl_prefix_s *locator,
-            unsigned char *objHashRestr)
+flic_lookup(int sock, struct sockaddr *sa, int suite,
+            struct ccnl_prefix_s *locator, unsigned char *objHashRestr)
 {
     char dummy[256];
     unsigned char *data;
-    unsigned char pkt[4096];
+//    unsigned char pkt[4096];
     int datalen, len, rc, cnt;
 
     DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
                                                        locator));
-    len = ccntlv_mkInterest(locator, NULL, objHashRestr, pkt, sizeof(pkt));
+    len = ccntlv_mkInterest(locator, NULL, objHashRestr, out, sizeof(out));
     DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 
     for (cnt = 0; cnt < 3; cnt++) {
-        rc = sendto(sock, pkt, len, 0, &relay, sizeof(relay));
+        rc = sendto(sock, out, len, 0, sa, sizeof(*sa));
         DEBUGMSG(TRACE, "sendto returned %d\n", rc);
         if (rc < 0) {
             perror("sendto");
             return NULL;
         }
         if (block_on_read(sock, 3) > 0) {
-            len = recv(sock, pkt, sizeof(pkt), 0);
+            len = recv(sock, out, sizeof(out), 0);
             DEBUGMSG(DEBUG, "recv returned %d\n", len);
 
-            data = pkt + 8;
+            data = out + 8;
             datalen = len - 8;
-            return ccnl_ccntlv_bytes2pkt(pkt, &data, &datalen);
+            return ccnl_ccntlv_bytes2pkt(out, &data, &datalen);
         }
         DEBUGMSG(WARNING, "timeout after block_on_read - %d\n", cnt);
     }
     return 0;
 }
 
-void
-flic_do_dataPtr(int sock, int suite, struct ccnl_prefix_s *locator,
-                unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
+int
+flic_do_dataPtr(int sock, struct sockaddr *sa, int suite,
+                struct ccnl_prefix_s *locator, unsigned char *objHashRestr,
+                int fd, SHA256_CTX_t *total)
 {
-    struct ccnl_pkt_s *pkt = flic_lookup(sock, suite, locator, objHashRestr);
+    struct ccnl_pkt_s *pkt;
+
+    pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
+    if (!pkt)
+        return -1;
     write(fd, pkt->content, pkt->contlen);
     ccnl_SHA256_Update(total, pkt->content, pkt->contlen);
+
+    return 0;
 }
 
 int
-flic_do_manifestPtr(int sock, int suite, int exitBehavior, struct key_s *keys,
-                    struct ccnl_prefix_s *locator,
+flic_do_manifestPtr(int sock, struct sockaddr *sa, int suite, int exitBehavior,
+                    struct key_s *keys, struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt;
@@ -575,7 +608,7 @@ flic_do_manifestPtr(int sock, int suite, int exitBehavior, struct key_s *keys,
     unsigned int typ;
 
 TailRecurse:
-    pkt = flic_lookup(sock, suite, locator, objHashRestr);
+    pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
     if (!pkt)
         return -1;
     msg = pkt->buf->data + 8;
@@ -632,16 +665,19 @@ TailRecurse:
         DEBUGMSG(TRACE, "hash group\n");
         while (ccnl_ccntlv_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
-                if (typ == CCNX_MANIFEST_HG_PTR2DATA)
-                    flic_do_dataPtr(sock, suite, NULL, msg, fd, total);
-                else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
+                if (typ == CCNX_MANIFEST_HG_PTR2DATA) {
+                    if (flic_do_dataPtr(sock, sa, suite, NULL, msg,
+                                                          fd, total) < 0)
+                        return -1;
+                } else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
                         keys = NULL;
                         goto TailRecurse;
                     }
-                    flic_do_manifestPtr(sock, suite, exitBehavior, 0,
-                                        NULL, msg, fd, total);
+                    if (flic_do_manifestPtr(sock, sa, suite, exitBehavior,
+                                            0, NULL, msg, fd, total) < 0)
+                        return -1;
                 }
             }
             msg += len2;
@@ -659,8 +695,8 @@ Bail:
 int
 main(int argc, char *argv[])
 {
-    char *targetprefix = NULL, *outfname = NULL;
-    char *udp = strdup("127.0.0.1/9695");
+    char *dirpath = NULL, *outfname = NULL;
+    char *udp = strdup("127.0.0.1/9695"), *ux = NULL;
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
     int opt, exitBehavior = 0, suite = CCNL_SUITE_CCNTLV, i;
     struct key_s *keys = NULL;
@@ -669,7 +705,7 @@ main(int argc, char *argv[])
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hb:d:e:f:k:m:o:p:s:u:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:e:f:k:m:o:p:s:u:v:x:")) != -1) {
         switch (opt) {
         case 'b':
             block_size = atoi(optarg);
@@ -701,12 +737,13 @@ main(int argc, char *argv[])
             outfname = optarg;
             break;
         case 'p':
-            targetprefix = optarg;
+            dirpath = optarg;
             break;
         case 's':
             suite = ccnl_str2suite(optarg);
-            if (suite >= 0 && suite < CCNL_SUITE_LAST)
-                break;
+            if (!ccnl_isSuite(suite))
+                usage(1);
+            break;
         case 'u':
             udp = optarg;
             break;
@@ -718,6 +755,9 @@ main(int argc, char *argv[])
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
             break;
+        case 'x':
+            ux = optarg;
+            break;
         case 'h':
         default:
 Usage:
@@ -725,9 +765,18 @@ Usage:
         }
     }
 
-    if (targetprefix) {
+    if (dirpath) {
+        struct stat s;
         char *fname = NULL;
-        
+
+        if (stat(dirpath, &s)) {
+            perror("access to dirpath");
+            return -1;
+        }
+        if (!(s.st_mode & S_IFDIR)) {
+            DEBUGMSG(FATAL, "<%s> is not a directory\n", dirpath);
+            return -1;
+        }
         if (optind >= argc)
             goto Usage;
         fname = argv[optind++];
@@ -736,12 +785,12 @@ Usage:
         if (optind < argc)
             goto Usage;
 
-        flic_produceFromFile(suite, targetprefix, keys, block_size,
+        flic_produceFromFile(suite, dirpath, keys, block_size,
                              fname, uri, metadataUri);
     } else { // retrieve a manifest tree
         int fd, port, sock;
         const char *addr = NULL;
-        struct sockaddr_in *si;
+        struct sockaddr sa;
         SHA256_CTX_t total;
         unsigned char md[SHA256_DIGEST_LENGTH];
 
@@ -751,13 +800,15 @@ Usage:
         if (optind < argc)
             goto Usage;
 
-        if (ccnl_parseUdp(udp, CCNL_SUITE_CCNTLV, &addr, &port) != 0) {
+        if (ccnl_parseUdp(udp, suite, &addr, &port) != 0)
             exit(-1);
+        if (ux) { // use UNIX socket
+            ccnl_setUnixSocketPath((struct sockaddr_un*) &sa, ux);
+            sock = ux_open();
+        } else { // UDP
+            ccnl_setIpSocketAddr((struct sockaddr_in*) &sa, addr, port);
+            sock = udp_open();
         }
-        DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
-        si = (struct sockaddr_in*) &relay;
-        ccnl_setIpSocketAddr(si, addr, port);
-        sock = udp_open();
 
         if (outfname)
             fd = open(outfname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
@@ -765,8 +816,8 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
-        if (!flic_do_manifestPtr(sock, suite, exitBehavior, keys, uri,
-                                objHashRestr, fd, &total)) {
+        if (!flic_do_manifestPtr(sock, &sa, suite, exitBehavior, keys,
+                                 uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
         }
