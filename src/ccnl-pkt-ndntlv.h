@@ -27,6 +27,7 @@
 #define NDN_TLV_Interest                0x05
 #define NDN_TLV_Data                    0x06
 #define NDN_TLV_NDNLP                   0x64
+#define NDN_TLV_Manifest                0xc0
 #define NDN_TLV_Fragment                NDN_TLV_NDNLP
 
 // Common fields:
@@ -71,6 +72,17 @@
 #define NDN_TLV_NdnlpHeader             0x50
 #define NDN_TLV_NdnlpFragment           0x52
 #define NDN_TLV_Frag_BeginEndFields     0x5c
+
+// Manifest
+#define NDN_TLV_MANIFEST_HASHGROUP             0xc1
+#define NDN_TLV_MANIFEST_METADATA              0xc2
+#define NDN_TLV_MANIFEST_MT_BLOCKSIZE          0xc3
+#define NDN_TLV_MANIFEST_MT_OVERALLDATASHA256  0xc4
+#define NDN_TLV_MANIFEST_MT_LOCATOR            0xc5
+#define NDN_TLV_MANIFEST_MT_OVERALLDATASIZE    0xc6
+#define NDN_TLV_MANIFEST_MT_EXTERNALMETADATA   0xc7
+#define NDN_TLV_MANIFEST_HG_PTR2DATA           0xc8
+#define NDN_TLV_MANIFEST_HG_PTR2MANIFEST       0xc9
 
 // reserved values:
 /*

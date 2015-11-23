@@ -208,7 +208,7 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
         case '/':
             pfx = ccnl_URItoPrefix(lst->var, CCNL_SUITE_CCNTLV, NULL, NULL);
             cp = ccnl_prefix2path(dummy, sizeof(dummy), pfx);
-            len2 = ccnl_ccntlv_prependNameComponents(pfx, offset, buf, NULL);
+            len2 = ccnl_ccntlv_prependNameComponents(pfx, offset, buf);
             break;
         case '0':
             cp = "hash value";

@@ -65,11 +65,19 @@ usage(int exitval)
 
 // ----------------------------------------------------------------------
 
+struct list_s {
+    char typ;
+    unsigned char *var;
+    int varlen;
+    struct list_s *first;
+    struct list_s *rest;
+};
+
 int (*flic_prependTL)(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf);
 int (*flic_prependUInt)(unsigned int intval,int *offset, unsigned char *buf);
-int (*flic_prependNameComponents)(struct ccnl_prefix_s *name, int *offset,
-                               unsigned char *buf, unsigned int *lastchunknum);
+int (*flic_prependNameComponents)(struct ccnl_prefix_s *name,
+                                  int *offset, unsigned char *buf);
 int (*flic_prependContent)(struct ccnl_prefix_s *name, unsigned char *payload,
                            int paylen, unsigned int *lastchunknum,
                            int *contentpos, int *offset, unsigned char *buf);
@@ -81,20 +89,15 @@ struct ccnl_pkt_s* (*flic_bytes2pkt)(unsigned char *start,
                                      unsigned char **data, int *datalen);
 int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
                  unsigned char *objHashRestr, unsigned char *out, int outlen);
+int (*emit)(struct list_s *lst, unsigned short len, int *offset,
+            unsigned char *buf);
 
 // ----------------------------------------------------------------------
 // copied from ccn-lite-mkM.c
 
-struct list_s {
-    char typ;
-    unsigned char *var;
-    int varlen;
-    struct list_s *first;
-    struct list_s *rest;
-};
-
 int
-emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
+emit_ccntlv(struct list_s *lst, unsigned short len,
+            int *offset, unsigned char *buf)
 {
     int typ = -1, len2;
     char *cp = "??";
@@ -156,6 +159,98 @@ emit(struct list_s *lst, unsigned short len, int *offset, unsigned char *buf)
         case 'x':
             cp = "T=external metadata URI";
             typ = CCNX_MANIFEST_MT_EXTERNALMETADATA;
+            break;
+        case '@': // blob
+            cp = "blob";
+            len2 = lst->varlen;
+            *offset -= len2;
+            memcpy(buf + *offset, lst->var, len2);
+            break;
+        default:
+            DEBUGMSG(FATAL, "unknown type\n");
+            break;
+        }
+        if (typ >= 0) {
+            len2 = flic_prependTL((unsigned short) typ, len, offset, buf);
+            len += len2;
+        } else {
+            len = len2;
+        }
+        DEBUGMSG(VERBOSE, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
+
+        return len;
+    }
+
+    // non-atomic
+    len2 = emit(lst->rest, 0, offset, buf);
+    DEBUGMSG(TRACE, "   rest: len2=%d, len=%d\n", len2, len);
+    return emit(lst->first, len2, offset, buf) + len;
+}
+
+int
+emit_ndntlv(struct list_s *lst, unsigned short len,
+            int *offset, unsigned char *buf)
+{
+    int typ = -1, len2;
+    char *cp = "??";
+
+    if (!lst)
+        return len;
+
+    DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
+    if (lst->typ) { // atomic
+        switch(lst->typ) {
+        case 'a':
+            cp = "T=about (metadata)";
+            typ = NDN_TLV_MANIFEST_METADATA;
+            break;
+        case 'b':
+            cp = "T=meta block size";
+            typ = NDN_TLV_MANIFEST_MT_BLOCKSIZE;
+            break;
+        case 'c': // can be removed for manifests
+            cp = "T=content";
+            typ = NDN_TLV_Data;
+            break;
+        case 'd':
+            cp = "T=data hash ptr";
+            typ = NDN_TLV_MANIFEST_HG_PTR2DATA;
+            break;
+        case 'g':
+            cp = "T=hash pointer group";
+            typ = NDN_TLV_MANIFEST_HASHGROUP;
+            break;
+        case 'h':
+            cp = "T=meta overall hash";
+            typ = NDN_TLV_MANIFEST_MT_OVERALLDATASHA256;
+            break;
+        case 'l':
+            cp = "T=meta locator";
+            typ = NDN_TLV_MANIFEST_MT_LOCATOR;
+            break;
+        case 'm':
+            cp = "T=manifest";
+            typ = NDN_TLV_Manifest;
+            break;
+        case 'n':
+            cp = "T=name";
+            typ = NDN_TLV_Name;
+            break;
+        case 'p': // can be removed for manifests
+            cp = "T=payload";
+            typ = NDN_TLV_Content;
+            break;
+        case 's':
+            cp = "T=meta overall data size";
+            typ = NDN_TLV_MANIFEST_MT_OVERALLDATASIZE;
+            break;
+        case 't':
+            cp = "T=tree hash ptr";
+            typ = NDN_TLV_MANIFEST_HG_PTR2MANIFEST;
+            break;
+        case 'x':
+            cp = "T=external metadata URI";
+            typ = NDN_TLV_MANIFEST_MT_EXTERNALMETADATA;
             break;
         case '@': // blob
             cp = "blob";
@@ -258,7 +353,7 @@ ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
     int offset, len;
 
     offset = sizeof(dummy);
-    len = flic_prependNameComponents(pfx, &offset, dummy, NULL);
+    len = flic_prependNameComponents(pfx, &offset, dummy);
     if (len < 0)
         return 0;
 
@@ -408,8 +503,9 @@ flic_namelessObj2file(unsigned char *data, int len,
     ccnl_SHA256_Final(digest, &ctx);
     DEBUGMSG(DEBUG, "  %s (%d)\n", digest2str(digest), len);
 
-    len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
-                                      len, 255, &offset, out);
+    if (flic_prependFixedHdr)
+        len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                   len, 255, &offset, out);
     if (len < 0)
         return -1;
 
@@ -462,8 +558,9 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
         len = sizeof(out) - offset;
     }
 
-    len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
-                                      len, 255, &offset, out);
+    if (flic_prependFixedHdr)
+        len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                   len, 255, &offset, out);
 
     // Save the packet to disk
     fname = digest2fname(dirpath, isRoot, digest);
@@ -789,19 +886,29 @@ Usage:
     }
 
     switch(suite) {
-    case CCNL_SUITE_CCNTLV:
-      flic_prependTL = ccnl_ccntlv_prependTL;
-      flic_prependUInt = ccnl_ccntlv_prependUInt;
-      flic_prependNameComponents = ccnl_ccntlv_prependNameComponents;
-      flic_prependContent = ccnl_ccntlv_prependContent;
-      flic_prependFixedHdr = ccnl_ccntlv_prependFixedHdr;
-      flic_dehead = ccnl_ccntlv_dehead;
-      flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
-      flic_mkInterest = ccntlv_mkInterest;
-      break;
     case CCNL_SUITE_NDNTLV:
+        flic_prependTL = ccnl_ndntlv_prependTL;
+        flic_prependUInt = ccnl_ndntlv_prependNonNegIntVal;
+        flic_prependNameComponents = ccnl_ndntlv_prependNameComponents;
+        flic_prependContent = ccnl_ndntlv_prependContent;
+        flic_prependFixedHdr = NULL;
+        flic_dehead = ccnl_ndntlv_dehead;
+        flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
+        flic_mkInterest = ndntlv_mkInterest;
+        emit = emit_ndntlv;
+        break;
+    case CCNL_SUITE_CCNTLV:
     default:
-      break;
+        flic_prependTL = ccnl_ccntlv_prependTL;
+        flic_prependUInt = ccnl_ccntlv_prependUInt;
+        flic_prependNameComponents = ccnl_ccntlv_prependNameComponents;
+        flic_prependContent = ccnl_ccntlv_prependContent;
+        flic_prependFixedHdr = ccnl_ccntlv_prependFixedHdr;
+        flic_dehead = ccnl_ccntlv_dehead;
+        flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
+        flic_mkInterest = ccntlv_mkInterest;
+        emit = emit_ccntlv;
+        break;
     }
 
     if (dirpath) {

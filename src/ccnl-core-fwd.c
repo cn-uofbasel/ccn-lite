@@ -481,7 +481,7 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                           hp->pkttype, pkt->type);
         }
     } else if (hp->pkttype == CCNX_PT_Data) {
-        if (pkt->type == CCNX_TLV_TL_Object) {
+        if (pkt->type == CCNX_TLV_TL_Object || pkt->type == CCNX_TLV_TL_Manifest) {
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
@@ -658,29 +658,24 @@ int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int rc = -1, len;
-    unsigned int typ;
+    int rc = -1;
     unsigned char *start = *data;
     struct ccnl_pkt_s *pkt;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
-        DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
-        return -1;
-    }
-    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
+    pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
     if (!pkt) {
         DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
         goto Done;
     }
-    pkt->type = typ;
-    switch (typ) {
+    switch (pkt->type) {
     case NDN_TLV_Interest:
         if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
             goto Done;
         break;
     case NDN_TLV_Data:
+    case NDN_TLV_Manifest:
         if (ccnl_fwd_handleContent(relay, from, &pkt))
             goto Done;
         break;
@@ -691,7 +686,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         break;
 #endif
     default:
-        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", typ);
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", pkt->type);
         break;
     }
     rc = 0;

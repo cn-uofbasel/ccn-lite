@@ -76,7 +76,7 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
 
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
-ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
+ccnl_ndntlv_bytes2pkt(unsigned char *start,
                       unsigned char **data, int *datalen)
 {
     unsigned char *msgstart;
@@ -90,11 +90,17 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
     DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%d\n", *datalen);
 
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
+        DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
+        return NULL;
+    }
+
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
+    pkt->type = typ;
 
-    switch(pkttype) {
+    switch(pkt->type) {
     case NDN_TLV_Interest:
         pkt->flags |= CCNL_PKT_REQUEST;
         break;
@@ -107,7 +113,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
         break;
 #endif
     default:
-        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkttype);
+        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkt->type);
         goto Bail;
     }
 
@@ -375,7 +381,7 @@ ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 }
 
 int
-ccnl_ndntlv_prependTL(int type, unsigned int len,
+ccnl_ndntlv_prependTL(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
@@ -458,8 +464,8 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 }
 
 int
-ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf)
+ccnl_ndntlv_prependNameComponents(struct ccnl_prefix_s *name,
+                                  int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, cnt;
 
@@ -490,11 +496,27 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
                                     name->complen[cnt], offset, buf) < 0)
             return -1;
     }
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset - *offset,
-                              offset, buf) < 0)
+    return oldoffset - *offset;
+}
+
+int
+ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf)
+{
+    int len, len2;
+
+    if (!name)
+        return 0;
+
+    len = ccnl_ndntlv_prependNameComponents(name, offset, buf);
+    if (len < 0)
         return -1;
 
-    return 0;
+    len2 = ccnl_ndntlv_prependTL(NDN_TLV_Name, len, offset, buf);
+    if (len2 < 0)
+        return -1;
+
+    return len + len2;
 }
 
 // ----------------------------------------------------------------------
@@ -538,7 +560,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
-                           int *contentpos, unsigned int *final_block_id,
+                           unsigned int *final_block_id, int *contentpos,
                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;

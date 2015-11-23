@@ -136,20 +136,12 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        unsigned int typ;
-        int len;
         unsigned char *start = *data;
-
-        if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
-            DEBUGMSG(WARNING, "could not dehead\n");
+        pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+        if (!pkt || pkt->type != NDN_TLV_Data) {
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", pkt ? pkt->type : -1);
             return -1;
         }
-        if (typ != NDN_TLV_Data) {
-            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ);
-            return -1;
-        }
-
-        pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
         break;
     }
 #endif

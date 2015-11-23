@@ -723,10 +723,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
             data = olddata = buf->data + skip;
             datalen -= skip;
-            if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
-                                                         typ != NDN_TLV_Data)
-                goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
             break;
         }
 #endif

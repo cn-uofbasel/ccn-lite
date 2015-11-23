@@ -679,11 +679,8 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        unsigned int typ;
-        int len;
         unsigned char *start = data;
-        if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len))
-            pkt = ccnl_ndntlv_bytes2pkt(typ, start, &data, &datalen);
+        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &datalen);
         break;
     }
     default:

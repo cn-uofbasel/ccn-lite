@@ -1278,6 +1278,18 @@ ndn_type2name(unsigned type)
     case NDN_TLV_KeyLocatorDigest:  n = "KeyLocatorDigest"; break;
     case NDN_TLV_Frag_BeginEndFields: n = "FragBeginEndFields"; break;
     case NDN_TLV_NdnlpFragment:     n = "FragmentPayload"; break;
+
+    case NDN_TLV_Manifest:                      n = "Manifest"; break;
+    case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
+    case NDN_TLV_MANIFEST_METADATA:             n = "Metadata"; break;
+    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
+    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
+    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
+    case NDN_TLV_MANIFEST_HG_PTR2DATA:          n = "pointer2data"; break;
+    case NDN_TLV_MANIFEST_HG_PTR2MANIFEST:      n = "pointer2manifest"; break;
+
     default:
         n = NULL;
     }
@@ -1421,6 +1433,12 @@ ndn_init()
     ndntlv_recurse[NDN_TLV_FinalBlockId] = 1;
     ndntlv_recurse[NDN_TLV_SignatureInfo] = 1;
     ndntlv_recurse[NDN_TLV_KeyLocator] = 1;
+
+    ndntlv_recurse[NDN_TLV_Manifest] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_HASHGROUP] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_METADATA] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_MT_LOCATOR] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_MT_EXTERNALMETADATA] = 1;
 }
 
 // ----------------------------------------------------------------------
@@ -1590,12 +1608,15 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
+      /*
         unsigned int pkttype;
         int vallen;
+      */
         data = start;
-        if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
+        /*        if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
             return -1;
-        pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, &len);
+        */
+        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &len);
         break;
     }
     default:

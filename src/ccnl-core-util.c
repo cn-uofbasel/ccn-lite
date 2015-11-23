@@ -397,7 +397,7 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 
 #ifdef USE_SUITE_NDNTLV
     if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
-        *data == NDN_TLV_Fragment)
+        *data == NDN_TLV_Fragment || *data == NDN_TLV_Manifest)
         return CCNL_SUITE_NDNTLV;
 #endif
 
@@ -738,7 +738,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &contentpos, NULL, &offs, tmp);
+                                         NULL, &contentpos, &offs, tmp);
         break;
 #endif
     default:

@@ -476,8 +476,7 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
 // offset and return bytes used
 int
 ccnl_ccntlv_prependNameComponents(struct ccnl_prefix_s *name,
-                                  int *offset, unsigned char *buf,
-                                  unsigned int *lastchunknum)
+                                  int *offset, unsigned char *buf)
 {
 
     int nameend, cnt;
@@ -485,9 +484,10 @@ ccnl_ccntlv_prependNameComponents(struct ccnl_prefix_s *name,
     if (!name)
         return 0;
 
-    if (lastchunknum) {
+    if (name->chunknum) {
         if (ccnl_ccntlv_prependNetworkVarUInt(CCNX_TLV_M_ENDChunk,
-                                              *lastchunknum, offset, buf) < 0)
+                                              *name->chunknum,
+                                              offset, buf) < 0)
             return -1;
     }
 
@@ -523,15 +523,14 @@ ccnl_ccntlv_prependNameComponents(struct ccnl_prefix_s *name,
 // and return bytes used
 int
 ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf,
-                        unsigned int *lastchunknum)
+                        int *offset, unsigned char *buf)
 {
     int len, len2;
 
     if (!name)
         return 0;
 
-    len = ccnl_ccntlv_prependNameComponents(name, offset, buf, lastchunknum);
+    len = ccnl_ccntlv_prependNameComponents(name, offset, buf);
     if (len < 0)
         return -1;
 
@@ -550,7 +549,7 @@ ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, NULL) < 0)
+    if (ccnl_ccntlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
                                         oldoffset - *offset + len, offset, buf) < 0)
@@ -597,7 +596,8 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum) < 0)
+    // name->chunknum = lastchunknum
+    if (ccnl_ccntlv_prependName(name, offset, buf) < 0)
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,

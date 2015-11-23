@@ -199,8 +199,8 @@ Usage:
                   NULL, keyval, keyid, &offs, out);
         } else {
             len = ccnl_ndntlv_prependContent(name, body, len,
-                  NULL, lastchunknum == UINT_MAX ? NULL : &lastchunknum,
-                  &offs, out);
+                        lastchunknum == UINT_MAX ? NULL : &lastchunknum, NULL,
+                        &offs, out);
         }
         break;
 #endif

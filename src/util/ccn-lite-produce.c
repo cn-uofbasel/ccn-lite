@@ -241,7 +241,7 @@ Usage:
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name,
                                  (unsigned char *) chunk_buf, chunk_len,
-                                 NULL, is_last ? &chunknum : NULL,
+                                 is_last ? &chunknum : NULL, NULL,
                                  &offs, out);
             break;
         default:
