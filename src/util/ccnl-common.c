@@ -98,7 +98,6 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #include "../ccnl-core-pfx.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
-#include "../ccnl-ext-manifest.c"
 
 #else // CCNL_UAPI_H_ is defined
 
@@ -412,14 +411,21 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
     if (dataHashRestr) {
         int oldpos;
         DEBUGMSG(TRACE, "adding dataHashRestr as implicit digest\n");
-        memcpy(&name2, name, sizeof(*name));
-        name2.compcnt = name->compcnt + 1;
+        if (name) {
+            memcpy(&name2, name, sizeof(*name));
+            name2.compcnt = name->compcnt + 1;
+        } else {
+            memset(&name2, 0, sizeof(name2));
+            name2.compcnt = 1;
+        }
         name2.comp = ccnl_malloc(name2.compcnt * sizeof(unsigned char*));
         name2.complen = ccnl_malloc(name2.compcnt * sizeof(int));
-        memcpy(name2.comp,name->comp,name->compcnt * sizeof(unsigned char*));
-        memcpy(name2.complen, name->complen, name->compcnt * sizeof(int));
-        name2.comp[name->compcnt] = dataHashRestr;
-        name2.complen[name->compcnt] = SHA256_DIGEST_LENGTH;
+        if (name) {
+            memcpy(name2.comp,name->comp,name->compcnt * sizeof(unsigned char*));
+            memcpy(name2.complen, name->complen, name->compcnt * sizeof(int));
+        }
+        name2.comp[name2.compcnt-1] = dataHashRestr;
+        name2.complen[name2.compcnt-1] = SHA256_DIGEST_LENGTH;
         oldpos = offset;
         ccnl_ndntlv_prependNonNegInt(NDN_TLV_MaxSuffixComponents, 0,
                                      &offset, out);
@@ -432,6 +438,14 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
     len += ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
+
+/*
+    {
+        int fd = open("t-interest.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        write(fd, out + offset, len);
+        close(fd);
+    }
+*/
 
 #ifdef USE_NAMELESS
     if (name2.comp) {

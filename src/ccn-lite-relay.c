@@ -40,10 +40,9 @@
 #define USE_IPV4
 //#define USE_IPV6
 #define USE_MGMT
-#define USE_MANIFEST
 // #define USE_NACK
 // #define USE_NFN
-#define USE_NAMELESS                   // must select this for USE_FLIC
+#define USE_NAMELESS                   // must select this for MANIFESTS
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
@@ -79,7 +78,6 @@
 #include "ccnl-ext-http.c"
 #include "ccnl-ext-localrpc.c"
 #include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-manifest.c"
 #include "ccnl-ext-nfn.c"
 #include "ccnl-ext-nfnmonitor.c"
 #include "ccnl-ext-sched.c"
@@ -256,7 +254,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                  rc, errno);
         /*
         {
-            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC);
+            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
             write(fd, buf->data, buf->datalen);
             close(fd);
         }

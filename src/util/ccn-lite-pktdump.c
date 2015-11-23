@@ -1281,14 +1281,14 @@ ndn_type2name(unsigned type)
 
     case NDN_TLV_Manifest:                      n = "Manifest"; break;
     case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
-    case NDN_TLV_MANIFEST_METADATA:             n = "Metadata"; break;
-    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
-    case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
-    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
-    case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
-    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
+    case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
     case NDN_TLV_MANIFEST_HG_PTR2DATA:          n = "pointer2data"; break;
     case NDN_TLV_MANIFEST_HG_PTR2MANIFEST:      n = "pointer2manifest"; break;
+    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
+    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
+    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
 
     default:
         n = NULL;
@@ -1436,7 +1436,7 @@ ndn_init()
 
     ndntlv_recurse[NDN_TLV_Manifest] = 1;
     ndntlv_recurse[NDN_TLV_MANIFEST_HASHGROUP] = 1;
-    ndntlv_recurse[NDN_TLV_MANIFEST_METADATA] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_HG_METADATA] = 1;
     ndntlv_recurse[NDN_TLV_MANIFEST_MT_LOCATOR] = 1;
     ndntlv_recurse[NDN_TLV_MANIFEST_MT_EXTERNALMETADATA] = 1;
 }

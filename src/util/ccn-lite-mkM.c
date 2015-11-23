@@ -25,7 +25,6 @@
 // #define USE_SUITE_IOTTLV
 // #define USE_SUITE_NDNTLV
 
-#define USE_CCNxMANIFEST
 #define USE_HMAC256
 #define USE_NAMELESS
 

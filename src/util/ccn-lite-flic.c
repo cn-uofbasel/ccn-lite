@@ -25,7 +25,6 @@
 // #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
-#define USE_CCNxMANIFEST
 #define USE_HMAC256
 #define USE_IPV4
 #define USE_NAMELESS
@@ -73,6 +72,54 @@ struct list_s {
     struct list_s *rest;
 };
 
+enum {
+    M_MANIFESTMSG,
+    M_NAME,
+    M_HASHGROUP,
+    M_HG_METADATA,
+    M_HG_PTR2DATA,
+    M_HG_PTR2MANIFEST,
+    M_MT_LOCATOR,
+    M_MT_EXTERNALNAME,
+    M_MT_BLOCKSIZE,
+    M_MT_OVERALLDATASIZE,
+    M_MT_OVERALLDATASHA256
+};
+
+#ifdef USE_SUITE_CCNTLV
+unsigned short ccntlv_m_codes[] = {
+    CCNX_TLV_TL_Manifest,
+    CCNX_TLV_M_Name,
+    CCNX_MANIFEST_HASHGROUP,
+    CCNX_MANIFEST_HG_METADATA,
+    CCNX_MANIFEST_HG_PTR2DATA,
+    CCNX_MANIFEST_HG_PTR2MANIFEST,
+    CCNX_MANIFEST_MT_LOCATOR,
+    CCNX_MANIFEST_MT_EXTERNALMETADATA,
+    CCNX_MANIFEST_MT_BLOCKSIZE,
+    CCNX_MANIFEST_MT_OVERALLDATASIZE,
+    CCNX_MANIFEST_MT_OVERALLDATASHA256
+};
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+unsigned short ndntlv_m_codes[] = {
+    NDN_TLV_Manifest,
+    NDN_TLV_Name,
+    NDN_TLV_MANIFEST_HASHGROUP,
+    NDN_TLV_MANIFEST_HG_METADATA,
+    NDN_TLV_MANIFEST_HG_PTR2DATA,
+    NDN_TLV_MANIFEST_HG_PTR2MANIFEST,
+    NDN_TLV_MANIFEST_MT_LOCATOR,
+    NDN_TLV_MANIFEST_MT_EXTERNALMETADATA,
+    NDN_TLV_MANIFEST_MT_BLOCKSIZE,
+    NDN_TLV_MANIFEST_MT_OVERALLDATASIZE,
+    NDN_TLV_MANIFEST_MT_OVERALLDATASHA256
+};
+#endif
+
+unsigned short *m_codes;
+
 int (*flic_prependTL)(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf);
 int (*flic_prependUInt)(unsigned int intval,int *offset, unsigned char *buf);
@@ -89,15 +136,12 @@ struct ccnl_pkt_s* (*flic_bytes2pkt)(unsigned char *start,
                                      unsigned char **data, int *datalen);
 int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
                  unsigned char *objHashRestr, unsigned char *out, int outlen);
-int (*emit)(struct list_s *lst, unsigned short len, int *offset,
-            unsigned char *buf);
 
 // ----------------------------------------------------------------------
-// copied from ccn-lite-mkM.c
 
 int
-emit_ccntlv(struct list_s *lst, unsigned short len,
-            int *offset, unsigned char *buf)
+emit(struct list_s *lst, unsigned short len,
+     int *offset, unsigned char *buf)
 {
     int typ = -1, len2;
     char *cp = "??";
@@ -110,147 +154,59 @@ emit_ccntlv(struct list_s *lst, unsigned short len,
         switch(lst->typ) {
         case 'a':
             cp = "T=about (metadata)";
-            typ = CCNX_MANIFEST_HG_METADATA;
+            typ = m_codes[M_HG_METADATA];
             break;
         case 'b':
             cp = "T=meta block size";
-            typ = CCNX_MANIFEST_MT_BLOCKSIZE;
+            typ = m_codes[M_MT_BLOCKSIZE];
             break;
+/*
         case 'c': // can be removed for manifests
             cp = "T=content";
-            typ = CCNX_TLV_TL_Object;
+            typ = m_codes[];
             break;
+*/
         case 'd':
             cp = "T=data hash ptr";
-            typ = CCNX_MANIFEST_HG_PTR2DATA;
+            typ = m_codes[M_HG_PTR2DATA];
             break;
         case 'g':
             cp = "T=hash pointer group";
-            typ = CCNX_MANIFEST_HASHGROUP;
+            typ = m_codes[M_HASHGROUP];
             break;
         case 'h':
             cp = "T=meta overall hash";
-            typ = CCNX_MANIFEST_MT_OVERALLDATASHA256;
+            typ = m_codes[M_MT_OVERALLDATASHA256];
             break;
         case 'l':
             cp = "T=meta locator";
-            typ = CCNX_MANIFEST_MT_LOCATOR;
+            typ = m_codes[M_MT_LOCATOR];
             break;
         case 'm':
             cp = "T=manifest";
-            typ = CCNX_TLV_TL_Manifest;
+            typ = m_codes[M_MANIFESTMSG];
             break;
         case 'n':
             cp = "T=name";
-            typ = CCNX_TLV_M_Name;
+            typ = m_codes[M_NAME];
             break;
+/*
         case 'p': // can be removed for manifests
             cp = "T=payload";
-            typ = CCNX_TLV_M_Payload;
+            typ = m_codes[];
             break;
+*/
         case 's':
             cp = "T=meta overall data size";
-            typ = CCNX_MANIFEST_MT_OVERALLDATASIZE;
+            typ = m_codes[M_MT_OVERALLDATASIZE];
             break;
         case 't':
             cp = "T=tree hash ptr";
-            typ = CCNX_MANIFEST_HG_PTR2MANIFEST;
+            typ = m_codes[M_HG_PTR2MANIFEST];
             break;
         case 'x':
             cp = "T=external metadata URI";
-            typ = CCNX_MANIFEST_MT_EXTERNALMETADATA;
-            break;
-        case '@': // blob
-            cp = "blob";
-            len2 = lst->varlen;
-            *offset -= len2;
-            memcpy(buf + *offset, lst->var, len2);
-            break;
-        default:
-            DEBUGMSG(FATAL, "unknown type\n");
-            break;
-        }
-        if (typ >= 0) {
-            len2 = flic_prependTL((unsigned short) typ, len, offset, buf);
-            len += len2;
-        } else {
-            len = len2;
-        }
-        DEBUGMSG(VERBOSE, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
-
-        return len;
-    }
-
-    // non-atomic
-    len2 = emit(lst->rest, 0, offset, buf);
-    DEBUGMSG(TRACE, "   rest: len2=%d, len=%d\n", len2, len);
-    return emit(lst->first, len2, offset, buf) + len;
-}
-
-int
-emit_ndntlv(struct list_s *lst, unsigned short len,
-            int *offset, unsigned char *buf)
-{
-    int typ = -1, len2;
-    char *cp = "??";
-
-    if (!lst)
-        return len;
-
-    DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
-    if (lst->typ) { // atomic
-        switch(lst->typ) {
-        case 'a':
-            cp = "T=about (metadata)";
-            typ = NDN_TLV_MANIFEST_METADATA;
-            break;
-        case 'b':
-            cp = "T=meta block size";
-            typ = NDN_TLV_MANIFEST_MT_BLOCKSIZE;
-            break;
-        case 'c': // can be removed for manifests
-            cp = "T=content";
-            typ = NDN_TLV_Data;
-            break;
-        case 'd':
-            cp = "T=data hash ptr";
-            typ = NDN_TLV_MANIFEST_HG_PTR2DATA;
-            break;
-        case 'g':
-            cp = "T=hash pointer group";
-            typ = NDN_TLV_MANIFEST_HASHGROUP;
-            break;
-        case 'h':
-            cp = "T=meta overall hash";
-            typ = NDN_TLV_MANIFEST_MT_OVERALLDATASHA256;
-            break;
-        case 'l':
-            cp = "T=meta locator";
-            typ = NDN_TLV_MANIFEST_MT_LOCATOR;
-            break;
-        case 'm':
-            cp = "T=manifest";
-            typ = NDN_TLV_Manifest;
-            break;
-        case 'n':
-            cp = "T=name";
-            typ = NDN_TLV_Name;
-            break;
-        case 'p': // can be removed for manifests
-            cp = "T=payload";
-            typ = NDN_TLV_Content;
-            break;
-        case 's':
-            cp = "T=meta overall data size";
-            typ = NDN_TLV_MANIFEST_MT_OVERALLDATASIZE;
-            break;
-        case 't':
-            cp = "T=tree hash ptr";
-            typ = NDN_TLV_MANIFEST_HG_PTR2MANIFEST;
-            break;
-        case 'x':
-            cp = "T=external metadata URI";
-            typ = NDN_TLV_MANIFEST_MT_EXTERNALMETADATA;
+            typ = m_codes[M_MT_EXTERNALNAME];
             break;
         case '@': // blob
             cp = "blob";
@@ -688,8 +644,14 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
             len = recv(sock, out, sizeof(out), 0);
             DEBUGMSG(DEBUG, "recv returned %d\n", len);
 
-            data = out + 8;
-            datalen = len - 8;
+            data = out;
+            datalen = len;
+#ifdef USE_SUITE_CCNTLV
+            if (suite == CCNL_SUITE_CCNTLV) {
+                data += 8;
+                datalen -= 8;
+            }
+#endif
             return flic_bytes2pkt(out, &data, &datalen);
         }
         DEBUGMSG(WARNING, "timeout after block_on_read - %d\n", cnt);
@@ -731,12 +693,18 @@ TailRecurse:
     pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
     if (!pkt)
         return -1;
-    msg = pkt->buf->data + 8;
-    msglen = pkt->buf->datalen - 8;
+    msg = pkt->buf->data;
+    msglen = pkt->buf->datalen;
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+        msg += 8;
+        msglen -= 8;
+    }
+#endif
 
     if (flic_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
-    if (typ != CCNX_TLV_TL_Manifest)
+    if (typ != m_codes[M_MANIFESTMSG])
         goto Bail;
 
     if (keys) {
@@ -777,7 +745,7 @@ TailRecurse:
     }
 
     while (flic_dehead(&msg, &len, &typ, &len2) >= 0) {
-        if (typ != CCNX_MANIFEST_HASHGROUP) {
+        if (typ != m_codes[M_HASHGROUP]) {
             msg += len2;
             len -= len2;
             continue;
@@ -785,11 +753,11 @@ TailRecurse:
         DEBUGMSG(TRACE, "hash group\n");
         while (flic_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
-                if (typ == CCNX_MANIFEST_HG_PTR2DATA) {
+                if (typ == m_codes[M_HG_PTR2DATA]) {
                     if (flic_do_dataPtr(sock, sa, suite, NULL, msg,
                                                           fd, total) < 0)
                         return -1;
-                } else if (typ == CCNX_MANIFEST_HG_PTR2MANIFEST) {
+                } else if (typ == m_codes[M_HG_PTR2MANIFEST]) {
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
                         keys = NULL;
@@ -851,7 +819,7 @@ main(int argc, char *argv[])
             keys = load_keys_from_file(optarg);
             break;
         case 'm':
-            metadataUri = ccnl_URItoPrefix(optarg, CCNL_SUITE_CCNTLV,NULL,NULL);
+            metadataUri = ccnl_URItoPrefix(optarg, suite, NULL, NULL);
             break;
         case 'o':
             outfname = optarg;
@@ -886,6 +854,7 @@ Usage:
     }
 
     switch(suite) {
+#ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         flic_prependTL = ccnl_ndntlv_prependTL;
         flic_prependUInt = ccnl_ndntlv_prependNonNegIntVal;
@@ -895,10 +864,11 @@ Usage:
         flic_dehead = ccnl_ndntlv_dehead;
         flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
         flic_mkInterest = ndntlv_mkInterest;
-        emit = emit_ndntlv;
+        m_codes = ndntlv_m_codes;
         break;
+#endif
+#ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-    default:
         flic_prependTL = ccnl_ccntlv_prependTL;
         flic_prependUInt = ccnl_ccntlv_prependUInt;
         flic_prependNameComponents = ccnl_ccntlv_prependNameComponents;
@@ -907,8 +877,12 @@ Usage:
         flic_dehead = ccnl_ccntlv_dehead;
         flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
         flic_mkInterest = ccntlv_mkInterest;
-        emit = emit_ccntlv;
+        m_codes = ccntlv_m_codes;
         break;
+#endif
+    default:
+        DEBUGMSG(FATAL, "unknown suite\n");
+        exit(-1);
     }
 
     if (dirpath) {
