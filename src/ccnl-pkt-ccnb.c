@@ -29,14 +29,14 @@
 
 #include "ccnl-pkt-ccnb.h"
 
-static int
+int
 ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
                   unsigned char **valptr, int *vallen);
 
 // ----------------------------------------------------------------------
 // ccnb parsing support
 
-static int
+int
 ccnl_ccnb_dehead(unsigned char **buf, int *len, int *num, int *typ)
 {
     int i;
@@ -77,7 +77,7 @@ ccnl_ccnb_hunt_for_end(unsigned char **buf, int *len,
     return -1;
 }
 
-static int
+int
 ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
                   unsigned char **valptr, int *vallen)
 {
@@ -346,6 +346,7 @@ int
 ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
                  char *cp, int cnt)
 {
+    (void) tt;
     return ccnl_ccnb_mkField(out, num, CCN_TT_BLOB,
                              (unsigned char*) cp, cnt);
 }
@@ -354,6 +355,7 @@ int
 ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
                     char *str)
 {
+    (void) tt;
     return ccnl_ccnb_mkField(out, num, CCN_TT_BLOB,
                              (unsigned char*) str, strlen(str));
 }
@@ -422,6 +424,7 @@ int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
                        unsigned char *out, int outlen)
 {
+    (void) outlen;
     int len = 0;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest

@@ -111,7 +111,6 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 
-#define ccnl_ll_TX(r,i,a,b)             sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in))
 #define ccnl_close_socket(s)            close(s)
 
 #define compute_ccnx_digest(b) NULL
@@ -138,6 +137,11 @@ const char* ccnl_suite2str(int suite);
 bool ccnl_isSuite(int suite);
 
 //----------------------------------------------------------------------
+static inline void ccnl_ll_TX(struct ccnl_relay_s *r, struct ccnl_if_s *i,
+                sockunion *a, struct ccnl_buf_s *b)
+{
+    sendto(i->sock,b->data,b->datalen,r?0:0,(struct sockaddr*)&(a)->ip4,sizeof(struct sockaddr_in));
+}
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)

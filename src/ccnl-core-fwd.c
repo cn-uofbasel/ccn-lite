@@ -502,7 +502,7 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              *datalen, (void*)from, relay->id, from ? from->faceid : -1);
 
     if (**data != CISCO_TLV_V1 ||
-                        *datalen < sizeof(struct cisco_tlvhdr_201501_s))
+                        *datalen < (int) sizeof(struct cisco_tlvhdr_201501_s))
         return -1;
 
     hp = (struct cisco_tlvhdr_201501_s*) *data;
@@ -648,7 +648,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder (%d bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
+    if (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) || (int) len > *datalen) {
         DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
         return -1;
     }

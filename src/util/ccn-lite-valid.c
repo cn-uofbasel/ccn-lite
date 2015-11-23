@@ -80,7 +80,7 @@ ccnl_parse(unsigned char *data, int datalen)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        unsigned int typ;
+        int typ;
         int len2;
 
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {

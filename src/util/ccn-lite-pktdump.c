@@ -492,7 +492,8 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
               unsigned char **buf, int *len, char *cur_tag, int rawxml, FILE* out)
 {
     unsigned int typ;
-    int i, vallen;
+    int i;
+    unsigned vallen;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
 
@@ -1236,7 +1237,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                int *len, char *cur_tag, int rawxml, FILE* out)
 {
     int i, maxi, vallen;
-    unsigned int typ;
+    int typ;
     unsigned char *cp;
     char *n, tmp[100];
 
@@ -1521,7 +1522,7 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        unsigned int pkttype;
+        int pkttype;
         int vallen;
         data = start;
         if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
