@@ -233,6 +233,9 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
     if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
 
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+                      buf + mdoffset, &mdlength);
+
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
                               offset, buf) < 0)
@@ -240,9 +243,6 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
 
     if (contentpos)
         *contentpos -= *offset;
-
-    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
-                      buf + mdoffset, &mdlength);
 
     return oldoffset - *offset;
 }

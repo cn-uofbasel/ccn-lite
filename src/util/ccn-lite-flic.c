@@ -57,14 +57,14 @@ usage(int exitval)
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            "  -x PATH    usa UNIX IPC instead od UDP\n"
+            "  -x PATH    use UNIX IPC instead od UDP\n"
             , progname, progname);
     exit(exitval);
 }
 
 // ----------------------------------------------------------------------
 
-struct list_s {
+struct list_s { // s-expr
     char typ;
     unsigned char *var;
     int varlen;
@@ -83,7 +83,9 @@ enum {
     M_MT_EXTERNALNAME,
     M_MT_BLOCKSIZE,
     M_MT_OVERALLDATASIZE,
-    M_MT_OVERALLDATASHA256
+    M_MT_OVERALLDATASHA256,
+    M_SIGINFO,
+    M_SIGVAL,
 };
 
 #ifdef USE_SUITE_CCNTLV
@@ -98,7 +100,9 @@ unsigned short ccntlv_m_codes[] = {
     CCNX_MANIFEST_MT_EXTERNALMETADATA,
     CCNX_MANIFEST_MT_BLOCKSIZE,
     CCNX_MANIFEST_MT_OVERALLDATASIZE,
-    CCNX_MANIFEST_MT_OVERALLDATASHA256
+    CCNX_MANIFEST_MT_OVERALLDATASHA256,
+    0,
+    0
 };
 #endif
 
@@ -114,10 +118,13 @@ unsigned short ndntlv_m_codes[] = {
     NDN_TLV_MANIFEST_MT_EXTERNALMETADATA,
     NDN_TLV_MANIFEST_MT_BLOCKSIZE,
     NDN_TLV_MANIFEST_MT_OVERALLDATASIZE,
-    NDN_TLV_MANIFEST_MT_OVERALLDATASHA256
+    NDN_TLV_MANIFEST_MT_OVERALLDATASHA256,
+    NDN_TLV_SignatureInfo,
+    NDN_TLV_SignatureValue
 };
 #endif
 
+int theSuite = CCNL_SUITE_DEFAULT;
 unsigned short *m_codes;
 
 int (*flic_prependTL)(unsigned short type, unsigned short len,
@@ -139,93 +146,60 @@ int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
 
 // ----------------------------------------------------------------------
 
+struct emit_s {
+    char sym;
+    int codeNdx;
+    char *debug;
+} translate[] = {
+    { 'a', M_HG_METADATA,           "T=about (metadata)" },
+    { 'b', M_MT_BLOCKSIZE,          "T=meta block size" },
+    { 'd', M_HG_PTR2DATA,           "T=data hash ptr" },
+    { 'g', M_HASHGROUP,             "T=hash pointer group" },
+    { 'h', M_MT_OVERALLDATASHA256,  "T=meta overall hash" },
+    { 'i', M_SIGINFO,               "T=signature info" },
+    { 'l', M_MT_LOCATOR,            "T=meta locator" },
+    { 'm', M_MANIFESTMSG,           "T=manifest" },
+    { 'n', M_NAME,                  "T=name" },
+    { 's', M_MT_OVERALLDATASIZE,    "T=meta overall data size" },
+    { 't', M_HG_PTR2MANIFEST,       "T=tree hash ptr" },
+    { 'v', M_SIGVAL,                "T=signature value" },
+    { 'x', M_MT_EXTERNALNAME,       "T=external metadata URI" }
+};
+
 int
 emit(struct list_s *lst, unsigned short len,
      int *offset, unsigned char *buf)
 {
-    int typ = -1, len2;
-    char *cp = "??";
+    int len2;
 
     if (!lst)
         return len;
 
     DEBUGMSG(TRACE, "   emit starts: len=%d\n", len);
-    if (lst->typ) { // atomic
-        switch(lst->typ) {
-        case 'a':
-            cp = "T=about (metadata)";
-            typ = m_codes[M_HG_METADATA];
-            break;
-        case 'b':
-            cp = "T=meta block size";
-            typ = m_codes[M_MT_BLOCKSIZE];
-            break;
-/*
-        case 'c': // can be removed for manifests
-            cp = "T=content";
-            typ = m_codes[];
-            break;
-*/
-        case 'd':
-            cp = "T=data hash ptr";
-            typ = m_codes[M_HG_PTR2DATA];
-            break;
-        case 'g':
-            cp = "T=hash pointer group";
-            typ = m_codes[M_HASHGROUP];
-            break;
-        case 'h':
-            cp = "T=meta overall hash";
-            typ = m_codes[M_MT_OVERALLDATASHA256];
-            break;
-        case 'l':
-            cp = "T=meta locator";
-            typ = m_codes[M_MT_LOCATOR];
-            break;
-        case 'm':
-            cp = "T=manifest";
-            typ = m_codes[M_MANIFESTMSG];
-            break;
-        case 'n':
-            cp = "T=name";
-            typ = m_codes[M_NAME];
-            break;
-/*
-        case 'p': // can be removed for manifests
-            cp = "T=payload";
-            typ = m_codes[];
-            break;
-*/
-        case 's':
-            cp = "T=meta overall data size";
-            typ = m_codes[M_MT_OVERALLDATASIZE];
-            break;
-        case 't':
-            cp = "T=tree hash ptr";
-            typ = m_codes[M_HG_PTR2MANIFEST];
-            break;
-        case 'x':
-            cp = "T=external metadata URI";
-            typ = m_codes[M_MT_EXTERNALNAME];
-            break;
-        case '@': // blob
-            cp = "blob";
-            len2 = lst->varlen;
-            *offset -= len2;
-            memcpy(buf + *offset, lst->var, len2);
-            break;
-        default:
-            DEBUGMSG(FATAL, "unknown type\n");
-            break;
-        }
-        if (typ >= 0) {
-            len2 = flic_prependTL((unsigned short) typ, len, offset, buf);
-            len += len2;
-        } else {
-            len = len2;
-        }
-        DEBUGMSG(VERBOSE, "  prepending %s (L=%d), returning %dB\n", cp, len2, len);
 
+    if (lst->typ) { // atomic
+        char *cp = NULL;
+        unsigned i;
+
+        for (i = 0; i < sizeof(translate)/sizeof(struct emit_s); i++) {
+            if (lst->typ == translate[i].sym) {
+                cp = translate[i].debug;
+                len += flic_prependTL(m_codes[translate[i].codeNdx],
+                                      len, offset, buf);
+                break;
+            } else if (lst->typ == '@') {
+                cp = "blob";
+                len = lst->varlen;
+                *offset -= len;
+                memcpy(buf + *offset, lst->var, len);
+                break;
+            }
+        }
+        if (!cp) {
+            DEBUGMSG(FATAL, "unknown type '%c'\n", lst->typ);
+        } else {
+            DEBUGMSG(VERBOSE, "  prepending %s, returning %d Bytes\n", cp, len);
+        }
         return len;
     }
 
@@ -235,6 +209,7 @@ emit(struct list_s *lst, unsigned short len,
     return emit(lst->first, len2, offset, buf) + len;
 }
 
+/*
 void
 ccnl_printExpr(struct list_s *t, char last, char *out)
 {
@@ -261,6 +236,7 @@ ccnl_printExpr(struct list_s *t, char last, char *out)
     strcat(out, ")");
     return;
 }
+*/
 
 // ----------------------------------------------------------------------
 // manifest API
@@ -316,16 +292,15 @@ ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
     return ccnl_manifest_atomic_blob(dummy + offset, len);
 }
 
-struct list_s*
-ccnl_manifest_getEmptyTemplate(void)
+void
+ccnl_manifest_append(struct list_s *where, char *typ, struct list_s *what)
 {
-    struct list_s *m;
+    struct list_s **epp, *elmnt = ccnl_calloc(1, sizeof(*elmnt));
 
-    m = ccnl_manifest_atomic("mfst");
-    m->rest = ccnl_calloc(1, sizeof(struct list_s));
-    m->rest->first = ccnl_manifest_atomic("grp");
-
-    return m;
+    elmnt->first = ccnl_manifest_atomic(typ);
+    elmnt->first->rest = what;
+    for (epp = &where->rest; *epp; epp = &(*epp)->rest);
+    *epp = elmnt;
 }
 
 void
@@ -339,6 +314,16 @@ ccnl_manifest_prepend(struct list_s *where, char *typ, struct list_s *what)
     where->rest = elmnt;
 }
 
+struct list_s*
+ccnl_manifest_getEmptyTemplate()
+{
+    struct list_s *m;
+
+    m = ccnl_manifest_atomic("mfst");
+    ccnl_manifest_prepend(m, "grp", NULL);
+
+    return m;
+}
 
 // typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
 // md is the hash value (array of 32 bytes) to be stored
@@ -459,9 +444,12 @@ flic_namelessObj2file(unsigned char *data, int len,
     ccnl_SHA256_Final(digest, &ctx);
     DEBUGMSG(DEBUG, "  %s (%d)\n", digest2str(digest), len);
 
+#ifdef USE_SUITE_CCNTLV
     if (flic_prependFixedHdr)
         len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                    len, 255, &offset, out);
+#endif
+
     if (len < 0)
         return -1;
 
@@ -469,61 +457,96 @@ flic_namelessObj2file(unsigned char *data, int len,
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     free(fname);
     if (f < 0) {
-        perror("file open:"); return -1;
+        perror("file open:");
+        return -1;
     }
     write(f, out + offset, len);
     close(f);
 
     return len;
 }
-                            
+
+void
+flic_finalize_HMAC_signature(struct key_s *keys, unsigned char *sigval,
+                             unsigned char *buf, int validationLen)
+{
+    int len;
+    unsigned int typ;
+    unsigned char keyval[SHA256_BLOCK_LENGTH];
+    
+#ifdef USE_SUITE_NDNTLV
+    if (theSuite == CCNL_SUITE_NDNTLV)
+        ccnl_ndntlv_dehead(&buf, &validationLen, &typ, &len);
+#endif
+
+    DEBUGMSG(DEBUG, "creating signature for %d bytes\n", validationLen);
+    // use first key
+    ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
+    len = SHA256_DIGEST_LENGTH;
+    ccnl_hmac256_sign(keyval, sizeof(keyval), buf, validationLen,
+                      sigval, &len);
+}
+
 void
 flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
                    struct key_s *keys, char *dirpath, unsigned char *digest)
 {
     SHA256_CTX_t ctx;
-    int offset = sizeof(out), mdoffset, mdlen = SHA256_DIGEST_LENGTH, len, f;
+    int offset = sizeof(out), len, f;
     int endOfValidation = 0;
     char *fname;
 
     if (name)
         ccnl_manifest_prepend(m, "name", ccnl_manifest_atomic_prefix(name));
 
-    if (keys) {
-        offset -= mdlen;
-        mdoffset = offset;
-        flic_prependTL(CCNX_TLV_TL_ValidationPayload, 32, &offset, out);
-        endOfValidation = offset;
-        flic_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
-        flic_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
+    if (keys) { // take care of signature memory space
+        switch(theSuite) {
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV:
+            ccnl_manifest_append(m, "info", ccnl_manifest_atomic_blob(
+                                     (unsigned char*) "\x1b\x01\x04", 3));
+            ccnl_manifest_append(m, "val",
+                        ccnl_manifest_atomic_blob(out, SHA256_DIGEST_LENGTH));
+            endOfValidation = sizeof(out) - SHA256_DIGEST_LENGTH - 2;
+            break;
+#endif
+        default:
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV:
+            offset -= SHA256_DIGEST_LENGTH;
+            flic_prependTL(CCNX_TLV_TL_ValidationPayload,
+                           SHA256_DIGEST_LENGTH, &offset, out);
+            endOfValidation = offset;
+            flic_prependTL(CCNX_VALIDALGO_HMAC_SHA256, 0, &offset, out);
+            flic_prependTL(CCNX_TLV_TL_ValidationAlgo, 4, &offset, out);
+#endif
+            break;
+        }
     }
+    emit(m, 0, &offset, out);
+    if (keys)
+        flic_finalize_HMAC_signature(keys,
+                                     out + sizeof(out) - SHA256_DIGEST_LENGTH,
+                                     out + offset, endOfValidation - offset);
 
-    len = emit(m, 0, &offset, out);
+    len = sizeof(out) - offset;
     ccnl_SHA256_Init(&ctx);
     ccnl_SHA256_Update(&ctx, out + offset, len);
     ccnl_SHA256_Final(digest, &ctx);
 
-    if (keys) {
-        // use the first key found in the key file
-        unsigned char keyval[64];
-        len = endOfValidation - offset;
-        DEBUGMSG(DEBUG, "creating signature for %d bytes\n", len);
-        ccnl_hmac256_keyval(keys->key, keys->keylen, keyval);
-        ccnl_hmac256_sign(keyval, sizeof(keyval), out + offset, len,
-                          out + mdoffset, &mdlen);
-        len = sizeof(out) - offset;
-    }
-
+#ifdef USE_SUITE_CCNTLV
     if (flic_prependFixedHdr)
         len = flic_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
                                    len, 255, &offset, out);
+#endif
 
     // Save the packet to disk
     fname = digest2fname(dirpath, isRoot, digest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     free(fname);
     if (f < 0) {
-        perror("file open:"); return;
+        perror("file open:");
+        return;
     }
     write(f, out + offset, len);
     close(f);
@@ -531,20 +554,19 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
 
 // ----------------------------------------------------------------------
 
+static unsigned char body[MAX_BLOCK_SIZE];
+
 void
-flic_produceFromFile(int pktype, char *dirpath,
-                     struct key_s *keys, int block_size, char *fname,
-                     struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
+flic_produceFromFile(char *dirpath, struct key_s *keys, int block_size,
+                     char *fname, struct ccnl_prefix_s *name,
+                     struct ccnl_prefix_s *meta)
 {
-    static unsigned char body[MAX_BLOCK_SIZE];
     int f, num_bytes, len, chunk_number;
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
     struct list_s *m;
     long length, offset;
-    // NOTE: we should play with this
-    int max_pointers = (block_size - 4 - 4) / (32+4); // 10;
-    int num_pointers = 0;
+    int max_pointers = (block_size - 4 - 4) / (32+4), num_pointers = 0;
 
     DEBUGMSG(DEBUG, "max_pointers per manifest is %d\n", max_pointers);
 
@@ -566,7 +588,6 @@ flic_produceFromFile(int pktype, char *dirpath,
     
     // get the number of blocks (leaf nodes)
     length = lseek(f, 0, SEEK_END);
-
     chunk_number = ((length - 1) / block_size) + 1;
 
     DEBUGMSG(INFO, "Creating FLIC from %s\n", fname);
@@ -621,8 +642,8 @@ flic_produceFromFile(int pktype, char *dirpath,
 // ----------------------------------------------------------------------
 
 struct ccnl_pkt_s*
-flic_lookup(int sock, struct sockaddr *sa, int suite,
-            struct ccnl_prefix_s *locator, unsigned char *objHashRestr)
+flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
+            unsigned char *objHashRestr)
 {
     char dummy[256];
     unsigned char *data;
@@ -647,7 +668,7 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
             data = out;
             datalen = len;
 #ifdef USE_SUITE_CCNTLV
-            if (suite == CCNL_SUITE_CCNTLV) {
+            if (theSuite == CCNL_SUITE_CCNTLV) {
                 data += 8;
                 datalen -= 8;
             }
@@ -660,13 +681,12 @@ flic_lookup(int sock, struct sockaddr *sa, int suite,
 }
 
 int
-flic_do_dataPtr(int sock, struct sockaddr *sa, int suite,
-                struct ccnl_prefix_s *locator, unsigned char *objHashRestr,
-                int fd, SHA256_CTX_t *total)
+flic_do_dataPtr(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
+                unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
     struct ccnl_pkt_s *pkt;
 
-    pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
+    pkt = flic_lookup(sock, sa, locator, objHashRestr);
     if (!pkt)
         return -1;
     write(fd, pkt->content, pkt->contlen);
@@ -676,7 +696,7 @@ flic_do_dataPtr(int sock, struct sockaddr *sa, int suite,
 }
 
 int
-flic_do_manifestPtr(int sock, struct sockaddr *sa, int suite, int exitBehavior,
+flic_do_manifestPtr(int sock, struct sockaddr *sa, int exitBehavior,
                     struct key_s *keys, struct ccnl_prefix_s *locator,
                     unsigned char *objHashRestr, int fd, SHA256_CTX_t *total)
 {
@@ -690,13 +710,13 @@ TailRecurse:
     (void) depth;
     DEBUGMSG(INFO, "manifest %d\n", depth++);
 
-    pkt = flic_lookup(sock, sa, suite, locator, objHashRestr);
+    pkt = flic_lookup(sock, sa, locator, objHashRestr);
     if (!pkt)
         return -1;
     msg = pkt->buf->data;
     msglen = pkt->buf->datalen;
 #ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV) {
+    if (theSuite == CCNL_SUITE_CCNTLV) {
         msg += 8;
         msglen -= 8;
     }
@@ -754,8 +774,7 @@ TailRecurse:
         while (flic_dehead(&msg, &len, &typ, &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == m_codes[M_HG_PTR2DATA]) {
-                    if (flic_do_dataPtr(sock, sa, suite, NULL, msg,
-                                                          fd, total) < 0)
+                    if (flic_do_dataPtr(sock, sa, NULL, msg, fd, total) < 0)
                         return -1;
                 } else if (typ == m_codes[M_HG_PTR2MANIFEST]) {
                     if (len == SHA256_DIGEST_LENGTH) {
@@ -763,7 +782,7 @@ TailRecurse:
                         keys = NULL;
                         goto TailRecurse;
                     }
-                    if (flic_do_manifestPtr(sock, sa, suite, exitBehavior,
+                    if (flic_do_manifestPtr(sock, sa, exitBehavior,
                                             0, NULL, msg, fd, total) < 0)
                         return -1;
                 }
@@ -786,7 +805,7 @@ main(int argc, char *argv[])
     char *dirpath = NULL, *outfname = NULL;
     char *udp = strdup("127.0.0.1/9695"), *ux = NULL;
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
-    int opt, exitBehavior = 0, suite = CCNL_SUITE_CCNTLV, i;
+    int opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
     int block_size = 4096 - 8 - 8; // nameless obj will be exactly 4096B
     unsigned char *objHashRestr = NULL;
@@ -798,19 +817,19 @@ main(int argc, char *argv[])
         case 'b':
             block_size = atoi(optarg);
             if (block_size > (MAX_BLOCK_SIZE-256)) {
-                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n", MAX_BLOCK_SIZE - 256);
+                DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n",
+                         MAX_BLOCK_SIZE - 256);
                 goto Usage;
             }
             break;
         case 'd':
             if (strlen(optarg) != 64)
-                break;
+                goto Usage;
             ccnl_free(objHashRestr);
             objHashRestr = ccnl_malloc(SHA256_DIGEST_LENGTH);
-            for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
                 objHashRestr[i] = hex2int(optarg[2*i]) * 16 +
                                                    hex2int(optarg[2*i + 1]);
-            }
             break;
         case 'e':
             exitBehavior = atoi(optarg);
@@ -819,7 +838,7 @@ main(int argc, char *argv[])
             keys = load_keys_from_file(optarg);
             break;
         case 'm':
-            metadataUri = ccnl_URItoPrefix(optarg, suite, NULL, NULL);
+            metadataUri = ccnl_URItoPrefix(optarg, theSuite, NULL, NULL);
             break;
         case 'o':
             outfname = optarg;
@@ -828,8 +847,8 @@ main(int argc, char *argv[])
             dirpath = optarg;
             break;
         case 's':
-            suite = ccnl_str2suite(optarg);
-            if (!ccnl_isSuite(suite))
+            theSuite = ccnl_str2suite(optarg);
+            if (!ccnl_isSuite(theSuite))
                 usage(1);
             break;
         case 'u':
@@ -853,7 +872,7 @@ Usage:
         }
     }
 
-    switch(suite) {
+    switch(theSuite) {
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         flic_prependTL = ccnl_ndntlv_prependTL;
@@ -901,11 +920,11 @@ Usage:
             goto Usage;
         fname = argv[optind++];
         if (optind < argc)
-            uri = ccnl_URItoPrefix(argv[optind++], suite, NULL, NULL);
+            uri = ccnl_URItoPrefix(argv[optind++], theSuite, NULL, NULL);
         if (optind < argc)
             goto Usage;
 
-        flic_produceFromFile(suite, dirpath, keys, block_size,
+        flic_produceFromFile(dirpath, keys, block_size,
                              fname, uri, metadataUri);
     } else { // retrieve a manifest tree
         int fd, port, sock;
@@ -916,11 +935,11 @@ Usage:
 
         if (optind >= argc)
             goto Usage;
-        uri = ccnl_URItoPrefix(argv[optind++], suite, NULL, NULL);
+        uri = ccnl_URItoPrefix(argv[optind++], theSuite, NULL, NULL);
         if (optind < argc)
             goto Usage;
 
-        if (ccnl_parseUdp(udp, suite, &addr, &port) != 0)
+        if (ccnl_parseUdp(udp, theSuite, &addr, &port) != 0)
             exit(-1);
         if (ux) { // use UNIX socket
             ccnl_setUnixSocketPath((struct sockaddr_un*) &sa, ux);
@@ -936,7 +955,7 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
-        if (!flic_do_manifestPtr(sock, &sa, suite, exitBehavior, keys,
+        if (!flic_do_manifestPtr(sock, &sa, exitBehavior, keys,
                                  uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));

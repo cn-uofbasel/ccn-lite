@@ -119,7 +119,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
     }
 
 #ifdef USE_HMAC256
-    pkt->hmacStart = start;
+    pkt->hmacStart = *data;
 #endif
     msgstart = start;
 
@@ -268,12 +268,12 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 cp += i;
                 len2 -= i;
             }
+            if (pkt->hmacStart)
+                pkt->hmacLen = (*data + len) - pkt->hmacStart;
             break;
         case NDN_TLV_SignatureValue:
-            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
-                pkt->hmacLen = oldpos;
+            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32)
                 pkt->hmacSignature = *data;
-            }
             break;
 #endif
         default:
