@@ -1,6 +1,6 @@
 /*
  * @f util/ccn-lite-flic.c
- * @b utility for FLIC (FLIC = File-LIke-Collection)
+ * @b utility for FLIC (FLIC = File-Like-ICN-Collection)
  *
  * Copyright (C) 2015, Christian Tschudin, University of Basel
  *
@@ -396,31 +396,39 @@ digest2str(unsigned char *md)
     return tmp;
 }
 
+void
+assertDir(char *dirpath, char *cp)
+{
+    char *fn;
+
+    asprintf(&fn, "%s/%c%c", dirpath, cp[0], cp[1]);
+    if (mkdir(fn, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+        exit(-1);
+    }
+    free(fn);
+}
+
+    
 char*
 digest2fname(char *dirpath, char isRoot, unsigned char *digest)
 {
-    char *hex = digest2str(digest), *dir = NULL;
-    char *head, *tail;
+    char *hex = digest2str(digest), *fn = NULL, *fn2 = NULL;
 
     if (isRoot) {
-        head = "zz";
-        tail = hex;
-    } else {
-        head = hex;
-        tail = hex + 2;
+        assertDir(dirpath, "zz");
+        asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
+        asprintf(&fn2, "%s/zz/%s", dirpath, hex);
+        symlink(fn, fn2);
+        free(fn);
+        free(fn2);
+        fn = NULL;
     }
+    
+    assertDir(dirpath, hex);
+    asprintf(&fn, "%s/%c%c/%s", dirpath, hex[0], hex[1], hex+2);
 
-    asprintf(&dir, "%s/%c%c", dirpath, head[0], head[1]);
-    if (mkdir(dir, 0777) && errno != EEXIST) {
-        DEBUGMSG(FATAL, "could not create directory %s\n", dir);
-        exit(-1);
-    }
-    free(dir);
-
-    dir = NULL;
-    asprintf(&dir, "%s/%c%c/%s", dirpath, head[0], head[1], tail);
-
-    return dir;
+    return fn;
 }
 
 int
