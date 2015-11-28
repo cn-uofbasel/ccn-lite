@@ -42,6 +42,9 @@ void ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data, in
 void ccnl_core_init(void);
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 void ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
+#ifndef ccnl_buf_new
+struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
+#endif
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-debug.c */
