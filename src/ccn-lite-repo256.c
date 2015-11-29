@@ -1,38 +1,50 @@
+/*
+ * @f ccn-lite-repo256.c
+ * @b user space repo, access via SHA256 digest as well as exact name match
+ *
+ * Copyright (C) 2015, Christian Tschudin, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2015-11-26 created
+ */
 
-// #include <search.h>
 
 /*
 
-oklist
-fslist
+OKlist = hash list of verified file content
+NMlist = hash lost of verified file content with name
 
-load time:
+File system structure:
 
-  start background process
+  <dirpath>
+  <dirpath>/XY/<62 hex digits>
+           where XY are the two topmost hex digits of the file's digest
 
-background:
-  for each directory
-    for each file in the tree:
-      load(hashname)
-      key = hash(content)
-      tsearch(key, &OKbag, cmp)
+Todo:
 
-request time - search by hash:
-  fname = tfind(hashval, OKbag, cmp)
-  if (fname) {
-    load(fname)
-    return content;
-  }
-  load(hashname)
-  if (fails)
-    return NULL;
-  key = hash(content)
-  tsearch(key, &OKbag, cmp)
-  return content
+a) put the loading of file content as back ground task
+   in order to increase startup time.
 
+b) longest refix match (and use of balanced tree?)
 
-request time - search by name:
-  ...
+c) add ETHERNET and UNIX IPC as communiaction channel
+
+d) refactor with ccn-lite-relay.c code
+
+d) enable content store caching, or rely on OS paging?
+
 */
 
 #include <dirent.h>
@@ -47,7 +59,7 @@ request time - search by name:
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 // #define USE_ETHERNET
-// #define USE_HMAC256
+#define USE_HMAC256
 #define USE_IPV4
 //#define USE_IPV6
 #define USE_NAMELESS
@@ -59,7 +71,6 @@ request time - search by name:
 #define USE_SUITE_NDNTLV
 // #define USE_SUITE_LOCALRPC
 #define USE_UNIXSOCKET
-// #define USE_SIGNATURES
 
 #define NEEDS_PREFIX_MATCHING
 
@@ -169,6 +180,15 @@ digest2fname(char *dirpath, unsigned char *md)
     asprintf(&cp, "%s/%02x/%s", dirpath, (unsigned) md[0], hex+2);
 
     return cp;
+}
+
+unsigned char*
+digest2key(int suite, unsigned char *digest)
+{
+    static unsigned char md[SHA256_DIGEST_LENGTH + 1];
+    md[0] = suite;
+    memcpy(md + 1, digest, SHA256_DIGEST_LENGTH);
+    return md;
 }
 
 // ----------------------------------------------------------------------
@@ -355,7 +375,7 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     struct ccnl_if_s *i;
 #endif
 
-    DEBUGMSG(INFO, "configuring relay\n");
+    DEBUGMSG(INFO, "configuring repo\n");
 
     relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
@@ -409,31 +429,129 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
 // ----------------------------------------------------------------------
 
+int
+ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
+          int suite, int skip, unsigned char **data, int *datalen)
+{
+    int rc = -1;
+    unsigned char *start, *requestByDigest = NULL, *digest = NULL;
+    struct ccnl_pkt_s *pkt = NULL;
+    khint_t k;
+
+    DEBUGMSG(DEBUG, "ccnl_repo (suite=%s, skip=%d, %d bytes left)\n",
+             ccnl_suite2str(suite), skip, *datalen);
+
+    *data += skip;
+    *datalen -=  skip;
+    start = *data;
+
+    switch(suite) {
+    case CCNL_SUITE_CCNTLV: {
+        int hdrlen = ccnl_ccntlv_getHdrLen(*data, *datalen);
+        *data += hdrlen;
+        *datalen -= hdrlen;
+        pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
+        if (!pkt || pkt->type != CCNX_TLV_TL_Interest)
+            goto Done;
+        requestByDigest = pkt->s.ccntlv.objHashRestr;
+        break;
+    }
+    case CCNL_SUITE_NDNTLV:
+        pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+        if (!pkt || pkt->type != NDN_TLV_Interest)
+            goto Done;
+        requestByDigest = pkt->s.ndntlv.dataHashRestr;
+        break;
+    default:
+        goto Done;
+    }
+
+    if (!pkt) {
+        DEBUGMSG(INFO, "  packet decoding problem\n");
+        goto Done;
+    }
+
+    if (requestByDigest) {
+        DEBUGMSG(DEBUG, "lookup %s\n", digest2str(requestByDigest));
+        k = kh_get(256, OKlist, digest2key(pkt->pfx->suite, requestByDigest));
+        if (k != kh_end(OKlist)) {
+            DEBUGMSG(DEBUG, "  found OKlist entry at position %d\n", k);
+            digest = requestByDigest;
+        }
+    } else {
+        khPFX_t n;
+
+        DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
+                 ccnl_prefix2path(prefixBuf,
+                                  CCNL_ARRAY_SIZE(prefixBuf),
+                                  pkt->pfx),
+                 ccnl_suite2str(pkt->pfx->suite),
+                 pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+
+        n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
+        n->len = 1 + pkt->pfx->namelen;
+        n->mem[0] = pkt->pfx->suite;
+        memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
+        k = kh_get(PFX, NMlist, n);
+        if (k != kh_end(NMlist)) {
+            DEBUGMSG(DEBUG, "  found NMlist entry at position %d\n", k);
+            digest = kh_val(NMlist, k) + 1;
+        }
+        ccnl_free(n);
+    }
+
+    if (digest) {
+        char *path;
+        struct stat s;
+        int f;
+
+        path = digest2fname(theDirPath, digest);
+        if (stat(path, &s)) {
+            perror("stat");
+            free(path);
+            goto Done;
+        }
+        f = open(path, O_RDONLY);
+        free(path);
+        if (f >= 0) {
+            struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
+            buf->datalen = s.st_size;
+            read(f, buf->data, buf->datalen);
+            ccnl_face_enqueue(repo, from, buf);
+        }
+        close(f);
+    }
+    rc = 0;
+
+Done:
+    free_packet(pkt);
+    return rc;
+}
+
 void
-ccnl_repo_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
+ccnl_repo_RX(struct ccnl_relay_s *repo, int ifndx, unsigned char *data,
              int datalen, struct sockaddr *sa, int addrlen)
 {
     unsigned char *base = data;
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
-    dispatchFct dispatch;
 
     (void) base; // silence compiler warning (if USE_DEBUG is not set)
 
-    DEBUGMSG_CORE(DEBUG, "ccnl_repo_RX ifndx=%d, %d bytes\n", ifndx, datalen);
+    DEBUGMSG(DEBUG, "ccnl_repo_RX ifndx=%d, %d bytes\n", ifndx, datalen);
     //    DEBUGMSG_ON(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
 
 #ifdef USE_STATS
     if (ifndx >= 0)
-        relay->ifs[ifndx].rx_cnt++;
+        repo->ifs[ifndx].rx_cnt++;
 #endif
 
-    from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
+    from = ccnl_get_face_or_create(repo, ifndx, sa, addrlen);
     if (!from) {
-        DEBUGMSG_CORE(DEBUG, "  no face\n");
+        DEBUGMSG(DEBUG, "  no face\n");
         return;
     } else {
-        DEBUGMSG_CORE(DEBUG, "  face %d, peer=%s\n", from->faceid,
+        DEBUGMSG(DEBUG, "  face %d, peer=%s\n", from->faceid,
                     ccnl_addr2ascii(&from->peer));
     }
 
@@ -446,21 +564,13 @@ ccnl_repo_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
             suite = ccnl_pkt2suite(data, datalen, &skip);
 
         if (!ccnl_isSuite(suite)) {
-            DEBUGMSG_CORE(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
+            DEBUGMSG(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
                      ifndx, datalen, *data, data - base);
             return;
-        }
-        //        dispatch = ccnl_core_RX_dispatch[suite];
-        dispatch = ccnl_core_suites[suite].RX;
-        if (!dispatch) {
-            DEBUGMSG_CORE(ERROR, "Forwarder not initialized or dispatcher "
-                     "for suite %s does not exist.\n", ccnl_suite2str(suite));
-            return;
-        }
-        if (dispatch(relay, from, &data, &datalen) < 0)
+        } else if (ccnl_repo(repo, from, suite, skip, &data, &datalen) < 0)
             break;
         if (datalen > 0) {
-            DEBUGMSG_CORE(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
+            DEBUGMSG(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
         }
     }
 }
@@ -547,87 +657,6 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 }
 
 // ----------------------------------------------------------------------
-
-int
-ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
-          unsigned char **data, int *datalen)
-{
-    int rc = -1;
-    unsigned char *start = *data;
-    struct ccnl_pkt_s *pkt;
-
-    DEBUGMSG(DEBUG, "ccnl_repo (%d bytes left)\n", *datalen);
-
-    pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
-    if (!pkt) {
-        DEBUGMSG(INFO, "  ndntlv packet coding problem\n");
-        goto Done;
-    }
-    if (pkt->type == NDN_TLV_Interest) {
-        khint_t k;
-        unsigned char *digest = NULL;
-
-        if (pkt->s.ndntlv.dataHashRestr) {
-            DEBUGMSG(DEBUG, "lookup %s\n",
-                     digest2str(pkt->s.ndntlv.dataHashRestr));
-            k = kh_get(256, OKlist, pkt->s.ndntlv.dataHashRestr); // ndx lookup
-            if (k != kh_end(OKlist)) {
-                DEBUGMSG(DEBUG, "  found OKlist entry at position %d\n", k);
-                digest = pkt->s.ndntlv.dataHashRestr;
-            }
-        } else {
-            khPFX_t n;
-
-            DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
-                     ccnl_prefix2path(prefixBuf,
-                                      CCNL_ARRAY_SIZE(prefixBuf),
-                                      pkt->pfx),
-                     ccnl_suite2str(pkt->pfx->suite),
-                     pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
-            
-            n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
-            n->len = 1 + pkt->pfx->namelen;
-            n->mem[0] = pkt->pfx->suite;
-            memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
-            k = kh_get(PFX, NMlist, n);
-            if (k != kh_end(NMlist)) {
-                DEBUGMSG(DEBUG, "  found NMlist entry at position %d\n", k);
-                digest = kh_val(NMlist, k);
-            }
-            ccnl_free(n);
-        }
-
-        if (digest) {
-            char *path;
-            struct stat s;
-            int f;
-
-            path = digest2fname(theDirPath, digest);
-            if (stat(path, &s)) {
-                perror("stat");
-                free(path);
-                goto Done;
-            }
-            f = open(path, O_RDONLY);
-            free(path);
-            if (f >= 0) {
-                struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
-                buf->datalen = s.st_size;
-                read(f, buf->data, buf->datalen);
-                ccnl_face_enqueue(repo, from, buf);
-            }
-            close(f);
-        }
-    }
-    rc = 0;
-Done:
-    free_packet(pkt);
-    return rc;
-}
-
-// ----------------------------------------------------------------------
-
-int loadcnt;
 
 void
 add_content(char *dirpath, char *path)
@@ -727,18 +756,19 @@ add_content(char *dirpath, char *path)
 
             path2 = digest2fname(dirpath, pkt->md);
             if (strcmp(path2, path)) {
-                DEBUGMSG(WARNING, "wrong digest for file %s, ignored\n", path);
+                DEBUGMSG(WARNING, "wrong digest for file <%s>, ignored\n", path);
+//                DEBUGMSG(WARNING, "                      %s\n", path2);
             } else {
-                unsigned char *md;
+                unsigned char *key = digest2key(_suite, pkt->md);
                 int absent = 0;
-                khint_t k = kh_put(256, OKlist, pkt->md, &absent);
+                khint_t k = kh_put(256, OKlist, key, &absent);
 
                 if (absent) {
-                    md = ccnl_malloc(SHA256_DIGEST_LENGTH);
-                    memcpy(md, pkt->md, SHA256_DIGEST_LENGTH);
-                    kh_key(OKlist, k) = md;
-                } else
-                    md = kh_key(OKlist, k);
+                    unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+                    memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
+                    kh_key(OKlist, k) = key2;
+                }
+                key = kh_key(OKlist, k);
 
                 if (pkt->pfx) {
                     khPFX_t n;
@@ -748,6 +778,13 @@ add_content(char *dirpath, char *path)
                                               pkt->pfx),
                              ccnl_suite2str(pkt->pfx->suite),
                              pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+                    DEBUGMSG(DEBUG, "adding name [%s]%s -->\n",
+                             ccnl_prefix2path(prefixBuf,
+                                              CCNL_ARRAY_SIZE(prefixBuf),
+                                              pkt->pfx),
+                             ccnl_suite2str(pkt->pfx->suite));
+                    DEBUGMSG(DEBUG, "  %s\n", digest2str(pkt->md));
+
                     n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
                     n->len = 1 + pkt->pfx->namelen;
                     n->mem[0] = pkt->pfx->suite;
@@ -756,7 +793,7 @@ add_content(char *dirpath, char *path)
                     k = kh_put(PFX, NMlist, n, &absent);
                     if (absent) {
                         kh_key(NMlist, k) = n;
-                        kh_val(NMlist, k) = md;
+                        kh_val(NMlist, k) = key;
                     } else
                         ccnl_free(n);
                 }
@@ -855,7 +892,6 @@ usage:
         goto usage;
 
     ccnl_core_init();
-    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_repo;
 
     DEBUGMSG(INFO, "This is ccn-lite-repo256, starting at %s",
              ctime(&theRepo.startup_time) + 4);
@@ -870,28 +906,29 @@ usage:
 
     while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
         theDirPath[strlen(theDirPath) - 1] = '\0';
+    DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
     walk_fs(theDirPath, theDirPath);
+
+    DEBUGMSG(INFO, "loaded %d files (%d with names, %d without names)\n",
+             kh_size(OKlist), kh_size(NMlist), kh_size(OKlist)-kh_size(NMlist));
+    DEBUGMSG(INFO, "allocated memory: total %ld bytes in %d chunks\n",
+             ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
 
     ccnl_io_loop(&theRepo);
 
-    {
-        DEBUGMSG(DEBUG, "khash OKlist: size %d, buckets %d\n",
-                 kh_size(OKlist), kh_n_buckets(OKlist));
-        DEBUGMSG(DEBUG, "khash NMlist: size %d, buckets %d\n",
-                 kh_size(NMlist), kh_n_buckets(NMlist));
-
 /*
+    {
         khiter_t k;
-        int cnt = 0;
 
         for (k = kh_begin(OKlist); k != kh_end(OKlist); k++)
             if (kh_exist(OKlist, k))
-                printf("%d %s\n", cnt++, digest2str(kh_key(OKlist, k)));
-*/
-    }
+                ccnl_free(kh_key(OKlist, k);
 
-    DEBUGMSG(DEBUG, "done (mem alloc: %ld bytes, %d chunks)\n",
-             ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
+        for (k = kh_begin(NMlist); k != kh_end(NMlist); k++)
+            if (kh_exist(NMlist, k))
+                ccnl_free(kh_key(NMlist, k);
+    }
+*/
 }
 
 // eof

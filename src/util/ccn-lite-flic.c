@@ -52,7 +52,7 @@ usage(int exitval)
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
             "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
-            "  -s SUITE   (ccnx2015)\n"
+            "  -s SUITE   (ccnx2015, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"

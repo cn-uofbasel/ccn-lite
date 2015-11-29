@@ -109,7 +109,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     struct ccnl_pkt_s *pkt;
     int i, len, msglen;
     unsigned int typ, oldpos;
-    struct ccnl_prefix_s *p;
+    struct ccnl_prefix_s *p = 0;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
 #endif
@@ -119,13 +119,6 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
-
-    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
-    if (!p) {
-        ccnl_free(pkt);
-        return NULL;
-    }
-    p->compcnt = 0;
 
     msgstart = *data;
     // We ignore the TL types of the message for now:
@@ -148,10 +141,20 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         unsigned char *cp = *data, *cp2;
         int len2, len3;
 
-        if ( len > msglen)
+        if (len > msglen)
             goto Bail;
         switch (typ) {
         case CCNX_TLV_M_Name:
+            if (p) {
+                DEBUGMSG(WARNING, " ccntlv: name already defined\n");
+                goto Bail;
+            }
+            p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+            if (!p)
+                goto Bail;
+            p->compcnt = 0;
+            pkt->pfx = p;
+
             p->nameptr = start + oldpos;
             len2 = len;
             while (len2 > 0) {
@@ -188,7 +191,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     break;
                 case CCNX_TLV_N_Meta:
                     if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) ||
-                        (int)len > *datalen) {
+                        (int)len3 > len2) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
@@ -276,9 +279,11 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         }
         *data += len;
         *datalen -= len;
-        DEBUGMSG_PCNX(TRACE, "parsing validation sections done\n");
+        DEBUGMSG_PCNX(TRACE, "parsing validation sections done %d\n", *datalen);
     }
 #endif
+
+    *data += *datalen;
 
 #ifdef USE_NAMELESS
     {
@@ -290,20 +295,18 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     }
 #endif
 
-    //    if (*datalen > 0)
-    //        goto Bail;
-
-    pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
         goto Bail;
     // carefully rebase ptrs to new buf because of 64bit pointers:
     if (pkt->content)
         pkt->content = pkt->buf->data + (pkt->content - start);
-    for (i = 0; i < p->compcnt; i++)
-        p->comp[i] = pkt->buf->data + (p->comp[i] - start);
-    if (p->nameptr)
-        p->nameptr = pkt->buf->data + (p->nameptr - start);
+    if (p) {
+        for (i = 0; i < p->compcnt; i++)
+            p->comp[i] = pkt->buf->data + (p->comp[i] - start);
+        if (p->nameptr)
+            p->nameptr = pkt->buf->data + (p->nameptr - start);
+    }
 #ifdef USE_HMAC256
     pkt->hmacStart = pkt->buf->data + (pkt->hmacStart - start);
     pkt->hmacSignature = pkt->buf->data + (pkt->hmacSignature - start);
