@@ -164,7 +164,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 cp += i;
                 len2 -= i;
             }
-            p->namelen = *data - p->nameptr;
+            p->namelen = cp - p->nameptr;
     #ifdef USE_NFN
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {

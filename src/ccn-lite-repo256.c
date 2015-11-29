@@ -79,10 +79,22 @@ request time - search by name:
 
 struct ccnl_relay_s theRepo;
 char *theDirPath;
+#ifdef USE_LOGGING
+  char prefixBuf[CCNL_PREFIX_BUFSIZE];
+#endif
 unsigned char iobuf[64*2014];
 
 // ----------------------------------------------------------------------
 // khash.h specifics
+
+#undef kcalloc
+#undef kmalloc
+#undef krealloc
+#undef kfree
+#define kcalloc(N,Z)  ccnl_calloc(N,Z)
+#define kmalloc(Z)    ccnl_malloc(Z)
+#define krealloc(P,Z) ccnl_realloc(P,Z)
+#define kfree(P)      ccnl_free(P)
 
 khint_t
 sha256toInt(unsigned char *md)
@@ -95,24 +107,35 @@ sha256toInt(unsigned char *md)
     return val;
 }
 
-#define sha256cmp(a, b) (!memcmp(a, b, SHA256_DIGEST_LENGTH))
-typedef unsigned char* khint256_t;
+#define sha256equal(a, b) (!memcmp(a, b, SHA256_DIGEST_LENGTH))
+typedef unsigned char* kh256_t;
 
-#undef kcalloc
-#undef kmalloc
-#undef krealloc
-#undef kfree
-#define kcalloc(N,Z)  ccnl_calloc(N,Z)
-#define kmalloc(Z)    ccnl_malloc(Z)
-#define krealloc(P,Z) ccnl_realloc(P,Z)
-#define kfree(P)      ccnl_free(P)
 
-KHASH_INIT(256, khint256_t, unsigned char, 0, sha256toInt, sha256cmp)
+struct khPFX_s {
+    unsigned short len;
+    unsigned char mem[1];
+};
+typedef struct khPFX_s* khPFX_t;
+
+khint_t
+khPFXtoInt(khPFX_t pfx)
+{
+    unsigned char *s = pfx->mem;
+    int i = pfx->len;
+    khint_t h = *s;
+
+    while (--i > 0)
+        h = (h << 5) - h + *++s;
+    return h;
+}
+
+#define khPFXequal(a, b) ((a->len == b->len) && !memcmp(a->mem, b->mem, a->len))
+
+KHASH_INIT(256, kh256_t, char, 0, sha256toInt, sha256equal)
 khash_t(256) *OKlist;
 
-struct hentry_s {
-    struct ccnl_pkt_s *pkt;
-};
+KHASH_INIT(PFX, khPFX_t, unsigned char*, 1, khPFXtoInt, khPFXequal)
+khash_t(PFX) *NMlist;
 
 // ----------------------------------------------------------------------
 
@@ -540,23 +563,60 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         DEBUGMSG(INFO, "  ndntlv packet coding problem\n");
         goto Done;
     }
-    if (pkt->type == NDN_TLV_Interest && pkt->s.ndntlv.dataHashRestr) {
+    if (pkt->type == NDN_TLV_Interest) {
         khint_t k;
-        DEBUGMSG(DEBUG, "lookup %s\n",digest2str(pkt->s.ndntlv.dataHashRestr));
-        k = kh_get(256, OKlist, pkt->s.ndntlv.dataHashRestr); // ndx lookup
-        if (k != kh_end(OKlist)) {
-            char *path;
-            struct ccnl_buf_s *buf;
-            struct stat s;
+        unsigned char *digest = NULL;
 
-            DEBUGMSG(DEBUG, "  found entry at hash table position %d\n", k);
-            path = digest2fname(theDirPath, pkt->s.ndntlv.dataHashRestr);
+        if (pkt->s.ndntlv.dataHashRestr) {
+            DEBUGMSG(DEBUG, "lookup %s\n",
+                     digest2str(pkt->s.ndntlv.dataHashRestr));
+            k = kh_get(256, OKlist, pkt->s.ndntlv.dataHashRestr); // ndx lookup
+            if (k != kh_end(OKlist)) {
+                DEBUGMSG(DEBUG, "  found OKlist entry at position %d\n", k);
+                digest = pkt->s.ndntlv.dataHashRestr;
+            }
+        } else {
+            khPFX_t n;
+
+            DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
+                     ccnl_prefix2path(prefixBuf,
+                                      CCNL_ARRAY_SIZE(prefixBuf),
+                                      pkt->pfx),
+                     ccnl_suite2str(pkt->pfx->suite),
+                     pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+            
+            n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
+            n->len = 1 + pkt->pfx->namelen;
+            n->mem[0] = pkt->pfx->suite;
+            memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
+            k = kh_get(PFX, NMlist, n);
+            if (k != kh_end(NMlist)) {
+                DEBUGMSG(DEBUG, "  found NMlist entry at position %d\n", k);
+                digest = kh_val(NMlist, k);
+            }
+            ccnl_free(n);
+        }
+
+        if (digest) {
+            char *path;
+            struct stat s;
+            int f;
+
+            path = digest2fname(theDirPath, digest);
             if (stat(path, &s)) {
                 perror("stat");
+                free(path);
                 goto Done;
             }
-            buf = ccnl_buf_new(NULL, s.st_size);
-            ccnl_face_enqueue(repo, from, buf);
+            f = open(path, O_RDONLY);
+            free(path);
+            if (f >= 0) {
+                struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
+                buf->datalen = s.st_size;
+                read(f, buf->data, buf->datalen);
+                ccnl_face_enqueue(repo, from, buf);
+            }
+            close(f);
         }
     }
     rc = 0;
@@ -669,12 +729,36 @@ add_content(char *dirpath, char *path)
             if (strcmp(path2, path)) {
                 DEBUGMSG(WARNING, "wrong digest for file %s, ignored\n", path);
             } else {
-                int absent;
+                unsigned char *md;
+                int absent = 0;
                 khint_t k = kh_put(256, OKlist, pkt->md, &absent);
+
                 if (absent) {
-                    unsigned char *md = ccnl_malloc(SHA256_DIGEST_LENGTH);
+                    md = ccnl_malloc(SHA256_DIGEST_LENGTH);
                     memcpy(md, pkt->md, SHA256_DIGEST_LENGTH);
                     kh_key(OKlist, k) = md;
+                } else
+                    md = kh_key(OKlist, k);
+
+                if (pkt->pfx) {
+                    khPFX_t n;
+                    DEBUGMSG(DEBUG, "pkt has name [%s]%s, %p/%d\n",
+                             ccnl_prefix2path(prefixBuf,
+                                              CCNL_ARRAY_SIZE(prefixBuf),
+                                              pkt->pfx),
+                             ccnl_suite2str(pkt->pfx->suite),
+                             pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+                    n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
+                    n->len = 1 + pkt->pfx->namelen;
+                    n->mem[0] = pkt->pfx->suite;
+                    memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
+                    absent = 0;
+                    k = kh_put(PFX, NMlist, n, &absent);
+                    if (absent) {
+                        kh_key(NMlist, k) = n;
+                        kh_val(NMlist, k) = md;
+                    } else
+                        ccnl_free(n);
                 }
             }
             free(path2);
@@ -782,6 +866,7 @@ usage:
     ccnl_repo256_config(&theRepo, NULL, udpport, uxpath, max_cache_entries);
 
     OKlist = kh_init(256);
+    NMlist = kh_init(PFX);
 
     while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
         theDirPath[strlen(theDirPath) - 1] = '\0';
@@ -790,7 +875,10 @@ usage:
     ccnl_io_loop(&theRepo);
 
     {
-        printf("khash: size %d, buckets %d\n", kh_size(OKlist), kh_n_buckets(OKlist));
+        DEBUGMSG(DEBUG, "khash OKlist: size %d, buckets %d\n",
+                 kh_size(OKlist), kh_n_buckets(OKlist));
+        DEBUGMSG(DEBUG, "khash NMlist: size %d, buckets %d\n",
+                 kh_size(NMlist), kh_n_buckets(NMlist));
 
 /*
         khiter_t k;
@@ -802,8 +890,8 @@ usage:
 */
     }
 
-    printf("done (mem alloc: %ld bytes, %d chunks)\n", ccnl_total_alloc_bytes,
-        ccnl_total_alloc_chunks);
+    DEBUGMSG(DEBUG, "done (mem alloc: %ld bytes, %d chunks)\n",
+             ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
 }
 
 // eof

@@ -457,14 +457,14 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
 }
 #endif // NEEDS_PACKET_CRAFTING
 
-int ndntlv_isData(unsigned char *buf, int len)
+int ndntlv_isDataOrManifest(unsigned char *buf, int len)
 {
     unsigned int typ;
     int vallen;
 
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
         return -1;
-    if (typ != NDN_TLV_Data)
+    if (typ != NDN_TLV_Data && typ != NDN_TLV_Manifest)
         return 0;
     return 1;
 }
@@ -533,7 +533,7 @@ ccnl_suite2isContentFunc(int suite)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        return &ndntlv_isData;
+        return &ndntlv_isDataOrManifest;
 #endif
     }
 

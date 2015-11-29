@@ -34,7 +34,7 @@ ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
 
-ccn-lite-repo256: ccn-lite-repo256.c ${CCNL_PLATFORM_LIB}
+ccn-lite-repo256: ccn-lite-repo256.c ${CCNL_CORE_LIB} ${CCNL_SUITE_LIBS} ${CCNL_PLATFORM_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
 
