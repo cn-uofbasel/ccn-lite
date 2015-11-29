@@ -37,6 +37,7 @@ request time - search by name:
 
 #include <dirent.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "khash.h"
 
@@ -72,12 +73,12 @@ request time - search by name:
 #include "ccnl-ext-logging.c"
 
 #define ccnl_app_RX(x,y)                do{}while(0)
-#define ccnl_close_socket(...)          do{}while(0)
-#define ccnl_ll_TX(x,...)               do{(x);}while(0)
 #define local_producer(...)             0
 
 #include "ccnl-core.c"
 
+struct ccnl_relay_s theRepo;
+char *theDirPath;
 unsigned char iobuf[64*2014];
 
 // ----------------------------------------------------------------------
@@ -125,25 +126,464 @@ digest2str(unsigned char *md)
     return tmp;
 }
 
+int
+file2iobuf(char *path)
+{
+    int f = open(path, O_RDONLY), len;
+    if (f < 0)
+        return -1;
+    len = read(f, iobuf, sizeof(iobuf));
+    close(f);
+
+    return len;
+}
+
+char*
+digest2fname(char *dirpath, unsigned char *md)
+{
+    char *cp, *hex = digest2str(md);
+
+    asprintf(&cp, "%s/%02x/%s", dirpath, (unsigned) md[0], hex+2);
+
+    return cp;
+}
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_UNIXSOCKET
+int
+ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
+{
+    int sock, bufsize;
+
+    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        perror("opening datagram socket");
+        return -1;
+    }
+
+    unlink(path);
+    ccnl_setUnixSocketPath(ux, path);
+
+    if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
+        perror("binding name to datagram socket");
+        close(sock);
+        return -1;
+    }
+
+    bufsize = CCNL_MAX_SOCK_SPACE;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+
+    return sock;
+
+}
+#endif // USE_UNIXSOCKET
+
+#ifdef USE_IPV4
+int
+ccnl_open_udpdev(int port, struct sockaddr_in *si)
+{
+    int s;
+    unsigned int len;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0) {
+        perror("udp socket");
+        return -1;
+    }
+
+    si->sin_addr.s_addr = INADDR_ANY;
+    si->sin_port = htons(port);
+    si->sin_family = PF_INET;
+    if(bind(s, (struct sockaddr *)si, sizeof(*si)) < 0) {
+        perror("udp sock bind");
+        return -1;
+    }
+    len = sizeof(*si);
+    getsockname(s, (struct sockaddr*) si, &len);
+
+    return s;
+}
+#elif defined(USE_IPV6)
+int
+ccnl_open_udpdev(int port, struct sockaddr_in6 *sin)
+{
+    int s;
+    unsigned int len;
+
+    s = socket(PF_INET6, SOCK_DGRAM, 0);
+    if (s < 0) {
+        perror("udp socket");
+        return -1;
+    }
+
+    sin->sin6_addr = in6addr_any;
+    sin->sin6_port = htons(port);
+    sin->sin6_family = PF_INET6;
+    if(bind(s, (struct sockaddr *)sin, sizeof(*sin)) < 0) {
+        perror("udp sock bind");
+        return -1;
+    }
+    len = sizeof(*sin);
+    getsockname(s, (struct sockaddr*) sin, &len);
+
+    return s;
+}
+#endif
+
+void
+ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
+           sockunion *dest, struct ccnl_buf_s *buf)
+{
+    int rc;
+
+    switch(dest->sa.sa_family) {
+#ifdef USE_IPV4
+    case AF_INET:
+        rc = sendto(ifc->sock,
+                    buf->data, buf->datalen, 0,
+                    (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
+        DEBUGMSG(DEBUG, "udp sendto(%d Bytes) to %s/%d returned %d/%d\n",
+                 (int) buf->datalen,
+                 inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port),
+                 rc, errno);
+        /*
+        {
+            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            write(fd, buf->data, buf->datalen);
+            close(fd);
+        }
+        */
+
+        break;
+#endif
+#ifdef USE_ETHERNET
+    case AF_PACKET:
+        rc = ccnl_eth_sendto(ifc->sock,
+                             dest->eth.sll_addr,
+                             ifc->addr.eth.sll_addr,
+                             buf->data, buf->datalen);
+        DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
+                 eth2ascii(dest->eth.sll_addr), rc);
+        break;
+#endif
+#ifdef USE_UNIXSOCKET
+    case AF_UNIX:
+        rc = sendto(ifc->sock,
+                    buf->data, buf->datalen, 0,
+                    (struct sockaddr*) &dest->ux, sizeof(struct sockaddr_un));
+        DEBUGMSG(DEBUG, "unix sendto(%d Bytes) to %s returned %d\n",
+                 (int) buf->datalen, dest->ux.sun_path, rc);
+        break;
+#endif
+    default:
+        DEBUGMSG(WARNING, "unknown transport\n");
+        break;
+    }
+    (void) rc; // just to silence a compiler warning (if USE_DEBUG is not set)
+}
+
+void
+ccnl_close_socket(int s)
+{
+    struct sockaddr_un su;
+    socklen_t len = sizeof(su);
+
+    if (!getsockname(s, (struct sockaddr*) &su, &len) &&
+                                        su.sun_family == AF_UNIX) {
+        unlink(su.sun_path);
+    }
+    close(s);
+}
+
+// ----------------------------------------------------------------------
+
+#ifdef USE_IPV4
+void
+ccnl_repo256_udp(struct ccnl_relay_s *relay, int port)
+{
+    struct ccnl_if_s *i;
+
+    if (port < 0)
+        return;
+    i = &relay->ifs[relay->ifcount];
+    i->sock = ccnl_open_udpdev(port, &i->addr.ip4);
+    if (i->sock <= 0) {
+        DEBUGMSG(WARNING, "sorry, could not open udp device (port %d)\n",
+                 port);
+        return;
+    }
+
+    relay->ifcount++;
+    DEBUGMSG(INFO, "UDP interface (%s) configured\n",
+             ccnl_addr2ascii(&i->addr));
+    if (relay->defaultInterfaceScheduler)
+        i->sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+}
+#endif
+
+void
+ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
+                    char *uxpath, int max_cache_entries)
+{
+#if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
+    struct ccnl_if_s *i;
+#endif
+
+    DEBUGMSG(INFO, "configuring relay\n");
+
+    relay->max_cache_entries = max_cache_entries;
+#ifdef USE_SCHEDULER
+    relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
+    relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
+#endif
+
+#ifdef USE_ETHERNET
+    // add (real) eth0 interface with index 0:
+    if (ethdev) {
+        i = &relay->ifs[relay->ifcount];
+        i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
+        i->mtu = 1500;
+        i->reflect = 1;
+        i->fwdalli = 1;
+        if (i->sock >= 0) {
+            relay->ifcount++;
+            DEBUGMSG(INFO, "ETH interface (%s %s) configured\n",
+                     ethdev, ccnl_addr2ascii(&i->addr));
+            if (relay->defaultInterfaceScheduler)
+                i->sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+        } else
+            DEBUGMSG(WARNING, "sorry, could not open eth device\n");
+    }
+#endif // USE_ETHERNET
+
+#ifdef USE_IPV4
+    ccnl_repo256_udp(relay, udpport);
+#endif
+
+#ifdef USE_UNIXSOCKET
+    if (uxpath) {
+        i = &relay->ifs[relay->ifcount];
+        i->sock = ccnl_open_unixpath(uxpath, &i->addr.ux);
+        i->mtu = 4096;
+        if (i->sock >= 0) {
+            relay->ifcount++;
+            DEBUGMSG(INFO, "UNIX interface (%s) configured\n",
+                     ccnl_addr2ascii(&i->addr));
+            if (relay->defaultInterfaceScheduler)
+                i->sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+        } else
+            DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
+    }
+#endif // USE_UNIXSOCKET
+
+//    ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
+}
+
+// ----------------------------------------------------------------------
+
+void
+ccnl_repo_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
+             int datalen, struct sockaddr *sa, int addrlen)
+{
+    unsigned char *base = data;
+    struct ccnl_face_s *from;
+    int enc, suite = -1, skip;
+    dispatchFct dispatch;
+
+    (void) base; // silence compiler warning (if USE_DEBUG is not set)
+
+    DEBUGMSG_CORE(DEBUG, "ccnl_repo_RX ifndx=%d, %d bytes\n", ifndx, datalen);
+    //    DEBUGMSG_ON(DEBUG, "ccnl_core_RX ifndx=%d, %d bytes\n", ifndx, datalen);
+
+#ifdef USE_STATS
+    if (ifndx >= 0)
+        relay->ifs[ifndx].rx_cnt++;
+#endif
+
+    from = ccnl_get_face_or_create(relay, ifndx, sa, addrlen);
+    if (!from) {
+        DEBUGMSG_CORE(DEBUG, "  no face\n");
+        return;
+    } else {
+        DEBUGMSG_CORE(DEBUG, "  face %d, peer=%s\n", from->faceid,
+                    ccnl_addr2ascii(&from->peer));
+    }
+
+    // loop through all packets in the received frame (UDP, Ethernet etc)
+    while (datalen > 0) {
+        // work through explicit code switching
+        while (!ccnl_switch_dehead(&data, &datalen, &enc))
+            suite = ccnl_enc2suite(enc);
+        if (suite == -1)
+            suite = ccnl_pkt2suite(data, datalen, &skip);
+
+        if (!ccnl_isSuite(suite)) {
+            DEBUGMSG_CORE(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
+                     ifndx, datalen, *data, data - base);
+            return;
+        }
+        //        dispatch = ccnl_core_RX_dispatch[suite];
+        dispatch = ccnl_core_suites[suite].RX;
+        if (!dispatch) {
+            DEBUGMSG_CORE(ERROR, "Forwarder not initialized or dispatcher "
+                     "for suite %s does not exist.\n", ccnl_suite2str(suite));
+            return;
+        }
+        if (dispatch(relay, from, &data, &datalen) < 0)
+            break;
+        if (datalen > 0) {
+            DEBUGMSG_CORE(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
+        }
+    }
+}
+
+int
+ccnl_io_loop(struct ccnl_relay_s *ccnl)
+{
+    int i, len, maxfd = -1, rc;
+    fd_set readfs, writefs;
+    unsigned char buf[CCNL_MAX_PACKET_SIZE];
+
+    if (ccnl->ifcount == 0) {
+        DEBUGMSG(ERROR, "no socket to work with, not good, quitting\n");
+        exit(EXIT_FAILURE);
+    }
+    for (i = 0; i < ccnl->ifcount; i++)
+        if (ccnl->ifs[i].sock > maxfd)
+            maxfd = ccnl->ifs[i].sock;
+    maxfd++;
+
+    DEBUGMSG(INFO, "starting main event and IO loop\n");
+    while (!ccnl->halt_flag) {
+        int usec;
+
+        FD_ZERO(&readfs);
+        FD_ZERO(&writefs);
+
+        for (i = 0; i < ccnl->ifcount; i++) {
+            FD_SET(ccnl->ifs[i].sock, &readfs);
+            if (ccnl->ifs[i].qlen > 0)
+                FD_SET(ccnl->ifs[i].sock, &writefs);
+        }
+
+        usec = ccnl_run_events();
+        if (usec >= 0) {
+            struct timeval deadline;
+            deadline.tv_sec = usec / 1000000;
+            deadline.tv_usec = usec % 1000000;
+            rc = select(maxfd, &readfs, &writefs, NULL, &deadline);
+        } else
+            rc = select(maxfd, &readfs, &writefs, NULL, NULL);
+
+        if (rc < 0) {
+            perror("select(): ");
+            exit(EXIT_FAILURE);
+        }
+
+        for (i = 0; i < ccnl->ifcount; i++) {
+            if (FD_ISSET(ccnl->ifs[i].sock, &readfs)) {
+                sockunion src_addr;
+                socklen_t addrlen = sizeof(sockunion);
+                if ((len = recvfrom(ccnl->ifs[i].sock, buf, sizeof(buf), 0,
+                                (struct sockaddr*) &src_addr, &addrlen)) > 0) {
+                    if (0) {}
+#ifdef USE_IPV4
+                    else if (src_addr.sa.sa_family == AF_INET) {
+                        ccnl_repo_RX(ccnl, i, buf, len,
+                                     &src_addr.sa, sizeof(src_addr.ip4));
+                    }
+#endif
+#ifdef USE_ETHERNET
+                    else if (src_addr.sa.sa_family == AF_PACKET) {
+                        if (len > 14)
+                            ccnl_repo_RX(ccnl, i, buf+14, len-14,
+                                         &src_addr.sa, sizeof(src_addr.eth));
+                    }
+#endif
+#ifdef USE_UNIXSOCKET
+                    else if (src_addr.sa.sa_family == AF_UNIX) {
+                        ccnl_repo_RX(ccnl, i, buf, len,
+                                     &src_addr.sa, sizeof(src_addr.ux));
+                    }
+#endif
+                }
+            }
+
+            if (FD_ISSET(ccnl->ifs[i].sock, &writefs)) {
+              ccnl_interface_CTS(ccnl, ccnl->ifs + i);
+            }
+        }
+    }
+
+    return 0;
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
+          unsigned char **data, int *datalen)
+{
+    int rc = -1;
+    unsigned char *start = *data;
+    struct ccnl_pkt_s *pkt;
+
+    DEBUGMSG(DEBUG, "ccnl_repo (%d bytes left)\n", *datalen);
+
+    pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+    if (!pkt) {
+        DEBUGMSG(INFO, "  ndntlv packet coding problem\n");
+        goto Done;
+    }
+    if (pkt->type == NDN_TLV_Interest && pkt->s.ndntlv.dataHashRestr) {
+        khint_t k;
+        DEBUGMSG(DEBUG, "lookup %s\n",digest2str(pkt->s.ndntlv.dataHashRestr));
+        k = kh_get(256, OKlist, pkt->s.ndntlv.dataHashRestr); // ndx lookup
+        if (k != kh_end(OKlist)) {
+            char *path;
+            struct ccnl_buf_s *buf;
+            struct stat s;
+
+            DEBUGMSG(DEBUG, "  found entry at hash table position %d\n", k);
+            path = digest2fname(theDirPath, pkt->s.ndntlv.dataHashRestr);
+            if (stat(path, &s)) {
+                perror("stat");
+                goto Done;
+            }
+            buf = ccnl_buf_new(NULL, s.st_size);
+            ccnl_face_enqueue(repo, from, buf);
+        }
+    }
+    rc = 0;
+Done:
+    free_packet(pkt);
+    return rc;
+}
+
+// ----------------------------------------------------------------------
+
 int loadcnt;
 
 void
 add_content(char *dirpath, char *path)
 {
-    int f, datalen;
+    int datalen, skip, _suite;
+    struct ccnl_pkt_s *pkt = NULL;
+    unsigned char *data;
 
     DEBUGMSG(DEBUG, "loading %s\n", path);
 
-    f = open(path, O_RDONLY);
-    if (f < 0)
+    datalen = file2iobuf(path);
+    if (datalen <= 0)
         return;
-    datalen = read(f, iobuf, sizeof(iobuf));
-    if (datalen > 0) {
-        struct ccnl_pkt_s *pkt = NULL;
-        unsigned char *data;
-        int skip, _suite = ccnl_pkt2suite(iobuf, datalen, &skip);
 
-        switch (_suite) {
+    _suite = ccnl_pkt2suite(iobuf, datalen, &skip);
+    switch (_suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
             unsigned char *start;
@@ -223,9 +663,9 @@ add_content(char *dirpath, char *path)
         if (!pkt) {
             DEBUGMSG(DEBUG, "  parsing error in %s\n", path);
         } else {
-            char *path2, *cp = digest2str(pkt->md);
+            char *path2;
 
-            asprintf(&path2, "%s/%02x/%s", dirpath, (unsigned)pkt->md[0], cp+2);
+            path2 = digest2fname(dirpath, pkt->md);
             if (strcmp(path2, path)) {
                 DEBUGMSG(WARNING, "wrong digest for file %s, ignored\n", path);
             } else {
@@ -240,8 +680,6 @@ add_content(char *dirpath, char *path)
             free(path2);
             free_packet(pkt);
         }
-    }
-    close(f);
 }
 
 void
@@ -268,12 +706,13 @@ walk_fs(char *dirpath, char *path)
     closedir(dp);
 }
 
+// ----------------------------------------------------------------------
+
 int
 main(int argc, char *argv[])
 {
     int opt, max_cache_entries = 0, inter_load_gap = 10, udpport = 7777;
-    char *dirpath = NULL, *ethdev = NULL, *uxpath = NULL;
-    unsigned char buf[100], digest[SHA256_DIGEST_LENGTH];
+    char *ethdev = NULL, *uxpath = NULL;
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:m:u:v:x:")) != -1) {
         switch (opt) {
@@ -327,17 +766,28 @@ usage:
 
     if (optind >= argc)
         goto usage;
-    dirpath = argv[optind++];
+    theDirPath = argv[optind++];
     if (optind != argc)
         goto usage;
 
+    ccnl_core_init();
+    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_repo;
+
+    DEBUGMSG(INFO, "This is ccn-lite-repo256, starting at %s",
+             ctime(&theRepo.startup_time) + 4);
+    DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
+    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
+    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
+
+    ccnl_repo256_config(&theRepo, NULL, udpport, uxpath, max_cache_entries);
+
     OKlist = kh_init(256);
 
-    while (strlen(dirpath) > 1 && dirpath[strlen(dirpath) - 1] == '/')
-        dirpath[strlen(dirpath) - 1] = '\0';
-    walk_fs(dirpath, dirpath);
-    
-    ccnl_SHA256(buf, sizeof(buf), digest);
+    while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
+        theDirPath[strlen(theDirPath) - 1] = '\0';
+    walk_fs(theDirPath, theDirPath);
+
+    ccnl_io_loop(&theRepo);
 
     {
         printf("khash: size %d, buckets %d\n", kh_size(OKlist), kh_n_buckets(OKlist));
