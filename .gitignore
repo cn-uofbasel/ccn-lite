@@ -17,7 +17,7 @@ Module.symvers
 # ccn-binaries
 src/ccn-lite-minimalrelay
 src/ccn-lite-relay
-src/ccn-lite-repo
+src/ccn-lite-repo256
 src/ccn-lite-simu
 
 # nfn-binaries
