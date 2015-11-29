@@ -54,8 +54,9 @@ NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 
 PROGS :=
-INST_PROGS:= ccn-lite-relay \
-            ccn-lite-minimalrelay
+INST_PROGS:= ccn-lite-minimalrelay \
+             ccn-lite-relay \
+             ccn-lite-repo256
 
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)

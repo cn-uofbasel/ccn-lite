@@ -350,4 +350,20 @@ void ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
 	usedspace = 0;
 }
 
+unsigned char*
+ccnl_SHA256(const unsigned char *d, size_t n, unsigned char *md)
+{
+    static unsigned char digest[SHA256_DIGEST_LENGTH];
+    SHA256_CTX_t ctx;
+
+    if (!md)
+        md = digest;
+
+    ccnl_SHA256_Init(&ctx);
+    ccnl_SHA256_Update(&ctx, d, n);
+    ccnl_SHA256_Final(md, &ctx);
+
+    return md;
+}
+                        
 // eof

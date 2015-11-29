@@ -34,6 +34,10 @@ ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
 
+ccn-lite-repo256: ccn-lite-repo256.c ${CCNL_PLATFORM_LIB}
+	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	@${CREATE_BIN}
+
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} ${CCNL_CORE_LIB} \
 		${CCNL_PLATFORM_LIB} ccnl-simu-client.c
 	${EXTMAKE}

@@ -627,6 +627,9 @@ char* timestamp(void);
 
 #ifdef USE_DEBUG_MALLOC
 
+unsigned long ccnl_total_alloc_bytes;
+unsigned int ccnl_total_alloc_chunks;
+
 #ifdef CCNL_ARDUINO
 
 #  define ccnl_malloc(s)        debug_malloc(s, PSTR(__FILE__), __LINE__, CCNL_NOW())
@@ -675,6 +678,8 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
                          (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
                          (char*) fn, lno);
     */
+    ccnl_total_alloc_bytes += s;
+    ccnl_total_alloc_chunks++;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -721,6 +726,8 @@ debug_realloc(void *p, int s, const char *fn, int lno)
                     timestamp(), h->fname, h->lineno, fn, lno);
             return NULL;
         }
+        ccnl_total_alloc_bytes -= h->size;
+        ccnl_total_alloc_chunks--;
         h = (struct mhdr *) realloc(h, s+sizeof(struct mhdr));
         if (!h)
             return NULL;
@@ -731,6 +738,8 @@ debug_realloc(void *p, int s, const char *fn, int lno)
     h->size = s;
     h->next = mem;
     mem = h;
+    ccnl_total_alloc_bytes += s;
+    ccnl_total_alloc_chunks++;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -775,10 +784,15 @@ debug_free(void *p, const char *fn, int lno)
     if (h->tstamp && *h->tstamp)
         free(h->tstamp);
 #endif
-    //free(h);
+    ccnl_total_alloc_bytes -= h->size;
+    ccnl_total_alloc_chunks--;
+
+    free(h);
+/*
     // instead of free: do a
        memset(h+1, 0x8f, h->size);
     // to discover continued use of a freed memory zone
+*/
 }
 
 #ifdef CCNL_ARDUINO

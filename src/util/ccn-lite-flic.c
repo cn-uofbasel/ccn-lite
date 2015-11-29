@@ -435,7 +435,6 @@ int
 flic_namelessObj2file(unsigned char *data, int len,
                       char *dirpath, unsigned char *digest)
 {
-    SHA256_CTX_t ctx;
     int f, offset = sizeof(out);
     char *fname;
 
@@ -446,10 +445,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     if (len < 0)
         return -1;
 
-    // Compute the hash of the content
-    ccnl_SHA256_Init(&ctx);
-    ccnl_SHA256_Update(&ctx, out + offset, len);
-    ccnl_SHA256_Final(digest, &ctx);
+    ccnl_SHA256(out + offset, len, digest);
     DEBUGMSG(DEBUG, "  %s (%d)\n", digest2str(digest), len);
 
 #ifdef USE_SUITE_CCNTLV
@@ -499,7 +495,6 @@ void
 flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
                    struct key_s *keys, char *dirpath, unsigned char *digest)
 {
-    SHA256_CTX_t ctx;
     int offset = sizeof(out), len, f;
     int endOfValidation = 0;
     char *fname;
@@ -538,9 +533,7 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
                                      out + offset, endOfValidation - offset);
 
     len = sizeof(out) - offset;
-    ccnl_SHA256_Init(&ctx);
-    ccnl_SHA256_Update(&ctx, out + offset, len);
-    ccnl_SHA256_Final(digest, &ctx);
+    ccnl_SHA256(out + offset, len, digest);
 
 #ifdef USE_SUITE_CCNTLV
     if (flic_prependFixedHdr)
@@ -593,7 +586,7 @@ flic_produceFromFile(char *dirpath, struct key_s *keys, int block_size,
         ccnl_SHA256_Update(&ctx, body, len);
     }
     ccnl_SHA256_Final(total, &ctx);
-    
+
     // get the number of blocks (leaf nodes)
     length = lseek(f, 0, SEEK_END);
     chunk_number = ((length - 1) / block_size) + 1;
