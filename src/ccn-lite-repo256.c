@@ -473,7 +473,7 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
 
     if (requestByDigest) {
         DEBUGMSG(DEBUG, "lookup %s\n", digest2str(requestByDigest));
-        k = kh_get(256, OKlist, digest2key(pkt->pfx->suite, requestByDigest));
+        k = kh_get(256, OKlist, digest2key(suite, requestByDigest));
         if (k != kh_end(OKlist)) {
             DEBUGMSG(DEBUG, "  found OKlist entry at position %d\n", k);
             digest = requestByDigest;
@@ -485,7 +485,7 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
                  ccnl_prefix2path(prefixBuf,
                                   CCNL_ARRAY_SIZE(prefixBuf),
                                   pkt->pfx),
-                 ccnl_suite2str(pkt->pfx->suite),
+                 ccnl_suite2str(suite),
                  pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
 
         n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
