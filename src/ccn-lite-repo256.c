@@ -23,8 +23,8 @@
 
 /*
 
-OKlist = hash list of verified file content
-NMlist = hash lost of verified file content with name
+OKset = hash table (set) of verified file content
+NMmap = hash table (map) of verified names, pointing to the hash value
 
 File system structure:
 
@@ -88,12 +88,20 @@ d) enable content store caching, or rely on OS paging?
 
 #include "ccnl-core.c"
 
+// ----------------------------------------------------------------------
+
 struct ccnl_relay_s theRepo;
 char *theDirPath;
 #ifdef USE_LOGGING
   char prefixBuf[CCNL_PREFIX_BUFSIZE];
 #endif
 unsigned char iobuf[64*2014];
+
+enum {
+    MODE_FILE,   // for each interest visit directly the file system
+    MODE_INDEX   // build an internal index, check there before read()
+};
+int repo_mode = MODE_INDEX;
 
 // ----------------------------------------------------------------------
 // khash.h specifics
@@ -110,7 +118,7 @@ unsigned char iobuf[64*2014];
 khint_t
 sha256toInt(unsigned char *md)
 {
-    khint_t *ip = (khint_t*) md, val = *ip++;
+    khint_t *ip = (khint_t*) (md+1), val = *md ^ *ip++;
     int i;
     for (i = SHA256_DIGEST_LENGTH / sizeof(khint_t); i > 1; i--)
         val ^= *ip++;
@@ -118,7 +126,7 @@ sha256toInt(unsigned char *md)
     return val;
 }
 
-#define sha256equal(a, b) (!memcmp(a, b, SHA256_DIGEST_LENGTH))
+#define sha256equal(a, b) (!memcmp(a, b, SHA256_DIGEST_LENGTH+1))
 typedef unsigned char* kh256_t;
 
 
@@ -143,10 +151,12 @@ khPFXtoInt(khPFX_t pfx)
 #define khPFXequal(a, b) ((a->len == b->len) && !memcmp(a->mem, b->mem, a->len))
 
 KHASH_INIT(256, kh256_t, char, 0, sha256toInt, sha256equal)
-khash_t(256) *OKlist;
+khash_t(256) *OKset;
+khash_t(256) *ERset;
+khash_t(256) *NOset;
 
 KHASH_INIT(PFX, khPFX_t, unsigned char*, 1, khPFXtoInt, khPFXequal)
-khash_t(PFX) *NMlist;
+khash_t(PFX) *NMmap;
 
 // ----------------------------------------------------------------------
 
@@ -375,7 +385,8 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
     struct ccnl_if_s *i;
 #endif
 
-    DEBUGMSG(INFO, "configuring repo\n");
+    DEBUGMSG(INFO, "configuring repo in '%s mode'\n",
+             repo_mode == MODE_FILE ? "file" : "index");
 
     relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
@@ -473,12 +484,27 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
 
     if (requestByDigest) {
         DEBUGMSG(DEBUG, "lookup %s\n", digest2str(requestByDigest));
-        k = kh_get(256, OKlist, digest2key(suite, requestByDigest));
-        if (k != kh_end(OKlist)) {
-            DEBUGMSG(DEBUG, "  found OKlist entry at position %d\n", k);
+        if (repo_mode == MODE_INDEX) {
+            k = kh_get(256, OKset, digest2key(suite, requestByDigest));
+            if (k != kh_end(OKset)) {
+                DEBUGMSG(DEBUG, "  found OKset entry at position %d\n", k);
+                digest = requestByDigest;
+            }
+        } else if (repo_mode == MODE_FILE) {
+            unsigned char *key = digest2key(suite, requestByDigest);
+            k = kh_get(256, ERset, key);
+            if (k != kh_end(ERset)) { // bad hash value in file
+                DEBUGMSG(DEBUG, "  ERset hit - request discarded\n");
+                goto Done;
+            }
+            k = kh_get(256, NOset, key);
+            if (k != kh_end(NOset)) { // known to be absent
+                DEBUGMSG(DEBUG, "  NOset hit - request discarded\n");
+                goto Done;
+            }
             digest = requestByDigest;
         }
-    } else {
+    } else if (repo_mode == MODE_INDEX) { // ignore name-queries otherwise
         khPFX_t n;
 
         DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
@@ -492,10 +518,10 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         n->len = 1 + pkt->pfx->namelen;
         n->mem[0] = pkt->pfx->suite;
         memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
-        k = kh_get(PFX, NMlist, n);
-        if (k != kh_end(NMlist)) {
-            DEBUGMSG(DEBUG, "  found NMlist entry at position %d\n", k);
-            digest = kh_val(NMlist, k) + 1;
+        k = kh_get(PFX, NMmap, n);
+        if (k != kh_end(NMmap)) {
+            DEBUGMSG(DEBUG, "  found NMmap entry at position %d\n", k);
+            digest = kh_val(NMmap, k) + 1;
         }
         ccnl_free(n);
     }
@@ -504,22 +530,81 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         char *path;
         struct stat s;
         int f;
+        unsigned char *key;
 
         path = digest2fname(theDirPath, digest);
         if (stat(path, &s)) {
-            perror("stat");
+            int absent = 0;
+//            perror("stat");
             free(path);
+// badFile:
+            DEBUGMSG(DEBUG, "  NOset += %s/%s\n", digest2str(digest),
+                     ccnl_suite2str(suite));
+            key = digest2key(suite, digest);
+            k = kh_put(256, NOset, key, &absent);
+            if (absent) {
+                unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+                memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
+                kh_key(NOset, k) = key2;
+            }
             goto Done;
         }
         f = open(path, O_RDONLY);
         free(path);
-        if (f >= 0) {
-            struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
-            buf->datalen = s.st_size;
-            read(f, buf->data, buf->datalen);
-            ccnl_face_enqueue(repo, from, buf);
+        if (f < 0) {
+            int absent = 0;
+//            perror("open");
+badContent:
+            DEBUGMSG(DEBUG, "  ERset += %s/%s\n", digest2str(digest),
+                     ccnl_suite2str(suite));
+            key = digest2key(suite, digest);
+            k = kh_put(256, ERset, key, &absent);
+            if (absent) {
+                unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+                memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
+                kh_key(ERset, k) = key2;
+            }
+            goto Done;
         }
+        struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
+        int dlen;
+        buf->datalen = s.st_size;
+        dlen = read(f, buf->data, buf->datalen);
         close(f);
+
+        if (repo_mode == MODE_FILE) {
+            free_packet(pkt);
+            switch(suite) {
+            case CCNL_SUITE_CCNTLV: {
+                int hdrlen;
+                unsigned char *data2;
+
+                data2 = start = buf->data;
+
+                hdrlen = ccnl_ccntlv_getHdrLen(data2, dlen);
+                data2 += hdrlen;
+                dlen -= hdrlen;
+
+                pkt = ccnl_ccntlv_bytes2pkt(start, &data2, &dlen);
+                break;
+            }
+            case CCNL_SUITE_NDNTLV: {
+                unsigned char *data2;
+
+                data2 = start = buf->data;
+                pkt = ccnl_ndntlv_bytes2pkt(start, &data2, &dlen);
+                break;
+            }
+            default:
+                pkt = NULL;
+                break;
+            }
+            if (!pkt || memcmp(pkt->md,requestByDigest,SHA256_DIGEST_LENGTH)) {
+                ccnl_free(buf);
+                goto badContent;
+            }
+        }
+        ccnl_face_enqueue(repo, from, buf);
     }
     rc = 0;
 
@@ -761,14 +846,14 @@ add_content(char *dirpath, char *path)
             } else {
                 unsigned char *key = digest2key(_suite, pkt->md);
                 int absent = 0;
-                khint_t k = kh_put(256, OKlist, key, &absent);
+                khint_t k = kh_put(256, OKset, key, &absent);
 
                 if (absent) {
                     unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
                     memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
-                    kh_key(OKlist, k) = key2;
+                    kh_key(OKset, k) = key2;
                 }
-                key = kh_key(OKlist, k);
+                key = kh_key(OKset, k);
 
                 if (pkt->pfx) {
                     khPFX_t n;
@@ -790,10 +875,10 @@ add_content(char *dirpath, char *path)
                     n->mem[0] = pkt->pfx->suite;
                     memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
                     absent = 0;
-                    k = kh_put(PFX, NMlist, n, &absent);
+                    k = kh_put(PFX, NMmap, n, &absent);
                     if (absent) {
-                        kh_key(NMlist, k) = n;
-                        kh_val(NMlist, k) = key;
+                        kh_key(NMmap, k) = n;
+                        kh_val(NMmap, k) = key;
                     } else
                         ccnl_free(n);
                 }
@@ -846,6 +931,9 @@ main(int argc, char *argv[])
         case 'g':
             inter_load_gap = atoi(optarg);
             break;
+        case 'm':
+            repo_mode = !strcmp(optarg, "file") ? MODE_FILE : MODE_INDEX;
+            break;
         case 'u':
             udpport = atoi(optarg);
             break;
@@ -869,7 +957,7 @@ usage:
 //                  "  -e ETHDEV\n"
                     "  -g GAP          (msec between loads)\n"
                     "  -h\n"
-//                  "  -m MODE         (0=read through, 1=ndx from file, 2=ndx from content (dflt)\n"
+                    "  -m MODE         ('file'=read through, 'ndx'=internal index (dflt)\n"
 #ifdef USE_IPV4
                     "  -u UDPPORT      (default: 7777)\n"
 #endif
@@ -880,6 +968,7 @@ usage:
 #ifdef USE_UNIXSOCKET
                     "  -x UNIXPATH\n"
 #endif
+                    "\nNote: in 'file' mode, repo256 only serves digest-based lookup queries.\n"
                     , argv[0]);
             exit(-1);
         }
@@ -901,17 +990,24 @@ usage:
 
     ccnl_repo256_config(&theRepo, NULL, udpport, uxpath, max_cache_entries);
 
-    OKlist = kh_init(256);
-    NMlist = kh_init(PFX);
+    if (repo_mode == MODE_FILE) {
+        ERset = kh_init(256);  // set of hashes for which the file is wrong
+        NOset = kh_init(256);  // set of hashes known to be absent
+    } else {
+        OKset = kh_init(256);  // set of verified hashes (from files)
+        NMmap = kh_init(PFX);  // map of verified names (from files)
+    }
 
     while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
         theDirPath[strlen(theDirPath) - 1] = '\0';
-    DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
-    walk_fs(theDirPath, theDirPath);
+    if (repo_mode == MODE_INDEX) {
+        DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
+        walk_fs(theDirPath, theDirPath);
+        DEBUGMSG(INFO, "loaded %d files (%d with names, %d without names)\n",
+                 kh_size(OKset), kh_size(NMmap), kh_size(OKset)-kh_size(NMmap));
+    }
 
-    DEBUGMSG(INFO, "loaded %d files (%d with names, %d without names)\n",
-             kh_size(OKlist), kh_size(NMlist), kh_size(OKlist)-kh_size(NMlist));
-    DEBUGMSG(INFO, "allocated memory: total %ld bytes in %d chunks\n",
+    DEBUGMSG(DEBUG, "allocated memory: total %ld bytes in %d chunks\n",
              ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
 
     ccnl_io_loop(&theRepo);
@@ -920,13 +1016,13 @@ usage:
     {
         khiter_t k;
 
-        for (k = kh_begin(OKlist); k != kh_end(OKlist); k++)
-            if (kh_exist(OKlist, k))
-                ccnl_free(kh_key(OKlist, k);
+        for (k = kh_begin(OKset); k != kh_end(OKset); k++)
+            if (kh_exist(OKset, k))
+                ccnl_free(kh_key(OKset, k);
 
-        for (k = kh_begin(NMlist); k != kh_end(NMlist); k++)
-            if (kh_exist(NMlist, k))
-                ccnl_free(kh_key(NMlist, k);
+        for (k = kh_begin(NMmap); k != kh_end(NMmap); k++)
+            if (kh_exist(NMmap, k))
+                ccnl_free(kh_key(NMmap, k);
     }
 */
 }
