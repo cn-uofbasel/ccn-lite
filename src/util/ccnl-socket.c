@@ -93,7 +93,7 @@ int
 ux_open()
 {
     static char mysockname[200];
-    int sock, bufsize, rc;
+    int sock, bufsize;
     struct sockaddr_un name;
 
     snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-lite-%d.sock", getpid());
@@ -113,7 +113,7 @@ ux_open()
     }
 
     bufsize = CCNL_MAX_SOCK_SPACE;
-    rc = setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
     unix_path = mysockname;

@@ -504,7 +504,7 @@ ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
             }
             digest = requestByDigest;
         }
-    } else if (repo_mode == MODE_INDEX) { // ignore name-queries otherwise
+    } else {
         khPFX_t n;
 
         DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
@@ -759,133 +759,140 @@ add_content(char *dirpath, char *path)
     _suite = ccnl_pkt2suite(iobuf, datalen, &skip);
     switch (_suite) {
 #ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB: {
-            unsigned char *start;
+    case CCNL_SUITE_CCNB: {
+        unsigned char *start;
 
-            data = start = iobuf + skip;
-            datalen -= skip;
+        data = start = iobuf + skip;
+        datalen -= skip;
 
-            if (data[0] != 0x04 || data[1] != 0x82)
-                goto notacontent;
-            data += 2;
-            datalen -= 2;
+        if (data[0] != 0x04 || data[1] != 0x82)
+            goto notacontent;
+        data += 2;
+        datalen -= 2;
 
-            pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
-            break;
-        }
+        pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
+        break;
+    }
 #endif
 #ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV: {
-            int hdrlen;
-            unsigned char *start;
+    case CCNL_SUITE_CCNTLV: {
+        int hdrlen;
+        unsigned char *start;
 
-            data = start = iobuf + skip;
-            datalen -=  skip;
+        data = start = iobuf + skip;
+        datalen -=  skip;
 
-            hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
-            data += hdrlen;
-            datalen -= hdrlen;
+        hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+        data += hdrlen;
+        datalen -= hdrlen;
 
-            pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
-            break;
-        }
+        pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+        break;
+    }
 #endif
 #ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV: {
-            int hdrlen;
-            unsigned char *start;
+    case CCNL_SUITE_CISTLV: {
+        int hdrlen;
+        unsigned char *start;
 
-            data = start = iobuf + skip;
-            datalen -=  skip;
+        data = start = iobuf + skip;
+        datalen -=  skip;
 
-            hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
-            data += hdrlen;
-            datalen -= hdrlen;
+        hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
+        data += hdrlen;
+        datalen -= hdrlen;
 
-            pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
-            break;
-        }
+        pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
+        break;
+    }
 #endif
 #ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            unsigned char *olddata;
+    case CCNL_SUITE_IOTTLV: {
+        unsigned char *olddata;
 
-            data = olddata = iobuf + skip;
-            datalen -= skip;
-            if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
+        data = olddata = iobuf + skip;
+        datalen -= skip;
+        if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
                                                        typ != IOT_TLV_Reply)
-                goto notacontent;
-            pkt = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
-            break;
-        }
+            goto notacontent;
+        pkt = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
+        break;
+    }
 #endif
 #ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV: {
-            unsigned char *olddata;
+    case CCNL_SUITE_NDNTLV: {
+        unsigned char *olddata;
 
-            data = olddata = iobuf + skip;
-            datalen -= skip;
-            pkt = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
-            break;
-        }
+        data = olddata = iobuf + skip;
+        datalen -= skip;
+        pkt = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
+        break;
+    }
 #endif
-        default:
-            DEBUGMSG(WARNING, "unknown packet format (%s)\n", path);
-            break;
-        }
+    default:
+        DEBUGMSG(WARNING, "unknown packet format (%s)\n", path);
+        break;
+    }
 
-        if (!pkt) {
-            DEBUGMSG(DEBUG, "  parsing error in %s\n", path);
-        } else {
-            char *path2;
+    if (!pkt) {
+        DEBUGMSG(DEBUG, "  parsing error in %s\n", path);
+        return;
+    }
 
-            path2 = digest2fname(dirpath, pkt->md);
-            if (strcmp(path2, path)) {
-                DEBUGMSG(WARNING, "wrong digest for file <%s>, ignored\n", path);
+    char *path2;
+    path2 = digest2fname(dirpath, pkt->md);
+    if (repo_mode == MODE_INDEX && strcmp(path2, path)) {
+        DEBUGMSG(WARNING, "wrong digest for file <%s>, ignored\n", path);
 //                DEBUGMSG(WARNING, "                      %s\n", path2);
-            } else {
-                unsigned char *key = digest2key(_suite, pkt->md);
-                int absent = 0;
-                khint_t k = kh_put(256, OKset, key, &absent);
+        free(path2);
+        return;
+    }
 
-                if (absent) {
-                    unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
-                    memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
-                    kh_key(OKset, k) = key2;
-                }
-                key = kh_key(OKset, k);
+    unsigned char *key = digest2key(_suite, pkt->md);
+    int absent = 0;
+    khint_t k = kh_put(256, OKset, key, &absent);
 
-                if (pkt->pfx) {
-                    khPFX_t n;
-                    DEBUGMSG(DEBUG, "pkt has name [%s]%s, %p/%d\n",
-                             ccnl_prefix2path(prefixBuf,
-                                              CCNL_ARRAY_SIZE(prefixBuf),
-                                              pkt->pfx),
-                             ccnl_suite2str(pkt->pfx->suite),
-                             pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
-                    DEBUGMSG(DEBUG, "adding name [%s]%s -->\n",
-                             ccnl_prefix2path(prefixBuf,
-                                              CCNL_ARRAY_SIZE(prefixBuf),
-                                              pkt->pfx),
-                             ccnl_suite2str(pkt->pfx->suite));
-                    DEBUGMSG(DEBUG, "  %s\n", digest2str(pkt->md));
+    if (absent) {
+        unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+        memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
+        kh_key(OKset, k) = key2;
+    }
+    key = kh_key(OKset, k);
 
-                    n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
-                    n->len = 1 + pkt->pfx->namelen;
-                    n->mem[0] = pkt->pfx->suite;
-                    memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
-                    absent = 0;
-                    k = kh_put(PFX, NMmap, n, &absent);
-                    if (absent) {
-                        kh_key(NMmap, k) = n;
-                        kh_val(NMmap, k) = key;
-                    } else
-                        ccnl_free(n);
-                }
-            }
-            free(path2);
-            free_packet(pkt);
+    if (pkt->pfx) {
+        khPFX_t n;
+        DEBUGMSG(DEBUG, "pkt has name [%s]%s, %p/%d\n",
+                 ccnl_prefix2path(prefixBuf,
+                                  CCNL_ARRAY_SIZE(prefixBuf),
+                                  pkt->pfx),
+                 ccnl_suite2str(pkt->pfx->suite),
+                 pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+        DEBUGMSG(DEBUG, "adding name [%s]%s -->\n",
+                 ccnl_prefix2path(prefixBuf,
+                                  CCNL_ARRAY_SIZE(prefixBuf),
+                                  pkt->pfx),
+                 ccnl_suite2str(pkt->pfx->suite));
+        DEBUGMSG(DEBUG, "  %s\n", digest2str(pkt->md));
+
+        n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
+        n->len = 1 + pkt->pfx->namelen;
+        n->mem[0] = pkt->pfx->suite;
+        memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
+        absent = 0;
+        k = kh_put(PFX, NMmap, n, &absent);
+        if (absent) {
+            kh_key(NMmap, k) = n;
+            kh_val(NMmap, k) = key;
+        } else {
+            DEBUGMSG(WARNING, "name %s already scanned, file %s ommited\n",
+                     ccnl_prefix2path(prefixBuf,
+                                      CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx),
+                     path2);
+            ccnl_free(n);
         }
+    }
+    free(path2);
+    free_packet(pkt);
 }
 
 void
@@ -898,16 +905,24 @@ walk_fs(char *dirpath, char *path)
     if (!dp)
         return;
     while ((de = readdir(dp))) {
-        if (de->d_type == DT_REG ||
-                           (de->d_type == DT_DIR && de->d_name[0] != '.')) {
-            char *path2;
-            asprintf(&path2, "%s/%s", path, de->d_name);
-            if (de->d_type == DT_REG)
+        char *path2;
+        asprintf(&path2, "%s/%s", path, de->d_name);
+        switch(de->d_type) {
+        case DT_REG:
+            add_content(dirpath, path2);
+            break;
+        case DT_LNK:
+            if (repo_mode == MODE_FILE)
                 add_content(dirpath, path2);
-            else
+            break;
+        case DT_DIR:
+            if (de->d_name[0] != '.')
                 walk_fs(dirpath, path2);
-            free(path2);
+            break;
+        default:
+            break;
         }
+        free(path2);
     }
     closedir(dp);
 }
@@ -917,19 +932,16 @@ walk_fs(char *dirpath, char *path)
 int
 main(int argc, char *argv[])
 {
-    int opt, max_cache_entries = 0, inter_load_gap = 10, udpport = 7777;
+    int opt, max_cache_entries = 0, udpport = 7777;
     char *ethdev = NULL, *uxpath = NULL;
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:m:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:m:u:v:x:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
             break;
         case 'e':
             ethdev = optarg;
-            break;
-        case 'g':
-            inter_load_gap = atoi(optarg);
             break;
         case 'm':
             repo_mode = !strcmp(optarg, "file") ? MODE_FILE : MODE_INDEX;
@@ -954,8 +966,7 @@ usage:
             fprintf(stderr,
                     "usage: %s [options] DIRPATH\n"
 //                  "  -c MAX_CONTENT_ENTRIES  (dflt: 0)\n"
-//                  "  -e ETHDEV\n"
-                    "  -g GAP          (msec between loads)\n"
+                    "  -e ETHDEV\n"
                     "  -h\n"
                     "  -m MODE         ('file'=read through, 'ndx'=internal index (dflt)\n"
 #ifdef USE_IPV4
@@ -988,24 +999,29 @@ usage:
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
 
-    ccnl_repo256_config(&theRepo, NULL, udpport, uxpath, max_cache_entries);
+    ccnl_repo256_config(&theRepo, ethdev, udpport, uxpath, max_cache_entries);
 
     if (repo_mode == MODE_FILE) {
         ERset = kh_init(256);  // set of hashes for which the file is wrong
         NOset = kh_init(256);  // set of hashes known to be absent
-    } else {
-        OKset = kh_init(256);  // set of verified hashes (from files)
-        NMmap = kh_init(PFX);  // map of verified names (from files)
     }
+    OKset = kh_init(256);  // set of verified hashes (from files)
+    NMmap = kh_init(PFX);  // map of verified names (from files)
 
     while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
         theDirPath[strlen(theDirPath) - 1] = '\0';
     if (repo_mode == MODE_INDEX) {
         DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
         walk_fs(theDirPath, theDirPath);
-        DEBUGMSG(INFO, "loaded %d files (%d with names, %d without names)\n",
-                 kh_size(OKset), kh_size(NMmap), kh_size(OKset)-kh_size(NMmap));
+    } else {
+        char *fname;
+        asprintf(&fname, "%s/zz", theDirPath);
+        DEBUGMSG(INFO, "loading files from <%s>\n", fname);
+        walk_fs(theDirPath, fname);
+        free(fname);
     }
+    DEBUGMSG(INFO, "loaded %d files (%d with name, %d without name)\n",
+             kh_size(OKset), kh_size(NMmap), kh_size(OKset)-kh_size(NMmap));
 
     DEBUGMSG(DEBUG, "allocated memory: total %ld bytes in %d chunks\n",
              ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);

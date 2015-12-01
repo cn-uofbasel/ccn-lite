@@ -121,6 +121,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
         return NULL;
 
     msgstart = *data;
+    (void) msgstart;
     // We ignore the TL types of the message for now:
     // content and interests are filled in both cases (and only one exists).
     // Validation info is now collected
