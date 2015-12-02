@@ -160,6 +160,19 @@ khash_t(PFX) *NMmap;
 
 // ----------------------------------------------------------------------
 
+void
+assertDir(char *dirpath, char *cp)
+{
+    char *fn;
+
+    asprintf(&fn, "%s/%c%c", dirpath, cp[0], cp[1]);
+    if (mkdir(fn, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+        exit(-1);
+    }
+    free(fn);
+}
+
 static char*
 digest2str(unsigned char *md)
 {
@@ -441,8 +454,8 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 // ----------------------------------------------------------------------
 
 int
-ccnl_repo(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
-          int suite, int skip, unsigned char **data, int *datalen)
+ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
+             int suite, int skip, unsigned char **data, int *datalen)
 {
     int rc = -1;
     unsigned char *start, *requestByDigest = NULL, *digest = NULL;
@@ -599,7 +612,7 @@ badContent:
                 pkt = NULL;
                 break;
             }
-            if (!pkt || memcmp(pkt->md,requestByDigest,SHA256_DIGEST_LENGTH)) {
+            if (!pkt || memcmp(pkt->md, digest, SHA256_DIGEST_LENGTH)) {
                 ccnl_free(buf);
                 goto badContent;
             }
@@ -652,7 +665,7 @@ ccnl_repo_RX(struct ccnl_relay_s *repo, int ifndx, unsigned char *data,
             DEBUGMSG(WARNING, "?unknown packet format? ccnl_core_RX ifndx=%d, %d bytes starting with 0x%02x at offset %zd\n",
                      ifndx, datalen, *data, data - base);
             return;
-        } else if (ccnl_repo(repo, from, suite, skip, &data, &datalen) < 0)
+        } else if (ccnl_repo256(repo, from, suite, skip, &data, &datalen) < 0)
             break;
         if (datalen > 0) {
             DEBUGMSG(WARNING, "ccnl_core_RX: %d bytes left\n", datalen);
@@ -743,10 +756,10 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 // ----------------------------------------------------------------------
 
-void
-add_content(char *dirpath, char *path)
+struct ccnl_pkt_s*
+contentFile2packet(char *path, int *suite)
 {
-    int datalen, skip, _suite;
+    int datalen, skip;
     struct ccnl_pkt_s *pkt = NULL;
     unsigned char *data;
 
@@ -754,10 +767,10 @@ add_content(char *dirpath, char *path)
 
     datalen = file2iobuf(path);
     if (datalen <= 0)
-        return;
+        return NULL;
 
-    _suite = ccnl_pkt2suite(iobuf, datalen, &skip);
-    switch (_suite) {
+    *suite = ccnl_pkt2suite(iobuf, datalen, &skip);
+    switch (*suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB: {
         unsigned char *start;
@@ -836,8 +849,25 @@ add_content(char *dirpath, char *path)
 
     if (!pkt) {
         DEBUGMSG(DEBUG, "  parsing error in %s\n", path);
-        return;
+        return NULL;
     }
+
+    return pkt;
+}
+
+// ----------------------------------------------------------------------
+
+void
+add_content(char *dirpath, char *path)
+{
+    int _suite;
+    struct ccnl_pkt_s *pkt = NULL;
+
+    DEBUGMSG(DEBUG, "add_content %s %s\n", dirpath, path);
+
+    pkt = contentFile2packet(path, &_suite);
+    if (!pkt)
+        return;
 
     char *path2;
     path2 = digest2fname(dirpath, pkt->md);
@@ -930,18 +960,85 @@ walk_fs(char *dirpath, char *path)
 // ----------------------------------------------------------------------
 
 int
+ccnl_repo256_import(char *dir)
+{
+    DIR *dp;
+    struct dirent *de;
+
+    dp = opendir(dir);
+    if (!dp)
+        return 0;
+    while ((de = readdir(dp))) {
+        char *walk, *hashName, *linkContent;
+        int dummy;
+        struct ccnl_pkt_s *pkt;
+
+        asprintf(&walk, "%s/%s", dir, de->d_name);
+        switch(de->d_type) {
+        case DT_LNK:
+        case DT_REG:
+            pkt = contentFile2packet(walk, &dummy);
+            if (!pkt) {
+                DEBUGMSG(DEBUG, "  no packet?\n");
+                break;
+            }
+            hashName = digest2fname(theDirPath, pkt->md);
+            char *hex = digest2str(pkt->md);
+            if (access(hashName, F_OK)) { // no such file, create it
+                int f;
+                DEBUGMSG(DEBUG, "  creating %s\n", hashName);
+                assertDir(theDirPath, hex);
+                f = open(hashName, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+                write(f, pkt->buf->data, pkt->buf->datalen);
+                close(f);
+            }
+            free(hashName);
+            if (pkt->pfx) { // has name: add a symlink to the zz directory
+                asprintf(&hashName, "%s/zz/%s", theDirPath, hex);
+                if (access(hashName, F_OK)) { // no such file/link, create it
+                    assertDir(theDirPath, "zz");
+                    asprintf(&linkContent, "../%c%c/%s", hex[0], hex[1], hex+2);
+                    symlink(linkContent, hashName);
+                    free(linkContent);
+                } else {
+                    DEBUGMSG(INFO, "%s already exists, ignored\n", hashName);
+                }
+                free(hashName);
+            }
+            free_packet(pkt);
+            break;
+        case DT_DIR:
+            if (de->d_name[0] != '.')
+                ccnl_repo256_import(walk);
+            break;
+        default:
+            break;
+        }
+        free(walk);
+    }
+    closedir(dp);
+
+    return 0;
+}
+
+// ----------------------------------------------------------------------
+
+int
 main(int argc, char *argv[])
 {
     int opt, max_cache_entries = 0, udpport = 7777;
-    char *ethdev = NULL, *uxpath = NULL;
+    char *ethdev = NULL, *uxpath = NULL, *import_path = NULL;
 
-    while ((opt = getopt(argc, argv, "hc:d:e:m:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:i:m:u:v:x:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
             break;
         case 'e':
             ethdev = optarg;
+            break;
+        case 'i':
+            import_path = optarg;
             break;
         case 'm':
             repo_mode = !strcmp(optarg, "file") ? MODE_FILE : MODE_INDEX;
@@ -964,10 +1061,12 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr,
-                    "usage: %s [options] DIRPATH\n"
+                    "usage: %s [options]  REPO_DIR                (server)\n"
+                    "       %s -i IMPORT_DIR [options] REPO_DIR   (importing)\n"
+                    "options:\n"
 //                  "  -c MAX_CONTENT_ENTRIES  (dflt: 0)\n"
                     "  -e ETHDEV\n"
-                    "  -h\n"
+                    "  -h              this text\n"
                     "  -m MODE         ('file'=read through, 'ndx'=internal index (dflt)\n"
 #ifdef USE_IPV4
                     "  -u UDPPORT      (default: 7777)\n"
@@ -979,8 +1078,7 @@ usage:
 #ifdef USE_UNIXSOCKET
                     "  -x UNIXPATH\n"
 #endif
-                    "\nNote: in 'file' mode, repo256 only serves digest-based lookup queries.\n"
-                    , argv[0]);
+                    , argv[0], argv[0]);
             exit(-1);
         }
     }
@@ -990,6 +1088,11 @@ usage:
     theDirPath = argv[optind++];
     if (optind != argc)
         goto usage;
+    while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
+        theDirPath[strlen(theDirPath) - 1] = '\0';
+
+    if (import_path)
+        return ccnl_repo256_import(import_path);
 
     ccnl_core_init();
 
@@ -1008,8 +1111,6 @@ usage:
     OKset = kh_init(256);  // set of verified hashes (from files)
     NMmap = kh_init(PFX);  // map of verified names (from files)
 
-    while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
-        theDirPath[strlen(theDirPath) - 1] = '\0';
     if (repo_mode == MODE_INDEX) {
         DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
         walk_fs(theDirPath, theDirPath);
