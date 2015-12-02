@@ -58,7 +58,7 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 
-#include "base64.c"
+#include "../lib-base64.c"
 
 #include "../ccnl-os-includes.h"
 #include "../ccnl-defs.h"
@@ -101,7 +101,7 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 
 #else // CCNL_UAPI_H_ is defined
 
-#include "base64.c"
+#include "../lib-base64.c"
 
 #endif // CCNL_UAPI_H_
 

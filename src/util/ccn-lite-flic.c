@@ -770,7 +770,7 @@ TailRecurse:
     if (typ != m_codes[M_MANIFESTMSG])
         goto Bail;
 
-#ifdef USE_SUITE_CCNTLV
+#ifdef USE_SUITE_NDNTLV
     if (theSuite == CCNL_SUITE_NDNTLV) {
         if (pkt->s.ndntlv.contentType != NDN_Content_Manifest)
             goto Bail;

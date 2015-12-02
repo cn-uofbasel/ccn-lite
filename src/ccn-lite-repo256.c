@@ -25,6 +25,9 @@
 
 OKset = hash table (set) of verified file content
 NMmap = hash table (map) of verified names, pointing to the hash value
+ERset = hash table (set) of files know to have wrong name (for the hash val)
+NOset = hash table (set) of files know to not exist (for the given hash val)
+CAmap = hash table (map) of learned content hashes, pointing to the hash val
 
 File system structure:
 
@@ -37,11 +40,9 @@ Todo:
 a) put the loading of file content as back ground task
    in order to increase startup time.
 
-b) longest refix match (and use of balanced tree?)
+b) longest prefix match (and use of balanced tree?)
 
-c) add ETHERNET and UNIX IPC as communiaction channel
-
-d) refactor with ccn-lite-relay.c code
+c) refactor with ccn-lite-relay.c code
 
 d) enable content store caching, or rely on OS paging?
 
@@ -51,7 +52,7 @@ d) enable content store caching, or rely on OS paging?
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "khash.h"
+#include "lib-khash.h"
 
 #define CCNL_UNIX
 

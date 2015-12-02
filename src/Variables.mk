@@ -142,4 +142,4 @@ OMNET_DEPS := ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-core
               ccnl-pkt-cistlv.c ccnl-pkt-cistlv.h ccnl-pkt-iottlv.c ccnl-pkt-iottlv.h \
               ccnl-pkt-localrpc.c ccnl-pkt-localrpc.h ccnl-pkt-ndntlv.c ccnl-pkt-ndntlv.h \
               ccnl-pkt-switch.c ccnl-uapi.c ccnl-uapi.h lib-sha256.c \
-              util/base64.c util/ccnl-common.c \
+              lib-base64.c util/ccnl-common.c \
