@@ -75,6 +75,9 @@ struct list_s { // s-expr
 enum {
     M_MANIFESTMSG,
     M_NAME,
+    M_METAINFO,
+    M_MI_CONTENTTYPE,
+    M_CONTENT,
     M_HASHGROUP,
     M_HG_METADATA,
     M_HG_PTR2DATA,
@@ -92,6 +95,9 @@ enum {
 unsigned short ccntlv_m_codes[] = {
     CCNX_TLV_TL_Manifest,
     CCNX_TLV_M_Name,
+    0, // na
+    0, // na
+    0, // na
     CCNX_MANIFEST_HASHGROUP,
     CCNX_MANIFEST_HG_METADATA,
     CCNX_MANIFEST_HG_PTR2DATA,
@@ -101,15 +107,18 @@ unsigned short ccntlv_m_codes[] = {
     CCNX_MANIFEST_MT_BLOCKSIZE,
     CCNX_MANIFEST_MT_OVERALLDATASIZE,
     CCNX_MANIFEST_MT_OVERALLDATASHA256,
-    0,
-    0
+    0, // na
+    0  // na
 };
 #endif
 
 #ifdef USE_SUITE_NDNTLV
 unsigned short ndntlv_m_codes[] = {
-    NDN_TLV_Manifest,
+    NDN_TLV_Data,
     NDN_TLV_Name,
+    NDN_TLV_MetaInfo,
+    NDN_TLV_ContentType,
+    NDN_TLV_Content,
     NDN_TLV_MANIFEST_HASHGROUP,
     NDN_TLV_MANIFEST_HG_METADATA,
     NDN_TLV_MANIFEST_HG_PTR2DATA,
@@ -153,13 +162,16 @@ struct emit_s {
 } translate[] = {
     { 'a', M_HG_METADATA,           "T=about (metadata)" },
     { 'b', M_MT_BLOCKSIZE,          "T=meta block size" },
+    { 'c', M_MI_CONTENTTYPE,        "T=content type" },       // NDN
     { 'd', M_HG_PTR2DATA,           "T=data hash ptr" },
+    { 'f', M_METAINFO,              "T=meta info" },          // NDN
     { 'g', M_HASHGROUP,             "T=hash pointer group" },
     { 'h', M_MT_OVERALLDATASHA256,  "T=meta overall hash" },
     { 'i', M_SIGINFO,               "T=signature info" },
     { 'l', M_MT_LOCATOR,            "T=meta locator" },
-    { 'm', M_MANIFESTMSG,           "T=manifest" },
+    { 'm', M_MANIFESTMSG,           "T=manifest" },           // Data in NDN
     { 'n', M_NAME,                  "T=name" },
+    { 'o', M_CONTENT,               "T=content" },            // NDN
     { 's', M_MT_OVERALLDATASIZE,    "T=meta overall data size" },
     { 't', M_HG_PTR2MANIFEST,       "T=tree hash ptr" },
     { 'v', M_SIGVAL,                "T=signature value" },
@@ -209,7 +221,7 @@ emit(struct list_s *lst, unsigned short len,
     return emit(lst->first, len2, offset, buf) + len;
 }
 
-/*
+
 void
 ccnl_printExpr(struct list_s *t, char last, char *out)
 {
@@ -236,7 +248,7 @@ ccnl_printExpr(struct list_s *t, char last, char *out)
     strcat(out, ")");
     return;
 }
-*/
+
 
 // ----------------------------------------------------------------------
 // manifest API
@@ -303,7 +315,7 @@ ccnl_manifest_append(struct list_s *where, char *typ, struct list_s *what)
     *epp = elmnt;
 }
 
-void
+struct list_s*
 ccnl_manifest_prepend(struct list_s *where, char *typ, struct list_s *what)
 {
     struct list_s *elmnt = ccnl_calloc(1, sizeof(*elmnt));
@@ -312,17 +324,50 @@ ccnl_manifest_prepend(struct list_s *where, char *typ, struct list_s *what)
     elmnt->first->rest = what;
     elmnt->rest = where->rest;
     where->rest = elmnt;
+
+    return elmnt;
 }
 
 struct list_s*
-ccnl_manifest_getEmptyTemplate()
+ccnl_manifest_getEmptyTemplate(int suite)
 {
-    struct list_s *m;
+    struct list_s *m, *e;
 
-    m = ccnl_manifest_atomic("mfst");
-    ccnl_manifest_prepend(m, "grp", NULL);
-
+    switch(suite) {
+    case CCNL_SUITE_CCNTLV:
+        m = ccnl_manifest_atomic("mfst");
+        ccnl_manifest_prepend(m, "grp", NULL);
+        break;
+    case CCNL_SUITE_NDNTLV:
+        m = ccnl_manifest_atomic("mfst");
+        e = ccnl_manifest_prepend(m, "o", NULL);
+        ccnl_manifest_prepend(e->first, "grp", NULL);
+        e = ccnl_manifest_prepend(m, "f", NULL);
+        e = ccnl_manifest_prepend(e->first, "c", NULL);
+        e->first->rest = ccnl_manifest_atomic_uint(NDN_Content_Manifest);
+        break;
+    default:
+        m = NULL;
+    }
     return m;
+}
+
+struct list_s*
+ccnl_manifest_getFirstHashGroup(struct list_s *m)
+{
+    char line[1024];
+    ccnl_printExpr(m, 'a', line);
+    printf("expr=%s\n", line);
+
+    switch(theSuite) {
+    case CCNL_SUITE_CCNTLV:
+        return m->rest->first;
+    case CCNL_SUITE_NDNTLV:
+        return m->rest->rest->first->rest->first;
+    default:
+        break;
+    }
+    return NULL;
 }
 
 // typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
@@ -330,7 +375,7 @@ ccnl_manifest_getEmptyTemplate()
 void
 ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
 {
-    ccnl_manifest_prepend(m->rest->first /* hash grp */, typ, 
+    ccnl_manifest_prepend(ccnl_manifest_getFirstHashGroup(m), typ,
                           ccnl_manifest_atomic_blob(md, SHA256_DIGEST_LENGTH));
 }
 
@@ -342,7 +387,7 @@ ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
                           int blockSize, long totalSize,
                           unsigned char* totalDigest)
 {
-    struct list_s *grp = m->rest->first;
+    struct list_s *grp = ccnl_manifest_getFirstHashGroup(m);
     struct list_s *meta = ccnl_calloc(1, sizeof(struct list_s));
 
     meta->first = ccnl_manifest_atomic("about");
@@ -602,7 +647,7 @@ flic_produceFromFile(char *dirpath, struct key_s *keys, int block_size,
     DEBUGMSG(INFO, "... file size  = %ld\n", length);
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
-    m = ccnl_manifest_getEmptyTemplate();
+    m = ccnl_manifest_getEmptyTemplate(theSuite);
     while (chunk_number > 0) {
         offset = (long) block_size * --chunk_number;
         len = length - offset;
@@ -636,7 +681,7 @@ flic_produceFromFile(char *dirpath, struct key_s *keys, int block_size,
             }
 
             ccnl_manifest_free(m);
-            m = ccnl_manifest_getEmptyTemplate();
+            m = ccnl_manifest_getEmptyTemplate(theSuite);
             // append the hash of previous manifest (to make the connection)
             ccnl_manifest_prependHash(m, "tptr", md);
             num_pointers = 1;

@@ -27,7 +27,6 @@
 #define NDN_TLV_Interest                0x05
 #define NDN_TLV_Data                    0x06
 #define NDN_TLV_NDNLP                   0x64
-#define NDN_TLV_Manifest                0xc0
 #define NDN_TLV_Fragment                NDN_TLV_NDNLP
 
 // Common fields:
@@ -72,6 +71,12 @@
 #define NDN_TLV_NdnlpHeader             0x50
 #define NDN_TLV_NdnlpFragment           0x52
 #define NDN_TLV_Frag_BeginEndFields     0x5c
+
+// Content types
+#define NDN_Content_Blob                0x00
+#define NDN_Content_Link                0x01 // name
+#define NDN_Content_Key                 0x02
+#define NDN_Content_Manifest            0xc0
 
 // Manifest
 #define NDN_TLV_MANIFEST_HASHGROUP             0xc1
