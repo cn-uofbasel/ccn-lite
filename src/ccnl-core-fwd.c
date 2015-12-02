@@ -675,7 +675,6 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             goto Done;
         break;
     case NDN_TLV_Data:
-    case NDN_TLV_Manifest:
         if (ccnl_fwd_handleContent(relay, from, &pkt))
             goto Done;
         break;

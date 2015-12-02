@@ -105,7 +105,6 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
         pkt->flags |= CCNL_PKT_REQUEST;
         break;
     case NDN_TLV_Data:
-    case NDN_TLV_Manifest:
         pkt->flags |= CCNL_PKT_REPLY;
         break;
 #ifdef USE_FRAG

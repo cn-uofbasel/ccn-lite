@@ -396,8 +396,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
-        *data == NDN_TLV_Fragment || *data == NDN_TLV_Manifest)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data
+                                  || *data == NDN_TLV_Fragment)
         return CCNL_SUITE_NDNTLV;
 #endif
 
