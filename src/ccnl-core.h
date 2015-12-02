@@ -248,6 +248,7 @@ struct ccnl_pktdetail_ndntlv_s {
     unsigned char *dataHashRestr;  // requesting via implicit hash
     struct ccnl_buf_s *nonce;      // nonce
     struct ccnl_buf_s *ppkl;       // publisher public key locator
+    int contentType;
 };
 
 // packet flags:  0000ebtt

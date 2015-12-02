@@ -224,9 +224,9 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_ContentType) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
+                    pkt->s.ndntlv.contentType = ccnl_ndntlv_nonNegInt(cp, i);
+                    DEBUGMSG(TRACE, "'ContentType' %d\n",
+                             pkt->s.ndntlv.contentType);
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
                     // Not used
