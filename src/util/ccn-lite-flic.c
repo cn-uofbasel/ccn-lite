@@ -222,6 +222,7 @@ emit(struct list_s *lst, unsigned short len,
 }
 
 
+/*
 void
 ccnl_printExpr(struct list_s *t, char last, char *out)
 {
@@ -248,7 +249,7 @@ ccnl_printExpr(struct list_s *t, char last, char *out)
     strcat(out, ")");
     return;
 }
-
+*/
 
 // ----------------------------------------------------------------------
 // manifest API
@@ -355,10 +356,6 @@ ccnl_manifest_getEmptyTemplate(int suite)
 struct list_s*
 ccnl_manifest_getFirstHashGroup(struct list_s *m)
 {
-    char line[1024];
-    ccnl_printExpr(m, 'a', line);
-    printf("expr=%s\n", line);
-
     switch(theSuite) {
     case CCNL_SUITE_CCNTLV:
         return m->rest->first;
