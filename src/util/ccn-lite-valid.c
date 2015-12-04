@@ -69,11 +69,11 @@ ccnl_parse(unsigned char *data, int datalen)
             DEBUGMSG(FATAL, "ccnx2015: parse error\n");
             return NULL;
         }
-        if (pkt->type != CCNX_TLV_TL_Interest &&
-            pkt->type != CCNX_TLV_TL_Object &&
-                                          pkt->type != CCNX_TLV_TL_Manifest) {
+        if (pkt->contentType != CCNX_TLV_TL_Interest &&
+            pkt->contentType != CCNX_TLV_TL_Object &&
+                                    pkt->contentType != CCNX_TLV_TL_Manifest) {
           DEBUGMSG(INFO, "ccnx2015: none of Interest, Data or Manifest (%d)\n",
-                   pkt->type);
+                   pkt->contentType);
             return pkt;
         }
         break;
@@ -86,7 +86,8 @@ ccnl_parse(unsigned char *data, int datalen)
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
             return NULL;
         }
-        if (pkt->type != NDN_TLV_Interest && pkt->type != NDN_TLV_Data) {
+        if (pkt->packetType != NDN_TLV_Interest &&
+                                         pkt->packetType != NDN_TLV_Data) {
             DEBUGMSG(INFO, "ndn2013: neither Interest nor Data\n");
             return pkt;
         }

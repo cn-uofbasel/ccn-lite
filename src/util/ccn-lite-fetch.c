@@ -138,8 +138,8 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
     case CCNL_SUITE_NDNTLV: {
         unsigned char *start = *data;
         pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
-        if (!pkt || pkt->type != NDN_TLV_Data) {
-            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", pkt ? pkt->type : -1);
+        if (!pkt || pkt->packetType != NDN_TLV_Data) {
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", pkt ? pkt->packetType : -1);
             return -1;
         }
         break;

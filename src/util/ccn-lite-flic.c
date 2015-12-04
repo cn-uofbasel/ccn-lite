@@ -453,26 +453,36 @@ assertDir(char *dirpath, char *cp)
 
     
 char*
-digest2fname(char *dirpath, char isRoot, unsigned char *digest)
+digest2fname(char *dirpath, unsigned char *packetDigest)
 {
-    char *hex = digest2str(digest), *fn = NULL, *fn2 = NULL;
+    char *hex = digest2str(packetDigest), *fn;
 
-    if (isRoot) {
-        assertDir(dirpath, "zz");
-        asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
-        asprintf(&fn2, "%s/zz/%s", dirpath, hex);
-        symlink(fn, fn2);
-        free(fn);
-        free(fn2);
-        fn = NULL;
-    }
-    
     assertDir(dirpath, hex);
     asprintf(&fn, "%s/%c%c/%s", dirpath, hex[0], hex[1], hex+2);
 
     return fn;
 }
 
+void
+flic_link(char *dirpath, char *linkdir,
+             unsigned char *packetDigest, unsigned char *linkDigest)
+{
+    char *hex, *fn, *link;
+
+    assertDir(dirpath, linkdir);
+
+    hex = digest2str(packetDigest);
+    asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
+
+    hex = digest2str(linkDigest);
+    asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);
+    
+    symlink(fn, link);
+
+    free(link);
+    free(fn);
+}
+    
 int
 flic_namelessObj2file(unsigned char *data, int len,
                       char *dirpath, unsigned char *digest)
@@ -499,7 +509,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     if (len < 0)
         return -1;
 
-    fname = digest2fname(dirpath, 0, digest);
+    fname = digest2fname(dirpath, digest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     free(fname);
     if (f < 0) {
@@ -535,7 +545,9 @@ flic_finalize_HMAC_signature(struct key_s *keys, unsigned char *sigval,
 
 void
 flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
-                   struct key_s *keys, char *dirpath, unsigned char *digest)
+                   struct key_s *keys, char *dirpath,
+                   unsigned char *dataDigest /* in */,
+                   unsigned char *packetDigest /* out */)
 {
     int offset = sizeof(out), len, f;
     int endOfValidation = 0;
@@ -575,7 +587,7 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
                                      out + offset, endOfValidation - offset);
 
     len = sizeof(out) - offset;
-    ccnl_SHA256(out + offset, len, digest);
+    ccnl_SHA256(out + offset, len, packetDigest);
 
 #ifdef USE_SUITE_CCNTLV
     if (flic_prependFixedHdr)
@@ -584,12 +596,17 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
 #endif
 
     // Save the packet to disk
-    fname = digest2fname(dirpath, isRoot, digest);
+    fname = digest2fname(dirpath, packetDigest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
     free(fname);
     if (f < 0) {
         perror("file open:");
         return;
+    }
+    if (isRoot) {
+        if (name)
+            flic_link(dirpath, "nm", packetDigest, packetDigest);
+        flic_link(dirpath, "hs", packetDigest, dataDigest);
     }
     write(f, out + offset, len);
     close(f);
@@ -664,10 +681,10 @@ flic_produceFromFile(char *dirpath, struct key_s *keys, int block_size,
         // move onto the next one
         if (num_pointers == max_pointers || offset == 0) {
             if (offset)
-                flic_manifest2file(m, 0, NULL, NULL, dirpath, md);
+                flic_manifest2file(m, 0, NULL, NULL, dirpath, NULL, md);
             else {
                 ccnl_manifest_setMetaData(m, 0, meta, block_size, length,total);
-                flic_manifest2file(m, 1, name, keys, dirpath, md);
+                flic_manifest2file(m, 1, name, keys, dirpath, total, md);
             }
 
             ccnl_manifest_free(m);
@@ -767,12 +784,21 @@ TailRecurse:
 
     if (flic_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
-    if (typ != m_codes[M_MANIFESTMSG])
+    if (typ != m_codes[M_MANIFESTMSG]) {
+        // could be ordinary content, which would be valid, right?
+#ifdef USE_SUITE_CCNTLV
+        if (typ == CCNX_TLV_TL_Object) {
+            write(fd, pkt->content, pkt->contlen);
+            ccnl_SHA256_Update(total, pkt->content, pkt->contlen);
+            goto OK;
+        }
+#endif
         goto Bail;
+    }
 
 #ifdef USE_SUITE_NDNTLV
     if (theSuite == CCNL_SUITE_NDNTLV) {
-        if (pkt->s.ndntlv.contentType != NDN_Content_Manifest)
+        if (pkt->contentType != NDN_Content_Manifest)
             goto Bail;
         msg = pkt->content;
         len = pkt->contlen;
@@ -832,6 +858,7 @@ TailRecurse:
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
                         keys = NULL;
+                        free_packet(pkt);
                         goto TailRecurse;
                     }
                     if (flic_do_manifestPtr(sock, sa, exitBehavior,
@@ -843,9 +870,12 @@ TailRecurse:
             len -= len2;
         }
     }
+OK:
+    free_packet(pkt);
     return 0;
 Bail:
     DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
+    free_packet(pkt);
     return -1;
 }
 
@@ -859,7 +889,7 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
     int opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
-    int block_size = 4096 - 8 - 8; // nameless obj will be exactly 4096B
+    int block_size = 4096;
     unsigned char *objHashRestr = NULL;
 
     progname = argv[0];
@@ -868,7 +898,7 @@ main(int argc, char *argv[])
         switch (opt) {
         case 'b':
             block_size = atoi(optarg);
-            if (block_size > (MAX_BLOCK_SIZE-256)) {
+            if (block_size > (MAX_BLOCK_SIZE-256) || block_size < 64) {
                 DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n",
                          MAX_BLOCK_SIZE - 256);
                 goto Usage;
@@ -925,19 +955,6 @@ Usage:
     }
 
     switch(theSuite) {
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        flic_prependTL = ccnl_ndntlv_prependTL;
-        flic_prependUInt = ccnl_ndntlv_prependNonNegIntVal;
-        flic_prependNameComponents = ccnl_ndntlv_prependNameComponents;
-        flic_prependContent = ccnl_ndntlv_prependContent;
-        flic_prependFixedHdr = NULL;
-        flic_dehead = ccnl_ndntlv_dehead;
-        flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
-        flic_mkInterest = ndntlv_mkInterest;
-        m_codes = ndntlv_m_codes;
-        break;
-#endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
         flic_prependTL = ccnl_ccntlv_prependTL;
@@ -949,6 +966,21 @@ Usage:
         flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
         flic_mkInterest = ccntlv_mkInterest;
         m_codes = ccntlv_m_codes;
+        block_size -= 8 + 8; // nameless obj will be exactly 4096B
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        flic_prependTL = ccnl_ndntlv_prependTL;
+        flic_prependUInt = ccnl_ndntlv_prependNonNegIntVal;
+        flic_prependNameComponents = ccnl_ndntlv_prependNameComponents;
+        flic_prependContent = ccnl_ndntlv_prependContent;
+        flic_prependFixedHdr = NULL;
+        flic_dehead = ccnl_ndntlv_dehead;
+        flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
+        flic_mkInterest = ndntlv_mkInterest;
+        m_codes = ndntlv_m_codes;
+        block_size -= 19; // nameless obj will be exactly 4096B
         break;
 #endif
     default:

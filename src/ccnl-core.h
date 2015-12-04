@@ -248,7 +248,6 @@ struct ccnl_pktdetail_ndntlv_s {
     unsigned char *dataHashRestr;  // requesting via implicit hash
     struct ccnl_buf_s *nonce;      // nonce
     struct ccnl_buf_s *ppkl;       // publisher public key locator
-    int contentType;
 };
 
 // packet flags:  0000ebtt
@@ -264,7 +263,8 @@ struct ccnl_pkt_s {
     struct ccnl_prefix_s *pfx;     // prefix/name
     unsigned char *content;        // pointer into the data buffer
     int contlen;
-    unsigned int type;   // suite-specific value (outermost type)
+    unsigned short packetType;     // suite-specific value (outermost type)
+    unsigned short contentType;    // inner type (if Data/Content obj)
     union {
         int final_block_id;
         unsigned int seqno;

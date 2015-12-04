@@ -525,7 +525,9 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
 
 static int
 ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
-              unsigned char **buf, int *len, char *cur_tag, int rawxml, FILE* out)
+                      unsigned char **buf, int *len, char *cur_tag, int rawxml,
+                      unsigned char **content, unsigned short *contlen,
+                      FILE* out)
 {
     unsigned int typ;
     int i, vallen;
@@ -544,13 +546,16 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
           exit(-1);
         }
+        if (ctx == CTX_MSG && typ == CCNX_TLV_M_Payload) {
+            *content = *buf;
+            *contlen = vallen;
+        }
 
         n = ccnl_ccntlv_type2name(ctx, typ, rawxml);
         if (!n) {
             snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
-
 
         if(!rawxml)
             fprintf(out, "%04zx  ", cp - base);
@@ -574,7 +579,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             i = vallen;
             snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i,
-                                                        n, rawxml, out) < 0)
+                                      n, rawxml, content, contlen, out) < 0)
                 return -1;
 
             if(rawxml) {
@@ -604,9 +609,9 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 void
 ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
-    unsigned char *buf, *msgstart;
+    unsigned char *buf, *msgstart, *content = NULL;
     char *mp;
-    unsigned short hdrlen, pktlen; // payloadlen;
+    unsigned short hdrlen, pktlen, contlen; // payloadlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
     hp = (struct ccnx_tlvhdr_ccnx2015_s*) data;
@@ -688,7 +693,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 
         // dump the sequence of TLV fields of the message body
         ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
-                                                        "message", rawxml, out);
+                              "message", rawxml, &content, &contlen, out);
     } else {
         hexdump(lev, data, buf, len, rawxml, out);
         buf += len;
@@ -697,17 +702,29 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     if (!rawxml) {
         SHA256_CTX_t ctx;
         unsigned char objhash[SHA256_DIGEST_LENGTH];
-        int i;
+        size_t i;
 
         ccnl_SHA256_Init(&ctx);
         ccnl_SHA256_Update(&ctx, msgstart, buf - msgstart);
         ccnl_SHA256_Final(objhash, &ctx);
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
-        fprintf(out, "pkt.hash=");
+        fprintf(out, "pkt.dgst=");
         for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
             fprintf(out, "%02x", objhash[i]);
         fprintf(out, "\n");
+
+        if (content) {
+            ccnl_SHA256_Init(&ctx);
+            ccnl_SHA256_Update(&ctx, content, contlen);
+            ccnl_SHA256_Final(objhash, &ctx);
+            fprintf(out, "%04zx", buf - data);
+            indent(NULL, 0);
+            fprintf(out, "pkt.ctnt=");
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                fprintf(out, "%02x", objhash[i]);
+            fprintf(out, "\n");
+        }
 
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
@@ -1309,7 +1326,8 @@ ndn_contentType2name(unsigned type)
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                    int *len, char *cur_tag, int *contentRecurse,
-                   int rawxml, FILE* out)
+                   int rawxml, unsigned char **content,
+                   unsigned int *contlen, FILE* out)
 {
     int i, maxi, vallen;
     unsigned int typ, intval;
@@ -1325,6 +1343,10 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                 "  type=%hu, len=%hu larger than %d available bytes\n",
                 cp - base, base, (unsigned short)typ, (unsigned short)vallen, *len);
             exit(-1);
+        }
+        if (typ == NDN_TLV_Content) {
+            *content = *buf;
+            *contlen = vallen;
         }
 
         n = NULL;
@@ -1369,7 +1391,8 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                         || (typ == NDN_TLV_Content && *contentRecurse >= 0)) {
                 *len -= vallen;
                 if (ndn_parse_sequence(lev+1, base, buf, &vallen, n,
-                                       contentRecurse, rawxml, out) < 0)
+                                       contentRecurse, rawxml,
+                                       content, contlen, out) < 0)
                     return -1;
                 if (rawxml)
                     fprintf(out, "</%s>\n", n);
@@ -1425,24 +1448,38 @@ ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
     int contentRecurse = -1;
+    unsigned char *content = NULL;
+    unsigned int contlen;
 
     // dump the sequence of TLV fields, should start with a name TLV
-    ndn_parse_sequence(0, data, &buf, &len, "payload",
-                       &contentRecurse, rawxml, out);
+    ndn_parse_sequence(0, data, &buf, &len, "payload", &contentRecurse,
+                       rawxml, &content, &contlen, out);
     if (!rawxml) {
         SHA256_CTX_t ctx;
         unsigned char objhash[SHA256_DIGEST_LENGTH];
-        int i;
+        size_t i;
 
         ccnl_SHA256_Init(&ctx);
         ccnl_SHA256_Update(&ctx, data, buf - data);
         ccnl_SHA256_Final(objhash, &ctx);
         fprintf(out, "%04zx", buf - data);
         indent(NULL, 0);
-        fprintf(out, "pkt.hash=");
+        fprintf(out, "pkt.dgst=");
         for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
             fprintf(out, "%02x", objhash[i]);
         fprintf(out, "\n");
+
+        if (content) {
+            ccnl_SHA256_Init(&ctx);
+            ccnl_SHA256_Update(&ctx, content, contlen);
+            ccnl_SHA256_Final(objhash, &ctx);
+            fprintf(out, "%04zx", buf - data);
+            indent(NULL, 0);
+            fprintf(out, "pkt.ctnt=");
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                fprintf(out, "%02x", objhash[i]);
+            fprintf(out, "\n");
+        }
 
         fprintf(out, "%04zx", buf - data);
         indent(NULL, 0);

@@ -98,9 +98,9 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
-    pkt->type = typ;
+    pkt->packetType = typ;
 
-    switch(pkt->type) {
+    switch(pkt->packetType) {
     case NDN_TLV_Interest:
         pkt->flags |= CCNL_PKT_REQUEST;
         break;
@@ -113,7 +113,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
         break;
 #endif
     default:
-        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkt->type);
+        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkt->packetType);
         goto Bail;
     }
 
@@ -224,9 +224,9 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))
                     goto Bail;
                 if (typ == NDN_TLV_ContentType) {
-                    pkt->s.ndntlv.contentType = ccnl_ndntlv_nonNegInt(cp, i);
+                    pkt->contentType = ccnl_ndntlv_nonNegInt(cp, i);
                     DEBUGMSG(TRACE, "'ContentType' %d\n",
-                             pkt->s.ndntlv.contentType);
+                             pkt->contentType);
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
                     // Not used

@@ -101,7 +101,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // validation is ignored
     if (ccnl_cistlv_dehead(data, datalen, &typ, &len))
         goto Bail;
-    pkt->type = typ;
+    pkt->contentType = typ;
     pkt->suite = CCNL_SUITE_CISTLV;
     pkt->val.final_block_id = -1;
 

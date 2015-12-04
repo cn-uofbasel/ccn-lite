@@ -305,7 +305,7 @@ ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
-    pkt->type = typ;
+    pkt->packetType = typ;
     pkt->flags |= typ == CCN_DTAG_INTEREST ? CCNL_PKT_REQUEST : CCNL_PKT_REPLY;
 
     if (pkt->flags & CCNL_PKT_REQUEST) { // interest
@@ -463,14 +463,15 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+    pkt->packetType = hp->pkttype;
     if (!from) {
         DEBUGMSG_CFWD(TRACE, "  pkt ok\n");
 //        goto Done;
     }
 
 
-    if (hp->pkttype == CCNX_PT_Interest) {
-        if (pkt->type == CCNX_TLV_TL_Interest) {
+    if (pkt->packetType == CCNX_PT_Interest) {
+        if (pkt->contentType == CCNX_TLV_TL_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             // char prefixBuf[CCNL_PREFIX_BUFSIZE];
             // DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
@@ -478,15 +479,16 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 goto Done;
         } else {
             DEBUGMSG_CFWD(WARNING, "  ccntlv: interest pkt type mismatch %d %d\n",
-                          hp->pkttype, pkt->type);
+                          pkt->packetType, pkt->contentType);
         }
-    } else if (hp->pkttype == CCNX_PT_Data) {
-        if (pkt->type == CCNX_TLV_TL_Object || pkt->type == CCNX_TLV_TL_Manifest) {
+    } else if (pkt->packetType == CCNX_PT_Data) {
+        if (pkt->contentType == CCNX_TLV_TL_Object ||
+                                pkt->contentType == CCNX_TLV_TL_Manifest) {
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
             DEBUGMSG_CFWD(WARNING, "  ccntlv: data pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt->type);
+                     pkt->packetType, pkt->contentType);
         }
     } // else ignore
     rc = 0;
@@ -551,9 +553,10 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(WARNING, "  parsing error or no prefix\n");
         goto Done;
     }
+    pkt->packetType = hp->pkttype;
 
-    if (hp->pkttype == CISCO_PT_Interest) {
-        if (pkt->type == CISCO_TLV_Interest) {
+    if (pkt->packetType == CISCO_PT_Interest) {
+        if (pkt->contentType == CISCO_TLV_Interest) {
             pkt->flags |= CCNL_PKT_REQUEST;
             //            char prefixBuf[CCNL_PREFIX_BUFSIZE];
             //            DEBUGMSG_CFWD(DEBUG, "  interest=<%s>\n", ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
@@ -561,16 +564,16 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 goto Done;
         } else {
             DEBUGMSG_CFWD(WARNING, "  cistlv: interest pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt->type);
+                     pkt->packetType, pkt->contentType);
         }
 
-    } else if (hp->pkttype == CISCO_PT_Content) {
-        if (pkt->type == CISCO_TLV_Content) {
+    } else if (pkt->packetType == CISCO_PT_Content) {
+        if (pkt->contentType == CISCO_TLV_Content) {
             pkt->flags |= CCNL_PKT_REPLY;
             ccnl_fwd_handleContent(relay, from, &pkt);
         } else {
             DEBUGMSG_CFWD(WARNING, "  cistlv: data pkt type mismatch %d %d\n",
-                     hp->pkttype, pkt->type);
+                     pkt->packetType, pkt->contentType);
         }
     } // else ignore (Nack...)
     rc = 0;
@@ -618,7 +621,7 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         goto Done;
     }
     DEBUGMSG_CFWD(DEBUG, "  parsed packet has %zd bytes\n", pkt->buf->datalen);
-    pkt->type = typ;
+    pkt->packetType = pkt->contentType = typ;
 
     switch (typ) {
     case IOT_TLV_Request:
@@ -669,7 +672,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
         goto Done;
     }
-    switch (pkt->type) {
+    switch (pkt->packetType) {
     case NDN_TLV_Interest:
         if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
             goto Done;
@@ -685,7 +688,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         break;
 #endif
     default:
-        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n", pkt->type);
+        DEBUGMSG_CFWD(INFO, "  unknown packet type %d, dropped\n",
+                      pkt->packetType);
         break;
     }
     rc = 0;

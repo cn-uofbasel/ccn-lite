@@ -27,7 +27,7 @@ OKset = hash table (set) of verified file content
 NMmap = hash table (map) of verified names, pointing to the hash value
 ERset = hash table (set) of files know to have wrong name (for the hash val)
 NOset = hash table (set) of files know to not exist (for the given hash val)
-CAmap = hash table (map) of learned content hashes, pointing to the hash val
+HSset = hash table (set) of learned content hashes
 
 File system structure:
 
@@ -60,6 +60,7 @@ d) enable content store caching, or rely on OS paging?
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 // #define USE_ETHERNET
+#define USE_FLIC
 #define USE_HMAC256
 #define USE_IPV4
 //#define USE_IPV6
@@ -92,17 +93,17 @@ d) enable content store caching, or rely on OS paging?
 // ----------------------------------------------------------------------
 
 struct ccnl_relay_s theRepo;
-char *theDirPath;
+char *theRepoDir;
 #ifdef USE_LOGGING
   char prefixBuf[CCNL_PREFIX_BUFSIZE];
 #endif
 unsigned char iobuf[64*2014];
 
 enum {
-    MODE_FILE,   // for each interest visit directly the file system
-    MODE_INDEX   // build an internal index, check there before read()
+    MODE_NONDX,    // for each interest, visit directly the file system
+    MODE_INDEX     // build an internal index, check there before read()
 };
-int repo_mode = MODE_INDEX;
+int repo_mode = MODE_NONDX;
 
 // ----------------------------------------------------------------------
 // khash.h specifics
@@ -151,10 +152,13 @@ khPFXtoInt(khPFX_t pfx)
 
 #define khPFXequal(a, b) ((a->len == b->len) && !memcmp(a->mem, b->mem, a->len))
 
-KHASH_INIT(256, kh256_t, char, 0, sha256toInt, sha256equal)
-khash_t(256) *OKset;
-khash_t(256) *ERset;
-khash_t(256) *NOset;
+KHASH_INIT(256set, kh256_t, char, 0, sha256toInt, sha256equal)
+khash_t(256set) *OKset;
+khash_t(256set) *ERset;
+//khash_t(256set) *NOset;
+
+//KHASH_INIT(256map, kh256_t, unsigned char*, 1, sha256toInt, sha256equal)
+khash_t(256set) *HSset;
 
 KHASH_INIT(PFX, khPFX_t, unsigned char*, 1, khPFXtoInt, khPFXequal)
 khash_t(PFX) *NMmap;
@@ -182,6 +186,14 @@ digest2str(unsigned char *md)
     for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
         sprintf(tmp + 2*i, "%02x", md[i]);
     return tmp;
+}
+
+void
+str2digest(unsigned char *md, char *s)
+{
+    int i;
+    for (i = 0; i < 32; i++, s += 2)
+        *md++ = hex2int(s[0]) * 16 + hex2int(s[1]);
 }
 
 int
@@ -213,6 +225,26 @@ digest2key(int suite, unsigned char *digest)
     md[0] = suite;
     memcpy(md + 1, digest, SHA256_DIGEST_LENGTH);
     return md;
+}
+
+unsigned char*
+addTo256set(khash_t(256set) *table, int suite, unsigned char *md,
+            unsigned char *existingKey)
+{
+    khint_t k;
+    int absent;
+    unsigned char *key;
+
+    key = digest2key(suite, md);
+    k  = kh_put(256set, table, key, &absent);
+    if (absent) {
+        if (!existingKey) {
+            existingKey = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+            memcpy(existingKey, key, SHA256_DIGEST_LENGTH+1);
+        }
+        kh_key(table, k) = existingKey;
+    }
+    return kh_key(table, k);
 }
 
 // ----------------------------------------------------------------------
@@ -400,7 +432,7 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 #endif
 
     DEBUGMSG(INFO, "configuring repo in '%s mode'\n",
-             repo_mode == MODE_FILE ? "file" : "index");
+             repo_mode == MODE_NONDX ? "noindex" : "index");
 
     relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
@@ -454,6 +486,173 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 
 // ----------------------------------------------------------------------
 
+struct ccnl_pkt_s*
+array2packet(unsigned char *buf, int datalen)
+{
+    int skip, suite;
+    struct ccnl_pkt_s *pkt = NULL;
+    unsigned char *data;
+
+    suite = ccnl_pkt2suite(buf, datalen, &skip);
+    switch (suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB: {
+        unsigned char *start;
+
+        data = start = buf + skip;
+        datalen -= skip;
+
+        if (data[0] != 0x04 || data[1] != 0x82)
+            goto notacontent;
+        data += 2;
+        datalen -= 2;
+
+        pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV: {
+        int hdrlen;
+        unsigned char *start;
+
+        data = start = buf + skip;
+        datalen -=  skip;
+
+        hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
+        data += hdrlen;
+        datalen -= hdrlen;
+
+        pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        int hdrlen;
+        unsigned char *start;
+
+        data = start = buf + skip;
+        datalen -=  skip;
+
+        hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
+        data += hdrlen;
+        datalen -= hdrlen;
+
+        pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV: {
+        unsigned char *olddata;
+
+        data = olddata = buf + skip;
+        datalen -= skip;
+        if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
+                                                       typ != IOT_TLV_Reply)
+            goto notacontent;
+        pkt = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV: {
+        unsigned char *olddata;
+
+        data = olddata = buf + skip;
+        datalen -= skip;
+        pkt = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
+        break;
+    }
+#endif
+    default:
+        break;
+    }
+
+    if (!pkt) {
+        DEBUGMSG(DEBUG, "  parsing error\n");
+    }
+    return pkt;
+}
+
+struct ccnl_pkt_s*
+contentFile2packet(char *path)
+{
+    int datalen;
+
+    DEBUGMSG(DEBUG, "loading(%s)\n", path);
+
+    datalen = file2iobuf(path);
+    if (datalen <= 0)
+        return NULL;
+
+    return array2packet(iobuf, datalen);
+}
+
+// ----------------------------------------------------------------------
+
+int
+ccnl_repo_replyWithFile(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
+                        int suite, char *fname, unsigned char *cmpDigest)
+{
+    int f, len;
+    struct ccnl_buf_s *buf;
+    struct stat s;
+
+    if (stat(fname, &s))
+        goto AddToER;
+    f = open(fname, O_RDONLY);
+    if (f < 0)
+        goto AddToER;
+
+    buf = ccnl_buf_new(NULL, s.st_size);
+    buf->datalen = s.st_size;
+    len = read(f, buf->data, buf->datalen);
+    close(f);
+
+    if (len != s.st_size) {
+        ccnl_free(buf);
+        goto AddToER;
+    }
+
+    if (cmpDigest) { // verify packet digest
+        struct ccnl_pkt_s *pkt = array2packet(buf->data, buf->datalen);
+
+        if (!pkt || memcmp(pkt->md, cmpDigest, SHA256_DIGEST_LENGTH)) {
+            ccnl_free(buf);
+            buf = NULL;
+        }
+        free_packet(pkt);
+        if (!buf)
+            goto AddToER;
+
+        addTo256set(OKset, pkt->suite, pkt->md, NULL);
+    }
+
+    ccnl_face_enqueue(repo, from, buf);
+
+    return 0;
+
+AddToER:
+    {
+        int absent = 0;
+        unsigned char *key = digest2key(suite, cmpDigest);
+        khint_t k  = kh_put(256set, ERset, key, &absent);
+        if (absent) {
+            unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
+            memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
+            kh_key(ERset, k) = key2;
+        }
+        k = kh_get(256set, OKset, key);
+        if (k != kh_end(OKset)) {
+            ccnl_free(kh_key(OKset, k));
+            kh_del(256set, OKset, k);
+        }
+    }
+    return 0;
+}
+
 int
 ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
              int suite, int skip, unsigned char **data, int *datalen)
@@ -462,6 +661,7 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
     unsigned char *start, *requestByDigest = NULL, *digest = NULL;
     struct ccnl_pkt_s *pkt = NULL;
     khint_t k;
+    char *fname;
 
     DEBUGMSG(DEBUG, "ccnl_repo (suite=%s, skip=%d, %d bytes left)\n",
              ccnl_suite2str(suite), skip, *datalen);
@@ -476,14 +676,14 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         *data += hdrlen;
         *datalen -= hdrlen;
         pkt = ccnl_ccntlv_bytes2pkt(start, data, datalen);
-        if (!pkt || pkt->type != CCNX_TLV_TL_Interest)
+        if (!pkt || pkt->contentType != CCNX_TLV_TL_Interest)
             goto Done;
         requestByDigest = pkt->s.ccntlv.objHashRestr;
         break;
     }
     case CCNL_SUITE_NDNTLV:
         pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
-        if (!pkt || pkt->type != NDN_TLV_Interest)
+        if (!pkt || pkt->packetType != NDN_TLV_Interest)
             goto Done;
         requestByDigest = pkt->s.ndntlv.dataHashRestr;
         break;
@@ -496,30 +696,36 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         goto Done;
     }
 
-    if (requestByDigest) {
-        DEBUGMSG(DEBUG, "lookup %s\n", digest2str(requestByDigest));
-        if (repo_mode == MODE_INDEX) {
-            k = kh_get(256, OKset, digest2key(suite, requestByDigest));
-            if (k != kh_end(OKset)) {
-                DEBUGMSG(DEBUG, "  found OKset entry at position %d\n", k);
-                digest = requestByDigest;
-            }
-        } else if (repo_mode == MODE_FILE) {
-            unsigned char *key = digest2key(suite, requestByDigest);
-            k = kh_get(256, ERset, key);
-            if (k != kh_end(ERset)) { // bad hash value in file
-                DEBUGMSG(DEBUG, "  ERset hit - request discarded\n");
-                goto Done;
-            }
-            k = kh_get(256, NOset, key);
-            if (k != kh_end(NOset)) { // known to be absent
-                DEBUGMSG(DEBUG, "  NOset hit - request discarded\n");
-                goto Done;
-            }
-            digest = requestByDigest;
-        }
-    } else {
+    if (!requestByDigest) {
         khPFX_t n;
+        int i;
+
+        // try first content-addressed lookup
+        i = pkt->pfx->compcnt - 1;
+        if (i >= 0 && pkt->pfx->complen[i] == 71 &&
+                                !memcmp(pkt->pfx->comp[i], "sha256;", 7)) {
+            unsigned char key[SHA256_DIGEST_LENGTH + 1];
+
+            DEBUGMSG(DEBUG, "lookup by content hash name [%s]%s\n",
+                     ccnl_prefix2path(prefixBuf,
+                                      CCNL_ARRAY_SIZE(prefixBuf),
+                                      pkt->pfx),
+                     ccnl_suite2str(suite));
+            key[0] = suite;
+            str2digest(key + 1, (char*) pkt->pfx->comp[i]);
+            if (repo_mode == MODE_INDEX) {
+                k = kh_get(256set, HSset, key);
+                if (k == kh_end(HSset)) {
+                    DEBUGMSG(DEBUG, "  not found in HSset\n");
+                    goto Done;
+                }
+            }
+
+            asprintf(&fname, "%s/hs/%s", theRepoDir, digest2str(key+1));
+            rc = ccnl_repo_replyWithFile(repo, from, suite, fname, NULL);
+            free(fname);
+            goto Done;
+        }
 
         DEBUGMSG(DEBUG, "lookup by name [%s]%s, %p/%d\n",
                  ccnl_prefix2path(prefixBuf,
@@ -533,94 +739,46 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
         n->mem[0] = pkt->pfx->suite;
         memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
         k = kh_get(PFX, NMmap, n);
-        if (k != kh_end(NMmap)) {
-            DEBUGMSG(DEBUG, "  found NMmap entry at position %d\n", k);
-            digest = kh_val(NMmap, k) + 1;
-        }
         ccnl_free(n);
-    }
-
-    if (digest) {
-        char *path;
-        struct stat s;
-        int f;
-        unsigned char *key;
-
-        path = digest2fname(theDirPath, digest);
-        if (stat(path, &s)) {
-            int absent = 0;
-//            perror("stat");
-            free(path);
-// badFile:
-            DEBUGMSG(DEBUG, "  NOset += %s/%s\n", digest2str(digest),
-                     ccnl_suite2str(suite));
-            key = digest2key(suite, digest);
-            k = kh_put(256, NOset, key, &absent);
-            if (absent) {
-                unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
-                memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
-                kh_key(NOset, k) = key2;
-            }
+        if (k == kh_end(NMmap)) {
+            DEBUGMSG(DEBUG, "  no NMmap entry\n");
             goto Done;
         }
-        f = open(path, O_RDONLY);
-        free(path);
-        if (f < 0) {
-            int absent = 0;
-//            perror("open");
-badContent:
-            DEBUGMSG(DEBUG, "  ERset += %s/%s\n", digest2str(digest),
-                     ccnl_suite2str(suite));
-            key = digest2key(suite, digest);
-            k = kh_put(256, ERset, key, &absent);
-            if (absent) {
-                unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
-                memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
-                kh_key(ERset, k) = key2;
-            }
-            goto Done;
-        }
-        struct ccnl_buf_s *buf = ccnl_buf_new(NULL, s.st_size);
-        int dlen;
-        buf->datalen = s.st_size;
-        dlen = read(f, buf->data, buf->datalen);
-        close(f);
+        DEBUGMSG(DEBUG, "  found NMmap entry at position %d\n", k);
+        digest = kh_val(NMmap, k) + 1;
+    } else
+        digest = requestByDigest;
+    
+    DEBUGMSG(DEBUG, "lookup %s\n", digest2str(digest));
 
-        if (repo_mode == MODE_FILE) {
-            free_packet(pkt);
-            switch(suite) {
-            case CCNL_SUITE_CCNTLV: {
-                int hdrlen;
-                unsigned char *data2;
-
-                data2 = start = buf->data;
-
-                hdrlen = ccnl_ccntlv_getHdrLen(data2, dlen);
-                data2 += hdrlen;
-                dlen -= hdrlen;
-
-                pkt = ccnl_ccntlv_bytes2pkt(start, &data2, &dlen);
-                break;
-            }
-            case CCNL_SUITE_NDNTLV: {
-                unsigned char *data2;
-
-                data2 = start = buf->data;
-                pkt = ccnl_ndntlv_bytes2pkt(start, &data2, &dlen);
-                break;
-            }
-            default:
-                pkt = NULL;
-                break;
-            }
-            if (!pkt || memcmp(pkt->md, digest, SHA256_DIGEST_LENGTH)) {
-                ccnl_free(buf);
-                goto badContent;
-            }
-        }
-        ccnl_face_enqueue(repo, from, buf);
+    k = kh_get(256set, ERset, digest2key(suite, digest));
+    if (k != kh_end(ERset)) { // bad hash value in file
+        DEBUGMSG(DEBUG, "  ERset hit - request discarded\n");
+        goto Done;
     }
-    rc = 0;
+    
+    k = kh_get(256set, OKset, digest2key(suite, digest));
+    if (k != kh_end(OKset)) {
+        DEBUGMSG(DEBUG, "  found OKset entry at position %d\n", k);
+
+        fname = digest2fname(theRepoDir, digest);
+        rc = ccnl_repo_replyWithFile(repo, from, suite, fname, NULL);
+        free(fname);
+        goto Done;
+    }
+    if (repo_mode == MODE_INDEX) // if not in OKset then it does not exist
+        goto Done;
+
+/*
+            k = kh_get(256set, NOset, key);
+            if (k != kh_end(NOset)) { // known to be absent
+                DEBUGMSG(DEBUG, "  NOset hit - request discarded\n");
+                goto Done;
+            }
+*/
+    fname = digest2fname(theRepoDir, digest);
+    rc = ccnl_repo_replyWithFile(repo, from, suite, fname, digest);
+    free(fname);
 
 Done:
     free_packet(pkt);
@@ -757,177 +915,110 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
 
 // ----------------------------------------------------------------------
 
-struct ccnl_pkt_s*
-contentFile2packet(char *path, int *suite)
-{
-    int datalen, skip;
-    struct ccnl_pkt_s *pkt = NULL;
-    unsigned char *data;
-
-    DEBUGMSG(DEBUG, "loading %s\n", path);
-
-    datalen = file2iobuf(path);
-    if (datalen <= 0)
-        return NULL;
-
-    *suite = ccnl_pkt2suite(iobuf, datalen, &skip);
-    switch (*suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB: {
-        unsigned char *start;
-
-        data = start = iobuf + skip;
-        datalen -= skip;
-
-        if (data[0] != 0x04 || data[1] != 0x82)
-            goto notacontent;
-        data += 2;
-        datalen -= 2;
-
-        pkt = ccnl_ccnb_bytes2pkt(start, &data, &datalen);
-        break;
-    }
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV: {
-        int hdrlen;
-        unsigned char *start;
-
-        data = start = iobuf + skip;
-        datalen -=  skip;
-
-        hdrlen = ccnl_ccntlv_getHdrLen(data, datalen);
-        data += hdrlen;
-        datalen -= hdrlen;
-
-        pkt = ccnl_ccntlv_bytes2pkt(start, &data, &datalen);
-        break;
-    }
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV: {
-        int hdrlen;
-        unsigned char *start;
-
-        data = start = iobuf + skip;
-        datalen -=  skip;
-
-        hdrlen = ccnl_cistlv_getHdrLen(data, datalen);
-        data += hdrlen;
-        datalen -= hdrlen;
-
-        pkt = ccnl_cistlv_bytes2pkt(start, &data, &datalen);
-        break;
-    }
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV: {
-        unsigned char *olddata;
-
-        data = olddata = iobuf + skip;
-        datalen -= skip;
-        if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
-                                                       typ != IOT_TLV_Reply)
-            goto notacontent;
-        pkt = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
-        break;
-    }
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV: {
-        unsigned char *olddata;
-
-        data = olddata = iobuf + skip;
-        datalen -= skip;
-        pkt = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
-        break;
-    }
-#endif
-    default:
-        DEBUGMSG(WARNING, "unknown packet format (%s)\n", path);
-        break;
-    }
-
-    if (!pkt) {
-        DEBUGMSG(DEBUG, "  parsing error in %s\n", path);
-        return NULL;
-    }
-
-    return pkt;
-}
-
-// ----------------------------------------------------------------------
-
 void
-add_content(char *dirpath, char *path)
+addNamed(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
 {
-    int _suite;
-    struct ccnl_pkt_s *pkt = NULL;
-
-    DEBUGMSG(DEBUG, "add_content %s %s\n", dirpath, path);
-
-    pkt = contentFile2packet(path, &_suite);
-    if (!pkt)
-        return;
-
-    char *path2;
-    path2 = digest2fname(dirpath, pkt->md);
-    if (repo_mode == MODE_INDEX && strcmp(path2, path)) {
-        DEBUGMSG(WARNING, "wrong digest for file <%s>, ignored\n", path);
-//                DEBUGMSG(WARNING, "                      %s\n", path2);
-        free(path2);
-        return;
-    }
-
-    unsigned char *key = digest2key(_suite, pkt->md);
+    khPFX_t n;
     int absent = 0;
-    khint_t k = kh_put(256, OKset, key, &absent);
+    khint_t k;
+    unsigned char *key;
 
-    if (absent) {
-        unsigned char *key2 = ccnl_malloc(SHA256_DIGEST_LENGTH+1);
-        memcpy(key2, key, SHA256_DIGEST_LENGTH+1);
-        kh_key(OKset, k) = key2;
+    DEBUGMSG(DEBUG, "addNamed(%s)\n", fname);
+    key = addTo256set(OKset, pkt->suite, pkt->md, NULL);
+
+    if (pkt->content) {
+        unsigned char md[SHA256_DIGEST_LENGTH];
+        ccnl_SHA256(pkt->content, pkt->contlen, md);
+        addTo256set(HSset, pkt->suite, md, NULL);
     }
-    key = kh_key(OKset, k);
 
-    if (pkt->pfx) {
-        khPFX_t n;
-        DEBUGMSG(DEBUG, "pkt has name [%s]%s, %p/%d\n",
-                 ccnl_prefix2path(prefixBuf,
-                                  CCNL_ARRAY_SIZE(prefixBuf),
-                                  pkt->pfx),
-                 ccnl_suite2str(pkt->pfx->suite),
-                 pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
-        DEBUGMSG(DEBUG, "adding name [%s]%s -->\n",
+    if (!pkt->pfx) {
+        DEBUGMSG(DEBUG, "  no name\n");
+        return;
+    }
+
+    n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
+    n->len = 1 + pkt->pfx->namelen;
+    n->mem[0] = pkt->pfx->suite;
+    memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
+    absent = 0;
+    k = kh_put(PFX, NMmap, n, &absent);
+    if (absent) {
+        DEBUGMSG(VERBOSE, "  [%s]%s -->\n",
                  ccnl_prefix2path(prefixBuf,
                                   CCNL_ARRAY_SIZE(prefixBuf),
                                   pkt->pfx),
                  ccnl_suite2str(pkt->pfx->suite));
-        DEBUGMSG(DEBUG, "  %s\n", digest2str(pkt->md));
-
-        n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
-        n->len = 1 + pkt->pfx->namelen;
-        n->mem[0] = pkt->pfx->suite;
-        memcpy(n->mem + 1, pkt->pfx->nameptr, pkt->pfx->namelen);
-        absent = 0;
-        k = kh_put(PFX, NMmap, n, &absent);
-        if (absent) {
-            kh_key(NMmap, k) = n;
-            kh_val(NMmap, k) = key;
-        } else {
-            DEBUGMSG(WARNING, "name %s already scanned, file %s ommited\n",
-                     ccnl_prefix2path(prefixBuf,
-                                      CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx),
-                     path2);
-            ccnl_free(n);
-        }
+        DEBUGMSG(VERBOSE, "  %s\n", digest2str(pkt->md));
+        kh_key(NMmap, k) = n;
+        kh_val(NMmap, k) = key;
+    } else {
+        DEBUGMSG(WARNING, "  name %s already seen, skipping\n",
+                 ccnl_prefix2path(prefixBuf,
+                                  CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
+        ccnl_free(n);
     }
-    free(path2);
-    free_packet(pkt);
 }
 
 void
-walk_fs(char *dirpath, char *path)
+addHashed(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
+{
+    unsigned char contentDigest[SHA256_DIGEST_LENGTH], *key;
+
+    DEBUGMSG(DEBUG, "addHashed(%s)\n", fname);
+    key = addTo256set(OKset, pkt->suite, pkt->md, NULL);
+
+    if (pkt->content) {
+        ccnl_SHA256(pkt->content, pkt->contlen, contentDigest);
+        DEBUGMSG(VERBOSE, "  %s\n", digest2str(contentDigest));
+        addTo256set(HSset, pkt->suite, contentDigest, NULL);
+    }
+
+    str2digest(contentDigest, fname + strlen(fname) - 64);
+    DEBUGMSG(VERBOSE, "  %s\n", digest2str(contentDigest));
+    addTo256set(HSset, pkt->suite, contentDigest, NULL);
+}
+
+void
+addVerified(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
+{
+    char *path;
+
+    DEBUGMSG(DEBUG, "addVerified\n");
+
+    path = digest2fname(theRepoDir, pkt->md);
+    if (strcmp(fname, path))
+        return;
+    
+    addNamed(fname, pkt);
+}
+
+typedef void (reg_f)(char *, struct ccnl_pkt_s*); // , unsigned char*);
+
+void
+add_content(char *dirpath, char *fname, reg_f addToTables)
+{
+    struct ccnl_pkt_s *pkt = NULL;
+    char *path;
+
+    asprintf(&path, "%s/%s", dirpath, fname);
+    DEBUGMSG(DEBUG, "add_content(%s_\n", path);
+    pkt = contentFile2packet(path);
+
+    if (!pkt) {
+        free(path);
+        DEBUGMSG(DEBUG, "no packet\n");
+        return;
+    }
+
+    addToTables(path, pkt); // , digest2key(_suite, pkt->md));
+
+    free_packet(pkt);
+    free(path);
+}
+
+void
+walk_fs(char *path, reg_f addToTables)
 {
     DIR *dp;
     struct dirent *de;
@@ -936,30 +1027,51 @@ walk_fs(char *dirpath, char *path)
     if (!dp)
         return;
     while ((de = readdir(dp))) {
-        char *path2;
-        asprintf(&path2, "%s/%s", path, de->d_name);
         switch(de->d_type) {
         case DT_REG:
-            add_content(dirpath, path2);
+            add_content(path, de->d_name, addToTables);
             break;
         case DT_LNK:
-            if (repo_mode == MODE_FILE)
-                add_content(dirpath, path2);
+            if (repo_mode == MODE_NONDX)
+                add_content(path, de->d_name, addToTables);
             break;
         case DT_DIR:
-            if (de->d_name[0] != '.')
-                walk_fs(dirpath, path2);
+            if (de->d_name[0] != '.') {
+                char *path2;
+                asprintf(&path2, "%s/%s", path, de->d_name);
+                walk_fs(path2, addToTables);
+                free(path2);
+            }
             break;
         default:
             break;
         }
-        free(path2);
     }
     closedir(dp);
 }
 
 // ----------------------------------------------------------------------
 
+void
+flic_link(char *dirpath, char *linkdir,
+             unsigned char *packetDigest, unsigned char *linkDigest)
+{
+    char *hex, *fn, *link;
+
+    assertDir(dirpath, linkdir);
+
+    hex = digest2str(packetDigest);
+    asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
+
+    hex = digest2str(linkDigest);
+    asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);
+    
+    symlink(fn, link);
+
+    free(link);
+    free(fn);
+}
+    
 int
 ccnl_repo256_import(char *dir)
 {
@@ -970,52 +1082,46 @@ ccnl_repo256_import(char *dir)
     if (!dp)
         return 0;
     while ((de = readdir(dp))) {
-        char *walk, *hashName, *linkContent;
-        int dummy;
+        char *path, *hashName;
         struct ccnl_pkt_s *pkt;
 
-        asprintf(&walk, "%s/%s", dir, de->d_name);
+        asprintf(&path, "%s/%s", dir, de->d_name);
         switch(de->d_type) {
         case DT_LNK:
         case DT_REG:
-            pkt = contentFile2packet(walk, &dummy);
+            pkt = contentFile2packet(path);
             if (!pkt) {
                 DEBUGMSG(DEBUG, "  no packet?\n");
                 break;
             }
-            hashName = digest2fname(theDirPath, pkt->md);
-            char *hex = digest2str(pkt->md);
+            hashName = digest2fname(theRepoDir, pkt->md);
             if (access(hashName, F_OK)) { // no such file, create it
                 int f;
                 DEBUGMSG(DEBUG, "  creating %s\n", hashName);
-                assertDir(theDirPath, hex);
-                f = open(hashName, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+                assertDir(theRepoDir, digest2str(pkt->md));
+                f = open(hashName, O_CREAT | O_TRUNC | O_WRONLY, 0600);
                 write(f, pkt->buf->data, pkt->buf->datalen);
                 close(f);
             }
             free(hashName);
-            if (pkt->pfx) { // has name: add a symlink to the zz directory
-                asprintf(&hashName, "%s/zz/%s", theDirPath, hex);
-                if (access(hashName, F_OK)) { // no such file/link, create it
-                    assertDir(theDirPath, "zz");
-                    asprintf(&linkContent, "../%c%c/%s", hex[0], hex[1], hex+2);
-                    symlink(linkContent, hashName);
-                    free(linkContent);
-                } else {
-                    DEBUGMSG(INFO, "%s already exists, ignored\n", hashName);
-                }
-                free(hashName);
+            if (pkt->pfx) { // has name: add a symlink to the nm directory
+                flic_link(theRepoDir, "nm", pkt->md, pkt->md);
+            }
+            if (pkt->content) { // has payload: add a symlink to the hs dir
+                unsigned char md[SHA256_DIGEST_LENGTH];
+                ccnl_SHA256(pkt->content, pkt->contlen, md);
+                flic_link(theRepoDir, "hs", pkt->md, md);
             }
             free_packet(pkt);
             break;
         case DT_DIR:
             if (de->d_name[0] != '.')
-                ccnl_repo256_import(walk);
+                ccnl_repo256_import(path);
             break;
         default:
             break;
         }
-        free(walk);
+        free(path);
     }
     closedir(dp);
 
@@ -1028,7 +1134,7 @@ int
 main(int argc, char *argv[])
 {
     int opt, max_cache_entries = 0, udpport = 7777;
-    char *ethdev = NULL, *uxpath = NULL, *import_path = NULL;
+    char *ethdev = NULL, *uxpath = NULL, *import_path = NULL, *fname;
 
     while ((opt = getopt(argc, argv, "hc:d:e:i:m:u:v:x:")) != -1) {
         switch (opt) {
@@ -1042,7 +1148,7 @@ main(int argc, char *argv[])
             import_path = optarg;
             break;
         case 'm':
-            repo_mode = !strcmp(optarg, "file") ? MODE_FILE : MODE_INDEX;
+            repo_mode = !strcmp(optarg, "index") ? MODE_INDEX : MODE_NONDX;
             break;
         case 'u':
             udpport = atoi(optarg);
@@ -1068,7 +1174,7 @@ usage:
 //                  "  -c MAX_CONTENT_ENTRIES  (dflt: 0)\n"
                     "  -e ETHDEV\n"
                     "  -h              this text\n"
-                    "  -m MODE         ('file'=read through, 'ndx'=internal index (dflt)\n"
+                    "  -m MODE         ('noindex'=read through (dflt), 'index'=internal map\n"
 #ifdef USE_IPV4
                     "  -u UDPPORT      (default: 7777)\n"
 #endif
@@ -1086,14 +1192,16 @@ usage:
 
     if (optind >= argc)
         goto usage;
-    theDirPath = argv[optind++];
+    theRepoDir = argv[optind++];
     if (optind != argc)
         goto usage;
-    while (strlen(theDirPath) > 1 && theDirPath[strlen(theDirPath) - 1] == '/')
-        theDirPath[strlen(theDirPath) - 1] = '\0';
+    while (strlen(theRepoDir) > 1 && theRepoDir[strlen(theRepoDir) - 1] == '/')
+        theRepoDir[strlen(theRepoDir) - 1] = '\0';
 
     if (import_path)
         return ccnl_repo256_import(import_path);
+
+    // ------------------------------------------------------------
 
     ccnl_core_init();
 
@@ -1105,25 +1213,32 @@ usage:
 
     ccnl_repo256_config(&theRepo, ethdev, udpport, uxpath, max_cache_entries);
 
-    if (repo_mode == MODE_FILE) {
-        ERset = kh_init(256);  // set of hashes for which the file is wrong
-        NOset = kh_init(256);  // set of hashes known to be absent
-    }
-    OKset = kh_init(256);  // set of verified hashes (from files)
-    NMmap = kh_init(PFX);  // map of verified names (from files)
+    ERset = kh_init(256set);  // set of hashes for which the file is wrong
+/*
+    NOset = kh_init(256set);  // set of pkt+data hashes known to be absent
+*/
+    OKset = kh_init(256set);  // set of verified pkt hashes (from files)
+    NMmap = kh_init(PFX);     // map of verified names (from files)
+    HSset = kh_init(256set);  // set of data hashes (from files)
 
+    asprintf(&fname, "%s/hs", theRepoDir);
+    DEBUGMSG(INFO, "loading hashed content from <%s>\n", fname);
+    walk_fs(fname, addHashed);
+    free(fname);
     if (repo_mode == MODE_INDEX) {
-        DEBUGMSG(INFO, "loading files from <%s>\n", theDirPath);
-        walk_fs(theDirPath, theDirPath);
+        DEBUGMSG(INFO, "loading files from <%s>\n", theRepoDir);
+        walk_fs(theRepoDir, addVerified);
     } else {
-        char *fname;
-        asprintf(&fname, "%s/zz", theDirPath);
-        DEBUGMSG(INFO, "loading files from <%s>\n", fname);
-        walk_fs(theDirPath, fname);
+        asprintf(&fname, "%s/nm", theRepoDir);
+        DEBUGMSG(INFO, "loading named content from <%s>\n", fname);
+        walk_fs(fname, addNamed);
         free(fname);
     }
-    DEBUGMSG(INFO, "loaded %d files (%d with name, %d without name)\n",
-             kh_size(OKset), kh_size(NMmap), kh_size(OKset)-kh_size(NMmap));
+
+    DEBUGMSG(INFO, "visited %d files:\n", kh_size(OKset));
+    DEBUGMSG(INFO, "  name entries        : %d\n", kh_size(NMmap));
+    DEBUGMSG(INFO, "  content hash entries: %d\n", kh_size(HSset));
+    DEBUGMSG(INFO, "  files with errors   : %d\n", kh_size(ERset));
 
     DEBUGMSG(DEBUG, "allocated memory: total %ld bytes in %d chunks\n",
              ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);

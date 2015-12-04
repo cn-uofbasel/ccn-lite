@@ -131,7 +131,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     *datalen -= msglen;
 
-    pkt->type = typ;
+    // pkt->type = CCNL_PT_Data;  // must be set after calling this proc
+    pkt->contentType = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
     pkt->val.final_block_id = -1;
 
