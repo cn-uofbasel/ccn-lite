@@ -52,8 +52,8 @@ typedef union {
 #ifdef USE_IPV6
     struct sockaddr_in6 ip6;
 #endif
-#ifdef USE_ETHERNET
-    struct sockaddr_ll eth;
+#ifdef USE_LINKLAYER
+    struct sockaddr_ll linklayer;
 #endif
 #ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;

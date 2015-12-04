@@ -27,7 +27,7 @@
 #define USE_DEBUG               // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 // #define USE_FRAG
-#define USE_ETHERNET
+#define USE_LINKLAYER
 #define USE_LOGGING
 #define USE_IPV4
 #define USE_MGMT
@@ -177,8 +177,8 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         skb_reset_network_header(skb);
         skb->len = buf->datalen;
         memcpy(skb->data, buf->data, skb->len);
-        if (dev_hard_header(skb, dev, CCNL_ETH_TYPE, dest->eth.sll_addr,
-                            ifc->addr.eth.sll_addr, skb->len))
+        if (dev_hard_header(skb, dev, CCNL_ETH_TYPE, dest->linklayer.sll_addr,
+                            ifc->addr.linklayer.sll_addr, skb->len))
             dev_queue_xmit(skb);
         else
             kfree_skb(skb);
@@ -328,8 +328,8 @@ ccnl_eth_RX(struct sk_buff *skb, struct net_device *indev,
             break;
     if (!theRelay.halt_flag &&  i < theRelay.ifcount) {
         su.sa.sa_family = AF_PACKET;
-        memcpy(su.eth.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
-        su.eth.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
+        memcpy(su.linklayer.sll_addr, skb_mac_header(skb)+ETH_ALEN, ETH_ALEN);
+        su.linklayer.sll_protocol = *((short int*)(skb_mac_header(skb)+2*ETH_ALEN));
         ccnl_schedule_upcall_RX(i, &su, skb, skb->data, skb->len);
     } else
         kfree_skb(skb);
@@ -606,10 +606,10 @@ ccnl_init(void)
         }
     }
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     if (e) {
         i = &theRelay.ifs[theRelay.ifcount];
-        i->netdev = ccnl_open_ethdev(e, &i->addr.eth, CCNL_ETH_TYPE);
+        i->netdev = ccnl_open_ethdev(e, &i->addr.linklayer, CCNL_ETH_TYPE);
         if (i->netdev) {
 //      i->frag = CCNL_DGRAM_FRAG_ETH2011;
             i->mtu = 1500;

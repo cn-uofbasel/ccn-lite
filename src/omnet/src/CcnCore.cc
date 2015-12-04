@@ -51,7 +51,7 @@ struct ccnl_omnet_s     *all_relays=0, *last_relay=0, *active_relay;
 #define USE_DEBUG               // enable debug code for logging messages in stderr
 #define PLATFORM_LOG_THRESHOLD 50    // set the log level for debug info piped to Omnet's EV (this is independent of 'log_level' in b3c-relay-debug.c which controls what is reported in stderr)
 //#define USE_FRAG              // pkt fragmentation
-#define USE_ETHERNET
+#define USE_LINKLAYER
 //#define USE_IPV4
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
@@ -291,8 +291,8 @@ CcnLiteRelay::opp_deliver (void *relay, struct CcnLiteRelay::info_data_s const *
         };
 
         mdl->toMACFace(
-                (char *) env->link.sa_remote.eth.sll_addr,  // next hop addr,
-                (char *) env->link.sa_local.eth.sll_addr,   // local addr of outgoing interface
+                (char *) env->link.sa_remote.linklayer.sll_addr,  // next hop addr,
+                (char *) env->link.sa_local.linklayer.sll_addr,   // local addr of outgoing interface
                 i_or_c,
                 suite,
                 io->name,
@@ -375,12 +375,12 @@ CcnCore::CcnCore (Ccn *owner, const char *nodeName, const char *coreVer):
         }
 
         iface_cfg->base.relay = active_relay->state;
-        iface_cfg->addr.eth.sll_family = AF_PACKET;
+        iface_cfg->addr.linklayer.sll_family = AF_PACKET;
         iface_cfg->tx_pace = ccnModule->minInterTxTime;
         iface_cfg->status_up = 1;
         iface_cfg->base.next = 0;
         iface_cfg->iface_id = k;         // we ask that the indexing of the interfaces in ccn-lite follows the indexing of the macIds array (for tractability)
-        ccnModule->macIds[k].getAddressBytes(iface_cfg->addr.eth.sll_addr);
+        ccnModule->macIds[k].getAddressBytes(iface_cfg->addr.linklayer.sll_addr);
     }
 
     added_ifaces = CcnLiteRelay::addMgmt(all_iface_cfg);
@@ -611,9 +611,9 @@ CcnCore::addL2FwdRule (const char *contentName, const char *peerAddr, int localN
     fib_rule->base.next=0;
     fib_rule->prefix = name;
     fib_rule->dev_id = localNetifIndex;
-    fib_rule->next_hop.eth.sll_family = AF_PACKET;
+    fib_rule->next_hop.linklayer.sll_family = AF_PACKET;
     fib_rule->suite = (CcnLiteRelay::icn_suite_t) suite_id;
-    memcpy(fib_rule->next_hop.eth.sll_addr, peerAddr, ETH_ALEN);
+    memcpy(fib_rule->next_hop.linklayer.sll_addr, peerAddr, ETH_ALEN);
 
     // add rule to FIB
     res = CcnLiteRelay::addMgmt(mgmt_cs);
@@ -887,7 +887,7 @@ CcnCore::fromMACFace(CcnContext *ccnCtx, int arrNetIf, CcnPacket *ccnPkt)
      */
 
     sun.sa.sa_family = AF_PACKET;
-    ccnCtx->getSrcAddress802().getAddressBytes(sun.eth.sll_addr);
+    ccnCtx->getSrcAddress802().getAddressBytes(sun.linklayer.sll_addr);
     for (int i=0 ; i< this->ccnModule->numMacIds ; i++) {
         if ( this->ccnModule->macIds[i] == ccnCtx->getDstAddress802() )
         {

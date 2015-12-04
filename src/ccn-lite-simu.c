@@ -30,7 +30,7 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
-#define USE_ETHERNET
+#define USE_LINKLAYER
 #define USE_FRAG
 #define USE_IPV4
 #define USE_LOGGING
@@ -218,7 +218,7 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
         *pp = NULL;
 
         for (i = 0; i < 5; i++) {
-            if (!memcmp(p->dst, &relays[i].ifs[0].addr.eth.sll_addr, ETH_ALEN)) {
+            if (!memcmp(p->dst, &relays[i].ifs[0].addr.linklayer.sll_addr, ETH_ALEN)) {
                 break;
             }
         }
@@ -226,13 +226,13 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
             sockunion sun;
 
             sun.sa.sa_family = AF_PACKET;
-            memcpy(sun.eth.sll_addr, p->src, ETH_ALEN);
+            memcpy(sun.linklayer.sll_addr, p->src, ETH_ALEN);
 
             DEBUGMSG(DEBUG, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
                      p->len, eth2ascii(p->dst), qlen);
 
             ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
-                        p->len, &sun.sa, sizeof(sun.eth));
+                        p->len, &sun.sa, sizeof(sun.linklayer));
         } else {
             DEBUGMSG(WARNING, "simu_ethernet: dest %s not found\n",
                      eth2ascii(etherqueue->dst));
@@ -300,9 +300,9 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     p->src = (unsigned char*)p + sizeof(*p) + ETH_ALEN;
     p->data = (unsigned char*)p + sizeof(*p) + 2*ETH_ALEN;
     p->len = buf->datalen;
-    memcpy(p->dst, dst->eth.sll_addr, ETH_ALEN);
-    p->protocol = dst->eth.sll_protocol;
-    memcpy(p->src, ifc->addr.eth.sll_addr, ETH_ALEN);
+    memcpy(p->dst, dst->linklayer.sll_addr, ETH_ALEN);
+    p->protocol = dst->linklayer.sll_protocol;
+    memcpy(p->src, ifc->addr.linklayer.sll_addr, ETH_ALEN);
     memcpy(p->data, buf->data, buf->datalen);
 
     // prepend
@@ -356,8 +356,8 @@ ccnl_simu_init_node(char node, const char *addr,
 
     // add (fake) eth0 interface with index 0:
     i = &relay->ifs[0];
-    i->addr.eth.sll_family = AF_PACKET;
-    memcpy(i->addr.eth.sll_addr, addr, ETH_ALEN);
+    i->addr.linklayer.sll_family = AF_PACKET;
+    memcpy(i->addr.linklayer.sll_addr, addr, ETH_ALEN);
     if (mtu)
         i->mtu = mtu;
     else
@@ -397,15 +397,15 @@ ccnl_simu_add_fwd(char node, const char *name, char dstnode, int mtu)
 
     DEBUGMSG(TRACE, "ccnl_simu_add_fwd\n");
 
-    sun.eth.sll_family = AF_PACKET;
-    memcpy(sun.eth.sll_addr, dst->ifs[0].addr.eth.sll_addr, ETH_ALEN);
+    sun.linklayer.sll_family = AF_PACKET;
+    memcpy(sun.linklayer.sll_addr, dst->ifs[0].addr.linklayer.sll_addr, ETH_ALEN);
     fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
     //    fwd->prefix = ccnl_path_to_prefix(name);
     cp = ccnl_strdup(name);
     fwd->prefix = ccnl_URItoPrefix(cp, theSuite, NULL, NULL);
     ccnl_free(cp);
     fwd->suite = theSuite;
-    fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.eth));
+    fwd->face = ccnl_get_face_or_create(relay, 0, &sun.sa, sizeof(sun.linklayer));
 #ifdef USE_FRAG
     if (mtu)
         fwd->face->frag = ccnl_frag_new(CCNL_FRAG_BEGINEND2015, mtu);

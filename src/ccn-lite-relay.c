@@ -32,7 +32,7 @@
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
-#define USE_ETHERNET
+#define USE_LINKLAYER
 //#define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS
@@ -89,7 +89,7 @@ char suite = CCNL_SUITE_DEFAULT;
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
 int
 ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
@@ -126,7 +126,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 
     return s;
 }
-#endif // USE_ETHERNET
+#endif // USE_LINKLAYER
 
 #ifdef USE_UNIXSOCKET
 int
@@ -211,7 +211,7 @@ ccnl_open_udpdev(int port, struct sockaddr_in6 *sin)
 }
 #endif
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
 int
 ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
                 unsigned char *data, int datalen)
@@ -234,7 +234,7 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 
     return sendto(sock, buf, hdrlen + datalen, 0, 0, 0);
 }
-#endif // USE_ETHERNET
+#endif // USE_LINKLAYER
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -260,14 +260,14 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
         break;
 #endif
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     case AF_PACKET:
         rc = ccnl_eth_sendto(ifc->sock,
-                             dest->eth.sll_addr,
-                             ifc->addr.eth.sll_addr,
+                             dest->linklayer.sll_addr,
+                             ifc->addr.linklayer.sll_addr,
                              buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
-                 eth2ascii(dest->eth.sll_addr), rc);
+                 eth2ascii(dest->linklayer.sll_addr), rc);
         break;
 #endif
 #ifdef USE_UNIXSOCKET
@@ -390,7 +390,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
-#if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
+#if defined(USE_LINKLAYER) || defined(USE_UNIXSOCKET)
     struct ccnl_if_s *i;
 #endif
 
@@ -402,11 +402,11 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;
 #endif
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     // add (real) eth0 interface with index 0:
     if (ethdev) {
         i = &relay->ifs[relay->ifcount];
-        i->sock = ccnl_open_ethdev(ethdev, &i->addr.eth, CCNL_ETH_TYPE);
+        i->sock = ccnl_open_ethdev(ethdev, &i->addr.linklayer, CCNL_ETH_TYPE);
         i->mtu = 1500;
         i->reflect = 1;
         i->fwdalli = 1;
@@ -420,7 +420,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
         } else
             DEBUGMSG(WARNING, "sorry, could not open eth device\n");
     }
-#endif // USE_ETHERNET
+#endif // USE_LINKLAYER
 
 #ifdef USE_IPV4
     ccnl_relay_udp(relay, udpport1);
@@ -559,11 +559,11 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                                      &src_addr.sa, sizeof(src_addr.ip4));
                     }
 #endif
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
                     else if (src_addr.sa.sa_family == AF_PACKET) {
                         if (len > 14)
                             ccnl_core_RX(ccnl, i, buf+14, len-14,
-                                         &src_addr.sa, sizeof(src_addr.eth));
+                                         &src_addr.sa, sizeof(src_addr.linklayer));
                     }
 #endif
 #ifdef USE_UNIXSOCKET

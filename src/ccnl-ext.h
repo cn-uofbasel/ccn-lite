@@ -181,7 +181,7 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 #elif defined(USE_IPV6)
   struct socket* ccnl_open_udpdev(int port, struct sockaddr_in6 *sin);
 #endif
-# ifdef USE_ETHERNET
+# ifdef USE_LINKLAYER
   struct net_device* ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll,
                                       int ethtype);
 # endif
@@ -193,7 +193,7 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 #elif defined(USE_IPV6)
   int ccnl_open_udpdev(int port, struct sockaddr_in6 *sin);
 #endif
-# ifdef USE_ETHERNET
+# ifdef USE_LINKLAYER
   int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
 # endif
 

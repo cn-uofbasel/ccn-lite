@@ -42,7 +42,7 @@
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
-#define USE_ETHERNET                   // we co-use addr formatting for BTLE
+#define USE_LINKLAYER                   // we co-use addr formatting for BTLE
 //#define USE_FRAG
 #define USE_LOGGING
 #define USE_HMAC256
@@ -106,7 +106,7 @@ struct ccnl_relay_s theRelay;
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
 int
 ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 {
@@ -143,7 +143,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 
     return s;
 }
-#endif // USE_ETHERNET
+#endif // USE_LINKLAYER
 
 int
 ccnl_open_udpdev(int port, struct sockaddr_in *si)
@@ -186,11 +186,11 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                  inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
         break;
 #endif
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     case AF_PACKET:
         rc = jni_bleSend(buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
-                 eth2ascii(dest->eth.sll_addr), rc);
+                 eth2ascii(dest->linklayer.sll_addr), rc);
         break;
 #endif
 #ifdef USE_UNIXSOCKET
