@@ -94,7 +94,9 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 // include only the utils, not the core routines:
 #include "../ccnl-ext.h"
 #include "../ccnl-core-util.c"
+#ifdef USE_FRAG
 #include "../ccnl-ext-frag.c"
+#endif
 #include "../ccnl-ext-hmac.c"
 
 #else // CCNL_UAPI_H_ is defined
@@ -305,7 +307,7 @@ int cistlv_isData(unsigned char *buf, int len)
 
     TRACEIN();
 
-    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
+    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
         DEBUGMSG(ERROR, "cistlv header not large enough");
         return -1;
     }
@@ -414,7 +416,7 @@ int ndntlv_isData(unsigned char *buf, int len)
     int typ;
     int vallen;
 
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int*) &typ, &vallen))
         return -1;
     if (typ != NDN_TLV_Data)
         return 0;
