@@ -869,6 +869,7 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_LINKLAYER
+#ifdef USE_DEBUG
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
         strcpy(result, eth2ascii(ll->sll_addr));
@@ -876,6 +877,7 @@ ccnl_addr2ascii(sockunion *su)
             ntohs(ll->sll_protocol));
         return result;
     }
+#endif
 #endif
 #ifdef USE_IPV4
     case AF_INET:

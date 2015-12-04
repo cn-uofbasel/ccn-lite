@@ -220,9 +220,11 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
     unsigned char buf[2000];
     int hdrlen;
 
+#ifdef USE_DEBUG
     strcpy((char*)buf, eth2ascii(dst));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
+#endif
 
     hdrlen = 14;
     if ((datalen+hdrlen) > sizeof(buf))
