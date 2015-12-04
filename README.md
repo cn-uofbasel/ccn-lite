@@ -148,7 +148,7 @@ Featue             | Description
 `USE_DEBUG`        | Basic data structure dumping.
 `USE_DEBUG_MALLOC` | Compile with memory armoring.
 `USE_ECHO`         | Enable an echo prefix, returning the current time.
-`USE_ETHERNET`     | Talk to Ethernet or W-LAN devices, raw frames.
+`USE_LINKLAYER`    | Talk to Ethernet, W-LAN, 802.15.4 devices, raw frames.
 `USE_FRAG`         | Enable fragments, to run CCNx over Ethernet.
 `USE_HMAC256`      | Enables hash-based authentification codes.
 `USE_HTTP_STATUS`  | Provide status info for web browsers.

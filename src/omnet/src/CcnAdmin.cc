@@ -832,11 +832,11 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
                     prefixSet = 1;
                 }
                 else if (qualifyerName == "NextHop")  {
-                    TEST_DO( iter.parseIdentifierWithIndex(nextHop), errMsg = "EXPECTING A STRING (e.g. 'client1.eth[2]') AFTER 'NextHop =' "; );
+                    TEST_DO( iter.parseIdentifierWithIndex(nextHop), errMsg = "EXPECTING A STRING (e.g. 'client1.linklayer[2]') AFTER 'NextHop =' "; );
                     nextHopSet = 1;
                 }
                 else if (qualifyerName == "AccessFrom")  {
-                    TEST_DO( iter.parseIdentifierWithIndex(accessFrom), errMsg = "EXPECTING A STRING (e.g. 'client1.eth[2]') AFTER 'AccessFrom =' "; );
+                    TEST_DO( iter.parseIdentifierWithIndex(accessFrom), errMsg = "EXPECTING A STRING (e.g. 'client1.linklayer[2]') AFTER 'AccessFrom =' "; );
                     accessFromSet = 1;
                 }
                 else if (qualifyerName == "UpdateTime") {
@@ -864,7 +864,7 @@ CcnAdmin::parseNodeConfig (cModule *node, const std::string &configFile)
             }
 
 
-            /* Find cModule ptrs for the given nextHop and accessFrom strings (expecting something like "client1.eth[0]")
+            /* Find cModule ptrs for the given nextHop and accessFrom strings (expecting something like "client1.linklayer[0]")
              */
             cModule * topologyLevel = getParentModule();      // climb up to the network level of the hierarchy
             std::string accessFromRelpath = std::string(".") + accessFrom;

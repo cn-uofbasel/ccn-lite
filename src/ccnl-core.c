@@ -53,9 +53,9 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
     if (s1->sa.sa_family != s2->sa.sa_family)
         return -1;
     switch (s1->sa.sa_family) {
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
         case AF_PACKET:
-            return memcmp(s1->eth.sll_addr, s2->eth.sll_addr, ETH_ALEN);
+            return memcmp(s1->linklayer.sll_addr, s2->linklayer.sll_addr, ETH_ALEN);
 #endif
 #ifdef USE_IPV4
         case AF_INET:

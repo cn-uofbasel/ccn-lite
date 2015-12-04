@@ -31,7 +31,7 @@ enum {STAT_RCV_I, STAT_RCV_C, STAT_SND_I, STAT_SND_C, STAT_QLEN, STAT_EOP1};
 #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
-#define USE_ETHERNET
+#define USE_LINKLAYER
 #define USE_HTTP_STATUS
 #define USE_NACK
 #define USE_NFN
