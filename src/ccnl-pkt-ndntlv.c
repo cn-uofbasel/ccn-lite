@@ -199,7 +199,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                     pkt->s.ndntlv.mbf = 1;
                     break;
                 case NDN_TLV_Exclude:
-                    DEBUGMSG(WARNING, "'Exclude' field ignored\n");
+                    DEBUGMSG(DEBUG, "'Exclude' field ignored\n");
                     break;
                 default:
                     break;
@@ -231,7 +231,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 if (typ == NDN_TLV_FreshnessPeriod) {
                     // Not used
                     // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
+                    DEBUGMSG(DEBUG, "'FreshnessPeriod' field ignored\n");
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
                     if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &i))

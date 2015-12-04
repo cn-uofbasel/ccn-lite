@@ -44,7 +44,7 @@ char *progname;
 void
 usage(int exitval)
 {
-    fprintf(stderr, "usage: %s -p DIRPATH [options] FILE [URI]  (producing)\n"
+    fprintf(stderr, "usage: %s -p REPODIR [options] FILE [URI]  (producing)\n"
                     "       %s [options] URI                    (retrieving)\n"
             "  -b SIZE    Block size (default is 4K)\n"
             "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
@@ -439,11 +439,19 @@ digest2str(unsigned char *md)
 }
 
 void
-assertDir(char *dirpath, char *cp)
+assertDir(char *dirpath, char *lev1, char *lev2)
 {
     char *fn;
 
-    asprintf(&fn, "%s/%c%c", dirpath, cp[0], cp[1]);
+    asprintf(&fn, "%s/%c%c", dirpath, lev1[0], lev1[1]);
+    if (mkdir(fn, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+        exit(-1);
+    }
+    free(fn);
+    if (!lev2)
+        return;
+    asprintf(&fn, "%s/%c%c/%c%c", dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
     if (mkdir(fn, 0777) && errno != EEXIST) {
         DEBUGMSG(FATAL, "could not create directory %s\n", fn);
         exit(-1);
@@ -451,14 +459,14 @@ assertDir(char *dirpath, char *cp)
     free(fn);
 }
 
-    
 char*
 digest2fname(char *dirpath, unsigned char *packetDigest)
 {
     char *hex = digest2str(packetDigest), *fn;
 
-    assertDir(dirpath, hex);
-    asprintf(&fn, "%s/%c%c/%s", dirpath, hex[0], hex[1], hex+2);
+    assertDir(dirpath, hex, hex+2);
+    asprintf(&fn, "%s/%02x/%02x/%s", dirpath,
+             packetDigest[0], packetDigest[1], hex+4);
 
     return fn;
 }
@@ -469,10 +477,11 @@ flic_link(char *dirpath, char *linkdir,
 {
     char *hex, *fn, *link;
 
-    assertDir(dirpath, linkdir);
+    assertDir(dirpath, linkdir, NULL);
 
     hex = digest2str(packetDigest);
-    asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
+    asprintf(&fn, "../%02x/%02x/%s",
+             packetDigest[0], packetDigest[1], hex+4);
 
     hex = digest2str(linkDigest);
     asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);

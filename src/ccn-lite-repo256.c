@@ -26,14 +26,13 @@
 OKset = hash table (set) of verified file content
 NMmap = hash table (map) of verified names, pointing to the hash value
 ERset = hash table (set) of files know to have wrong name (for the hash val)
-NOset = hash table (set) of files know to not exist (for the given hash val)
 HSset = hash table (set) of learned content hashes
 
 File system structure:
 
   <dirpath>
-  <dirpath>/XY/<62 hex digits>
-           where XY are the two topmost hex digits of the file's digest
+  <dirpath>/UV/XY/<60 hex digits>
+           where UVXY are the four topmost hex digits of the file's digest
 
 Todo:
 
@@ -100,10 +99,10 @@ char *theRepoDir;
 unsigned char iobuf[64*2014];
 
 enum {
-    MODE_NONDX,    // for each interest, visit directly the file system
+    MODE_LAZY,    // for each interest, visit directly the file system
     MODE_INDEX     // build an internal index, check there before read()
 };
-int repo_mode = MODE_NONDX;
+int repo_mode = MODE_LAZY;
 
 // ----------------------------------------------------------------------
 // khash.h specifics
@@ -166,11 +165,19 @@ khash_t(PFX) *NMmap;
 // ----------------------------------------------------------------------
 
 void
-assertDir(char *dirpath, char *cp)
+assertDir(char *dirpath, char *lev1, char *lev2)
 {
     char *fn;
 
-    asprintf(&fn, "%s/%c%c", dirpath, cp[0], cp[1]);
+    asprintf(&fn, "%s/%c%c", dirpath, lev1[0], lev1[1]);
+    if (mkdir(fn, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+        exit(-1);
+    }
+    free(fn);
+    if (!lev2)
+        return;
+    asprintf(&fn, "%s/%c%c/%c%c", dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
     if (mkdir(fn, 0777) && errno != EEXIST) {
         DEBUGMSG(FATAL, "could not create directory %s\n", fn);
         exit(-1);
@@ -213,7 +220,8 @@ digest2fname(char *dirpath, unsigned char *md)
 {
     char *cp, *hex = digest2str(md);
 
-    asprintf(&cp, "%s/%02x/%s", dirpath, (unsigned) md[0], hex+2);
+    asprintf(&cp, "%s/%02x/%02x/%s", dirpath,
+             md[0], md[1], hex+4);
 
     return cp;
 }
@@ -432,7 +440,7 @@ ccnl_repo256_config(struct ccnl_relay_s *relay, char *ethdev, int udpport,
 #endif
 
     DEBUGMSG(INFO, "configuring repo in '%s mode'\n",
-             repo_mode == MODE_NONDX ? "noindex" : "index");
+             repo_mode == MODE_LAZY ? "lazy" : "index");
 
     relay->max_cache_entries = max_cache_entries;
 #ifdef USE_SCHEDULER
@@ -944,18 +952,18 @@ addNamed(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
     absent = 0;
     k = kh_put(PFX, NMmap, n, &absent);
     if (absent) {
-        DEBUGMSG(VERBOSE, "  [%s]%s -->\n",
+        DEBUGMSG(INFO, "  adding [%s]%s\n",
                  ccnl_prefix2path(prefixBuf,
-                                  CCNL_ARRAY_SIZE(prefixBuf),
-                                  pkt->pfx),
+                              CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx),
                  ccnl_suite2str(pkt->pfx->suite));
         DEBUGMSG(VERBOSE, "  %s\n", digest2str(pkt->md));
         kh_key(NMmap, k) = n;
         kh_val(NMmap, k) = key;
     } else {
-        DEBUGMSG(WARNING, "  name %s already seen, skipping\n",
+        DEBUGMSG(DEBUG, "  [%s]%s already seen, skipping\n",
                  ccnl_prefix2path(prefixBuf,
-                                  CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
+                              CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx),
+                 ccnl_suite2str(pkt->pfx->suite));
         ccnl_free(n);
     }
 }
@@ -1002,7 +1010,7 @@ add_content(char *dirpath, char *fname, reg_f addToTables)
     char *path;
 
     asprintf(&path, "%s/%s", dirpath, fname);
-    DEBUGMSG(DEBUG, "add_content(%s_\n", path);
+    DEBUGMSG(DEBUG, "add_content(%s)\n", path);
     pkt = contentFile2packet(path);
 
     if (!pkt) {
@@ -1032,7 +1040,7 @@ walk_fs(char *path, reg_f addToTables)
             add_content(path, de->d_name, addToTables);
             break;
         case DT_LNK:
-            if (repo_mode == MODE_NONDX)
+            if (repo_mode == MODE_LAZY)
                 add_content(path, de->d_name, addToTables);
             break;
         case DT_DIR:
@@ -1058,10 +1066,11 @@ flic_link(char *dirpath, char *linkdir,
 {
     char *hex, *fn, *link;
 
-    assertDir(dirpath, linkdir);
+    assertDir(dirpath, linkdir, NULL);
 
     hex = digest2str(packetDigest);
-    asprintf(&fn, "../%c%c/%s", hex[0], hex[1], hex+2);
+    asprintf(&fn, "../%02x/%02x/%s",
+             packetDigest[0], packetDigest[1], hex+4);
 
     hex = digest2str(linkDigest);
     asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);
@@ -1097,8 +1106,9 @@ ccnl_repo256_import(char *dir)
             hashName = digest2fname(theRepoDir, pkt->md);
             if (access(hashName, F_OK)) { // no such file, create it
                 int f;
+                char *cp = digest2str(pkt->md);
                 DEBUGMSG(DEBUG, "  creating %s\n", hashName);
-                assertDir(theRepoDir, digest2str(pkt->md));
+                assertDir(theRepoDir, cp, cp + 2);
                 f = open(hashName, O_CREAT | O_TRUNC | O_WRONLY, 0600);
                 write(f, pkt->buf->data, pkt->buf->datalen);
                 close(f);
@@ -1148,7 +1158,7 @@ main(int argc, char *argv[])
             import_path = optarg;
             break;
         case 'm':
-            repo_mode = !strcmp(optarg, "index") ? MODE_INDEX : MODE_NONDX;
+            repo_mode = !strcmp(optarg, "index") ? MODE_INDEX : MODE_LAZY;
             break;
         case 'u':
             udpport = atoi(optarg);
@@ -1174,7 +1184,7 @@ usage:
 //                  "  -c MAX_CONTENT_ENTRIES  (dflt: 0)\n"
                     "  -e ETHDEV\n"
                     "  -h              this text\n"
-                    "  -m MODE         ('noindex'=read through (dflt), 'index'=internal map\n"
+                    "  -m MODE         ('lazy'=read through (dflt), 'index'=internal map\n"
 #ifdef USE_IPV4
                     "  -u UDPPORT      (default: 7777)\n"
 #endif
@@ -1235,7 +1245,7 @@ usage:
         free(fname);
     }
 
-    DEBUGMSG(INFO, "visited %d files:\n", kh_size(OKset));
+    DEBUGMSG(INFO, "Summary: %d files included\n", kh_size(OKset));
     DEBUGMSG(INFO, "  name entries        : %d\n", kh_size(NMmap));
     DEBUGMSG(INFO, "  content hash entries: %d\n", kh_size(HSset));
     DEBUGMSG(INFO, "  files with errors   : %d\n", kh_size(ERset));
