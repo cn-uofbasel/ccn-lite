@@ -305,7 +305,7 @@ int cistlv_isData(unsigned char *buf, int len)
 
     TRACEIN();
 
-    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
+    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
         DEBUGMSG(ERROR, "cistlv header not large enough");
         return -1;
     }
@@ -414,7 +414,7 @@ int ndntlv_isData(unsigned char *buf, int len)
     int typ;
     int vallen;
 
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int*) &typ, &vallen))
         return -1;
     if (typ != NDN_TLV_Data)
         return 0;
