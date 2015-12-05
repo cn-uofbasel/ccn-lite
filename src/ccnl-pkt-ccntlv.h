@@ -157,6 +157,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_MANIFEST_MT_BLOCKSIZE              2
 #define CCNX_MANIFEST_MT_OVERALLDATASIZE        3
 #define CCNX_MANIFEST_MT_OVERALLDATASHA256      4
+#define CCNX_MANIFEST_MT_TREEDEPTH              5
 
 // validation algorithms (Sect 3.6.4.1)
 #define CCNX_VALIDALGO_CRC32C                   2

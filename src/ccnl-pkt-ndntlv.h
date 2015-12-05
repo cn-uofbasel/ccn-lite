@@ -88,6 +88,7 @@
 #define NDN_TLV_MANIFEST_MT_BLOCKSIZE          0xc7
 #define NDN_TLV_MANIFEST_MT_OVERALLDATASIZE    0xc8
 #define NDN_TLV_MANIFEST_MT_OVERALLDATASHA256  0xc9
+#define NDN_TLV_MANIFEST_MT_TREEDEPTH          0xca
 
 // reserved values:
 /*

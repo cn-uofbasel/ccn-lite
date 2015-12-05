@@ -464,6 +464,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 case CCNX_MANIFEST_MT_BLOCKSIZE:        tn = "BlockSize"; break;
                 case CCNX_MANIFEST_MT_OVERALLDATASIZE:  tn = "DataSize"; break;
                 case CCNX_MANIFEST_MT_OVERALLDATASHA256: tn = "DataSHA256"; break;
+                case CCNX_MANIFEST_MT_TREEDEPTH:        tn = "TreeDepth"; break;
                 default: break;
                 }
                 break;
@@ -1301,6 +1302,7 @@ ndn_type2name(unsigned type)
     case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
+    case NDN_TLV_MANIFEST_MT_TREEDEPTH:         n = "TreeDepth"; break;
 
     default:
         n = NULL;
