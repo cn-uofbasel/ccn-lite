@@ -373,7 +373,7 @@ ccnl_prefix_new(int suite, int cnt)
 }
 
 int
-hex2int(char c)
+hex2int(unsigned char c)
 {
     if (c >= '0' && c <= '9')
         return c - '0';
