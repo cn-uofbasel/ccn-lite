@@ -922,7 +922,7 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     static char *prefix_buf2;
     static char *buf;*/
 
-#ifdef CCNL_ARDUINO
+#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
 # define PREFIX_BUFSIZE 50
 #else
 # define PREFIX_BUFSIZE 2048
