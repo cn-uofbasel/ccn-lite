@@ -19,7 +19,11 @@ GCC_VERSION := $(shell ${CC} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 
 GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
+CCNLCFLAGS=-Wall -Werror -std=c99 -g
+	
+ifeq ($(RIOTBASE),)
+	CCNLCFLAGS += -pedantic -O0
+endif
 
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
