@@ -4,6 +4,8 @@
  *
  */
 
+#ifdef USE_SHA256
+
 #ifdef CCNL_ARDUINO
 # define _MEMLOCATION_ PROGMEM
 # define K256_(i)      pgm_read_dword_near(K256 + i)
@@ -147,9 +149,9 @@ const static sha2_word32 sha256_initial_hash_value[8] _MEMLOCATION_ = {
 
 /*** SHA-256: *********************************************************/
 
-void ccnl_SHA256_Init(SHA256_CTX_t* context) {
+int ccnl_SHA256_Init(SHA256_CTX_t* context) {
 	if (context == (SHA256_CTX_t*)0) {
-		return;
+		return 0;
 	}
 #ifdef CCNL_ARDUINO
 	memcpy_P(context->state, sha256_initial_hash_value, SHA256_DIGEST_LENGTH);
@@ -158,6 +160,8 @@ void ccnl_SHA256_Init(SHA256_CTX_t* context) {
 #endif
 	MEMSET_BZERO(context->buffer, SHA256_BLOCK_LENGTH);
 	context->bitcount = 0;
+
+        return 1;
 }
 
 void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
@@ -239,12 +243,12 @@ void ccnl_SHA256_Transform(SHA256_CTX_t* context, const sha2_word32* data) {
 }
 
 
-void ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len) {
+int ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len) {
 	unsigned int	freespace, usedspace;
 
 	if (len == 0) {
 		/* Calling with no data is valid - we do nothing */
-		return;
+		return 0;
 	}
 
 	/* Sanity check: */
@@ -268,7 +272,7 @@ void ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len
 			context->bitcount += len << 3;
 			/* Clean up: */
 			usedspace = freespace = 0;
-			return;
+			return 1;
 		}
 	}
 	while (len >= SHA256_BLOCK_LENGTH) {
@@ -285,9 +289,11 @@ void ccnl_SHA256_Update(SHA256_CTX_t* context, const sha2_byte *data, size_t len
 	}
 	/* Clean up: */
 	usedspace = freespace = 0;
+
+        return 1;
 }
 
-void ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
+int ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
 	sha2_word32	*d = (sha2_word32*)digest;
 	unsigned int	usedspace;
 
@@ -348,6 +354,26 @@ void ccnl_SHA256_Final(sha2_byte digest[], SHA256_CTX_t* context) {
 	/* Clean up state data: */
 	MEMSET_BZERO(context, sizeof(SHA256_CTX_t));
 	usedspace = 0;
+
+        return 1;
 }
+
+unsigned char*
+ccnl_SHA256(const unsigned char *d, size_t n, unsigned char *md)
+{
+    static unsigned char digest[SHA256_DIGEST_LENGTH];
+    SHA256_CTX_t ctx;
+
+    if (!md)
+        md = digest;
+
+    ccnl_SHA256_Init(&ctx);
+    ccnl_SHA256_Update(&ctx, d, n);
+    ccnl_SHA256_Final(md, &ctx);
+
+    return md;
+}
+
+#endif //USE_SHA256
 
 // eof

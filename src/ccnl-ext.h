@@ -52,7 +52,7 @@ bool ccnl_isSuite(int suite);
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 
 #ifdef USE_CCNxDIGEST
-#  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)
+#  define compute_ccnx_digest(buf) ccnl_SHA256(buf->data, buf->datalen, NULL)
 #else
 #  define compute_ccnx_digest(b) NULL
 #endif

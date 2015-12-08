@@ -64,9 +64,11 @@
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
 #include "../ccnl-ext.h"
+
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
+#include "../lib-sha256.c"
 
 int debug_level = WARNING;
 

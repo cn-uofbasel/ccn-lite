@@ -89,14 +89,14 @@ mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
 #ifdef USE_SIGNATURES
 int sha(void* input, unsigned long length, unsigned char* md)
 {
-    SHA256_CTX context;
-    if(!SHA256_Init(&context))
+    SHA256_CTX_t context;
+    if(!ccnl_SHA256_Init(&context))
         return 0;
 
-    if(!SHA256_Update(&context, (unsigned char*)input, length))
+    if(!ccnl_SHA256_Update(&context, (unsigned char*)input, length))
         return 0;
 
-    if(!SHA256_Final(md, &context))
+    if(!ccnl_SHA256_Final(md, &context))
         return 0;
     return 1;
 }

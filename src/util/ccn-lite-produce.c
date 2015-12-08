@@ -26,6 +26,7 @@
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_SHA256
 #define USE_SIGNATURES
 
 #define CCNL_MAX_CHUNK_SIZE 4048

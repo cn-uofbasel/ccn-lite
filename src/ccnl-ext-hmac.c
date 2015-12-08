@@ -22,8 +22,6 @@
 
 #ifdef USE_HMAC256
 
-#include "lib-sha256.c"
-
 // RFC2014 keyval generation
 void
 ccnl_hmac256_keyval(unsigned char *key, int klen,

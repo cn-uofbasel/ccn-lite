@@ -27,6 +27,7 @@
 #define USE_SUITE_NDNTLV
 
 #define USE_HMAC256
+#define USE_SHA256
 
 #define assert(...) do {} while(0)
 #include "ccnl-common.c"

@@ -20,7 +20,9 @@
  * 2012-07-01  created
  */
 
+#define USE_SHA256
 #define USE_SIGNATURES
+
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV

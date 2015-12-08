@@ -23,6 +23,8 @@
 #define CCNL_UNIX
 
 #define USE_SUITE_CCNB
+
+#define USE_SHA256
 #define USE_SIGNATURES
 
 #include "ccnl-common.c"

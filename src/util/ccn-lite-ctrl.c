@@ -28,7 +28,9 @@
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_SHA256
 #define USE_SIGNATURES
+
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
 

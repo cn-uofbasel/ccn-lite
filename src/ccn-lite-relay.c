@@ -44,6 +44,7 @@
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
+#define USE_SHA256
 #define USE_STATS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
@@ -61,6 +62,7 @@
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 
+#include "lib-sha256.c"
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
