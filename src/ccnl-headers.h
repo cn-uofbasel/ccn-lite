@@ -4,7 +4,7 @@
 
 //data structure forward declarations
 
-
+#include <sys/time.h>
 //CCNL INCLUDES
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
@@ -192,7 +192,7 @@ int current_time(void);
 double current_time(void);
 #endif
 char *timestamp(void);
-#if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
+#if defined(CCNL_UNIX) || defined(CCNL_RIOT) || defined(CCNL_SIMULATION)
 void ccnl_get_timeval(struct timeval *tv);
 void *ccnl_set_timer(uint64_t usec, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
 void *ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);

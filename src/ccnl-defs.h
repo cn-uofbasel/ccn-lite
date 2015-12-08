@@ -33,7 +33,7 @@
 
 #define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
-#if defined(CCNL_ARDUINO)
+#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
 # define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                14
 # define CCNL_MAX_PACKET_SIZE            120
