@@ -452,57 +452,52 @@ digest2str(unsigned char *md)
 void
 assertDir(char *dirpath, char *lev1, char *lev2)
 {
-    char *fn;
-
-    asprintf(&fn, "%s/%c%c", dirpath, lev1[0], lev1[1]);
-    if (mkdir(fn, 0777) && errno != EEXIST) {
-        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%c%c", dirpath, lev1[0], lev1[1]);
+    if (mkdir(fnbuf, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fnbuf);
         exit(-1);
     }
-    free(fn);
+
     if (!lev2)
         return;
-    asprintf(&fn, "%s/%c%c/%c%c", dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
-    if (mkdir(fn, 0777) && errno != EEXIST) {
-        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%c%c/%c%c",
+             dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
+    if (mkdir(fnbuf, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fnbuf);
         exit(-1);
     }
-    free(fn);
 }
 
 char*
 digest2fname(char *dirpath, unsigned char *packetDigest)
 {
-    char *hex = digest2str(packetDigest), *fn;
+    char *hex = digest2str(packetDigest);
 
     assertDir(dirpath, hex, hex+2);
-    asprintf(&fn, "%s/%02x/%02x/%s", dirpath,
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%02x/%02x/%s", dirpath,
              packetDigest[0], packetDigest[1], hex+4);
 
-    return fn;
+    return fnbuf;
 }
 
 void
 flic_link(char *dirpath, char *linkdir,
-             unsigned char *packetDigest, unsigned char *linkDigest)
+          unsigned char *packetDigest, unsigned char *linkDigest)
 {
-    char *hex, *fn, *link;
+    char *hex, lnktarget[100];
 
     assertDir(dirpath, linkdir, NULL);
 
     hex = digest2str(packetDigest);
-    asprintf(&fn, "../%02x/%02x/%s",
+    snprintf(lnktarget, sizeof(lnktarget), "../%02x/%02x/%s",
              packetDigest[0], packetDigest[1], hex+4);
 
     hex = digest2str(linkDigest);
-    asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%s/%s", dirpath, linkdir, hex);
     
-    symlink(fn, link);
-
-    free(link);
-    free(fn);
+    symlink(lnktarget, fnbuf);
 }
-    
+
 int
 flic_namelessObj2file(unsigned char *data, int len,
                       char *dirpath, unsigned char *digest)
@@ -531,7 +526,6 @@ flic_namelessObj2file(unsigned char *data, int len,
 
     fname = digest2fname(dirpath, digest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-    free(fname);
     if (f < 0) {
         perror("file open:");
         return -1;
@@ -617,7 +611,6 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
     // Save the packet to disk
     fname = digest2fname(dirpath, packetDigest);
     f = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-    free(fname);
     if (f < 0) {
         perror("file open:");
         return;

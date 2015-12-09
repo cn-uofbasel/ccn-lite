@@ -1065,7 +1065,7 @@ walk_fs(char *path, reg_f addToTables)
 
 void
 flic_link(char *dirpath, char *linkdir,
-             unsigned char *packetDigest, unsigned char *linkDigest)
+          unsigned char *packetDigest, unsigned char *linkDigest)
 {
     char *hex, lnktarget[100];
 
