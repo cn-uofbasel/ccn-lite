@@ -92,6 +92,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     if (*restart) {
         DEBUGMSG(DEBUG, "---to do: OP_FIND restart\n");
@@ -132,7 +133,9 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return ccnl_strdup(prog);
     }
 
-    DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(INFO, "FIND: result was found ---> handle it (%s), prog=%s, pending=%s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
+             prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {
@@ -180,6 +183,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     //    print_argument_stack(config->argument_stack);
     //    print_result_stack(config->result_stack);
@@ -223,7 +227,9 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         return prog ? ccnl_strdup(prog) : NULL;
     }
 
-    DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n", ccnl_prefix_to_path(prefix), prog, pending);
+    DEBUGMSG(DEBUG, "RAW: result was found ---> handle it (%s), prog=%s, pending=%s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
+             prog, pending);
 #ifdef USE_NACK
 /*
     if (!strncmp((char*)c->content, ":NACK", 5)) {
@@ -275,9 +281,9 @@ op_builtin_cmpeqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     cp = (i1 == i2) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -293,9 +299,9 @@ op_builtin_cmpleqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     cp = (i2 <= i1) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -311,9 +317,9 @@ op_builtin_cmpeq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     pop2int();
     cp = (i1 == i2) ? "1" : "0";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -329,9 +335,9 @@ op_builtin_cmpleq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     pop2int();
     cp = (i2 <= i1) ? "1" : "0";
     if (pending)
-        sprintf(res, "RESOLVENAME(%s);%s", cp, pending);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s);%s", cp, pending);
     else
-        sprintf(res, "RESOLVENAME(%s)", cp);
+        snprintf(res, CCNL_ARRAY_SIZE(res), "RESOLVENAME(%s)", cp);
     return ccnl_strdup(res);
 }
 
@@ -356,10 +362,10 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     }
     i1 = *(int *)h->content;
     if (i1) {
-        struct stack_s *stack = pop_from_stack(&config->argument_stack);
+        struct stack_s *stack2 = pop_from_stack(&config->argument_stack);
         DEBUGMSG(DEBUG, "Execute if\n");
         pop_from_stack(&config->argument_stack);
-        push_to_stack(&config->argument_stack, stack->content,
+        push_to_stack(&config->argument_stack, stack2->content,
                       STACK_TYPE_CLOSURE);
     } else {
         DEBUGMSG(DEBUG, "Execute else\n");
@@ -380,6 +386,7 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                    int *restart, int *halt, char *prog, char *pending,
                    struct stack_s **stack)
 {
+    int cpLen;
     char *cp = NULL;
     struct stack_s *s1, *s2;
 
@@ -426,8 +433,9 @@ op_builtin_nstrans(struct ccnl_relay_s *ccnl, struct configuration_s *config,
         s1 = NULL;
 
         if (pending) {
-            cp = ccnl_malloc(strlen(pending)+1);
-            strcpy(cp, pending);
+            cpLen = strlen(pending) + 1;
+            cp = ccnl_malloc(cpLen);
+            snprintf(cp, cpLen, "%s", pending);
         }
     } else {
 out:

@@ -58,8 +58,6 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 
-#include "base64.c"
-
 #include "../ccnl-os-includes.h"
 #include "../ccnl-defs.h"
 #include "../ccnl-core.h"
@@ -68,6 +66,8 @@
 #include "../ccnl-ext-debug.c"
 #include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
+
+#include "../lib-base64.c"
 #include "../lib-sha256.c"
 
 int debug_level = WARNING;
@@ -78,7 +78,8 @@ int debug_level = WARNING;
 #define ccnl_free(p)                    free(p)
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
-#define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+// FIXME: Is this actually needed? Duplicate from ccnl-ext.h
+// #define ccnl_snprintfPrefixPath(P) ccnl_snprintfPrefixPathDetailed(P, 1, 0, 0)
 
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
@@ -94,14 +95,14 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #define ccnl_core_addToCleanup(b)       do{}while(0)
 
 // include only the utils, not the core routines:
-#include "../ccnl-ext.h"
 #include "../ccnl-core-util.c"
+#include "../ccnl-core-pfx.c"
 #include "../ccnl-ext-frag.c"
 #include "../ccnl-ext-hmac.c"
 
 #else // CCNL_UAPI_H_ is defined
 
-#include "base64.c"
+#include "../lib-base64.c"
 
 #endif // CCNL_UAPI_H_
 
@@ -157,7 +158,7 @@ ccnl_enc2str(int enc)
 
 #ifdef NEEDS_PACKET_CRAFTING
 int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
+ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, const char *minSuffix,
                      const char *maxSuffix, unsigned char *digest, int dlen,
                      unsigned char *publisher, int plen, char *scope,
                      uint32_t *nonce, unsigned char *out)
@@ -185,11 +186,11 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
 
     if (minSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MINSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) minSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) minSuffix,
                                  strlen(minSuffix));
     if (maxSuffix)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MAXSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) maxSuffix,
+                                 CCN_TT_UDATA, (const unsigned char*) maxSuffix,
                                  strlen(maxSuffix));
     if (publisher)
         len += ccnl_ccnb_mkField(out + len, CCN_DTAG_PUBPUBKDIGEST,
@@ -209,16 +210,6 @@ ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
 }
 #endif
 
-int ccnb_isContent(unsigned char *buf, int len)
-{
-    int num, typ;
-
-    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
-        return -1;
-    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
-        return 0;
-    return 1;
-}
 #endif // USE_SUITE_CCNB
 
 // ----------------------------------------------------------------------
@@ -228,54 +219,22 @@ int ccnb_isContent(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
-    (void) dummy;
-     int len, offset;
+     int len = 0, offset;
 
      offset = outlen;
-     len = ccnl_ccntlv_prependChunkInterestWithHdr(name, &offset, out);
+     if (objHashRestr)
+         len = ccnl_ccntlv_prependBlob(CCNX_TLV_M_ObjHashRestriction,
+                                       objHashRestr, 32, &offset, out);
+     len += ccnl_ccntlv_prependInterestWithHdr(name, &offset, out, len);
      if (len > 0)
          memmove(out, out + offset, len);
 
      return len;
 }
 #endif
-
-struct ccnx_tlvhdr_ccnx2015_s*
-ccntlv_isHeader(unsigned char *buf, int len)
-{
-    struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
-
-    if ((unsigned int)len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
-        DEBUGMSG(ERROR, "ccntlv header not large enough\n");
-        return NULL;
-    }
-    if (hp->version != CCNX_TLV_V1) {
-        DEBUGMSG(ERROR, "ccntlv version %d not supported\n", hp->version);
-        return NULL;
-    }
-    if (ntohs(hp->pktlen) < len) {
-        DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
-                 ntohs(hp->pktlen), len);
-        return NULL;
-    }
-    return hp;
-}
-
-int ccntlv_isData(unsigned char *buf, int len)
-{
-    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
-
-    return hp && hp->pkttype == CCNX_PT_Data;
-}
-
-int ccntlv_isFragment(unsigned char *buf, int len)
-{
-    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
-
-    return hp && hp->pkttype == CCNX_PT_Fragment;
-}
 
 #endif // USE_SUITE_CCNTLV
 
@@ -286,55 +245,19 @@ int ccntlv_isFragment(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
+                  unsigned char *objHashRestr,
                   unsigned char *out, int outlen)
 {
-    (void) dummy;
-    int len, offset;
+     int len, offset = outlen;
 
-    offset = outlen;
-    len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
+     len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
+     if (len > 0)
+         memmove(out, out + offset, len);
 
     return len;
 }
 #endif
 
-int cistlv_isData(unsigned char *buf, int len)
-{
-    struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
-    unsigned short hdrlen, pktlen; // payloadlen;
-
-    TRACEIN();
-
-    if (len < sizeof(struct cisco_tlvhdr_201501_s)) {
-        DEBUGMSG(ERROR, "cistlv header not large enough");
-        return -1;
-    }
-    hdrlen = hp->hlen; // ntohs(hp->hdrlen);
-    pktlen = ntohs(hp->pktlen);
-    //    payloadlen = ntohs(hp->payloadlen);
-
-    if (hp->version != CISCO_TLV_V1) {
-        DEBUGMSG(ERROR, "cistlv version %d not supported\n", hp->version);
-        return -1;
-    }
-
-    if (pktlen < len) {
-        DEBUGMSG(ERROR, "cistlv packet too small (%d instead of %d bytes)\n",
-                 pktlen, len);
-        return -1;
-    }
-    buf += hdrlen;
-    len -= hdrlen;
-
-    TRACEOUT();
-
-    if(hp->pkttype == CISCO_PT_Content)
-        return 1;
-    else
-        return 0;
-}
 #endif // USE_SUITE_CISTLV
 
 // ----------------------------------------------------------------------
@@ -344,6 +267,7 @@ int cistlv_isData(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
+                 unsigned char *objHashRestr,
                  unsigned char *out, int outlen)
 {
     (void) dummy;
@@ -359,36 +283,6 @@ iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
 }
 #endif // NEEDS_PACKET_CRAFTING
 
-// return 1 for Reply, 0 for Request, -1 if invalid
-int iottlv_isReply(unsigned char *buf, int len)
-{
-    int enc = 1, suite;
-    unsigned int typ;
-    int vallen;
-
-    while (!ccnl_switch_dehead(&buf, &len, &enc));
-    suite = ccnl_enc2suite(enc);
-    if (suite != CCNL_SUITE_IOTTLV)
-        return -1;
-    DEBUGMSG(DEBUG, "suite ok\n");
-    if (len < 1 || ccnl_iottlv_dehead(&buf, &len, &typ, &vallen) < 0)
-        return -1;
-    DEBUGMSG(DEBUG, "typ=%d, len=%d\n", typ, vallen);
-    if (typ == IOT_TLV_Reply)
-        return 1;
-    if (typ == IOT_TLV_Request)
-        return 0;
-    return -1;
-}
-
-int iottlv_isFragment(unsigned char *buf, int len)
-{
-    int enc;
-    while (!ccnl_switch_dehead(&buf, &len, &enc));
-    return ccnl_iottlv_peekType(buf, len) == IOT_TLV_Fragment;
-}
-
-
 #endif // USE_SUITE_IOTTLV
 
 // ----------------------------------------------------------------------
@@ -398,39 +292,70 @@ int iottlv_isFragment(unsigned char *buf, int len)
 #ifdef NEEDS_PACKET_CRAFTING
 int
 ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
+                  unsigned char *dataHashRestr,
                   unsigned char *out, int outlen)
 {
-    int len, offset;
+    int len = 0, offset = outlen;
+#ifdef USE_NAMELESS     
+    struct ccnl_prefix_s name2;
+    name2.comp = 0;
 
-    offset = outlen;
-    len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
+    if (dataHashRestr) {
+        int oldpos;
+        DEBUGMSG(TRACE, "adding dataHashRestr as implicit digest\n");
+        if (name) {
+            memcpy(&name2, name, sizeof(*name));
+            name2.compcnt = name->compcnt + 1;
+        } else {
+            memset(&name2, 0, sizeof(name2));
+            name2.compcnt = 1;
+        }
+        name2.comp = ccnl_malloc(name2.compcnt * sizeof(unsigned char*));
+        name2.complen = ccnl_malloc(name2.compcnt * sizeof(int));
+        if (name) {
+            memcpy(name2.comp,name->comp,name->compcnt * sizeof(unsigned char*));
+            memcpy(name2.complen, name->complen, name->compcnt * sizeof(int));
+        }
+        name2.comp[name2.compcnt-1] = dataHashRestr;
+        name2.complen[name2.compcnt-1] = SHA256_DIGEST_LENGTH;
+        oldpos = offset;
+        ccnl_ndntlv_prependNonNegInt(NDN_TLV_MaxSuffixComponents, 0,
+                                     &offset, out);
+        ccnl_ndntlv_prependTL(NDN_TLV_Selectors, oldpos - offset, &offset, out);
+        name = &name2;
+        len += oldpos - offset;
+    }
+#endif
+
+    len += ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
 
+/*
+    {
+        int fd = open("t-interest.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        write(fd, out + offset, len);
+        close(fd);
+    }
+*/
+
+#ifdef USE_NAMELESS
+    if (name2.comp) {
+        ccnl_free(name2.comp);
+        ccnl_free(name2.complen);
+    }
+#endif
     return len;
 }
 #endif // NEEDS_PACKET_CRAFTING
 
-int ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ;
-    int vallen;
-
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
 #endif // USE_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
 
 #ifdef NEEDS_PACKET_CRAFTING
-typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
+typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, unsigned char*, int);
 #endif // NEEDS_PACKET_CRAFTING
-typedef int (*ccnl_isContentFunc)(unsigned char*, int);
-typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
 
 #ifdef NEEDS_PACKET_CRAFTING
 ccnl_mkInterestFunc
@@ -465,56 +390,6 @@ ccnl_suite2mkInterestFunc(int suite)
 }
 #endif // NEEDS_PACKET_CRAFTING
 
-ccnl_isContentFunc
-ccnl_suite2isContentFunc(int suite)
-{
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        return &ccnb_isContent;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        return &ccntlv_isData;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        return &cistlv_isData;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return &iottlv_isReply;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        return &ndntlv_isData;
-#endif
-    }
-
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
-                      suite, __func__, __LINE__);
-    return NULL;
-}
-
-ccnl_isFragmentFunc
-ccnl_suite2isFragmentFunc(int suite)
-{
-    switch(suite) {
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        return &ccntlv_isFragment;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return &iottlv_isFragment;
-#endif
-    }
-
-    DEBUGMSG(DEBUG, "unknown suite %d in %s of %s:%d\n",
-                    suite, __func__, __FILE__, __LINE__);
-    return NULL;
-}
-
 // ----------------------------------------------------------------------
 
 struct key_s {
@@ -538,13 +413,13 @@ load_keys_from_file(char *path)
     while (fgets(line, sizeof(line), fp)) {
         unsigned char *key;
         size_t keylen;
-        int read = strlen(line);
-        DEBUGMSG(TRACE, "  read %d bytes\n", read);
-        if (line[read-1] == '\n')
-            line[--read] = '\0';
-        key = base64_decode(line, read, &keylen);
+        int linelen = strlen(line);
+        DEBUGMSG(TRACE, "  read %d bytes\n", linelen);
+        if (line[linelen-1] == '\n')
+            line[--linelen] = '\0';
+        key = base64_decode(line, linelen, &keylen);
         if (key && keylen > 0) {
-            struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
+            struct key_s *k = (struct key_s *) ccnl_calloc(1, sizeof(struct key_s));
             k->keylen = keylen;
             k->key = key;
             if (kend)
@@ -567,7 +442,7 @@ load_keys_from_file(char *path)
 // ----------------------------------------------------------------------
 
 int
-ccnl_parseUdp(char *udp, int suite, char **addr, int *port)
+ccnl_parseUdp(char *udp, int suite, const char **addr, int *port)
 {
     char *tmpAddr = NULL;
     char *tmpPortStr = NULL;

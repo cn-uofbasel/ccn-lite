@@ -70,10 +70,11 @@ ccnl_parse(unsigned char *data, int datalen)
             DEBUGMSG(FATAL, "ccnx2015: parse error\n");
             return NULL;
         }
-        if (pkt->type != CCNX_TLV_TL_Interest &&
-                                            pkt->type != CCNX_TLV_TL_Object) {
-          DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data (%d)\n",
-                   pkt->type);
+        if (pkt->contentType != CCNX_TLV_TL_Interest &&
+            pkt->contentType != CCNX_TLV_TL_Object &&
+                                    pkt->contentType != CCNX_TLV_TL_Manifest) {
+          DEBUGMSG(INFO, "ccnx2015: none of Interest, Data or Manifest (%d)\n",
+                   pkt->contentType);
             return pkt;
         }
         break;
@@ -81,20 +82,21 @@ ccnl_parse(unsigned char *data, int datalen)
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len2;
-
+        /*
+        unsigned int typ, len2;
         if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len2)) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
             return NULL;
         }
-        pkt = ccnl_ndntlv_bytes2pkt(typ, base, &data, &datalen);
+        */
+        pkt = ccnl_ndntlv_bytes2pkt(base, &data, &datalen);
         if (!pkt) {
             DEBUGMSG(FATAL, "ndn2013: parse error\n");
             return NULL;
         }
-        if (pkt->type != CCNX_PT_Interest && pkt->type != CCNX_PT_Data) {
-            DEBUGMSG(INFO, "ccnx2015: neither Interest nor Data\n");
+        if (pkt->packetType != NDN_TLV_Interest &&
+                                         pkt->packetType != NDN_TLV_Data) {
+            DEBUGMSG(INFO, "ndn2013: neither Interest nor Data\n");
             return pkt;
         }
         break;
@@ -115,7 +117,8 @@ int
 main(int argc, char *argv[])
 {
     unsigned char incoming[64*1024];
-    int opt, cnt, rc, len = 0, exitBehavior = 0, signLen = 32;
+    int opt, cnt, rc, len = 0, exitBehavior = 0;
+    unsigned int signLen = 32;
     struct ccnl_pkt_s *pkt;
     unsigned char keyval[64], signature[32];
     char *keyfile = NULL;
@@ -181,18 +184,16 @@ Usage:
         if (exitBehavior == 1) {
             DEBUGMSG(INFO, "no signature data found\n");
         }
-    }
-
-    // validate packet
-    if (pkt->hmacLen) {
+    } else { // validate packet
         cnt = 1;
+        DEBUGMSG(DEBUG, "checking signature on %d bytes\n", pkt->hmacLen);
         while (keys) {
             DEBUGMSG(VERBOSE, "trying key #%d\n", cnt);
             ccnl_hmac256_keyval((unsigned char*) keys->key, keys->keylen,
                 keyval);
-            ccnl_hmac256_sign(keyval, 64, pkt->hmacStart, pkt->hmacLen,
-                signature, &signLen);
-            if (!memcmp(signature, pkt->hmacSignature, 32)) {
+            ccnl_hmac256_sign(keyval, sizeof(keyval), pkt->hmacStart,
+                              pkt->hmacLen, signature, &signLen);
+            if (!memcmp(signature, pkt->hmacSignature, sizeof(signature))) {
                 DEBUGMSG(INFO, "signature is valid (key #%d)\n", cnt);
                 break;
             }

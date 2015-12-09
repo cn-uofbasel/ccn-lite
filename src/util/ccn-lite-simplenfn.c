@@ -27,6 +27,9 @@
 // #define USE_SUITE_LOCALRPC
 #define USE_SUITE_NDNTLV
 
+#define USE_IPV4
+#define USE_UNIXSOCKET
+
 #ifndef USE_NFN
 #define USE_NFN
 #endif
@@ -84,7 +87,7 @@ exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
 /*
         // if expr has not the form (@x ...) then add it
         if (expr && !strchr(expr, '@')) {
-            sprintf(tmp, "@x (%s)", expr);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "@x (%s)", expr);
             expr = tmp;
         }
 */
@@ -97,7 +100,7 @@ exprToNfnPrefix(char *defaultNFNpath, int suite, char *expr)
             DEBUGMSG(ERROR, "could not parse as lambda term: %s\n", expr);
             exit(-1);
         }
-        ccnl_lambdaTermToStr(tmp, lt, ' ');
+        ccnl_lambdaTermToStr(tmp, CCNL_ARRAY_SIZE(tmp), lt, ' ');
         expr = tmp;
     }
 
@@ -114,13 +117,15 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -190,14 +195,11 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 
@@ -207,13 +209,12 @@ usage:
     for (cnt = 0; cnt < 3; cnt++) {
         int nonce = random();
 
-        len = mkInterest(prefix,
-                         &nonce,
+        len = mkInterest(prefix, &nonce, NULL,
                          out, sizeof(out));
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)\n",
-                 ccnl_prefix_to_path(prefix),
+                 ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
                  ccnl_suite2str(suite));
 
         if(ux) {

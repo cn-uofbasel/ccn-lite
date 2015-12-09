@@ -72,6 +72,24 @@
 #define NDN_TLV_NdnlpFragment           0x52
 #define NDN_TLV_Frag_BeginEndFields     0x5c
 
+// Content types
+#define NDN_Content_Blob                0x00
+#define NDN_Content_Link                0x01 // name
+#define NDN_Content_Key                 0x02
+#define NDN_Content_Manifest            0xc0
+
+// Manifest
+#define NDN_TLV_MANIFEST_HASHGROUP             0xc1
+#define NDN_TLV_MANIFEST_HG_PTR2DATA           0xc2
+#define NDN_TLV_MANIFEST_HG_PTR2MANIFEST       0xc3
+#define NDN_TLV_MANIFEST_HG_METADATA           0xc4
+#define NDN_TLV_MANIFEST_MT_LOCATOR            0xc5
+#define NDN_TLV_MANIFEST_MT_EXTERNALMETADATA   0xc6
+#define NDN_TLV_MANIFEST_MT_BLOCKSIZE          0xc7
+#define NDN_TLV_MANIFEST_MT_OVERALLDATASIZE    0xc8
+#define NDN_TLV_MANIFEST_MT_OVERALLDATASHA256  0xc9
+#define NDN_TLV_MANIFEST_MT_TREEDEPTH          0xca
+
 // reserved values:
 /*
 Values          Designation

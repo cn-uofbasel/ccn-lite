@@ -65,7 +65,7 @@ ccnl_ndntlv_nonNegInt(unsigned char *cp, int len)
 
 int
 ccnl_ndntlv_dehead(unsigned char **buf, int *len,
-                   int *typ, int *vallen)
+                   unsigned int *typ, unsigned int *vallen)
 {
   if (ccnl_ndntlv_varlenint(buf, len, (int*) typ))
         return -1;
@@ -76,12 +76,13 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
 
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
-ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
+ccnl_ndntlv_bytes2pkt(unsigned char *start,
                       unsigned char **data, int *datalen)
 {
+    unsigned char *msgstart;
     struct ccnl_pkt_s *pkt;
-    int oldpos, len, i;
-    unsigned int typ;
+    int oldpos, i;
+    unsigned int typ, len;
     struct ccnl_prefix_s *p = 0;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
@@ -89,14 +90,17 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
     DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2pkt len=%d\n", *datalen);
 
+    if (ccnl_ndntlv_dehead(data, datalen, &typ, &len) || (int) len > *datalen) {
+        DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
+        return NULL;
+    }
+
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
+    pkt->packetType = typ;
 
-#ifdef USE_HMAC256
-    pkt->hmacStart = start;
-#endif
-    switch(pkttype) {
+    switch(pkt->packetType) {
     case NDN_TLV_Interest:
         pkt->flags |= CCNL_PKT_REQUEST;
         break;
@@ -109,16 +113,21 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
         break;
 #endif
     default:
-        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkttype);
+        DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkt->packetType);
         goto Bail;
     }
+
+#ifdef USE_HMAC256
+    pkt->hmacStart = *data;
+#endif
+    msgstart = start;
 
     pkt->suite = CCNL_SUITE_NDNTLV;
     pkt->s.ndntlv.scope = 3;
     pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
 
     oldpos = *data - start;
-    while (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) == 0) {
+    while (ccnl_ndntlv_dehead(data, datalen, &typ, &len) == 0) {
         unsigned char *cp = *data;
         int len2 = len;
 
@@ -137,7 +146,8 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 
             p->nameptr = start + oldpos;
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+                unsigned int len3;
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
                 if (typ == NDN_TLV_NameComponent &&
                             p->compcnt < CCNL_MAX_NAME_COMP) {
@@ -145,16 +155,16 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                       p->chunknum = (int*) ccnl_malloc(sizeof(int));
                         // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
                         // it is implemented for encode, the decode is not yet implemented
-                        *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
+                        *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, len3 - 1);
                     }
                     p->comp[p->compcnt] = cp;
-                    p->complen[p->compcnt] = i;
+                    p->complen[p->compcnt] = len3;
                     p->compcnt++;
                 }  // else unknown type: skip
-                cp += i;
-                len2 -= i;
+                cp += len3;
+                len2 -= len3;
             }
-            p->namelen = *data - p->nameptr;
+            p->namelen = cp - p->nameptr;
     #ifdef USE_NFN
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
@@ -170,27 +180,34 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+                unsigned int len3;
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
                 switch(typ) {
                 case NDN_TLV_MinSuffixComponents:
-                    pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(cp, i);
+                    pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(cp, len3);
                     break;
                 case NDN_TLV_MaxSuffixComponents:
-//                    fprintf(stderr, "setting to %d\n", (int)ccnl_ndntlv_nonNegInt(cp, i));
-                    pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, i);
+                    pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, len3);
+                    if (pkt->s.ndntlv.maxsuffix == 0 && p &&
+                               p->complen[p->compcnt-1] == 32) { // impl digest
+                        DEBUGMSG(TRACE, "  found dataHashRestr\n");
+                        pkt->s.ndntlv.dataHashRestr = ccnl_malloc(32);
+                        memcpy(pkt->s.ndntlv.dataHashRestr,
+                               p->comp[p->compcnt-1], 32);
+                    }
                     break;
                 case NDN_TLV_MustBeFresh:
                     pkt->s.ndntlv.mbf = 1;
                     break;
                 case NDN_TLV_Exclude:
-                    DEBUGMSG(WARNING, "'Exclude' field ignored\n");
+                    DEBUGMSG(DEBUG, "'Exclude' field ignored\n");
                     break;
                 default:
                     break;
                 }
-                cp += i;
-                len2 -= i;
+                cp += len3;
+                len2 -= len3;
             }
             break;
         case NDN_TLV_Nonce:
@@ -206,28 +223,29 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             break;
         case NDN_TLV_MetaInfo:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+            unsigned int len3;
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
                 if (typ == NDN_TLV_ContentType) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
+                    pkt->contentType = ccnl_ndntlv_nonNegInt(cp, len3);
+                    DEBUGMSG(TRACE, "'ContentType' %d\n",
+                             pkt->contentType);
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
                     // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, i);
-                    DEBUGMSG(WARNING, "'FreshnessPeriod' field ignored\n");
+                    // = ccnl_ndntlv_nonNegInt(cp, len3);
+                    DEBUGMSG(DEBUG, "'FreshnessPeriod' field ignored\n");
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
-                    if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+                    if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
                         goto Bail;
                     if (typ == NDN_TLV_NameComponent) {
                         // TODO: again, includedNonNeg not yet implemented
-                        pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
+                        pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, len3 - 1);
                     }
                 }
-                cp += i;
-                len2 -= i;
+                cp += len3;
+                len2 -= len3;
             }
             break;
         case NDN_TLV_Frag_BeginEndFields:
@@ -242,22 +260,23 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 #ifdef USE_HMAC256
         case NDN_TLV_SignatureInfo:
             while (len2 > 0) {
-                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+                unsigned int len3;
+                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
                     goto Bail;
-                if (typ == NDN_TLV_SignatureType && i == 1 &&
+                if (typ == NDN_TLV_SignatureType && len3 == 1 &&
                                           *cp == NDN_VAL_SIGTYPE_HMAC256) {
                     validAlgoIsHmac256 = 1;
                     break;
                 }
-                cp += i;
-                len2 -= i;
+                cp += len3;
+                len2 -= len3;
             }
+            if (pkt->hmacStart)
+                pkt->hmacLen = (*data + len) - pkt->hmacStart;
             break;
         case NDN_TLV_SignatureValue:
-            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
-                pkt->hmacLen = oldpos;
+            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32)
                 pkt->hmacSignature = *data;
-            }
             break;
 #endif
         default:
@@ -270,7 +289,19 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     if (*datalen > 0)
         goto Bail;
 
-    pkt->pfx = p;
+#ifdef USE_NAMELESS
+    {
+        SHA256_CTX_t ctx;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, *data - msgstart);
+        ccnl_SHA256_Final(pkt->md, &ctx);
+    }
+#else
+    (void) msgstart;
+#endif
+
+//    pkt->pfx = p;
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
         goto Bail;
@@ -300,6 +331,18 @@ ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
 {
     assert(p);
     assert(p->suite == CCNL_SUITE_NDNTLV);
+
+#ifdef USE_NAMELESS
+    if (p->s.ndntlv.dataHashRestr) {
+        /*
+        unsigned char *cp = p->s.ndntlv.dataHashRestr;
+        DEBUGMSG_PCNX(TRACE, "ccnl_ndntlv_cMatch DataHashRestr\n");
+        DEBUGMSG_PCNX(TRACE, "  want %02x%02x%02x..., have %02x%02x%02x...\n",
+                      cp[0], cp[1], cp[2], c->pkt->md[0], c->pkt->md[1], c->pkt->md[2]);
+        */
+        return memcmp(p->s.ndntlv.dataHashRestr, c->pkt->md, 32);
+    }
+#endif
 
     if (!ccnl_i_prefixof_c(p->pfx, p->s.ndntlv.minsuffix, p->s.ndntlv.maxsuffix, c))
         return -1;
@@ -342,7 +385,7 @@ ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf)
 }
 
 int
-ccnl_ndntlv_prependTL(int type, unsigned int len,
+ccnl_ndntlv_prependTL(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf)
 {
     int oldoffset = *offset;
@@ -425,10 +468,13 @@ ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
 }
 
 int
-ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf)
+ccnl_ndntlv_prependNameComponents(struct ccnl_prefix_s *name,
+                                  int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, cnt;
+
+    if (!name)
+        return 0;
 
     if(name->chunknum) {
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
@@ -454,11 +500,27 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
                                     name->complen[cnt], offset, buf) < 0)
             return -1;
     }
-    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, oldoffset - *offset,
-                              offset, buf) < 0)
+    return oldoffset - *offset;
+}
+
+int
+ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf)
+{
+    int len, len2;
+
+    if (!name)
+        return 0;
+
+    len = ccnl_ndntlv_prependNameComponents(name, offset, buf);
+    if (len < 0)
         return -1;
 
-    return 0;
+    len2 = ccnl_ndntlv_prependTL(NDN_TLV_Name, len, offset, buf);
+    if (len2 < 0)
+        return -1;
+
+    return len + len2;
 }
 
 // ----------------------------------------------------------------------
@@ -490,7 +552,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
                                 offset, buf) < 0)
         return -1;*/
 
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
                               offset, buf) < 0)
@@ -502,7 +564,7 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
 int
 ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            unsigned char *payload, int paylen,
-                           int *contentpos, unsigned int *final_block_id,
+                           unsigned int *final_block_id, int *contentpos,
                            int *offset, unsigned char *buf)
 {
     int oldoffset = *offset, oldoffset2;
@@ -559,7 +621,7 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
         return -1;
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
 
     // mandatory
@@ -581,7 +643,7 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 {
     unsigned char test[20];
     int offset, hdrlen;
-    int datalen;
+    unsigned int datalen;
     struct ccnl_buf_s *buf;
     uint16_t tmp = 0;
 
@@ -589,8 +651,12 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 
     // pre-compute overhead, first
     datalen = fr->bigpkt->datalen - fr->sendoffs;
-    if (datalen > fr->mtu)
+    if (fr->mtu < 0) {
+        DEBUGMSG(WARNING, "MTU value of fragment is negative: %d, setting fragment datalen to 0.\n", fr->mtu);
+        datalen = 0;
+    } else if (datalen > (unsigned int) fr->mtu)
         datalen = fr->mtu;
+
     offset = sizeof(test);
     hdrlen = ccnl_ndntlv_prependTL(NDN_TLV_NdnlpFragment, datalen,
                                    &offset, test);
@@ -601,7 +667,11 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 
     // with real values:
     datalen = fr->bigpkt->datalen - fr->sendoffs;
-    if (datalen > (fr->mtu - hdrlen))
+    if (fr->mtu - hdrlen < 0) {
+        DEBUGMSG(WARNING, "(MTU value - hdrlen) is negative: %d - %d = %d, setting fragment datalen to 0.\n",
+                 fr->mtu, hdrlen, fr->mtu-hdrlen);
+        datalen = 0;
+    } else if (datalen > (unsigned int) (fr->mtu - hdrlen))
         datalen = fr->mtu - hdrlen;
 
     buf = ccnl_buf_new(NULL, datalen + hdrlen);

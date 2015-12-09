@@ -28,6 +28,10 @@
 #define USE_SUITE_NDNTLV
 
 #define USE_FRAG
+#define USE_IPV4
+#define USE_NAMELESS
+#define USE_SHA256
+#define USE_UNIXSOCKET
 #define NEEDS_PACKET_CRAFTING
 
 #define assert(...) do {} while(0)
@@ -55,18 +59,31 @@ frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 int
 main(int argc, char *argv[])
 {
-    int cnt, len, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    int cnt, opt, port, sock = 0, socksize, suite = CCNL_SUITE_NDNTLV;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     unsigned int chunknum = UINT_MAX;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
     ccnl_isFragmentFunc isFragment;
+    unsigned char *objHashRestr = 0;
 
-    while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hd:n:s:u:v:w:x:")) != -1) {
         switch (opt) {
+        case 'd':
+            if (strlen(optarg) != 64)
+                break;
+            ccnl_free(objHashRestr);
+            objHashRestr = ccnl_malloc(32);
+            for (cnt = 0; cnt < 32; cnt++) {
+                objHashRestr[cnt] = hex2int(optarg[2*cnt]) * 16 +
+                                                   hex2int(optarg[2*cnt + 1]);
+            }
+            break;
         case 'n':
             chunknum = atoi(optarg);
             break;
@@ -96,6 +113,7 @@ main(int argc, char *argv[])
         default:
 usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
+            "  -d DIGEST        content digest\n"
             "  -n CHUNKNUM      positive integer for chunk interest\n"
             "  -s SUITE         (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
             "  -u a.b.c.d/port  UDP destination (default is suite-dependent)\n"
@@ -134,39 +152,34 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 
     prefix = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1], chunknum == UINT_MAX ? NULL : &chunknum);
 
-    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n",
-            argv[optind], argv[optind+1], ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "prefix <%s><%s> became %s\n", argv[optind], argv[optind+1],
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (cnt = 0; cnt < 3; cnt++) {
-        int nonce = random();
-        int rc;
+        int nonce = random(), rc, len;
         struct ccnl_face_s dummyFace;
 
         DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-        len = mkInterest(prefix,
-                         &nonce,
+        len = mkInterest(prefix, &nonce, objHashRestr,
                          out, sizeof(out));
 
         DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
 /*
         {
-            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
+          int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC, 0666);
             write(fd, out, len);
             close(fd);
         }

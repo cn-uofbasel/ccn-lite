@@ -28,8 +28,10 @@
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_IPV4
 #define USE_SHA256
 #define USE_SIGNATURES
+#define USE_UNIXSOCKET
 
 #include "ccnl-common.c"
 #include "ccnl-crypto.c"
@@ -449,7 +451,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
     unsigned char faceinst[2000];
 //    char num[20];
 
-//    sprintf(num, "%d", faceID);
+//    snprintf(num, CCNL_ARRAY_SIZE(num), "%d", faceID);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -495,7 +497,7 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
     unsigned char faceinst[2000];
 //    char num[20];
 
-//    sprintf(num, "%d", faceID);
+//    snprintf(num, CCNL_ARRAY_SIZE(num), "%d", faceID);
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -679,11 +681,8 @@ getPrefix(unsigned char *data, int datalen, int *suite)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len;
         unsigned char *start = data;
-        if (!ccnl_ndntlv_dehead(&data, &datalen, &typ, &len))
-            pkt = ccnl_ndntlv_bytes2pkt(typ, start, &data, &datalen);
+        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &datalen);
         break;
     }
     default:
@@ -707,7 +706,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     unsigned char *contentobj, *stmt, *out1, h[10], *data;
     int datalen, chunkflag;
     struct ccnl_prefix_s *prefix;
-    char *prefix_string = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     FILE *file = fopen(fname, "r");
     if (!file)
@@ -725,8 +724,8 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
         DEBUGMSG(ERROR, "  no prefix in file %s\n", fname);
         return -1;
     }
-    DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", ccnl_prefix_to_path(prefix));
-    prefix_string = ccnl_prefix_to_path_detailed(prefix, 0, 1, 1);
+    ccnl_snprintfPrefixPathDetailed(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix, 0, 1, 1);
+    DEBUGMSG(DEBUG, "  prefix in file: <%s>\n", prefixBuf);
 
     //Create ccn-lite-ctrl interest object with signature to add content...
     //out = (unsigned char *) malloc(sizeof(unsigned char)*fsize + 5000);
@@ -741,15 +740,15 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "");
     len1 += ccnl_ccnb_mkStrBlob(out1+len1, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "addcacheobject");
 
-    DEBUGMSG(DEBUG, "NAME:%s\n", prefix_string);
+    DEBUGMSG(DEBUG, "NAME:%s\n", prefixBuf);
 
-    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefix_string);
+    len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCN_DTAG_COMPONENT, CCN_TT_DTAG, prefixBuf);
 
 
     len2 += ccnl_ccnb_mkHeader(contentobj+len2, CCN_DTAG_CONTENTOBJ, CCN_TT_DTAG);   // contentobj
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *suite);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", *suite);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_SUITE, CCN_TT_DTAG,  // suite
                              (char*) h, strlen((char*)h));
 
@@ -762,12 +761,12 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     }
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", *prefix->chunknum);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", *prefix->chunknum);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKNUM, CCN_TT_DTAG,  // chunknum
                             (char*) h, strlen((char*)h));
 
     memset(h, '\0', sizeof(h));
-    sprintf((char*)h, "%d", chunkflag);
+    snprintf((char*)h, CCNL_ARRAY_SIZE(h), "%d", chunkflag);
     len2 += ccnl_ccnb_mkBlob(contentobj+len2, CCNL_DTAG_CHUNKFLAG, CCN_TT_DTAG,  // chunkflag
                             (char*) h, strlen((char*)h));
 
@@ -881,8 +880,7 @@ ccnl_crypto_ux_open(char *frompath)
     exit(1);
     }
     unlink(frompath);
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, frompath);
+    ccnl_setUnixSocketPath(&name, frompath);
     if (bind(sock, (struct sockaddr *) &name,
          sizeof(struct sockaddr_un))) {
     perror("binding name to datagram socket");
@@ -903,10 +901,8 @@ udp_sendto(int sock, char *address, int port,
 {
     int rc;
     struct sockaddr_in si_other;
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(port);
-    if (inet_aton(address, &si_other.sin_addr)==0) {
-          DEBUGMSG(ERROR, "inet_aton() failed\n");
+    if (ccnl_setIpSocketAddr(&si_other, address, port) == 0) {
+          DEBUGMSG(ERROR, "ccnl_setIpSocketAddr() failed\n");
           exit(1);
     }
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &si_other,
@@ -920,8 +916,7 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
     int rc;
 
     /* Construct name of socket to send to. */
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    ccnl_setUnixSocketPath(&name, topath);
 
     /* Send message. */
     rc = sendto(sock, data, len, 0, (struct sockaddr*) &name,
@@ -939,7 +934,7 @@ make_next_seg_debug_interest(int num, char *out)
     int len = 0;
     unsigned char cp[100];
 
-    sprintf((char*)cp, "seqnum-%d", num);
+    snprintf((char*)cp, CCNL_ARRAY_SIZE(cp), "seqnum-%d", num);
 
     len = ccnl_ccnb_mkHeader((unsigned char *)out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader((unsigned char *)out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -1043,8 +1038,8 @@ main(int argc, char *argv[])
     unsigned char *recvbuffer = 0, *recvbuffer2 = 0;
     int recvbufferlen = 0, recvbufferlen2 = 0;
     char *ux = CCNL_DEFAULT_UNIXSOCKNAME;
-    char *udp = "0.0.0.0";
-    int port = 0;
+    char udp[256];
+    unsigned int port = 0;
     int use_udp = 0;
     unsigned char out[CCNL_MAX_PACKET_SIZE];
     int len;
@@ -1080,10 +1075,9 @@ main(int argc, char *argv[])
 #endif
             break;
         case 'u':
-            udp = strdup(optarg);
-            port = strtol(strtok(udp, "/"), NULL, 0);
+            sscanf(optarg, "%255[^/]/%u", udp, &port);
             use_udp = 1;
-printf("udp: <%s> <%d>\n", udp, port);
+            printf("udp: <%s> <%d>\n", udp, port);
             break;
         case 'x':
             ux = optarg;
@@ -1234,7 +1228,7 @@ help:
         int hasNext = 0;
 
         // socket for receiving
-        sprintf(mysockname, "/tmp/.ccn-light-ctrl-%d.sock", getpid());
+        snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-light-ctrl-%d.sock", getpid());
 
         if (!use_udp)
             sock = ccnl_crypto_ux_open(mysockname);
@@ -1287,10 +1281,10 @@ help:
             char sigoutput[200];
 
             if (verified) {
-                sprintf(sigoutput, "All parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, CCNL_ARRAY_SIZE(sigoutput), "All parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             } else {
-                sprintf(sigoutput, "NOT all parts (%d) have been verified", numOfParts);
+                snprintf(sigoutput, CCNL_ARRAY_SIZE(sigoutput), "NOT all parts (%d) have been verified", numOfParts);
                 recvbufferlen2 += ccnl_ccnb_mkStrBlob(recvbuffer2+recvbufferlen2, CCN_DTAG_SIGNATURE, CCN_TT_DTAG, sigoutput);
             }
         }

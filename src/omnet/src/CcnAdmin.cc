@@ -988,7 +988,7 @@ CcnAdmin::scheduleConfigEvents (cModule *node)
 
     for ( int i=0 ; config ; i++, config = config->next) {
 
-        sprintf(desc, " Scenario configuration event %d for %s ", i, ni->nodePtr->getFullPath().c_str());
+        snprintf(desc, 500, " Scenario configuration event %d for %s ", i, ni->nodePtr->getFullPath().c_str());
 
         DBGPRT(AUX, Detail, this->getFullPath())
                 << " Preparing to schedule" << desc

@@ -35,7 +35,7 @@ int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
         return t;
     /*
     if (t < LRPC_APPLICATION) {
-        sprintf(tmp, "v%02x", t);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "v%02x", t);
         n = tmp;
     } else
     */
@@ -237,6 +237,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct rdr_ds_s *param)
 {
     int cnt = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(DEBUG, "rpc_cacheRemove\n");
 
@@ -266,7 +267,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_content_s *tmp = c->next;
                 ccnl_content_remove(relay, c);
                 DEBUGMSG(DEBUG, "content %s removed\n",
-                         ccnl_prefix_to_path(prefix));
+                         ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
                 cnt++;
                 c = tmp;
             } else
@@ -278,8 +279,9 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         param = param->nextinseq;
     }
     {
-        char *p = ccnl_malloc(100);
-        sprintf(p, "rpc_cacheRemove: removed %d entries\n", cnt);
+        unsigned int pLen = 100;
+        char *p = ccnl_malloc(pLen);
+        snprintf(p, pLen, "rpc_cacheRemove: removed %d entries\n", cnt);
         ccnl_emit_RpcReturn(relay, from, nonce, 415, p, NULL);
         ccnl_free(p);
     }
@@ -386,7 +388,9 @@ rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         memcpy(cp, param->aux, param->u.namelen);
         cp[param->u.namelen] = '\0';
         if (!strcmp(cp, "/rpc/config/compileString")) {
-          val = ccnl_rdr_mkStr((char*)compile_string);
+            // TODO: Fix strdup of compile_string. Cannot use compile_string
+            // directly, because it discards 'const' qualifier
+            val = ccnl_rdr_mkStr(strdup(compile_string));
         } else if (!strcmp(cp, "/rpc/config/localTime")) {
             time_t t = time(NULL);
             char *p = ctime(&t);
@@ -427,7 +431,7 @@ rpc_getBuiltinFct(struct rdr_ds_s *var)
     if (var->type != LRPC_FLATNAME)
         return NULL;
     while (x->name) {
-        if (strlen(x->name) == var->u.namelen &&
+        if ((int) strlen(x->name) == var->u.namelen &&
             !memcmp(x->name, var->aux, var->u.namelen))
             return x->fct;
         x++;

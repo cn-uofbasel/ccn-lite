@@ -110,100 +110,6 @@ const char *compile_string = ""
 
 // ----------------------------------------------------------------------
 
-#ifdef NEEDS_PREFIX_MATCHING
-
-const char*
-ccnl_matchMode2str(int mode)
-{
-    switch (mode) {
-    case CMP_EXACT:
-        return CONSTSTR("CMP_EXACT");
-    case CMP_MATCH:
-        return CONSTSTR("CMP_MATCH");
-    case CMP_LONGEST:
-        return CONSTSTR("CMP_LONGEST");
-    }
-
-    return CONSTSTR("?");
-}
-
-int
-ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
-                struct ccnl_prefix_s *nam, int mode)
-/* returns -1 if no match at all (all modes) or exact match failed
-   returns  0 if full match (CMP_EXACT)
-   returns n>0 for matched components (CMP_MATCH, CMP_LONGEST) */
-{
-    int i, clen, plen = pfx->compcnt + (md ? 1 : 0), rc = -1;
-    unsigned char *comp;
-
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
-             ccnl_matchMode2str(mode),
-             ccnl_prefix_to_path(pfx), ccnl_prefix_to_path(nam), (void *) md);
-
-    if (mode == CMP_EXACT) {
-        if (plen != nam->compcnt)
-            goto done;
-        if (pfx->chunknum || nam->chunknum) {
-            if (!pfx->chunknum || !nam->chunknum)
-                goto done;
-            if (*pfx->chunknum != *nam->chunknum)
-                goto done;
-        }
-#ifdef USE_NFN
-        if (nam->nfnflags != pfx->nfnflags)
-            goto done;
-#endif
-    }
-    for (i = 0; i < plen && i < nam->compcnt; ++i) {
-        comp = i < pfx->compcnt ? pfx->comp[i] : md;
-        clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
-        if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
-            rc = mode == CMP_EXACT ? -1 : i;
-            goto done;
-        }
-    }
-    // FIXME: we must also inspect chunknum here!
-    rc = (mode == CMP_EXACT) ? 0 : i;
-done:
-    DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
-             pfx->compcnt, plen, nam->compcnt, rc);
-    return rc;
-}
-
-int
-ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
-                  int minsuffix, int maxsuffix, struct ccnl_content_s *c)
-{
-    unsigned char *md;
-    struct ccnl_prefix_s *p = c->pkt->pfx;
-
-    DEBUGMSG(VERBOSE, "ccnl_i_prefixof_c prefix=<%s> content=<%s> min=%d max=%d\n",
-             ccnl_prefix_to_path(prefix), ccnl_prefix_to_path(p),
-             // ccnl_prefix_to_path_detailed(prefix,1,0,0),
-             // ccnl_prefix_to_path_detailed(p,1,0,0),
-             minsuffix, maxsuffix);
-
-    // CONFORM: we do prefix match, honour min. and maxsuffix,
-
-    // NON-CONFORM: "Note that to match a ContentObject must satisfy
-    // all of the specifications given in the Interest Message."
-    // >> CCNL does not honour the exclusion filtering
-
-    if ( (prefix->compcnt + minsuffix) > (p->compcnt + 1) ||
-         (prefix->compcnt + maxsuffix) < (p->compcnt + 1)) {
-        DEBUGMSG(TRACE, "  mismatch in # of components\n");
-        return 0;
-    }
-
-    md = (prefix->compcnt - p->compcnt == 1) ? compute_ccnx_digest(c->pkt->buf) : NULL;
-    return ccnl_prefix_cmp(p, md, prefix, CMP_MATCH) == prefix->compcnt;
-}
-
-#endif
-
-// ----------------------------------------------------------------------
-
 int
 ccnl_is_local_addr(sockunion *su)
 {
@@ -351,54 +257,194 @@ ccnl_isSuite(int suite)
 
 // ----------------------------------------------------------------------
 
-struct ccnl_prefix_s*
-ccnl_prefix_new(int suite, int cnt)
-{
-    struct ccnl_prefix_s *p;
+typedef int (*ccnl_isContentFunc)(unsigned char*, int);
+typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
 
-    p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    if (!p)
-        return NULL;
-    p->comp = (unsigned char**) ccnl_malloc(cnt * sizeof(unsigned char*));
-    p->complen = (int*) ccnl_malloc(cnt * sizeof(int));
-    if (!p->comp || !p->complen) {
-        free_prefix(p);
+#ifdef USE_SUITE_CCNB
+int ccnb_isContent(unsigned char *buf, int len)
+{
+    int num, typ;
+
+    if (len < 0 || ccnl_ccnb_dehead(&buf, &len, &num, &typ))
+        return -1;
+    if (typ != CCN_TT_DTAG || num != CCN_DTAG_CONTENTOBJ)
+        return 0;
+    return 1;
+}
+#endif
+
+
+#ifdef USE_SUITE_CCNTLV
+struct ccnx_tlvhdr_ccnx2015_s*
+ccntlv_isHeader(unsigned char *buf, int len)
+{
+    struct ccnx_tlvhdr_ccnx2015_s *hp = (struct ccnx_tlvhdr_ccnx2015_s*)buf;
+
+    if ((unsigned int)len < sizeof(struct ccnx_tlvhdr_ccnx2015_s)) {
+        DEBUGMSG(ERROR, "ccntlv header not large enough\n");
         return NULL;
     }
-    p->compcnt = cnt;
-    p->suite = suite;
-    p->chunknum = NULL;
-
-    return p;
-}
-
-int
-hex2int(char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    c = tolower(c);
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 0x0a;
-    return 0;
-}
-
-int
-unescape_component(char *comp) // inplace, returns len after shrinking
-{
-    char *in = comp, *out = comp;
-    int len;
-
-    for (len = 0; *in; len++) {
-        if (in[0] != '%' || !in[1] || !in[2]) {
-            *out++ = *in++;
-            continue;
-        }
-        *out++ = hex2int(in[1])*16 + hex2int(in[2]);
-        in += 3;
+    if (hp->version != CCNX_TLV_V1) {
+        DEBUGMSG(ERROR, "ccntlv version %d not supported\n", hp->version);
+        return NULL;
     }
-    return len;
+    if (ntohs(hp->pktlen) < len) {
+        DEBUGMSG(ERROR, "ccntlv packet too small (%d instead of %d bytes)\n",
+                 ntohs(hp->pktlen), len);
+        return NULL;
+    }
+    return hp;
 }
+
+int ccntlv_isData(unsigned char *buf, int len)
+{
+    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
+
+    return hp && hp->pkttype == CCNX_PT_Data;
+}
+
+int ccntlv_isFragment(unsigned char *buf, int len)
+{
+    struct ccnx_tlvhdr_ccnx2015_s *hp = ccntlv_isHeader(buf, len);
+
+    return hp && hp->pkttype == CCNX_PT_Fragment;
+}
+#endif
+
+
+#ifdef USE_SUITE_IOTTLV
+// return 1 for Reply, 0 for Request, -1 if invalid
+int iottlv_isReply(unsigned char *buf, int len)
+{
+    int enc = 1, suite;
+    unsigned int typ;
+    int vallen;
+
+    while (!ccnl_switch_dehead(&buf, &len, &enc));
+    suite = ccnl_enc2suite(enc);
+    if (suite != CCNL_SUITE_IOTTLV)
+        return -1;
+    DEBUGMSG(DEBUG, "suite ok\n");
+    if (len < 1 || ccnl_iottlv_dehead(&buf, &len, &typ, &vallen) < 0)
+        return -1;
+    DEBUGMSG(DEBUG, "typ=%d, len=%d\n", typ, vallen);
+    if (typ == IOT_TLV_Reply)
+        return 1;
+    if (typ == IOT_TLV_Request)
+        return 0;
+    return -1;
+}
+
+int iottlv_isFragment(unsigned char *buf, int len)
+{
+    int enc;
+    while (!ccnl_switch_dehead(&buf, &len, &enc));
+    return ccnl_iottlv_peekType(buf, len) == IOT_TLV_Fragment;
+}
+#endif
+
+
+#ifdef USE_SUITE_CISTLV
+int cistlv_isData(unsigned char *buf, int len)
+{
+    struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
+    unsigned short hdrlen, pktlen; // payloadlen;
+
+    TRACEIN();
+
+    if (len < (int) sizeof(struct cisco_tlvhdr_201501_s)) {
+        DEBUGMSG(ERROR, "cistlv header not large enough");
+        return -1;
+    }
+    hdrlen = hp->hlen; // ntohs(hp->hdrlen);
+    pktlen = ntohs(hp->pktlen);
+    //    payloadlen = ntohs(hp->payloadlen);
+
+    if (hp->version != CISCO_TLV_V1) {
+        DEBUGMSG(ERROR, "cistlv version %d not supported\n", hp->version);
+        return -1;
+    }
+
+    if (pktlen < len) {
+        DEBUGMSG(ERROR, "cistlv packet too small (%d instead of %d bytes)\n",
+                 pktlen, len);
+        return -1;
+    }
+    buf += hdrlen;
+    len -= hdrlen;
+
+    TRACEOUT();
+
+    if(hp->pkttype == CISCO_PT_Content)
+        return 1;
+    else
+        return 0;
+}
+#endif
+
+#ifdef USE_SUITE_NDNTLV
+int ndntlv_isData(unsigned char *buf, int len)
+{
+    unsigned int typ, vallen;
+
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
+        return -1;
+    return typ == NDN_TLV_Data ? 1 : 0;
+}
+#endif
+
+
+ccnl_isContentFunc
+ccnl_suite2isContentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        return &ccnb_isContent;
+#endif
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isData;
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV:
+        return &cistlv_isData;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isReply;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        return &ndntlv_isData;
+#endif
+    }
+
+    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
+                      suite, __func__, __LINE__);
+    return NULL;
+}
+
+ccnl_isFragmentFunc
+ccnl_suite2isFragmentFunc(int suite)
+{
+    switch(suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        return &ccntlv_isFragment;
+#endif
+#ifdef USE_SUITE_IOTTLV
+    case CCNL_SUITE_IOTTLV:
+        return &iottlv_isFragment;
+#endif
+    }
+
+    DEBUGMSG(DEBUG, "unknown suite %d in %s of %s:%d\n",
+                    suite, __func__, __FILE__, __LINE__);
+    return NULL;
+}
+
+// ----------------------------------------------------------------------
 
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
@@ -475,273 +521,22 @@ ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
     return len;
 }
 
-// fill in the compVector (watch out: this modifies the uri string)
-int
-ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
-{
-    int i, len;
-
-    if (*uri == '/')
-        uri++;
-
-    for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
-        compVector[i] = uri;
-        while (*uri && *uri != '/') {
-            uri++;
-        }
-        if (*uri) {
-            *uri = '\0';
-            uri++;
-        }
-        len = unescape_component(compVector[i]);
-
-        if (compLens)
-            compLens[i] = len;
-
-        compVector[i][len] = '\0';
-    }
-    compVector[i] = NULL;
-
-    return i;
-}
-
-// turn an URI into an internal prefix (watch out: this modifies the uri string)
-struct ccnl_prefix_s *
-ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
-{
-    struct ccnl_prefix_s *p;
-    char *compvect[CCNL_MAX_NAME_COMP];
-    unsigned int complens[CCNL_MAX_NAME_COMP];
-    int cnt, i, len, tlen;
-
-    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, nfnexpr);
-
-    if (strlen(uri))
-        cnt = ccnl_URItoComponents(compvect, complens, uri);
-    else
-        cnt = 0;
-
-    if (nfnexpr && *nfnexpr)
-        cnt += 1;
-
-    p = ccnl_prefix_new(suite, cnt);
-    if (!p)
-        return NULL;
-
-    for (i = 0, len = 0; i < cnt; i++) {
-        if (i == (cnt-1) && nfnexpr && *nfnexpr)
-            len += strlen(nfnexpr);
-        else
-            len += complens[i];//strlen(compvect[i]);
-    }
-#ifdef USE_SUITE_CCNTLV
-    if (suite == CCNL_SUITE_CCNTLV)
-        len += cnt * 4; // add TL size
-#endif
-#ifdef USE_SUITE_CISTLV
-    if (suite == CCNL_SUITE_CISTLV)
-        len += cnt * 4; // add TL size
-#endif
-
-    p->bytes = (unsigned char*) ccnl_malloc(len);
-    if (!p->bytes) {
-        free_prefix(p);
-        return NULL;
-    }
-
-    for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
-        int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
-        char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
-
-        if (isnfnfcomp)
-            tlen = strlen(nfnexpr);
-        else
-            tlen = complens[i];
-
-        p->comp[i] = p->bytes + len;
-        tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
-        p->complen[i] = tlen;
-        len += tlen;
-    }
-
-    p->compcnt = cnt;
-#ifdef USE_NFN
-    if (nfnexpr && *nfnexpr)
-        p->nfnflags |= CCNL_PREFIX_NFN;
-#endif
-
-    if(chunknum) {
-        p->chunknum = (int*) ccnl_malloc(sizeof(int));
-        *p->chunknum = *chunknum;
-    }
-
-    return p;
-}
-
-struct ccnl_prefix_s*
-ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
-{
-    int i = 0, len;
-    struct ccnl_prefix_s *p;
-
-    p = ccnl_prefix_new(prefix->suite, prefix->compcnt);
-    if (!p)
-        return p;
-
-    p->compcnt = prefix->compcnt;
-    p->chunknum = prefix->chunknum;
-#ifdef USE_NFN
-    p->nfnflags = prefix->nfnflags;
-#endif
-
-    for (i = 0, len = 0; i < prefix->compcnt; i++)
-        len += prefix->complen[i];
-    p->bytes = (unsigned char*) ccnl_malloc(len);
-    if (!p->bytes) {
-        free_prefix(p);
-        return NULL;
-    }
-
-    for (i = 0, len = 0; i < prefix->compcnt; i++) {
-        p->complen[i] = prefix->complen[i];
-        p->comp[i] = p->bytes + len;
-        memcpy(p->bytes + len, prefix->comp[i], p->complen[i]);
-        len += p->complen[i];
-    }
-
-    if (prefix->chunknum) {
-        p->chunknum = (int*) ccnl_malloc(sizeof(int));
-        *p->chunknum = *prefix->chunknum;
-    }
-
-    return p;
-}
-
-
-int
-ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
-                      int cmplen)
-{
-    int lastcmp = prefix->compcnt, i;
-    int *oldcomplen = prefix->complen;
-    unsigned char **oldcomp = prefix->comp;
-    unsigned char *oldbytes = prefix->bytes;
-
-    int prefixlen = 0;
-
-    if (prefix->compcnt + 1 > CCNL_MAX_NAME_COMP)
-        return -1;
-    for (i = 0; i < lastcmp; i++) {
-        prefixlen += prefix->complen[i];
-    }
-
-    prefix->compcnt++;
-    prefix->comp = (unsigned char**) ccnl_malloc(prefix->compcnt * sizeof(unsigned char*));
-    prefix->complen = (int*) ccnl_malloc(prefix->compcnt * sizeof(int));
-    prefix->bytes = (unsigned char*) ccnl_malloc(prefixlen + cmplen);
-
-    memcpy(prefix->bytes, oldbytes, prefixlen);
-    memcpy(prefix->bytes + prefixlen, cmp, cmplen);
-
-    prefixlen = 0;
-    for (i = 0; i < lastcmp; i++) {
-        prefix->comp[i] = &prefix->bytes[prefixlen];
-        prefix->complen[i] = oldcomplen[i];
-        prefixlen += oldcomplen[i];
-    }
-    prefix->comp[lastcmp] = &prefix->bytes[prefixlen];
-    prefix->complen[lastcmp] = cmplen;
-
-    ccnl_free(oldcomp);
-    ccnl_free(oldcomplen);
-    ccnl_free(oldbytes);
-
-    return 0;
-}
-
-// TODO: This function should probably be moved to another file to indicate that it should only be used by application level programs
-// and not in the ccnl core. Chunknumbers for NDNTLV are only a convention and there no specification on the packet encoding level.
-int
-ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
-{
-    if (chunknum >= 0xff) {
-      DEBUGMSG_CUTL(WARNING, "addChunkNum is only implemented for "
-               "chunknum smaller than 0xff (%d)\n", chunknum);
-        return -1;
-    }
-
-    switch(prefix->suite) {
-#ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV: {
-            unsigned char cmp[2];
-            cmp[0] = NDN_Marker_SegmentNumber;
-            // TODO: this only works for chunknums smaller than 255
-            cmp[1] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 2) < 0)
-                return -1;
-            if (prefix->chunknum)
-                ccnl_free(prefix->chunknum);
-            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
-            *prefix->chunknum = chunknum;
-        }
-        break;
-#endif
-
-#ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV: {
-            unsigned char cmp[5];
-            cmp[0] = 0;
-            // TODO: this only works for chunknums smaller than 255
-            cmp[1] = CCNX_TLV_N_Chunk;
-            cmp[2] = 0;
-            cmp[3] = 1;
-            cmp[4] = chunknum;
-            if(ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
-                return -1;
-            if (prefix->chunknum)
-                ccnl_free(prefix->chunknum);
-            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
-            *prefix->chunknum = chunknum;
-        }
-        break;
-#endif
-
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV: {
-            unsigned char cmp[5];
-            // TODO: this only works for chunknums smaller than 255
-            cmp[0] = 0;
-            cmp[1] = CISCO_TLV_NameSegment;
-            cmp[2] = 0;
-            cmp[3] = 1;
-            cmp[4] = chunknum;
-            if (ccnl_prefix_appendCmp(prefix, cmp, 5) < 0)
-                return -1;
-            if (prefix->chunknum)
-                ccnl_free(prefix->chunknum);
-            prefix->chunknum = (int*) ccnl_malloc(sizeof(int));
-            *prefix->chunknum = chunknum;
-        }
-        break;
-#endif
-
-        default:
-            DEBUGMSG_CUTL(WARNING,
-                     "add chunk number not implemented for suite %d\n",
-                     prefix->suite);
-            return -1;
-    }
-
-    return 0;
-}
-
 // ----------------------------------------------------------------------
 
+// FIXME!
+// This method currently does not correctly distinguish between CCNTLV and
+// CISTLV. The reason is that this method only looks at the first two unsigned
+// chars. However, CCNTLV and CISTLV both have many overlapping TLV definitions,
+// starting by CCNX_TLV_V1 == CISCO_TLV_V1. In the current implementation CCNTLV
+// is almost always picked whether the packet is CCNTLV or CISTLV.
+// This is obviously a problem and should be fixed. However fixing this is not
+// quite straight-forward because it means that this method has to look at more
+// data than the two first chars. Ideally this method should try parsing the
+// packet in each suite's encoding and return the (hopefully) remaining one.
 int
 ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 {
-    int enc, suite = -1;
+    int enc = -1, suite = -1;
     unsigned char *olddata = data;
 
     if (skip)
@@ -790,8 +585,8 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
 
 #ifdef USE_SUITE_NDNTLV
-    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data ||
-        *data == NDN_TLV_Fragment)
+    if (*data == NDN_TLV_Interest || *data == NDN_TLV_Data
+                                  || *data == NDN_TLV_Fragment)
         return CCNL_SUITE_NDNTLV;
 #endif
 
@@ -825,7 +620,8 @@ free_packet(struct ccnl_pkt_s *pkt)
 #endif
 #ifdef USE_SUITE_CCNTLV
             case CCNL_SUITE_CCNTLV:
-                ccnl_free(pkt->s.ccntlv.keyid);
+                ccnl_free(pkt->s.ccntlv.objHashRestr);
+                ccnl_free(pkt->s.ccntlv.keyIdRestr);
                 break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -855,14 +651,16 @@ free_packet(struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 
-char*
+const char*
 ccnl_addr2ascii(sockunion *su)
 {
 #ifdef USE_UNIXSOCKET
-    static char result[256];
+#   define CCNL_ADDR2ASCII_SIZE 256
 #else
-    static char result[25];
+#   define CCNL_ADDR2ASCII_SIZE 25
 #endif
+    static char buf[CCNL_ADDR2ASCII_SIZE];
+    int numChars = -1;
 
     if (!su)
         return CONSTSTR("(local)");
@@ -871,17 +669,19 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_ETHERNET
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->eth;
-        strcpy(result, eth2ascii(ll->sll_addr));
-        sprintf(result+strlen(result), "/0x%04x",
-            ntohs(ll->sll_protocol));
-        return result;
+        // FIXME: eth2ascii is only available with USE_DEBUG! This function should be as well
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/0x%04x",
+                            eth2ascii(ll->sll_addr), ntohs(ll->sll_protocol));
+        break;
     }
 #endif
 #ifdef USE_IPV4
-    case AF_INET:
-        sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
-                ntohs(su->ip4.sin_port));
-        return result;
+    case AF_INET: {
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s/%u",
+                            inet_ntoa(su->ip4.sin_addr),
+                            ntohs(su->ip4.sin_port));
+        break;
+    }
 #endif
 #ifdef USE_IPV6
     case AF_INET6: {
@@ -892,141 +692,130 @@ ccnl_addr2ascii(sockunion *su)
                    }
 #endif
 #ifdef USE_UNIXSOCKET
-    case AF_UNIX:
-        strncpy(result, su->ux.sun_path, sizeof(result)-1);
-        result[sizeof(result)-1] = 0;
-        return result;
+    case AF_UNIX: {
+        numChars = snprintf(buf, CCNL_ADDR2ASCII_SIZE, "%s", su->ux.sun_path);
+        break;
+    }
 #endif
     default:
         break;
     }
 
-    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4, USE_IPV6, nor USE_UNIXSOCKET is set)
-    return NULL;
-}
-
-// ----------------------------------------------------------------------
-
-#ifndef CCNL_LINUXKERNEL
-
-char*
-ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
-                             int escape_components, int call_slash)
-{
-    (void) ccntlv_skip;
-    (void) call_slash;
-    int len = 0, i, j;
-    /*static char *prefix_buf1;
-    static char *prefix_buf2;
-    static char *buf;*/
-
-#ifdef CCNL_ARDUINO
-# define PREFIX_BUFSIZE 50
-#else
-# define PREFIX_BUFSIZE 2048
-#endif
-
-    if (!pr)
+    if (numChars < 0) {
+        DEBUGMSG(INFO, "Could not convert address, returning NULL.\n");
         return NULL;
-
-    /*if (!buf) {
-        struct ccnl_buf_s *b;
-        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        //ccnl_core_addToCleanup(b);
-        prefix_buf1 = (char*) b->data;
-        b = ccnl_buf_new(NULL, PREFIX_BUFSIZE);
-        //ccnl_core_addToCleanup(b);
-        prefix_buf2 = (char*) b->data;
-        buf = prefix_buf1;
-    } else if (buf == prefix_buf2)
-        buf = prefix_buf1;
-    else
-        buf = prefix_buf2;
-    */
-    char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
-#ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
-        len += sprintf(buf + len, "nfn");
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-        len += sprintf(buf + len, "thunk");
-    if (pr->nfnflags)
-        len += sprintf(buf + len, "[");
-#endif
-
-/*
-Not sure why a component starting with a call is not printed with a leading '/'
-A call should also be printed with a '/' because this function prints a prefix
-and prefix components are visually separated with a leading '/'.
-One possibility is to not have a '/' before any nfn expression.
-#ifdef USE_NFN
-        if (pr->compcnt == 1 && (pr->nfnflags & CCNL_PREFIX_NFN) &&
-            !strncmp("call", (char*)pr->comp[i] + skip, 4)) {
-            len += sprintf(buf + len, "%.*s",
-                           pr->complen[i]-skip, pr->comp[i]+skip);
-        } else
-#endif
-*/
-
-    int skip = 0;
-
-#if (defined(USE_SUITE_CCNTLV) || defined(USE_SUITE_CISTLV)) // && defined(USE_NFN)
-    // In the future it is possibly helpful to see the type information
-    // in the logging output. However, this does not work with NFN because
-    // it uses this function to create the names in NFN expressions
-    // resulting in CCNTLV type information names within expressions.
-    if (ccntlv_skip && (0
-#ifdef USE_SUITE_CCNTLV
-       || pr->suite == CCNL_SUITE_CCNTLV
-#endif
-#ifdef USE_SUITE_CISTLV
-       || pr->suite == CCNL_SUITE_CISTLV
-#endif
-                         ))
-        skip = 4;
-#endif
-
-    for (i = 0; i < pr->compcnt; i++) {
-#ifdef USE_NFN
-        if((strncmp("call", (char*)pr->comp[i]+skip, 4) && strncmp("(call", (char*)pr->comp[i]+skip, 5)) || call_slash)
-        {
-#endif
-            len += sprintf(buf + len, "/");
-#ifdef USE_NFN
-        }else{
-            len += sprintf(buf + len, " ");
-        }
-#endif
-
-        for (j = skip; j < pr->complen[i]; j++) {
-            char c = pr->comp[i][j];
-            char *fmt;
-            fmt = (c < 0x20 || c == 0x7f
-                            || (escape_components && c == '/' )) ?
-#ifdef CCNL_ARDUINO
-                  (char*)PSTR("%%%02x") : (char*)PSTR("%c");
-            len += sprintf_P(buf + len, fmt, c);
-#else
-                  (char *) "%%%02x" : (char *) "%c";
-            len += sprintf(buf + len, fmt, c);
-#endif
-            if(len > PREFIX_BUFSIZE) {
-                DEBUGMSG(ERROR, "BUFSIZE SMALLER THAN OUTPUT LEN");
-                break;
-            }
-        }
     }
-
-#ifdef USE_NFN
-    if (pr->nfnflags)
-        len += sprintf(buf + len, "]");
-#endif
-
-    buf[len] = '\0';
 
     return buf;
 }
 
-#endif // CCNL_LINUXKERNEL
+
+#ifdef USE_IPV4
+
+int
+ccnl_setIpSocketAddr(struct sockaddr_in *ip4, const char *addr, uint16_t port)
+{
+    ip4->sin_family = AF_INET;
+    ip4->sin_port = htons(port);
+    return inet_aton(addr, &ip4->sin_addr);
+}
+
+int
+ccnl_setSockunionIpAddr(sockunion *su, const char *addr, uint16_t port)
+{
+    su->sa.sa_family = AF_INET;
+    return ccnl_setIpSocketAddr(&su->ip4, addr, port);
+}
+
+#endif
+
+
+#ifdef USE_UNIXSOCKET
+
+int
+ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path)
+{
+    ux->sun_family = AF_UNIX;
+    return snprintf(ux->sun_path, CCNL_ARRAY_SIZE(ux->sun_path), "%s", path);
+}
+
+int
+ccnl_setSockunionUnixPath(sockunion *su, const char *path) {
+    su->sa.sa_family = AF_UNIX;
+    return ccnl_setUnixSocketPath(&su->ux, path);
+}
+
+#endif
+
+// ----------------------------------------------------------------------
+
+// This method functions similarily to snprintf. It writes formatted output into
+// the provided buffer, given that there is enough buffer capacity. It updates
+// the provided buffer position for sequential calls. If an encoding error
+// occurs, the buffer is set to NULL.
+//
+// The method returns the return value of the internal snprintf call. That is it
+// returns a negative value if an encoding error occured. Otherwise, it returns
+// the number of characters that would have been written if buffer capacity
+// would had been sufficiently large, not counting the null terminator.
+//
+// Additionally it updates both buflen and totalLen. As with the return value,
+// totalLen represents the total number of characters that would have been
+// written if buffer capacity had been sufficiently large, not counting the null
+// terminator. If an error occurs or the buffer has not enough capacity, buflen is set to 0.
+// Otherwise it is incremented.
+//
+// Similar to snprintf, if the provided buflen is 0, totalLen is still updated
+// correctly and *buf can be NULL. This is useful to calculate the needed amount
+// of buffer capacity.
+//
+// This method is meant to use in multiple sequential calls to build a string,
+// and doing error checking afterwards (buf == NULL? totalLen >= buffer length?).
+// Example:
+//     char buf[25]; char *tmpBuf = buf;
+//     unsigned int remLen = CCNL_ARRAY_SIZE(25), totalLen = 0;
+//     snprintf(&tmpBuf, &remLen, &totalLen, "Hello");
+//     snprintf(&tmpBuf, &remLen, &totalLen, " World, ");
+//     snprintf(&tmpBuf, &remLen, &totalLen, "%d!", 42);
+//     if (!tmpBuf)
+//         ... handle encoding error ...
+//     if (totalLen >= CCNL_ARRAY_SIZE(25))
+//         ... handle not enough buffer capacity ...
+//
+int
+ccnl_snprintf(char **buf, unsigned int *buflen, unsigned int *totalLen, const char *format, ...)
+{
+    int numChars;
+    va_list args;
+
+    assert((*buf != NULL || *buflen == 0) && "buf can be (null) only if buflen is zero");
+
+    va_start(args, format);
+    #ifdef CCNL_ARDUINO
+        numChars = vsnprintf_P(*buf, *buflen, format, args);
+    #else
+        numChars = vsnprintf(*buf, *buflen, format, args);
+    #endif
+    va_end(args);
+
+    if (numChars < 0) {
+        *buflen = 0;
+        *buf = NULL;
+        return numChars;
+    }
+
+    if (((unsigned int) numChars) >= *buflen) {
+        *buflen = 0;
+    } else {
+        *buflen -= numChars;
+        if (*buf) *buf += numChars;
+    }
+
+    *totalLen += numChars;
+
+    assert(*buf != NULL || *buflen == 0);
+    return numChars;
+}
 
 // ----------------------------------------------------------------------
 
@@ -1045,13 +834,13 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     switch (name->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+        len = ccnl_ccnb_fillInterest(name, NULL, NULL, tmp, CCNL_MAX_PACKET_SIZE);
         offs = 0;
         break;
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
+        len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp, 0);
         break;
 #endif
 #ifdef USE_SUITE_CISTLV
@@ -1092,10 +881,11 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 {
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
     int len = 0, contentpos = 0, offs;
 
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
-             ccnl_prefix_to_path(name), paylen);
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), name), paylen);
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
@@ -1137,7 +927,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
         len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                         &contentpos, NULL, &offs, tmp);
+                                         NULL, &contentpos, &offs, tmp);
         break;
 #endif
     default:

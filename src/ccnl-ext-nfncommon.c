@@ -37,7 +37,7 @@ ccnl_nfn_krivine_str2const(char *str){
     len = (ccp - str);
     c = ccnl_calloc(1, sizeof(*c) + len);
     c->len = len-1;
-    strncpy(c->str, str+1, len-1);
+    memcpy(c->str, str+1, len-1);
 
     return c;
 }
@@ -45,10 +45,7 @@ ccnl_nfn_krivine_str2const(char *str){
 char *
 ccnl_nfn_krivine_const2str(struct const_s * con){ //may be unsafe
     char *c = ccnl_calloc(con->len+3, sizeof(*c));
-    strncpy(c+1, con->str, con->len);
-    c[0] = '\'';
-    c[con->len+1] = '\'';
-    c[con->len+2] = '\0';
+    snprintf(c, con->len+3, "'%.*s'", con->len, con->str);
     return c;
 }
 
@@ -110,9 +107,10 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     int resultpos = 0;
     struct ccnl_pkt_s *pkt;
     struct ccnl_content_s *c;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
-             ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), *prefix), ccnl_suite2str((*prefix)->suite),
              resultlen);
 
     pkt = ccnl_calloc(1, sizeof(*pkt));
@@ -317,7 +315,7 @@ ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl)
 int trim(char *str){  // inplace, returns len after shrinking
     int i;
     while(str[0] != '\0' && str[0] == ' '){
-        for(i = 0; i < strlen(str); ++i)
+        for(i = 0; i < (int) strlen(str); ++i)
             str[i] = str[i+1];
     }
     for(i = strlen(str)-1; i >=0; ++i){
@@ -351,7 +349,10 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
                                           struct configuration_s *config)
 {
     struct ccnl_prefix_s *name;
-    int it, len = 0, offset = 0;
+    char *tmpBuf;
+    unsigned int remLen, totalLen = 0;
+    int it, offset = 0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     name = ccnl_prefix_new(config->suite, 2);
     if (!name)
@@ -364,49 +365,64 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 #endif
     name->bytes = ccnl_calloc(1, CCNL_MAX_PACKET_SIZE);
     name->compcnt = 1;
-    //len = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN")); //FIXME: AT THE END?
-    name->complen[1] = len;
-    name->comp[0] = name->bytes + offset + len;
+    //totalLen = ccnl_pkt_mkComponent(config->suite, name->bytes, "NFN", strlen("NFN")); //FIXME: AT THE END?
+    name->complen[1] = totalLen;
+    name->comp[0] = name->bytes + offset + totalLen;
+    tmpBuf = (char*) name->comp[0];
+    remLen = CCNL_MAX_PACKET_SIZE - offset - totalLen;
 
-    len += sprintf((char *)name->bytes + offset + len, "(call %d",
-                   config->fox_state->num_of_params);
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(call %d",
+                           config->fox_state->num_of_params);
     for (it = 0; it < config->fox_state->num_of_params; ++it) {
         struct stack_s *stack = config->fox_state->params[it];
         if (stack->type == STACK_TYPE_PREFIX) {
-            char *pref_str = ccnl_prefix_to_path(
-                                      (struct ccnl_prefix_s*)stack->content);
-            len += sprintf((char*)name->bytes + offset + len, " %s", pref_str);
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %s",
+                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (struct ccnl_prefix_s*) stack->content));
         } else if (stack->type == STACK_TYPE_INT) {
-            len += sprintf((char*)name->bytes + offset + len, " %d",
-                           *(int*)stack->content);
-
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d", *(int*)stack->content);
         } else if (stack->type == STACK_TYPE_CONST) {
             struct const_s *con = stack->content;
             DEBUGMSG(DEBUG, "strlen: %d str: %.*s \n", con->len, con->len+2, ccnl_nfn_krivine_const2str(con));
-            len += sprintf((char*)name->bytes + offset + len, " %.*s", con->len+2, ccnl_nfn_krivine_const2str(con));
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %.*s",
+                                   con->len+2, ccnl_nfn_krivine_const2str(con));
         } else {
             DEBUGMSG(WARNING, "Invalid stack type %d\n", stack->type);
+            free_prefix(name);
             return NULL;
         }
 
     }
 
-    len += sprintf((char *)name->bytes + offset + len, ")");
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
+
+    if (!tmpBuf) {
+        DEBUGMSG(ERROR, "An encoding error occured while constructing prefix.\n");
+        free_prefix(name);
+        return NULL;
+    }
+
+    if ((int) totalLen >= CCNL_MAX_PACKET_SIZE - offset) {
+        DEBUGMSG(ERROR, "Prefix name for content does not fit into CCNL_MAX_PACKET_SIZE. Available: %u, needed: %u.\n",
+                 CCNL_MAX_PACKET_SIZE - offset, totalLen+1);
+        free_prefix(name);
+        return NULL;
+    }
+
 #ifdef USE_SUITE_CCNTLV
     if (config->suite == CCNL_SUITE_CCNTLV) {
-        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, len, &offset,
+        ccnl_ccntlv_prependTL(CCNX_TLV_N_NameSegment, totalLen, &offset,
                               name->bytes + name->complen[1]);
-        len += 4;
+        totalLen += 4;
     }
 #endif
 #ifdef USE_SUITE_CISTLV
     if (config->suite == CCNL_SUITE_CISTLV) {
-        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, len, &offset,
+        ccnl_cistlv_prependTL(CISCO_TLV_NameComponent, totalLen, &offset,
                               name->bytes + name->complen[1]);
-        len += 4;
+        totalLen += 4;
     }
 #endif
-    name->complen[0] = len;
+    name->complen[0] = totalLen;
     return name;
 }
 
@@ -419,11 +435,14 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
     struct prefix_mapping_s *iter;
     struct ccnl_content_s *content;
     struct ccnl_prefix_s *prefixchunkzero;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_nfn_local_content_search(%s, suite=%s)\n",
-             ccnl_prefix_to_path(prefix), ccnl_suite2str(prefix->suite));
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix),
+             ccnl_suite2str(prefix->suite));
 
-    DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
+    DEBUGMSG(DEBUG, "Searching local for content %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
 
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
@@ -479,7 +498,8 @@ ccnl_nfn_add_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     thunk = ccnl_calloc(1, sizeof(struct thunk_s));
     thunk->prefix = new_prefix;
     thunk->reduced_prefix = create_prefix_for_content_on_result_stack(ccnl, config);
-    sprintf(thunk->thunkid, "THUNK%d", ccnl->km->thunkid++);
+    snprintf(thunk->thunkid, CCNL_ARRAY_SIZE(thunk->thunkid), "THUNK%d",
+             ccnl->km->thunkid++);
     DBL_LINKED_LIST_ADD(ccnl->km->thunk_list, thunk);
     DEBUGMSG(DEBUG, "Created new thunk with id: %s\n", thunk->thunkid);
     return ccnl_strdup(thunk->thunkid);
@@ -535,7 +555,7 @@ ccnl_nfn_reply_thunk(struct ccnl_relay_s *ccnl, struct configuration_s *config)
     DEBUGMSG(TRACE, "ccnl_nfn_reply_thunk()\n");
 
     memset(reply_content, 0, 100);
-    sprintf(reply_content, "%d", thunk_time);
+    snprintf(reply_content, CCNL_ARRAY_SIZE(reply_content), "%d", thunk_time);
     c = ccnl_nfn_result2content(ccnl, &prefix, (unsigned char*)reply_content,
                                 strlen(reply_content));
     if (c) {
@@ -661,40 +681,45 @@ ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags)
 }
 
 int
-ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
-                            int exclude_param)
+ccnl_nfnprefix_fillCallExpr(char *buf, unsigned int buflen,
+                            struct fox_machine_state_s *s, int exclude_param)
 {
-    int len, j;
+    char *tmpBuf = buf;
+    unsigned int remLen = buflen, totalLen = 0;
+    int j;
     struct stack_s *entry;
     struct const_s *con;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(DEBUG, "exclude parameter: %d\n", exclude_param);
-    if (exclude_param >= 0){
-        len = sprintf(buf, "(@x call %d", s->num_of_params);
-    }
-    else{
-        len = sprintf(buf, "call %d", s->num_of_params);
-    }
+
+    if (exclude_param >= 0)
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(@x ");
+
+    ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "call %d",
+                           s->num_of_params);
 
     for (j = 0; j < s->num_of_params; j++) {
         if (j == exclude_param) {
-            len += sprintf(buf + len, " x");
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " x");
             continue;
         }
         entry = s->params[j];
         switch (entry->type) {
         case STACK_TYPE_INT:
-            len += sprintf(buf + len, " %d", *((int*)entry->content));
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %d",
+                                   *((int*)entry->content));
             break;
         case STACK_TYPE_PREFIX:
-            len += sprintf(buf + len, " %s",
-                           ccnl_prefix_to_path((struct ccnl_prefix_s*)entry->content));
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %s",
+                ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf),
+                    (struct ccnl_prefix_s*)entry->content));
             break;
         case STACK_TYPE_CONST:
             con = (struct const_s *)entry->content;
             char *str = ccnl_nfn_krivine_const2str(con);
-            len += sprintf(buf + len, " %.*s", con->len+2, str);
-
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, " %.*s",
+                                   con->len+2, str);
             ccnl_free(str);
             break;
 
@@ -705,8 +730,20 @@ ccnl_nfnprefix_fillCallExpr(char *buf, struct fox_machine_state_s *s,
         }
     }
     if (exclude_param >= 0)
-        len += sprintf(buf + len, ")");
-    return len;
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, ")");
+
+    if (!tmpBuf) {
+        DEBUGMSG(ERROR, "An encoding error occured while filling call expression.\n");
+        return -2;
+    }
+
+    if (totalLen >= buflen) {
+        DEBUGMSG(ERROR, "Buffer has not enough capacity for call expression. Available: %u, needed: %u\n",
+                 buflen, totalLen + 1);
+        return -1;
+    }
+
+    return totalLen;
 }
 
 struct ccnl_prefix_s *
@@ -745,6 +782,7 @@ ccnl_nfnprefix_mkCallPrefix(struct ccnl_prefix_s *name, int thunk_request,
     }
     p->comp[i] = (unsigned char*)(bytes + len);
     p->complen[i] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                CCNL_MAX_PACKET_SIZE - len - offset,
                                                 config->fox_state,
                                                 parameter_num);
     switch (p->suite) {
@@ -805,6 +843,7 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     }
     p->comp[1] = (unsigned char*) (bytes + len);
     p->complen[1] = ccnl_nfnprefix_fillCallExpr(bytes + len + offset,
+                                                CCNL_MAX_PACKET_SIZE - len - offset,
                                                 config->fox_state, -1);
     switch (p->suite) {
 #ifdef USE_SUITE_CCNTLV

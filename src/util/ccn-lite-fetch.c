@@ -26,6 +26,8 @@
 #define USE_SUITE_CISTLV
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
+#define USE_IPV4
+#define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -56,7 +58,7 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
     }
 
     int nonce = random();
-    *len = mkInterest(prefix, &nonce, out, out_len);
+    *len = mkInterest(prefix, &nonce, NULL, out, out_len);
 /*
         {
             int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
@@ -134,20 +136,12 @@ ccnl_extractDataAndChunkInfo(unsigned char **data, int *datalen,
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
-        int typ;
-        int len;
         unsigned char *start = *data;
-
-        if (ccnl_ndntlv_dehead(data, datalen, &typ, &len)) {
-            DEBUGMSG(WARNING, "could not dehead\n");
+        pkt = ccnl_ndntlv_bytes2pkt(start, data, datalen);
+        if (!pkt || pkt->packetType != NDN_TLV_Data) {
+            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", pkt ? pkt->packetType : -1);
             return -1;
         }
-        if (typ != NDN_TLV_Data) {
-            DEBUGMSG(WARNING, "received non-content-object packet with type %d\n", typ);
-            return -1;
-        }
-
-        pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
         break;
     }
 #endif
@@ -221,9 +215,11 @@ main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
     int len, opt, port, sock = 0, suite = CCNL_SUITE_DEFAULT;
-    char *addr = NULL, *udp = NULL, *ux = NULL;
+    const char *addr = NULL;
+    char *udp = NULL, *ux = NULL;
     struct sockaddr sa;
     float wait = 3.0;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     while ((opt = getopt(argc, argv, "hs:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -288,14 +284,11 @@ usage:
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
-        su->sun_family = AF_UNIX;
-        strcpy(su->sun_path, ux);
+        ccnl_setUnixSocketPath(su, ux);
         sock = ux_open();
     } else { // UDP
         struct sockaddr_in *si = (struct sockaddr_in*) &sa;
-        si->sin_family = PF_INET;
-        si->sin_addr.s_addr = inet_addr(addr);
-        si->sin_port = htons(port);
+        ccnl_setIpSocketAddr(si, addr, port);
         sock = udp_open();
     }
 
@@ -332,10 +325,12 @@ usage:
                 prefix->chunknum = ccnl_malloc(sizeof(unsigned int));
             }
             *(prefix->chunknum) = *curchunknum;
-            DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum, ccnl_prefix_to_path(prefix));
+            DEBUGMSG(INFO, "fetching chunk %d for prefix '%s'\n", *curchunknum,
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         } else {
             DEBUGMSG(DEBUG, "fetching first chunk...\n");
-            DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n", ccnl_prefix_to_path(prefix));
+            DEBUGMSG(INFO, "fetching first chunk for prefix '%s'\n",
+                     ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), prefix));
         }
 
         // Fetch chunk
@@ -386,12 +381,12 @@ usage:
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
-                    if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
+                    if (chunknum == 0 || (curchunknum && (int) *curchunknum == chunknum)) {
                         DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != -1 && lastchunknum == chunknum) {
+                        if ((int) lastchunknum != -1 && (int) lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;

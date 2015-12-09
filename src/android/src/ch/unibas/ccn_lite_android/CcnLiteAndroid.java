@@ -37,7 +37,7 @@ import android.os.Handler;
 
 public class CcnLiteAndroid extends Activity
 {
-    ArrayAdapter adapter;
+    ArrayAdapter<String> adapter;
     TextView debuglevel;
     BluetoothAdapter BTadapter;
     BluetoothGatt bleConnection;
@@ -64,7 +64,7 @@ public class CcnLiteAndroid extends Activity
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main_layout);
 
-        adapter = new ArrayAdapter(this, R.layout.logtextview, 0);
+        adapter = new ArrayAdapter<String>(this, R.layout.logtextview, 0);
 
         if (!getPackageManager().hasSystemFeature(
                                       PackageManager.FEATURE_BLUETOOTH_LE)) {

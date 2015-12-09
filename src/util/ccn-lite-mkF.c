@@ -57,7 +57,7 @@ file2frags(int suite, unsigned char *data, int datalen, char *fileprefix,
     //    fragbuf = ccnl_frag_getnext(&fr);
     fragbuf = ccnl_frag_getnext(&fr, NULL, NULL);
     while (fragbuf) {
-        sprintf(fname, "%s%03d.frag", fileprefix, cnt);
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s%03d.frag", fileprefix, cnt);
         if (noclobber && !access(fname, F_OK)) {
             printf("file %s already exists, skipping this name\n", fname);
         } else {

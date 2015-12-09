@@ -49,7 +49,7 @@ myexit(int rc)
 int
 udp_open()
 {
-    int s;
+  int s, bufsize;
     struct sockaddr_in si;
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
@@ -65,6 +65,10 @@ udp_open()
         exit(1);
     }
 
+    bufsize = CCNL_MAX_SOCK_SPACE;
+    setsockopt(s, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+    setsockopt(s, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+
     return s;
 }
 
@@ -72,17 +76,18 @@ int
 udp_sendto(int sock, char *dest, unsigned char *data, int len)
 {
     struct sockaddr_in dst;
-    char buf[256];
-    strcpy(buf, dest);
+    char addr[256];
+    unsigned int port;
 
-    dst.sin_family = PF_INET;
-    dst.sin_addr.s_addr = inet_addr(strtok(buf, "/"));
-    dst.sin_port = htons(atoi(strtok(NULL, "/")));
+    sscanf(dest, "%255[^/]/%u", addr, &port);
+    ccnl_setIpSocketAddr(&dst, addr, port);
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &dst, sizeof(dst));
 }
 
 // ----------------------------------------------------------------------
+
+#ifdef USE_UNIXSOCKET
 
 int
 ux_open()
@@ -91,7 +96,7 @@ ux_open()
     int sock, bufsize;
     struct sockaddr_un name;
 
-    sprintf(mysockname, "/tmp/.ccn-lite-peek-%d.sock", getpid());
+    snprintf(mysockname, CCNL_ARRAY_SIZE(mysockname), "/tmp/.ccn-lite-%d.sock", getpid());
     unlink(mysockname);
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -99,15 +104,15 @@ ux_open()
         perror("opening datagram socket");
         exit(1);
     }
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, mysockname);
+
+    ccnl_setUnixSocketPath(&name, mysockname);
     if (bind(sock, (struct sockaddr *) &name,
              sizeof(struct sockaddr_un))) {
         perror("binding path name to datagram socket");
         exit(1);
     }
 
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    bufsize = CCNL_MAX_SOCK_SPACE;
     setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
@@ -119,12 +124,13 @@ int ux_sendto(int sock, char *topath, unsigned char *data, int len)
 {
     struct sockaddr_un name;
 
-    name.sun_family = AF_UNIX;
-    strcpy(name.sun_path, topath);
+    ccnl_setUnixSocketPath(&name, topath);
 
     return sendto(sock, data, len, 0, (struct sockaddr*) &name,
                   sizeof(struct sockaddr_un));
 }
+
+#endif //USE_UNIXSOCKET
 
 // ----------------------------------------------------------------------
 

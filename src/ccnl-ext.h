@@ -35,13 +35,8 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
 
 // ccnl-core-util.c
-#ifndef CCNL_LINUXKERNEL
-   char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr,
-                    int ccntlv_skip, int escape_components, int call_slash);
-#  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
-#else
-   char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
-#endif
+int ccnl_snprintf(char **buf, unsigned int *buflen, unsigned int *totalLen,
+                    const char *format, ...);
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
 int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
@@ -49,7 +44,33 @@ const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
 bool ccnl_isSuite(int suite);
 
+const char* ccnl_addr2ascii(sockunion *su);
+#ifdef USE_IPV4
+int ccnl_setIpSocketAddr(struct sockaddr_in *ip4, const char *addr, uint16_t port);
+int ccnl_setSockunionIpAddr(sockunion *su, const char *addr, uint16_t port);
+#endif
+#ifdef USE_UNIXSOCKET
+int ccnl_setUnixSocketPath(struct sockaddr_un *ux, const char *path);
+int ccnl_setSockunionUnixPath(sockunion *su, const char *path);
+#endif
+
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+
+// ccnl-core-pfx.c
+char* ccnl_prefix2path(char *buf, unsigned int buflen, struct ccnl_prefix_s *pr);
+int ccnl_snprintfPrefixPathDetailed(char *buf, unsigned int buflen,
+                                    struct ccnl_prefix_s *pr, int ccntlv_skip,
+                                    int escape_components, int call_slash);
+#define ccnl_snprintfPrefixPath(BUF, LEN, P) ccnl_snprintfPrefixPathDetailed((BUF), (LEN), (P), 1, 0, 0)
+
+#ifdef CCNL_ARDUINO
+#  define CCNL_PREFIX_BUFSIZE 50
+#elif defined(CCNL_LINUXKERNEL)
+#  define CCNL_PREFIX_BUFSIZE 256
+#else
+#  define CCNL_PREFIX_BUFSIZE 512
+#endif
+
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) ccnl_SHA256(buf->data, buf->datalen, NULL)

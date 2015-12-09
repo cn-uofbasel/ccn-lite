@@ -33,6 +33,7 @@
 #define USE_DEBUG_MALLOC
 #define USE_ECHO
 #define USE_ETHERNET
+#define USE_FLIC
 //#define USE_FRAG
 #define USE_HMAC256
 #define USE_HTTP_STATUS
@@ -41,6 +42,7 @@
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
+#define USE_NAMELESS                   // must select this for MANIFESTS
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
@@ -63,6 +65,7 @@
 #include "ccnl-core.h"
 
 #include "lib-sha256.c"
+
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
@@ -107,7 +110,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", (char*) devname);
     if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
         perror("ethsock ioctl get hw addr");
         return -1;
@@ -134,7 +137,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 int
 ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
 {
-  int sock, bufsize;
+    int sock, bufsize;
 
     sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -143,8 +146,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
 
     unlink(path);
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    ccnl_setUnixSocketPath(ux, path);
 
     if (bind(sock, (struct sockaddr *) ux, sizeof(struct sockaddr_un))) {
         perror("binding name to datagram socket");
@@ -152,7 +154,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
         return -1;
     }
 
-    bufsize = 4 * CCNL_MAX_PACKET_SIZE;
+    bufsize = CCNL_MAX_SOCK_SPACE;
     setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
     setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
 
@@ -220,14 +222,13 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 {
     short type = htons(CCNL_ETH_TYPE);
     unsigned char buf[2000];
-    int hdrlen;
+    int hdrlen = 14;
 
-    strcpy((char*)buf, eth2ascii(dst));
+    snprintf((char*) buf, CCNL_ARRAY_SIZE(buf), "%s", eth2ascii(dst));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
              datalen, eth2ascii(src), buf);
 
-    hdrlen = 14;
-    if ((datalen+hdrlen) > sizeof(buf))
+    if ((datalen+hdrlen) > (int) sizeof(buf))
             datalen = sizeof(buf) - hdrlen;
     memcpy(buf, dst, 6);
     memcpy(buf+6, src, 6);
@@ -250,11 +251,13 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         rc = sendto(ifc->sock,
                     buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ip4, sizeof(struct sockaddr_in));
-        DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
-                 inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
+        DEBUGMSG(DEBUG, "udp sendto(%d Bytes) to %s/%d returned %d/%d\n",
+                 (int) buf->datalen,
+                 inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port),
+                 rc, errno);
         /*
         {
-            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC);
+            int fd = open("t.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
             write(fd, buf->data, buf->datalen);
             close(fd);
         }
@@ -277,8 +280,8 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         rc = sendto(ifc->sock,
                     buf->data, buf->datalen, 0,
                     (struct sockaddr*) &dest->ux, sizeof(struct sockaddr_un));
-        DEBUGMSG(DEBUG, "unix sendto %s returned %d\n",
-                 dest->ux.sun_path, rc);
+        DEBUGMSG(DEBUG, "unix sendto(%d Bytes) to %s returned %d\n",
+                 (int) buf->datalen, dest->ux.sun_path, rc);
         break;
 #endif
     default:
@@ -389,7 +392,7 @@ ccnl_relay_udp(struct ccnl_relay_s *relay, int port)
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
                   int udpport1, int udpport2, int httpport,
-                  char *uxpath, int suite, int max_cache_entries,
+                  char *uxpath, int _suite, int max_cache_entries,
                   char *crypto_face_path)
 {
 #if defined(USE_ETHERNET) || defined(USE_UNIXSOCKET)
@@ -475,8 +478,8 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             DEBUGMSG(WARNING, "sorry, could not open unix datagram device\n");
 
         //receiving interface
-        memset(h,0,sizeof(h));
-        sprintf(h,"%s-2",crypto_face_path);
+        memset(h, 0, CCNL_ARRAY_SIZE(h));
+        snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", crypto_face_path);
         i = &relay->ifs[relay->ifcount];
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         i->mtu = 4096;
@@ -592,6 +595,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 {
     DIR *dir;
     struct dirent *de;
+    ccnl_isContentFunc isCont;
 
     dir = opendir(path);
     if (!dir) {
@@ -606,7 +610,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct stat s;
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
-        int fd, datalen, suite, skip;
+        int fd, datalen, _suite, skip;
         unsigned char *data;
         (void) data; // silence compiler warning (if any USE_SUITE_* is not set)
 #if defined(USE_SUITE_IOTTLV) || defined(USE_SUITE_NDNTLV)
@@ -618,16 +622,15 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
-        strcat(fname, "/");
-        strcat(fname, de->d_name);
-
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s/%s", path, de->d_name);
         if (stat(fname, &s)) {
             perror("stat");
             continue;
         }
-        if (S_ISDIR(s.st_mode))
+        if (S_ISDIR(s.st_mode)) {
+            ccnl_populate_cache(ccnl, fname);
             continue;
+        }
 
         DEBUGMSG(INFO, "loading file %s, %d bytes\n", de->d_name,
                  (int) s.st_size);
@@ -651,10 +654,14 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             continue;
         }
         buf->datalen = datalen;
-        suite = ccnl_pkt2suite(buf->data, datalen, &skip);
+        _suite = ccnl_pkt2suite(buf->data, datalen, &skip);
+
+        isCont = ccnl_suite2isContentFunc(_suite);
+        if (!isCont || !isCont(buf->data, buf->datalen))
+            goto notacontent;
 
         pk = NULL;
-        switch (suite) {
+        switch (_suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB: {
             unsigned char *start;
@@ -722,10 +729,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
             data = olddata = buf->data + skip;
             datalen -= skip;
-            if (ccnl_ndntlv_dehead(&data, &datalen, (int*) &typ, &len) ||
-                                                         typ != NDN_TLV_Data)
-                goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
             break;
         }
 #endif
@@ -737,6 +741,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             DEBUGMSG(DEBUG, "  parsing error in %s\n", de->d_name);
             goto Done;
         }
+
         c = ccnl_content_new(ccnl, &pk);
         if (!c) {
             DEBUGMSG(WARNING, "could not create content (%s)\n", de->d_name);
@@ -881,12 +886,12 @@ usage:
 #ifdef USE_ECHO
     if (echopfx) {
         struct ccnl_prefix_s *pfx;
-        char *dup = ccnl_strdup(echopfx);
+        char *echoPfxDup = ccnl_strdup(echopfx);
 
-        pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
+        pfx = ccnl_URItoPrefix(echoPfxDup, suite, NULL, NULL);
         if (pfx)
             ccnl_echo_add(&theRelay, pfx);
-        ccnl_free(dup);
+        ccnl_free(echoPfxDup);
     }
 #endif
 

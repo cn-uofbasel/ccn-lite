@@ -28,7 +28,7 @@
 
 struct mhdr {
     struct mhdr *next;
-    char *fname;
+    const char *fname;
     int lineno, size;
 #ifdef CCNL_ARDUINO
     double tstamp;

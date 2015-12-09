@@ -30,7 +30,7 @@
 
 #ifdef CCNL_ARDUINO
 #  define CONSOLE(FMT, ...)   do { \
-     sprintf_P(logstr, PSTR(FMT), ##__VA_ARGS__); \
+     snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR(FMT), ##__VA_ARGS__); \
      Serial.print(logstr); \
      Serial.print("\r"); \
    } while(0)
@@ -41,9 +41,10 @@
 static char android_logstr[1024];
 void jni_append_to_log(char *line);
 
-#  define CONSOLE(...)        do { sprintf(android_logstr, __VA_ARGS__); \
-                                   jni_append_to_log(android_logstr); \
-                              } while(0)
+#  define CONSOLE(...)        do { \
+     snprintf(android_logstr, CCNL_ARRAY_SIZE(android_logstr), __VA_ARGS__); \
+     jni_append_to_log(android_logstr); \
+   } while(0)
 #  define CONSTSTR(s)         s
 
 #elif !defined(CCNL_LINUXKERNEL)
@@ -64,46 +65,65 @@ void jni_append_to_log(char *line);
 char*
 eth2ascii(unsigned char *eth)
 {
-    static char buf[18];
+    static char buf[19];
+    const char* format = CONSTSTR("%02x:%02x:%02x:%02x:%02x:%02x");
+    int numChars = -1;
 
+    // TODO: Somehow avoid code duplication because of snprintf_P vs. snprintf
 #ifdef CCNL_ARDUINO
-    sprintf_P(buf, PSTR("%02x:%02x:%02x:%02x:%02x:%02x"),
+    numChars = snprintf_P(buf, CCNL_ARRAY_SIZE(buf), format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
 #else
-    sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+    numChars = snprintf(buf, CCNL_ARRAY_SIZE(buf), format,
           (unsigned char) eth[0], (unsigned char) eth[1],
           (unsigned char) eth[2], (unsigned char) eth[3],
           (unsigned char) eth[4], (unsigned char) eth[5]);
 #endif
+
+    if (numChars < 0) {
+        return NULL;
+    }
+
     return buf;
 }
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 // ----------------------------------------------------------------------
 
 static void
-blob(struct ccnl_buf_s *buf)
+debug_array(unsigned char *cp, int len)
 {
-    unsigned char *cp = buf->data;
-    unsigned int i;
-
-    for (i = 0; i < buf->datalen; i++, cp++)
-        CONSOLE("%02x", *cp);
+    while (len-- > 0)
+        CONSOLE("%02x", *cp++);
 }
+
+static void
+debug_blob(struct ccnl_buf_s *buf)
+{
+    debug_array(buf->data, buf->datalen);
+}
+
 
 #ifdef USE_FRAG
 
 char*
 frag_protocol(int e)
 {
+#define FRAG_PROTOCOL_BUF_SIZE 100
     static char* names[] = { "none", "sequenced2012", "ccnx2013" };
-    static char buf[100];
+    static char buf[FRAG_PROTOCOL_BUF_SIZE];
+    int numChars;
+
     if (e >= 0 && e <= 2)
         return names[e];
-    sprintf(buf, "%d", e);
+
+    numChars = snprintf(buf, FRAG_PROTOCOL_BUF_SIZE, "%d", e);
+    if (numChars < 0) {
+        return NULL;
+    }
     return buf;
 }
 #endif
@@ -137,6 +157,7 @@ ccnl_dump(int lev, int typ, void *p)
     struct ccnl_pkt_s      *pkt = (struct ccnl_pkt_s      *) p;
     struct ccnl_content_s  *con = (struct ccnl_content_s  *) p;
     int i, k;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
 #define INDENT(lev)   for (i = 0; i < lev; i++) CONSOLE("  ")
 
@@ -152,7 +173,8 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_PREFIX:
         INDENT(lev);
         CONSOLE("%p PREFIX len=%d val=%s\n",
-               (void *) pre, pre->compcnt, ccnl_prefix_to_path(pre));
+               (void *) pre, pre->compcnt,
+               ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pre));
         break;
     case CCNL_RELAY:
         INDENT(lev);
@@ -270,7 +292,7 @@ ccnl_dump(int lev, int typ, void *p)
     case CCNL_PACKET:
         INDENT(lev);
         CONSOLE("%p PACKET %s typ=%d cont=%p contlen=%d finalBI=%d flags=0x%04x\n",
-                (void *) pkt, ccnl_suite2str(pkt->suite), pkt->type,
+                (void *) pkt, ccnl_suite2str(pkt->suite), pkt->packetType,
                 (void*) pkt->content, pkt->contlen, pkt->val.final_block_id,
                 pkt->flags);
         ccnl_dump(lev+1, CCNL_PREFIX, pkt->pfx);
@@ -282,21 +304,28 @@ ccnl_dump(int lev, int typ, void *p)
                     pkt->s.ccnb.minsuffix, pkt->s.ccnb.maxsuffix,
                     pkt->s.ccnb.aok, pkt->s.ccnb.scope);
             if (pkt->s.ccnb.nonce) {
-                CONSOLE(" nonce="); blob(pkt->s.ccnb.nonce);
+                CONSOLE(" nonce="); debug_blob(pkt->s.ccnb.nonce);
             }
             CONSOLE("\n");
             if (pkt->s.ccnb.ppkd) {
                 INDENT(lev+1);
-                CONSOLE("ppkd="); blob(pkt->s.ccnb.ppkd);
+                CONSOLE("ppkd="); debug_blob(pkt->s.ccnb.ppkd);
                 CONSOLE("\n");
             }
             break;
 #endif
 #ifdef USE_SUITE_CCNTLV
         case CCNL_SUITE_CCNTLV:
-            if (pkt->s.ccntlv.keyid) {
+            if (pkt->s.ccntlv.objHashRestr) {
                 INDENT(lev+1);
-                CONSOLE("keyid="); blob(pkt->s.ccntlv.keyid);
+                CONSOLE("objHash=");
+                debug_array(pkt->s.ccntlv.objHashRestr, 32);
+                CONSOLE("\n");
+            }
+            if (pkt->s.ccntlv.keyIdRestr) {
+                INDENT(lev+1);
+                CONSOLE("keyID=");
+                debug_blob(pkt->s.ccntlv.keyIdRestr);
                 CONSOLE("\n");
             }
             break;
@@ -314,12 +343,12 @@ ccnl_dump(int lev, int typ, void *p)
                     pkt->s.ndntlv.minsuffix, pkt->s.ndntlv.maxsuffix,
                     pkt->s.ndntlv.mbf, pkt->s.ndntlv.scope);
             if (pkt->s.ndntlv.nonce) {
-                CONSOLE(" nonce="); blob(pkt->s.ndntlv.nonce);
+                CONSOLE(" nonce="); debug_blob(pkt->s.ndntlv.nonce);
             }
             CONSOLE("\n");
             if (pkt->s.ndntlv.ppkl) {
                 INDENT(lev+1);
-                CONSOLE("ppkl="); blob(pkt->s.ndntlv.ppkl);
+                CONSOLE("ppkl="); debug_blob(pkt->s.ndntlv.ppkl);
                 CONSOLE("\n");
             }
             break;
@@ -367,19 +396,31 @@ get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
 int
 get_prefix_dump(int lev, void *p, int *len, char** val)
 {
+    int numChars;
     struct ccnl_prefix_s   *pre = (struct ccnl_prefix_s   *) p;
-//    int i;
-//    INDENT(lev);
-    //*prefix =  (void *) pre;
+
+    if (!(*val)) {
+        return 0;
+    }
+
+    // FIXME: This method does not receive the buffer size of *val.
+    // Thus it *CANNOT* ensure that there is no buffer overflow!
+    // In order to give ccnl_snprintfPrefixPath a reasonable size restriction,
+    // it is called with NULL and 0 to determine the number of characters needed
+    // to store the prefix path.
+    numChars = ccnl_snprintfPrefixPath(NULL, 0, pre);
+    if (numChars < 0) {
+        return 0;
+    }
+    ccnl_snprintfPrefixPath(*val, numChars+1, pre); // include null character
     *len = pre->compcnt;
-    //*val = ccnl_prefix_to_path(pre);
-    sprintf(*val, "%s", ccnl_prefix_to_path(pre));
     return 1;
 }
 
 int
 get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
-               int *ifndx, int *flags, char **peer, int *type, char **frag)
+               int *ifndx, int *flags, char **peer, unsigned int peerlen,
+               int *type, char **frag, unsigned int fraglen)
 {
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
@@ -393,7 +434,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         prev[line] = (long)(void *) fac->prev;
         ifndx[line] = fac->ifndx;
         flags[line] = fac->flags;
-        sprintf(peer[line], "%s", ccnl_addr2ascii(&fac->peer));
+        snprintf(peer[line], peerlen, "%s", ccnl_addr2ascii(&fac->peer));
 
         if (0) {}
 #ifdef USE_IPV4
@@ -415,9 +456,10 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
         else
             type[line] = 0;
 #ifdef USE_FRAG
-        if (fac->frag)
-            sprintf(frag[line], "fragproto=%s mtu=%d",
+        if (fac->frag) {
+            snprintf(frag[line], fraglen, "fragproto=%s mtu=%d",
                     frag_protocol(fac->frag->protocol), fac->frag->mtu);
+        }
         else
 #endif
             frag[line][0] = '\0';
@@ -437,7 +479,7 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
     int line = 0;
     while (fwd) {
 //        INDENT(lev);
-        /*pos += sprintf(out[line] + pos, "%p FWD next=%p face=%p (id=%d)",
+        /*pos += snprintf(out[line] + pos,  outlen - pos, "%p FWD next=%p face=%p (id=%d)",
                 (void *) fwd, (void *) fwd->next,
                 (void *) fwd->face, fwd->face->faceid);*/
         outfwd[line] = (long)(void *) fwd;
@@ -460,8 +502,8 @@ get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid
 }
 
 int
-get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
-        int *devtype, int *reflect)
+get_interface_dump(int lev, void *p, int *ifndx, char **addr, unsigned int addrlen,
+                   long *dev, int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
 
@@ -470,8 +512,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
 //        INDENT(lev+1);
 
         ifndx[k] = k;
-        //        sprintf(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
-        strcpy(addr[k], ccnl_addr2ascii(&top->ifs[k].addr));
+        snprintf(addr[k], addrlen, "%s", ccnl_addr2ascii(&top->ifs[k].addr));
 
 #ifdef CCNL_LINUXKERNEL
         if (top->ifs[k].addr.sa.sa_family == AF_PACKET) {
@@ -535,16 +576,16 @@ get_interest_dump(int lev, void *p, long *interest, long *next, long *prev,
 }
 
 int
-get_pendint_dump(int lev, void *p, char **out){
+get_pendint_dump(int lev, void *p, char **out, unsigned int outlen)
+{
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
     struct ccnl_interest_s *itr = (struct ccnl_interest_s *) top->pit;
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
 
-    int pos = 0, line = 0;
+    int line = 0;
     while (pir) {
 //        INDENT(lev);
-        pos = 0;
-        pos += sprintf(out[line] + pos, "%p PENDINT next=%p face=%p last=%d",
+        snprintf(out[line], outlen, "%p PENDINT next=%p face=%p last=%d",
                (void *) pir, (void *) pir->next,
                (void *) pir->face, pir->last_used);
         pir = pir->next;
@@ -586,6 +627,9 @@ char* timestamp(void);
 
 #ifdef USE_DEBUG_MALLOC
 
+unsigned long ccnl_total_alloc_bytes;
+unsigned int ccnl_total_alloc_chunks;
+
 #ifdef CCNL_ARDUINO
 
 #  define ccnl_malloc(s)        debug_malloc(s, PSTR(__FILE__), __LINE__, CCNL_NOW())
@@ -621,7 +665,7 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
         return NULL;
     h->next = mem;
     mem = h;
-    h->fname = (char *) fn;
+    h->fname = fn;
     h->lineno = lno;
     h->size = s;
 #ifdef CCNL_ARDUINO
@@ -634,6 +678,8 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
                          (void*)(((unsigned char *)h) + sizeof(struct mhdr)),
                          (char*) fn, lno);
     */
+    ccnl_total_alloc_bytes += s;
+    ccnl_total_alloc_chunks++;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -680,16 +726,20 @@ debug_realloc(void *p, int s, const char *fn, int lno)
                     timestamp(), h->fname, h->lineno, fn, lno);
             return NULL;
         }
+        ccnl_total_alloc_bytes -= h->size;
+        ccnl_total_alloc_chunks--;
         h = (struct mhdr *) realloc(h, s+sizeof(struct mhdr));
         if (!h)
             return NULL;
     } else
         h = (struct mhdr *) malloc(s+sizeof(struct mhdr));
-    h->fname = (char *) fn;
+    h->fname = fn;
     h->lineno = lno;
     h->size = s;
     h->next = mem;
     mem = h;
+    ccnl_total_alloc_bytes += s;
+    ccnl_total_alloc_chunks++;
     return ((unsigned char *)h) + sizeof(struct mhdr);
 }
 
@@ -701,13 +751,16 @@ void*
 debug_strdup(const char *s, const char *fn, int lno, char *tstamp)
 #endif
 {
-    char *cp;
+    char *cp; int cpLen;
 
     if (!s)
         return NULL;
-    cp = (char*) debug_malloc(strlen(s)+1, fn, lno, tstamp);
+
+    cpLen = strlen(s)+1;
+    cp = (char*) debug_malloc(cpLen, fn, lno, tstamp);
     if (cp)
-        strcpy(cp, s);
+        snprintf(cp, cpLen, "%s", s);
+
     return cp;
 }
 
@@ -731,10 +784,15 @@ debug_free(void *p, const char *fn, int lno)
     if (h->tstamp && *h->tstamp)
         free(h->tstamp);
 #endif
-    //free(h);
+    ccnl_total_alloc_bytes -= h->size;
+    ccnl_total_alloc_chunks--;
+
+    free(h);
+/*
     // instead of free: do a
        memset(h+1, 0x8f, h->size);
     // to discover continued use of a freed memory zone
+*/
 }
 
 #ifdef CCNL_ARDUINO

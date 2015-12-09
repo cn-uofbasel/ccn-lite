@@ -26,7 +26,6 @@
 // ----------------------------------------------------------------------
 #ifdef CCNL_ARDUINO
 
-
 // typedef int time_t;
 #define Hz 1000
 
@@ -51,7 +50,7 @@ timestamp(void)
     static char ts[12];
     uint32_t m = millis();
 
-    sprintf_P(ts, PSTR("%lu.%03d"), m / 1000, (int)(m % 1000));
+    snprintf_P(ts, CCNL_ARRAY_SIZE(ts), PSTR("%lu.%03d"), m / 1000, (int)(m % 1000));
 
     return ts;
 }
@@ -82,17 +81,8 @@ current_time(void)
 char*
 timestamp(void)
 {
-    static char ts[16], *cp;
-
-    sprintf(ts, "%.4g", CCNL_NOW());
-    cp = strchr(ts, '.');
-    if (!cp)
-        strcat(ts, ".0000");
-    else if (strlen(cp) > 5)
-        cp[5] = '\0';
-    else while (strlen(cp) < 5)
-        strcat(cp, "0");
-
+    static char ts[16];
+    snprintf(ts, CCNL_ARRAY_SIZE(ts), "%.4f", CCNL_NOW());
     return ts;
 }
 

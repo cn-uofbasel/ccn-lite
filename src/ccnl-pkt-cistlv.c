@@ -101,7 +101,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // validation is ignored
     if (ccnl_cistlv_dehead(data, datalen, &typ, &len))
         goto Bail;
-    pkt->type = typ;
+    pkt->contentType = typ;
     pkt->suite = CCNL_SUITE_CISTLV;
     pkt->val.final_block_id = -1;
 
@@ -369,7 +369,7 @@ ccnl_cistlv_prependInterest(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset;
 
-    if (ccnl_cistlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_cistlv_prependTL(CISCO_TLV_Interest,
                                         oldoffset - *offset, offset, buf) < 0)
@@ -432,7 +432,7 @@ ccnl_cistlv_prependContent(struct ccnl_prefix_s *name,
             return -1;
     }
 
-    if (ccnl_cistlv_prependName(name, offset, buf))
+    if (ccnl_cistlv_prependName(name, offset, buf) < 0)
         return -1;
 
     if (ccnl_cistlv_prependTL(CISCO_TLV_Content,

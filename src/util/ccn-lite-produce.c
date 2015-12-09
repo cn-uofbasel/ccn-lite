@@ -181,25 +181,27 @@ Usage:
     unsigned int chunknum = 0;
 
     char outpathname[255];
-    char fileext[10];
+    char *fileext;
     switch (suite) {
         case CCNL_SUITE_CCNB:
-            strcpy(fileext, "ccnb");
+            fileext = "ccnb";
             break;
         case CCNL_SUITE_CCNTLV:
-            strcpy(fileext, "ccntlv");
+            fileext = "ccntlv";
             break;
         case CCNL_SUITE_CISTLV:
-            strcpy(fileext, "cistlv");
+            fileext = "cistlv";
             break;
         case CCNL_SUITE_IOTTLV:
-            strcpy(fileext, "iottlv");
+            fileext = "iottlv";
             break;
         case CCNL_SUITE_NDNTLV:
-            strcpy(fileext, "ndntlv");
+            fileext = "ndntlv";
             break;
         default:
-            DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
+            DEBUGMSG(WARNING, "fileext for suite %d not implemented, using 'dat'.\n", suite);
+            fileext = "dat";
+            break;
     }
 
     chunk_len = 1;
@@ -210,7 +212,7 @@ Usage:
             is_last = 1;
         }
 
-        strcpy(url, url_orig);
+        snprintf(url, CCNL_ARRAY_SIZE(url), "%s", url_orig);
         offs = CCNL_MAX_PACKET_SIZE;
         name = ccnl_URItoPrefix(url, suite, nfnexpr, &chunknum);
 
@@ -240,17 +242,16 @@ Usage:
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name,
                                  (unsigned char *) chunk_buf, chunk_len,
-                                 NULL, is_last ? &chunknum : NULL,
+                                 is_last ? &chunknum : NULL, NULL,
                                  &offs, out);
             break;
         default:
             DEBUGMSG(ERROR, "produce for suite %i is not implemented\n", suite);
             goto Error;
-            break;
         }
 
         if (outdirname) {
-            sprintf(outpathname, "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
+            snprintf(outpathname, CCNL_ARRAY_SIZE(outpathname), "%s/%s%d.%s", outdirname, outfname, chunknum, fileext);
 //            DEBUGMSG(INFO, "%s/%s%d.%s\n", outdirname, outfname, chunknum, fileext);
 
             DEBUGMSG(INFO, "writing chunk %d to file %s\n", chunknum, outpathname);

@@ -115,7 +115,7 @@ void loop() {
 
 /*
   while (Serial.available()) {
-    strcpy(buffer, "ok, done!\n");
+    snprintf(buffer, CCNL_ARRAY_SIZE(buffer), "ok, done!\n");
     wifi.send(buffer, strlen(buffer));
   }
 */
@@ -146,14 +146,18 @@ void loop() {
 
 EthernetUDP Udp;
 
-#include "../../ccn-lite-arduino.c"
+extern "C" {
+  // unfortunately, the Arduino IDE requires absolute path names:
+  #define CCN_LITE_C "/home/ubuntu/ccn-lite/src/ccn-lite-arduino.c"
+  #include CCN_LITE_C
+}
 
 void setup()
 {
     pinMode(LED_PIN, OUTPUT);
 
     Serial.begin(9600);
-    strcpy_P(logstr, PSTR(">>"));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR(">>"));
     Serial.println(logstr);
 
 #ifdef USE_DEBUG

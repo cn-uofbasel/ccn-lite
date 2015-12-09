@@ -38,6 +38,15 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #undef sprintf_P
 #define sprintf_P(...) sprintf(__VA_ARGS__)
 
+// Add missing _P variants of snprintf
+#ifndef snprintf_P
+#define snprintf_P(...) snprintf(__VA_ARGS__)
+#endif
+
+#ifndef vsnprintf_P
+#define vsnprintf_P(...) vsnprintf(__VA_ARGS__)
+#endif
+
 
 //#define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
@@ -87,7 +96,7 @@ ccnl_rfduino_get_MAC_addr(unsigned char *addr) // 6 bytes
 
 // scratchpad memory
 static char logstr[128];
-#define LOGSTROFFS 36  // where to put a %s parameter for the sprintf_P
+#define LOGSTROFFS 36  // where to put a %s parameter for the snprintf_P
 
 // ----------------------------------------------------------------------
 // dummy types
@@ -164,7 +173,7 @@ unsigned char keyid[32];
 char*
 ccnl_arduino_getPROGMEMstr(const char* s)
 {
-    strcpy_P(logstr + LOGSTROFFS, s);
+    snprintf_P(logstr+LOGSTROFFS, CCNL_ARRAY_SIZE(logstr)-LOGSTROFFS, "%s", s);
     return logstr + LOGSTROFFS;
 }
 
@@ -174,8 +183,8 @@ inet_ntoa(struct in_addr a)
     static char result[16];
     unsigned long l = ntohl(a.s_addr);
 
-    sprintf_P(result, PSTR("%ld.%lu.%lu.%lu"),
-            (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
+    snprintf_P(result, CCNL_ARRAY_SIZE(result), PSTR("%ld.%lu.%lu.%lu"),
+               (l>>24), (l>>16)&0x0ff, (l>>8)&0x0ff, l&0x0ff);
     return result;
 }
 
@@ -186,13 +195,14 @@ inet_ntoa(struct in_addr a)
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
 
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 // selectively enable/disable logging messages per module
 
 #define DEBUGMSG_CORE(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_CFWD(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_CUTL(...) DEBUGMSG_ON(__VA_ARGS__)
+#define DEBUGMSG_CPFX(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_EFRA(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_MAIN(...) DEBUGMSG_ON(__VA_ARGS__)
 #define DEBUGMSG_PCNX(...) DEBUGMSG_ON(__VA_ARGS__)
@@ -235,8 +245,10 @@ void tempInX(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int offset = sizeof(packetBuffer), i, len;
     double d;
     unsigned char *cp, c;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    DEBUGMSG_MAIN(VERBOSE, "tempInX %s bytes\n", ccnl_prefix_to_path(p));
+    DEBUGMSG_MAIN(VERBOSE, "tempInX %s bytes\n",
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p));
 
     if (p->compcnt != 1)
         return;
@@ -256,8 +268,8 @@ void tempInX(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     c = cp[3];
     d = GetTemp(c == 'C' ? CELSIUS : FAHRENHEIT);
 
-    sprintf_P(logstr, PSTR("%03u %d.%1d"), (millis() / 1000) % 1000,
-              (int)d, (int)(10*(d - (int)d)));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("%03u %d.%1d"),
+               (millis() / 1000) % 1000, (int)d, (int)(10*(d - (int)d)));
 
     if (strlen(logstr) > 8) // so that with ndn2013, the reply fits in 20B
         logstr[8] = '\0';
@@ -396,11 +408,13 @@ void
 set_sensorName(char *name, int suite)
 {
     struct ccnl_prefix_s *p;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    strcpy_P(logstr, name);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", name);
     p = ccnl_URItoPrefix(logstr, suite, NULL, NULL);
     DEBUGMSG_MAIN(INFO, "  temp sensor at lci:%s (%s)\n",
-           ccnl_prefix_to_path(p), ccnl_suite2str(suite));
+                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p),
+                  ccnl_suite2str(suite));
 
     ccnl_set_tap(&theRelay, p, tempInX);
 }
@@ -433,7 +447,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
     Serial.println("  ccnl-core: " CCNL_VERSION);
     Serial.println("  compile time: " __DATE__ " "  __TIME__);
     Serial.print(  "  compile options: ");
-    strcpy_P(logstr, PSTR(compile_string));
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", PSTR(compile_string));
     Serial.println(logstr);
 
 #ifdef USE_DEBUG
@@ -470,7 +484,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 #endif
 
 #ifdef USE_HMAC256
-    strcpy_P(logstr, secret_key);
+    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), "%s", secret_key);
     ccnl_hmac256_keyval((unsigned char*)logstr, strlen(logstr), keyval);
     ccnl_hmac256_keyid((unsigned char*)logstr, strlen(logstr), keyid);
 #endif
@@ -493,7 +507,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
   ::);
 }
 */
-/*    sprintf_P(logstr, PSTR("  brkval=%p, stackptr=%p (%d bytes free)"),
+/*    snprintf_P(logstr, CCNL_ARRAY_SIZE(logstr), PSTR("  brkval=%p, stackptr=%p (%d bytes free)"),
               __brkval, (char *)AVR_STACK_POINTER_REG,
               (char *)AVR_STACK_POINTER_REG - __brkval);
     Serial.println(logstr);

@@ -60,6 +60,7 @@
 #  include <sys/types.h>
 #  undef USE_ETHERNET
    // ethernet support in FreeBSD is work in progress ...
+#  include <architecture/byte_order.h>
 #elif defined(linux)
 #  include <endian.h>
 #  include <linux/if_ether.h>  // ETH_ALEN
@@ -103,10 +104,38 @@
 #include <net/ip.h>
 #include <net/af_unix.h>
 
+// TODO: Replace obsolete simple_* functions with kstrto* variants.
 #define strtol(s,p,b)	simple_strtol(s,p,b)
+#define strtoul(s,p,b)  simple_strtoul(s,p,b)
 #define inet_aton(s,p)	(p)->s_addr = in_aton(s)
 #define USE_ETHERNET
 
 #endif // CCNL_LINUXKERNEL
+
+/*
+// Mark sprintf and strcpy and strcat variants as deprecated. Use snprintf or ccnl_snprintf instead.
+char* strcpy   (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf' instead")));
+char* strcpy_P (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strncpy  (char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf' instead")));
+char* strncpy_P(char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strcat   (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf' instead")));
+char* strcat_P (char *destination, const char *source)             __attribute__((deprecated("use 'snprintf_P' instead")));
+char* strncat  (char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf' instead")));
+char* strncat_P(char *destination, const char *source, size_t num) __attribute__((deprecated("use 'snprintf_P' instead")));
+
+int sprintf(char* str, const char* format, ...)                    __attribute__((deprecated("use 'snprintf' instead")));
+int sprintf_P(char* str, const char* format, ...)                  __attribute__((deprecated("use 'snprintf_P' instead")));
+*/
+
+
+#if !defined( __BYTE_ORDER) && defined(__DARWIN_BYTE_ORDER)
+#  define __BYTE_ORDER __DARWIN_BYTE_ORDER
+#endif
+#if !defined( __BIG_ENDIAN) && defined(__DARWIN_BIG_ENDIAN)
+#  define __BIG_ENDIAN __DARWIN_BIG_ENDIAN
+#endif
+#if !defined( __LITTLE_ENDIAN) && defined(__DARWIN_LITTLE_ENDIAN)
+#  define __LITTLE_ENDIAN __DARWIN_LITTLE_ENDIAN
+#endif
 
 // eof

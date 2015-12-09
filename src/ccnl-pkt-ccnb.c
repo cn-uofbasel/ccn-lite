@@ -329,7 +329,7 @@ ccnl_ccnb_addBlob(unsigned char *out, char *cp, int cnt)
 
 int
 ccnl_ccnb_mkField(unsigned char *out, unsigned int num, int typ,
-                  unsigned char *data, int datalen)
+                  const unsigned char *data, int datalen)
 {
     int len;
 
@@ -422,6 +422,7 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
 
 int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
+                       unsigned char *objHashRestr,
                        unsigned char *out, int outlen)
 {
     (void) outlen;

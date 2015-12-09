@@ -235,7 +235,8 @@ struct ccnl_pktdetail_ccnb_s {
 };
 
 struct ccnl_pktdetail_ccntlv_s {
-    struct ccnl_buf_s *keyid;       // publisher keyID
+    unsigned char *objHashRestr;         // ObjectHashRestriction
+    struct ccnl_buf_s *keyIdRestr;       // publisher keyID restriction
 };
 
 struct ccnl_pktdetail_iottlv_s {
@@ -244,6 +245,7 @@ struct ccnl_pktdetail_iottlv_s {
 
 struct ccnl_pktdetail_ndntlv_s {
     int minsuffix, maxsuffix, mbf, scope;
+    unsigned char *dataHashRestr;  // requesting via implicit hash
     struct ccnl_buf_s *nonce;      // nonce
     struct ccnl_buf_s *ppkl;       // publisher public key locator
 };
@@ -261,7 +263,8 @@ struct ccnl_pkt_s {
     struct ccnl_prefix_s *pfx;     // prefix/name
     unsigned char *content;        // pointer into the data buffer
     int contlen;
-    unsigned int type;   // suite-specific value (outermost type)
+    unsigned short packetType;     // suite-specific value (outermost type)
+    unsigned short contentType;    // inner type (if Data/Content obj)
     union {
         int final_block_id;
         unsigned int seqno;
@@ -276,6 +279,9 @@ struct ccnl_pkt_s {
     unsigned char *hmacStart;
     int hmacLen;
     unsigned char *hmacSignature;
+#endif
+#ifdef USE_NAMELESS
+    unsigned char md[32]; // message digest (ObjHash)
 #endif
     unsigned int flags;
     char suite;
@@ -314,6 +320,10 @@ struct ccnl_lambdaTerm_s {
        if ((e)->prev) (e)->prev->next = (e)->next; \
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
+
+// ----------------------------------------------------------------------
+
+#define CCNL_ARRAY_SIZE(a)  (sizeof(a) / sizeof((a)[0]))
 
 #endif /*CCNL_CORE*/
 // eof

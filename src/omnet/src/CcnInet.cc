@@ -669,10 +669,10 @@ void
 CcnInet::updateDisplayString()
 {
     char buf[100] = "";
-    if (inPktsDropped > 0) sprintf( buf+strlen(buf), "(In)DROPPED:%d ", inPktsDropped);
-    if (outPktsDropped > 0) sprintf(buf+strlen(buf), "(Out)DROPPED:%d ", outPktsDropped);
-    if (inPkts > 0) sprintf(buf+strlen(buf), "RECEIVED:%d ", inPkts);
-    if (outPkts >0) sprintf(buf+strlen(buf), "SENT:%d ", outPkts);
+    if (inPktsDropped > 0) snprintf(buf+strlen(buf), 100-strlen(buf), "(In)DROPPED:%d ", inPktsDropped);
+    if (outPktsDropped > 0) snprintf(buf+strlen(buf), 100-strlen(buf), "(Out)DROPPED:%d ", outPktsDropped);
+    if (inPkts > 0) snprintf(buf+strlen(buf), 100-strlen(buf), "RECEIVED:%d ", inPkts);
+    if (outPkts >0) snprintf(buf+strlen(buf), 100-strlen(buf), "SENT:%d ", outPkts);
     getDisplayString().setTagArg("t", 0, buf);
 }
 

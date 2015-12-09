@@ -27,13 +27,15 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
                   struct ccnl_prefix_s *pfx, struct ccnl_buf_s *buf)
 {
     time_t t;
-    char *s, *cp;
+    char *cp;
     struct ccnl_buf_s *reply;
     unsigned char *ucp;
-    int len, enc;
+    int len, enc, cpLen;
     struct ccnl_prefix_s *pfx2 = NULL;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
-    DEBUGMSG(DEBUG, "echo request for <%s>\n", ccnl_prefix_to_path(pfx));
+    ccnl_snprintfPrefixPath(prefixBuf, CCNL_PREFIX_BUFSIZE, pfx);
+    DEBUGMSG(DEBUG, "echo request for <%s>\n", prefixBuf);
 
 //    if (pfx->chunknum) {
         // mkSimpleContent adds the chunk number, so remove it here
@@ -44,7 +46,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 #ifdef USE_SUITE_CCNTLV
     if (pfx->complen[pfx->compcnt-1] > 1 &&
         pfx->comp[pfx->compcnt-1][1] == CCNX_TLV_N_Chunk) {
-        struct ccnl_prefix_s *pfx2 = ccnl_prefix_dup(pfx);
+        pfx2 = ccnl_prefix_dup(pfx);
         pfx2->compcnt--;
         pfx2->chunknum = (int*) ccnl_malloc(sizeof(unsigned int));
         *(pfx2->chunknum) = 0;
@@ -53,10 +55,10 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 #endif
 
     t = time(NULL);
-    s = ccnl_prefix_to_path(pfx);
 
-    cp = ccnl_malloc(strlen(s) + 60);
-    sprintf(cp, "%s\n%suptime %s\n", s, ctime(&t), timestamp());
+    cpLen = strlen(prefixBuf) + 60;
+    cp = ccnl_malloc(cpLen);
+    snprintf(cp, cpLen, "%s\n%suptime %s\n", prefixBuf, ctime(&t), timestamp());
 
     reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
     ccnl_free(cp);
@@ -69,6 +71,11 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 
     while (!ccnl_switch_dehead(&ucp, &len, &enc)); // for iot2014 encoding
 
+    // TODO: This is probably not the right way to send the reply. Instead, it
+    // should be correctly enqueued into the relay's queues.
+    // This is because ccnl_echo_request is already called inside a ccnl_core_RX
+    // phase. It results in the callee depending on an interest which gets
+    // removed in this call.
     ccnl_core_suites[(int)pfx->suite].RX(relay, NULL, &ucp, &len);
     ccnl_free(reply);
 }

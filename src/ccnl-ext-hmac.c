@@ -71,11 +71,11 @@ ccnl_hmac256_keysetup(SHA256_CTX_t *ctx, unsigned char *keyval, int kvlen,
     unsigned char buf[64];
     int i;
 
-    if (kvlen > sizeof(buf))
+    if (kvlen > (int) sizeof(buf))
         kvlen = sizeof(buf);
     for (i = 0; i < kvlen; i++, keyval++)
         buf[i] = *keyval ^ pad;
-    while (i < sizeof(buf))
+    while (i < (int) sizeof(buf))
         buf[i++] = 0 ^ pad;
 
     ccnl_SHA256_Init(ctx);
@@ -84,9 +84,9 @@ ccnl_hmac256_keysetup(SHA256_CTX_t *ctx, unsigned char *keyval, int kvlen,
 
 // RFC2014 signature generation
 void
-ccnl_hmac256_sign(unsigned char *keyval, int kvlen,
-                  unsigned char *data, int dlen,
-                  unsigned char *md, int *mlen)
+ccnl_hmac256_sign(unsigned char *keyval, unsigned int kvlen,
+                  unsigned char *data, unsigned int dlen,
+                  unsigned char *md, unsigned int *mlen)
 {
     unsigned char tmp[SHA256_DIGEST_LENGTH];
     SHA256_CTX_t ctx;
@@ -120,8 +120,8 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
                                         unsigned char *keydigest, // 32B
                                         int *offset, unsigned char *buf)
 {
-    int mdlength = 32, mdoffset, endofsign, oldoffset;
-    uint32_t len;
+    int mdoffset, endofsign, oldoffset;
+    unsigned int len, mdlength = 32;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
 
     if (*offset < (8 + paylen + 4+32 + 3*4+32))
@@ -170,7 +170,8 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
                            unsigned char *keydigest, // 32B
                            int *offset, unsigned char *buf)
 {
-    int oldoffset = *offset, oldoffset2, mdoffset, endofsign, mdlength = 32;
+    int oldoffset = *offset, oldoffset2, mdoffset, endofsign;
+    unsigned int mdlength = 32;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureHmacWithSha256 };
 
     if (contentpos)
@@ -230,8 +231,11 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
         return -1;
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
+
+    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
+                      buf + mdoffset, &mdlength);
 
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
@@ -240,9 +244,6 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
 
     if (contentpos)
         *contentpos -= *offset;
-
-    ccnl_hmac256_sign(keyval, 64, buf + *offset, endofsign - *offset,
-                      buf + mdoffset, &mdlength);
 
     return oldoffset - *offset;
 }

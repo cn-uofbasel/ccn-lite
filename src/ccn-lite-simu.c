@@ -140,18 +140,20 @@ ccnl_simu_add2cache(char node, const char *name, int seqn, void *data, int len)
     int dataoffset;
     struct ccnl_content_s *c;
     struct ccnl_pkt_s *pkt;
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     relay = char2relay(node);
     if (!relay)
         return;
 
-    sprintf(tmp, "%s/.%d", name, seqn);
+    snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s/.%d", name, seqn);
     DEBUGMSG(VERBOSE, "  %s\n", tmp);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     pkt = ccnl_calloc(1, sizeof(*pkt));
     pkt->pfx = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(VERBOSE, "  %s\n", ccnl_prefix_to_path(pkt->pfx));
+    DEBUGMSG(VERBOSE, "  %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), pkt->pfx));
     pkt->buf = ccnl_mkSimpleContent(pkt->pfx, data, len, &dataoffset);
     pkt->content = pkt->buf->data + dataoffset;
     pkt->contlen = len;
@@ -170,6 +172,7 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     struct ccnl_prefix_s *p;
     struct ccnl_buf_s *buf;
     struct ccnl_relay_s *relay = char2relay(node);
+    char prefixBuf[CCNL_PREFIX_BUFSIZE];
 
     DEBUGMSG(TRACE, "ccnl_client_tx node=%c: request %s #%d\n",
              node, name, seqn);
@@ -177,11 +180,12 @@ ccnl_client_TX(char node, char *name, int seqn, int nonce)
     if (!relay)
         return;
 
-    sprintf(tmp, "%s/.%d", name, seqn);
+    snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s/.%d", name, seqn);
     //    p = ccnl_path_to_prefix(tmp);
     //    p->suite = suite;
     p = ccnl_URItoPrefix(tmp, theSuite, NULL, NULL);
-    DEBUGMSG(TRACE, "  create interest for %s\n", ccnl_prefix_to_path(p));
+    DEBUGMSG(TRACE, "  create interest for %s\n",
+             ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), p));
     buf = ccnl_mkSimpleInterest(p, &nonce);
     free_prefix(p);
 
@@ -250,27 +254,22 @@ ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     int i;
     char tmp[200], tmp2[10];
+    char *tmpBuf = tmp;
+    unsigned int remLen = CCNL_ARRAY_SIZE(tmp), totalLen = 0;
     struct ccnl_prefix_s *p = c->pkt->pfx;
+    unsigned int offset = 0;
 
     if (theSuite == CCNL_SUITE_CCNTLV || theSuite == CCNL_SUITE_CISTLV) {
-        tmp[0] = '\0';
-        for (i = 0; i < p->compcnt-1; i++) {
-            strcat((char*)tmp, "/");
-            tmp[strlen(tmp) + p->complen[i] - 4] = '\0';
-            memcpy(tmp + strlen(tmp), p->comp[i]+4, p->complen[i]-4);
-        }
-        memcpy(tmp2, p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
-        tmp2[p->complen[p->compcnt-1]-4] = '\0';
-    } else {
-        tmp[0] = '\0';
-        for (i = 0; i < p->compcnt-1; i++) {
-            strcat((char*)tmp, "/");
-            tmp[strlen(tmp) + p->complen[i]] = '\0';
-            memcpy(tmp + strlen(tmp), p->comp[i], p->complen[i]);
-        }
-        memcpy(tmp2, p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-        tmp2[p->complen[p->compcnt-1]] = '\0';
+        offset = 4;
     }
+
+    for (i = 0; i < p->compcnt-1; i++) {
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "/%.*s",
+                               p->complen[i] - offset, p->comp[i] + offset);
+    }
+
+    snprintf(tmp2, CCNL_ARRAY_SIZE(tmp2), "%.*s",
+             p->complen[p->compcnt-1] - offset, p->comp[p->compcnt-1] + offset);
 
     DEBUGMSG(INFO, "app delivery at node %c, name=%s%s\n",
              relay2char(ccnl), tmp, tmp2);
@@ -458,7 +457,7 @@ ccnl_simu_init(int max_cache_entries, int mtu)
 */
 
     // turn node 'C' into a repository for three movies
-    sprintf(dat, "%d", (int) sizeof(dat));
+    snprintf(dat, CCNL_ARRAY_SIZE(dat), "%d", (int) sizeof(dat));
     for (i = 0; i < SIMU_NUMBER_OF_CHUNKS; i++) {
         ccnl_simu_add2cache('C', "/ccnl/simu/movie1", i, dat, sizeof(dat));
         ccnl_simu_add2cache('C', "/ccnl/simu/movie2", i, dat, sizeof(dat));

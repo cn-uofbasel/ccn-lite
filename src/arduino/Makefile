@@ -1,19 +1,29 @@
 # Makefile
 
-BOARD=atmega328
-#BOARD=uno
+ARDUINO_PKG?=arduino
+ARDUINO_ARCH?=avr
+ARDUINO_BOARD?=uno
 
-all:
-	ino build -m ${BOARD} -v
+.PHONY: build verify upload mkdir setboard setccnlhome clean
 
-init:
-	ino init
+build: verify
+verify: mkdir setboard setccnlhome
+	arduino --verify --pref build.path=build -v src/src.ino
 
-upload:
-	ino upload -m ${BOARD}
+upload: mkdir setboard setccnlhome
+	arduino --upload --pref build.path=build -v src/src.ino
 
-serial:
-	ino serial
+#serial: Not yet available on Arduino IDE command line
+
+mkdir:
+	mkdir -p build
+
+setboard:
+	arduino --board "${ARDUINO_PKG}:${ARDUINO_ARCH}:${ARDUINO_BOARD}" --save-prefs
+
+setccnlhome:
+	sed "s|\(\s*#define CCN_LITE_C\) \".\+/src/\(ccn-lite-.\+\.c\)\"|\1 \"${CCNL_HOME}/src/\2\"|" src/src.ino > src/src.ino.sed
+	mv src/src.ino.sed src/src.ino
 
 clean:
-	ino clean
+	rm -rf ./build

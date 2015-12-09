@@ -99,6 +99,7 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_TLV_TL_ValidationAlgo              0x0003
 #define CCNX_TLV_TL_ValidationPayload           0x0004
 #define CCNX_TLV_TL_Fragment                    0x0005
+#define CCNX_TLV_TL_Manifest                    0x0006 // top level manifest
 
 // global (Sect 3.5.1)
 #define CCNX_TLV_G_Pad                          0x007F // TODO: correcty type?
@@ -136,6 +137,27 @@ struct ccnx_tlvhdr_ccnx201409_s {
 #define CCNX_PAYLDTYPE_Key                      1
 #define CCNX_PAYLDTYPE_Link                     2
 #define CCNX_PAYLDTYPE_Manifest                 3
+
+// manifest related defines
+
+// ManifestBody := HashGroup+
+// HashGroup :=  [MetaData] (DataPointer | ManifestPointer)+
+// DataPointer := HashValue
+// ManifestPointer := HashValue
+// MetaData := Property*
+// Property := Name | DataBlockSize | OverallDataSize |
+//             OverallDataSHA256Digest |  ...
+
+#define CCNX_MANIFEST_HASHGROUP                 1
+#define CCNX_MANIFEST_HG_METADATA               1
+#define CCNX_MANIFEST_HG_PTR2DATA               2
+#define CCNX_MANIFEST_HG_PTR2MANIFEST           3
+#define CCNX_MANIFEST_MT_LOCATOR                0 // == CCNX_TLV_M_Name
+#define CCNX_MANIFEST_MT_EXTERNALMETADATA       1 // == CCNX_TLV_M_Name
+#define CCNX_MANIFEST_MT_BLOCKSIZE              2
+#define CCNX_MANIFEST_MT_OVERALLDATASIZE        3
+#define CCNX_MANIFEST_MT_OVERALLDATASHA256      4
+#define CCNX_MANIFEST_MT_TREEDEPTH              5
 
 // validation algorithms (Sect 3.6.4.1)
 #define CCNX_VALIDALGO_CRC32C                   2

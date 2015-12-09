@@ -51,7 +51,7 @@
 
 // ----------------------------------------------------------------------
 
-#define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
+#define assert(p) do{if(!(p)){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define local_producer(...)             0
@@ -79,9 +79,12 @@ static char*
 inet_ntoa(struct in_addr in)
 {
     static char buf[16];
-    unsigned int i, len = 0, a = ntohl(in.s_addr);
+    char *tmpBuf = buf;
+    unsigned int remLen = CCNL_ARRAY_SIZE(buf), totalLen = 0;
+    unsigned int i, a = ntohl(in.s_addr);
     for (i = 0; i < 4; i++) {
-        len += sprintf(buf+len, "%s%d", i ? "." : "", 0xff & (a >> 8*(3-i)));
+        ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "%s%d",
+                               i ? "." : "", 0xff & (a >> 8*(3-i)));
     }
     return buf;
 }
@@ -111,12 +114,14 @@ ccnl_free(void *ptr)
 #include "ccnl-ext-logging.c"
 
 static void ccnl_lnxkernel_cleanup(void);
-char* ccnl_addr2ascii(sockunion *su);
+const char* ccnl_addr2ascii(sockunion *su);
 
 void
 ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
+    int rc = 0;
+
     DEBUGMSG(DEBUG, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
              buf ? buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
 
@@ -136,7 +141,6 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         struct iov_iter iov_iter;
 #endif
         struct msghdr msg;
-        int rc;
         mm_segment_t oldfs;
 
         iov.iov_base = buf->data;
@@ -191,7 +195,6 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
         struct iov_iter iov_iter;
 #endif
         struct msghdr msg;
-        int rc;
         mm_segment_t oldfs;
 
         iov.iov_base = buf->data;
@@ -222,32 +225,16 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     default:
         break;
     }
+
+    if (rc < 0) {
+        DEBUGMSG(WARNING, "sendmsg returned error code: %d\n", rc);
+    }
 }
 
 void
 ccnl_close_socket(struct socket *s)
 {
     // socket will be released in the cleanup routine
-}
-
-// ----------------------------------------------------------------------
-
-char*
-ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
-{
-    static char prefix_buf[4096];
-    int len= 0, i;
-
-    if (!pr)
-        return NULL;
-    for (i = 0; i < pr->compcnt; i++) {
-        if(!strncmp("call", (char*)pr->comp[i], 4) && strncmp((char*)pr->comp[pr->compcnt-1], "NFN", 3))
-            len += sprintf(prefix_buf + len, "%.*s", pr->complen[i], pr->comp[i]);
-        else
-            len += sprintf(prefix_buf + len, "/%.*s", pr->complen[i], pr->comp[i]);
-    }
-    prefix_buf[len] = '\0';
-    return prefix_buf;
 }
 
 // ----------------------------------------------------------------------
@@ -478,8 +465,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
     }
     DEBUGMSG(DEBUG, "UNIX socket is %p\n", (void*)s);
 
-    ux->sun_family = AF_UNIX;
-    strcpy(ux->sun_path, path);
+    ccnl_setUnixSocketPath(ux, path);
     rc = s->ops->bind(s, (struct sockaddr*) ux,
                 offsetof(struct sockaddr_un, sun_path) + strlen(path) + 1);
     if (rc < 0) {
@@ -647,7 +633,7 @@ ccnl_init(void)
         theRelay.crypto_path = p;
         //Reply socket
         i = &theRelay.ifs[theRelay.ifcount];
-        sprintf(h, "%s-2", p);
+        snprintf(h, CCNL_ARRAY_SIZE(h), "%s-2", p);
         i->sock = ccnl_open_unixpath(h, &i->addr.ux);
         if (i->sock) {
             DEBUGMSG(DEBUG, "ccnl_open_unixpath worked\n");

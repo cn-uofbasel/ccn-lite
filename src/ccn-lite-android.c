@@ -28,10 +28,13 @@
 
 #include <arpa/inet.h>
 #include <linux/if.h>
+#include <linux/if_packet.h>
+#include <linux/if_ether.h>
 #include <linux/in.h>
 #include <linux/sockios.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <android/looper.h>
 
@@ -122,7 +125,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     }
 
     memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", (char*) devname);
     if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
         perror("ethsock ioctl get hw addr");
         return -1;
@@ -212,10 +215,9 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 void
 ccnl_close_socket(int s)
 {
+#ifdef USE_UNIXSOCKET
     struct sockaddr_un su;
     socklen_t len = sizeof(su);
-
-#ifdef USE_UNIXSOCKET
     if (!getsockname(s, (struct sockaddr*) &su, &len) &&
                                         su.sun_family == AF_UNIX) {
         unlink(su.sun_path);
@@ -227,8 +229,9 @@ ccnl_close_socket(int s)
 
 // ----------------------------------------------------------------------
 
-static int inter_ccn_interval = 0; // in usec
-static int inter_pkt_interval = 0; // in usec
+// TODO The variables below are never used:
+// static int inter_ccn_interval = 0; // in usec
+// static int inter_pkt_interval = 0; // in usec
 
 #ifdef USE_SCHEDULER
 struct ccnl_sched_s*
@@ -261,7 +264,7 @@ void ccnl_ageing(void *relay, void *aux)
 
 // ----------------------------------------------------------------------
 
-char *echopath = "/local/echo";
+const char *echopath = "/local/echo";
 
 void
 add_udpPort(struct ccnl_relay_s *relay, int port)
@@ -301,8 +304,6 @@ void
 ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
                   int max_cache_entries, char *crypto_face_path)
 {
-    struct ccnl_if_s *i;
-
     DEBUGMSG(INFO, "configuring relay\n");
 
     relay->max_cache_entries = max_cache_entries;
@@ -361,15 +362,14 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
         struct ccnl_buf_s *buf = 0; // , *nonce=0, *ppkd=0, *pkt = 0;
         struct ccnl_content_s *c = 0;
         unsigned char *data;
-        int fd, datalen, typ, len, suite, skip;
+        unsigned int typ, len;
+        int fd, datalen, suite, skip;
         struct ccnl_pkt_s *pk;
 
         if (de->d_name[0] == '.')
             continue;
 
-        strcpy(fname, path);
-        strcat(fname, "/");
-        strcat(fname, de->d_name);
+        snprintf(fname, CCNL_ARRAY_SIZE(fname), "%s/%s", path, de->d_name);
 
         if (stat(fname, &s)) {
             perror("stat");
@@ -525,6 +525,7 @@ ccnl_android_timer_io(int fd, int events, void *data)
 
     len = read(pipeT2R[0], &c, 1);
     DEBUGMSG(TRACE, "timer_io %d\n", len);
+    (void) len; // silence compiler warning
 
     timer_usec = ccnl_run_events();
     pthread_mutex_unlock(&timer_mutex);
@@ -683,8 +684,8 @@ ccnl_android_init()
 {
     static char done;
     static char hello[200];
-    time_t now = time(NULL);
-    int i, dummy = 0;
+    int i;
+    unsigned int dummy = 0;
     struct ccnl_prefix_s *echoprefix;
 
     if (done)
@@ -707,6 +708,8 @@ ccnl_android_init()
     theLooper = ALooper_forThread();
 
     // launch timer thread
+    // FIXME: This function is a Linux specific implementation, should probably
+    // be replaced with a POSIX function call or similar.
     pipe2(pipeT2R, O_DIRECT);
     pthread_create(&timer_thread, NULL, timer, NULL);
 
@@ -727,18 +730,16 @@ ccnl_android_init()
 
     ccnl_populate_cache(&theRelay, "/mnt/sdcard/ccn-lite");
 
+    snprintf(hello, CCNL_ARRAY_SIZE(hello), "%s", echopath);
 #ifdef USE_SUITE_CCNTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_CCNTLV, NULL, &dummy);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_IOTTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_IOTTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
 #ifdef USE_SUITE_NDNTLV
-    strcpy(hello, echopath);
     echoprefix = ccnl_URItoPrefix(hello, CCNL_SUITE_NDNTLV, NULL, NULL);
     ccnl_echo_add(&theRelay, echoprefix);
 #endif
@@ -750,7 +751,7 @@ ccnl_android_init()
                         strlen(secret_key), keyid);
 #endif
 
-    sprintf(hello, "ccn-lite-android, %s",
+    snprintf(hello, CCNL_ARRAY_SIZE(hello), "ccn-lite-android, %s",
             ctime(&theRelay.startup_time) + 4);
 
     return hello;
@@ -788,15 +789,21 @@ ccnl_android_getTransport()
         struct ifreq *r = &ifr[i];
         struct sockaddr_in *sin = (struct sockaddr_in *)&r->ifr_addr;
         if (strcmp(r->ifr_name, "lo")) {
-            sprintf(addr, "(%s)  UDP    ", ifr[i].ifr_name);
+            char *tmpBuf = addr;
+            unsigned int remLen = CCNL_ARRAY_SIZE(addr), totalLen = 0;
+
+            ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "(%s)  UDP    ", ifr[i].ifr_name);
             for (i = 0; i < theRelay.ifcount; i++) {
                 if (theRelay.ifs[i].addr.sa.sa_family != AF_INET)
                     continue;
                 sin->sin_port = theRelay.ifs[i].addr.ip4.sin_port;
-                sprintf(addr + strlen(addr), "%s    ",
+                ccnl_snprintf(&tmpBuf, &remLen, &totalLen, "%s    ",
                         ccnl_addr2ascii((sockunion*)sin));
             }
             ccnl_free(ifr);
+
+            if (!tmpBuf) return NULL;
+            if (totalLen >= CCNL_ARRAY_SIZE(addr)) return NULL;
             return addr;
         }
     }

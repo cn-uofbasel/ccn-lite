@@ -37,9 +37,9 @@ main(int argc, char *argv[])
 {
     unsigned char out[CCNL_MAX_PACKET_SIZE];
     char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
-    char *digest = 0, *publisher = 0;
+    unsigned char *digest = 0, *publisher = 0;
     char *fname = 0;
-    int f, len=0, opt;
+    int cnt, f, len=0, opt;
     int dlen = 0, plen = 0;
     int packettype = CCNL_SUITE_NDNTLV;
     struct ccnl_prefix_s *prefix;
@@ -61,12 +61,16 @@ main(int argc, char *argv[])
             scope = optarg;
             break;
         case 'd':
-            digest = optarg;
-            dlen = unescape_component(digest);
-            if (dlen != 32) {
+            if (strlen(optarg) != 64) {
                 DEBUGMSG(ERROR, "digest has wrong length (%d instead of 32)\n",
-                        dlen);
+                         (int) strlen(optarg));
                 exit(-1);
+            }
+            ccnl_free(digest);
+            digest = ccnl_malloc(32);
+            for (cnt = 0; cnt < 32; cnt++) {
+                digest[cnt] = hex2int(optarg[2*cnt]) * 16 +
+                                                   hex2int(optarg[2*cnt + 1]);
             }
             break;
         case 'e':
@@ -82,13 +86,17 @@ main(int argc, char *argv[])
             fname = optarg;
             break;
         case 'p':
-            publisher = optarg;
-            plen = unescape_component(publisher);
-            if (plen != 32) {
+            if (strlen(optarg) != 64) {
                 DEBUGMSG(ERROR,
                  "publisher key digest has wrong length (%d instead of 32)\n",
-                 plen);
+                         (int) strlen(optarg));
                 exit(-1);
+            }
+            ccnl_free(publisher);
+            publisher = ccnl_malloc(32);
+            for (cnt = 0; cnt < 32; cnt++) {
+                publisher[cnt] = hex2int(optarg[2*cnt]) * 16 +
+                                                   hex2int(optarg[2*cnt + 1]);
             }
             break;
         case 'v':
@@ -154,23 +162,19 @@ Usage:
                                    scope, &nonce, out);
         break;
     case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix,
-                                (int*)&nonce,
+        len = ccntlv_mkInterest(prefix, (int*)&nonce, digest,
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_CISTLV:
-        len = cistlv_mkInterest(prefix,
-                                (int*)&nonce,
+        len = cistlv_mkInterest(prefix, (int*)&nonce, NULL,
                                 out, CCNL_MAX_PACKET_SIZE);
 	break;
     case CCNL_SUITE_IOTTLV:
-        len = iottlv_mkRequest(prefix, NULL, out, CCNL_MAX_PACKET_SIZE);
+        len = iottlv_mkRequest(prefix, NULL, NULL, out, CCNL_MAX_PACKET_SIZE);
         break;
     case CCNL_SUITE_NDNTLV:
-        len = ndntlv_mkInterest(prefix,
-                                (int*)&nonce,
-                                out,
-                                CCNL_MAX_PACKET_SIZE);
+        len = ndntlv_mkInterest(prefix, (int*)&nonce, NULL,
+                                out, CCNL_MAX_PACKET_SIZE);
         break;
     default:
         DEBUGMSG(ERROR, "Not Implemented (yet)\n");

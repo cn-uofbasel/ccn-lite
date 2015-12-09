@@ -22,8 +22,6 @@
  *
  */
 
-#define USE_FRAG
-
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
@@ -32,6 +30,9 @@
 #define USE_SUITE_NDNTLV
 
 #define NEEDS_PACKET_CRAFTING // for IOTTLV
+
+#define USE_FRAG
+#define USE_SHA256
 
 #include "ccnl-common.c"
 
@@ -221,7 +222,7 @@ ccnb_dtag2name(int num)
 */
 
     default:
-    n = NULL;
+        n = NULL;
     }
     return n;
 }
@@ -311,17 +312,15 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
                 return 0;
             }
         default:
-            if (!rawxml) {
+            if (!rawxml)
                 fprintf(out, "-- tt=%d num=%d not implemented yet\n", typ, num);
-            } else {
+            else
                 fprintf(out, "=%d num=%d not implemented yet\n", typ, num);
-            }
-            break;
         }
     }
-    if (cur_tag != NULL) {
+    if (cur_tag != NULL)
         fprintf(out, "</%s>\n", cur_tag );
-    }
+
     return 0;
 }
 
@@ -344,6 +343,9 @@ enum {
     CTX_TOPLEVEL,
     CTX_MSG,
     CTX_NAME,
+    CTX_MFST,
+    CTX_MFST_HASHGRP,
+    CTX_MFST_HASHGRP_METADATA,
     CTX_METADATA,
     CTX_VALIDALGO,
     CTX_VALIDALGODEPEND
@@ -352,8 +354,14 @@ enum {
 static char ccntlv_recurse[][3] = {
     {CTX_TOPLEVEL, CCNX_TLV_TL_Interest, CTX_MSG},
     {CTX_TOPLEVEL, CCNX_TLV_TL_Object, CTX_MSG},
+    {CTX_TOPLEVEL, CCNX_TLV_TL_Manifest, CTX_MFST},
     {CTX_TOPLEVEL, CCNX_TLV_TL_ValidationAlgo, CTX_VALIDALGO},
     {CTX_MSG, CCNX_TLV_M_Name, CTX_NAME},
+    {CTX_MFST, CCNX_TLV_M_Name, CTX_NAME},
+    {CTX_MFST, CCNX_MANIFEST_HASHGROUP, CTX_MFST_HASHGRP},
+    {CTX_MFST_HASHGRP, CCNX_MANIFEST_HG_METADATA, CTX_MFST_HASHGRP_METADATA},
+    {CTX_MFST_HASHGRP_METADATA, CCNX_MANIFEST_MT_LOCATOR, CTX_NAME},
+    {CTX_MFST_HASHGRP_METADATA, CCNX_MANIFEST_MT_EXTERNALMETADATA, CTX_NAME},
     {CTX_NAME, CCNX_TLV_N_Meta, CTX_METADATA},
     {CTX_VALIDALGO, CCNX_VALIDALGO_HMAC_SHA256, CTX_VALIDALGODEPEND},
     {0,0,0}
@@ -402,6 +410,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_TL_Interest:          tn = "Interest"; break;
                 case CCNX_TLV_TL_Object:            tn = "Object"; break;
+                case CCNX_TLV_TL_Manifest:          tn = "Manifest"; break;
                 case CCNX_TLV_TL_ValidationAlgo:    tn = "ValidationAlgo"; break;
                 case CCNX_TLV_TL_ValidationPayload: tn = "ValidationPayload"; break;
                 default: break;
@@ -412,6 +421,7 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 switch (type) {
                 case CCNX_TLV_M_Name:       tn = "Name"; break;
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
+                case CCNX_TLV_M_ObjHashRestriction: tn = "ObjHashRestriction"; break;
                 case CCNX_TLV_M_ENDChunk:   tn = "EndChunk"; break;
                 default: break;
                 }
@@ -427,6 +437,34 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                   */
                 case CCNX_TLV_N_Chunk:          tn = "Chunk"; break;
                 case CCNX_TLV_N_Meta:           tn = "MetaData"; break;
+                default: break;
+                }
+                break;
+            case CTX_MFST:
+                cn = "manifestCtx";
+                switch (type) {
+                case CCNX_MANIFEST_HASHGROUP:   tn = "HashGroup"; break;
+                default: break;
+                }
+                break;
+            case CTX_MFST_HASHGRP:
+                cn = "manifestHashGroupCtx";
+                switch (type) {
+                case CCNX_MANIFEST_HG_METADATA:  tn = "MetaData"; break;
+                case CCNX_MANIFEST_HG_PTR2DATA:  tn = "DataPtr"; break;
+                case CCNX_MANIFEST_HG_PTR2MANIFEST: tn = "ManifestPtr"; break;
+                default: break;
+                }
+                break;
+            case CTX_MFST_HASHGRP_METADATA:
+                cn = "manifestMetaDataCtx";
+                switch (type) {
+                case CCNX_MANIFEST_MT_LOCATOR:          tn = "Locator"; break;
+                case CCNX_MANIFEST_MT_EXTERNALMETADATA: tn = "ExternalMetaData"; break;
+                case CCNX_MANIFEST_MT_BLOCKSIZE:        tn = "BlockSize"; break;
+                case CCNX_MANIFEST_MT_OVERALLDATASIZE:  tn = "DataSize"; break;
+                case CCNX_MANIFEST_MT_OVERALLDATASHA256: tn = "DataSHA256"; break;
+                case CCNX_MANIFEST_MT_TREEDEPTH:        tn = "TreeDepth"; break;
                 default: break;
                 }
                 break;
@@ -470,18 +508,17 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 break;
             default:
                 cn = NULL;
-                break;
         }
     }
     if (tn) {
         if(!rawxml)
-            sprintf(tmp, "%s\\%s", tn, cn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s\\%s", tn, cn);
         else
-            sprintf(tmp, "%s", tn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s", tn);
     } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\%s", type, cn);
     } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\ctx=%d", type, ctx);
     }
     return tmp;
 }
@@ -489,7 +526,9 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
 
 static int
 ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
-              unsigned char **buf, int *len, char *cur_tag, int rawxml, FILE* out)
+                      unsigned char **buf, int *len, char *cur_tag, int rawxml,
+                      unsigned char **content, unsigned short *contlen,
+                      FILE* out)
 {
     unsigned int typ;
     int i;
@@ -503,19 +542,22 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
           fprintf(stderr, "\n%04zx ** CCNTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
           exit(-1);
         }
+        if (ctx == CTX_MSG && typ == CCNX_TLV_M_Payload) {
+            *content = *buf;
+            *contlen = vallen;
+        }
 
         n = ccnl_ccntlv_type2name(ctx, typ, rawxml);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
-
 
         if(!rawxml)
             fprintf(out, "%04zx  ", cp - base);
@@ -537,9 +579,9 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (ccntlv_parse_sequence(lev+1, ctx2, base, buf, &i,
-                                                        n, rawxml, out) < 0)
+                                      n, rawxml, content, contlen, out) < 0)
                 return -1;
 
             if(rawxml) {
@@ -569,9 +611,9 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 void
 ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
 {
-    unsigned char *buf;
+    unsigned char *buf, *msgstart, *content = NULL;
     char *mp;
-    unsigned short hdrlen, pktlen; // payloadlen;
+    unsigned short hdrlen, pktlen, contlen; // payloadlen;
     struct ccnx_tlvhdr_ccnx2015_s *hp;
 
     hp = (struct ccnx_tlvhdr_ccnx2015_s*) data;
@@ -588,7 +630,7 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
     if (hp->pkttype == CCNX_PT_Interest)
         mp = rawxml ? "Interest" : "Interest\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Data)
-        mp = rawxml ? "Content" : "Content\\toplevelCtx";
+        mp = rawxml ? "Content" : "Data\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_NACK)
         mp = rawxml ? "InterestReturn" : "InterestReturn\\toplevelCtx";
     else if (hp->pkttype == CCNX_PT_Fragment)
@@ -646,20 +688,46 @@ ccntlv_2015(int lev, unsigned char *data, int len, int rawxml, FILE* out)
         fprintf(out, "hdr.end\n");
     }
 
-    buf = data + hdrlen;
+    msgstart = buf = data + hdrlen;
     len = pktlen - hdrlen;
     if (hp->pkttype == CCNX_PT_Interest ||
              hp->pkttype == CCNX_PT_Data || hp->pkttype == CCNX_PT_NACK) {
 
         // dump the sequence of TLV fields of the message body
         ccntlv_parse_sequence(lev, CTX_TOPLEVEL, data, &buf, &len,
-                                                        "message", rawxml, out);
+                              "message", rawxml, &content, &contlen, out);
     } else {
         hexdump(lev, data, buf, len, rawxml, out);
         buf += len;
     }
 
     if (!rawxml) {
+        SHA256_CTX_t ctx;
+        unsigned char objhash[SHA256_DIGEST_LENGTH];
+        size_t i;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, buf - msgstart);
+        ccnl_SHA256_Final(objhash, &ctx);
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, lev);
+        fprintf(out, "pkt.dgst=");
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(out, "%02x", objhash[i]);
+        fprintf(out, "\n");
+
+        if (content) {
+            ccnl_SHA256_Init(&ctx);
+            ccnl_SHA256_Update(&ctx, content, contlen);
+            ccnl_SHA256_Final(objhash, &ctx);
+            fprintf(out, "%04zx", buf - data);
+            indent(NULL, 0);
+            fprintf(out, "pkt.ctnt=");
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                fprintf(out, "%02x", objhash[i]);
+            fprintf(out, "\n");
+        }
+
         fprintf(out, "%04zx", buf - data);
         indent(NULL, lev);
         fprintf(out, "pkt.end\n");
@@ -820,19 +888,18 @@ ccnl_cistlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
 
     default:
         cn = NULL;
-        break;
     }
 
     if (tn) {
         if(!rawxml)
-            sprintf(tmp, "%s\\%s", tn, cn);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s\\%s", tn, cn);
         else
-            sprintf(tmp, "%s", tn);
-    } else if (cn) {
-        sprintf(tmp, "type=0x%04x\\%s", type, cn);
-    } else {
-        sprintf(tmp, "type=0x%04x\\ctx=%d", type, ctx);
-    }
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s", tn);
+    } else if (cn)
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\%s", type, cn);
+    else
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x\\ctx=%d", type, ctx);
+
     return tmp;
 }
 
@@ -852,7 +919,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
           fprintf(stderr, "\n%04zx ** CISTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -861,7 +928,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         n = ccnl_cistlv_type2name(ctx, typ, rawxml);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -886,7 +953,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (cistlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -1074,15 +1141,14 @@ ccnl_iottlv_type2name(unsigned char ctx, unsigned int type)
         break;
      default:
         cn = NULL;
-        break;
     }
-    if (tn) {
-        sprintf(tmp, "%s-%s", tn, cn);
-    } else if (cn) {
-        sprintf(tmp, "type=0x%04x-%s", type, cn);
-    } else {
-        sprintf(tmp, "type=0x%04x-ctx=%d", type, ctx);
-    }
+    if (tn)
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "%s-%s", tn, cn);
+    else if (cn)
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x-%s", type, cn);
+    else
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=0x%04x-ctx=%d", type, ctx);
+
     return tmp;
 }
 
@@ -1114,7 +1180,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int) vallen > *len) {
             fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -1123,7 +1189,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         n = ccnl_iottlv_type2name(ctx, typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
@@ -1145,7 +1211,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                 fprintf(out, "<%s>\n", n);
             *len -= vallen;
             i = vallen;
-            strcpy(n_old, n);
+            snprintf(n_old, CCNL_ARRAY_SIZE(n_old), "%s", n);
             if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
                                                         n, rawxml, out) < 0)
                 return -1;
@@ -1226,6 +1292,34 @@ ndn_type2name(unsigned type)
     case NDN_TLV_KeyLocatorDigest:  n = "KeyLocatorDigest"; break;
     case NDN_TLV_Frag_BeginEndFields: n = "FragBeginEndFields"; break;
     case NDN_TLV_NdnlpFragment:     n = "FragmentPayload"; break;
+
+//    case NDN_TLV_MANIFEST_CONTENTTYPE:          n = "Manifest"; break;
+    case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
+    case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
+    case NDN_TLV_MANIFEST_HG_PTR2DATA:          n = "pointer2data"; break;
+    case NDN_TLV_MANIFEST_HG_PTR2MANIFEST:      n = "pointer2manifest"; break;
+    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
+    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
+    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
+    case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
+    case NDN_TLV_MANIFEST_MT_TREEDEPTH:         n = "TreeDepth"; break;
+
+    default:
+        n = NULL;
+    }
+    return n;
+}
+
+static char*
+ndn_contentType2name(unsigned type)
+{
+    char *n;
+
+    switch (type) {
+    case NDN_Content_Manifest:          n = "Manifest"; break;
+    case NDN_Content_Link:              n = "Link"; break;
+    case NDN_Content_Key:               n = "Key"; break;
     default:
         n = NULL;
     }
@@ -1233,11 +1327,12 @@ ndn_type2name(unsigned type)
 }
 
 static int
-ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
-               int *len, char *cur_tag, int rawxml, FILE* out)
+ndn_parse_sequence(unsigned int lev, unsigned char *base, unsigned char **buf,
+                   unsigned int *len, char *cur_tag, int *contentRecurse,
+                   int rawxml, unsigned char **content,
+                   unsigned int *contlen, FILE* out)
 {
-    int i, maxi, vallen;
-    int typ;
+    unsigned int i, maxi, typ, intval, vallen;
     unsigned char *cp;
     char *n, tmp[100];
 
@@ -1251,16 +1346,35 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                 cp - base, base, (unsigned short)typ, (unsigned short)vallen, *len);
             exit(-1);
         }
+        if (typ == NDN_TLV_Content) {
+            *content = *buf;
+            *contlen = vallen;
+        }
 
-        n = ndn_type2name(typ);
+        n = NULL;
+        switch(typ) {
+        case NDN_TLV_ContentType:
+            for (i = 0, intval = 0; i < vallen; i++)
+                intval = (intval << 8) | (*buf)[0];
+            if (intval == NDN_Content_Link || intval == NDN_Content_Manifest)
+                *contentRecurse = intval;
+            break;
+        case NDN_TLV_Content:
+            if (*contentRecurse >= 0)
+                n = ndn_contentType2name(*contentRecurse);
+            break;
+        default:
+            break;
+        }
+        if (!n)
+            n = ndn_type2name(typ);
         if (!n) {
-            sprintf(tmp, "type=%hu", (unsigned short)typ);
+            snprintf(tmp, CCNL_ARRAY_SIZE(tmp),"type=%hu", (unsigned short)typ);
             n = tmp;
         }
 
-        if (!rawxml) {
+        if (!rawxml)
             fprintf(out, "%04zx  ", cp - base);
-        }
 
         for (i = 0; i < lev; i++)
             fprintf(out, "  ");
@@ -1269,21 +1383,23 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
                 fprintf(out, "%02x ", *cp);
         }
 
-        if (rawxml) {
+        if (rawxml)
             fprintf(out, "<%s>\n", n);
-        } else {
+        else
             fprintf(out, "-- <%s, len=%d>\n", n, vallen);
-        }
 
-        if (typ < NDN_TLV_MAX_TYPE && ndntlv_recurse[typ]) {
-            *len -= vallen;
-            if (ndn_parse_sequence(lev+1, base, buf, &vallen, n, rawxml, out) < 0) {
-                return -1;
+        if (typ < NDN_TLV_MAX_TYPE) {
+            if (ndntlv_recurse[typ]
+                        || (typ == NDN_TLV_Content && *contentRecurse >= 0)) {
+                *len -= vallen;
+                if (ndn_parse_sequence(lev+1, base, buf, &vallen, n,
+                                       contentRecurse, rawxml,
+                                       content, contlen, out) < 0)
+                    return -1;
+                if (rawxml)
+                    fprintf(out, "</%s>\n", n);
+                continue;
             }
-            if (rawxml) {
-                fprintf(out, "</%s>\n", n);
-            }
-            continue;
         }
 
         // printf("BASE: %s\n", base);
@@ -1330,14 +1446,46 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
 }
 
 static void
-ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
+ndntlv_201311(unsigned char *data, unsigned int len, int rawxml, FILE* out)
 {
     unsigned char *buf = data;
+    int contentRecurse = -1;
+    unsigned char *content = NULL;
+    unsigned int contlen;
 
     // dump the sequence of TLV fields, should start with a name TLV
-    ndn_parse_sequence(0, data, &buf, &len, "payload", rawxml, out);
+    ndn_parse_sequence(0, data, &buf, &len, "payload", &contentRecurse,
+                       rawxml, &content, &contlen, out);
     if (!rawxml) {
-        fprintf(out, "%04zx  pkt.end\n", buf - data);
+        SHA256_CTX_t ctx;
+        unsigned char objhash[SHA256_DIGEST_LENGTH];
+        size_t i;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, data, buf - data);
+        ccnl_SHA256_Final(objhash, &ctx);
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, 0);
+        fprintf(out, "pkt.dgst=");
+        for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+            fprintf(out, "%02x", objhash[i]);
+        fprintf(out, "\n");
+
+        if (content) {
+            ccnl_SHA256_Init(&ctx);
+            ccnl_SHA256_Update(&ctx, content, contlen);
+            ccnl_SHA256_Final(objhash, &ctx);
+            fprintf(out, "%04zx", buf - data);
+            indent(NULL, 0);
+            fprintf(out, "pkt.ctnt=");
+            for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
+                fprintf(out, "%02x", objhash[i]);
+            fprintf(out, "\n");
+        }
+
+        fprintf(out, "%04zx", buf - data);
+        indent(NULL, 0);
+        fprintf(out, "pkt.end\n");
     }
 }
 
@@ -1353,6 +1501,11 @@ ndn_init()
     ndntlv_recurse[NDN_TLV_FinalBlockId] = 1;
     ndntlv_recurse[NDN_TLV_SignatureInfo] = 1;
     ndntlv_recurse[NDN_TLV_KeyLocator] = 1;
+
+    ndntlv_recurse[NDN_TLV_MANIFEST_HASHGROUP] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_HG_METADATA] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_MT_LOCATOR] = 1;
+    ndntlv_recurse[NDN_TLV_MANIFEST_MT_EXTERNALMETADATA] = 1;
 }
 
 // ----------------------------------------------------------------------
@@ -1372,7 +1525,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
         dorecurse = 0;
     /*
     if (*cp && *cp < LRPC_APPLICATION) { // private type value
-        sprintf(tmp, "Variable=v%02x", *cp);
+        snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "Variable=v%02x", *cp);
         n = tmp;
         *buf += 1;
         *len -= 1;
@@ -1411,9 +1564,8 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
             case LRPC_NONCE:
                 n = "Nonce"; break;
             default:
-                sprintf(tmp, "Type=0x%x", (unsigned short)typ);
+                snprintf(tmp, CCNL_ARRAY_SIZE(tmp), "Type=0x%x", (unsigned short)typ);
                 n = tmp;
-                break;
             }
         }
 
@@ -1436,16 +1588,16 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
                 printf("  ");
             printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
         } else if (typ == LRPC_FLATNAME) {
+            unsigned int maxlen = CCNL_ARRAY_SIZE(tmp) - 6;
+
             printf("%04zx  ", *buf - base);
             for (i = 0; i <= lev; i++)
                 printf("  ");
-            strcpy(tmp, "\"");
-            i = sizeof(tmp) - 6;
-            if (vallen < i)
-                i = vallen;
-            memcpy(tmp+1, *buf, i);
-            strcpy(tmp + i + 1, vallen > i ? "\"..." : "\"");
-            printf("%s\n", tmp);
+
+            printf("\"%.*s\"", maxlen, *buf);
+            if (vallen > (int) maxlen)
+                printf("...");
+            printf("\n");
         } else if (vallen > 0)
             hexdump(lev, base, *buf, vallen, rawxml, out);
         *buf += vallen;
@@ -1522,12 +1674,8 @@ emit_content_only(unsigned char *start, int len, int suite, int format)
         break;
     }
     case CCNL_SUITE_NDNTLV: {
-        int pkttype;
-        int vallen;
         data = start;
-        if (ccnl_ndntlv_dehead(&data, &len, &pkttype, &vallen) < 0)
-            return -1;
-        pkt = ccnl_ndntlv_bytes2pkt(pkttype, start, &data, &len);
+        pkt = ccnl_ndntlv_bytes2pkt(start, &data, &len);
         break;
     }
     default:
@@ -1655,7 +1803,6 @@ done:
             indent(NULL, lev);
             printf("pkt.end\n");
         }
-        break;
     }
 
     return rc;

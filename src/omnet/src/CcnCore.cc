@@ -267,14 +267,23 @@ CcnLiteRelay::opp_deliver (void *relay, struct CcnLiteRelay::info_data_s const *
         }
         else    // we receive a list of name components
         {
+            char * tmpname;
+            unsigned int remlen, totallen = 0;
+
             for (int i=0 ; io->name_components[i] ; i++)
                 name_len += strlen (io->name_components[i]);
 
             name = (char *) malloc (name_len * sizeof (char) + 1);
-            name[0] = '\0';
+            if (!name) {
+                opp_error("Cannot allocate %d bytes for name.", name_len * sizeof (char) + 1);
+                return;
+            }
 
+            tmpname = name;
+            remlen = name_len + 1;
+            totallen = 0;
             for (int i=0 ; io->name_components[i] ; i++)
-                strcat (name, io->name_components[i]);
+                ccnl_snprintf(&tmpname, &remlen, &totallen, "%s", io->name_components[i]);
 
             mdl->deliverContent(name, io->chunk_seqn, (char*) io->packet_bytes, io->packet_len);
         }
@@ -501,7 +510,8 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int startChunk
         memcpy(name_buf, name, name_len + 1);   // overwrite the suite prefix by shifting the name string to the beginning of the buffer
 
 #ifdef EMBED_CHUNKS_IN_NAMES
-    char * listof_chunk_names = (char *) malloc (numChunks * (name_len + _CHUNK_POSTFIX_MAXCHAR + 1));
+    unsigned int chunk_name_length = name_len + _CHUNK_POSTFIX_MAXCHAR + 1;
+    char * listof_chunk_names = (char *) malloc (numChunks * chunk_name_length);
 #endif
 
     for (i = 0 ; i < numChunks ; i++)
@@ -526,9 +536,10 @@ CcnCore::addToCacheFixedSizeChunks(const char *contentName, const int startChunk
         //
         // here is the former approach (enable with macrodef EMBED_CHUNKS_IN_NAMES)
 #ifdef EMBED_CHUNKS_IN_NAMES
-        char * name_with_chunk_buf = &listof_chunk_names[(name_len+_CHUNK_POSTFIX_MAXCHAR+1) * i];
-        strcpy(name_with_chunk_buf, name_buf);  // copy name at an integer offset of name_len+_CHUNK_POSTFIX_MAXCHAR+1
-        sprintf(name_with_chunk_buf + name_len, "/c%d", i+startChunk); // append postfix with chunk num (embedded in the same string)
+        char * name_with_chunk_buf = &listof_chunk_names[chunk_name_length * i];
+        // copy name at an integer offset of name_len+_CHUNK_POSTFIX_MAXCHAR+1
+        // and append postfix with chunk num (embedded in the same string)
+        snprintf(name_with_chunk_buf, chunk_name_length, "%s/c%d", name_buf, i+startChunk);
         cs_data->name = name_with_chunk_buf;
         cs_data->chunk_seqn = -1;
 #else
@@ -587,9 +598,9 @@ CcnCore::addL2FwdRule (const char *contentName, const char *peerAddr, int localN
     assert (contentName);
     assert (peerAddr);
 
-    sprintf (peerAddrStr, "%2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X",
-            (unsigned char) peerAddr[0], (unsigned char) peerAddr[1], (unsigned char) peerAddr[2],
-            (unsigned char) peerAddr[3], (unsigned char) peerAddr[4], (unsigned char) peerAddr[5]);
+    snprintf (peerAddrStr, 20, "%2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X",
+             (unsigned char) peerAddr[0], (unsigned char) peerAddr[1], (unsigned char) peerAddr[2],
+             (unsigned char) peerAddr[3], (unsigned char) peerAddr[4], (unsigned char) peerAddr[5]);
 
     name = name_buf = strdup(contentName);
     suite_id = extractSuiteFromName (&name, NULL);
@@ -757,7 +768,7 @@ CcnCore::requestContent(const char *contentName, const int seqNum)
     if (seqNum >= 0)
     {
         name_buf = (char *) realloc (name_buf, name_len + _CHUNK_POSTFIX_MAXCHAR + 1);
-        sprintf((name_buf + name_len), "/c%d", seqNum);
+        snprintf((name_buf + name_len), _CHUNK_POSTFIX_MAXCHAR + 1, "/c%d", seqNum);
         i_obj->name = name_buf;
     }
     else    // no chunk index given
@@ -981,7 +992,7 @@ CcnCore::toMACFace (const char *dstAddr, const char *srcAddr, const char typeIor
         return false;
     }
 
-    sprintf (chunk_str, "%d", chunk);
+    snprintf (chunk_str, 10, "%d", chunk);
     pktInfo += ", From:" + ctx->getSrcAddress802().str()
             + ", To:" + ctx->getDstAddress802().str()
             + ", Naming Obj:" + std::string(name)

@@ -109,10 +109,11 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 struct ccnl_pkt_s*
 ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 {
+    unsigned char *msgstart;
     struct ccnl_pkt_s *pkt;
-    int i, len;
-    unsigned int typ, oldpos;
-    struct ccnl_prefix_s *p;
+    int i;
+    unsigned int typ, oldpos, msglen, len;
+    struct ccnl_prefix_s *p = 0;
 #ifdef USE_HMAC256
     int validAlgoIsHmac256 = 0;
 #endif
@@ -123,42 +124,48 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     if (!pkt)
         return NULL;
 
-    pkt->pfx = p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
-    if (!p) {
-        ccnl_free(pkt);
-        return NULL;
-    }
-    p->compcnt = 0;
-
-#ifdef USE_HMAC256
-    pkt->hmacStart = *data;
-#endif
+    msgstart = *data;
+    (void) msgstart;
     // We ignore the TL types of the message for now:
     // content and interests are filled in both cases (and only one exists).
     // Validation info is now collected
-    if (ccnl_ccntlv_dehead(data, datalen, &typ, (unsigned int*) &len) || (int) len > *datalen)
+    if (ccnl_ccntlv_dehead(data, datalen, &typ, &msglen) ||
+                                                    (int) msglen > *datalen)
         goto Bail;
 
-    pkt->type = typ;
+    *datalen -= msglen;
+
+    // pkt->type = CCNL_PT_Data;  // must be set after calling this proc
+    pkt->contentType = typ;
     pkt->suite = CCNL_SUITE_CCNTLV;
     pkt->val.final_block_id = -1;
 
     // XXX this parsing is not safe for all input data - needs more bound
     // checks, as some packets with wrong L values can bring this to crash
     oldpos = *data - start;
-    while (ccnl_ccntlv_dehead(data, datalen, &typ, (unsigned int*) &len) == 0) {
+    while (ccnl_ccntlv_dehead(data, (int*) &msglen, &typ, &len) == 0) {
         unsigned char *cp = *data, *cp2;
-        int len2 = len;
-        int len3;
+        unsigned int len2, len3;
 
-        if ( (int)len > *datalen)
+        if (len > msglen)
             goto Bail;
         switch (typ) {
         case CCNX_TLV_M_Name:
+            if (p) {
+                DEBUGMSG(WARNING, " ccntlv: name already defined\n");
+                goto Bail;
+            }
+            p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+            if (!p)
+                goto Bail;
+            p->compcnt = 0;
+            pkt->pfx = p;
+
             p->nameptr = start + oldpos;
+            len2 = len;
             while (len2 > 0) {
                 cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, &len2, &typ, (unsigned int*) &len3) || (int)len>*datalen)
+                if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) || len3 > len2)
                     goto Bail;
 
                 switch (typ) {
@@ -189,8 +196,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     } // else out of name component memory: skip
                     break;
                 case CCNX_TLV_N_Meta:
-                    if (ccnl_ccntlv_dehead(&cp, &len2, &typ, (unsigned int*) &len3) ||
-                        (int)len > *datalen) {
+                    if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) ||
+                        len3 > len2) {
                         DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
                         goto Bail;
                     }
@@ -222,49 +229,90 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 goto Bail;
             }
             break;
+        case CCNX_TLV_M_KeyIDRestriction:
+            pkt->s.ccntlv.keyIdRestr = ccnl_buf_new(*data, len);
+            break;
+        case CCNX_TLV_M_ObjHashRestriction:
+            if (len == 32) {
+                pkt->s.ccntlv.objHashRestr = ccnl_malloc(32);
+                memcpy(pkt->s.ccntlv.objHashRestr, *data, 32);
+            }
+            break;
         case CCNX_TLV_M_Payload:
             pkt->content = *data;
             pkt->contlen = len;
             break;
-#ifdef USE_HMAC256
-        case CCNX_TLV_TL_ValidationAlgo:
-            cp = *data;
-            len2 = len;
-            if (ccnl_ccntlv_dehead(&cp, &len2, &typ, (unsigned*) &len3) || len>*datalen)
-                goto Bail;
-            if (typ == CCNX_VALIDALGO_HMAC_SHA256) {
-                // ignore keyId and other algo dependent data ... && len3 == 0)
-                validAlgoIsHmac256 = 1;
-            }
-            break;
-        case CCNX_TLV_TL_ValidationPayload:
-            if (pkt->hmacStart && validAlgoIsHmac256 && len == 32) {
-                pkt->hmacLen = *data - pkt->hmacStart - 4;
-                pkt->hmacSignature = *data;
-            }
-            break;
-#endif
         default:
             break;
         }
         *data += len;
-        *datalen -= len;
+        msglen -= len;
+
         oldpos = *data - start;
     }
-    if (*datalen > 0)
-        goto Bail;
 
-    pkt->pfx = p;
+#ifdef USE_HMAC256
+    if (*datalen > 0) {
+        unsigned char *cp;
+        unsigned int len2, len3;
+
+        DEBUGMSG_PCNX(TRACE, "parsing validation algo len=%d\n", *datalen);
+        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) < 0 || (int) len > *datalen)
+            goto Bail;
+        if (typ != CCNX_TLV_TL_ValidationAlgo)
+            goto Bail;
+        cp = *data;
+        len2 = len;
+        if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) || len3 > len2)
+            goto Bail;
+        if (typ == CCNX_VALIDALGO_HMAC_SHA256) {
+                // ignore keyId and other algo dependent data ... && len3 == 0)
+            validAlgoIsHmac256 = 1;
+        }
+        *data += len;
+        *datalen -= len;
+
+        DEBUGMSG_PCNX(TRACE, "parsing validation payload len=%d\n", *datalen);
+        if (ccnl_ccntlv_dehead(data, datalen, &typ, &len) < 0 ||
+                                                        (int) len > *datalen)
+            goto Bail;
+        if (typ != CCNX_TLV_TL_ValidationPayload)
+            goto Bail;
+        if (validAlgoIsHmac256) {
+            pkt->hmacStart = msgstart;
+            pkt->hmacLen = *data - pkt->hmacStart - 4;
+            pkt->hmacSignature = *data;
+        }
+        *data += len;
+        *datalen -= len;
+        DEBUGMSG_PCNX(TRACE, "parsing validation sections done %d\n", *datalen);
+    }
+#endif
+
+    *data += *datalen;
+
+#ifdef USE_NAMELESS
+    {
+        SHA256_CTX_t ctx;
+
+        ccnl_SHA256_Init(&ctx);
+        ccnl_SHA256_Update(&ctx, msgstart, *data - msgstart);
+        ccnl_SHA256_Final(pkt->md, &ctx);
+    }
+#endif
+
     pkt->buf = ccnl_buf_new(start, *data - start);
     if (!pkt->buf)
         goto Bail;
     // carefully rebase ptrs to new buf because of 64bit pointers:
     if (pkt->content)
         pkt->content = pkt->buf->data + (pkt->content - start);
-    for (i = 0; i < p->compcnt; i++)
-        p->comp[i] = pkt->buf->data + (p->comp[i] - start);
-    if (p->nameptr)
-        p->nameptr = pkt->buf->data + (p->nameptr - start);
+    if (p) {
+        for (i = 0; i < p->compcnt; i++)
+            p->comp[i] = pkt->buf->data + (p->comp[i] - start);
+        if (p->nameptr)
+            p->nameptr = pkt->buf->data + (p->nameptr - start);
+    }
 #ifdef USE_HMAC256
     pkt->hmacStart = pkt->buf->data + (pkt->hmacStart - start);
     pkt->hmacSignature = pkt->buf->data + (pkt->hmacSignature - start);
@@ -272,6 +320,7 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
 
     return pkt;
 Bail:
+    DEBUGMSG_PCNX(TRACE, "problem parsing CCNTLV packet\n");
     free_packet(pkt);
     return NULL;
 }
@@ -287,6 +336,20 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c)
     assert(p);
     assert(p->suite == CCNL_SUITE_CCNTLV);
 
+#ifdef USE_NAMELESS
+    if (p->s.ccntlv.objHashRestr) {
+        /*
+        unsigned char *cp = p->s.ccntlv.objHashRestr;
+        DEBUGMSG_PCNX(TRACE, "ccnl_ccntlv_cMatch ObjHashRestr\n");
+        DEBUGMSG_PCNX(TRACE, "  want %02x%02x%02x..., have %02x%02x%02x...\n",
+                      cp[0], cp[1], cp[2], c->pkt->md[0], c->pkt->md[1], c->pkt->md[2]);
+        */
+        return memcmp(p->s.ccntlv.objHashRestr, c->pkt->md, 32);
+    }
+#endif
+
+    if (!p->pfx)
+        return -1;
     if (ccnl_prefix_cmp(c->pkt->pfx, NULL, p->pfx, CMP_EXACT))
         return -1;
     // TODO: check keyid
@@ -348,8 +411,7 @@ ccnl_ccntlv_prependBlob(unsigned short type, unsigned char *blob,
 // the given unsigned integer val *before* position buf[offset], adjust offset
 // and return number of bytes prepended. 0 is represented as %x00
 int
-ccnl_ccntlv_prependNetworkVarUInt(unsigned short type, unsigned int intval,
-                                  int *offset, unsigned char *buf)
+ccnl_ccntlv_prependUInt(unsigned int intval,int *offset, unsigned char *buf)
 {
     int offs = *offset;
     int len = 0;
@@ -362,8 +424,18 @@ ccnl_ccntlv_prependNetworkVarUInt(unsigned short type, unsigned int intval,
             break;
     }
     *offset = offs;
+    return len;
+}
 
-    if (ccnl_ccntlv_prependTL(type, len, offset, buf) < 0)
+// prepend unsigned integer val (and its type) *before* position buf[offset]
+int
+ccnl_ccntlv_prependNetworkVarUInt(unsigned short typ, unsigned int intval,
+                                  int *offset, unsigned char *buf)
+{
+    int len;
+
+    len = ccnl_ccntlv_prependUInt(intval, offset, buf);
+    if (ccnl_ccntlv_prependTL(typ, len, offset, buf) < 0)
         return -1;
     return len + 4;
 }
@@ -409,18 +481,22 @@ ccnl_ccntlv_prependFixedHdr(unsigned char ver,
     return hdrlen + payloadlen;
 }
 
-// write given prefix and chunknum *before* buf[offs], adjust offset
-// and return bytes used
+// write given prefix componnents and chunknum *before* buf[offs], adjust
+// offset and return bytes used
 int
-ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
-                        int *offset, unsigned char *buf,
-                        unsigned int *lastchunknum) {
+ccnl_ccntlv_prependNameComponents(struct ccnl_prefix_s *name,
+                                  int *offset, unsigned char *buf)
+{
 
     int nameend, cnt;
 
-    if (lastchunknum) {
+    if (!name)
+        return 0;
+
+    if (name->chunknum) {
         if (ccnl_ccntlv_prependNetworkVarUInt(CCNX_TLV_M_ENDChunk,
-                                              *lastchunknum, offset, buf) < 0)
+                                              *name->chunknum,
+                                              offset, buf) < 0)
             return -1;
     }
 
@@ -448,39 +524,60 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
         *offset -= name->complen[cnt];
         memcpy(buf + *offset, name->comp[cnt], name->complen[cnt]);
     }
-    if (ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, nameend - *offset,
-                              offset, buf) < 0)
+
+    return nameend - *offset;
+}
+
+// write given prefix and chunknum *before* buf[offs], adjust offset
+// and return bytes used
+int
+ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf)
+{
+    int len, len2;
+
+    if (!name)
+        return 0;
+
+    len = ccnl_ccntlv_prependNameComponents(name, offset, buf);
+    if (len < 0)
         return -1;
 
-    return 0;
+    len2 = ccnl_ccntlv_prependTL(CCNX_TLV_M_Name, len, offset, buf);
+    if (len2 < 0)
+        return -1;
+
+    return len + len2;
 }
 
 // write Interest payload *before* buf[offs], adjust offs and return bytes used
+// (len has number of bytes already written a the end of the packet)
 int
 ccnl_ccntlv_prependInterest(struct ccnl_prefix_s *name,
-                            int *offset, unsigned char *buf)
+                            int *offset, unsigned char *buf, int len)
 {
     int oldoffset = *offset;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, NULL))
+    if (ccnl_ccntlv_prependName(name, offset, buf) < 0)
         return -1;
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Interest,
-                                        oldoffset - *offset, offset, buf) < 0)
+                                        oldoffset - *offset + len, offset, buf) < 0)
         return -1;
 
-    return oldoffset - *offset;
+    return oldoffset - *offset + len;
 }
 
 // write Interest packet *before* buf[offs], adjust offs and return bytes used
+// (len has number of bytes already written a the end of the packet)
 int
-ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
-                                        int *offset, unsigned char *buf)
+ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
+                                   int *offset, unsigned char *buf, int len)
 {
-    int len, oldoffset;
+    int oldoffset;
     unsigned char hoplimit = 64; // setting hoplimit to max valid value?
 
     oldoffset = *offset;
-    len = ccnl_ccntlv_prependInterest(name, offset, buf);
+    len = ccnl_ccntlv_prependInterest(name, offset, buf, len);
     if ( (unsigned int)len >= ((1 << 16) - sizeof(struct ccnx_tlvhdr_ccnx2015_s)))
         return -1;
 
@@ -489,14 +586,6 @@ ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
         return -1;
 
     return oldoffset - *offset;
-}
-
-// write Interest packet *before* buf[offs], adjust offs and return bytes used
-int
-ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
-                                int *offset, unsigned char *buf)
-{
-    return ccnl_ccntlv_prependChunkInterestWithHdr(name, offset, buf);
 }
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
@@ -516,7 +605,7 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
-    if (ccnl_ccntlv_prependName(name, offset, buf, lastchunknum))
+    if (ccnl_ccntlv_prependName(name, offset, buf) < 0)
         return -1;
 
     if (ccnl_ccntlv_prependTL(CCNX_TLV_TL_Object,
@@ -540,6 +629,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
     len = ccnl_ccntlv_prependContent(name, payload, paylen, lastchunknum,
                                      contentpos, offset, buf);
+
     if (len < 0)
         return -1;
 
@@ -552,6 +642,7 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
 
     return oldoffset - *offset;
 }
+
 
 #ifdef USE_FRAG
 
