@@ -55,7 +55,7 @@ usage(int exitval)
             "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
             "  -s SUITE   (ccnx2015, ndn2013)\n"
-            "  -t SHAPE   tree shape: deep, balanced\n"
+            "  -t SHAPE   tree shape: balanced, 7mpr, deep\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -721,6 +721,14 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     ccnl_manifest_free(m);
 }
 
+void
+flic_produce7mprTree(struct key_s *keys, int block_size,
+                     char *fname, struct ccnl_prefix_s *name,
+                     struct ccnl_prefix_s *meta)
+{
+    return;
+}
+
 struct list_s*
 balancedTree(int f, int blocksz, int reserved, int lev, int *depth,
              long offset, long length,
@@ -837,6 +845,9 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
 }
 
 // ----------------------------------------------------------------------
+
+int pktcnt;
+//unsigned char *digests;
 
 struct ccnl_pkt_s*
 flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
@@ -985,9 +996,14 @@ TailRecurse:
         while (flic_dehead(&msg, &len, &typ, (unsigned int*) &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == m_codes[M_HG_PTR2DATA]) {
+                    pktcnt++;
+                    DEBUGMSG(DEBUG, "@@ %3d  %s\n", pktcnt, digest2str(msg));
+//                    digests = ccnl_realloc(digests, pktcnt*SHA256_DIGEST_LENGTH);
+//                    memcpy(digests + (pktcnt - 1)*SHA256_DIGEST_LENGTH, msg, SHA256_DIGEST_LENGTH);
                     if (flic_do_dataPtr(sock, sa, NULL, msg, fd, total) < 0)
                         return -1;
                 } else if (typ == m_codes[M_HG_PTR2MANIFEST]) {
+                    DEBUGMSG(DEBUG, "@> ---  %s\n", digest2str(msg));
                     if (len == SHA256_DIGEST_LENGTH) {
                         objHashRestr = msg;
                         keys = NULL;
@@ -1014,13 +1030,519 @@ Bail:
 
 // ----------------------------------------------------------------------
 
+struct task_s {
+    char type; // 0=dataptr, 1=mfstptr, 2=data
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    struct ccnl_pkt_s *pkt;
+    int retry_cnt;
+    struct timeval timeout;
+    struct timeval lastsent;
+} *tasks;
+int taskcnt;
+int timeoutcnt;
+long rtt;
+long rttaccu;
+int rttcnt;
+int sendwindow = 20;
+int seqno;
+int RbytesPerRTT, WbytesPerRTT;
+struct timeval nextout;
+int expandlimit = 300;
+struct ccnl_buf_s *outq; // list of hashes for which to send an interest
+int outqlen;
+int outqlimit = 2;
+int sendcnt;
+
+void
+ccnl_timeval_add(struct timeval *t, int usec)
+{
+    if (!t)
+        return;
+    t->tv_usec += usec;
+    if (t->tv_usec > 1000000) {
+        t->tv_sec += t->tv_usec / 1000000;
+        t->tv_usec = t->tv_usec % 1000000;
+    }
+}
+
+void
+window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
+                      int incr_usec)
+{
+
+    unsigned char *msg, *msg2;
+    int msglen, msglen2;
+    unsigned int typ, cnt, len, len2;
+
+    DEBUGMSG(FATAL, "expand %d %d\n", curtask, taskcnt);
+    
+    DEBUGMSG(VERBOSE, "@> ---  %s expand %d %d\n",
+             digest2str(tasks[curtask].md), curtask, taskcnt);
+    msg = pkt->buf->data;
+    msglen = pkt->buf->datalen;
+#ifdef USE_SUITE_CCNTLV
+    if (theSuite == CCNL_SUITE_CCNTLV) {
+        msg += 8;
+        msglen -= 8;
+    }
+#endif
+
+    if (flic_dehead(&msg, &msglen, &typ, &len) < 0)
+        goto Bail;
+#ifdef USE_SUITE_NDNTLV
+    if (theSuite == CCNL_SUITE_NDNTLV) {
+        if (pkt->contentType != NDN_Content_Manifest)
+            goto Bail;
+        msg = pkt->content;
+        len = pkt->contlen;
+    }
+#endif
+
+    // first pass: count the number of pointers
+    cnt = 0;
+    msg2 = msg;
+    msglen2 = len;
+    while (flic_dehead(&msg2, &msglen2, &typ, &len2) >= 0) {
+        if (typ != m_codes[M_HASHGROUP]) {
+            msg2 += len2;
+            msglen2 -= len2;
+            continue;
+        }
+        DEBUGMSG(TRACE, "hash group\n");
+        while (flic_dehead(&msg2, &msglen2, &typ, &len2) >= 0) {
+            if (len2 == SHA256_DIGEST_LENGTH)
+                cnt++;
+            msg2 += len2;
+            msglen2 -= len2;
+        }
+    }
+
+    // allocate memory for the new pointers
+    // TODO: handle cnt == 0
+    if (cnt > 1) {
+        tasks = ccnl_realloc(tasks, (taskcnt + cnt - 1)*sizeof(struct task_s));
+        if (!tasks) {
+            DEBUGMSG(FATAL, "realloc failed @@@@@@@@@@@@@@@@@@@@@@@@\n");
+        }
+        if (curtask != (taskcnt - 1))
+            memmove(tasks + curtask + cnt, tasks + curtask + 1,
+                    (taskcnt - curtask - 1)*sizeof(struct task_s));
+        memset(tasks + curtask, 0, cnt * sizeof(struct task_s));
+    } else {
+        DEBUGMSG(FATAL, "*** handle cnt %d <= 1\n", cnt);
+    }
+    taskcnt += cnt - 1;
+
+    // second pass: copy the pointers
+    if (curtask < taskcnt) {
+        struct task_s *tp = tasks + curtask;
+        cnt = 0;
+        while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
+            if (typ != m_codes[M_HASHGROUP]) {
+                msg += len2;
+                len -= len2;
+                continue;
+            }
+            DEBUGMSG(TRACE, "hash group\n");
+            while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
+                if (len2 == SHA256_DIGEST_LENGTH) {
+                    if (typ == m_codes[M_HG_PTR2DATA])
+                        tp->type = 0;
+                    else if (typ == m_codes[M_HG_PTR2MANIFEST]) \
+                        tp->type = 1;
+                    memcpy(tp->md, msg, SHA256_DIGEST_LENGTH);
+                    tp++;
+                    cnt++;
+                }
+                msg += len2;
+                len -= len2;
+            }
+        }
+    }
+    return;
+Bail:
+    DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
+    return;
+}
+
+int
+packet_upcall(int sock)
+{
+    int i, len = recv(sock, out, sizeof(out), 0);
+    struct timeval now;
+
+    DEBUGMSG(DEBUG, "recv returned %d\n", len);
+    if (len <= 0)
+        return -1;
+
+    unsigned char *data = out;
+    int datalen = len;
+#ifdef USE_SUITE_CCNTLV
+    if (theSuite == CCNL_SUITE_CCNTLV) {
+        data += 8;
+        datalen -= 8;
+    }
+#endif
+    struct ccnl_pkt_s *pkt = flic_bytes2pkt(out, &data, &datalen);
+    if (!pkt)
+        return -1;
+
+    DEBUGMSG(DEBUG, "received %d %s\n", taskcnt, digest2str(pkt->md));
+    // search for received digest
+    for (i = 0; i < taskcnt; i++) {
+        if (tasks[i].type >= 2 ||
+            memcmp(pkt->md, tasks[i].md, SHA256_DIGEST_LENGTH))
+            continue;
+
+        DEBUGMSG(DEBUG, "  at index %d, type=%d\n", i, tasks[i].type);
+        if (tasks[i].type < 2 && tasks[i].retry_cnt == 1) {
+            ccnl_get_timeval(&now);
+            DEBUGMSG(DEBUG, "raw rtt=%ld (pos %d)\n", timevaldelta(&now, &tasks[i].lastsent), i);
+            rttaccu += timevaldelta(&now, &tasks[i].lastsent);
+            rttcnt++;
+            tasks[i].retry_cnt = 2;
+        }
+        if (tasks[i].type == 0) {
+            tasks[i].type = 2;
+            tasks[i].pkt = pkt;
+            RbytesPerRTT += tasks[i].pkt->contlen;
+            for (i++; i < taskcnt; i++) {
+                if (tasks[i].type != 0 ||
+                          memcmp(pkt->md, tasks[i].md, SHA256_DIGEST_LENGTH))
+                    continue;
+                tasks[i].type = 2;
+                tasks[i].pkt = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
+                tasks[i].pkt->buf = ccnl_buf_new(pkt->content, pkt->contlen);
+                tasks[i].pkt->content = tasks[i].pkt->buf->data;
+                tasks[i].pkt->contlen = tasks[i].pkt->buf->datalen;
+            }
+            pkt = NULL;
+            break;
+        } else if (tasks[i].type == 1) {
+            window_expandManifest(i, pkt, 10);
+            free_packet(pkt);
+            return 1;
+        } else {
+            DEBUGMSG(DEBUG, "  duplicate %d\n", i);
+            free_packet(pkt);
+        }
+        pkt = NULL;
+        break;
+    }
+    if (pkt) {
+        DEBUGMSG(DEBUG, "  not found: %s\n", digest2str(pkt->md));
+        free_packet(pkt);
+    }
+    return 0;
+}
+
+int
+packet_request(int sock, struct sockaddr *sa,
+               struct ccnl_prefix_s *locator, int i)
+{
+    struct ccnl_buf_s *buf, *msg;
+    int rc = -1;
+
+    if (tasks[i].type == 0)
+        DEBUGMSG(DEBUG, "packet_request %d\n", i);
+    else
+        DEBUGMSG(DEBUG, "packet_request %d -- manifest\n", i);
+
+    buf = ccnl_buf_new(tasks[i].md, SHA256_DIGEST_LENGTH);
+    if (!buf)
+        return -1;
+    for (msg = outq; msg; msg = msg->next) { // already in the queue?
+        if (msg->datalen == buf->datalen &&
+            !memcmp(msg->data, buf->data, msg->datalen)) {
+            DEBUGMSG(DEBUG, "    not enqueued because already there\n");
+            ccnl_free(buf);
+            goto SetTimer;
+        }
+        if (!msg->next) {
+            msg->next = buf;
+            outqlen++;
+            rc = 0;
+            goto SetTimer;
+        }
+    }
+    outq = buf;
+    outqlen++;
+    rc = 0;
+SetTimer:
+    ccnl_get_timeval(&tasks[i].lastsent);
+    memcpy(&tasks[i].timeout, &tasks[i].lastsent, sizeof(struct timeval));
+    ccnl_timeval_add(&tasks[i].timeout, 2*rtt);
+    return rc;
+}
+
+// ----------------------------------------------------------------------
+
+int
+repo_io_loop(int sock, struct sockaddr *sa,
+             struct ccnl_prefix_s *locator, int fd)
+{
+    int maxfd = -1, rc, i, dropcnt = 0;
+    fd_set readfs, writefs;
+    struct timeval now, endofRTT, last;
+
+    maxfd = sock;
+    if (fd > maxfd)
+        maxfd = fd;
+    maxfd++;
+
+    ccnl_get_timeval(&last);
+    ccnl_get_timeval(&endofRTT);
+    ccnl_timeval_add(&endofRTT, rtt);
+    DEBUGMSG(INFO, "starting repo main event and IO loop\n");
+    while (taskcnt > 0) {
+        int usec;
+
+        ccnl_get_timeval(&now);
+
+        for (i = 0; outqlen < outqlimit && i < sendwindow && sendcnt < sendwindow; i++) {
+            if (i > expandlimit)
+                break;
+
+            if (tasks[i].type > 1)
+                continue;
+
+            long due = timevaldelta(&tasks[i].timeout, &now);
+            if (due > 0) {
+                if (due < usec)
+                    usec = due;
+                continue;
+            }
+            // we have a timeout event for position i
+            if (tasks[i].retry_cnt > 0) {
+                dropcnt++;     // for this RTT period
+                timeoutcnt++;  // global counter
+                if (tasks[i].retry_cnt > 50) {
+                    DEBUGMSG(FATAL, "exceeded timeout limit\n");
+                    DEBUGMSG(FATAL, "%d timeouts, last rtt was %ld\n",
+                             timeoutcnt, rtt);
+                    exit(1);
+                }
+                DEBUGMSG(INFO, "!! timeout for #%d (cnt %d)\n",
+                         i, tasks[i].retry_cnt);
+                packet_request(sock, sa, locator, i);
+                tasks[i].retry_cnt++;
+            } else if (i < sendwindow) {
+                if (packet_request(sock, sa, locator, i))
+                    tasks[i].retry_cnt = 2;
+                else
+                    tasks[i].retry_cnt = 1;
+            }
+        }
+
+        FD_ZERO(&readfs);
+        FD_ZERO(&writefs);
+
+        usec = rtt;
+        if (outq) {
+            long wait = timevaldelta(&nextout, &now);
+            if (wait < 0)
+                wait = 0;
+            if (wait < usec)
+                usec = wait;
+            DEBUGMSG(DEBUG, "outq %d usec\n", usec);
+        }
+
+        if (tasks[0].type == 2)
+            FD_SET(fd, &writefs);
+        FD_SET(sock, &readfs);
+
+        if (usec >= 0) {
+            struct timeval deadline;
+            DEBUGMSG(VERBOSE, "%d qlen=%d\n", usec, outqlen);
+            deadline.tv_sec = usec / 1000000;
+            deadline.tv_usec = usec % 1000000;
+            rc = select(maxfd, &readfs, &writefs, NULL, &deadline);
+        } else
+            rc = select(maxfd, &readfs, &writefs, NULL, NULL);
+        if (rc < 0) {
+            perror("select(): ");
+            exit(EXIT_FAILURE);
+        }
+
+        if (tasks[0].type == 2 && !FD_ISSET(fd, &writefs)) {
+            DEBUGMSG(DEBUG, "blocked on consumer\n");
+        }
+
+        ccnl_get_timeval(&now);
+        if (outq && timevaldelta(&nextout, &now) < 0 && sendcnt < sendwindow) {
+            struct ccnl_buf_s *n = outq->next;
+            for (i = 0; i < taskcnt; i++) {
+                if (!memcmp(outq->data, tasks[i].md, SHA256_DIGEST_LENGTH)) {
+                    int len = flic_mkInterest(locator, NULL, tasks[i].md,
+                                              out, sizeof(out));
+                    if (len <= 0)
+                        break;
+                    sendto(sock, out, len, 0, sa, sizeof(*sa));
+                    DEBUGMSG(DEBUG, "sendto pos=%d\n", i);
+                    ccnl_get_timeval(&tasks[i].lastsent);
+                    sendcnt++;
+                    break;
+                }
+            }
+            ccnl_free(outq);
+            outq = n;
+            outqlen--;
+            memcpy(&nextout, &now, sizeof(now)); // minum time between pckts
+            ccnl_timeval_add(&nextout, 500);            
+        }
+
+        if (FD_ISSET(sock, &readfs)) {
+            if (packet_upcall(sock) == 1) { // manifest
+                // activate (at most 10) newly joined pointers
+//                for (i = 0; outqlen < outqlimit && i < sendwindow; i++) {
+                for (i = 0; outqlen < outqlimit && i < taskcnt; i++) {
+                    if (tasks[i].type > 1)
+                        continue;
+                    if (!tasks[i].retry_cnt) {
+                        if (packet_request(sock, sa, locator, i))
+                            tasks[i].retry_cnt = 2;
+                        else
+                            tasks[i].retry_cnt = 1;
+                    }
+                }
+            }
+        }
+
+        if (FD_ISSET(fd, &writefs) && tasks[0].type == 2 ) {
+            int d = timevaldelta(&now, &last);
+            DEBUGMSG(DEBUG, "@@ %3d  %d %s\n", seqno, d, digest2str(tasks[0].md));
+            seqno++;
+            memcpy(&last, &now, sizeof(last));
+/*
+            DEBUGMSG(INFO, "  delivering #%d (%d bytes), taskcnt=%d\n",
+            ++pktcnt, tasks[0].u.pkt->contlen, taskcnt);
+*/
+            write(fd, tasks[0].pkt->content, tasks[0].pkt->contlen);
+
+            WbytesPerRTT += tasks[0].pkt->contlen;
+            free_packet(tasks[0].pkt);
+            taskcnt--;
+            memmove(tasks, tasks + 1, taskcnt*sizeof(struct task_s));
+
+            // activate newly joined pointers:
+            for (i = 0; outqlen < outqlimit && i < sendwindow; i++) {
+                if (tasks[i].type > 1)
+                    continue;
+                if (!tasks[i].retry_cnt) {
+                    if (packet_request(sock, sa, locator, i))
+                        tasks[i].retry_cnt = 2;
+                    else
+                        tasks[i].retry_cnt = 1;
+                }
+            }
+
+/*
+            if (tasks[0].type == 2) {
+                DEBUGMSG(DEBUG, "#0 ready in %ld usec\n", rtt/sendwindow/2);
+            } else {
+                DEBUGMSG(INFO, "#0 not ready ------------------------\n");
+            }
+*/
+        }
+
+        // re-eval RTT and next deadline
+        if (timevaldelta(&now, &endofRTT) > 0) { // one RTT is over
+            int newwindow = sendwindow;
+
+            if (rttcnt)
+                rtt = 0.8*rtt + 0.2*rttaccu/rttcnt;
+            if (rtt < 2000) // minumu rtt (tolerate some local jitter)
+                rtt = 2000;
+            DEBUGMSG(DEBUG, "new rtt is %ld\n", rtt);
+            rttaccu = rttcnt = 0;
+
+            if (dropcnt) {
+                newwindow *= 0.75;
+            } else if (newwindow < 25) {
+                newwindow *= 2;
+            } else
+                newwindow += 2;
+            if (newwindow < 2)
+                newwindow = 2;
+            if (newwindow > 40)
+                newwindow = 40;
+            sendwindow = newwindow;
+            
+
+            memcpy(&endofRTT, &now, sizeof(now));
+            ccnl_timeval_add(&endofRTT, rtt);
+
+            DEBUGMSG(INFO, "rtt=%ld, cwnd=%d, tasks=%d, in=%d, out=%d, qlen=%d, err=%d\n",
+                     rtt, sendwindow, taskcnt, RbytesPerRTT, WbytesPerRTT, outqlen, dropcnt);
+            sendcnt = 0;
+            dropcnt = 0;
+            RbytesPerRTT = WbytesPerRTT = 0;
+
+        }
+
+        // treat manifest pointers preferentially
+        for (i = 0; outqlen < outqlimit && i < taskcnt; i++) {
+            if (i > expandlimit)
+                break;
+            if (tasks[i].type > 1)
+                continue;
+            if (tasks[i].type == 1 && !tasks[i].retry_cnt) {
+                if (packet_request(sock, sa, locator, i))
+                    tasks[i].retry_cnt = 2;
+                else
+                    tasks[i].retry_cnt = 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void
+window_retrieval(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
+                 unsigned char *objHashRestr, int fd)
+{
+    struct ccnl_pkt_s *pkt;
+    struct timeval t1, endofRTT;
+
+    ccnl_get_timeval(&t1);
+    pkt = flic_lookup(sock, sa, locator, objHashRestr);
+    if (!pkt)
+        return;
+    ccnl_get_timeval(&endofRTT);
+    rtt = timevaldelta(&endofRTT, &t1);
+    if (rtt < 20000)
+        rtt = 20000;
+    DEBUGMSG(DEBUG, "first RTT is %ld usec\n", rtt);
+    ccnl_timeval_add(&endofRTT, rtt);
+
+    tasks = ccnl_calloc(1, sizeof(struct task_s));
+    taskcnt = 1;
+    window_expandManifest(0, pkt, 20);
+    free_packet(pkt);
+
+    DEBUGMSG(INFO, "starting with %d lookup tasks\n", taskcnt);
+    packet_request(sock, sa, locator, 0);
+    tasks[0].retry_cnt = 1;
+
+    repo_io_loop(sock, sa, locator, fd);
+}
+
+// ----------------------------------------------------------------------
+
+enum {
+    TREE_BALANCED,
+    TREE_7MPR,
+    TREE_DEEP
+};
+
 int
 main(int argc, char *argv[])
 {
     char *outfname = NULL;
     char *udp = strdup("127.0.0.1/9695"), *ux = NULL;
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
-    int balanced = 1, opt, exitBehavior = 0, i;
+    int treeShape = TREE_BALANCED, opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
     int block_size = 4096;
     unsigned char *objHashRestr = NULL;
@@ -1067,7 +1589,12 @@ main(int argc, char *argv[])
                 usage(1);
             break;
         case 't':
-            balanced = strcmp(optarg, "deep") ? 1 : 0;
+            if (!strcmp(optarg, "deep"))
+                treeShape = TREE_DEEP;
+            else if (!strcmp(optarg, "7mpr"))
+                treeShape = TREE_7MPR;
+            else
+                treeShape = TREE_BALANCED;
             break;
         case 'u':
             udp = optarg;
@@ -1144,12 +1671,19 @@ Usage:
         if (optind < argc)
             goto Usage;
 
-        if (balanced)
+        switch (treeShape) {
+        case TREE_DEEP:
+            flic_produceDeepTree(keys, block_size, fname, uri, metadataUri);
+            break;
+        case TREE_7MPR:
+            flic_produce7mprTree(keys, block_size, fname, uri, metadataUri);
+            break;
+        case TREE_BALANCED:
             flic_produceBalancedTree(keys, block_size, 4+4,
                                      fname, uri, metadataUri);
-        else
-            flic_produceDeepTree(keys, block_size,
-                                 fname, uri, metadataUri);
+        default:
+            break;
+        }
     } else { // retrieve a manifest tree
         int fd, port, sock;
         const char *addr = NULL;
@@ -1179,11 +1713,19 @@ Usage:
             fd = 1;
 
         ccnl_SHA256_Init(&total);
+
+/*
+        sequential/non-windowed retrieval:
+
         if (!flic_do_manifestPtr(sock, &sa, exitBehavior, keys,
                                  uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
         }
+*/
+        (void)md;
+        window_retrieval(sock, &sa, uri, objHashRestr, fd);
+
         close(fd);
 
     }

@@ -628,6 +628,7 @@ free_packet(struct ccnl_pkt_s *pkt)
             case CCNL_SUITE_NDNTLV:
                 ccnl_free(pkt->s.ndntlv.nonce);
                 ccnl_free(pkt->s.ndntlv.ppkl);
+                ccnl_free(pkt->s.ndntlv.dataHashRestr);
                 break;
 #endif
 #ifdef USE_SUITE_CISTLV

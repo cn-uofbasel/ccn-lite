@@ -638,11 +638,10 @@ ccnl_repo_replyWithFile(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
             ccnl_free(buf);
             buf = NULL;
         }
+        addTo256set(OKset, pkt->suite, pkt->md, NULL);
         free_packet(pkt);
         if (!buf)
             goto AddToER;
-
-        addTo256set(OKset, pkt->suite, pkt->md, NULL);
     }
 
     ccnl_face_enqueue(repo, from, buf);
@@ -851,6 +850,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
     int i, len, maxfd = -1, rc;
     fd_set readfs, writefs;
     unsigned char buf[CCNL_MAX_PACKET_SIZE];
+    struct timeval now, stats;
 
     if (ccnl->ifcount == 0) {
         DEBUGMSG(ERROR, "no socket to work with, not good, quitting\n");
@@ -862,8 +862,17 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
     maxfd++;
 
     DEBUGMSG(INFO, "starting main event and IO loop\n");
+    ccnl_get_timeval(&stats);
+    stats.tv_sec += 60;
     while (!ccnl->halt_flag) {
-        int usec;
+
+        ccnl_get_timeval(&now);
+        if (timevaldelta(&now, &stats) > 0) {
+            DEBUGMSG(INFO, "allocated memory: total %ld bytes in %d chunks\n",
+                     ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
+            memcpy(&stats, &now, sizeof(now));
+            stats.tv_sec += 60;
+        }
 
         FD_ZERO(&readfs);
         FD_ZERO(&writefs);
@@ -874,14 +883,19 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                 FD_SET(ccnl->ifs[i].sock, &writefs);
         }
 
+        /*
         usec = ccnl_run_events();
         if (usec >= 0) {
             struct timeval deadline;
             deadline.tv_sec = usec / 1000000;
             deadline.tv_usec = usec % 1000000;
-            rc = select(maxfd, &readfs, &writefs, NULL, &deadline);
         } else
             rc = select(maxfd, &readfs, &writefs, NULL, NULL);
+        */
+        
+        now.tv_sec = 60;
+        now.tv_usec = 1000;
+        rc = select(maxfd, &readfs, &writefs, NULL, &now);
 
         if (rc < 0) {
             perror("select(): ");
@@ -974,7 +988,7 @@ addNamed(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
 }
 
 void
-addHashed(char *fname, struct ccnl_pkt_s *pkt) // , unsigned char *key)
+addHashed(char *fname, struct ccnl_pkt_s *pkt)
 {
     unsigned char contentDigest[SHA256_DIGEST_LENGTH];
 
