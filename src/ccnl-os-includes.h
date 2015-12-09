@@ -44,9 +44,9 @@
 # include <sys/un.h>
 # include <sys/utsname.h>
 
-#ifndef _DEFAULT_SOURCE
-#  define __USE_MISC
-#endif
+// #ifndef _DEFAULT_SOURCE
+// #  define __USE_MISC
+// #endif
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
