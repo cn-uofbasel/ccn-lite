@@ -20,8 +20,6 @@
  * 2015-11-10  created
  */
 
-#define _GNU_SOURCE
-
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_CISTLV
 // #define USE_SUITE_IOTTLV
@@ -43,6 +41,7 @@
 // ----------------------------------------------------------------------
 
 char *progname;
+char fnbuf[512];
 
 void
 usage(int exitval)

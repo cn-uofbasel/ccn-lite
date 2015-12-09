@@ -44,17 +44,14 @@
 # include <sys/un.h>
 # include <sys/utsname.h>
 
-// #ifndef _DEFAULT_SOURCE
-// #  define __USE_MISC
-// #endif
+#if !defined(_BSD_SOURCE) && !defined(_SVID_SOURCE)
+#  define __USE_MISC
+//  int inet_aton(const char *cp, struct in_addr *inp);
+#endif
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <net/if.h> // IFNAMSIZE, if_nametoindex
-
-#ifdef _DEFAULT_SOURCE
-  int inet_aton(const char *cp, struct in_addr *inp);
-#endif
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>

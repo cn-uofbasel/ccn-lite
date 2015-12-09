@@ -28,7 +28,6 @@
 
 #define USE_LOGGING
 #define CCNL_UNIX
-#define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _SVID_SOURCE
 

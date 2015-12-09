@@ -47,8 +47,10 @@ d) enable content store caching, or rely on OS paging?
 
 */
 
-#define _BSD_SOURCE
-#define _GNU_SOURCE
+#ifndef _BSD_SOURCE
+# define _BSD_SOURCE // because of DT_DIR etc
+#endif
+
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -97,6 +99,7 @@ d) enable content store caching, or rely on OS paging?
 
 // ----------------------------------------------------------------------
 
+char fnbuf[512];
 struct ccnl_relay_s theRepo;
 char *theRepoDir;
 #ifdef USE_LOGGING
@@ -173,22 +176,20 @@ khash_t(PFX) *NMmap;
 void
 assertDir(char *dirpath, char *lev1, char *lev2)
 {
-    char *fn;
-
-    asprintf(&fn, "%s/%c%c", dirpath, lev1[0], lev1[1]);
-    if (mkdir(fn, 0777) && errno != EEXIST) {
-        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%c%c", dirpath, lev1[0], lev1[1]);
+    if (mkdir(fnbuf, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fnbuf);
         exit(-1);
     }
-    free(fn);
+
     if (!lev2)
         return;
-    asprintf(&fn, "%s/%c%c/%c%c", dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
-    if (mkdir(fn, 0777) && errno != EEXIST) {
-        DEBUGMSG(FATAL, "could not create directory %s\n", fn);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%c%c/%c%c",
+             dirpath, lev1[0], lev1[1], lev2[0], lev2[1]);
+    if (mkdir(fnbuf, 0777) && errno != EEXIST) {
+        DEBUGMSG(FATAL, "could not create directory %s\n", fnbuf);
         exit(-1);
     }
-    free(fn);
 }
 
 static char*
@@ -224,12 +225,12 @@ file2iobuf(char *path)
 char*
 digest2fname(char *dirpath, unsigned char *md)
 {
-    char *cp, *hex = digest2str(md);
+    char *hex = digest2str(md);
 
-    asprintf(&cp, "%s/%02x/%02x/%s", dirpath,
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%02x/%02x/%s", dirpath,
              md[0], md[1], hex+4);
 
-    return cp;
+    return fnbuf;
 }
 
 unsigned char*
@@ -735,9 +736,9 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
                 }
             }
 
-            asprintf(&fname, "%s/hs/%s", theRepoDir, digest2str(key+1));
-            rc = ccnl_repo_replyWithFile(repo, from, suite, fname, NULL);
-            free(fname);
+            snprintf(fnbuf, sizeof(fnbuf), "%s/hs/%s",
+                     theRepoDir, digest2str(key+1));
+            rc = ccnl_repo_replyWithFile(repo, from, suite, fnbuf, NULL);
             goto Done;
         }
 
@@ -777,7 +778,6 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
 
         fname = digest2fname(theRepoDir, digest);
         rc = ccnl_repo_replyWithFile(repo, from, suite, fname, NULL);
-        free(fname);
         goto Done;
     }
     if (repo_mode == MODE_INDEX) // if not in OKset then it does not exist
@@ -792,7 +792,6 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
 */
     fname = digest2fname(theRepoDir, digest);
     rc = ccnl_repo_replyWithFile(repo, from, suite, fname, digest);
-    free(fname);
 
 Done:
     free_packet(pkt);
@@ -1013,22 +1012,19 @@ void
 add_content(char *dirpath, char *fname, reg_f addToTables)
 {
     struct ccnl_pkt_s *pkt = NULL;
-    char *path;
 
-    asprintf(&path, "%s/%s", dirpath, fname);
-    DEBUGMSG(DEBUG, "add_content(%s)\n", path);
-    pkt = contentFile2packet(path);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%s", dirpath, fname);
+    DEBUGMSG(DEBUG, "add_content(%s)\n", fnbuf);
+    pkt = contentFile2packet(fnbuf);
 
     if (!pkt) {
-        free(path);
         DEBUGMSG(DEBUG, "no packet\n");
         return;
     }
 
-    addToTables(path, pkt); // , digest2key(_suite, pkt->md));
+    addToTables(fnbuf, pkt); // , digest2key(_suite, pkt->md));
 
     free_packet(pkt);
-    free(path);
 }
 
 void
@@ -1052,9 +1048,10 @@ walk_fs(char *path, reg_f addToTables)
         case DT_DIR:
             if (de->d_name[0] != '.') {
                 char *path2;
-                asprintf(&path2, "%s/%s", path, de->d_name);
+                snprintf(fnbuf, sizeof(fnbuf), "%s/%s", path, de->d_name);
+                path2 = ccnl_strdup(fnbuf);
                 walk_fs(path2, addToTables);
-                free(path2);
+                ccnl_free(path2);
             }
             break;
         default:
@@ -1070,21 +1067,18 @@ void
 flic_link(char *dirpath, char *linkdir,
              unsigned char *packetDigest, unsigned char *linkDigest)
 {
-    char *hex, *fn, *link;
+    char *hex, lnktarget[100];
 
     assertDir(dirpath, linkdir, NULL);
 
     hex = digest2str(packetDigest);
-    asprintf(&fn, "../%02x/%02x/%s",
+    snprintf(lnktarget, sizeof(lnktarget), "../%02x/%02x/%s",
              packetDigest[0], packetDigest[1], hex+4);
 
     hex = digest2str(linkDigest);
-    asprintf(&link, "%s/%s/%s", dirpath, linkdir, hex);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/%s/%s", dirpath, linkdir, hex);
     
-    symlink(fn, link);
-
-    free(link);
-    free(fn);
+    symlink(lnktarget, fnbuf);
 }
     
 int
@@ -1100,7 +1094,8 @@ ccnl_repo256_import(char *dir)
         char *path, *hashName;
         struct ccnl_pkt_s *pkt;
 
-        asprintf(&path, "%s/%s", dir, de->d_name);
+        snprintf(fnbuf, sizeof(fnbuf), "%s/%s", dir, de->d_name);
+        path = ccnl_strdup(fnbuf);
         switch(de->d_type) {
         case DT_LNK:
         case DT_REG:
@@ -1119,7 +1114,6 @@ ccnl_repo256_import(char *dir)
                 write(f, pkt->buf->data, pkt->buf->datalen);
                 close(f);
             }
-            free(hashName);
             if (pkt->pfx) { // has name: add a symlink to the nm directory
                 flic_link(theRepoDir, "nm", pkt->md, pkt->md);
             }
@@ -1137,7 +1131,7 @@ ccnl_repo256_import(char *dir)
         default:
             break;
         }
-        free(path);
+        ccnl_free(path);
     }
     closedir(dp);
 
@@ -1237,18 +1231,20 @@ usage:
     NMmap = kh_init(PFX);     // map of verified names (from files)
     HSset = kh_init(256set);  // set of data hashes (from files)
 
-    asprintf(&fname, "%s/hs", theRepoDir);
+    snprintf(fnbuf, sizeof(fnbuf), "%s/hs", theRepoDir);
+    fname = ccnl_strdup(fnbuf);
     DEBUGMSG(INFO, "loading hashed content from <%s>\n", fname);
     walk_fs(fname, addHashed);
-    free(fname);
+    ccnl_free(fname);
     if (repo_mode == MODE_INDEX) {
         DEBUGMSG(INFO, "loading files from <%s>\n", theRepoDir);
         walk_fs(theRepoDir, addVerified);
     } else {
-        asprintf(&fname, "%s/nm", theRepoDir);
+        snprintf(fnbuf, sizeof(fnbuf), "%s/nm", theRepoDir);
+        fname = ccnl_strdup(fnbuf);
         DEBUGMSG(INFO, "loading named content from <%s>\n", fname);
         walk_fs(fname, addNamed);
-        free(fname);
+        ccnl_free(fname);
     }
 
     DEBUGMSG(INFO, "Summary: %d files included\n", kh_size(OKset));
