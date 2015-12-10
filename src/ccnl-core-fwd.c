@@ -34,7 +34,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
                   ccnl_suite2str((*pkt)->suite),
-                  (*pkt)->pfx->nfnflags,
+                  (*pkt)->pfx ? (*pkt)->pfx->nfnflags : -99999,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     DEBUGMSG_CFWD(VERBOSE, "    data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
@@ -163,7 +163,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     
 #ifdef USE_SUITE_CCNTLV
-    if ((*pkt)->pfx->suite == CCNL_SUITE_CCNTLV &&
+    if ((*pkt)->suite == CCNL_SUITE_CCNTLV &&
         (*pkt)->s.ccntlv.objHashRestr) {
         DEBUGMSG_CFWD(DEBUG, "    ObjHashRestriction %02x%02x...%02x\n", (*pkt)->s.ccntlv.objHashRestr[0], (*pkt)->s.ccntlv.objHashRestr[1], (*pkt)->s.ccntlv.objHashRestr[31]);
     }
