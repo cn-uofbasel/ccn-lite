@@ -701,8 +701,11 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     m = ccnl_manifest_getEmptyTemplate(theSuite);
     while (chunk_number > 0) {
         offset = (long) block_size * --chunk_number;
-        flic_mkDataChunk(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
-                         offset, length - offset, block_size, md);
+#ifdef USE_SUITE_NDNTLV        
+        flic_mkDataChunk(f, name, offset, length - offset, block_size, md);
+#else
+        flic_mkDataChunk(f, NULL, offset, length - offset, block_size, md);
+#endif
 
         // Prepend the hash to the current manifest
         ccnl_manifest_prependHash(m, "dptr", md);
@@ -846,10 +849,13 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
                      block_size, reserved, 1, &depth, 0, length, total, ctx);
     if (m) {
         DEBUGMSG(INFO, "... reached depth=%d\n", depth);
-        ccnl_manifest_setMetaData(m, 0, meta, block_size, length,
-                                  depth, total);
-        if (theSuite == CCNL_SUITE_NDNTLV)
-            ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
+#ifdef USE_SUITE_NDNTLV        
+        ccnl_manifest_setMetaData(m, name, meta, block_size, length,
+                                                                 depth, total);
+        ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
+#else
+        ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
+#endif
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
     }
     ccnl_manifest_free(m);
