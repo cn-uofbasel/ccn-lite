@@ -1731,6 +1731,7 @@ Usage:
         }
 */
         (void)md;
+        (void)exitBehavior;
         window_retrieval(sock, &sa, uri, objHashRestr, fd);
 
         close(fd);
