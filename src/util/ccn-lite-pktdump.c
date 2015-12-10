@@ -1306,12 +1306,11 @@ ndn_type2name(unsigned type)
     case NDN_TLV_CachePolicyType:   n = "CachePolicyType"; break;
     case NDN_TLV_IncomingFaceId:    n = "IncomingFaceId"; break;
 
-//    case NDN_TLV_MANIFEST_CONTENTTYPE:          n = "Manifest"; break;
     case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
-      //    case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
+      // case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
     case NDN_TLV_MANIFEST_HG_PTR2DATA:          n = "pointer2data"; break;
     case NDN_TLV_MANIFEST_HG_PTR2MANIFEST:      n = "pointer2manifest"; break;
-      //    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
+    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
     case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;

@@ -155,6 +155,7 @@ int (*flic_prependFixedHdr)(unsigned char ver, unsigned char packettype,
                             unsigned short payloadlen, unsigned char hoplimit,
                             int *offset, unsigned char *buf);
 int (*flic_dehead)(unsigned char **buf, int *len, unsigned int *typ, unsigned int *vallen);
+struct ccnl_prefix_s* (*flic_bytes2prefix)(unsigned char **data, int *datalen);
 struct ccnl_pkt_s* (*flic_bytes2pkt)(unsigned char *start,
                                      unsigned char **data, int *datalen);
 int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
@@ -931,6 +932,7 @@ flic_do_manifestPtr(int sock, struct sockaddr *sa, int exitBehavior,
     unsigned char *msg;
     int msglen, len, len2;
     unsigned int typ;
+    struct ccnl_prefix_s *currentLocator, *tmpPfx = NULL;
 
 TailRecurse:
     pkt = flic_lookup(sock, sa, locator, objHashRestr);
@@ -1012,6 +1014,7 @@ TailRecurse:
             continue;
         }
         DEBUGMSG(TRACE, "hash group\n");
+        currentLocator = locator;
         while (flic_dehead(&msg, &len, &typ, (unsigned int*) &len2) >= 0) {
             if (len2 == SHA256_DIGEST_LENGTH) {
                 if (typ == m_codes[M_HG_PTR2DATA]) {
@@ -1019,7 +1022,8 @@ TailRecurse:
                     DEBUGMSG(DEBUG, "@@ %3d  %s\n", pktcnt, digest2str(msg));
 //                    digests = ccnl_realloc(digests, pktcnt*SHA256_DIGEST_LENGTH);
 //                    memcpy(digests + (pktcnt - 1)*SHA256_DIGEST_LENGTH, msg, SHA256_DIGEST_LENGTH);
-                    if (flic_do_dataPtr(sock, sa, NULL, msg, fd, total) < 0)
+                    if (flic_do_dataPtr(sock, sa, currentLocator, msg,
+                                                             fd, total) < 0)
                         return -1;
                 } else if (typ == m_codes[M_HG_PTR2MANIFEST]) {
                     DEBUGMSG(DEBUG, "@> ---  %s\n", digest2str(msg));
@@ -1029,10 +1033,17 @@ TailRecurse:
                         free_packet(pkt);
                         goto TailRecurse;
                     }
-                    if (flic_do_manifestPtr(sock, sa, exitBehavior,
-                                            0, NULL, msg, fd, total) < 0)
+                    if (flic_do_manifestPtr(sock, sa, exitBehavior, 0,
+                                            currentLocator, msg, fd, total) < 0)
                         return -1;
                 }
+            } else if (typ == m_codes[M_MT_LOCATOR]) {
+                unsigned char *oldmsg = msg;
+                int oldlen = len2;
+                free_prefix(tmpPfx);
+                tmpPfx = flic_bytes2prefix(&oldmsg, &oldlen);
+                if (tmpPfx)
+                    currentLocator = tmpPfx;
             }
             msg += len2;
             len -= len2;
@@ -1040,10 +1051,12 @@ TailRecurse:
     }
 OK:
     free_packet(pkt);
+    free_prefix(tmpPfx);
     return 0;
 Bail:
     DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
     free_packet(pkt);
+    free_prefix(tmpPfx);
     return -1;
 }
 
@@ -1648,6 +1661,7 @@ Usage:
         flic_prependContent = ccnl_ccntlv_prependContent;
         flic_prependFixedHdr = ccnl_ccntlv_prependFixedHdr;
         flic_dehead = ccnl_ccntlv_dehead;
+        flic_bytes2prefix = ccnl_ccntlv_bytes2prefix;
         flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
         flic_mkInterest = ccntlv_mkInterest;
         m_codes = ccntlv_m_codes;
@@ -1662,6 +1676,7 @@ Usage:
         flic_prependContent = ccnl_ndntlv_prependContent;
         flic_prependFixedHdr = NULL;
         flic_dehead = ccnl_ndntlv_dehead;
+        flic_bytes2prefix = ccnl_ndntlv_bytes2prefix;
         flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
         flic_mkInterest = ndntlv_mkInterest;
         m_codes = ndntlv_m_codes;

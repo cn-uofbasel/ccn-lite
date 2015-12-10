@@ -74,6 +74,57 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
     return 0;
 }
 
+// turn the sequence of components into a ccnl_prefix_s data structure
+struct ccnl_prefix_s*
+ccnl_ndntlv_bytes2prefix(unsigned char **data, int *datalen)
+{
+    struct ccnl_prefix_s *p;
+
+    DEBUGMSG(DEBUG, "ccnl_ndntlv_bytes2prefix len=%d\n", *datalen);
+
+    p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
+    if (!p)
+        return NULL;
+
+    p->compcnt = 0;
+    while (*datalen > 0) {
+        unsigned int typ, len3;
+
+        if (ccnl_ndntlv_dehead(data, datalen, &typ, &len3))
+            goto Bail;
+        if (typ == NDN_TLV_NameComponent && p->compcnt < CCNL_MAX_NAME_COMP) {
+            if (data[0] == NDN_Marker_SegmentNumber) {
+                p->chunknum = (int*) ccnl_malloc(sizeof(int));
+                        // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
+                        // it is implemented for encode, the decode is not yet implemented
+                *p->chunknum = ccnl_ndntlv_nonNegInt(*data + 1, len3 - 1);
+            }
+            p->comp[p->compcnt] = *data;
+            p->complen[p->compcnt] = len3;
+            p->compcnt++;
+        }  // else unknown type: skip
+        *data += len3;
+        *datalen -= len3;
+    }
+
+#ifdef USE_NFN
+    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
+        !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
+        p->nfnflags |= CCNL_PREFIX_NFN;
+        p->compcnt--;
+        if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+            !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
+            p->nfnflags |= CCNL_PREFIX_THUNK;
+            p->compcnt--;
+        }
+    }
+#endif
+    return p;
+Bail:
+    free_prefix(p);
+    return NULL;
+}
+
 // we use one extraction routine for each of interest, data and fragment pkts
 struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(unsigned char *start,
@@ -137,46 +188,13 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 DEBUGMSG(WARNING, " ndntlv: name already defined\n");
                 goto Bail;
             }
-            p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, CCNL_MAX_NAME_COMP);
+            p = ccnl_ndntlv_bytes2prefix(&cp, &len2);
             if (!p)
                 goto Bail;
-            p->compcnt = 0;
+            p->nameptr = start + oldpos;
+            p->namelen = cp - p->nameptr;
             pkt->pfx = p;
             pkt->val.final_block_id = -1;
-
-            p->nameptr = start + oldpos;
-            while (len2 > 0) {
-                unsigned int len3;
-                if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))
-                    goto Bail;
-                if (typ == NDN_TLV_NameComponent &&
-                            p->compcnt < CCNL_MAX_NAME_COMP) {
-                    if(cp[0] == NDN_Marker_SegmentNumber) {
-                      p->chunknum = (int*) ccnl_malloc(sizeof(int));
-                        // TODO: requires ccnl_ndntlv_includedNonNegInt which includes the length of the marker
-                        // it is implemented for encode, the decode is not yet implemented
-                        *p->chunknum = ccnl_ndntlv_nonNegInt(cp + 1, len3 - 1);
-                    }
-                    p->comp[p->compcnt] = cp;
-                    p->complen[p->compcnt] = len3;
-                    p->compcnt++;
-                }  // else unknown type: skip
-                cp += len3;
-                len2 -= len3;
-            }
-            p->namelen = cp - p->nameptr;
-    #ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
-                    !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
-                p->nfnflags |= CCNL_PREFIX_NFN;
-                p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                        !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
-            }
-    #endif
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {

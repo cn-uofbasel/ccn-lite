@@ -104,6 +104,13 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 */
 }
 
+// turn the sequence of components into a ccnl_prefix_s data structure
+struct ccnl_prefix_s*
+ccnl_ccntlv_bytes2prefix(unsigned char **data, int *datalen)
+{
+    return NULL;
+}
+
 // We use one extraction procedure for both interest and data pkts.
 // This proc assumes that the packet header was already processed and consumed
 struct ccnl_pkt_s*
