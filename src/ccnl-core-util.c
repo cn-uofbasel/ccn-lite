@@ -389,7 +389,7 @@ int ndntlv_isData(unsigned char *buf, int len)
 
     if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, &typ, &vallen))
         return -1;
-    return typ == NDN_TLV_Data ? 1 : 0;
+    return typ == NDN_TLV_Data || typ == NDN_TLV_NDNLP ? 1 : 0;
 }
 #endif
 

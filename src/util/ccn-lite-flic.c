@@ -282,7 +282,7 @@ ccnl_manifest_atomic_blob(unsigned char *blob, int len)
     node = ccnl_calloc(1, sizeof(*node));
     node->first = ccnl_calloc(1, sizeof(*node));
     node->first->typ = '@';
-    node->first->var = ccnl_malloc(len);
+    node->first->var = ccnl_malloc(1+len); // do alloc even when len==0
     memcpy(node->first->var, blob, len);
     node->first->varlen = len;
 
@@ -593,6 +593,15 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
             break;
         }
     }
+#ifdef USE_SUITE_NDNTLV
+    else if (theSuite == CCNL_SUITE_NDNTLV) {
+      // signature in NDN, even if empty, is mandatory
+        ccnl_manifest_append(m, "info", ccnl_manifest_atomic_blob(
+                              (unsigned char*) "\x1b\x01\x00\x1c\x00", 5));
+        ccnl_manifest_append(m, "val", ccnl_manifest_atomic_blob(out, 0));
+    }
+#endif
+    
     emit(m, 0, &offset, out);
     if (keys)
         flic_finalize_HMAC_signature(keys,
