@@ -27,7 +27,7 @@
 #define NDN_TLV_Interest                0x05
 #define NDN_TLV_Data                    0x06
 #define NDN_TLV_NDNLP                   0x64
-#define NDN_TLV_Fragment                NDN_TLV_NDNLP
+// #define NDN_TLV_Fragment                NDN_TLV_NDNLP
 
 // Common fields:
 #define NDN_TLV_Name                    0x07
@@ -68,8 +68,8 @@
 #define NDN_VAL_SIGTYPE_HMAC256         0x04
 
 // Fragment
-#define NDN_TLV_NdnlpHeader             0x50
-#define NDN_TLV_NdnlpFragment           0x52
+// #define NDN_TLV_NdnlpHeader             0x50
+// #define NDN_TLV_NdnlpFragment           0x52
 #define NDN_TLV_Frag_BeginEndFields     0x5c
 
 // Content types
@@ -77,6 +77,19 @@
 #define NDN_Content_Link                0x01 // name
 #define NDN_Content_Key                 0x02
 #define NDN_Content_Manifest            0xc0
+
+//NDNLPv2
+#define NDN_TLV_Fragment                0x50
+#define NDN_TLV_Frag_Sequence           0x51
+#define NDN_TLV_Frag_FragIndex          0x52
+#define NDN_TLV_Frag_FragCount          0x53
+
+#define NDN_TLV_NACK                  0x0320
+#define NDN_TLV_NACKreason            0x0321
+#define NDN_TLV_NextHopFaceId         0x0330
+#define NDN_TLV_CachePolicy           0x0334
+#define NDN_TLV_CachePolicyType       0x0335
+#define NDN_TLV_IncomingFaceId        0x0331
 
 // Manifest
 #define NDN_TLV_MANIFEST_HASHGROUP             0xc1

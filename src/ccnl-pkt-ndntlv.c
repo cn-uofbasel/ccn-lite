@@ -217,7 +217,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
             pkt->s.ndntlv.scope = ccnl_ndntlv_nonNegInt(*data, len);
             break;
         case NDN_TLV_Content:
-        case NDN_TLV_NdnlpFragment: // payload
+        case NDN_TLV_Fragment: // payload
             pkt->content = *data;
             pkt->contlen = len;
             break;
@@ -658,11 +658,19 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
         datalen = fr->mtu;
 
     offset = sizeof(test);
+    /*
     hdrlen = ccnl_ndntlv_prependTL(NDN_TLV_NdnlpFragment, datalen,
                                    &offset, test);
     hdrlen += ccnl_ndntlv_prependTL(NDN_TLV_Frag_BeginEndFields, 2,
                                     &offset, test) + 2;
     hdrlen += ccnl_ndntlv_prependTL(NDN_TLV_Fragment, hdrlen + datalen,
+                                    &offset, test);
+    */
+    hdrlen = ccnl_ndntlv_prependTL(NDN_TLV_Fragment, datalen,
+                                   &offset, test);
+    hdrlen += ccnl_ndntlv_prependTL(NDN_TLV_Frag_BeginEndFields, 2,
+                                    &offset, test) + 2;
+    hdrlen += ccnl_ndntlv_prependTL(NDN_TLV_NDNLP, hdrlen + datalen,
                                     &offset, test);
 
     // with real values:
@@ -680,7 +688,7 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     offset = buf->datalen - datalen;
     memcpy(buf->data + offset,
            fr->bigpkt->data + fr->sendoffs, datalen);
-    ccnl_ndntlv_prependTL(NDN_TLV_NdnlpFragment, datalen,
+    ccnl_ndntlv_prependTL(NDN_TLV_Fragment, datalen,
                           &offset, buf->data);
 
     tmp = fr->sendseq & 0x03fff;
@@ -696,7 +704,7 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
     *(uint16_t*) (buf->data + offset) = htons(tmp);
     tmp = ccnl_ndntlv_prependTL(NDN_TLV_Frag_BeginEndFields, 2,
                           &offset, buf->data);
-    tmp = ccnl_ndntlv_prependTL(NDN_TLV_Fragment, buf->datalen - offset,
+    tmp = ccnl_ndntlv_prependTL(NDN_TLV_NDNLP, buf->datalen - offset,
                           &offset, buf->data);
 
     if (offset > 0) {

@@ -1255,7 +1255,7 @@ iottlv_201411(int lev, unsigned char *base, unsigned char *data,
 // ----------------------------------------------------------------------
 // NDNTLV
 
-#define NDN_TLV_MAX_TYPE 256
+#define NDN_TLV_MAX_TYPE 1023
 static char ndntlv_recurse[NDN_TLV_MAX_TYPE];
 
 static char*
@@ -1290,8 +1290,21 @@ ndn_type2name(unsigned type)
     case NDN_TLV_SignatureType:     n = "SignatureType"; break;
     case NDN_TLV_KeyLocator:        n = "KeyLocator"; break;
     case NDN_TLV_KeyLocatorDigest:  n = "KeyLocatorDigest"; break;
-    case NDN_TLV_Frag_BeginEndFields: n = "FragBeginEndFields"; break;
-    case NDN_TLV_NdnlpFragment:     n = "FragmentPayload"; break;
+
+//    case NDN_TLV_Frag_BeginEndFields: n = "FragBeginEndFields"; break;
+//    case NDN_TLV_NdnlpFragment:     n = "FragmentPayload"; break;
+
+    case NDN_TLV_Fragment:          n = "Fragment"; break;
+    case NDN_TLV_Frag_Sequence:     n = "Frag_Sequence"; break;
+    case NDN_TLV_Frag_FragIndex:    n = "Frag_FragIndex"; break;
+    case NDN_TLV_Frag_FragCount:    n = "Frag_FragCount"; break;
+
+    case NDN_TLV_NACK:              n = "NACK"; break;
+    case NDN_TLV_NACKreason:        n = "NACKreason"; break;
+    case NDN_TLV_NextHopFaceId:     n = "NextHopFaceId"; break;
+    case NDN_TLV_CachePolicy:       n = "CachePolicy"; break;
+    case NDN_TLV_CachePolicyType:   n = "CachePolicyType"; break;
+    case NDN_TLV_IncomingFaceId:    n = "IncomingFaceId"; break;
 
 //    case NDN_TLV_MANIFEST_CONTENTTYPE:          n = "Manifest"; break;
     case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
@@ -1494,13 +1507,17 @@ ndn_init()
 {
     ndntlv_recurse[NDN_TLV_Interest] = 1;
     ndntlv_recurse[NDN_TLV_Data] = 1;
-    ndntlv_recurse[NDN_TLV_Fragment] = 1;
+    ndntlv_recurse[NDN_TLV_NDNLP] = 1;
     ndntlv_recurse[NDN_TLV_Name] = 1;
     ndntlv_recurse[NDN_TLV_Selectors] = 1;
     ndntlv_recurse[NDN_TLV_MetaInfo] = 1;
     ndntlv_recurse[NDN_TLV_FinalBlockId] = 1;
     ndntlv_recurse[NDN_TLV_SignatureInfo] = 1;
     ndntlv_recurse[NDN_TLV_KeyLocator] = 1;
+
+    ndntlv_recurse[NDN_TLV_Fragment] = 1;
+    ndntlv_recurse[NDN_TLV_NACK] = 1;
+    ndntlv_recurse[NDN_TLV_CachePolicy] = 1;
 
     ndntlv_recurse[NDN_TLV_MANIFEST_HASHGROUP] = 1;
     ndntlv_recurse[NDN_TLV_MANIFEST_HG_METADATA] = 1;

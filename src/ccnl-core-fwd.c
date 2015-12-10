@@ -661,7 +661,7 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             goto Done;
         break;
 #ifdef USE_FRAG
-    case NDN_TLV_Fragment:
+    case NDN_TLV_NDNLP:
         if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_ndntlv_forwarder))
             goto Done;
         break;
