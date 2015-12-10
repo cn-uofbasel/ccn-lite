@@ -872,6 +872,7 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                      ccnl_total_alloc_bytes, ccnl_total_alloc_chunks);
             memcpy(&stats, &now, sizeof(now));
             stats.tv_sec += 60;
+            ccnl_do_ageing(&theRepo, NULL);
         }
 
         FD_ZERO(&readfs);

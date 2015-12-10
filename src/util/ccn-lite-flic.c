@@ -499,8 +499,8 @@ flic_link(char *dirpath, char *linkdir,
 }
 
 int
-flic_namelessObj2file(unsigned char *data, int len,
-                      char *dirpath, unsigned char *digest)
+flic_obj2file(unsigned char *data, int len, char *dirpath,
+              struct ccnl_prefix_s *name, unsigned char *digest)
 {
     int f, offset = sizeof(out);
     char *fname;
@@ -508,7 +508,7 @@ flic_namelessObj2file(unsigned char *data, int len,
     if ((len+8) > offset)
         return -1;
 
-    len = flic_prependContent(NULL, data, len, NULL, NULL, &offset, out);
+    len = flic_prependContent(name, data, len, NULL, NULL, &offset, out);
     if (len < 0)
         return -1;
 
@@ -629,8 +629,8 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
 static unsigned char body[MAX_BLOCK_SIZE];
 
 int
-flic_mkDataChunk(int f, long offset, int len, int maxdatalen,
-                 unsigned char *outDigest)
+flic_mkDataChunk(int f, struct ccnl_prefix_s *name, long offset, int len,
+                 int maxdatalen, unsigned char *outDigest)
 {
     int num_bytes;
     DEBUGMSG(DEBUG, "flic: block at offset %ld (len=%d)\n", offset, len);
@@ -646,7 +646,7 @@ flic_mkDataChunk(int f, long offset, int len, int maxdatalen,
     }
 
     DEBUGMSG(VERBOSE, "  creating packet with %d bytes\n", len);
-    flic_namelessObj2file(body, len, theRepoDir, outDigest);
+    flic_obj2file(body, len, theRepoDir, name, outDigest);
 
     return 0;
 }
@@ -692,7 +692,8 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     m = ccnl_manifest_getEmptyTemplate(theSuite);
     while (chunk_number > 0) {
         offset = (long) block_size * --chunk_number;
-        flic_mkDataChunk(f, offset, length - offset, block_size, md);
+        flic_mkDataChunk(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                         offset, length - offset, block_size, md);
 
         // Prepend the hash to the current manifest
         ccnl_manifest_prependHash(m, "dptr", md);
@@ -707,6 +708,8 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
             else { // root manifest
                 ccnl_manifest_setMetaData(m, 0, meta, block_size, length,
                                           depth, total);
+                if (theSuite == CCNL_SUITE_NDNTLV)
+                    ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
                 flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
             }
             ccnl_manifest_free(m);
@@ -730,8 +733,8 @@ flic_produce7mprTree(struct key_s *keys, int block_size,
 }
 
 struct list_s*
-balancedTree(int f, int blocksz, int reserved, int lev, int *depth,
-             long offset, long length,
+balancedTree(int f, struct ccnl_prefix_s *name, int blocksz, int reserved,
+             int lev, int *depth, long offset, long length,
              unsigned char *outDigest, SHA256_CTX_t ctx)
 {
     struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
@@ -756,7 +759,7 @@ balancedTree(int f, int blocksz, int reserved, int lev, int *depth,
         left = (chunk_number - maxppc + 2) - right;
 
         DEBUGMSG(VERBOSE, "  left=%d, right=%d\n", left, right);
-        m2 = balancedTree(f, blocksz, reserved, lev+1, depth,
+        m2 = balancedTree(f, name, blocksz, reserved, lev+1, depth,
                           offset + (maxppc-2 + left)*maxdatalen,
                           length - (maxppc-2 + left)*maxdatalen, md, ctx);
         if (!m2)
@@ -765,7 +768,7 @@ balancedTree(int f, int blocksz, int reserved, int lev, int *depth,
         ccnl_manifest_free(m2);
         ccnl_manifest_prependHash(m, "tptr", md);
 
-        m2 = balancedTree(f, blocksz, reserved, lev+1, depth,
+        m2 = balancedTree(f, name, blocksz, reserved, lev+1, depth,
                           offset + (maxppc-2)*maxdatalen,
                           left*maxdatalen, md, ctx);
         if (!m2)
@@ -777,13 +780,12 @@ balancedTree(int f, int blocksz, int reserved, int lev, int *depth,
         chunk_number -= left + right;
         num_pointers += 2;
     }
-
     DEBUGMSG(VERBOSE, "  lev=%d, %d chunks left to add, length=%ld\n",
              lev, chunk_number, length);
     while (chunk_number > 0) {
         long pos = offset + --chunk_number * maxdatalen;
 
-        flic_mkDataChunk(f, pos, offset + length - pos, maxdatalen, md);
+        flic_mkDataChunk(f, name, pos, offset + length - pos, maxdatalen, md);
 
         // Prepend the hash to the current manifest
         ccnl_manifest_prependHash(m, "dptr", md);
@@ -831,12 +833,14 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     DEBUGMSG(INFO, "... file size  = %ld\n", length);
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
-    m = balancedTree(f, block_size, reserved, 1, &depth,
-                     0, length, total, ctx);
+    m = balancedTree(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                     block_size, reserved, 1, &depth, 0, length, total, ctx);
     if (m) {
         DEBUGMSG(INFO, "... reached depth=%d\n", depth);
         ccnl_manifest_setMetaData(m, 0, meta, block_size, length,
                                   depth, total);
+        if (theSuite == CCNL_SUITE_NDNTLV)
+            ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
     }
     ccnl_manifest_free(m);
@@ -1413,10 +1417,13 @@ repo_io_loop(int sock, struct sockaddr *sa,
             DEBUGMSG(DEBUG, "@@ %3d  %d %s\n", seqno, d, digest2str(tasks[0].md));
             seqno++;
             memcpy(&last, &now, sizeof(last));
-/*
+
+            /*
             DEBUGMSG(INFO, "  delivering #%d (%d bytes), taskcnt=%d\n",
             ++pktcnt, tasks[0].u.pkt->contlen, taskcnt);
-*/
+            */
+            // DEBUGMSG(INFO, "%s\n", digest2str(tasks[0].md));
+ 
             write(fd, tasks[0].pkt->content, tasks[0].pkt->contlen);
 
             WbytesPerRTT += tasks[0].pkt->contlen;
