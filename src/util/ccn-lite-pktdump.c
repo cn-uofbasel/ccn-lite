@@ -1308,15 +1308,15 @@ ndn_type2name(unsigned type)
 
 //    case NDN_TLV_MANIFEST_CONTENTTYPE:          n = "Manifest"; break;
     case NDN_TLV_MANIFEST_HASHGROUP:            n = "Hashgroup"; break;
-    case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
+      //    case NDN_TLV_MANIFEST_HG_METADATA:          n = "Metadata"; break;
     case NDN_TLV_MANIFEST_HG_PTR2DATA:          n = "pointer2data"; break;
     case NDN_TLV_MANIFEST_HG_PTR2MANIFEST:      n = "pointer2manifest"; break;
-    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
-    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
-    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
+      //    case NDN_TLV_MANIFEST_MT_LOCATOR:           n = "Locator"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASHA256: n = "OverallSHA256"; break;
     case NDN_TLV_MANIFEST_MT_OVERALLDATASIZE:   n = "OverallSize"; break;
+    case NDN_TLV_MANIFEST_MT_BLOCKSIZE:         n = "BlockSize"; break;
     case NDN_TLV_MANIFEST_MT_TREEDEPTH:         n = "TreeDepth"; break;
+    case NDN_TLV_MANIFEST_MT_EXTERNALMETADATA:  n = "ExternalMetadata"; break;
 
     default:
         n = NULL;
@@ -1330,9 +1330,9 @@ ndn_contentType2name(unsigned type)
     char *n;
 
     switch (type) {
-    case NDN_Content_Manifest:          n = "Manifest"; break;
-    case NDN_Content_Link:              n = "Link"; break;
-    case NDN_Content_Key:               n = "Key"; break;
+    case NDN_Content_Manifest:          n = "FLIC manifest (content)"; break;
+    case NDN_Content_Link:              n = "Link (content)"; break;
+    case NDN_Content_Key:               n = "Key (content)"; break;
     default:
         n = NULL;
     }
