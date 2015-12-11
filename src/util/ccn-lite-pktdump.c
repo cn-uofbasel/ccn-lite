@@ -1330,7 +1330,7 @@ ndn_contentType2name(unsigned type)
     char *n;
 
     switch (type) {
-    case NDN_Content_Manifest:          n = "FLIC manifest (content)"; break;
+    case NDN_Content_FlicManifest:      n = "FLIC manifest (content)"; break;
     case NDN_Content_Link:              n = "Link (content)"; break;
     case NDN_Content_Key:               n = "Key (content)"; break;
     default:
@@ -1368,8 +1368,8 @@ ndn_parse_sequence(unsigned int lev, unsigned char *base, unsigned char **buf,
         switch(typ) {
         case NDN_TLV_ContentType:
             for (i = 0, intval = 0; i < vallen; i++)
-                intval = (intval << 8) | (*buf)[0];
-            if (intval == NDN_Content_Link || intval == NDN_Content_Manifest)
+                intval = (intval << 8) | (*buf)[i];
+            if (intval == NDN_Content_Link || intval == NDN_Content_FlicManifest)
                 *contentRecurse = intval;
             break;
         case NDN_TLV_Content:

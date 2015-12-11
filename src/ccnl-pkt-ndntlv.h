@@ -77,7 +77,7 @@
 #define NDN_Content_Blob                0x00
 #define NDN_Content_Link                0x01 // name
 #define NDN_Content_Key                 0x02
-#define NDN_Content_Manifest            0xc0
+#define NDN_Content_FlicManifest        1024
 
 //NDNLPv2
 #define NDN_TLV_Fragment                0x50

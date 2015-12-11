@@ -356,7 +356,7 @@ ccnl_manifest_getEmptyTemplate(int suite)
         ccnl_manifest_prepend(e->first, "grp", NULL);
         e = ccnl_manifest_prepend(m, "f", NULL);
         e = ccnl_manifest_prepend(e->first, "c", NULL);
-        e->first->rest = ccnl_manifest_atomic_uint(NDN_Content_Manifest);
+        e->first->rest = ccnl_manifest_atomic_uint(NDN_Content_FlicManifest);
         break;
     default:
         m = NULL;
@@ -601,8 +601,9 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
     else if (theSuite == CCNL_SUITE_NDNTLV) {
       // signature in NDN, even if empty, is mandatory
         ccnl_manifest_append(m, "info", ccnl_manifest_atomic_blob(
-                              (unsigned char*) "\x1b\x01\x00\x1c\x00", 5));
-        ccnl_manifest_append(m, "val", ccnl_manifest_atomic_blob(out, 0));
+                              (unsigned char*) "\x1b\x01\x00", 3));
+        ccnl_manifest_append(m, "val", ccnl_manifest_atomic_blob(out, SHA256_DIGEST_LENGTH));
+        endOfValidation = sizeof(out) - SHA256_DIGEST_LENGTH - 2;
     }
 #endif
     
@@ -611,6 +612,12 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
         flic_finalize_HMAC_signature(keys,
                                      out + sizeof(out) - SHA256_DIGEST_LENGTH,
                                      out + offset, endOfValidation - offset);
+#ifdef USE_SUITE_NDNTLV
+    else {
+        ccnl_SHA256(out + offset, endOfValidation - offset,
+                    out + sizeof(out) - SHA256_DIGEST_LENGTH);
+    }
+#endif
 
     len = sizeof(out) - offset;
     ccnl_SHA256(out + offset, len, packetDigest);
@@ -699,7 +706,7 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     length = lseek(f, 0, SEEK_END);
     chunk_number = ((length - 1) / block_size) + 1;
 
-    DEBUGMSG(INFO, "Creating deep FLIC from %s\n", fname);
+    DEBUGMSG(INFO, "Creating deep FLIC tree from %s\n", fname);
     DEBUGMSG(INFO, "... file size  = %ld\n", length);
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
@@ -847,7 +854,7 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     // get the number of blocks (leaf nodes)
     length = lseek(f, 0, SEEK_END);
 
-    DEBUGMSG(INFO, "Creating balanced FLIC from %s\n", fname);
+    DEBUGMSG(INFO, "Creating balanced FLIC tree from %s\n", fname);
     DEBUGMSG(INFO, "... file size    = %ld Bytes\n", length);
     DEBUGMSG(INFO, "... block size   = %d Bytes\n", block_size);
 
@@ -980,7 +987,7 @@ TailRecurse:
 
 #ifdef USE_SUITE_NDNTLV
     if (theSuite == CCNL_SUITE_NDNTLV) {
-        if (pkt->contentType != NDN_Content_Manifest)
+        if (pkt->contentType != NDN_Content_FlicManifest)
             goto Bail;
         msg = pkt->content;
         len = pkt->contlen;
@@ -1145,7 +1152,7 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
         goto Bail;
 #ifdef USE_SUITE_NDNTLV
     if (theSuite == CCNL_SUITE_NDNTLV) {
-        if (pkt->contentType != NDN_Content_Manifest)
+        if (pkt->contentType != NDN_Content_FlicManifest)
             goto Bail;
         msg = pkt->content;
         len = pkt->contlen;
