@@ -776,6 +776,7 @@ balancedTree(int f, struct ccnl_prefix_s *name, int blocksz, int reserved,
         left = (chunk_number - maxppc + 2) - right;
 
         DEBUGMSG(VERBOSE, "  left=%d, right=%d\n", left, right);
+
         m2 = balancedTree(f, name, blocksz, reserved, lev+1, depth,
                           offset + (maxppc-2 + left)*maxdatalen,
                           length - (maxppc-2 + left)*maxdatalen, md, ctx);
@@ -847,14 +848,14 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     length = lseek(f, 0, SEEK_END);
 
     DEBUGMSG(INFO, "Creating balanced FLIC from %s\n", fname);
-    DEBUGMSG(INFO, "... file size    = %ld\n", length);
-    DEBUGMSG(INFO, "... block size   = %d\n", block_size);
+    DEBUGMSG(INFO, "... file size    = %ld Bytes\n", length);
+    DEBUGMSG(INFO, "... block size   = %d Bytes\n", block_size);
 
     m = balancedTree(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
                      block_size, reserved, 1, &depth, 0, length, total, ctx);
     if (m) {
         char dummy[256];
-        DEBUGMSG(INFO, "... reached depth=%d\n", depth);
+        DEBUGMSG(INFO, "... tree depth   = %d\n", depth);
 #ifdef USE_SUITE_NDNTLV        
         ccnl_manifest_setMetaData(m, name, meta, block_size, length,
                                                                  depth, total);
@@ -1200,8 +1201,9 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
             while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
                 if (typ == m_codes[M_HG_PTR2DATA] ||
                                          typ == m_codes[M_HG_PTR2MANIFEST]) {
-                    DEBUGMSG(TRACE, " adding pointer\n");
                     if (len2 == SHA256_DIGEST_LENGTH) {
+                        DEBUGMSG(TRACE, " adding pointer %s\n",
+                                 digest2str(msg));
                         tp->type = typ == m_codes[M_HG_PTR2DATA] ? 0 : 1;
                         memcpy(tp->md, msg, SHA256_DIGEST_LENGTH);
                         tp->locator = ccnl_prefix_dup(currentLocator);
@@ -1459,6 +1461,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
                     DEBUGMSG(TRACE, "requestin %s\n",
                              ccnl_prefix2path(dummy, sizeof(dummy),
                                               tasks[i].locator));
+                    DEBUGMSG(TRACE, "  %s\n", digest2str(tasks[i].md));
                     int len = flic_mkInterest(tasks[i].locator, &nonce,
                                               tasks[i].md, out, sizeof(out));
                     if (len <= 0)
@@ -1817,18 +1820,19 @@ Usage:
 
         ccnl_SHA256_Init(&total);
 
-/*
-        sequential/non-windowed retrieval:
+#ifdef STOP_AND_WAIT
+        // sequential/non-windowed retrieval:
 
         if (!flic_do_manifestPtr(sock, &sa, exitBehavior, keys,
                                  uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
         }
-*/
+#else
         (void)md;
         (void)exitBehavior;
         window_retrieval(sock, &sa, uri, objHashRestr, fd);
+#endif
 
         close(fd);
 
