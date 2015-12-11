@@ -1269,6 +1269,7 @@ ndn_type2name(unsigned type)
     case NDN_TLV_NDNLP:             n = "NDNLP"; break; // fragment
     case NDN_TLV_Name:              n = "Name"; break;
     case NDN_TLV_NameComponent:     n = "NameComponent"; break;
+    case NDN_TLV_NameImplicitDigest:n = "NameImplicitDigest"; break;
     case NDN_TLV_Selectors:         n = "Selectors"; break;
     case NDN_TLV_Nonce:             n = "Nonce"; break;
     case NDN_TLV_Scope:             n = "Scope"; break;

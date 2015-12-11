@@ -76,7 +76,7 @@ ccnl_ndntlv_dehead(unsigned char **buf, int *len,
 
 // turn the sequence of components into a ccnl_prefix_s data structure
 struct ccnl_prefix_s*
-ccnl_ndntlv_bytes2prefix(unsigned char **data, int *datalen)
+ccnl_ndntlv_bytes2prefix(unsigned char **md, unsigned char **data, int *datalen)
 {
     struct ccnl_prefix_s *p;
 
@@ -102,7 +102,10 @@ ccnl_ndntlv_bytes2prefix(unsigned char **data, int *datalen)
             p->comp[p->compcnt] = *data;
             p->complen[p->compcnt] = len3;
             p->compcnt++;
-        }  // else unknown type: skip
+        } else if (md && typ == NDN_TLV_NameImplicitDigest &&
+                                                      len3 == SHA256_DIGEST_LENGTH) {
+            memcpy(*md, *data, SHA256_DIGEST_LENGTH);
+        } // else unknown type: skip
         *data += len3;
         *datalen -= len3;
     }
@@ -130,7 +133,7 @@ struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(unsigned char *start,
                       unsigned char **data, int *datalen)
 {
-    unsigned char *msgstart;
+    unsigned char *msgstart, *digest;
     struct ccnl_pkt_s *pkt;
     int oldpos, i;
     unsigned int typ, len;
@@ -188,9 +191,13 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 DEBUGMSG(WARNING, " ndntlv: name already defined\n");
                 goto Bail;
             }
-            p = ccnl_ndntlv_bytes2prefix(&cp, &len2);
+            p = ccnl_ndntlv_bytes2prefix(&digest, &cp, &len2);
             if (!p)
                 goto Bail;
+            if (digest) {
+                pkt->s.ndntlv.dataHashRestr = ccnl_malloc(SHA256_DIGEST_LENGTH);
+                memcpy(pkt->s.ndntlv.dataHashRestr, digest, SHA256_DIGEST_LENGTH);
+            }
             p->nameptr = start + oldpos;
             p->namelen = cp - p->nameptr;
             pkt->pfx = p;
@@ -207,13 +214,6 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                     break;
                 case NDN_TLV_MaxSuffixComponents:
                     pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, len3);
-                    if (pkt->s.ndntlv.maxsuffix == 0 && p &&
-                               p->complen[p->compcnt-1] == 32) { // impl digest
-                        DEBUGMSG(TRACE, "  found dataHashRestr\n");
-                        pkt->s.ndntlv.dataHashRestr = ccnl_malloc(32);
-                        memcpy(pkt->s.ndntlv.dataHashRestr,
-                               p->comp[p->compcnt-1], 32);
-                    }
                     break;
                 case NDN_TLV_MustBeFresh:
                     pkt->s.ndntlv.mbf = 1;
@@ -544,10 +544,10 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 // ----------------------------------------------------------------------
 
 int
-ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
-                            int *offset, unsigned char *buf)
+ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, unsigned char *implicitDigest,
+                            int scope, int *nonce, int *offset, unsigned char *buf)
 {
-    int oldoffset = *offset;
+    int oldoffset = *offset, nameoffset;
     unsigned char lifetime[2] = { 0x0f, 0xa0 };
     //unsigned char mustbefresh[2] = { NDN_TLV_MustBeFresh, 0x00 };
 
@@ -570,8 +570,24 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
                                 offset, buf) < 0)
         return -1;*/
 
-    if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
+    nameoffset = *offset;
+    if (implicitDigest) {
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_MaxSuffixComponents,
+                                                                 0, offset, buf) < 0)
+            return -1;
+        if (ccnl_ndntlv_prependTL(NDN_TLV_Selectors, nameoffset - *offset,
+                                                                    offset, buf) < 0)
+            return -1;
+        nameoffset = *offset;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameImplicitDigest, implicitDigest,
+                                              SHA256_DIGEST_LENGTH, offset, buf) < 0)
+            return -1;
+    }
+    if (ccnl_ndntlv_prependNameComponents(name, offset, buf) < 0)
         return -1;
+    if (ccnl_ndntlv_prependTL(NDN_TLV_Name, nameoffset - *offset, offset, buf) < 0)
+        return -1;
+
     if (ccnl_ndntlv_prependTL(NDN_TLV_Interest, oldoffset - *offset,
                               offset, buf) < 0)
         return -1;

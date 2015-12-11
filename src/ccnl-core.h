@@ -280,9 +280,7 @@ struct ccnl_pkt_s {
     int hmacLen;
     unsigned char *hmacSignature;
 #endif
-#ifdef USE_NAMELESS
     unsigned char md[32]; // message digest (ObjHash)
-#endif
     unsigned int flags;
     char suite;
 };

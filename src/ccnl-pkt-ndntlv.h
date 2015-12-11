@@ -32,6 +32,7 @@
 // Common fields:
 #define NDN_TLV_Name                    0x07
 #define NDN_TLV_NameComponent           0x08
+#define NDN_TLV_NameImplicitDigest      0x01
 
 // Interest packet:
 #define NDN_TLV_Selectors               0x09

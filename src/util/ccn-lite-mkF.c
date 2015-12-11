@@ -20,14 +20,16 @@
  * 2013-07-06  created
  */
 
-#define USE_LOGGING
-#define USE_DEBUG
-#define USE_FRAG
 #define USE_SUITE_CCNB
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_CISTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
+
+#define USE_LOGGING
+#define USE_DEBUG
+#define USE_FRAG
+#define USE_SHA256
 
 #include "ccnl-common.c"
 

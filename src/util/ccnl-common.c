@@ -295,55 +295,11 @@ ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
                   unsigned char *out, int outlen)
 {
     int len = 0, offset = outlen;
-#ifdef USE_NAMELESS     
-    struct ccnl_prefix_s name2;
-    name2.comp = 0;
 
-    if (dataHashRestr) {
-        int oldpos;
-        DEBUGMSG(TRACE, "adding dataHashRestr as implicit digest\n");
-        if (name) {
-            memcpy(&name2, name, sizeof(*name));
-            name2.compcnt = name->compcnt + 1;
-        } else {
-            memset(&name2, 0, sizeof(name2));
-            name2.compcnt = 1;
-        }
-        name2.comp = ccnl_malloc(name2.compcnt * sizeof(unsigned char*));
-        name2.complen = ccnl_malloc(name2.compcnt * sizeof(int));
-        if (name) {
-            memcpy(name2.comp,name->comp,name->compcnt * sizeof(unsigned char*));
-            memcpy(name2.complen, name->complen, name->compcnt * sizeof(int));
-        }
-        name2.comp[name2.compcnt-1] = dataHashRestr;
-        name2.complen[name2.compcnt-1] = SHA256_DIGEST_LENGTH;
-        oldpos = offset;
-        ccnl_ndntlv_prependNonNegInt(NDN_TLV_MaxSuffixComponents, 0,
-                                     &offset, out);
-        ccnl_ndntlv_prependTL(NDN_TLV_Selectors, oldpos - offset, &offset, out);
-        name = &name2;
-        len += oldpos - offset;
-    }
-#endif
-
-    len += ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
+    len += ccnl_ndntlv_prependInterest(name, dataHashRestr, -1, nonce, &offset, out);
     if (len > 0)
         memmove(out, out + offset, len);
 
-/*
-    {
-        int fd = open("t-interest.bin", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-        write(fd, out + offset, len);
-        close(fd);
-    }
-*/
-
-#ifdef USE_NAMELESS
-    if (name2.comp) {
-        ccnl_free(name2.comp);
-        ccnl_free(name2.complen);
-    }
-#endif
     return len;
 }
 #endif // NEEDS_PACKET_CRAFTING

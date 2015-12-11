@@ -155,7 +155,8 @@ int (*flic_prependFixedHdr)(unsigned char ver, unsigned char packettype,
                             unsigned short payloadlen, unsigned char hoplimit,
                             int *offset, unsigned char *buf);
 int (*flic_dehead)(unsigned char **buf, int *len, unsigned int *typ, unsigned int *vallen);
-struct ccnl_prefix_s* (*flic_bytes2prefix)(unsigned char **data, int *datalen);
+struct ccnl_prefix_s* (*flic_bytes2prefix)(unsigned char **digest,
+                                           unsigned char **data, int *datalen);
 struct ccnl_pkt_s* (*flic_bytes2pkt)(unsigned char *start,
                                      unsigned char **data, int *datalen);
 int (*flic_mkInterest)(struct ccnl_prefix_s *name, int *dummy,
@@ -1041,7 +1042,7 @@ TailRecurse:
                 unsigned char *oldmsg = msg;
                 int oldlen = len2;
                 free_prefix(tmpPfx);
-                tmpPfx = flic_bytes2prefix(&oldmsg, &oldlen);
+                tmpPfx = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
                 if (tmpPfx)
                     currentLocator = tmpPfx;
             }

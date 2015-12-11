@@ -28,6 +28,7 @@
 #define USE_SUITE_NDNTLV
 
 #define USE_IPV4
+#define USE_SHA256
 #define USE_UNIXSOCKET
 
 #ifndef USE_NFN

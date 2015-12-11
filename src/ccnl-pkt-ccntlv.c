@@ -106,7 +106,7 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 
 // turn the sequence of components into a ccnl_prefix_s data structure
 struct ccnl_prefix_s*
-ccnl_ccntlv_bytes2prefix(unsigned char **data, int *datalen)
+ccnl_ccntlv_bytes2prefix(unsigned char **dummyDigest, unsigned char **data, int *datalen)
 {
     return NULL;
 }

@@ -26,6 +26,8 @@
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
 
+#define USE_SHA256
+
 #define NEEDS_PACKET_CRAFTING
 
 #include "ccnl-common.c"

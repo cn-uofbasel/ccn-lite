@@ -313,12 +313,15 @@ int ccnl_iottlv_prependRequest(struct ccnl_prefix_s *name, int *ttl, int *offset
 struct ccnl_buf_s* ccnl_iottlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed);
 #endif
 
-//---------------------------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------
 /* fwd-ndntlv.c */
 #ifdef USE_SUITE_NDNTLV
-int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from, unsigned char **data, int *datalen);
-int ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
-//---------------------------------------------------------------------------------------------------------------------------------------
+int ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                          unsigned char **data, int *datalen);
+int ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, unsigned char *digest,
+                                int scope, int *nonce, int *offset, unsigned char *buf);
+
+// ----------------------------------------------------------------------
 /* ccnl-pkt-ndntlv.c */
 unsigned long int ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 int ccnl_ndntlv_dehead(unsigned char **buf, int *len, unsigned int *typ, unsigned int *vallen);

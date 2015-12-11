@@ -48,6 +48,8 @@
 int inet_aton(const char *cp, struct in_addr *inp);
 #endif
 
+#define SHA256_DIGEST_LENGTH 32
+
 // ----------------------------------------------------------------------
 
 #undef USE_NFN

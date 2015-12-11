@@ -27,6 +27,8 @@
 #define USE_SUITE_NDNTLV
 #define USE_LOGGING
 #define USE_IPV4
+#define USE_NAMELESS
+#define USE_SHA256
 #define USE_UNIXSOCKET
 
 #define NEEDS_PACKET_CRAFTING
