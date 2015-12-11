@@ -24,6 +24,7 @@
  * 2014-12-18 removed log generation (cft)
  */
 
+#define SHA256_DIGEST_LENGTH 32
 
 #define CCNL_SIMULATION
 #define CCNL_UNIX

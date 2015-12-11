@@ -133,7 +133,7 @@ struct ccnl_pkt_s*
 ccnl_ndntlv_bytes2pkt(unsigned char *start,
                       unsigned char **data, int *datalen)
 {
-    unsigned char *msgstart, *digest;
+    unsigned char *msgstart, *digest = NULL;
     struct ccnl_pkt_s *pkt;
     int oldpos, i;
     unsigned int typ, len;
@@ -198,6 +198,7 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                 pkt->s.ndntlv.dataHashRestr = ccnl_malloc(SHA256_DIGEST_LENGTH);
                 memcpy(pkt->s.ndntlv.dataHashRestr, digest, SHA256_DIGEST_LENGTH);
             }
+            digest = NULL;
             p->nameptr = start + oldpos;
             p->namelen = cp - p->nameptr;
             pkt->pfx = p;
