@@ -69,7 +69,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
-    if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
+    if (c->pkt->pfx && ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
         if (ccnl_nfn_RX_result(relay, from, c))
             return 0;
         DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");

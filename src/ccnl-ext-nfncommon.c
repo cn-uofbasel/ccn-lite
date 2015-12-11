@@ -653,19 +653,19 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
 int
 ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p)
 {
-    return p->nfnflags & CCNL_PREFIX_NFN;
+    return p && (p->nfnflags & CCNL_PREFIX_NFN);
 }
 
 int
 ccnl_nfnprefix_isTHUNK(struct ccnl_prefix_s *p)
 {
-    return p->nfnflags & CCNL_PREFIX_THUNK;
+    return p && (p->nfnflags & CCNL_PREFIX_THUNK);
 }
 
 int
 ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
-    return !memcmp(c->pkt->content, ":NACK", 5);
+    return c && c->pkt && c->pkt->content && !memcmp(c->pkt->content, ":NACK", 5);
 }
 
 void
