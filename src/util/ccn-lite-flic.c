@@ -850,6 +850,7 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     m = balancedTree(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
                      block_size, reserved, 1, &depth, 0, length, total, ctx);
     if (m) {
+        char dummy[256];
         DEBUGMSG(INFO, "... reached depth=%d\n", depth);
 #ifdef USE_SUITE_NDNTLV        
         ccnl_manifest_setMetaData(m, name, meta, block_size, length,
@@ -859,6 +860,9 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
         ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
 #endif
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
+
+        DEBUGMSG(INFO, "... name       = %s\n",
+                 ccnl_prefix2path(dummy, sizeof(dummy), name));
     }
     ccnl_manifest_free(m);
 
@@ -876,12 +880,19 @@ flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
 {
     char dummy[256];
     unsigned char *data;
-    int datalen, len, rc, cnt;
+    int datalen, len, rc, cnt, nonce = random();
 
     DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
                                                        locator));
-    len = flic_mkInterest(locator, NULL, objHashRestr, out, sizeof(out));
+    len = flic_mkInterest(locator, &nonce, objHashRestr, out, sizeof(out));
     DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
+    /*
+        {
+          int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC, 0666);
+            write(fd, out, len);
+            close(fd);
+        }
+    */
 
     for (cnt = 0; cnt < 3; cnt++) {
         rc = sendto(sock, out, len, 0, sa, sizeof(*sa));
@@ -1067,6 +1078,7 @@ struct task_s {
     char type; // 0=dataptr, 1=mfstptr, 2=data
     unsigned char md[SHA256_DIGEST_LENGTH];
     struct ccnl_pkt_s *pkt;
+    struct ccnl_prefix_s *locator;
     int retry_cnt;
     struct timeval timeout;
     struct timeval lastsent;
@@ -1076,7 +1088,7 @@ int timeoutcnt;
 long rtt;
 long rttaccu;
 int rttcnt;
-int sendwindow = 20;
+int sendwindow = 5;
 int seqno;
 int RbytesPerRTT, WbytesPerRTT;
 struct timeval nextout;
@@ -1100,14 +1112,17 @@ ccnl_timeval_add(struct timeval *t, int usec)
 
 void
 window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
-                      int incr_usec)
+                      struct ccnl_prefix_s *locator)
 {
 
     unsigned char *msg, *msg2;
     int msglen, msglen2;
     unsigned int typ, cnt, len, len2;
+    struct ccnl_prefix_s *currentLocator, *tmpPfx = NULL;
+    char dummy[256];
 
-    DEBUGMSG(FATAL, "expand %d %d\n", curtask, taskcnt);
+    DEBUGMSG(FATAL, "expand %d %d %s\n", curtask, taskcnt,
+             ccnl_prefix2path(dummy, sizeof(dummy), locator));
     
     DEBUGMSG(VERBOSE, "@> ---  %s expand %d %d\n",
              digest2str(tasks[curtask].md), curtask, taskcnt);
@@ -1119,6 +1134,7 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
         msglen -= 8;
     }
 #endif
+    currentLocator = pkt->pfx;
 
     if (flic_dehead(&msg, &msglen, &typ, &len) < 0)
         goto Bail;
@@ -1169,7 +1185,6 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
     // second pass: copy the pointers
     if (curtask < taskcnt) {
         struct task_s *tp = tasks + curtask;
-        cnt = 0;
         while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
             if (typ != m_codes[M_HASHGROUP]) {
                 msg += len2;
@@ -1177,24 +1192,45 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                 continue;
             }
             DEBUGMSG(TRACE, "hash group\n");
+            currentLocator = locator;
             while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
-                if (len2 == SHA256_DIGEST_LENGTH) {
-                    if (typ == m_codes[M_HG_PTR2DATA])
-                        tp->type = 0;
-                    else if (typ == m_codes[M_HG_PTR2MANIFEST]) \
-                        tp->type = 1;
-                    memcpy(tp->md, msg, SHA256_DIGEST_LENGTH);
-                    tp++;
-                    cnt++;
+                if (typ == m_codes[M_HG_PTR2DATA] ||
+                                         typ == m_codes[M_HG_PTR2MANIFEST]) {
+                    DEBUGMSG(TRACE, " adding pointer\n");
+                    if (len2 == SHA256_DIGEST_LENGTH) {
+                        tp->type = typ == m_codes[M_HG_PTR2DATA] ? 0 : 1;
+                        memcpy(tp->md, msg, SHA256_DIGEST_LENGTH);
+                        tp->locator = ccnl_prefix_dup(currentLocator);
+                        tp++;
+                    }
+                } else if (typ == m_codes[M_METAINFO]) {
+                    unsigned int len3;
+                    msg2 = msg;
+                    msglen2 = len;
+                    while (flic_dehead(&msg2, (int*) &msglen2, &typ, &len3) >= 0) {
+                        if (typ == m_codes[M_MT_LOCATOR]) {
+                            unsigned char *oldmsg = msg;
+                            int oldlen = len3;
+                            free_prefix(tmpPfx);
+                            tmpPfx = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
+                            if (tmpPfx)
+                                currentLocator = tmpPfx;
+                            DEBUGMSG(TRACE, " locator %s\n",
+                                     ccnl_prefix2path(dummy, sizeof(dummy),
+                                                      tmpPfx));
+                        }
+                    }
                 }
                 msg += len2;
                 len -= len2;
             }
         }
     }
+    free_prefix(tmpPfx);
     return;
 Bail:
     DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
+    free_prefix(tmpPfx);
     return;
 }
 
@@ -1236,6 +1272,8 @@ packet_upcall(int sock)
             tasks[i].retry_cnt = 2;
         }
         if (tasks[i].type == 0) {
+            free_prefix(tasks[i].locator);
+            tasks[i].locator = NULL;
             tasks[i].type = 2;
             tasks[i].pkt = pkt;
             RbytesPerRTT += tasks[i].pkt->contlen;
@@ -1252,7 +1290,9 @@ packet_upcall(int sock)
             pkt = NULL;
             break;
         } else if (tasks[i].type == 1) {
-            window_expandManifest(i, pkt, 10);
+            window_expandManifest(i, pkt, tasks[i].locator);
+            free_prefix(tasks[i].locator);
+            tasks[i].locator = NULL;
             free_packet(pkt);
             return 1;
         } else {
@@ -1270,8 +1310,7 @@ packet_upcall(int sock)
 }
 
 int
-packet_request(int sock, struct sockaddr *sa,
-               struct ccnl_prefix_s *locator, int i)
+packet_request(int sock, struct sockaddr *sa, int i)
 {
     struct ccnl_buf_s *buf, *msg;
     int rc = -1;
@@ -1288,6 +1327,7 @@ packet_request(int sock, struct sockaddr *sa,
         if (msg->datalen == buf->datalen &&
             !memcmp(msg->data, buf->data, msg->datalen)) {
             DEBUGMSG(DEBUG, "    not enqueued because already there\n");
+            DEBUGMSG(DEBUG, "    %s\n", digest2str(tasks[i].md));
             ccnl_free(buf);
             goto SetTimer;
         }
@@ -1305,6 +1345,7 @@ SetTimer:
     ccnl_get_timeval(&tasks[i].lastsent);
     memcpy(&tasks[i].timeout, &tasks[i].lastsent, sizeof(struct timeval));
     ccnl_timeval_add(&tasks[i].timeout, 2*rtt);
+
     return rc;
 }
 
@@ -1317,6 +1358,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
     int maxfd = -1, rc, i, dropcnt = 0;
     fd_set readfs, writefs;
     struct timeval now, endofRTT, last;
+    char dummy[256];
 
     maxfd = sock;
     if (fd > maxfd)
@@ -1326,12 +1368,14 @@ repo_io_loop(int sock, struct sockaddr *sa,
     ccnl_get_timeval(&last);
     ccnl_get_timeval(&endofRTT);
     ccnl_timeval_add(&endofRTT, rtt);
+    ccnl_get_timeval(&nextout);
     DEBUGMSG(INFO, "starting repo main event and IO loop\n");
     while (taskcnt > 0) {
         int usec;
 
         ccnl_get_timeval(&now);
 
+        usec = rtt;
         for (i = 0; outqlen < outqlimit && i < sendwindow && sendcnt < sendwindow; i++) {
             if (i > expandlimit)
                 break;
@@ -1357,10 +1401,10 @@ repo_io_loop(int sock, struct sockaddr *sa,
                 }
                 DEBUGMSG(INFO, "!! timeout for #%d (cnt %d)\n",
                          i, tasks[i].retry_cnt);
-                packet_request(sock, sa, locator, i);
+                packet_request(sock, sa, i);
                 tasks[i].retry_cnt++;
             } else if (i < sendwindow) {
-                if (packet_request(sock, sa, locator, i))
+                if (packet_request(sock, sa, i))
                     tasks[i].retry_cnt = 2;
                 else
                     tasks[i].retry_cnt = 1;
@@ -1370,7 +1414,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
         FD_ZERO(&readfs);
         FD_ZERO(&writefs);
 
-        usec = rtt;
+//        if (outq && sendcnt < sendwindow) {
         if (outq) {
             long wait = timevaldelta(&nextout, &now);
             if (wait < 0)
@@ -1402,17 +1446,33 @@ repo_io_loop(int sock, struct sockaddr *sa,
         }
 
         ccnl_get_timeval(&now);
-        if (outq && timevaldelta(&nextout, &now) < 0 && sendcnt < sendwindow) {
+        if (outq && timevaldelta(&nextout, &now) < 0) {
+            DEBUGMSG(TRACE, "something to send\n");
             struct ccnl_buf_s *n = outq->next;
             for (i = 0; i < taskcnt; i++) {
                 if (!memcmp(outq->data, tasks[i].md, SHA256_DIGEST_LENGTH)) {
-                    int len = flic_mkInterest(locator, NULL, tasks[i].md,
-                                              out, sizeof(out));
+                    int nonce = random();
+                    DEBUGMSG(TRACE, "requestin %s\n",
+                             ccnl_prefix2path(dummy, sizeof(dummy),
+                                              tasks[i].locator));
+                    int len = flic_mkInterest(tasks[i].locator, &nonce,
+                                              tasks[i].md, out, sizeof(out));
                     if (len <= 0)
                         break;
-                    sendto(sock, out, len, 0, sa, sizeof(*sa));
-                    DEBUGMSG(DEBUG, "sendto pos=%d\n", i);
+/*
+        {
+          int f = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC, 0666);
+            write(f, out, len);
+            close(f);
+        }
+*/
+                    len = sendto(sock, out, len, 0, sa, sizeof(*sa));
+                    DEBUGMSG(DEBUG, "sendto pos=%d, returned %d\n", i, len);
                     ccnl_get_timeval(&tasks[i].lastsent);
+                    memcpy(&tasks[i].timeout, &tasks[i].lastsent,
+                           sizeof(struct timeval));
+                    ccnl_timeval_add(&tasks[i].timeout,
+                                     2*rtt + sendcnt * 500);
                     sendcnt++;
                     break;
                 }
@@ -1432,7 +1492,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
                     if (tasks[i].type > 1)
                         continue;
                     if (!tasks[i].retry_cnt) {
-                        if (packet_request(sock, sa, locator, i))
+                        if (packet_request(sock, sa, i))
                             tasks[i].retry_cnt = 2;
                         else
                             tasks[i].retry_cnt = 1;
@@ -1465,7 +1525,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
                 if (tasks[i].type > 1)
                     continue;
                 if (!tasks[i].retry_cnt) {
-                    if (packet_request(sock, sa, locator, i))
+                    if (packet_request(sock, sa, i))
                         tasks[i].retry_cnt = 2;
                     else
                         tasks[i].retry_cnt = 1;
@@ -1503,7 +1563,6 @@ repo_io_loop(int sock, struct sockaddr *sa,
             if (newwindow > 40)
                 newwindow = 40;
             sendwindow = newwindow;
-            
 
             memcpy(&endofRTT, &now, sizeof(now));
             ccnl_timeval_add(&endofRTT, rtt);
@@ -1523,7 +1582,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
             if (tasks[i].type > 1)
                 continue;
             if (tasks[i].type == 1 && !tasks[i].retry_cnt) {
-                if (packet_request(sock, sa, locator, i))
+                if (packet_request(sock, sa, i))
                     tasks[i].retry_cnt = 2;
                 else
                     tasks[i].retry_cnt = 1;
@@ -1554,11 +1613,11 @@ window_retrieval(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
 
     tasks = ccnl_calloc(1, sizeof(struct task_s));
     taskcnt = 1;
-    window_expandManifest(0, pkt, 20);
+    window_expandManifest(0, pkt, locator);
     free_packet(pkt);
 
     DEBUGMSG(INFO, "starting with %d lookup tasks\n", taskcnt);
-    packet_request(sock, sa, locator, 0);
+    packet_request(sock, sa, 0);
     tasks[0].retry_cnt = 1;
 
     repo_io_loop(sock, sa, locator, fd);
@@ -1652,6 +1711,8 @@ Usage:
             usage(1);
         }
     }
+
+    srandom(time(NULL));
 
     switch(theSuite) {
 #ifdef USE_SUITE_CCNTLV

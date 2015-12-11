@@ -49,6 +49,8 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     int i = 0, len;
     struct ccnl_prefix_s *p;
 
+    if (!prefix)
+        return NULL;
     p = ccnl_prefix_new(prefix->suite, prefix->compcnt);
     if (!p)
         return p;
