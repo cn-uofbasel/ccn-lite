@@ -778,7 +778,7 @@ balancedTree(int f, struct ccnl_prefix_s *name, int blocksz, int reserved,
                           length - (maxppc-2 + left)*maxdatalen, md, ctx);
         if (!m2)
             goto Failed;
-        flic_manifest2file(m2, 0, NULL, NULL, theRepoDir, NULL, md);
+        flic_manifest2file(m2, 0, name, NULL, theRepoDir, NULL, md);
         ccnl_manifest_free(m2);
         ccnl_manifest_prependHash(m, "tptr", md);
 
@@ -787,7 +787,7 @@ balancedTree(int f, struct ccnl_prefix_s *name, int blocksz, int reserved,
                           left*maxdatalen, md, ctx);
         if (!m2)
             goto Failed;
-        flic_manifest2file(m2, 0, NULL, NULL, theRepoDir, NULL, md);
+        flic_manifest2file(m2, 0, name, NULL, theRepoDir, NULL, md);
         ccnl_manifest_free(m2);
         ccnl_manifest_prependHash(m, "tptr", md);
 
@@ -1209,7 +1209,7 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                     msglen2 = len;
                     while (flic_dehead(&msg2, (int*) &msglen2, &typ, &len3) >= 0) {
                         if (typ == m_codes[M_MT_LOCATOR]) {
-                            unsigned char *oldmsg = msg;
+                            unsigned char *oldmsg = msg2;
                             int oldlen = len3;
                             free_prefix(tmpPfx);
                             tmpPfx = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
