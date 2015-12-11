@@ -42,6 +42,7 @@
 
 char *progname;
 char fnbuf[512];
+int outcnt;
 
 void
 usage(int exitval)
@@ -534,6 +535,7 @@ flic_obj2file(unsigned char *data, int len, char *dirpath,
     }
     write(f, out + offset, len);
     close(f);
+    outcnt++;
 
     return len;
 }
@@ -633,6 +635,7 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
     }
     write(f, out + offset, len);
     close(f);
+    outcnt++;
 }
 
 // ----------------------------------------------------------------------
@@ -844,8 +847,8 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     length = lseek(f, 0, SEEK_END);
 
     DEBUGMSG(INFO, "Creating balanced FLIC from %s\n", fname);
-    DEBUGMSG(INFO, "... file size  = %ld\n", length);
-    DEBUGMSG(INFO, "... block size = %d\n", block_size);
+    DEBUGMSG(INFO, "... file size    = %ld\n", length);
+    DEBUGMSG(INFO, "... block size   = %d\n", block_size);
 
     m = balancedTree(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
                      block_size, reserved, 1, &depth, 0, length, total, ctx);
@@ -861,7 +864,8 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
 #endif
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
 
-        DEBUGMSG(INFO, "... name       = %s\n",
+        DEBUGMSG(INFO, "... pkts created = %d\n", outcnt);
+        DEBUGMSG(INFO, "... root name    = %s\n",
                  ccnl_prefix2path(dummy, sizeof(dummy), name));
     }
     ccnl_manifest_free(m);
