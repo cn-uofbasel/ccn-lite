@@ -726,7 +726,7 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
                 ccnl_manifest_setMetaData(m, 0, meta, block_size, length,
                                           depth, total);
                 if (theSuite == CCNL_SUITE_NDNTLV)
-                    ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
+                    ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
                 flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
             }
             ccnl_manifest_free(m);
@@ -859,7 +859,7 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
 #ifdef USE_SUITE_NDNTLV        
         ccnl_manifest_setMetaData(m, name, meta, block_size, length,
                                                                  depth, total);
-        ccnl_prefix_appendCmp(name, (unsigned char*) "!", 1);
+        ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
 #else
         ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
 #endif

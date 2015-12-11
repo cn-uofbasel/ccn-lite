@@ -212,7 +212,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (cMatch(*pkt, c))
             continue;
 
-        DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
+        DEBUGMSG_CFWD(INFO, "  found matching content ptr=%p[%02x%02x..%02x%02x]\n",
+                      (void *) c, c->pkt->md[0], c->pkt->md[1], c->pkt->md[30], c->pkt->md[31]);
         if (from->ifndx >= 0) {
             ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
                              c->pkt->contlen);
