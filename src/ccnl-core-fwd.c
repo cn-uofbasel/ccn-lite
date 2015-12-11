@@ -31,15 +31,17 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
 #ifdef USE_NFN
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s[%02x%02x..%02x%02x]%s (nfnflags=%d) from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
+                  (*pkt)->md[0], (*pkt)->md[1], (*pkt)->md[30], (*pkt)->md[31], 
                   ccnl_suite2str((*pkt)->suite),
                   (*pkt)->pfx ? (*pkt)->pfx->nfnflags : -99999,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     DEBUGMSG_CFWD(VERBOSE, "    data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>[%02x%02x..%02x%02x]%s from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
+                  (*pkt)->md[0], (*pkt)->md[1], (*pkt)->md[30], (*pkt)->md[31], 
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 #endif
@@ -143,14 +145,38 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
+    unsigned char *restr;
 #ifdef USE_LOGGING
     char prefixBuf[CCNL_PREFIX_BUFSIZE];
 #endif
 
-    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
-                  ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
-                  ccnl_suite2str((*pkt)->suite),
-                  ccnl_addr2ascii(from ? &from->peer : NULL));
+    switch ((*pkt)->suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV:
+        restr = (*pkt)->s.ccntlv.objHashRestr;
+        break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV:
+        restr = (*pkt)->s.ndntlv.dataHashRestr;
+        break;
+#endif
+    default:
+        restr = NULL;
+    };
+
+    if (restr) {
+        DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>[%02x%02x..%02x%02x]%s from=%s\n",
+                      ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
+                      restr[0], restr[1], restr[30], restr[31],
+                      ccnl_suite2str((*pkt)->suite),
+                      ccnl_addr2ascii(from ? &from->peer : NULL));
+    } else {
+        DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
+                      ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
+                      ccnl_suite2str((*pkt)->suite),
+                      ccnl_addr2ascii(from ? &from->peer : NULL));
+    }
 
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
