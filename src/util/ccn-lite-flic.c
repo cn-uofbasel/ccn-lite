@@ -1287,6 +1287,8 @@ packet_upcall(int sock)
                 if (tasks[i].type != 0 ||
                           memcmp(pkt->md, tasks[i].md, SHA256_DIGEST_LENGTH))
                     continue;
+                free_prefix(tasks[i].locator);
+                tasks[i].locator = NULL;
                 tasks[i].type = 2;
                 tasks[i].pkt = ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
                 tasks[i].pkt->buf = ccnl_buf_new(pkt->content, pkt->contlen);
@@ -1296,9 +1298,13 @@ packet_upcall(int sock)
             pkt = NULL;
             break;
         } else if (tasks[i].type == 1) {
-            window_expandManifest(i, pkt, tasks[i].locator);
-            free_prefix(tasks[i].locator);
+            struct ccnl_prefix_s *loc = tasks[i].locator;
             tasks[i].locator = NULL;
+            if (!loc) {
+                DEBUGMSG(FATAL, " NULL locator at pos %d\n", i);
+            }
+            window_expandManifest(i, pkt, loc);
+            free_prefix(loc);
             free_packet(pkt);
             return 1;
         } else {
