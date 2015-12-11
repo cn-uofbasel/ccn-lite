@@ -891,13 +891,17 @@ flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
             unsigned char *objHashRestr)
 {
     char dummy[256];
-    unsigned char *data;
-    int datalen, len, rc, cnt, nonce = random();
+    int cnt;
 
     DEBUGMSG(TRACE, "lookup %s\n", ccnl_prefix2path(dummy, sizeof(dummy),
                                                        locator));
-    len = flic_mkInterest(locator, &nonce, objHashRestr, out, sizeof(out));
-    DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
+
+    for (cnt = 0; cnt < 3; cnt++) {
+        int rc, len, nonce = random(), datalen;
+        unsigned char *data;
+
+        len = flic_mkInterest(locator, &nonce, objHashRestr, out, sizeof(out));
+        DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
     /*
         {
           int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC, 0666);
@@ -905,8 +909,6 @@ flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
             close(fd);
         }
     */
-
-    for (cnt = 0; cnt < 3; cnt++) {
         rc = sendto(sock, out, len, 0, sa, sizeof(*sa));
         DEBUGMSG(TRACE, "sendto returned %d\n", rc);
         if (rc < 0) {
@@ -1232,6 +1234,8 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                                      ccnl_prefix2path(dummy, sizeof(dummy),
                                                       tmpPfx));
                         }
+                        msg2 += len3;
+                        msglen2 -= len3;
                     }
                 }
                 msg += len2;

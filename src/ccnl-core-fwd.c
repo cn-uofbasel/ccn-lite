@@ -31,9 +31,10 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
 #ifdef USE_NFN
-    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s[%02x%02x..%02x%02x]%s (nfnflags=%d) from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming data=<%s>[%02x%02x..%02x%02x]%s (nfnflags=%d) from=%s\n",
                   ccnl_prefix2path(prefixBuf, CCNL_ARRAY_SIZE(prefixBuf), (*pkt)->pfx),
-                  (*pkt)->md[0], (*pkt)->md[1], (*pkt)->md[30], (*pkt)->md[31], 
+                  (unsigned) (*pkt)->md[0], (unsigned) (*pkt)->md[1],
+                  (unsigned) (*pkt)->md[30], (unsigned) (*pkt)->md[31],
                   ccnl_suite2str((*pkt)->suite),
                   (*pkt)->pfx ? (*pkt)->pfx->nfnflags : -99999,
                   ccnl_addr2ascii(from ? &from->peer : NULL));

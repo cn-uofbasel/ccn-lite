@@ -24,10 +24,14 @@
  * 2014-12-18 removed log generation (cft)
  */
 
-#define SHA256_DIGEST_LENGTH 32
-
 #define CCNL_SIMULATION
 #define CCNL_UNIX
+
+#define USE_SUITE_CCNB
+#define USE_SUITE_CCNTLV
+#define USE_SUITE_CISTLV
+#define USE_SUITE_IOTTLV
+#define USE_SUITE_NDNTLV
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
@@ -36,11 +40,8 @@
 #define USE_IPV4
 #define USE_LOGGING
 //#define USE_SCHEDULER
-#define USE_SUITE_CCNB
-#define USE_SUITE_CCNTLV
-#define USE_SUITE_CISTLV
-#define USE_SUITE_IOTTLV
-#define USE_SUITE_NDNTLV
+#define USE_SHA256
+
 
 #define NEEDS_PREFIX_MATCHING
 #define NEEDS_PACKET_CRAFTING

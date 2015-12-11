@@ -124,6 +124,7 @@ ccnl_ndntlv_bytes2prefix(unsigned char **md, unsigned char **data, int *datalen)
 #endif
     return p;
 Bail:
+    DEBUGMSG(DEBUG, "  ccnl_ndntlv_bytes2prefix bailed\n");
     free_prefix(p);
     return NULL;
 }
