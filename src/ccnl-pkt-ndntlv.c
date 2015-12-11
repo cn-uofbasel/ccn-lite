@@ -104,7 +104,7 @@ ccnl_ndntlv_bytes2prefix(unsigned char **md, unsigned char **data, int *datalen)
             p->compcnt++;
         } else if (md && typ == NDN_TLV_NameImplicitDigest &&
                                                       len3 == SHA256_DIGEST_LENGTH) {
-            memcpy(*md, *data, SHA256_DIGEST_LENGTH);
+            *md = *data;
         } // else unknown type: skip
         *data += len3;
         *datalen -= len3;
