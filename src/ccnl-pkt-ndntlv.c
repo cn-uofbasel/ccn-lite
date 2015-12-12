@@ -167,6 +167,10 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
         pkt->flags |= CCNL_PKT_FRAGMENT;
         break;
 #endif
+    case NDN_TLV_NDNLP:
+        pkt->flags |= CCNL_PKT_NDNLP;
+        DEBUGMSG(INFO, "  ndnlp packet\n");
+        goto Bail;
     default:
         DEBUGMSG(INFO, "  ndntlv: unknown packet type %d\n", pkt->packetType);
         goto Bail;
@@ -186,6 +190,8 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
         unsigned char *cp = *data;
         int len2 = len;
 
+        if (len > (unsigned) *datalen)
+            goto Bail;
         switch (typ) {
         case NDN_TLV_Name:
             if (p) {

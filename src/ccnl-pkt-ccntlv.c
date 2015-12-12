@@ -108,6 +108,84 @@ ccnl_ccntlv_dehead(unsigned char **buf, int *len,
 struct ccnl_prefix_s*
 ccnl_ccntlv_bytes2prefix(unsigned char **dummyDigest, unsigned char **data, int *datalen)
 {
+    struct ccnl_prefix_s *p;
+    unsigned char *cp = *data, *cp2;
+    unsigned int typ, len3;
+    int len;
+
+    DEBUGMSG(DEBUG, "ccnl_ccntlv_bytes2prefix len=%d\n", *datalen);
+
+    p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+    if (!p)
+        return NULL;
+
+    p->compcnt = 0;
+    len = *datalen;
+    while (len > 0) {
+        cp2 = cp;
+        if (ccnl_ccntlv_dehead(&cp, &len, &typ, &len3) || len3 > (unsigned) len)
+            goto Bail;
+
+        switch (typ) {
+        case CCNX_TLV_N_Chunk:
+            // We extract the chunknum to the prefix but keep it
+            // in the name component for now. In the future we
+            // possibly want to remove the chunk segment from the
+            // name components and rely on the chunknum field in
+            // the prefix.
+            p->chunknum = (int*) ccnl_malloc(sizeof(int));
+
+            if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
+                                                 (unsigned int*) p->chunknum) < 0) {
+                DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
+                goto Bail;
+            }
+            if (p->compcnt < CCNL_MAX_NAME_COMP) {
+                p->comp[p->compcnt] = cp2;
+                p->complen[p->compcnt] = cp - cp2 + len3;
+                p->compcnt++;
+            } // else out of name component memory: skip
+            break;
+        case CCNX_TLV_N_NameSegment:
+            if (p->compcnt < CCNL_MAX_NAME_COMP) {
+                p->comp[p->compcnt] = cp2;
+                p->complen[p->compcnt] = cp - cp2 + len3;
+                p->compcnt++;
+            } // else out of name component memory: skip
+            break;
+        case CCNX_TLV_N_Meta:
+/*
+            if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) ||
+                len3 > len2) {
+                DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
+                goto Bail;
+            }
+*/
+            break;
+        default:
+            break;
+        }
+        cp += len3;
+        len -= len3;
+    }
+    p->namelen = *data - p->nameptr;
+
+#ifdef USE_NFN
+    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
+        !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
+        p->nfnflags |= CCNL_PREFIX_NFN;
+        p->compcnt--;
+        if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
+            !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
+            p->nfnflags |= CCNL_PREFIX_THUNK;
+            p->compcnt--;
+        }
+    }
+#endif
+    return p;
+Bail:
+    DEBUGMSG(DEBUG, "  ccnl_ccntlv_bytes2prefix bailed\n");
+    free_prefix(p);
     return NULL;
 }
 
@@ -151,8 +229,8 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
     // checks, as some packets with wrong L values can bring this to crash
     oldpos = *data - start;
     while (ccnl_ccntlv_dehead(data, (int*) &msglen, &typ, &len) == 0) {
-        unsigned char *cp = *data, *cp2;
-        unsigned int len2, len3;
+        unsigned char *cp = *data;
+        int len2 = len;
 
         if (len > msglen)
             goto Bail;
@@ -162,72 +240,14 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 DEBUGMSG(WARNING, " ccntlv: name already defined\n");
                 goto Bail;
             }
-            p = ccnl_prefix_new(CCNL_SUITE_CCNTLV, CCNL_MAX_NAME_COMP);
+            p = ccnl_ccntlv_bytes2prefix(NULL, &cp, &len2);
             if (!p)
                 goto Bail;
-            p->compcnt = 0;
-            pkt->pfx = p;
 
             p->nameptr = start + oldpos;
-            len2 = len;
-            while (len2 > 0) {
-                cp2 = cp;
-                if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) || len3 > len2)
-                    goto Bail;
-
-                switch (typ) {
-                case CCNX_TLV_N_Chunk:
-                    // We extract the chunknum to the prefix but keep it
-                    // in the name component for now. In the future we
-                    // possibly want to remove the chunk segment from the
-                    // name components and rely on the chunknum field in
-                    // the prefix.
-                  p->chunknum = (int*) ccnl_malloc(sizeof(int));
-
-                    if (ccnl_ccnltv_extractNetworkVarInt(cp, len3,
-                                                         (unsigned int*) p->chunknum) < 0) {
-                        DEBUGMSG_PCNX(WARNING, "Error in NetworkVarInt for chunk\n");
-                        goto Bail;
-                    }
-                    if (p->compcnt < CCNL_MAX_NAME_COMP) {
-                        p->comp[p->compcnt] = cp2;
-                        p->complen[p->compcnt] = cp - cp2 + len3;
-                        p->compcnt++;
-                    } // else out of name component memory: skip
-                    break;
-                case CCNX_TLV_N_NameSegment:
-                    if (p->compcnt < CCNL_MAX_NAME_COMP) {
-                        p->comp[p->compcnt] = cp2;
-                        p->complen[p->compcnt] = cp - cp2 + len3;
-                        p->compcnt++;
-                    } // else out of name component memory: skip
-                    break;
-                case CCNX_TLV_N_Meta:
-                    if (ccnl_ccntlv_dehead(&cp, (int*) &len2, &typ, &len3) ||
-                        len3 > len2) {
-                        DEBUGMSG_PCNX(WARNING, "error when extracting CCNX_TLV_M_MetaData\n");
-                        goto Bail;
-                    }
-                    break;
-                default:
-                    break;
-                }
-                cp += len3;
-                len2 -= len3;
-            }
-            p->namelen = *data - p->nameptr;
-#ifdef USE_NFN
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 7 &&
-                    !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
-                p->nfnflags |= CCNL_PREFIX_NFN;
-                p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
-                   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
-            }
-#endif
+            p->namelen = cp - p->nameptr;
+            pkt->pfx = p;
+            pkt->val.final_block_id = -1;
             break;
         case CCNX_TLV_M_ENDChunk:
             if (ccnl_ccnltv_extractNetworkVarInt(cp, len,

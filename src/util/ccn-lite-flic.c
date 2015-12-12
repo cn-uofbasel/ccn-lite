@@ -606,14 +606,15 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
         endOfValidation = sizeof(out) - SHA256_DIGEST_LENGTH - 2;
     }
 #endif
-    
+
     emit(m, 0, &offset, out);
+
     if (keys)
         flic_finalize_HMAC_signature(keys,
                                      out + sizeof(out) - SHA256_DIGEST_LENGTH,
                                      out + offset, endOfValidation - offset);
 #ifdef USE_SUITE_NDNTLV
-    else {
+    else if (theSuite == CCNL_SUITE_NDNTLV) {
         ccnl_SHA256(out + offset, endOfValidation - offset,
                     out + sizeof(out) - SHA256_DIGEST_LENGTH);
     }
@@ -863,13 +864,14 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
     if (m) {
         char dummy[256];
         DEBUGMSG(INFO, "... tree depth   = %d\n", depth);
-#ifdef USE_SUITE_NDNTLV        
-        ccnl_manifest_setMetaData(m, name, meta, block_size, length,
+#ifdef USE_SUITE_NDNTLV
+        if (theSuite == CCNL_SUITE_NDNTLV) {
+            ccnl_manifest_setMetaData(m, name, meta, block_size, length,
                                                                  depth, total);
-        ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
-#else
-        ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
+            ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
+        } else
 #endif
+            ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
 
         DEBUGMSG(INFO, "... pkts created = %d\n", outcnt);
