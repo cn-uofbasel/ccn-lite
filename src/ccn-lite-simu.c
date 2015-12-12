@@ -52,7 +52,7 @@
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
 
-#include "lib-sha256.h"
+#include "lib-sha256.c"
 
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 #define local_producer(...) 0

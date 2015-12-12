@@ -36,7 +36,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   (unsigned) (*pkt)->md[0], (unsigned) (*pkt)->md[1],
                   (unsigned) (*pkt)->md[30], (unsigned) (*pkt)->md[31],
                   ccnl_suite2str((*pkt)->suite),
-                  (*pkt)->pfx ? (*pkt)->pfx->nfnflags : -99999,
+                  (*pkt)->pfx ? (int) (*pkt)->pfx->nfnflags : -99999,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     DEBUGMSG_CFWD(VERBOSE, "    data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
