@@ -77,10 +77,12 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
         int offs = CCNL_MAX_PACKET_SIZE;
 
         len = ccnl_ndntlv_prependContentWithMeta(pfx, (unsigned char*) cp,
-                                                 strlen(cp), 950, -1, NULL,
+                                                 strlen(cp), -1, 950, NULL,
                                                  NULL, &offs, tmp);
         if (len)
             reply = ccnl_buf_new(tmp + offs, len);
+        else
+            reply = NULL;
         ccnl_free(tmp);
 
         break;
@@ -93,6 +95,9 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     if (pfx2) {
         free_prefix(pfx2);
     }
+
+    if (!reply)
+        return;
 
     ucp = reply->data;
     len = reply->datalen;
