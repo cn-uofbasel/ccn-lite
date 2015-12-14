@@ -28,7 +28,7 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
 {
     time_t t;
     char *cp;
-    struct ccnl_buf_s *reply;
+    struct ccnl_buf_s *reply = NULL;
     unsigned char *ucp;
     int len, enc, cpLen;
     struct ccnl_prefix_s *pfx2 = NULL;
@@ -60,7 +60,35 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     cp = ccnl_malloc(cpLen);
     snprintf(cp, cpLen, "%s\n%suptime %s\n", prefixBuf, ctime(&t), timestamp());
 
-    reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
+    switch(pfx->suite) {
+/*
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV: {
+        unsigned int lcn = 0; // lastchunknum
+        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
+                                                &contentpos, &offs, tmp);
+        break;
+    }
+#endif
+*/
+#ifdef USE_SUITE_NDNTLV
+    case CCNL_SUITE_NDNTLV: {
+        unsigned char *tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+        int offs = CCNL_MAX_PACKET_SIZE;
+
+        len = ccnl_ndntlv_prependContentWithMeta(pfx, (unsigned char*) cp,
+                                                 strlen(cp), 950, -1, NULL,
+                                                 NULL, &offs, tmp);
+        if (len)
+            reply = ccnl_buf_new(tmp + offs, len);
+        ccnl_free(tmp);
+
+        break;
+    }
+#endif
+    default:
+        reply = ccnl_mkSimpleContent(pfx, (unsigned char*) cp, strlen(cp), 0);
+    };
     ccnl_free(cp);
     if (pfx2) {
         free_prefix(pfx2);

@@ -604,12 +604,14 @@ ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, unsigned char *implicitD
 }
 
 int
-ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           unsigned int *final_block_id, int *contentpos,
-                           int *offset, unsigned char *buf)
+ccnl_ndntlv_prependContentWithMeta(struct ccnl_prefix_s *name,
+                                   unsigned char *payload, int paylen,
+                                   int contType, int freshness,
+                                   unsigned int *final_block_id,
+                                   int *contentpos,
+                                   int *offset, unsigned char *buf)
 {
-  int oldoffset = *offset, oldoffset2, shaoffset;
+    int oldoffset = *offset, oldoffset2, shaoffset;
     unsigned char signatureType = NDN_VAL_SIGTYPE_DIGESTSHA256;
 
     if (contentpos)
@@ -641,27 +643,33 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
     if (ccnl_ndntlv_prependTL(NDN_TLV_SignatureInfo, oldoffset2 - *offset, offset, buf) < 0)
         return -1;
 
-    // mandatory
+    // mandatory Content
     if (ccnl_ndntlv_prependBlob(NDN_TLV_Content, payload, paylen,
                                 offset, buf) < 0)
         return -1;
 
-    // to find length of optional (?) MetaInfo fields
-    oldoffset2 = *offset;
-    if(final_block_id) {
+    oldoffset2 = *offset; // keep mem ref where MetaInfo ends
+    if (final_block_id) { // optional
         if (ccnl_ndntlv_prependIncludedNonNegInt(NDN_TLV_NameComponent,
                                                  *final_block_id,
                                                  NDN_Marker_SegmentNumber,
                                                  offset, buf) < 0)
             return -1;
-
-        // optional
         if (ccnl_ndntlv_prependTL(NDN_TLV_FinalBlockId, oldoffset2 - *offset,
                                   offset, buf) < 0)
             return -1;
     }
-
-    // mandatory (empty for now)
+    if (freshness >= 0) { // optional FreshnessPeriod
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_FreshnessPeriod,
+                                         freshness, offset, buf) < 0)
+            return -1;
+    }
+    if (contType >= 0) { // optional ContentType
+        if (ccnl_ndntlv_prependNonNegInt(NDN_TLV_ContentType,
+                                         contType, offset, buf) < 0)
+            return -1;
+    }
+    // mandatory MetaInfo
     if (ccnl_ndntlv_prependTL(NDN_TLV_MetaInfo, oldoffset2 - *offset,
                               offset, buf) < 0)
         return -1;
@@ -681,6 +689,16 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
         *contentpos -= *offset;
 
     return oldoffset - *offset;
+}
+
+int
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, unsigned char *payload,
+                           int paylen, unsigned int *final_block_id,
+                           int *contentpos, int *offset, unsigned char *buf)
+{
+    return ccnl_ndntlv_prependContentWithMeta(name, payload, paylen,
+                                              -1, -1, final_block_id,
+                                              contentpos, offset, buf);
 }
 
 #ifdef USE_FRAG
