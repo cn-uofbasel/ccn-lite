@@ -817,9 +817,10 @@ ccnl_do_ageing(void *ptr, void *dummy)
     DEBUGMSG_CORE(TRACE, "ageing t=%d\n", (int)t);
 
     while (c) {
-        if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
-                                !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
-          DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
+        if ((c->pkt && c->pkt->expiresAt && c->pkt->expiresAt <= time(NULL)) ||
+                   ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
+                                    !(c->flags & CCNL_CONTENT_FLAGS_STATIC))) {
+            DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
             c = ccnl_content_remove(relay, c);
         }
         else

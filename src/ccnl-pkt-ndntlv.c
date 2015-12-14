@@ -258,9 +258,10 @@ ccnl_ndntlv_bytes2pkt(unsigned char *start,
                              pkt->contentType);
                 }
                 if (typ == NDN_TLV_FreshnessPeriod) {
-                    // Not used
-                    // = ccnl_ndntlv_nonNegInt(cp, len3);
-                    DEBUGMSG(DEBUG, "'FreshnessPeriod' field ignored\n");
+                    struct timeval tv;
+                    ccnl_get_timeval(&tv);
+                    pkt->expiresAt = tv.tv_sec +
+                        (tv.tv_usec / 1000 + ccnl_ndntlv_nonNegInt(cp, len3)) / 1000;
                 }
                 if (typ == NDN_TLV_FinalBlockId) {
                     if (ccnl_ndntlv_dehead(&cp, &len2, &typ, &len3))

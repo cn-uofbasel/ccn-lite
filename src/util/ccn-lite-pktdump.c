@@ -423,6 +423,8 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 case CCNX_TLV_M_Payload:    tn = "Payload"; break;
                 case CCNX_TLV_M_ObjHashRestriction: tn = "ObjHashRestriction"; break;
                 case CCNX_TLV_M_ENDChunk:   tn = "EndChunk"; break;
+                case CCNX_TLV_C_PayloadType:tn = "PayloadType"; break;
+                case CCNX_TLV_C_ExpiryTime: tn = "ExpiryTime"; break;
                 default: break;
                 }
                 break;

@@ -61,23 +61,36 @@ ccnl_echo_request(struct ccnl_relay_s *relay, struct ccnl_face_s *inface,
     snprintf(cp, cpLen, "%s\n%suptime %s\n", prefixBuf, ctime(&t), timestamp());
 
     switch(pfx->suite) {
-/*
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV: {
+        unsigned char *tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+        int offs = CCNL_MAX_PACKET_SIZE;
         unsigned int lcn = 0; // lastchunknum
-        len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
-                                                &contentpos, &offs, tmp);
+        struct timeval tv;
+
+        ccnl_get_timeval(&tv);
+        len = ccnl_ccntlv_prependContentWithMsgOpts(pfx, (unsigned char*) cp,
+                   strlen(cp), &lcn, -1, tv.tv_sec * 1000L + tv.tv_usec / 1000 + 2000,
+                                                    NULL, &offs, tmp);
+        if (len > 0)
+            len = ccnl_ccntlv_prependFixedHdr(CCNX_TLV_V1, CCNX_PT_Data,
+                                              len, 64, &offs, tmp);
+        if (len > 0)
+            reply = ccnl_buf_new(tmp + offs, len);
+        else
+            reply = NULL;
+        ccnl_free(tmp);
+
         break;
     }
 #endif
-*/
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV: {
         unsigned char *tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
         int offs = CCNL_MAX_PACKET_SIZE;
 
         len = ccnl_ndntlv_prependContentWithMeta(pfx, (unsigned char*) cp,
-                                                 strlen(cp), -1, 950, NULL,
+                                                 strlen(cp), -1, 2000, NULL,
                                                  NULL, &offs, tmp);
         if (len)
             reply = ccnl_buf_new(tmp + offs, len);

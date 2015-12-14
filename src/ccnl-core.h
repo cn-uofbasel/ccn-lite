@@ -224,7 +224,7 @@ struct ccnl_content_s {
 #define CCNL_CONTENT_FLAGS_STALE   0x02
     // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
     // >> CCNL: currently no stale bit, old content is fully removed <<
-    int last_used;
+    int last_used; // in sec since 1/1/1970
     int served_cnt;
 };
 
@@ -276,6 +276,7 @@ struct ccnl_pkt_s {
         struct ccnl_pktdetail_iottlv_s iottlv;
         struct ccnl_pktdetail_ndntlv_s ndntlv;
     } s;                           // suite specific packet details
+    int expiresAt; // in sec since 1/1/1970
 #ifdef USE_HMAC256
     unsigned char *hmacStart;
     int hmacLen;

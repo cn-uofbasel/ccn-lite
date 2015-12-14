@@ -265,6 +265,14 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 memcpy(pkt->s.ccntlv.objHashRestr, *data, 32);
             }
             break;
+        case CCNX_TLV_C_ExpiryTime:
+            if (pkt->contentType == CCNX_TLV_TL_Object && len == 8) {
+                uint64_t e = 0;
+                for (len2 = 0; len2 < 8; len2++)
+                    e = (e << 8) | cp[len2];
+                pkt->expiresAt = (e + 999) / 1000; // trunc to sec precision :-(
+            }
+            break;
         case CCNX_TLV_M_Payload:
             pkt->content = *data;
             pkt->contlen = len;
@@ -617,12 +625,14 @@ ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
 
 // write Content payload *before* buf[offs], adjust offs and return bytes used
 int
-ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
-                           unsigned char *payload, int paylen,
-                           unsigned int *lastchunknum, int *contentpos,
-                           int *offset, unsigned char *buf)
+ccnl_ccntlv_prependContentWithMsgOpts(struct ccnl_prefix_s *name,
+                                      unsigned char *payload, int paylen,
+                                      unsigned int *lastchunknum,
+                                      int payldType, uint64_t expiresAt,
+                                      int *contentpos,
+                                      int *offset, unsigned char *buf)
 {
-    int tloffset = *offset;
+    int tloffset = *offset, i;
 
     if (contentpos)
         *contentpos = *offset - paylen;
@@ -632,6 +642,24 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
                                                         offset, buf) < 0)
         return -1;
 
+    if (payldType >= 0) {
+        if (ccnl_ccntlv_prependNetworkVarUInt(CCNX_TLV_C_PayloadType,
+                                              payldType, offset, buf) < 0)
+            return -1;
+    }
+
+    if (expiresAt) { // in msec
+        if (*offset < 12)
+            return -1;
+        for (i = 0; i < 8; i++) {
+            buf[--*offset] = expiresAt % 256;
+            expiresAt = expiresAt >> 8;
+        }
+        if (ccnl_ccntlv_prependTL(CCNX_TLV_C_ExpiryTime, 8,
+                                  offset, buf) < 0)
+            return -1;
+    }
+
     if (ccnl_ccntlv_prependName(name, offset, buf) < 0)
         return -1;
 
@@ -640,6 +668,18 @@ ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
         return -1;
 
     return tloffset - *offset;
+}
+
+// write Content payload *before* buf[offs], adjust offs and return bytes used
+int
+ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
+                           unsigned int *lastchunknum, int *contentpos,
+                           int *offset, unsigned char *buf)
+{
+    return ccnl_ccntlv_prependContentWithMsgOpts(name, payload, paylen,
+                                                 lastchunknum,  -1, 0.0,
+                                                 contentpos, offset, buf);
 }
 
 // write Content packet *before* buf[offs], adjust offs and return bytes used

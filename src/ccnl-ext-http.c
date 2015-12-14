@@ -231,11 +231,11 @@ ccnl_http_status(struct ccnl_relay_s *ccnl, struct ccnl_http_s *http)
     t = time(NULL);
     cp = ctime(&t);
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        "<tr><td></td><td><font size=-1>%s &nbsp;&nbsp;", cp);
+        "<tr><td></td><td><font size=-1>%s UTC &nbsp;&nbsp;", cp);
 
     cp = ctime(&ccnl->startup_time);
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
-        " (started %s)</font></td></tr>\n</table>\n\n", cp);
+        " (started %s UTC)</font></td></tr>\n</table>\n\n", cp);
 
     ccnl_snprintf(&tmpBuf, &remLen, &totalLen,
         "<p>\n<table borders=0 width=100%% bgcolor=#e0e0ff>"
