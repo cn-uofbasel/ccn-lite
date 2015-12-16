@@ -352,6 +352,11 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
 
     prefix = ccnl_URItoPrefix(name, suite, NULL, chunknum);
 
+    if (!prefix) {
+        DEBUGMSG(ERROR, "prefix could not be created!\n");
+        return -1;
+    }
+
     int nonce = genrand_uint32();
     /* TODO: support other transports than AF_PACKET */
     sockunion sun;
@@ -369,6 +374,8 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
+
+    free_prefix(prefix);
 
     unsigned char *start = buf;
     unsigned char *data = buf;
