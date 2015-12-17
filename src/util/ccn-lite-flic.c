@@ -31,7 +31,7 @@
 #define USE_SHA256
 #define USE_UNIXSOCKET
 
-#define MAX_BLOCK_SIZE (64*1024)
+#define MAX_PKT_SIZE (64*1024)
 
 #define NEEDS_PACKET_CRAFTING
 
@@ -49,9 +49,10 @@ usage(int exitval)
 {
     fprintf(stderr, "usage: %s -p REPODIR [options] FILE [URI]  (producing)\n"
                     "       %s [options] URI                    (retrieving)\n"
-            "  -b SIZE    Block size (default is 4K)\n"
-            "  -d DIGEST  ObjHashRestriction (32B in hex)\n"
+            "  -b SIZE    max packet size (default is 4K)\n"
+            "  -d DIGEST  bbjHashRestriction (32B in hex)\n"
             "  -e N       0=drop-if-nosig-or-inval, 1=warn-if-nosig-or-inval, 2=warn-inval\n"
+            "  -i A[-[B]] only fetch bytes in interval [i_A .. i_B]\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
             "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
@@ -316,7 +317,7 @@ ccnl_manifest_atomic_prefix(struct ccnl_prefix_s *pfx)
     return ccnl_manifest_atomic_blob(dummy + offset, len);
 }
 
-void
+struct list_s*
 ccnl_manifest_append(struct list_s *where, char *typ, struct list_s *what)
 {
     struct list_s **epp, *elmnt = ccnl_calloc(1, sizeof(*elmnt));
@@ -325,6 +326,8 @@ ccnl_manifest_append(struct list_s *where, char *typ, struct list_s *what)
     elmnt->first->rest = what;
     for (epp = &where->rest; *epp; epp = &(*epp)->rest);
     *epp = elmnt;
+
+    return elmnt;
 }
 
 struct list_s*
@@ -378,24 +381,44 @@ ccnl_manifest_getFirstHashGroup(struct list_s *m)
     return NULL;
 }
 
+struct list_s*
+ccnl_manifest_prependHashGroup(struct list_s *m)
+{
+    struct list_s *payload;
+
+    switch(theSuite) {
+    case CCNL_SUITE_CCNTLV:
+        payload = m->rest;
+        break;
+    case CCNL_SUITE_NDNTLV:
+        payload = m->rest->rest->first->rest;
+        break;
+    default:
+        return NULL;
+    }
+    payload = ccnl_manifest_prepend(payload, "grp", NULL);
+    if (payload)
+        return payload->first;
+    return NULL;
+}
+
 // typ is either "dptr" or "tptr", for data hash ptr or tree/manifest hash ptr
 // md is the hash value (array of 32 bytes) to be stored
 void
-ccnl_manifest_prependHash(struct list_s *m, char *typ, unsigned char *md)
+ccnl_manifest_prependHash(struct list_s *grp, char *typ, unsigned char *md)
 {
-    ccnl_manifest_prepend(ccnl_manifest_getFirstHashGroup(m), typ,
+    ccnl_manifest_prepend(grp, typ,
                           ccnl_manifest_atomic_blob(md, SHA256_DIGEST_LENGTH));
 }
 
 
 // this defines the current hashgroup's metadata
 void
-ccnl_manifest_setMetaData(struct list_s *m, struct ccnl_prefix_s *locator,
+ccnl_manifest_setMetaData(struct list_s *grp, struct ccnl_prefix_s *locator,
                           struct ccnl_prefix_s *metadataUri,
                           int blockSize, long totalSize, int depth,
                           unsigned char* totalDigest)
 {
-    struct list_s *grp = ccnl_manifest_getFirstHashGroup(m);
     struct list_s *meta = ccnl_calloc(1, sizeof(struct list_s));
 
     meta->first = ccnl_manifest_atomic("about");
@@ -562,6 +585,7 @@ flic_finalize_HMAC_signature(struct key_s *keys, unsigned char *sigval,
 
 void
 flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
+//                   int block_size, long length,
                    struct key_s *keys, char *dirpath,
                    unsigned char *dataDigest /* in */,
                    unsigned char *packetDigest /* out */)
@@ -648,7 +672,7 @@ flic_manifest2file(struct list_s *m, char isRoot, struct ccnl_prefix_s *name,
 
 // ----------------------------------------------------------------------
 
-static unsigned char body[MAX_BLOCK_SIZE];
+static unsigned char body[MAX_PKT_SIZE];
 
 int
 flic_mkDataChunk(int f, struct ccnl_prefix_s *name, long offset, int len,
@@ -670,7 +694,7 @@ flic_mkDataChunk(int f, struct ccnl_prefix_s *name, long offset, int len,
     DEBUGMSG(VERBOSE, "  creating packet with %d bytes\n", len);
     flic_obj2file(body, len, theRepoDir, name, outDigest);
 
-    return 0;
+    return len;
 }
 
 void
@@ -681,8 +705,8 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     int f, len, chunk_number, depth = 0;
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
-    struct list_s *m;
-    long offset, length;
+    struct list_s *m, *grp;
+    long offset, length, sumOfLen = 0;
     int max_pointers = (block_size - 4 - 4) / (32+4), num_pointers = 0;
 
     DEBUGMSG(DEBUG, "max_pointers per manifest is %d\n", max_pointers);
@@ -712,26 +736,30 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
     m = ccnl_manifest_getEmptyTemplate(theSuite);
+    grp = ccnl_manifest_getFirstHashGroup(m);
     while (chunk_number > 0) {
         offset = (long) block_size * --chunk_number;
-#ifdef USE_SUITE_NDNTLV        
-        flic_mkDataChunk(f, name, offset, length - offset, block_size, md);
-#else
-        flic_mkDataChunk(f, NULL, offset, length - offset, block_size, md);
-#endif
+        if (theSuite == CCNL_SUITE_CCNTLV)
+            sumOfLen += flic_mkDataChunk(f, NULL, offset, length - offset,
+                                         block_size, md);
+        else if (theSuite == CCNL_SUITE_NDNTLV)
+            sumOfLen += flic_mkDataChunk(f, name, offset, length - offset,
+                                         block_size, md);
 
         // Prepend the hash to the current manifest
-        ccnl_manifest_prependHash(m, "dptr", md);
+        ccnl_manifest_prependHash(grp, "dptr", md);
         num_pointers++;
 
         // Finally, check to see if we need to cap the current manifest and
         // move onto the next one
         if (num_pointers == max_pointers || offset == 0) {
             depth++;
-            if (offset)
+            ccnl_manifest_setMetaData(grp, 0, meta, block_size, length,
+                                      depth, total);
+            if (offset) {
                 flic_manifest2file(m, 0, NULL, NULL, theRepoDir, NULL, md);
-            else { // root manifest
-                ccnl_manifest_setMetaData(m, 0, meta, block_size, length,
+            } else { // root manifest
+                ccnl_manifest_setMetaData(grp, 0, meta, block_size, length,
                                           depth, total);
                 if (theSuite == CCNL_SUITE_NDNTLV)
                     ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
@@ -739,9 +767,11 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
             }
             ccnl_manifest_free(m);
             m = ccnl_manifest_getEmptyTemplate(theSuite);
+            grp = ccnl_manifest_getFirstHashGroup(m);
             // append the hash of previous manifest (to make the connection)
-            ccnl_manifest_prependHash(m, "tptr", md);
+            ccnl_manifest_prependHash(grp, "tptr", md);
             num_pointers = 1;
+            sumOfLen = 1;
         }
     }
 
@@ -757,78 +787,125 @@ flic_produce7mprTree(struct key_s *keys, int block_size,
     return;
 }
 
+int
+lenOfName(struct ccnl_prefix_s *nm)
+{
+    unsigned char dummy[512];
+    int offs = sizeof(dummy);
+    if (!nm)
+        return 0;
+    if (nm->suite == CCNL_SUITE_CCNTLV)
+        return ccnl_ccntlv_prependName(nm, &offs, dummy);
+    if (nm->suite == CCNL_SUITE_NDNTLV)
+        return ccnl_ndntlv_prependName(nm, &offs, dummy);
+    return 0;
+}
+
 struct list_s*
-balancedTree(int f, struct ccnl_prefix_s *name, int blocksz, int reserved,
-             int lev, int *depth, long offset, long length,
+balancedTree(int f,
+             struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
+             int maxDataSize, int maxMfstSize, int maxRootSize,
+             int lev, int *maxDepth, long offset, long length,
              unsigned char *outDigest, SHA256_CTX_t ctx)
 {
     struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
-    int maxppc, chunk_number, maxdatalen, num_pointers = 0;
+    int maxppc, chunk_number, i, depth = 0, depth2 = 0;
+    long len;
     unsigned char md[SHA256_DIGEST_LENGTH];
+    struct list_s *grp;
 
     DEBUGMSG(DEBUG, "balancedTree lev=%d, offs=%ld, len=%ld\n",
              lev, offset, length);
+/*
     if (lev > *depth)
-        *depth = lev;
+        *maxDepth = lev;
+*/
 
-    maxdatalen = blocksz - reserved;
-    maxppc =  maxdatalen / (32 + 4);
-    chunk_number = ((length - 1) / maxdatalen) + 1;
+    if (theSuite == CCNL_SUITE_CCNTLV)
+        maxppc =  maxMfstSize / (32 + 4);
+    else if (theSuite == CCNL_SUITE_NDNTLV)
+        maxppc =  maxMfstSize / (32 + 2);
+    else
+        return NULL;
+    chunk_number = ((length - 1) / maxDataSize) + 1;
     
-    DEBUGMSG(VERBOSE, "  maxdatalen=%d, maxppc=%d, #chunks=%d\n",
-             maxdatalen, maxppc, chunk_number);
+    DEBUGMSG(VERBOSE, "  maxDataSize=%d, maxppc=%d, #chunks=%d\n",
+             maxDataSize, maxppc, chunk_number);
 
     if (chunk_number > maxppc) {
         int left, right;
+
         right = (chunk_number - maxppc + 2) / 2;
         left = (chunk_number - maxppc + 2) - right;
 
         DEBUGMSG(VERBOSE, "  left=%d, right=%d\n", left, right);
 
-        m2 = balancedTree(f, name, blocksz, reserved, lev+1, depth,
-                          offset + (maxppc-2 + left)*maxdatalen,
-                          length - (maxppc-2 + left)*maxdatalen, md, ctx);
+        len = length - (maxppc-2 + left)*maxDataSize;
+        m2 = balancedTree(f, pktname, NULL,
+                          maxDataSize, maxMfstSize, maxRootSize,
+                          lev+1, &depth,
+                          offset + (maxppc-2 + left)*maxDataSize,
+                          len, md, ctx);
         if (!m2)
             goto Failed;
-        flic_manifest2file(m2, 0, name, NULL, theRepoDir, NULL, md);
+        grp = ccnl_manifest_prependHashGroup(m);
+        flic_manifest2file(m2, 0, pktname, NULL, theRepoDir, NULL, md);
         ccnl_manifest_free(m2);
-        ccnl_manifest_prependHash(m, "tptr", md);
+        ccnl_manifest_prependHash(grp, "tptr", md);
+        ccnl_manifest_setMetaData(grp, locator, NULL, -1, len,
+                                  depth, NULL);
 
-        m2 = balancedTree(f, name, blocksz, reserved, lev+1, depth,
-                          offset + (maxppc-2)*maxdatalen,
-                          left*maxdatalen, md, ctx);
+        m2 = balancedTree(f, pktname, NULL,
+                          maxDataSize, maxMfstSize, maxRootSize,
+                          lev+1, &depth2,
+                          offset + (maxppc-2)*maxDataSize,
+                          left*maxDataSize, md, ctx);
         if (!m2)
             goto Failed;
-        flic_manifest2file(m2, 0, name, NULL, theRepoDir, NULL, md);
+        grp = ccnl_manifest_prependHashGroup(m);
+        flic_manifest2file(m2, 0, pktname, NULL, theRepoDir, NULL, md);
         ccnl_manifest_free(m2);
-        ccnl_manifest_prependHash(m, "tptr", md);
+        ccnl_manifest_prependHash(grp, "tptr", md);
+        ccnl_manifest_setMetaData(grp, locator, NULL, -1, left*maxDataSize,
+                                  depth2, NULL);
 
         chunk_number -= left + right;
-        num_pointers += 2;
     }
-    DEBUGMSG(VERBOSE, "  lev=%d, %d chunks left to add, length=%ld\n",
+    DEBUGMSG(DEBUG, "  lev=%d, %d chunks left to add, length=%ld\n",
              lev, chunk_number, length);
-    while (chunk_number > 0) {
-        long pos = offset + --chunk_number * maxdatalen;
 
-        flic_mkDataChunk(f, name, pos, offset + length - pos, maxdatalen, md);
+    grp = ccnl_manifest_getFirstHashGroup(m);
+    for (i = chunk_number - 1; i >= 0; i--) {
+        long pos = offset + i * maxDataSize;
 
+        flic_mkDataChunk(f, pktname, pos, offset + length - pos, maxDataSize, md);
         // Prepend the hash to the current manifest
-        ccnl_manifest_prependHash(m, "dptr", md);
-        num_pointers++;
+        ccnl_manifest_prependHash(grp, "dptr", md);
     }
+    if (length > chunk_number * maxDataSize)
+        length = chunk_number * maxDataSize;
+    ccnl_manifest_setMetaData(grp, locator, NULL, maxDataSize,
+                              length, 1, NULL);
+
+    if (depth2 > depth)
+        depth = depth2;
+    if (maxDepth)
+        *maxDepth = ++depth;
     return m;
-Failed:
+
+  Failed:
     ccnl_manifest_free(m);
     return NULL;
 }
 
 void
-flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
-                         char *fname, struct ccnl_prefix_s *name,
-                         struct ccnl_prefix_s *meta)
+flic_produceBalancedTree(struct key_s *keys, int maxPktSize, char *fname,
+                         struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
 {
-    int f, len, depth = 0;
+    int f, len, depth = 0, nmLen;
+    int maxDataSize; // max data payload
+    int maxMfstSize; // max hashgroup size
+    int maxRootSize = 0; // max hashgroup size
     SHA256_CTX_t ctx;
     unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
     struct list_s *m;
@@ -851,29 +928,72 @@ flic_produceBalancedTree(struct key_s *keys, int block_size, int reserved,
         ccnl_SHA256_Update(&ctx, body, len);
     }
     ccnl_SHA256_Final(total, &ctx);
-
     // get the number of blocks (leaf nodes)
     length = lseek(f, 0, SEEK_END);
 
+    maxDataSize = maxPktSize;
+    maxRootSize = 0;
+    len = length;
+    maxRootSize--;
+    while (len > 0) { // big endian encoding of "total file length"
+        maxRootSize--;
+        len = len >> 8;
+    }
+    nmLen = lenOfName(name);
+    if (theSuite == CCNL_SUITE_CCNTLV) {
+        maxDataSize -= 8 + 4 + 4; // fixed hdr, msg TL, payload TL
+
+        maxMfstSize = maxDataSize - 12 - 12; // three hash groups w/ metaInfo
+        maxMfstSize -= 6; // block size
+        maxMfstSize -= 3*6; // covered size
+        maxMfstSize -= 3*5; // depth
+
+        maxRootSize += maxMfstSize - 4; // TL for total file length
+        maxRootSize -= 32 + 4; // TLV of overall sha256
+        maxRootSize -= nmLen;
+    } else if (theSuite == CCNL_SUITE_NDNTLV) {
+        maxDataSize -= 4; // msg TL
+        maxDataSize -= lenOfName(name); // present in all packets
+        maxDataSize -= 2; // empty metainfo
+        maxDataSize -= 4; // content TL
+        maxDataSize -= 5 + 2 + 32; // sig info and value
+
+        maxMfstSize  = maxDataSize - 4 - 3; // one hash group and metainfo
+        maxMfstSize -= 4; // block size
+        maxMfstSize -= 4; // covered size ... see root
+        maxMfstSize -= 3; // depth
+
+        maxRootSize -= lenOfName(name); // locator
+        maxRootSize -= 2; // TL for total file length
+        maxRootSize -= 32 + 2; // TL of overall sha256
+        maxRootSize -= 3; // '_' name component
+//        maxRootSize -= 2; // external metadata TL
+    } else
+        maxMfstSize = maxDataSize;
+    maxRootSize += lenOfName(meta);
+
+    DEBUGMSG(INFO, "maxDataSize = %d; maxMfstSize = %d; maxRootSize = %d\n",
+             maxDataSize, maxMfstSize, maxRootSize);
+
     DEBUGMSG(INFO, "Creating balanced FLIC tree from %s\n", fname);
     DEBUGMSG(INFO, "... file size    = %ld Bytes\n", length);
-    DEBUGMSG(INFO, "... block size   = %d Bytes\n", block_size);
+    DEBUGMSG(INFO, "... max pkt size = %d Bytes\n", maxPktSize);
 
-    m = balancedTree(f, theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
-                     block_size, reserved, 1, &depth, 0, length, total, ctx);
+    m = balancedTree(f,
+                     theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                     theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                     maxDataSize, maxMfstSize, maxRootSize,
+                     1, &depth, 0, length, total, ctx);
     if (m) {
         char dummy[256];
-        DEBUGMSG(INFO, "... tree depth   = %d\n", depth);
 #ifdef USE_SUITE_NDNTLV
-        if (theSuite == CCNL_SUITE_NDNTLV) {
-            ccnl_manifest_setMetaData(m, name, meta, block_size, length,
-                                                                 depth, total);
+        if (theSuite == CCNL_SUITE_NDNTLV)
             ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
-        } else
 #endif
-            ccnl_manifest_setMetaData(m, 0, meta, block_size, length, depth, total);
         flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
 
+        DEBUGMSG(INFO, "... tree depth   = %d\n", depth);
+        DEBUGMSG(INFO, "... block size   = %d\n", maxDataSize);
         DEBUGMSG(INFO, "... pkts created = %d\n", outcnt);
         DEBUGMSG(INFO, "... root name    = %s\n",
                  ccnl_prefix2path(dummy, sizeof(dummy), name));
@@ -1131,9 +1251,9 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                       struct ccnl_prefix_s *locator)
 {
 
-    unsigned char *msg, *msg2;
-    int msglen, msglen2;
-    unsigned int typ, cnt, len, len2;
+    unsigned char *msg, *msg2, *msg3;
+    int msglen, msglen2, msglen3;
+    unsigned int typ, cnt, len, len2, len3;
     struct ccnl_prefix_s *currentLocator, *tmpPfx = NULL;
     char dummy[256];
 
@@ -1159,27 +1279,32 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
         if (pkt->contentType != NDN_Content_FlicManifest)
             goto Bail;
         msg = pkt->content;
-        len = pkt->contlen;
+        msglen = pkt->contlen;
     }
 #endif
 
     // first pass: count the number of pointers
     cnt = 0;
     msg2 = msg;
-    msglen2 = len;
-    while (flic_dehead(&msg2, &msglen2, &typ, &len2) >= 0) {
+    msglen2 = msglen;
+    while (msglen2 > 0 && flic_dehead(&msg2, &msglen2, &typ, &len2) >= 0) {
         if (typ != m_codes[M_HASHGROUP]) {
             msg2 += len2;
             msglen2 -= len2;
             continue;
         }
-        DEBUGMSG(TRACE, "hash group\n");
-        while (flic_dehead(&msg2, &msglen2, &typ, &len2) >= 0) {
-            if (len2 == SHA256_DIGEST_LENGTH)
+        msg3 = msg2;
+        msglen3 = len2;
+        while (msglen3 > 0 && flic_dehead(&msg3, &msglen3, &typ, &len3) >= 0) {
+            if ((typ == m_codes[M_HG_PTR2DATA] ||
+                 typ == m_codes[M_HG_PTR2MANIFEST]) &&
+                                           len3 == SHA256_DIGEST_LENGTH)
                 cnt++;
-            msg2 += len2;
-            msglen2 -= len2;
+            msg3 += len3;
+            msglen3 -= len3;
         }
+        msg2 += len2;
+        msglen2 -= len2;
     }
 
     // allocate memory for the new pointers
@@ -1201,33 +1326,38 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
     // second pass: copy the pointers
     if (curtask < taskcnt) {
         struct task_s *tp = tasks + curtask;
-        while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
+        while (msglen > 0 &&
+                         flic_dehead(&msg, (int*) &msglen, &typ, &len2) >= 0) {
             if (typ != m_codes[M_HASHGROUP]) {
                 msg += len2;
-                len -= len2;
+                msglen -= len2;
                 continue;
             }
             DEBUGMSG(TRACE, "hash group\n");
             currentLocator = locator;
-            while (flic_dehead(&msg, (int*) &len, &typ, &len2) >= 0) {
+            msg2 = msg;
+            msglen2 = len2;
+            while (msglen2 > 0 &&
+                      flic_dehead(&msg2, (int*) &msglen2, &typ, &len3) >= 0) {
                 if (typ == m_codes[M_HG_PTR2DATA] ||
                                          typ == m_codes[M_HG_PTR2MANIFEST]) {
-                    if (len2 == SHA256_DIGEST_LENGTH) {
-                        DEBUGMSG(TRACE, " adding pointer %s\n",
-                                 digest2str(msg));
+                    if (len3 == SHA256_DIGEST_LENGTH) {
                         tp->type = typ == m_codes[M_HG_PTR2DATA] ? 0 : 1;
-                        memcpy(tp->md, msg, SHA256_DIGEST_LENGTH);
+                        DEBUGMSG(TRACE, " adding pointer %s %d\n",
+                                 digest2str(msg2), tp->type);
+                        memcpy(tp->md, msg2, SHA256_DIGEST_LENGTH);
                         tp->locator = ccnl_prefix_dup(currentLocator);
                         tp++;
                     }
                 } else if (typ == m_codes[M_METAINFO]) {
-                    unsigned int len3;
-                    msg2 = msg;
-                    msglen2 = len;
-                    while (flic_dehead(&msg2, (int*) &msglen2, &typ, &len3) >= 0) {
+                    unsigned int len4;
+                    msg3 = msg2;
+                    msglen3 = len3;
+                    while (msglen3 > 0 && flic_dehead(&msg3, (int*) &msglen3,
+                                                           &typ, &len4) >= 0) {
                         if (typ == m_codes[M_MT_LOCATOR]) {
-                            unsigned char *oldmsg = msg2;
-                            int oldlen = len3;
+                            unsigned char *oldmsg = msg3;
+                            int oldlen = len4;
                             free_prefix(tmpPfx);
                             tmpPfx = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
                             if (tmpPfx)
@@ -1236,19 +1366,21 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                                      ccnl_prefix2path(dummy, sizeof(dummy),
                                                       tmpPfx));
                         }
-                        msg2 += len3;
-                        msglen2 -= len3;
+                        msg3 += len4;
+                        msglen3 -= len4;
                     }
                 }
-                msg += len2;
-                len -= len2;
+                msg2 += len3;
+                msglen2 -= len3;
             }
+            msg += len2;
+            msglen -= len2;
         }
     }
     free_prefix(tmpPfx);
     return;
 Bail:
-    DEBUGMSG(DEBUG, "do_manifestPtr had a problem\n");
+    DEBUGMSG(DEBUG, "expandManifest() had a problem\n");
     free_prefix(tmpPfx);
     return;
 }
@@ -1665,18 +1797,18 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
     int treeShape = TREE_BALANCED, opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
-    int block_size = 4096;
+    int maxPktSize = 4096;
     unsigned char *objHashRestr = NULL;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hb:d:e:f:k:m:o:p:s:t:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:e:f:i:k:m:o:p:s:t:u:v:x:")) != -1) {
         switch (opt) {
         case 'b':
-            block_size = atoi(optarg);
-            if (block_size > (MAX_BLOCK_SIZE-256) || block_size < 64) {
+            maxPktSize = atoi(optarg);
+            if (maxPktSize > (MAX_PKT_SIZE-256) || maxPktSize < 64) {
                 DEBUGMSG(FATAL, "Error: block size cannot exceed %d\n",
-                         MAX_BLOCK_SIZE - 256);
+                         MAX_PKT_SIZE - 256);
                 goto Usage;
             }
             break;
@@ -1692,6 +1824,9 @@ main(int argc, char *argv[])
         case 'e':
             exitBehavior = atoi(optarg);
             break;
+        case 'i':
+            fprintf(stderr, "-i not implented yet\n");
+            goto Usage;
         case 'k':
             keys = load_keys_from_file(optarg);
             break;
@@ -1753,7 +1888,6 @@ Usage:
         flic_bytes2pkt = ccnl_ccntlv_bytes2pkt;
         flic_mkInterest = ccntlv_mkInterest;
         m_codes = ccntlv_m_codes;
-        block_size -= 8 + 8; // nameless obj will be exactly 4096B
         break;
 #endif
 #ifdef USE_SUITE_NDNTLV
@@ -1768,7 +1902,6 @@ Usage:
         flic_bytes2pkt = ccnl_ndntlv_bytes2pkt;
         flic_mkInterest = ndntlv_mkInterest;
         m_codes = ndntlv_m_codes;
-        block_size -= 19; // nameless obj will be exactly 4096B
         break;
 #endif
     default:
@@ -1798,14 +1931,13 @@ Usage:
 
         switch (treeShape) {
         case TREE_DEEP:
-            flic_produceDeepTree(keys, block_size, fname, uri, metadataUri);
+            flic_produceDeepTree(keys, maxPktSize, fname, uri, metadataUri);
             break;
         case TREE_7MPR:
-            flic_produce7mprTree(keys, block_size, fname, uri, metadataUri);
+            flic_produce7mprTree(keys, maxPktSize, fname, uri, metadataUri);
             break;
         case TREE_BALANCED:
-            flic_produceBalancedTree(keys, block_size, 4+4,
-                                     fname, uri, metadataUri);
+            flic_produceBalancedTree(keys, maxPktSize, fname, uri, metadataUri);
         default:
             break;
         }

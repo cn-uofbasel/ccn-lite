@@ -31,7 +31,8 @@
 static int
 ccnl_ndntlv_varlenint(unsigned char **buf, int *len, int *val)
 {
-
+    if (!buf || !*buf || !len)
+        return 0;
     if (**buf < 253 && *len >= 1) {
         *val = **buf;
         *buf += 1;
@@ -679,12 +680,14 @@ ccnl_ndntlv_prependContentWithMeta(struct ccnl_prefix_s *name,
     if (ccnl_ndntlv_prependName(name, offset, buf) < 0)
         return -1;
 
+    // do the SHA256 here - the "Data" TL header is NOT included
+    ccnl_SHA256(buf + *offset, shaoffset - *offset,
+                buf + oldoffset - SHA256_DIGEST_LENGTH);
+
     // mandatory
     if (ccnl_ndntlv_prependTL(NDN_TLV_Data, oldoffset - *offset,
                               offset, buf) < 0)
            return -1;
-    ccnl_SHA256(buf + *offset, shaoffset - *offset,
-                buf + oldoffset - SHA256_DIGEST_LENGTH);
 
     if (contentpos)
         *contentpos -= *offset;

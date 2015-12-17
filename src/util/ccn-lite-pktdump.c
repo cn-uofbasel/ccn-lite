@@ -464,8 +464,8 @@ ccnl_ccntlv_type2name(unsigned char ctx, unsigned int type, int rawxml)
                 case CCNX_MANIFEST_MT_LOCATOR:          tn = "Locator"; break;
                 case CCNX_MANIFEST_MT_EXTERNALMETADATA: tn = "ExternalMetaData"; break;
                 case CCNX_MANIFEST_MT_BLOCKSIZE:        tn = "BlockSize"; break;
-                case CCNX_MANIFEST_MT_OVERALLDATASIZE:  tn = "DataSize"; break;
-                case CCNX_MANIFEST_MT_OVERALLDATASHA256: tn = "DataSHA256"; break;
+                case CCNX_MANIFEST_MT_OVERALLDATASIZE:  tn = "OverallSize"; break;
+                case CCNX_MANIFEST_MT_OVERALLDATASHA256: tn = "OverallSHA256"; break;
                 case CCNX_MANIFEST_MT_TREEDEPTH:        tn = "TreeDepth"; break;
                 default: break;
                 }
