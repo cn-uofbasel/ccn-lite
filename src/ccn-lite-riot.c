@@ -81,6 +81,7 @@ bool ccnl_isSuite(int suite);
 
 // ----------------------------------------------------------------------
 struct ccnl_relay_s theRelay;
+struct ccnl_face_s *loopback_face;
 extern int debug_level;
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -101,8 +102,6 @@ typedef int (*ccnl_isContentFunc)(unsigned char*, int);
 
 extern ccnl_mkInterestFunc ccnl_suite2mkInterestFunc(int suite);
 extern ccnl_isContentFunc ccnl_suite2isContentFunc(int suite);
-
-struct ccnl_forward_s fwd;
 
 
 // ----------------------------------------------------------------------
@@ -318,6 +317,7 @@ void
 kernel_pid_t
 ccnl_start(void)
 {
+    loopback_face = ccnl_get_face_or_create(&theRelay, -1, NULL, 0);
     /* start the CCN-Lite event-loop */
     _ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           THREAD_PRIORITY_MAIN - 1,
@@ -325,6 +325,40 @@ ccnl_start(void)
                                           &theRelay, "ccnl");
     return _ccnl_event_loop_pid;
 }
+
+int
+ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face)
+{
+    struct ccnl_forward_s *fwd, **fwd2;
+
+    DEBUGMSG_CFWD(INFO, "adding FIB for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (fwd->suite == pfx->suite &&
+                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
+            free_prefix(fwd->prefix);
+            fwd->prefix = NULL;
+            break;
+        }
+    }
+    if (!fwd) {
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd)
+            return -1;
+        fwd2 = &relay->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        fwd->suite = pfx->suite;
+    }
+    fwd->prefix = pfx;
+    fwd->face = face;
+
+    return 0;
+}
+
 
 int
 ccnl_send_interest(int suite, char *name, uint8_t *addr,
@@ -363,19 +397,14 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     sun.sa.sa_family = AF_PACKET;
     memcpy(&(sun.linklayer.sll_addr), addr, addr_len);
     sun.linklayer.sll_halen = addr_len;
-    fwd.prefix = prefix;
-    fwd.suite = suite;
-    fwd.face = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.linklayer));
-    fwd.face->flags |= CCNL_FACE_FLAGS_STATIC;
-    theRelay.fib = &fwd;
 
-    struct ccnl_face_s *my_face = ccnl_get_face_or_create(&theRelay, -1, NULL, 0);
+    struct ccnl_face_s *fibface = ccnl_get_face_or_create(&theRelay, 0, &sun.sa, sizeof(sun.linklayer));
+    fibface->flags |= CCNL_FACE_FLAGS_STATIC;
+    ccnl_add_fib_entry(&theRelay, prefix, fibface);
 
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
-
-    free_prefix(prefix);
 
     unsigned char *start = buf;
     unsigned char *data = buf;
@@ -391,8 +420,8 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
-    struct ccnl_interest_s *i = ccnl_interest_new(&theRelay, my_face, &pkt);
-    ccnl_interest_append_pending(i, my_face);
+    struct ccnl_interest_s *i = ccnl_interest_new(&theRelay, loopback_face, &pkt);
+    ccnl_interest_append_pending(i, loopback_face);
     ccnl_interest_propagate(&theRelay, i);
 
     return 0;
