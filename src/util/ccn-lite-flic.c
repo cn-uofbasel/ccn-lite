@@ -38,6 +38,23 @@
 #include "ccnl-common.c"
 #include "ccnl-socket.c"
 
+// convert network order byte array into local unsigned integer value
+int
+bigEndian2int(unsigned char *buf, int len, int *intval)
+{
+    int val = 0;
+
+    DEBUGMSG(TRACE, "bigEndian2int %p %d\n", buf, len);
+
+    while (len-- > 0) {
+        val = (val << 8) | *buf;
+        buf++;
+    }
+    *intval = val;
+
+    return 0;
+}
+
 // ----------------------------------------------------------------------
 
 char *progname;
@@ -50,14 +67,14 @@ usage(int exitval)
     fprintf(stderr, "usage: %s -p REPODIR [options] FILE [URI]  (producing)\n"
                     "       %s [options] URI                    (retrieving)\n"
             "  -b SIZE    max packet size (default is 4K)\n"
-            "  -d DIGEST  bbjHashRestriction (32B in hex)\n"
+            "  -d DIGEST  objHashRestriction (32B in hex)\n"
             "  -e N       0=drop-if-nosig-or-inval, 1=warn-if-nosig-or-inval, 2=warn-inval\n"
-            "  -i A[-[B]] only fetch bytes in interval [i_A .. i_B]\n"
             "  -k FNAME   HMAC256 key (base64 encoded)\n"
             "  -m URI     URI of external metadata\n"
             "  -o FNAME   outfile\n"
+            "  -r A[-[B]] only fetch bytes in given position range\n"
             "  -s SUITE   (ccnx2015, ndn2013)\n"
-            "  -t SHAPE   tree shape: balanced, 7mpr, deep\n"
+            "  -t SHAPE   tree shape: balanced, ndxtab, 7mpr, deep\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -144,6 +161,8 @@ unsigned short ndntlv_m_codes[] = {
 int theSuite = CCNL_SUITE_DEFAULT;
 char *theRepoDir;
 unsigned short *m_codes;
+int theSock;
+struct sockaddr theSockAddr;
 
 int (*flic_prependTL)(unsigned short type, unsigned short len,
                       int *offset, unsigned char *buf);
@@ -780,6 +799,14 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
 }
 
 void
+flic_produceIndexTable(struct key_s *keys, int block_size,
+                       char *fname, struct ccnl_prefix_s *name,
+                       struct ccnl_prefix_s *meta)
+{
+    return;
+}
+
+void
 flic_produce7mprTree(struct key_s *keys, int block_size,
                      char *fname, struct ccnl_prefix_s *name,
                      struct ccnl_prefix_s *meta)
@@ -1009,8 +1036,7 @@ int pktcnt;
 //unsigned char *digests;
 
 struct ccnl_pkt_s*
-flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
-            unsigned char *objHashRestr)
+flic_lookup(struct ccnl_prefix_s *locator, unsigned char *objHashRestr)
 {
     char dummy[256];
     int cnt;
@@ -1031,14 +1057,14 @@ flic_lookup(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
             close(fd);
         }
     */
-        rc = sendto(sock, out, len, 0, sa, sizeof(*sa));
+        rc = sendto(theSock, out, len, 0, &theSockAddr, sizeof(theSockAddr));
         DEBUGMSG(TRACE, "sendto returned %d\n", rc);
         if (rc < 0) {
             perror("sendto");
             return NULL;
         }
-        if (block_on_read(sock, 3) > 0) {
-            len = recv(sock, out, sizeof(out), 0);
+        if (block_on_read(theSock, 3) > 0) {
+            len = recv(theSock, out, sizeof(out), 0);
             DEBUGMSG(DEBUG, "recv returned %d\n", len);
 
             data = out;
@@ -1062,7 +1088,7 @@ flic_do_dataPtr(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
 {
     struct ccnl_pkt_s *pkt;
 
-    pkt = flic_lookup(sock, sa, locator, objHashRestr);
+    pkt = flic_lookup(locator, objHashRestr);
     if (!pkt)
         return -1;
     write(fd, pkt->content, pkt->contlen);
@@ -1083,7 +1109,7 @@ flic_do_manifestPtr(int sock, struct sockaddr *sa, int exitBehavior,
     struct ccnl_prefix_s *currentLocator, *tmpPfx = NULL;
 
 TailRecurse:
-    pkt = flic_lookup(sock, sa, locator, objHashRestr);
+    pkt = flic_lookup(locator, objHashRestr);
     if (!pkt)
         return -1;
     msg = pkt->buf->data;
@@ -1170,8 +1196,8 @@ TailRecurse:
                     DEBUGMSG(DEBUG, "@@ %3d  %s\n", pktcnt, digest2str(msg));
 //                    digests = ccnl_realloc(digests, pktcnt*SHA256_DIGEST_LENGTH);
 //                    memcpy(digests + (pktcnt - 1)*SHA256_DIGEST_LENGTH, msg, SHA256_DIGEST_LENGTH);
-                    if (flic_do_dataPtr(sock, sa, currentLocator, msg,
-                                                             fd, total) < 0)
+                    if (flic_do_dataPtr(theSock, &theSockAddr,
+                                        currentLocator, msg, fd, total) < 0)
                         return -1;
                 } else if (typ == m_codes[M_HG_PTR2MANIFEST]) {
                     DEBUGMSG(DEBUG, "@> ---  %s\n", digest2str(msg));
@@ -1181,8 +1207,8 @@ TailRecurse:
                         free_packet(pkt);
                         goto TailRecurse;
                     }
-                    if (flic_do_manifestPtr(sock, sa, exitBehavior, 0,
-                                            currentLocator, msg, fd, total) < 0)
+                    if (flic_do_manifestPtr(theSock, &theSockAddr, exitBehavior,
+                                         0, currentLocator, msg, fd, total) < 0)
                         return -1;
                 }
             } else if (typ == m_codes[M_MT_LOCATOR]) {
@@ -1349,7 +1375,7 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
                         tp->locator = ccnl_prefix_dup(currentLocator);
                         tp++;
                     }
-                } else if (typ == m_codes[M_METAINFO]) {
+                } else if (typ == m_codes[M_HG_METADATA]) {
                     unsigned int len4;
                     msg3 = msg2;
                     msglen3 = len3;
@@ -1509,15 +1535,14 @@ SetTimer:
 // ----------------------------------------------------------------------
 
 int
-repo_io_loop(int sock, struct sockaddr *sa,
-             struct ccnl_prefix_s *locator, int fd)
+repo_io_loop(struct ccnl_prefix_s *locator, int fd)
 {
     int maxfd = -1, rc, i, dropcnt = 0;
     fd_set readfs, writefs;
     struct timeval now, endofRTT, last;
     char dummy[256];
 
-    maxfd = sock;
+    maxfd = theSock;
     if (fd > maxfd)
         maxfd = fd;
     maxfd++;
@@ -1558,10 +1583,10 @@ repo_io_loop(int sock, struct sockaddr *sa,
                 }
                 DEBUGMSG(INFO, "!! timeout for #%d (cnt %d)\n",
                          i, tasks[i].retry_cnt);
-                packet_request(sock, sa, i);
+                packet_request(theSock, &theSockAddr, i);
                 tasks[i].retry_cnt++;
             } else if (i < sendwindow) {
-                if (packet_request(sock, sa, i))
+                if (packet_request(theSock, &theSockAddr, i))
                     tasks[i].retry_cnt = 2;
                 else
                     tasks[i].retry_cnt = 1;
@@ -1583,7 +1608,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
 
         if (tasks[0].type == 2)
             FD_SET(fd, &writefs);
-        FD_SET(sock, &readfs);
+        FD_SET(theSock, &readfs);
 
         if (usec >= 0) {
             struct timeval deadline;
@@ -1624,7 +1649,8 @@ repo_io_loop(int sock, struct sockaddr *sa,
             close(f);
         }
 */
-                    len = sendto(sock, out, len, 0, sa, sizeof(*sa));
+                    len = sendto(theSock, out, len, 0,
+                                 &theSockAddr, sizeof(theSockAddr));
                     DEBUGMSG(DEBUG, "sendto pos=%d, returned %d\n", i, len);
                     ccnl_get_timeval(&tasks[i].lastsent);
                     memcpy(&tasks[i].timeout, &tasks[i].lastsent,
@@ -1642,15 +1668,15 @@ repo_io_loop(int sock, struct sockaddr *sa,
             ccnl_timeval_add(&nextout, 500);            
         }
 
-        if (FD_ISSET(sock, &readfs)) {
-            if (packet_upcall(sock) == 1) { // manifest
+        if (FD_ISSET(theSock, &readfs)) {
+            if (packet_upcall(theSock) == 1) { // manifest
                 // activate (at most 10) newly joined pointers
 //                for (i = 0; outqlen < outqlimit && i < sendwindow; i++) {
                 for (i = 0; outqlen < outqlimit && i < taskcnt; i++) {
                     if (tasks[i].type > 1)
                         continue;
                     if (!tasks[i].retry_cnt) {
-                        if (packet_request(sock, sa, i))
+                        if (packet_request(theSock, &theSockAddr, i))
                             tasks[i].retry_cnt = 2;
                         else
                             tasks[i].retry_cnt = 1;
@@ -1683,7 +1709,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
                 if (tasks[i].type > 1)
                     continue;
                 if (!tasks[i].retry_cnt) {
-                    if (packet_request(sock, sa, i))
+                    if (packet_request(theSock, &theSockAddr, i))
                         tasks[i].retry_cnt = 2;
                     else
                         tasks[i].retry_cnt = 1;
@@ -1740,7 +1766,7 @@ repo_io_loop(int sock, struct sockaddr *sa,
             if (tasks[i].type > 1)
                 continue;
             if (tasks[i].type == 1 && !tasks[i].retry_cnt) {
-                if (packet_request(sock, sa, i))
+                if (packet_request(theSock, &theSockAddr, i))
                     tasks[i].retry_cnt = 2;
                 else
                     tasks[i].retry_cnt = 1;
@@ -1752,14 +1778,14 @@ repo_io_loop(int sock, struct sockaddr *sa,
 }
 
 void
-window_retrieval(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
+window_retrieval(struct ccnl_prefix_s *locator,
                  unsigned char *objHashRestr, int fd)
 {
     struct ccnl_pkt_s *pkt;
     struct timeval t1, endofRTT;
 
     ccnl_get_timeval(&t1);
-    pkt = flic_lookup(sock, sa, locator, objHashRestr);
+    pkt = flic_lookup(locator, objHashRestr);
     if (!pkt)
         return;
     ccnl_get_timeval(&endofRTT);
@@ -1775,16 +1801,183 @@ window_retrieval(int sock, struct sockaddr *sa, struct ccnl_prefix_s *locator,
     free_packet(pkt);
 
     DEBUGMSG(INFO, "starting with %d lookup tasks\n", taskcnt);
-    packet_request(sock, sa, 0);
+    packet_request(theSock, &theSockAddr, 0);
     tasks[0].retry_cnt = 1;
 
-    repo_io_loop(sock, sa, locator, fd);
+    repo_io_loop(locator, fd);
+}
+
+// ----------------------------------------------------------------------
+
+struct fromto_s {
+    struct fromto_s *next, *down, *up;
+    char isLeaf;
+    long from, to;
+    struct ccnl_prefix_s *pfx;
+    unsigned char md[32];
+    struct ccnl_pkt_s *pkt;
+};
+
+struct fromto_s *root, *seek;
+long seekpos = -1;
+
+struct fromto_s*
+flic_manifest2fromto(struct ccnl_pkt_s *pkt)
+{
+    unsigned char *msg = pkt->content;
+    int mlen = pkt->contlen, rc, blocksz = 1;
+    unsigned int typ, len;
+    long from = 0, to = -1;
+    struct fromto_s *list = NULL, **rest = &list;
+    struct ccnl_prefix_s *locator = NULL;
+    char dummy[256];
+
+    DEBUGMSG(DEBUG, "manifest2fromto mlen=%d\n", mlen);
+
+    rc = flic_dehead(&msg, &mlen, &typ, &len);
+    if (rc >= 0 && typ == m_codes[M_HG_METADATA]) {
+        unsigned int len4;
+        unsigned char *msg3 = msg;
+        int msglen3 = len;
+        DEBUGMSG(DEBUG, "metadata\n");
+        while (msglen3 > 0 && flic_dehead(&msg3, (int*) &msglen3,
+                                                           &typ, &len4) >= 0) {
+            if (typ == m_codes[M_MT_LOCATOR]) {
+                unsigned char *oldmsg = msg3;
+                int oldlen = len4;
+                free_prefix(locator);
+                locator = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
+                DEBUGMSG(TRACE, " locator %s\n",
+                         ccnl_prefix2path(dummy, sizeof(dummy), locator));
+            } else if (typ == m_codes[M_MT_BLOCKSIZE]) {
+                bigEndian2int(msg3, len4, &blocksz);
+                DEBUGMSG(DEBUG, "blocksz=%d\n", blocksz);
+            } else if (typ == m_codes[M_MT_OVERALLDATASIZE]) {
+                rc = 0;
+                bigEndian2int(msg3, len4, &rc);
+                if (rc >= 0) {
+                    to = rc - 1;
+                    DEBUGMSG(DEBUG, "lastpos=%ld\n", to);
+                }
+            }
+            msg3 += len4;
+            msglen3 -= len4;
+        }
+        msg += len;
+        mlen -= len;
+    } else {
+        msg = pkt->content;
+        mlen = pkt->contlen;
+    }
+
+    while (flic_dehead(&msg, &mlen, &typ, &len) >= 0) {
+        if (len == 32 && (typ == m_codes[M_HG_PTR2DATA] ||
+                          typ == m_codes[M_HG_PTR2MANIFEST])) {
+            DEBUGMSG(TRACE, "ptr %s\n", digest2str(msg));
+            *rest = ccnl_calloc(1, sizeof(**rest));
+            (*rest)->isLeaf = typ == m_codes[M_HG_PTR2DATA] ? 1 : 0;
+            (*rest)->pfx = locator;
+            (*rest)->from = from;
+            if ((*rest)->from > to)
+                (*rest)->from = to;
+            (*rest)->to = (*rest)->from + blocksz - 1;
+            if ((*rest)->to > to)
+                (*rest)->to = to;
+            from += blocksz;
+            memcpy((*rest)->md, msg, 32);
+            rest = &((*rest)->next);
+        } else {
+            DEBUGMSG(DEBUG, "? typ = %d\n", typ);
+        }
+        msg += len;
+        mlen -= len;
+    }
+
+    return list;
+}
+
+long
+flic_lseek(long offs, int whence)
+{
+    long newpos;
+
+    DEBUGMSG(DEBUG, "flic_lseek %ld\n", offs);
+
+    switch (whence) {
+    case SEEK_SET:
+        newpos = offs;
+        break;
+    case SEEK_CUR:
+        newpos = seekpos + offs;
+        break;
+    default:
+    case SEEK_END:
+        newpos = root->to + 1;
+        break;
+    }
+    if (offs < 0)
+        newpos = 0;
+    else if (newpos > root->to)
+        newpos = root->to + 1;
+
+    if (newpos < seek->from || newpos > seek->to) {
+        while (seek && seek->up && (newpos < seek->from || newpos > seek->to))
+            seek = seek->up;
+    }
+    if (seek == root && newpos > root->to)
+        return newpos;
+    for (;;) {
+        while (newpos > seek->to && seek->next)
+            seek = seek->next;
+        if (seek->isLeaf)
+            break;
+        DEBUGMSG(TRACE, "while ...%p, ->%p (%ld %ld)\n",
+                 seek, seek->down, newpos, seek->to);
+        if (!seek->down) {
+            seek->pkt = flic_lookup(seek->pfx, seek->md);
+            seek->down = flic_manifest2fromto(seek->pkt);
+            if (!seek->down)
+                return -1;
+            seek->down->up = seek;
+            seek = seek->down;
+        } else
+            seek = seek->down;
+    }
+    seekpos = newpos;
+    return newpos;
+}
+
+int
+flic_read(void *buf, int cnt)
+{
+    DEBUGMSG(DEBUG, "flic_read(%p, %d), seekpos=%ld\n", buf, cnt, seekpos);
+
+    if (seekpos < seek->from || seekpos > seek->to)
+        if (flic_lseek(seekpos, SEEK_SET) < 0)
+            return -1;
+    if (!seek->isLeaf) {
+        DEBUGMSG(FATAL, "not a leaf\n");
+        return -1;
+    }
+    if ((seekpos + cnt - 1) > seek->to)
+        cnt = seek->to - seekpos + 1;
+    if (!seek->pkt)
+        seek->pkt = flic_lookup(seek->pfx, seek->md);
+    if (!seek->pkt->content || seek->pkt->contlen < cnt) {
+        DEBUGMSG(FATAL, "not enough bytes\n");
+        return -1;
+    }
+    DEBUGMSG(DEBUG, "read: returning %d bytes\n", cnt);
+    memcpy(buf, seek->pkt->content + (seekpos - seek->from), cnt);
+    seekpos += cnt;
+    return cnt;
 }
 
 // ----------------------------------------------------------------------
 
 enum {
     TREE_BALANCED,
+    TREE_INDEXTABLE,
     TREE_7MPR,
     TREE_DEEP
 };
@@ -1792,17 +1985,18 @@ enum {
 int
 main(int argc, char *argv[])
 {
-    char *outfname = NULL;
+    char *outfname = NULL, *cp;
     char *udp = strdup("127.0.0.1/9695"), *ux = NULL;
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
     int treeShape = TREE_BALANCED, opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
     int maxPktSize = 4096;
     unsigned char *objHashRestr = NULL;
+    long range_from = 0, range_to = -1;
 
     progname = argv[0];
 
-    while ((opt = getopt(argc, argv, "hb:d:e:f:i:k:m:o:p:s:t:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hb:d:e:f:k:m:o:p:r:s:t:u:v:x:")) != -1) {
         switch (opt) {
         case 'b':
             maxPktSize = atoi(optarg);
@@ -1824,9 +2018,6 @@ main(int argc, char *argv[])
         case 'e':
             exitBehavior = atoi(optarg);
             break;
-        case 'i':
-            fprintf(stderr, "-i not implented yet\n");
-            goto Usage;
         case 'k':
             keys = load_keys_from_file(optarg);
             break;
@@ -1839,6 +2030,16 @@ main(int argc, char *argv[])
         case 'p':
             theRepoDir = optarg;
             break;
+        case 'r':
+            cp = strsep(&optarg, "-");
+            if (cp)
+                range_from = atoi(cp);
+            cp = strsep(&optarg, "-");
+            if (cp)
+                range_to = atoi(cp);
+            DEBUGMSG(DEBUG, "range specified: %ld...%ld\n",
+                     range_from, range_to);
+            break;
         case 's':
             theSuite = ccnl_str2suite(optarg);
             if (!ccnl_isSuite(theSuite))
@@ -1849,6 +2050,8 @@ main(int argc, char *argv[])
                 treeShape = TREE_DEEP;
             else if (!strcmp(optarg, "7mpr"))
                 treeShape = TREE_7MPR;
+            else if (!strcmp(optarg, "ndxtab"))
+                treeShape = TREE_INDEXTABLE;
             else
                 treeShape = TREE_BALANCED;
             break;
@@ -1936,15 +2139,17 @@ Usage:
         case TREE_7MPR:
             flic_produce7mprTree(keys, maxPktSize, fname, uri, metadataUri);
             break;
+        case TREE_INDEXTABLE:
+            flic_produceIndexTable(keys, maxPktSize, fname, uri, metadataUri);
+            break;
         case TREE_BALANCED:
             flic_produceBalancedTree(keys, maxPktSize, fname, uri, metadataUri);
         default:
             break;
         }
     } else { // retrieve a manifest tree
-        int fd, port, sock;
+        int fd, port;
         const char *addr = NULL;
-        struct sockaddr sa;
         SHA256_CTX_t total;
         unsigned char md[SHA256_DIGEST_LENGTH];
 
@@ -1957,11 +2162,11 @@ Usage:
         if (ccnl_parseUdp(udp, theSuite, &addr, &port) != 0)
             exit(-1);
         if (ux) { // use UNIX socket
-            ccnl_setUnixSocketPath((struct sockaddr_un*) &sa, ux);
-            sock = ux_open();
+            ccnl_setUnixSocketPath((struct sockaddr_un*) &theSockAddr, ux);
+            theSock = ux_open();
         } else { // UDP
-            ccnl_setIpSocketAddr((struct sockaddr_in*) &sa, addr, port);
-            sock = udp_open();
+            ccnl_setIpSocketAddr((struct sockaddr_in*) &theSockAddr,addr, port);
+            theSock = udp_open();
         }
 
         if (outfname)
@@ -1974,7 +2179,7 @@ Usage:
 #ifdef STOP_AND_WAIT
         // sequential/non-windowed retrieval:
 
-        if (!flic_do_manifestPtr(sock, &sa, exitBehavior, keys,
+        if (!flic_do_manifestPtr(/* sock, &sa, */ exitBehavior, keys,
                                  uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
@@ -1982,7 +2187,32 @@ Usage:
 #else
         (void)md;
         (void)exitBehavior;
-        window_retrieval(sock, &sa, uri, objHashRestr, fd);
+        if (range_from > 0 || range_to > 0) {
+            struct fromto_s *h;
+            long range_len = range_to < 0 ? -1 : range_to - range_from + 1;
+
+            root = ccnl_calloc(1, sizeof(*root));
+            root->pkt = flic_lookup(uri, objHashRestr);
+            root->down = flic_manifest2fromto(root->pkt);
+            root->to = -1;
+            for (h = root->down; h; h = h->next)
+                root->to += h->to - h->from + 1;
+            root->pfx = root->pkt->pfx;
+            seek = root;
+
+            flic_lseek(range_from, SEEK_SET);
+            for (;;) {
+                int cnt = sizeof(out);
+                if (range_len >= 0 && range_len < cnt)
+                    cnt = range_len;
+                cnt = flic_read(out, cnt);
+                if (cnt <= 0)
+                    break;
+                write(fd, out, cnt);
+                range_len -= cnt;
+            };
+        } else
+            window_retrieval(uri, objHashRestr, fd);
 #endif
 
         close(fd);
