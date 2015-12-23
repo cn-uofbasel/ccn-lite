@@ -4,7 +4,7 @@
 
 //data structure forward declarations
 
-
+#include <sys/time.h>
 //CCNL INCLUDES
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
@@ -192,7 +192,7 @@ int current_time(void);
 double current_time(void);
 #endif
 char *timestamp(void);
-#if defined(CCNL_UNIX) || defined(CCNL_SIMULATION)
+#if defined(CCNL_UNIX) || defined(CCNL_RIOT) || defined(CCNL_SIMULATION)
 void ccnl_get_timeval(struct timeval *tv);
 void *ccnl_set_timer(uint64_t usec, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
 void *ccnl_set_absolute_timer(struct timeval abstime, void (*fct)(void *aux1, void *aux2), void *aux1, void *aux2);
@@ -330,9 +330,11 @@ int ccnl_ndntlv_prependTL(int type, unsigned int len, int *offset, unsigned char
 int ccnl_ndntlv_prependNonNegInt(int type, unsigned int val, int *offset, unsigned char *buf);
 int ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len, int *offset, unsigned char *buf);
 int ccnl_ndntlv_prependName(struct ccnl_prefix_s *name, int *offset, unsigned char *buf);
+int ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *contentpos, unsigned int *final_block_id, int *offset, unsigned char *buf);
 int ccnl_ndntlv_fillInterest(struct ccnl_prefix_s *name, int scope, int *nonce, int *offset, unsigned char *buf);
 int ccnl_ndntlv_fillContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *offset, int *contentpos, unsigned char *final_block_id, int final_block_id_len, unsigned char *buf);
 struct ccnl_buf_s* ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed);
+struct ccnl_pkt_s* ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start, unsigned char **data, int *datalen);
 #endif //USE_SUITE_NDNTLV
 
 //---------------------------------------------------------------------------------------------------------------------------------------

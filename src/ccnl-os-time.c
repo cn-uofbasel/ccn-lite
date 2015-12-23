@@ -111,7 +111,7 @@ timestamp(void)
 #endif // CCNL_UNIX
 
 
-#if defined(CCNL_UNIX) || defined (CCNL_ARDUINO)
+#if defined(CCNL_UNIX) || defined (CCNL_RIOT) || defined (CCNL_ARDUINO)
 // ----------------------------------------------------------------------
 
 struct ccnl_timer_s {

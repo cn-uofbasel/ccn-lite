@@ -19,7 +19,11 @@ GCC_VERSION := $(shell ${CC} -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 
 GCC_GTEQ_40900 := $(shell expr ${GCC_VERSION} \>= 40900)
 
 # general flags used on both linux and OSX
-CCNLCFLAGS=-Wall -Werror -pedantic -std=c99 -g -O0
+CCNLCFLAGS=-Wall -Werror -std=c99 -g
+	
+ifeq ($(RIOTBASE),)
+	CCNLCFLAGS += -pedantic -O0
+endif
 
 # Linux flags
 LINUX_CFLAGS=-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -Dlinux
@@ -104,6 +108,7 @@ IOTTLV_LIB = ccnl-pkt-iottlv.h ccnl-pkt-iottlv.c
 NDNTLV_LIB = ccnl-pkt-ndntlv.h ccnl-pkt-ndntlv.c
 LOCALRPC_LIB = ccnl-pkt-localrpc.h ccnl-pkt-localrpc.c ccnl-ext-localrpc.c
 SUITE_LIBS = ${CCNB_LIB} ${CCNTLV_LIB} ${CISTLV_LIB} ${IOTTLV_LIB} ${NDNTLV_LIB} ${LOCALRPC_LIB}
+UTIL_LIB := util/base64.o util/ccnl-common.o
 
 
 CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-util.c
@@ -133,6 +138,16 @@ OMNET_DEPS = ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-defs.
 
 all: ${PROGS}
 	+make -C util
+
+lib-ccn-lite.a: ccn-lite-riot.c \
+	${SUITE_LIBS} ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB}
+	${CC} -o $@ ${RIOT_CFLAGS} ${CCNLCFLAGS} -c $<
+
+lib-ccn-lite-utils.a: ${UTIL_LIB} util/base64.c util/ccnl-common.c
+	${AR} rcs $@ ${UTIL_LIB}
+
+$(UTIL_LIB): %.o: %.c
+	${CC} -o $@ ${RIOT_CFLAGS} ${CCNLCFLAGS} -c $<
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB}

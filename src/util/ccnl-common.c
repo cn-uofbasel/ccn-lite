@@ -102,6 +102,23 @@ int ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *
 #else // CCNL_UAPI_H_ is defined
 
 #include "base64.c"
+#ifdef RIOT_VERSION
+#include "ccnl-defs.h"
+#include "net/packet.h"
+#include <unistd.h>
+#include "sys/socket.h"
+#include "ccn-lite-riot.h"
+#include "ccnl-headers.h"
+#include "ccnl-pkt-ndntlv.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-iottlv.h"
+#include "ccnl-pkt-cistlv.h"
+#include "ccnl-pkt-ccnb.h"
+
+int debug_level = WARNING;
+
+extern int ccnl_suite2defaultPort(int suite);
+#endif
 
 #endif // CCNL_UAPI_H_
 
