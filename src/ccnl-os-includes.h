@@ -58,7 +58,7 @@
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
-#  undef USE_ETHERNET
+#  undef USE_LINKLAYER
    // ethernet support in FreeBSD is work in progress ...
 #elif defined(linux)
 #  include <endian.h>
@@ -105,7 +105,7 @@
 
 #define strtol(s,p,b)	simple_strtol(s,p,b)
 #define inet_aton(s,p)	(p)->s_addr = in_aton(s)
-#define USE_ETHERNET
+#define USE_LINKLAYER
 
 #endif // CCNL_LINUXKERNEL
 

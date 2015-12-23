@@ -346,9 +346,9 @@ processSuiteData (void *relay, struct info_data_s *o, sockunion * from_addr /*0 
     {
         switch (from_addr->sa.sa_family)
         {
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
         case AF_PACKET:
-            addr_len = sizeof(from_addr->eth);
+            addr_len = sizeof(from_addr->linklayer);
             break;
 #endif
 #ifdef USE_IPV4
@@ -816,8 +816,8 @@ ifaces_add(struct info_mgmt_s *mgmt)
         switch (t)
         {
         case AF_PACKET:
-            i->addr.eth.sll_family = AF_PACKET;
-            memcpy(i->addr.eth.sll_addr, ifaces->addr.eth.sll_addr, ETH_ALEN);
+            i->addr.linklayer.sll_family = AF_PACKET;
+            memcpy(i->addr.linklayer.sll_addr, ifaces->addr.linklayer.sll_addr, ETH_ALEN);
             i->mtu = 1400;
             i->reflect = 1;
 #ifdef  PROPAGATE_INTERESTS_SEEN_BEFORE
@@ -1054,7 +1054,7 @@ fwd_rule_add(struct info_mgmt_s *mgmt)
             continue;
         };
 
-        fwd->face = ccnl_get_face_or_create(r, fib_rule->dev_id, &(fib_rule->next_hop.sa), sizeof (fib_rule->next_hop.eth));
+        fwd->face = ccnl_get_face_or_create(r, fib_rule->dev_id, &(fib_rule->next_hop.sa), sizeof (fib_rule->next_hop.linklayer));
         if (! (fwd->face))
         {
             DEBUGMSG(WARNING, "could not allocate a new face or find an existing one for dev-id %d\n", fib_rule->dev_id);

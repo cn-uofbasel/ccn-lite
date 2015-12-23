@@ -58,7 +58,7 @@ unsigned char mac_addr[] = {0x55, 0x42, 0x41, 0x53, 0x45, 0x4c};
 #define USE_DEBUG                      // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
 //#define USE_FRAG
-//#define USE_ETHERNET
+//#define USE_LINKLAYER
 //#define USE_HMAC256
 //#define USE_HTTP_STATUS
 #define USE_IPV4
@@ -356,14 +356,14 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
                  inet_ntoa(dest->ip4.sin_addr), ntohs(dest->ip4.sin_port), rc);
         break;
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     case AF_PACKET:
         rc = ccnl_eth_sendto(ifc->sock,
-                             dest->eth.sll_addr,
-                             ifc->addr.eth.sll_addr,
+                             dest->linklayer.sll_addr,
+                             ifc->addr.linklayer.sll_addr,
                              buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
-                 eth2ascii(dest->eth.sll_addr), rc);
+                 eth2ascii(dest->linklayer.sll_addr), rc);
         break;
 #endif
 #ifdef USE_UNIXSOCKET

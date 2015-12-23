@@ -43,7 +43,7 @@ const char secret_key[] PROGMEM = "some secret secret secret secret";
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
 //#define USE_FRAG
-#define USE_ETHERNET
+#define USE_LINKLAYER
 //#define USE_HMAC256
 //#define USE_HTTP_STATUS
 //#define USE_IPV4
@@ -450,8 +450,8 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
 
     theRelay.ifcount = 1;
     theRelay.ifs[0].addr.sa.sa_family = AF_PACKET;
-    ccnl_rfduino_get_MAC_addr(theRelay.ifs[0].addr.eth.sll_addr);
-    theRelay.ifs[0].addr.eth.sll_protocol = htons(0x2222); // doesn't matter
+    ccnl_rfduino_get_MAC_addr(theRelay.ifs[0].addr.linklayer.sll_addr);
+    theRelay.ifs[0].addr.linklayer.sll_protocol = htons(0x2222); // doesn't matter
     theRelay.ifs[0].mtu = 20;
     DEBUGMSG_MAIN(INFO, "  MAC addr is %s\n",
                   ccnl_addr2ascii(&theRelay.ifs[0].addr));

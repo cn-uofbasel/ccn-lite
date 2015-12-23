@@ -358,7 +358,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
         memset(str, 0, 100);
         if(facetype[it] == AF_INET)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_IP, CCN_TT_DTAG, facepeer[it]);
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
         else if(facetype[it] == AF_PACKET)
             len3 += ccnl_ccnb_mkStrBlob(stmt+len3, CCNL_DTAG_ETH, CCN_TT_DTAG, facepeer[it]);
 #endif
@@ -859,20 +859,20 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     // should (re)verify that action=="newface"
 
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
     if (macsrc && host && port) {
         sockunion su;
         DEBUGMSG(TRACE, "  adding ETH face macsrc=%s, host=%s, ethtype=%s\n",
                  macsrc, host, port);
         memset(&su, 0, sizeof(su));
-        su.eth.sll_family = AF_PACKET;
-        su.eth.sll_protocol = htons(strtol((const char*)port, NULL, 0));
+        su.linklayer.sll_family = AF_PACKET;
+        su.linklayer.sll_protocol = htons(strtol((const char*)port, NULL, 0));
         if (sscanf((const char*) host, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-                   su.eth.sll_addr,   su.eth.sll_addr+1,
-                   su.eth.sll_addr+2, su.eth.sll_addr+3,
-                   su.eth.sll_addr+4, su.eth.sll_addr+5) == 6) {
+                   su.linklayer.sll_addr,   su.linklayer.sll_addr+1,
+                   su.linklayer.sll_addr+2, su.linklayer.sll_addr+3,
+                   su.linklayer.sll_addr+4, su.linklayer.sll_addr+5) == 6) {
         // if (!strcmp(macsrc, "any")) // honouring macsrc not implemented yet
-            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.eth));
+            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.linklayer));
         }
     } else
 #endif
@@ -1255,7 +1255,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
       goto Bail;
     }
 
-#if defined(USE_ETHERNET) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
+#if defined(USE_LINKLAYER) && (defined(CCNL_UNIX) || defined(CCNL_LINUXKERNEL))
     if (devname && port) {
         int portnum;
 
@@ -1273,7 +1273,7 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         {
             struct net_device *nd;
             int j;
-            nd = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
+            nd = ccnl_open_ethdev((char*)devname, &i->addr.linklayer, portnum);
             if (!nd) {
                 DEBUGMSG(TRACE, "  could not open device %s\n", devname);
                 goto Bail;
@@ -1291,8 +1291,8 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             i->ccnl_packet.func = ccnl_eth_RX;
             dev_add_pack(&i->ccnl_packet);
         }
-#elif defined(USE_ETHERNET)
-        i->sock = ccnl_open_ethdev((char*)devname, &i->addr.eth, portnum);
+#elif defined(USE_LINKLAYER)
+        i->sock = ccnl_open_ethdev((char*)devname, &i->addr.linklayer, portnum);
         if (!i->sock) {
             DEBUGMSG(TRACE, "  could not open device %s\n", devname);
             goto Bail;

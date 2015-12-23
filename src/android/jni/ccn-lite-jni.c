@@ -131,9 +131,9 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
     DEBUGMSG(DEBUG, "relayRX: %d bytes\n", len);
 
     memset(&su, 0, sizeof(su));
-    su.eth.sll_family = AF_PACKET;
+    su.linklayer.sll_family = AF_PACKET;
     (*env)->GetByteArrayRegion(env, addr, 0, ETH_ALEN,
-                               (signed char*) &su.eth.sll_addr);
+                               (signed char*) &su.linklayer.sll_addr);
 
     if (len > sizeof(buf))
         len = sizeof(buf);

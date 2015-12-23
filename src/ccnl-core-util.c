@@ -46,7 +46,7 @@ const char *compile_string = ""
 #ifdef USE_ECHO
         "ECHO, "
 #endif
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
         "ETHERNET, "
 #endif
 #ifdef USE_FRAG
@@ -373,7 +373,7 @@ ccnl_prefix_new(int suite, int cnt)
 }
 
 int
-hex2int(char c)
+hex2int(unsigned char c)
 {
     if (c >= '0' && c <= '9')
         return c - '0';
@@ -868,14 +868,16 @@ ccnl_addr2ascii(sockunion *su)
         return CONSTSTR("(local)");
 
     switch (su->sa.sa_family) {
-#ifdef USE_ETHERNET
+#ifdef USE_LINKLAYER
+#ifdef USE_DEBUG
     case AF_PACKET: {
-        struct sockaddr_ll *ll = &su->eth;
+        struct sockaddr_ll *ll = &su->linklayer;
         strcpy(result, eth2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
         return result;
     }
+#endif
 #endif
 #ifdef USE_IPV4
     case AF_INET:
@@ -901,7 +903,7 @@ ccnl_addr2ascii(sockunion *su)
         break;
     }
 
-    (void) result; // silence compiler warning (if neither USE_ETHERNET, USE_IPV4, USE_IPV6, nor USE_UNIXSOCKET is set)
+    (void) result; // silence compiler warning (if neither USE_LINKLAYER, USE_IPV4, USE_IPV6, nor USE_UNIXSOCKET is set)
     return NULL;
 }
 
