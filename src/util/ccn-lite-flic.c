@@ -1932,7 +1932,7 @@ flic_lseek(long offs, int whence)
         if (seek->isLeaf)
             break;
         DEBUGMSG(TRACE, "while ...%p, ->%p (%ld %ld)\n",
-                 seek, seek->down, newpos, seek->to);
+                 (void*) seek, (void*) seek->down, newpos, seek->to);
         if (!seek->down) {
             seek->pkt = flic_lookup(seek->pfx, seek->md);
             seek->down = flic_manifest2fromto(seek->pkt);
