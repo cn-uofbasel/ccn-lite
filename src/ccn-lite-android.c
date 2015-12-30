@@ -20,6 +20,8 @@
  * 2015-04-29 created
  */
 
+#define _GNU_SOURCE
+
 #include <dirent.h>
 #include <fnmatch.h>
 #include <jni.h>
@@ -57,14 +59,16 @@
 // #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
 // #define USE_SCHEDULER
+#define USE_SHA256
 #define USE_STATS
+// #define USE_SUITE_LOCALRPC
+// #define USE_UNIXSOCKET
+// #define USE_SIGNATURES
+
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT
 #define USE_SUITE_CCNTLV
 #define USE_SUITE_IOTTLV
 #define USE_SUITE_NDNTLV
-// #define USE_SUITE_LOCALRPC
-// #define USE_UNIXSOCKET
-// #define USE_SIGNATURES
 
 #define NEEDS_PREFIX_MATCHING
 #define NEEDS_PACKET_CRAFTING
@@ -73,6 +77,8 @@
 
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
+
+#include "lib-sha256.c"
 
 #include "ccnl-ext.h"
 #include "ccnl-ext-debug.c"
@@ -83,8 +89,8 @@ void append_to_log(char *line);
 
 #ifdef USE_HMAC256
 const char secret_key[] = "some secret secret secret secret";
-unsigned char keyval[64];
-unsigned char keyid[32];
+unsigned char Keyval[64];
+unsigned char Keyid[32];
 #endif
 
 #define ccnl_app_RX(x,y)                do{}while(0)
@@ -152,7 +158,7 @@ int
 ccnl_open_udpdev(int port, struct sockaddr_in *si)
 {
     int s;
-    unsigned int len;
+    int len;
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0) {
@@ -212,7 +218,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     rc = 0; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
-void
+int
 ccnl_close_socket(int s)
 {
 #ifdef USE_UNIXSOCKET
@@ -224,7 +230,7 @@ ccnl_close_socket(int s)
     }
 #endif
 
-    close(s);
+    return close(s);
 }
 
 // ----------------------------------------------------------------------
@@ -458,7 +464,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
 
             data = olddata = buf->data + skip;
             datalen -= skip;
-            if (ccnl_iottlv_dehead(&data, &datalen, &typ, &len) ||
+            if (ccnl_iottlv_dehead(&data, &datalen, &typ, (int*) &len) ||
                                                        typ != IOT_TLV_Reply)
                 goto notacontent;
             pk = ccnl_iottlv_bytes2pkt(typ, olddata, &data, &datalen);
@@ -474,7 +480,7 @@ ccnl_populate_cache(struct ccnl_relay_s *ccnl, char *path)
             if (ccnl_ndntlv_dehead(&data, &datalen, &typ, &len) ||
                                                          typ != NDN_TLV_Data)
                 goto notacontent;
-            pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &datalen);
+            pk = ccnl_ndntlv_bytes2pkt(olddata, &data, &datalen);
             break;
         }
 #endif
@@ -745,10 +751,10 @@ ccnl_android_init()
 #endif
 
 #ifdef USE_HMAC256
-    ccnl_hmac256_keyval((unsigned char*)secret_key,
-                        strlen(secret_key), keyval);
-    ccnl_hmac256_keyid((unsigned char*)secret_key,
-                        strlen(secret_key), keyid);
+    ccnl_hmac256_keyval((const unsigned char*)secret_key,
+                        strlen(secret_key), Keyval);
+    ccnl_hmac256_keyid((const unsigned char*)secret_key,
+                        strlen(secret_key), Keyid);
 #endif
 
     snprintf(hello, CCNL_ARRAY_SIZE(hello), "ccn-lite-android, %s",

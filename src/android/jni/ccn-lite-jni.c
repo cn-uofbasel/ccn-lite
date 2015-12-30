@@ -123,7 +123,7 @@ Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayRX(JNIEnv* env,
                                                          jbyteArray addr,
                                                          jbyteArray data)
 {
-    int len;
+    unsigned int len;
     unsigned char buf[1024];
     sockunion su;
 

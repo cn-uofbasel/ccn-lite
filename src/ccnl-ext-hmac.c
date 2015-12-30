@@ -24,7 +24,7 @@
 
 // RFC2014 keyval generation
 void
-ccnl_hmac256_keyval(unsigned char *key, int klen,
+ccnl_hmac256_keyval(const unsigned char *key, int klen,
                     unsigned char *keyval) // MUST have 64 bytes (BLOCK_LENGTH)
 {
     DEBUGMSG(TRACE, "ccnl_hmac256_keyval %d bytes\n", klen);
@@ -43,7 +43,7 @@ ccnl_hmac256_keyval(unsigned char *key, int klen,
 }
 
 void
-ccnl_hmac256_keyid(unsigned char *key, int klen,
+ccnl_hmac256_keyid(const unsigned char *key, int klen,
                    unsigned char *keyid) // MUST have 32 bytes (DIGEST_LENGTH)
 {
     SHA256_CTX_t ctx;
