@@ -42,6 +42,13 @@
 #define CCNL_FRAG_SEQUENCED2015 3
 #define CCNL_FRAG_BEGINEND2015  4
 
+#ifdef CCNL_RIOT
+#define CCNL_LLADDR_STR_MAX_LEN    (3 * 8)
+#else
+/* unless a platform supports a link layer with longer addresses than Ethernet,
+ * 6 is enough */
+#define CCNL_LLADDR_STR_MAX_LEN    (3 * 6)
+#endif
 // ----------------------------------------------------------------------
 
 typedef union {

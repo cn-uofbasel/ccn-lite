@@ -855,6 +855,28 @@ free_packet(struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 
+/* translates link-layer address into a string */
+char*
+ll2ascii(unsigned char *addr)
+{
+    static char buf[CCNL_LLADDR_STR_MAX_LEN];
+
+#ifdef CCNL_ARDUINO
+    sprintf_P(buf, PSTR("%02x"), (unsigned char) addr[0]);
+#else
+    sprintf(buf, "%02x", (unsigned char) addr[0]);
+#endif
+    for (int i = 1; i < CCNL_LLADDR_STR_MAX_LEN; i++) {
+#ifdef CCNL_ARDUINO
+        sprintf_P(&buf[i], PSTR(":%02x"), (unsigned char) addr[i]);
+#else
+        sprintf(&buf[i], ":%02x", (unsigned char) addr[i]);
+#endif
+    }
+
+    return buf;
+}
+
 char*
 ccnl_addr2ascii(sockunion *su)
 {
@@ -869,15 +891,13 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_LINKLAYER
-#ifdef USE_DEBUG
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
-        strcpy(result, eth2ascii(ll->sll_addr));
+        strcpy(result, ll2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
         return result;
     }
-#endif
 #endif
 #ifdef USE_IPV4
     case AF_INET:

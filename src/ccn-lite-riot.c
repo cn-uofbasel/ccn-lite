@@ -326,6 +326,20 @@ ccnl_start(void)
     return _ccnl_event_loop_pid;
 }
 
+char*
+ll2ascii(unsigned char *addr)
+{
+    static char buf[24];
+
+    sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+            (unsigned char) addr[0], (unsigned char) addr[1],
+            (unsigned char) addr[2], (unsigned char) addr[3],
+            (unsigned char) addr[4], (unsigned char) addr[5],
+            (unsigned char) addr[6], (unsigned char) addr[7]);
+    return buf;
+}
+
+
 int
 ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                    struct ccnl_face_s *face)
