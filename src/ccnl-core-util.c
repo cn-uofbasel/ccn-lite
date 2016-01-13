@@ -3,6 +3,7 @@
  * @b CCN lite, common utility procedures (used by utils as well as relays)
  *
  * Copyright (C) 2011-15, Christian Tschudin, University of Basel
+ * Copyright (C) 2016, Martine Lenders <mlenders@inf.fu-berlin.de>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -854,27 +855,34 @@ free_packet(struct ccnl_pkt_s *pkt)
 }
 
 // ----------------------------------------------------------------------
+static inline char
+_half_byte_to_char(uint8_t half_byte)
+{
+    return (half_byte < 10) ? ('0' + half_byte) : ('a' + (half_byte - 10));
+}
 
 /* translates link-layer address into a string */
 char*
 ll2ascii(unsigned char *addr)
 {
-    static char buf[CCNL_LLADDR_STR_MAX_LEN];
+    size_t i;
+    static char out[CCNL_LLADDR_STR_MAX_LEN + 1];
 
-#ifdef CCNL_ARDUINO
-    sprintf_P(buf, PSTR("%02x"), (unsigned char) addr[0]);
-#else
-    sprintf(buf, "%02x", (unsigned char) addr[0]);
-#endif
-    for (int i = 1; i < CCNL_LLADDR_STR_MAX_LEN; i++) {
-#ifdef CCNL_ARDUINO
-        sprintf_P(&buf[i], PSTR(":%02x"), (unsigned char) addr[i]);
-#else
-        sprintf(&buf[i], ":%02x", (unsigned char) addr[i]);
-#endif
+    out[0] = '\0';
+
+    for (i = 0; i < CCNL_LLADDR_STR_MAX_LEN / 3; i++) {
+        out[(3 * i)] = _half_byte_to_char(addr[i] >> 4);
+        out[(3 * i) + 1] = _half_byte_to_char(addr[i] & 0xf);
+
+        if (i != (CCNL_LLADDR_STR_MAX_LEN / 3 - 1)) {
+            out[(3 * i) + 2] = ':';
+        }
+        else {
+            out[(3 * i) + 2] = '\0';
+        }
     }
 
-    return buf;
+    return out;
 }
 
 char*
