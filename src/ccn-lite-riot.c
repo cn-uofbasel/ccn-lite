@@ -327,61 +327,38 @@ ccnl_start(void)
 }
 
 int
-ccnl_wait_for_chunk(void *buf, size_t buf_len)
+ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face)
 {
-    gnrc_netreg_entry_t _ne;
-    /* register for content chunks */
-    _ne.demux_ctx =  GNRC_NETREG_DEMUX_CTX_ALL;
-    _ne.pid = sched_active_pid;
-    gnrc_netreg_register(GNRC_NETTYPE_CCN_CHUNK, &_ne);
+    struct ccnl_forward_s *fwd, **fwd2;
 
-    int res = (-1);
+    DEBUGMSG_CFWD(INFO, "adding FIB for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
 
-    while (1) { /* wait for a content pkt (ignore interests) */
-        DEBUGMSG(DEBUG, "  waiting for packet\n");
-
-        /* TODO: receive from socket or interface */
-        msg_t m;
-        if (xtimer_msg_receive_timeout(&m, SEC_IN_USEC) >= 0) {
-            DEBUGMSG(DEBUG, "received something\n");
-        }
-        else {
-            /* TODO: handle timeout reasonably */
-            DEBUGMSG(WARNING, "timeout\n");
-            res = -ETIMEDOUT;
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (fwd->suite == pfx->suite &&
+                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
+            free_prefix(fwd->prefix);
+            fwd->prefix = NULL;
             break;
-        }
-
-        if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
-            DEBUGMSG(TRACE, "It's from the stack!\n");
-            gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t *)m.content.ptr;
-            DEBUGMSG(DEBUG, "Type is: %i\n", pkt->type);
-            if (pkt->type == GNRC_NETTYPE_CCN_CHUNK) {
-                char *c = (char*) pkt->data;
-                DEBUGMSG(INFO, "Content is: %s\n", c);
-                size_t len = (pkt->size > buf_len) ? buf_len : pkt->size;
-                memcpy(buf, pkt->data, len);
-                res = (int) len;
-                gnrc_pktbuf_release(pkt);
-            }
-            else {
-                DEBUGMSG(WARNING, "Unkown content\n");
-                gnrc_pktbuf_release(pkt);
-                continue;
-            }
-            break;
-        }
-        else {
-            /* TODO: reduce timeout value */
-            DEBUGMSG(DEBUG, "Unknow message received, ignore it\n");
         }
     }
+    if (!fwd) {
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd)
+            return -1;
+        fwd2 = &relay->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        fwd->suite = pfx->suite;
+    }
+    fwd->prefix = pfx;
+    fwd->face = face;
 
-    /* unregister again, we're not expecting more chunks */
-    gnrc_netreg_unregister(GNRC_NETTYPE_CCN_CHUNK, &_ne);
-
-    return res;
+    return 0;
 }
+
 
 int
 ccnl_send_interest(int suite, char *name, uint8_t *addr,
@@ -448,4 +425,60 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     ccnl_interest_propagate(&theRelay, i);
 
     return 0;
+}
+
+int
+ccnl_wait_for_chunk(void *buf, size_t buf_len)
+{
+    /* register for content chunks */
+    _ne.demux_ctx =  GNRC_NETREG_DEMUX_CTX_ALL;
+    _ne.pid = sched_active_pid;
+    gnrc_netreg_register(GNRC_NETTYPE_CCN_CHUNK, &_ne);
+
+    int res = (-1);
+
+    while (1) { /* wait for a content pkt (ignore interests) */
+        DEBUGMSG(DEBUG, "  waiting for packet\n");
+
+        /* TODO: receive from socket or interface */
+        msg_t m;
+        if (xtimer_msg_receive_timeout(&m, SEC_IN_USEC) >= 0) {
+            DEBUGMSG(DEBUG, "received something\n");
+        }
+        else {
+            /* TODO: handle timeout reasonably */
+            DEBUGMSG(WARNING, "timeout\n");
+            res = -ETIMEDOUT;
+            break;
+        }
+
+        if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
+            DEBUGMSG(TRACE, "It's from the stack!\n");
+            gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t *)m.content.ptr;
+            DEBUGMSG(DEBUG, "Type is: %i\n", pkt->type);
+            if (pkt->type == GNRC_NETTYPE_CCN_CHUNK) {
+                char *c = (char*) pkt->data;
+                DEBUGMSG(INFO, "Content is: %s\n", c);
+                size_t len = (pkt->size > buf_len) ? buf_len : pkt->size;
+                memcpy(buf, pkt->data, len);
+                res = (int) len;
+                gnrc_pktbuf_release(pkt);
+            }
+            else {
+                DEBUGMSG(WARNING, "Unkown content\n");
+                gnrc_pktbuf_release(pkt);
+                continue;
+            }
+            break;
+        }
+        else {
+            /* TODO: reduce timeout value */
+            DEBUGMSG(DEBUG, "Unknow message received, ignore it\n");
+        }
+    }
+
+    /* unregister again, we're not expecting more chunks */
+    gnrc_netreg_unregister(GNRC_NETTYPE_CCN_CHUNK, &_ne);
+
+    return res;
 }
