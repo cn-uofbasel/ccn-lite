@@ -929,6 +929,70 @@ ccnl_addr2ascii(sockunion *su)
 
 // ----------------------------------------------------------------------
 
+/* add a new entry to the FIB */
+int
+ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face)
+{
+    struct ccnl_forward_s *fwd, **fwd2;
+
+    DEBUGMSG_CFWD(INFO, "adding FIB for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (fwd->suite == pfx->suite &&
+                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
+            free_prefix(fwd->prefix);
+            fwd->prefix = NULL;
+            break;
+        }
+    }
+    if (!fwd) {
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd)
+            return -1;
+        fwd2 = &relay->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        fwd->suite = pfx->suite;
+    }
+    fwd->prefix = pfx;
+    fwd->face = face;
+
+    return 0;
+}
+
+/* prints the current FIB */
+void
+ccnl_show_fib(struct ccnl_relay_s *relay)
+{
+    struct ccnl_forward_s *fwd;
+
+    printf("%-30s | %-10s | %-9s | Peer\n",
+           "Prefix", "Suite",
+#ifdef CCNL_RIOT
+           "Interface"
+#else
+           "Socket"
+#endif
+           );
+    puts("-------------------------------|------------|-----------|------------------------------------");
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        printf("%-30s | %-10s |        %02i | %s\n", ccnl_prefix_to_path(fwd->prefix),
+                                     ccnl_suite2str(fwd->suite),
+                                     /* TODO: show correct interface instead of always 0 */
+#ifdef CCNL_RIOT
+                                     (ccnl_relay.ifs[0]).if_pid,
+#else
+                                     (ccnl_relay.ifs[0]).sock,
+#endif
+                                     ccnl_addr2ascii(&fwd->face->peer));
+    }
+}
+
+// ----------------------------------------------------------------------
+
 #ifndef CCNL_LINUXKERNEL
 
 char*
