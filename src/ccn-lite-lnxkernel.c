@@ -428,7 +428,7 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
     sll->sll_ifindex = dev->ifindex;
 
     DEBUGMSG(INFO, "access to %s with MAC=%s installed\n",
-             devname, ll2ascii(sll->sll_addr));
+             devname, ll2ascii(sll->sll_addr, sll->sll_halen));
     //    dev_put(dev);
     return dev;
 }

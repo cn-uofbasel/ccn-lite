@@ -229,13 +229,13 @@ ccnl_simu_ethernet(void *dummy, void *dummy2)
             memcpy(sun.linklayer.sll_addr, p->src, ETH_ALEN);
 
             DEBUGMSG(DEBUG, "simu_ethernet: sending %d Bytes to %s, (qlen=%d)\n",
-                     p->len, ll2ascii(p->dst), qlen);
+                     p->len, ll2ascii(p->dst, 6), qlen);
 
             ccnl_core_RX(relays + i, 0, (unsigned char*) p->data,
                         p->len, &sun.sa, sizeof(sun.linklayer));
         } else {
             DEBUGMSG(WARNING, "simu_ethernet: dest %s not found\n",
-                     ll2ascii(etherqueue->dst));
+                     ll2ascii(etherqueue->dst, 6));
         }
         ccnl_free(p);
     }

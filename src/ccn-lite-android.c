@@ -190,7 +190,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     case AF_PACKET:
         rc = jni_bleSend(buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
-                 ll2ascii(dest->linklayer.sll_addr), rc);
+                 ll2ascii(dest->linklayer.sll_addr, dest->linklayer.sll_halen), rc);
         break;
 #endif
 #ifdef USE_UNIXSOCKET
