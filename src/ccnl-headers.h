@@ -50,7 +50,6 @@ struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 /* ccnl-ext-debug.c */
 
 #ifdef USE_DEBUG
-char *eth2ascii(unsigned char *eth);
 char *frag_protocol(int e);
 void ccnl_dump(int lev, int typ, void *p);
 int get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next);
@@ -233,7 +232,8 @@ int ccnl_lambdaStrToComponents(char **compVector, char *str);
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 struct ccnl_buf_s *ccnl_mkSimpleContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *payoffset);
 int ccnl_str2suite(char *cp);
-
+int ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
+void ccnl_show_fib(struct ccnl_relay_s *relay);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccnb.c */
