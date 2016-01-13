@@ -855,6 +855,28 @@ free_packet(struct ccnl_pkt_s *pkt)
 
 // ----------------------------------------------------------------------
 
+/* translates link-layer address into a string */
+char*
+ll2ascii(unsigned char *addr)
+{
+    static char buf[CCNL_LLADDR_STR_MAX_LEN];
+
+#ifdef CCNL_ARDUINO
+    sprintf_P(buf, PSTR("%02x"), (unsigned char) addr[0]);
+#else
+    sprintf(buf, "%02x", (unsigned char) addr[0]);
+#endif
+    for (int i = 1; i < CCNL_LLADDR_STR_MAX_LEN; i++) {
+#ifdef CCNL_ARDUINO
+        sprintf_P(&buf[i], PSTR(":%02x"), (unsigned char) addr[i]);
+#else
+        sprintf(&buf[i], ":%02x", (unsigned char) addr[i]);
+#endif
+    }
+
+    return buf;
+}
+
 char*
 ccnl_addr2ascii(sockunion *su)
 {
@@ -869,15 +891,13 @@ ccnl_addr2ascii(sockunion *su)
 
     switch (su->sa.sa_family) {
 #ifdef USE_LINKLAYER
-#ifdef USE_DEBUG
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
-        strcpy(result, eth2ascii(ll->sll_addr));
+        strcpy(result, ll2ascii(ll->sll_addr));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
         return result;
     }
-#endif
 #endif
 #ifdef USE_IPV4
     case AF_INET:
@@ -905,6 +925,73 @@ ccnl_addr2ascii(sockunion *su)
 
     (void) result; // silence compiler warning (if neither USE_LINKLAYER, USE_IPV4, USE_IPV6, nor USE_UNIXSOCKET is set)
     return NULL;
+}
+
+// ----------------------------------------------------------------------
+#ifdef NEEDS_PREFIX_MATCHING
+
+/* add a new entry to the FIB */
+int
+ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face)
+{
+    struct ccnl_forward_s *fwd, **fwd2;
+
+    DEBUGMSG_CFWD(INFO, "adding FIB for <%s>, suite %s\n",
+             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (fwd->suite == pfx->suite &&
+                        !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
+            free_prefix(fwd->prefix);
+            fwd->prefix = NULL;
+            break;
+        }
+    }
+    if (!fwd) {
+        fwd = (struct ccnl_forward_s *) ccnl_calloc(1, sizeof(*fwd));
+        if (!fwd)
+            return -1;
+        fwd2 = &relay->fib;
+        while (*fwd2)
+            fwd2 = &((*fwd2)->next);
+        *fwd2 = fwd;
+        fwd->suite = pfx->suite;
+    }
+    fwd->prefix = pfx;
+    fwd->face = face;
+
+    return 0;
+}
+
+#endif
+
+/* prints the current FIB */
+void
+ccnl_show_fib(struct ccnl_relay_s *relay)
+{
+    struct ccnl_forward_s *fwd;
+
+    printf("%-30s | %-10s | %-9s | Peer\n",
+           "Prefix", "Suite",
+#ifdef CCNL_RIOT
+           "Interface"
+#else
+           "Socket"
+#endif
+           );
+    puts("-------------------------------|------------|-----------|------------------------------------");
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        printf("%-30s | %-10s |        %02i | %s\n", ccnl_prefix_to_path(fwd->prefix),
+                                     ccnl_suite2str(fwd->suite), (int)
+                                     /* TODO: show correct interface instead of always 0 */
+#ifdef CCNL_RIOT
+                                     (relay->ifs[0]).if_pid,
+#else
+                                     (relay->ifs[0]).sock,
+#endif
+                                     ccnl_addr2ascii(&fwd->face->peer));
+    }
 }
 
 // ----------------------------------------------------------------------
