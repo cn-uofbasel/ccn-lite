@@ -516,7 +516,7 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     sun.sa.sa_family = AF_PACKET;
     memcpy(&(sun.linklayer.sll_addr), addr, addr_len);
     sun.linklayer.sll_halen = addr_len;
-    sun.linklayer.sll_protocol = ETHERTYPE_NDN;
+    sun.linklayer.sll_protocol = htons(ETHERTYPE_NDN);
 
     /* TODO: set correct interface instead of always 0 */
     struct ccnl_face_s *fibface = ccnl_get_face_or_create(&ccnl_relay, 0, &sun.sa, sizeof(sun.linklayer));
