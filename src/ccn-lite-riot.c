@@ -436,7 +436,7 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len)
 
         /* TODO: receive from socket or interface */
         msg_t m;
-        if (xtimer_msg_receive_timeout(&m, SEC_IN_USEC) >= 0) {
+        if (xtimer_msg_receive_timeout(&m, CCNL_MAX_INTEREST_RETRANSMIT * SEC_IN_USEC) >= 0) {
             DEBUGMSG(DEBUG, "received something\n");
         }
         else {
