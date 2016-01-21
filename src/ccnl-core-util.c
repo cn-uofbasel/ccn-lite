@@ -1041,6 +1041,11 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         buf = prefix_buf2;
     */
     char *buf = (char*) ccnl_malloc(PREFIX_BUFSIZE);
+    if (buf == NULL) {
+        DEBUGMSG_CUTL(ERROR, "ccnl_prefix_to_path_detailed: malloc failed, exiting\n");
+        return NULL;
+    }
+
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN)
         len += sprintf(buf + len, "nfn");
