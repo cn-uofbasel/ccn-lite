@@ -27,19 +27,21 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_content_s *c;
 
+    char *s = NULL;
 #ifdef USE_NFN
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s (nfnflags=%d) from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->suite),
                   (*pkt)->pfx->nfnflags,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     DEBUGMSG_CFWD(INFO, "data %.*s\n", (*pkt)->contlen, (*pkt)->content);
 #else
     DEBUGMSG_CFWD(INFO, "  incoming data=<%s>%s from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
 #endif
+    ccnl_free(s);
 
 #if defined(USE_SUITE_CCNB) && defined(USE_SIGNATURES)
 //  FIXME: mgmt messages for NDN and other suites?
@@ -140,10 +142,12 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
 
+    char *s = NULL;
     DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s from=%s\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->suite),
                   ccnl_addr2ascii(from ? &from->peer : NULL));
+    ccnl_free(s);
 
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
@@ -205,17 +209,19 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
 
+    char *s = NULL;
 #ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s, nfnflags=%d)\n",
                       (void *) i,
-                      ccnl_prefix_to_path(i->pkt->pfx),
+                      (s = ccnl_prefix_to_path(i->pkt->pfx)),
                       i->pkt->pfx->nfnflags);
 #else
         DEBUGMSG_CFWD(DEBUG,
                       "  created new interest entry %p (prefix=%s)\n",
-                      (void *) i, ccnl_prefix_to_path(i->pkt->pfx));
+                      (void *) i, (s = ccnl_prefix_to_path(i->pkt->pfx)));
 #endif
+    ccnl_free(s);
     }
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
@@ -694,8 +700,10 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 {
     struct ccnl_forward_s *fwd, **fwd2;
 
+    char *s = NULL;
     DEBUGMSG_CFWD(INFO, "setting tap for <%s>, suite %s\n",
-             ccnl_prefix_to_path(pfx), ccnl_suite2str(pfx->suite));
+             (s = ccnl_prefix_to_path(pfx)), ccnl_suite2str(pfx->suite));
+    ccnl_free(s);
 
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         if (fwd->suite == pfx->suite &&
