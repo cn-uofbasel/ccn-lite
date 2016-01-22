@@ -975,6 +975,7 @@ ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     }
     fwd->prefix = pfx;
     fwd->face = face;
+    DEBUGMSG_CUTL(DEBUG, "added FIB via %s\n", ccnl_addr2ascii(&fwd->face->peer));
 
     return 0;
 }
