@@ -41,6 +41,7 @@
 // #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
+#define USE_DUP_CHECK
 #define USE_ECHO
 #define USE_LINKLAYER                   // we co-use addr formatting for BTLE
 //#define USE_FRAG
