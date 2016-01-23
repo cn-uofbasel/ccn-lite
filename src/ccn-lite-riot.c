@@ -421,7 +421,7 @@ ccnl_start(void)
 }
 
 int
-ccnl_wait_for_chunk(void *buf, size_t buf_len)
+ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 {
     gnrc_netreg_entry_t _ne;
     /* register for content chunks */
@@ -431,12 +431,16 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len)
 
     int res = (-1);
 
+    if (timeout == 0) {
+        timeout = CCNL_MAX_INTEREST_RETRANSMIT * SEC_IN_USEC;
+    }
+
     while (1) { /* wait for a content pkt (ignore interests) */
         DEBUGMSG(DEBUG, "  waiting for packet\n");
 
         /* TODO: receive from socket or interface */
         msg_t m;
-        if (xtimer_msg_receive_timeout(&m, CCNL_MAX_INTEREST_RETRANSMIT * SEC_IN_USEC) >= 0) {
+        if (xtimer_msg_receive_timeout(&m, timeout) >= 0) {
             DEBUGMSG(DEBUG, "received something\n");
         }
         else {
