@@ -505,7 +505,7 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
         return(-1);
     }
 
-    DEBUGMSG(INFO, "interest for chunk number: %u\n", *chunknum);
+    DEBUGMSG(INFO, "interest for chunk number: %u\n", (chunknum == NULL) ? 0 : *chunknum);
     prefix = ccnl_URItoPrefix(name, suite, NULL, chunknum);
 
     if (!prefix) {
