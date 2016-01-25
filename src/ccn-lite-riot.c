@@ -219,9 +219,6 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
 
     /* advance interface counter in relay */
     ccnl_relay.ifcount++;
-    i = &ccnl_relay.ifs[ccnl_relay.ifcount];
-    i->if_pid = KERNEL_PID_UNDEF;
-    i->sock = -1;
 
     /* configure the interface to use the specified nettype protocol */
     gnrc_netapi_set(if_pid, NETOPT_PROTO, 0, &netreg_type, sizeof(gnrc_nettype_t));
