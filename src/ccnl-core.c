@@ -349,6 +349,10 @@ ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf)
 {
     struct ccnl_buf_s *msg;
+    if (buf == NULL) {
+        DEBUGMSG_CORE(ERROR, "enqueue face: buf most not be NULL\n");
+        return -1;
+    }
     DEBUGMSG_CORE(TRACE, "enqueue face=%p (id=%d.%d) buf=%p len=%zd\n",
              (void*) to, ccnl->id, to->faceid, (void*) buf, buf ? buf->datalen : -1);
 
