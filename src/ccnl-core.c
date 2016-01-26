@@ -395,10 +395,12 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
                                             sizeof(struct ccnl_interest_s));
+    char *s = NULL;
     DEBUGMSG_CORE(TRACE,
                   "ccnl_new_interest(prefix=%s, suite=%s)\n",
-                  ccnl_prefix_to_path((*pkt)->pfx),
+                  (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->pfx->suite));
+    ccnl_free(s);
 
     if (!i)
         return NULL;
@@ -481,10 +483,12 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
+            char *s = NULL;
             DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
-                          ccnl_prefix_to_path(i->pkt->pfx),
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
                                     : "<tap>");
+            ccnl_free(s);
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
 
             // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
@@ -586,8 +590,10 @@ ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
     (void) ccnl;
     struct ccnl_content_s *c;
 
+    char *s = NULL;
     DEBUGMSG_CORE(TRACE, "ccnl_content_new %p <%s [%d]>\n",
-             (void*) *pkt, ccnl_prefix_to_path((*pkt)->pfx), ((*pkt)->pfx->chunknum)? *((*pkt)->pfx->chunknum) : -1);
+             (void*) *pkt, (s = ccnl_prefix_to_path((*pkt)->pfx)), ((*pkt)->pfx->chunknum)? *((*pkt)->pfx->chunknum) : -1);
+    ccnl_free(s);
 
     c = (struct ccnl_content_s *) ccnl_calloc(1, sizeof(struct ccnl_content_s));
     if (!c)
@@ -626,9 +632,11 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
     struct ccnl_content_s *cit;
 
+    char *s = NULL;
     DEBUGMSG_CORE(DEBUG, "ccnl_content_add2cache (%d/%d) --> %p = %s [%d]\n",
                   ccnl->contentcnt, ccnl->max_cache_entries,
-                  (void*)c, ccnl_prefix_to_path(c->pkt->pfx), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+                  (void*)c, (s = ccnl_prefix_to_path(c->pkt->pfx)), (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1);
+    ccnl_free(s);
     for (cit = ccnl->contents; cit; cit = cit->next) {
         if (c == cit) {
             DEBUGMSG_CORE(DEBUG, "--- Already in cache ---\n");
@@ -742,10 +750,12 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
+                char *s = NULL;
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s to=%s\n",
-                          ccnl_prefix_to_path(i->pkt->pfx),
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
                           ccnl_suite2str(i->pkt->pfx->suite),
                           ccnl_addr2ascii(&pi->face->peer));
+                ccnl_free(s);
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
                 ccnl_nfn_monitor(ccnl, pi->face, c->pkt->pfx,
@@ -786,16 +796,20 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
+            char *s = NULL;
             DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
             DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                           (void*)i,
-                     ccnl_prefix_to_path(i->pkt->pfx));
+                     (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            ccnl_free(s);
             i = ccnl_nfn_interest_remove(relay, i);
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
+            char *s = NULL;
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
-                     ccnl_prefix_to_path(i->pkt->pfx));
+                     (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            ccnl_free(s);
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif
