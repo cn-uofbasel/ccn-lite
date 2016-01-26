@@ -515,6 +515,7 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
+    free_prefix(prefix);
 
     unsigned char *start = buf;
     unsigned char *data = buf;
