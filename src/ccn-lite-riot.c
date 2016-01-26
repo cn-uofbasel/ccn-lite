@@ -482,10 +482,8 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
 /* generates and send out an interest */
 int
-ccnl_send_interest(int suite, char *name, uint8_t *addr,
-                               size_t addr_len, unsigned int *chunknum,
-                               unsigned char *buf, size_t buf_len)
-
+ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
+                    unsigned char *buf, size_t buf_len)
 {
     struct ccnl_prefix_s *prefix;
 
@@ -514,18 +512,6 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
     }
 
     int nonce = random_uint32();
-    /* TODO: support other transports than AF_PACKET */
-    sockunion sun;
-    sun.sa.sa_family = AF_PACKET;
-    memcpy(&(sun.linklayer.sll_addr), addr, addr_len);
-    sun.linklayer.sll_halen = addr_len;
-    sun.linklayer.sll_protocol = htons(ETHERTYPE_NDN);
-
-    /* TODO: set correct interface instead of always 0 */
-    struct ccnl_face_s *fibface = ccnl_get_face_or_create(&ccnl_relay, 0, &sun.sa, sizeof(sun.linklayer));
-    fibface->flags |= CCNL_FACE_FLAGS_STATIC;
-    ccnl_add_fib_entry(&ccnl_relay, prefix, fibface);
-
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
