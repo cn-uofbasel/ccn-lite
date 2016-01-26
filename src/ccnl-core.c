@@ -770,7 +770,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     struct ccnl_interest_s *i = relay->pit;
     struct ccnl_face_s *f = relay->faces;
     time_t t = CCNL_NOW();
-    DEBUGMSG_CORE(TRACE, "ageing t=%d\n", (int)t);
+    DEBUGMSG_CORE(VERBOSE, "ageing t=%d\n", (int)t);
 
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
