@@ -221,9 +221,9 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
     int hdrlen;
 
 #ifdef USE_DEBUG
-    strcpy((char*)buf, ll2ascii(dst));
+    strcpy((char*)buf, ll2ascii(dst, 6));
     DEBUGMSG(TRACE, "ccnl_eth_sendto %d bytes (src=%s, dst=%s)\n",
-             datalen, ll2ascii(src), buf);
+             datalen, ll2ascii(src, 6), buf);
 #endif
 
     hdrlen = 14;
@@ -269,7 +269,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                              ifc->addr.linklayer.sll_addr,
                              buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
-                 ll2ascii(dest->linklayer.sll_addr), rc);
+                 ll2ascii(dest->linklayer.sll_addr, dest->linklayer.sll_halen), rc);
         break;
 #endif
 #ifdef USE_UNIXSOCKET

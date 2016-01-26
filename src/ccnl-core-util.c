@@ -863,18 +863,18 @@ _half_byte_to_char(uint8_t half_byte)
 
 /* translates link-layer address into a string */
 char*
-ll2ascii(unsigned char *addr)
+ll2ascii(unsigned char *addr, size_t len)
 {
     size_t i;
     static char out[CCNL_LLADDR_STR_MAX_LEN + 1];
 
     out[0] = '\0';
 
-    for (i = 0; i < CCNL_LLADDR_STR_MAX_LEN / 3; i++) {
+    for (i = 0; i < len; i++) {
         out[(3 * i)] = _half_byte_to_char(addr[i] >> 4);
         out[(3 * i) + 1] = _half_byte_to_char(addr[i] & 0xf);
 
-        if (i != (CCNL_LLADDR_STR_MAX_LEN / 3 - 1)) {
+        if (i != (len - 1)) {
             out[(3 * i) + 2] = ':';
         }
         else {
@@ -901,7 +901,7 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_LINKLAYER
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
-        strcpy(result, ll2ascii(ll->sll_addr));
+        strcpy(result, ll2ascii(ll->sll_addr, ll->sll_halen));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
         return result;
