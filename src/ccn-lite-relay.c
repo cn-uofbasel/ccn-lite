@@ -31,6 +31,7 @@
 #define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 #define USE_DEBUG_MALLOC
+#define USE_DUP_CHECK
 #define USE_ECHO
 #define USE_LINKLAYER
 //#define USE_FRAG

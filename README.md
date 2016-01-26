@@ -147,6 +147,7 @@ Featue             | Description
 `USE_CHEMFLOW`     | Experimental scheduler based on chemical networking, source not included.
 `USE_DEBUG`        | Basic data structure dumping.
 `USE_DEBUG_MALLOC` | Compile with memory armoring.
+`USE_DUP_CHECK`    | Check for duplicate nonces.
 `USE_ECHO`         | Enable an echo prefix, returning the current time.
 `USE_LINKLAYER`    | Talk to Ethernet, W-LAN, 802.15.4 devices, raw frames.
 `USE_FRAG`         | Enable fragments, to run CCNx over Ethernet.

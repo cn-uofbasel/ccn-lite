@@ -57,6 +57,7 @@ unsigned char mac_addr[] = {0x55, 0x42, 0x41, 0x53, 0x45, 0x4c};
 //#define USE_CCNxDIGEST
 #define USE_DEBUG                      // must select this for USE_MGMT
 // #define USE_DEBUG_MALLOC
+#define USE_DUP_CHECK
 //#define USE_FRAG
 //#define USE_LINKLAYER
 //#define USE_HMAC256

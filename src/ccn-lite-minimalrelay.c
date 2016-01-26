@@ -52,6 +52,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #undef USE_NFN
 
+#define USE_DUP_CHECK
 #define USE_IPV4
 #define USE_SUITE_NDNTLV
 #define NEEDS_PREFIX_MATCHING

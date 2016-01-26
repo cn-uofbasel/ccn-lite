@@ -149,10 +149,12 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     ccnl_free(s);
 
+#ifdef USE_DUP_CHECK
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce\n");
         return 0;
     }
+#endif
 
     if (local_producer(relay, from, *pkt)) {
         *pkt = NULL;

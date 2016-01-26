@@ -30,6 +30,7 @@
 
 #define USE_DEBUG
 #define USE_DEBUG_MALLOC
+#define USE_DUP_CHECK
 #define USE_LINKLAYER
 #define USE_FRAG
 #define USE_IPV4
