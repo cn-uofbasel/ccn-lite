@@ -985,6 +985,7 @@ ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 void
 ccnl_show_fib(struct ccnl_relay_s *relay)
 {
+#ifndef CCNL_LINUXKERNEL
     struct ccnl_forward_s *fwd;
 
     printf("%-30s | %-10s | %-9s | Peer\n",
@@ -1009,6 +1010,7 @@ ccnl_show_fib(struct ccnl_relay_s *relay)
                                      ccnl_addr2ascii(&fwd->face->peer));
         ccnl_free(s);
     }
+#endif
 }
 
 // ----------------------------------------------------------------------

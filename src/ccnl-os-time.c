@@ -22,7 +22,7 @@
  *   ccnl_timer_s to the '#ifndef CCNL_LINUXKERNEL' section
  */
 
-#include "ccnl-headers.h"
+//#include "ccnl-headers.h"
 // ----------------------------------------------------------------------
 #ifdef CCNL_ARDUINO
 
