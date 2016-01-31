@@ -451,7 +451,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
     struct ccnl_forward_s *fwd;
     int rc = 0;
-#ifdef USE_NACK
+#if defined(USE_NACK) || defined(USE_RONR)
     int matching_face = 0;
 #endif
 
@@ -498,13 +498,33 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                 (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);
             if (fwd->face)
                 ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
-#ifdef USE_NACK
+#if defined(USE_NACK) || defined(USE_RONR)
             matching_face = 1;
 #endif
         } else {
-            DEBUGMSG_CORE(DEBUG, "  not forwarded\n");
+            DEBUGMSG_CORE(DEBUG, "  no matching fib entry found\n");
         }
     }
+
+#ifdef USE_RONR
+    if (!matching_face) {
+        /* initialize address with 0xFF for broadcast */
+        size_t addr_len = CCNL_MAX_ADDRESS_LEN;
+        uint8_t relay_addr[CCNL_MAX_ADDRESS_LEN];
+        memset(relay_addr, CCNL_BROADCAST_OCTET, CCNL_MAX_ADDRESS_LEN);
+
+        sockunion sun;
+        sun.sa.sa_family = AF_PACKET;
+        memcpy(&(sun.linklayer.sll_addr), relay_addr, addr_len);
+        sun.linklayer.sll_halen = addr_len;
+        sun.linklayer.sll_protocol = htons(ETHERTYPE_NDN);
+
+        /* TODO: set correct interface instead of always 0 */
+        struct ccnl_face_s *fibface = ccnl_get_face_or_create(ccnl, 0, &sun.sa, sizeof(sun.linklayer));
+        ccnl_face_enqueue(ccnl, fibface, buf_dup(i->pkt->buf));
+        DEBUGMSG_CORE(DEBUG, "  broadcasting interest\n");
+    }
+#endif
 
 #ifdef USE_NACK
     if(!matching_face){
