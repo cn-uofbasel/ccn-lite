@@ -420,12 +420,6 @@ ccnl_start(void)
 int
 ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 {
-    gnrc_netreg_entry_t _ne;
-    /* register for content chunks */
-    _ne.demux_ctx =  GNRC_NETREG_DEMUX_CTX_ALL;
-    _ne.pid = sched_active_pid;
-    gnrc_netreg_register(GNRC_NETTYPE_CCN_CHUNK, &_ne);
-
     int res = (-1);
 
     if (timeout == 0) {
@@ -471,9 +465,6 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
             DEBUGMSG(DEBUG, "Unknow message received, ignore it\n");
         }
     }
-
-    /* unregister again, we're not expecting more chunks */
-    gnrc_netreg_unregister(GNRC_NETTYPE_CCN_CHUNK, &_ne);
 
     return res;
 }
