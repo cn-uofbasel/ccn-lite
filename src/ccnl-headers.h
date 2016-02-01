@@ -40,7 +40,7 @@ void ccnl_do_ageing(void *ptr, void *dummy);
 int ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce);
 void ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data, int datalen, struct sockaddr *sa, int addrlen);
 void ccnl_core_init(void);
-void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
+//void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 void ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
 #ifndef ccnl_buf_new
 struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
