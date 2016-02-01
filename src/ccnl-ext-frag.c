@@ -58,7 +58,6 @@
 #ifdef RIOT_VERSION
 #include "ccn-lite-riot.h"
 #endif
-#include "ccnl-headers.h"
 #include "ccnl-ext.h"
 
 #define DEBUGMSG_EFRA(...) DEBUGMSG(__VA_ARGS__)
