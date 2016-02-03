@@ -979,6 +979,42 @@ ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     return 0;
 }
 
+/* add a new entry to the FIB */
+int
+ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face)
+{
+    struct ccnl_forward_s *fwd;
+    int res = -1;
+
+    if (pfx != NULL) {
+        char *s = NULL;
+        DEBUGMSG_CUTL(INFO, "removing FIB for <%s>, suite %s\n",
+                      (s = ccnl_prefix_to_path(pfx)), ccnl_suite2str(pfx->suite));
+        ccnl_free(s);
+    }
+
+    struct ccnl_forward_s *last = NULL;
+    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+        if (((pfx == NULL) || (fwd->suite == pfx->suite)) &&
+            ((pfx == NULL) || !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) &&
+            ((face == NULL) || (fwd->face == face))) {
+            res = 0;
+            if (last) {
+                last->next = fwd->next;
+            }
+            free_prefix(fwd->prefix);
+            ccnl_free(fwd);
+            relay->fib = NULL;
+            break;
+        }
+    }
+    DEBUGMSG_CUTL(DEBUG, "added FIB via %s\n", ccnl_addr2ascii(&fwd->face->peer));
+
+    return res;
+}
+
+
 #endif
 
 /* prints the current FIB */

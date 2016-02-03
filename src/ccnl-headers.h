@@ -233,6 +233,7 @@ struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 struct ccnl_buf_s *ccnl_mkSimpleContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, int *payoffset);
 int ccnl_str2suite(char *cp);
 int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
+int ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 void ccnl_fib_show(struct ccnl_relay_s *relay);
 
 //---------------------------------------------------------------------------------------------------------------------------------------
