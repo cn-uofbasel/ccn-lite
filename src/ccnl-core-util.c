@@ -951,7 +951,7 @@ ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     struct ccnl_forward_s *fwd, **fwd2;
 
     char *s = NULL;
-    DEBUGMSG_CFWD(INFO, "adding FIB for <%s>, suite %s\n",
+    DEBUGMSG_CUTL(INFO, "adding FIB for <%s>, suite %s\n",
              (s = ccnl_prefix_to_path(pfx)), ccnl_suite2str(pfx->suite));
     ccnl_free(s);
 
