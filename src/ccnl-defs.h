@@ -33,6 +33,9 @@
 
 #define CCNL_DEFAULT_UNIXSOCKNAME       "/tmp/.ccnl.sock"
 
+/* assuming that all broadcast addresses consist of a sequence of equal octets */
+#define CCNL_BROADCAST_OCTET            0xFF
+
 #if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
 # define CCNL_MAX_INTERFACES             1
 # define CCNL_MAX_IF_QLEN                14
