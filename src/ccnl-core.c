@@ -508,21 +508,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
 #ifdef USE_RONR
     if (!matching_face) {
-        /* initialize address with 0xFF for broadcast */
-        size_t addr_len = CCNL_MAX_ADDRESS_LEN;
-        uint8_t relay_addr[CCNL_MAX_ADDRESS_LEN];
-        memset(relay_addr, CCNL_BROADCAST_OCTET, CCNL_MAX_ADDRESS_LEN);
-
-        sockunion sun;
-        sun.sa.sa_family = AF_PACKET;
-        memcpy(&(sun.linklayer.sll_addr), relay_addr, addr_len);
-        sun.linklayer.sll_halen = addr_len;
-        sun.linklayer.sll_protocol = htons(ETHERTYPE_NDN);
-
-        /* TODO: set correct interface instead of always 0 */
-        struct ccnl_face_s *fibface = ccnl_get_face_or_create(ccnl, 0, &sun.sa, sizeof(sun.linklayer));
-        ccnl_face_enqueue(ccnl, fibface, buf_dup(i->pkt->buf));
-        DEBUGMSG_CORE(DEBUG, "  broadcasting interest\n");
+        ccnl_interest_broadcast(ccnl, i);
     }
 #endif
 
@@ -534,6 +520,54 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 #endif
 
     return;
+}
+
+void
+ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest)
+{
+    sockunion sun;
+    struct ccnl_face_s *fibface;
+    for (unsigned i = 0; i < CCNL_MAX_INTERFACES; i++) {
+        switch (ccnl->ifs[i].addr.sa.sa_family) {
+#ifdef USE_LINKLAYER
+            case (AF_PACKET): {
+                /* initialize address with 0xFF for broadcast */
+                uint8_t relay_addr[CCNL_MAX_ADDRESS_LEN];
+                memset(relay_addr, CCNL_BROADCAST_OCTET, CCNL_MAX_ADDRESS_LEN);
+
+                sun.sa.sa_family = AF_PACKET;
+                memcpy(&(sun.linklayer.sll_addr), relay_addr, CCNL_MAX_ADDRESS_LEN);
+                sun.linklayer.sll_halen = CCNL_MAX_ADDRESS_LEN;
+                sun.linklayer.sll_protocol = htons(CCNL_ETH_TYPE);
+
+                fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.linklayer));
+                break;
+                              }
+#endif
+#ifdef USE_IPV4
+            case (AF_INET):
+                sun.sa.sa_family = AF_INET;
+                sun.ip4.sin_addr.s_addr = INADDR_BROADCAST;
+                extern int ccnl_suite2defaultPort(int suite);
+                sun.ip4.sin_port = htons(ccnl_suite2defaultPort(interest->pkt->suite));
+
+                fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip4));
+                break;
+#endif
+#ifdef USE_IPV6
+            case (AF_INET6):
+                sun.sa.sa_family = AF_INET6;
+                sun.ip6.sin6_addr = in6addr_any;
+                extern int ccnl_suite2defaultPort(int suite);
+                sun.ip6.sin6_port = ccnl_suite2defaultPort(interest->pkt->suite);
+
+                fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip6));
+                break;
+#endif
+        }
+        ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
+        DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
+    }
 }
 
 struct ccnl_interest_s*
