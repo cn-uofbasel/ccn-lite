@@ -131,7 +131,7 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->mtu = NDN_DEFAULT_MTU;
     i->fwdalli = 1;
     i->if_pid = if_pid;
-    i->sock = -1;
+    i->addr.sa.sa_family = AF_PACKET;
 
     gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);

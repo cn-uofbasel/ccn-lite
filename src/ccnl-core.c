@@ -217,7 +217,9 @@ ccnl_interface_cleanup(struct ccnl_if_s *i)
         struct ccnl_txrequest_s *r = i->queue + (i->qfront+j)%CCNL_MAX_IF_QLEN;
         ccnl_free(r->buf);
     }
+#ifndef CCNL_RIOT
     ccnl_close_socket(i->sock);
+#endif
 }
 
 // ----------------------------------------------------------------------
