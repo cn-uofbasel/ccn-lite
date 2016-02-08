@@ -148,7 +148,7 @@ ccnl_dump(int lev, int typ, void *p)
                 CONSOLE(" netdev=%p", top->ifs[k].netdev);
             else
                 CONSOLE(" sockstruct=%p", top->ifs[k].sock);
-#else
+#elif !defined(CCNL_RIOT)
             CONSOLE(" sock=%d", top->ifs[k].sock);
 #endif
             if (top->ifs[k].reflect)
