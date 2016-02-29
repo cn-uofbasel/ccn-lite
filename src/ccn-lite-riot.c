@@ -277,7 +277,7 @@ void
     ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, ccnl, 0);
 
     /* XXX: https://xkcd.com/221/ */
-    genrand_init(0x4);
+    random_init(0x4);
 
     while(!ccnl->halt_flag) {
 
@@ -412,7 +412,7 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
         return -1;
     }
 
-    int nonce = genrand_uint32();
+    int nonce = random_uint32();
     /* TODO: support other transports than AF_PACKET */
     sockunion sun;
     sun.sa.sa_family = AF_PACKET;
