@@ -131,16 +131,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->mtu = NDN_DEFAULT_MTU;
     i->fwdalli = 1;
     i->if_pid = if_pid;
-    i->sock = -1;
+    i->addr.sa.sa_family = AF_PACKET;
 
     gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
 
     /* advance interface counter in relay */
     theRelay.ifcount++;
-    i = &theRelay.ifs[theRelay.ifcount];
-    i->if_pid = KERNEL_PID_UNDEF;
-    i->sock = -1;
 
     /* configure the interface to use the specified nettype protocol */
     gnrc_netapi_set(if_pid, NETOPT_PROTO, 0, &netreg_type, sizeof(gnrc_nettype_t));
@@ -277,7 +274,7 @@ void
     ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, ccnl, 0);
 
     /* XXX: https://xkcd.com/221/ */
-    genrand_init(0x4);
+    random_init(0x4);
 
     while(!ccnl->halt_flag) {
 
@@ -412,7 +409,7 @@ ccnl_send_interest(int suite, char *name, uint8_t *addr,
         return -1;
     }
 
-    int nonce = genrand_uint32();
+    int nonce = random_uint32();
     /* TODO: support other transports than AF_PACKET */
     sockunion sun;
     sun.sa.sa_family = AF_PACKET;
