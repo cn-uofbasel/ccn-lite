@@ -20,6 +20,32 @@
  * 2015-11-10  created
  */
 
+#define HASHVALUES
+
+#ifdef HASHVALUES
+#include <stdio.h>
+  unsigned char *hashvector;
+  int hashcnt;
+
+void
+dump_hashes(void)
+{
+    int i, j;
+    unsigned char *cp = hashvector;
+
+    printf("int hashcnt = %d;\n", hashcnt);
+    printf("unsigned char buf[] = {\n");
+    for (i = 0; i < hashcnt; i++) {
+        for (j = 0; j < 32; j++) {
+            printf("0x%02x,", *cp);
+            cp++;
+        }
+        printf("\n");
+    }
+    printf("0\n};\n");
+}
+#endif
+
 #define USE_SUITE_CCNTLV
 // #define USE_SUITE_CISTLV
 // #define USE_SUITE_IOTTLV
@@ -74,7 +100,7 @@ usage(int exitval)
             "  -o FNAME   outfile\n"
             "  -r A[-[B]] only fetch bytes in given position range\n"
             "  -s SUITE   (ccnx2015, ndn2013)\n"
-            "  -t SHAPE   tree shape: balanced, ndxtab, 7mpr, deep\n"
+            "  -t SHAPE   tree shape: binary, ndxtab, 7mpr, deep\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -522,6 +548,12 @@ digest2fname(char *dirpath, unsigned char *packetDigest)
     snprintf(fnbuf, sizeof(fnbuf), "%s/%02x/%02x/%s", dirpath,
              packetDigest[0], packetDigest[1], hex+4);
 
+#ifdef HASHVALUES
+    hashvector = ccnl_realloc(hashvector, hashcnt*32 + 32);
+    memcpy(hashvector+hashcnt*32, packetDigest, 32);
+    hashcnt++;
+#endif
+
     return fnbuf;
 }
 
@@ -829,11 +861,11 @@ lenOfName(struct ccnl_prefix_s *nm)
 }
 
 struct list_s*
-balancedTree(int f,
-             struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
-             int maxDataSize, int maxMfstSize, int maxRootSize,
-             int lev, int *maxDepth, long offset, long length,
-             unsigned char *outDigest, SHA256_CTX_t ctx)
+binaryTree(int f,
+           struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
+           int maxDataSize, int maxMfstSize, int maxRootSize,
+           int lev, int *maxDepth, long offset, long length,
+           unsigned char *outDigest, SHA256_CTX_t ctx)
 {
     struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
     int maxppc, chunk_number, i, depth = 0, depth2 = 0;
@@ -841,7 +873,7 @@ balancedTree(int f,
     unsigned char md[SHA256_DIGEST_LENGTH];
     struct list_s *grp;
 
-    DEBUGMSG(DEBUG, "balancedTree lev=%d, offs=%ld, len=%ld\n",
+    DEBUGMSG(DEBUG, "binaryTree lev=%d, offs=%ld, len=%ld\n",
              lev, offset, length);
 /*
     if (lev > *depth)
@@ -868,11 +900,11 @@ balancedTree(int f,
         DEBUGMSG(VERBOSE, "  left=%d, right=%d\n", left, right);
 
         len = length - (maxppc-2 + left)*maxDataSize;
-        m2 = balancedTree(f, pktname, NULL,
-                          maxDataSize, maxMfstSize, maxRootSize,
-                          lev+1, &depth,
-                          offset + (maxppc-2 + left)*maxDataSize,
-                          len, md, ctx);
+        m2 = binaryTree(f, pktname, NULL,
+                        maxDataSize, maxMfstSize, maxRootSize,
+                        lev+1, &depth,
+                        offset + (maxppc-2 + left)*maxDataSize,
+                        len, md, ctx);
         if (!m2)
             goto Failed;
         grp = ccnl_manifest_prependHashGroup(m);
@@ -882,9 +914,9 @@ balancedTree(int f,
         ccnl_manifest_setMetaData(grp, locator, NULL, -1, len,
                                   depth, NULL);
 
-        m2 = balancedTree(f, pktname, NULL,
-                          maxDataSize, maxMfstSize, maxRootSize,
-                          lev+1, &depth2,
+        m2 = binaryTree(f, pktname, NULL,
+                        maxDataSize, maxMfstSize, maxRootSize,
+                        lev+1, &depth2,
                           offset + (maxppc-2)*maxDataSize,
                           left*maxDataSize, md, ctx);
         if (!m2)
@@ -926,8 +958,8 @@ balancedTree(int f,
 }
 
 void
-flic_produceBalancedTree(struct key_s *keys, int maxPktSize, char *fname,
-                         struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
+flic_produceBinaryTree(struct key_s *keys, int maxPktSize, char *fname,
+                       struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
 {
     int f, len, depth = 0, nmLen;
     int maxDataSize; // max data payload
@@ -938,7 +970,7 @@ flic_produceBalancedTree(struct key_s *keys, int maxPktSize, char *fname,
     struct list_s *m;
     long length;
 
-    DEBUGMSG(DEBUG, "produceBalancedTree\n");
+    DEBUGMSG(DEBUG, "produceBinaryTree\n");
 
     f = open(fname, O_RDONLY);
     if (f < 0) {
@@ -1002,15 +1034,15 @@ flic_produceBalancedTree(struct key_s *keys, int maxPktSize, char *fname,
     DEBUGMSG(INFO, "maxDataSize = %d; maxMfstSize = %d; maxRootSize = %d\n",
              maxDataSize, maxMfstSize, maxRootSize);
 
-    DEBUGMSG(INFO, "Creating balanced FLIC tree from %s\n", fname);
+    DEBUGMSG(INFO, "Creating binary FLIC tree from %s\n", fname);
     DEBUGMSG(INFO, "... file size    = %ld Bytes\n", length);
     DEBUGMSG(INFO, "... max pkt size = %d Bytes\n", maxPktSize);
 
-    m = balancedTree(f,
-                     theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
-                     theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
-                     maxDataSize, maxMfstSize, maxRootSize,
-                     1, &depth, 0, length, total, ctx);
+    m = binaryTree(f,
+                   theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                   theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+                   maxDataSize, maxMfstSize, maxRootSize,
+                   1, &depth, 0, length, total, ctx);
     if (m) {
         char dummy[256];
 #ifdef USE_SUITE_NDNTLV
@@ -1976,7 +2008,7 @@ flic_read(void *buf, int cnt)
 // ----------------------------------------------------------------------
 
 enum {
-    TREE_BALANCED,
+    TREE_BINARY,
     TREE_INDEXTABLE,
     TREE_7MPR,
     TREE_DEEP
@@ -1988,7 +2020,7 @@ main(int argc, char *argv[])
     char *outfname = NULL, *cp;
     char *udp = strdup("127.0.0.1/9695"), *ux = NULL;
     struct ccnl_prefix_s *uri = NULL, *metadataUri = NULL;
-    int treeShape = TREE_BALANCED, opt, exitBehavior = 0, i;
+    int treeShape = TREE_BINARY, opt, exitBehavior = 0, i;
     struct key_s *keys = NULL;
     int maxPktSize = 4096;
     unsigned char *objHashRestr = NULL;
@@ -2053,7 +2085,7 @@ main(int argc, char *argv[])
             else if (!strcmp(optarg, "ndxtab"))
                 treeShape = TREE_INDEXTABLE;
             else
-                treeShape = TREE_BALANCED;
+                treeShape = TREE_BINARY;
             break;
         case 'u':
             udp = optarg;
@@ -2142,11 +2174,15 @@ Usage:
         case TREE_INDEXTABLE:
             flic_produceIndexTable(keys, maxPktSize, fname, uri, metadataUri);
             break;
-        case TREE_BALANCED:
-            flic_produceBalancedTree(keys, maxPktSize, fname, uri, metadataUri);
+        case TREE_BINARY:
+            flic_produceBinaryTree(keys, maxPktSize, fname, uri, metadataUri);
         default:
             break;
         }
+#ifdef HASHVALUES
+        dump_hashes();
+        ccnl_free(hashvector);
+#endif
     } else { // retrieve a manifest tree
         int fd, port;
         const char *addr = NULL;
