@@ -20,7 +20,7 @@
  * 2015-11-10  created
  */
 
-#define HASHVALUES
+// #define HASHVALUES
 
 #ifdef HASHVALUES
 #include <stdio.h>
@@ -100,7 +100,7 @@ usage(int exitval)
             "  -o FNAME   outfile\n"
             "  -r A[-[B]] only fetch bytes in given position range\n"
             "  -s SUITE   (ccnx2015, ndn2013)\n"
-            "  -t SHAPE   tree shape: binary, ndxtab, 7mpr, deep\n"
+            "  -t SHAPE   tree shape: binary, btree, ndxtab, 7mpr, deep\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -860,6 +860,8 @@ lenOfName(struct ccnl_prefix_s *nm)
     return 0;
 }
 
+// ----------------------------------------------------------------------
+
 struct list_s*
 binaryTree(int f,
            struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
@@ -1043,6 +1045,202 @@ flic_produceBinaryTree(struct key_s *keys, int maxPktSize, char *fname,
                    theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
                    maxDataSize, maxMfstSize, maxRootSize,
                    1, &depth, 0, length, total, ctx);
+    if (m) {
+        char dummy[256];
+#ifdef USE_SUITE_NDNTLV
+        if (theSuite == CCNL_SUITE_NDNTLV)
+            ccnl_prefix_appendCmp(name, (unsigned char*) "_", 1);
+#endif
+        flic_manifest2file(m, 1, name, keys, theRepoDir, total, md);
+
+        DEBUGMSG(INFO, "... tree depth   = %d\n", depth);
+        DEBUGMSG(INFO, "... block size   = %d\n", maxDataSize);
+        DEBUGMSG(INFO, "... pkts created = %d\n", outcnt);
+        DEBUGMSG(INFO, "... root name    = %s\n",
+                 ccnl_prefix2path(dummy, sizeof(dummy), name));
+    }
+    ccnl_manifest_free(m);
+
+    close(f);
+}
+
+// ----------------------------------------------------------------------
+
+struct list_s*
+Btree(int f, struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
+      int maxDataSize, int maxMfstSize, int maxRootSize,
+      int lev, int *maxDepth, long offset, long length,
+      unsigned char *outDigest, SHA256_CTX_t ctx)
+{
+    struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
+    int maxppc, chunk_cnt, i, depth = 0, depth2 = 0;
+    long len;
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    struct list_s *grp;
+
+    DEBUGMSG(DEBUG, "Btree lev=%d, offs=%ld, len=%ld\n",
+             lev, offset, length);
+/*
+    if (lev > *depth)
+        *maxDepth = lev;
+*/
+
+    // max ptrs per chunk (internal node):
+    if (theSuite == CCNL_SUITE_CCNTLV)
+        maxppc =  maxMfstSize / (32 + 4);
+    else if (theSuite == CCNL_SUITE_NDNTLV)
+        maxppc =  maxMfstSize / (32 + 2);
+    else
+        return NULL;
+    // number of (data leaf) chunks left to be FLICed:
+    chunk_cnt = ((length - 1) / maxDataSize) + 1;
+    
+    DEBUGMSG(VERBOSE, "  maxDataSize=%d, maxppc=%d, #chunks=%d\n",
+             maxDataSize, maxppc, chunk_cnt);
+
+    if (chunk_cnt > maxppc) {
+        int fanout = (chunk_cnt + maxppc - 1) / maxppc;
+        int chunksPerSubTree = (chunk_cnt + fanout - 1)/ fanout;
+
+        while (chunk_cnt > 0) {
+            int n = (chunk_cnt>chunksPerSubTree) ? chunksPerSubTree : chunk_cnt;
+
+            len = n * maxDataSize;
+            if (len > length)\
+                len = length;
+            DEBUGMSG(VERBOSE, "  Btree %d: subtree for %d chunks, len=%ld\n",
+                     lev, n, len);
+            m2 = Btree(f, pktname, NULL,
+                       maxDataSize, maxMfstSize, maxRootSize,
+                       lev+1, &depth,
+                       offset + length - len,
+                       len, md, ctx);
+            if (!m2)
+                goto Failed;
+            grp = ccnl_manifest_prependHashGroup(m);
+            flic_manifest2file(m2, 0, pktname, NULL, theRepoDir, NULL, md);
+            ccnl_manifest_free(m2);
+            ccnl_manifest_prependHash(grp, "tptr", md);
+            ccnl_manifest_setMetaData(grp, locator, NULL, -1, len,
+                                      depth, NULL);
+            chunk_cnt -= n;
+            length -= len;
+        }
+        if (length > 0) {
+            DEBUGMSG(ERROR, "  FLIC Btree: leftover length %ld\n", length);
+        }
+    } else {
+        grp = ccnl_manifest_prependHashGroup(m);
+        for (i = chunk_cnt - 1; i >= 0; i--) {
+            long pos = offset + i * maxDataSize;
+
+            flic_mkDataChunk(f, pktname, pos, offset + length - pos,
+                             maxDataSize, md);
+            // Prepend the hash to the current manifest
+            ccnl_manifest_prependHash(grp, "dptr", md);
+        }
+        if (length > chunk_cnt * maxDataSize)
+            length = chunk_cnt * maxDataSize;
+        ccnl_manifest_setMetaData(grp, locator, NULL, maxDataSize,
+                                  length, 1, NULL);
+    }
+    if (depth2 > depth)
+        depth = depth2;
+    if (maxDepth)
+        *maxDepth = ++depth;
+    return m;
+
+  Failed:
+    ccnl_manifest_free(m);
+    return NULL;
+}
+
+void
+flic_produceBtree(struct key_s *keys, int maxPktSize, char *fname,
+                  struct ccnl_prefix_s *name, struct ccnl_prefix_s *meta)
+{
+    int f, len, depth = 0, nmLen;
+    int maxDataSize; // max data payload
+    int maxMfstSize; // max hashgroup size
+    int maxRootSize = 0; // max hashgroup size
+    SHA256_CTX_t ctx;
+    unsigned char md[SHA256_DIGEST_LENGTH], total[SHA256_DIGEST_LENGTH];
+    struct list_s *m;
+    long length;
+
+    DEBUGMSG(DEBUG, "produceBtree\n");
+
+    f = open(fname, O_RDONLY);
+    if (f < 0) {
+        perror("file open:");
+        return;
+    }
+
+    // compute overall content SHA256
+    ccnl_SHA256_Init(&ctx);
+    for (;;) {
+        len = read(f, body, sizeof(body));
+        if (len <= 0)
+            break;
+        ccnl_SHA256_Update(&ctx, body, len);
+    }
+    ccnl_SHA256_Final(total, &ctx);
+    // get the number of blocks (leaf nodes)
+    length = lseek(f, 0, SEEK_END);
+
+    maxDataSize = maxPktSize;
+    maxRootSize = 0;
+    len = length;
+    maxRootSize--;
+    while (len > 0) { // big endian encoding of "total file length"
+        maxRootSize--;
+        len = len >> 8;
+    }
+    nmLen = lenOfName(name);
+    if (theSuite == CCNL_SUITE_CCNTLV) {
+        maxDataSize -= 8 + 4 + 4; // fixed hdr, msg TL, payload TL
+
+        maxMfstSize = maxDataSize - 12 - 12; // three hash groups w/ metaInfo
+        maxMfstSize -= 6; // block size
+        maxMfstSize -= 3*6; // covered size
+        maxMfstSize -= 3*5; // depth
+
+        maxRootSize += maxMfstSize - 4; // TL for total file length
+        maxRootSize -= 32 + 4; // TLV of overall sha256
+        maxRootSize -= nmLen;
+    } else if (theSuite == CCNL_SUITE_NDNTLV) {
+        maxDataSize -= 4; // msg TL
+        maxDataSize -= lenOfName(name); // present in all packets
+        maxDataSize -= 2; // empty metainfo
+        maxDataSize -= 4; // content TL
+        maxDataSize -= 5 + 2 + 32; // sig info and value
+
+        maxMfstSize  = maxDataSize - 4 - 3; // one hash group and metainfo
+        maxMfstSize -= 4; // block size
+        maxMfstSize -= 4; // covered size ... see root
+        maxMfstSize -= 3; // depth
+
+        maxRootSize -= lenOfName(name); // locator
+        maxRootSize -= 2; // TL for total file length
+        maxRootSize -= 32 + 2; // TL of overall sha256
+        maxRootSize -= 3; // '_' name component
+//        maxRootSize -= 2; // external metadata TL
+    } else
+        maxMfstSize = maxDataSize;
+    maxRootSize += lenOfName(meta);
+
+    DEBUGMSG(INFO, "maxDataSize = %d; maxMfstSize = %d; maxRootSize = %d\n",
+             maxDataSize, maxMfstSize, maxRootSize);
+
+    DEBUGMSG(INFO, "Creating Btree FLIC from %s\n", fname);
+    DEBUGMSG(INFO, "... file size    = %ld Bytes\n", length);
+    DEBUGMSG(INFO, "... max pkt size = %d Bytes\n", maxPktSize);
+
+    m = Btree(f,
+              theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+              theSuite == CCNL_SUITE_NDNTLV ? name : NULL,
+              maxDataSize, maxMfstSize, maxRootSize,
+              1, &depth, 0, length, total, ctx);
     if (m) {
         char dummy[256];
 #ifdef USE_SUITE_NDNTLV
@@ -2009,6 +2207,7 @@ flic_read(void *buf, int cnt)
 
 enum {
     TREE_BINARY,
+    TREE_BTREE,
     TREE_INDEXTABLE,
     TREE_7MPR,
     TREE_DEEP
@@ -2084,6 +2283,8 @@ main(int argc, char *argv[])
                 treeShape = TREE_7MPR;
             else if (!strcmp(optarg, "ndxtab"))
                 treeShape = TREE_INDEXTABLE;
+            else if (!strcmp(optarg, "btree"))
+                treeShape = TREE_BTREE;
             else
                 treeShape = TREE_BINARY;
             break;
@@ -2173,6 +2374,9 @@ Usage:
             break;
         case TREE_INDEXTABLE:
             flic_produceIndexTable(keys, maxPktSize, fname, uri, metadataUri);
+            break;
+        case TREE_BTREE:
+            flic_produceBtree(keys, maxPktSize, fname, uri, metadataUri);
             break;
         case TREE_BINARY:
             flic_produceBinaryTree(keys, maxPktSize, fname, uri, metadataUri);
