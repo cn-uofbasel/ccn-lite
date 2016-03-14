@@ -70,7 +70,7 @@ bigEndian2int(unsigned char *buf, int len, int *intval)
 {
     int val = 0;
 
-    DEBUGMSG(TRACE, "bigEndian2int %p %d\n", buf, len);
+//    DEBUGMSG(TRACE, "bigEndian2int %p %d\n", buf, len);
 
     while (len-- > 0) {
         val = (val << 8) | *buf;
@@ -1073,10 +1073,10 @@ Btree(int f, struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
       unsigned char *outDigest, SHA256_CTX_t ctx)
 {
     struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
+    struct list_s *grp = NULL;
     int maxppc, chunk_cnt, i, depth = 0, depth2 = 0;
     long len;
     unsigned char md[SHA256_DIGEST_LENGTH];
-    struct list_s *grp;
 
     DEBUGMSG(DEBUG, "Btree lev=%d, offs=%ld, len=%ld\n",
              lev, offset, length);
@@ -1118,11 +1118,14 @@ Btree(int f, struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
             if (!m2)
                 goto Failed;
             grp = ccnl_manifest_prependHashGroup(m);
+//            if (!grp)
+//                grp = ccnl_manifest_prependHashGroup(m);
             flic_manifest2file(m2, 0, pktname, NULL, theRepoDir, NULL, md);
             ccnl_manifest_free(m2);
             ccnl_manifest_prependHash(grp, "tptr", md);
-            ccnl_manifest_setMetaData(grp, locator, NULL, -1, len,
+            ccnl_manifest_setMetaData(grp, locator, NULL, len, len,
                                       depth, NULL);
+            grp = NULL;
             chunk_cnt -= n;
             length -= len;
         }
@@ -1130,7 +1133,8 @@ Btree(int f, struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
             DEBUGMSG(ERROR, "  FLIC Btree: leftover length %ld\n", length);
         }
     } else {
-        grp = ccnl_manifest_prependHashGroup(m);
+        // grp = ccnl_manifest_prependHashGroup(m);
+        grp = ccnl_manifest_getFirstHashGroup(m);
         for (i = chunk_cnt - 1; i >= 0; i--) {
             long pos = offset + i * maxDataSize;
 
@@ -2042,7 +2046,7 @@ window_retrieval(struct ccnl_prefix_s *locator,
 struct fromto_s {
     struct fromto_s *next, *down, *up;
     char isLeaf;
-    long from, to;
+    long from, to; // absolute positions
     struct ccnl_prefix_s *pfx;
     unsigned char md[32];
     struct ccnl_pkt_s *pkt;
@@ -2052,86 +2056,107 @@ struct fromto_s *root, *seek;
 long seekpos = -1;
 
 struct fromto_s*
-flic_manifest2fromto(struct ccnl_pkt_s *pkt)
+flic_manifest2fromto(struct ccnl_pkt_s *pkt, long from, long *to)
 {
-    unsigned char *msg = pkt->content;
-    int mlen = pkt->contlen, rc, blocksz = 1;
-    unsigned int typ, len;
-    long from = 0, to = -1;
+    unsigned char *msg = pkt->content, *msg2;
+    int mlen = pkt->contlen, mlen2, blocksz = 1, overallsz = 0;
+    unsigned int typ, len, len2;
     struct fromto_s *list = NULL, **rest = &list;
     struct ccnl_prefix_s *locator = NULL;
     char dummy[256];
 
     DEBUGMSG(DEBUG, "manifest2fromto mlen=%d\n", mlen);
 
-    rc = flic_dehead(&msg, &mlen, &typ, &len);
-    if (rc >= 0 && typ == m_codes[M_HG_METADATA]) {
-        unsigned int len4;
-        unsigned char *msg3 = msg;
-        int msglen3 = len;
-        DEBUGMSG(DEBUG, "metadata\n");
-        while (msglen3 > 0 && flic_dehead(&msg3, (int*) &msglen3,
-                                                           &typ, &len4) >= 0) {
-            if (typ == m_codes[M_MT_LOCATOR]) {
-                unsigned char *oldmsg = msg3;
-                int oldlen = len4;
-                free_prefix(locator);
-                locator = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
-                DEBUGMSG(TRACE, " locator %s\n",
-                         ccnl_prefix2path(dummy, sizeof(dummy), locator));
-            } else if (typ == m_codes[M_MT_BLOCKSIZE]) {
-                bigEndian2int(msg3, len4, &blocksz);
-                DEBUGMSG(DEBUG, "blocksz=%d\n", blocksz);
-            } else if (typ == m_codes[M_MT_OVERALLDATASIZE]) {
-                rc = 0;
-                bigEndian2int(msg3, len4, &rc);
-                if (rc >= 0) {
-                    to = rc - 1;
-                    DEBUGMSG(DEBUG, "lastpos=%ld\n", to);
-                }
-            }
-            msg3 += len4;
-            msglen3 -= len4;
-        }
-        msg += len;
-        mlen -= len;
-    } else {
-        msg = pkt->content;
-        mlen = pkt->contlen;
+    if (pkt->pfx)
+        locator = ccnl_prefix_dup(pkt->pfx);
+/*
+#ifdef USE_SUITE_NDNTLV
+    if (theSuite == CCNL_SUITE_NDNTLV) {
+        rc = flic_dehead(&msg, &mlen, &typ, &len);
+        DEBUGMSG(DEBUG, "  while flic %d\n", typ);
+        if (rc < 0 || typ != NDN_TLV_Content)
+            return NULL;
+        mlen = len;
     }
-
+#endif
+*/
     while (flic_dehead(&msg, &mlen, &typ, &len) >= 0) {
-        if (len == 32 && (typ == m_codes[M_HG_PTR2DATA] ||
-                          typ == m_codes[M_HG_PTR2MANIFEST])) {
-            DEBUGMSG(TRACE, "ptr %s\n", digest2str(msg));
-            *rest = ccnl_calloc(1, sizeof(**rest));
-            (*rest)->isLeaf = typ == m_codes[M_HG_PTR2DATA] ? 1 : 0;
-            (*rest)->pfx = locator;
-            (*rest)->from = from;
-            if ((*rest)->from > to)
-                (*rest)->from = to;
-            (*rest)->to = (*rest)->from + blocksz - 1;
-            if ((*rest)->to > to)
-                (*rest)->to = to;
-            from += blocksz;
-            memcpy((*rest)->md, msg, 32);
-            rest = &((*rest)->next);
-        } else {
-            DEBUGMSG(DEBUG, "? typ = %d\n", typ);
+        DEBUGMSG(DEBUG, "while flic %d %d\n", typ, len);
+        if (typ != m_codes[M_HASHGROUP]) {
+            msg += len;
+            mlen -= len;
+            continue;
+        }
+        msg2 = msg;
+        mlen2 = len;
+        while (flic_dehead(&msg2, &mlen2, &typ, &len2) >= 0) {
+            if (typ == m_codes[M_HG_METADATA]) {
+                unsigned int len4;
+                unsigned char *msg3 = msg2;
+                int msglen3 = len2;
+                DEBUGMSG(DEBUG, "metadata\n");
+                while (msglen3 > 0 && flic_dehead(&msg3, (int*) &msglen3,
+                                                           &typ, &len4) >= 0) {
+                    if (typ == m_codes[M_MT_LOCATOR]) {
+                        unsigned char *oldmsg = msg3;
+                        int oldlen = len4;
+                        free_prefix(locator);
+                        locator = flic_bytes2prefix(NULL, &oldmsg, &oldlen);
+                        DEBUGMSG(VERBOSE, "  locator %s\n",
+                             ccnl_prefix2path(dummy, sizeof(dummy), locator));
+                    } else if (typ == m_codes[M_MT_BLOCKSIZE]) {
+                        bigEndian2int(msg3, len4, &blocksz);
+                        DEBUGMSG(VERBOSE, "  blocksz=%d\n", blocksz);
+                    } else if (typ == m_codes[M_MT_OVERALLDATASIZE]) {
+                        bigEndian2int(msg3, len4, &overallsz);
+                        DEBUGMSG(VERBOSE, "  overallsz=%d\n", overallsz);
+                    }
+                    msg3 += len4;
+                    msglen3 -= len4;
+                }
+            } else if (len2 == 32 && (typ == m_codes[M_HG_PTR2DATA] ||
+                                        typ == m_codes[M_HG_PTR2MANIFEST])) {
+                int sz = overallsz;
+                if (sz > blocksz)
+                    sz = blocksz;
+                DEBUGMSG(TRACE, "  ptr %s %d sz=%d\n", digest2str(msg2),
+                         m_codes[M_HG_PTR2DATA] ? 1 : 0, sz);
+                *rest = ccnl_calloc(1, sizeof(**rest));
+                (*rest)->isLeaf = typ == m_codes[M_HG_PTR2DATA] ? 1 : 0;
+                (*rest)->pfx = ccnl_prefix_dup(locator);
+                (*rest)->from = from;
+                (*rest)->to = (*rest)->from + sz - 1;
+                DEBUGMSG(TRACE, "  list: added from=%ld, to=%ld\n",
+                         (*rest)->from, (*rest)->to);
+                from += sz;
+                overallsz -= sz;
+                memcpy((*rest)->md, msg2, 32);
+                rest = &((*rest)->next);
+            } else {
+                DEBUGMSG(DEBUG, "? typ = %d\n", typ);
+            }
+            msg2 += len2;
+            mlen2 -= len2;
         }
         msg += len;
         mlen -= len;
     }
+    free_prefix(locator);
+    if (to)
+        *to = from;
 
     return list;
 }
+
+
 
 long
 flic_lseek(long offs, int whence)
 {
     long newpos;
 
-    DEBUGMSG(DEBUG, "flic_lseek %ld\n", offs);
+    DEBUGMSG(DEBUG, "flic_lseek (%d) pos=%ld offs=%ld, seek->to=%ld\n",
+             whence, seekpos, offs, seek->to);
 
     switch (whence) {
     case SEEK_SET:
@@ -2147,33 +2172,65 @@ flic_lseek(long offs, int whence)
     }
     if (offs < 0)
         newpos = 0;
-    else if (newpos > root->to)
+    else if (newpos > root->to) {
         newpos = root->to + 1;
-
-    if (newpos < seek->from || newpos > seek->to) {
-        while (seek && seek->up && (newpos < seek->from || newpos > seek->to))
-            seek = seek->up;
-    }
-    if (seek == root && newpos > root->to)
         return newpos;
+    }
+
+    if (newpos < seek->from) {
+        DEBUGMSG(DEBUG, "  going up in the manifest tree\n");
+        while (seek && seek->up && newpos < seek->from) {
+            DEBUGMSG(DEBUG, "  up %ld\n", seek->to);
+            seek = seek->up;
+        }
+    }
+    if (seek == root && newpos > root->to) {
+        DEBUGMSG(TRACE, "  new pos found: %ld (to=%ld)\n",
+                 newpos, root->to);
+        newpos = root->to + 1;
+        return newpos;
+    }
     for (;;) {
-        while (newpos > seek->to && seek->next)
-            seek = seek->next;
+        while (newpos > seek->to) {
+            DEBUGMSG(TRACE, "  while %p [%ld..%ld]: up=%p, next=%p (newpos=%ld)\n",
+                     (void*) seek, seek->from, seek->to,
+                     (void*) seek->up, (void*) seek->next, newpos);
+            if (seek->next)
+                seek = seek->next;
+            else if (seek->up) {
+                DEBUGMSG(TRACE, "    going up %p\n", seek->up);
+                seek = seek->up;
+            } else {
+                DEBUGMSG(TRACE, "  problem seeking\n");
+                return -1;
+            }
+        }
         if (seek->isLeaf)
             break;
-        DEBUGMSG(TRACE, "while ...%p, ->%p (%ld %ld)\n",
-                 (void*) seek, (void*) seek->down, newpos, seek->to);
-        if (!seek->down) {
+        DEBUGMSG(TRACE, "  checking node %p, down=%p [%ld..%ld] for newpos=%ld\n",
+                 (void*) seek, (void*) seek->down, seek->from, seek->to, newpos);
+        if (!seek->down) { // not yet loaded - get the corresponding manifest or leaf
+            struct fromto_s *h;
+            char dummy[256];
+            long to;
+            DEBUGMSG(TRACE, "  loading %s %s\n",
+                     ccnl_prefix2path(dummy, sizeof(dummy), seek->pfx),
+                     digest2str(seek->md));
             seek->pkt = flic_lookup(seek->pfx, seek->md);
-            seek->down = flic_manifest2fromto(seek->pkt);
+            seek->down = flic_manifest2fromto(seek->pkt, seek->from, &to);
             if (!seek->down)
                 return -1;
-            seek->down->up = seek;
-            seek = seek->down;
-        } else
-            seek = seek->down;
+            if (seek->to != (to - 1)) {
+                DEBUGMSG(TRACE, "  manifest to-sz mismatch: %ld != %ld\n", seek->to, to-1);
+            }
+            for (h = seek->down; h; h = h->next)
+                h->up = seek;
+        }
+        seek = seek->down;
     }
     seekpos = newpos;
+    DEBUGMSG(TRACE, "  new pos is %ld\n", newpos);
+
     return newpos;
 }
 
@@ -2183,7 +2240,7 @@ flic_read(void *buf, int cnt)
     DEBUGMSG(DEBUG, "flic_read(%p, %d), seekpos=%ld\n", buf, cnt, seekpos);
 
     if (seekpos < seek->from || seekpos > seek->to)
-        if (flic_lseek(seekpos, SEEK_SET) < 0)
+        if (flic_lseek(seekpos, SEEK_SET) < 0 || seekpos > seek->to)
             return -1;
     if (!seek->isLeaf) {
         DEBUGMSG(FATAL, "not a leaf\n");
@@ -2429,14 +2486,16 @@ Usage:
         (void)exitBehavior;
         if (range_from > 0 || range_to > 0) {
             struct fromto_s *h;
-            long range_len = range_to < 0 ? -1 : range_to - range_from + 1;
+            long range_len = range_to < 0 ? -1 : range_to - range_from + 1, to;
 
             root = ccnl_calloc(1, sizeof(*root));
             root->pkt = flic_lookup(uri, objHashRestr);
-            root->down = flic_manifest2fromto(root->pkt);
-            root->to = -1;
-            for (h = root->down; h; h = h->next)
-                root->to += h->to - h->from + 1;
+            root->down = flic_manifest2fromto(root->pkt, 0, &to);
+            root->to = to - 1;
+            for (h = root->down; h; h = h->next) {
+                h->up = root;
+//                root->to += h->to - h->from;
+            }
             root->pfx = root->pkt->pfx;
             seek = root;
 
