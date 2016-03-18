@@ -945,7 +945,7 @@ ccnl_addr2ascii(sockunion *su)
 
 /* add a new entry to the FIB */
 int
-ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                    struct ccnl_face_s *face)
 {
     struct ccnl_forward_s *fwd, **fwd2;
@@ -983,7 +983,7 @@ ccnl_add_fib_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
 
 /* prints the current FIB */
 void
-ccnl_show_fib(struct ccnl_relay_s *relay)
+ccnl_fib_show(struct ccnl_relay_s *relay)
 {
 #ifndef CCNL_LINUXKERNEL
     struct ccnl_forward_s *fwd;
