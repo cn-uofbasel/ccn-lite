@@ -526,7 +526,7 @@ void
 ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest)
 {
     sockunion sun;
-    struct ccnl_face_s *fibface;
+    struct ccnl_face_s *fibface = NULL;
     for (unsigned i = 0; i < CCNL_MAX_INTERFACES; i++) {
         switch (ccnl->ifs[i].addr.sa.sa_family) {
 #ifdef USE_LINKLAYER
@@ -565,8 +565,10 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
                 break;
 #endif
         }
-        ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
-        DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
+        if (fibface) {
+            ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
+            DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
+        }
     }
 }
 
