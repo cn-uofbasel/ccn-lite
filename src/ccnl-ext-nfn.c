@@ -50,20 +50,6 @@ ccnl_nfn_findConfig(struct configuration_s *config_list, int configid)
     return NULL;
 }
 
-static int
-ccnl_nfn_count_required_thunks(char *str)
-{
-    int num = 0;
-    char *tok;
-    tok = str;
-    while((tok = strstr(tok, "call")) != NULL ){
-        tok += 4;
-        ++num;
-    }
-    DEBUGMSG(DEBUG, "Number of required Thunks is: %d\n", num);
-    return num;
-}
-
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove){
     DEBUGMSG(TRACE, "ccnl_nfn_continue_computation()\n");
@@ -84,13 +70,6 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }
-    if(config->thunk && CCNL_NOW() > config->endtime){
-        DEBUGMSG(INFO, "NFN: Exit computation: timeout when resolving thunk\n");
-        DBL_LINKED_LIST_REMOVE(ccnl->km->configuration_list, config);
-        //Reply error!
-        //config->thunk = 0;
-        return;
-    }
     ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
     TRACEOUT();
 }
@@ -109,17 +88,16 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
 }
 
 int
-ccnl_nfn_thunk_already_computing(struct ccnl_relay_s *ccnl,
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
                                  struct ccnl_prefix_s *prefix)
 {
     int i = 0;
     struct ccnl_prefix_s *copy;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_thunk_already_computing()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
 
     copy = ccnl_prefix_dup(prefix);
-    // ccnl_nfn_remove_thunk_from_prefix(copy);
-    ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
+    ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
 
     for (i = 0; i < -ccnl->km->configid; ++i) {
         struct configuration_s *config;
@@ -143,8 +121,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
          struct configuration_s *config, struct ccnl_interest_s *interest,
          int suite, int start_locally)
 {
-    int num_of_required_thunks = 0;
-    int thunk_request = 0;
     struct ccnl_buf_s *res = NULL;
     char str[CCNL_MAX_PACKET_SIZE];
     int i, len = 0;
@@ -158,18 +134,15 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     if (config){
         suite = config->suite;
-        thunk_request = config->fox_state->thunk_request;
-        goto restart; //do not do parsing thunks again
+        goto restart;
     }
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
-    if (ccnl_nfn_thunk_already_computing(ccnl, prefix)) {
+    if (ccnl_nfn_already_computing(ccnl, prefix)) { //TODO REMOVE?
         DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
         return -1;
     }
-    if (ccnl_nfnprefix_isTHUNK(prefix))
-        thunk_request = 1;
 
     // Checks first if the interest has a routing hint and then searches for it locally.
     // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
@@ -184,9 +157,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     if (interest && interest->pkt->pfx->compcnt > 1) { // forward interests with outsourced components
         struct ccnl_prefix_s *copy = ccnl_prefix_dup(prefix);
 	
-        copy->compcnt -= (1 + thunk_request);
+        copy->compcnt -= 1;
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
-        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN | CCNL_PREFIX_THUNK);
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN);
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
             ccnl_interest_propagate(ccnl, interest);
@@ -224,13 +197,10 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     DEBUGMSG(DEBUG, "expr is <%s>\n", str);
     //search for result here... if found return...
-    if (thunk_request)
-        num_of_required_thunks = ccnl_nfn_count_required_thunks(str);
 
     ++ccnl->km->numOfRunningComputations;
 restart:
-    res = Krivine_reduction(ccnl, str, thunk_request, start_locally,
-                            num_of_required_thunks, &config, prefix, suite);
+    res = Krivine_reduction(ccnl, str, start_locally, &config, prefix, suite);
 
     //stores result if computed
     if (res && res->datalen > 0) {
@@ -239,10 +209,7 @@ restart:
 
         DEBUGMSG(INFO,"Computation finished: res: %.*s size: %d bytes. Running computations: %d\n",
                  (int) res->datalen, res->data, (int) res->datalen, ccnl->km->numOfRunningComputations);
-        if (config && config->fox_state->thunk_request) {
-            // ccnl_nfn_remove_thunk_from_prefix(config->prefix);
-            ccnl_nfnprefix_clear(config->prefix, CCNL_PREFIX_THUNK);
-        }
+
         copy = ccnl_prefix_dup(config->prefix);
         c = ccnl_nfn_result2content(ccnl, &copy, res->data, res->datalen);
         c->flags = CCNL_CONTENT_FLAGS_STATIC;

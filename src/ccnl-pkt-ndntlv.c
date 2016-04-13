@@ -160,11 +160,6 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                        !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
             }
     #endif
             break;
@@ -443,10 +438,6 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                 (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
-        if (name->nfnflags & CCNL_PREFIX_THUNK)
-            if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
-                return -1;
     }
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {

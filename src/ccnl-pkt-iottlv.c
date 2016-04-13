@@ -126,11 +126,6 @@ ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                        !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
             }
 #endif
 
@@ -426,10 +421,6 @@ ccnl_iottlv_prependName(struct ccnl_prefix_s *name,
         if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
                                 (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
-        if (name->nfnflags & CCNL_PREFIX_THUNK)
-            if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
-                                (unsigned char*) "THUNK", 5, offset, buf) < 0)
-                return -1;
     }
 #endif
 
