@@ -136,6 +136,14 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
 }
 
 // ----------------------------------------------------------------------
+struct fox_machine_state_s *
+new_machine_state()
+{
+    struct fox_machine_state_s *ret;
+    ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
+    return ret;
+}
+
 struct configuration_s *
 new_config(struct ccnl_relay_s *ccnl, char *prog,
            struct environment_s *global_dict,
@@ -147,6 +155,7 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
     ret = ccnl_calloc(1, sizeof(struct configuration_s));
     ret->prog = prog;
     ret->global_dict = global_dict;
+    ret->fox_state = new_machine_state();
     ret->configid = ccnl->km->configid;
     ret->start_locally = start_locally;
     ret->prefix = prefix;
