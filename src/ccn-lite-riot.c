@@ -65,13 +65,14 @@
                         ccnl_free(c); } while(0)
 
 /**
- * May be defined for ad-hoc content creation
- */
-#define local_producer(...)             0
-
-/**
  * @}
  */
+
+/**
+ * @brief May be defined for ad-hoc content creation
+ */
+int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt);
 
 /**
  * @brief RIOT specific local variables
@@ -92,6 +93,11 @@ static char _ccnl_stack[CCNL_STACK_SIZE];
  * PID of the eventloop thread
  */
 static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
+
+/**
+ * local producer function defined by the application
+ */
+ccnl_producer_func _prod_func = NULL;
 
 /**
  * @}
@@ -526,5 +532,19 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
     ccnl_interest_append_pending(i, loopback_face);
     ccnl_interest_propagate(&ccnl_relay, i);
 
+    return 0;
+}
+
+void ccnl_set_local_producer(ccnl_producer_func func)
+{
+    _prod_func = func;
+}
+
+int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt)
+{
+    if (_prod_func) {
+        return _prod_func(relay, from, pkt);
+    }
     return 0;
 }
