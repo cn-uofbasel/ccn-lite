@@ -707,17 +707,30 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
     if (ccnl->max_cache_entries > 0 &&
         ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
-        struct ccnl_content_s *c2;
+        struct ccnl_content_s *c2, *oldest = NULL;
         int age = 0;
-        for (c2 = ccnl->contents; c2; c2 = c2->next)
-            if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC) &&
-                                        ((age == 0) || c2->last_used < age))
-                age = c2->last_used;
-        if (c2)
-            ccnl_content_remove(ccnl, c2);
+        for (c2 = ccnl->contents; c2; c2 = c2->next) {
+            if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC)) {
+                if ((age == 0) || c2->last_used < age) {
+                    age = c2->last_used;
+                    oldest = c2;
+                }
+            }
+        }
+        if (oldest) {
+            DEBUGMSG_CORE(DEBUG, " remove old entry from cache\n");
+            ccnl_content_remove(ccnl, oldest);
+        }
     }
-    DBL_LINKED_LIST_ADD(ccnl->contents, c);
+    if ((ccnl->max_cache_entries == 0) ||
+        (ccnl->contentcnt <= ccnl->max_cache_entries)) {
+        DBL_LINKED_LIST_ADD(ccnl->contents, c);
     ccnl->contentcnt++;
+    }
+    else {
+        DEBUGMSG_CORE(WARNING, " cache is full, cannot add new entry\n");
+        return NULL;
+    }
     return c;
 }
 
