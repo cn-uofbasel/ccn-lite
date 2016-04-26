@@ -100,6 +100,11 @@ static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
 ccnl_producer_func _prod_func = NULL;
 
 /**
+ * currently configured suite
+ */
+static int _ccnl_suite = CCNL_SUITE_NDNTLV;
+
+/**
  * @}
  */
 
@@ -479,12 +484,9 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 
 /* generates and send out an interest */
 struct ccnl_interest_s
-*ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
-                    unsigned char *buf, size_t buf_len)
+*ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_len)
 {
-    struct ccnl_prefix_s *prefix;
-
-    if (suite != CCNL_SUITE_NDNTLV) {
+    if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
         return NULL;
     }
@@ -492,16 +494,15 @@ struct ccnl_interest_s
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
 
-    mkInterest = ccnl_suite2mkInterestFunc(suite);
-    isContent = ccnl_suite2isContentFunc(suite);
+    mkInterest = ccnl_suite2mkInterestFunc(_ccnl_suite);
+    isContent = ccnl_suite2isContentFunc(_ccnl_suite);
 
     if (!mkInterest || !isContent) {
         DEBUGMSG(WARNING, "No functions for this suite were found!");
         return NULL;
     }
 
-    DEBUGMSG(INFO, "interest for chunk number: %u\n", (chunknum == NULL) ? 0 : *chunknum);
-    prefix = ccnl_URItoPrefix(name, suite, NULL, chunknum);
+    DEBUGMSG(INFO, "interest for chunk number: %u\n", (prefix->chunknum == NULL) ? 0 : *prefix->chunknum);
 
     if (!prefix) {
         DEBUGMSG(ERROR, "prefix could not be created!\n");
@@ -512,7 +513,6 @@ struct ccnl_interest_s
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
-    free_prefix(prefix);
 
     unsigned char *start = buf;
     unsigned char *data = buf;
