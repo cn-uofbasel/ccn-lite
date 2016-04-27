@@ -151,11 +151,6 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x03NFN", 7)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 9 &&
-                   !memcmp(p->comp[p->compcnt-1], "\x00\x01\x00\x05THUNK", 9)) {
-                    p->nfnflags |= CCNL_PREFIX_THUNK;
-                    p->compcnt--;
-                }
             }
 #endif
             break;
@@ -344,9 +339,6 @@ ccnl_cistlv_prependName(struct ccnl_prefix_s *name,
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN)
         if (ccnl_pkt_prependComponent(name->suite, "NFN", offset, buf) < 0)
-            return -1;
-    if (name->nfnflags & CCNL_PREFIX_THUNK)
-        if (ccnl_pkt_prependComponent(name->suite, "THUNK", offset, buf) < 0)
             return -1;
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {

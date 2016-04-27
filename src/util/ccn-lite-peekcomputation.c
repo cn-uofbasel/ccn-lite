@@ -5,7 +5,7 @@
 #include "ccnl-socket.c"
 
 int
-mkInterestCompute(char **namecomp, char *computation, int computationlen, int thunk, char *out)
+mkInterestCompute(char **namecomp, char *computation, int computationlen, char *out)
 {
 #ifndef USE_UTIL
     DEBUGMSG(TRACE, "mkInterestCompute()\n");
@@ -27,7 +27,6 @@ mkInterestCompute(char **namecomp, char *computation, int computationlen, int th
     namecomp++;
     }
     len += mkBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, computation, computationlen);
-    if(thunk) len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "THUNK");
     len += mkStrBlob(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG, "NFN");
     out[len++] = 0; // end-of-name
     out[len++] = 0; // end-of-interest
@@ -44,7 +43,6 @@ int main(int argc, char **argv){
     float wait = 3.0;
     int (*sendproc)(int,char*,unsigned char*,int);
     int print = 0;
-    int thunk_request = 0;
 
     while ((opt = getopt(argc, argv, "hptu:v:w:x:")) != -1) {
         switch (opt) {
@@ -59,9 +57,6 @@ int main(int argc, char **argv){
         break;
         case 'p':
             print = 1;
-            break;
-        case 't':
-            thunk_request = 1;
             break;
         case 'v':
 #ifdef USE_LOGGING
@@ -94,7 +89,7 @@ Usage:
         goto Usage;
 
     struct ccnl_prefix_s *prefix = create_prefix_from_name(argv[optind]);
-    len = mkInterestCompute(prefix->comp, comp, strlen(comp), thunk_request, out);
+    len = mkInterestCompute(prefix->comp, comp, strlen(comp), out);
 
     if(print){
         fwrite(out, sizeof(char), len, stdout);

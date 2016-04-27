@@ -33,8 +33,7 @@
 #define STACK_TYPE_CONST                2
 #define STACK_TYPE_PREFIX               3
 #define STACK_TYPE_PREFIXRAW            4
-#define STACK_TYPE_THUNK                5
-#define STACK_TYPE_CLOSURE              6
+#define STACK_TYPE_CLOSURE              5
 
 // ----------------------------------------------------------------------
 // data structures
@@ -72,9 +71,6 @@ struct fox_machine_state_s{
     int num_of_params;
     struct stack_s **params;
     int it_routable_param;
-    int thunk_request;
-    int num_of_required_thunks;
-    char *thunk;
     struct prefix_mapping_s *prefix_mapping;
 };
 
@@ -96,20 +92,11 @@ struct configuration_s{
 
     double starttime;
     double endtime;
-    int thunk;
-    double thunk_time;
 };
 
-struct thunk_s{
-    struct thunk_s *next, *prev;
-    char thunkid[10];
-    struct ccnl_prefix_s *prefix;
-    struct ccnl_prefix_s *reduced_prefix;
-};
+
 
 struct ccnl_krivine_s {
-    struct thunk_s *thunk_list;
-    int thunkid; // = 0;
     struct configuration_s *configuration_list;
     int configid; // = -1;
     int numOfRunningComputations; // = 0;

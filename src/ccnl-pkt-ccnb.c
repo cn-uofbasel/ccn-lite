@@ -163,11 +163,6 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                     p->nfnflags |= CCNL_PREFIX_NFN;
                     p->compcnt--;
-                    if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                                   !memcmp(p->comp[p->compcnt-1], "THUNK", 5)) {
-                        p->nfnflags |= CCNL_PREFIX_THUNK;
-                        p->compcnt--;
-                    }
                 }
 #endif
                 break;
@@ -408,8 +403,6 @@ ccnl_ccnb_mkName(struct ccnl_prefix_s *name, unsigned char *out)
     }
 #ifdef USE_NFN
     if (name->nfnflags & CCNL_PREFIX_NFN) {
-        if (name->nfnflags & CCNL_PREFIX_THUNK)
-            len += ccnl_ccnb_mkComponent((unsigned char*) "THUNK", 5, out+len);
         len += ccnl_ccnb_mkComponent((unsigned char*) "NFN", 3, out+len);
     }
 #endif

@@ -1098,8 +1098,6 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
 #ifdef USE_NFN
     if (pr->nfnflags & CCNL_PREFIX_NFN)
         len += sprintf(buf + len, "nfn");
-    if (pr->nfnflags & CCNL_PREFIX_THUNK)
-        len += sprintf(buf + len, "thunk");
     if (pr->nfnflags)
         len += sprintf(buf + len, "[");
 #endif
