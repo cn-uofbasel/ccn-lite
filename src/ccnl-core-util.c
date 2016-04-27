@@ -896,7 +896,8 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_UNIXSOCKET
     static char result[256];
 #else
-    static char result[25];
+    /* each byte requires 2 chars + 1 for the colon/slash + 6 for the protocol + 1 for \0 */
+    static char result[(CCNL_MAX_ADDRESS_LEN * 3) + 7];
 #endif
 
     if (!su)
