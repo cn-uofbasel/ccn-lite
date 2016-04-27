@@ -232,7 +232,7 @@ debug_memdump()
                 int(h->tstamp), int(1000*(h->tstamp - int(h->tstamp))));
 #else
         CONSOLE("addr %p %5d Bytes, %s:%d @%s\n",
-                (unsigned char *)h + sizeof(struct mhdr),
+                (void *)(h + sizeof(struct mhdr)),
                 h->size, getBaseName(h->fname), h->lineno, h->tstamp);
 #endif
     }
