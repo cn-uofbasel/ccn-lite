@@ -508,7 +508,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 
 #ifdef USE_RONR
     if (!matching_face) {
-        ccnl_interest_broadcast(ccnl, i);
+        ccnl_broadcast(ccnl, i->pkt);
     }
 #endif
 
@@ -523,7 +523,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 }
 
 void
-ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest)
+ccnl_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s *pkt)
 {
     sockunion sun;
     struct ccnl_face_s *fibface = NULL;
@@ -549,7 +549,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
                 sun.sa.sa_family = AF_INET;
                 sun.ip4.sin_addr.s_addr = INADDR_BROADCAST;
                 extern int ccnl_suite2defaultPort(int suite);
-                sun.ip4.sin_port = htons(ccnl_suite2defaultPort(interest->pkt->suite));
+                sun.ip4.sin_port = htons(ccnl_suite2defaultPort(pkt->suite));
 
                 fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip4));
                 break;
@@ -559,7 +559,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
                 sun.sa.sa_family = AF_INET6;
                 sun.ip6.sin6_addr = in6addr_any;
                 extern int ccnl_suite2defaultPort(int suite);
-                sun.ip6.sin6_port = ccnl_suite2defaultPort(interest->pkt->suite);
+                sun.ip6.sin6_port = ccnl_suite2defaultPort(pkt->suite);
 
                 fibface = ccnl_get_face_or_create(ccnl, i, &sun.sa, sizeof(sun.ip6));
                 break;
@@ -567,8 +567,8 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
         }
         if (fibface) {
             fibface->flags |= CCNL_FACE_FLAGS_STATIC;
-            ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
-            DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
+            ccnl_face_enqueue(ccnl, fibface, buf_dup(pkt->buf));
+            DEBUGMSG_CORE(DEBUG, "  broadcasting (%s)\n", ccnl_addr2ascii(&sun));
         }
     }
 }
