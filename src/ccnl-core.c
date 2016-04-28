@@ -566,6 +566,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
 #endif
         }
         if (fibface) {
+            fibface->flags |= CCNL_FACE_FLAGS_STATIC;
             ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
             DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
         }
