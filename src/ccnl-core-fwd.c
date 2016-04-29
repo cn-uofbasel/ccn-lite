@@ -81,7 +81,11 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
     if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
         DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
-        ccnl_content_add2cache(relay, c);
+        if (ccnl_content_add2cache(relay, c) == NULL) {
+            DEBUGMSG_CFWD(WARNING, "  adding to cache failed, discard packet\n");
+            free_content(c);
+            return 0;
+        }
     	DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
     } else {
         DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
