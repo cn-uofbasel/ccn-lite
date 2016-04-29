@@ -267,7 +267,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
         /* link layer sending */
         case AF_PACKET: {
                             /* allocate memory */
-                            gnrc_pktsnip_t *hdr;
+                            gnrc_pktsnip_t *hdr = NULL;
                             gnrc_pktsnip_t *pkt= gnrc_pktbuf_add(NULL, buf->data,
                                                                  buf->datalen,
                                                                  GNRC_NETTYPE_CCN);
@@ -276,17 +276,56 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                 puts("error: packet buffer full");
                                 return;
                             }
-                            /* build link layer header */
-                            hdr = gnrc_netif_hdr_build(NULL, 0,
-                                                       dest->linklayer.sll_addr,
-                                                       dest->linklayer.sll_halen);
 
+                            /* check for loopback */
+                            bool is_loopback = false;
+                            uint16_t addr_len;
+                            int res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDR_LEN, 0, &addr_len, sizeof(addr_len));
+                            if (res < 0) {
+                                DEBUGMSG(ERROR, "error: unable to determine address length for if=<%u>\n", (unsigned) ifc->if_pid);
+                                return;
+                            }
+                            if (addr_len == dest->linklayer.sll_halen) {
+                                uint8_t hwaddr[addr_len];
+                                res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDRESS, 0, hwaddr, sizeof(hwaddr));
+                                if (res < 0) {
+                                    DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) ifc->if_pid);
+                                    return;
+                                }
+                                if (memcmp(hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
+                                    DEBUGMSG(DEBUG, "loopback packet\n");
+                                    /* build link layer header */
+                                    hdr = gnrc_netif_hdr_build(NULL, dest->linklayer.sll_halen,
+                                                               dest->linklayer.sll_addr,
+                                                               dest->linklayer.sll_halen);
+
+                                    gnrc_netif_hdr_set_src_addr((gnrc_netif_hdr_t *)hdr->data, hwaddr, addr_len);
+                                    is_loopback = true;
+                                }
+                            }
+
+                            /* for the non-loopback case */
+                            if (hdr == NULL) {
+                                hdr = gnrc_netif_hdr_build(NULL, 0,
+                                                           dest->linklayer.sll_addr,
+                                                           dest->linklayer.sll_halen);
+                            }
+
+                            /* check if header building succeeded */
                             if (hdr == NULL) {
                                 puts("error: packet buffer full");
                                 gnrc_pktbuf_release(pkt);
                                 return;
                             }
                             LL_PREPEND(pkt, hdr);
+
+                            if (is_loopback) {
+                                    if (gnrc_netapi_receive(_ccnl_event_loop_pid, pkt) < 1) {
+                                        DEBUGMSG(ERROR, "error: unable to loopback packet, discard it\n");
+                                        gnrc_pktbuf_release(pkt);
+                                    }
+                                    return;
+                            }
 
                             /* distinguish between broadcast and unicast */
                             bool is_bcast = true;
@@ -364,8 +403,8 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     }
 
     if (i == ccnl->ifcount) {
-        puts("No matching CCN interface found, skipping message");
-        return;
+        DEBUGMSG(WARNING, "No matching CCN interface found, assume it's from the default interface\n");
+        i = 0;
     }
 
     /* packet parsing */
@@ -378,7 +417,7 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     memset(&su, 0, sizeof(su));
     su.sa.sa_family = AF_PACKET;
     su.linklayer.sll_halen = nethdr->src_l2addr_len;
-    memcpy(&su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
+    memcpy(su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
 
     /* call CCN-lite callback and free memory in packet buffer */
     ccnl_core_RX(ccnl, i, ccn_pkt->data, ccn_pkt->size, &su.sa, sizeof(su.sa));
