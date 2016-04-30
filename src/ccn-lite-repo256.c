@@ -746,7 +746,7 @@ ccnl_repo256(struct ccnl_relay_s *repo, struct ccnl_face_s *from,
                                   CCNL_ARRAY_SIZE(prefixBuf),
                                   pkt->pfx),
                  ccnl_suite2str(suite),
-                 pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
+                 (void*)pkt->pfx->nameptr, (int)(pkt->pfx->namelen));
 
         n = ccnl_malloc(sizeof(struct khPFX_s) + pkt->pfx->namelen);
         n->len = 1 + pkt->pfx->namelen;

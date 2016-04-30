@@ -2198,7 +2198,7 @@ flic_lseek(long offs, int whence)
             if (seek->next)
                 seek = seek->next;
             else if (seek->up) {
-                DEBUGMSG(TRACE, "    going up %p\n", seek->up);
+                DEBUGMSG(TRACE, "    going up %p\n", (void *)seek->up);
                 seek = seek->up;
             } else {
                 DEBUGMSG(TRACE, "  problem seeking\n");
