@@ -21,6 +21,8 @@
  */
 
 // #define HASHVALUES
+// #define STOP_AND_WAIT
+
 
 #ifdef HASHVALUES
 #include <stdio.h>
@@ -66,11 +68,11 @@ dump_hashes(void)
 
 // convert network order byte array into local unsigned integer value
 int
-bigEndian2int(unsigned char *buf, int len, int *intval)
+bigEndian2long(unsigned char *buf, int len, long *intval)
 {
-    int val = 0;
+    long val = 0;
 
-//    DEBUGMSG(TRACE, "bigEndian2int %p %d\n", buf, len);
+//    DEBUGMSG(TRACE, "bigEndian2long %p %d\n", buf, len);
 
     while (len-- > 0) {
         val = (val << 8) | *buf;
@@ -100,7 +102,8 @@ usage(int exitval)
             "  -o FNAME   outfile\n"
             "  -r A[-[B]] only fetch bytes in given position range\n"
             "  -s SUITE   (ccnx2015, ndn2013)\n"
-            "  -t SHAPE   tree shape: binary, btree, ndxtab, 7mpr, deep\n"
+//          "  -t SHAPE   tree shape: binary, Btree, ndxtab, 7mpr, deepList\n"
+            "  -t SHAPE   tree shape: binaryTree, Btree, deepList\n"
             "  -u a.b.c.d/port  UDP destination\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL   (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -418,8 +421,10 @@ ccnl_manifest_getFirstHashGroup(struct list_s *m)
     switch(theSuite) {
     case CCNL_SUITE_CCNTLV:
         return m->rest->first;
+//        return m->rest;
     case CCNL_SUITE_NDNTLV:
         return m->rest->rest->first->rest->first;
+//        return m->rest->rest->first->rest;
     default:
         break;
     }
@@ -749,7 +754,7 @@ flic_mkDataChunk(int f, struct ccnl_prefix_s *name, long offset, int len,
 }
 
 void
-flic_produceDeepTree(struct key_s *keys, int block_size,
+flic_produceDeepList(struct key_s *keys, int block_size,
                      char *fname, struct ccnl_prefix_s *name,
                      struct ccnl_prefix_s *meta)
 {
@@ -782,7 +787,7 @@ flic_produceDeepTree(struct key_s *keys, int block_size,
     length = lseek(f, 0, SEEK_END);
     chunk_number = ((length - 1) / block_size) + 1;
 
-    DEBUGMSG(INFO, "Creating deep FLIC tree from %s\n", fname);
+    DEBUGMSG(INFO, "Creating deepList FLIC tree from %s\n", fname);
     DEBUGMSG(INFO, "... file size  = %ld\n", length);
     DEBUGMSG(INFO, "... block size = %d\n", block_size);
 
@@ -877,10 +882,6 @@ binaryTree(int f,
 
     DEBUGMSG(DEBUG, "binaryTree lev=%d, offs=%ld, len=%ld\n",
              lev, offset, length);
-/*
-    if (lev > *depth)
-        *maxDepth = lev;
-*/
 
     if (theSuite == CCNL_SUITE_CCNTLV)
         maxppc =  maxMfstSize / (32 + 4);
@@ -1033,7 +1034,7 @@ flic_produceBinaryTree(struct key_s *keys, int maxPktSize, char *fname,
         maxMfstSize = maxDataSize;
     maxRootSize += lenOfName(meta);
 
-    DEBUGMSG(INFO, "maxDataSize = %d; maxMfstSize = %d; maxRootSize = %d\n",
+    DEBUGMSG(VERBOSE, "maxDataSize=%d; maxMfstSize=%d; maxRootSize=%d\n",
              maxDataSize, maxMfstSize, maxRootSize);
 
     DEBUGMSG(INFO, "Creating binary FLIC tree from %s\n", fname);
@@ -1074,84 +1075,73 @@ Btree(int f, struct ccnl_prefix_s *pktname, struct ccnl_prefix_s *locator,
 {
     struct list_s *m = ccnl_manifest_getEmptyTemplate(theSuite), *m2;
     struct list_s *grp = NULL;
-    int maxppc, chunk_cnt, i, depth = 0, depth2 = 0;
-    long len;
+    int maxppc1, maxppcN, depth = 0, depth2;
+    long block_size, offset2;
     unsigned char md[SHA256_DIGEST_LENGTH];
 
     DEBUGMSG(DEBUG, "Btree lev=%d, offs=%ld, len=%ld\n",
              lev, offset, length);
-/*
-    if (lev > *depth)
-        *maxDepth = lev;
-*/
 
-    // max ptrs per chunk (internal node):
-    if (theSuite == CCNL_SUITE_CCNTLV)
-        maxppc =  maxMfstSize / (32 + 4);
-    else if (theSuite == CCNL_SUITE_NDNTLV)
-        maxppc =  maxMfstSize / (32 + 2);
-    else
+    if (theSuite == CCNL_SUITE_CCNTLV) {
+        maxppc1 =  maxRootSize / (32 + 4);
+        maxppcN =  maxMfstSize / (32 + 4);
+    } else if (theSuite == CCNL_SUITE_NDNTLV) {
+        int elen = 32 + 2;
+        maxppc1 =  maxRootSize / (elen + lenOfName(locator));
+        maxppcN =  maxMfstSize / elen;
+    } else
         return NULL;
-    // number of (data leaf) chunks left to be FLICed:
-    chunk_cnt = ((length - 1) / maxDataSize) + 1;
-    
-    DEBUGMSG(VERBOSE, "  maxDataSize=%d, maxppc=%d, #chunks=%d\n",
-             maxDataSize, maxppc, chunk_cnt);
 
-    if (chunk_cnt > maxppc) {
-        int fanout = (chunk_cnt + maxppc - 1) / maxppc;
-        int chunksPerSubTree = (chunk_cnt + fanout - 1)/ fanout;
+    block_size = maxDataSize;
+    if (lev == 1 && (maxppc1 * block_size) < length)
+        block_size *= maxppc1;
+    while (block_size * maxppcN < length)
+        block_size *= maxppcN;
 
-        while (chunk_cnt > 0) {
-            int n = (chunk_cnt>chunksPerSubTree) ? chunksPerSubTree : chunk_cnt;
+    DEBUGMSG(TRACE, "  maxppc1=%d, maxppcN=%d, block_size=%ld\n",
+             maxppc1, maxppcN, block_size);
 
-            len = n * maxDataSize;
-            if (len > length)\
-                len = length;
-            DEBUGMSG(VERBOSE, "  Btree %d: subtree for %d chunks, len=%ld\n",
-                     lev, n, len);
+    grp = ccnl_manifest_getFirstHashGroup(m);
+    offset2 = block_size * ((length - 1) / block_size);
+    while (offset2 >= 0) {
+        long len = length - offset2;
+        if (len > block_size)
+            len = block_size;
+        if (block_size > maxDataSize) {
+            DEBUGMSG(VERBOSE, "  Btree lev=%d: subtree @ %ld, len=%ld\n",
+                     lev, offset + offset2, len);
+            depth2 = 0;
             m2 = Btree(f, pktname, NULL,
                        maxDataSize, maxMfstSize, maxRootSize,
-                       lev+1, &depth,
-                       offset + length - len,
+                       lev+1, &depth2,
+                       offset + offset2,
                        len, md, ctx);
             if (!m2)
                 goto Failed;
-            grp = ccnl_manifest_prependHashGroup(m);
-//            if (!grp)
-//                grp = ccnl_manifest_prependHashGroup(m);
+            if (depth2 > depth)
+                depth = depth2;
             flic_manifest2file(m2, 0, pktname, NULL, theRepoDir, NULL, md);
             ccnl_manifest_free(m2);
             ccnl_manifest_prependHash(grp, "tptr", md);
-            ccnl_manifest_setMetaData(grp, locator, NULL, len, len,
-                                      depth, NULL);
-            grp = NULL;
-            chunk_cnt -= n;
-            length -= len;
-        }
-        if (length > 0) {
-            DEBUGMSG(ERROR, "  FLIC Btree: leftover length %ld\n", length);
-        }
-    } else {
-        // grp = ccnl_manifest_prependHashGroup(m);
-        grp = ccnl_manifest_getFirstHashGroup(m);
-        for (i = chunk_cnt - 1; i >= 0; i--) {
-            long pos = offset + i * maxDataSize;
-
-            flic_mkDataChunk(f, pktname, pos, offset + length - pos,
+        } else {
+            flic_mkDataChunk(f, pktname, offset + offset2, len,
                              maxDataSize, md);
-            // Prepend the hash to the current manifest
             ccnl_manifest_prependHash(grp, "dptr", md);
         }
-        if (length > chunk_cnt * maxDataSize)
-            length = chunk_cnt * maxDataSize;
-        ccnl_manifest_setMetaData(grp, locator, NULL, maxDataSize,
-                                  length, 1, NULL);
+        offset2 -= block_size;
     }
-    if (depth2 > depth)
-        depth = depth2;
+
+    if (block_size > maxDataSize)
+        depth++;
     if (maxDepth)
-        *maxDepth = ++depth;
+        *maxDepth = depth;
+#ifdef USE_SUITE_NDNTLV
+    ccnl_manifest_setMetaData(grp, lev == 1 ? locator : NULL,
+                              NULL, block_size, length, depth, NULL);
+#else
+    ccnl_manifest_setMetaData(grp, NULL, NULL, block_size,
+                              length, depth, NULL);
+#endif
     return m;
 
   Failed:
@@ -1214,26 +1204,27 @@ flic_produceBtree(struct key_s *keys, int maxPktSize, char *fname,
         maxRootSize -= nmLen;
     } else if (theSuite == CCNL_SUITE_NDNTLV) {
         maxDataSize -= 4; // msg TL
-        maxDataSize -= lenOfName(name); // present in all packets
-        maxDataSize -= 2; // empty metainfo
+        maxDataSize -= nmLen; // present in all packets
+        maxDataSize -= 2; // metainfo
         maxDataSize -= 4; // content TL
         maxDataSize -= 5 + 2 + 32; // sig info and value
 
         maxMfstSize  = maxDataSize - 4 - 3; // one hash group and metainfo
+        maxMfstSize -= 4; // additional metainfo (compared to leaf node)
+        maxMfstSize -= 3; // tree depth
         maxMfstSize -= 4; // block size
         maxMfstSize -= 4; // covered size ... see root
-        maxMfstSize -= 3; // depth
 
-        maxRootSize -= lenOfName(name); // locator
-        maxRootSize -= 2; // TL for total file length
+        maxRootSize += maxMfstSize - 2; // TL for total length
+        maxRootSize -= nmLen; // locator
         maxRootSize -= 32 + 2; // TL of overall sha256
         maxRootSize -= 3; // '_' name component
 //        maxRootSize -= 2; // external metadata TL
     } else
         maxMfstSize = maxDataSize;
-    maxRootSize += lenOfName(meta);
+    maxRootSize -= lenOfName(meta);
 
-    DEBUGMSG(INFO, "maxDataSize = %d; maxMfstSize = %d; maxRootSize = %d\n",
+    DEBUGMSG(VERBOSE, "maxDataSize=%d, maxMfstSize=%d, maxRootSize=%d\n",
              maxDataSize, maxMfstSize, maxRootSize);
 
     DEBUGMSG(INFO, "Creating Btree FLIC from %s\n", fname);
@@ -1517,7 +1508,7 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
     struct ccnl_prefix_s *currentLocator, *tmpPfx = NULL;
     char dummy[256];
 
-    DEBUGMSG(FATAL, "expand %d %d %s\n", curtask, taskcnt,
+    DEBUGMSG(DEBUG, "expand %d %d %s\n", curtask, taskcnt,
              ccnl_prefix2path(dummy, sizeof(dummy), locator));
     
     DEBUGMSG(VERBOSE, "@> ---  %s expand %d %d\n",
@@ -1578,10 +1569,15 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
             memmove(tasks + curtask + cnt, tasks + curtask + 1,
                     (taskcnt - curtask - 1)*sizeof(struct task_s));
         memset(tasks + curtask, 0, cnt * sizeof(struct task_s));
+    } else if (cnt == 1) {
+
     } else {
-        DEBUGMSG(FATAL, "*** handle cnt %d <= 1\n", cnt);
+        DEBUGMSG(DEBUG, "*** handle cnt %d < 1\n", cnt);
     }
     taskcnt += cnt - 1;
+
+
+    DEBUGMSG(DEBUG, "*** curtask, taskcnt %d %d \n", curtask, taskcnt);
 
     // second pass: copy the pointers
     if (curtask < taskcnt) {
@@ -1636,6 +1632,8 @@ window_expandManifest(int curtask, struct ccnl_pkt_s *pkt,
             msg += len2;
             msglen -= len2;
         }
+    } else {
+        DEBUGMSG(TRACE, "*** curtask >= taskcnt %d %d \n", curtask, taskcnt);
     }
     free_prefix(tmpPfx);
     return;
@@ -1740,7 +1738,10 @@ packet_request(int sock, struct sockaddr *sa, int i)
     buf = ccnl_buf_new(tasks[i].md, SHA256_DIGEST_LENGTH);
     if (!buf)
         return -1;
-    for (msg = outq; msg; msg = msg->next) { // already in the queue?
+    if (!outq) {
+        DEBUGMSG(TRACE, "  add to queue (%d)\n", outqlen);
+        outq = buf;
+    } else for (msg = outq; msg; msg = msg->next) { // already in the queue?
         if (msg->datalen == buf->datalen &&
             !memcmp(msg->data, buf->data, msg->datalen)) {
             DEBUGMSG(DEBUG, "    not enqueued because already there\n");
@@ -1749,13 +1750,13 @@ packet_request(int sock, struct sockaddr *sa, int i)
             goto SetTimer;
         }
         if (!msg->next) {
+            DEBUGMSG(TRACE, "  add to queue (%d)\n", outqlen);
             msg->next = buf;
             outqlen++;
             rc = 0;
             goto SetTimer;
         }
     }
-    outq = buf;
     outqlen++;
     rc = 0;
 SetTimer:
@@ -1785,14 +1786,17 @@ repo_io_loop(struct ccnl_prefix_s *locator, int fd)
     ccnl_get_timeval(&endofRTT);
     ccnl_timeval_add(&endofRTT, rtt);
     ccnl_get_timeval(&nextout);
-    DEBUGMSG(INFO, "starting repo main event and IO loop\n");
+    DEBUGMSG(DEBUG, "starting repo main event and IO loop (%d tasks)\n",
+             taskcnt);
     while (taskcnt > 0) {
         int usec;
 
+        DEBUGMSG(TRACE, "  io_loop: outqlen=%d\n", outqlen);
         ccnl_get_timeval(&now);
 
         usec = rtt;
-        for (i = 0; outqlen < outqlimit && i < sendwindow && sendcnt < sendwindow; i++) {
+        for (i = 0; outqlen < outqlimit && i < taskcnt && i < sendwindow &&
+                                                   sendcnt < sendwindow; i++) {
             if (i > expandlimit)
                 break;
 
@@ -1846,7 +1850,8 @@ repo_io_loop(struct ccnl_prefix_s *locator, int fd)
 
         if (usec >= 0) {
             struct timeval deadline;
-            DEBUGMSG(VERBOSE, "%d qlen=%d\n", usec, outqlen);
+            DEBUGMSG(VERBOSE, "%d qlen=%d (qlim=%d)\n",
+                     usec, outqlen, outqlimit);
             deadline.tv_sec = usec / 1000000;
             deadline.tv_usec = usec % 1000000;
             rc = select(maxfd, &readfs, &writefs, NULL, &deadline);
@@ -1863,12 +1868,13 @@ repo_io_loop(struct ccnl_prefix_s *locator, int fd)
 
         ccnl_get_timeval(&now);
         if (outq && timevaldelta(&nextout, &now) < 0) {
-            DEBUGMSG(TRACE, "something to send\n");
+            DEBUGMSG(TRACE, "something to send, qlen=%d, taskcnt=%d\n",
+                     outqlen, taskcnt);
             struct ccnl_buf_s *n = outq->next;
             for (i = 0; i < taskcnt; i++) {
                 if (!memcmp(outq->data, tasks[i].md, SHA256_DIGEST_LENGTH)) {
                     int nonce = random();
-                    DEBUGMSG(TRACE, "requestin %s\n",
+                    DEBUGMSG(TRACE, "requesting %s\n",
                              ccnl_prefix2path(dummy, sizeof(dummy),
                                               tasks[i].locator));
                     DEBUGMSG(TRACE, "  %s\n", digest2str(tasks[i].md));
@@ -1985,7 +1991,7 @@ repo_io_loop(struct ccnl_prefix_s *locator, int fd)
             memcpy(&endofRTT, &now, sizeof(now));
             ccnl_timeval_add(&endofRTT, rtt);
 
-            DEBUGMSG(INFO, "rtt=%ld, cwnd=%d, tasks=%d, in=%d, out=%d, qlen=%d, err=%d\n",
+            DEBUGMSG(TRACE, "rtt=%ld, cwnd=%d, tasks=%d, in=%d, out=%d, qlen=%d, err=%d\n",
                      rtt, sendwindow, taskcnt, RbytesPerRTT, WbytesPerRTT, outqlen, dropcnt);
             sendcnt = 0;
             dropcnt = 0;
@@ -2034,7 +2040,8 @@ window_retrieval(struct ccnl_prefix_s *locator,
     window_expandManifest(0, pkt, locator);
     free_packet(pkt);
 
-    DEBUGMSG(INFO, "starting with %d lookup tasks\n", taskcnt);
+    DEBUGMSG(DEBUG, "starting with %d lookup tasks, qlen=%d\n",
+             taskcnt, outqlen);
     packet_request(theSock, &theSockAddr, 0);
     tasks[0].retry_cnt = 1;
 
@@ -2052,14 +2059,15 @@ struct fromto_s {
     struct ccnl_pkt_s *pkt;
 };
 
-struct fromto_s *root, *seek;
-long seekpos = -1;
+static struct fromto_s *root, *seek;
+static long seekpos = -1;
 
 struct fromto_s*
 flic_manifest2fromto(struct ccnl_pkt_s *pkt, long from, long *to)
 {
     unsigned char *msg = pkt->content, *msg2;
-    int mlen = pkt->contlen, mlen2, blocksz = 1, overallsz = 0;
+    int mlen = pkt->contlen, mlen2;
+    long blocksz = 1, overallsz = 0;
     unsigned int typ, len, len2;
     struct fromto_s *list = NULL, **rest = &list;
     struct ccnl_prefix_s *locator = NULL;
@@ -2069,19 +2077,9 @@ flic_manifest2fromto(struct ccnl_pkt_s *pkt, long from, long *to)
 
     if (pkt->pfx)
         locator = ccnl_prefix_dup(pkt->pfx);
-/*
-#ifdef USE_SUITE_NDNTLV
-    if (theSuite == CCNL_SUITE_NDNTLV) {
-        rc = flic_dehead(&msg, &mlen, &typ, &len);
-        DEBUGMSG(DEBUG, "  while flic %d\n", typ);
-        if (rc < 0 || typ != NDN_TLV_Content)
-            return NULL;
-        mlen = len;
-    }
-#endif
-*/
+
     while (flic_dehead(&msg, &mlen, &typ, &len) >= 0) {
-        DEBUGMSG(DEBUG, "while flic %d %d\n", typ, len);
+        DEBUGMSG(DEBUG, "  parsed %d %d\n", typ, len);
         if (typ != m_codes[M_HASHGROUP]) {
             msg += len;
             mlen -= len;
@@ -2105,11 +2103,11 @@ flic_manifest2fromto(struct ccnl_pkt_s *pkt, long from, long *to)
                         DEBUGMSG(VERBOSE, "  locator %s\n",
                              ccnl_prefix2path(dummy, sizeof(dummy), locator));
                     } else if (typ == m_codes[M_MT_BLOCKSIZE]) {
-                        bigEndian2int(msg3, len4, &blocksz);
-                        DEBUGMSG(VERBOSE, "  blocksz=%d\n", blocksz);
+                        bigEndian2long(msg3, len4, &blocksz);
+                        DEBUGMSG(VERBOSE, "  blocksz=%ld\n", blocksz);
                     } else if (typ == m_codes[M_MT_OVERALLDATASIZE]) {
-                        bigEndian2int(msg3, len4, &overallsz);
-                        DEBUGMSG(VERBOSE, "  overallsz=%d\n", overallsz);
+                        bigEndian2long(msg3, len4, &overallsz);
+                        DEBUGMSG(VERBOSE, "  overallsz=%ld\n", overallsz);
                     }
                     msg3 += len4;
                     msglen3 -= len4;
@@ -2148,11 +2146,10 @@ flic_manifest2fromto(struct ccnl_pkt_s *pkt, long from, long *to)
     return list;
 }
 
-
-
 long
 flic_lseek(long offs, int whence)
 {
+    char dummy[256];
     long newpos;
 
     DEBUGMSG(DEBUG, "flic_lseek (%d) pos=%ld offs=%ld, seek->to=%ld\n",
@@ -2192,7 +2189,8 @@ flic_lseek(long offs, int whence)
     }
     for (;;) {
         while (newpos > seek->to) {
-            DEBUGMSG(TRACE, "  while %p [%ld..%ld]: up=%p, next=%p (newpos=%ld)\n",
+            DEBUGMSG(TRACE,
+                     "  while %p [%ld..%ld]: up=%p, next=%p (newpos=%ld)\n",
                      (void*) seek, seek->from, seek->to,
                      (void*) seek->up, (void*) seek->next, newpos);
             if (seek->next)
@@ -2207,11 +2205,11 @@ flic_lseek(long offs, int whence)
         }
         if (seek->isLeaf)
             break;
-        DEBUGMSG(TRACE, "  checking node %p, down=%p [%ld..%ld] for newpos=%ld\n",
-                 (void*) seek, (void*) seek->down, seek->from, seek->to, newpos);
-        if (!seek->down) { // not yet loaded - get the corresponding manifest or leaf
+        DEBUGMSG(TRACE,
+                 "  checking node %p, down=%p [%ld..%ld] for newpos=%ld\n",
+                 (void*)seek, (void*)seek->down, seek->from, seek->to, newpos);
+        if (!seek->down) { // not yet loaded - get the manifest or leaf
             struct fromto_s *h;
-            char dummy[256];
             long to;
             DEBUGMSG(TRACE, "  loading %s %s\n",
                      ccnl_prefix2path(dummy, sizeof(dummy), seek->pfx),
@@ -2221,7 +2219,8 @@ flic_lseek(long offs, int whence)
             if (!seek->down)
                 return -1;
             if (seek->to != (to - 1)) {
-                DEBUGMSG(TRACE, "  manifest to-sz mismatch: %ld != %ld\n", seek->to, to-1);
+                DEBUGMSG(TRACE, "  manifest to-sz mismatch: %ld != %ld\n",
+                         seek->to, to-1);
             }
             for (h = seek->down; h; h = h->next)
                 h->up = seek;
@@ -2265,8 +2264,8 @@ flic_read(void *buf, int cnt)
 enum {
     TREE_BINARY,
     TREE_BTREE,
-    TREE_INDEXTABLE,
-    TREE_7MPR,
+//    TREE_INDEXTABLE,
+//    TREE_7MPR,
     TREE_DEEP
 };
 
@@ -2334,16 +2333,18 @@ main(int argc, char *argv[])
                 usage(1);
             break;
         case 't':
-            if (!strcmp(optarg, "deep"))
+            if (!strcmp(optarg, "deepList"))
                 treeShape = TREE_DEEP;
-            else if (!strcmp(optarg, "7mpr"))
-                treeShape = TREE_7MPR;
-            else if (!strcmp(optarg, "ndxtab"))
-                treeShape = TREE_INDEXTABLE;
-            else if (!strcmp(optarg, "btree"))
+//          else if (!strcmp(optarg, "7mpr"))
+//              treeShape = TREE_7MPR;
+//          else if (!strcmp(optarg, "ndxtab"))
+//              treeShape = TREE_INDEXTABLE;
+            else if (!strcmp(optarg, "Btree"))
                 treeShape = TREE_BTREE;
-            else
+            else if (!strcmp(optarg, "binaryTree"))
                 treeShape = TREE_BINARY;
+            else
+                usage(1);
             break;
         case 'u':
             udp = optarg;
@@ -2424,14 +2425,14 @@ Usage:
 
         switch (treeShape) {
         case TREE_DEEP:
-            flic_produceDeepTree(keys, maxPktSize, fname, uri, metadataUri);
+            flic_produceDeepList(keys, maxPktSize, fname, uri, metadataUri);
             break;
-        case TREE_7MPR:
-            flic_produce7mprTree(keys, maxPktSize, fname, uri, metadataUri);
-            break;
-        case TREE_INDEXTABLE:
-            flic_produceIndexTable(keys, maxPktSize, fname, uri, metadataUri);
-            break;
+//        case TREE_7MPR:
+//            flic_produce7mprTree(keys, maxPktSize, fname, uri, metadataUri);
+//            break;
+//        case TREE_INDEXTABLE:
+//            flic_produceIndexTable(keys, maxPktSize, fname, uri, metadataUri);
+//            break;
         case TREE_BTREE:
             flic_produceBtree(keys, maxPktSize, fname, uri, metadataUri);
             break;
@@ -2476,7 +2477,7 @@ Usage:
 #ifdef STOP_AND_WAIT
         // sequential/non-windowed retrieval:
 
-        if (!flic_do_manifestPtr(/* sock, &sa, */ exitBehavior, keys,
+        if (!flic_do_manifestPtr(theSock, &theSockAddr, exitBehavior, keys,
                                  uri, objHashRestr, fd, &total)) {
             ccnl_SHA256_Final(md, &total);
             DEBUGMSG(INFO, "Total SHA256 is %s\n", digest2str(md));
@@ -2499,6 +2500,7 @@ Usage:
             root->pfx = root->pkt->pfx;
             seek = root;
 
+            DEBUGMSG(DEBUG, "range [%ld...%ld]\n", range_from, range_to);
             flic_lseek(range_from, SEEK_SET);
             for (;;) {
                 int cnt = sizeof(out);
