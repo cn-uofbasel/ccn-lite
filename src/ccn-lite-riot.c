@@ -374,6 +374,7 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_pktbuf_release(pkt);
 }
 
+static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
 /* the main event-loop */
 void
 *_ccnl_event_loop(void *arg)
@@ -381,14 +382,16 @@ void
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
-    /* start periodic timer */
-    ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, ccnl, 0);
 
     /* XXX: https://xkcd.com/221/ */
     random_init(0x4);
 
     while(!ccnl->halt_flag) {
         msg_t m, reply;
+        /* start periodic timer */
+        xtimer_remove(&_ageing_timer);
+        reply.type = CCNL_MSG_AGEING;
+        xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &reply, sched_active_pid);
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
         msg_receive(&m);
 
@@ -408,7 +411,12 @@ void
                 reply.content.value = -ENOTSUP;
                 msg_reply(&m, &reply);
                 break;
+            case CCNL_MSG_AGEING:
+                DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
+                ccnl_ageing(arg, NULL);
+                break;
             default:
+                DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
                 break;
         }
 
