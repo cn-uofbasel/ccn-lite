@@ -413,7 +413,7 @@ void
                 break;
             case CCNL_MSG_AGEING:
                 DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
-                ccnl_ageing(arg, NULL);
+                ccnl_do_ageing(arg, NULL);
                 break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
