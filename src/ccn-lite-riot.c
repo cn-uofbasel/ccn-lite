@@ -390,10 +390,7 @@ void
     while(!ccnl->halt_flag) {
         msg_t m, reply;
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
-        int usec = ccnl_run_events();
-        if (xtimer_msg_receive_timeout(&m, usec) < 0) {
-            continue;
-        }
+        msg_receive(&m);
 
         switch (m.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
