@@ -478,15 +478,15 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 /* TODO: move everything below here to ccn-lite-core-utils */
 
 /* generates and send out an interest */
-int
-ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
+struct ccnl_interest_s
+*ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
                     unsigned char *buf, size_t buf_len)
 {
     struct ccnl_prefix_s *prefix;
 
     if (suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
-        return -1;
+        return NULL;
     }
 
     ccnl_mkInterestFunc mkInterest;
@@ -497,7 +497,7 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
 
     if (!mkInterest || !isContent) {
         DEBUGMSG(WARNING, "No functions for this suite were found!");
-        return(-1);
+        return NULL;
     }
 
     DEBUGMSG(INFO, "interest for chunk number: %u\n", (chunknum == NULL) ? 0 : *chunknum);
@@ -505,7 +505,7 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
 
     if (!prefix) {
         DEBUGMSG(ERROR, "prefix could not be created!\n");
-        return -1;
+        return NULL;
     }
 
     int nonce = random_uint32();
@@ -524,7 +524,7 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
-        return -1;
+        return NULL;
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
@@ -532,7 +532,7 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
     ccnl_interest_append_pending(i, loopback_face);
     ccnl_interest_propagate(&ccnl_relay, i);
 
-    return 0;
+    return i;
 }
 
 void ccnl_set_local_producer(ccnl_producer_func func)
