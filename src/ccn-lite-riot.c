@@ -292,6 +292,15 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                     DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) ifc->if_pid);
                                     return;
                                 }
+                                else if (res != addr_len) {
+                                    DEBUGMSG(DEBUG, " address length doesn't match, try long address\n");
+                                    res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDRESS_LONG, 0, hwaddr, sizeof(hwaddr));
+                                    if (res < 0) {
+                                        DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) ifc->if_pid);
+                                        return;
+                                    }
+                                }
+
                                 if (memcmp(hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
                                     DEBUGMSG(DEBUG, "loopback packet\n");
                                     /* build link layer header */
