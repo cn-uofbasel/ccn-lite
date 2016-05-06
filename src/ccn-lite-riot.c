@@ -262,7 +262,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 {
     (void) ccnl;
     int rc;
-    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes\n", buf ? buf->datalen : -1);
+    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", buf ? buf->datalen : -1, ccnl_addr2ascii(dest));
     switch(dest->sa.sa_family) {
         /* link layer sending */
         case AF_PACKET: {
@@ -302,7 +302,6 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                 }
 
                                 if (memcmp(hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
-                                    DEBUGMSG(DEBUG, "loopback packet\n");
                                     /* build link layer header */
                                     hdr = gnrc_netif_hdr_build(NULL, dest->linklayer.sll_halen,
                                                                dest->linklayer.sll_addr,
@@ -329,6 +328,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             LL_PREPEND(pkt, hdr);
 
                             if (is_loopback) {
+                                    DEBUGMSG(DEBUG, "loopback packet\n");
                                     if (gnrc_netapi_receive(_ccnl_event_loop_pid, pkt) < 1) {
                                         DEBUGMSG(ERROR, "error: unable to loopback packet, discard it\n");
                                         gnrc_pktbuf_release(pkt);
@@ -347,11 +347,13 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             }
 
                             if (is_bcast) {
+                                DEBUGMSG(DEBUG, " is broadcast\n");
                                 gnrc_netif_hdr_t *nethdr = (gnrc_netif_hdr_t *)hdr->data;
                                 nethdr->flags = GNRC_NETIF_HDR_FLAGS_BROADCAST;
                             }
 
                             /* actual sending */
+                            DEBUGMSG(DEBUG, " try to pass to GNRC\n");
                             if (gnrc_netapi_send(ifc->if_pid, pkt) < 1) {
                                 puts("error: unable to send\n");
                                 gnrc_pktbuf_release(pkt);
