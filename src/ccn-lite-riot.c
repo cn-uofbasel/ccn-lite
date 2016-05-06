@@ -101,6 +101,11 @@ static char _ccnl_stack[CCNL_STACK_SIZE];
 static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
 
 /**
+ * Timer to process ageing
+ */
+static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
+
+/**
  * local producer function defined by the application
  */
 ccnl_producer_func _prod_func = NULL;
@@ -255,6 +260,8 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     return gnrc_netreg_register(netreg_type, &_ccnl_ne);
 }
 
+static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
+
 /* (link layer) sending function */
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -263,6 +270,11 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     (void) ccnl;
     int rc;
     DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", buf ? buf->datalen : -1, ccnl_addr2ascii(dest));
+    /* reset ageing timer */
+    xtimer_remove(&_ageing_timer);
+    xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &_ageing_reset, _ccnl_event_loop_pid);
+    DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
+
     switch(dest->sa.sa_family) {
         /* link layer sending */
         case AF_PACKET: {
@@ -353,7 +365,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             }
 
                             /* actual sending */
-                            DEBUGMSG(DEBUG, " try to pass to GNRC\n");
+                            DEBUGMSG(DEBUG, " try to pass to GNRC (%i): %p\n", (int) ifc->if_pid, (void*) pkt);
                             if (gnrc_netapi_send(ifc->if_pid, pkt) < 1) {
                                 puts("error: unable to send\n");
                                 gnrc_pktbuf_release(pkt);
@@ -435,7 +447,6 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_pktbuf_release(pkt);
 }
 
-static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
 /* the main event-loop */
 void
 *_ccnl_event_loop(void *arg)
