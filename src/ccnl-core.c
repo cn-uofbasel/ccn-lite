@@ -724,9 +724,9 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         }
     }
     if ((ccnl->max_cache_entries == 0) ||
-        (ccnl->contentcnt <= ccnl->max_cache_entries)) {
+        (ccnl->contentcnt < ccnl->max_cache_entries)) {
         DBL_LINKED_LIST_ADD(ccnl->contents, c);
-    ccnl->contentcnt++;
+        ccnl->contentcnt++;
     }
     else {
         DEBUGMSG_CORE(WARNING, " cache is full, cannot add new entry\n");
