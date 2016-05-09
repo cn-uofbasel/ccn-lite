@@ -521,7 +521,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     int cnt, i, len, tlen;
 
     DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, nfnexpr);
+             ccnl_suite2str(suite), uri, (nfnexpr != NULL) ? nfnexpr : "none");
 
     if (strlen(uri))
         cnt = ccnl_URItoComponents(compvect, complens, uri);
