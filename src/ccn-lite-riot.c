@@ -246,8 +246,27 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->if_pid = if_pid;
     i->addr.sa.sa_family = AF_PACKET;
 
-    gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    int res;
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
+        return -ECANCELED;
+    }
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine address length for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address length is %u\n", (unsigned) i->addr_len);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDRESS, 0, i->hwaddr, i->addr_len);
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address is %s\n", ll2ascii(i->hwaddr, i->addr_len));
 
     /* advance interface counter in relay */
     ccnl_relay.ifcount++;
@@ -291,35 +310,14 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 
                             /* check for loopback */
                             bool is_loopback = false;
-                            uint16_t addr_len;
-                            int res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDR_LEN, 0, &addr_len, sizeof(addr_len));
-                            if (res < 0) {
-                                DEBUGMSG(ERROR, "error: unable to determine address length for if=<%u>\n", (unsigned) ifc->if_pid);
-                                return;
-                            }
-                            if (addr_len == dest->linklayer.sll_halen) {
-                                uint8_t hwaddr[addr_len];
-                                res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDRESS, 0, hwaddr, sizeof(hwaddr));
-                                if (res < 0) {
-                                    DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) ifc->if_pid);
-                                    return;
-                                }
-                                else if (res != addr_len) {
-                                    DEBUGMSG(DEBUG, " address length doesn't match, try long address\n");
-                                    res = gnrc_netapi_get(ifc->if_pid, NETOPT_ADDRESS_LONG, 0, hwaddr, sizeof(hwaddr));
-                                    if (res < 0) {
-                                        DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) ifc->if_pid);
-                                        return;
-                                    }
-                                }
-
-                                if (memcmp(hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
+                            if (ifc->addr_len == dest->linklayer.sll_halen) {
+                                if (memcmp(ifc->hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
                                     /* build link layer header */
                                     hdr = gnrc_netif_hdr_build(NULL, dest->linklayer.sll_halen,
                                                                dest->linklayer.sll_addr,
                                                                dest->linklayer.sll_halen);
 
-                                    gnrc_netif_hdr_set_src_addr((gnrc_netif_hdr_t *)hdr->data, hwaddr, addr_len);
+                                    gnrc_netif_hdr_set_src_addr((gnrc_netif_hdr_t *)hdr->data, ifc->hwaddr, ifc->addr_len);
                                     is_loopback = true;
                                 }
                             }
