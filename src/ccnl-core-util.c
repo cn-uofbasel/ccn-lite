@@ -1051,6 +1051,21 @@ ccnl_fib_show(struct ccnl_relay_s *relay)
 #endif
 }
 
+void
+ccnl_cs_dump(struct ccnl_relay_s *ccnl)
+{
+    struct ccnl_content_s *c = ccnl->contents;
+    unsigned i = 0;
+    while (c) {
+        printf("CS[%u]: %s [%d]: %s\n", i++,
+               ccnl_prefix_to_path(c->pkt->pfx),
+               (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1,
+               c->pkt->content);
+        c = c->next;
+    }
+}
+
+
 // ----------------------------------------------------------------------
 
 #ifndef CCNL_LINUXKERNEL

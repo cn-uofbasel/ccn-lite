@@ -228,7 +228,7 @@ int ccnl_str2suite(char *cp);
 int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 int ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 void ccnl_fib_show(struct ccnl_relay_s *relay);
-
+void ccnl_cs_dump(struct ccnl_relay_s *ccnl);
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccnb.c */
 #ifdef USE_SUITE_CCNB
