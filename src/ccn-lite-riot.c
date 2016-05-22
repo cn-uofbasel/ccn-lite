@@ -108,7 +108,7 @@ static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
 /**
  * local producer function defined by the application
  */
-ccnl_producer_func _prod_func = NULL;
+static ccnl_producer_func _prod_func = NULL;
 
 /**
  * caching strategy removal function
@@ -629,7 +629,8 @@ struct ccnl_interest_s
     return i;
 }
 
-void ccnl_set_local_producer(ccnl_producer_func func)
+void
+ccnl_set_local_producer(ccnl_producer_func func)
 {
     _prod_func = func;
 }
@@ -640,7 +641,8 @@ ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
     _cs_remove_func = func;
 }
 
-int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt)
 {
     if (_prod_func) {
