@@ -117,6 +117,7 @@ int inet_aton(const char *cp, struct in_addr *inp);
 
 #define compute_ccnx_digest(b) NULL
 #define local_producer(...)             0
+#define cache_strategy_remove(...)      0
 
 //----------------------------------------------------------------------
 

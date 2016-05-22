@@ -593,6 +593,7 @@ static inline int           setMgmt (struct info_mgmt_s *m) {return m->vtable->s
 #include "ccnl-ext-debug.c"
 #include "ccnl-ext-logging.c"
 #define local_producer(...)             0
+#define cache_strategy_remove(...)      0
 
 /*
  * The following are aliases for legacy names that the ccn-lite code base uses,

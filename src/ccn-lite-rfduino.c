@@ -203,6 +203,7 @@ char* ccnl_addr2ascii(sockunion *su);
 #define DEBUGMSG(...)      DEBUGMSG_OFF(__VA_VARGS__)
 
 #define local_producer(...) 0
+#define cache_strategy_remove(...)      0
 
 #include "ccnl-core.c"
 #include "ccnl-ext-frag.c"

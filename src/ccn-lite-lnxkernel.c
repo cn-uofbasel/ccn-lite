@@ -56,6 +56,7 @@
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define local_producer(...)             0
+#define cache_strategy_remove(...)      0
 
 static struct ccnl_relay_s theRelay;
 

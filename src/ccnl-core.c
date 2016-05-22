@@ -714,19 +714,22 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
     if (ccnl->max_cache_entries > 0 &&
         ccnl->contentcnt >= ccnl->max_cache_entries) { // remove oldest content
-        struct ccnl_content_s *c2, *oldest = NULL;
-        int age = 0;
-        for (c2 = ccnl->contents; c2; c2 = c2->next) {
-            if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC)) {
-                if ((age == 0) || c2->last_used < age) {
-                    age = c2->last_used;
-                    oldest = c2;
+
+        if (!cache_strategy_remove(ccnl, c)) {
+            struct ccnl_content_s *c2, *oldest = NULL;
+            int age = 0;
+            for (c2 = ccnl->contents; c2; c2 = c2->next) {
+                if (!(c2->flags & CCNL_CONTENT_FLAGS_STATIC)) {
+                    if ((age == 0) || c2->last_used < age) {
+                        age = c2->last_used;
+                        oldest = c2;
+                    }
                 }
             }
-        }
-        if (oldest) {
-            DEBUGMSG_CORE(DEBUG, " remove old entry from cache\n");
-            ccnl_content_remove(ccnl, oldest);
+            if (oldest) {
+                DEBUGMSG_CORE(DEBUG, " remove old entry from cache\n");
+                ccnl_content_remove(ccnl, oldest);
+            }
         }
     }
     if ((ccnl->max_cache_entries < 0) ||
