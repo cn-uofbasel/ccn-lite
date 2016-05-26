@@ -854,13 +854,23 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-            char *s = NULL;
-            DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
-            DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
-                          (void*)i,
-                     (s = ccnl_prefix_to_path(i->pkt->pfx)));
-            ccnl_free(s);
-            i = ccnl_nfn_interest_remove(relay, i);
+#ifndef USE_TIMEOUT                                                                                                       
+                char *s = NULL;
+                DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
+                DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
+                            (void*)i,
+                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                ccnl_free(s);
+                i = ccnl_nfn_interest_remove(relay, i);
+#else // use timeout prevention (keep alive)
+                char *s = NULL;
+                DEBUGMSG_CORE(TRACE, "AGING: INTEREST KEEP ALIVE %p\n", (void*) i);
+                DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
+                            (void*)i,
+                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                ccnl_free(s);
+                i = ccnl_nfn_interest_keepalive(relay, i);
+#endif
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."

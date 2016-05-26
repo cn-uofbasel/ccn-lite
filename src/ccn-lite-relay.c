@@ -44,6 +44,8 @@
 // #define USE_NFN
 #define USE_NFN_NSTRANS
 // #define USE_NFN_MONITOR
+//#define USE_NFN_KEEPALIVE
+//#define USE_NFN_PULL
 // #define USE_SCHEDULER
 #define USE_STATS
 #define USE_SUITE_CCNB                 // must select this for USE_MGMT

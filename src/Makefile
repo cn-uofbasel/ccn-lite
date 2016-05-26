@@ -42,10 +42,11 @@ EXTMAKECLEAN=
 # CCNL_NFN_MONITOR to log messages to nfn-scala montior
 NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
+NFNTIMEOUTFLAGS += -DUSE_TIMEOUT
 
 PROGS =
 INST_PROGS= ccn-lite-relay \
-            ccn-lite-minimalrelay
+#            ccn-lite-minimalrelay
 
 # Linux specific (adds kernel module)
 ifeq ($(uname_S),Linux)
@@ -74,6 +75,13 @@ ifdef USE_NFN
     $(info *** With NFN ***)
     INST_PROGS += ccn-nfn-relay
     CCNLCFLAGS += ${NFNFLAGS}
+endif
+
+ifdef USE_TIMEOUT
+    #$(info *** With NFN2 ***)
+	ifdef USE_NFN
+		CCNLCFLAGS += ${NFNTIMEOUTFLAGS}
+	endif
 endif
 
 ifdef USE_NACK

@@ -153,6 +153,7 @@ struct ccnl_prefix_s *create_prefix_for_content_on_result_stack(struct ccnl_rela
 struct ccnl_content_s *ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl, struct configuration_s *config, struct ccnl_prefix_s *prefix);
 
 struct ccnl_interest_s *ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i);
+struct ccnl_interest_s *ccnl_nfn_interest_keepalive(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 void ZAM_register(char *name, BIF fct);
 struct closure_s *new_closure(char *term, struct environment_s *env);
 void push_to_stack(struct stack_s **top, void *content, int type);
