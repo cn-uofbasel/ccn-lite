@@ -66,6 +66,12 @@ bin
 *.sublime-workspace
 *.sublime-project
 
+# Visual Studio Code
+.vscode
+
+# XCode
+*.xcodeproj
+
 # distribution files:
 distribution/Debian/ccn-lite
 distribution/Debian/ccn-lite.deb
