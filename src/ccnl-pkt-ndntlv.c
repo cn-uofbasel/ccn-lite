@@ -155,13 +155,24 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 len2 -= i;
             }
             p->namelen = *data - p->nameptr;
+            DEBUGMSG(DEBUG, "  check interest type\n");
     #ifdef USE_NFN
+   
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
+                DEBUGMSG(DEBUG, "  is NFN interest\n");
             }
-    #endif
+    #ifdef USE_TIMEOUT
+            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+                    !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
+                p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
+                //p->compcnt--;
+                DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
+            }
+    #endif // USE_TIMEOUT
+    #endif // USE_NFN
             break;
         case NDN_TLV_Selectors:
             while (len2 > 0) {

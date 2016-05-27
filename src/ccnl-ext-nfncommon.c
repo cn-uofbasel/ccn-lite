@@ -502,7 +502,7 @@ struct ccnl_prefix_s*
 ccnl_nfn_mkKeepalivePrefix(struct ccnl_interest_s *i)
 {
     struct ccnl_prefix_s *p;
-    unsigned char cmp[] = "ALIVE?";
+    unsigned char cmp[] = "ALIVE";
     int cmplen = strlen((char*)cmp);
     
     DEBUGMSG(TRACE, "ccnl_nfnprefix_mkKeepalivePrefix()\n");
@@ -600,6 +600,12 @@ int
 ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 {
     return !memcmp(c->pkt->content, ":NACK", 5);
+}
+
+int
+ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
 }
 
 void

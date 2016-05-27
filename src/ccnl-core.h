@@ -159,6 +159,7 @@ struct ccnl_prefix_s {
 # define CCNL_PREFIX_NFN   0x01
 
 # define CCNL_PREFIX_COMPU 0x04
+# define CCNL_PREFIX_KEEPALIVE 0x08
     unsigned char *nfnexpr;
 #endif
 };
