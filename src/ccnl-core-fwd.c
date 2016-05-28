@@ -180,6 +180,19 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 #endif
+
+#ifdef USE_TIMEOUT
+    if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
+        DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
+        DEBUGMSG_CFWD(DEBUG, "  reply with 'alive'\n");
+        unsigned char reply = 200;
+        int offset;
+        struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, &reply, 1, &offset);        
+        ccnl_face_enqueue(relay, from, buf);
+    }
+#endif
+    
+
     // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
 

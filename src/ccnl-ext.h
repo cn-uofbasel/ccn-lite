@@ -50,6 +50,8 @@ int ccnl_str2suite(char *str);
 bool ccnl_isSuite(int suite);
 
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+struct ccnl_buf_s *ccnl_mkSimpleContent(struct ccnl_prefix_s *name, 
+                                        unsigned char *payload, int paylen, int *payoffset);
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)
