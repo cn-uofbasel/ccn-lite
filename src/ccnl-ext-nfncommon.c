@@ -511,6 +511,8 @@ ccnl_nfn_mkKeepalivePrefix(struct ccnl_interest_s *i)
     DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
     if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
         return NULL;
+        
+    p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
     
     DEBUGMSG(TRACE, "  keep alive prefix: %s\n", ccnl_prefix_to_path(p));
     return p;
@@ -568,23 +570,26 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
 
     i = ccnl_interest_new(ccnl, from, &pkt);
     if (i) {
+        interest->keepalive = i;
+        i->keepalive_origin = interest;
+        
         DEBUGMSG(TRACE, "  new keepalive interest %p, from=%p, i->from=%p\n",
                  (void*)i, (void*)from, (void*)i->from);
     }
     return i;
 }
 
-struct ccnl_interest_s*
+struct ccnl_interest_s* // TODO int/void return
 ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *interest)
 {
     DEBUGMSG(TRACE, "ccnl_nfn_interest_keepalive()\n");
     
     struct ccnl_interest_s *i = ccnl_nfn_mkKeepaliveInterest(relay, interest);
     if (!i)
-        return NULL;
+        return NULL;            
     
     ccnl_interest_propagate(relay, i);
-    return i;
+    return interest;
 }
 
 // ----------------------------------------------------------------------

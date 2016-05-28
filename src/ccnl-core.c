@@ -854,22 +854,46 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-#ifndef USE_TIMEOUT                                                                                                       
+#ifdef USE_TIMEOUT           
+                if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
+                    if (i->keepalive == NULL) {
+                        char *s = NULL;
+                        DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
+                        DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
+                            (void*)i,
+                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                        ccnl_free(s);
+                        ccnl_nfn_interest_keepalive(relay, i);
+                        // i->keepalive = ka;
+                    } else {
+                        char *s = NULL;
+                        DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
+                        DEBUGMSG_CORE(DEBUG, " timeout: wait for status info 0x%p <%s>\n",
+                            (void*)i,
+                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                        ccnl_free(s);
+                    }   
+                    i = i->next; 
+                } else {
+                    char *s = NULL;
+                    DEBUGMSG_CORE(TRACE, "AGING: REMOVE KEEP ALIVE INTEREST %p\n", (void*) i);
+                    DEBUGMSG_CORE(DEBUG, " timeout: remove keep alive interest 0x%p <%s>\n",
+                        (void*)i,
+                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                    ccnl_free(s);
+                    struct ccnl_interest_s *origin = i->keepalive_origin;
+                    ccnl_nfn_interest_remove(relay, origin);
+                    i = ccnl_nfn_interest_remove(relay, i);
+                }                                                                                         
+                
+#else // USE_TIMEOUT
                 char *s = NULL;
-                DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
+                DEBUGMSG_CORE(TRACE, "AGING: REMOVE INTEREST %p\n", (void*) i);
                 DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
                             (void*)i,
                         (s = ccnl_prefix_to_path(i->pkt->pfx)));
                 ccnl_free(s);
                 i = ccnl_nfn_interest_remove(relay, i);
-#else // use timeout prevention (keep alive)
-                char *s = NULL;
-                DEBUGMSG_CORE(TRACE, "AGING: INTEREST KEEP ALIVE %p\n", (void*) i);
-                DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
-                            (void*)i,
-                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                ccnl_free(s);
-                i = ccnl_nfn_interest_keepalive(relay, i);
 #endif
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
