@@ -872,7 +872,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
     }
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."
-        if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
+        if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t &&
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
             char *s = NULL;
             DEBUGMSG_CORE(TRACE, "AGING: INTEREST REMOVE %p\n", (void*) i);
