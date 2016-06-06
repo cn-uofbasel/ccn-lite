@@ -168,7 +168,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
                     !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
                 p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
-                //p->compcnt--;
+                p->compcnt--;
                 DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
             }
     #endif // USE_TIMEOUT

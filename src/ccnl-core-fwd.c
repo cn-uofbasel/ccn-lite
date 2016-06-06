@@ -20,6 +20,13 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
+#ifdef USE_TIMEOUT
+// #include "ccnl-ext-nfn.c"
+int
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
+                                 struct ccnl_prefix_s *prefix);
+#endif
+
 // returning 0 if packet was
 int
 ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -184,11 +191,15 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_TIMEOUT
     if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
         DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-        DEBUGMSG_CFWD(DEBUG, "  reply with 'alive'\n");
-        unsigned char reply = 200;
-        int offset;
-        struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, &reply, 1, &offset);        
-        ccnl_face_enqueue(relay, from, buf);
+        if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+            DEBUGMSG_CFWD(DEBUG, "  found matching computation, reply with 'alive'\n");
+            unsigned char reply = 200;
+            int offset;
+            struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, &reply, 1, &offset);        
+            ccnl_face_enqueue(relay, from, buf);    
+        } else {
+            DEBUGMSG_CFWD(DEBUG, "  no running computations found.\n");
+        }
     }
 #endif
     
