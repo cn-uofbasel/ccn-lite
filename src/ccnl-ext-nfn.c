@@ -284,13 +284,27 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
-            ccnl_content_add2cache(relay, c);
+#ifdef USE_TIMEOUT
+            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+#endif
+                ccnl_content_add2cache(relay, c);
+#ifdef USE_TIMEOUT
+            }
+#endif
+            
 	    DEBUGMSG_CFWD(INFO, "data in rx resulti after add to cache %.*s\n", c->pkt->contlen, c->pkt->content);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                   faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
-            ccnl_nfn_continue_computation(relay, faceid, 0);
+            
+#ifdef USE_TIMEOUT
+            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+#endif
+                ccnl_nfn_continue_computation(relay, faceid, 0);
+#ifdef USE_TIMEOUT
+             }
+#endif
             i_it = ccnl_interest_remove(relay, i_it);
             //ccnl_face_remove(relay, from);
             ++found;
