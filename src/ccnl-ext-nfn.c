@@ -304,7 +304,14 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 ccnl_nfn_continue_computation(relay, faceid, 0);
 #ifdef USE_TIMEOUT
              }
-#endif
+             
+             if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+                if (i_it->keepalive_origin != NULL) {
+                    i_it->keepalive_origin->last_used = CCNL_NOW();
+                    i_it->keepalive_origin->retries = 0;
+                }
+             }
+#endif // USE_TIMEOUT
             i_it = ccnl_interest_remove(relay, i_it);
             //ccnl_face_remove(relay, from);
             ++found;
