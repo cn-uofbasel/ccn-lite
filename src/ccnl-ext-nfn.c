@@ -243,8 +243,11 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i;
 
-    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) ||
-           ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
+#ifdef USE_TIMEOUT
+        ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
+#endif
+        ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
         return NULL;
     i = ccnl_interest_new(ccnl, from, pkt);
     if (!i)
