@@ -30,6 +30,7 @@
 
 #ifdef USE_TIMEOUT
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p);
+int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 #endif
 
 // forward reference:
@@ -868,13 +869,24 @@ ccnl_do_ageing(void *ptr, void *dummy)
                             (s = ccnl_prefix_to_path(i->pkt->pfx)));
                         ccnl_free(s);
                     } else if (i->keepalive == NULL) {
-                        char *s = NULL;
-                        DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
-                        DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
-                            (void*)i,
-                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                        ccnl_free(s);
-                        ccnl_nfn_interest_keepalive(relay, i);
+                        if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
+                            char *s = NULL;
+                            DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
+                            DEBUGMSG_CORE(DEBUG, " timeout: already computing 0x%p <%s>\n",
+                                (void*)i,
+                                (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                            ccnl_free(s);
+                            i->last_used = CCNL_NOW();
+                            i->retries = 0;
+                        } else {
+                            char *s = NULL;
+                            DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
+                            DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
+                                (void*)i,
+                                (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                            ccnl_free(s);
+                            ccnl_nfn_interest_keepalive(relay, i);
+                        }
                         // i->keepalive = ka;
                     } else {
                         char *s = NULL;
