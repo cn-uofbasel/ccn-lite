@@ -28,6 +28,10 @@
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
 
+#ifdef USE_TIMEOUT
+int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p);
+#endif
+
 // forward reference:
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 int ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
@@ -856,7 +860,14 @@ ccnl_do_ageing(void *ptr, void *dummy)
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_TIMEOUT           
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
-                    if (i->keepalive == NULL) {
+                    if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
+                        char *s = NULL;
+                        DEBUGMSG_CORE(TRACE, "AGING: REMOVE COMPUTE INTEREST %p\n", (void*) i);
+                        DEBUGMSG_CORE(DEBUG, " timeout: remove compute interest 0x%p <%s>\n",
+                            (void*)i,
+                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                        ccnl_free(s);
+                    } else if (i->keepalive == NULL) {
                         char *s = NULL;
                         DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
                         DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",

@@ -613,6 +613,11 @@ ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
     return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
 }
 
+int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
+{
+    return p->compcnt > 0 && p->complen[0] == 7 && !memcmp(p->comp[0], "COMPUTE", 7);
+}
+
 void
 ccnl_nfnprefix_set(struct ccnl_prefix_s *p, unsigned int flags)
 {
