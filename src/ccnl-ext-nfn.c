@@ -98,6 +98,9 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
+#ifdef USE_TIMEOUT
+    ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
+#endif
 
     for (i = 0; i < -ccnl->km->configid; ++i) {
         struct configuration_s *config;
@@ -295,7 +298,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
 #endif
             
-	    DEBUGMSG_CFWD(INFO, "data in rx resulti after add to cache %.*s\n", c->pkt->contlen, c->pkt->content);
+	        DEBUGMSG_CFWD(INFO, "data in rx resulti after add to cache %.*s\n", c->pkt->contlen, c->pkt->content);
             DEBUGMSG(DEBUG, "Continue configuration for configid: %d with prefix: %s\n",
                   faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
@@ -306,13 +309,6 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
 #ifdef USE_TIMEOUT
-             }
-             
-             if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
-                if (i_it->keepalive_origin != NULL) {
-                    i_it->keepalive_origin->last_used = CCNL_NOW();
-                    i_it->keepalive_origin->retries = 0;
-                }
              }
 #endif // USE_TIMEOUT
             i_it = ccnl_interest_remove(relay, i_it);
@@ -325,6 +321,41 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     TRACEOUT();
     return found > 0;
 }
+
+#ifdef USE_TIMEOUT
+int
+ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      struct ccnl_content_s *c)
+{
+    TRACEIN();
+    DEBUGMSG(DEBUG, "  RX keepalive <%s>\n", ccnl_prefix_to_path(c->pkt->pfx));
+    struct ccnl_interest_s *i_it = NULL;
+    int found = 0;
+    for (i_it = relay->pit; i_it; i_it = i_it->next) {
+        if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT)) {
+            DEBUGMSG(DEBUG, "    matches interest <%s>\n", ccnl_prefix_to_path(i_it->pkt->pfx));
+            if (i_it->keepalive_origin != NULL) {
+                DEBUGMSG(DEBUG, "      reset interest <%s>\n", 
+                    ccnl_prefix_to_path(i_it->keepalive_origin->pkt->pfx));
+                
+                // reset original interest
+                i_it->keepalive_origin->last_used = CCNL_NOW();
+                i_it->keepalive_origin->retries = 0;
+
+                // remove keepalive interest
+                i_it->keepalive_origin->keepalive = NULL;
+                i_it->keepalive_origin = NULL;
+                // i_it = ccnl_nfn_interest_remove(relay, i_it);
+                
+                ++found;
+            }
+        }
+    }
+    DEBUGMSG(DEBUG, "  keeping %i interest%s alive\n", found, found == 1 ? "" : "s");
+    TRACEOUT();
+    return found > 0;
+}
+#endif
 
 #endif //USE_NFN
 

@@ -135,6 +135,12 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 #endif // USE_NACK
 
+#ifdef USE_TIMEOUT
+int ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p);
+int ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                          struct ccnl_content_s *c);
+#endif
+
 #ifdef USE_NFN
 void ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl);
 int ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);

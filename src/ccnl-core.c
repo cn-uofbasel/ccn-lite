@@ -490,9 +490,16 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
         // suppress forwarding to origin of interest, except wireless
         if (!i->from || fwd->face != i->from ||
                                 (i->from->flags & CCNL_FACE_FLAGS_REFLECT)) {
+            int nonce = 0;
+            if (i->pkt != NULL && i->pkt->s.ndntlv.nonce != NULL) {
+                if (i->pkt->s.ndntlv.nonce->datalen == 4) {
+                    nonce = *((int*)i->pkt->s.ndntlv.nonce->data);
+                }
+            }
+
             char *s = NULL;
-            DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> to=%s\n",
-                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
+            DEBUGMSG_CFWD(INFO, "  outgoing interest=<%s> nonce=%i to=%s\n",
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)), nonce,
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
                                     : "<tap>");
             ccnl_free(s);
@@ -745,6 +752,13 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if (!i->pkt->pfx)
             continue;
 
+#ifdef USE_TIMEOUT
+        if (ccnl_nfnprefix_isKeepalive(i->pkt->pfx) != ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+            i = i->next;
+            continue;
+        }
+#endif
+
         switch (i->pkt->pfx->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
@@ -813,10 +827,17 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
+                int nonce = 0;
+                if (i->pkt != NULL && i->pkt->s.ndntlv.nonce != NULL) {
+                    if (i->pkt->s.ndntlv.nonce->datalen == 4) {
+                        nonce = *((int*)i->pkt->s.ndntlv.nonce->data);
+                    }
+                }
+
                 char *s = NULL;
-                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s to=%s\n",
-                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
-                          ccnl_suite2str(i->pkt->pfx->suite),
+                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%i to=%s\n",
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)), 
+                          ccnl_suite2str(i->pkt->pfx->suite), nonce,
                           ccnl_addr2ascii(&pi->face->peer));
                 ccnl_free(s);
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
@@ -834,6 +855,14 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     }
     return cnt;
 }
+
+#define DEBUGMSG_AGEING(trace, debug)                  \
+char *s = NULL;                                        \
+DEBUGMSG_CORE(TRACE, "%s %p\n", (trace), (void*) i);   \
+DEBUGMSG_CORE(DEBUG, " %s 0x%p <%s>\n", (debug),       \
+    (void*)i,                                          \
+    (s = ccnl_prefix_to_path(i->pkt->pfx)));           \
+ccnl_free(s);                                       
 
 void
 ccnl_do_ageing(void *ptr, void *dummy)
@@ -862,60 +891,31 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_TIMEOUT           
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
                     if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
-                        char *s = NULL;
-                        DEBUGMSG_CORE(TRACE, "AGING: REMOVE COMPUTE INTEREST %p\n", (void*) i);
-                        DEBUGMSG_CORE(DEBUG, " timeout: remove compute interest 0x%p <%s>\n",
-                            (void*)i,
-                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                        ccnl_free(s);
+                        DEBUGMSG_AGEING("AGING: REMOVE COMPUTE INTEREST", "timeout: remove compute interest");
+                        // TODO: remove interest?
                     } else if (i->keepalive == NULL) {
                         if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
-                            char *s = NULL;
-                            DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
-                            DEBUGMSG_CORE(DEBUG, " timeout: already computing 0x%p <%s>\n",
-                                (void*)i,
-                                (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                            ccnl_free(s);
+                            DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: already computing");
                             i->last_used = CCNL_NOW();
                             i->retries = 0;
                         } else {
-                            char *s = NULL;
-                            DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
-                            DEBUGMSG_CORE(DEBUG, " timeout: request status info 0x%p <%s>\n",
-                                (void*)i,
-                                (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                            ccnl_free(s);
+                            DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: request status info");
                             ccnl_nfn_interest_keepalive(relay, i);
                         }
                         // i->keepalive = ka;
                     } else {
-                        char *s = NULL;
-                        DEBUGMSG_CORE(TRACE, "AGING: KEEP ALIVE INTEREST %p\n", (void*) i);
-                        DEBUGMSG_CORE(DEBUG, " timeout: wait for status info 0x%p <%s>\n",
-                            (void*)i,
-                            (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                        ccnl_free(s);
+                        DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: wait for status info");
                     }   
                     i = i->next; 
                 } else {
-                    char *s = NULL;
-                    DEBUGMSG_CORE(TRACE, "AGING: REMOVE KEEP ALIVE INTEREST %p\n", (void*) i);
-                    DEBUGMSG_CORE(DEBUG, " timeout: remove keep alive interest 0x%p <%s>\n",
-                        (void*)i,
-                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                    ccnl_free(s);
+                    DEBUGMSG_AGEING("AGING: REMOVE KEEP ALIVE INTEREST", "timeout: remove keep alive interest");
                     struct ccnl_interest_s *origin = i->keepalive_origin;
                     ccnl_nfn_interest_remove(relay, origin);
                     i = ccnl_nfn_interest_remove(relay, i);
                 }                                                                                         
                 
 #else // USE_TIMEOUT
-                char *s = NULL;
-                DEBUGMSG_CORE(TRACE, "AGING: REMOVE INTEREST %p\n", (void*) i);
-                DEBUGMSG_CORE(DEBUG, " timeout: remove interest 0x%p <%s>\n",
-                            (void*)i,
-                        (s = ccnl_prefix_to_path(i->pkt->pfx)));
-                ccnl_free(s);
+                DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
                 i = ccnl_nfn_interest_remove(relay, i);
 #endif
         } else {

@@ -147,24 +147,29 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
-            goto done;
+            {DEBUGMSG(VERBOSE, "1\n"); goto done;}
         if (pfx->chunknum || nam->chunknum) {
             if (!pfx->chunknum || !nam->chunknum)
-                goto done;
+                {DEBUGMSG(VERBOSE, "2\n"); goto done;}
             if (*pfx->chunknum != *nam->chunknum)
-                goto done;
+                {DEBUGMSG(VERBOSE, "3\n"); goto done;}
         }
 #ifdef USE_NFN
+// #ifdef USE_TIMEOUT
+//         if ((nam->nfnflags & ~CCNL_PREFIX_KEEPALIVE) != pfx->nfnflags)
+//             {DEBUGMSG(VERBOSE, "4a\n"); goto done;}
+// #else
         if (nam->nfnflags != pfx->nfnflags)
-            goto done;
-#endif
+            {DEBUGMSG(VERBOSE, "4b\n"); goto done;}
+// #endif // USE_TIMEOUT
+#endif // USE_NFN
     }
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
         if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
             rc = mode == CMP_EXACT ? -1 : i;
-            goto done;
+            {DEBUGMSG(VERBOSE, "5: %i\n", i); goto done;}
         }
     }
     // FIXME: we must also inspect chunknum here!

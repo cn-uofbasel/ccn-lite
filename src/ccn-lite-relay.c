@@ -779,7 +779,8 @@ main(int argc, char **argv)
 #endif
 
     time(&theRelay.startup_time);
-    srandom(time(NULL));
+    unsigned int seed = time(NULL) * getpid();
+    srandom(seed);
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:v:x:")) != -1) {
         switch (opt) {
@@ -874,6 +875,7 @@ usage:
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
+    DEBUGMSG(INFO, "  seed: %u\n", seed);
 //    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     ccnl_relay_config(&theRelay, ethdev, udpport1, udpport2, httpport,
