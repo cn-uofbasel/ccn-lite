@@ -89,8 +89,8 @@ PROGS += ${INST_PROGS}
 ifdef USE_CHEMFLOW
     CHEMFLOW_HOME=./chemflow/chemflow-20121006
     EXTLIBS=-lcf -lcfserver -lcrypto
-    EXTMAKE=cd ${CHEMFLOW_HOME}; make
-    EXTMAKECLEAN=cd ${CHEMFLOW_HOME}; make clean
+    EXTMAKE=cd ${CHEMFLOW_HOME}; $(MAKE)
+    EXTMAKECLEAN=cd ${CHEMFLOW_HOME}; $(MAKE) clean
     CCNLCFLAGS+=-DUSE_CHEMFLOW -I${CHEMFLOW_HOME}/include -L${CHEMFLOW_HOME}/staging/host/lib
 endif
 
@@ -137,7 +137,7 @@ OMNET_DEPS = ccnl-core.c ccnl-core-fwd.c ccnl-core.h ccnl-core-util.c ccnl-defs.
 # ----------------------------------------------------------------------
 
 all: ${PROGS}
-	+make -C util
+	$(MAKE) -C util
 
 lib-ccn-lite.a: ccn-lite-riot.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB}
@@ -187,12 +187,12 @@ ccn-lite-omnet:  ${OMNET_DEPS}
 	rm -rf ccn-lite-omnet
 
 ccn-lite-lnxkernel:
-	+make modules
+	$(MAKE) modules
 #   rm -rf $@.o $@.mod.* .$@* .tmp_versions modules.order Module.symvers
 
 modules: ccn-lite-lnxkernel.c  ${SUITE_LIBS} \
     ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} ccnl-ext-crypto.c
-	+make -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
+	$(MAKE) -C /lib/modules/`uname -r`/build M=`pwd` V=1 modules
 
 datastruct.pdf: datastruct.dot
 	dot -Tps -o datastruct.ps datastruct.dot
@@ -200,11 +200,11 @@ datastruct.pdf: datastruct.dot
 	rm -f datastruct.ps
 
 install: all
-	install ${INST_PROGS} ${INSTALL_PATH}/bin && cd util && +make install && cd ..
+	install ${INST_PROGS} ${INSTALL_PATH}/bin && cd util && $(MAKE) install && cd ..
 
 uninstall:
 	cd ${INSTALL_PATH}/bin && rm -f ${PROGS} && cd - > /dev/null \
-	&& cd util && +make uninstall && cd ..
+	&& cd util && $(MAKE) uninstall && cd ..
 
 clean:
 	${EXTMAKECLEAN}
@@ -212,4 +212,4 @@ clean:
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf ccn-lite-omnet.tgz
 	rm -rf ../bin
-	+make -C util clean
+	$(MAKE) -C util clean
