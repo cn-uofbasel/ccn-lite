@@ -189,8 +189,9 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 
 #ifdef USE_IPV4
   int ccnl_open_udpdev(int port, struct sockaddr_in *si);
-#elif defined(USE_IPV6)
-  int ccnl_open_udpdev(int port, struct sockaddr_in6 *sin);
+#endif
+#ifdef USE_IPV6
+  int ccnl_open_udp6dev(int port, struct sockaddr_in6 *sin);
 #endif
 # ifdef USE_LINKLAYER
   int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);

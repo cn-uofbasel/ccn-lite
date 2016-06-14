@@ -38,7 +38,7 @@
 #define USE_HMAC256
 #define USE_HTTP_STATUS
 #define USE_IPV4
-//#define USE_IPV6
+#define USE_IPV6
 #define USE_MGMT
 // #define USE_NACK
 // #define USE_NFN
@@ -185,9 +185,11 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
 
     return s;
 }
-#elif defined(USE_IPV6)
+#endif
+
+#ifdef USE_IPV6
 int
-ccnl_open_udpdev(int port, struct sockaddr_in6 *sin)
+ccnl_open_udp6dev(int port, struct sockaddr_in6 *sin)
 {
     int s;
     unsigned int len;
@@ -260,6 +262,20 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
             close(fd);
         }
         */
+
+        break;
+#endif
+#ifdef USE_IPV6
+    case AF_INET6:
+        rc = sendto(ifc->sock,
+                    buf->data, buf->datalen, 0,
+                    (struct sockaddr*) &dest->ip6, sizeof(struct sockaddr_in6));
+	{
+	    char abuf[INET6_ADDRSTRLEN];
+	    DEBUGMSG(DEBUG, "udp sendto %s/%d returned %d\n",
+		     inet_ntop(AF_INET6, &dest->ip6.sin6_addr, abuf, sizeof(abuf)),
+		     ntohs(dest->ip6.sin6_port), rc);
+	}
 
         break;
 #endif
@@ -347,16 +363,29 @@ void ccnl_ageing(void *relay, void *aux)
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_IPV4
+#if defined(USE_IPV4) || defined(USE_IPV6)
 void
-ccnl_relay_udp(struct ccnl_relay_s *relay, int port)
+ccnl_relay_udp(struct ccnl_relay_s *relay, int port, int af)
 {
     struct ccnl_if_s *i;
 
     if (port < 0)
         return;
     i = &relay->ifs[relay->ifcount];
-    i->sock = ccnl_open_udpdev(port, &i->addr.ip4);
+    switch (af) {
+#ifdef USE_IPV4
+    case AF_INET:
+	i->sock = ccnl_open_udpdev(port, &i->addr.ip4);
+	break;
+#endif
+#ifdef USE_IPV6
+    case AF_INET6:
+	i->sock = ccnl_open_udp6dev(port, &i->addr.ip6);
+	break;
+#endif
+    default:
+	return;
+    }
     if (i->sock <= 0) {
         DEBUGMSG(WARNING, "sorry, could not open udp device (port %d)\n",
                  port);
@@ -389,7 +418,8 @@ ccnl_relay_udp(struct ccnl_relay_s *relay, int port)
 
 void
 ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
-                  int udpport1, int udpport2, int httpport,
+                  int udpport1, int udpport2,
+		  int udp6port1, int udp6port2, int httpport,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
@@ -426,8 +456,13 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
 #endif // USE_LINKLAYER
 
 #ifdef USE_IPV4
-    ccnl_relay_udp(relay, udpport1);
-    ccnl_relay_udp(relay, udpport2);
+    ccnl_relay_udp(relay, udpport1, AF_INET);
+    ccnl_relay_udp(relay, udpport2, AF_INET);
+#endif
+
+#ifdef USE_IPV6
+    ccnl_relay_udp(relay, udp6port1, AF_INET6);
+    ccnl_relay_udp(relay, udp6port2, AF_INET6);
 #endif
 
 #ifdef USE_HTTP_STATUS
@@ -560,6 +595,12 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                     else if (src_addr.sa.sa_family == AF_INET) {
                         ccnl_core_RX(ccnl, i, buf, len,
                                      &src_addr.sa, sizeof(src_addr.ip4));
+                    }
+#endif
+#ifdef USE_IPV6
+                    else if (src_addr.sa.sa_family == AF_INET6) {
+                        ccnl_core_RX(ccnl, i, buf, len,
+                                     &src_addr.sa, sizeof(src_addr.ip6));
                     }
 #endif
 #ifdef USE_LINKLAYER
@@ -766,6 +807,7 @@ main(int argc, char **argv)
 {
     int opt, max_cache_entries = -1, httpport = -1;
     int udpport1 = -1, udpport2 = -1;
+    int udp6port1 = -1, udp6port2 = -1;
     char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
@@ -779,7 +821,7 @@ main(int argc, char **argv)
     time(&theRelay.startup_time);
     srandom(time(NULL));
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:6:v:x:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -818,6 +860,12 @@ main(int argc, char **argv)
             else
                 udpport2 = atoi(optarg);
             break;
+        case '6':
+            if (udp6port1 == -1)
+                udp6port1 = atoi(optarg);
+            else
+                udp6port2 = atoi(optarg);
+            break;
         case 'v':
 #ifdef USE_LOGGING
             if (isdigit(optarg[0]))
@@ -847,6 +895,7 @@ usage:
                     "  -s SUITE (ccnb, ccnx2015, cisco2015, iot2014, ndn2013)\n"
                     "  -t tcpport (for HTML status page)\n"
                     "  -u udpport (can be specified twice)\n"
+                    "  -6 udp6port (can be specified twice)\n"
 
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
@@ -874,7 +923,8 @@ usage:
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
 //    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, ethdev, udpport1, udpport2, httpport,
+    ccnl_relay_config(&theRelay, ethdev, udpport1, udpport2,
+		      udp6port1, udp6port2, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
         ccnl_populate_cache(&theRelay, datadir);
