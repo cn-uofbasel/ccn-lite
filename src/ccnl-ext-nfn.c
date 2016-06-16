@@ -98,7 +98,7 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
 #endif
 
@@ -247,7 +247,7 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
 
     if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
         ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
 #endif
         ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
@@ -290,11 +290,11 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
             if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
                 ccnl_content_add2cache(relay, c);
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
             }
 #endif
             
@@ -304,13 +304,13 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
             if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
              }
-#endif // USE_TIMEOUT
+#endif // USE_TIMEOUT_KEEPALIVE
             i_it = ccnl_interest_remove(relay, i_it);
             //ccnl_face_remove(relay, from);
             ++found;
@@ -322,7 +322,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return found > 0;
 }
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
 int
 ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       struct ccnl_content_s *c)

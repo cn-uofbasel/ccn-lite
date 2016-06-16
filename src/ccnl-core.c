@@ -28,7 +28,7 @@
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p);
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 #endif
@@ -752,7 +752,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if (!i->pkt->pfx)
             continue;
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
         if (ccnl_nfnprefix_isKeepalive(i->pkt->pfx) != ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
             i = i->next;
             continue;
@@ -888,7 +888,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-#ifdef USE_TIMEOUT           
+#ifdef USE_TIMEOUT_KEEPALIVE           
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
                     if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
                         DEBUGMSG_AGEING("AGING: REMOVE COMPUTE INTEREST", "timeout: remove compute interest");
@@ -914,7 +914,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
                     i = ccnl_nfn_interest_remove(relay, i);
                 }                                                                                         
                 
-#else // USE_TIMEOUT
+#else // USE_TIMEOUT_KEEPALIVE
                 DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
                 i = ccnl_nfn_interest_remove(relay, i);
 #endif

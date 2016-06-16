@@ -155,13 +155,13 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 {DEBUGMSG(VERBOSE, "3\n"); goto done;}
         }
 #ifdef USE_NFN
-// #ifdef USE_TIMEOUT
+// #ifdef USE_TIMEOUT_KEEPALIVE
 //         if ((nam->nfnflags & ~CCNL_PREFIX_KEEPALIVE) != pfx->nfnflags)
 //             {DEBUGMSG(VERBOSE, "4a\n"); goto done;}
 // #else
         if (nam->nfnflags != pfx->nfnflags)
             {DEBUGMSG(VERBOSE, "4b\n"); goto done;}
-// #endif // USE_TIMEOUT
+// #endif // USE_TIMEOUT_KEEPALIVE
 #endif // USE_NFN
     }
     for (i = 0; i < plen && i < nam->compcnt; ++i) {

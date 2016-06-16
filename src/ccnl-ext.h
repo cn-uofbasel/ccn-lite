@@ -135,7 +135,7 @@ void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 #endif // USE_NACK
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
 int ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p);
 int ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                           struct ccnl_content_s *c);

@@ -20,7 +20,7 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
 // #include "ccnl-ext-nfn.c"
 int
 ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
@@ -88,7 +88,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
         } else {
             if (ccnl_nfn_RX_result(relay, from, c))
-                return 0;
+                return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
         }
     }
@@ -100,7 +100,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         free_content(c);
         return 0;
     }
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
@@ -111,7 +111,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             free_content(c);
         }
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     }
 #endif
 
@@ -217,7 +217,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
         DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
         if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {

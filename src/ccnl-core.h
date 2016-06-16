@@ -219,7 +219,7 @@ struct ccnl_interest_s {
 #define CCNL_PIT_TRACED            0x02
     int last_used;
     int retries;
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     struct ccnl_interest_s *keepalive; // the keepalive interest dispatched for this interest
     struct ccnl_interest_s *keepalive_origin; // the interest that dispatched this keepalive interest 
 #endif

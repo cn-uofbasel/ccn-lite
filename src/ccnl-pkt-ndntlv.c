@@ -157,28 +157,28 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             p->namelen = *data - p->nameptr;
             DEBUGMSG(DEBUG, "  check interest type\n");
     #ifdef USE_NFN
-//    #ifdef USE_TIMEOUT
+//    #ifdef USE_TIMEOUT_KEEPALIVE
 //             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
 //                     !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
 //                 p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
 //                 p->compcnt--;
 //                 DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
 //             }
-//     #endif // USE_TIMEOUT
+//     #endif // USE_TIMEOUT_KEEPALIVE
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;
                 p->compcnt--;
                 DEBUGMSG(DEBUG, "  is NFN interest\n");
             }
-    #ifdef USE_TIMEOUT
+    #ifdef USE_TIMEOUT_KEEPALIVE
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
                     !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
                 p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
                 p->compcnt--;
                 DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
             }
-    #endif // USE_TIMEOUT
+    #endif // USE_TIMEOUT_KEEPALIVE
     #endif // USE_NFN
             break;
         case NDN_TLV_Selectors:
@@ -457,7 +457,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
                                 (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
     }
-#ifdef USE_TIMEOUT
+#ifdef USE_TIMEOUT_KEEPALIVE
     if (name->nfnflags & CCNL_PREFIX_KEEPALIVE) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                 (unsigned char*) "ALIVE", 5, offset, buf) < 0)
