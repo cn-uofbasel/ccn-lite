@@ -82,15 +82,19 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
+#ifdef USE_TIMEOUT_KEEPALIVE
         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
             ccnl_nfn_RX_keepalive(relay, from, c);
                 // return 0;
             DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
         } else {
+#endif // USE_TIMEOUT_KEEPALIVE
             if (ccnl_nfn_RX_result(relay, from, c))
                 return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
+#ifdef USE_TIMEOUT_KEEPALIVE
         }
+#endif // USE_TIMEOUT_KEEPALIVE
     }
 #endif
 

@@ -498,6 +498,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     return i;
 }
 
+#ifdef USE_TIMEOUT_KEEPALIVE
 struct ccnl_prefix_s*
 ccnl_nfn_mkKeepalivePrefix(struct ccnl_interest_s *i)
 {
@@ -604,6 +605,7 @@ ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *
     ccnl_interest_propagate(relay, i);
     return interest;
 }
+#endif // USE_TIMEOUT_KEEPALIVE
 
 // ----------------------------------------------------------------------
 // prefix (and NFN) related functionality
