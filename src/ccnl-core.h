@@ -116,6 +116,8 @@ struct ccnl_relay_s {
     struct ccnl_buf_s *nonces;
     int contentcnt;             // number of cached items
     int max_cache_entries;      // -1: unlimited
+    int pitcnt;
+    int max_pit_entries;      // -1: unlimited
     struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
     int ifcount;                // number of active interfaces
     char halt_flag;

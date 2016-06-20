@@ -427,6 +427,7 @@ ccnl_start(void)
     loopback_face->flags |= CCNL_FACE_FLAGS_STATIC;
 
     ccnl_relay.max_cache_entries = CCNL_CACHE_SIZE;
+    ccnl_relay.max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     /* start the CCN-Lite event-loop */
     _ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           THREAD_PRIORITY_MAIN - 1,
