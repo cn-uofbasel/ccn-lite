@@ -113,7 +113,7 @@ int
 main(int argc, char *argv[])
 {
     unsigned char out[64*1024];
-    int cnt, len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
+    int len, opt, sock = 0, socksize, suite = CCNL_SUITE_DEFAULT, port;
     char *addr = NULL, *udp = NULL, *ux = NULL;
     char *defaultNFNpath = "";//strdup("/ndn/ch/unibas/nfn");
     struct sockaddr sa;
@@ -175,7 +175,8 @@ usage:
     if (!argv[optind] || argv[optind+1])
         goto usage;
 
-    srandom(time(NULL));
+    unsigned int seed = time(NULL) * getpid();
+    srandom(seed);
 
     if (ccnl_parseUdp(udp, suite, &addr, &port) != 0) {
         exit(-1);
@@ -204,7 +205,7 @@ usage:
     prefix = exprToNfnPrefix(defaultNFNpath, suite, argv[optind]);
     if (!prefix)
         goto done;
-    for (cnt = 0; cnt < 3; cnt++) {
+    for (;;) {
         int nonce = random();
 
         len = mkInterest(prefix,
@@ -247,8 +248,7 @@ usage:
             write(1, out, len);
             myexit(0);
         }
-        if (cnt < 2)
-            DEBUGMSG(INFO, "re-sending interest\n");
+        DEBUGMSG(INFO, "re-sending interest\n");
     }
     DEBUGMSG(ERROR, "timeout\n");
 
