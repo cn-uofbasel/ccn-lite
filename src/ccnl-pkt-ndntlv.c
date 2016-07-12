@@ -157,14 +157,6 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             p->namelen = *data - p->nameptr;
             DEBUGMSG(DEBUG, "  check interest type\n");
     #ifdef USE_NFN
-//    #ifdef USE_TIMEOUT_KEEPALIVE
-//             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-//                     !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
-//                 p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
-//                 p->compcnt--;
-//                 DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
-//             }
-//     #endif // USE_TIMEOUT_KEEPALIVE
             if (p->compcnt > 0 && p->complen[p->compcnt-1] == 3 &&
                     !memcmp(p->comp[p->compcnt-1], "NFN", 3)) {
                 p->nfnflags |= CCNL_PREFIX_NFN;

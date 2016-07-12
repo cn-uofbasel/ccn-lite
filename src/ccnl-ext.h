@@ -152,6 +152,9 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 struct ccnl_interest_s*
 ccnl_nfn_interest_keepalive(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
+struct ccnl_prefix_s*
+ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx);
+
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                     struct ccnl_pkt_s **p);

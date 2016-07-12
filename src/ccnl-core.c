@@ -431,7 +431,8 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
     for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
         if (pi->face == from) {
             DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
-            pi->last_used = CCNL_NOW();
+            pi->last_used = CCNL_NOW(); 
+            // TODO: reset retransmit for pull based timeout approach
             return 0;
         }
         last = pi;
@@ -890,10 +891,11 @@ ccnl_do_ageing(void *ptr, void *dummy)
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_TIMEOUT_KEEPALIVE           
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
-                    if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
-                        DEBUGMSG_AGEING("AGING: REMOVE COMPUTE INTEREST", "timeout: remove compute interest");
-                        // TODO: remove interest?
-                    } else if (i->keepalive == NULL) {
+                    // if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
+                    //     DEBUGMSG_AGEING("AGING: REMOVE COMPUTE INTEREST", "timeout: remove compute interest");
+                    //     // TODO: remove interest?
+                    // } else 
+                    if (i->keepalive == NULL) {
                         if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
                             DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: already computing");
                             i->last_used = CCNL_NOW();

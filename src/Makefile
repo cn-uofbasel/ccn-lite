@@ -42,8 +42,8 @@ EXTMAKECLEAN=
 # CCNL_NFN_MONITOR to log messages to nfn-scala montior
 NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
-NFNTIMEOUTKEEPALIVEFLAGS += -DUSE_TIMEOUT_KEEPALIVE
-NFNTIMEOUTPULLFLAGS += -DUSE_TIMEOUT_PULL
+NFN_TIMEOUT_KEEPALIVE_FLAGS += -DUSE_TIMEOUT_KEEPALIVE
+NFN_TIMEOUT_PULL_FLAGS += -DUSE_TIMEOUT_PULL
 
 PROGS =
 INST_PROGS= ccn-lite-relay \
@@ -81,14 +81,15 @@ endif
 ifdef USE_TIMEOUT_KEEPALIVE
     #$(info *** With NFN2 ***)
 	ifdef USE_NFN
-		CCNLCFLAGS += ${NFNTIMEOUTKEEPALIVEFLAGS}
+		CCNLCFLAGS += ${NFN_TIMEOUT_KEEPALIVE_FLAGS}
+		#INST_PROGS += ccn-lite-simplenfn-keepalive
 	endif
 endif
 
 ifdef USE_TIMEOUT_PULL
     #$(info *** With NFN2 ***)
 	ifdef USE_NFN
-		CCNLCFLAGS += ${NFNTIMEOUTPULLFLAGS}
+		CCNLCFLAGS += ${NFN_TIMEOUT_PULL_FLAGS}
 	endif
 endif
 
@@ -185,6 +186,11 @@ ccn-lite-relay: ${CCNL_RELAY_LIB}
 ccn-lite-relay-nack: ${CCNL_RELAY_LIB}
 	${CC} -o $@ ${CCNLCFLAGS} ${NACKFLAGS} $< ${EXTLIBS}
 	@${CREATE_BIN}
+
+# ccn-lite-simplenfn-keepalive: ccn-lite-simplenfn-keepalive.c \
+# 	${CCNL_RELAY_LIB} 
+# 	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+# 	@${CREATE_BIN}
 
 ccn-lite-simu: ccn-lite-simu.c  ${SUITE_LIBS} \
 	${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \

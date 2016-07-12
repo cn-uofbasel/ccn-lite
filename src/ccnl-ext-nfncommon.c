@@ -500,7 +500,7 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
 
 #ifdef USE_TIMEOUT_KEEPALIVE
 struct ccnl_prefix_s*
-ccnl_nfn_mkKeepalivePrefix(struct ccnl_interest_s *i)
+ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx)
 {
     struct ccnl_prefix_s *p;
     // unsigned char cmp[] = "ALIVE";
@@ -508,7 +508,7 @@ ccnl_nfn_mkKeepalivePrefix(struct ccnl_interest_s *i)
     
     DEBUGMSG(TRACE, "ccnl_nfnprefix_mkKeepalivePrefix()\n");
     
-    p = ccnl_prefix_dup(i->pkt->pfx);
+    p = ccnl_prefix_dup(pfx);
     DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
     // if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
     //     return NULL;
@@ -532,7 +532,7 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
 
     DEBUGMSG(TRACE, "ccnl_nfn_mkKeepaliveInterest() nonce=%i\n", nonce);
     
-    pfx = ccnl_nfn_mkKeepalivePrefix(interest);
+    pfx = ccnl_nfn_mkKeepalivePrefix(interest->pkt->pfx);
     if (!pfx)
         return NULL;
 
