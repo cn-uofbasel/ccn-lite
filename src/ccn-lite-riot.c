@@ -216,6 +216,11 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     if (!gnrc_netif_exist(if_pid)) {
         return -1;
     }
+    if (ccnl_relay.ifcount >= CCNL_MAX_INTERFACES) {
+        DEBUGMSG(WARNING, "cannot open more than %u interfaces for CCN-Lite\n",
+                 (unsigned) CCNL_MAX_INTERFACES);
+        return -1;
+    }
 
     /* get current interface from CCN-Lite's relay */
     struct ccnl_if_s *i;
