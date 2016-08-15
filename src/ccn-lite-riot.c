@@ -542,8 +542,10 @@ struct ccnl_interest_s
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
     struct ccnl_interest_s *i = ccnl_interest_new(&ccnl_relay, loopback_face, &pkt);
-    ccnl_interest_append_pending(i, loopback_face);
-    ccnl_interest_propagate(&ccnl_relay, i);
+    if (i) {
+        ccnl_interest_append_pending(i, loopback_face);
+        ccnl_interest_propagate(&ccnl_relay, i);
+    }
 
     return i;
 }
