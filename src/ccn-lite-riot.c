@@ -374,6 +374,7 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     gnrc_pktbuf_release(pkt);
 }
 
+static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
 /* the main event-loop */
 void
 *_ccnl_event_loop(void *arg)
@@ -381,19 +382,18 @@ void
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
-    /* start periodic timer */
-    ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, ccnl, 0);
 
     /* XXX: https://xkcd.com/221/ */
     random_init(0x4);
 
     while(!ccnl->halt_flag) {
         msg_t m, reply;
+        /* start periodic timer */
+        xtimer_remove(&_ageing_timer);
+        reply.type = CCNL_MSG_AGEING;
+        xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &reply, sched_active_pid);
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
-        int usec = ccnl_run_events();
-        if (xtimer_msg_receive_timeout(&m, usec) < 0) {
-            continue;
-        }
+        msg_receive(&m);
 
         switch (m.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
@@ -411,7 +411,12 @@ void
                 reply.content.value = -ENOTSUP;
                 msg_reply(&m, &reply);
                 break;
+            case CCNL_MSG_AGEING:
+                DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
+                ccnl_do_ageing(arg, NULL);
+                break;
             default:
+                DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
                 break;
         }
 
@@ -436,6 +441,8 @@ ccnl_start(void)
     return _ccnl_event_loop_pid;
 }
 
+static xtimer_t _wait_timer = { .target = 0, .long_target = 0 };
+static msg_t _timeout_msg;
 int
 ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 {
@@ -449,17 +456,10 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
         DEBUGMSG(DEBUG, "  waiting for packet\n");
 
         /* TODO: receive from socket or interface */
+        _timeout_msg.type = CCNL_MSG_TIMEOUT;
+        xtimer_set_msg64(&_wait_timer, timeout, &_timeout_msg, sched_active_pid);
         msg_t m;
-        if (xtimer_msg_receive_timeout(&m, timeout) >= 0) {
-            DEBUGMSG(DEBUG, "received something\n");
-        }
-        else {
-            /* TODO: handle timeout reasonably */
-            DEBUGMSG(WARNING, "timeout\n");
-            res = -ETIMEDOUT;
-            break;
-        }
-
+        msg_receive(&m);
         if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
             DEBUGMSG(TRACE, "It's from the stack!\n");
             gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t *)m.content.ptr;
@@ -477,6 +477,11 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
                 gnrc_pktbuf_release(pkt);
                 continue;
             }
+            xtimer_remove(&_wait_timer);
+            break;
+        }
+        else if (m.type == CCNL_MSG_TIMEOUT) {
+            res = -ETIMEDOUT;
             break;
         }
         else {
