@@ -101,9 +101,14 @@ static char _ccnl_stack[CCNL_STACK_SIZE];
 static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
 
 /**
+ * Timer to process ageing
+ */
+static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
+
+/**
  * local producer function defined by the application
  */
-ccnl_producer_func _prod_func = NULL;
+static ccnl_producer_func _prod_func = NULL;
 
 /**
  * caching strategy removal function
@@ -241,8 +246,27 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->if_pid = if_pid;
     i->addr.sa.sa_family = AF_PACKET;
 
-    gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    int res;
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
+        return -ECANCELED;
+    }
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine address length for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address length is %u\n", (unsigned) i->addr_len);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDRESS, 0, i->hwaddr, i->addr_len);
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address is %s\n", ll2ascii(i->hwaddr, i->addr_len));
 
     /* advance interface counter in relay */
     ccnl_relay.ifcount++;
@@ -255,6 +279,8 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     return gnrc_netreg_register(netreg_type, &_ccnl_ne);
 }
 
+static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
+
 /* (link layer) sending function */
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -262,12 +288,17 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 {
     (void) ccnl;
     int rc;
-    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes\n", buf ? buf->datalen : -1);
+    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", buf ? buf->datalen : -1, ccnl_addr2ascii(dest));
+    /* reset ageing timer */
+    xtimer_remove(&_ageing_timer);
+    xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &_ageing_reset, _ccnl_event_loop_pid);
+    DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
+
     switch(dest->sa.sa_family) {
         /* link layer sending */
         case AF_PACKET: {
                             /* allocate memory */
-                            gnrc_pktsnip_t *hdr;
+                            gnrc_pktsnip_t *hdr = NULL;
                             gnrc_pktsnip_t *pkt= gnrc_pktbuf_add(NULL, buf->data,
                                                                  buf->datalen,
                                                                  GNRC_NETTYPE_CCN);
@@ -276,17 +307,44 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                 puts("error: packet buffer full");
                                 return;
                             }
-                            /* build link layer header */
-                            hdr = gnrc_netif_hdr_build(NULL, 0,
-                                                       dest->linklayer.sll_addr,
-                                                       dest->linklayer.sll_halen);
 
+                            /* check for loopback */
+                            bool is_loopback = false;
+                            if (ifc->addr_len == dest->linklayer.sll_halen) {
+                                if (memcmp(ifc->hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
+                                    /* build link layer header */
+                                    hdr = gnrc_netif_hdr_build(NULL, dest->linklayer.sll_halen,
+                                                               dest->linklayer.sll_addr,
+                                                               dest->linklayer.sll_halen);
+
+                                    gnrc_netif_hdr_set_src_addr((gnrc_netif_hdr_t *)hdr->data, ifc->hwaddr, ifc->addr_len);
+                                    is_loopback = true;
+                                }
+                            }
+
+                            /* for the non-loopback case */
+                            if (hdr == NULL) {
+                                hdr = gnrc_netif_hdr_build(NULL, 0,
+                                                           dest->linklayer.sll_addr,
+                                                           dest->linklayer.sll_halen);
+                            }
+
+                            /* check if header building succeeded */
                             if (hdr == NULL) {
                                 puts("error: packet buffer full");
                                 gnrc_pktbuf_release(pkt);
                                 return;
                             }
                             LL_PREPEND(pkt, hdr);
+
+                            if (is_loopback) {
+                                    DEBUGMSG(DEBUG, "loopback packet\n");
+                                    if (gnrc_netapi_receive(_ccnl_event_loop_pid, pkt) < 1) {
+                                        DEBUGMSG(ERROR, "error: unable to loopback packet, discard it\n");
+                                        gnrc_pktbuf_release(pkt);
+                                    }
+                                    return;
+                            }
 
                             /* distinguish between broadcast and unicast */
                             bool is_bcast = true;
@@ -299,11 +357,13 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             }
 
                             if (is_bcast) {
+                                DEBUGMSG(DEBUG, " is broadcast\n");
                                 gnrc_netif_hdr_t *nethdr = (gnrc_netif_hdr_t *)hdr->data;
                                 nethdr->flags = GNRC_NETIF_HDR_FLAGS_BROADCAST;
                             }
 
                             /* actual sending */
+                            DEBUGMSG(DEBUG, " try to pass to GNRC (%i): %p\n", (int) ifc->if_pid, (void*) pkt);
                             if (gnrc_netapi_send(ifc->if_pid, pkt) < 1) {
                                 puts("error: unable to send\n");
                                 gnrc_pktbuf_release(pkt);
@@ -364,8 +424,8 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     }
 
     if (i == ccnl->ifcount) {
-        puts("No matching CCN interface found, skipping message");
-        return;
+        DEBUGMSG(WARNING, "No matching CCN interface found, assume it's from the default interface\n");
+        i = 0;
     }
 
     /* packet parsing */
@@ -378,14 +438,13 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     memset(&su, 0, sizeof(su));
     su.sa.sa_family = AF_PACKET;
     su.linklayer.sll_halen = nethdr->src_l2addr_len;
-    memcpy(&su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
+    memcpy(su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
 
     /* call CCN-lite callback and free memory in packet buffer */
     ccnl_core_RX(ccnl, i, ccn_pkt->data, ccn_pkt->size, &su.sa, sizeof(su.sa));
     gnrc_pktbuf_release(pkt);
 }
 
-static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
 /* the main event-loop */
 void
 *_ccnl_event_loop(void *arg)
@@ -570,7 +629,8 @@ struct ccnl_interest_s
     return i;
 }
 
-void ccnl_set_local_producer(ccnl_producer_func func)
+void
+ccnl_set_local_producer(ccnl_producer_func func)
 {
     _prod_func = func;
 }
@@ -581,7 +641,8 @@ ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
     _cs_remove_func = func;
 }
 
-int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt)
 {
     if (_prod_func) {

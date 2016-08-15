@@ -87,6 +87,8 @@ struct ccnl_if_s { // interface for packet IO
 #elif defined(CCNL_RIOT)
     kernel_pid_t if_pid;
     int sock;
+    uint8_t hwaddr[CCNL_MAX_ADDRESS_LEN];
+    uint16_t addr_len;
 #else
     int sock;
 #endif
