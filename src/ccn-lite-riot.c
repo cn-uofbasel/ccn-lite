@@ -75,6 +75,12 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
 /**
+/**
+ * @brief May be defined for a particular caching strategy
+ */
+int cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c);
+
+/**
  * @brief RIOT specific local variables
  * @{
  */
@@ -98,6 +104,11 @@ static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
  * local producer function defined by the application
  */
 ccnl_producer_func _prod_func = NULL;
+
+/**
+ * caching strategy removal function
+ */
+static ccnl_cache_strategy_func _cs_remove_func = NULL;
 
 /**
  * currently configured suite
@@ -564,11 +575,26 @@ void ccnl_set_local_producer(ccnl_producer_func func)
     _prod_func = func;
 }
 
+void
+ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
+{
+    _cs_remove_func = func;
+}
+
 int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt)
 {
     if (_prod_func) {
         return _prod_func(relay, from, pkt);
+    }
+    return 0;
+}
+
+int
+cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c)
+{
+    if (_cs_remove_func) {
+        return _cs_remove_func(relay, c);
     }
     return 0;
 }
