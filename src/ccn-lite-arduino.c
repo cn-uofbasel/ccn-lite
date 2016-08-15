@@ -460,6 +460,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   ccnl_addr2ascii(&theRelay.ifs[0].addr));
 
     relay->max_cache_entries = 0;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     sensor.suite = theSuite;

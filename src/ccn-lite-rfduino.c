@@ -447,6 +447,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
     ccnl_core_init();
 
     relay->max_cache_entries = 0;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     theRelay.ifcount = 1;

@@ -430,6 +430,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
     DEBUGMSG(INFO, "configuring relay\n");
 
     relay->max_cache_entries = max_cache_entries;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;

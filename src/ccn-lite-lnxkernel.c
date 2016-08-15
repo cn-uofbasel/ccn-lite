@@ -566,6 +566,7 @@ ccnl_init(void)
 
     ccnl_core_init();
     theRelay.max_cache_entries = c;
+    theRelay.max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
 #ifdef USE_SCHEDULER
     theRelay.defaultFaceScheduler = ccnl_lnx_defaultFaceScheduler;
 #endif
