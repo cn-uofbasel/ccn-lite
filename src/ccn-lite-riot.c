@@ -75,7 +75,6 @@ int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
 /**
-/**
  * @brief May be defined for a particular caching strategy
  */
 int cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c);
