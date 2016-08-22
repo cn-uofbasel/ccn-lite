@@ -396,7 +396,9 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                   struct ccnl_pkt_s **pkt)
 {
     if ((ccnl->pitcnt >= 0) &&
-        (ccnl->pitcnt >= ccnl->max_pit_entries)) {
+        (ccnl->max_pit_entries >= 0) &&
+        (ccnl->pitcnt >= ccnl->max_pit_entries)
+        ) {
         return NULL;
     }
     struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
