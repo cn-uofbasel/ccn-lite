@@ -428,6 +428,17 @@ ccnl_iottlv_prependName(struct ccnl_prefix_s *name,
                                 (unsigned char*) "ALIVE", 5, offset, buf) < 0)
             return -1;
     }
+
+    if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
+        char internum[16];
+        snprintf(internum, 16, "%d", name->internum);
+        if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
+                                (unsigned char*) internum, strlen(internum), offset, buf) < 0)
+            return -1;
+        if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
+                                (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
+            return -1;
+    }
 #endif
 #endif
 

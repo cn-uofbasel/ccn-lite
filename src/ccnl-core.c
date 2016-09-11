@@ -749,6 +749,12 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     int cnt = 0;
     DEBUGMSG_CORE(TRACE, "ccnl_content_serve_pending\n");
 
+// #ifdef USE_TIMEOUT_KEEPALIVE
+//     if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
+//         return 1;   // don't forward incoming intermediate content, just cache
+//     }
+// #endif
+
     for (f = ccnl->faces; f; f = f->next){
                 f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
     }
@@ -759,6 +765,10 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 #ifdef USE_TIMEOUT_KEEPALIVE
         if (ccnl_nfnprefix_isKeepalive(i->pkt->pfx) != ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+            i = i->next;
+            continue;
+        }
+        if (ccnl_nfnprefix_isIntermediate(i->pkt->pfx) != ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
             i = i->next;
             continue;
         }
@@ -858,6 +868,12 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         }
         i = ccnl_interest_remove(ccnl, i);
     }
+
+#ifdef USE_TIMEOUT_KEEPALIVE
+    if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
+        return 1;   // 
+    }
+#endif
     return cnt;
 }
 
@@ -894,7 +910,10 @@ ccnl_do_ageing(void *ptr, void *dummy)
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_TIMEOUT_KEEPALIVE           
-                if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
+                if ((i->pkt->pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
+                    DEBUGMSG_AGEING("AGING: REMOVE INTERMEDIATE INTEREST", "timeout: remove interest");
+                    i = ccnl_nfn_interest_remove(relay, i);
+                } else if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
                     // if (ccnl_nfnprefix_isCompute(i->pkt->pfx)) {
                     //     DEBUGMSG_AGEING("AGING: REMOVE COMPUTE INTEREST", "timeout: remove compute interest");
                     //     // TODO: remove interest?

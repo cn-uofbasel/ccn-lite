@@ -170,6 +170,13 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 p->compcnt--;
                 DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
             }
+            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
+                    !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
+                p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+                p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+                p->compcnt -= 2;
+                DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
+            }
     #endif // USE_TIMEOUT_KEEPALIVE
     #endif // USE_NFN
             break;
@@ -453,6 +460,16 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
     if (name->nfnflags & CCNL_PREFIX_KEEPALIVE) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                 (unsigned char*) "ALIVE", 5, offset, buf) < 0)
+            return -1;
+    }
+    if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
+        char internum[16];
+        snprintf(internum, 16, "%d", name->internum);
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) internum, strlen(internum), offset, buf) < 0)
+            return -1;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
             return -1;
     }
 #endif

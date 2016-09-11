@@ -201,6 +201,16 @@ Usage:
             DEBUGMSG(ERROR, "fileext for suite %d not implemented\n", suite);
     }
 
+    
+    FILE *fp = fopen(infname, "r");
+    fseek(fp, 0L, SEEK_END);
+    int sz = ftell(fp);
+    rewind(fp);
+    fclose(fp);
+
+    unsigned int lastchunknum = sz/chunk_size;
+    if (sz % chunk_size == 0) --lastchunknum;
+
     chunk_len = 1;
     chunk_len = read(f, chunk_buf, chunk_size);
     while (!is_last && chunk_len > 0) {
@@ -217,7 +227,7 @@ Usage:
         case CCNL_SUITE_CCNTLV:
             contentlen = ccnl_ccntlv_prependContentWithHdr(name,
                             (unsigned char *)chunk_buf, chunk_len,
-                            is_last ? &chunknum : NULL,
+                            &lastchunknum, //is_last ? &chunknum : NULL, 
                             NULL, // int *contentpos
                             &offs, out);
             break;
@@ -239,7 +249,8 @@ Usage:
         case CCNL_SUITE_NDNTLV:
             contentlen = ccnl_ndntlv_prependContent(name,
                                  (unsigned char *) chunk_buf, chunk_len,
-                                 NULL, is_last ? &chunknum : NULL,
+                                 NULL,
+                                 &lastchunknum,// is_last ? &chunknum : NULL,
                                  &offs, out);
             break;
         default:

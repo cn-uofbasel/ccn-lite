@@ -249,6 +249,7 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
 #ifdef USE_TIMEOUT_KEEPALIVE
         ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
+        ccnl_nfnprefix_isIntermediate((*pkt)->pfx) ||
 #endif
         ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
         return NULL;
@@ -355,7 +356,85 @@ ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     TRACEOUT();
     return found > 0;
 }
-#endif
+
+int 
+ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt) {
+    TRACEIN();
+
+    // int from_compute_server = from->faceid < 0;
+    // DEBUGMSG(INFO, "From compute server: %i\n", from_compute_server);
+    // if (!from_compute_server) {
+    //     return 0;
+    // }
+
+    struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup((*pkt)->pfx);
+    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_INTERMEDIATE);
+    dup_pfx->internum = 0;
+
+    // Find the pendint that triggered the computation that we received an intermediate result for.
+    struct ccnl_interest_s *i_it = NULL;
+    for (i_it = relay->pit; i_it; i_it = i_it->next) {
+        if (!ccnl_prefix_cmp(dup_pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
+                i_it->from && i_it->from->faceid < 0) {
+            DEBUGMSG(INFO, "Intermediate found match.\n");
+            struct ccnl_face_s *from = i_it->from;
+            int faceid = -from->faceid;
+
+            // Get the original prefix and create a new intermediate prefix based on that.
+            struct configuration_s *config = ccnl_nfn_findConfig(relay->km->configuration_list, -faceid);
+            struct ccnl_prefix_s *interm_pfx =  ccnl_prefix_dup(config->prefix);
+            interm_pfx->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+            interm_pfx->internum = (*pkt)->pfx->internum;
+
+            char *s = NULL;
+            DEBUGMSG(INFO, "Original (modified) prefix for intermediate: %s\n", s = ccnl_prefix_to_path(interm_pfx));
+            ccnl_free(s);  
+
+            // ccnl_free((*pkt)->pfx);    
+            // (*pkt)->pfx = interm_pfx; // ok?
+
+            int dataoffset;
+            struct ccnl_pkt_s *packet;
+            packet = ccnl_calloc(1, sizeof(*packet));
+            packet->pfx = interm_pfx;
+            packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset);
+            packet->content = packet->buf->data + dataoffset;
+            packet->contlen = (*pkt)->contlen;
+
+            struct ccnl_content_s *content = ccnl_content_new(relay, &packet);
+            ccnl_content_add2cache(relay, content);
+            // ccnl_free(packet);
+            // ccnl_free(content);
+
+            DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", content->pkt->contlen, content->pkt->content);
+
+            TRACEOUT();
+            return 1;
+        }
+    }
+    DEBUGMSG(INFO, "Intermediate found no match.\n");
+    TRACEOUT();
+    return 0;
+}
+
+// Return the highest consecutive intermediate number for the prefix, starts with 0.
+// -1 if no intermediate result is found.
+int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix) {
+    struct ccnl_content_s *c;
+    int highest = -1;
+    for (c = relay->contents; c; c = c->next) {
+        if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
+            if (prefix->compcnt == ccnl_prefix_cmp(prefix, NULL, c->pkt->pfx, CMP_LONGEST)) {
+                if (highest < c->pkt->pfx->internum) {
+                    highest = c->pkt->pfx->internum;
+                }
+            }
+        }
+    }
+    return highest;
+}
+
+#endif //USE_TIMEOUT_KEEPALIVE
 
 #endif //USE_NFN
 

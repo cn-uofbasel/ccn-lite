@@ -334,6 +334,9 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                                       config->fox_state->params[i]->content));
             break;
         default:
+            DEBUGMSG(DEBUG, "  info: Parameter %d %s %p\n", i,
+                                    (char *)config->fox_state->params[i]->content, 
+                                    config->fox_state->params[i]->content);
             break;
         }
     }

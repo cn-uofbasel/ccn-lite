@@ -48,6 +48,8 @@ int ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 const char* ccnl_suite2str(int suite);
 int ccnl_str2suite(char *str);
 bool ccnl_isSuite(int suite);
+int ccnl_cmp2int(unsigned char *cmp, int cmplen);
+
 
 struct ccnl_buf_s *ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 struct ccnl_buf_s *ccnl_mkSimpleContent(struct ccnl_prefix_s *name, 
@@ -137,6 +139,7 @@ int ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c);
 
 #ifdef USE_TIMEOUT_KEEPALIVE
 int ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p);
+int ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p);
 int ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                           struct ccnl_content_s *c);
 #endif

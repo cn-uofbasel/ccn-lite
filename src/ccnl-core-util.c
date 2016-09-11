@@ -147,29 +147,46 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 
     if (mode == CMP_EXACT) {
         if (plen != nam->compcnt)
-            {DEBUGMSG(VERBOSE, "1\n"); goto done;}
+            {DEBUGMSG(VERBOSE, "1a\n"); goto done;}
         if (pfx->chunknum || nam->chunknum) {
             if (!pfx->chunknum || !nam->chunknum)
-                {DEBUGMSG(VERBOSE, "2\n"); goto done;}
+                {DEBUGMSG(VERBOSE, "1b\n"); goto done;}
             if (*pfx->chunknum != *nam->chunknum)
-                {DEBUGMSG(VERBOSE, "3\n"); goto done;}
+                {DEBUGMSG(VERBOSE, "1c\n"); goto done;}
         }
+    
 #ifdef USE_NFN
-// #ifdef USE_TIMEOUT_KEEPALIVE
-//         if ((nam->nfnflags & ~CCNL_PREFIX_KEEPALIVE) != pfx->nfnflags)
-//             {DEBUGMSG(VERBOSE, "4a\n"); goto done;}
-// #else
-        if (nam->nfnflags != pfx->nfnflags)
-            {DEBUGMSG(VERBOSE, "4b\n"); goto done;}
-// #endif // USE_TIMEOUT_KEEPALIVE
+        if (nam->nfnflags != pfx->nfnflags) {
+            DEBUGMSG(VERBOSE, "1d\n"); 
+            goto done;
+        }
+        if (nam->internum != pfx->internum) {
+            DEBUGMSG(VERBOSE, "1e\n"); 
+            goto done;
+        }
 #endif // USE_NFN
     }
+
+#ifdef USE_NFN
+    if (mode == CMP_MATCH) {
+        if ((nam->nfnflags & CCNL_PREFIX_INTERMEDIATE) != (pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
+            DEBUGMSG(VERBOSE, "2a\n");
+            goto done;
+        }
+        if (nam->internum != pfx->internum) {
+            DEBUGMSG(VERBOSE, "2b\n"); 
+            goto done;
+        }
+    }
+#endif
+
+
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
         if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
             rc = mode == CMP_EXACT ? -1 : i;
-            {DEBUGMSG(VERBOSE, "5: %i\n", i); goto done;}
+            {DEBUGMSG(VERBOSE, "3: %i\n", i); goto done;}
         }
     }
     // FIXME: we must also inspect chunknum here!
@@ -358,6 +375,14 @@ ccnl_isSuite(int suite)
         return true;
 #endif
     return false;
+}
+
+int ccnl_cmp2int(unsigned char *cmp, int cmplen) {
+    // char *str = (char *)malloc(cmplen);
+    char *str = strndup((char *)cmp, cmplen);
+    long int i = strtol(str, NULL, 0);
+    free(str);
+    return (int)i;
 }
 
 // ----------------------------------------------------------------------
@@ -604,6 +629,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     p->chunknum = prefix->chunknum;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
+    p->internum = prefix->internum;
 #endif
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
@@ -1100,12 +1126,20 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     }
 
 #ifdef USE_NFN
-    if (pr->nfnflags & CCNL_PREFIX_NFN)
+    // len += sprintf(buf + len, "cmpcnt: %i|", pr->compcnt);
+    if (pr->nfnflags & CCNL_PREFIX_NFN) {
         len += sprintf(buf + len, "nfn");
-    if (pr->nfnflags & CCNL_PREFIX_KEEPALIVE)
+    }
+    if (pr->nfnflags & CCNL_PREFIX_KEEPALIVE) {
         len += sprintf(buf + len, ":alive");
-    if (pr->nfnflags)
+    }
+    if (pr->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
+        len += sprintf(buf + len, ":intermediate");
+        len += sprintf(buf + len, ":%i", pr->internum);
+    }
+    if (pr->nfnflags) {
         len += sprintf(buf + len, "[");
+    }
 #endif
 
 /*

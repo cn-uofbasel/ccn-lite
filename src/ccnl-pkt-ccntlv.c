@@ -214,6 +214,12 @@ ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                 p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
                 p->compcnt--;
             }
+            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 16 &&
+                    !memcmp(p->comp[p->compcnt-2], "\x00\x01\x00\x12INTERMEDIATE", 16)) {
+                p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+                p->internum = ccnl_cmp2int(p->comp[p->compcnt-1]+4, p->complen[p->compcnt-1]-4);
+                p->compcnt -= 2;
+            }
 #endif
 #endif
             break;
@@ -444,6 +450,15 @@ ccnl_ccntlv_prependName(struct ccnl_prefix_s *name,
     if (name->nfnflags & CCNL_PREFIX_KEEPALIVE)
         if (ccnl_pkt_prependComponent(name->suite, "ALIVE", offset, buf) < 0)
             return -1;
+    
+    if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE){
+        char internum[16];
+        snprintf(internum, 16, "%d", name->internum);
+        if (ccnl_pkt_prependComponent(name->suite, internum, offset, buf) < 0)
+            return -1;
+        if (ccnl_pkt_prependComponent(name->suite, "INTERMEDIATE", offset, buf) < 0)
+            return -1;
+    }
 #endif
 #endif
     for (cnt = name->compcnt - 1; cnt >= 0; cnt--) {

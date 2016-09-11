@@ -1791,6 +1791,9 @@ ccnl_mgmt_addcacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             goto Bail;
     }
     ++num_of_components;
+
+    printf("components: %s\n", components);
+
     prefix_new = ccnl_URItoPrefix((char *)components, CCNL_SUITE_CCNB, NULL, chunkflag ? &chunknum : NULL);
 
     ccnl_free(components);
