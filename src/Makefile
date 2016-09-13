@@ -208,7 +208,7 @@ uninstall:
 
 clean:
 	${EXTMAKECLEAN}
-	rm -rf *~ *.o ${PROGS} ccn-lite-lnxkernel ccn-lite-simu ccn-nfn-relay ccn-lite-relay-nack ccn-nfn-relay-nack
+	rm -rf *~ *.o ${PROGS} ccn-lite-lnxkernel ccn-lite-simu ccn-nfn-relay ccn-lite-relay-nack ccn-nfn-relay-nack ccn-lite-repo256
 	rm -rf .ccn-lite-lnxkernel* *.ko *.mod.c *.mod.o .tmp_versions modules.order Module.symvers
 	rm -rf ccn-lite-omnet.tgz
 	rm -rf ../bin
