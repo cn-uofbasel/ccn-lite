@@ -1705,7 +1705,7 @@ ccnl_mgmt_prefixreg(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         while (*fwd2)
             fwd2 = &((*fwd2)->next);
         *fwd2 = fwd;
-        cp = "changed String";
+        cp = "prefixreg cmd worked";
     } else {
         DEBUGMSG(TRACE, "mgmt: ignored prefixreg faceid=%s\n", faceid);
     }
