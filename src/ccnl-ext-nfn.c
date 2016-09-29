@@ -142,10 +142,12 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
+#ifndef USE_TIMEOUT_KEEPCONTENT
     if (ccnl_nfn_already_computing(ccnl, prefix)) { //TODO REMOVE?
         DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
         return -1;
     }
+#endif
 
     // Checks first if the interest has a routing hint and then searches for it locally.
     // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
@@ -290,6 +292,10 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             int faceid = - from->faceid;
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
+
+#ifdef USE_TIMEOUT_KEEPCONTENT
+            c->served_cnt++; // a computation has been waiting for this content, no need to keep it  
+#endif
 
 #ifdef USE_TIMEOUT_KEEPALIVE
             if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
