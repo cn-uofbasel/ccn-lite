@@ -1,0 +1,21 @@
+To launch the test of the Keep Alive version of the fetchContent function:
+
+1. Make sure the environment variable NFN_HOME points to the root 
+   folder of the nfn-scala project.
+2. Enable the following services in the ComputeServerStarter:
+   WordCount, DelayedWordCount, FetchContentTest
+3. Compile ccn-lite using USE_TIMEOUT_KEEPALIVE.
+4. Launch the nodes A-F using the scripts [a-f].sh
+5. Launch the compute servers using server_[d|f].sh
+6. Set up all faces using mgmt.sh
+7. Send the following interest:
+
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "(call 2 /node/nodeD/nfn_service_FetchContentTest (call 2 /node/nodeF/nfn_service_WordCount 'foo bar'))" | $CCNL_HOME/bin/ccn-lite-pktdump
+
+This interest will cause the WordCount service on node F 
+to be launched with the argument 'foo bar', which returns 2.
+Then, the FetchContentTest service is launched on node D.
+This service uses fetchContent to send a new interest,
+calling the DelayedWordCount service with the results of the
+nested interest (2), which returns 1 after a while (while
+the interest is kept alive in the fetchContent function).

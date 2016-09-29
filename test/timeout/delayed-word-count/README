@@ -1,0 +1,13 @@
+To run the delayed word test:
+
+1. Make sure the environment variable NFN_HOME points to the root 
+   folder of the nfn-scala project.
+2. Enable the DelayedWordCount service in the ComputeServerStarter.
+3. Compile ccn-lite using USE_TIMEOUT_KEEPALIVE or USE_TIMEOUT_KEEPCONTENT.
+4. Launch the nodes A-D using the scripts [a-d].sh
+5. Launch the compute server using server.sh
+6. Set up all faces using mgmt.sh
+7. Send an interest:
+   
+$CCNL_HOME/bin/ccn-lite-simplenfn -s ndn2013 -u 127.0.0.1/9001 -w 10 "call 2 /node/nodeA/nfn_service_DelayedWordCount 'foo bar'" | $CCNL_HOME/bin/ccn-lite-pktdump
+

@@ -1,0 +1,22 @@
+To launch the n-body simulation test:
+
+1. Make sure the environment variable NFN_HOME points to the root 
+   folder of the nfn-scala project.
+2. Enable the following services in the ComputeServerStarter:
+   NBody_SimulationService, NBody_RenderService
+3. Install the PyNDN python library:
+      https://github.com/named-data/PyNDN2
+4. Install the Pillow python image library: 
+      pip install Pillow
+5. Compile ccn-lite using USE_TIMEOUT_KEEPALIVE.
+6. Launch the nodes A-D using the scripts [a-d].sh
+7. Launch the compute server using server.sh
+8. Set up all faces using mgmt.sh
+9. Execute SimpleClient.py
+
+The client will receive roughly 1 intermediate result per
+second and print the data to stdout. After receiving the 
+final result, the render service is used to obtain a PNG
+rendering of the results. This image is displayed with the 
+default image viewing program (it is converted to a bitmap
+by the image output library on the client). 
