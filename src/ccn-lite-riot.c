@@ -3,7 +3,7 @@
  * @b RIOT adaption layer
  *
  * Copyright (C) 2011-14, Christian Tschudin, University of Basel
- * Copyright (C) 2015, Oliver Hahm, INRIA
+ * Copyright (C) 2015, 2016, Oliver Hahm, INRIA
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -65,13 +65,19 @@
                         ccnl_free(c); } while(0)
 
 /**
- * May be defined for ad-hoc content creation
- */
-#define local_producer(...)             0
-
-/**
  * @}
  */
+
+/**
+ * @brief May be defined for ad-hoc content creation
+ */
+int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt);
+
+/**
+ * @brief May be defined for a particular caching strategy
+ */
+int cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c);
 
 /**
  * @brief RIOT specific local variables
@@ -92,6 +98,26 @@ static char _ccnl_stack[CCNL_STACK_SIZE];
  * PID of the eventloop thread
  */
 static kernel_pid_t _ccnl_event_loop_pid = KERNEL_PID_UNDEF;
+
+/**
+ * Timer to process ageing
+ */
+static xtimer_t _ageing_timer = { .target = 0, .long_target = 0 };
+
+/**
+ * local producer function defined by the application
+ */
+static ccnl_producer_func _prod_func = NULL;
+
+/**
+ * caching strategy removal function
+ */
+static ccnl_cache_strategy_func _cs_remove_func = NULL;
+
+/**
+ * currently configured suite
+ */
+static int _ccnl_suite = CCNL_SUITE_NDNTLV;
 
 /**
  * @}
@@ -205,6 +231,11 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     if (!gnrc_netif_exist(if_pid)) {
         return -1;
     }
+    if (ccnl_relay.ifcount >= CCNL_MAX_INTERFACES) {
+        DEBUGMSG(WARNING, "cannot open more than %u interfaces for CCN-Lite\n",
+                 (unsigned) CCNL_MAX_INTERFACES);
+        return -1;
+    }
 
     /* get current interface from CCN-Lite's relay */
     struct ccnl_if_s *i;
@@ -214,8 +245,27 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     i->if_pid = if_pid;
     i->addr.sa.sa_family = AF_PACKET;
 
-    gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    int res;
+    res = gnrc_netapi_get(if_pid, NETOPT_MAX_PACKET_SIZE, 0, &(i->mtu), sizeof(i->mtu));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine MTU for if=<%u>\n", (unsigned) i->if_pid);
+        return -ECANCELED;
+    }
     DEBUGMSG(DEBUG, "interface's MTU is set to %i\n", i->mtu);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDR_LEN, 0, &(i->addr_len), sizeof(i->addr_len));
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to determine address length for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address length is %u\n", (unsigned) i->addr_len);
+
+    res = gnrc_netapi_get(if_pid, NETOPT_ADDRESS, 0, i->hwaddr, i->addr_len);
+    if (res < 0) {
+        DEBUGMSG(ERROR, "error: unable to get address for if=<%u>\n", (unsigned) if_pid);
+        return -ECANCELED;
+    }
+    DEBUGMSG(DEBUG, "interface's address is %s\n", ll2ascii(i->hwaddr, i->addr_len));
 
     /* advance interface counter in relay */
     ccnl_relay.ifcount++;
@@ -228,6 +278,8 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
     return gnrc_netreg_register(netreg_type, &_ccnl_ne);
 }
 
+static msg_t _ageing_reset = { .type = CCNL_MSG_AGEING };
+
 /* (link layer) sending function */
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
@@ -235,12 +287,17 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 {
     (void) ccnl;
     int rc;
-    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes\n", buf ? buf->datalen : -1);
+    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", buf ? buf->datalen : -1, ccnl_addr2ascii(dest));
+    /* reset ageing timer */
+    xtimer_remove(&_ageing_timer);
+    xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &_ageing_reset, _ccnl_event_loop_pid);
+    DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
+
     switch(dest->sa.sa_family) {
         /* link layer sending */
         case AF_PACKET: {
                             /* allocate memory */
-                            gnrc_pktsnip_t *hdr;
+                            gnrc_pktsnip_t *hdr = NULL;
                             gnrc_pktsnip_t *pkt= gnrc_pktbuf_add(NULL, buf->data,
                                                                  buf->datalen,
                                                                  GNRC_NETTYPE_CCN);
@@ -249,17 +306,44 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                                 puts("error: packet buffer full");
                                 return;
                             }
-                            /* build link layer header */
-                            hdr = gnrc_netif_hdr_build(NULL, 0,
-                                                       dest->linklayer.sll_addr,
-                                                       dest->linklayer.sll_halen);
 
+                            /* check for loopback */
+                            bool is_loopback = false;
+                            if (ifc->addr_len == dest->linklayer.sll_halen) {
+                                if (memcmp(ifc->hwaddr, dest->linklayer.sll_addr, dest->linklayer.sll_halen) == 0) {
+                                    /* build link layer header */
+                                    hdr = gnrc_netif_hdr_build(NULL, dest->linklayer.sll_halen,
+                                                               dest->linklayer.sll_addr,
+                                                               dest->linklayer.sll_halen);
+
+                                    gnrc_netif_hdr_set_src_addr((gnrc_netif_hdr_t *)hdr->data, ifc->hwaddr, ifc->addr_len);
+                                    is_loopback = true;
+                                }
+                            }
+
+                            /* for the non-loopback case */
+                            if (hdr == NULL) {
+                                hdr = gnrc_netif_hdr_build(NULL, 0,
+                                                           dest->linklayer.sll_addr,
+                                                           dest->linklayer.sll_halen);
+                            }
+
+                            /* check if header building succeeded */
                             if (hdr == NULL) {
                                 puts("error: packet buffer full");
                                 gnrc_pktbuf_release(pkt);
                                 return;
                             }
                             LL_PREPEND(pkt, hdr);
+
+                            if (is_loopback) {
+                                    DEBUGMSG(DEBUG, "loopback packet\n");
+                                    if (gnrc_netapi_receive(_ccnl_event_loop_pid, pkt) < 1) {
+                                        DEBUGMSG(ERROR, "error: unable to loopback packet, discard it\n");
+                                        gnrc_pktbuf_release(pkt);
+                                    }
+                                    return;
+                            }
 
                             /* distinguish between broadcast and unicast */
                             bool is_bcast = true;
@@ -272,11 +356,13 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                             }
 
                             if (is_bcast) {
+                                DEBUGMSG(DEBUG, " is broadcast\n");
                                 gnrc_netif_hdr_t *nethdr = (gnrc_netif_hdr_t *)hdr->data;
                                 nethdr->flags = GNRC_NETIF_HDR_FLAGS_BROADCAST;
                             }
 
                             /* actual sending */
+                            DEBUGMSG(DEBUG, " try to pass to GNRC (%i): %p\n", (int) ifc->if_pid, (void*) pkt);
                             if (gnrc_netapi_send(ifc->if_pid, pkt) < 1) {
                                 puts("error: unable to send\n");
                                 gnrc_pktbuf_release(pkt);
@@ -337,8 +423,8 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     }
 
     if (i == ccnl->ifcount) {
-        puts("No matching CCN interface found, skipping message");
-        return;
+        DEBUGMSG(WARNING, "No matching CCN interface found, assume it's from the default interface\n");
+        i = 0;
     }
 
     /* packet parsing */
@@ -351,7 +437,7 @@ _receive(struct ccnl_relay_s *ccnl, msg_t *m)
     memset(&su, 0, sizeof(su));
     su.sa.sa_family = AF_PACKET;
     su.linklayer.sll_halen = nethdr->src_l2addr_len;
-    memcpy(&su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
+    memcpy(su.linklayer.sll_addr, gnrc_netif_hdr_get_src_addr(nethdr), nethdr->src_l2addr_len);
 
     /* call CCN-lite callback and free memory in packet buffer */
     ccnl_core_RX(ccnl, i, ccn_pkt->data, ccn_pkt->size, &su.sa, sizeof(su.sa));
@@ -365,19 +451,16 @@ void
     msg_init_queue(_msg_queue, CCNL_QUEUE_SIZE);
     struct ccnl_relay_s *ccnl = (struct ccnl_relay_s*) arg;
 
-    /* start periodic timer */
-    ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, ccnl, 0);
 
     /* XXX: https://xkcd.com/221/ */
     random_init(0x4);
 
     while(!ccnl->halt_flag) {
         msg_t m, reply;
+        /* start periodic timer */
+        reply.type = CCNL_MSG_AGEING;
         DEBUGMSG(VERBOSE, "ccn-lite: waiting for incoming message.\n");
-        int usec = ccnl_run_events();
-        if (xtimer_msg_receive_timeout(&m, usec) < 0) {
-            continue;
-        }
+        msg_receive(&m);
 
         switch (m.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
@@ -387,6 +470,15 @@ void
 
             case GNRC_NETAPI_MSG_TYPE_SND:
                 DEBUGMSG(DEBUG, "ccn-lite: GNRC_NETAPI_MSG_TYPE_SND received\n");
+                gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t*) m.content.ptr;
+                if (pkt->type != GNRC_NETTYPE_CCN) {
+                    DEBUGMSG(WARNING, "ccn-lite: wrong nettype\n");
+                }
+                else {
+                    ccnl_interest_t *i = (ccnl_interest_t*) pkt->data;
+                    ccnl_send_interest(i->prefix, i->buf, i->buflen);
+                }
+                gnrc_pktbuf_release(pkt);
                 break;
 
             case GNRC_NETAPI_MSG_TYPE_GET:
@@ -395,7 +487,14 @@ void
                 reply.content.value = -ENOTSUP;
                 msg_reply(&m, &reply);
                 break;
+            case CCNL_MSG_AGEING:
+                DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
+                ccnl_do_ageing(arg, NULL);
+                xtimer_remove(&_ageing_timer);
+                xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &reply, sched_active_pid);
+                break;
             default:
+                DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
                 break;
         }
 
@@ -409,6 +508,9 @@ ccnl_start(void)
 {
     loopback_face = ccnl_get_face_or_create(&ccnl_relay, -1, NULL, 0);
     loopback_face->flags |= CCNL_FACE_FLAGS_STATIC;
+
+    ccnl_relay.max_cache_entries = CCNL_CACHE_SIZE;
+    ccnl_relay.max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     /* start the CCN-Lite event-loop */
     _ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           THREAD_PRIORITY_MAIN - 1,
@@ -417,6 +519,8 @@ ccnl_start(void)
     return _ccnl_event_loop_pid;
 }
 
+static xtimer_t _wait_timer = { .target = 0, .long_target = 0 };
+static msg_t _timeout_msg;
 int
 ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 {
@@ -430,17 +534,10 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
         DEBUGMSG(DEBUG, "  waiting for packet\n");
 
         /* TODO: receive from socket or interface */
+        _timeout_msg.type = CCNL_MSG_TIMEOUT;
+        xtimer_set_msg64(&_wait_timer, timeout, &_timeout_msg, sched_active_pid);
         msg_t m;
-        if (xtimer_msg_receive_timeout(&m, timeout) >= 0) {
-            DEBUGMSG(DEBUG, "received something\n");
-        }
-        else {
-            /* TODO: handle timeout reasonably */
-            DEBUGMSG(WARNING, "timeout\n");
-            res = -ETIMEDOUT;
-            break;
-        }
-
+        msg_receive(&m);
         if (m.type == GNRC_NETAPI_MSG_TYPE_RCV) {
             DEBUGMSG(TRACE, "It's from the stack!\n");
             gnrc_pktsnip_t *pkt = (gnrc_pktsnip_t *)m.content.ptr;
@@ -458,6 +555,11 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
                 gnrc_pktbuf_release(pkt);
                 continue;
             }
+            xtimer_remove(&_wait_timer);
+            break;
+        }
+        else if (m.type == CCNL_MSG_TIMEOUT) {
+            res = -ETIMEDOUT;
             break;
         }
         else {
@@ -472,41 +574,36 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
 /* TODO: move everything below here to ccn-lite-core-utils */
 
 /* generates and send out an interest */
-int
-ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
-                    unsigned char *buf, size_t buf_len)
+struct ccnl_interest_s
+*ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_len)
 {
-    struct ccnl_prefix_s *prefix;
-
-    if (suite != CCNL_SUITE_NDNTLV) {
+    if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
-        return -1;
+        return NULL;
     }
 
     ccnl_mkInterestFunc mkInterest;
     ccnl_isContentFunc isContent;
 
-    mkInterest = ccnl_suite2mkInterestFunc(suite);
-    isContent = ccnl_suite2isContentFunc(suite);
+    mkInterest = ccnl_suite2mkInterestFunc(_ccnl_suite);
+    isContent = ccnl_suite2isContentFunc(_ccnl_suite);
 
     if (!mkInterest || !isContent) {
         DEBUGMSG(WARNING, "No functions for this suite were found!");
-        return(-1);
+        return NULL;
     }
 
-    DEBUGMSG(INFO, "interest for chunk number: %u\n", (chunknum == NULL) ? 0 : *chunknum);
-    prefix = ccnl_URItoPrefix(name, suite, NULL, chunknum);
+    DEBUGMSG(INFO, "interest for chunk number: %u\n", (prefix->chunknum == NULL) ? 0 : *prefix->chunknum);
 
     if (!prefix) {
         DEBUGMSG(ERROR, "prefix could not be created!\n");
-        return -1;
+        return NULL;
     }
 
     int nonce = random_uint32();
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
     int len = mkInterest(prefix, &nonce, buf, buf_len);
-    free_prefix(prefix);
 
     unsigned char *start = buf;
     unsigned char *data = buf;
@@ -518,13 +615,46 @@ ccnl_send_interest(int suite, char *name, unsigned int *chunknum,
     /* TODO: support other suites */
     if (ccnl_ndntlv_dehead(&data, &len, (int*) &typ, &int_len) || (int) int_len > len) {
         DEBUGMSG(WARNING, "  invalid packet format\n");
-        return -1;
+        return NULL;
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
     struct ccnl_interest_s *i = ccnl_interest_new(&ccnl_relay, loopback_face, &pkt);
-    ccnl_interest_append_pending(i, loopback_face);
-    ccnl_interest_propagate(&ccnl_relay, i);
+    if (i) {
+        ccnl_interest_append_pending(i, loopback_face);
+        ccnl_interest_propagate(&ccnl_relay, i);
+    }
 
+    return i;
+}
+
+void
+ccnl_set_local_producer(ccnl_producer_func func)
+{
+    _prod_func = func;
+}
+
+void
+ccnl_set_cache_strategy_remove(ccnl_cache_strategy_func func)
+{
+    _cs_remove_func = func;
+}
+
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt)
+{
+    if (_prod_func) {
+        return _prod_func(relay, from, pkt);
+    }
+    return 0;
+}
+
+int
+cache_strategy_remove(struct ccnl_relay_s *relay, struct ccnl_content_s *c)
+{
+    if (_cs_remove_func) {
+        return _cs_remove_func(relay, c);
+    }
     return 0;
 }

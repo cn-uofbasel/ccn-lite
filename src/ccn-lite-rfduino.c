@@ -203,6 +203,7 @@ char* ccnl_addr2ascii(sockunion *su);
 #define DEBUGMSG(...)      DEBUGMSG_OFF(__VA_VARGS__)
 
 #define local_producer(...) 0
+#define cache_strategy_remove(...)      0
 
 #include "ccnl-core.c"
 #include "ccnl-ext-frag.c"
@@ -447,6 +448,7 @@ ccnl_rfduino_init(struct ccnl_relay_s *relay)
     ccnl_core_init();
 
     relay->max_cache_entries = 0;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     theRelay.ifcount = 1;

@@ -551,7 +551,7 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     int cnt, i, len, tlen;
 
     DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
-             ccnl_suite2str(suite), uri, nfnexpr);
+             ccnl_suite2str(suite), uri, (nfnexpr != NULL) ? nfnexpr : "none");
 
     if (strlen(uri))
         cnt = ccnl_URItoComponents(compvect, complens, uri);
@@ -927,7 +927,8 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_UNIXSOCKET
     static char result[256];
 #else
-    static char result[25];
+    /* each byte requires 2 chars + 1 for the colon/slash + 6 for the protocol + 1 for \0 */
+    static char result[(CCNL_MAX_ADDRESS_LEN * 3) + 7];
 #endif
 
     if (!su)
@@ -1080,6 +1081,21 @@ ccnl_fib_show(struct ccnl_relay_s *relay)
     }
 #endif
 }
+
+void
+ccnl_cs_dump(struct ccnl_relay_s *ccnl)
+{
+    struct ccnl_content_s *c = ccnl->contents;
+    unsigned i = 0;
+    while (c) {
+        printf("CS[%u]: %s [%d]: %s\n", i++,
+               ccnl_prefix_to_path(c->pkt->pfx),
+               (c->pkt->pfx->chunknum)? *(c->pkt->pfx->chunknum) : -1,
+               c->pkt->content);
+        c = c->next;
+    }
+}
+
 
 // ----------------------------------------------------------------------
 

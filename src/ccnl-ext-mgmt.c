@@ -879,21 +879,28 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         sockunion su;
 #ifdef USE_IPV4
+	if (ip4src != NULL) {
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                  ip4src, proto, host, port);
         su.sa.sa_family = AF_INET;
         inet_aton((const char*)host, &su.ip4.sin_addr);
         su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
         // not implmented yet: honor the requested ip4src parameter
-#elif defined(USE_IPV6)
+	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+                                    &su.sa, sizeof(struct sockaddr_in));
+	}
+#endif
+#ifdef USE_IPV6
+	if (ip6src != NULL) {
         DEBUGMSG(TRACE, "  adding IP face ip6src=%s, proto=%s, host=%s, port=%s\n",
                  ip6src, proto, host, port);
         su.sa.sa_family = AF_INET6;
         inet_pton(AF_INET6, (const char*)host, &su.ip6.sin6_addr.s6_addr);
         su.ip6.sin6_port = htons(strtol((const char*)port, NULL, 0));
-#endif
         f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_in));
+                                    &su.sa, sizeof(struct sockaddr_in6));
+	}
+#endif
     }
 #ifdef USE_UNIXSOCKET
     if (path) {
@@ -929,11 +936,16 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         cp = "newface cmd worked";
     } else {
 #ifdef USE_IPV4
+	if (ip4src != NULL) {
         DEBUGMSG(TRACE, "  newface request for (macsrc=%s ip4src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
                  macsrc, ip4src, proto, host, port, frag, flags);
-#elif defined(USE_IPV6)
+	}
+#endif
+#ifdef USE_IPV6
+	if (ip6src != NULL) {
         DEBUGMSG(TRACE, "  newface request for (macsrc=%s ip6src=%s proto=%s host=%s port=%s frag=%s flags=%s) failed or was ignored\n",
                  macsrc, ip6src, proto, host, port, frag, flags);
+	}
 #endif
     }
     rc = 0;
@@ -1313,8 +1325,9 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 #endif
 
+    if ((ip4src || ip6src) && port) {
 #ifdef USE_IPV4
-    if (ip4src && port) {
+	if (ip4src) {
         cp = "newUDPdev cmd worked";
         DEBUGMSG(TRACE, "  adding UDP device ip4src=%s, port=%s\n",
                  ip4src, port);
@@ -1328,8 +1341,10 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
             DEBUGMSG(TRACE, "  could not open UDP device %s/%s\n", ip4src, port);
             goto Bail;
         }
-#elif defined(USE_IPV6)
-    if (ip6src && port) {
+	}
+#endif
+#ifdef USE_IPV6
+	if (ip6src) {
         cp = "newUDPdev cmd worked";
         DEBUGMSG(TRACE, "  adding UDP device ip6src=%s, port=%s\n",
                  ip6src, port);
@@ -1338,11 +1353,12 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
         // create a new ifs-entry
         i = &ccnl->ifs[ccnl->ifcount];
-        i->sock = ccnl_open_udpdev(strtol((char*)port, NULL, 0), &i->addr.ip6);
+        i->sock = ccnl_open_udp6dev(strtol((char*)port, NULL, 0), &i->addr.ip6);
         if (!i->sock) {
             DEBUGMSG(TRACE, "  could not open UDP device %s/%s\n", ip6src, port);
             goto Bail;
         }
+	}
 #endif
 
 #ifdef CCNL_LINUXKERNEL
@@ -1396,11 +1412,16 @@ ccnl_mgmt_newdev(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     }
 
 #ifdef USE_IPV4
+    if (ip4src) {
     DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip4src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip4src, port, frag);
-#elif defined(USE_IPV6)
+    }
+#endif
+#ifdef USE_IPV6
+    if (ip6src) {
     DEBUGMSG(TRACE, "  newdevice request for (namedev=%s ip6src=%s port=%s frag=%s) failed or was ignored\n",
              devname, ip6src, port, frag);
+    }
 #endif
 // #endif // USE_UDP
 

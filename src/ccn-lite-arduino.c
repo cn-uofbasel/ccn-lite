@@ -207,6 +207,7 @@ inet_ntoa(struct in_addr a)
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define ccnl_print_stats(x,y)           do{}while(0)
+#define cache_strategy_remove(...)      0
 
 char* ccnl_addr2ascii(sockunion *su);
 
@@ -460,6 +461,7 @@ ccnl_arduino_init(struct ccnl_relay_s *relay, unsigned char *mac,
                   ccnl_addr2ascii(&theRelay.ifs[0].addr));
 
     relay->max_cache_entries = 0;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
     ccnl_set_timer(1000000, ccnl_ageing, relay, 0);
 
     sensor.suite = theSuite;

@@ -87,6 +87,7 @@ unsigned char keyid[32];
 
 #define ccnl_app_RX(x,y)                do{}while(0)
 #define local_producer(...)             0
+#define cache_strategy_remove(...)      0
 
 #include "ccnl-core.c"
 
@@ -307,6 +308,7 @@ ccnl_relay_config(struct ccnl_relay_s *relay, int httpport, char *uxpath,
     DEBUGMSG(INFO, "configuring relay\n");
 
     relay->max_cache_entries = max_cache_entries;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
 #ifdef USE_SCHEDULER
     relay->defaultFaceScheduler = ccnl_relay_defaultFaceScheduler;
     relay->defaultInterfaceScheduler = ccnl_relay_defaultInterfaceScheduler;

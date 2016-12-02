@@ -426,7 +426,7 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
             return content;
         }
     }
-    free_prefix(prefixchunkzero);
+    if (prefixchunkzero) free_prefix(prefixchunkzero);
     prefixchunkzero = 0;
 
     if (!config || !config->fox_state || !config->fox_state->prefix_mapping)

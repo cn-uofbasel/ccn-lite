@@ -53,6 +53,7 @@
 
 void ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
 #define local_producer(...) 0
+#define cache_strategy_remove(...)      0
 
 #include "ccnl-ext-debug.c"
 #include "ccnl-os-time.c"
@@ -354,6 +355,7 @@ ccnl_simu_init_node(char node, const char *addr,
 
     relay->id = relay - relays;
     relay->max_cache_entries = node == 'C' ? -1 : max_cache_entries;
+    relay->max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
 
     // add (fake) eth0 interface with index 0:
     i = &relay->ifs[0];

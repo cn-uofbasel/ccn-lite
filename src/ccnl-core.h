@@ -87,6 +87,8 @@ struct ccnl_if_s { // interface for packet IO
 #elif defined(CCNL_RIOT)
     kernel_pid_t if_pid;
     int sock;
+    uint8_t hwaddr[CCNL_MAX_ADDRESS_LEN];
+    uint16_t addr_len;
 #else
     int sock;
 #endif
@@ -116,6 +118,8 @@ struct ccnl_relay_s {
     struct ccnl_buf_s *nonces;
     int contentcnt;             // number of cached items
     int max_cache_entries;      // -1: unlimited
+    int pitcnt;
+    int max_pit_entries;      // -1: unlimited
     struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
     int ifcount;                // number of active interfaces
     char halt_flag;

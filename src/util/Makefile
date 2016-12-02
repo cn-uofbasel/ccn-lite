@@ -18,8 +18,7 @@ PROGS=	ccn-lite-ccnb2xml \
 	ccn-lite-produce \
 	ccn-lite-rpc \
 	ccn-lite-simplenfn \
-	ccn-lite-valid
-
+	ccn-lite-valid 
 #	ccn-lite-peekcomputation \
 #	ccn-lite-deF \
 

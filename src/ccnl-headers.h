@@ -30,7 +30,7 @@ int ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to, struct 
 struct ccnl_interest_s* ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
 int ccnl_interest_append_pending(struct ccnl_interest_s *i, struct ccnl_face_s *from);
 void ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
-void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+void ccnl_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s *pkt);
 struct ccnl_interest_s *ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 int ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, int minsuffix, int maxsuffix, struct ccnl_content_s *c);
 struct ccnl_content_s *ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt);
@@ -229,7 +229,7 @@ int ccnl_str2suite(char *cp);
 int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 int ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 void ccnl_fib_show(struct ccnl_relay_s *relay);
-
+void ccnl_cs_dump(struct ccnl_relay_s *ccnl);
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* fwd-ccnb.c */
 #ifdef USE_SUITE_CCNB
