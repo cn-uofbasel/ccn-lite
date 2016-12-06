@@ -378,8 +378,8 @@ ccnl_isSuite(int suite)
 }
 
 int ccnl_cmp2int(unsigned char *cmp, int cmplen) {
-    // char *str = (char *)malloc(cmplen);
-    char *str = (char *) strndup((char *)cmp, cmplen);
+    char *str = (char *)ccnl_malloc(cmplen);
+    memcpy(str, (char *)cmp, cmplen);
     long int i = strtol(str, NULL, 0);
     free(str);
     return (int)i;
