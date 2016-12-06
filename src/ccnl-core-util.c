@@ -25,7 +25,7 @@
 //#define CCNL_CORE_UTIL_H
 
 #include "ccnl-core.h"
-
+#include "string.h"
 // ----------------------------------------------------------------------
 // collect the USE_* macros in a string
 
@@ -379,7 +379,7 @@ ccnl_isSuite(int suite)
 
 int ccnl_cmp2int(unsigned char *cmp, int cmplen) {
     // char *str = (char *)malloc(cmplen);
-    char *str = strndup((char *)cmp, cmplen);
+    char *str = (char *) strndup((char *)cmp, cmplen);
     long int i = strtol(str, NULL, 0);
     free(str);
     return (int)i;
