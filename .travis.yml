@@ -35,7 +35,6 @@ script:
     # Run build-test.sh
     # Ideally, build-test should be run without specifying the targets.
     # However, bt-lnxkernel, bt-demo-cisco2015, bt-nfn-ccnx2015, bt-nfn-cisco2015 removed because they fail
-    - ln -s /Users /home
     - cd $CCNL_HOME/src
     - make clean
     - ./build-test.sh VERBOSE=1 echo-cores bt-relay bt-all bt-pkt bt-omnet bt-demo-ccnb bt-demo-ccnx2015 bt-demo-iot2014 bt-demo-ndn2013 bt-nfn-ccnb bt-nfn-iot2014 bt-nfn-ndn2013
