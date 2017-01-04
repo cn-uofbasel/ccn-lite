@@ -23,6 +23,7 @@ env:
 
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CCNL_HOME="/Users/travis/build/cn-uofbasel/ccn-lite"; export PATH=$PATH:"$CCNL_HOME/bin" ; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; brew install openssl ; fi
 
 addons:
     apt:
