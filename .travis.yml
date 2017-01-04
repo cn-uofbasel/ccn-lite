@@ -19,8 +19,10 @@ branches:
         - dev-master
 
 env:
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin" ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then CCNL_HOME="/Users/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin" ; fi
+    - CCNL_HOME="/home/travis/build/cn-uofbasel/ccn-lite" PATH=$PATH:"$CCNL_HOME/bin"
+
+before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CCNL_HOME="/Users/travis/build/cn-uofbasel/ccn-lite"; export PATH=$PATH:"$CCNL_HOME/bin" ; fi
 
 addons:
     apt:
