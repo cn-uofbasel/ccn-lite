@@ -287,7 +287,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
 {
     (void) ccnl;
     int rc;
-    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", buf ? buf->datalen : -1, ccnl_addr2ascii(dest));
+    DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", (int)(buf ? buf->datalen : -1), ccnl_addr2ascii(dest));
     /* reset ageing timer */
     xtimer_remove(&_ageing_timer);
     xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &_ageing_reset, _ccnl_event_loop_pid);
