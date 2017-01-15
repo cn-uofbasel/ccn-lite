@@ -34,6 +34,8 @@ int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *
 #endif
 
 // forward reference:
+void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
+                             struct ccnl_interest_s *interest);
 void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 int ccnl_prefix_cmp(struct ccnl_prefix_s *name, unsigned char *md,
                     struct ccnl_prefix_s *p, int mode);
@@ -431,7 +433,7 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
     for (pi = i->pending; pi; pi = pi->next) { // check whether already listed
         if (pi->face == from) {
             DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
-            pi->last_used = CCNL_NOW(); 
+            pi->last_used = CCNL_NOW();
 #ifdef USE_TIMEOUT_KEEPCONTENT
             // ensure the pending interest sticks around while the client keeps repeating the same request
             i->last_used = CCNL_NOW();
@@ -498,7 +500,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
             int nonce = 0;
             if (i->pkt != NULL && i->pkt->s.ndntlv.nonce != NULL) {
                 if (i->pkt->s.ndntlv.nonce->datalen == 4) {
-                    nonce = *((int*)i->pkt->s.ndntlv.nonce->data);
+                    memcpy(&nonce, i->pkt->s.ndntlv.nonce->data, 4);
                 }
             }
 
@@ -842,16 +844,16 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
-                int nonce = 0;
+                int32_t nonce = 0;
                 if (i->pkt != NULL && i->pkt->s.ndntlv.nonce != NULL) {
                     if (i->pkt->s.ndntlv.nonce->datalen == 4) {
-                        nonce = *((int*)i->pkt->s.ndntlv.nonce->data);
+                        memcpy(&nonce, i->pkt->s.ndntlv.nonce->data, 4);
                     }
                 }
 
                 char *s = NULL;
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%i to=%s\n",
-                          (s = ccnl_prefix_to_path(i->pkt->pfx)), 
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
                           ccnl_suite2str(i->pkt->pfx->suite), nonce,
                           ccnl_addr2ascii(&pi->face->peer));
                 ccnl_free(s);
@@ -871,7 +873,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 #ifdef USE_TIMEOUT_KEEPALIVE
     if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
-        return 1;   // 
+        return 1;   //
     }
 #endif
     return cnt;
@@ -883,7 +885,7 @@ DEBUGMSG_CORE(TRACE, "%s %p\n", (trace), (void*) i);   \
 DEBUGMSG_CORE(DEBUG, " %s 0x%p <%s>\n", (debug),       \
     (void*)i,                                          \
     (s = ccnl_prefix_to_path(i->pkt->pfx)));           \
-ccnl_free(s);                                       
+ccnl_free(s);
 
 void
 ccnl_do_ageing(void *ptr, void *dummy)
@@ -902,14 +904,14 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_TIMEOUT_KEEPCONTENT
         if (c->served_cnt > 0) {
 #endif
-	        DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
+            DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
             c = ccnl_content_remove(relay, c);
 #ifdef USE_TIMEOUT_KEEPCONTENT
-        } 
+        }
         // Used for debugging
         else {
             char *s = NULL;
-            DEBUGMSG_CORE(TRACE, "AGING: KEEP CONTENT (not served yet) 0x%p <%s>\n", 
+            DEBUGMSG_CORE(TRACE, "AGING: KEEP CONTENT (not served yet) 0x%p <%s>\n",
                 (void*) c, (s = ccnl_prefix_to_path(c->pkt->pfx)));
             ccnl_free(s);
             // c->last_used = CCNL_NOW();
@@ -923,14 +925,14 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries > CCNL_MAX_INTEREST_RETRANSMIT) {
-#ifdef USE_TIMEOUT_KEEPALIVE   
+#ifdef USE_TIMEOUT_KEEPALIVE
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_NFN)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
                 } else if ((i->pkt->pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
                     DEBUGMSG_AGEING("AGING: REMOVE INTERMEDIATE INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
-                } else if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) { 
+                } else if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE)) {
                     if (i->keepalive == NULL) {
                         if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
                             DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: already computing");
@@ -942,21 +944,21 @@ ccnl_do_ageing(void *ptr, void *dummy)
                         }
                     } else {
                         DEBUGMSG_AGEING("AGING: KEEP ALIVE INTEREST", "timeout: wait for status info");
-                    }   
-                    i = i->next; 
+                    }
+                    i = i->next;
                 } else {
                     DEBUGMSG_AGEING("AGING: REMOVE KEEP ALIVE INTEREST", "timeout: remove keep alive interest");
                     struct ccnl_interest_s *origin = i->keepalive_origin;
                     ccnl_nfn_interest_remove(relay, origin);
                     i = ccnl_nfn_interest_remove(relay, i);
-                }                                                                                         
+                }
 // #elif defined USE_TIMEOUT_KEEPCONTENT
 //                 if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
 //                     DEBUGMSG_AGEING("AGING: RESET INTEREST RETRIES", "timeout: already computing");
 //                     i->last_used = CCNL_NOW();
 //                     i->retries = 0;
 //                 }
-//                 i = i->next; 
+//                 i = i->next;
 #else // USE_TIMEOUT
                 DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
                 i = ccnl_nfn_interest_remove(relay, i);
