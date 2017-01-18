@@ -290,7 +290,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     DEBUGMSG(TRACE, "ccnl_ll_TX %d bytes to %s\n", (int)(buf ? buf->datalen : -1), ccnl_addr2ascii(dest));
     /* reset ageing timer */
     xtimer_remove(&_ageing_timer);
-    xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &_ageing_reset, _ccnl_event_loop_pid);
+    xtimer_set_msg(&_ageing_timer, USEC_PER_SEC, &_ageing_reset, _ccnl_event_loop_pid);
     DEBUGMSG(TRACE, "ccnl_ll_TX: reset timer\n");
 
     switch(dest->sa.sa_family) {
@@ -407,7 +407,7 @@ void
 ccnl_ageing(void *relay, void *aux)
 {
     ccnl_do_ageing(relay, aux);
-    ccnl_set_timer(SEC_IN_USEC, ccnl_ageing, relay, 0);
+    ccnl_set_timer(USEC_PER_SEC, ccnl_ageing, relay, 0);
 }
 
 /* receiving callback for CCN packets */
@@ -491,7 +491,7 @@ void
                 DEBUGMSG(VERBOSE, "ccn-lite: ageing timer\n");
                 ccnl_do_ageing(arg, NULL);
                 xtimer_remove(&_ageing_timer);
-                xtimer_set_msg(&_ageing_timer, SEC_IN_USEC, &reply, sched_active_pid);
+                xtimer_set_msg(&_ageing_timer, USEC_PER_SEC, &reply, sched_active_pid);
                 break;
             default:
                 DEBUGMSG(WARNING, "ccn-lite: unknown message type\n");
@@ -527,7 +527,7 @@ ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout)
     int res = (-1);
 
     if (timeout == 0) {
-        timeout = CCNL_MAX_INTEREST_RETRANSMIT * SEC_IN_USEC;
+        timeout = CCNL_MAX_INTEREST_RETRANSMIT * USEC_PER_SEC;
     }
 
     while (1) { /* wait for a content pkt (ignore interests) */
