@@ -852,7 +852,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 }
 
                 char *s = NULL;
-                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%i to=%s\n",
+                DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%"PRIi32" to=%s\n",
                           (s = ccnl_prefix_to_path(i->pkt->pfx)),
                           ccnl_suite2str(i->pkt->pfx->suite), nonce,
                           ccnl_addr2ascii(&pi->face->peer));

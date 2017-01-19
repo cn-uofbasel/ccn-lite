@@ -206,7 +206,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     char *s = NULL;
-    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%i from=%s\n",
+    DEBUGMSG_CFWD(INFO, "  incoming interest=<%s>%s nonce=%"PRIi32" from=%s\n",
                   (s = ccnl_prefix_to_path((*pkt)->pfx)),
                   ccnl_suite2str((*pkt)->suite), nonce,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
