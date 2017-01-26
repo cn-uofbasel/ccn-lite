@@ -157,6 +157,8 @@ ntohl(unsigned long l) {
 
 typedef long ssize_t;
 
+#define PRIi32  "li"
+
 // ----------------------------------------------------------------------
 
 #include <assert.h>
