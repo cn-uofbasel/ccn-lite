@@ -234,6 +234,7 @@ extern struct ccnl_prefix_s sensor;
 int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
+#include "Time.h"
 #include "ccnl-core.c"
 #include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
