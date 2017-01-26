@@ -137,6 +137,8 @@ struct sockaddr {
 #define AF_PACKET 1
 #define AF_INET   2
 
+#define	INADDR_BROADCAST	((unsigned long int) 0xffffffff)
+
 # define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
 # define htons(i)  ntohs(i)
 
