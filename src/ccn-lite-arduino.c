@@ -153,6 +153,8 @@ ntohl(unsigned long l) {
 
 #define htonl(i) ntohl(i)
 
+typedef long ssize_t;
+
 // ----------------------------------------------------------------------
 
 #include <assert.h>
