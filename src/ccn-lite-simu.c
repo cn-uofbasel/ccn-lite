@@ -45,6 +45,8 @@
 #define NEEDS_PREFIX_MATCHING
 #define NEEDS_PACKET_CRAFTING
 
+
+#include <inttypes.h>
 #include "ccnl-os-includes.h"
 
 #include "ccnl-defs.h"
