@@ -25,6 +25,7 @@
 #include <regex.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <inttypes.h>
 
 #define CCNL_UNIX
 
