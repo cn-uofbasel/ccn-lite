@@ -137,6 +137,8 @@ struct sockaddr {
 #define AF_PACKET 1
 #define AF_INET   2
 
+#define	INADDR_BROADCAST	((unsigned long int) 0xffffffff)
+
 # define ntohs(i)  (((i<<8) & 0xff00) | ((i>>8) & 0x0ff))
 # define htons(i)  ntohs(i)
 
@@ -152,6 +154,10 @@ ntohl(unsigned long l) {
 }
 
 #define htonl(i) ntohl(i)
+
+typedef long ssize_t;
+
+#define PRIi32  "li"
 
 // ----------------------------------------------------------------------
 
@@ -228,6 +234,7 @@ extern struct ccnl_prefix_s sensor;
 int local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    struct ccnl_pkt_s *pkt);
 
+#include "Time.h"
 #include "ccnl-core.c"
 #include "ccnl-ext-hmac.c"
 #include "ccnl-ext-http.c"
