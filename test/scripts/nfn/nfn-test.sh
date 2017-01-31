@@ -54,7 +54,7 @@ echo " Done!"
 
 echo "$(date "+[%F %T]") Adding UPD interface..."
 echo "$(date "+[%F %T]") $ ccn-lite-ctrl newUDPface any 127.0.0.1 9001 | ccn-lite-ccnb2xml"
-FACEID=$("$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001 | "$CCNL_HOME/bin/ccn-lite-ccnb2xml" | grep FACEID | sed -e 's/^[^0-9]*\([0-9]\+\).*/\1/')
+FACEID=$("$CCNL_HOME/bin/ccn-lite-ctrl" -x /tmp/mgmt1.sock newUDPface any 127.0.0.1 9001 | "$CCNL_HOME/bin/ccn-lite-ccnb2xml" | grep FACEID | sed "s/[^0-9]//g")
 echo "FACEID=$FACEID"
 sleep 4
 echo " Done!"
@@ -71,7 +71,7 @@ PID3=$!
 sleep 12
 echo " Done!"
 
-echo "$(date "+[%F %T]") $ $CCNL_HOME/bin/ccn-lite-simplenfn -s "$SUITE" -u '127.0.0.1/9000'" "'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' | $CCNL_HOME/bin/ccn-lite-pktdump -s $SUITE -f 2"
+echo "$(date "+[%F %T]") $ $CCNL_HOME/bin/ccn-lite-peek -s "$SUITE" -u '127.0.0.1/9000'" "'call 2 %2Fnfn%2Fnode2%2Fnfn_service_WordCount %2Fnfn%2Fnode2%2Fdocs%2Ftutorial_md/NFN' | $CCNL_HOME/bin/ccn-lite-pktdump -s $SUITE -f 2"
 $CCNL_HOME/bin/ccn-lite-simplenfn -v trace -s "$SUITE" -u '127.0.0.1/9000' 'call 2 /nfn/node2/nfn_service_WordCount /nfn/node2/docs/tutorial_md' > /tmp/nfn-test-$SUITE-simplefn.log
 if [ 0 -ne $? ]; then RC=1; fi
 RES=$($CCNL_HOME/bin/ccn-lite-pktdump -s "$SUITE" -f 2 < "/tmp/nfn-test-$SUITE-simplefn.log")
