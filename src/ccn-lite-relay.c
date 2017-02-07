@@ -133,6 +133,40 @@ ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
 }
 #endif // USE_LINKLAYER
 
+#ifdef USE_WPAN
+int
+ccnl_open_wpandev(char *devname, struct sockaddr_ieee802154 *swpan)
+{
+    struct ifreq ifr;
+    int s;
+
+    DEBUGMSG(TRACE, "ccnl_open_wpandev %s\n", devname);
+
+    s = socket(AF_IEEE802154, SOCK_DGRAM, 0);
+    if (s < 0) {
+        perror("wpan socket");
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
+    if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
+        perror("wpansock ioctl get hw addr");
+        return -1;
+    }
+
+    swpan->family = AF_IEEE802154;
+    swpan->addr.addr_type = IEEE802154_ADDR_LONG;
+    memcpy(&swpan->addr.addr, &ifr.ifr_hwaddr.sa_data, sizeof(swpan->addr.addr));
+    if (bind(s, (struct sockaddr*) swpan, sizeof(*swpan)) < 0) {
+        perror("wpansock bind");
+        return -1;
+    }
+
+    return s;
+}
+#endif // USE_WPAN
+
 #ifdef USE_UNIXSOCKET
 int
 ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
@@ -245,6 +279,16 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 }
 #endif // USE_LINKLAYER
 
+#ifdef USE_WPAN
+int
+ccnl_wpan_sendto(int sock, unsigned char *data, int datalen,
+                 struct sockaddr_ieee802154 *dst)
+{
+    return sendto(sock, data, datalen, 0, (struct sockaddr *)dst,
+                  sizeof(struct sockaddr_ieee802154));
+}
+#endif // USE_WPAN
+
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
@@ -291,6 +335,11 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
                              buf->data, buf->datalen);
         DEBUGMSG(DEBUG, "eth_sendto %s returned %d\n",
                  ll2ascii(dest->linklayer.sll_addr, dest->linklayer.sll_halen), rc);
+        break;
+#endif
+#ifdef USE_WPAN
+    case AF_IEEE802154:
+        rc = ccnl_wpan_sendto(ifc->sock, buf->data, buf->datalen, &dest->wpan);
         break;
 #endif
 #ifdef USE_UNIXSOCKET
@@ -421,13 +470,13 @@ ccnl_relay_udp(struct ccnl_relay_s *relay, int port, int af)
 #endif
 
 void
-ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
+ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
                   int udpport1, int udpport2,
 		  int udp6port1, int udp6port2, int httpport,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
-#if defined(USE_LINKLAYER) || defined(USE_UNIXSOCKET)
+#if defined(USE_LINKLAYER) || defined(USE_WPAN) || defined(USE_UNIXSOCKET)
     struct ccnl_if_s *i;
 #endif
 
@@ -459,6 +508,25 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev,
             DEBUGMSG(WARNING, "sorry, could not open eth device\n");
     }
 #endif // USE_LINKLAYER
+
+#ifdef USE_WPAN
+    if (wpandev) {
+        i = &relay->ifs[relay->ifcount];
+        i->sock = ccnl_open_wpandev(wpandev, &i->addr.wpan);
+        i->mtu = 123;
+        i->reflect = 1;
+        i->fwdalli = 1;
+        if (i->sock >= 0) {
+            relay->ifcount++;
+            DEBUGMSG(INFO, "WPAN interface (%s %s) configured\n",
+                     wpandev, ccnl_addr2ascii(&i->addr));
+            if (relay->defaultInterfaceScheduler)
+                i->sched = relay->defaultInterfaceScheduler(relay,
+                                                        ccnl_interface_CTS);
+        } else
+            DEBUGMSG(WARNING, "sorry could not open WPAN device\n");
+    }
+#endif // USE_WPAN
 
 #ifdef USE_IPV4
     ccnl_relay_udp(relay, udpport1, AF_INET);
@@ -612,6 +680,13 @@ ccnl_io_loop(struct ccnl_relay_s *ccnl)
                     else if (src_addr.sa.sa_family == AF_PACKET) {
                         if (len > 14)
                             ccnl_core_RX(ccnl, i, buf+14, len-14,
+                                         &src_addr.sa, sizeof(src_addr.linklayer));
+                    }
+#endif
+#ifdef USE_WPAN
+                    else if (src_addr.sa.sa_family == AF_IEEE802154) {
+                        if (len > 14)
+                            ccnl_core_RX(ccnl, i, buf, len,
                                          &src_addr.sa, sizeof(src_addr.linklayer));
                     }
 #endif
@@ -814,6 +889,7 @@ main(int argc, char **argv)
     int udpport1 = -1, udpport2 = -1;
     int udp6port1 = -1, udp6port2 = -1;
     char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
+    char *wpandev = NULL;
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -827,7 +903,7 @@ main(int argc, char **argv)
     unsigned int seed = time(NULL) * getpid();
     srandom(seed);
 
-    while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:6:v:x:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:6:v:w:x:")) != -1) {
         switch (opt) {
         case 'c':
             max_cache_entries = atoi(optarg);
@@ -880,6 +956,11 @@ main(int argc, char **argv)
                 debug_level = ccnl_debug_str2level(optarg);
 #endif
             break;
+#ifdef USE_WPAN
+        case 'w':
+            wpandev = optarg;
+            break;
+#endif
         case 'x':
             uxpath = optarg;
             break;
@@ -906,6 +987,9 @@ usage:
 #ifdef USE_LOGGING
                     "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
+#ifdef USE_WPAN
+                    "  -w wpandev\n"
+#endif
 #ifdef USE_UNIXSOCKET
                     "  -x unixpath\n"
 #endif
@@ -930,7 +1014,7 @@ usage:
     DEBUGMSG(INFO, "  seed: %u\n", seed);
 //    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, ethdev, udpport1, udpport2,
+    ccnl_relay_config(&theRelay, ethdev, wpandev, udpport1, udpport2,
 		      udp6port1, udp6port2, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)

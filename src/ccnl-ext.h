@@ -213,6 +213,9 @@ int ccnl_nfn_monitor(struct ccnl_relay_s *ccnl, struct ccnl_face_s *face,
 # ifdef USE_LINKLAYER
   int ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype);
 # endif
+# ifdef USE_WPAN
+  int ccnl_open_wpandev(char *devname, struct sockaddr_ieee802154 *swpan);
+# endif
 
 #endif // !CCNL_LINUXKERNEL
 

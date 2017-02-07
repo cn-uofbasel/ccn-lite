@@ -42,7 +42,7 @@
 #define CCNL_FRAG_SEQUENCED2015 3
 #define CCNL_FRAG_BEGINEND2015  4
 
-#ifdef CCNL_RIOT
+#if defined(CCNL_RIOT) || defined(USE_WPAN)
 #define CCNL_LLADDR_STR_MAX_LEN    (3 * 8)
 #else
 /* unless a platform supports a link layer with longer addresses than Ethernet,
@@ -50,6 +50,31 @@
 #define CCNL_LLADDR_STR_MAX_LEN    (3 * 6)
 #endif
 // ----------------------------------------------------------------------
+
+#ifdef USE_WPAN
+/* TODO: remove when af_ieee802154.h is in linux mainline */
+#define IEEE802154_ADDR_LEN 8
+
+typedef enum {
+    IEEE802154_ADDR_NONE = 0x0,
+    IEEE802154_ADDR_SHORT = 0x2,
+    IEEE802154_ADDR_LONG = 0x3,
+} wpan_addr_type_t;
+
+struct ieee802154_addr_sa {
+    int addr_type;
+    uint16_t pan_id;
+    union {
+        uint8_t hwaddr[IEEE802154_ADDR_LEN];
+        uint16_t short_addr;
+    } addr;
+};
+
+struct sockaddr_ieee802154 {
+    sa_family_t family;
+    struct ieee802154_addr_sa addr;
+};
+#endif
 
 typedef union {
     struct sockaddr sa;
@@ -61,6 +86,9 @@ typedef union {
 #endif
 #ifdef USE_LINKLAYER
     struct sockaddr_ll linklayer;
+#endif
+#ifdef USE_WPAN
+    struct sockaddr_ieee802154 wpan;
 #endif
 #ifdef USE_UNIXSOCKET
     struct sockaddr_un ux;
