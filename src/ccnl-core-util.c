@@ -50,6 +50,9 @@ const char *compile_string = ""
 #ifdef USE_LINKLAYER
         "ETHERNET, "
 #endif
+#ifdef USE_WPAN
+        "WPAN, "
+#endif
 #ifdef USE_FRAG
         "FRAG, "
 #endif
@@ -941,6 +944,26 @@ ccnl_addr2ascii(sockunion *su)
         strcpy(result, ll2ascii(ll->sll_addr, ll->sll_halen));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
+        return result;
+    }
+#endif
+#ifdef USE_WPAN
+    case AF_IEEE802154: {
+        struct sockaddr_ieee802154 *wpan = &su->wpan;
+        sprintf(result, "PANID:0x%04x", wpan->addr.pan_id);
+        switch (wpan->addr.addr_type) {
+            case IEEE802154_ADDR_NONE:
+                break;
+            case IEEE802154_ADDR_SHORT:
+                sprintf(result+strlen(result), ",0x%04x", wpan->addr.addr.short_addr);
+                break;
+            case IEEE802154_ADDR_LONG:
+                sprintf(result+strlen(result), ",%s", ll2ascii(wpan->addr.addr.hwaddr, IEEE802154_ADDR_LEN));
+                break;
+            default:
+                strcpy(result+strlen(result), ",UNKNOWN");
+                break;
+        }
         return result;
     }
 #endif

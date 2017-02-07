@@ -191,6 +191,10 @@ ccnl_dump(int lev, int typ, void *p)
             else if (fac->peer.sa.sa_family == AF_PACKET)
                 CONSOLE(" eth=%s", ccnl_addr2ascii(&fac->peer));
 #endif
+#ifdef USE_WPAN
+            else if (fac->peer.sa.sa_family == AF_IEEE802154)
+                CONSOLE(" wpan=%s", ccnl_addr2ascii(&fac->peer));
+#endif
 #ifdef USE_UNIXSOCKET
             else if (fac->peer.sa.sa_family == AF_UNIX)
                 CONSOLE(" ux=%s", ccnl_addr2ascii(&fac->peer));

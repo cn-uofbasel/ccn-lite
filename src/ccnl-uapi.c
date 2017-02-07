@@ -351,6 +351,11 @@ processSuiteData (void *relay, struct info_data_s *o, sockunion * from_addr /*0 
             addr_len = sizeof(from_addr->linklayer);
             break;
 #endif
+#ifdef USE_WPAN
+        case AF_IEEE802154:
+            addr_len = sizeof(from_addr->wpan);
+            break;
+#endif
 #ifdef USE_IPV4
         case AF_INET:
             addr_len = sizeof(from_addr->ip4);
