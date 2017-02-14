@@ -202,7 +202,7 @@ ccnl_open_unixpath(char *path, struct sockaddr_un *ux)
 int
 ccnl_open_udpdev(int port, struct sockaddr_in *si)
 {
-    int s;
+    int s, opt_value;
     unsigned int len;
 
     s = socket(PF_INET, SOCK_DGRAM, 0);
@@ -220,6 +220,12 @@ ccnl_open_udpdev(int port, struct sockaddr_in *si)
     }
     len = sizeof(*si);
     getsockname(s, (struct sockaddr*) si, &len);
+    opt_value = 1;
+    if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &opt_value, sizeof(opt_value)) < 0) {
+        perror("allow broadcast on datagram socket");
+        close(s);
+        return -1;
+    }
 
     return s;
 }
