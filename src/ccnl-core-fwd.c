@@ -27,6 +27,12 @@ int ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *fro
 int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix);
 #endif
 
+#ifdef NEEDS_PREFIX_MATCHING
+struct ccnl_prefix_s* ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
+int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                       struct ccnl_face_s *face);
+#endif
+
 // returning 0 if packet was
 int
 ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
