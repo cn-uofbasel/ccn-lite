@@ -22,7 +22,10 @@ File history:
 2015-06-13 created
 '''
 
+from __future__ import print_function
+
 import curses.ascii
+import sys
 
 # ----------------------------------------------------------------------
 
@@ -38,6 +41,11 @@ def hexDump(f, lev, doPrint, len):
         if c == '':
             raise EOFError
         s = s + '%02x ' % ord(c)
+        if sys.version_info >= (3,):
+            if c[0] < 128:
+                c = c.decode()
+            else:
+                c = '.'
         if not curses.ascii.isprint(c):
             c = '.'
         line = line + c
@@ -47,16 +55,16 @@ def hexDump(f, lev, doPrint, len):
             s = s + ' '
         elif len == 0 or cnt == 16:
             if doPrint:
-                print "%-61s |%s|" % (s, line)
+                print("%-61s |%s|" % (s, line))
             else:
-                print s
+                print(s)
             cnt = 0
             line = ''
     if cnt != 0:
         if doPrint:
-            print "%-61s |%s|" % (s, line)
+            print("%-61s |%s|" % (s, line))
         else:
-            print s
+            print(s)
 
 def whichSuite(a, b):
     if a == 0x04:

@@ -22,9 +22,12 @@ File history:
 2015-06-13 created
 '''
 
+from __future__ import print_function
+
 import codecs
 import random
 import struct
+import sys
 
 import util
 
@@ -39,9 +42,14 @@ def readTorL(f, maxlen):
     if maxlen == 0:
         raise EOFError
     b = f.read(1)
-    if b == '':
+    if len(b) == 0:
         raise EOFError
-    b = ord(b[0])
+    if sys.version_info < (3,):
+        b = ord(b[0])
+    elif type(b) is str:
+        b = ord(b[0])
+    else:
+        b = b[0]
     if b < 253:
         if maxlen > 0:
             maxlen = maxlen - 1
@@ -112,7 +120,7 @@ def dump(f, lev, maxlen):
             s = s + ndntlv_types[t]
         else:
             s = s + "type%d" % t
-        print s + " (%d bytes)" % l
+        print(s + " (%d bytes)" % l)
         if t in ndntlv_recurseSet:
             dump(f, lev+1, l)
         elif l > 0:
@@ -176,13 +184,18 @@ def parseData(f):
 # ----------------------------------------------------------------------
 # creating NDN TLVs
 
+if sys.version_info < (3,):
+    LONG_IND = long(0x100000000)
+else:
+    LONG_IND = 0x100000000
+
 def mkTorL(x):
     if x < 253:
         buf = bytearray([x])
     elif x < 0x10000:
         buf = bytearray([253, 0, 0])
         val2.pack_into(buf, 1, x)
-    elif x < 0x100000000L:
+    elif x < LONG_IND:
         buf = bytearray([254, 0, 0, 0, 0])
         val4.pack_into(buf, 1, x)
     else:
@@ -191,9 +204,11 @@ def mkTorL(x):
     return buf
 
 def mkName(name):
-    n = ''
+    if (type(name[0]) is str):
+        name = [n.encode() for n in name]
+    n = ''.encode()
     for i in range(0, len(name)):
-        if type(name[i]) is str:
+        if type(name[i]) is str or sys.version_info >= (3,):
             c = name[i]
         else:
             c = name[i].getValue().toBytes()
@@ -209,6 +224,8 @@ def mkInterest(name):
     return mkTorL(0x05) + mkTorL(len(n)) + n
 
 def mkData(name, blob):
+    if (type(blob) is str):
+        blob = blob.encode()
     n = mkName(name);
     meta = mkTorL(0x14) + mkTorL(0) # empty metadata
     nmb = n + meta + mkTorL(0x15) + mkTorL(len(blob)) + blob
