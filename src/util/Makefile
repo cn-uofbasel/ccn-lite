@@ -1,7 +1,7 @@
 # ccnl/util/Makefile
 
 CC?=gcc
-CFLAGS=-Wall -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 -Werror
+CFLAGS=-Wall -g -DUSE_UTIL -Wno-error=deprecated-declarations -std=c99 -Werror -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
 EXTLIBS=-lcrypto
 CREATE_BIN=mkdir -p ../../bin && cd ../../bin && ln -f -s ../src/util/$@ $@
 

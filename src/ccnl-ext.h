@@ -41,6 +41,7 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 #  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
 #else
    char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
+   char* ccnl_prefix_debug_info(struct ccnl_prefix_s *pr);
 #endif
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);
@@ -143,6 +144,11 @@ int ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p);
 int ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                           struct ccnl_content_s *c);
 #endif
+
+#ifdef USE_NFN_REQUESTS
+int ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p);
+#endif
+
 
 #ifdef USE_NFN
 void ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl);

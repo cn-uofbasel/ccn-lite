@@ -408,6 +408,8 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
 
     DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
 
+    DEBUGMSG(DEBUG, "DEBUG INFO: %s\n", ccnl_prefix_debug_info(prefix)); // FIXME: char* is leaking 
+
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
                     !ccnl_prefix_cmp(prefix, 0, content->pkt->pfx, CMP_EXACT))
@@ -628,6 +630,12 @@ ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
     return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
 }
 
+int
+ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST;
+}
+
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
 {
     return p->compcnt > 0 && p->complen[0] == 7 && !memcmp(p->comp[0], "COMPUTE", 7);
@@ -775,6 +783,12 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     if (!p)
         return NULL;
     p->nfnflags = CCNL_PREFIX_NFN;
+
+#ifdef USE_NFN_REQUESTS
+    if ((config->prefix->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
+        p->nfnflags |= CCNL_PREFIX_REQUEST;
+    }
+#endif
 
     p->comp[0] = (unsigned char*) bytes;
     len = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));

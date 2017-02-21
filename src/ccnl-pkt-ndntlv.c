@@ -178,6 +178,15 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
             }
     #endif // USE_TIMEOUT_KEEPALIVE
+    #ifdef USE_NFN_REQUESTS
+            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 &&
+                    !memcmp(p->comp[p->compcnt-2], "RTC", 3)) {
+                p->nfnflags |= CCNL_PREFIX_REQUEST;
+                p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+                p->compcnt -= 2;
+                DEBUGMSG(DEBUG, "  is NFN REQUEST interest\n");
+            }
+    #endif
     #endif // USE_NFN
             break;
         case NDN_TLV_Selectors:
@@ -470,6 +479,16 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
             return -1;
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                 (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
+            return -1;
+    }
+#endif
+#ifdef USE_NFN_REQUESTS
+    if (name->nfnflags & CCNL_PREFIX_REQUEST) {
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) "STOP", 4, offset, buf) < 0)
+            return -1;
+        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+                                (unsigned char*) "RTC", 3, offset, buf) < 0)
             return -1;
     }
 #endif

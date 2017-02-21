@@ -218,6 +218,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     ccnl_free(s);
 
+    DEBUGMSG(DEBUG, "DEBUG INFO: %s\n", ccnl_prefix_debug_info((*pkt)->pfx)); // TODO: remove
+
 #ifdef USE_DUP_CHECK
     if (ccnl_nonce_isDup(relay, *pkt)) {
         DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce %i\n", nonce);
@@ -258,6 +260,18 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 #endif
+
+// #ifdef USE_NFN_REQUESTS
+//     if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_REQUEST) {
+//         DEBUGMSG_CFWD(DEBUG, "  is an NFN request\n");
+//         if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+            
+//             return 0;
+//         } else {
+//             DEBUGMSG_CFWD(DEBUG, "  did not find any running computations to be stopped.\n");
+//         }
+//     }
+// #endif
 
 
     // Step 1: search in content store

@@ -102,6 +102,9 @@ struct ccnl_krivine_s {
     int numOfRunningComputations; // = 0;
 };
 
+
+
+
 // ----------------------------------------------------------------------
 // prototypes
 

@@ -70,6 +70,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }
+    if (config->start_locally) {return;} // TODO: move to propagate function, check if computation and previously sent.
     ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
     TRACEOUT();
 }
@@ -100,6 +101,12 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
 #ifdef USE_TIMEOUT_KEEPALIVE
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
+#endif
+#ifdef USE_NFN_REQUESTS
+    // ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+    if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
+        return 0;
+    }
 #endif
 
     for (i = 0; i < -ccnl->km->configid; ++i) {
@@ -145,6 +152,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 #ifndef USE_TIMEOUT_KEEPCONTENT
     if (ccnl_nfn_already_computing(ccnl, prefix)) { //TODO REMOVE?
         DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
+        // if ((prefix->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
+        //     DEBUGMSG(DEBUG, "Request computation to stop.\n");
+        // }
         return -1;
     }
 #endif
@@ -165,6 +175,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         copy->compcnt -= 1;
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN);
+#ifdef USE_NFN_REQUESTS
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+#endif
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             free_prefix(copy);
             ccnl_interest_propagate(ccnl, interest);

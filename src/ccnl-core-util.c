@@ -1176,6 +1176,9 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         len += sprintf(buf + len, ":intermediate");
         len += sprintf(buf + len, ":%i", pr->internum);
     }
+    if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
+        len += sprintf(buf + len, ":request");
+    }
     if (pr->nfnflags) {
         len += sprintf(buf + len, "[");
     }
@@ -1381,6 +1384,65 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     }
     ccnl_free(tmp);
 
+    return buf;
+}
+
+char* ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
+    int len = 0;
+    char *buf = (char*) ccnl_malloc(2048);
+    if (buf == NULL) {
+        DEBUGMSG_CUTL(ERROR, "ccnl_prefix_debug_info: malloc failed, exiting\n");
+        return NULL;
+    }
+
+    int i = 0;
+
+    len += sprintf(buf + len, "<");
+    
+    len += sprintf(buf + len, "suite:%i, ", p->suite);
+    
+#ifdef USE_NFN
+    len += sprintf(buf + len, "nfnflags:%i (", p->nfnflags);
+    int flagcount = 6;
+    char *flagnames[6]  = {"NFN", "?", "COMPUTE", "KEEPALIVE", "INTERMEDIATE", "REQUEST"};
+    int needscomma = 0;
+    for (i = 0; i < flagcount; i++) {
+        if ((p->nfnflags & (1<<i)) != 0) {
+            if (needscomma) {
+                len += sprintf(buf + len, ",");
+            }
+            len += sprintf(buf + len, "%s", flagnames[i]);
+            needscomma = 1;
+        }     
+    }
+    len += sprintf(buf + len, "), ");
+
+    if ((p->nfnflags & CCNL_PREFIX_INTERMEDIATE) != 0) {
+        len += sprintf(buf + len, "internum:%i, ", p->internum);
+    }
+#endif
+    
+    len += sprintf(buf + len, "compcnt:%i ", p->compcnt);
+    
+    len += sprintf(buf + len, "complen:(");
+    for (i = 0; i < p->compcnt; i++) {
+        len += sprintf(buf + len, "%i", p->complen[i]);
+        if (i < p->compcnt - 1) {
+            len += sprintf(buf + len, ",");
+        }
+    }
+    len += sprintf(buf + len, "), ");
+
+    len += sprintf(buf + len, "comp:(");
+    for (i = 0; i < p->compcnt; i++) {
+        len += sprintf(buf + len, "%.*s", p->complen[i], p->comp[i]);
+        if (i < p->compcnt - 1) {
+            len += sprintf(buf + len, ",");
+        }
+    }
+    len += sprintf(buf + len, ")");
+
+    len += sprintf(buf + len, ">%c", '\0');
     return buf;
 }
 

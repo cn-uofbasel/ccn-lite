@@ -1,0 +1,39 @@
+[3mBuilding using 8 cores:[0m
+bt-relay-nothing               [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-nothing] Error 1
+bt-relay-barebones             [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-barebones] Error 1
+bt-relay-vanilla               [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-vanilla] Error 1
+bt-relay-frag                  [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-frag] Error 1
+bt-relay-authCtrl              [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-authCtrl] Error 1
+bt-relay-nfn                   [..][[1;32mok[0;0m]
+bt-relay-nack                  [..][[1;32mok[0;0m]
+bt-relay-nfn-nack              [..][[1;32mok[0;0m]
+bt-relay-all                   [..][[1;31mfailed[0;0m]
+make: *** [bt-relay-all] Error 1
+bt-lnxkernel                   [..][[1;31mfailed[0;0m]
+make: *** [bt-lnxkernel] Error 1
+bt-omnet                       [..][[1;32mok[0;0m]
+bt-all-vanilla                 [..][[1;31mfailed[0;0m]
+make: *** [bt-all-vanilla] Error 1
+bt-all-nfn                     [..][[1;32mok[0;0m]
+bt-nfn-ccnb                    [..][[1;31mfailed[0;0m]
+make: *** [bt-nfn-ccnb] Error 1
+bt-nfn-ccnx2015                [..][[1;31mfailed[0;0m]
+make: *** [bt-nfn-ccnx2015] Error 1
+bt-nfn-cisco2015               [..][[1;31mfailed[0;0m]
+make: *** [bt-nfn-cisco2015] Error 1
+bt-nfn-iot2014                 [..][[1;31mfailed[0;0m]
+make: *** [bt-nfn-iot2014] Error 1
+bt-nfn-ndn2013                 [..][[1;31mfailed[0;0m]
+make: *** [bt-nfn-ndn2013] Error 1
+
+See /tmp/bt-*.log for more details.
+make: Target `all' not remade because of errors.
+
+real	0m14.930s
+user	0m37.605s
+sys	0m6.957s

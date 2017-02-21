@@ -32,7 +32,7 @@ ifeq ($(GCC_GTEQ_40900),1)
 endif
 
 # OSX, ignore deprecated warnings for libssl
-OSX_CFLAGS=-Wno-error=deprecated-declarations
+OSX_CFLAGS=-Wno-error=deprecated-declarations -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
 
 CREATE_BIN=mkdir -p ../bin && cd ../bin && ln -f -s ../src/$@ $@
 EXTLIBS=  -lcrypto
@@ -44,6 +44,7 @@ NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
 NFN_TIMEOUT_KEEPALIVE_FLAGS += -DUSE_TIMEOUT_KEEPALIVE
 NFN_TIMEOUT_KEEPCONTENT_FLAGS += -DUSE_TIMEOUT_KEEPCONTENT
+NFN_REQUESTS_FLAGS += -DUSE_NFN_REQUESTS
 
 PROGS =
 INST_PROGS= ccn-lite-relay \
@@ -97,6 +98,13 @@ ifdef USE_TIMEOUT_KEEPCONTENT
     #$(info *** With NFN2 ***)
 	ifdef USE_NFN
 		CCNLCFLAGS += ${NFN_TIMEOUT_KEEPCONTENT_FLAGS}
+	endif
+endif
+
+ifdef USE_NFN_REQUESTS
+    $(info *** With NFN REQUESTS ***)
+	ifdef USE_NFN
+		CCNLCFLAGS += ${NFN_REQUESTS_FLAGS}
 	endif
 endif
 
