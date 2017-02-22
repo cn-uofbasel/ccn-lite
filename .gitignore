@@ -75,6 +75,11 @@ bin
 # IDEA
 .idea
 
+# Eclipse
+.cproject
+.project
+.settings
+
 # distribution files:
 distribution/Debian/ccn-lite
 distribution/Debian/ccn-lite.deb
