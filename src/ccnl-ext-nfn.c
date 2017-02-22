@@ -70,7 +70,7 @@ ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int conti
             break;
         }
     }
-    if (config->start_locally) {return;} // TODO: move to propagate function, check if computation and previously sent.
+    // if (config->start_locally) {return;} // TODO: move to propagate function, check if computation and previously sent.
     ccnl_nfn(ccnl, NULL, NULL, config, NULL, 0, 0);
     TRACEOUT();
 }
@@ -99,15 +99,20 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
 #endif
 #ifdef USE_NFN_REQUESTS
-    // ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-    if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
-        return 0;
-    }
+    ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+    // if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
+    //     return 0;
+    // }
 #endif
+
+    char *path = ccnl_prefix_to_path(copy);
+    DEBUGMSG(DEBUG, "Searching for computation: %s\n", path);
+    ccnl_free(path);
 
     for (i = 0; i < -ccnl->km->configid; ++i) {
         struct configuration_s *config;
@@ -262,7 +267,8 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
 
     if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
         ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
         ccnl_nfnprefix_isIntermediate((*pkt)->pfx) ||
 #endif
@@ -310,11 +316,13 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             c->served_cnt++; // a computation has been waiting for this content, no need to keep it  
 #endif
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
             if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
                 ccnl_content_add2cache(relay, c);
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
             }
 #endif
             
@@ -324,11 +332,13 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
             if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
              }
 #endif // USE_TIMEOUT_KEEPALIVE
             i_it = ccnl_interest_remove(relay, i_it);
@@ -342,7 +352,8 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return found > 0;
 }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
 int
 ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       struct ccnl_content_s *c)

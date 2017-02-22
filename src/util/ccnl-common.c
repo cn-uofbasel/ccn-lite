@@ -68,6 +68,10 @@
 #include "../ccnl-os-time.c"
 #include "../ccnl-ext-logging.c"
 
+#ifdef USE_NFN_REQUESTS
+#include "../ccnl-ext-nfnrequests.c"
+#endif
+
 int debug_level = WARNING;
 
 #define ccnl_malloc(s)                  malloc(s)

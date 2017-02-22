@@ -500,22 +500,28 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     return i;
 }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
 struct ccnl_prefix_s*
-ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx)
+ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx) // TODO: requests
 {
     struct ccnl_prefix_s *p;
     // unsigned char cmp[] = "ALIVE";
     // int cmplen = strlen((char*)cmp);
     
-    DEBUGMSG(TRACE, "ccnl_nfnprefix_mkKeepalivePrefix()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_mkKeepalivePrefix()\n");
     
     p = ccnl_prefix_dup(pfx);
     DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
     // if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
     //     return NULL;
         
-    p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
+    // p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
+
+    char *comp = "KA";
+    int complen = strlen(comp);
+    p->request = nfn_request_new((unsigned char*)comp, complen);
+    p->nfnflags |= CCNL_PREFIX_REQUEST;
     
     DEBUGMSG(TRACE, "  keep alive prefix: %s\n", ccnl_prefix_to_path(p));
     return p;
@@ -627,7 +633,8 @@ ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 int
 ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
 {
-    return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
+    // return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
+    return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
 }
 
 int
@@ -644,7 +651,8 @@ int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
 int 
 ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p) 
 {
-    return p->nfnflags & CCNL_PREFIX_INTERMEDIATE;
+    // return p->nfnflags & CCNL_PREFIX_INTERMEDIATE;
+    return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
 }
 
 void

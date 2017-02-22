@@ -1176,12 +1176,25 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         len += sprintf(buf + len, ":intermediate");
         len += sprintf(buf + len, ":%i", pr->internum);
     }
+#ifdef USE_NFN_REQUESTS
+    // len += sprintf(buf + len, ":test");
     if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
-        len += sprintf(buf + len, ":request");
+        char *desc = nfn_request_description_new(pr->request);
+        len += sprintf(buf + len, ":%s", desc);
+        ccnl_free(desc);
+        // if (pr->request == NULL) {
+        //     len += sprintf(buf + len, ":request(?)");
+        // } else {
+        //     len += sprintf(buf + len, ":request(%d)", pr->request->complen);
+        // }
+        // len += sprintf(buf + len, ":request(%c)", *(pr->request->comp));
+        // len += sprintf(buf + len, ":request(%.*s)", pr->request->complen, pr->request->comp);
     }
+#endif
     if (pr->nfnflags) {
         len += sprintf(buf + len, "[");
     }
+
 #endif
 
 /*

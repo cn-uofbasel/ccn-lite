@@ -56,15 +56,6 @@ struct nfn_request_s {
     unsigned char **args;
 };
 
-char *
-nfn_request_description_new(struct nfn_request_s* request)
-{
-    char *desc = (char *) ccnl_malloc(request->complen + 1);
-    strncpy(desc, (char *)request->comp, request->complen);
-    desc[request->complen] = '\0';
-    return desc;
-}
-
 struct nfn_request_s*
 nfn_request_new(unsigned char *comp, int complen)
 {
@@ -76,16 +67,20 @@ nfn_request_new(unsigned char *comp, int complen)
     if (!request)
         return NULL;
 
+    request->complen = complen;
+    request->comp = ccnl_malloc(complen);
+    memcpy(request->comp, comp, complen);
+
     request->type = NFN_REQUEST_TYPE_UNKNOWN;
     char *request_name = NULL;
     int request_len = 0;
 
-    
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < NFN_REQUEST_TYPE_MAX; i++) {
         request_name = nfn_request_names[i];
         request_len = strlen(request_name);
-        if (request_len <= complen && strncmp(request_name, (char *)comp, request_len)) {
+        // DEBUGMSG_CORE(TRACE, "%d %d %d %s\n", i, request_len, complen, request_name);
+        if (request_len <= complen && strncmp(request_name, (char *)comp, request_len) == 0) {
             request->type = (enum nfn_request_type)i+1; // 0 is "unknown"
             break;
         }
@@ -133,7 +128,41 @@ nfn_request_new(unsigned char *comp, int complen)
     return request;
 }
 
+void 
+nfn_request_free(struct nfn_request_s *request) {
+    if (request) {
+        if (request->comp) {
+            ccnl_free(request->comp);
+        }
+        ccnl_free(request);
+    }
+}
 
+char *
+nfn_request_description_new(struct nfn_request_s* request)
+{
+    int len = 0;
+    char *buf = (char*) ccnl_malloc(256);
+    
+    if (request == NULL) {
+        len += sprintf(buf + len, "request(NULL)");
+    } else {
+        len += sprintf(buf + len, "request(");
+        if (request->complen > 0) {
+            len += sprintf(buf + len, "comp: %.*s, ", request->complen, request->comp);
+        }
+        if (request->type == NFN_REQUEST_TYPE_UNKNOWN) {
+            len += sprintf(buf + len, "type: %s, ", "UNKNOWN");
+        } else {
+            len += sprintf(buf + len, "type: %s, ", nfn_request_names[request->type-1]);
+        }
+        len += sprintf(buf + len, "argscount: %d", request->argscount);
+        len += sprintf(buf + len, ")");
+    }
+
+    buf[len] = '\0';
+    return buf;
+}
 
 
 

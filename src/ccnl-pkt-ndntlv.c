@@ -485,8 +485,12 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
 #ifdef USE_NFN_REQUESTS
     if (name->nfnflags & CCNL_PREFIX_REQUEST) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) "STOP", 4, offset, buf) < 0)
+                                (unsigned char*) name->request->comp, 
+                                name->request->complen, offset, buf) < 0)
             return -1;
+        // if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+        //                         (unsigned char*) "STOP", 4, offset, buf) < 0)
+        //     return -1;
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
                                 (unsigned char*) "RTC", 3, offset, buf) < 0)
             return -1;

@@ -20,7 +20,8 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
 // #include "ccnl-ext-nfn.c"
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 int ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
@@ -80,8 +81,10 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     // Find the original prefix for the intermediate result and use that prefix to cache the content.
+    // TODO: update to use requests
     if (ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
         if (ccnl_nfn_RX_intermediate(relay, from, pkt)) {
             // This was an intermediate result from the compute server.
@@ -100,19 +103,21 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_
+#ifdef USE_NFN_REQUESTS
         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
             ccnl_nfn_RX_keepalive(relay, from, c);
                 // return 0;
             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
         } else {
-#endif // USE_TIMEOUT_KEEPALIVE
+#endif // USE_TIMEOUT_REQUESTS
             if (ccnl_nfn_RX_result(relay, from, c))
                 return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
         }
-#endif // USE_TIMEOUT_KEEPALIVE
+#endif // USE_TIMEOUT_REQUESTS
     }
 #endif
 
@@ -123,7 +128,8 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
 #endif
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
@@ -134,7 +140,8 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             free_content(c);
         }
-#ifdef USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     }
 #endif
 
@@ -242,21 +249,24 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-#ifdef USE_TIMEOUT_KEEPALIVE
-    if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-        DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-        if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-            int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-            DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
-            int offset;
-            char reply[16];
-            snprintf(reply, 16, "%d", internum);
-            int size = internum >= 0 ? strlen(reply) : 0;
-            struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
-            ccnl_face_enqueue(relay, from, buf);
-            return 0;
-        } else {
-            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+// #ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
+    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
+        if (ccnl_nfnprefix_isKeepalive((*pkt)->pfx)) {
+            DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
+            if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+                int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
+                DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
+                int offset;
+                char reply[16];
+                snprintf(reply, 16, "%d", internum);
+                int size = internum >= 0 ? strlen(reply) : 0;
+                struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+                ccnl_face_enqueue(relay, from, buf);
+                return 0;
+            } else {
+                DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+            }
         }
     }
 #endif
