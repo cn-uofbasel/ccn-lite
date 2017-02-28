@@ -318,7 +318,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
-            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+            if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_content_add2cache(relay, c);
 // #ifdef USE_TIMEOUT_KEEPALIVE
@@ -334,7 +334,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             
 // #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
-            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+            if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
 // #ifdef USE_TIMEOUT_KEEPALIVE

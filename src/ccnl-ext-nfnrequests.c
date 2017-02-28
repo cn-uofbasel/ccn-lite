@@ -23,10 +23,12 @@
 
 #ifdef USE_NFN_REQUESTS
 
+#include <wordexp.h>
+
 enum nfn_request_type {
     NFN_REQUEST_TYPE_UNKNOWN = 0,
     NFN_REQUEST_TYPE_START,
-    NFN_REQUEST_TYPE_SUSPEND,
+    NFN_REQUEST_TYPE_PAUSE,
     NFN_REQUEST_TYPE_RESUME,
     NFN_REQUEST_TYPE_CANCEL,
     NFN_REQUEST_TYPE_STATUS,
@@ -38,11 +40,11 @@ enum nfn_request_type {
 
 char *nfn_request_names[NFN_REQUEST_TYPE_MAX] = {
     "START",
-    "SUSPEND",
+    "PAUSE",
     "RESUME",
     "CANCEL",
     "STATUS",
-    "KA",
+    "KEEPALIVE",
     "CIM",
     "GIM"};
 
@@ -51,9 +53,12 @@ struct nfn_request_s {
     int complen;
     enum nfn_request_type type;
     
-    int argscount;
-    int *argslen;
-    unsigned char **args;
+    unsigned char *arg;
+    int arglen;
+    // int argc;
+    // unsigned char **argv;
+    // int *argslen;
+    // unsigned char **args;
 };
 
 struct nfn_request_s*
@@ -79,7 +84,6 @@ nfn_request_new(unsigned char *comp, int complen)
     for (i = 0; i < NFN_REQUEST_TYPE_MAX; i++) {
         request_name = nfn_request_names[i];
         request_len = strlen(request_name);
-        // DEBUGMSG_CORE(TRACE, "%d %d %d %s\n", i, request_len, complen, request_name);
         if (request_len <= complen && strncmp(request_name, (char *)comp, request_len) == 0) {
             request->type = (enum nfn_request_type)i+1; // 0 is "unknown"
             break;
@@ -90,7 +94,19 @@ nfn_request_new(unsigned char *comp, int complen)
         DEBUGMSG_CORE(DEBUG, "Unknown request: %.*s\n", complen, comp);
         return request;
     }
+ 
+    // request->argscount = 0;
+    // for (i = request_len; i < complen; i++) {
+    //     char c = (char)comp[i];
+    //     if (c == '\0') {
+    //     } else {   
+    //     }
+    // }
 
+    if (complen >= request_len + 2 && comp[request_len] == '\0') {
+        request->arglen = complen - request_len - 1;
+        request->arg = request->comp + request_len + 1;
+    }
     
     // char state = 'T';
     // unsigned char *cursor = comp + request_len;
@@ -123,7 +139,7 @@ nfn_request_new(unsigned char *comp, int complen)
     //     }
     // }
 
-    request->argscount = 0;
+    // request->argscount = 0;
 
     return request;
 }
@@ -156,7 +172,7 @@ nfn_request_description_new(struct nfn_request_s* request)
         } else {
             len += sprintf(buf + len, "type: %s, ", nfn_request_names[request->type-1]);
         }
-        len += sprintf(buf + len, "argscount: %d", request->argscount);
+        len += sprintf(buf + len, "arg: %.*s", request->arglen, request->arg);
         len += sprintf(buf + len, ")");
     }
 

@@ -130,7 +130,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 // #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
-    if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+    if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
             DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
@@ -252,21 +252,48 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 // #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        if (ccnl_nfnprefix_isKeepalive((*pkt)->pfx)) {
-            DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-            if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-                int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-                DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
-                int offset;
-                char reply[16];
-                snprintf(reply, 16, "%d", internum);
-                int size = internum >= 0 ? strlen(reply) : 0;
-                struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
-                ccnl_face_enqueue(relay, from, buf);
-                return 0;
-            } else {
-                DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+        switch ((*pkt)->pfx->request->type) {
+            case NFN_REQUEST_TYPE_KEEPALIVE: {
+                DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
+                if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+                    int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
+                    DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
+                    int offset;
+                    char reply[16];
+                    snprintf(reply, 16, "%d", internum);
+                    int size = internum >= 0 ? strlen(reply) : 0;
+                    struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+                    ccnl_face_enqueue(relay, from, buf);
+                    return 0;
+                } else {
+                    DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+                }
+                break;
             }
+            case NFN_REQUEST_TYPE_COUNT_INTERMEDIATES: {
+                DEBUGMSG_CFWD(DEBUG, "  is a count intermediates interest\n");
+                if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+                    int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
+                    DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
+                    int offset;
+                    char reply[16];
+                    snprintf(reply, 16, "%d", internum);
+                    int size = internum >= 0 ? strlen(reply) : 0;
+                    struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+                    ccnl_face_enqueue(relay, from, buf);
+                    return 0;
+                } else {
+                    DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+                }
+                break;
+            }
+            case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
+                DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
+                
+            }
+            default:
+                DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");
+                break;
         }
     }
 #endif

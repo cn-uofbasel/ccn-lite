@@ -163,21 +163,21 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 p->compcnt--;
                 DEBUGMSG(DEBUG, "  is NFN interest\n");
             }
-    #ifdef USE_TIMEOUT_KEEPALIVE
-            if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                    !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
-                p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
-                p->compcnt--;
-                DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
-            }
-            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
-                    !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
-                p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-                p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-                p->compcnt -= 2;
-                DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
-            }
-    #endif // USE_TIMEOUT_KEEPALIVE
+    // #ifdef USE_TIMEOUT_KEEPALIVE
+    //         if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
+    //                 !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
+    //             p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
+    //             p->compcnt--;
+    //             DEBUGMSG(DEBUG, "  is KEEPALIVE interest\n");
+    //         }
+    //         if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
+    //                 !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
+    //             p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+    //             p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+    //             p->compcnt -= 2;
+    //             DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
+    //         }
+    // #endif // USE_TIMEOUT_KEEPALIVE
     #ifdef USE_NFN_REQUESTS
             if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 &&
                     !memcmp(p->comp[p->compcnt-2], "RTC", 3)) {
@@ -185,6 +185,18 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
                 p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
                 p->compcnt -= 2;
                 DEBUGMSG(DEBUG, "  is NFN REQUEST interest\n");
+            }
+            DEBUGMSG(DEBUG, "  cmpcnt: %i\n", p->compcnt);
+            DEBUGMSG(DEBUG, "  inter 1\n");
+            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
+                    !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
+                DEBUGMSG(DEBUG, "  inter 2\n");
+                p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+                DEBUGMSG(DEBUG, "  inter 3: %.*s\n", p->complen[p->compcnt-1], p->comp[p->compcnt-1]);
+                p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]); 
+                DEBUGMSG(DEBUG, "  inter 4\n");
+                p->compcnt -= 2;
+                DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
             }
     #endif
     #endif // USE_NFN

@@ -381,10 +381,15 @@ ccnl_isSuite(int suite)
 }
 
 int ccnl_cmp2int(unsigned char *cmp, int cmplen) {
-    char *str = (char *)ccnl_malloc(cmplen);
+    DEBUGMSG(DEBUG, "  inter a: %i\n", cmplen);
+    char *str = (char *)ccnl_malloc(cmplen+1);
+    DEBUGMSG(DEBUG, "  inter b\n");
     memcpy(str, (char *)cmp, cmplen);
+    str[cmplen] = '\0';
+    DEBUGMSG(DEBUG, "  inter c: %s\n", str);
     long int i = strtol(str, NULL, 0);
-    free(str);
+    DEBUGMSG(DEBUG, "  inter d\n");
+    ccnl_free(str);
     return (int)i;
 }
 
