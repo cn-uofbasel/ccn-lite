@@ -193,7 +193,6 @@ struct ccnl_prefix_s {
 # define CCNL_PREFIX_COMPU 0x04
 // #ifdef USE_TIMEOUT_KEEPALIVE 
 // FIXME: these values need to be compiled conditionally
-# define CCNL_PREFIX_KEEPALIVE 0x08     // TODO: remove & replace with requests
 # define CCNL_PREFIX_INTERMEDIATE 0x10  // TODO: remove & replace with requests
     int internum;
 # define CCNL_PREFIX_REQUEST 0x20 

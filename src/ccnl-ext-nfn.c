@@ -99,10 +99,6 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
-// #ifdef USE_TIMEOUT_KEEPALIVE
-#ifdef USE_NFN_REQUESTS
-    ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
-#endif
 #ifdef USE_NFN_REQUESTS
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
     // if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {

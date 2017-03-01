@@ -423,11 +423,6 @@ ccnl_iottlv_prependName(struct ccnl_prefix_s *name,
             return -1;
     }
 #ifdef USE_TIMEOUT_KEEPALIVE
-    if (name->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-        if (ccnl_iottlv_prependBlob(IOT_TLV_PN_Component,
-                                (unsigned char*) "ALIVE", 5, offset, buf) < 0)
-            return -1;
-    }
 
     if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
         char internum[16];

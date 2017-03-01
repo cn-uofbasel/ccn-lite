@@ -165,11 +165,6 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     p->compcnt--;
                 }
 #ifdef USE_TIMEOUT_KEEPALIVE
-                if (p->compcnt > 0 && p->complen[p->compcnt-1] == 5 &&
-                                    !memcmp(p->comp[p->compcnt-1], "ALIVE", 5)) {
-                    p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
-                    p->compcnt--;
-                }
                 if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
                                     !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
                     p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;

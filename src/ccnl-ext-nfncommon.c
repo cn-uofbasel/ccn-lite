@@ -515,8 +515,6 @@ ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx) // TODO: requests
     DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
     // if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
     //     return NULL;
-        
-    // p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
 
     char *comp = "KEEPALIVE";
     int complen = strlen(comp);
@@ -633,7 +631,6 @@ ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 int
 ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
 {
-    // return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
     return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
 }
 

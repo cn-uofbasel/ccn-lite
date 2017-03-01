@@ -1174,9 +1174,6 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
         len += sprintf(buf + len, "nfn");
     }
-    if (pr->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-        len += sprintf(buf + len, ":alive");
-    }
     if (pr->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
         len += sprintf(buf + len, ":intermediate");
         len += sprintf(buf + len, ":%i", pr->internum);
