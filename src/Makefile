@@ -57,6 +57,10 @@ ifeq ($(uname_S),Linux)
         $(info *** With Linux Kernel ***)
         PROGS += ccn-lite-lnxkernel
     endif
+    ifdef USE_WPAN
+        $(info *** With WPAN support ***)
+        CCNLCFLAGS += -DUSE_WPAN
+    endif
 
     # Some investigation needed to compile ccn-lite-simu with OSX
     PROGS += ccn-lite-simu
