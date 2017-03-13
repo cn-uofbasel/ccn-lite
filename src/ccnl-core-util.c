@@ -176,7 +176,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 #endif // USE_NFN
     }
 
-#ifdef USE_NFN
+#ifdef USE_NFN_REQUESTS
     if (mode == CMP_MATCH) {
         int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
         int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);        

@@ -41,7 +41,6 @@ struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
 #  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
 #else
    char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
-   char* ccnl_prefix_debug_info(struct ccnl_prefix_s *pr);
 #endif
 int ccnl_pkt_prependComponent(int suite, char *src, int *offset,
                     unsigned char *buf);

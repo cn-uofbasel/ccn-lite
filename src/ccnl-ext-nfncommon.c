@@ -408,8 +408,6 @@ ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,
 
     DEBUGMSG(DEBUG, "Searching local for content %s\n", ccnl_prefix_to_path(prefix));
 
-    DEBUGMSG(DEBUG, "DEBUG INFO: %s\n", ccnl_prefix_debug_info(prefix)); // FIXME: char* is leaking 
-
     for (content = ccnl->contents; content; content = content->next) {
         if (content->pkt->pfx->suite == prefix->suite &&
                     !ccnl_prefix_cmp(prefix, 0, content->pkt->pfx, CMP_EXACT))
@@ -610,6 +608,27 @@ ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *
     ccnl_interest_propagate(relay, i);
     return interest;
 }
+
+int
+ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST 
+        && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
+}
+
+int
+ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST;
+}
+
+int 
+ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p) 
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST 
+        && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
+}
+
 #endif // USE_NFN_REQUESTS
 
 // ----------------------------------------------------------------------
@@ -627,29 +646,9 @@ ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
     return !memcmp(c->pkt->content, ":NACK", 5);
 }
 
-int
-ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
-{
-    return p->nfnflags & CCNL_PREFIX_REQUEST 
-        && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
-}
-
-int
-ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p)
-{
-    return p->nfnflags & CCNL_PREFIX_REQUEST;
-}
-
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
 {
     return p->compcnt > 0 && p->complen[0] == 7 && !memcmp(p->comp[0], "COMPUTE", 7);
-}
-
-int 
-ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p) 
-{
-    return p->nfnflags & CCNL_PREFIX_REQUEST 
-        && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
 }
 
 void

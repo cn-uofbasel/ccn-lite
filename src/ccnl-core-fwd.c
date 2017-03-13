@@ -220,7 +220,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   ccnl_addr2ascii(from ? &from->peer : NULL));
     ccnl_free(s);
 
-    DEBUGMSG(DEBUG, "DEBUG INFO: %s\n", ccnl_prefix_debug_info((*pkt)->pfx)); // TODO: remove
 
 #ifdef USE_DUP_CHECK
     if (ccnl_nonce_isDup(relay, *pkt)) {

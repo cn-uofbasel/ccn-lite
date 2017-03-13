@@ -33,11 +33,6 @@ int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p);
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 #endif
 
-#ifdef USE_NFN_REQUESTS
-//struct nfn_request_s* nfn_request_new(unsigned char *comp, int complen);
-char* ccnl_prefix_debug_info(struct ccnl_prefix_s *p);
-#endif
-
 // forward reference:
 void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest);
