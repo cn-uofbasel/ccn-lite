@@ -42,8 +42,6 @@ EXTMAKECLEAN=
 # CCNL_NFN_MONITOR to log messages to nfn-scala montior
 NFNFLAGS += -DUSE_NFN #-DUSE_NFN_MONITOR
 NACKFLAGS += -DUSE_NACK -DUSE_NFN_MONITOR
-NFN_TIMEOUT_KEEPALIVE_FLAGS += -DUSE_TIMEOUT_KEEPALIVE
-NFN_TIMEOUT_KEEPCONTENT_FLAGS += -DUSE_TIMEOUT_KEEPCONTENT
 NFN_REQUESTS_FLAGS += -DUSE_NFN_REQUESTS
 
 PROGS =
@@ -81,24 +79,6 @@ ifdef USE_NFN
     $(info *** With NFN ***)
     INST_PROGS += ccn-nfn-relay
     CCNLCFLAGS += ${NFNFLAGS}
-endif
-
-ifdef USE_TIMEOUT_KEEPALIVE
-ifdef USE_TIMEOUT_KEEPCONTENT
-$(error USE_TIMEOUT_KEEPALIVE and USE_TIMEOUT_KEEPCONTENT both defined. Only one is allowed)
-endif
-    #$(info *** With NFN2 ***)
-	ifdef USE_NFN
-		CCNLCFLAGS += ${NFN_TIMEOUT_KEEPALIVE_FLAGS}
-		#INST_PROGS += ccn-lite-simplenfn-keepalive
-	endif
-endif
-
-ifdef USE_TIMEOUT_KEEPCONTENT
-    #$(info *** With NFN2 ***)
-	ifdef USE_NFN
-		CCNLCFLAGS += ${NFN_TIMEOUT_KEEPCONTENT_FLAGS}
-	endif
 endif
 
 ifdef USE_NFN_REQUESTS
