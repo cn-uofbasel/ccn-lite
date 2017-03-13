@@ -500,7 +500,6 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     return i;
 }
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
 struct ccnl_prefix_s*
 ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx) // TODO: requests
@@ -611,7 +610,7 @@ ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *
     ccnl_interest_propagate(relay, i);
     return interest;
 }
-#endif // USE_TIMEOUT_KEEPALIVE
+#endif // USE_NFN_REQUESTS
 
 // ----------------------------------------------------------------------
 // prefix (and NFN) related functionality

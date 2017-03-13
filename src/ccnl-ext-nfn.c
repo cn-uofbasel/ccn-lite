@@ -263,7 +263,6 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
     struct ccnl_interest_s *i;
 
     if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
         ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
         ccnl_nfnprefix_isIntermediate((*pkt)->pfx) ||
@@ -312,12 +311,10 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             c->served_cnt++; // a computation has been waiting for this content, no need to keep it  
 #endif
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
             if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_content_add2cache(relay, c);
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
             }
 #endif
@@ -328,15 +325,13 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
             
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
             if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
              }
-#endif // USE_TIMEOUT_KEEPALIVE
+#endif
             i_it = ccnl_interest_remove(relay, i_it);
             //ccnl_face_remove(relay, from);
             ++found;
@@ -348,7 +343,6 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return found > 0;
 }
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
 int
 ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
@@ -394,8 +388,6 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
     // }
 
     struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup((*pkt)->pfx);
-    // ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_INTERMEDIATE);
-    // dup_pfx->internum = 0;
     ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_REQUEST);
 
     // Find the pendint that triggered the computation that we received an intermediate result for.
@@ -463,7 +455,7 @@ int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *
     return highest;
 }
 
-#endif //USE_TIMEOUT_KEEPALIVE
+#endif //USE_NFN_REQUESTS
 
 #endif //USE_NFN
 

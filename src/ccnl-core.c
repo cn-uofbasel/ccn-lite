@@ -28,7 +28,6 @@
 # define ccnl_nfn_interest_remove(r,i)  ccnl_interest_remove(r,i)
 #endif
 
-// #if defined(USE_TIMEOUT_KEEPALIVE) || defined(USE_TIMEOUT_KEEPCONTENT)
 #ifdef USE_NFN_REQUESTS
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p);
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
@@ -811,7 +810,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         if (!i->pkt->pfx)
             continue;
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
         if (ccnl_nfnprefix_isKeepalive(i->pkt->pfx) != ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
             i = i->next;
@@ -918,7 +916,6 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         i = ccnl_interest_remove(ccnl, i);
     }
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
         return 1;   //
@@ -973,7 +970,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_NFN)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
@@ -1001,13 +997,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
                     ccnl_nfn_interest_remove(relay, origin);
                     i = ccnl_nfn_interest_remove(relay, i);
                 }
-// #elif defined USE_TIMEOUT_KEEPCONTENT
-//                 if (ccnl_nfn_already_computing(relay, i->pkt->pfx)) {
-//                     DEBUGMSG_AGEING("AGING: RESET INTEREST RETRIES", "timeout: already computing");
-//                     i->last_used = CCNL_NOW();
-//                     i->retries = 0;
-//                 }
-//                 i = i->next;
 #else // USE_TIMEOUT
                 DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
                 i = ccnl_nfn_interest_remove(relay, i);

@@ -190,15 +190,6 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 goto done;
             }
         }
-
-        // if ((nam->nfnflags & CCNL_PREFIX_INTERMEDIATE) != (pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
-        //     DEBUGMSG(VERBOSE, "2a\n");
-        //     goto done;
-        // }
-        // if (nam->internum != pfx->internum) {
-        //     DEBUGMSG(VERBOSE, "2b\n"); 
-        //     goto done;
-        // }
     }
 #endif
 
@@ -1454,9 +1445,6 @@ char* ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     }
     len += sprintf(buf + len, "), ");
 
-    // if ((p->nfnflags & CCNL_PREFIX_INTERMEDIATE) != 0) {
-    //     len += sprintf(buf + len, "internum:%i, ", p->internum);
-    // }
 #endif
     
     len += sprintf(buf + len, "compcnt:%i ", p->compcnt);

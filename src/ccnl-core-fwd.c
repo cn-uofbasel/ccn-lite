@@ -20,7 +20,7 @@
  * 2014-11-05 collected from the various fwd-XXX.c files
  */
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
+
 #ifdef USE_NFN_REQUESTS
 // #include "ccnl-ext-nfn.c"
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
@@ -81,7 +81,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     // Find the original prefix for the intermediate result and use that prefix to cache the content.
     // TODO: update to use requests
@@ -103,21 +102,19 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
-// #ifdef USE_TIMEOUT_
 #ifdef USE_NFN_REQUESTS
         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
             ccnl_nfn_RX_keepalive(relay, from, c);
                 // return 0;
             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
         } else {
-#endif // USE_TIMEOUT_REQUESTS
+#endif // USE_NFN_REQUESTS
             if (ccnl_nfn_RX_result(relay, from, c))
                 return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
         }
-#endif // USE_TIMEOUT_REQUESTS
+#endif // USE_NFN_REQUESTS
     }
 #endif
 
@@ -128,7 +125,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
@@ -140,7 +136,6 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             free_content(c);
         }
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     }
 #endif
@@ -249,7 +244,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
         switch ((*pkt)->pfx->request->type) {
