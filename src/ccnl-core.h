@@ -189,17 +189,12 @@ struct ccnl_prefix_s {
 #ifdef USE_NFN
     unsigned int nfnflags;
 # define CCNL_PREFIX_NFN   0x01
-
-# define CCNL_PREFIX_COMPU 0x04
-// #ifdef USE_TIMEOUT_KEEPALIVE 
+# define CCNL_PREFIX_COMPU 0x04 
 // FIXME: these values need to be compiled conditionally
-# define CCNL_PREFIX_INTERMEDIATE 0x10  // TODO: remove & replace with requests
-    int internum;
 # define CCNL_PREFIX_REQUEST 0x20 
 #ifdef USE_NFN_REQUESTS
     struct nfn_request_s *request;
 #endif    
-// #endif
     unsigned char *nfnexpr;
 #endif
 };

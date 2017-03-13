@@ -149,37 +149,56 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     ccnl_free(s2);
 
     if (mode == CMP_EXACT) {
-        if (plen != nam->compcnt)
-            {DEBUGMSG(VERBOSE, "1a\n"); goto done;}
+        if (plen != nam->compcnt) {
+            DEBUGMSG(VERBOSE, "comp count mismatch\n");
+            goto done;
+        }
         if (pfx->chunknum || nam->chunknum) {
-            if (!pfx->chunknum || !nam->chunknum)
-                {DEBUGMSG(VERBOSE, "1b\n"); goto done;}
-            if (*pfx->chunknum != *nam->chunknum)
-                {DEBUGMSG(VERBOSE, "1c\n"); goto done;}
+            if (!pfx->chunknum || !nam->chunknum) {
+                DEBUGMSG(VERBOSE, "chunk mismatch\n");
+                goto done;
+            }
+            if (*pfx->chunknum != *nam->chunknum) {
+                DEBUGMSG(VERBOSE, "chunk number mismatch\n");
+                goto done;
+            }
         }
     
 #ifdef USE_NFN
         if (nam->nfnflags != pfx->nfnflags) {
-            DEBUGMSG(VERBOSE, "1d\n"); 
+            DEBUGMSG(VERBOSE, "nfn flags mismatch\n"); 
             goto done;
         }
-        if (nam->internum != pfx->internum) {
-            DEBUGMSG(VERBOSE, "1e\n"); 
-            goto done;
-        }
+        // if (nam->internum != pfx->internum) {
+        //     DEBUGMSG(VERBOSE, "1e\n"); 
+        //     goto done;
+        // }
 #endif // USE_NFN
     }
 
 #ifdef USE_NFN
     if (mode == CMP_MATCH) {
-        if ((nam->nfnflags & CCNL_PREFIX_INTERMEDIATE) != (pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
-            DEBUGMSG(VERBOSE, "2a\n");
+        int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
+        int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);        
+        if (nam_is_intermediate != pfx_is_intermediate) {
+            DEBUGMSG(VERBOSE, "nfn intermediate mismatch\n");
             goto done;
         }
-        if (nam->internum != pfx->internum) {
-            DEBUGMSG(VERBOSE, "2b\n"); 
-            goto done;
+        if (nam_is_intermediate) {
+            if (nfn_request_get_arg_int(nam->request) != nfn_request_get_arg_int(pfx->request)) {
+                DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+                goto done;
+            }
         }
+
+        // if ((nam->nfnflags & CCNL_PREFIX_INTERMEDIATE) != (pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
+        //     DEBUGMSG(VERBOSE, "2a\n");
+        //     goto done;
+        // }
+        // if (nam->internum != pfx->internum) {
+        //     DEBUGMSG(VERBOSE, "2b\n"); 
+        //     goto done;
+        // }
     }
 #endif
 
@@ -189,7 +208,8 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
         if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
             rc = mode == CMP_EXACT ? -1 : i;
-            {DEBUGMSG(VERBOSE, "3: %i\n", i); goto done;}
+            DEBUGMSG(VERBOSE, "component mismatch: %i\n", i);
+            goto done;
         }
     }
     // FIXME: we must also inspect chunknum here!
@@ -637,7 +657,9 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     p->chunknum = prefix->chunknum;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
-    p->internum = prefix->internum;
+#ifdef USE_NFN_REQUESTS
+    p->request = nfn_request_copy(prefix->request);
+#endif
 #endif
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
@@ -1174,10 +1196,10 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
         len += sprintf(buf + len, "nfn");
     }
-    if (pr->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
-        len += sprintf(buf + len, ":intermediate");
-        len += sprintf(buf + len, ":%i", pr->internum);
-    }
+    // if (pr->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
+    //     len += sprintf(buf + len, ":intermediate");
+    //     len += sprintf(buf + len, ":%i", pr->internum);
+    // }
 #ifdef USE_NFN_REQUESTS
     // len += sprintf(buf + len, ":test");
     if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
@@ -1432,9 +1454,9 @@ char* ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
     }
     len += sprintf(buf + len, "), ");
 
-    if ((p->nfnflags & CCNL_PREFIX_INTERMEDIATE) != 0) {
-        len += sprintf(buf + len, "internum:%i, ", p->internum);
-    }
+    // if ((p->nfnflags & CCNL_PREFIX_INTERMEDIATE) != 0) {
+    //     len += sprintf(buf + len, "internum:%i, ", p->internum);
+    // }
 #endif
     
     len += sprintf(buf + len, "compcnt:%i ", p->compcnt);

@@ -164,14 +164,14 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen)
                     p->nfnflags |= CCNL_PREFIX_NFN;
                     p->compcnt--;
                 }
-#ifdef USE_TIMEOUT_KEEPALIVE
-                if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
-                                    !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
-                    p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-                    p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
-                    p->compcnt -= 2;
-                }
-#endif
+// #ifdef USE_TIMEOUT_KEEPALIVE
+//                 if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
+//                                     !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
+//                     p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
+//                     p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+//                     p->compcnt -= 2;
+//                 }
+// #endif
 #endif
                 break;
             case CCN_DTAG_CONTENT:

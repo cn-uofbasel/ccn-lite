@@ -52,13 +52,7 @@ struct nfn_request_s {
     unsigned char *comp;
     int complen;
     enum nfn_request_type type;
-    
-    unsigned char *arg;
-    int arglen;
-    // int argc;
-    // unsigned char **argv;
-    // int *argslen;
-    // unsigned char **args;
+    char *arg;
 };
 
 struct nfn_request_s*
@@ -94,64 +88,75 @@ nfn_request_new(unsigned char *comp, int complen)
         DEBUGMSG_CORE(DEBUG, "Unknown request: %.*s\n", complen, comp);
         return request;
     }
- 
-    // request->argscount = 0;
-    // for (i = request_len; i < complen; i++) {
-    //     char c = (char)comp[i];
-    //     if (c == '\0') {
-    //     } else {   
-    //     }
-    // }
 
-    if (complen >= request_len + 2 && comp[request_len] == '\0') {
-        request->arglen = complen - request_len - 1;
-        request->arg = request->comp + request_len + 1;
+    request->arg = NULL;
+    if (complen >= request_len + 2 && comp[request_len] == ' ') {
+        int arglen = complen - request_len - 1;
+        // request->arg = request->comp + request_len + 1;
+        request->arg = ccnl_malloc(arglen + 1);
+        strncpy(request->arg, (char *)comp + request_len + 1, arglen);
+        request->arg[arglen] = '\0';
     }
-    
-    // char state = 'T';
-    // unsigned char *cursor = comp + request_len;
-    // unsigned char *buf = malloc(1024 * sizeof(unsigned char));
-    // int len = 0;
-    // while (cursor < comp + complen) {
-    //     switch (state) {
-    //         // case ',':   // skipping delimiters, whitespace
-    //         //     if (*cursor == ',' || *cursor == ' ' || *cursor == '\t') {
-                    
-    //         //     } else if (*cursor == '\"') {
-    //         //         start = cursor + 1;
-    //         //         state = 'Q';
-    //         //     } else {
-    //         //         start = cursor;
-    //         //         state = 'T';
-    //         //     }
-    //         //     break;
-    //         case 'T':   // scanning text
-    //             if (*cursor == ',' && len > 0) {
-    //                 //end
-    //             } else if (*cursor == '\"') {
-    //                 state = 'Q';
-    //             } else {
-    //                 start = cursor;
-    //                 state = 'T';
-    //             }
-    //             break;
-    //         case 'Q':   // scanning quoted text
-    //     }
-    // }
-
-    // request->argscount = 0;
 
     return request;
 }
 
+struct nfn_request_s*
+nfn_request_copy(struct nfn_request_s *request)
+{
+    if (request == NULL) {
+        return NULL;
+    } 
+    return nfn_request_new(request->comp, request->complen);
+}
+
 void 
-nfn_request_free(struct nfn_request_s *request) {
+nfn_request_free(struct nfn_request_s *request)
+{
     if (request) {
         if (request->comp) {
             ccnl_free(request->comp);
         }
+        if (request->arg) {
+            ccnl_free(request->arg);
+        }
         ccnl_free(request);
     }
+}
+
+int 
+nfn_request_get_arg_int(struct nfn_request_s* request)
+{
+    // TODO: verify arg, error handling
+    // TODO: add arg index as parameter
+    return strtol(request->arg, NULL, 0);
+}
+
+void 
+nfn_request_set_arg_int(struct nfn_request_s* request, int arg)
+{
+    if (request->arg) {
+        ccnl_free(request->arg);
+    }
+    int arglen = snprintf(NULL, 0, "%d", arg);
+    request->arg = ccnl_malloc(arglen+1);
+    sprintf(request->arg, "%d", arg);
+}
+
+void
+nfn_request_update_component(struct nfn_request_s *request)
+{
+    if (request->comp) {
+        ccnl_free(request->comp);
+    }
+    char *command = nfn_request_names[request->type];
+    int commandlen = strlen(command);
+    int arglen = strlen(request->arg);
+    request->complen = commandlen + 1 + arglen;
+    request->comp = ccnl_malloc(request->complen);
+    memcpy(request->comp, command, commandlen);
+    request->comp[commandlen] = (unsigned char)" ";
+    memcpy(request->comp + commandlen + 1, request->arg, arglen);
 }
 
 char *
@@ -172,7 +177,7 @@ nfn_request_description_new(struct nfn_request_s* request)
         } else {
             len += sprintf(buf + len, "type: %s, ", nfn_request_names[request->type-1]);
         }
-        len += sprintf(buf + len, "arg: %.*s", request->arglen, request->arg);
+        len += sprintf(buf + len, "arg: %s", request->arg);
         len += sprintf(buf + len, ")");
     }
 

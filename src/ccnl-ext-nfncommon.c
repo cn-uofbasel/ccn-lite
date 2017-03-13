@@ -631,7 +631,8 @@ ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
 int
 ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
 {
-    return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
+    return p->nfnflags & CCNL_PREFIX_REQUEST 
+        && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
 }
 
 int
@@ -648,8 +649,8 @@ int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
 int 
 ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p) 
 {
-    return p->nfnflags & CCNL_PREFIX_INTERMEDIATE;
-    // return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
+    return p->nfnflags & CCNL_PREFIX_REQUEST 
+        && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
 }
 
 void

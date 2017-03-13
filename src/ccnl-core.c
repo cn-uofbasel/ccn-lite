@@ -978,7 +978,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_NFN)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
-                } else if ((i->pkt->pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
+                } else if (ccnl_nfnprefix_isIntermediate(i->pkt->pfx)) {
                     DEBUGMSG_AGEING("AGING: REMOVE INTERMEDIATE INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
                 } else if (!(ccnl_nfnprefix_isKeepalive(i->pkt->pfx))) {

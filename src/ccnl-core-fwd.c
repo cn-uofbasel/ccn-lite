@@ -289,7 +289,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
             case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
                 DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
-                
+                break;
             }
             default:
                 DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");

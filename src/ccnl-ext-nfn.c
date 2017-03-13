@@ -394,8 +394,9 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
     // }
 
     struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup((*pkt)->pfx);
-    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_INTERMEDIATE);
-    dup_pfx->internum = 0;
+    // ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_INTERMEDIATE);
+    // dup_pfx->internum = 0;
+    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_REQUEST);
 
     // Find the pendint that triggered the computation that we received an intermediate result for.
     struct ccnl_interest_s *i_it = NULL;
@@ -408,9 +409,10 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
 
             // Get the original prefix and create a new intermediate prefix based on that.
             struct configuration_s *config = ccnl_nfn_findConfig(relay->km->configuration_list, -faceid);
-            struct ccnl_prefix_s *interm_pfx =  ccnl_prefix_dup(config->prefix);
-            interm_pfx->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-            interm_pfx->internum = (*pkt)->pfx->internum;
+            struct ccnl_prefix_s *interm_pfx = ccnl_prefix_dup(config->prefix);
+            interm_pfx->nfnflags |= CCNL_PREFIX_REQUEST;
+            // interm_pfx->internum = (*pkt)->pfx->internum;            
+            interm_pfx->request = nfn_request_copy((*pkt)->pfx->request);
 
             char *s = NULL;
             DEBUGMSG(INFO, "Original (modified) prefix for intermediate: %s\n", s = ccnl_prefix_to_path(interm_pfx));
@@ -451,8 +453,9 @@ int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *
     for (c = relay->contents; c; c = c->next) {
         if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
             if (prefix->compcnt == ccnl_prefix_cmp(prefix, NULL, c->pkt->pfx, CMP_LONGEST)) {
-                if (highest < c->pkt->pfx->internum) {
-                    highest = c->pkt->pfx->internum;
+                int internum = nfn_request_get_arg_int(c->pkt->pfx->request);
+                if (highest < internum) {
+                    highest = internum;
                 }
             }
         }

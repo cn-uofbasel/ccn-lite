@@ -165,23 +165,11 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
             }
     #ifdef USE_NFN_REQUESTS
             if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 &&
-                    !memcmp(p->comp[p->compcnt-2], "RTC", 3)) {
+                    !memcmp(p->comp[p->compcnt-2], "R2C", 3)) {
                 p->nfnflags |= CCNL_PREFIX_REQUEST;
                 p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
                 p->compcnt -= 2;
                 DEBUGMSG(DEBUG, "  is NFN REQUEST interest\n");
-            }
-            DEBUGMSG(DEBUG, "  cmpcnt: %i\n", p->compcnt);
-            DEBUGMSG(DEBUG, "  inter 1\n");
-            if (p->compcnt > 1 && p->complen[p->compcnt-2] == 12 &&
-                    !memcmp(p->comp[p->compcnt-2], "INTERMEDIATE", 12)) {
-                DEBUGMSG(DEBUG, "  inter 2\n");
-                p->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-                DEBUGMSG(DEBUG, "  inter 3: %.*s\n", p->complen[p->compcnt-1], p->comp[p->compcnt-1]);
-                p->internum = ccnl_cmp2int(p->comp[p->compcnt-1], p->complen[p->compcnt-1]); 
-                DEBUGMSG(DEBUG, "  inter 4\n");
-                p->compcnt -= 2;
-                DEBUGMSG(DEBUG, "  is INTERMEDIATE interest\n");
             }
     #endif
     #endif // USE_NFN
@@ -462,18 +450,18 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
                                 (unsigned char*) "NFN", 3, offset, buf) < 0)
             return -1;
     }
-#ifdef USE_TIMEOUT_KEEPALIVE
-    if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
-        char internum[16];
-        snprintf(internum, 16, "%d", name->internum);
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) internum, strlen(internum), offset, buf) < 0)
-            return -1;
-        if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
-            return -1;
-    }
-#endif
+// #ifdef USE_TIMEOUT_KEEPALIVE
+//     if (name->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
+//         char internum[16];
+//         snprintf(internum, 16, "%d", name->internum);
+//         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+//                                 (unsigned char*) internum, strlen(internum), offset, buf) < 0)
+//             return -1;
+//         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
+//                                 (unsigned char*) "INTERMEDIATE", 12, offset, buf) < 0)
+//             return -1;
+//     }
+// #endif
 #ifdef USE_NFN_REQUESTS
     if (name->nfnflags & CCNL_PREFIX_REQUEST) {
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
@@ -484,7 +472,7 @@ ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
         //                         (unsigned char*) "STOP", 4, offset, buf) < 0)
         //     return -1;
         if (ccnl_ndntlv_prependBlob(NDN_TLV_NameComponent,
-                                (unsigned char*) "RTC", 3, offset, buf) < 0)
+                                (unsigned char*) "R2C", 3, offset, buf) < 0)
             return -1;
     }
 #endif
