@@ -132,7 +132,7 @@ nfn_request_get_arg_int(struct nfn_request_s* request)
     return strtol(request->arg, NULL, 0);
 }
 
-void 
+void // TODO: is this still needed?
 nfn_request_set_arg_int(struct nfn_request_s* request, int arg)
 {
     if (request->arg) {
@@ -143,7 +143,7 @@ nfn_request_set_arg_int(struct nfn_request_s* request, int arg)
     sprintf(request->arg, "%d", arg);
 }
 
-void
+void // TODO: is this still needed?
 nfn_request_update_component(struct nfn_request_s *request)
 {
     if (request->comp) {

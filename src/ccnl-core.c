@@ -791,11 +791,11 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     int cnt = 0;
     DEBUGMSG_CORE(TRACE, "ccnl_content_serve_pending\n");
 
-// #ifdef USE_TIMEOUT_KEEPALIVE
-//     if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
-//         return 1;   // don't forward incoming intermediate content, just cache
-//     }
-// #endif
+#ifdef USE_TIMEOUT_REQUESTS
+    if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
+        return 1;   // don't forward incoming intermediate content, just cache
+    }
+#endif
 
     for (f = ccnl->faces; f; f = f->next){
                 f->flags &= ~CCNL_FACE_FLAGS_SERVED; // reply on a face only once
