@@ -503,15 +503,11 @@ struct ccnl_prefix_s*
 ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx) // TODO: requests
 {
     struct ccnl_prefix_s *p;
-    // unsigned char cmp[] = "ALIVE";
-    // int cmplen = strlen((char*)cmp);
     
     DEBUGMSG(TRACE, "ccnl_nfn_mkKeepalivePrefix()\n");
     
     p = ccnl_prefix_dup(pfx);
     DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
-    // if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
-    //     return NULL;
 
     char *comp = "KEEPALIVE";
     int complen = strlen(comp);
@@ -526,7 +522,6 @@ struct ccnl_interest_s *
 ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest)
 {
-   // srand (time(NULL));
     int nonce = random();
     struct ccnl_prefix_s *pfx;
     struct ccnl_pkt_s *pkt;
@@ -596,7 +591,7 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
     return i;
 }
 
-struct ccnl_interest_s* // TODO int/void return
+struct ccnl_interest_s*
 ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *interest)
 {
     DEBUGMSG(TRACE, "ccnl_nfn_interest_keepalive()\n");
