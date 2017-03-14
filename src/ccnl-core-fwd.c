@@ -137,6 +137,8 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             free_content(c);
         }
 #ifdef USE_NFN_REQUESTS
+    } else {
+        DEBUGMSG_CFWD(DEBUG, "  not caching nfn request\n");
     }
 #endif
 

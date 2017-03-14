@@ -23,8 +23,6 @@
 
 #ifdef USE_NFN_REQUESTS
 
-#include <wordexp.h>
-
 enum nfn_request_type {
     NFN_REQUEST_TYPE_UNKNOWN = 0,
     NFN_REQUEST_TYPE_START,

@@ -965,8 +965,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
                 // than being held indefinitely."
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
-#ifdef USE_NFN_REQUESTS
-                if (!(i->pkt->pfx->nfnflags & CCNL_PREFIX_NFN)) {
+#ifdef USE_NFN_REQUESTS 
+                if (!ccnl_nfnprefix_isNFN(i->pkt->pfx)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
                 } else if (ccnl_nfnprefix_isIntermediate(i->pkt->pfx)) {
@@ -992,7 +992,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
                     ccnl_nfn_interest_remove(relay, origin);
                     i = ccnl_nfn_interest_remove(relay, i);
                 }
-#else // USE_TIMEOUT
+#else // USE_NFN_REQUESTS
                 DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
                 i = ccnl_nfn_interest_remove(relay, i);
 #endif
