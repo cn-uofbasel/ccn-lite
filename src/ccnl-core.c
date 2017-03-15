@@ -476,6 +476,40 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
     return 0;
 }
 
+int
+ccnl_interest_remove_pending(struct ccnl_interest_s *i,
+                             struct ccnl_face_s *face)
+{
+    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
+    int found = 0;
+    char *s = NULL;
+    struct ccnl_pendint_s *prev = NULL;
+    struct ccnl_pendint_s *pend = i->pending;
+    while (pend) {  // TODO: is this really the most elegant solution?
+        if (face->faceid == pend->face->faceid) {
+            DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
+                ccnl_addr2ascii(&pend->face->peer),
+                (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            found = 1;
+            if (prev) {
+                prev->next = pend->next; 
+                ccnl_free(pend);
+                pend = prev->next;
+            } else {
+                i->pending = pend->next;
+                ccnl_free(pend);
+                pend = i->pending;
+            }
+        } else {
+            prev = pend;
+            pend = pend->next;
+        }
+    }
+    if (s)
+        ccnl_free(s);
+    return found;
+}
+
 void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
 {
