@@ -209,6 +209,24 @@ nfn_request_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                            struct ccnl_pkt_s **pkt, cMatchFct cMatch)
 {
     switch ((*pkt)->pfx->request->type) {
+        case NFN_REQUEST_TYPE_CANCEL: {
+            DEBUGMSG_CFWD(DEBUG, "  is a cancel computation interest\n");
+            struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
+            ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+            struct ccnl_interest_s *i;
+            for (i = relay->pit; i; i = i->next) {
+                if (!ccnl_prefix_cmp(i->pkt->pfx, NULL, copy, CMP_EXACT)) {
+                    DEBUGMSG_CFWD(DEBUG, "  found matching PIT entry\n");
+                    if (ccnl_interest_remove_pending(i, from)) {
+                        DEBUGMSG_CFWD(DEBUG, "  removed face from pending interest\n");
+                    } else {
+                        DEBUGMSG_CFWD(DEBUG, "  no face matching face found to remove\n");
+                    }
+                }
+            }
+            ccnl_free(copy);
+            return 1;
+        }
         case NFN_REQUEST_TYPE_KEEPALIVE: {
             DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
             if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
@@ -216,10 +234,9 @@ nfn_request_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_buf_s *buf = ccnl_mkSimpleContent((*pkt)->pfx, NULL, 0, NULL);
                 ccnl_face_enqueue(relay, from, buf);
                 return 0;
-            } else {
-                DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
             }
-            break;
+            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+            return 1;
         }
         case NFN_REQUEST_TYPE_COUNT_INTERMEDIATES: {
             DEBUGMSG_CFWD(DEBUG, "  is a count intermediates interest\n");
@@ -233,18 +250,17 @@ nfn_request_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
                 ccnl_face_enqueue(relay, from, buf);
                 return 0;
-            } else {
-                DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
             }
-            break;
+            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+            return 1;
         }
         case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
             DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
-            break;
+            return 0;
         }
         default: {
             DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");
-            break;
+            return 0;
         }
     }
     return 0;

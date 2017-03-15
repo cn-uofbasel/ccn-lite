@@ -246,22 +246,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        nfn_request_handleInterest(relay, from, pkt, cMatch);
+        if (!nfn_request_handleInterest(relay, from, pkt, cMatch)) {
+            // request was handled completely, 
+            // no need for further processing or forwarding
+            return 0;
+        }
     }
 #endif
-
-// #ifdef USE_NFN_REQUESTS
-//     if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_REQUEST) {
-//         DEBUGMSG_CFWD(DEBUG, "  is an NFN request\n");
-//         if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-            
-//             return 0;
-//         } else {
-//             DEBUGMSG_CFWD(DEBUG, "  did not find any running computations to be stopped.\n");
-//         }
-//     }
-// #endif
-
 
     // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
