@@ -88,22 +88,18 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
     TRACEOUT();
 }
 
-int
-ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
-                                 struct ccnl_prefix_s *prefix)
+struct ccnl_prefix_s * 
+ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix)
 {
     int i = 0;
     struct ccnl_prefix_s *copy;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_find_running_computation()\n");
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
 #ifdef USE_NFN_REQUESTS
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-    // if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
-    //     return 0;
-    // }
 #endif
 
     char *path = ccnl_prefix_to_path(copy);
@@ -118,12 +114,20 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
             continue;
         if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
             free_prefix(copy);
-            return 1;
+            return config->prefix;
         }
     }
     free_prefix(copy);
 
-    return 0;
+    return NULL;
+}
+
+int
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
+                                 struct ccnl_prefix_s *prefix)
+{
+    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    return ccnl_nfn_find_running_computation(ccnl, prefix) != NULL;
 }
 
 int
