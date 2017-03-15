@@ -251,13 +251,8 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             case NFN_REQUEST_TYPE_KEEPALIVE: {
                 DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
                 if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-                    int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-                    DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
-                    int offset;
-                    char reply[16];
-                    snprintf(reply, 16, "%d", internum);
-                    int size = internum >= 0 ? strlen(reply) : 0;
-                    struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+                    DEBUGMSG_CFWD(DEBUG, "  running computation found");
+                    struct ccnl_buf_s *buf = ccnl_mkSimpleContent((*pkt)->pfx, NULL, 0, NULL);
                     ccnl_face_enqueue(relay, from, buf);
                     return 0;
                 } else {
@@ -269,7 +264,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 DEBUGMSG_CFWD(DEBUG, "  is a count intermediates interest\n");
                 if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
                     int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-                    DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
+                    DEBUGMSG_CFWD(DEBUG, "  highest intermediate result: %i\n", internum);
                     int offset;
                     char reply[16];
                     snprintf(reply, 16, "%d", internum);
