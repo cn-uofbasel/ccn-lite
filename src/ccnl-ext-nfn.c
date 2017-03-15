@@ -437,23 +437,7 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
     return 0;
 }
 
-// Return the highest consecutive intermediate number for the prefix, starts with 0.
-// -1 if no intermediate result is found.
-int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix) {
-    struct ccnl_content_s *c;
-    int highest = -1;
-    for (c = relay->contents; c; c = c->next) {
-        if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
-            if (prefix->compcnt == ccnl_prefix_cmp(prefix, NULL, c->pkt->pfx, CMP_LONGEST)) {
-                int internum = nfn_request_get_arg_int(c->pkt->pfx->request);
-                if (highest < internum) {
-                    highest = internum;
-                }
-            }
-        }
-    }
-    return highest;
-}
+
 
 #endif //USE_NFN_REQUESTS
 
