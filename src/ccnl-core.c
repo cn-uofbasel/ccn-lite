@@ -452,11 +452,6 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
         if (pi->face == from) {
             DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
             pi->last_used = CCNL_NOW();
-#ifdef USE_TIMEOUT_KEEPCONTENT
-            // ensure the pending interest sticks around while the client keeps repeating the same request
-            i->last_used = CCNL_NOW();
-            i->retries = 0;
-#endif
             return 0;
         }
         last = pi;
@@ -474,6 +469,40 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
     else
         i->pending = pi;
     return 0;
+}
+
+int
+ccnl_interest_remove_pending(struct ccnl_interest_s *i,
+                             struct ccnl_face_s *face)
+{
+    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
+    int found = 0;
+    char *s = NULL;
+    struct ccnl_pendint_s *prev = NULL;
+    struct ccnl_pendint_s *pend = i->pending;
+    while (pend) {  // TODO: is this really the most elegant solution?
+        if (face->faceid == pend->face->faceid) {
+            DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
+                ccnl_addr2ascii(&pend->face->peer),
+                (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            found++;
+            if (prev) {
+                prev->next = pend->next; 
+                ccnl_free(pend);
+                pend = prev->next;
+            } else {
+                i->pending = pend->next;
+                ccnl_free(pend);
+                pend = i->pending;
+            }
+        } else {
+            prev = pend;
+            pend = pend->next;
+        }
+    }
+    if (s)
+        ccnl_free(s);
+    return found;
 }
 
 void
@@ -941,22 +970,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
                                 !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
-#ifdef USE_TIMEOUT_KEEPCONTENT
-        if (c->served_cnt > 0) {
-#endif
             DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
             c = ccnl_content_remove(relay, c);
-#ifdef USE_TIMEOUT_KEEPCONTENT
-        }
-        // Used for debugging
-        else {
-            char *s = NULL;
-            DEBUGMSG_CORE(TRACE, "AGING: KEEP CONTENT (not served yet) 0x%p <%s>\n",
-                (void*) c, (s = ccnl_prefix_to_path(c->pkt->pfx)));
-            ccnl_free(s);
-            // c->last_used = CCNL_NOW();
-        }
-#endif
         }
         else
             c = c->next;

@@ -88,22 +88,18 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
     TRACEOUT();
 }
 
-int
-ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
-                                 struct ccnl_prefix_s *prefix)
+struct ccnl_prefix_s * 
+ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix)
 {
     int i = 0;
     struct ccnl_prefix_s *copy;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_find_running_computation()\n");
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
 #ifdef USE_NFN_REQUESTS
     ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-    // if ((copy->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
-    //     return 0;
-    // }
 #endif
 
     char *path = ccnl_prefix_to_path(copy);
@@ -118,12 +114,20 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
             continue;
         if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
             free_prefix(copy);
-            return 1;
+            return config->prefix;
         }
     }
     free_prefix(copy);
 
-    return 0;
+    return NULL;
+}
+
+int
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
+                                 struct ccnl_prefix_s *prefix)
+{
+    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    return ccnl_nfn_find_running_computation(ccnl, prefix) != NULL;
 }
 
 int
@@ -149,16 +153,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
     }
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
-
-#ifndef USE_TIMEOUT_KEEPCONTENT
-    if (ccnl_nfn_already_computing(ccnl, prefix)) { //TODO REMOVE?
-        DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
-        // if ((prefix->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
-        //     DEBUGMSG(DEBUG, "Request computation to stop.\n");
-        // }
-        return -1;
-    }
-#endif
 
     // Checks first if the interest has a routing hint and then searches for it locally.
     // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
@@ -307,10 +301,6 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
-#ifdef USE_TIMEOUT_KEEPCONTENT
-            c->served_cnt++; // a computation has been waiting for this content, no need to keep it  
-#endif
-
 #ifdef USE_NFN_REQUESTS
             if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
@@ -437,23 +427,7 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
     return 0;
 }
 
-// Return the highest consecutive intermediate number for the prefix, starts with 0.
-// -1 if no intermediate result is found.
-int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix) {
-    struct ccnl_content_s *c;
-    int highest = -1;
-    for (c = relay->contents; c; c = c->next) {
-        if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
-            if (prefix->compcnt == ccnl_prefix_cmp(prefix, NULL, c->pkt->pfx, CMP_LONGEST)) {
-                int internum = nfn_request_get_arg_int(c->pkt->pfx->request);
-                if (highest < internum) {
-                    highest = internum;
-                }
-            }
-        }
-    }
-    return highest;
-}
+
 
 #endif //USE_NFN_REQUESTS
 

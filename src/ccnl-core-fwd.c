@@ -25,7 +25,6 @@
 // #include "ccnl-ext-nfn.c"
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 int ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
-int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix);
 #endif
 
 #ifdef NEEDS_PREFIX_MATCHING
@@ -247,59 +246,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        switch ((*pkt)->pfx->request->type) {
-            case NFN_REQUEST_TYPE_KEEPALIVE: {
-                DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-                if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-                    DEBUGMSG_CFWD(DEBUG, "  running computation found");
-                    struct ccnl_buf_s *buf = ccnl_mkSimpleContent((*pkt)->pfx, NULL, 0, NULL);
-                    ccnl_face_enqueue(relay, from, buf);
-                    return 0;
-                } else {
-                    DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
-                }
-                break;
-            }
-            case NFN_REQUEST_TYPE_COUNT_INTERMEDIATES: {
-                DEBUGMSG_CFWD(DEBUG, "  is a count intermediates interest\n");
-                if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-                    int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-                    DEBUGMSG_CFWD(DEBUG, "  highest intermediate result: %i\n", internum);
-                    int offset;
-                    char reply[16];
-                    snprintf(reply, 16, "%d", internum);
-                    int size = internum >= 0 ? strlen(reply) : 0;
-                    struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
-                    ccnl_face_enqueue(relay, from, buf);
-                    return 0;
-                } else {
-                    DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
-                }
-                break;
-            }
-            case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
-                DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
-                break;
-            }
-            default:
-                DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");
-                break;
+        if (!nfn_request_handleInterest(relay, from, pkt, cMatch)) {
+            // request was handled completely, 
+            // no need for further processing or forwarding
+            return 0;
         }
     }
 #endif
-
-// #ifdef USE_NFN_REQUESTS
-//     if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_REQUEST) {
-//         DEBUGMSG_CFWD(DEBUG, "  is an NFN request\n");
-//         if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-            
-//             return 0;
-//         } else {
-//             DEBUGMSG_CFWD(DEBUG, "  did not find any running computations to be stopped.\n");
-//         }
-//     }
-// #endif
-
 
     // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
@@ -332,12 +285,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (ccnl_interest_isSame(i, *pkt))
             break;
 
-    if (!i) { // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
+    if (!i) { // this is a new/unknown I request: create and propagate
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
-#endif
     }
+#endif
+    
     if (!ccnl_pkt_fwdOK(*pkt))
         return -1;
     if (!i) {
