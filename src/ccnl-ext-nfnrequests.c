@@ -208,24 +208,44 @@ int
 nfn_request_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                            struct ccnl_pkt_s **pkt, cMatchFct cMatch)
 {
+    struct ccnl_interest_s *i;
+    struct ccnl_interest_s *r;
     switch ((*pkt)->pfx->request->type) {
         case NFN_REQUEST_TYPE_CANCEL: {
             DEBUGMSG_CFWD(DEBUG, "  is a cancel computation interest\n");
+
+            // find the matching pending interest that should be cancelled
             struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
             ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-            struct ccnl_interest_s *i;
             for (i = relay->pit; i; i = i->next) {
                 if (!ccnl_prefix_cmp(i->pkt->pfx, NULL, copy, CMP_EXACT)) {
                     DEBUGMSG_CFWD(DEBUG, "  found matching PIT entry\n");
+
+                    // remove the incoming face from the pending interest
                     if (ccnl_interest_remove_pending(i, from)) {
                         DEBUGMSG_CFWD(DEBUG, "  removed face from pending interest\n");
                     } else {
                         DEBUGMSG_CFWD(DEBUG, "  no face matching face found to remove\n");
                     }
+
+                    // forward the cancel request
+                    r = ccnl_interest_new(relay, from, pkt);
+                    if (r) {
+                        ccnl_interest_propagate(relay, r);
+                        ccnl_interest_remove(relay, r);
+                    }
+
+                    // remove the pending interest if all faces have been removed
+                    if (!i->pending) {
+                        i = ccnl_interest_remove(relay, i);
+                    }
+                    if (!i) {
+                        break;
+                    }
                 }
             }
             ccnl_free(copy);
-            return 1;
+            return 0;
         }
         case NFN_REQUEST_TYPE_KEEPALIVE: {
             DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");

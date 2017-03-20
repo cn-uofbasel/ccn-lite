@@ -485,7 +485,7 @@ ccnl_interest_remove_pending(struct ccnl_interest_s *i,
             DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
                 ccnl_addr2ascii(&pend->face->peer),
                 (s = ccnl_prefix_to_path(i->pkt->pfx)));
-            found = 1;
+            found++;
             if (prev) {
                 prev->next = pend->next; 
                 ccnl_free(pend);

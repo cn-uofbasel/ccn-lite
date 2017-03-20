@@ -285,12 +285,13 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (ccnl_interest_isSame(i, *pkt))
             break;
 
-    if (!i) { // this is a new/unknown I request: create and propagate
 #ifdef USE_NFN
+    if (!i) { // this is a new/unknown I request: create and propagate
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
-#endif
     }
+#endif
+    
     if (!ccnl_pkt_fwdOK(*pkt))
         return -1;
     if (!i) {
