@@ -452,11 +452,6 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
         if (pi->face == from) {
             DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
             pi->last_used = CCNL_NOW();
-#ifdef USE_TIMEOUT_KEEPCONTENT
-            // ensure the pending interest sticks around while the client keeps repeating the same request
-            i->last_used = CCNL_NOW();
-            i->retries = 0;
-#endif
             return 0;
         }
         last = pi;
@@ -975,22 +970,8 @@ ccnl_do_ageing(void *ptr, void *dummy)
     while (c) {
         if ((c->last_used + CCNL_CONTENT_TIMEOUT) <= t &&
                                 !(c->flags & CCNL_CONTENT_FLAGS_STATIC)){
-#ifdef USE_TIMEOUT_KEEPCONTENT
-        if (c->served_cnt > 0) {
-#endif
             DEBUGMSG_CORE(TRACE, "AGING: CONTENT REMOVE %p\n", (void*) c);
             c = ccnl_content_remove(relay, c);
-#ifdef USE_TIMEOUT_KEEPCONTENT
-        }
-        // Used for debugging
-        else {
-            char *s = NULL;
-            DEBUGMSG_CORE(TRACE, "AGING: KEEP CONTENT (not served yet) 0x%p <%s>\n",
-                (void*) c, (s = ccnl_prefix_to_path(c->pkt->pfx)));
-            ccnl_free(s);
-            // c->last_used = CCNL_NOW();
-        }
-#endif
         }
         else
             c = c->next;
