@@ -350,6 +350,28 @@ struct ccnl_lambdaTerm_s {
     // if n is 0, we have a lambda term  @v M
 };
 
+#ifdef USE_NFN_REQUESTS
+enum nfn_request_type {
+    NFN_REQUEST_TYPE_UNKNOWN = 0,
+    NFN_REQUEST_TYPE_START,
+    NFN_REQUEST_TYPE_PAUSE,
+    NFN_REQUEST_TYPE_RESUME,
+    NFN_REQUEST_TYPE_CANCEL,
+    NFN_REQUEST_TYPE_STATUS,
+    NFN_REQUEST_TYPE_KEEPALIVE,
+    NFN_REQUEST_TYPE_COUNT_INTERMEDIATES,
+    NFN_REQUEST_TYPE_GET_INTERMEDIATE,
+    NFN_REQUEST_TYPE_MAX = NFN_REQUEST_TYPE_GET_INTERMEDIATE,
+};
+
+struct nfn_request_s {
+    unsigned char *comp;
+    int complen;
+    enum nfn_request_type type;
+    char *arg;
+};
+#endif // USE_NFN_REQUESTS
+
 // ----------------------------------------------------------------------
 // macros for double linked lists (these double linked lists are not rings)
 

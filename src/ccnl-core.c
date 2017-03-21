@@ -1090,7 +1090,6 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 // ----------------------------------------------------------------------
 // dispatching the different formats (and respective forwarding semantics):
 
-#include "ccnl-ext-nfnrequests.c"
 
 #include "ccnl-pkt-switch.c"
 

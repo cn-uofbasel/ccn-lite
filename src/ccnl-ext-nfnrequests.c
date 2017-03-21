@@ -23,19 +23,6 @@
 
 #ifdef USE_NFN_REQUESTS
 
-enum nfn_request_type {
-    NFN_REQUEST_TYPE_UNKNOWN = 0,
-    NFN_REQUEST_TYPE_START,
-    NFN_REQUEST_TYPE_PAUSE,
-    NFN_REQUEST_TYPE_RESUME,
-    NFN_REQUEST_TYPE_CANCEL,
-    NFN_REQUEST_TYPE_STATUS,
-    NFN_REQUEST_TYPE_KEEPALIVE,
-    NFN_REQUEST_TYPE_COUNT_INTERMEDIATES,
-    NFN_REQUEST_TYPE_GET_INTERMEDIATE,
-    NFN_REQUEST_TYPE_MAX = NFN_REQUEST_TYPE_GET_INTERMEDIATE,
-};
-
 char *nfn_request_names[NFN_REQUEST_TYPE_MAX] = {
     "START",
     "PAUSE",
@@ -45,13 +32,6 @@ char *nfn_request_names[NFN_REQUEST_TYPE_MAX] = {
     "KEEPALIVE",
     "CIM",
     "GIM"};
-
-struct nfn_request_s {
-    unsigned char *comp;
-    int complen;
-    enum nfn_request_type type;
-    char *arg;
-};
 
 struct ccnl_prefix_s* ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
 void ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags);

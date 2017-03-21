@@ -32,6 +32,7 @@ struct builtin_s bifs[];
 #include "ccnl-ext-nfnparse.c"
 #include "ccnl-ext-nfnkrivine.c"
 #include "ccnl-ext-nfnops.c"
+#include "ccnl-ext-nfnrequests.c"
 
 void
 ZAM_init(void)
