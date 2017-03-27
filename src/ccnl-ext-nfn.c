@@ -89,7 +89,7 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
     TRACEOUT();
 }
 
-struct ccnl_prefix_s * 
+struct configuration_s * 
 ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix)
 {
     int i = 0;
@@ -115,7 +115,7 @@ ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_
             continue;
         if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
             free_prefix(copy);
-            return config->prefix;
+            return config;
         }
     }
     free_prefix(copy);

@@ -246,7 +246,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
-        if (!nfn_request_handleInterest(relay, from, pkt, cMatch)) {
+        if (!nfn_request_handle_interest(relay, from, pkt, cMatch)) {
             // request was handled completely, 
             // no need for further processing or forwarding
             return 0;
