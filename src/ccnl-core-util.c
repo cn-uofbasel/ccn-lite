@@ -624,7 +624,15 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #ifdef USE_NFN
     if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
-#endif
+
+// #ifdef USE_NFN_REQUESTS
+//     if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 && !memcmp(p->comp[p->compcnt-2], "R2C", 3)) {
+//         p->nfnflags |= CCNL_PREFIX_REQUEST;
+//         p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+//         p->compcnt -= 2;
+//     }
+// #endif // USE_NFN_REQUESTS
+#endif // USE_NFN
 
     if(chunknum) {
         p->chunknum = (int*) ccnl_malloc(sizeof(int));

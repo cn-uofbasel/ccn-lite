@@ -281,6 +281,52 @@ nfn_request_forward_to_computation(struct ccnl_relay_s *relay, struct ccnl_pkt_s
     return 1;
 }
 
+int 
+nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt_s **pkt) 
+{
+    struct ccnl_prefix_s *pfx;
+    struct ccnl_prefix_s *copy;
+    struct ccnl_interest_s *i;
+    struct configuration_s *config;
+
+    char *s = NULL;
+    
+    DEBUGMSG_CFWD(DEBUG, "  nfn_request_cancel_local_computation()\n");
+
+    config = ccnl_nfn_find_running_computation(relay, (*pkt)->pfx);
+    if (!config) {
+        return 0;
+    }
+    i = nfn_request_find_pending_subcomputation(relay, config);
+    if (!i) {
+        return 0;
+    }
+
+    
+    pfx = ccnl_prefix_dup(i->pkt->pfx);
+    DEBUGMSG_CFWD(INFO, "  removing interests related to computation =<%s>\n", (s = ccnl_prefix_to_path(pfx)));
+
+    for (i = relay->pit; i; i = i->next) {
+        DEBUGMSG_CFWD(INFO, "  testing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
+        copy = ccnl_prefix_dup(i->pkt->pfx);
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+        DEBUGMSG_CFWD(INFO, "  simplified interest=<%s>\n", (s = ccnl_prefix_to_path(copy)));
+        if (!ccnl_prefix_cmp(copy, NULL, pfx, CMP_EXACT)) {
+            
+            DEBUGMSG_CFWD(INFO, "  removing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            i = ccnl_interest_remove(relay, i);
+        }
+    }
+
+    ccnl_free(s);
+    // if (ccnl_interest_remove_pending(i, i->from)) {
+    //     DEBUGMSG_CFWD(DEBUG, "  removed face from pending local computation\n");
+    // } else {
+    //     DEBUGMSG_CFWD(DEBUG, "  no face matching found to remove for pending local computation\n");
+    // }
+    return 1;
+}
+
 int
 nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             struct ccnl_pkt_s **pkt, cMatchFct cMatch)
@@ -293,6 +339,8 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
             
             nfn_request_forward_to_computation(relay, pkt);
 
+            nfn_request_cancel_local_computation(relay, pkt);
+
             // find the matching pending interest that should be cancelled
             struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
             ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
@@ -304,7 +352,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
                     if (ccnl_interest_remove_pending(i, from)) {
                         DEBUGMSG_CFWD(DEBUG, "  removed face from pending interest\n");
                     } else {
-                        DEBUGMSG_CFWD(DEBUG, "  no face matching face found to remove\n");
+                        DEBUGMSG_CFWD(DEBUG, "  no face matching found to remove\n");
                     }
 
                     // forward the cancel request
@@ -323,7 +371,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
                     }
                 }
             }
-            ccnl_free(copy);
+            ccnl_free(copy);            
             return 0;
         }
         case NFN_REQUEST_TYPE_KEEPALIVE: {
