@@ -196,7 +196,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
             && nam->request->type == NFN_REQUEST_TYPE_START;
         if (matching_start_request) {
             rc = nam->compcnt;
-            goto done;
+            goto comp_check;
         }
 
         if (ccnl_nfnprefix_isRequest(pfx) != ccnl_nfnprefix_isRequest(nam)) {
@@ -221,7 +221,7 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     }
 #endif
 
-
+comp_check:
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
