@@ -259,6 +259,7 @@ nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, i
 {
     int nonce = random();
     struct ccnl_pkt_s *pkt;
+    int dataoffset;
 
     DEBUGMSG(TRACE, "nfn_request_content_pkt_new() nonce=%i\n", nonce);
     
@@ -283,8 +284,10 @@ nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, i
         break;
     }
     pkt->pfx = ccnl_prefix_dup(pfx);
-    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, payload, paylen, 0);
-    pkt->val.final_block_id = -1;
+    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, payload, paylen, &dataoffset);
+    pkt->content = pkt->buf->data + dataoffset;
+    pkt->contlen = paylen;
+    // pkt->val.final_block_id = -1;
 
     return pkt;
 }
@@ -292,8 +295,8 @@ nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, i
 void
 nfn_request_content_set_prefix(struct ccnl_content_s *c, struct ccnl_prefix_s *pfx) {
     c->pkt = nfn_request_content_pkt_new(pfx, c->pkt->content, c->pkt->contlen);
-    c->pkt->buf = ccnl_mkSimpleContent(
-        c->pkt->pfx, c->pkt->content, c->pkt->contlen, 0);
+    // c->pkt->buf = ccnl_mkSimpleContent(
+        // c->pkt->pfx, c->pkt->content, c->pkt->contlen, 0);
 }
 
 struct ccnl_interest_s*
