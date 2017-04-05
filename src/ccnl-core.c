@@ -900,7 +900,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             i = i->next;
             continue;
         }
-        DEBUGMSG_CORE(WARNING, "->1\n");
+
         //Hook for add content to cache by callback:
         if(i && ! i->pending){
             DEBUGMSG_CORE(WARNING, "releasing interest 0x%p OK?\n", (void*)i);
@@ -908,14 +908,12 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             i = ccnl_interest_remove(ccnl, i);
             return 1;
         }
-        DEBUGMSG_CORE(WARNING, "->2\n");
+
         // CONFORM: "Data MUST only be transmitted in response to
         // an Interest that matches the Data."
         for (pi = i->pending; pi; pi = pi->next) {
-            DEBUGMSG_CORE(WARNING, "->3\n");
             if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
-            continue;
-            DEBUGMSG_CORE(WARNING, "->4\n");
+                continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
                 int32_t nonce = 0;
@@ -924,17 +922,16 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                         memcpy(&nonce, i->pkt->s.ndntlv.nonce->data, 4);
                     }
                 }
-                DEBUGMSG_CORE(WARNING, "->5\n");
+
 #ifdef USE_NFN_REQUESTS
                 struct ccnl_pkt_s *pkt = c->pkt;
                 int matching_start_request = ccnl_nfnprefix_isRequest(i->pkt->pfx)
                         && i->pkt->pfx->request->type == NFN_REQUEST_TYPE_START;
                 if (matching_start_request) {
-                    DEBUGMSG_CORE(WARNING, "->6\n");
                     nfn_request_content_set_prefix(c, i->pkt->pfx);
                 }
 #endif
-            DEBUGMSG_CORE(WARNING, "->7\n");
+
                 char *s = NULL;
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%"PRIi32" to=%s\n",
                           (s = ccnl_prefix_to_path(c->pkt->pfx)),
@@ -957,17 +954,13 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 
             } else {// upcall to deliver content to local client
-            DEBUGMSG_CORE(WARNING, "->8\n");
                 ccnl_app_RX(ccnl, c); 
             }
-            DEBUGMSG_CORE(WARNING, "->9\n");
             c->served_cnt++;
             cnt++;
         }
-        DEBUGMSG_CORE(WARNING, "->10\n");
         i = ccnl_interest_remove(ccnl, i);
     }
-    DEBUGMSG_CORE(WARNING, "->11\n");
 
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {

@@ -284,7 +284,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
         return 0; // we are done
     }
-DEBUGMSG_CFWD(DEBUG, "  HANDLING 1\n");
+
     // CONFORM: Step 2: check whether interest is already known
 #ifdef USE_KITE
     if ((*pkt)->tracing) { // is a tracing interest

@@ -394,6 +394,8 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
     return 1;
 }
 
+/* Returns 0 if the interest has been handled completely and no further
+   processing is needed. 1 otherwise. */
 int
 nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             struct ccnl_pkt_s **pkt, cMatchFct cMatch)
@@ -403,23 +405,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
     switch ((*pkt)->pfx->request->type) {
         case NFN_REQUEST_TYPE_START: {
             DEBUGMSG_CFWD(DEBUG, "  is a start computation interest\n");
-            // TODO: remove R2C from pkt.
-
-            // struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
-            // ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-            // i = nfn_request_interest_new(relay, copy);
-
-            // *pkt = nfn_request_interest_pkt_new(relay, (*pkt)->pfx);
-
-            // int nonce = 0;
-            // if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
-            //     if ((*pkt)->s.ndntlv.nonce->datalen == 4) {
-            //         nonce = *((int*)(*pkt)->s.ndntlv.nonce->data);
-            //     }
-            // }
-            // ccnl_nfnprefix_clear((*pkt)->pfx, CCNL_PREFIX_REQUEST);
-            // (*pkt)->buf = ccnl_mkSimpleInterest((*pkt)->pfx, &nonce);
-
+                // Handled in ccnl_nfn_RX_request()
             return 1;
         }
         case NFN_REQUEST_TYPE_CANCEL: {

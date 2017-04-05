@@ -216,8 +216,6 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 }
             }
         }
-
-
     }
 #endif
 

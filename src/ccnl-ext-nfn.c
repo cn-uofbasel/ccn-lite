@@ -279,13 +279,7 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
     if (is_start_request) {
         *packet = nfn_request_interest_pkt_new(ccnl, (*pkt)->pfx);
-
         int nonce = random();
-        // if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
-        //     if ((*pkt)->s.ndntlv.nonce->datalen == 4) {
-        //         nonce = *((int*)(*pkt)->s.ndntlv.nonce->data);
-        //     }
-        // }
         ccnl_nfnprefix_clear((*packet)->pfx, CCNL_PREFIX_REQUEST);
         (*packet)->buf = ccnl_mkSimpleInterest((*packet)->pfx, &nonce);
     }
