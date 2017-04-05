@@ -299,6 +299,7 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 #ifdef USE_NFN_REQUESTS
     if (is_start_request) {
         struct ccnl_interest_s *i_original = ccnl_interest_new(ccnl, from, &pkt_original);
+        i_original->flags &= ~CCNL_PIT_COREPROPAGATES;
         ccnl_interest_append_pending(i_original, from);
         DEBUGMSG_CFWD(DEBUG, "  APPENDING (prefix=%s)\n",
             ccnl_prefix_to_path(i_original->pkt->pfx));
