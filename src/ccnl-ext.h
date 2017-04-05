@@ -157,6 +157,7 @@ struct nfn_request_s* nfn_request_copy(struct nfn_request_s *request);
 char * nfn_request_description_new(struct nfn_request_s* request);
 struct ccnl_pkt_s* nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, 
     unsigned char* payload, int paylen);
+void nfn_request_content_set_prefix(struct ccnl_content_s *c, struct ccnl_prefix_s *pfx);
 #endif
 
 

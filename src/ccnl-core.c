@@ -931,15 +931,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                         && i->pkt->pfx->request->type == NFN_REQUEST_TYPE_START;
                 if (matching_start_request) {
                     DEBUGMSG_CORE(WARNING, "->6\n");
-                    // we need to modify the content name
-
-                    c->pkt = nfn_request_content_pkt_new(
-                        c->pkt->pfx, c->pkt->content, c->pkt->contlen);
-                    ccnl_nfnprefix_set(c->pkt->pfx, CCNL_PREFIX_REQUEST);
-                    c->pkt->pfx->request = nfn_request_new(
-                        (unsigned char *)"START", 5);
-                    c->pkt->buf = ccnl_mkSimpleContent(
-                        c->pkt->pfx, c->pkt->content, c->pkt->contlen, 0);
+                    nfn_request_content_set_prefix(c, i->pkt->pfx);
                 }
 #endif
             DEBUGMSG_CORE(WARNING, "->7\n");

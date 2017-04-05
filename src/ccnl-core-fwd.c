@@ -265,9 +265,20 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
         if (from->ifndx >= 0) {
+#ifdef USE_NFN_REQUESTS
+            struct ccnl_pkt_s *cpkt = c->pkt;
+            int matching_start_request = ccnl_nfnprefix_isRequest((*pkt)->pfx)
+                    && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START;
+            if (matching_start_request) {
+                nfn_request_content_set_prefix(c, (*pkt)->pfx);
+            }
+#endif
             ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
                              c->pkt->contlen);
             ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
+#ifdef USE_NFN_REQUESTS
+            c->pkt = cpkt;
+#endif
         } else {
             ccnl_app_RX(relay, c);
         }
@@ -281,24 +292,20 @@ DEBUGMSG_CFWD(DEBUG, "  HANDLING 1\n");
         }
     }
 #endif
-DEBUGMSG_CFWD(DEBUG, "  HANDLING 2\n");
-    for (i = relay->pit; i; i = i->next)
+    for (i = relay->pit; i; i = i->next) {
         if (ccnl_interest_isSame(i, *pkt))
             break;
-DEBUGMSG_CFWD(DEBUG, "  HANDLING 3\n");
+    }
 #ifdef USE_NFN
     if (!i) { // this is a new/unknown I request: create and propagate
-DEBUGMSG_CFWD(DEBUG, "  HANDLING 4\n");
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
     }
 #endif
- DEBUGMSG_CFWD(DEBUG, "  HANDLING 5\n");
     if (!ccnl_pkt_fwdOK(*pkt))
         return -1;
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
-DEBUGMSG_CFWD(DEBUG, "  HANDLING 6\n");
     char *s = NULL;
 #ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
@@ -315,17 +322,7 @@ DEBUGMSG_CFWD(DEBUG, "  HANDLING 6\n");
     }
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
-
-// #ifdef USE_NFN_REQUESTS
-        // struct ccnl_interest_s *i_original = ccnl_interest_new(relay, from, &pkt_original);
-        // ccnl_interest_append_pending(i_original, from);
-        // DEBUGMSG_CFWD(DEBUG,
-        //               "  APPENDING (prefix=%s)\n",
-        //               ccnl_prefix_to_path(i_original->pkt->pfx));
-// #else
         ccnl_interest_append_pending(i, from);
-// #endif // USE_NFN_REQUESTS
-
         ccnl_interest_propagate(relay, i);
     }
 

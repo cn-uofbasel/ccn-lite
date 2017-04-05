@@ -289,6 +289,13 @@ nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, i
     return pkt;
 }
 
+void
+nfn_request_content_set_prefix(struct ccnl_content_s *c, struct ccnl_prefix_s *pfx) {
+    c->pkt = nfn_request_content_pkt_new(pfx, c->pkt->content, c->pkt->contlen);
+    c->pkt->buf = ccnl_mkSimpleContent(
+        c->pkt->pfx, c->pkt->content, c->pkt->contlen, 0);
+}
+
 struct ccnl_interest_s*
 nfn_request_find_pending_subcomputation(struct ccnl_relay_s *relay, struct configuration_s *config)
 {
