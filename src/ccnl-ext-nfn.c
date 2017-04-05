@@ -256,19 +256,59 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
                      struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i;
+    struct ccnl_pkt_s **packet = pkt;
 
-    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
-#ifdef USE_NFN_REQUESTS
-        ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
-        ccnl_nfnprefix_isIntermediate((*pkt)->pfx) ||
-#endif
-        ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx)
+        || ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS) {
         return NULL;
-    i = ccnl_interest_new(ccnl, from, pkt);
+    }
+
+#ifdef USE_NFN_REQUESTS
+    if (ccnl_nfnprefix_isKeepalive((*pkt)->pfx) 
+        || ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
+        return NULL;
+    }
+
+    struct ccnl_pkt_s *pkt_original = *pkt;
+
+    DEBUGMSG_CFWD(DEBUG, "  ORIGINAL (prefix=%s)\n",
+        ccnl_prefix_to_path(pkt_original->pfx));
+
+    int is_start_request = (ccnl_nfnprefix_isRequest((*pkt)->pfx) 
+        && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START);
+
+    if (is_start_request) {
+        *packet = nfn_request_interest_pkt_new(ccnl, (*pkt)->pfx);
+
+        int nonce = 0;
+        if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
+            if ((*pkt)->s.ndntlv.nonce->datalen == 4) {
+                nonce = *((int*)(*pkt)->s.ndntlv.nonce->data);
+            }
+        }
+        ccnl_nfnprefix_clear((*packet)->pfx, CCNL_PREFIX_REQUEST);
+        (*packet)->buf = ccnl_mkSimpleInterest((*packet)->pfx, &nonce);
+    }
+#endif
+
+    i = ccnl_interest_new(ccnl, from, packet);
     if (!i)
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
+
+#ifdef USE_NFN_REQUESTS
+    if (is_start_request) {
+        struct ccnl_interest_s *i_original = ccnl_interest_new(ccnl, from, &pkt_original);
+        ccnl_interest_append_pending(i_original, from);
+        DEBUGMSG_CFWD(DEBUG, "  APPENDING (prefix=%s)\n",
+            ccnl_prefix_to_path(i_original->pkt->pfx));
+    } else {
+        ccnl_interest_append_pending(i, from);
+    }
+#else
     ccnl_interest_append_pending(i, from);
+#endif
+
 //    if (!(i->flags & CCNL_PIT_COREPROPAGATES))
     ccnl_nfn(ccnl, ccnl_prefix_dup(i->pkt->pfx), from, NULL, i, i->pkt->suite, 0);
 
@@ -417,7 +457,8 @@ ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, s
             // ccnl_free(packet);
             // ccnl_free(content);
 
-            DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", content->pkt->contlen, content->pkt->content);
+            DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", 
+            content->pkt->contlen, content->pkt->content);
 
             TRACEOUT();
             return 1;
