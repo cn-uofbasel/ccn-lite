@@ -925,9 +925,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 #ifdef USE_NFN_REQUESTS
                 struct ccnl_pkt_s *pkt = c->pkt;
-                int matching_start_request = ccnl_nfnprefix_isRequest(i->pkt->pfx)
+                int matches_start_request = ccnl_nfnprefix_isRequest(i->pkt->pfx)
                         && i->pkt->pfx->request->type == NFN_REQUEST_TYPE_START;
-                if (matching_start_request) {
+                if (matches_start_request) {
                     nfn_request_content_set_prefix(c, i->pkt->pfx);
                 }
 #endif
@@ -946,8 +946,8 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt->buf));
 
 #ifdef USE_NFN_REQUESTS
-                if (matching_start_request) {
-                    // TODO: free old c->pkt
+                if (matches_start_request) {
+                    free_packet(c->pkt);
                     c->pkt = pkt;
                 }
 #endif

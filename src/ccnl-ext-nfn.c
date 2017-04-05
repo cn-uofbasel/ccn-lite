@@ -269,19 +269,13 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
         return NULL;
     }
 
-    struct ccnl_pkt_s *pkt_original = *pkt;
-
-    DEBUGMSG_CFWD(DEBUG, "  ORIGINAL (prefix=%s)\n",
-        ccnl_prefix_to_path(pkt_original->pfx));
-
+    struct ccnl_pkt_s *pkt_start = *pkt;
     int is_start_request = (ccnl_nfnprefix_isRequest((*pkt)->pfx) 
         && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START);
-
     if (is_start_request) {
-        *packet = nfn_request_interest_pkt_new(ccnl, (*pkt)->pfx);
-        int nonce = random();
-        ccnl_nfnprefix_clear((*packet)->pfx, CCNL_PREFIX_REQUEST);
-        (*packet)->buf = ccnl_mkSimpleInterest((*packet)->pfx, &nonce);
+        struct ccnl_prefix_s *pfx = ccnl_prefix_dup((*pkt)->pfx);
+        ccnl_nfnprefix_clear(pfx, CCNL_PREFIX_REQUEST);
+        *packet = nfn_request_interest_pkt_new(ccnl, pfx);
     }
 #endif
 
@@ -292,11 +286,9 @@ ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 
 #ifdef USE_NFN_REQUESTS
     if (is_start_request) {
-        struct ccnl_interest_s *i_original = ccnl_interest_new(ccnl, from, &pkt_original);
-        i_original->flags &= ~CCNL_PIT_COREPROPAGATES;
-        ccnl_interest_append_pending(i_original, from);
-        DEBUGMSG_CFWD(DEBUG, "  APPENDING (prefix=%s)\n",
-            ccnl_prefix_to_path(i_original->pkt->pfx));
+        struct ccnl_interest_s *i_start = ccnl_interest_new(ccnl, from, &pkt_start);
+        i_start->flags &= ~CCNL_PIT_COREPROPAGATES;
+        ccnl_interest_append_pending(i_start, from);
     } else {
         ccnl_interest_append_pending(i, from);
     }
