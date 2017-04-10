@@ -189,15 +189,15 @@ int nfn_request_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_
     return highest;
 }
 
-struct ccnl_interest_s *
-nfn_request_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
+// TODO: ccnl not needed.
+struct ccnl_pkt_s*
+nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
 {
     int nonce = random();
     struct ccnl_pkt_s *pkt;
-    struct ccnl_face_s *from;
-    struct ccnl_interest_s *i;
+    // struct ccnl_face_s *from;
 
-    DEBUGMSG(TRACE, "nfn_request_interest_new() nonce=%i\n", nonce);
+    DEBUGMSG(TRACE, "nfn_request_interest_pkt_new() nonce=%i\n", nonce);
     
     if (!pfx)
         return NULL;
@@ -206,7 +206,7 @@ nfn_request_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
     if (!pkt)
         return NULL;
 
-    from = NULL;
+    // from = NULL;
     
     pkt->suite = pfx->suite;
     switch(pkt->suite) {
@@ -221,15 +221,79 @@ nfn_request_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
     default:
         break;
     }
-    pkt->buf = ccnl_mkSimpleInterest(pfx, &nonce);
-    pkt->pfx = pfx;
+    pkt->pfx = ccnl_prefix_dup(pfx);
+    pkt->buf = ccnl_mkSimpleInterest(pkt->pfx, &nonce);
     pkt->val.final_block_id = -1;
 
+    // i = ccnl_interest_new(ccnl, from, &pkt);
+
+    // DEBUGMSG(TRACE, "  new request interest %p, from=%p, i->from=%p\n",
+    //             (void*)i, (void*)from, (void*)i->from);
+    return pkt;
+}
+
+struct ccnl_interest_s *
+nfn_request_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
+{
+    struct ccnl_interest_s *i;
+    struct ccnl_pkt_s *pkt;    
+    struct ccnl_face_s *from;
+    
+    DEBUGMSG(TRACE, "nfn_request_interest_new()\n");
+
+    pkt = nfn_request_interest_pkt_new(ccnl, pfx);
+    if (pkt == NULL)
+        return NULL;
+
+    from = NULL;
     i = ccnl_interest_new(ccnl, from, &pkt);
 
     DEBUGMSG(TRACE, "  new request interest %p, from=%p, i->from=%p\n",
                 (void*)i, (void*)from, (void*)i->from);
-    return i;
+
+    return  i;
+}
+
+struct ccnl_pkt_s*
+nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, int paylen)
+{
+    int nonce = random();
+    struct ccnl_pkt_s *pkt;
+    int dataoffset;
+
+    DEBUGMSG(TRACE, "nfn_request_content_pkt_new() nonce=%i\n", nonce);
+    
+    if (!pfx)
+        return NULL;
+    
+    pkt = (struct ccnl_pkt_s *) ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt)
+        return NULL;
+
+    pkt->suite = pfx->suite;
+    switch(pkt->suite) {
+#ifdef USE_SUITE_CCNB
+    case CCNL_SUITE_CCNB:
+        pkt->s.ccnb.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+#endif
+    case CCNL_SUITE_NDNTLV:
+        pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+        break;
+    default:
+        break;
+    }
+    pkt->pfx = ccnl_prefix_dup(pfx);
+    pkt->buf = ccnl_mkSimpleContent(pkt->pfx, payload, paylen, &dataoffset);
+    pkt->content = pkt->buf->data + dataoffset;
+    pkt->contlen = paylen;
+
+    return pkt;
+}
+
+void
+nfn_request_content_set_prefix(struct ccnl_content_s *c, struct ccnl_prefix_s *pfx) {
+    c->pkt = nfn_request_content_pkt_new(pfx, c->pkt->content, c->pkt->contlen);
 }
 
 struct ccnl_interest_s*
@@ -327,6 +391,8 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
     return 1;
 }
 
+/* Returns 0 if the interest has been handled completely and no further
+   processing is needed. 1 otherwise. */
 int
 nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             struct ccnl_pkt_s **pkt, cMatchFct cMatch)
@@ -334,6 +400,11 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
     struct ccnl_interest_s *i;
     struct ccnl_interest_s *r;
     switch ((*pkt)->pfx->request->type) {
+        case NFN_REQUEST_TYPE_START: {
+            DEBUGMSG_CFWD(DEBUG, "  is a start computation interest\n");
+                // Handled in ccnl_nfn_RX_request()
+            return 1;
+        }
         case NFN_REQUEST_TYPE_CANCEL: {
             DEBUGMSG_CFWD(DEBUG, "  is a cancel computation interest\n");
             

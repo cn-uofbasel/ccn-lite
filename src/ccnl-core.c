@@ -461,7 +461,10 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
         DEBUGMSG_CORE(DEBUG, "  no mem\n");
         return -1;
     }
-    DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p\n", (void *) pi);
+    char *s = NULL;
+    DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n", 
+            (void *) pi, (s = ccnl_prefix_to_path(i->pkt->pfx)), (void*)i->pkt->pfx);
+    ccnl_free(s);
     pi->face = from;
     pi->last_used = CCNL_NOW();
     if (last)
@@ -910,7 +913,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
         // an Interest that matches the Data."
         for (pi = i->pending; pi; pi = pi->next) {
             if (pi->face->flags & CCNL_FACE_FLAGS_SERVED)
-            continue;
+                continue;
             pi->face->flags |= CCNL_FACE_FLAGS_SERVED;
             if (pi->face->ifndx >= 0) {
                 int32_t nonce = 0;
@@ -920,19 +923,38 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                     }
                 }
 
+#ifdef USE_NFN_REQUESTS
+                struct ccnl_pkt_s *pkt = c->pkt;
+                int matches_start_request = ccnl_nfnprefix_isRequest(i->pkt->pfx)
+                        && i->pkt->pfx->request->type == NFN_REQUEST_TYPE_START;
+                if (matches_start_request) {
+                    nfn_request_content_set_prefix(c, i->pkt->pfx);
+                }
+#endif
+
                 char *s = NULL;
                 DEBUGMSG_CFWD(INFO, "  outgoing data=<%s>%s nonce=%"PRIi32" to=%s\n",
-                          (s = ccnl_prefix_to_path(i->pkt->pfx)),
-                          ccnl_suite2str(i->pkt->pfx->suite), nonce,
+                          (s = ccnl_prefix_to_path(c->pkt->pfx)),
+                          ccnl_suite2str(c->pkt->pfx->suite), nonce,
                           ccnl_addr2ascii(&pi->face->peer));
                 ccnl_free(s);
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
+
                 ccnl_nfn_monitor(ccnl, pi->face, c->pkt->pfx,
                                  c->pkt->content, c->pkt->contlen);
                 ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt->buf));
+
+#ifdef USE_NFN_REQUESTS
+                if (matches_start_request) {
+                    free_packet(c->pkt);
+                    c->pkt = pkt;
+                }
+#endif
+
+
             } else {// upcall to deliver content to local client
-                ccnl_app_RX(ccnl, c);
+                ccnl_app_RX(ccnl, c); 
             }
             c->served_cnt++;
             cnt++;
@@ -976,11 +998,15 @@ ccnl_do_ageing(void *ptr, void *dummy)
         else
             c = c->next;
     }
+
+    // DEBUGMSG_CORE(VERBOSE, "ageing a\n");
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."
+                // DEBUGMSG_CORE(VERBOSE, "ageing b\n");
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_NFN_REQUESTS 
+// DEBUGMSG_CORE(VERBOSE, "ageing c\n");
                 if (!ccnl_nfnprefix_isNFN(i->pkt->pfx)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
@@ -1014,10 +1040,12 @@ ccnl_do_ageing(void *ptr, void *dummy)
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
+            // DEBUGMSG_CORE(VERBOSE, "ageing x\n");
             char *s = NULL;
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
                      (s = ccnl_prefix_to_path(i->pkt->pfx)));
             ccnl_free(s);
+            // DEBUGMSG_CORE(VERBOSE, "ageing y\n");
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif
@@ -1026,7 +1054,7 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_NFN
             }
 #endif
-
+// DEBUGMSG_CORE(VERBOSE, "ageing lol\n");
             i->retries++;
             i = i->next;
         }

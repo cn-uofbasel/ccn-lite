@@ -142,9 +142,10 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
 
     char *s1 = NULL, *s2 = NULL;
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s>(%p) of? name=<%s>(%p) digest=%p\n",
              ccnl_matchMode2str(mode),
-             (s1 = ccnl_prefix_to_path(pfx)), (s2 = ccnl_prefix_to_path(nam)), (void *) md);
+             (s1 = ccnl_prefix_to_path(pfx)), (void *)pfx,
+             (s2 = ccnl_prefix_to_path(nam)), (void *)nam, (void *) md);
     ccnl_free(s1);
     ccnl_free(s2);
 
@@ -178,22 +179,47 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
 
 #ifdef USE_NFN_REQUESTS
     if (mode == CMP_MATCH) {
-        int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
-        int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);        
-        if (nam_is_intermediate != pfx_is_intermediate) {
-            DEBUGMSG(VERBOSE, "nfn intermediate mismatch\n");
+        // int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
+        // int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);        
+        // if (nam_is_intermediate != pfx_is_intermediate) {
+        //     DEBUGMSG(VERBOSE, "nfn intermediate mismatch\n");
+        //     goto done;
+        // }
+        // if (nam_is_intermediate) {
+        //     if (nfn_request_get_arg_int(nam->request) != nfn_request_get_arg_int(pfx->request)) {
+        //         DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+        //         goto done;
+        //     }
+        // }
+        int matching_start_request = !ccnl_nfnprefix_isRequest(pfx)
+            && ccnl_nfnprefix_isRequest(nam) 
+            && nam->request->type == NFN_REQUEST_TYPE_START;
+        if (matching_start_request) {
+            rc = nam->compcnt;
+            goto comp_check;
+        }
+
+        if (ccnl_nfnprefix_isRequest(pfx) != ccnl_nfnprefix_isRequest(nam)) {
+            DEBUGMSG(VERBOSE, "nfn request mismatch\n"); 
             goto done;
         }
-        if (nam_is_intermediate) {
-            if (nfn_request_get_arg_int(nam->request) != nfn_request_get_arg_int(pfx->request)) {
-                DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+        if (ccnl_nfnprefix_isRequest(pfx)) {
+            if (pfx->request->type != nam->request->type) {
+                DEBUGMSG(VERBOSE, "request type mismatch\n");
                 goto done;
+            }
+            if (ccnl_nfnprefix_isIntermediate(pfx)) {
+                if (nfn_request_get_arg_int(nam->request)
+                        != nfn_request_get_arg_int(pfx->request)) {
+                    DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+                    goto done;
+                }
             }
         }
     }
 #endif
 
-
+comp_check:
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN

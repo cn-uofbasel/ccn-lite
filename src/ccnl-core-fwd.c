@@ -265,9 +265,20 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
         if (from->ifndx >= 0) {
+#ifdef USE_NFN_REQUESTS
+            struct ccnl_pkt_s *cpkt = c->pkt;
+            int matching_start_request = ccnl_nfnprefix_isRequest((*pkt)->pfx)
+                    && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START;
+            if (matching_start_request) {
+                nfn_request_content_set_prefix(c, (*pkt)->pfx);
+            }
+#endif
             ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
                              c->pkt->contlen);
             ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
+#ifdef USE_NFN_REQUESTS
+            c->pkt = cpkt;
+#endif
         } else {
             ccnl_app_RX(relay, c);
         }
@@ -281,22 +292,20 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 #endif
-    for (i = relay->pit; i; i = i->next)
+    for (i = relay->pit; i; i = i->next) {
         if (ccnl_interest_isSame(i, *pkt))
             break;
-
+    }
 #ifdef USE_NFN
     if (!i) { // this is a new/unknown I request: create and propagate
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
     }
 #endif
-    
     if (!ccnl_pkt_fwdOK(*pkt))
         return -1;
     if (!i) {
         i = ccnl_interest_new(relay, from, pkt);
-
     char *s = NULL;
 #ifdef USE_NFN
         DEBUGMSG_CFWD(DEBUG,
