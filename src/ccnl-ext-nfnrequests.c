@@ -340,8 +340,9 @@ nfn_request_forward_to_computation(struct ccnl_relay_s *relay, struct ccnl_pkt_s
     ccnl_free(s);
 
     i = nfn_request_interest_new(relay, pfx);
+    // ccnl_interest_append_pending(i, from);
     ccnl_interest_propagate(relay, i);
-    ccnl_interest_remove(relay, i);
+    // ccnl_interest_remove(relay, i);
 
     return 1;
 }
@@ -377,10 +378,13 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
         DEBUGMSG_CFWD(INFO, "  simplified interest=<%s>\n", (s = ccnl_prefix_to_path(copy)));
         if (!ccnl_prefix_cmp(copy, NULL, pfx, CMP_EXACT)) {
+            if (!ccnl_nfnprefix_isRequestType(i->pkt->pfx, NFN_REQUEST_TYPE_CANCEL)) {
+                DEBUGMSG_CFWD(INFO, "  removing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                i = ccnl_interest_remove(relay, i);
+            }
             
-            DEBUGMSG_CFWD(INFO, "  removing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
-            i = ccnl_interest_remove(relay, i);
         }
+        ccnl_free(copy);
     }
 
     ccnl_free(s);
@@ -411,7 +415,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
             
             nfn_request_forward_to_computation(relay, pkt);
 
-            nfn_request_cancel_local_computation(relay, pkt);
+            //nfn_request_cancel_local_computation(relay, pkt);
 
             // find the matching pending interest that should be cancelled
             struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
@@ -431,7 +435,8 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
                     r = ccnl_interest_new(relay, from, pkt);
                     if (r) {
                         ccnl_interest_propagate(relay, r);
-                        ccnl_interest_remove(relay, r);
+                        ccnl_interest_append_pending(r, from);
+                        // ccnl_interest_remove(relay, r);
                     }
 
                     // remove the pending interest if all faces have been removed
@@ -485,6 +490,31 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
     return 0;
 }
 
+struct configuration_s*
+nfn_request_find_config(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt) {
+    TRACEIN();
+
+    struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup(pkt->pfx);
+    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_REQUEST);
+
+    // Find the pendint that triggered the computation that we received an intermediate result for.
+    struct ccnl_interest_s *i_it = NULL;
+    for (i_it = relay->pit; i_it; i_it = i_it->next) {
+        if (!ccnl_prefix_cmp(dup_pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
+                i_it->from && i_it->from->faceid < 0) {
+            DEBUGMSG(INFO, "Config found.\n");
+            struct ccnl_face_s *from = i_it->from;
+            int faceid = -from->faceid;
+            struct configuration_s *config = ccnl_nfn_findConfig(relay->km->configuration_list, -faceid);
+
+            TRACEOUT();
+            return config;
+        }
+    }
+    TRACEOUT();
+    return NULL;
+}
+
 int
 nfn_request_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       struct ccnl_content_s *c)
@@ -522,61 +552,140 @@ int
 nfn_request_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt) {
     TRACEIN();
 
-    // int from_compute_server = from->faceid < 0;
-    // DEBUGMSG(INFO, "From compute server: %i\n", from_compute_server);
-    // if (!from_compute_server) {
-    //     return 0;
-    // }
+    struct configuration_s *config = nfn_request_find_config(relay, *pkt);
+    if (config == NULL) {
+        DEBUGMSG(INFO, "Intermediate found no match.\n");
+        TRACEOUT();
+        return 0;
+    }
+    
+    struct ccnl_prefix_s *interm_pfx = ccnl_prefix_dup(config->prefix);
+    interm_pfx->nfnflags |= CCNL_PREFIX_REQUEST;
+    // interm_pfx->internum = (*pkt)->pfx->internum;            
+    interm_pfx->request = nfn_request_copy((*pkt)->pfx->request);
 
-    struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup((*pkt)->pfx);
-    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_REQUEST);
+    char *s = NULL;
+    DEBUGMSG(INFO, "Original (modified) prefix for intermediate: %s\n", s = ccnl_prefix_to_path(interm_pfx));
+    ccnl_free(s);  
 
-    // Find the pendint that triggered the computation that we received an intermediate result for.
-    struct ccnl_interest_s *i_it = NULL;
-    for (i_it = relay->pit; i_it; i_it = i_it->next) {
-        if (!ccnl_prefix_cmp(dup_pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
-                i_it->from && i_it->from->faceid < 0) {
-            DEBUGMSG(INFO, "Intermediate found match.\n");
-            struct ccnl_face_s *from = i_it->from;
-            int faceid = -from->faceid;
+    // ccnl_free((*pkt)->pfx);    
+    // (*pkt)->pfx = interm_pfx; // ok?
 
-            // Get the original prefix and create a new intermediate prefix based on that.
-            struct configuration_s *config = ccnl_nfn_findConfig(relay->km->configuration_list, -faceid);
-            struct ccnl_prefix_s *interm_pfx = ccnl_prefix_dup(config->prefix);
-            interm_pfx->nfnflags |= CCNL_PREFIX_REQUEST;
-            // interm_pfx->internum = (*pkt)->pfx->internum;            
-            interm_pfx->request = nfn_request_copy((*pkt)->pfx->request);
+    int dataoffset;
+    struct ccnl_pkt_s *packet;
+    packet = ccnl_calloc(1, sizeof(*packet));
+    packet->pfx = interm_pfx;
+    packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset);
+    packet->content = packet->buf->data + dataoffset;
+    packet->contlen = (*pkt)->contlen;
 
-            char *s = NULL;
-            DEBUGMSG(INFO, "Original (modified) prefix for intermediate: %s\n", s = ccnl_prefix_to_path(interm_pfx));
-            ccnl_free(s);  
+    struct ccnl_content_s *content = ccnl_content_new(relay, &packet);
+    ccnl_content_add2cache(relay, content);
+    // ccnl_free(packet);
+    // ccnl_free(content);
 
-            // ccnl_free((*pkt)->pfx);    
-            // (*pkt)->pfx = interm_pfx; // ok?
+    DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", 
+    content->pkt->contlen, content->pkt->content);
 
-            int dataoffset;
-            struct ccnl_pkt_s *packet;
-            packet = ccnl_calloc(1, sizeof(*packet));
-            packet->pfx = interm_pfx;
-            packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset);
-            packet->content = packet->buf->data + dataoffset;
-            packet->contlen = (*pkt)->contlen;
+    TRACEOUT();
+    return 1;
+}
 
-            struct ccnl_content_s *content = ccnl_content_new(relay, &packet);
-            ccnl_content_add2cache(relay, content);
-            // ccnl_free(packet);
-            // ccnl_free(content);
+int
+nfn_request_RX_cancel(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      struct ccnl_content_s *c)
+{
+    TRACEIN();
+    DEBUGMSG(DEBUG, "  RX cancel <%s>\n", ccnl_prefix_to_path(c->pkt->pfx));
+    
+    struct configuration_s *config = nfn_request_find_config(relay, c->pkt);
+    if (config == NULL) {
+        DEBUGMSG(INFO, "Cancel found no match.\n");
+        TRACEOUT();
+        return 0;
+    }
 
-            DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", 
-            content->pkt->contlen, content->pkt->content);
+    struct ccnl_prefix_s *cancel_pfx = ccnl_prefix_dup(config->prefix);
+    cancel_pfx->nfnflags |= CCNL_PREFIX_REQUEST;
+    cancel_pfx->request = nfn_request_copy(c->pkt->pfx->request);
 
-            TRACEOUT();
-            return 1;
+    char *s = NULL;
+    DEBUGMSG(INFO, "Original (modified) prefix for cancel response: %s\n", s = ccnl_prefix_to_path(cancel_pfx));
+    ccnl_free(s);  
+
+    int dataoffset;
+    struct ccnl_pkt_s *packet;
+    packet = ccnl_calloc(1, sizeof(*packet));
+    packet->pfx = cancel_pfx;
+    packet->buf = ccnl_mkSimpleContent(packet->pfx, c->pkt->content, c->pkt->contlen, &dataoffset);
+    packet->content = packet->buf->data + dataoffset;
+    packet->contlen = c->pkt->contlen;
+
+    struct ccnl_content_s *content = ccnl_content_new(relay, &packet);
+    DEBUGMSG_CFWD(INFO, "data after creating cancel response %.*s\n", 
+        content->pkt->contlen, content->pkt->content);
+
+    if (!ccnl_content_serve_pending(relay, content)) { // unsolicited content
+        DEBUGMSG_CFWD(DEBUG, "  no matching interest for cancel response\n");
+    }
+
+    TRACEOUT();
+    return 1;
+}
+
+/* Returns 0 if the interest has been handled completely and no further
+   processing is needed. 1 otherwise. */
+int
+nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                            struct ccnl_pkt_s **pkt)
+{
+    //struct ccnl_interest_s *i;
+    //struct ccnl_interest_s *r;
+    struct ccnl_content_s *c = NULL;
+    
+    enum nfn_request_type request = (*pkt)->pfx->request->type;
+
+    int needs_further_processing = 0;
+    int needs_serve_pending = NFN_REQUEST_TYPE_CANCEL | NFN_REQUEST_TYPE_KEEPALIVE;
+    int needs_content = needs_serve_pending;
+    
+    needs_serve_pending = (needs_serve_pending & request) != 0;
+    needs_content = (needs_content & request) != 0;
+
+    if (needs_content) {
+        c = ccnl_content_new(relay, pkt);
+        DEBUGMSG_CFWD(INFO, "data after creating packet %.*s\n", c->pkt->contlen, c->pkt->content);
+        if (!c)
+            return 0;
+    }
+
+    if (request == NFN_REQUEST_TYPE_CANCEL) {
+        nfn_request_RX_cancel(relay, from, c);
+    }
+
+    if (request == NFN_REQUEST_TYPE_KEEPALIVE) {
+        nfn_request_RX_keepalive(relay, from, c);
+    }
+
+    if (request == NFN_REQUEST_TYPE_GET_INTERMEDIATE) {
+        if (nfn_request_RX_intermediate(relay, from, pkt)) {
+            // This was an intermediate result from the compute server.
+            // It was cached, and shouldn't be forwarded.
+            DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
         }
     }
-    DEBUGMSG(INFO, "Intermediate found no match.\n");
-    TRACEOUT();
-    return 0;
+
+    if (needs_serve_pending) {
+        if (!ccnl_content_serve_pending(relay, c)) { // unsolicited content
+            DEBUGMSG_CFWD(DEBUG, "  no matching interest\n");
+        }
+    }
+
+    if (c) {
+        free_content(c);
+    }
+    
+    return needs_further_processing;
 }
 
 #endif

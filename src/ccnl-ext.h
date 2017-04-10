@@ -150,6 +150,8 @@ int ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p);
 struct nfn_request_s* nfn_request_new(unsigned char *comp, int complen);
 int nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     struct ccnl_pkt_s **pkt, cMatchFct cMatch);
+int nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+    struct ccnl_pkt_s **pkt);
 int nfn_request_get_arg_int(struct nfn_request_s* request);
 struct nfn_request_s* nfn_request_copy(struct nfn_request_s *request);
 char * nfn_request_description_new(struct nfn_request_s* request);

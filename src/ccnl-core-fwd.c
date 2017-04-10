@@ -83,11 +83,18 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #ifdef USE_NFN_REQUESTS
     // Find the original prefix for the intermediate result and use that prefix to cache the content.
     // TODO: update to use requests
-    if (ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
-        if (nfn_request_RX_intermediate(relay, from, pkt)) {
-            // This was an intermediate result from the compute server.
-            // It was cached, and shouldn't be forwarded.
-            DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
+    // if (ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
+    //     if (nfn_request_RX_intermediate(relay, from, pkt)) {
+    //         // This was an intermediate result from the compute server.
+    //         // It was cached, and shouldn't be forwarded.
+    //         DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
+    //         return 0;
+    //     }
+    // }
+    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
+        if (!nfn_request_handle_content(relay, from, pkt)) {
+            // content was handled completely, 
+            // no need for further processing or forwarding
             return 0;
         }
     }
@@ -101,19 +108,19 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
-#ifdef USE_NFN_REQUESTS
-        if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
-            nfn_request_RX_keepalive(relay, from, c);
-                // return 0;
-            // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
-        } else {
-#endif // USE_NFN_REQUESTS
+// #ifdef USE_NFN_REQUESTS
+//         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+//             nfn_request_RX_keepalive(relay, from, c);
+//                 // return 0;
+//             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
+//         } else {
+// #endif // USE_NFN_REQUESTS
             if (ccnl_nfn_RX_result(relay, from, c))
                 return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
-#ifdef USE_NFN_REQUESTS
-        }
-#endif // USE_NFN_REQUESTS
+// #ifdef USE_NFN_REQUESTS
+//         }
+// #endif // USE_NFN_REQUESTS
     }
 #endif
 
