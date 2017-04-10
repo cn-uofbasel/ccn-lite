@@ -143,8 +143,6 @@ int ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p);
 int ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p);
 void ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags);
 void ccnl_nfnprefix_set(struct ccnl_prefix_s *p, unsigned int flags);
-int ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                          struct ccnl_content_s *c);
 #endif
 
 #ifdef USE_NFN_REQUESTS
@@ -158,6 +156,8 @@ char * nfn_request_description_new(struct nfn_request_s* request);
 struct ccnl_pkt_s* nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, 
     unsigned char* payload, int paylen);
 void nfn_request_content_set_prefix(struct ccnl_content_s *c, struct ccnl_prefix_s *pfx);
+int nfn_request_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                          struct ccnl_content_s *c);
 #endif
 
 

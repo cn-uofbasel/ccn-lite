@@ -24,7 +24,7 @@
 #ifdef USE_NFN_REQUESTS
 // #include "ccnl-ext-nfn.c"
 int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
-int ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
+int nfn_request_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
 #endif
 
 #ifdef NEEDS_PREFIX_MATCHING
@@ -84,7 +84,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     // Find the original prefix for the intermediate result and use that prefix to cache the content.
     // TODO: update to use requests
     if (ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
-        if (ccnl_nfn_RX_intermediate(relay, from, pkt)) {
+        if (nfn_request_RX_intermediate(relay, from, pkt)) {
             // This was an intermediate result from the compute server.
             // It was cached, and shouldn't be forwarded.
             DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
@@ -103,7 +103,7 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
 #ifdef USE_NFN_REQUESTS
         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
-            ccnl_nfn_RX_keepalive(relay, from, c);
+            nfn_request_RX_keepalive(relay, from, c);
                 // return 0;
             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
         } else {
