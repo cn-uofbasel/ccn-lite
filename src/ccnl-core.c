@@ -999,14 +999,11 @@ ccnl_do_ageing(void *ptr, void *dummy)
             c = c->next;
     }
 
-    // DEBUGMSG_CORE(VERBOSE, "ageing a\n");
     while (i) { // CONFORM: "Entries in the PIT MUST timeout rather
                 // than being held indefinitely."
-                // DEBUGMSG_CORE(VERBOSE, "ageing b\n");
         if ((i->last_used + CCNL_INTEREST_TIMEOUT) <= t ||
                                 i->retries >= CCNL_MAX_INTEREST_RETRANSMIT) {
 #ifdef USE_NFN_REQUESTS 
-// DEBUGMSG_CORE(VERBOSE, "ageing c\n");
                 if (!ccnl_nfnprefix_isNFN(i->pkt->pfx)) {
                     DEBUGMSG_AGEING("AGING: REMOVE CCN INTEREST", "timeout: remove interest");
                     i = ccnl_nfn_interest_remove(relay, i);
@@ -1040,12 +1037,10 @@ ccnl_do_ageing(void *ptr, void *dummy)
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
             // periodically for pending PIT entries."
-            // DEBUGMSG_CORE(VERBOSE, "ageing x\n");
             char *s = NULL;
             DEBUGMSG_CORE(DEBUG, " retransmit %d <%s>\n", i->retries,
                      (s = ccnl_prefix_to_path(i->pkt->pfx)));
             ccnl_free(s);
-            // DEBUGMSG_CORE(VERBOSE, "ageing y\n");
 #ifdef USE_NFN
             if (i->flags & CCNL_PIT_COREPROPAGATES){
 #endif
@@ -1054,7 +1049,6 @@ ccnl_do_ageing(void *ptr, void *dummy)
 #ifdef USE_NFN
             }
 #endif
-// DEBUGMSG_CORE(VERBOSE, "ageing lol\n");
             i->retries++;
             i = i->next;
         }

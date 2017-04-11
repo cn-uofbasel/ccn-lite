@@ -196,7 +196,6 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
 {
     int nonce = random();
     struct ccnl_pkt_s *pkt;
-    // struct ccnl_face_s *from;
 
     DEBUGMSG(TRACE, "nfn_request_interest_pkt_new() nonce=%i\n", nonce);
     
@@ -207,8 +206,6 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
     if (!pkt)
         return NULL;
 
-    // from = NULL;
-    
     pkt->suite = pfx->suite;
     switch(pkt->suite) {
 #ifdef USE_SUITE_CCNB
@@ -226,10 +223,6 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
     pkt->buf = ccnl_mkSimpleInterest(pkt->pfx, &nonce);
     pkt->val.final_block_id = -1;
 
-    // i = ccnl_interest_new(ccnl, from, &pkt);
-
-    // DEBUGMSG(TRACE, "  new request interest %p, from=%p, i->from=%p\n",
-    //             (void*)i, (void*)from, (void*)i->from);
     return pkt;
 }
 
@@ -389,11 +382,6 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
         }
     }
     ccnl_free(s);
-    // if (ccnl_interest_remove_pending(i, i->from)) {
-    //     DEBUGMSG_CFWD(DEBUG, "  removed face from pending local computation\n");
-    // } else {
-    //     DEBUGMSG_CFWD(DEBUG, "  no face matching found to remove for pending local computation\n");
-    // }
     return 1;
 }
 
@@ -639,8 +627,6 @@ int
 nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                             struct ccnl_pkt_s **pkt)
 {
-    //struct ccnl_interest_s *i;
-    //struct ccnl_interest_s *r;
     struct ccnl_content_s *c = NULL;
     
     enum nfn_request_type request = (*pkt)->pfx->request->type;
