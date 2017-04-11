@@ -362,26 +362,37 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
     }
     
     pfx = ccnl_prefix_dup(i->pkt->pfx);
-    DEBUGMSG_CFWD(INFO, "  removing interests related to computation =<%s>\n", (s = ccnl_prefix_to_path(pfx)));
 
-    for (i = relay->pit; i; i = i->next) {
-        DEBUGMSG_CFWD(INFO, "  testing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
+    DEBUGMSG_CFWD(INFO, "  removing interests related to computation <%s>\n", 
+        (s = ccnl_prefix_to_path(pfx)));
+    ccnl_free(s);
+
+    i = relay->pit;
+    while (i) {
         copy = ccnl_prefix_dup(i->pkt->pfx);
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
-        DEBUGMSG_CFWD(INFO, "  simplified interest=<%s>\n", (s = ccnl_prefix_to_path(copy)));
         if (!ccnl_prefix_cmp(copy, NULL, pfx, CMP_EXACT)) {
             if (!ccnl_nfnprefix_isRequestType(i->pkt->pfx, NFN_REQUEST_TYPE_CANCEL)) {
-                DEBUGMSG_CFWD(INFO, "  removing interest=<%s>\n", (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                DEBUGMSG_CFWD(INFO, "  removing interest <%s>\n",
+                    (s = ccnl_prefix_to_path(i->pkt->pfx)));
+                ccnl_free(s);
                 i = ccnl_interest_remove(relay, i);
             }
-            
         }
         ccnl_free(copy);
-        if (i == NULL) {
-            break;
+        if (i != NULL) {
+            i = i->next;
         }
     }
+
+    DEBUGMSG_CFWD(INFO, "  removing config %d <%s>\n", 
+        config->configid, (s = ccnl_prefix_to_path(config->prefix)));
     ccnl_free(s);
+
+    --relay->km->numOfRunningComputations;
+    DBL_LINKED_LIST_REMOVE(relay->km->configuration_list, config);
+    ccnl_nfn_freeConfiguration(config);
+    
     return 1;
 }
 
@@ -616,6 +627,8 @@ nfn_request_RX_cancel(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     nfn_request_cancel_local_computation(relay, &content->pkt);
+
+
 
     TRACEOUT();
     return 1;

@@ -354,8 +354,9 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             //ccnl_face_remove(relay, from);
             ++found;
             //goto Done;
-        } else
+        } else {
             i_it = i_it->next;
+        }
     }
     TRACEOUT();
     return found > 0;
