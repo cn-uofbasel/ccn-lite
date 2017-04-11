@@ -357,7 +357,7 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
 
     char *s = NULL;
     
-    DEBUGMSG_CFWD(DEBUG, "  nfn_request_cancel_local_computation()\n");
+    DEBUGMSG_CFWD(DEBUG, "nfn_request_cancel_local_computation()\n");
 
     config = ccnl_nfn_find_running_computation(relay, (*pkt)->pfx);
     if (!config) {
@@ -367,7 +367,6 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
     if (!i) {
         return 0;
     }
-
     
     pfx = ccnl_prefix_dup(i->pkt->pfx);
     DEBUGMSG_CFWD(INFO, "  removing interests related to computation =<%s>\n", (s = ccnl_prefix_to_path(pfx)));
@@ -385,8 +384,10 @@ nfn_request_cancel_local_computation(struct ccnl_relay_s *relay, struct ccnl_pkt
             
         }
         ccnl_free(copy);
+        if (i == NULL) {
+            break;
+        }
     }
-
     ccnl_free(s);
     // if (ccnl_interest_remove_pending(i, i->from)) {
     //     DEBUGMSG_CFWD(DEBUG, "  removed face from pending local computation\n");
@@ -415,8 +416,6 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
             
             nfn_request_forward_to_computation(relay, pkt);
 
-            //nfn_request_cancel_local_computation(relay, pkt);
-
             // find the matching pending interest that should be cancelled
             struct ccnl_prefix_s *copy = ccnl_prefix_dup((*pkt)->pfx);
             ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
@@ -436,7 +435,6 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
                     if (r) {
                         ccnl_interest_propagate(relay, r);
                         ccnl_interest_append_pending(r, from);
-                        // ccnl_interest_remove(relay, r);
                     }
 
                     // remove the pending interest if all faces have been removed
@@ -629,6 +627,8 @@ nfn_request_RX_cancel(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         DEBUGMSG_CFWD(DEBUG, "  no matching interest for cancel response\n");
     }
 
+    nfn_request_cancel_local_computation(relay, &content->pkt);
+
     TRACEOUT();
     return 1;
 }
@@ -646,8 +646,8 @@ nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     enum nfn_request_type request = (*pkt)->pfx->request->type;
 
     int needs_further_processing = 0;
-    int needs_serve_pending = NFN_REQUEST_TYPE_CANCEL | NFN_REQUEST_TYPE_KEEPALIVE;
-    int needs_content = needs_serve_pending;
+    int needs_serve_pending = NFN_REQUEST_TYPE_KEEPALIVE | NFN_REQUEST_TYPE_CANCEL;
+    int needs_content = needs_serve_pending ;
     
     needs_serve_pending = (needs_serve_pending & request) != 0;
     needs_content = (needs_content & request) != 0;
