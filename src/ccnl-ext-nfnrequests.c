@@ -477,7 +477,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
         }
         case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
             DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
-            return 0;
+            return 1;
         }
         default: {
             DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");
@@ -671,6 +671,9 @@ nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             // This was an intermediate result from the compute server.
             // It was cached, and shouldn't be forwarded.
             DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
+        } else {
+            needs_further_processing = 1;
+            DEBUGMSG_CFWD(VERBOSE, "received intermediate result from other node \n");
         }
     }
 
