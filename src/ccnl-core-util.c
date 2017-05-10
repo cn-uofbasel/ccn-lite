@@ -1051,17 +1051,19 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     }
 
     struct ccnl_forward_s *last = NULL;
-    for (fwd = relay->fib; fwd; fwd = fwd->next) {
+    for (fwd = relay->fib; fwd; last = fwd, fwd = fwd->next) {
         if (((pfx == NULL) || (fwd->suite == pfx->suite)) &&
             ((pfx == NULL) || !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) &&
             ((face == NULL) || (fwd->face == face))) {
             res = 0;
-            if (last) {
+            if (!last) {
+                relay->fib = fwd->next;
+            }
+            else {
                 last->next = fwd->next;
             }
             free_prefix(fwd->prefix);
             ccnl_free(fwd);
-            relay->fib = NULL;
             break;
         }
     }
