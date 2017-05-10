@@ -7,7 +7,6 @@ jdk:
 
 os:
     - linux
-    - osx
 
 compiler:
     - clang
