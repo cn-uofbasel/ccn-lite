@@ -619,11 +619,9 @@ struct ccnl_interest_s
     }
     pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, &data, &len);
 
-    struct ccnl_interest_s *i = ccnl_interest_new(&ccnl_relay, loopback_face, &pkt);
-    if (i) {
-        ccnl_interest_append_pending(i, loopback_face);
-        ccnl_interest_propagate(&ccnl_relay, i);
-    }
+    ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
+
+    free_packet(pkt);
 
     return i;
 }
