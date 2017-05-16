@@ -281,12 +281,6 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 
     // CONFORM: Step 2: check whether interest is already known
-#ifdef USE_KITE
-    if ((*pkt)->tracing) { // is a tracing interest
-        for (i = relay->pit; i; i = i->next) {
-        }
-    }
-#endif
     for (i = relay->pit; i; i = i->next)
         if (ccnl_interest_isSame(i, *pkt))
             break;
