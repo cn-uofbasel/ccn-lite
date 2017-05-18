@@ -906,7 +906,11 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
             DEBUGMSG_CORE(WARNING, "releasing interest 0x%p OK?\n", (void*)i);
             c->flags |= CCNL_CONTENT_FLAGS_STATIC;
             i = ccnl_interest_remove(ccnl, i);
-            return 1;
+
+            c->served_cnt++;
+            cnt++;
+            continue;
+            //return 1;
         }
 
         // CONFORM: "Data MUST only be transmitted in response to
