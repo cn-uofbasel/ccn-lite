@@ -251,6 +251,15 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
+#ifdef USE_SUITE_NDNTLV
+    if ((*pkt)->suite == CCNL_SUITE_NDNTLV && (*pkt)->pfx->compcnt == 4 &&
+                                  !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {
+        DEBUGMSG_CFWD(INFO, "  found a mgmt message\n");
+        ccnl_mgmt(relay, (*pkt)->buf, (*pkt)->pfx, from); // use return value?
+        return 0;
+    }
+#endif
+
 #ifdef USE_NFN_REQUESTS
     if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
         if (!nfn_request_handle_interest(relay, from, pkt, cMatch)) {
