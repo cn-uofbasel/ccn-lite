@@ -477,10 +477,18 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
         }
         case NFN_REQUEST_TYPE_GET_INTERMEDIATE: {
             DEBUGMSG_CFWD(DEBUG, "  is a get intermediates interest\n");
-            return 0;
+            return 1;
         }
         default: {
             DEBUGMSG_CFWD(DEBUG, "  Unknown request type.\n");
+            if (!nfn_request_forward_to_computation(relay, pkt)) {
+                r = ccnl_interest_new(relay, from, pkt);
+                if (r) {
+                    ccnl_interest_propagate(relay, r);
+                //    ccnl_interest_append_pending(r, from);
+                    ccnl_interest_remove(relay, r);
+                }
+            }
             return 0;
         }
     }
@@ -648,8 +656,10 @@ nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int needs_serve_pending = NFN_REQUEST_TYPE_KEEPALIVE | NFN_REQUEST_TYPE_CANCEL;
     int needs_content = needs_serve_pending ;
     
-    needs_serve_pending = (needs_serve_pending & request) != 0;
-    needs_content = (needs_content & request) != 0;
+    needs_serve_pending = (needs_serve_pending & request) != 0 
+        || request == NFN_REQUEST_TYPE_UNKNOWN;
+    needs_content = (needs_content & request) != 0 
+        || request == NFN_REQUEST_TYPE_UNKNOWN;
 
     if (needs_content) {
         c = ccnl_content_new(relay, pkt);
@@ -671,6 +681,9 @@ nfn_request_handle_content(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             // This was an intermediate result from the compute server.
             // It was cached, and shouldn't be forwarded.
             DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
+        } else {
+            needs_further_processing = 1;
+            DEBUGMSG_CFWD(VERBOSE, "received intermediate result from other node \n");
         }
     }
 

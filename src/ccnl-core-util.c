@@ -170,6 +170,21 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
             DEBUGMSG(VERBOSE, "nfn flags mismatch\n"); 
             goto done;
         }
+        if (ccnl_nfnprefix_isRequest(nam) != ccnl_nfnprefix_isRequest(pfx)) {
+            DEBUGMSG(VERBOSE, "request mismatch\n"); 
+            goto done;
+        }
+        if (ccnl_nfnprefix_isRequest(nam)) {
+            if (nam->request->type != pfx->request->type) {
+                DEBUGMSG(VERBOSE, "request type mismatch\n"); 
+                goto done;
+            }
+            if (pfx->request->complen != nam->request->complen 
+                    || memcmp(pfx->request->comp, nam->request->comp, nam->request->complen)) {
+                DEBUGMSG(VERBOSE, "request component mismatch\n"); 
+                goto done;
+            }
+        }
         // if (nam->internum != pfx->internum) {
         //     DEBUGMSG(VERBOSE, "1e\n"); 
         //     goto done;
