@@ -1,6 +1,6 @@
 CC ?= gcc
 
-CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} -DCCNL_UNIX
+CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} -DCCNL_UNIX -DUSE_IPV4
 
 ARFLAGS = -rcs
 

@@ -22,6 +22,11 @@
 
 #include "ccnl-prefix.h"
 #include "ccnl-face.h"
+#include "ccnl-relay.h"
+#include "ccnl-buf.h"
+ 
+typedef void (*tapCallback)(struct ccnl_relay_s *, struct ccnl_face_s *,
+                            struct ccnl_prefix_s *, struct ccnl_buf_s *);
 
 struct ccnl_forward_s {
     struct ccnl_forward_s *next;

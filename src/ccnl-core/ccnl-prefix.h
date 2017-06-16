@@ -24,6 +24,7 @@
  #define CCNL_PREFIX
 
  #include <stddef.h>
+#include <unistd.h>
 
 struct ccnl_prefix_s {
     unsigned char **comp;
@@ -63,6 +64,10 @@ ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp, int cmpl
 
 int
 ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum);
+
+int
+ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
+                struct ccnl_prefix_s *nam, int mode);
 
 #ifndef CCNL_LINUXKERNEL
    char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);

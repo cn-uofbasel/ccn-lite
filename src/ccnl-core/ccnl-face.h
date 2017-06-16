@@ -23,7 +23,7 @@
 #ifndef CCNL_FACE_H
 #define CCNL_FACE_H
 
- #include "ccnl-sockunion.h"
+ #include "../ccnl-platform/ccnl-sockunion.h"
 
  struct ccnl_face_s {
     struct ccnl_face_s *next, *prev;

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "ccnl-defs.h"
+#include "../ccnl-platform/ccnl-defs.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
 

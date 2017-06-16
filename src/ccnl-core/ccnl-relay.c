@@ -22,13 +22,20 @@
 
 #include "ccnl-relay.h"
 
+#include <stdio.h>
+
+#include "ccnl-content.h"
 #include "ccnl-forward.h"
 #include "ccnl-frag.h"
+#include "ccnl-if.h"
 #include "ccnl-interest.h"
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
+#include "ccnl-pkt.h"
+#include "ccnl-prefix.h"
 
 #include "../ccnl-addons/ccnl-logging.h"
+#include "../ccnl-platform/ccnl-unix.h"
 
  struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
@@ -344,7 +351,7 @@ ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
     i2 = i->next;
     DBL_LINKED_LIST_REMOVE(ccnl->pit, i);
 
-    free_packet(i->pkt);
+    ccnl_pkt_free(i->pkt);
     ccnl_free(i);
     return i2;
 }
@@ -401,7 +408,9 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
                           fwd->face ? ccnl_addr2ascii(&fwd->face->peer)
                                     : "<tap>");
             ccnl_free(s);
+#ifdef USE_NFN_MONITOR
             ccnl_nfn_monitor(ccnl, fwd->face, i->pkt->pfx, NULL, 0);
+#endif //USE_NFN_MONITOR
 
             // DEBUGMSG(DEBUG, "%p %p %p\n", (void*)i, (void*)i->pkt, (void*)i->pkt->buf);
             if (fwd->tap)
@@ -505,11 +514,11 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 
 //    free_content(c);
     if (c->pkt) {
-        free_prefix(c->pkt->pfx);
+        ccnl_prefix_free(c->pkt->pfx);
         ccnl_free(c->pkt->buf);
         ccnl_free(c->pkt);
     }
-    //    free_prefix(c->name);
+    //    ccnl_prefix_free(c->name);
     ccnl_free(c);
 
     ccnl->contentcnt--;
@@ -681,8 +690,10 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                 ccnl_free(s);
                 DEBUGMSG_CORE(VERBOSE, "    Serve to face: %d (pkt=%p)\n",
                          pi->face->faceid, (void*) c->pkt);
+#ifdef USE_NFN_MONITOR
                 ccnl_nfn_monitor(ccnl, pi->face, c->pkt->pfx,
                                  c->pkt->content, c->pkt->contlen);
+#endif
                 ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt->buf));
             } else {// upcall to deliver content to local client
                 ccnl_app_RX(ccnl, c);
@@ -783,7 +794,11 @@ ccnl_do_ageing(void *ptr, void *dummy)
 //                 i = i->next;
 #else // USE_TIMEOUT
                 DEBUGMSG_AGEING("AGING: REMOVE INTEREST", "timeout: remove interest");
+#ifdef USE_NFN
                 i = ccnl_nfn_interest_remove(relay, i);
+#else
+                i = ccnl_interest_remove(relay, i);
+#endif
 #endif
         } else {
             // CONFORM: "A node MUST retransmit Interest Messages
@@ -874,7 +889,7 @@ ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
         ccnl_face_remove(ccnl, ccnl->faces); // removes allmost all FWD entries
     while (ccnl->fib) {
         struct ccnl_forward_s *fwd = ccnl->fib->next;
-        free_prefix(ccnl->fib->prefix);
+        ccnl_prefix_free(ccnl->fib->prefix);
         ccnl_free(ccnl->fib);
         ccnl->fib = fwd;
     }
@@ -916,7 +931,7 @@ ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     for (fwd = relay->fib; fwd; fwd = fwd->next) {
         if (fwd->suite == pfx->suite &&
                         !ccnl_prefix_cmp(fwd->prefix, NULL, pfx, CMP_EXACT)) {
-            free_prefix(fwd->prefix);
+            ccnl_prefix_free(fwd->prefix);
             fwd->prefix = NULL;
             break;
         }
@@ -965,7 +980,7 @@ ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
             else {
                 last->next = fwd->next;
             }
-            free_prefix(fwd->prefix);
+            ccnl_prefix_free(fwd->prefix);
             ccnl_free(fwd);
             break;
         }
@@ -1022,4 +1037,35 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl)
         c = c->next;
         ccnl_free(s);
     }
+}
+
+void
+ccnl_interface_CTS(void *aux1, void *aux2)
+{
+    struct ccnl_relay_s *ccnl = (struct ccnl_relay_s *)aux1;
+    struct ccnl_if_s *ifc = (struct ccnl_if_s *)aux2;
+    struct ccnl_txrequest_s *r, req;
+
+    DEBUGMSG_CORE(TRACE, "interface_CTS interface=%p, qlen=%d, sched=%p\n",
+             (void*)ifc, ifc->qlen, (void*)ifc->sched);
+
+    if (ifc->qlen <= 0)
+        return;
+
+#ifdef USE_STATS
+    ifc->tx_cnt++;
+#endif
+
+    r = ifc->queue + ifc->qfront;
+    memcpy(&req, r, sizeof(req));
+    ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
+    ifc->qlen--;
+
+    ccnl_ll_TX(ccnl, ifc, &req.dst, req.buf);
+#ifdef USE_SCHEDULER
+    ccnl_sched_CTS_done(ifc->sched, 1, req.buf->datalen);
+    if (req.txdone)
+        req.txdone(req.txdone_face, 1, req.buf->datalen);
+#endif
+    ccnl_free(req.buf);
 }

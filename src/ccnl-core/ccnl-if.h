@@ -74,4 +74,10 @@ struct ccnl_if_s { // interface for packet IO
 #endif
 };
 
+void
+ccnl_interface_cleanup(struct ccnl_if_s *i);
+
+int
+ccnl_close_socket(int s);
+
 #endif // EOF

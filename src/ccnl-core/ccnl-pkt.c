@@ -24,6 +24,8 @@
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
 
+#include "../ccnl-addons/ccnl-logging.h"
+
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt)
 {
@@ -65,3 +67,34 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
         ccnl_free(pkt);
     }
 }
+
+const char*
+ccnl_suite2str(int suite)
+{
+#ifdef USE_SUITE_CCNB
+    if (suite == CCNL_SUITE_CCNB)
+        return CONSTSTR("ccnb");
+#endif
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        return CONSTSTR("ccnx2015");
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        return CONSTSTR("cisco2015");
+#endif
+#ifdef USE_SUITE_IOTTLV
+    if (suite == CCNL_SUITE_IOTTLV)
+        return CONSTSTR("iot2014");
+#endif
+#ifdef USE_SUITE_LOCALRPC
+    if (suite == CCNL_SUITE_LOCALRPC)
+        return CONSTSTR("localrpc");
+#endif
+#ifdef USE_SUITE_NDNTLV
+    if (suite == CCNL_SUITE_NDNTLV)
+        return CONSTSTR("ndn2013");
+#endif
+    return CONSTSTR("?");
+}
+

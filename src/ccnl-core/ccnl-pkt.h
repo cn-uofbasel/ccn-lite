@@ -76,4 +76,7 @@ struct ccnl_pkt_s {
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 
+const char*
+ccnl_suite2str(int suite);
+
 #endif // EOF

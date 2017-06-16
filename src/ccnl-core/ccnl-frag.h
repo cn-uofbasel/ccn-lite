@@ -23,7 +23,7 @@
 #ifndef CCNL_FRAG_H
 #define CCNL_FRAG_H
 
-#include "ccnl-sockunion.h"
+#include "../ccnl-platform/ccnl-sockunion.h"
 #include "ccnl-face.h"
 #include "ccnl-relay.h"
 

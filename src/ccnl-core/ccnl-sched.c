@@ -21,7 +21,12 @@
  */
 
 #include "ccnl-sched.h"
+
+#include <string.h>
+
 #include "ccnl-malloc.h"
+#include "ccnl-os-time.h"
+#include "../ccnl-addons/ccnl-logging.h"
 
 int ccnl_sched_init()
 {

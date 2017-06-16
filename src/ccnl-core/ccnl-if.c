@@ -20,4 +20,42 @@
  * 2017-06-16 created
  */
 
- #include "ccnl-if.h"
+#include "ccnl-if.h"
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+#include "ccnl-malloc.h"
+
+ #include "../ccnl-addons/ccnl-logging.h"
+
+
+void
+ccnl_interface_cleanup(struct ccnl_if_s *i)
+{
+    int j;
+    DEBUGMSG_CORE(TRACE, "ccnl_interface_cleanup\n");
+
+    ccnl_sched_destroy(i->sched);
+    for (j = 0; j < i->qlen; j++) {
+        struct ccnl_txrequest_s *r = i->queue + (i->qfront+j)%CCNL_MAX_IF_QLEN;
+        ccnl_free(r->buf);
+    }
+#ifndef CCNL_RIOT
+    ccnl_close_socket(i->sock);
+#endif
+}
+
+int
+ccnl_close_socket(int s)
+{
+    struct sockaddr_un su;
+    socklen_t len = sizeof(su);
+
+    if (!getsockname(s, (struct sockaddr*) &su, &len) &&
+                                        su.sun_family == AF_UNIX) {
+        unlink(su.sun_path);
+    }
+    return close(s);
+}

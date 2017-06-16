@@ -22,7 +22,7 @@
 #ifndef CCNL_RELAY_H
 #define CCNL_RELAY_H
 
-#include "ccnl-defs.h"
+#include "../ccnl-platform/ccnl-defs.h"
 #include "ccnl-face.h"
 #include "ccnl-if.h"
 #include "ccnl-pkt.h"
@@ -65,6 +65,8 @@ struct ccnl_relay_s {
     char *crypto_path;
   */
 };
+
+struct ccnl_buf_s *bufCleanUpList;
 
 void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest);
@@ -147,6 +149,8 @@ ccnl_fib_show(struct ccnl_relay_s *relay);
 void
 ccnl_cs_dump(struct ccnl_relay_s *ccnl);
 
+void
+ccnl_interface_CTS(void *aux1, void *aux2);
 
 #define DBL_LINKED_LIST_ADD(l,e) \
   do { if ((l)) (l)->prev = (e); \
@@ -159,5 +163,7 @@ ccnl_cs_dump(struct ccnl_relay_s *ccnl);
        if ((e)->prev) (e)->prev->next = (e)->next; \
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
+
+#define ccnl_app_RX(x,y)                do{}while(0)
 
 #endif //CCNL_RELAY_H
