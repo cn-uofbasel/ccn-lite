@@ -23,6 +23,7 @@
 #include "ccnl-relay.h"
 
 #include "ccnl-frag.h"
+#include "ccnl-interest.h"
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
 
@@ -132,7 +133,7 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
     for (ppfwd = &ccnl->fib; *ppfwd;) {
         if ((*ppfwd)->face == f) {
             struct ccnl_forward_s *pfwd = *ppfwd;
-            free_prefix(pfwd->prefix);
+            ccnl_prefix_free(pfwd->prefix);
             *ppfwd = pfwd->next;
             ccnl_free(pfwd);
         } else

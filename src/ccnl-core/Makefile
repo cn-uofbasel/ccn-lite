@@ -9,11 +9,10 @@ OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 
 LIB = lib-ccnl-suite.a
 
+all: ${LIB}
+
 $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
-
-
-all: ${LIB}
 
 ${LIB}: ${OBJECTS}
 	${AR} ${ARFLAGS} $@ $^
