@@ -23,6 +23,9 @@
 #include "ccnl-content.h"
 #include "ccnl-malloc.h"
 #include "ccnl-prefix.h"
+#include "ccnl-os-time.h"
+
+#include "../ccnl-addons/ccnl-logging.h" 
 
 // TODO: remove unused ccnl parameter
 struct ccnl_content_s*

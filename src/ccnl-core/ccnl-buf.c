@@ -21,6 +21,7 @@
  */
 
 #include "ccnl-buf.h"
+#include "ccnl-malloc.h"
 
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len)

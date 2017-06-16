@@ -21,8 +21,8 @@
  */
 
 #include "ccnl-pkt.h"
-
 #include "ccnl-prefix.h"
+#include "ccnl-malloc.h"
 
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt)
