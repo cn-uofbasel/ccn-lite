@@ -30,8 +30,8 @@
 #define CCNL_UNIX
 
 #define USE_CCNxDIGEST
-#define USE_DEBUG                      // must select this for USE_MGMT
-#define USE_DEBUG_MALLOC
+// #define USE_DEBUG                      // must select this for USE_MGMT
+// #define USE_DEBUG_MALLOC
 #define USE_DUP_CHECK
 #define USE_ECHO
 #define USE_LINKLAYER
@@ -66,7 +66,7 @@
 #include "ccnl-core.h"
 
 #include "ccnl-ext.h"
-#include "ccnl-ext-debug.c"
+#include "ccnl-ext-debug.h"
 #include "ccnl-os-time.c"
 #include "ccnl-ext-logging.c"
 

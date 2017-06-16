@@ -140,7 +140,7 @@ CCNL_CORE_LIB = ccnl-defs.h ccnl-core.h ccnl-core.c ccnl-core-fwd.c ccnl-core-ut
 CCNL_RELAY_LIB = ccn-lite-relay.c ${SUITE_LIBS} \
                  ${CCNL_CORE_LIB} ${CCNL_PLATFORM_LIB} \
                  ccnl-ext-echo.c ccnl-ext-hmac.c ccnl-ext-mgmt.c \
-		 ccnl-ext-http.c  ccnl-ext-crypto.c
+		 ccnl-ext-http.c  ccnl-ext-crypto.c ccnl-ext-debug.c
 
 CCNL_PLATFORM_LIB = ccnl-os-includes.h \
                     ccnl-ext-debug.c ccnl-ext.h ccnl-ext-logging.c \
@@ -170,8 +170,9 @@ lib-ccn-lite.a: ccn-lite-riot.c \
 lib-ccn-lite-utils.a: ${UTIL_LIB} util/base64.c util/ccnl-common.c
 	${AR} rcs $@ ${UTIL_LIB}
 
+
 $(UTIL_LIB): %.o: %.c
-	${CC} -o $@ ${RIOT_CFLAGS} ${CCNLCFLAGS} -c $<
+	${CC} -o $@ ${RIOT_CFLAGS} ${CCNLCFLAGS} -DUSE_LOGGING -DUSE_DEBUG -DUSE_DEBUG_MALLOC -c $<
 
 ccn-lite-minimalrelay: ccn-lite-minimalrelay.c \
 	${SUITE_LIBS} ${CCNL_CORE_LIB}
@@ -187,7 +188,7 @@ ccn-nfn-relay-nack: ${CCNL_RELAY_LIB}
 	@${CREATE_BIN}
 
 ccn-lite-relay: ${CCNL_RELAY_LIB}
-	${CC} -o $@ ${CCNLCFLAGS} $< ${EXTLIBS}
+	${CC} -o $@ ${CCNLCFLAGS} -DUSE_LOGGING -DUSE_DEBUG -DUSE_DEBUG_MALLOC $< ccnl-ext-debug.c ${EXTLIBS}
 	@${CREATE_BIN}
 
 ccn-lite-relay-nack: ${CCNL_RELAY_LIB}

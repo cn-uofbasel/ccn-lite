@@ -50,32 +50,32 @@ struct ccnl_buf_s* ccnl_buf_new(void *data, int len);
 //---------------------------------------------------------------------------------------------------------------------------------------
 /* ccnl-ext-debug.c */
 
-#ifdef USE_DEBUG
-char *frag_protocol(int e);
-void ccnl_dump(int lev, int typ, void *p);
-int get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next);
-int get_prefix_dump(int lev, void *p, int *len, char **val);
-int get_num_faces(void *p);
-int get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, int *ifndx, int *flags, char **peer, int *type, char **frag);
-int get_num_fwds(void *p);
-int get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, int *suite, int *prefixlen, char **prefix);
-int get_num_interface(void *p);
-int get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, int *devtype, int *reflect);
-int get_num_interests(void *p);
-int get_interest_dump(int lev, void *p, long *interest, long *next, long *prev, int *last, int *min, int *max, int *retries, long *publisher, int *prefixlen, char **prefix);
-int get_pendint_dump(int lev, void *p, char **out);
-int get_num_contents(void *p);
-int get_content_dump(int lev, void *p, long *content, long *next, long *prev, int *last_use, int *served_cnt, int *prefixlen, char **prefix);
-#endif
+// #ifdef USE_DEBUG
+// char *frag_protocol(int e);
+// void ccnl_dump(int lev, int typ, void *p);
+// int get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next);
+// int get_prefix_dump(int lev, void *p, int *len, char **val);
+// int get_num_faces(void *p);
+// int get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev, int *ifndx, int *flags, char **peer, int *type, char **frag);
+// int get_num_fwds(void *p);
+// int get_fwd_dump(int lev, void *p, long *outfwd, long *next, long *face, int *faceid, int *suite, int *prefixlen, char **prefix);
+// int get_num_interface(void *p);
+// int get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev, int *devtype, int *reflect);
+// int get_num_interests(void *p);
+// int get_interest_dump(int lev, void *p, long *interest, long *next, long *prev, int *last, int *min, int *max, int *retries, long *publisher, int *prefixlen, char **prefix);
+// int get_pendint_dump(int lev, void *p, char **out);
+// int get_num_contents(void *p);
+// int get_content_dump(int lev, void *p, long *content, long *next, long *prev, int *last_use, int *served_cnt, int *prefixlen, char **prefix);
+// #endif
 
-#ifdef USE_DEBUG_MALLOC
-void *debug_malloc(int s, const char *fn, int lno, char *tstamp);
-void *debug_calloc(int n, int s, const char *fn, int lno, char *tstamp);
-int debug_unlink(struct mhdr *hdr);
-void *debug_realloc(void *p, int s, const char *fn, int lno);
-void *debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
-void debug_free(void *p, const char *fn, int lno);
-#endif
+// #ifdef USE_DEBUG_MALLOC
+// void *debug_malloc(int s, const char *fn, int lno, char *tstamp);
+// void *debug_calloc(int n, int s, const char *fn, int lno, char *tstamp);
+// int debug_unlink(struct mhdr *hdr);
+// void *debug_realloc(void *p, int s, const char *fn, int lno);
+// void *debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
+// void debug_free(void *p, const char *fn, int lno);
+// #endif
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------
