@@ -20,6 +20,9 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_SOCKET_UNION_H
+#define CCNL_SOCKET_UNION_H
+
 #include "ccnl-defs.h"
 #include <netinet/in.h>
 
@@ -47,3 +50,8 @@ ccnl_is_local_addr(sockunion *su);
 
 char*
 ccnl_addr2ascii(sockunion *su);
+
+int
+ccnl_addr_cmp(sockunion *s1, sockunion *s2);
+
+#endif

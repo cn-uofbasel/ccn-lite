@@ -204,6 +204,59 @@ enum {
 
 //#define USE_SIGNATURES
 
+
+#define EXACT_MATCH 1
+#define PREFIX_MATCH 0
+
+#define CMP_EXACT   0 // used to compare interests among themselves
+#define CMP_MATCH   1 // used to match interest and content
+#define CMP_LONGEST 2 // used to lookup the FIB
+
+#define CCNL_FACE_FLAGS_STATIC  1
+#define CCNL_FACE_FLAGS_REFLECT 2
+#define CCNL_FACE_FLAGS_SERVED  4
+#define CCNL_FACE_FLAGS_FWDALLI 8 // forward all interests, also known ones
+
+#define CCNL_FRAG_NONE          0
+#define CCNL_FRAG_SEQUENCED2012 1
+#define CCNL_FRAG_CCNx2013      2
+#define CCNL_FRAG_SEQUENCED2015 3
+#define CCNL_FRAG_BEGINEND2015  4
+
+#if defined(CCNL_RIOT) || defined(USE_WPAN)
+#define CCNL_LLADDR_STR_MAX_LEN    (3 * 8)
+#else
+/* unless a platform supports a link layer with longer addresses than Ethernet,
+ * 6 is enough */
+#define CCNL_LLADDR_STR_MAX_LEN    (3 * 6)
+#endif
+// ----------------------------------------------------------------------
+
+#ifdef USE_WPAN
+/* TODO: remove when af_ieee802154.h is in linux mainline */
+#define IEEE802154_ADDR_LEN 8
+
+typedef enum {
+    IEEE802154_ADDR_NONE = 0x0,
+    IEEE802154_ADDR_SHORT = 0x2,
+    IEEE802154_ADDR_LONG = 0x3,
+} wpan_addr_type_t;
+
+struct ieee802154_addr_sa {
+    int addr_type;
+    uint16_t pan_id;
+    union {
+        uint8_t hwaddr[IEEE802154_ADDR_LEN];
+        uint16_t short_addr;
+    } addr;
+};
+
+struct sockaddr_ieee802154 {
+    sa_family_t family;
+    struct ieee802154_addr_sa addr;
+};
+#endif
+
 #endif //CCNL_DEFS_H
 
 // eof

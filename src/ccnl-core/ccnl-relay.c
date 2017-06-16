@@ -22,6 +22,12 @@
 
 #include "ccnl-relay.h"
 
+#include "ccnl-frag.h"
+#include "ccnl-malloc.h"
+#include "ccnl-os-time.h"
+
+#include "../ccnl-addons/ccnl-logging.h"
+
  struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
                        struct sockaddr *sa, int addrlen)

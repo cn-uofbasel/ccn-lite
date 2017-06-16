@@ -23,8 +23,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "ccnl-defs.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
+
+#include "../ccnl-addons/ccnl-logging.h"
 
 struct ccnl_prefix_s*
 ccnl_prefix_new(int suite, int cnt)
@@ -48,7 +51,7 @@ ccnl_prefix_new(int suite, int cnt)
 }
 
 void
-ccnl_prefix_free(struct ccnl_prefix_s *prefix)
+ccnl_prefix_free(struct ccnl_prefix_s *p)
 {
     ccnl_free(p->bytes);
     ccnl_free(p->comp);
@@ -78,7 +81,7 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
         len += prefix->complen[i];
     p->bytes = (unsigned char*) ccnl_malloc(len);
     if (!p->bytes) {
-        free_prefix(p);
+        ccnl_prefix_free(p);
         return NULL;
     }
 

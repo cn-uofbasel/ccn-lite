@@ -24,7 +24,10 @@
 
 #include "ccnl-defs.h"
 #include "ccnl-face.h"
+#include "ccnl-if.h"
 #include "ccnl-pkt.h"
+#include "ccnl-sched.h"
+
 
 struct ccnl_relay_s {
 #ifndef CCNL_ARDUINO
@@ -143,5 +146,18 @@ ccnl_fib_show(struct ccnl_relay_s *relay);
 
 void
 ccnl_cs_dump(struct ccnl_relay_s *ccnl);
+
+
+#define DBL_LINKED_LIST_ADD(l,e) \
+  do { if ((l)) (l)->prev = (e); \
+       (e)->next = (l); \
+       (l) = (e); \
+  } while(0)
+
+#define DBL_LINKED_LIST_REMOVE(l,e) \
+  do { if ((l) == (e)) (l) = (e)->next; \
+       if ((e)->prev) (e)->prev->next = (e)->next; \
+       if ((e)->next) (e)->next->prev = (e)->prev; \
+  } while(0)
 
 #endif //CCNL_RELAY_H

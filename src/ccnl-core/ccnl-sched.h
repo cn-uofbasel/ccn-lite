@@ -23,6 +23,8 @@
 #ifndef CCNL_SCHED_H
 #define CCNL_SCHED_H
 
+#include <sys/time.h>
+
 struct ccnl_relay_s;
 
 struct ccnl_sched_s {

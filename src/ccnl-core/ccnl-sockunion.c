@@ -119,3 +119,52 @@ ccnl_addr2ascii(sockunion *su)
     (void) result; // silence compiler warning (if neither USE_LINKLAYER, USE_IPV4, USE_IPV6, nor USE_UNIXSOCKET is set)
     return NULL;
 }
+
+int
+ccnl_addr_cmp(sockunion *s1, sockunion *s2)
+{
+    if (s1->sa.sa_family != s2->sa.sa_family)
+        return -1;
+    switch (s1->sa.sa_family) {
+#ifdef USE_LINKLAYER
+        case AF_PACKET:
+            return memcmp(s1->linklayer.sll_addr, s2->linklayer.sll_addr,
+                          s1->linklayer.sll_halen);
+#endif
+#ifdef USE_WPAN
+        case AF_IEEE802154:
+            if (s1->wpan.addr.addr_type != s2->wpan.addr.addr_type) {
+                return -1;
+            }
+            if (s1->wpan.addr.pan_id != s2->wpan.addr.pan_id) {
+                return -1;
+            }
+            switch (s1->wpan.addr.addr_type) {
+                case IEEE802154_ADDR_NONE:
+                    return 0;
+                case IEEE802154_ADDR_SHORT:
+                    return (s1->wpan.addr.addr.short_addr == s2->wpan.addr.addr.short_addr) ? 0 : -1;
+                case IEEE802154_ADDR_LONG:
+                    return memcmp(s1->wpan.addr.addr.hwaddr, s2->wpan.addr.addr.hwaddr,
+                                  sizeof(s1->wpan.addr.addr.hwaddr));
+            }
+#endif
+#ifdef USE_IPV4
+        case AF_INET:
+            return s1->ip4.sin_addr.s_addr == s2->ip4.sin_addr.s_addr &&
+                        s1->ip4.sin_port == s2->ip4.sin_port ? 0 : -1;
+#endif
+#ifdef USE_IPV6
+        case AF_INET6:
+        return ((memcmp(s1->ip6.sin6_addr.s6_addr, s2->ip6.sin6_addr.s6_addr, 16) == 0) &&
+                        s1->ip6.sin6_port == s2->ip6.sin6_port) ? 0 : -1;
+#endif
+#ifdef USE_UNIXSOCKET
+        case AF_UNIX:
+            return strcmp(s1->ux.sun_path, s2->ux.sun_path);
+#endif
+        default:
+            break;
+    }
+    return -1;
+}
