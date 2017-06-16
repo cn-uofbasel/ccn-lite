@@ -177,52 +177,6 @@ struct ccnl_buf_s {
     unsigned char data[1];
 };
 
-struct ccnl_prefix_s {
-    unsigned char **comp;
-    int *complen;
-    int compcnt;
-    char suite;
-    unsigned char *nameptr; // binary name (for fast comparison)
-    ssize_t namelen; // valid length of name memory
-    unsigned char *bytes;   // memory for name component copies
-    int *chunknum; // -1 to disable
-#ifdef USE_NFN
-    unsigned int nfnflags;
-# define CCNL_PREFIX_NFN   0x01
-
-# define CCNL_PREFIX_COMPU 0x04
-// #ifdef USE_TIMEOUT_KEEPALIVE 
-// FIXME: these values need to be compiled conditionally
-# define CCNL_PREFIX_KEEPALIVE 0x08
-# define CCNL_PREFIX_INTERMEDIATE 0x10
-    int internum;
-// #endif
-    unsigned char *nfnexpr;
-#endif
-};
-
-struct ccnl_frag_s {
-    int protocol; // fragmentation protocol, 0=none
-    int mtu;
-    sockunion dest;
-    struct ccnl_buf_s *bigpkt; // outgoing bytes
-    unsigned int sendoffs;
-    int outsuite; // suite of outgoing packet
-    // transport state, if present:
-    int ifndx;
-
-    // int insuite; // suite of incoming packet series
-    struct ccnl_buf_s *defrag; // incoming bytes
-
-    unsigned int sendseq;
-    unsigned int losscount;
-    unsigned int recvseq;
-    unsigned char flagwidth;
-    unsigned char sendseqwidth;
-    unsigned char losscountwidth;
-    unsigned char recvseqwidth;
-};
-
 struct ccnl_face_s {
     struct ccnl_face_s *next, *prev;
     int faceid;
@@ -268,37 +222,9 @@ struct ccnl_pendint_s { // pending interest
     int last_used;
 };
 
-struct ccnl_content_s {
-    struct ccnl_content_s *next, *prev;
-    struct ccnl_pkt_s *pkt;
-    unsigned short flags;
-#define CCNL_CONTENT_FLAGS_STATIC  0x01
-#define CCNL_CONTENT_FLAGS_STALE   0x02
-    // NON-CONFORM: "The [ContentSTore] MUST also implement the Staleness Bit."
-    // >> CCNL: currently no stale bit, old content is fully removed <<
-    int last_used;
-    int served_cnt;
-};
 
-struct ccnl_pktdetail_ccnb_s {
-    int minsuffix, maxsuffix, aok, scope;
-    struct ccnl_buf_s *nonce;
-    struct ccnl_buf_s *ppkd;        // publisher public key digest
-};
 
-struct ccnl_pktdetail_ccntlv_s {
-    struct ccnl_buf_s *keyid;       // publisher keyID
-};
 
-struct ccnl_pktdetail_iottlv_s {
-    int ttl;
-};
-
-struct ccnl_pktdetail_ndntlv_s {
-    int minsuffix, maxsuffix, mbf, scope;
-    struct ccnl_buf_s *nonce;      // nonce
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
-};
 
 // packet flags:  0000ebtt
 
@@ -308,30 +234,7 @@ struct ccnl_pktdetail_ndntlv_s {
 #define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
 #define CCNL_PKT_FRAG_END   0x08
 
-struct ccnl_pkt_s {
-    struct ccnl_buf_s *buf;        // the packet's bytes
-    struct ccnl_prefix_s *pfx;     // prefix/name
-    unsigned char *content;        // pointer into the data buffer
-    int contlen;
-    unsigned int type;   // suite-specific value (outermost type)
-    union {
-        int final_block_id;
-        unsigned int seqno;
-    } val;
-    union {
-        struct ccnl_pktdetail_ccnb_s   ccnb;
-        struct ccnl_pktdetail_ccntlv_s ccntlv;
-        struct ccnl_pktdetail_iottlv_s iottlv;
-        struct ccnl_pktdetail_ndntlv_s ndntlv;
-    } s;                           // suite specific packet details
-#ifdef USE_HMAC256
-    unsigned char *hmacStart;
-    int hmacLen;
-    unsigned char *hmacSignature;
-#endif
-    unsigned int flags;
-    char suite;
-};
+
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
                            unsigned char**, int*);

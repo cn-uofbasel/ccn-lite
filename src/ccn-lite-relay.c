@@ -151,7 +151,7 @@ ccnl_open_wpandev(char *devname, struct sockaddr_ieee802154 *swpan)
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, (char*) devname, IFNAMSIZ);
     if(ioctl(s, SIOCGIFHWADDR, (void *) &ifr) < 0 ) {
-        perror("wpansock ioctl get hw addr");
+        perror("wpansock ioctl get hw addrbuf_new");
         return -1;
     }
 

@@ -25,7 +25,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 // #ifdef USE_DEBUG
 // #  define USE_LOGGING
 // #endif
@@ -315,10 +315,7 @@ ccnl_buf_new(void *data, int len)
 #define free_4ptr_list(a,b,c,d)   ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 #define free_5ptr_list(a,b,c,d,e) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d), ccnl_free(e);
 
-#define free_prefix(p)  do{ if(!p) break;  \
-                free_5ptr_list(p->bytes,p->comp,p->complen,p->chunknum,p); } while(0)
-#define free_content(c) do{ /* free_prefix(c->name); */ free_packet(c->pkt); \
-                        ccnl_free(c); } while(0)
+
 
 void free_packet(struct ccnl_pkt_s *pkt);
 
