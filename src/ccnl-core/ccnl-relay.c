@@ -22,6 +22,7 @@
 
 #include "ccnl-relay.h"
 
+#include "ccnl-forward.h"
 #include "ccnl-frag.h"
 #include "ccnl-interest.h"
 #include "ccnl-malloc.h"
@@ -126,7 +127,11 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
         else {
             DEBUGMSG_CORE(TRACE, "before NFN interest_remove 0x%p\n",
                           (void*)pit);
+#ifdef USE_NFN
             pit = ccnl_nfn_interest_remove(ccnl, pit);
+#else
+            pit = ccnl_interest_remove(ccnl, pit);
+#endif
         }
     }
     DEBUGMSG_CORE(TRACE, "face_remove: cleaning fwd table\n");
