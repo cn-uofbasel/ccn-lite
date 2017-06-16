@@ -20,6 +20,9 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_IF_H
+#define CCNL_IF_H
+
 #ifdef CCNL_LINUXKERNEL
 #include <linux/workqueue.h>
 #include <linux/socket.h>
@@ -69,3 +72,5 @@ struct ccnl_if_s { // interface for packet IO
     uint32_t rx_cnt, tx_cnt;
 #endif
 };
+
+#endif // EOF
