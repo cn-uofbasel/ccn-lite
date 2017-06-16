@@ -21,6 +21,7 @@
  */
 
 #include "ccnl-defs.h"
+#include <netinet/in.h>
 
 typedef union {
     struct sockaddr sa;

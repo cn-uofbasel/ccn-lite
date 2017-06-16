@@ -23,7 +23,10 @@
 #ifndef CCNL_BUF_H
 #define CCNL_BUF_H
 
+#include <unistd.h> //FIXME: SWITCH HERE
 #include <stddef.h>
+#include <string.h>
+#include "ccnl-malloc.h"
 
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;

@@ -23,6 +23,8 @@
  #ifndef CCNL_MALLOC_H
  #define CCNL_MALLOC_H
 
+#include <stdlib.h>
+
 #ifdef USE_DEBUG_MALLOC
 struct mhdr {
     struct mhdr *next;
@@ -59,7 +61,7 @@ debug_strdup(const char *s, const char *fn, int lno, double tstamp);
 #else 
 void*
 debug_malloc(int s, const char *fn, int lno, char *tstamp);
-void*
+void* 
 debug_calloc(int n, int s, const char *fn, int lno, char *tstamp);
 void*
 debug_strdup(const char *s, const char *fn, int lno, char *tstamp);

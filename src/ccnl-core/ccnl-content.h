@@ -38,7 +38,7 @@ struct ccnl_content_s {
 };
 
 struct ccnl_content_s*
-ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt);
+ccnl_content_new(struct ccnl_pkt_s **pkt);
 
 void
 ccnl_content_free(struct ccnl_content_s *content);

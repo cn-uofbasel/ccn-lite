@@ -26,9 +26,8 @@
 
 // TODO: remove unused ccnl parameter
 struct ccnl_content_s*
-ccnl_content_new(struct ccnl_relay_s *ccnl, struct ccnl_pkt_s **pkt)
+ccnl_content_new(struct ccnl_pkt_s **pkt)
 {
-    (void) ccnl;
     struct ccnl_content_s *c;
 
     char *s = NULL;

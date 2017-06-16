@@ -24,6 +24,7 @@
 
 #include "ccnl-defs.h"
 #include "ccnl-face.h"
+#include "ccnl-pkt.h"
 
 struct ccnl_relay_s {
 #ifndef CCNL_ARDUINO
@@ -61,8 +62,6 @@ struct ccnl_relay_s {
     char *crypto_path;
   */
 };
-
-ccnl_free(s);
 
 void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest);
