@@ -1,0 +1,148 @@
+/*
+ * @f ccnl-relay.h
+ * @b CCN lite (CCNL), core header file (internal data structures)
+ *
+ * Copyright (C) 2011-17, University of Basel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * File history:
+ * 2017-06-16 created
+ */
+#ifndef CCNL_RELAY_H
+#define CCNL_RELAY_H
+
+#include "ccnl-defs.h"
+#include "ccnl-face.h"
+
+struct ccnl_relay_s {
+#ifndef CCNL_ARDUINO
+    time_t startup_time;
+#endif
+    int id;
+    struct ccnl_face_s *faces;
+    struct ccnl_forward_s *fib;
+    struct ccnl_interest_s *pit;
+    struct ccnl_content_s *contents; //, *contentsend;
+    struct ccnl_buf_s *nonces;
+    int contentcnt;             // number of cached items
+    int max_cache_entries;      // -1: unlimited
+    int pitcnt;
+    int max_pit_entries;      // -1: unlimited
+    struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
+    int ifcount;                // number of active interfaces
+    char halt_flag;
+    struct ccnl_sched_s* (*defaultFaceScheduler)(struct ccnl_relay_s*,
+                                                 void(*cts_done)(void*,void*));
+    struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
+                                                 void(*cts_done)(void*,void*));
+#ifdef USE_HTTP_STATUS
+    struct ccnl_http_s *http;
+#endif
+    void *aux;
+
+#ifdef USE_NFN
+    struct ccnl_krivine_s *km;
+#endif
+
+  /*
+    struct ccnl_face_s *crypto_face;
+    struct ccnl_pendcrypt_s *pendcrypt;
+    char *crypto_path;
+  */
+};
+
+ccnl_free(s);
+
+void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
+                             struct ccnl_interest_s *interest);
+
+void ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+
+struct ccnl_face_s*
+ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
+                       struct sockaddr *sa, int addrlen);
+
+struct ccnl_face_s*
+ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+
+void
+ccnl_interface_enqueue(void (tx_done)(void*, int, int), struct ccnl_face_s *f,
+                       struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
+                       struct ccnl_buf_s *buf, sockunion *dest);
+
+struct ccnl_buf_s*
+ccnl_face_dequeue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+
+void
+ccnl_face_CTS_done(void *ptr, int cnt, int len);
+
+void
+ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
+
+int
+ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
+                 struct ccnl_buf_s *buf);
+
+struct ccnl_interest_s*
+ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                  struct ccnl_pkt_s **pkt);
+
+struct ccnl_interest_s*
+ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+
+void
+ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
+
+void
+ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest);
+
+
+struct ccnl_content_s*
+ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+
+struct ccnl_content_s*
+ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+
+int
+ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+
+void
+ccnl_do_ageing(void *ptr, void *dummy);
+
+int
+ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce);
+
+int
+ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt);
+
+void
+ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
+
+#ifdef NEEDS_PREFIX_MATCHING
+int
+ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face);
+
+int
+ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
+                   struct ccnl_face_s *face);
+#endif //NEEDS_PREFIX_MATCHING
+
+void
+ccnl_fib_show(struct ccnl_relay_s *relay);
+
+void
+ccnl_cs_dump(struct ccnl_relay_s *ccnl);
+
+#endif //CCNL_RELAY_H

@@ -114,7 +114,6 @@ char* timestamp(void);
 #  define ccnl_realloc(p,s)     debug_realloc(p, s, PSTR(__FILE__), __LINE__)
 #  define ccnl_strdup(s)        debug_strdup(s, PSTR(__FILE__), __LINE__, CCNL_NOW())
 #  define ccnl_free(p)          debug_free(p, PSTR(__FILE__), __LINE__)
-#  define ccnl_buf_new(p,s)     debug_buf_new(p, s, PSTR(__FILE__), __LINE__, CCNL_NOW())
 
 void*
 debug_malloc(int s, const char *fn, int lno, double tstamp)
@@ -258,32 +257,11 @@ debug_free(void *p, const char *fn, int lno)
     // to discover continued use of a freed memory zone
 }
 
-#ifdef CCNL_ARDUINO
 
-struct ccnl_buf_s*
-debug_buf_new(void *data, int len, const char *fn, int lno, double tstamp)
-
-#else
-
-struct ccnl_buf_s*
-debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
-
-#endif
-
-{
-    struct ccnl_buf_s *b =
-         (struct ccnl_buf_s *) debug_malloc(sizeof(*b) + len, fn, lno, tstamp);
-
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 #else // !USE_DEBUG_MALLOC
+
+
 
 # ifndef CCNL_LINUXKERNEL
 #  define ccnl_malloc(s)        malloc(s)
@@ -293,19 +271,7 @@ debug_buf_new(void *data, int len, const char *fn, int lno, char *tstamp)
 #  define ccnl_free(p)          free(p)
 # endif
 
-struct ccnl_buf_s*
-ccnl_buf_new(void *data, int len)
-{
-    struct ccnl_buf_s *b = (struct ccnl_buf_s*) ccnl_malloc(sizeof(*b) + len);
 
-    if (!b)
-        return NULL;
-    b->next = NULL;
-    b->datalen = len;
-    if (data)
-        memcpy(b->data, data, len);
-    return b;
-}
 
 #endif // !USE_DEBUG_MALLOC
 
