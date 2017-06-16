@@ -15,8 +15,8 @@ $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
 ${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^ -x ../ccnl-addons/libccnl-addons.a
+	${AR} ${ARFLAGS} $@ $^ ../ccnl-addons/libccnl-addons.a
 
 
 clean: 
-	rm *.o
+	rm *.o *.a
