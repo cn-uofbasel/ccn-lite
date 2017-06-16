@@ -22,7 +22,7 @@
 #ifndef CCNL_RELAY_H
 #define CCNL_RELAY_H
 
-#include "../ccnl-platform/ccnl-defs.h"
+#include "ccnl-defs.h"
 #include "ccnl-face.h"
 #include "ccnl-if.h"
 #include "ccnl-pkt.h"

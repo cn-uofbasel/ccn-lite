@@ -7,7 +7,7 @@ ARFLAGS = -rcs
 SOURCES=$(wildcard *.c)
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 
-LIB = lib-ccnl-suite.a
+LIB = libccnl-core.a
 
 all: ${LIB}
 
@@ -15,4 +15,8 @@ $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
 ${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^
+	${AR} ${ARFLAGS} $@ $^ -x ../ccnl-addons/libccnl-addons.a
+
+
+clean: 
+	rm *.o

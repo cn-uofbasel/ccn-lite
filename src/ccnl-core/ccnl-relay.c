@@ -34,8 +34,10 @@
 #include "ccnl-pkt.h"
 #include "ccnl-prefix.h"
 
+#include "ccnl-unix.h"
+
 #include "../ccnl-addons/ccnl-logging.h"
-#include "../ccnl-platform/ccnl-unix.h"
+
 
  struct ccnl_face_s*
 ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
