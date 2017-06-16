@@ -20,10 +20,12 @@
  * 2017-06-16 created
  */
 
+#ifdef CCNL_LINUXKERNEL
 #include <linux/workqueue.h>
 #include <linux/socket.h>
 #include <linux/netdevice.h>
 #include <net/sock.h>
+#endif
 
 #include "ccnl-sched.h"
 #include "ccnl-face.h"
