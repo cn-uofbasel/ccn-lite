@@ -171,12 +171,6 @@ struct ccnl_relay_s {
   */
 };
 
-struct ccnl_buf_s {
-    struct ccnl_buf_s *next;
-    ssize_t datalen;
-    unsigned char data[1];
-};
-
 struct ccnl_face_s {
     struct ccnl_face_s *next, *prev;
     int faceid;

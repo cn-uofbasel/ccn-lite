@@ -45,10 +45,6 @@ int ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix, int minsuffix,
 // ----------------------------------------------------------------------
 // datastructure support functions
 
-#define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
-#define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
-                         !memcmp(X->data,Y->data,X->datalen))
-
 struct ccnl_prefix_s* ccnl_prefix_new(int suite, int cnt);
 
 // ----------------------------------------------------------------------
