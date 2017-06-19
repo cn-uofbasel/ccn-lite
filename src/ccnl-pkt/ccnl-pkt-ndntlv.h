@@ -23,6 +23,9 @@
 #ifndef CCNL_PKT_NDNTLV_H
 #define CCNL_PKT_NDNTLV_H
 
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+
 #define NDN_UDP_PORT                    6363
 #define NDN_DEFAULT_MTU                 4096
 
@@ -115,5 +118,15 @@ unsigned long int
 ccnl_ndntlv_nonNegInt(unsigned char *cp, int len);
 #endif // USE_SUITE_NDNTLV
 
+int
+ccnl_ndntlv_dehead(unsigned char **buf, int *len,
+                   int *typ, int *vallen);
+
+struct ccnl_pkt_s*
+ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
+                      unsigned char **data, int *datalen);
+
+int
+ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 #endif // EOF

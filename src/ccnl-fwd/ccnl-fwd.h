@@ -19,3 +19,18 @@
  * File history:
  * 2017-06-16 created
  */
+
+#ifndef CCNL_FWD_H
+#define CCNL_FWD_H
+
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+#include "../ccnl-core/ccnl-relay.h"
+#include "../ccnl-core/ccnl-face.h"
+
+typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*, 
+                           unsigned char**, int*);
+
+typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
+
+#endif

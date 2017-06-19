@@ -30,6 +30,8 @@
 #include "ccnl-if.h"
 #include "ccnl-buf.h"
 
+#define local_producer(...)     0
+
 void
 ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf);

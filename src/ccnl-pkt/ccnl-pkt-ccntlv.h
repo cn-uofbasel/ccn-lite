@@ -25,6 +25,9 @@
 
 #include <stdint.h>
 
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+
 #ifndef CCN_UDP_PORT
 # define CCN_UDP_PORT                    9695
 #endif
@@ -159,5 +162,15 @@ struct ccnx_tlvhdr_ccnx201409_s {
 
 // #define CCNX_TLV_IntFrag                        0x0001 // TODO: correct type value?
 // #define CCNX_TLV_ObjFrag                        0x0002 // TODO: correct type value?
+
+int
+ccnl_ccntlv_dehead(unsigned char **buf, int *len,
+                   unsigned int *typ, unsigned int *vallen);
+
+struct ccnl_pkt_s*
+ccnl_ccntlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
+
+int
+ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 #endif // eof

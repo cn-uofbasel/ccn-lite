@@ -52,4 +52,11 @@ struct ccnl_pendint_s { // pending interest
 //struct ccnl_interest_s*
 //ccnl_interest_new(struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
 
+int
+ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt);
+
+int
+ccnl_interest_append_pending(struct ccnl_interest_s *i,
+                             struct ccnl_face_s *from);
+                             
 #endif //CCNL_INTEREST_H

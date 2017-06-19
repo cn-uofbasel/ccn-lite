@@ -23,6 +23,9 @@
 #ifndef CCNL_PKT_IOTTLV_H
 #define CCNL_PKT_IOTTLV_H
 
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+
 // ----------------------------------------------------------------------
 // Header
 
@@ -122,5 +125,16 @@ Validation: (covers Name and Payload entries of a Reply or Request msg)
 // inside validation
 #define IOT_TLV_V_AlgoType      0x0
 #define IOT_TLV_V_Bits          0x1
+
+int
+ccnl_iottlv_dehead(unsigned char **buf, int *len,
+                   unsigned int *typ, int *vallen);
+
+struct ccnl_pkt_s*
+ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
+                      unsigned char **data, int *datalen);
+
+int
+ccnl_iottlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 #endif // eof

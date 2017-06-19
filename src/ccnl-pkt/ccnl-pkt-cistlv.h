@@ -23,6 +23,9 @@
 #ifndef CCNL_PKT_CISTLV_H
 #define CCNL_PKT_CISTLV_H
 
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+
 // ----------------------------------------------------------------------
 // Header
 
@@ -80,5 +83,15 @@ struct cisco_tlvhdr_201501_s {
 #define CISCO_ERR_CONGESTED                      2
 #define CISCO_ERR_NORESOURCE                     3
 #define CISCO_ERR_POLICY                         4
+
+int
+ccnl_cistlv_dehead(unsigned char **buf, int *len,
+                   unsigned int *typ, unsigned int *vallen);
+
+struct ccnl_pkt_s*
+ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
+
+int
+ccnl_cistlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 #endif // eof

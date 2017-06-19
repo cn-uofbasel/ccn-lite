@@ -24,6 +24,9 @@
 #ifndef CCNL_PKT_CCNB_H
 #define CCNL_PKT_CCNB_H
 
+#include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-content.h"
+
 // ----------------------------------------------------------------------
 
 #define CCN_UDP_PORT            9695
@@ -81,5 +84,14 @@
 #define CCN_DTAG_FragD          451
 #define CCN_DTAG_FragP          463
 #define CCN_DTAG_CCNPDU         17702112
+
+int
+ccnl_ccnb_dehead(unsigned char **buf, int *len, int *num, int *typ);
+
+struct ccnl_pkt_s*
+ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
+
+int
+ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
 #endif // eof

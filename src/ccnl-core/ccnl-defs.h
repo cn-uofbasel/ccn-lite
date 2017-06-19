@@ -20,10 +20,10 @@
  * 2011-03-30 created
  */
 
-#define CCNL_VERSION "2015-07-07"
-
 #ifndef CCNL_DEFS_H
 #define CCNL_DEFS_H
+
+#define CCNL_VERSION "2015-07-07"
 
 #define ETHTYPE_XEROX_PUP               0x0a00
 #define ETHTYPE_PARC_CCNX               0x0801
