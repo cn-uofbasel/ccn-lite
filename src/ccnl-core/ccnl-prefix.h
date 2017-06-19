@@ -20,10 +20,10 @@
  * 2017-06-16 created
  */
 
- #ifndef CCNL_PREFIX
- #define CCNL_PREFIX
+#ifndef CCNL_PREFIX
+#define CCNL_PREFIX
 
- #include <stddef.h>
+#include <stddef.h>
 #include <unistd.h>
 
 struct ccnl_prefix_s {
