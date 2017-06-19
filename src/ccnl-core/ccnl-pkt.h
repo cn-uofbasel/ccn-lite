@@ -28,6 +28,13 @@
 #include "ccnl-buf.h"
 #include "ccnl-prefix.h"
 
+// packet flags:  0000ebtt
+#define CCNL_PKT_REQUEST    0x01 // "Interest"
+#define CCNL_PKT_REPLY      0x02 // "Object", "Data"
+#define CCNL_PKT_FRAGMENT   0x03 // "Fragment"
+#define CCNL_PKT_FRAG_BEGIN 0x04 // see also CCNL_DATA_FRAG_FLAG_FIRST etc
+#define CCNL_PKT_FRAG_END   0x08
+
 struct ccnl_pktdetail_ccnb_s {
     int minsuffix, maxsuffix, aok, scope;
     struct ccnl_buf_s *nonce;
