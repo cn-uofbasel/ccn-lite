@@ -1,5 +1,5 @@
 /*
- * @f ccnl-sockunion.c
+ * @f ccnl-interest.c
  * @b CCN lite (CCNL), core source file (internal data structures)
  *
  * Copyright (C) 2011-17, University of Basel

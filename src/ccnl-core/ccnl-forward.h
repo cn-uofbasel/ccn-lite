@@ -1,5 +1,5 @@
 /*
- * @f ccnl-frag.c
+ * @f ccnl-forward.h
  * @b CCN lite (CCNL), core header file (internal data structures)
  *
  * Copyright (C) 2011-17, University of Basel

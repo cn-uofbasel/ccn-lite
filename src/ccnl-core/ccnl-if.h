@@ -1,5 +1,5 @@
 /*
- * @f ccnl-sched.c
+ * @f ccnl-if.h
  * @b CCN lite, core CCNx protocol logic
  *
  * Copyright (C) 2011-18 University of Basel
