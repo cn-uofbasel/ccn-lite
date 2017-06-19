@@ -24,6 +24,7 @@
 
 #include <stddef.h>
 
+#include "ccnl-malloc.h"
 
 struct ccnl_array_s*
 ccnl_array_new(int capacity)
