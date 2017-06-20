@@ -72,6 +72,14 @@ bin
 # XCode
 *.xcodeproj
 
+# IDEA
+.idea
+
+# Eclipse
+.cproject
+.project
+
+
 # distribution files:
 distribution/Debian/ccn-lite
 distribution/Debian/ccn-lite.deb

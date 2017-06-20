@@ -99,5 +99,39 @@ struct rdr_ds_s { // RPC Data Representation (RDR) data structure
 
 #define LRPC_NOT_SERIALIZED          -1
 
+
+
+int 
+ccnl_rdr_getType(struct rdr_ds_s *ds);
+
+void 
+ccnl_rdr_free(struct rdr_ds_s *x);
+
+struct rdr_ds_s* 
+ccnl_rdr_mkSeq(void);
+
+struct rdr_ds_s* 
+ccnl_rdr_seqAppend(struct rdr_ds_s *seq, struct rdr_ds_s *el);
+
+struct rdr_ds_s* 
+ccnl_rdr_mkNonNegInt(unsigned int val);
+
+int 
+ccnl_rdr_serialize(struct rdr_ds_s *ds, unsigned char *buf, int buflen);
+
+struct rdr_ds_s* 
+ccnl_rdr_unserialize(unsigned char *buf, int buflen);
+
+int 
+ccnl_rdr_getFlatLen(struct rdr_ds_s *ds);
+
+struct rdr_ds_s* 
+ccnl_rdr_mkNonce(char *data, int len);
+
+struct rdr_ds_s* 
+ccnl_rdr_mkStr(char *s);
+
+
+
 #endif // CCNL_PKT_LOCALRPC_H
 // eof

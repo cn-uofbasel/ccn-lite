@@ -2,7 +2,9 @@ CC ?= gcc
 
 CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} -DCCNL_UNIX -DUSE_IPV4
 
-ARFLAGS = -rcs
+#ARFLAGS = rcs
+ARFLAGS = -static -o
+AR = libtool
 
 SOURCES=$(wildcard *.c)
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
@@ -15,7 +17,7 @@ $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
 ${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^ ../ccnl-addons/libccnl-addons.a
+	${AR} ${ARFLAGS} $@ $^
 
 clean: 
 	rm *.o *.a

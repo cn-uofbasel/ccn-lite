@@ -22,6 +22,25 @@
 
 #ifdef USE_SUITE_LOCALRPC
 
+#include "ccnl-localrpc.h"
+
+#include <string.h>
+#include <stdio.h>
+
+#include "ccnl-fwd.h"
+
+#include "../ccnl-core/ccnl-malloc.h"
+
+#include "../ccnl-pkt/ccnl-pkt-localrpc.h"
+#include "../ccnl-pkt/ccnl-pkt-ccnb.h"
+#include "../ccnl-pkt/ccnl-pkt-ccntlv.h"
+#include "../ccnl-pkt/ccnl-pkt-cistlv.h"
+#include "../ccnl-pkt/ccnl-pkt-iottlv.h"
+#include "../ccnl-pkt/ccnl-pkt-ndntlv.h"
+#include "../ccnl-pkt/ccnl-pkt-switch.h"
+
+#include "../ccnl-addons/ccnl-logging.h"
+
 int ccnl_rdr_dump(int lev, struct rdr_ds_s *x)
 {
     int i, t;
@@ -270,7 +289,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 c = c->next;
         }
         ccnl_free(p);
-        free_prefix(prefix);
+        ccnl_prefix_free(prefix);
 
         param = param->nextinseq;
     }
@@ -489,7 +508,7 @@ done:
 
     return rc;
 }
-
+ 
 int
 ccnl_localrpc_exec(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                    unsigned char **buf, int *buflen)

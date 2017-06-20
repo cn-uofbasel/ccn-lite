@@ -5,7 +5,9 @@ SUITEFLAGS = -DUSE_SUITE_CCNTLV -DUSE_SUITE_NDNTLV -DUSE_SUITE_CCNB \
 USEFLAGS = -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PACKET_CRAFTING
 CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} ${USEFLAGS} ${SUITEFLAGS}
 
-ARFLAGS = -rcs
+#ARFLAGS = rcs
+ARFLAGS = -static -o
+AR = libtool
 
 #SOURCES=$(wildcard *.c)
 SOURCES = ccnl-pkt-switch.c ccnl-pkt-ndntlv.c ccnl-pkt-ccntlv.c \
@@ -21,7 +23,7 @@ $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
 ${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^ ../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a
+	${AR} ${ARFLAGS} $@ $^
 
 clean: 
 	rm *.o *.a
