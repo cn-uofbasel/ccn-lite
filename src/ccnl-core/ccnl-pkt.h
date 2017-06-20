@@ -86,4 +86,10 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 const char*
 ccnl_suite2str(int suite);
 
+int
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
+
+int
+ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
+
 #endif // EOF

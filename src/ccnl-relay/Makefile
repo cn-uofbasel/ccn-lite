@@ -8,18 +8,18 @@ CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} ${USEFLAGS} ${SUITEFLAGS}
 ARFLAGS = -rcs
 
 #SOURCES=$(wildcard *.c)
-SOURCES = ccnl-fwd.c ccnl-dispatch.c
-OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
+#SOURCES = ccn-lite-relay.c
+#OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-LIB = libccnl-fwd.a
-
-all: ${LIB}
+all: ccn-lite-relay
 
 $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
-${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^ ../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a ../ccnl-pkt/libccnl-pkt.a
+ccn-lite-relay: ccn-lite-relay.c
+	${CC} -o $@ ${CCNLCFLAGS} -DUSE_LOGGING -DUSE_DEBUG -DUSE_DEBUG_MALLOC $< ${EXTLIBS} \
+		../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a ../ccnl-pkt/libccnl-pkt.a ../ccnl-fwd/libccnl-fwd.a
+	@${CREATE_BIN}
 
 clean: 
 	rm *.o *.a

@@ -69,15 +69,18 @@ int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode);
 
+//int
+//ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
+
+struct ccnl_prefix_s *
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum);
+
 #ifndef CCNL_LINUXKERNEL
    char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 #  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
 #else
    char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 #endif
-
-#define free_prefix(p)  do{ if(!p) break;  \
-    free_5ptr_list(p->bytes,p->comp,p->complen,p->chunknum,p); } while(0)
 
 
 #endif //EOF

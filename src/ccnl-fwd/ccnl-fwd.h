@@ -33,4 +33,42 @@ typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*,
 
 typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+struct ccnl_suite_s {
+    dispatchFct RX;
+    cMatchFct cMatch;
+};
+
+#ifdef USE_SUITE_CCNB
+int
+ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+              unsigned char **data, int *datalen, int typ);
+int
+ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                    unsigned char **data, int *datalen);
+#endif // USE_SUITE_CCNB
+
+#ifdef USE_SUITE_CCNTLV
+int
+ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen);
+#endif // USE_SUITE_CCNTLV
+
+#ifdef USE_SUITE_CISTLV
+int
+ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen);
+#endif // USE_SUITE_CISTLV
+
+#ifdef USE_SUITE_IOTTLV
+int
+ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen);
+#endif // USE_SUITE_IOTTLV
+
+#ifdef USE_SUITE_NDNTLV
+int
+ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                      unsigned char **data, int *datalen);
+#endif // USE_SUITE_NDNTLV
+
 #endif

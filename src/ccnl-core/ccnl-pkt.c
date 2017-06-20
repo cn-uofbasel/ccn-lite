@@ -98,3 +98,78 @@ ccnl_suite2str(int suite)
     return CONSTSTR("?");
 }
 
+int
+ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
+{
+    int len = 0;
+
+    switch (suite) {
+#ifdef USE_SUITE_CCNTLV
+    case CCNL_SUITE_CCNTLV: {
+        unsigned short *sp = (unsigned short*) dst;
+        *sp++ = htons(CCNX_TLV_N_NameSegment);
+        len = srclen;
+        *sp++ = htons(len);
+        memcpy(sp, src, len);
+        len += 2*sizeof(unsigned short);
+        break;
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    case CCNL_SUITE_CISTLV: {
+        unsigned short *sp = (unsigned short*) dst;
+        *sp++ = htons(CISCO_TLV_NameComponent);
+        len = srclen;
+        *sp++ = htons(len);
+        memcpy(sp, src, len);
+        len += 2*sizeof(unsigned short);
+        break;
+    }
+#endif
+    default:
+        len = srclen;
+        memcpy(dst, src, len);
+        break;
+    }
+
+    return len;
+}
+
+int
+ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf)
+{
+    int len = strlen(src);
+
+    DEBUGMSG_CUTL(TRACE, "ccnl_pkt_prependComponent(%d, %s)\n", suite, src);
+
+    if (*offset < len)
+        return -1;
+    memcpy(buf + *offset - len, src, len);
+    *offset -= len;
+
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV) {
+        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
+        if (*offset < 4)
+            return -1;
+        *sp-- = htons(len);
+        *sp = htons(CCNX_TLV_N_NameSegment);
+        len += 2*sizeof(unsigned short);
+        *offset -= 2*sizeof(unsigned short);
+    }
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV) {
+        unsigned short *sp = (unsigned short*) (buf + *offset) - 1;
+        if (*offset < 4)
+            return -1;
+        *sp-- = htons(len);
+        *sp = htons(CISCO_TLV_NameComponent);
+        len += 2*sizeof(unsigned short);
+        *offset -= 2*sizeof(unsigned short);
+    }
+#endif
+
+    return len;
+}
+

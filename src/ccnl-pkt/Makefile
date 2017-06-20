@@ -9,7 +9,8 @@ ARFLAGS = -rcs
 
 #SOURCES=$(wildcard *.c)
 SOURCES = ccnl-pkt-switch.c ccnl-pkt-ndntlv.c ccnl-pkt-ccntlv.c \
-		  ccnl-pkt-ccnb.c ccnl-pkt-cistlv.c ccnl-pkt-iottlv.c ccnl-pkt-localrpc.c
+		  ccnl-pkt-ccnb.c ccnl-pkt-cistlv.c ccnl-pkt-iottlv.c \
+		  ccnl-pkt-localrpc.c ccnl-pkt-util.c
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
 LIB = libccnl-pkt.a

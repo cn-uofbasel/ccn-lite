@@ -94,4 +94,7 @@ ccnl_cistlv_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
 int
 ccnl_cistlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+int
+ccnl_cistlv_getHdrLen(unsigned char *data, int len);
+
 #endif // eof

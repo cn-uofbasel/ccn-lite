@@ -22,8 +22,10 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "ccnl-defs.h"
+#include "ccnl-pkt.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
 
@@ -99,7 +101,6 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
 
     return p;
 }
-
 
 int
 ccnl_prefix_appendCmp(struct ccnl_prefix_s *prefix, unsigned char *cmp,
@@ -217,6 +218,140 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum)
 
     return 0;
 }
+
+// TODO: move to a util file?
+int
+hex2int(unsigned char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    c = tolower(c);
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 0x0a;
+    return 0;
+}
+
+int
+unescape_component(char *comp) // inplace, returns len after shrinking
+{
+    char *in = comp, *out = comp;
+    int len;
+
+    for (len = 0; *in; len++) {
+        if (in[0] != '%' || !in[1] || !in[2]) {
+            *out++ = *in++;
+            continue;
+        }
+        *out++ = hex2int(in[1])*16 + hex2int(in[2]);
+        in += 3;
+    }
+    return len;
+}
+
+// fill in the compVector (watch out: this modifies the uri string)
+int
+ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri)
+{
+    int i, len;
+
+    if (*uri == '/')
+        uri++;
+
+    for (i = 0; *uri && i < (CCNL_MAX_NAME_COMP - 1); i++) {
+        compVector[i] = uri;
+        while (*uri && *uri != '/') {
+            uri++;
+        }
+        if (*uri) {
+            *uri = '\0';
+            uri++;
+        }
+        len = unescape_component(compVector[i]);
+
+        if (compLens)
+            compLens[i] = len;
+
+        compVector[i][len] = '\0';
+    }
+    compVector[i] = NULL;
+
+    return i;
+}
+
+// turn an URI into an internal prefix (watch out: this modifies the uri string)
+struct ccnl_prefix_s *
+ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
+{
+    struct ccnl_prefix_s *p;
+    char *compvect[CCNL_MAX_NAME_COMP];
+    unsigned int complens[CCNL_MAX_NAME_COMP];
+    int cnt, i, len, tlen;
+
+    DEBUGMSG_CUTL(TRACE, "ccnl_URItoPrefix(suite=%s, uri=%s, nfn=%s)\n",
+             ccnl_suite2str(suite), uri, (nfnexpr != NULL) ? nfnexpr : "none");
+
+    if (strlen(uri))
+        cnt = ccnl_URItoComponents(compvect, complens, uri);
+    else
+        cnt = 0;
+
+    if (nfnexpr && *nfnexpr)
+        cnt += 1;
+
+    p = ccnl_prefix_new(suite, cnt);
+    if (!p)
+        return NULL;
+
+    for (i = 0, len = 0; i < cnt; i++) {
+        if (i == (cnt-1) && nfnexpr && *nfnexpr)
+            len += strlen(nfnexpr);
+        else
+            len += complens[i];//strlen(compvect[i]);
+    }
+#ifdef USE_SUITE_CCNTLV
+    if (suite == CCNL_SUITE_CCNTLV)
+        len += cnt * 4; // add TL size
+#endif
+#ifdef USE_SUITE_CISTLV
+    if (suite == CCNL_SUITE_CISTLV)
+        len += cnt * 4; // add TL size
+#endif
+
+    p->bytes = (unsigned char*) ccnl_malloc(len);
+    if (!p->bytes) {
+        ccnl_prefix_free(p);
+        return NULL;
+    }
+
+    for (i = 0, len = 0, tlen = 0; i < cnt; i++) {
+        int isnfnfcomp = i == (cnt-1) && nfnexpr && *nfnexpr;
+        char *cp = isnfnfcomp ? nfnexpr : (char*) compvect[i];
+
+        if (isnfnfcomp)
+            tlen = strlen(nfnexpr);
+        else
+            tlen = complens[i];
+
+        p->comp[i] = p->bytes + len;
+        tlen = ccnl_pkt_mkComponent(suite, p->comp[i], cp, tlen);
+        p->complen[i] = tlen;
+        len += tlen;
+    }
+
+    p->compcnt = cnt;
+#ifdef USE_NFN
+    if (nfnexpr && *nfnexpr)
+        p->nfnflags |= CCNL_PREFIX_NFN;
+#endif
+
+    if(chunknum) {
+        p->chunknum = (int*) ccnl_malloc(sizeof(int));
+        *p->chunknum = *chunknum;
+    }
+
+    return p;
+}
+
 
 #ifdef NEEDS_PREFIX_MATCHING
 
