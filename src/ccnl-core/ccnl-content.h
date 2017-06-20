@@ -23,7 +23,7 @@
 #ifndef CCNL_CONTENT_H
 #define CCNL_CONTENT_H
 
-#include "ccnl-pkt.h"
+struct ccnl_pkt_s *pkt;
 
 struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 #include "../ccnl-core/ccnl-buf.h"
 #include "../ccnl-core/ccnl-defs.h"

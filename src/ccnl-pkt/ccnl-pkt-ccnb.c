@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "../ccnl-core/ccnl-buf.h"
 #include "../ccnl-core/ccnl-defs.h"

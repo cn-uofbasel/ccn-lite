@@ -26,6 +26,8 @@
 #include <stddef.h>
 #include <unistd.h>
 
+struct ccnl_content_s;
+
 struct ccnl_prefix_s {
     unsigned char **comp;
     int *complen;
@@ -68,6 +70,10 @@ ccnl_prefix_addChunkNum(struct ccnl_prefix_s *prefix, unsigned int chunknum);
 int
 ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
                 struct ccnl_prefix_s *nam, int mode);
+
+int
+ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
+                  int minsuffix, int maxsuffix, struct ccnl_content_s *c);
 
 //int
 //ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);

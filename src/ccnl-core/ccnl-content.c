@@ -21,8 +21,10 @@
  */
 
 #include "ccnl-content.h"
+
 #include "ccnl-malloc.h"
 #include "ccnl-prefix.h"
+#include "ccnl-pkt.h"
 #include "ccnl-os-time.h"
 
 #include "../ccnl-addons/ccnl-logging.h" 
