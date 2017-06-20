@@ -83,9 +83,6 @@ struct ccnl_pkt_s {
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 
-const char*
-ccnl_suite2str(int suite);
-
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
 

@@ -23,6 +23,9 @@
 #include "ccnl-logging.h"
 
 #include <string.h>
+#include <stdio.h>
+
+int debug_level;
 
 char
 ccnl_debugLevelToChar(int level)

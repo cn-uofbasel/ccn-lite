@@ -76,6 +76,7 @@
 #include "../ccnl-core/ccnl-face.h"
 #include "../ccnl-core/ccnl-prefix.h"
 #include "../ccnl-core/ccnl-pkt.h"
+#include "../ccnl-core/ccnl-pkt-util.h"
 #include "../ccnl-core/ccnl-buf.h"
 #include "../ccnl-core/ccnl-defs.h"
 #include "../ccnl-core/ccnl-content.h"
@@ -90,7 +91,6 @@
 #include "../ccnl-pkt/ccnl-pkt-iottlv.h"
 #include "../ccnl-pkt/ccnl-pkt-ndntlv.h"
 #include "../ccnl-pkt/ccnl-pkt-switch.h"
-#include "../ccnl-pkt/ccnl-pkt-util.h"
 
 #include "../ccnl-fwd/ccnl-dispatch.h"
 
@@ -117,6 +117,92 @@
 //#include "ccnl-ext-sched.c"
 //#include "ccnl-ext-frag.c"
 //#include "ccnl-ext-crypto.c"
+
+
+#ifdef CCNL_ARDUINO
+const char compile_string[] PROGMEM = ""
+#else
+const char *compile_string = ""
+#endif
+
+#ifdef USE_CCNxDIGEST
+        "CCNxDIGEST, "
+#endif
+#ifdef USE_DEBUG
+        "DEBUG, "
+#endif
+#ifdef USE_DEBUG_MALLOC
+        "DEBUG_MALLOC, "
+#endif
+#ifdef USE_ECHO
+        "ECHO, "
+#endif
+#ifdef USE_LINKLAYER
+        "ETHERNET, "
+#endif
+#ifdef USE_WPAN
+        "WPAN, "
+#endif
+#ifdef USE_FRAG
+        "FRAG, "
+#endif
+#ifdef USE_HMAC256
+        "HMAC256, "
+#endif
+#ifdef USE_HTTP_STATUS
+        "HTTP_STATUS, "
+#endif
+#ifdef USE_KITE
+        "KITE, "
+#endif
+#ifdef USE_LOGGING
+        "LOGGING, "
+#endif
+#ifdef USE_MGMT
+        "MGMT, "
+#endif
+#ifdef USE_NACK
+        "NACK, "
+#endif
+#ifdef USE_NFN
+        "NFN, "
+#endif
+#ifdef USE_NFN_MONITOR
+        "NFN_MONITOR, "
+#endif
+#ifdef USE_NFN_NSTRANS
+        "NFN_NSTRANS, "
+#endif
+#ifdef USE_SCHEDULER
+        "SCHEDULER, "
+#endif
+#ifdef USE_SIGNATURES
+        "SIGNATURES, "
+#endif
+#ifdef USE_SUITE_CCNB
+        "SUITE_CCNB, "
+#endif
+#ifdef USE_SUITE_CCNTLV
+        "SUITE_CCNTLV, "
+#endif
+#ifdef USE_SUITE_CISTLV
+        "SUITE_CISTLV, "
+#endif
+#ifdef USE_SUITE_IOTTLV
+        "SUITE_IOTTLV, "
+#endif
+#ifdef USE_SUITE_LOCALRPC
+        "SUITE_LOCALRPC, "
+#endif
+#ifdef USE_SUITE_NDNTLV
+        "SUITE_NDNTLV, "
+#endif
+#ifdef USE_UNIXSOCKET
+        "UNIXSOCKET, "
+#endif
+        ;
+
+
 
 // ----------------------------------------------------------------------
 
@@ -395,6 +481,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     (void) rc; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
+/*
 int
 ccnl_close_socket(int s)
 {
@@ -402,11 +489,12 @@ ccnl_close_socket(int s)
     socklen_t len = sizeof(su);
 
     if (!getsockname(s, (struct sockaddr*) &su, &len) &&
-                                        su.sun_family == AF_UNIX) {
+                                        su.sun_famccnl_suite2strily == AF_UNIX) {
         unlink(su.sun_path);
     }
     return close(s);
 }
+*/
 
 // ----------------------------------------------------------------------
 

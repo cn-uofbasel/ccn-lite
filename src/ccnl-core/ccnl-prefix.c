@@ -28,6 +28,7 @@
 #include "ccnl-pkt.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
+#include "ccnl-content.h"
 
 #include "../ccnl-addons/ccnl-logging.h"
 

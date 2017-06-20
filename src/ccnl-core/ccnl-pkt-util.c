@@ -21,7 +21,7 @@
 
 #include "ccnl-pkt-util.h"
 
-#include "../ccnl-core/ccnl-defs.h"
+#include "ccnl-defs.h"
 
 #include "../ccnl-pkt/ccnl-pkt-ccnb.h"
 #include "../ccnl-pkt/ccnl-pkt-ccntlv.h"

@@ -32,6 +32,7 @@
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"
 #include "ccnl-pkt.h"
+#include "ccnl-pkt-util.h"
 #include "ccnl-prefix.h"
 
 #include "ccnl-unix.h"
@@ -116,8 +117,9 @@ ccnl_face_remove(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
              (void*)ccnl, (void*)f);
 
     ccnl_sched_destroy(f->sched);
+#ifdef USE_FRAG
     ccnl_frag_destroy(f->frag);
-
+#endif
     DEBUGMSG_CORE(TRACE, "face_remove: cleaning PIT\n");
     for (pit = ccnl->pit; pit; ) {
         struct ccnl_pendint_s **ppend, *pend;

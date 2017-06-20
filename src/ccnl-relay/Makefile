@@ -17,7 +17,7 @@ $(OBJECTS): $(SOURCES)
 	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
 
 ccn-lite-relay: ccn-lite-relay.c
-	${CC} -o $@ ${CCNLCFLAGS} -DUSE_LOGGING -DUSE_DEBUG -DUSE_DEBUG_MALLOC $< ${EXTLIBS} \
+	${CC} -o $@ ${CCNLCFLAGS} -DUSE_LOGGING $< ${EXTLIBS} \
 		../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a ../ccnl-pkt/libccnl-pkt.a ../ccnl-fwd/libccnl-fwd.a
 	@${CREATE_BIN}
 

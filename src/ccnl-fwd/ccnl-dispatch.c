@@ -24,6 +24,7 @@
 #include "ccnl-localrpc.h"
 
 #include "../ccnl-core/ccnl-relay.h"
+#include "../ccnl-core/ccnl-pkt-util.h"
 
 #include "../ccnl-fwd/ccnl-fwd.h"
 
@@ -34,7 +35,6 @@
 #include "../ccnl-pkt/ccnl-pkt-ndntlv.h"
 #include "../ccnl-pkt/ccnl-pkt-switch.h"
 #include "../ccnl-pkt/ccnl-pkt-localrpc.h"
-#include "../ccnl-pkt/ccnl-pkt-util.h"
 
 #include "../ccnl-addons/ccnl-logging.h"
 

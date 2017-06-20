@@ -24,8 +24,6 @@
 #define CCNL_LOGGING_H
 
 
-extern int debug_level;
-
 #define FATAL   0  // FATAL
 #define ERROR   1  // ERROR
 #define WARNING 2  // WARNING
@@ -35,6 +33,8 @@ extern int debug_level;
 #define TRACE 	6  // TRACE
 
 #ifdef USE_LOGGING
+
+extern int debug_level;
 
 char
 ccnl_debugLevelToChar(int level);

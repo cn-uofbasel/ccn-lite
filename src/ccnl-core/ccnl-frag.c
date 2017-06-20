@@ -21,7 +21,14 @@
  */
 
 #ifdef USE_FRAG
+
 #include "ccnl-frag.h"
+
+#include "ccnl-malloc.h"
+#include "ccnl-pkt.h"
+
+#include "../ccnl-addons/ccnl-logging.h"
+
 /* 
  * CCNL_FRAG_NONE
  *  passthrough, i.e. no header is added at all
