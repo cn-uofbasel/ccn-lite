@@ -268,7 +268,9 @@ ccnl_interface_CTS(void *aux1, void *aux2)
     ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
     ifc->qlen--;
 
-    ccnl_ll_TX(ccnl, ifc, &req.dst, req.buf);
+    if(ccnl->ccnl_ll_TX_ptr){
+        ccnl->ccnl_ll_TX_ptr(ccnl, ifc, &req.dst, req.buf);
+    }
 #ifdef USE_SCHEDULER
     ccnl_sched_CTS_done(ifc->sched, 1, req.buf->datalen);
     if (req.txdone)

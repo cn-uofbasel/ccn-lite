@@ -30,6 +30,8 @@
 
 
 struct ccnl_relay_s {
+    void (*ccnl_ll_TX_ptr)(struct ccnl_relay_s*, struct ccnl_if_s*,
+        sockunion*, struct ccnl_buf_s*);
 #ifndef CCNL_ARDUINO
     time_t startup_time;
 #endif

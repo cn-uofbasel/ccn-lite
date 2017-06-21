@@ -18,8 +18,8 @@ $(OBJECTS): $(SOURCES)
 
 ccn-lite-relay: ccn-lite-relay.c
 	${CC} -o $@ ${CCNLCFLAGS} -DUSE_LOGGING $< ${EXTLIBS} \
-		../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a ../ccnl-pkt/libccnl-pkt.a ../ccnl-fwd/libccnl-fwd.a
+		../ccnl-core/libccnl-core.a ../ccnl-addons/libccnl-addons.a ../ccnl-pkt/libccnl-pkt.a ../ccnl-fwd/libccnl-fwd.a ../ccnl-unix/libccnl-unix.a
 	@${CREATE_BIN}
 
 clean: 
-	rm *.o *.a
+	rm ccn-lite-relay
