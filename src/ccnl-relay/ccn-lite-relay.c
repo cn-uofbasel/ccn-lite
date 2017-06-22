@@ -30,6 +30,7 @@
 
 #include "../ccnl-unix/ccnl-os-includes.h"
 #include "../ccnl-core/ccnl-defs.h"
+#include "../ccnl-core/ccnl-malloc.h"
 
 #include "../ccnl-addons/ccnl-logging.h"
 #include "../ccnl-core/ccnl-pkt-util.h"
@@ -160,8 +161,6 @@ const char *compile_string = ""
 
 // ----------------------------------------------------------------------
 
-struct ccnl_relay_s theRelay;
-
 // ----------------------------------------------------------------------
 
 int
@@ -173,6 +172,7 @@ main(int argc, char **argv)
     char *datadir = NULL, *ethdev = NULL, *crypto_sock_path = NULL;
     char *wpandev = NULL;
     int suite = CCNL_SUITE_DEFAULT;
+    struct ccnl_relay_s *theRelay = ccnl_malloc(sizeof(struct ccnl_relay_s));
 #ifdef USE_UNIXSOCKET
     char *uxpath = CCNL_DEFAULT_UNIXSOCKNAME;
 #else
@@ -182,7 +182,7 @@ main(int argc, char **argv)
     char *echopfx = NULL;
 #endif
 
-    time(&theRelay.startup_time);
+    time(&theRelay->startup_time);
     unsigned int seed = time(NULL) * getpid();
     srandom(seed);
 
@@ -290,18 +290,18 @@ usage:
     ccnl_core_init();
 
     DEBUGMSG(INFO, "This is ccn-lite-relay, starting at %s",
-             ctime(&theRelay.startup_time) + 4);
+             ctime(&theRelay->startup_time) + 4);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
     DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
     DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "  seed: %u\n", seed);
 //    DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
-    ccnl_relay_config(&theRelay, ethdev, wpandev, udpport1, udpport2,
+    ccnl_relay_config(theRelay, ethdev, wpandev, udpport1, udpport2,
 		      udp6port1, udp6port2, httpport,
                       uxpath, suite, max_cache_entries, crypto_sock_path);
     if (datadir)
-        ccnl_populate_cache(&theRelay, datadir);
+        ccnl_populate_cache(theRelay, datadir);
 
 #ifdef USE_ECHO
     if (echopfx) {
@@ -310,19 +310,19 @@ usage:
 
         pfx = ccnl_URItoPrefix(dup, suite, NULL, NULL);
         if (pfx)
-            ccnl_echo_add(&theRelay, pfx);
+            ccnl_echo_add(theRelay, pfx);
         ccnl_free(dup);
     }
 #endif
 
-    ccnl_io_loop(&theRelay);
+    ccnl_io_loop(theRelay);
 
     while (eventqueue)
         ccnl_rem_timer(eventqueue);
 
-    ccnl_core_cleanup(&theRelay);
+    ccnl_core_cleanup(theRelay);
 #ifdef USE_HTTP_STATUS
-    theRelay.http = ccnl_http_cleanup(theRelay.http);
+    theRelay->http = ccnl_http_cleanup(theRelay->http);
 #endif
 #ifdef USE_DEBUG_MALLOC
     debug_memdump();

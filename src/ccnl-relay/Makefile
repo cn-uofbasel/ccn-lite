@@ -22,4 +22,4 @@ ccn-lite-relay: ccn-lite-relay.c
 	@${CREATE_BIN}
 
 clean: 
-	rm ccn-lite-relay
+	rm -f ccn-lite-relay
