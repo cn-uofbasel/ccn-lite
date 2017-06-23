@@ -327,7 +327,7 @@ usage:
 #ifdef USE_DEBUG_MALLOC
     debug_memdump();
 #endif
-
+    ccnl_free(theRelay);
     return 0;
 }
 
