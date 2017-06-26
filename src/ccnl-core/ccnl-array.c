@@ -30,10 +30,11 @@ struct ccnl_array_s*
 ccnl_array_new(int capacity)
 {
     size_t size = sizeof(struct ccnl_array_s);
-    struct ccnl_array_s* array = (struct ccnl_array_s)ccnl_malloc(size);
+    struct ccnl_array_s* array = (struct ccnl_array_s *)ccnl_malloc(size);
     array->count = 0;
     array->capacity = capacity ? capacity : CCNL_ARRAY_DEFAULT_CAPACITY;
     array->items = (void **)ccnl_calloc(array->capacity, sizeof(void *));
+    return array;
 }
 
 void
@@ -59,11 +60,11 @@ ccnl_array_pop(struct ccnl_array_s *array)
         if (array->count < 1)
         {
             // TODO: warning
-            return;
+            return NULL;
         }
     #endif
     array->count--;
-    return array->items[array->count]
+    return array->items[array->count];
 }
 
 void

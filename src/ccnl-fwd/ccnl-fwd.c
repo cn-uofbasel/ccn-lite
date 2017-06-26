@@ -32,7 +32,7 @@
 #include "../ccnl-core/ccnl-interest.h"
 #include "../ccnl-core/ccnl-malloc.h"
 #include "../ccnl-core/ccnl-forward.h"
-#include "../ccnl-core/ccnl-unix.h"
+#include "../ccnl-core/ccnl-mgmt.h"
 
 #include "../ccnl-pkt/ccnl-pkt-ccnb.h"
 #include "../ccnl-pkt/ccnl-pkt-ccntlv.h"
@@ -40,6 +40,8 @@
 #include "../ccnl-pkt/ccnl-pkt-iottlv.h"
 #include "../ccnl-pkt/ccnl-pkt-ndntlv.h"
 #include "../ccnl-pkt/ccnl-pkt-switch.h"
+
+#include "../ccnl-unix/ccnl-unix.h"
 
 #include "../ccnl-addons/ccnl-logging.h"
 
@@ -254,11 +256,11 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-#ifdef USE_SUITE_CCNB
+#if defined(USE_SUITE_CCNB) && defined(USE_MGMT)
     if ((*pkt)->suite == CCNL_SUITE_CCNB && (*pkt)->pfx->compcnt == 4 &&
                                   !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {
         DEBUGMSG_CFWD(INFO, "  found a mgmt message\n");
-        // ccnl_mgmt(relay, (*pkt)->buf, (*pkt)->pfx, from); // use return value? // TODO uncomment
+        ccnl_mgmt(relay, (*pkt)->buf, (*pkt)->pfx, from); // use return value? // TODO uncomment
         return 0;
     }
 #endif
