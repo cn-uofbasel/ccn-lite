@@ -50,8 +50,12 @@ test/unit/unit
 test/scripts/nfn/nfn.jar
 test/scripts/nfn/temp-service-library/*
 
-#bin files
+# bin files
 bin
+
+# output dirs
+lib/
+obj/
 
 # OSX:
 

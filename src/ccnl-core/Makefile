@@ -1,23 +1,44 @@
+LIBNAME = libccnl-core.a
+CCNLCFLAGS = -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PREFIX_MATCHING
+INCLUDES = ../ccnl-addons/include ../ccnl-pkt/include
+
+
 CC ?= gcc
 
-CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PREFIX_MATCHING
+INCLUDE = include
+SRC = src
+LIB = lib
+OBJ = obj
 
-#ARFLAGS = rcs
+DIRS = $(OBJ) $(LIB)
+
+INCLUDES += $(INCLUDE)
+IFLAGS = $(foreach d,$(INCLUDES),-I$d)
+CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
+
 ARFLAGS = -static -o
 AR = libtool
 
-SOURCES=$(wildcard *.c)
-OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
+SOURCES=$(wildcard $(SRC)/*.c)
+OBJECTS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
 
-LIB = libccnl-core.a
+LIBRARY = $(LIB)/$(LIBNAME)
 
-all: ${LIB}
+all: ${LIBRARY}
 
-$(OBJECTS): $(SOURCES)
-	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
+#$(OBJECTS): $(SOURCES) | $(OBJ)
+#	 $(CC) $(CFLAGS) -c -o $@ $<
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^
+$(LIBRARY): $(OBJECTS) | $(LIB)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
+
+$(OBJ):
+	mkdir -p $(OBJ)
+
+$(LIB):
+	mkdir -p $(LIB)
 
 clean: 
-	rm *.o *.a
+	rm -rf $(DIRS)

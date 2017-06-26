@@ -28,14 +28,14 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
-#include "../ccnl-unix/ccnl-os-includes.h"
-#include "../ccnl-core/ccnl-defs.h"
-#include "../ccnl-core/ccnl-malloc.h"
+#include "ccnl-os-includes.h"
+#include "ccnl-defs.h"
+#include "ccnl-malloc.h"
 
-#include "../ccnl-addons/ccnl-logging.h"
-#include "../ccnl-core/ccnl-pkt-util.h"
-#include "../ccnl-fwd/ccnl-dispatch.h"
-#include "../ccnl-core/ccnl-os-time.h"
+#include "ccnl-logging.h"
+#include "ccnl-pkt-util.h"
+#include "ccnl-dispatch.h"
+#include "ccnl-os-time.h"
 
 /*
 
@@ -74,7 +74,7 @@
 */
 
 #include "ccn-lite-relay.h"
-#include "../ccnl-unix/ccnl-unix.h"
+#include "ccnl-unix.h"
 
 #ifdef CCNL_ARDUINO
 const char compile_string[] PROGMEM = ""

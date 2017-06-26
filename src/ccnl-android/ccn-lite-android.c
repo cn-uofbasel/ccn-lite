@@ -69,12 +69,12 @@
 
 #include "../ccnl-os-includes.h" //TODO: 
 
-#include "../ccnl-core/ccnl-defs.h"
-// #include "../ccnl-core/ccnl-core.h"
+#include "ccnl-defs.h"
+// #include "ccnl-core.h"
 
 //#include "ccnl-ext.h"
-#include "../ccnl-core/ccnl-os-time.h"
-#include "../ccnl-addons/ccnl-logging.h"
+#include "ccnl-os-time.h"
+#include "ccnl-logging.h"
 
 void append_to_log(char *line);
 
@@ -93,12 +93,12 @@ unsigned char keyid[32];
 #include "../ccnl-ext-hmac.c" //TODO: 
 #include "../ccnl-ext-http.c" //TODO: 
 
-#include "../ccnl-fwd/ccnl-localrpc.h"
+#include "ccnl-localrpc.h"
 #include "ccnl-ext-mgmt.c" //TODO: 
 #include "ccnl-ext-nfn.c" //TODO: 
 #include "ccnl-ext-nfnmonitor.c" //TODO: 
-#include "../ccnl-core/ccnl-sched.h"
-#include "../ccnl-core/ccnl-frag.h"
+#include "ccnl-sched.h"
+#include "ccnl-frag.h"
 #include "../ccnl-ext-crypto.c" //TODO: 
 
 // ----------------------------------------------------------------------

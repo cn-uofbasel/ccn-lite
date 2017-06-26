@@ -1,4 +1,4 @@
-CC ?= gcc
+LIBNAME = libccnl-unix.a
 
 CCNL_DEFINES = -DCCNL_UNIX -DUSE_CCNxDIGEST -DUSE_DUP_CHECK -DUSE_ECHO \
 					-DUSE_HMAC256 -DUSE_IPV4 \
@@ -12,25 +12,47 @@ CCNL_PACKET_FORMATS = -DUSE_SUITE_CCNB -DUSE_SUITE_CCNTLV -DUSE_SUITE_CISTLV \
 CCNL_DISABLED_FLAGS = USE_LINKLAYER USE_DEBUG USE_DEBUG_MALLOC USE_FRAG \
 						USE_NACK USE_NFN USE_NFN_MONITOR USE_NFN_KEEPALIVE \
 						USE_NFN_PULL USE_SCHEDULER USE_SIGNATURES -DUSE_HTTP_STATUS
- 
-CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES}  $(CCNL_DEFINES) $(CCNL_PACKET_FORMATS)
 
-#ARFLAGS = rcs
+CCNLCFLAGS = $(CCNL_DEFINES) $(CCNL_PACKET_FORMATS)
+INCLUDES = ../ccnl-addons/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-core/include
+
+
+CC ?= gcc
+
+INCLUDE = include
+SRC = src
+LIB = lib
+OBJ = obj
+
+DIRS = $(OBJ) $(LIB)
+
+INCLUDES += $(INCLUDE)
+IFLAGS = $(foreach d,$(INCLUDES),-I$d)
+CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
+
 ARFLAGS = -static -o
 AR = libtool
 
-SOURCES=$(wildcard *.c)
-OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
+SOURCES=$(wildcard $(SRC)/*.c)
+OBJECTS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
 
-LIB = libccnl-unix.a
+LIBRARY = $(LIB)/$(LIBNAME)
 
-all: ${LIB}
+all: ${LIBRARY}
 
-$(OBJECTS): $(SOURCES)
-	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
+#$(OBJECTS): $(SOURCES) | $(OBJ)
+#	 $(CC) $(CFLAGS) -c -o $@ $<
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^
+$(LIBRARY): $(OBJECTS) | $(LIB)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
+
+$(OBJ):
+	mkdir -p $(OBJ)
+
+$(LIB):
+	mkdir -p $(LIB)
 
 clean: 
-	rm -f *.o *.a
+	rm -rf $(DIRS)

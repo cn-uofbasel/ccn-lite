@@ -1,23 +1,42 @@
+LIBNAME = libccnl-addons.a
+CCNLCFLAGS = -DCCNL_UNIX 
+
+
 CC ?= gcc
 
-CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} -DCCNL_UNIX 
-#ARFLAGS = rcs
+INCLUDE = include
+SRC = src
+LIB = lib
+OBJ = obj
+
+DIRS = $(OBJ) $(LIB)
+
+INCLUDES = -I$(INCLUDE)
+CFLAGS = -Wall -Werror -std=c99 -g $(INCLUDES) $(CCNLCFLAGS)
+
 ARFLAGS = -static -o
 AR = libtool
 
-SOURCES=$(wildcard *.c)
-OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
+SOURCES=$(wildcard $(SRC)/*.c)
+OBJECTS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
 
-LIB = libccnl-addons.a
+LIBRARY = $(LIB)/$(LIBNAME)
 
-all: ${LIB}
+all: ${LIBRARY}
 
-$(OBJECTS): $(SOURCES)
-	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
+#$(OBJECTS): $(SOURCES) | $(OBJ)
+#	 $(CC) $(CFLAGS) -c -o $@ $<
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-${LIB}: ${OBJECTS}
-	${AR} ${ARFLAGS} $@ $^
+$(LIBRARY): $(OBJECTS) | $(LIB)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
 
+$(OBJ):
+	mkdir -p $(OBJ)
+
+$(LIB):
+	mkdir -p $(LIB)
 
 clean: 
-	rm *.o *.a
+	rm -rf $(DIRS)
