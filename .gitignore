@@ -56,6 +56,7 @@ bin
 # output dirs
 lib/
 obj/
+build/
 
 # OSX:
 
