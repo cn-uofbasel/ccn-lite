@@ -1,5 +1,5 @@
 LIBNAME = libccnl-addons.a
-CCNLCFLAGS = -DCCNL_UNIX 
+CCNLCFLAGS = -DCCNL_UNIX
 
 
 CC ?= gcc
@@ -11,8 +11,9 @@ OBJ = obj
 
 DIRS = $(OBJ) $(LIB)
 
-INCLUDES = -I$(INCLUDE)
-CFLAGS = -Wall -Werror -std=c99 -g $(INCLUDES) $(CCNLCFLAGS)
+INCLUDES += $(INCLUDE)
+IFLAGS = $(foreach d,$(INCLUDES),-I$d)
+CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
 
 ARFLAGS = -static -o
 AR = libtool
