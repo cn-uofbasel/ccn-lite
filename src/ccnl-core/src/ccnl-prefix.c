@@ -23,6 +23,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <ccnl-os-time.h>
+#include <ccnl-pkt-util.h>
 
 #include "ccnl-defs.h"
 #include "ccnl-pkt.h"

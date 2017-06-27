@@ -20,6 +20,8 @@
  * 2017-06-16 created
  */
 
+#include <stdio.h>
+#include <ccnl-os-time.h>
 #include "ccnl-buf.h"
 
 #include "ccnl-logging.h"

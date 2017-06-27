@@ -23,6 +23,7 @@
 #include "ccnl-relay.h"
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "ccnl-content.h"
 #include "ccnl-forward.h"

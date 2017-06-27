@@ -19,6 +19,7 @@
  * 2017-06-20 created
  */
 
+#include <ccnl-os-time.h>
 #include "ccnl-pkt-util.h"
 
 #include "ccnl-defs.h"

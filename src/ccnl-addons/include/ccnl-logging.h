@@ -34,6 +34,8 @@
 
 #ifdef USE_LOGGING
 
+#include <stdio.h>
+
 extern int debug_level;
 
 char

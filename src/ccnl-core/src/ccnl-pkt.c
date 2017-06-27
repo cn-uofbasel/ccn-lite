@@ -20,6 +20,7 @@
  * 2017-06-16 created
  */
 
+#include <ccnl-os-time.h>
 #include "ccnl-pkt.h"
 #include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
