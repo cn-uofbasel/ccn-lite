@@ -878,44 +878,6 @@ ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
     return 0;
 }
 
-void
-ccnl_core_cleanup(struct ccnl_relay_s *ccnl)
-{
-    int k;
-
-    DEBUGMSG_CORE(TRACE, "ccnl_core_cleanup %p\n", (void *) ccnl);
-
-    while (ccnl->pit)
-        ccnl_interest_remove(ccnl, ccnl->pit);
-    while (ccnl->faces)
-        ccnl_face_remove(ccnl, ccnl->faces); // removes allmost all FWD entries
-    while (ccnl->fib) {
-        struct ccnl_forward_s *fwd = ccnl->fib->next;
-        ccnl_prefix_free(ccnl->fib->prefix);
-        ccnl_free(ccnl->fib);
-        ccnl->fib = fwd;
-    }
-    while (ccnl->contents)
-        ccnl_content_remove(ccnl, ccnl->contents);
-    while (ccnl->nonces) {
-        struct ccnl_buf_s *tmp = ccnl->nonces->next;
-        ccnl_free(ccnl->nonces);
-        ccnl->nonces = tmp;
-    }
-    for (k = 0; k < ccnl->ifcount; k++)
-        ccnl_interface_cleanup(ccnl->ifs + k);
-
-    while (bufCleanUpList) {
-        struct ccnl_buf_s *tmp = bufCleanUpList->next;
-        ccnl_free(bufCleanUpList);
-        bufCleanUpList = tmp;
-    }
-
-#ifdef USE_NFN
-    ccnl_nfn_freeKrivine(ccnl);
-#endif
-}
-
 #ifdef NEEDS_PREFIX_MATCHING
 
 /* add a new entry to the FIB */

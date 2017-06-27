@@ -5,6 +5,8 @@
 #ifndef CCNL_NFN_OPS_H
 #define CCNL_NFN_OPS_H
 
+#include "ccnl-nfn.h"
+
 extern struct builtin_s *op_extensions;
 extern struct builtin_s bifs[];
 
