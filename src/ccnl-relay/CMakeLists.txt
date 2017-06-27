@@ -7,7 +7,7 @@ set(CCNLCFLAGS "${SUITEFLAGS} ${USEFLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99 -g ${CCNLCFLAGS}")
  
 set(PROJECT_LINK_LIBS libccnl-addons.a libccnl-core.a libccnl-pkt.a libccnl-fwd.a libccnl-unix.a)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 link_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/../ccnl-addons/lib

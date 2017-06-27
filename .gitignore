@@ -57,6 +57,7 @@ bin
 lib/
 obj/
 build/
+bin/
 cmake-build-debug/
 
 # OSX:
