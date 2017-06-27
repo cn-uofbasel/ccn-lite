@@ -20,13 +20,15 @@
  * 2014-11-01: created
  */
 
-#include <ccnl-nfn.h>
-#include <ccnl-malloc.h>
-#include <ccnl-nfncommon.h>
-#include <ccnl-logging.h>
-#include <stdio.h>
-#include <ccnl-nfnkrivine.h>
 #include "ccnl-nfnops.h"
+
+#include <stdio.h>
+
+#include "ccnl-nfn.h"
+#include "ccnl-malloc.h"
+#include "ccnl-nfncommon.h"
+#include "ccnl-logging.h"
+#include "ccnl-nfnkrivine.h"
 
 // binds the name to the given fct in ZAM's list of known operations
 void

@@ -41,8 +41,6 @@
 #include "ccnl-nfnkrivine.h"
 #include "ccnl-nfnops.h"
 
-//struct builtin_s *op_extensions;
-//struct builtin_s *bifs;
 
 void
 ZAM_init(void)

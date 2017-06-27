@@ -22,16 +22,14 @@
 
 // ----------------------------------------------------------------------
 
-#include <ccnl-malloc.h>
-#include <ccnl-logging.h>
-#include <ccnl-os-time.h>
-#include <ccnl-defs.h>
-#include <ccnl-interest.h>
-#include <stdio.h>
 #include "ccnl-nfncommon.h"
+
+#include <stdio.h>
+
+#include "ccnl-malloc.h"
+#include "ccnl-logging.h"
+#include "ccnl-os-time.h"
 #include "ccnl-nfnutil.h"
-
-
 
 struct const_s *
 ccnl_nfn_krivine_str2const(char *str){

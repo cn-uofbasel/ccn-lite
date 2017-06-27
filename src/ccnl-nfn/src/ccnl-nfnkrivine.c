@@ -22,11 +22,11 @@
  */
 
 
-#include <ccnl-malloc.h>
-#include <ccnl-logging.h>
-#include <ccnl-nfncommon.h>
-#include <ccnl-nfnparse.h>
-#include <ccnl-nfnops.h>
+#include "ccnl-malloc.h"
+#include "ccnl-nfncommon.h"
+#include "ccnl-nfnparse.h"
+#include "ccnl-nfnops.h"
+#include "ccnl-logging.h"
 #include "ccnl-nfnkrivine.h"
 
 #ifndef CCNL_LINUXKERNEL
