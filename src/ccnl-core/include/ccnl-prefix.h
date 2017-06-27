@@ -81,6 +81,9 @@ ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
 struct ccnl_prefix_s *
 ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum);
 
+int
+ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
+
 #ifndef CCNL_LINUXKERNEL
    char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 #  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)

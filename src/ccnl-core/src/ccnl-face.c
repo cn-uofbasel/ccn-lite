@@ -20,5 +20,9 @@
  * 2017-06-16 created
  */
 
+#include "ccnl-malloc.h"
 #include "ccnl-face.h"
 
+void ccnl_face_free(struct ccnl_face_s *face) {
+    ccnl_free(face);
+}

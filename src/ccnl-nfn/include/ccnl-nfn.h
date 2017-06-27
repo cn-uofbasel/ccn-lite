@@ -1,5 +1,5 @@
 /*
- * @f ccnl-ext-nfn.h
+ * @f ccnl-nfn.h
  * @b header file for the NFN extension ("Krivine lambda expression resolver")
  *
  * Copyright (C) 2014, <christopher.scherb@unibas.ch>
@@ -19,8 +19,12 @@
  * 2014-04-04 created
  */
 
-#ifndef CCNL_EXT_NFN_H
-#define CCNL_EXT_NFN_H
+#ifndef CCNL_NFN_H
+#define CCNL_NFN_H
+
+#include "ccnl-relay.h"
+#include "ccnl-prefix.h"
+#include "ccnl-interest.h"
 
 // ----------------------------------------------------------------------
 // config and constants
@@ -34,6 +38,8 @@
 #define STACK_TYPE_PREFIX               3
 #define STACK_TYPE_PREFIXRAW            4
 #define STACK_TYPE_CLOSURE              5
+
+
 
 // ----------------------------------------------------------------------
 // data structures
@@ -110,6 +116,9 @@ int ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
              struct configuration_s *config, struct ccnl_interest_s *interest,
              int suite, int start_locally);
 
+void
+ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
+
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
         unsigned char *contentstr, int contentlen, int suite);
@@ -138,4 +147,6 @@ struct builtin_s {
     struct builtin_s *next;
 };
 
-#endif // CCNL_EXT_NFN_H
+
+
+#endif // CCNL_NFN_H

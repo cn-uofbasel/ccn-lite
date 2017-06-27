@@ -20,8 +20,8 @@
  * 2017-06-16 created
  */
 
- #ifndef CCNL_INTEREST_H
- #define CCNL_INTEREST_H
+#ifndef CCNL_INTEREST_H
+#define CCNL_INTEREST_H
 
 #include "ccnl-pkt.h"
 #include "ccnl-face.h"
@@ -33,7 +33,7 @@ struct ccnl_pendint_s { // pending interest
     int last_used;
 };
 
- struct ccnl_interest_s {
+struct ccnl_interest_s {
     struct ccnl_interest_s *next, *prev;
     struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
@@ -58,5 +58,6 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt);
 int
 ccnl_interest_append_pending(struct ccnl_interest_s *i,
                              struct ccnl_face_s *from);
-                             
+
+
 #endif //CCNL_INTEREST_H

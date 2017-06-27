@@ -37,5 +37,7 @@ struct ccnl_face_s {
     struct ccnl_sched_s *sched;
 };
 
+void
+ccnl_face_free(struct ccnl_face_s *face);
 
 #endif // CCNL_FACE_H

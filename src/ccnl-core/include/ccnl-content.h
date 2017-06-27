@@ -23,7 +23,8 @@
 #ifndef CCNL_CONTENT_H
 #define CCNL_CONTENT_H
 
-struct ccnl_pkt_s *pkt;
+struct ccnl_pkt_s;
+struct ccnl_prefix_s;
 
 struct ccnl_content_s {
     struct ccnl_content_s *next, *prev;
@@ -42,5 +43,7 @@ ccnl_content_new(struct ccnl_pkt_s **pkt);
 
 void
 ccnl_content_free(struct ccnl_content_s *content);
+
+
 
 #endif // EOF

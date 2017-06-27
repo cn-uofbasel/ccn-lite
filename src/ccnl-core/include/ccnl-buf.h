@@ -27,6 +27,8 @@
 #include <stddef.h>
 #include <string.h>
 
+struct ccnl_relay_s;
+
 struct ccnl_buf_s {
     struct ccnl_buf_s *next;
     ssize_t datalen;
@@ -36,9 +38,14 @@ struct ccnl_buf_s {
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len);
 
-
 #define buf_dup(B)      (B) ? ccnl_buf_new(B->data, B->datalen) : NULL
 #define buf_equal(X,Y)  ((X) && (Y) && (X->datalen==Y->datalen) &&\
                          !memcmp(X->data,Y->data,X->datalen))
+
+void
+ccnl_core_addToCleanup(struct ccnl_buf_s *buf);
+
+void
+ccnl_core_cleanup(struct ccnl_relay_s *ccnl);
     
 #endif //CCNL_BUF_H

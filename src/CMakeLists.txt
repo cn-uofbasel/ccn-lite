@@ -26,7 +26,9 @@ add_subdirectory(ccnl-pkt)
 add_subdirectory(ccnl-fwd)
 add_subdirectory(ccnl-core)
 add_subdirectory(ccnl-unix)
+add_subdirectory(ccnl-nfn)
 add_subdirectory(ccnl-relay)
 
+add_dependencies(ccn-lite-relay ccnl-addons ccnl-pkt ccnl-fwd ccnl-core ccnl-unix)
 
 
