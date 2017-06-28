@@ -3,6 +3,7 @@ project(ccn-lite)
 
 # CCNL flags
 add_definitions(
+    -DUSE_DEBUG
     -DUSE_LOGGING
     -DUSE_CCNxDIGEST
 #    -DUSE_SIGNATURES
