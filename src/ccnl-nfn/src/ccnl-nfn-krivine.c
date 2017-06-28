@@ -738,6 +738,9 @@ normal:
         //ccnl_nfn_freeStack(config->result_stack);
         config->argument_stack = /*config->result_stack =*/ NULL;
         *halt = 1;
+        if(contd == NULL) {
+            return NULL;
+        }
         return ccnl_strdup(contd);
     case ZAM_RESOLVENAME:
         return ZAM_resolvename(config, dummybuf, arg, contd);
