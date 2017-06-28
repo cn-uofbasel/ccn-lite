@@ -1,5 +1,4 @@
 LIBNAME = libccnl-addons.a
-CCNLCFLAGS = -DCCNL_UNIX
 
 
 CC ?= gcc
@@ -13,7 +12,6 @@ DIRS = $(OBJ) $(LIB)
 
 INCLUDES += $(INCLUDE)
 IFLAGS = $(foreach d,$(INCLUDES),-I$d)
-CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
 
 ARFLAGS = -static -o
 AR = libtool
@@ -25,10 +23,8 @@ LIBRARY = $(LIB)/$(LIBNAME)
 
 all: ${LIBRARY}
 
-#$(OBJECTS): $(SOURCES) | $(OBJ)
-#	 $(CC) $(CFLAGS) -c -o $@ $<
 $(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CCNL_FLAGS) $(IFLAGS) -c $< -o $@
 
 $(LIBRARY): $(OBJECTS) | $(LIB)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)

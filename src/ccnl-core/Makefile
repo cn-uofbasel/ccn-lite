@@ -1,5 +1,4 @@
 LIBNAME = libccnl-core.a
-CCNLCFLAGS = -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PREFIX_MATCHING -DUSE_LOGGING
 INCLUDES = ../ccnl-addons/include ../ccnl-pkt/include
 
 
@@ -14,7 +13,6 @@ DIRS = $(OBJ) $(LIB)
 
 INCLUDES += $(INCLUDE)
 IFLAGS = $(foreach d,$(INCLUDES),-I$d)
-CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
 
 ARFLAGS = -static -o
 AR = libtool
@@ -26,10 +24,8 @@ LIBRARY = $(LIB)/$(LIBNAME)
 
 all: ${LIBRARY}
 
-#$(OBJECTS): $(SOURCES) | $(OBJ)
-#	 $(CC) $(CFLAGS) -c -o $@ $<
 $(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CCNL_FLAGS) $(IFLAGS) -c $< -o $@
 
 $(LIBRARY): $(OBJECTS) | $(LIB)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)

@@ -1,10 +1,5 @@
 LIBNAME = libccnl-nfn.a
-#SUITEFLAGS = -DUSE_SUITE_CCNTLV -DUSE_SUITE_NDNTLV -DUSE_SUITE_CCNB \
-#			 -DUSE_SUITE_CISTLV -DUSE_SUITE_IOTTLV -DUSE_SUITE_LOCALRPC
-#USEFLAGS = -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PACKET_CRAFTING -DNEEDS_PREFIX_MATCHING
-NFNFLAGS = -DUSE_NFN -DNEEDS_PACKET_CRAFTING
-CCNLCFLAGS = ${USEFLAGS} ${SUITEFLAGS} ${NFNFLAGS}
-INCLUDES = ../ccnl-core/include ../ccnl-unix/include ../ccnl-addons/include
+INCLUDES = ../ccnl-core/include ../ccnl-unix/include ../ccnl-addons/include ../ccnl-pkt/include
 
 
 CC ?= gcc
@@ -18,7 +13,6 @@ DIRS = $(OBJ) $(LIB)
 
 INCLUDES += $(INCLUDE)
 IFLAGS = $(foreach d,$(INCLUDES),-I$d)
-CFLAGS = -Wall -Werror -std=c99 -g $(IFLAGS) $(CCNLCFLAGS)
 
 ARFLAGS = -static -o
 AR = libtool
@@ -30,10 +24,8 @@ LIBRARY = $(LIB)/$(LIBNAME)
 
 all: ${LIBRARY}
 
-#$(OBJECTS): $(SOURCES) | $(OBJ)
-#	 $(CC) $(CFLAGS) -c -o $@ $<
 $(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CCNL_FLAGS) $(IFLAGS) -c $< -o $@
 
 $(LIBRARY): $(OBJECTS) | $(LIB)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)

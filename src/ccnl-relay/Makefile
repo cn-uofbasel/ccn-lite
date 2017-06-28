@@ -1,9 +1,4 @@
-CC ?= gcc
-
-SUITEFLAGS = -DUSE_SUITE_CCNTLV -DUSE_SUITE_NDNTLV -DUSE_SUITE_CCNB \
-			 -DUSE_SUITE_CISTLV -DUSE_SUITE_IOTTLV -DUSE_SUITE_LOCALRPC
-USEFLAGS = -DCCNL_UNIX -DUSE_IPV4 -DNEEDS_PACKET_CRAFTING -DUSE_LOGGING
-CCNLCFLAGS = -Wall -Werror -std=c99 -g ${INCLUDES} ${USEFLAGS} ${SUITEFLAGS}
+BINNAME = ccn-lite-relay
 
 LIBS = ../ccnl-addons/lib/libccnl-addons.a \
 	   ../ccnl-pkt/lib/libccnl-pkt.a \
@@ -11,28 +6,40 @@ LIBS = ../ccnl-addons/lib/libccnl-addons.a \
 	   ../ccnl-unix/lib/libccnl-unix.a \
 	   ../ccnl-core/lib/libccnl-core.a
 
-IFLAGS = -I../ccnl-addons/include \
-		 -I../ccnl-pkt/include \
-		 -I../ccnl-fwd/include \
-		 -I../ccnl-unix/include \
-		 -I../ccnl-core/include
+EXTLIBS = -lssl -lcrypto
 
-#ARFLAGS = -rcs
+INCLUDES = ../ccnl-addons/include \
+		   ../ccnl-pkt/include \
+		   ../ccnl-fwd/include \
+		   ../ccnl-unix/include \
+		   ../ccnl-core/include
 
-#SOURCES=$(wildcard *.c)
-#SOURCES = ccn-lite-relay.c
-#OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-all: ccn-lite-relay
+CC ?= gcc
 
-$(OBJECTS): $(SOURCES)
-	 $(CC) $(CCNLCFLAGS) -c $(SOURCES)
+SRC = .
+BIN = bin
+OBJ = obj
 
-ccn-lite-relay: ccn-lite-relay.c
-	$(CC) -o $@ $(CCNLCFLAGS) -DUSE_LOGGING $< $(EXTLIBS) $(IFLAGS) $(LIBS)
-	@$(CREATE_BIN)
+DIRS = $(OBJ) $(BIN)
 
-clean: 
-	rm -f ccn-lite-relay
+IFLAGS = $(foreach d,$(INCLUDES),-I$d)
 
-#libccnl-core.a ../ccnl-addons/libccnl-addons.a libccnl-pkt.a libccnl-fwd.a ../ccnl-unix/libccnl-unix.a
+SOURCES=$(wildcard $(SRC)/*.c)
+OBJECTS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
+
+BINARY = $(BIN)/$(BINNAME)
+
+all: ${BINARY}
+
+$(BINARY): $(SOURCES) | $(BIN)
+	$(CC) -o $(BINARY) $(CFLAGS) $(CCNL_FLAGS) $(IFLAGS) $(SOURCES) $(LIBS) $(EXTLIBS)
+
+$(OBJ):
+	mkdir -p $(OBJ)
+
+$(BIN):
+	mkdir -p $(BIN)
+
+clean:
+	rm -rf $(DIRS)
