@@ -22,7 +22,7 @@
 
 #ifdef USE_NFN
 
-#include "ccnl-nfnparse.h"
+#include "ccnl-nfn-parse.h"
 
 #include <ctype.h>
 #include <string.h>

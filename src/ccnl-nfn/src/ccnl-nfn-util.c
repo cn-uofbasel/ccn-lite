@@ -4,18 +4,18 @@
 
 #ifdef USE_NFN
 
-#include <ccnl-pkt-switch.h>
-#include <ccnl-pkt-ccnb.h>
-#include <ccnl-pkt-cistlv.h>
-#include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-iottlv.h>
-#include <ccnl-os-time.h>
-#include <ccnl-pkt-ndntlv.h>
-#include "ccnl-nfnutil.h"
+#include "ccnl-nfn-util.h"
 
+#include "ccnl-pkt-switch.h"
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-pkt-cistlv.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-iottlv.h"
+#include "ccnl-pkt-ndntlv.h"
+
+#include "ccnl-os-time.h"
 #include "ccnl-malloc.h"
 #include "ccnl-defs.h"
-#include "ccnl-buf.h"
 #include "ccnl-logging.h"
 
 #ifdef NEEDS_PACKET_CRAFTING

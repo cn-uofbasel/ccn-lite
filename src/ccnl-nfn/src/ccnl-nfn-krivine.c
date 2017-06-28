@@ -23,13 +23,16 @@
 
 #ifdef USE_NFN
 
-#include <ccnl-os-time.h>
+#include "ccnl-nfn-krivine.h"
+
+#include "ccnl-nfn-common.h"
+#include "ccnl-nfn-parse.h"
+#include "ccnl-nfn-ops.h"
+
+#include "ccnl-os-time.h"
 #include "ccnl-malloc.h"
-#include "ccnl-nfncommon.h"
-#include "ccnl-nfnparse.h"
-#include "ccnl-nfnops.h"
 #include "ccnl-logging.h"
-#include "ccnl-nfnkrivine.h"
+
 
 #ifndef CCNL_LINUXKERNEL
 

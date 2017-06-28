@@ -24,17 +24,20 @@
 
 #ifdef USE_NFN
 
-#include "ccnl-nfncommon.h"
+#include "ccnl-nfn-common.h"
 
 #include <stdio.h>
-#include <ccnl-pkt-util.h>
-#include <ccnl-pkt-ccntlv.h>
-#include <ccnl-pkt-cistlv.h>
+
+#include "ccnl-nfn-util.h"
+
+#include "ccnl-pkt-util.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-cistlv.h"
 
 #include "ccnl-malloc.h"
 #include "ccnl-logging.h"
 #include "ccnl-os-time.h"
-#include "ccnl-nfnutil.h"
+
 
 struct const_s *
 ccnl_nfn_krivine_str2const(char *str){
