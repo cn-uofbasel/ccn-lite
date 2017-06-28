@@ -41,8 +41,8 @@ add_definitions(
 #    -DUSE_NFN_NSTRANS
 )
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99 -g")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")akt
 
 add_subdirectory(ccnl-addons)
 add_subdirectory(ccnl-pkt)
