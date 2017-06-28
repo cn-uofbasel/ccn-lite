@@ -22,9 +22,12 @@
 
 // ----------------------------------------------------------------------
 
+#ifdef USE_NFN
+
 #include "ccnl-nfncommon.h"
 
 #include <stdio.h>
+#include <ccnl-pkt-util.h>
 
 #include "ccnl-malloc.h"
 #include "ccnl-logging.h"
@@ -829,4 +832,6 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     return p;
 }
 
+
+#endif // USE_NFN
 // eof

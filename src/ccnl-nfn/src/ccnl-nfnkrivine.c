@@ -21,7 +21,9 @@
  * 2014-07-31 CCN-lite integration <christopher.scherb@unibas.ch>
  */
 
+#ifdef USE_NFN
 
+#include <ccnl-os-time.h>
 #include "ccnl-malloc.h"
 #include "ccnl-nfncommon.h"
 #include "ccnl-nfnparse.h"
@@ -935,4 +937,5 @@ Krivine_reduction(struct ccnl_relay_s *ccnl, char *expression,
 
 #endif // !CCNL_LINUXKERNEL
 
+#endif // USE_NFN
 // eof

@@ -1,26 +1,46 @@
 cmake_minimum_required(VERSION 3.8)
 project(ccn-lite)
 
-set(CMAKE_SYSTEM_NAME Generic)
+# CCNL flags
+add_definitions(
+    -DUSE_LOGGING
+    -DUSE_CCNxDIGEST
+    -DUSE_DUP_CHECK
+#    -DUSE_ECHO
+    -DUSE_HMAC256
+    -DUSE_IPV4
+    -DUSE_IPV6
+#    -DUSE_MGMT
+    -DUSE_STATS
+    -DUSE_UNIXSOCKET
+    -DNEEDS_PACKET_CRAFTING
+    -DNEEDS_PREFIX_MATCHING
+)
 
-# Must use GNUInstallDirs to install libraries into correct
-# locations on all platforms.
-# include(GNUInstallDirs)
+# Platforms
+add_definitions(
+    -DCCNL_UNIX
+#    -DCCNL_ARDUINO
+)
 
-include_directories(ccnl-addons/include)
+# Packet formats
+add_definitions(
+    -DUSE_SUITE_NDNTLV
+    -DUSE_SUITE_CCNB
+    -DUSE_SUITE_CISTLV
+    -DUSE_SUITE_IOTTLV
+    -DUSE_SUITE_LOCALRPC
+)
 
-# Include Boost as an imported target
-#find_package(Boost REQUIRED)
-#add_library(boost INTERFACE IMPORTED)
-#set_property(TARGET boost PROPERTY
-#    INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
+# NFN flags
+add_definitions(
+#    -DUSE_NFN
+#    -DUSE_NFN_NSTRANS
+)
 
-# Some other library that we import that was also built using CMake
-# and has an exported target.
-#find_package(MyOtherLibrary REQUIRED)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
 
-# Targets that we develop here
-#enable_testing()
 add_subdirectory(ccnl-addons)
 add_subdirectory(ccnl-pkt)
 add_subdirectory(ccnl-fwd)
@@ -32,3 +52,7 @@ add_subdirectory(ccnl-relay)
 add_dependencies(ccn-lite-relay ccnl-addons ccnl-pkt ccnl-fwd ccnl-core ccnl-unix)
 
 
+# unused:
+set(CCNL_DISABLED_FLAGS "USE_LINKLAYER USE_DEBUG USE_DEBUG_MALLOC USE_FRAG \
+						USE_NACK USE_NFN USE_NFN_MONITOR USE_NFN_KEEPALIVE \
+						USE_NFN_PULL USE_SCHEDULER USE_SIGNATURES -DUSE_HTTP_STATUS")

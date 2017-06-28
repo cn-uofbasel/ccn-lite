@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <ccnl-os-time.h>
 
 #include "ccnl-pkt-ndntlv.h"
 

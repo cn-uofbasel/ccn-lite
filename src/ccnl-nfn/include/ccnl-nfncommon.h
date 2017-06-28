@@ -72,4 +72,7 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
 
 int trim(char *str);
 
+struct ccnl_interest_s*
+ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i);
+
 #endif //CCNL_NFN_COMMON_H

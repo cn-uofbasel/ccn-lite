@@ -94,4 +94,8 @@ ccnl_ccnb_bytes2pkt(unsigned char *start, unsigned char **data, int *datalen);
 int
 ccnl_ccnb_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+int
+ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
+                       unsigned char *out, int outlen);
+
 #endif // eof

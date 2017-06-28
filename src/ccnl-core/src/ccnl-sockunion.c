@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "ccnl-logging.h"
 

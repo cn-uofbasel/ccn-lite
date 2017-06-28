@@ -35,6 +35,7 @@
 #ifdef USE_LOGGING
 
 #include <stdio.h>
+//#include "ccnl-os-time.h"
 
 extern int debug_level;
 

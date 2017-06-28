@@ -20,6 +20,8 @@
  * 2017-06-16 created
  */
 
+#include <ccnl-os-time.h>
+#include <ccnl-pkt-util.h>
 #include "ccnl-fwd.h"
 
 #include "ccnl-relay.h"

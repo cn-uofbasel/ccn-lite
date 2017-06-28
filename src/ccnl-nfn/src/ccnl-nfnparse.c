@@ -20,6 +20,8 @@
  * 2014-11-08 extracted from ccnl-core-utils.c, can be usefule for apps too
  */
 
+#ifdef USE_NFN
+
 #include "ccnl-nfnparse.h"
 
 #include <ctype.h>
@@ -176,4 +178,5 @@ ccnl_lambdaStrToComponents(char **compVector, char *str)
     return ccnl_URItoComponents(compVector, NULL, str);
 }
 
+#endif // USE_NFN
 // eof

@@ -20,6 +20,8 @@
  * 2014-11-01: created
  */
 
+#ifdef USE_NFN
+
 #include "ccnl-nfnops.h"
 
 #include <stdio.h>
@@ -475,4 +477,5 @@ struct builtin_s bifs[] = {
     {NULL, NULL, NULL}
 };
 
+#endif // USE_NFN
 // eof
