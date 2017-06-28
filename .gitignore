@@ -86,6 +86,10 @@ cmake-build-debug/
 .cproject
 .project
 
+# GNU Files
+GTAGS
+GRTAGS
+GPATH
 
 # distribution files:
 distribution/Debian/ccn-lite
