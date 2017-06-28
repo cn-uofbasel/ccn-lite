@@ -16,10 +16,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * File history:
- * 2012-05-06 created
- * 2013-10-21 extended for crypto <christopher.scherb@unibas.ch>
- * 2017-26-06 adapted to ccnl v2
  */
 
 
@@ -29,17 +25,11 @@
 
 #include <arpa/inet.h>
 
-#include "ccnl-logging.h"
-#include "ccnl-os-time.h"
-#include "ccnl-malloc.h"
+#include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-nfn-util.h"
 #include "ccnl-dump.h"
 #include "ccnl-unix.h"
-#include "ccnl-pkt-util.h"
-#include "ccnl-relay.h"
-#include "ccnl-interest.h"
-#include "ccnl-content.h"
 #include "ccnl-crypto.h"
 #include "ccnl-forward.h"
 
