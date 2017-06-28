@@ -26,6 +26,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <ccnl-defs.h>
 
 #include "ccnl-logging.h"
 #include "ccnl-content.h"

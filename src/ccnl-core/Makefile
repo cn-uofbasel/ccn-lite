@@ -1,5 +1,5 @@
 LIBNAME = libccnl-core.a
-INCLUDES = ../ccnl-addons/include ../ccnl-pkt/include
+INCLUDES = ../ccnl-addons/include ../ccnl-pkt/include ../ccnl-nfn/include
 
 
 CC ?= gcc

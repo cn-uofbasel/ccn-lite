@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <ccnl-os-time.h>
+#include <ccnl-nfncommon.h>
 #include "ccnl-buf.h"
 
 #include "ccnl-logging.h"

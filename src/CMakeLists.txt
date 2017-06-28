@@ -27,6 +27,7 @@ add_definitions(
 add_definitions(
     -DUSE_SUITE_NDNTLV
     -DUSE_SUITE_CCNB
+    -DUSE_SUITE_CCNTLV
     -DUSE_SUITE_CISTLV
     -DUSE_SUITE_IOTTLV
     -DUSE_SUITE_LOCALRPC
@@ -34,7 +35,7 @@ add_definitions(
 
 # NFN flags
 add_definitions(
-#    -DUSE_NFN
+    -DUSE_NFN
 #    -DUSE_NFN_NSTRANS
 )
 

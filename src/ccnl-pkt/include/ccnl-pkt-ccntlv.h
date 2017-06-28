@@ -176,4 +176,18 @@ ccnl_ccntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 int
 ccnl_ccntlv_getHdrLen(unsigned char *data, int len);
 
+int
+ccnl_ccntlv_prependInterestWithHdr(struct ccnl_prefix_s *name,
+                                   int *offset, unsigned char *buf);
+
+int
+ccnl_ccntlv_prependTL(unsigned short type, unsigned short len,
+                      int *offset, unsigned char *buf);
+
+int
+ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
+                                  unsigned char *payload, int paylen,
+                                  unsigned int *lastchunknum, int *contentpos,
+                                  int *offset, unsigned char *buf);
+
 #endif // eof

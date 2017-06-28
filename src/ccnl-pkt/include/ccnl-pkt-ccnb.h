@@ -98,4 +98,7 @@ int
 ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
                        unsigned char *out, int outlen);
 
+int
+ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
+                      int datalen, int *contentpos, unsigned char *out);
 #endif // eof

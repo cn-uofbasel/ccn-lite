@@ -25,6 +25,7 @@
 #include "ccnl-nfnops.h"
 
 #include <stdio.h>
+#include <ccnl-os-time.h>
 
 #include "ccnl-nfn.h"
 #include "ccnl-malloc.h"

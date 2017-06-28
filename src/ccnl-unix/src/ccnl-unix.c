@@ -47,6 +47,8 @@
 #include "ccnl-dispatch.h"
 #include "ccnl-logging.h"
 
+#include "ccnl-nfn.h"
+
 
 
 #ifdef USE_LINKLAYER

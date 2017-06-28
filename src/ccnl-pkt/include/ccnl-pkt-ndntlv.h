@@ -129,4 +129,14 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
 int
 ccnl_ndntlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+int
+ccnl_ndntlv_prependInterest(struct ccnl_prefix_s *name, int scope, int *nonce,
+                            int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
+                           int *contentpos, unsigned int *final_block_id,
+                           int *offset, unsigned char *buf);
+
 #endif // EOF

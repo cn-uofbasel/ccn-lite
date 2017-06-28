@@ -137,4 +137,15 @@ ccnl_iottlv_bytes2pkt(int pkttype, unsigned char *start,
 int
 ccnl_iottlv_cMatch(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+int
+ccnl_iottlv_prependRequest(struct ccnl_prefix_s *name, int *ttl,
+                           int *offset, unsigned char *buf);
+
+int
+ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
+                         unsigned char *payload, int paylen,
+                         int *offset, int *contentpos,
+                         unsigned int *final_block_id,
+                         unsigned char *buf);
+
 #endif // eof

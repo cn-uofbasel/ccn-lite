@@ -40,6 +40,8 @@
 #define STACK_TYPE_CLOSURE              5
 
 
+void
+ZAM_init(void);
 
 // ----------------------------------------------------------------------
 // data structures
@@ -125,6 +127,14 @@ create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
 
 void ccnl_nack_reply(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,
                      struct ccnl_face_s *from, int suite);
+
+int
+ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_content_s *c);
+
+struct ccnl_interest_s*
+ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
+                    struct ccnl_pkt_s **pkt);
 
 // built in function
 typedef char* (*BIF)(struct ccnl_relay_s *ccnl, struct configuration_s *config,

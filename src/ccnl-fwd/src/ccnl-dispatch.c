@@ -20,6 +20,7 @@
  */
 
 #include <ccnl-os-time.h>
+#include <ccnl-nfn.h>
 #include "ccnl-dispatch.h"
 
 #include "ccnl-localrpc.h"

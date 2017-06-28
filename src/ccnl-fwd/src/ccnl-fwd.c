@@ -22,6 +22,7 @@
 
 #include <ccnl-os-time.h>
 #include <ccnl-pkt-util.h>
+#include <ccnl-nfncommon.h>
 #include "ccnl-fwd.h"
 
 #include "ccnl-relay.h"

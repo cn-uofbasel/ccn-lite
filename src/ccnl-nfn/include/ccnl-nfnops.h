@@ -7,7 +7,7 @@
 
 #include "ccnl-nfn.h"
 
-extern struct builtin_s *op_extensions;
+struct builtin_s *op_extensions;
 extern struct builtin_s bifs[];
 
 #endif //CCNL_NFN_OPS_H

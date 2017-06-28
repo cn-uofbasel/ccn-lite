@@ -75,4 +75,7 @@ int trim(char *str);
 struct ccnl_interest_s*
 ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i);
 
+void
+ccnl_nfn_freeKrivine(struct ccnl_relay_s *ccnl);
+
 #endif //CCNL_NFN_COMMON_H
