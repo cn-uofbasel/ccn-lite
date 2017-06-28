@@ -13,10 +13,7 @@
 #include "ccnl-pkt-iottlv.h"
 #include "ccnl-pkt-ndntlv.h"
 
-#include "ccnl-os-time.h"
-#include "ccnl-malloc.h"
-#include "ccnl-defs.h"
-#include "ccnl-logging.h"
+#include "ccnl-core.h"
 
 #ifdef NEEDS_PACKET_CRAFTING
 

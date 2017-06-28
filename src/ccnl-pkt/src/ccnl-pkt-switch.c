@@ -22,7 +22,7 @@
 
 // see ccnl-defs.h for the ENC constants
 
-#include "ccnl-defs.h"
+#include "ccnl-core.h"
 
 int
 ccnl_switch_dehead(unsigned char **buf, int *len, int *code)

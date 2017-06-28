@@ -31,14 +31,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 
-#include "ccnl-os-time.h"
-#include "ccnl-buf.h"
-#include "ccnl-defs.h"
-#include "ccnl-malloc.h"
-#include "ccnl-prefix.h"
-#include "ccnl-pkt.h"
-
-#include "ccnl-logging.h"
+#include "ccnl-core.h"
 
 #ifndef DEBUGMSG_PCNX
 # define DEBUGMSG_PCNX(...) DEBUGMSG(__VA_ARGS__)

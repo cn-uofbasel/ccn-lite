@@ -29,13 +29,10 @@
 #include <inttypes.h>
 
 #include "ccnl-os-includes.h"
-#include "ccnl-defs.h"
-#include "ccnl-malloc.h"
 
-#include "ccnl-logging.h"
-#include "ccnl-pkt-util.h"
+#include "ccnl-core.h"
+
 #include "ccnl-dispatch.h"
-#include "ccnl-os-time.h"
 
 /*
 
