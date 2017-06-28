@@ -20,8 +20,8 @@
  * 2017-06-16 created
  */
 
-#ifndef CCNL_PREFIX
-#define CCNL_PREFIX
+#ifndef CCNL_PREFIX_H
+#define CCNL_PREFIX_H
 
 #include <stddef.h>
 #include <unistd.h>

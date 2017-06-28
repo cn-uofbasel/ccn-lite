@@ -101,4 +101,22 @@ ccnl_ccnb_fillInterest(struct ccnl_prefix_s *name, int *nonce,
 int
 ccnl_ccnb_fillContent(struct ccnl_prefix_s *name, unsigned char *data,
                       int datalen, int *contentpos, unsigned char *out);
+
+int
+ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
+                  unsigned char **valptr, int *vallen);
+
+#ifdef NEEDS_PACKET_CRAFTING
+int
+ccnl_ccnb_mkHeader(unsigned char *buf, unsigned int num, unsigned int tt);
+
+int
+ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
+                    char *str);
+
+int
+ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
+                 char *cp, int cnt);
+#endif // NEEDS_PACKET_CRAFTING
+
 #endif // eof

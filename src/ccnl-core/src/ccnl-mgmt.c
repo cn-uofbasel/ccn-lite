@@ -25,7 +25,22 @@
 
 #ifdef USE_MGMT
 
-#include "ccnl-ext-crypto.c"
+#include <ccnl-logging.h>
+#include <ccnl-os-time.h>
+#include <ccnl-malloc.h>
+#include <ccnl-pkt-ccnb.h>
+#include <arpa/inet.h>
+#include <ccnl-nfnutil.h>
+#include <ccnl-dump.h>
+#include <ccnl-unix.h>
+#include <ccnl-pkt-util.h>
+#include "ccnl-mgmt.h"
+
+#include "ccnl-relay.h"
+#include "ccnl-interest.h"
+#include "ccnl-content.h"
+#include "ccnl-crypto.h"
+#include "ccnl-forward.h"
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -169,7 +184,7 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                 pkt->buf = ccnl_mkSimpleContent(pkt->pfx, buf2, len5, &contentpos);
                 pkt->content = pkt->buf->data + contentpos;
                 pkt->contlen = len5;
-                c = ccnl_content_new(ccnl, &pkt);
+                c = ccnl_content_new(&pkt);
                 ccnl_content_serve_pending(ccnl, c);
                 ccnl_content_add2cache(ccnl, c);
 /*
@@ -1747,7 +1762,7 @@ Bail:
     ccnl_free(suite);
     ccnl_free(faceid);
     ccnl_free(action);
-    free_prefix(p);
+    ccnl_prefix_free(p);
 
     //ccnl_mgmt_return_msg(ccnl, orig, from, cp);
     return rc;

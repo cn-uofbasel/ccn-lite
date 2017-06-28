@@ -45,10 +45,6 @@
 
 #include "ccnl-logging.h"
 
-int
-ccnl_ccnb_consume(int typ, int num, unsigned char **buf, int *len,
-                  unsigned char **valptr, int *vallen);
-
 // ----------------------------------------------------------------------
 // ccnb parsing support
 

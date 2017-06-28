@@ -5,12 +5,13 @@ project(ccn-lite)
 add_definitions(
     -DUSE_LOGGING
     -DUSE_CCNxDIGEST
+#    -DUSE_SIGNATURES
     -DUSE_DUP_CHECK
 #    -DUSE_ECHO
     -DUSE_HMAC256
     -DUSE_IPV4
     -DUSE_IPV6
-#    -DUSE_MGMT
+    -DUSE_MGMT
     -DUSE_STATS
     -DUSE_UNIXSOCKET
     -DNEEDS_PACKET_CRAFTING
@@ -50,7 +51,7 @@ add_subdirectory(ccnl-unix)
 add_subdirectory(ccnl-nfn)
 add_subdirectory(ccnl-relay)
 
-add_dependencies(ccn-lite-relay ccnl-addons ccnl-pkt ccnl-fwd ccnl-core ccnl-unix)
+add_dependencies(ccn-lite-relay ccnl-addons ccnl-pkt ccnl-fwd ccnl-core ccnl-unix ccnl-nfn)
 
 
 # unused:
