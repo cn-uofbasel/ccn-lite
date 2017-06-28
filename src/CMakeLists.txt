@@ -42,9 +42,9 @@ add_definitions(
 )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99 -g")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")akt
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
 
-add_subdirectory(ccnl-addons)
+#add_subdirectory(ccnl-addons)
 add_subdirectory(ccnl-pkt)
 add_subdirectory(ccnl-fwd)
 add_subdirectory(ccnl-core)
