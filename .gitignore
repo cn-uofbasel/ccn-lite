@@ -1,6 +1,6 @@
-# general patterns:
 *~
 *.o
+*.a
 *.pyc
 
 # Linux kernel module:
@@ -75,6 +75,7 @@ cmake-build-debug/
 
 # Visual Studio Code
 .vscode
+browse.VC.db
 
 # XCode
 *.xcodeproj
