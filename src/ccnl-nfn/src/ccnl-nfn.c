@@ -26,8 +26,8 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include <ccnl-defs.h>
 
+#include "ccnl-defs.h"
 #include "ccnl-logging.h"
 #include "ccnl-content.h"
 #include "ccnl-malloc.h"
@@ -37,10 +37,10 @@
 #include "ccnl-interest.h"
 #include "ccnl-relay.h"
 
-#include "ccnl-nfncommon.h"
-#include "ccnl-nfnparse.h"
-#include "ccnl-nfnkrivine.h"
-#include "ccnl-nfnops.h"
+#include "ccnl-nfn-common.h"
+#include "ccnl-nfn-parse.h"
+#include "ccnl-nfn-krivine.h"
+#include "ccnl-nfn-ops.h"
 
 
 void

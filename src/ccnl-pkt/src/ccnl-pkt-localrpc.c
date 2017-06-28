@@ -28,10 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <ccnl-os-time.h>
 
+#include "ccnl-os-time.h"
 #include "ccnl-pkt-ndntlv.h"
-
 #include "ccnl-buf.h"
 #include "ccnl-defs.h"
 #include "ccnl-face.h"

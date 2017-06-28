@@ -25,17 +25,18 @@
 
 #ifdef USE_MGMT
 
-#include <ccnl-logging.h>
-#include <ccnl-os-time.h>
-#include <ccnl-malloc.h>
-#include <ccnl-pkt-ccnb.h>
-#include <arpa/inet.h>
-#include <ccnl-nfnutil.h>
-#include <ccnl-dump.h>
-#include <ccnl-unix.h>
-#include <ccnl-pkt-util.h>
 #include "ccnl-mgmt.h"
 
+#include <arpa/inet.h>
+
+#include "ccnl-logging.h"
+#include "ccnl-os-time.h"
+#include "ccnl-malloc.h"
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-nfn-util.h"
+#include "ccnl-dump.h"
+#include "ccnl-unix.h"
+#include "ccnl-pkt-util.h"
 #include "ccnl-relay.h"
 #include "ccnl-interest.h"
 #include "ccnl-content.h"

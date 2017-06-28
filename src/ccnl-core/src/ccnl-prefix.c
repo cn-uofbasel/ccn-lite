@@ -20,23 +20,24 @@
  * 2017-06-16 created
  */
 
+#include "ccnl-prefix.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <ccnl-os-time.h>
-#include <ccnl-pkt-util.h>
-#include <ccnl-pkt-ndntlv.h>
-#include <ccnl-pkt-cistlv.h>
 #include <openssl/sha.h>
-#include <ccnl-pkt-ccntlv.h>
 
+#include "ccnl-os-time.h"
 #include "ccnl-defs.h"
-#include "ccnl-pkt.h"
-#include "ccnl-prefix.h"
 #include "ccnl-malloc.h"
 #include "ccnl-content.h"
-
 #include "ccnl-logging.h"
+
+#include "ccnl-pkt.h"
+#include "ccnl-pkt-util.h"
+#include "ccnl-pkt-ndntlv.h"
+#include "ccnl-pkt-cistlv.h"
+#include "ccnl-pkt-ccntlv.h"
 
 struct ccnl_prefix_s*
 ccnl_prefix_new(int suite, int cnt)

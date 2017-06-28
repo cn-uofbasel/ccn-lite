@@ -25,11 +25,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <ccnl-os-time.h>
+#include "ccnl-os-time.h"
 
 #include "ccnl-malloc.h"
 
- #include "ccnl-logging.h"
+#include "ccnl-logging.h"
 
 
 void

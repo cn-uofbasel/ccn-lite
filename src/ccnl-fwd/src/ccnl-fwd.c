@@ -20,9 +20,7 @@
  * 2017-06-16 created
  */
 
-#include <ccnl-os-time.h>
-#include <ccnl-pkt-util.h>
-#include <ccnl-nfncommon.h>
+
 #include "ccnl-fwd.h"
 
 #include "ccnl-relay.h"
@@ -36,6 +34,9 @@
 #include "ccnl-malloc.h"
 #include "ccnl-forward.h"
 #include "ccnl-mgmt.h"
+#include "ccnl-os-time.h"
+#include "ccnl-pkt-util.h"
+#include "ccnl-nfn-common.h"
 
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"

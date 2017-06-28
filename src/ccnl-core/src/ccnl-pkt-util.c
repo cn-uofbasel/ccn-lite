@@ -19,10 +19,11 @@
  * 2017-06-20 created
  */
 
-#include <ccnl-os-time.h>
+
 #include "ccnl-pkt-util.h"
 
 #include "ccnl-defs.h"
+#include "ccnl-os-time.h"
 
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"

@@ -8,4 +8,4 @@ include_directories(include ../ccnl-core/include ../ccnl-unix/include ../ccnl-ad
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS} include/ccnl-nfncommon.h include/ccnl-nfnkrivine.h include/ccnl-nfnmonitor.h include/ccnl-nfnops.h include/ccnl-nfnparse.h src/ccnl-nfnutil.c src/ccnl-nfnutil.c include/ccnl-nfnutil.h)
+add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS} include/ccnl-nfn-common.h include/ccnl-nfn-krivine.h include/ccnl-nfn-monitor.h include/ccnl-nfn-ops.h include/ccnl-nfn-parse.h src/ccnl-nfn-util.c src/ccnl-nfn-util.c include/ccnl-nfn-util.h)

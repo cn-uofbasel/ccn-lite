@@ -26,10 +26,9 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <ccnl-os-time.h>
 
+#include "ccnl-os-time.h"
 #include "ccnl-fwd.h"
-
 #include "ccnl-malloc.h"
 
 #include "ccnl-pkt-localrpc.h"

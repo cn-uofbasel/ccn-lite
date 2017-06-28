@@ -24,8 +24,8 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <ccnl-nfncommon.h>
 
+#include "ccnl-nfn-common.h"
 #include "ccnl-content.h"
 #include "ccnl-forward.h"
 #include "ccnl-frag.h"
@@ -36,7 +36,6 @@
 #include "ccnl-pkt.h"
 #include "ccnl-pkt-util.h"
 #include "ccnl-prefix.h"
-
 #include "ccnl-logging.h"
 
 

@@ -29,10 +29,9 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <assert.h>
-#include <ccnl-os-time.h>
 
+#include "ccnl-os-time.h"
 #include "ccnl-pkt-switch.h"
-
 #include "ccnl-buf.h"
 #include "ccnl-defs.h"
 #include "ccnl-malloc.h"
