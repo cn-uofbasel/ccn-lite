@@ -20,6 +20,9 @@
  * 2017-06-16 created
  */
 
+#ifndef CCNL_FORWARD_H
+#define CCNL_FORWARD_H
+
 #include "ccnl-prefix.h"
 #include "ccnl-face.h"
 #include "ccnl-relay.h"
@@ -35,3 +38,5 @@ struct ccnl_forward_s {
     struct ccnl_face_s *face;
     char suite;
 };
+
+#endif //CCNL_FORWARD_H

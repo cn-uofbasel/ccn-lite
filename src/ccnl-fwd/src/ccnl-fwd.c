@@ -23,18 +23,8 @@
 
 #include "ccnl-fwd.h"
 
-#include "ccnl-relay.h"
-#include "ccnl-face.h"
-#include "ccnl-prefix.h"
-#include "ccnl-pkt.h"
-#include "ccnl-buf.h"
-#include "ccnl-defs.h"
-#include "ccnl-content.h"
-#include "ccnl-interest.h"
-#include "ccnl-malloc.h"
-#include "ccnl-forward.h"
-#include "ccnl-mgmt.h"
-#include "ccnl-os-time.h"
+#include "ccnl-core.h"
+
 #include "ccnl-pkt-util.h"
 #include "ccnl-nfn-common.h"
 

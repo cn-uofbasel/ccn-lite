@@ -27,15 +27,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "ccnl-defs.h"
-#include "ccnl-logging.h"
-#include "ccnl-content.h"
-#include "ccnl-malloc.h"
-#include "ccnl-prefix.h"
-#include "ccnl-defs.h"
-#include "ccnl-os-time.h"
-#include "ccnl-interest.h"
-#include "ccnl-relay.h"
+#include "ccnl-core.h"
 
 #include "ccnl-nfn-common.h"
 #include "ccnl-nfn-parse.h"

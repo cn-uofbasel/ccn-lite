@@ -23,10 +23,7 @@
 #ifndef CCNL_FWD_H
 #define CCNL_FWD_H
 
-#include "ccnl-pkt.h"
-#include "ccnl-content.h"
-#include "ccnl-relay.h"
-#include "ccnl-face.h"
+#include "ccnl-core.h"
 
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*, 
                            unsigned char**, int*);

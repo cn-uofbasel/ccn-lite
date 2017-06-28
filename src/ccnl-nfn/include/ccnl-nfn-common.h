@@ -5,10 +5,10 @@
 #ifndef CCNL_NFN_COMMON_H
 #define CCNL_NFN_COMMON_H
 
-#include "ccnl-prefix.h"
-#include "ccnl-relay.h"
+#include "ccnl-core.h"
+
 #include "ccnl-nfn.h"
-#include "ccnl-content.h"
+
 
 int
 ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);

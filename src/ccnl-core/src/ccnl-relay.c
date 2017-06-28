@@ -20,23 +20,12 @@
  * 2017-06-16 created
  */
 
-#include "ccnl-relay.h"
-
 #include <stdio.h>
 #include <inttypes.h>
 
 #include "ccnl-nfn-common.h"
-#include "ccnl-content.h"
-#include "ccnl-forward.h"
-#include "ccnl-frag.h"
-#include "ccnl-if.h"
-#include "ccnl-interest.h"
-#include "ccnl-malloc.h"
-#include "ccnl-os-time.h"
-#include "ccnl-pkt.h"
-#include "ccnl-pkt-util.h"
-#include "ccnl-prefix.h"
-#include "ccnl-logging.h"
+#include "ccnl-core.h"
+
 
 
 struct ccnl_face_s*

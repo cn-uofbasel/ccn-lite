@@ -25,8 +25,7 @@
 
 #include <stdint.h>
 
-#include "ccnl-pkt.h"
-#include "ccnl-content.h"
+#include "ccnl-core.h"
 
 #ifndef CCN_UDP_PORT
 # define CCN_UDP_PORT                    9695

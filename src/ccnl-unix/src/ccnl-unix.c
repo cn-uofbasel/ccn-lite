@@ -23,21 +23,9 @@
  #include "ccnl-unix.h"
 
 #include "ccnl-os-includes.h"
-#include "ccnl-defs.h"
 
-#include "ccnl-os-time.h"
-#include "ccnl-relay.h"
-#include "ccnl-face.h"
-#include "ccnl-prefix.h"
-#include "ccnl-pkt.h"
-#include "ccnl-pkt-util.h"
+#include "ccnl-core.h"
 
-#include "ccnl-buf.h"
-#include "ccnl-defs.h"
-#include "ccnl-content.h"
-#include "ccnl-interest.h"
-#include "ccnl-malloc.h"
-#include "ccnl-forward.h"
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
@@ -45,7 +33,6 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 #include "ccnl-dispatch.h"
-#include "ccnl-logging.h"
 
 #include "ccnl-nfn.h"
 

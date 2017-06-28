@@ -23,8 +23,7 @@
 #ifndef CCNL_PKT_CISTLV_H
 #define CCNL_PKT_CISTLV_H
 
-#include "ccnl-pkt.h"
-#include "ccnl-content.h"
+#include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 // Header

@@ -52,7 +52,7 @@ add_subdirectory(ccnl-unix)
 add_subdirectory(ccnl-nfn)
 add_subdirectory(ccnl-relay)
 
-add_dependencies(ccn-lite-relay ccnl-addons ccnl-pkt ccnl-fwd ccnl-core ccnl-unix ccnl-nfn)
+add_dependencies(ccn-lite-relay ccnl-pkt ccnl-fwd ccnl-core ccnl-unix ccnl-nfn)
 
 
 # unused:

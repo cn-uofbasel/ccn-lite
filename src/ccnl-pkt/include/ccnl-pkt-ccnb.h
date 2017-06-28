@@ -24,8 +24,7 @@
 #ifndef CCNL_PKT_CCNB_H
 #define CCNL_PKT_CCNB_H
 
-#include "ccnl-pkt.h"
-#include "ccnl-content.h"
+#include "ccnl-core.h"
 
 // ----------------------------------------------------------------------
 
