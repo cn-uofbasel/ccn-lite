@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <time.h> 
 
 #include "ccnl-os-time.h"
 #include "ccnl-fwd.h"

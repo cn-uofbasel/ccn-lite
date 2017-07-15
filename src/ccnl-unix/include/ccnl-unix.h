@@ -39,9 +39,11 @@
 
 #define local_producer(...)     0
 
+#ifndef __linux__
 static int lasthour = -1;
 static int inter_ccn_interval = 0; // in usec
 static int inter_pkt_interval = 0; // in usec
+#endif
 
 #ifdef USE_LINKLAYER
 int

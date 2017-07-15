@@ -23,7 +23,9 @@
 
 #include "ccnl-mgmt.h"
 
+#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
