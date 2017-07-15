@@ -181,7 +181,11 @@ main(int argc, char **argv)
 
     time(&theRelay->startup_time);
     unsigned int seed = time(NULL) * getpid();
+#ifdef __linux__
+    srand(seed);
+#else
     srandom(seed);
+#endif
 
     while ((opt = getopt(argc, argv, "hc:d:e:g:i:o:p:s:t:u:6:v:w:x:")) != -1) {
         switch (opt) {
