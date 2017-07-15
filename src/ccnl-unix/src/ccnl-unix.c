@@ -36,7 +36,9 @@
 
 #include "ccnl-nfn.h"
 
-
+#ifdef __linux__
+int lasthour = -1;
+#endif
 
 #ifdef USE_LINKLAYER
 int

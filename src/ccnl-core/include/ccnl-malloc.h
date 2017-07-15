@@ -24,6 +24,7 @@
  #define CCNL_MALLOC_H
 
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef USE_DEBUG_MALLOC
 struct mhdr {
@@ -76,8 +77,14 @@ debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 
 #else // !USE_DEBUG_MALLOC
 
+
 # ifndef CCNL_LINUXKERNEL
 #  define ccnl_malloc(s)        malloc(s)
+    #ifdef __linux__
+    char* strdup(const char* str) {
+        return strcpy( ccnl_malloc( strlen(str)+1), str );
+    }
+    #endif
 #  define ccnl_calloc(n,s)      calloc(n,s)
 #  define ccnl_realloc(p,s)     realloc(p,s)
 #  define ccnl_strdup(s)        strdup(s)

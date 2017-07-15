@@ -892,7 +892,11 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
                  ip4src, proto, host, port);
         su.sa.sa_family = AF_INET;
+#ifdef __linux__
+        inet_pton(AF_INET, (const char*)host, &su.ip4.sin_addr);
+#else
         inet_aton((const char*)host, &su.ip4.sin_addr);
+#endif
         su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
         // not implmented yet: honor the requested ip4src parameter
 	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
