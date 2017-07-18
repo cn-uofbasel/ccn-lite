@@ -142,6 +142,7 @@ ccnl_frag_RX_BeginEnd2015(RX_datagram callback, struct ccnl_relay_s *relay,
                           unsigned int bits, unsigned int seqno,
                           unsigned char **data, int *datalen);
 
-
+struct ccnl_buf_s*
+ccnl_frag_getnext(struct ccnl_frag_s *fr, int *ifndx, sockunion *su);
 
 #endif //CCNL_FRAG_H

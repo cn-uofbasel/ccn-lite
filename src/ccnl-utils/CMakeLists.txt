@@ -29,6 +29,10 @@ add_executable(ccn-lite-cryptoserver ccn-lite-cryptoserver.c)
 add_executable(ccn-lite-fetch ccn-lite-fetch.c)
 add_executable(ccn-lite-mkC ccn-lite-mkC.c)
 add_executable(ccn-lite-valid ccn-lite-valid.c)
+if(USE_FRAG)
+    add_executable(ccn-lite-mkF ccn-lite-mkF.c)
+endif()
+add_executable(ccn-lite-mkI ccn-lite-mkI.c)
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-peek ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
@@ -55,5 +59,13 @@ endif()
 
 target_link_libraries(ccn-lite-fetch ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-fetch ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+if(USE_FRAG)
+    target_link_libraries(ccn-lite-mkF ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+    target_link_libraries(ccn-lite-mkF ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+endif()
+
+target_link_libraries(ccn-lite-mkI ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 
