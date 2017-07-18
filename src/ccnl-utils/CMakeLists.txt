@@ -36,6 +36,8 @@ endif()
 add_executable(ccn-lite-mkI ccn-lite-mkI.c)
 add_executable(ccn-lite-pktdump ccn-lite-pktdump.c)
 add_executable(ccn-lite-produce ccn-lite-produce.c)
+add_executable(ccn-lite-rpc ccn-lite-rpc.c)
+add_executable(ccn-lite-simplenfn ccn-lite-simplenfn.c)
 
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
@@ -62,6 +64,10 @@ if(OpenSSL_FOUND)
 
     target_link_libraries(ccn-lite-valid ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
     target_link_libraries(ccn-lite-valid ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
+
+    target_link_libraries(ccn-lite-rpc ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
+    target_link_libraries(ccn-lite-rpc ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
+
 endif()
 
 target_link_libraries(ccn-lite-fetch ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
@@ -80,5 +86,10 @@ target_link_libraries(ccn-lite-pktdump ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccn
 
 target_link_libraries(ccn-lite-produce ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-produce ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+target_link_libraries(ccn-lite-simplenfn ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+target_link_libraries(ccn-lite-simplenfn ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+
 
 
