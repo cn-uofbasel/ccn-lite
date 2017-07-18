@@ -35,6 +35,7 @@ if(USE_FRAG)
 endif()
 add_executable(ccn-lite-mkI ccn-lite-mkI.c)
 add_executable(ccn-lite-pktdump ccn-lite-pktdump.c)
+add_executable(ccn-lite-produce ccn-lite-produce.c)
 
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
@@ -76,5 +77,8 @@ target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nf
 
 target_link_libraries(ccn-lite-pktdump ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-pktdump ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+target_link_libraries(ccn-lite-produce ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+target_link_libraries(ccn-lite-produce ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 
