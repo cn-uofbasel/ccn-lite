@@ -15,13 +15,21 @@ include_directories(
     ../ccnl-core/include
     ../ccnl-unix/include
     ../ccnl-nfn/include
+    ${OPENSSL_INCLUDE_DIR}
+    
 )
+
+find_package(OpenSSL REQUIRED)
 
 add_executable(ccn-lite-peek ccn-lite-peek.c)
 add_executable(ccn-lite-ctrl ccn-lite-ctrl.c)
+add_executable(ccn-lite-ccnb2xml ccn-lite-ccnb2xml.c)
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-peek ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 target_link_libraries(ccn-lite-ctrl ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-ctrl ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+target_link_libraries(ccn-lite-ccnb2xml ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
+target_link_libraries(ccn-lite-ccnb2xml ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
