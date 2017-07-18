@@ -86,7 +86,7 @@ ccnl_nfn_query2interest(struct ccnl_relay_s *ccnl,
     from = ccnl_malloc(sizeof(struct ccnl_face_s));
     pkt = ccnl_calloc(1, sizeof(*pkt));
     if (!from || !pkt) {
-        ccnl_face_free(from);
+        ccnl_free(from);
         ccnl_pkt_free(pkt);
         return NULL;
     }

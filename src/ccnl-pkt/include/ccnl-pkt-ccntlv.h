@@ -189,4 +189,8 @@ ccnl_ccntlv_prependContentWithHdr(struct ccnl_prefix_s *name,
                                   unsigned int *lastchunknum, int *contentpos,
                                   int *offset, unsigned char *buf);
 
+int
+ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
+                                        int *offset, unsigned char *buf);
+
 #endif // eof

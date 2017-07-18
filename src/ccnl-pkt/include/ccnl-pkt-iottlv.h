@@ -147,4 +147,7 @@ ccnl_iottlv_prependReply(struct ccnl_prefix_s *name,
                          unsigned int *final_block_id,
                          unsigned char *buf);
 
+int
+ccnl_iottlv_peekType(unsigned char *buf, int len);
+
 #endif // eof

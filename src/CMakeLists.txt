@@ -64,8 +64,11 @@ add_subdirectory(ccnl-fwd)
 add_subdirectory(ccnl-unix)
 add_subdirectory(ccnl-nfn)
 add_subdirectory(ccnl-relay)
+add_subdirectory(ccnl-utils)
 
 add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+add_dependencies(ccn-lite-peek ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 # unused:
 set(CCNL_DISABLED_FLAGS "USE_LINKLAYER USE_DEBUG USE_DEBUG_MALLOC USE_FRAG \

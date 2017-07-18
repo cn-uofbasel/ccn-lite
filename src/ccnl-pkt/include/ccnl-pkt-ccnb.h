@@ -116,6 +116,10 @@ ccnl_ccnb_mkStrBlob(unsigned char *out, unsigned int num, unsigned int tt,
 int
 ccnl_ccnb_mkBlob(unsigned char *out, unsigned int num, unsigned int tt,
                  char *cp, int cnt);
+
+int
+ccnl_ccnb_mkField(unsigned char *out, unsigned int num, int typ,
+                  unsigned char *data, int datalen);
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // eof
