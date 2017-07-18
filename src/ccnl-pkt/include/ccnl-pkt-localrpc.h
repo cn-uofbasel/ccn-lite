@@ -131,7 +131,9 @@ ccnl_rdr_mkNonce(char *data, int len);
 struct rdr_ds_s* 
 ccnl_rdr_mkStr(char *s);
 
-
+int
+ccnl_lrpc_dehead(unsigned char **buf, int *len,
+                 int *typ, int *vallen);
 
 #endif // CCNL_PKT_LOCALRPC_H
 // eof

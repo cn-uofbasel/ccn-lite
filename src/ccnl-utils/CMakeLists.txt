@@ -22,6 +22,7 @@ include_directories(
 find_package(OpenSSL REQUIRED)
 
 add_executable(ccn-lite-peek ccn-lite-peek.c)
+#add_executable(ccn-lite-peekcomputation ccn-lite-peekcomputation.c) #todo work to do
 add_executable(ccn-lite-ctrl ccn-lite-ctrl.c)
 add_executable(ccn-lite-ccnb2xml ccn-lite-ccnb2xml.c)
 add_executable(ccn-lite-cryptoserver ccn-lite-cryptoserver.c)
@@ -33,9 +34,14 @@ if(USE_FRAG)
     add_executable(ccn-lite-mkF ccn-lite-mkF.c)
 endif()
 add_executable(ccn-lite-mkI ccn-lite-mkI.c)
+add_executable(ccn-lite-pktdump ccn-lite-pktdump.c)
+
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-peek ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+
+#target_link_libraries(ccn-lite-peekcomputation ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})#todo work to do
+#target_link_libraries(ccn-lite-peekcomputation ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 target_link_libraries(ccn-lite-ctrl ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-ctrl ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
@@ -65,7 +71,10 @@ if(USE_FRAG)
     target_link_libraries(ccn-lite-mkF ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 endif()
 
-target_link_libraries(ccn-lite-mkI ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
-target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+target_link_libraries(ccn-lite-mkI ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS}) 
+target_link_libraries(ccn-lite-mkI ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn) 
+
+target_link_libraries(ccn-lite-pktdump ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
+target_link_libraries(ccn-lite-pktdump ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
 
 
