@@ -78,6 +78,7 @@ parseFrag(char *fname, unsigned char *data, int datalen, struct ccnl_face_s *f)
     }
 
     ccnl_frag_RX_CCNx2013(reassembly_done, NULL, f, &data, &datalen);
+    exit(-1);
 }
 
 // ----------------------------------------------------------------------
@@ -111,11 +112,11 @@ main(int argc, char *argv[])
 usage:
             fprintf(stderr, "usage: %s [options] FILE(S)\n"
             "  -f PREFIX   use PREFIX for output file names (default: defrag)\n"
-            "  -n          no-clobber\n",
+            "  -n          no-clobber\n"
 #ifdef USE_LOGGING
             "  -v DEBUG_LEVEL (fatal, error, warning, info, debug, verbose, trace)\n"
 #endif
-            argv[0]);
+            ,argv[0]);
             exit(1);
         }
     }

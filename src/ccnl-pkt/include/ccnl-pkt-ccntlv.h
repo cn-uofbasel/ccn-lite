@@ -193,4 +193,17 @@ int
 ccnl_ccntlv_prependChunkInterestWithHdr(struct ccnl_prefix_s *name,
                                         int *offset, unsigned char *buf);
 
+int
+ccnl_ccntlv_prependContent(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
+                           unsigned int *lastchunknum, int *contentpos,
+                           int *offset, unsigned char *buf);
+
+int
+ccnl_ccntlv_prependFixedHdr(unsigned char ver,
+                            unsigned char packettype,
+                            unsigned short payloadlen,
+                            unsigned char hoplimit,
+                            int *offset, unsigned char *buf);
+
 #endif // eof

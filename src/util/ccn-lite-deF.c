@@ -66,7 +66,7 @@ reassembly_done(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     return 0;
 }
 
-
+//FIXME: this must not be commented
 void
 parseFrag(char *fname, unsigned char *data, int datalen, struct ccnl_face_s *f)
 {

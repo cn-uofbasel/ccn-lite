@@ -75,6 +75,9 @@ int
 ccnl_i_prefixof_c(struct ccnl_prefix_s *prefix,
                   int minsuffix, int maxsuffix, struct ccnl_content_s *c);
 
+int
+unescape_component(char *comp);
+
 //int
 //ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
 

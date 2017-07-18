@@ -138,4 +138,24 @@ ccnl_ndntlv_prependContent(struct ccnl_prefix_s *name,
                            int *contentpos, unsigned int *final_block_id,
                            int *offset, unsigned char *buf);
 
+int
+ccnl_ndntlv_prependTL(int type, unsigned int len,
+                      int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependTLval(unsigned long val, int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependBlob(int type, unsigned char *blob, int len,
+                        int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependIncludedNonNegInt(int type, unsigned int val,
+                                     char marker,
+                                     int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependName(struct ccnl_prefix_s *name,
+                        int *offset, unsigned char *buf);
+
 #endif // EOF
