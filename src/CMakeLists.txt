@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(ccn-lite)
 
 # CCNL flags
-add_definitions(
+set(CCNL_BASIC_FLAGS
     -DUSE_DEBUG
     -DUSE_LOGGING
     -DUSE_CCNxDIGEST
@@ -17,29 +17,42 @@ add_definitions(
     -DUSE_UNIXSOCKET
     -DNEEDS_PACKET_CRAFTING
     -DNEEDS_PREFIX_MATCHING
+    CACHE PATH
+    "basic build flags for CCN-lite"
 )
+
+add_definitions(${CCNL_BASIC_FLAGS})
 
 # Platforms
-add_definitions(
+set(CCNL_PLATFORM_FLAGS
     -DCCNL_UNIX
 #    -DCCNL_ARDUINO
+     CACHE PATH
+    "platform flags for CCN-lite"
 )
+add_definitions(${CCNL_PLATFORM_FLAGS})
 
 # Packet formats
-add_definitions(
+set(CCNL_PACKETFORMAT_FLAGS
     -DUSE_SUITE_NDNTLV
     -DUSE_SUITE_CCNB
     -DUSE_SUITE_CCNTLV
     -DUSE_SUITE_CISTLV
     -DUSE_SUITE_IOTTLV
     -DUSE_SUITE_LOCALRPC
+    CACHE PATH
+    "packet format flags for CCN-lite"
 )
+add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 
 # NFN flags
-add_definitions(
+set(CCNL_NFN_FLAGS
     -DUSE_NFN
 #    -DUSE_NFN_NSTRANS
+    CACHE PATH
+    "NFN flags for CCN-lite"
 )
+add_definitions(${CCNL_NFN_FLAGS})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c99 -g")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
