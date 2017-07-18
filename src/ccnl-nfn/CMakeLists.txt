@@ -9,3 +9,4 @@ file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "include/*.h")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS} include/ccnl-nfn-common.h include/ccnl-nfn-krivine.h include/ccnl-nfn-monitor.h include/ccnl-nfn-ops.h include/ccnl-nfn-parse.h src/ccnl-nfn-util.c src/ccnl-nfn-util.c include/ccnl-nfn-util.h)
+target_link_libraries(ccnl-nfn ccnl-core ccnl-pkt)
