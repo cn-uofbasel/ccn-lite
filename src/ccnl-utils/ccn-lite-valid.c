@@ -22,7 +22,7 @@
 
 #define assert(...) do {} while(0)
 #include "ccnl-common.c"
-#include "ccnl-socket.c"
+#include "ccnl-ext-hmac.c"
 
 struct ccnl_pkt_s*
 ccnl_parse(unsigned char *data, int datalen)

@@ -28,6 +28,7 @@ add_executable(ccn-lite-cryptoserver ccn-lite-cryptoserver.c)
 #add_executable(ccn-lite-deF ccn-lite-deF.c)
 add_executable(ccn-lite-fetch ccn-lite-fetch.c)
 add_executable(ccn-lite-mkC ccn-lite-mkC.c)
+add_executable(ccn-lite-valid ccn-lite-valid.c)
 
 target_link_libraries(ccn-lite-peek ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
 target_link_libraries(ccn-lite-peek ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
@@ -47,6 +48,9 @@ if(OpenSSL_FOUND)
 
     target_link_libraries(ccn-lite-mkC ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
     target_link_libraries(ccn-lite-mkC ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
+
+    target_link_libraries(ccn-lite-valid ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS} ${OPENSSL_LIBRARIES})
+    target_link_libraries(ccn-lite-valid ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ${OPENSSL_LIBRARIES})
 endif()
 
 target_link_libraries(ccn-lite-fetch ${PROJECT_LINK_LIBS} ${EXT_LINK_LIBS})
