@@ -2091,6 +2091,11 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     return 0;
 }
 
+int 
+ccnl_static_fields4(){
+    return lasthour + inter_ccn_interval + inter_pkt_interval;
+}
+
 #endif // USE_MGMT
 
 // eof

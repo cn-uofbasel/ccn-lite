@@ -36,10 +36,6 @@
 
 #include "ccnl-nfn.h"
 
-#ifdef __linux__
-int lasthour = -1;
-#endif
-
 #ifdef USE_LINKLAYER
 int
 ccnl_open_ethdev(char *devname, struct sockaddr_ll *sll, int ethtype)
@@ -811,4 +807,9 @@ notacontent:
     }
 
     closedir(dir);
+}
+
+int 
+ccnl_static_fields2(){
+    return lasthour + inter_ccn_interval + inter_pkt_interval;
 }

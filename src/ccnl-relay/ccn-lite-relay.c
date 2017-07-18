@@ -332,4 +332,9 @@ usage:
     return 0;
 }
 
+int 
+ccnl_static_fields1(){
+    return lasthour + inter_ccn_interval + inter_pkt_interval;
+}
+
 // eof

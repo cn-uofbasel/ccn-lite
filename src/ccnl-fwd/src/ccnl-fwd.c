@@ -843,3 +843,7 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     return 0;
 }
 
+int 
+ccnl_static_fields3(){
+    return lasthour + inter_ccn_interval + inter_pkt_interval;
+}
