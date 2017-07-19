@@ -8,16 +8,32 @@
 #include "ccnl-core.h"
 
 #include "ccnl-nfn.h"
+#include "ccnl-nfn-requests.h"
 
 
 int
 ccnl_nfnprefix_isNFN(struct ccnl_prefix_s *p);
+
+int
+ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p);
+
+int
+ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p);
+
+int
+ccnl_nfnprefix_isRequestType(struct ccnl_prefix_s *p, enum nfn_request_type request_type);
+
+int
+ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p);
 
 void
 ccnl_nfnprefix_set(struct ccnl_prefix_s *p, unsigned int flags);
 
 void
 ccnl_nfnprefix_clear(struct ccnl_prefix_s *p, unsigned int flags);
+
+struct ccnl_interest_s*
+ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *interest);
 
 struct ccnl_content_s *
 ccnl_nfn_local_content_search(struct ccnl_relay_s *ccnl,

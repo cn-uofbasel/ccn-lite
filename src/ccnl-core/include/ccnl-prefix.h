@@ -40,14 +40,13 @@ struct ccnl_prefix_s {
 #ifdef USE_NFN
     unsigned int nfnflags;
 #  define CCNL_PREFIX_NFN   0x01
-
 #  define CCNL_PREFIX_COMPU 0x04
-// #ifdef USE_TIMEOUT_KEEPALIVE 
 // FIXME: these values need to be compiled conditionally
-#  define CCNL_PREFIX_KEEPALIVE 0x08
-#  define CCNL_PREFIX_INTERMEDIATE 0x10
-    int internum;
-// #endif
+# define CCNL_PREFIX_REQUEST 0x20
+#ifdef USE_NFN_REQUESTS
+    struct nfn_request_s *request;
+#endif
+
     unsigned char *nfnexpr;
 #endif
 };
@@ -94,5 +93,7 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
    char* ccnl_prefix_to_path(struct ccnl_prefix_s *pr);
 #endif
 
+char*
+ccnl_prefix_debug_info(struct ccnl_prefix_s *p);
 
 #endif //EOF

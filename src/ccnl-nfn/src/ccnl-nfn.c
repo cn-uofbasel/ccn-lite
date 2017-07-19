@@ -88,20 +88,23 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
     TRACEOUT();
 }
 
-int
-ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
-                                 struct ccnl_prefix_s *prefix)
+struct configuration_s *
+ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix)
 {
     int i = 0;
     struct ccnl_prefix_s *copy;
 
-    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    DEBUGMSG(TRACE, "ccnl_nfn_find_running_computation()\n");
 
     copy = ccnl_prefix_dup(prefix);
     ccnl_nfnprefix_set(copy, CCNL_PREFIX_NFN);
-#ifdef USE_TIMEOUT_KEEPALIVE
-    ccnl_nfnprefix_clear(copy, CCNL_PREFIX_KEEPALIVE);
+#ifdef USE_NFN_REQUESTS
+    ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
 #endif
+
+    char *path = ccnl_prefix_to_path(copy);
+    DEBUGMSG(DEBUG, "Searching for computation: %s\n", path);
+    ccnl_free(path);
 
     for (i = 0; i < -ccnl->km->configid; ++i) {
         struct configuration_s *config;
@@ -111,12 +114,19 @@ ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl,
             continue;
         if (!ccnl_prefix_cmp(config->prefix, NULL, copy, CMP_EXACT)) {
             ccnl_prefix_free(copy);
-            return 1;
+            return config;
         }
     }
     ccnl_prefix_free(copy);
 
-    return 0;
+    return NULL;
+}
+
+int
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix)
+{
+    DEBUGMSG(TRACE, "ccnl_nfn_already_computing()\n");
+    return ccnl_nfn_find_running_computation(ccnl, prefix) != NULL;
 }
 
 int
@@ -143,13 +153,6 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
 
     from->flags = CCNL_FACE_FLAGS_STATIC;
 
-#ifndef USE_TIMEOUT_KEEPCONTENT
-    if (ccnl_nfn_already_computing(ccnl, prefix)) { //TODO REMOVE?
-        DEBUGMSG(DEBUG, "Computation for this interest is already running\n");
-        return -1;
-    }
-#endif
-
     // Checks first if the interest has a routing hint and then searches for it locally.
     // If it exisits, the computation is started locally,  otherwise it is directly forwarded without entering the AM.
     // Without this mechanism, there will be situations where several nodes "overtake" a computation
@@ -166,6 +169,9 @@ ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
         copy->compcnt -= 1;
         DEBUGMSG(DEBUG, "   checking local available of %s\n", ccnl_prefix_to_path(copy));
         ccnl_nfnprefix_clear(copy, CCNL_PREFIX_NFN);
+#ifdef USE_NFN_REQUESTS
+        ccnl_nfnprefix_clear(copy, CCNL_PREFIX_REQUEST);
+#endif
         if (!ccnl_nfn_local_content_search(ccnl, NULL, copy)) {
             ccnl_prefix_free(copy);
             ccnl_interest_propagate(ccnl, interest);
@@ -245,22 +251,49 @@ restart:
 
 struct ccnl_interest_s*
 ccnl_nfn_RX_request(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
-                     struct ccnl_pkt_s **pkt)
+                    struct ccnl_pkt_s **pkt)
 {
     struct ccnl_interest_s *i;
+    struct ccnl_pkt_s **packet = pkt;
 
-    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx) || 
-#ifdef USE_TIMEOUT_KEEPALIVE
-        ccnl_nfnprefix_isKeepalive((*pkt)->pfx) ||
-        ccnl_nfnprefix_isIntermediate((*pkt)->pfx) ||
-#endif
-        ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS)
+    if (!ccnl_nfnprefix_isNFN((*pkt)->pfx)
+        || ccnl->km->numOfRunningComputations >= NFN_MAX_RUNNING_COMPUTATIONS) {
         return NULL;
-    i = ccnl_interest_new(ccnl, from, pkt);
+    }
+
+#ifdef USE_NFN_REQUESTS
+    if (ccnl_nfnprefix_isKeepalive((*pkt)->pfx)
+        || ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
+        return NULL;
+    }
+
+    struct ccnl_pkt_s *pkt_start = *pkt;
+    int is_start_request = (ccnl_nfnprefix_isRequest((*pkt)->pfx)
+                            && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START);
+    if (is_start_request) {
+        struct ccnl_prefix_s *pfx = ccnl_prefix_dup((*pkt)->pfx);
+        ccnl_nfnprefix_clear(pfx, CCNL_PREFIX_REQUEST);
+        *packet = nfn_request_interest_pkt_new(ccnl, pfx);
+    }
+#endif
+
+    i = ccnl_interest_new(ccnl, from, packet);
     if (!i)
         return NULL;
     i->flags &= ~CCNL_PIT_COREPROPAGATES; // do not forward interests for running computations
+
+#ifdef USE_NFN_REQUESTS
+    if (is_start_request) {
+        struct ccnl_interest_s *i_start = ccnl_interest_new(ccnl, from, &pkt_start);
+        i_start->flags &= ~CCNL_PIT_COREPROPAGATES;
+        ccnl_interest_append_pending(i_start, from);
+    } else {
+        ccnl_interest_append_pending(i, from);
+    }
+#else
     ccnl_interest_append_pending(i, from);
+#endif
+
 //    if (!(i->flags & CCNL_PIT_COREPROPAGATES))
     ccnl_nfn(ccnl, ccnl_prefix_dup(i->pkt->pfx), from, NULL, i, i->pkt->suite, 0);
 
@@ -294,15 +327,12 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
             DEBUGMSG(TRACE, "  interest faceid=%d\n", i_it->from->faceid);
 
-#ifdef USE_TIMEOUT_KEEPCONTENT
-            c->served_cnt++; // a computation has been waiting for this content, no need to keep it  
-#endif
 
-#ifdef USE_TIMEOUT_KEEPALIVE
-            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+#ifdef USE_NFN_REQUESTS
+            if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_content_add2cache(relay, c);
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
             }
 #endif
             
@@ -311,139 +341,26 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                   faceid, ccnl_prefix_to_path(c->pkt->pfx));
             i_it->flags |= CCNL_PIT_COREPROPAGATES;
             i_it->from = NULL;
-            
-#ifdef USE_TIMEOUT_KEEPALIVE
-            if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+
+#ifdef USE_NFN_REQUESTS
+            if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
                 ccnl_nfn_continue_computation(relay, faceid, 0);
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
              }
-#endif // USE_TIMEOUT_KEEPALIVE
+#endif
             i_it = ccnl_interest_remove(relay, i_it);
             //ccnl_face_remove(relay, from);
             ++found;
             //goto Done;
-        } else
+        } else {
             i_it = i_it->next;
+        }
     }
     TRACEOUT();
     return found > 0;
 }
-
-#ifdef USE_TIMEOUT_KEEPALIVE
-int
-ccnl_nfn_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      struct ccnl_content_s *c)
-{
-    TRACEIN();
-    DEBUGMSG(DEBUG, "  RX keepalive <%s>\n", ccnl_prefix_to_path(c->pkt->pfx));
-    struct ccnl_interest_s *i_it = NULL;
-    int found = 0;
-    for (i_it = relay->pit; i_it; i_it = i_it->next) {
-        if (!ccnl_prefix_cmp(c->pkt->pfx, NULL, i_it->pkt->pfx, CMP_EXACT)) {
-            DEBUGMSG(DEBUG, "    matches interest <%s>\n", ccnl_prefix_to_path(i_it->pkt->pfx));
-            if (i_it->keepalive_origin != NULL) {
-                DEBUGMSG(DEBUG, "      reset interest <%s>\n", 
-                    ccnl_prefix_to_path(i_it->keepalive_origin->pkt->pfx));
-                
-                // reset original interest
-                i_it->keepalive_origin->last_used = CCNL_NOW();
-                i_it->keepalive_origin->retries = 0;
-
-                // remove keepalive interest
-                i_it->keepalive_origin->keepalive = NULL;
-                i_it->keepalive_origin = NULL;
-                // i_it = ccnl_nfn_interest_remove(relay, i_it);
-                
-                ++found;
-            }
-        }
-    }
-    DEBUGMSG(DEBUG, "  keeping %i interest%s alive\n", found, found == 1 ? "" : "s");
-    TRACEOUT();
-    return found > 0;
-}
-
-int 
-ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt) {
-    TRACEIN();
-
-    // int from_compute_server = from->faceid < 0;
-    // DEBUGMSG(INFO, "From compute server: %i\n", from_compute_server);
-    // if (!from_compute_server) {
-    //     return 0;
-    // }
-
-    struct ccnl_prefix_s *dup_pfx = ccnl_prefix_dup((*pkt)->pfx);
-    ccnl_nfnprefix_clear(dup_pfx, CCNL_PREFIX_INTERMEDIATE);
-    dup_pfx->internum = 0;
-
-    // Find the pendint that triggered the computation that we received an intermediate result for.
-    struct ccnl_interest_s *i_it = NULL;
-    for (i_it = relay->pit; i_it; i_it = i_it->next) {
-        if (!ccnl_prefix_cmp(dup_pfx, NULL, i_it->pkt->pfx, CMP_EXACT) &&
-                i_it->from && i_it->from->faceid < 0) {
-            DEBUGMSG(INFO, "Intermediate found match.\n");
-            struct ccnl_face_s *from = i_it->from;
-            int faceid = -from->faceid;
-
-            // Get the original prefix and create a new intermediate prefix based on that.
-            struct configuration_s *config = ccnl_nfn_findConfig(relay->km->configuration_list, -faceid);
-            struct ccnl_prefix_s *interm_pfx =  ccnl_prefix_dup(config->prefix);
-            interm_pfx->nfnflags |= CCNL_PREFIX_INTERMEDIATE;
-            interm_pfx->internum = (*pkt)->pfx->internum;
-
-            char *s = NULL;
-            DEBUGMSG(INFO, "Original (modified) prefix for intermediate: %s\n", s = ccnl_prefix_to_path(interm_pfx));
-            ccnl_free(s);  
-
-            // ccnl_free((*pkt)->pfx);    
-            // (*pkt)->pfx = interm_pfx; // ok?
-
-            int dataoffset;
-            struct ccnl_pkt_s *packet;
-            packet = ccnl_calloc(1, sizeof(*packet));
-            packet->pfx = interm_pfx;
-            packet->buf = ccnl_mkSimpleContent(packet->pfx, (*pkt)->content, (*pkt)->contlen, &dataoffset);
-            packet->content = packet->buf->data + dataoffset;
-            packet->contlen = (*pkt)->contlen;
-
-            struct ccnl_content_s *content = ccnl_content_new(relay, &packet);
-            ccnl_content_add2cache(relay, content);
-            // ccnl_free(packet);
-            // ccnl_free(content);
-
-            DEBUGMSG_CFWD(INFO, "data after caching intermediate result %.*s\n", content->pkt->contlen, content->pkt->content);
-
-            TRACEOUT();
-            return 1;
-        }
-    }
-    DEBUGMSG(INFO, "Intermediate found no match.\n");
-    TRACEOUT();
-    return 0;
-}
-
-// Return the highest consecutive intermediate number for the prefix, starts with 0.
-// -1 if no intermediate result is found.
-int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix) {
-    struct ccnl_content_s *c;
-    int highest = -1;
-    for (c = relay->contents; c; c = c->next) {
-        if (ccnl_nfnprefix_isIntermediate(c->pkt->pfx)) {
-            if (prefix->compcnt == ccnl_prefix_cmp(prefix, NULL, c->pkt->pfx, CMP_LONGEST)) {
-                if (highest < c->pkt->pfx->internum) {
-                    highest = c->pkt->pfx->internum;
-                }
-            }
-        }
-    }
-    return highest;
-}
-
-#endif //USE_TIMEOUT_KEEPALIVE
 
 #endif //USE_NFN
-
 
 // eof

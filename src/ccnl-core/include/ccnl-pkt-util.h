@@ -40,4 +40,7 @@ ccnl_str2suite(char *cp);
 int
 ccnl_pkt2suite(unsigned char *data, int len, int *skip);
 
+int
+ccnl_cmp2int(unsigned char *cmp, int cmplen);
+
 #endif

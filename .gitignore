@@ -86,6 +86,7 @@ browse.VC.db
 # Eclipse
 .cproject
 .project
+.settings
 
 # GNU Files
 GTAGS

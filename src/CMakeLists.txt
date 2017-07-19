@@ -48,6 +48,7 @@ add_definitions(${CCNL_PACKETFORMAT_FLAGS})
 # NFN flags
 set(CCNL_NFN_FLAGS
     -DUSE_NFN
+    -DUSE_NFN_REQUESTS
 #    -DUSE_NFN_NSTRANS
     CACHE PATH
     "NFN flags for CCN-lite"

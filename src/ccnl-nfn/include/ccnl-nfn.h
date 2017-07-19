@@ -120,8 +120,17 @@ int ccnl_nfn(struct ccnl_relay_s *ccnl, // struct ccnl_buf_s *orig,
              struct configuration_s *config, struct ccnl_interest_s *interest,
              int suite, int start_locally);
 
+struct configuration_s*
+ccnl_nfn_findConfig(struct configuration_s *config_list, int configid);
+
 void
 ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove);
+
+int
+ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
+
+struct configuration_s *
+ccnl_nfn_find_running_computation(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
 
 struct ccnl_content_s *
 create_content_object(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix,

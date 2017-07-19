@@ -43,7 +43,7 @@ struct ccnl_interest_s {
 #define CCNL_PIT_TRACED            0x02
     int last_used;
     int retries;
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     struct ccnl_interest_s *keepalive; // the keepalive interest dispatched for this interest
     struct ccnl_interest_s *keepalive_origin; // the interest that dispatched this keepalive interest 
 #endif
@@ -56,8 +56,9 @@ int
 ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt);
 
 int
-ccnl_interest_append_pending(struct ccnl_interest_s *i,
-                             struct ccnl_face_s *from);
+ccnl_interest_append_pending(struct ccnl_interest_s *i, struct ccnl_face_s *from);
 
+int
+ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face);
 
 #endif //CCNL_INTEREST_H

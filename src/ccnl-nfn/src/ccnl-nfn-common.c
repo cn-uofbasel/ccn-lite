@@ -515,23 +515,22 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
     return i;
 }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
 struct ccnl_prefix_s*
 ccnl_nfn_mkKeepalivePrefix(struct ccnl_prefix_s *pfx)
 {
     struct ccnl_prefix_s *p;
-    // unsigned char cmp[] = "ALIVE";
-    // int cmplen = strlen((char*)cmp);
-    
-    DEBUGMSG(TRACE, "ccnl_nfnprefix_mkKeepalivePrefix()\n");
+
+    DEBUGMSG(TRACE, "ccnl_nfn_mkKeepalivePrefix()\n");
     
     p = ccnl_prefix_dup(pfx);
-    DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p)); 
-    // if (ccnl_prefix_appendCmp(p, cmp, cmplen) != 0)
-    //     return NULL;
-        
-    p->nfnflags |= CCNL_PREFIX_KEEPALIVE;
-    
+    DEBUGMSG(TRACE, "  duped prefix: %s\n", ccnl_prefix_to_path(p));
+
+    char *comp = "KEEPALIVE";
+    int complen = strlen(comp);
+    p->request = nfn_request_new((unsigned char*)comp, complen);
+    p->nfnflags |= CCNL_PREFIX_REQUEST;
+
     DEBUGMSG(TRACE, "  keep alive prefix: %s\n", ccnl_prefix_to_path(p));
     return p;
 }
@@ -540,7 +539,6 @@ struct ccnl_interest_s *
 ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest)
 {
-   // srand (time(NULL));
     int nonce = random();
     struct ccnl_prefix_s *pfx;
     struct ccnl_pkt_s *pkt;
@@ -610,7 +608,7 @@ ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
     return i;
 }
 
-struct ccnl_interest_s* // TODO int/void return
+struct ccnl_interest_s*
 ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *interest)
 {
     DEBUGMSG(TRACE, "ccnl_nfn_interest_keepalive()\n");
@@ -622,7 +620,36 @@ ccnl_nfn_interest_keepalive(struct ccnl_relay_s *relay, struct ccnl_interest_s *
     ccnl_interest_propagate(relay, i);
     return interest;
 }
-#endif // USE_TIMEOUT_KEEPALIVE
+
+int
+ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST
+           && p->request->type == NFN_REQUEST_TYPE_KEEPALIVE;
+}
+
+int
+ccnl_nfnprefix_isRequest(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST;
+}
+
+int
+ccnl_nfnprefix_isRequestType(struct ccnl_prefix_s *p,
+                             enum nfn_request_type request_type)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST && p->request->type == request_type;
+}
+
+int
+ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p)
+{
+    return p->nfnflags & CCNL_PREFIX_REQUEST
+           && p->request->type == NFN_REQUEST_TYPE_GET_INTERMEDIATE;
+}
+
+
+#endif // USE_NFN_REQUESTS
 
 // ----------------------------------------------------------------------
 // prefix (and NFN) related functionality
@@ -639,21 +666,9 @@ ccnl_nfnprefix_contentIsNACK(struct ccnl_content_s *c)
     return !memcmp(c->pkt->content, ":NACK", 5);
 }
 
-int
-ccnl_nfnprefix_isKeepalive(struct ccnl_prefix_s *p)
-{
-    return p->nfnflags & CCNL_PREFIX_KEEPALIVE;
-}
-
 int ccnl_nfnprefix_isCompute(struct ccnl_prefix_s *p)
 {
     return p->compcnt > 0 && p->complen[0] == 7 && !memcmp(p->comp[0], "COMPUTE", 7);
-}
-
-int 
-ccnl_nfnprefix_isIntermediate(struct ccnl_prefix_s *p) 
-{
-    return p->nfnflags & CCNL_PREFIX_INTERMEDIATE;
 }
 
 void
@@ -792,6 +807,12 @@ ccnl_nfnprefix_mkComputePrefix(struct configuration_s *config, int suite)
     if (!p)
         return NULL;
     p->nfnflags = CCNL_PREFIX_NFN;
+
+#ifdef USE_NFN_REQUESTS
+    if ((config->prefix->nfnflags & CCNL_PREFIX_REQUEST) != 0) {
+        p->nfnflags |= CCNL_PREFIX_REQUEST;
+    }
+#endif
 
     p->comp[0] = (unsigned char*) bytes;
     len = ccnl_pkt_mkComponent(suite, p->comp[0], "COMPUTE", strlen("COMPUTE"));

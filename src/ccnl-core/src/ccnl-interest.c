@@ -91,8 +91,7 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
 
 
 int
-ccnl_interest_append_pending(struct ccnl_interest_s *i,
-                             struct ccnl_face_s *from)
+ccnl_interest_append_pending(struct ccnl_interest_s *i,  struct ccnl_face_s *from)
 {
     struct ccnl_pendint_s *pi, *last = NULL;
     DEBUGMSG_CORE(TRACE, "ccnl_append_pending\n");
@@ -101,11 +100,6 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
         if (pi->face == from) {
             DEBUGMSG_CORE(DEBUG, "  we found a matching interest, updating time\n");
             pi->last_used = CCNL_NOW();
-            #ifdef USE_TIMEOUT_KEEPCONTENT
-                // ensure the pending interest sticks around while the client keeps repeating the same request
-                i->last_used = CCNL_NOW();
-                i->retries = 0;
-            #endif
             return 0;
         }
         last = pi;
@@ -115,7 +109,10 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
         DEBUGMSG_CORE(DEBUG, "  no mem\n");
         return -1;
     }
-    DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p\n", (void *) pi);
+    char *s = NULL;
+    DEBUGMSG_CORE(DEBUG, "  appending a new pendint entry %p <%s>(%p)\n",
+                  (void *) pi, (s = ccnl_prefix_to_path(i->pkt->pfx)), (void*)i->pkt->pfx);
+    ccnl_free(s);
     pi->face = from;
     pi->last_used = CCNL_NOW();
     if (last)
@@ -123,4 +120,37 @@ ccnl_interest_append_pending(struct ccnl_interest_s *i,
     else
         i->pending = pi;
     return 0;
+}
+
+int
+ccnl_interest_remove_pending(struct ccnl_interest_s *i, struct ccnl_face_s *face)
+{
+    DEBUGMSG_CORE(TRACE, "ccnl_interest_remove_pending\n");
+    int found = 0;
+    char *s = NULL;
+    struct ccnl_pendint_s *prev = NULL;
+    struct ccnl_pendint_s *pend = i->pending;
+    while (pend) {  // TODO: is this really the most elegant solution?
+        if (face->faceid == pend->face->faceid) {
+            DEBUGMSG_CFWD(INFO, "  removed face (%s) for interest %s\n",
+                          ccnl_addr2ascii(&pend->face->peer),
+                          (s = ccnl_prefix_to_path(i->pkt->pfx)));
+            found++;
+            if (prev) {
+                prev->next = pend->next;
+                ccnl_free(pend);
+                pend = prev->next;
+            } else {
+                i->pending = pend->next;
+                ccnl_free(pend);
+                pend = i->pending;
+            }
+        } else {
+            prev = pend;
+            pend = pend->next;
+        }
+    }
+    if (s)
+        ccnl_free(s);
+    return found;
 }

@@ -226,3 +226,17 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
     return -1;
 }
 
+int
+ccnl_cmp2int(unsigned char *cmp, int cmplen)
+{
+    DEBUGMSG(DEBUG, "  inter a: %i\n", cmplen);
+    char *str = (char *)ccnl_malloc(cmplen+1);
+    DEBUGMSG(DEBUG, "  inter b\n");
+    memcpy(str, (char *)cmp, cmplen);
+    str[cmplen] = '\0';
+    DEBUGMSG(DEBUG, "  inter c: %s\n", str);
+    long int i = strtol(str, NULL, 0);
+    DEBUGMSG(DEBUG, "  inter d\n");
+    ccnl_free(str);
+    return (int)i;
+}

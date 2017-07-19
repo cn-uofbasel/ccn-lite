@@ -39,12 +39,6 @@
 
 #include "ccnl-logging.h"
 
-#ifdef USE_TIMEOUT_KEEPALIVE
-// #include "ccnl-ext-nfn.c"
-int ccnl_nfn_already_computing(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *prefix);
-int ccnl_nfn_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt);
-int ccnl_nfn_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_s *prefix);
-#endif
 
 #ifdef NEEDS_PREFIX_MATCHING
 struct ccnl_prefix_s* ccnl_prefix_dup(struct ccnl_prefix_s *prefix);
@@ -99,16 +93,16 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         }
     }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
     // Find the original prefix for the intermediate result and use that prefix to cache the content.
-    if (ccnl_nfnprefix_isIntermediate((*pkt)->pfx)) {
-        if (ccnl_nfn_RX_intermediate(relay, from, pkt)) {
-            // This was an intermediate result from the compute server.
-            // It was cached, and shouldn't be forwarded.
-            DEBUGMSG_CFWD(VERBOSE, "received intermediate result from compute server \n");
+    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
+        if (!nfn_request_handle_content(relay, from, pkt)) {
+            // content was handled completely,
+            // no need for further processing or forwarding
             return 0;
         }
     }
+
 #endif
 
     c = ccnl_content_new(pkt);
@@ -119,19 +113,19 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
      // CONFORM: Step 2 (and 3)
 #ifdef USE_NFN
     if (ccnl_nfnprefix_isNFN(c->pkt->pfx)) {
-#ifdef USE_TIMEOUT_KEEPALIVE
-        if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
-            ccnl_nfn_RX_keepalive(relay, from, c);
-                // return 0;
-            // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
-        } else {
-#endif // USE_TIMEOUT_KEEPALIVE
+// #ifdef USE_NFN_REQUESTS
+//         if (ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+//             nfn_request_RX_keepalive(relay, from, c);
+//                 // return 0;
+//             // DEBUGMSG_CFWD(VERBOSE, "no interests to keep alive found \n");
+//         } else {
+// #endif // USE_NFN_REQUESTS
             if (ccnl_nfn_RX_result(relay, from, c))
                 return 0;   // FIXME: memory leak
             DEBUGMSG_CFWD(VERBOSE, "no running computation found \n");
-#ifdef USE_TIMEOUT_KEEPALIVE
-        }
-#endif // USE_TIMEOUT_KEEPALIVE
+//#ifdef USE_NFN_REQUESTS
+//        }
+//#endif // USE_NFN_REQUESTS
     }
 #endif
 
@@ -142,8 +136,8 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         return 0;
     }
 
-#ifdef USE_TIMEOUT_KEEPALIVE
-    if (!ccnl_nfnprefix_isKeepalive(c->pkt->pfx)) {
+#ifdef USE_NFN_REQUESTS
+    if (!ccnl_nfnprefix_isRequest(c->pkt->pfx)) {
 #endif
         if (relay->max_cache_entries != 0) { // it's set to -1 or a limit
             DEBUGMSG_CFWD(DEBUG, "  adding content to cache\n");
@@ -153,7 +147,9 @@ ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             DEBUGMSG_CFWD(DEBUG, "  content not added to cache\n");
             ccnl_content_free(c);
         }
-#ifdef USE_TIMEOUT_KEEPALIVE
+#ifdef USE_NFN_REQUESTS
+    } else {
+        DEBUGMSG_CFWD(DEBUG, "  not caching nfn request\n");
     }
 #endif
 
@@ -259,27 +255,46 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     }
 #endif
 
-#ifdef USE_TIMEOUT_KEEPALIVE
-    if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-        DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
-        if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
-            int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
-            DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
-            int offset;
-            char reply[16];
-            snprintf(reply, 16, "%d", internum);
-            int size = internum >= 0 ? strlen(reply) : 0;
-            struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
-            ccnl_face_enqueue(relay, from, buf);
+#ifdef USE_SUITE_NDNTLV
+    if ((*pkt)->suite == CCNL_SUITE_NDNTLV && (*pkt)->pfx->compcnt == 4 &&
+        !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {
+        DEBUGMSG_CFWD(INFO, "  found a mgmt message\n");
+        ccnl_mgmt(relay, (*pkt)->buf, (*pkt)->pfx, from); // use return value?
+        return 0;
+    }
+#endif
+
+//#ifdef USE_NFN_REQUESTS
+//    if ((*pkt)->pfx->nfnflags & CCNL_PREFIX_KEEPALIVE) {
+//        DEBUGMSG_CFWD(DEBUG, "  is a keepalive interest\n");
+//        if (ccnl_nfn_already_computing(relay, (*pkt)->pfx)) {
+//            int internum = ccnl_nfn_intermediate_num(relay, (*pkt)->pfx);
+//            DEBUGMSG_CFWD(DEBUG, "  running computation found, highest intermediate result: %i\n", internum);
+//            int offset;
+//            char reply[16];
+//            snprintf(reply, 16, "%d", internum);
+//            int size = internum >= 0 ? strlen(reply) : 0;
+//            struct ccnl_buf_s *buf  = ccnl_mkSimpleContent((*pkt)->pfx, (unsigned char *)reply, size, &offset);
+//            ccnl_face_enqueue(relay, from, buf);
+//            return 0;
+//        } else {
+//            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
+//        }
+//    }
+//#endif
+
+#ifdef USE_NFN_REQUESTS
+    if (ccnl_nfnprefix_isRequest((*pkt)->pfx)) {
+        if (!nfn_request_handle_interest(relay, from, pkt, cMatch)) {
+            // request was handled completely,
+            // no need for further processing or forwarding
             return 0;
-        } else {
-            DEBUGMSG_CFWD(DEBUG, "  no running computation found.\n");
         }
     }
 #endif
 
 
-    // Step 1: search in content store
+            // Step 1: search in content store
     DEBUGMSG_CFWD(DEBUG, "  searching in CS\n");
 
     for (c = relay->contents; c; c = c->next) {
@@ -290,11 +305,23 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
         DEBUGMSG_CFWD(DEBUG, "  found matching content %p\n", (void *) c);
         if (from->ifndx >= 0) {
-            #ifdef USE_NFN_MONITOR
+#ifdef USE_NFN_REQUESTS
+            struct ccnl_pkt_s *cpkt = c->pkt;
+            int matching_start_request = ccnl_nfnprefix_isRequest((*pkt)->pfx)
+                                         && (*pkt)->pfx->request->type == NFN_REQUEST_TYPE_START;
+            if (matching_start_request) {
+                nfn_request_content_set_prefix(c, (*pkt)->pfx);
+            }
+#endif
+#ifdef USE_NFN_MONITOR
                 ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
                                  c->pkt->contlen);
-            #endif
+#endif
             ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
+#ifdef USE_NFN_REQUESTS
+            c->pkt = cpkt;
+#endif
+
         } else {
             ccnl_app_RX(relay, c);
         }

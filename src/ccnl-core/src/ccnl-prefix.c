@@ -27,6 +27,9 @@
 #include <ctype.h>
 #include <openssl/sha.h>
 
+#include "ccnl-nfn-requests.h"
+#include "ccnl-nfn-common.h"
+
 #include "ccnl-os-time.h"
 #include "ccnl-defs.h"
 #include "ccnl-malloc.h"
@@ -84,7 +87,9 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     p->chunknum = prefix->chunknum;
 #ifdef USE_NFN
     p->nfnflags = prefix->nfnflags;
-    p->internum = prefix->internum;
+#ifdef USE_NFN_REQUESTS
+    p->request = nfn_request_copy(prefix->request);
+#endif
 #endif
 
     for (i = 0, len = 0; i < prefix->compcnt; i++)
@@ -350,7 +355,14 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
 #ifdef USE_NFN
     if (nfnexpr && *nfnexpr)
         p->nfnflags |= CCNL_PREFIX_NFN;
-#endif
+#ifdef USE_NFN_REQUESTS
+//     if (p->compcnt > 1 && p->complen[p->compcnt-2] == 3 && !memcmp(p->comp[p->compcnt-2], "R2C", 3)) {
+//         p->nfnflags |= CCNL_PREFIX_REQUEST;
+//         p->request = nfn_request_new(p->comp[p->compcnt-1], p->complen[p->compcnt-1]);
+//         p->compcnt -= 2;
+//     }
+#endif // USE_NFN_REQUESTS
+#endif // USE_NFN
 
     if(chunknum) {
         p->chunknum = (int*) ccnl_malloc(sizeof(int));
@@ -389,59 +401,111 @@ ccnl_prefix_cmp(struct ccnl_prefix_s *pfx, unsigned char *md,
     unsigned char *comp;
 
     char *s1 = NULL, *s2 = NULL;
-    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s> of? name=<%s> digest=%p\n",
+    DEBUGMSG(VERBOSE, "prefix_cmp(mode=%s) prefix=<%s>(%p) of? name=<%s>(%p) digest=%p\n",
              ccnl_matchMode2str(mode),
-             (s1 = ccnl_prefix_to_path(pfx)), (s2 = ccnl_prefix_to_path(nam)), (void *) md);
+             (s1 = ccnl_prefix_to_path(pfx)), (void *)pfx,
+             (s2 = ccnl_prefix_to_path(nam)), (void *)nam, (void *) md);
     ccnl_free(s1);
     ccnl_free(s2);
 
     if (mode == CMP_EXACT) {
-        if (plen != nam->compcnt)
-            {DEBUGMSG(VERBOSE, "1a\n"); goto done;}
-        if (pfx->chunknum || nam->chunknum) {
-            if (!pfx->chunknum || !nam->chunknum)
-                {DEBUGMSG(VERBOSE, "1b\n"); goto done;}
-            if (*pfx->chunknum != *nam->chunknum)
-                {DEBUGMSG(VERBOSE, "1c\n"); goto done;}
+        if (plen != nam->compcnt) {
+            DEBUGMSG(VERBOSE, "comp count mismatch\n");
+            goto done;
         }
-    
+        if (pfx->chunknum || nam->chunknum) {
+            if (!pfx->chunknum || !nam->chunknum) {
+                DEBUGMSG(VERBOSE, "chunk mismatch\n");
+                goto done;
+            }
+            if (*pfx->chunknum != *nam->chunknum) {
+                DEBUGMSG(VERBOSE, "chunk number mismatch\n");
+                goto done;
+            }
+        }
+
 #ifdef USE_NFN
         if (nam->nfnflags != pfx->nfnflags) {
-            DEBUGMSG(VERBOSE, "1d\n"); 
+            DEBUGMSG(VERBOSE, "nfn flags mismatch\n");
             goto done;
         }
-        if (nam->internum != pfx->internum) {
-            DEBUGMSG(VERBOSE, "1e\n"); 
+        if (ccnl_nfnprefix_isRequest(nam) != ccnl_nfnprefix_isRequest(pfx)) {
+            DEBUGMSG(VERBOSE, "request mismatch\n");
             goto done;
         }
+        if (ccnl_nfnprefix_isRequest(nam)) {
+            if (nam->request->type != pfx->request->type) {
+                DEBUGMSG(VERBOSE, "request type mismatch\n");
+                goto done;
+            }
+            if (pfx->request->complen != nam->request->complen
+                || memcmp(pfx->request->comp, nam->request->comp, nam->request->complen)) {
+                DEBUGMSG(VERBOSE, "request component mismatch\n");
+                goto done;
+            }
+        }
+        // if (nam->internum != pfx->internum) {
+        //     DEBUGMSG(VERBOSE, "1e\n");
+        //     goto done;
+        // }
 #endif // USE_NFN
     }
 
-#ifdef USE_NFN
+#ifdef USE_NFN_REQUESTS
     if (mode == CMP_MATCH) {
-        if ((nam->nfnflags & CCNL_PREFIX_INTERMEDIATE) != (pfx->nfnflags & CCNL_PREFIX_INTERMEDIATE)) {
-            DEBUGMSG(VERBOSE, "2a\n");
+        // int nam_is_intermediate = ccnl_nfnprefix_isIntermediate(nam);
+        // int pfx_is_intermediate = ccnl_nfnprefix_isIntermediate(pfx);
+        // if (nam_is_intermediate != pfx_is_intermediate) {
+        //     DEBUGMSG(VERBOSE, "nfn intermediate mismatch\n");
+        //     goto done;
+        // }
+        // if (nam_is_intermediate) {
+        //     if (nfn_request_get_arg_int(nam->request) != nfn_request_get_arg_int(pfx->request)) {
+        //         DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+        //         goto done;
+        //     }
+        // }
+        int matching_start_request = !ccnl_nfnprefix_isRequest(pfx)
+                                     && ccnl_nfnprefix_isRequest(nam)
+                                     && nam->request->type == NFN_REQUEST_TYPE_START;
+        if (matching_start_request) {
+            rc = nam->compcnt;
+            goto comp_check;
+        }
+
+        if (ccnl_nfnprefix_isRequest(pfx) != ccnl_nfnprefix_isRequest(nam)) {
+            DEBUGMSG(VERBOSE, "nfn request mismatch\n");
             goto done;
         }
-        if (nam->internum != pfx->internum) {
-            DEBUGMSG(VERBOSE, "2b\n"); 
-            goto done;
+        if (ccnl_nfnprefix_isRequest(pfx)) {
+            if (pfx->request->type != nam->request->type) {
+                DEBUGMSG(VERBOSE, "request type mismatch\n");
+                goto done;
+            }
+            if (ccnl_nfnprefix_isIntermediate(pfx)) {
+                if (nfn_request_get_arg_int(nam->request)
+                    != nfn_request_get_arg_int(pfx->request)) {
+                    DEBUGMSG(VERBOSE, "nfn intermediate index mismatch\n");
+                    goto done;
+                }
+            }
         }
     }
+    comp_check:
 #endif
-
 
     for (i = 0; i < plen && i < nam->compcnt; ++i) {
         comp = i < pfx->compcnt ? pfx->comp[i] : md;
         clen = i < pfx->compcnt ? pfx->complen[i] : 32; // SHA256_DIGEST_LEN
         if (clen != nam->complen[i] || memcmp(comp, nam->comp[i], nam->complen[i])) {
             rc = mode == CMP_EXACT ? -1 : i;
-            {DEBUGMSG(VERBOSE, "3: %i\n", i); goto done;}
+            DEBUGMSG(VERBOSE, "component mismatch: %i\n", i);
+            goto done;
         }
     }
     // FIXME: we must also inspect chunknum here!
     rc = (mode == CMP_EXACT) ? 0 : i;
-done:
+    done:
     DEBUGMSG(TRACE, "  cmp result: pfxlen=%d cmplen=%d namlen=%d matchlen=%d\n",
              pfx->compcnt, plen, nam->compcnt, rc);
     return rc;
@@ -528,17 +592,25 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
         len += sprintf(buf + len, "nfn");
     }
-    if (pr->nfnflags & CCNL_PREFIX_KEEPALIVE) {
-        len += sprintf(buf + len, ":alive");
+#ifdef USE_NFN_REQUESTS
+    // len += sprintf(buf + len, ":test");
+    if (pr->nfnflags & CCNL_PREFIX_REQUEST) {
+        char *desc = nfn_request_description_new(pr->request);
+        len += sprintf(buf + len, ":%s", desc);
+        ccnl_free(desc);
+        // if (pr->request == NULL) {
+        //     len += sprintf(buf + len, ":request(?)");
+        // } else {
+        //     len += sprintf(buf + len, ":request(%d)", pr->request->complen);
+        // }
+        // len += sprintf(buf + len, ":request(%c)", *(pr->request->comp));
+        // len += sprintf(buf + len, ":request(%.*s)", pr->request->complen, pr->request->comp);
     }
-    if (pr->nfnflags & CCNL_PREFIX_INTERMEDIATE) {
-        len += sprintf(buf + len, ":intermediate");
-        len += sprintf(buf + len, ":%i", pr->internum);
-    }
+#endif // USE_NFN_REQUESTS
     if (pr->nfnflags) {
         len += sprintf(buf + len, "[");
     }
-#endif
+#endif // USE_NFN
 
 /*
 Not sure why a component starting with a call is not printed with a leading '/'
@@ -634,3 +706,62 @@ ccnl_prefix_to_path(struct ccnl_prefix_s *pr)
 }
 
 #endif // CCNL_LINUXKERNEL
+
+
+char*
+ccnl_prefix_debug_info(struct ccnl_prefix_s *p) {
+    int len = 0;
+    char *buf = (char*) ccnl_malloc(2048);
+    if (buf == NULL) {
+        DEBUGMSG_CUTL(ERROR, "ccnl_prefix_debug_info: malloc failed, exiting\n");
+        return NULL;
+    }
+
+    int i = 0;
+
+    len += sprintf(buf + len, "<");
+
+    len += sprintf(buf + len, "suite:%i, ", p->suite);
+
+#ifdef USE_NFN
+    len += sprintf(buf + len, "nfnflags:%i (", p->nfnflags);
+    int flagcount = 6;
+    char *flagnames[6]  = {"NFN", "?", "COMPUTE", "KEEPALIVE", "INTERMEDIATE", "REQUEST"};
+    int needscomma = 0;
+    for (i = 0; i < flagcount; i++) {
+        if ((p->nfnflags & (1<<i)) != 0) {
+            if (needscomma) {
+                len += sprintf(buf + len, ",");
+            }
+            len += sprintf(buf + len, "%s", flagnames[i]);
+            needscomma = 1;
+        }
+    }
+    len += sprintf(buf + len, "), ");
+
+#endif
+
+    len += sprintf(buf + len, "compcnt:%i ", p->compcnt);
+
+    len += sprintf(buf + len, "complen:(");
+    for (i = 0; i < p->compcnt; i++) {
+        len += sprintf(buf + len, "%i", p->complen[i]);
+        if (i < p->compcnt - 1) {
+            len += sprintf(buf + len, ",");
+        }
+    }
+    len += sprintf(buf + len, "), ");
+
+    len += sprintf(buf + len, "comp:(");
+    for (i = 0; i < p->compcnt; i++) {
+        len += sprintf(buf + len, "%.*s", p->complen[i], p->comp[i]);
+        if (i < p->compcnt - 1) {
+            len += sprintf(buf + len, ",");
+        }
+    }
+    len += sprintf(buf + len, ")");
+
+    len += sprintf(buf + len, ">%c", '\0');
+    return buf;
+}
+
