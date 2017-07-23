@@ -836,7 +836,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
 
 // ----------------------------------------------------------------------
 
-/*int udp_open(int port, struct sockaddr_in *si)
+int udp_open2(int port, struct sockaddr_in *si)
 {
     int s;
     unsigned int len;
@@ -857,7 +857,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     len = sizeof(*si);
     getsockname(s, (struct sockaddr*) si, &len);
     return s;
-}*/
+}
 
 int
 ccnl_crypto_ux_open(char *frompath)
@@ -1234,7 +1234,7 @@ help:
         if (!use_udp)
             sock = ccnl_crypto_ux_open(mysockname);
         else
-            sock = udp_open(getpid()%65536+1025, &si);
+            sock = udp_open2(getpid()%65536+1025, &si);
         if (!sock) {
             DEBUGMSG(ERROR, "cannot open UNIX/UDP receive socket\n");
             exit(-1);

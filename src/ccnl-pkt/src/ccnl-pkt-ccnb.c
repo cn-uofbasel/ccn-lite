@@ -41,6 +41,8 @@
 // ----------------------------------------------------------------------
 // ccnb parsing support
 
+
+
 int
 ccnl_ccnb_dehead(unsigned char **buf, int *len, int *num, int *typ)
 {
