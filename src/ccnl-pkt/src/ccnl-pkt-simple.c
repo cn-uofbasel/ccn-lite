@@ -2,9 +2,7 @@
 // Created by Balázs Faludi on 27.06.17.
 //
 
-#ifdef USE_NFN
-
-#include "ccnl-nfn-util.h"
+#include "ccnl-pkt-simple.h"
 
 #include "ccnl-pkt-switch.h"
 #include "ccnl-pkt-ccnb.h"
@@ -143,5 +141,4 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 }
 
 #endif // NEEDS_PACKET_CRAFTING
-#endif // USE_NFN
 // eof

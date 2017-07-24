@@ -81,6 +81,7 @@ mkDebugRequest(unsigned char *out, char *dbg, char *private_key_path)
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char stmt[1000];
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -125,6 +126,7 @@ mkNewEthDevRequest(unsigned char *out, char *devname, char *ethtype,
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -177,6 +179,7 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *ip6src, char *port,
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void) private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -224,6 +227,9 @@ mkNewUDPDevRequest(unsigned char *out, char *ip4src, char *ip6src, char *port,
 int
 mkDestroyDevRequest(unsigned char *out, char *faceid, char *private_key_path)
 {
+    (void) private_key_path;
+    (void) faceid;
+    (void) out;
     return 0;
 }
 
@@ -237,6 +243,7 @@ mkEchoserverRequest(unsigned char *out, char *path, int suite,
     unsigned char fwdentry[2000];
     char suite_s[1];
     char *cp;
+    (void) private_key_path;
 
     DEBUGMSG(DEBUG, "mkEchoserverRequest uri=%s suite=%d\n", path, suite);
 
@@ -326,6 +333,7 @@ mkNewFaceRequest(unsigned char *out, char *macsrc, char *ip4src, char *ip6src,
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -388,6 +396,7 @@ mkNewUNIXFaceRequest(unsigned char *out, char *path, char *flags, char *private_
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -438,6 +447,7 @@ mkDestroyFaceRequest(unsigned char *out, char *faceid, char *private_key_path)
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void)private_key_path;
 //    char num[20];
 
 //    sprintf(num, "%d", faceID);
@@ -484,6 +494,7 @@ mkSetfragRequest(unsigned char *out, char *faceid, char *frag, char *mtu, char *
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[2000];
     unsigned char faceinst[2000];
+    (void)private_key_path;
 //    char num[20];
 
 //    sprintf(num, "%d", faceID);
@@ -536,6 +547,7 @@ mkPrefixregRequest(unsigned char *out, char reg, char *path, char *faceid, int s
     unsigned char fwdentry[2000];
     char suite_s[1];
     char *cp;
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
@@ -699,6 +711,7 @@ mkAddToRelayCacheRequest(unsigned char *out, char *fname,
     int datalen, chunkflag;
     struct ccnl_prefix_s *prefix;
     char *prefix_string = NULL;
+    (void)private_key_path;
 
     FILE *file = fopen(fname, "r");
     if (!file)
@@ -794,6 +807,7 @@ mkRemoveFormRelayCacheRequest(unsigned char *out, char *ccn_path, char *private_
     unsigned char out1[CCNL_MAX_PACKET_SIZE];
     unsigned char contentobj[10000];
     unsigned char stmt[2000];
+    (void)private_key_path;
 
     len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
     len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name

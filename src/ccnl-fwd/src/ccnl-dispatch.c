@@ -22,7 +22,9 @@
 #include "ccnl-dispatch.h"
 
 #include "ccnl-os-time.h"
+#ifdef USE_NFN
 #include "ccnl-nfn.h"
+#endif
 
 #include "ccnl-localrpc.h"
 

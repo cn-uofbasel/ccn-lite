@@ -23,8 +23,12 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+#ifdef USE_NFN
 #include "ccnl-nfn-common.h"
+#endif
 #include "ccnl-core.h"
+#include <assert.h>
+
 
 
 
@@ -711,7 +715,9 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 #endif
 
             } else {// upcall to deliver content to local client
+#ifdef CCNL_APP_RX
                 ccnl_app_RX(ccnl, c);
+#endif
             }
             c->served_cnt++;
             cnt++;
@@ -1017,6 +1023,7 @@ ccnl_interface_CTS(void *aux1, void *aux2)
     ifc->qfront = (ifc->qfront + 1) % CCNL_MAX_IF_QLEN;
     ifc->qlen--;
 
+    assert(ccnl->ccnl_ll_TX_ptr != 0);
     ccnl->ccnl_ll_TX_ptr(ccnl, ifc, &req.dst, req.buf);
 #ifdef USE_SCHEDULER
     ccnl_sched_CTS_done(ifc->sched, 1, req.buf->datalen);

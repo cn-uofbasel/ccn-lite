@@ -28,11 +28,11 @@
 
 #include <stdio.h>
 
-#include "ccnl-nfn-util.h"
 
-#include "ccnl-pkt-util.h"
+#include "ccnl-pkt-simple.h"
 #include "ccnl-pkt-ccntlv.h"
 #include "ccnl-pkt-cistlv.h"
+#include "ccnl-pkt-switch.h"
 
 #include "ccnl-malloc.h"
 #include "ccnl-logging.h"
@@ -130,6 +130,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
     int resultpos = 0;
     struct ccnl_pkt_s *pkt;
     struct ccnl_content_s *c;
+    (void)ccnl;
 
     DEBUGMSG(TRACE, "ccnl_nfn_result2content(prefix=%s, suite=%s, contlen=%d)\n",
              ccnl_prefix_to_path(*prefix), ccnl_suite2str((*prefix)->suite),
@@ -157,7 +158,7 @@ ccnl_nfn_result2content(struct ccnl_relay_s *ccnl,
 
 // ----------------------------------------------------------------------
 struct fox_machine_state_s *
-new_machine_state()
+new_machine_state(void)
 {
     struct fox_machine_state_s *ret;
     ret = ccnl_calloc(1, sizeof(struct fox_machine_state_s));
@@ -171,6 +172,7 @@ new_config(struct ccnl_relay_s *ccnl, char *prog,
            struct ccnl_prefix_s *prefix, int configid, int suite)
 {
     struct configuration_s *ret;
+    (void)configid;
 
     ret = ccnl_calloc(1, sizeof(struct configuration_s));
     ret->prog = prog;
@@ -316,10 +318,10 @@ int trim(char *str)
 {  // inplace, returns len after shrinking
     int i;
     while(str[0] != '\0' && str[0] == ' '){
-        for(i = 0; i < strlen(str); ++i)
+        for(i = 0; i < (int)strlen(str); ++i)
             str[i] = str[i+1];
     }
-    for(i = strlen(str)-1; i >=0; ++i){
+    for(i = (int)strlen(str)-1; i >=0; ++i){
         if(str[i] == ' '){
             str[i] = '\0';
             continue;
@@ -352,6 +354,7 @@ create_prefix_for_content_on_result_stack(struct ccnl_relay_s *ccnl,
 {
     struct ccnl_prefix_s *name;
     int it, len = 0, offset = 0;
+    (void)ccnl;
 
     name = ccnl_prefix_new(config->suite, 2);
     if (!name)

@@ -55,7 +55,7 @@ ccnl_nfn_findConfig(struct configuration_s *config_list, int configid)
 void ccnl_nfn_continue_computation(struct ccnl_relay_s *ccnl, int configid, int continue_from_remove) {
     DEBUGMSG(TRACE, "ccnl_nfn_continue_computation()\n");
     struct configuration_s *config = ccnl_nfn_findConfig(ccnl->km->configuration_list, -configid);
-
+    (void)continue_from_remove;
     if(!config){
         DEBUGMSG(DEBUG, "nfn_continue_computation: %d not found\n", configid);
         return;
@@ -83,7 +83,7 @@ ccnl_nfn_nack_local_computation(struct ccnl_relay_s *ccnl,
                                 int suite)
 {
     DEBUGMSG(TRACE, "ccnl_nfn_nack_local_computation\n");
-
+    (void)orig;
     ccnl_nfn(ccnl, prefix, from, NULL, NULL, suite, 1);
     TRACEOUT();
 }
@@ -308,6 +308,7 @@ ccnl_nfn_RX_result(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i_it = NULL;
     int found = 0;
+    (void)from;
 
     DEBUGMSG_CFWD(INFO, "data in rx result %.*s\n", c->pkt->contlen, c->pkt->content);
     TRACEIN();

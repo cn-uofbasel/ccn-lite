@@ -40,6 +40,8 @@ int
 frag_cb(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         unsigned char **data, int *len)
 {
+    (void)relay;
+    (void)from;
     DEBUGMSG(INFO, "frag_cb\n");
 
     memcpy(out, *data, *len);

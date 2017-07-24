@@ -40,7 +40,8 @@
 #include "net/packet.h"
 #include "ccn-lite-riot.h"
 
-#include "ccnl-os-time.c"
+#include "ccnl-os-time.h"
+#include "ccnl-fwd.h"
 
 /**
  * @brief Some macro definitions
@@ -61,7 +62,7 @@
 /**
  * Frees memory for a given content and the associated packet data
  */
-#define free_content(c) do{ /* free_prefix(c->name); */ free_packet(c->pkt); \
+#define free_content(c) do{ /* free_prefix(c->name); */ ccnl_pkt_free(c->pkt); \
                         ccnl_free(c); } while(0)
 
 /**
@@ -130,7 +131,7 @@ static int _ccnl_suite = CCNL_SUITE_NDNTLV;
  * @brief function prototypes required by ccnl-core.c
  * @{
  */
-void free_packet(struct ccnl_pkt_s *pkt);
+//void ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 
 struct ccnl_interest_s* ccnl_interest_remove(struct ccnl_relay_s *ccnl,
                      struct ccnl_interest_s *i);
@@ -186,8 +187,6 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
  * @return -1 on error
  */
 int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
-
-#include "ccnl-core.c"
 
 /**
  * @brief netreg entry for CCN-Lite packets
@@ -511,6 +510,8 @@ ccnl_start(void)
 
     ccnl_relay.max_cache_entries = CCNL_CACHE_SIZE;
     ccnl_relay.max_pit_entries = CCNL_DEFAULT_MAX_PIT_ENTRIES;
+    ccnl_relay.ccnl_ll_TX_ptr = &ccnl_ll_TX;
+
     /* start the CCN-Lite event-loop */
     _ccnl_event_loop_pid =  thread_create(_ccnl_stack, sizeof(_ccnl_stack),
                                           THREAD_PRIORITY_MAIN - 1,
@@ -623,7 +624,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
 
     ret = ccnl_fwd_handleInterest(&ccnl_relay, loopback_face, &pkt, ccnl_ndntlv_cMatch);
 
-    free_packet(pkt);
+    ccnl_pkt_free(pkt);
 
     return ret;
 }

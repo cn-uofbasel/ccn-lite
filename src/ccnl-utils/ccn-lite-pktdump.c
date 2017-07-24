@@ -91,6 +91,8 @@ void
 base64dump(int lev, unsigned char *base, unsigned char *cp, int len, int rawxml, FILE* out) {
     int encodedLen = -1;
     int i;
+    (void)base;
+    (void)rawxml;
     for(i = 0; i < lev + 1; i++) {
         fprintf(out, "  ");
     }
@@ -487,6 +489,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     unsigned vallen;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
+    (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;
@@ -494,7 +497,7 @@ ccntlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int)vallen > *len) {
           fprintf(stderr, "\n%04zx ** CCNTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -836,6 +839,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     int i;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
+    (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;
@@ -843,7 +847,7 @@ cistlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             return -1;
         }
 
-        if (vallen > *len) {
+        if ((int)vallen > *len) {
           fprintf(stderr, "\n%04zx ** CISTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -1098,6 +1102,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
     unsigned int typ;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
+    (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;
@@ -1231,6 +1236,7 @@ ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
     int typ;
     unsigned char *cp;
     char *n, tmp[100];
+    (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;

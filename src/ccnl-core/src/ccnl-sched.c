@@ -28,7 +28,7 @@
 #include "ccnl-os-time.h"
 #include "ccnl-logging.h"
 
-int ccnl_sched_init()
+int ccnl_sched_init(void)
 {
     DEBUGMSG(TRACE, "%s()\n", __func__);
 #ifdef USE_CHEMFLOW
@@ -63,7 +63,7 @@ err_out:
 #endif
 }
 
-void ccnl_sched_cleanup()
+void ccnl_sched_cleanup(void)
 {
     DEBUGMSG(TRACE, "cfnl_sched_cleanup()\n");
 #ifdef USE_CHEMFLOW
@@ -254,6 +254,9 @@ ccnl_sched_CTS_done(struct ccnl_sched_s *s, int cnt, int len)
 void
 ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
+    (void)ccnl;
+    (void)ifndx;
+    (void)cnt;
     DEBUGMSG(TRACE, "ccnl_sched_X_ok()\n");
     // here a chemflow reaction NW could act on pkt reception events
 }
@@ -262,6 +265,9 @@ ccnl_sched_RX_ok(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 void
 ccnl_sched_RX_loss(struct ccnl_relay_s *ccnl, int ifndx, int cnt)
 {
+    (void)ccnl;
+    (void)ifndx;
+    (void)cnt;
     DEBUGMSG(TRACE, "ccnl_sched_RX_loss()\n");
     // here a chemflow reaction NW could act on pkt loss events
 }

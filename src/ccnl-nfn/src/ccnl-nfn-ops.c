@@ -86,7 +86,7 @@ op_builtin_add(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                struct stack_s **stack)
 {
     int i1=0, i2=0, *h;
-
+    (void) restart;
     DEBUGMSG(DEBUG, "---to do: OP_ADD <%s> pending: %s\n", prog+7, pending);
     pop2int();
     h = ccnl_malloc(sizeof(int));
@@ -106,6 +106,7 @@ op_builtin_find(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     char *cp = NULL;
     struct ccnl_prefix_s *prefix;
     struct ccnl_content_s *c = NULL;
+    (void)stack;
 
     if (*restart) {
         DEBUGMSG(DEBUG, "---to do: OP_FIND restart\n");
@@ -174,6 +175,7 @@ op_builtin_mult(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                 struct stack_s **stack)
 {
     int i1=0, i2=0, *h;
+    (void)restart;
 
     DEBUGMSG(DEBUG, "---to do: OP_MULT <%s>\n", prog+8);
     pop2int();
@@ -189,6 +191,7 @@ op_builtin_raw(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                int *restart, int *halt, char *prog, char *pending,
                struct stack_s **stack)
 {
+    (void)stack;
     int local_search = 0;
     struct stack_s *h;
     char *cp = NULL;
@@ -264,6 +267,7 @@ op_builtin_sub(struct ccnl_relay_s *ccnl, struct configuration_s *config,
                int *restart, int *halt, char *prog, char *pending,
                struct stack_s **stack)
 {
+    (void)restart;
     int i1=0, i2=0, *h;
 
     DEBUGMSG(DEBUG, "---to do: OP_SUB <%s>\n", prog+7);
@@ -284,7 +288,8 @@ op_builtin_cmpeqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0;
     char res[1000], *cp;
-
+    (void)restart;
+    (void)stack;
     pop2int();
     cp = (i1 == i2) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPEQ <%s>/<%s>\n", cp, pending);
@@ -302,7 +307,8 @@ op_builtin_cmpleqc(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0;
     char res[1000], *cp;
-
+    (void)restart;
+    (void)stack;
     pop2int();
     cp = (i2 <= i1) ? "@x@y x" : "@x@y y";
     DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>/%s\n", cp, pending);
@@ -320,6 +326,8 @@ op_builtin_cmpeq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0;
     char res[1000], *cp;
+    (void)restart;
+    (void)stack;
 
     DEBUGMSG(DEBUG, "---to do: OP_CMPEQ<%s>\n", pending);
     pop2int();
@@ -338,6 +346,8 @@ op_builtin_cmpleq(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     int i1=0, i2=0;
     char res[1000], *cp;
+    (void)restart;
+    (void)stack;
 
     DEBUGMSG(DEBUG, "---to do: OP_CMPLEQ <%s>\n", pending);
     pop2int();
@@ -356,6 +366,8 @@ op_builtin_ifelse(struct ccnl_relay_s *ccnl, struct configuration_s *config,
 {
     struct stack_s *h;
     int i1=0;
+    (void)restart;
+    (void)stack;
 
     DEBUGMSG(DEBUG, "---to do: OP_IFELSE <%s>\n", prog+10);
     h = pop_or_resolve_from_result_stack(ccnl, config);

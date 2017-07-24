@@ -22,7 +22,9 @@
 
 #include <stdio.h>
 #include "ccnl-os-time.h"
+#ifdef USE_NFN
 #include "ccnl-nfn-common.h"
+#endif
 #include "ccnl-buf.h"
 
 #include "ccnl-logging.h"
@@ -44,7 +46,6 @@ ccnl_buf_new(void *data, int len)
         memcpy(b->data, data, len);
     return b;
 }
-
 
 struct ccnl_buf_s *bufCleanUpList;
 

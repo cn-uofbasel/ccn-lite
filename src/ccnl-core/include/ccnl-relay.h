@@ -61,14 +61,13 @@ struct ccnl_relay_s {
     struct ccnl_krivine_s *km;
 #endif
 
+   // struct ccnl_buf_s *bufCleanUpList;
   /*
     struct ccnl_face_s *crypto_face;
     struct ccnl_pendcrypt_s *pendcrypt;
     char *crypto_path;
   */
 };
-
-struct ccnl_buf_s *bufCleanUpList;
 
 void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest);
@@ -166,6 +165,8 @@ ccnl_interface_CTS(void *aux1, void *aux2);
        if ((e)->next) (e)->next->prev = (e)->prev; \
   } while(0)
 
-#define ccnl_app_RX(x,y)                do{}while(0)
+#ifdef CCNL_APP_RX
+int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
+#endif
 
 #endif //CCNL_RELAY_H

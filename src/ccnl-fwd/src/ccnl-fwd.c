@@ -26,7 +26,9 @@
 #include "ccnl-core.h"
 
 #include "ccnl-pkt-util.h"
+#ifdef USE_NFN
 #include "ccnl-nfn-common.h"
+#endif
 
 #include "ccnl-pkt-ccnb.h"
 #include "ccnl-pkt-ccntlv.h"
@@ -35,9 +37,8 @@
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-switch.h"
 
-#include "ccnl-unix.h" // TODO: remove
-
-#include "ccnl-logging.h"
+#include <inttypes.h>
+//#include "ccnl-logging.h"
 
 
 #ifdef NEEDS_PREFIX_MATCHING
@@ -213,6 +214,10 @@ ccnl_pkt_fwdOK(struct ccnl_pkt_s *pkt)
 }
 
 int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt);
+
+int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         struct ccnl_pkt_s **pkt, cMatchFct cMatch)
 {
@@ -235,17 +240,15 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 
 #ifdef USE_DUP_CHECK
     if (ccnl_nonce_isDup(relay, *pkt)) {
-        DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce %i\n", nonce);
+        DEBUGMSG_CFWD(DEBUG, "  dropped because of duplicate nonce %"PRIi32"\n", nonce);
 
         return 0;
     }
 #endif
-
     if (local_producer(relay, from, *pkt)) {
         *pkt = NULL;
         return 0;
     }
-
 #if defined(USE_SUITE_CCNB) && defined(USE_MGMT)
     if ((*pkt)->suite == CCNL_SUITE_CCNB && (*pkt)->pfx->compcnt == 4 &&
                                   !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {
@@ -259,7 +262,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if ((*pkt)->suite == CCNL_SUITE_NDNTLV && (*pkt)->pfx->compcnt == 4 &&
         !memcmp((*pkt)->pfx->comp[0], "ccnx", 4)) {
         DEBUGMSG_CFWD(INFO, "  found a mgmt message\n");
+#ifdef USE_MGMT
         ccnl_mgmt(relay, (*pkt)->buf, (*pkt)->pfx, from); // use return value?
+#endif
         return 0;
     }
 #endif
@@ -323,7 +328,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif
 
         } else {
+#ifdef CCNL_APP_RX
             ccnl_app_RX(relay, c);
+#endif
         }
         return 0; // we are done
     }
@@ -866,11 +873,5 @@ ccnl_set_tap(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
     }
     fwd->prefix = pfx;
     fwd->tap = callback;
-
     return 0;
-}
-
-int 
-ccnl_static_fields3(){
-    return lasthour + inter_ccn_interval + inter_pkt_interval;
 }

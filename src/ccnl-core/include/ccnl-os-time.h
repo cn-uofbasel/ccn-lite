@@ -85,8 +85,6 @@ struct ccnl_timer_s {
   //    int handler;
 };
 
-struct ccnl_timer_s *eventqueue;
-
 void
 ccnl_get_timeval(struct timeval *tv);
 

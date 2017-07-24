@@ -20,8 +20,6 @@
  * 2012-10-03 created
  */
 
-#ifdef USE_SIGNATURES
-
 #include <stdlib.h>
 #include <string.h>
 #include <ccnl-sockunion.h>
@@ -31,6 +29,9 @@
 #include <ccnl-malloc.h>
 #include <ccnl-pkt-ccnb.h>
 #include "ccnl-crypto.h"
+
+#ifdef USE_SIGNATURES
+
 
 char buf[64000];
 int plen;

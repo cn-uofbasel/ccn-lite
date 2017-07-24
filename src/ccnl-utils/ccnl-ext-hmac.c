@@ -83,11 +83,11 @@ ccnl_hmac256_keysetup(SHA256_CTX_t *ctx, unsigned char *keyval, int kvlen,
     unsigned char buf[64];
     int i;
 
-    if (kvlen > sizeof(buf))
+    if (kvlen > (int)sizeof(buf))
         kvlen = sizeof(buf);
     for (i = 0; i < kvlen; i++, keyval++)
         buf[i] = *keyval ^ pad;
-    while (i < sizeof(buf))
+    while (i < (int)sizeof(buf))
         buf[i++] = 0 ^ pad;
 
     ccnl_SHA256_Init(ctx);
@@ -135,6 +135,7 @@ ccnl_ccntlv_prependSignedContentWithHdr(struct ccnl_prefix_s *name,
     int mdlength = 32, mdoffset, endofsign, oldoffset;
     uint32_t len;
     unsigned char hoplimit = 255; // setting to max (conten obj has no hoplimit)
+    (void)keydigest;
 
     if (*offset < (8 + paylen + 4+32 + 3*4+32))
         return -1;
@@ -184,7 +185,7 @@ ccnl_ndntlv_prependSignedContent(struct ccnl_prefix_s *name,
 {
     int oldoffset = *offset, oldoffset2, mdoffset, endofsign, mdlength = 32;
     unsigned char signatureType[1] = { NDN_SigTypeVal_SignatureHmacWithSha256 };
-
+    (void) keydigest; 
     if (contentpos)
         *contentpos = *offset - paylen;
 

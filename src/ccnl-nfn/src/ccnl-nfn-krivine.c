@@ -103,7 +103,7 @@ pop_or_resolve_from_result_stack(struct ccnl_relay_s *ccnl,
                                  // , int *restart)
 {
     struct stack_s *elm = pop_from_stack(&config->result_stack);
-
+    (void)ccnl;
     if (!elm)
         return NULL;
     DEBUGMSG(TRACE, "pop_or_resolve_from_RS: conf=%p, elm=%p, type=%d\n",
@@ -473,7 +473,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
 
         DEBUGMSG(DEBUG, " fct definition: %s\n", cp);
         strcpy(res, cp+3);
-        for (i = 0; i < strlen(res); ++i) {
+        for (i = 0; i < (int)strlen(res); ++i) {
             if (!strncmp(res+i, "endlet", 6)) {
                 end = i;
                 break;

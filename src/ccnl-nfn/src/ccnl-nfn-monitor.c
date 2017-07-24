@@ -20,15 +20,17 @@
  * 2014-04-27 created
  */
 
-#ifdef USE_NFN_MONITOR
+#include "ccnl-nfn-monitor.h"
 
-#include "ccnl-nfnmonitor.h"
-
-#include <stdlib.h>
+ #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+
+#ifdef USE_NFN_MONITOR
+
+
 
 #include <sys/time.h>
 

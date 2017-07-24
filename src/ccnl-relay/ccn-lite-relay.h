@@ -23,6 +23,8 @@
 #ifndef CCN_LITE_RELAY_H
 #define CCN_LITE_RELAY_H
 
+#include "ccnl-os-time.h"
 
+extern struct ccnl_timer_s *eventqueue;
 
 #endif // EOF

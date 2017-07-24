@@ -25,9 +25,9 @@
 
 #include "ccnl-core.h"
 #include "ccnl-nfn-common.h"
-#include "ccnl-nfn-util.h"
 #include "ccnl-nfn.h"
 #include "ccnl-fwd.h"
+#include "ccnl-pkt-simple.h"
 
 #ifdef USE_NFN_REQUESTS
 
@@ -195,6 +195,7 @@ nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pf
 {
     int nonce = random();
     struct ccnl_pkt_s *pkt;
+    (void)ccnl;
 
     DEBUGMSG(TRACE, "nfn_request_interest_pkt_new() nonce=%i\n", nonce);
     
@@ -404,6 +405,7 @@ nfn_request_handle_interest(struct ccnl_relay_s *relay, struct ccnl_face_s *from
 {
     struct ccnl_interest_s *i;
     struct ccnl_interest_s *r;
+    (void)cMatch;
     switch ((*pkt)->pfx->request->type) {
         case NFN_REQUEST_TYPE_START: {
             DEBUGMSG_CFWD(DEBUG, "  is a start computation interest\n");
@@ -524,6 +526,7 @@ int
 nfn_request_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       struct ccnl_content_s *c)
 {
+    (void)from;
     TRACEIN();
     DEBUGMSG(DEBUG, "  RX keepalive <%s>\n", ccnl_prefix_to_path(c->pkt->pfx));
     struct ccnl_interest_s *i_it = NULL;
@@ -556,7 +559,7 @@ nfn_request_RX_keepalive(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 int 
 nfn_request_RX_intermediate(struct ccnl_relay_s *relay, struct ccnl_face_s *from, struct ccnl_pkt_s **pkt) {
     TRACEIN();
-
+    (void)from;
     struct configuration_s *config = nfn_request_find_config(relay, *pkt);
     if (config == NULL) {
         DEBUGMSG(INFO, "Intermediate found no match.\n");
@@ -600,6 +603,7 @@ int
 nfn_request_RX_cancel(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       struct ccnl_content_s *c)
 {
+    (void)from;
     TRACEIN();
     DEBUGMSG(DEBUG, "  RX cancel <%s>\n", ccnl_prefix_to_path(c->pkt->pfx));
     

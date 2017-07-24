@@ -30,7 +30,7 @@ int debug_level;
 char
 ccnl_debugLevelToChar(int level)
 {
-#ifndef CCNL_ARDUINO
+#if !defined(CCNL_ARDUINO) && !defined(CCNL_RIOT)
     switch (level) {
         case FATAL:     return 'F';
         case ERROR:     return 'E';

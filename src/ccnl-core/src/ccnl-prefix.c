@@ -25,10 +25,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#ifndef CCNL_RIOT
 #include <openssl/sha.h>
-
+#endif
+#ifdef USE_NFN
 #include "ccnl-nfn-requests.h"
 #include "ccnl-nfn-common.h"
+#endif
 
 #include "ccnl-os-time.h"
 #include "ccnl-defs.h"

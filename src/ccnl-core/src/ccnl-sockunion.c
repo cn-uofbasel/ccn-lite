@@ -99,15 +99,23 @@ ccnl_addr2ascii(sockunion *su)
     }
 #endif
 #ifdef USE_IPV4
-    case AF_INET:
+    case AF_INET:{
+#ifdef __linux__
+        char str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, (const void *)&(su->ip4.sin_addr), str, INET_ADDRSTRLEN);
+        sprintf(result, "%s/%u",  str,
+            ntohs(su->ip4.sin_port));
+#else
         sprintf(result, "%s/%u", inet_ntoa(su->ip4.sin_addr),
                 ntohs(su->ip4.sin_port));
+#endif
         return result;
+    }
 #endif
 #ifdef USE_IPV6
     case AF_INET6: {
         char str[INET6_ADDRSTRLEN];
-        sprintf(result, "%s/%u", inet_ntop(AF_INET6, su->ip6.sin6_addr.s6_addr, str, INET6_ADDRSTRLEN),
+        sprintf(result, "%s/%u", inet_ntop(AF_INET6, (const void *)su->ip6.sin6_addr.s6_addr, str, INET6_ADDRSTRLEN),
                 ntohs(su->ip6.sin6_port));
         return result;
                    }
@@ -173,4 +181,33 @@ ccnl_addr_cmp(sockunion *s1, sockunion *s2)
             break;
     }
     return -1;
+}
+
+char*
+ll2ascii(unsigned char *addr, size_t len)
+{
+    size_t i;
+    static char out[CCNL_LLADDR_STR_MAX_LEN + 1];
+
+    out[0] = '\0';
+
+    for (i = 0; i < len; i++) {
+        out[(3 * i)] = _half_byte_to_char(addr[i] >> 4);
+        out[(3 * i) + 1] = _half_byte_to_char(addr[i] & 0xf);
+
+        if (i != (len - 1)) {
+            out[(3 * i) + 2] = ':';
+        }
+        else {
+            out[(3 * i) + 2] = '\0';
+        }
+    }
+
+    return out;
+}
+
+char
+_half_byte_to_char(uint8_t half_byte)
+{
+    return (half_byte < 10) ? ('0' + half_byte) : ('a' + (half_byte - 10));
 }

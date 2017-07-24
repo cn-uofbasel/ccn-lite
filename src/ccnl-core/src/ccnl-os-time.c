@@ -29,6 +29,8 @@
 #include <time.h>
 
 
+struct ccnl_timer_s *eventqueue;
+
 #ifdef CCNL_ARDUINO
 
 double CCNL_NOW(void) { return (double) millis() / Hz; }

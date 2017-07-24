@@ -504,7 +504,7 @@ static int ccnl_rdr_serialize_fillTorL(long val, unsigned char *buf)
     }
     if (val <= 0xffff)
         len = 2, t = 253;
-    else if (val <= 0xffffffffL)
+    else if ((unsigned long)val <= 0xffffffffL)
         len = 4, t = 254;
     else
         len = 8, t = 255;

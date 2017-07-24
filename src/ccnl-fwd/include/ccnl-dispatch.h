@@ -14,9 +14,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-20 created
  */
 
 #ifndef CCNL_DISPATCH_H
@@ -24,7 +21,7 @@
 
 #include "ccnl-fwd.h"
 
-struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
+//struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 void
 ccnl_core_init(void);

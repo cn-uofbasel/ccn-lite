@@ -37,7 +37,10 @@
 #include "ccnl-if.h"
 #include "ccnl-buf.h"
 
-#define local_producer(...)     0
+
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt);
 
 static int lasthour = -1;
 static int inter_ccn_interval = 0; // in usec

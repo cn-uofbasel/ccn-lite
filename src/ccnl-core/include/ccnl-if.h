@@ -28,6 +28,8 @@
 #include <linux/socket.h>
 #include <linux/netdevice.h>
 #include <net/sock.h>
+#elif defined(CCNL_RIOT)
+#include "kernel_types.h"
 #endif
 
 #include "ccnl-sched.h"

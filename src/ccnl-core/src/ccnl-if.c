@@ -23,7 +23,11 @@
 #include "ccnl-if.h"
 
 #include <sys/socket.h>
+#ifndef CCNL_RIOT
 #include <sys/un.h>
+#else
+#include "net/packet.h"
+#endif
 #include <unistd.h>
 #include "ccnl-os-time.h"
 
@@ -48,6 +52,7 @@ ccnl_interface_cleanup(struct ccnl_if_s *i)
 #endif
 }
 
+#ifndef CCNL_RIOT
 int
 ccnl_close_socket(int s)
 {
@@ -60,3 +65,4 @@ ccnl_close_socket(int s)
     }
     return close(s);
 }
+#endif

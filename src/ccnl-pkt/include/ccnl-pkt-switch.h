@@ -35,6 +35,7 @@ ccnl_switch_prependCodeVal(unsigned long val, int *offset, unsigned char *buf);
 
 int
 ccnl_switch_prependCoding(unsigned int code, int *offset, unsigned char *buf);
+
 #endif
 
 

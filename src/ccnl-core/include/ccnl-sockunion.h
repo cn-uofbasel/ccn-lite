@@ -23,10 +23,31 @@
 #ifndef CCNL_SOCKET_UNION_H
 #define CCNL_SOCKET_UNION_H
 
+//#define _DEFAULT_SOURCE
+
 #include "ccnl-defs.h"
 #include <netinet/in.h>
 #include <net/ethernet.h>
+#ifndef CCNL_RIOT
 #include <sys/un.h>
+#else
+#include "net/packet.h"
+#endif
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#  include <sys/types.h>
+#  undef USE_LINKLAYER
+   // ethernet support in FreeBSD is work in progress ...
+#elif defined(__linux__)
+#  include <endian.h>
+#ifndef CCNL_RIOT
+#  include <linux/if_ether.h>  // ETH_ALEN
+#  include <linux/if_packet.h> // sockaddr_ll
+#endif //CCNL_RIOT
+#endif
 
 
 
@@ -57,5 +78,14 @@ ccnl_addr2ascii(sockunion *su);
 
 int
 ccnl_addr_cmp(sockunion *s1, sockunion *s2);
+
+char*
+ll2ascii(unsigned char *addr, size_t len);
+
+char
+_half_byte_to_char(uint8_t half_byte);
+
+//char 
+//*inet_ntoa(struct in_addr in);
 
 #endif

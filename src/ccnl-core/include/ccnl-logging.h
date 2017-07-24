@@ -23,7 +23,7 @@
 #ifndef CCNL_LOGGING_H
 #define CCNL_LOGGING_H
 
-
+#ifndef CCNL_RIOT
 #define FATAL   0  // FATAL
 #define ERROR   1  // ERROR
 #define WARNING 2  // WARNING
@@ -31,6 +31,9 @@
 #define DEBUG   4  // DEBUG
 #define VERBOSE 5  // VERBOSE
 #define TRACE 	6  // TRACE
+#else
+#include "ccnl-riot-logging.h"
+#endif
 
 #ifdef USE_LOGGING
 
@@ -133,7 +136,7 @@ ccnl_debug_str2level(char *s);
    } while(0)
 
 #else
-
+#ifndef CCNL_RIOT
 #  define DEBUGMSG(LVL, ...) do {                   \
         if ((LVL)>debug_level) break;               \
         fprintf(stderr, "[%c] %s: ",                \
@@ -141,9 +144,9 @@ ccnl_debug_str2level(char *s);
             timestamp());                           \
         fprintf(stderr, __VA_ARGS__);               \
     } while (0)
-
 #endif
-
+#endif
+#ifndef CCNL_RIOT
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  define TRACEIN(F)    do { _TRACE(__func__, '>'); } while (0)
 #  define TRACEOUT(F)   do { _TRACE(__func__, '<'); } while (0)
@@ -151,17 +154,19 @@ ccnl_debug_str2level(char *s);
 #  define TRACEIN(F)    do { _TRACE("" F, '>'); } while (0)
 #  define TRACEOUT(F)   do { _TRACE("" F, '<'); } while (0)
 #endif
+#endif
 
 // ----------------------------------------------------------------------
 
 #else // !USE_LOGGING
+#ifndef CCNL_RIOT
 #  define DEBUGSTMT(...)                   do {} while(0)
 #  define DEBUGMSG(...)                    do {} while(0)
 #  define DEBUGMSG_ON(...)                 do {} while(0)
 #  define DEBUGMSG_OFF(...)                do {} while(0)
 #  define TRACEIN(...)                     do {} while(0)
 #  define TRACEOUT(...)                    do {} while(0)
-
+#endif
 #endif // USE_LOGGING
 
 #ifdef USE_DEBUG

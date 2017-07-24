@@ -333,7 +333,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
            sockunion *dest, struct ccnl_buf_s *buf)
 {
     int rc;
-
+    (void) ccnl;
     switch(dest->sa.sa_family) {
 #ifdef USE_IPV4
     case AF_INET:
@@ -407,6 +407,10 @@ ccnl_relay_config(struct ccnl_relay_s *relay, char *ethdev, char *wpandev,
                   char *uxpath, int suite, int max_cache_entries,
                   char *crypto_face_path)
 {
+    (void)ethdev;
+    (void)wpandev;
+    (void)httpport;
+    (void)crypto_face_path;
 #if defined(USE_LINKLAYER) || defined(USE_WPAN) || defined(USE_UNIXSOCKET)
     struct ccnl_if_s *i;
 #endif
@@ -809,7 +813,15 @@ notacontent:
     closedir(dir);
 }
 
-int 
-ccnl_static_fields2(){
-    return lasthour + inter_ccn_interval + inter_pkt_interval;
+int
+local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                   struct ccnl_pkt_s *pkt){
+                       //for unix not implemented yet
+    (void)relay;
+    (void)from;
+    (void)pkt;
+    (void)lasthour;
+    (void)inter_ccn_interval;
+    (void)inter_pkt_interval;
+    return -1;
 }

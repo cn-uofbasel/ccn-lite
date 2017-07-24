@@ -19,15 +19,15 @@
  * File history:
  * 2017-06-16 created
  */
+ 
+#include "ccnl-frag.h"
+#include "ccnl-malloc.h"
+#include "ccnl-pkt.h"
+#include "ccnl-logging.h" 
 
 #ifdef USE_FRAG
 
-#include "ccnl-frag.h"
 
-#include "ccnl-malloc.h"
-#include "ccnl-pkt.h"
-
-#include "ccnl-logging.h"
 
 /* 
  * CCNL_FRAG_NONE

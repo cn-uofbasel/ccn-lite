@@ -24,6 +24,12 @@
 
 #include "ccnl-core.h"
 
+#include "ccnl-pkt-ccnb.h"
+#include "ccnl-pkt-cistlv.h"
+#include "ccnl-pkt-ccntlv.h"
+#include "ccnl-pkt-iottlv.h"
+#include "ccnl-pkt-ndntlv.h"
+
 int
 ccnl_switch_dehead(unsigned char **buf, int *len, int *code)
 {

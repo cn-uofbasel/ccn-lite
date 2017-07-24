@@ -47,10 +47,10 @@ struct ccnl_sched_s {
 };
 
 int 
-ccnl_sched_init();
+ccnl_sched_init(void);
 
 void 
-ccnl_sched_cleanup();
+ccnl_sched_cleanup(void);
 
 struct ccnl_sched_s*
 ccnl_sched_dummy_new(void (cts)(void *aux1, void *aux2),struct ccnl_relay_s *ccnl);

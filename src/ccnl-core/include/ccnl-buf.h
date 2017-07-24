@@ -3,11 +3,9 @@
  * @brief CCN lite (CCNL), core header file (internal data structures)
  *
  * @copyright Copyright (C) 2011-17, University of Basel
- *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -16,8 +14,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * File history:
- * 2017-06-16 created
  */
 
 #ifndef CCNL_BUF_H
@@ -35,6 +31,9 @@ struct ccnl_buf_s {
     unsigned char data[1];
 };
 
+/**
+ * 
+ */
 struct ccnl_buf_s*
 ccnl_buf_new(void *data, int len);
 

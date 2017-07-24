@@ -43,7 +43,7 @@ static void
 blob(struct ccnl_buf_s *buf)
 {
     unsigned char *cp = buf->data;
-    unsigned int i;
+    int i;
 
     for (i = 0; i < buf->datalen; i++, cp++)
         CONSOLE("%02x", *cp);
@@ -298,6 +298,7 @@ get_buf_dump(int lev, void *p, long *outbuf, int *len, long *next)
 {
     struct ccnl_buf_s  *buf = (struct ccnl_buf_s      *) p;
     int line = 0;
+    (void)lev;
     while (buf) {
 //        INDENT(lev);
         outbuf[line] = (long) (void *) buf;
@@ -316,6 +317,7 @@ get_prefix_dump(int lev, void *p, int *len, char** val)
 //    int i;
 //    INDENT(lev);
     //*prefix =  (void *) pre;
+    (void)lev;
     *len = pre->compcnt;
     //*val = ccnl_prefix_to_path(pre);
     sprintf(*val, "%s", ccnl_prefix_to_path(pre));
@@ -329,7 +331,7 @@ get_faces_dump(int lev, void *p, int *faceid, long *next, long *prev,
     struct ccnl_relay_s    *top = (struct ccnl_relay_s    *) p;
     struct ccnl_face_s     *fac = (struct ccnl_face_s     *) top->faces;
     int line = 0;
-
+    (void)lev;
     while (fac) {
 //        INDENT(lev);
 
@@ -409,7 +411,7 @@ get_interface_dump(int lev, void *p, int *ifndx, char **addr, long *dev,
                    int *devtype, int *reflect)
 {
     struct ccnl_relay_s *top = (struct ccnl_relay_s    *) p;
-
+    (void)lev;
     int k;
     for (k = 0; k < top->ifcount; k++) {
 //        INDENT(lev+1);
@@ -486,6 +488,7 @@ get_pendint_dump(int lev, void *p, char **out){
     struct ccnl_pendint_s  *pir = (struct ccnl_pendint_s  *) itr->pending;
 
     int pos = 0, line = 0;
+    (void)lev;
     while (pir) {
 //        INDENT(lev);
         pos = 0;

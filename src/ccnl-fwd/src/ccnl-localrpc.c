@@ -278,7 +278,7 @@ rpc_syslog(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
            struct rdr_ds_s *param)
 {
     DEBUGMSG(DEBUG, "rpc_syslog\n");
-
+    (void)exec;
     if (ccnl_rdr_getType(param) == LRPC_STR) {
         char *cp = ccnl_malloc(param->u.strlen + 1);
         memcpy(cp, param->aux, param->u.strlen);
@@ -300,7 +300,7 @@ rpc_cacheAdd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
              struct rdr_ds_s *param)
 {
     int len, cnt = 0;
-
+    (void) exec;
     DEBUGMSG(DEBUG, "rpc_cacheAdd\n");
 
     if (!ccnl_is_local_addr(&from->peer)) {
@@ -339,7 +339,7 @@ rpc_cacheRemove(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                 struct rdr_ds_s *param)
 {
     int cnt = 0;
-
+    (void)exec;
     DEBUGMSG(DEBUG, "rpc_cacheRemove\n");
 
     if (!ccnl_is_local_addr(&from->peer)) {
@@ -397,7 +397,7 @@ rpc_forward(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     int encoding, len;
     char *cp;
     unsigned char *ucp;
-
+    (void)exec;
     DEBUGMSG(DEBUG, "rpc_forward\n");
 
     if (ccnl_rdr_getType(param) != LRPC_FLATNAME) {
@@ -481,7 +481,7 @@ rpc_lookup(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
            struct rdr_ds_s *param)
 {
     DEBUGMSG(DEBUG, "rpc_lookup\n");
-
+    (void)exec;
     if (ccnl_rdr_getType(param) == LRPC_FLATNAME) {
         char *cp = ccnl_malloc(param->u.namelen + 1);
         struct rdr_ds_s *val = 0;
@@ -529,7 +529,7 @@ rpc_getBuiltinFct(struct rdr_ds_s *var)
     if (var->type != LRPC_FLATNAME)
         return NULL;
     while (x->name) {
-        if (strlen(x->name) == var->u.namelen &&
+        if ((int)strlen(x->name) == var->u.namelen &&
             !memcmp(x->name, var->aux, var->u.namelen))
             return x->fct;
         x++;
@@ -541,6 +541,8 @@ int
 ccnl_localrpc_handleReply(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                            struct rdr_ds_s *aux)
 {
+    (void) relay;
+    (void) from;
     DEBUGMSG(DEBUG, "ccnl_localrpc_handleReply %d %d\n",
              ccnl_rdr_getType(aux), ccnl_rdr_getType(aux->nextinseq));
 

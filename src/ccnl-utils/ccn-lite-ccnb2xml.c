@@ -203,7 +203,7 @@ void
 print_value(int offset, unsigned char *valptr, int vallen)
 {
     int i;
-
+    (void)offset;
     if (vallen == 1 && ccnl_isSuite(valptr[0])) {
         printf("%u", valptr[0]);
     } else {

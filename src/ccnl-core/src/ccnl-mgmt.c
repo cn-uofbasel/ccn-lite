@@ -18,10 +18,7 @@
  *
  */
 
-
-#ifdef USE_MGMT
-
-#include "ccnl-mgmt.h"
+ #include "ccnl-mgmt.h"
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -29,11 +26,17 @@
 
 #include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
-#include "ccnl-nfn-util.h"
+#include "ccnl-pkt-simple.h"
 #include "ccnl-dump.h"
-#include "ccnl-unix.h"
+
 #include "ccnl-crypto.h"
 #include "ccnl-forward.h"
+#include "ccnl-pkt-switch.h"
+
+
+#ifdef USE_MGMT
+#include "ccnl-unix.h"
+
 
 unsigned char contentobj_buf[2000];
 unsigned char faceinst_buf[2000];
@@ -116,7 +119,8 @@ ccnl_mgmt_send_return_split(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     int it, size = CCNL_MAX_PACKET_SIZE/2;
     int numPackets = len/(size/2) + 1;
-
+    (void) orig;
+    (void) prefix;
     DEBUGMSG(DEBUG, "ccnl_mgmt_send_return_split %d bytes, %d packet(s)\n",
              len, numPackets);
 
@@ -340,6 +344,7 @@ ccnl_mgmt_create_faces_stmt(int num_faces, int *faceid, long *facenext,
 {
     int it;
     char str[100];
+    (void) facefrag;
     for(it = 0; it < num_faces; ++it) //FACES CONTENT
     {
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FACEINSTANCE, CCN_TT_DTAG);
@@ -390,6 +395,7 @@ ccnl_mgmt_create_fwds_stmt(int num_fwds, long *fwd, long *fwdnext, long *fwdface
 {
     int it;
     char str[100];
+    (void) fwdprefixlen;
     for(it = 0; it < num_fwds; ++it) //FWDS content
     {
          len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_FWDINGENTRY, CCN_TT_DTAG);
@@ -430,6 +436,7 @@ ccnl_mgmt_create_interest_stmt(int num_interests, long *interest, long *interest
 {
     int it;
     char str[100];
+    (void) interestprefixlen;
     for(it = 0; it < num_interests; ++it) // interest content
     {
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_INTEREST, CCN_TT_DTAG);
@@ -480,6 +487,7 @@ ccnl_mgmt_create_content_stmt(int num_contents, long *content, long *contentnext
 {
     int it;
     char str[100];
+    (void) ccontents;
     for(it = 0; it < num_contents; ++it)   // content content
     {
         len3 += ccnl_ccnb_mkHeader(stmt+len3, CCN_DTAG_CONTENT, CCN_TT_DTAG);
@@ -1933,20 +1941,20 @@ ccnl_mgmt_removecacheobject(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     for (c2 = ccnl->contents; c2; c2 = c2->next)
     {
-        if(c2->pkt->pfx->compcnt != num_of_components) continue;
-        for(i = 0; i < num_of_components; ++i)
+        if(c2->pkt->pfx->compcnt != (int)num_of_components) continue;
+        for(i = 0; i < (int)num_of_components; ++i)
         {
             if(strcmp((char*)c2->pkt->pfx->comp[i], (char*)components[i]))
             {
                 break;
             }
         }
-        if(i == num_of_components)
+        if(i == (int)num_of_components)
         {
             break;
         }
     }
-    if(i == num_of_components){
+    if(i == (int)num_of_components){
         DEBUGMSG(TRACE, "Content found\n");
         ccnl_content_remove(ccnl, c2);
     }else
@@ -2065,7 +2073,7 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
           struct ccnl_prefix_s *prefix, struct ccnl_face_s *from)
 {
     char cmd[1000];
-    if (prefix->complen[2] < sizeof(cmd)) {
+    if (prefix->complen[2] < (int) sizeof(cmd)) {
         memcpy(cmd, prefix->comp[2], prefix->complen[2]);
         cmd[prefix->complen[2]] = '\0';
     } else
@@ -2087,13 +2095,10 @@ ccnl_mgmt(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
 
     MGMT:
     ccnl_mgmt_handle(ccnl, orig, prefix, from, cmd, 1);
-
+    (void) lasthour; 
+    (void) inter_ccn_interval;
+    (void) inter_pkt_interval;
     return 0;
-}
-
-int 
-ccnl_static_fields4(){
-    return lasthour + inter_ccn_interval + inter_pkt_interval;
 }
 
 #endif // USE_MGMT

@@ -68,4 +68,8 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_NDNTLV
 
+int
+ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                        struct ccnl_pkt_s **pkt, cMatchFct cMatch);
+
 #endif

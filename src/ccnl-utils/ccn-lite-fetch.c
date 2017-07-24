@@ -36,6 +36,8 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
                               unsigned char *out, int out_len,
                               int *len,
                               float wait, int sock, struct sockaddr sa) {
+    (void) nfnexpr;
+    (void) chunknum;
 #ifdef USE_SUITE_CCNB
     if (suite == CCNL_SUITE_CCNB) {
         DEBUGMSG(ERROR, "CCNB not implemented\n");
@@ -380,12 +382,12 @@ usage:
 
                     // Check if the chunk is the first chunk or the next valid chunk
                     // otherwise discard content and try again (except if it is the first fetched chunk)
-                    if (chunknum == 0 || (curchunknum && *curchunknum == chunknum)) {
+                    if (chunknum == 0 || (curchunknum && (int)*curchunknum == chunknum)) {
                         DEBUGMSG(DEBUG, "Found chunk %d with contlen=%d, lastchunk=%d\n", *curchunknum, contlen, lastchunknum);
 
                         write(1, content, contlen);
 
-                        if (lastchunknum != -1 && lastchunknum == chunknum) {
+                        if ((int)lastchunknum != -1 && (int)lastchunknum == chunknum) {
                             goto Done;
                         } else {
                             *curchunknum += 1;
