@@ -1,8 +1,8 @@
-/*
- * @f ccnl-buf.h
- * @b CCN lite (CCNL), core header file (internal data structures)
+/**
+ * @file ccnl-buf.h
+ * @brief CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-17, University of Basel
+ * @copyright Copyright (C) 2011-17, University of Basel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
