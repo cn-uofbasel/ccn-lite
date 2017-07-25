@@ -141,7 +141,7 @@ nfn_request_update_component(struct nfn_request_s *request)
     request->complen = commandlen + 1 + arglen;
     request->comp = ccnl_malloc(request->complen);
     memcpy(request->comp, command, commandlen);
-    request->comp[commandlen] = (unsigned char)" ";
+    request->comp[commandlen] = (unsigned char)' ';
     memcpy(request->comp + commandlen + 1, request->arg, arglen);
 }
 
@@ -193,7 +193,11 @@ int nfn_request_intermediate_num(struct ccnl_relay_s *relay, struct ccnl_prefix_
 struct ccnl_pkt_s*
 nfn_request_interest_pkt_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
 {
+#ifndef __linux__
     int nonce = random();
+#else
+    int nonce = rand();
+#endif
     struct ccnl_pkt_s *pkt;
     (void)ccnl;
 
@@ -251,7 +255,11 @@ nfn_request_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_prefix_s *pfx)
 struct ccnl_pkt_s*
 nfn_request_content_pkt_new(struct ccnl_prefix_s *pfx, unsigned char* payload, int paylen)
 {
+#ifndef __linux__
     int nonce = random();
+#else
+    int nonce = rand();
+#endif 
     struct ccnl_pkt_s *pkt;
     int dataoffset;
 

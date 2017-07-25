@@ -221,7 +221,7 @@ ccnl_eth_sendto(int sock, unsigned char *dst, unsigned char *src,
 #endif
 
     hdrlen = 14;
-    if ((datalen+hdrlen) > sizeof(buf))
+    if ((datalen+hdrlen) > (int)sizeof(buf))
             datalen = sizeof(buf) - hdrlen;
     memcpy(buf, dst, 6);
     memcpy(buf+6, src, 6);
@@ -823,5 +823,5 @@ local_producer(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     (void)lasthour;
     (void)inter_ccn_interval;
     (void)inter_pkt_interval;
-    return -1;
+    return 0;
 }

@@ -542,7 +542,11 @@ struct ccnl_interest_s *
 ccnl_nfn_mkKeepaliveInterest(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest)
 {
+#ifndef __linux__
     int nonce = random();
+#else
+    int nonce = rand();
+#endif
     struct ccnl_prefix_s *pfx;
     struct ccnl_pkt_s *pkt;
     struct ccnl_face_s *from;
