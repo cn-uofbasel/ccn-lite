@@ -1,9 +1,8 @@
 /**
- * @defgroup ccnl-pkt-compression
- * @brief Packet Compression LIB for CCN-lite
+ * @ingroup ccnl-pkt-compression
  * @{
- * @file ccnl-fwd-decompress.h
- * @brief CCN lite (CCNL), extract compressed packet formats first (for IoT)
+ * @file ccnl-pkt-ndn-compression.h
+ * @brief CCN lite (CCNL), functions for compressing and decompressing NDN packets
  * @note requires USE_SUITE_COMPRESSED to be defined 
  *
  * @author Christopher Scherb <christopher.scherb@unibas.ch>
@@ -21,34 +20,39 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
- 
-#ifndef CCNL_FWD_DECOMPRESS_H
-#define CCNL_FWD_DECOMPRESS_H
 
+#ifndef CCNL_PKT_NDN_COMPRESSION_H
+#define CCNL_PKT_NDN_COMPRESSION_H
 
 #include "ccnl-core.h"
 
 #ifdef USE_SUITE_COMPRESSED
-
 #ifdef USE_SUITE_NDNTLV
+
 /**
- * @brief       process compressed NDNTLV packet. Decompress and call NFN Forwarder
+ * @brief   Compress a NDN Packet      
  * 
- * @param[in] relay     pointer to current ccnl relay
- * @param[in] from      face on which the message was received
- * @param[in] data      data which were received
- * @param[in] datalen   length of the received data
+ * @param[in] ndn_pkt              the NDN packet to be compressed
  *
- * @return      < 0 if no bytes consumed or error
+ * @return      pointer to compressed packet, NULL if failed
  */
-int
-ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
-                      unsigned char **data, int *datalen);
-                      
+struct ccnl_pkt_s *
+ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt);
+
+/**
+ * @brief   Decompress a NDN Packet      
+ * 
+ * @param[in] compressed_pkt              the NDN packet to be compressed
+ *
+ * @return      pointer to decompressed packet, NULL if failed
+ */
+struct ccnl_pkt_s * 
+ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt);
+
+
 #endif //USE_SUITE_NDNTLV
-
 #endif //USE_SUITE_COMPRESSED
-#endif //CCNL_FWD_DECOMPRESS_H
 
- /** @} */
+#endif //CCNL_PKT_NDN_COMPRESSION_H
 
+  /** @} */
