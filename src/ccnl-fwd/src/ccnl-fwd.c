@@ -319,10 +319,10 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
             }
 #endif
 #ifdef USE_NFN_MONITOR
-                ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
+            ccnl_nfn_monitor(relay, from, c->pkt->pfx, c->pkt->content,
                                  c->pkt->contlen);
 #endif
-            ccnl_face_enqueue(relay, from, buf_dup(c->pkt->buf));
+            ccnl_send_pkt(relay, from, c->pkt);
 #ifdef USE_NFN_REQUESTS
             c->pkt = cpkt;
 #endif

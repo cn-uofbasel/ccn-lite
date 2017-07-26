@@ -257,6 +257,13 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f)
 }
 
 int
+ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
+                struct ccnl_pkt_s *pkt)
+{
+    return ccnl_face_enqueue(ccnl, to, buf_dup(pkt->buf));
+}
+
+int
 ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf)
 {
@@ -412,7 +419,7 @@ ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i)
             if (fwd->tap)
                 (fwd->tap)(ccnl, i->from, i->pkt->pfx, i->pkt->buf);
             if (fwd->face)
-                ccnl_face_enqueue(ccnl, fwd->face, buf_dup(i->pkt->buf));
+                ccnl_send_pkt(ccnl, fwd->face, i->pkt);
 #if defined(USE_NACK) || defined(USE_RONR)
             matching_face = 1;
 #endif
@@ -493,7 +500,7 @@ ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *inter
 #endif
         }
         if (fibface) {
-            ccnl_face_enqueue(ccnl, fibface, buf_dup(interest->pkt->buf));
+            ccnl_send_pkt(ccnl, fibface, interest->pkt);
             DEBUGMSG_CORE(DEBUG, "  broadcasting interest (%s)\n", ccnl_addr2ascii(&sun));
         }
     }
@@ -567,9 +574,6 @@ ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
     return c;
 }
 
-// deliver new content c to all clients with (loosely) matching interest,
-// but only one copy per face
-// returns: number of forwards
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
 {
@@ -705,7 +709,7 @@ ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c)
                                  c->pkt->content, c->pkt->contlen);
 #endif
 
-                ccnl_face_enqueue(ccnl, pi->face, buf_dup(c->pkt->buf));
+                ccnl_send_pkt(ccnl, pi->face, c->pkt);
 
 #ifdef USE_NFN_REQUESTS
                 if (matches_start_request) {

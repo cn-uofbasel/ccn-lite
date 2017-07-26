@@ -1,13 +1,14 @@
-/*
- * @f ccnl-relay.h
- * @b CCN lite (CCNL), core header file (internal data structures)
+/**
+ * @file ccnl-relay.h
+ * @brief CCN lite (CCNL), core header file (internal data structures)
  *
- * Copyright (C) 2011-17, University of Basel
+ * @author Christopher Scherb <christopher.scherb@unibas.ch>
+ * @author Christian Tschudin <christian.tschudin@unibas.ch>
  *
+ * @copyright (C) 2011-17, University of Basel
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,10 +16,8 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-16 created
  */
+
 #ifndef CCNL_RELAY_H
 #define CCNL_RELAY_H
 
@@ -95,6 +94,30 @@ ccnl_face_CTS_done(void *ptr, int cnt, int len);
 void
 ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 
+/**
+ * @brief send a packet to the face @p to 
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] to    face to send to
+ * @param[in] pkt   packet to be sent
+ *
+ * @return   0 on success
+ * @return   < 0 on failure
+*/
+int
+ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
+                struct ccnl_pkt_s *pkt);
+
+/**
+ * @brief send a buffer to the face @p to 
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] to    face to send to
+ * @param[in] buf   buffer to be sent
+ *
+ * @return   0 on success
+ * @return   < 0 on failure
+*/
 int
 ccnl_face_enqueue(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                  struct ccnl_buf_s *buf);
@@ -106,12 +129,23 @@ ccnl_interest_new(struct ccnl_relay_s *ccnl, struct ccnl_face_s *from,
 struct ccnl_interest_s*
 ccnl_interest_remove(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
+/**
+ * @brief forwards interest message according to FIB rules 
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] i     interest message to be forwarded
+*/
 void
 ccnl_interest_propagate(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *i);
 
+/**
+ * @brief broadcasts interest message to all faces
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] i     interest message to be forwarded
+*/
 void
 ccnl_interest_broadcast(struct ccnl_relay_s *ccnl, struct ccnl_interest_s *interest);
-
 
 struct ccnl_content_s*
 ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
@@ -119,6 +153,14 @@ ccnl_content_remove(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 struct ccnl_content_s*
 ccnl_content_add2cache(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 
+/**
+ * @brief deliver new content @p c to all clients with (loosely) matching interest 
+ *
+ * @param[in] ccnl  pointer to current ccnl relay
+ * @param[in] c     content to be sent
+ *
+ * @return   number of faces to which the content was sent to
+*/
 int
 ccnl_content_serve_pending(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 

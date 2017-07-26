@@ -1,13 +1,14 @@
-/*
- * @f ccnl-fwd.h
- * @b CCN lite (CCNL), fwd header file (internal data structures)
+/**
+ * @file ccnl-fwd.h
+ * @brief CCN lite (CCNL), fwd header file (internal data structures)
  *
- * Copyright (C) 2011-17, University of Basel
+ * @author Christopher Scherb <christopher.scherb@unibas.ch>
+ * @author Christian Tschudin <christian.tschudin@unibas.ch>
  *
+ * @copyright (C) 2011-17, University of Basel
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,9 +16,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-16 created
  */
 
 #ifndef CCNL_FWD_H
@@ -68,6 +66,17 @@ ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_NDNTLV
 
+/**
+ * @brief Handle and incomming Interest Message
+ *
+ * @param[in] relay   pointer to current ccnl relay
+ * @param[in] from    face on which the interest was received
+ * @param[in] pkt     packet which was received   
+ * @param[in] cMatch  matching strategy for the Content Store 
+ *
+ * @return   0 on success
+ * @return   < 0 on failure
+*/
 int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         struct ccnl_pkt_s **pkt, cMatchFct cMatch);
