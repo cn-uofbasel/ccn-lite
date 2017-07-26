@@ -54,13 +54,13 @@ ccnl_pkt_compression_map_char2byte(unsigned char c){
 unsigned char 
 ccnl_pkt_compression_map_byte2char(unsigned char c){
     int shift = 0;
-    if(c >= 252 && c <= 255){
+    if(c >= 252){
          return '/';
     }
     if(c >= 248 && c <= 252){
          return '.';
     }
-    if(c >= 0x0 && c <= 39){
+    if(c <= 39){
         shift = 0x30;
     }
     else if(c >= 40 && c <= 143){
