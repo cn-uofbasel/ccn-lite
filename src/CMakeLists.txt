@@ -53,6 +53,7 @@ set(CCNL_PACKETFORMAT_FLAGS
     -DUSE_SUITE_CISTLV
     -DUSE_SUITE_IOTTLV
     -DUSE_SUITE_LOCALRPC
+    -DUSE_SUITE_COMPRESSED
     CACHE PATH
     "packet format flags for CCN-lite"
 )
@@ -100,9 +101,11 @@ endif()
 if (DEFINED CCNL_RIOT)
     add_subdirectory(ccnl-riot)
 endif()
+add_subdirectory(ccnl-pkt-compression)
+
 
 if (NOT DEFINED CCNL_RIOT)
-    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn)
+    add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
 endif()
 
 find_package(Doxygen)

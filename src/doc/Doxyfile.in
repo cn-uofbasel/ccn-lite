@@ -2067,7 +2067,8 @@ PREDEFINED             = \
     USE_NFN_REQUESTS \
     USE_NFN_NSTRANS \
     CCNL_APP_RX \
-    CCNL_RIOT
+    CCNL_RIOT \
+    USE_SUITE_COMPRESSED
 
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this

@@ -1,5 +1,6 @@
 /**
- * @defgroup ccnl-fwd   CCN-lite Forwarding Library for different packet formats
+ * @defgroup ccnl-fwd   
+ * @brief CCN-lite Forwarding Library for different packet formats
  * @{
  * @file ccnl-fwd.h
  * @brief CCN lite (CCNL), packet forwarding logic
@@ -41,12 +42,14 @@ typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
  *
  */
 struct ccnl_suite_s {
-    dispatchFct RX; /**< Forwarder Function for a speific packet format */
+    dispatchFct RX; /**< Forwarder Function for a specific packet format */
     cMatchFct cMatch; /**< CS-Matching Function for a speific packet format */
+#ifdef USE_SUITE_COMPRESSED
+    dispatchFct RX_decompress; /**< Forwarder Function for a compressed packet format */
+#endif
 };
 
 #ifdef USE_SUITE_CCNB
-
 /**
  * @brief       Helper to process one CCNB packet
  * 
@@ -78,7 +81,6 @@ ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
-
 /**
  * @brief       process one CCNTLV packet (CCNTLV forwarding pipeline)
  * 
@@ -95,7 +97,6 @@ ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_CISTLV
-
 /**
  * @brief       process one CISTLV packet (CISTLV forwarding pipeline)
  * 
@@ -112,7 +113,6 @@ ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_SUITE_CISTLV
 
 #ifdef USE_SUITE_IOTTLV
-
 /**
  * @brief       process one IOTTLV packet (IOTTLV forwarding pipeline)
  * 
@@ -129,7 +129,6 @@ ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 #endif // USE_SUITE_IOTTLV
 
 #ifdef USE_SUITE_NDNTLV
-
 /**
  * @brief       process one NDNTLV packet (NDN forwarding pipeline)
  * 

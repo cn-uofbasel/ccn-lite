@@ -43,6 +43,11 @@
 
 #include "ccnl-logging.h"
 
+#ifdef USE_SUITE_COMPRESSED
+#include "ccnl-fwd-decompress.h"
+#endif
+
+
 struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
 void
@@ -129,6 +134,10 @@ ccnl_core_init(void)
 #ifdef USE_SUITE_NDNTLV
     ccnl_core_suites[CCNL_SUITE_NDNTLV].RX       = ccnl_ndntlv_forwarder;
     ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
+
+    #ifdef USE_SUITE_COMPRESSED
+    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX_decompress = ccnl_ndntlv_forwarder_decompress;
+    #endif
 #endif
 
 #ifdef USE_NFN
