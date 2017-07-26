@@ -25,13 +25,15 @@
 #ifdef USE_SUITE_NDNTLV
 
 struct ccnl_pkt_s *
-ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt){
+ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
+{
     (void)ndn_pkt;
     return NULL;
 }
 
 struct ccnl_pkt_s *
-ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt){
+ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
+{
     (void)compressed_pkt;
     return NULL;
 }

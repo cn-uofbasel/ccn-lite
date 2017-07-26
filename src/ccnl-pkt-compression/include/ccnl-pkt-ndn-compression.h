@@ -1,5 +1,5 @@
 /**
- * @ingroup ccnl-pkt-compression
+ * @addtogroup ccnl-pkt-compression
  * @{
  * @file ccnl-pkt-ndn-compression.h
  * @brief CCN lite (CCNL), functions for compressing and decompressing NDN packets
@@ -55,4 +55,4 @@ ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt);
 
 #endif //CCNL_PKT_NDN_COMPRESSION_H
 
-  /** @} */
+/** @} */
