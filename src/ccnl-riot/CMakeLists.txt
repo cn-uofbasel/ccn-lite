@@ -10,6 +10,7 @@ file(GLOB HEADERS "include/*.h")
 file(GLOB CORESOURCE "../ccnl-core/src/*.c")
 file(GLOB FWDSOURCE "../ccnl-fwd/src/*.c")
 file(GLOB PKTSOURCE "../ccnl-pkt/src/*.c")
+file(GLOB PKTCOMPSOURCE "../ccnl-pkt-compression/src/*.c")
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES} ${CORESOURCE} ${FWDSOURCE} ${PKTSOURCE} ${HEADERS})
+add_library(${PROJECT_NAME} STATIC ${SOURCES} ${CORESOURCE} ${FWDSOURCE} ${PKTSOURCE} ${PKTCOMPSOURCE} ${HEADERS})
 
