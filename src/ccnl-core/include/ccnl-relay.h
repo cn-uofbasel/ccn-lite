@@ -96,6 +96,7 @@ ccnl_face_CTS(struct ccnl_relay_s *ccnl, struct ccnl_face_s *f);
 
 /**
  * @brief send a packet to the face @p to 
+ * @note here it is possible to add compression for packets
  *
  * @param[in] ccnl  pointer to current ccnl relay
  * @param[in] to    face to send to

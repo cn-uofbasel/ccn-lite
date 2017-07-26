@@ -2039,7 +2039,36 @@ INCLUDE_FILE_PATTERNS  =
 # recursively expanded use the := operator instead of the = operator.
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-PREDEFINED             =
+PREDEFINED             = \    
+    USE_DEBUG \
+    USE_LOGGING \
+    USE_SIGNATURES \
+    USE_DUP_CHECK \
+    USE_ECHO \
+    USE_HMAC256 \
+    USE_STATS \
+    NEEDS_PACKET_CRAFTING \
+    NEEDS_PREFIX_MATCHING \
+    USE_LINKLAYER \
+    USE_CCNxDIGEST \
+    USE_MGMT \
+    USE_UNIXSOCKET \
+    USE_IPV4 \
+    USE_IPV6 \
+    CCNL_UNIX \
+    CCNL_ARDUINO \
+    USE_SUITE_NDNTLV \
+    USE_SUITE_CCNB \
+    USE_SUITE_CCNTLV \
+    USE_SUITE_CISTLV \
+    USE_SUITE_IOTTLV \
+    USE_SUITE_LOCALRPC \
+    USE_NFN \
+    USE_NFN_REQUESTS \
+    USE_NFN_NSTRANS \
+    CCNL_APP_RX \
+    CCNL_RIOT
+
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The

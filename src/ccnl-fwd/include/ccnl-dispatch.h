@@ -1,12 +1,13 @@
-/*
- * @f ccnl-dispatch.h
- *
- * Copyright (C) 2011-18, University of Basel
- *
+/**
+ * @addtogroup ccnl-fwd
+ * @{
+ * @file ccnl-dispatch.h
+ * @brief Detect packet forward and call packet specific forwarder
+ * 
+ * @copyright (C) 2011-18, University of Basel
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -23,11 +24,26 @@
 
 //struct ccnl_suite_s ccnl_core_suites[CCNL_SUITE_LAST];
 
+/**
+ * @brief       Initialize the dispatcher for handling different packet forwarders
+ */
 void
 ccnl_core_init(void);
 
+
+/**
+ * @brief       Processing of Local RPC messages
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] ifndx     index of the interface from which the data were received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ * @param[in] sa        socketaddress from which the packet was received
+ * @param[in] addrlen   length of the socketaddress
+ */
 void
 ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
              int datalen, struct sockaddr *sa, int addrlen);
 
-#endif // EOF
+#endif
+/** @} */

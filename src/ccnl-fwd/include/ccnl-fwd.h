@@ -1,6 +1,8 @@
 /**
+ * @defgroup ccnl-fwd   CCN-lite Forwarding Library for different packet formats
+ * @{
  * @file ccnl-fwd.h
- * @brief CCN lite (CCNL), fwd header file (internal data structures)
+ * @brief CCN lite (CCNL), packet forwarding logic
  *
  * @author Christopher Scherb <christopher.scherb@unibas.ch>
  * @author Christian Tschudin <christian.tschudin@unibas.ch>
@@ -23,44 +25,121 @@
 
 #include "ccnl-core.h"
 
+/**
+ * @brief       Functionpointer to a CCN-lite Forwarder Function
+ */
 typedef int (*dispatchFct)(struct ccnl_relay_s*, struct ccnl_face_s*, 
                            unsigned char**, int*);
 
+/**
+ * @brief       Functionpointer to a CCN-lite CS-Matching Function
+ */
 typedef int (*cMatchFct)(struct ccnl_pkt_s *p, struct ccnl_content_s *c);
 
+/**
+ * @brief       Defines for every Packet format the Forwarding and CS-Matching function
+ *
+ */
 struct ccnl_suite_s {
-    dispatchFct RX;
-    cMatchFct cMatch;
+    dispatchFct RX; /**< Forwarder Function for a speific packet format */
+    cMatchFct cMatch; /**< CS-Matching Function for a speific packet format */
 };
 
 #ifdef USE_SUITE_CCNB
+
+/**
+ * @brief       Helper to process one CCNB packet
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ * @param[in] typ       packet type: interest or content object
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_ccnb_fwd(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
               unsigned char **data, int *datalen, int typ);
+
+/**
+ * @brief       process one CCNB packet (CCNB forwarding pipeline)
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_ccnb_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                     unsigned char **data, int *datalen);
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
+
+/**
+ * @brief       process one CCNTLV packet (CCNTLV forwarding pipeline)
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_ccntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_CISTLV
+
+/**
+ * @brief       process one CISTLV packet (CISTLV forwarding pipeline)
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_cistlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_CISTLV
 
 #ifdef USE_SUITE_IOTTLV
+
+/**
+ * @brief       process one IOTTLV packet (IOTTLV forwarding pipeline)
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_iottlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
 #endif // USE_SUITE_IOTTLV
 
 #ifdef USE_SUITE_NDNTLV
+
+/**
+ * @brief       process one NDNTLV packet (NDN forwarding pipeline)
+ * 
+ * @param[in] relay     pointer to current ccnl relay
+ * @param[in] from      face on which the message was received
+ * @param[in] data      data which were received
+ * @param[in] datalen   length of the received data
+ *
+ * @return      < 0 if no bytes consumed or error
+ */
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen);
@@ -82,3 +161,5 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         struct ccnl_pkt_s **pkt, cMatchFct cMatch);
 
 #endif
+
+/** @} */

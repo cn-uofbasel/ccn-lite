@@ -790,7 +790,7 @@ Done:
 
 #ifdef USE_SUITE_NDNTLV
 
-// process one NDNTLV packet, return <0 if no bytes consumed or error
+
 int
 ccnl_ndntlv_forwarder(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
