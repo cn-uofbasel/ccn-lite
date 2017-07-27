@@ -31,17 +31,8 @@
 struct ccnl_pkt_s *
 ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
 {
-    //compress name
-    char* name = ccnl_prefix_to_path(ndn_pkt->pfx);
-    int name_len = (int)strlen((char* )name);
-    unsigned char *compressed_name = ccnl_malloc(name_len);
-    int compressed_len = ccnl_pkt_compression_str2bytes((unsigned char*)name, 6, compressed_name, name_len);
-    compressed_name = ccnl_realloc(compressed_name, compressed_len);
-    //create compressed prefix
-    struct ccnl_prefix_s *prefix = ccnl_prefix_new(CCNL_SUITE_NDNTLV, 1);
-    prefix->comp[0] = compressed_name;
-    prefix->complen[0] = compressed_len;
-
+    
+    struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(ndn_pkt->pfx);
     struct ccnl_buf_s *buf = NULL; //TODO Really required to rewrite the buffer every time (move this to separate function, only for creating compressed packet types)
     if(ndn_pkt->type == NDN_TLV_Interest){
         buf = ccnl_mkSimpleInterest(prefix, 0); //FIXME: set nonce //Replace function with function without tlvs.
@@ -62,17 +53,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
 struct ccnl_pkt_s *
 ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
 {
-    unsigned char* name = compressed_pkt->pfx->comp[0];
-    int name_len = compressed_pkt->pfx->complen[0];
-    int out_len = name_len * 8/6+1;
-    unsigned char *decompressed_name = ccnl_malloc(out_len);
-    out_len = ccnl_pkt_compression_bytes2str(name, name_len, 6, 
-                              decompressed_name, out_len);
-    decompressed_name = ccnl_realloc(decompressed_name, out_len);
-
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix((char *)decompressed_name, CCNL_SUITE_NDNTLV, NULL, NULL);
-    
-    
+    struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_decompress(compressed_pkt->pfx);
     struct ccnl_buf_s *buf = NULL; //TODO Really required to rewrite the buffer every time(s.o.)
     if(compressed_pkt->type == NDN_TLV_Interest){
         buf = ccnl_mkSimpleInterest(prefix, 0); //FIXME: set nonce //Replace function with function without tlvs.

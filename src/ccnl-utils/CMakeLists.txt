@@ -15,6 +15,7 @@ include_directories(
     ../ccnl-core/include
     ../ccnl-unix/include
     ../ccnl-nfn/include
+    ../ccnl-pkt-compression/include
     ${OPENSSL_INCLUDE_DIR}
     
 )

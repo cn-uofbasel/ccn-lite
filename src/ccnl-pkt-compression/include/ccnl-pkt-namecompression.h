@@ -58,6 +58,28 @@ int
 ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen, 
                               unsigned char *out, int outlen);
 
+
+/**
+ * @brief   Compress the name components of a prefix     
+ * 
+ * @param[in] pfx         prefix of which the namecomponents should be compressed
+ *
+ * @return     prefix with compressed name components
+ */
+struct ccnl_prefix_s *
+ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx);
+
+
+/**
+ * @brief   Deompress the name components of a prefix     
+ * 
+ * @param[in] pfx         prefix of which the namecomponents should be decompressed
+ *
+ * @return     prefix with decompressed name components
+ */
+struct ccnl_prefix_s *
+ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx);
+
 #endif //USE_SUITE_COMPRESSED
 #endif //CCNL_PKT_NAMECOMPRESSION_H
 

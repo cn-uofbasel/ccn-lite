@@ -145,5 +145,34 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
     return inlen;
 }
 
+struct ccnl_prefix_s *
+ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
+    //compress name
+    char* name = ccnl_prefix_to_path(pfx);
+    int name_len = (int)strlen((char* )name);
+    unsigned char *compressed_name = ccnl_malloc(name_len);
+    int compressed_len = ccnl_pkt_compression_str2bytes((unsigned char*)name, 6, compressed_name, name_len);
+    compressed_name = ccnl_realloc(compressed_name, compressed_len);
+    //create compressed prefix
+    struct ccnl_prefix_s *ret = ccnl_prefix_new(pfx->suite, 1);
+    ret->comp[0] = compressed_name;
+    ret->complen[0] = compressed_len;
+    return ret;
+}
+
+struct ccnl_prefix_s *
+ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
+    unsigned char* name = pfx->comp[0];
+    int name_len = pfx->complen[0];
+    int out_len = name_len * 8/6+1;
+    unsigned char *decompressed_name = ccnl_malloc(out_len);
+    out_len = ccnl_pkt_compression_bytes2str(name, name_len, 6, 
+                              decompressed_name, out_len);
+    decompressed_name = ccnl_realloc(decompressed_name, out_len);
+
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix((char *)decompressed_name, pfx->suite, NULL, NULL);
+    return prefix;
+}
+
 
 #endif

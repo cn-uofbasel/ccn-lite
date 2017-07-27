@@ -27,9 +27,9 @@
 #define assert(...) do {} while(0)
 #endif
 
-//#include "ccnl-pkt-switch.h"
-
-// #include "../lib-sha256.c"
+#ifdef USE_SUITE_COMPRESSED
+#include "ccnl-pkt-namecompression.h"
+#endif //USE_SUITE_COMPRESSED
 
 // ----------------------------------------------------------------------
 
@@ -159,6 +159,10 @@ usage:
         DEBUGMSG(TRACE, "sending request, iteration %d\n", cnt);
 
         memset(&dummyFace, 0, sizeof(dummyFace));
+
+#ifdef USE_SUITE_COMPRESSED
+        prefix = ccnl_pkt_prefix_compress(prefix);
+#endif //USE_SUITE_COMPRESSED
 
         len = mkInterest(prefix,
                          &nonce,
