@@ -113,6 +113,9 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
             break;
         }
         ret->pfx = ccnl_prefix_dup(pkt->pfx);
+        ret->pfx->suite = pkt->pfx->suite;
+        ret->suite = pkt->suite;
+        ret->s = pkt->s;
         ret->buf = buf_dup(pkt->buf);
         
     }

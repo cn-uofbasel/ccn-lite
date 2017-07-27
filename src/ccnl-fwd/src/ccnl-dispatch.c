@@ -136,6 +136,7 @@ ccnl_core_init(void)
     ccnl_core_suites[CCNL_SUITE_NDNTLV].cMatch   = ccnl_ndntlv_cMatch;
 
     #ifdef USE_SUITE_COMPRESSED
+    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX = ccnl_ndntlv_forwarder_decompress;
     ccnl_core_suites[CCNL_SUITE_NDNTLV].RX_decompress = ccnl_ndntlv_forwarder_decompress;
     #endif
 #endif

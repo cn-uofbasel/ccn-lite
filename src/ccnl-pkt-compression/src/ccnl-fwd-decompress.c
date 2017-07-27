@@ -30,16 +30,10 @@ int
 ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    (void)relay;
-    (void)from;
-    (void)data;
-    (void)datalen;
-    DEBUGMSG(TRACE, "TO BE IMPLEMENTED: %p", (void*)relay);
-
     int rc = -1, len;
     unsigned int typ;
     unsigned char *start = *data;
-    struct ccnl_pkt_s *pkt, *pkt_decompressed;
+    struct ccnl_pkt_s *pkt, *pkt_decompressed = NULL;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder_decompress (%d bytes left)\n", *datalen);
 
@@ -49,23 +43,23 @@ ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s 
     }
     pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
     if (!pkt) {
-        DEBUGMSG_CFWD(INFO, "  ndntlv packet coding problem\n");
+        DEBUGMSG_CFWD(INFO, "  ndntlv packet compressed coding problem\n");
         goto Done;
     }
     pkt->type = typ;
     pkt_decompressed = ccnl_pkt_ndn_decompress(pkt);    
     switch (typ) {
     case NDN_TLV_Interest:
-        if (ccnl_fwd_handleInterest(relay, from, &pkt, ccnl_ndntlv_cMatch))
+        if (ccnl_fwd_handleInterest(relay, from, &pkt_decompressed, ccnl_ndntlv_cMatch))
             goto Done;
         break;
     case NDN_TLV_Data:
-        if (ccnl_fwd_handleContent(relay, from, &pkt))
+        if (ccnl_fwd_handleContent(relay, from, &pkt_decompressed))
             goto Done;
         break;
 #ifdef USE_FRAG
     case NDN_TLV_Fragment:
-        if (ccnl_fwd_handleFragment(relay, from, &pkt, ccnl_ndntlv_forwarder))
+        if (ccnl_fwd_handleFragment(relay, from, &pkt_decompressedpkt, ccnl_ndntlv_forwarder))
             goto Done;
         break;
 #endif

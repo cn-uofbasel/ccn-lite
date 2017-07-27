@@ -25,6 +25,8 @@
 #include "ccnl-pkt-simple.h"
 #include "ccnl-pkt-ndntlv.h"
 
+#include <assert.h>
+
 #ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
 
@@ -33,20 +35,22 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
 {
     
     struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(ndn_pkt->pfx);
+    prefix->suite = CCNL_SUITE_NDNTLV;
     struct ccnl_buf_s *buf = NULL; //TODO Really required to rewrite the buffer every time (move this to separate function, only for creating compressed packet types)
     if(ndn_pkt->type == NDN_TLV_Interest){
         buf = ccnl_mkSimpleInterest(prefix, 0); //FIXME: set nonce //Replace function with function without tlvs.
     }
-    else if(ndn_pkt->type == NDN_TLV_Data){
-        buf = ccnl_mkSimpleContent(prefix, ndn_pkt->content, ndn_pkt->contlen, 0);
+    else //if(ndn_pkt->type == NDN_TLV_Data){ //FIXME: WHY????
+       { buf = ccnl_mkSimpleContent(prefix, ndn_pkt->content, ndn_pkt->contlen, 0);
     }
-
+    assert(buf != NULL);
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(ndn_pkt);
     ccnl_free(pkt->buf);
     ccnl_prefix_free(pkt->pfx);
     pkt->buf = buf;
     pkt->pfx = prefix;
+    pkt->pfx->suite = CCNL_SUITE_NDNTLV;
     return pkt;
 }
 
@@ -54,6 +58,7 @@ struct ccnl_pkt_s *
 ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
 {
     struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_decompress(compressed_pkt->pfx);
+    prefix->suite = CCNL_SUITE_NDNTLV;
     struct ccnl_buf_s *buf = NULL; //TODO Really required to rewrite the buffer every time(s.o.)
     if(compressed_pkt->type == NDN_TLV_Interest){
         buf = ccnl_mkSimpleInterest(prefix, 0); //FIXME: set nonce //Replace function with function without tlvs.
@@ -61,13 +66,15 @@ ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
     else if(compressed_pkt->type == NDN_TLV_Data){
         buf = ccnl_mkSimpleContent(prefix, compressed_pkt->content, compressed_pkt->contlen, 0);
     }
-
+    assert(buf != NULL);
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(compressed_pkt);
     ccnl_free(pkt->buf);
     ccnl_prefix_free(pkt->pfx);
     pkt->buf = buf;
     pkt->pfx = prefix;
+    pkt->type = CCNL_SUITE_NDNTLV;
+    pkt->pfx->suite = CCNL_SUITE_NDNTLV;
     return pkt;
 }
 
