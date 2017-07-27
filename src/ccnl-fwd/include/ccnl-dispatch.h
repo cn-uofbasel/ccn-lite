@@ -1,9 +1,12 @@
 /**
- * @addtogroup ccnl-fwd
+ * @addtogroup CCNL-fwd
  * @{
  * @file ccnl-dispatch.h
  * @brief Detect packet forward and call packet specific forwarder
- * 
+ *
+ * @author Christopher Scherb <christopher.scherb@unibas.ch>
+ * @author Christian Tschudin <christian.tschudin@unibas.ch> 
+ *
  * @copyright (C) 2011-18, University of Basel
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

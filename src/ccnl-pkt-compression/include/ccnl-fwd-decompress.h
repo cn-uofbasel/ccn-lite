@@ -1,5 +1,5 @@
 /**
- * @addtogroup ccnl-pkt-compression
+ * @addtogroup CCNL-pkt-compression
  * @brief Packet Compression LIB for CCN-lite
  * @{
  * @file ccnl-fwd-decompress.h

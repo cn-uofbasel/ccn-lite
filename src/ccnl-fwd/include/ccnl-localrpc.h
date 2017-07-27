@@ -1,5 +1,5 @@
 /**
- * @addtogroup ccnl-fwd
+ * @addtogroup CCNL-fwd
  * @{
  * @file ccnl-localrpc.h
  * @brief CCN-lite - local RPC processing logic

@@ -19,7 +19,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
  
- #include "ccnl-pkt-ndn-compression.h"
+#include "ccnl-pkt-ndn-compression.h"
+#include ""
 
 #ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
@@ -27,6 +28,9 @@
 struct ccnl_pkt_s *
 ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
 {
+    //compress name
+    ccnl_nam
+
     (void)ndn_pkt;
     return NULL;
 }

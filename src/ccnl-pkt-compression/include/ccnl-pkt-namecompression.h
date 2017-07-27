@@ -1,5 +1,5 @@
 /**
- * @addtogroup ccnl-pkt-compression
+ * @addtogroup CCNL-pkt-compression
  * @{
  * @file ccnl-pkt-namecompression.h
  * @brief CCN lite (CCNL), functions for compressing and decompressing ICN names

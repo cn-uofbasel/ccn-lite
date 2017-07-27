@@ -1,5 +1,5 @@
 /**
- * @addtogroup ccnl-fwd 
+ * @addtogroup CCNL-fwd 
  * @brief CCN-lite Forwarding Library for different packet formats
  * @{
  * @file ccnl-fwd.h
