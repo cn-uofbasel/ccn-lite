@@ -90,6 +90,16 @@ void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 
 /**
+ * @brief Duplicates a pkt data structure
+ *
+ * @param[in] pkt       pkt data structure to be duplicated
+ *
+ * @return  returns a copy of @p pkt, NULL if failed
+*/
+struct ccnl_pkt_s *
+ccnl_pkt_dup(struct ccnl_pkt_s *pkt);
+
+/**
  * @brief Create a component for a pkt data structure (CCNTLV and CISTLV need special component start)
  *
  * @param[in] suite     suite for which the component should be created

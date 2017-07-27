@@ -51,9 +51,12 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     }
 
     //use created buf to create packet
-    struct ccnl_pkt_s *pkt = ccnl_malloc(sizeof(struct ccnl_pkt_s));
+    
+    struct ccnl_pkt_s *pkt = ccnl_pkt_dup(ndn_pkt);
+    ccnl_free(pkt->buf);
+    ccnl_prefix_free(pkt->pfx);
     pkt->buf = buf;
-
+    pkt->pfx = prefix;
     return pkt;
 }
 

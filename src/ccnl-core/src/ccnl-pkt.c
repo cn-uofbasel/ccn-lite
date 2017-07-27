@@ -74,6 +74,51 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
     }
 }
 
+
+struct ccnl_pkt_s *
+ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
+    if(!pkt){
+        return NULL;
+    }
+    struct ccnl_pkt_s * ret = ccnl_malloc(sizeof(struct ccnl_pkt_s));
+    if (pkt->pfx) {
+        switch (pkt->pfx->suite) {
+#ifdef USE_SUITE_CCNB
+        case CCNL_SUITE_CCNB:
+            ret->s.ccnb.nonce = buf_dup(pkt->s.ccnb.nonce);
+            ret->s.ccnb.ppkd = buf_dup(pkt->s.ccnb.ppkd);
+            break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV:
+            ret->s.ccntlv.keyid = buf_dup(pkt->s.ccntlv.keyid);
+            break;
+#endif
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV:
+            ret->s.ndntlv.nonce = buf_dup(pkt->s.ndntlv.nonce);
+            ret->s.ndntlv.ppkl = buf_dup(pkt->s.ndntlv.ppkl);
+            break;
+#endif
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV:
+#endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV:
+#endif
+#ifdef USE_SUITE_LOCALRPC
+        case CCNL_SUITE_LOCALRPC:
+#endif
+        default:
+            break;
+        }
+        ret->pfx = ccnl_prefix_dup(pkt->pfx);
+        ret->buf = buf_dup(pkt->buf);
+        
+    }
+    return ret;
+}
+
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen)
 {
