@@ -1,13 +1,17 @@
-/*
- * @f ccnl-pkt.h
- * @b CCN lite, core CCNx protocol logic
+/** 
+ * @addtogroup CCNL-core
+ * @{
  *
- * Copyright (C) 2011-18 University of Basel
+ * @file ccnl-pkt.h
+ * @brief CCN lite, core CCN PKT data structure
  *
+ * @author Christopher Scherb <christopher.scherb@unibas.ch>
+ * @author Balazs Faludi <balazs.faludi@unibas.ch>
+ *
+ * @copyright (C) 2011-18 University of Basel
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -15,9 +19,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * File history:
- * 2017-06-16 created
  */
 
 #ifndef CCNL_PKT_H
@@ -38,11 +39,11 @@
 struct ccnl_pktdetail_ccnb_s {
     int minsuffix, maxsuffix, aok, scope;
     struct ccnl_buf_s *nonce;
-    struct ccnl_buf_s *ppkd;        // publisher public key digest
+    struct ccnl_buf_s *ppkd;        /**< publisher public key digest */
 };
 
 struct ccnl_pktdetail_ccntlv_s {
-    struct ccnl_buf_s *keyid;       // publisher keyID
+    struct ccnl_buf_s *keyid;       /**< publisher keyID */
 };
 
 struct ccnl_pktdetail_iottlv_s {
@@ -51,16 +52,16 @@ struct ccnl_pktdetail_iottlv_s {
 
 struct ccnl_pktdetail_ndntlv_s {
     int minsuffix, maxsuffix, mbf, scope;
-    struct ccnl_buf_s *nonce;      // nonce
-    struct ccnl_buf_s *ppkl;       // publisher public key locator
+    struct ccnl_buf_s *nonce;      /**< nonce */
+    struct ccnl_buf_s *ppkl;       /**< publisher public key locator */
 };
 
 struct ccnl_pkt_s {
-    struct ccnl_buf_s *buf;        // the packet's bytes
-    struct ccnl_prefix_s *pfx;     // prefix/name
-    unsigned char *content;        // pointer into the data buffer
+    struct ccnl_buf_s *buf;        /**< the packet's bytes */
+    struct ccnl_prefix_s *pfx;     /**< prefix/name */
+    unsigned char *content;        /**< pointer into the data buffer */
     int contlen;
-    unsigned int type;   // suite-specific value (outermost type)
+    unsigned int type;   /**< suite-specific value (outermost type) */
     union {
         int final_block_id;
         unsigned int seqno;
@@ -70,7 +71,7 @@ struct ccnl_pkt_s {
         struct ccnl_pktdetail_ccntlv_s ccntlv;
         struct ccnl_pktdetail_iottlv_s iottlv;
         struct ccnl_pktdetail_ndntlv_s ndntlv;
-    } s;                           // suite specific packet details
+    } s;                           /**< suite specific packet details */
 #ifdef USE_HMAC256
     unsigned char *hmacStart;
     int hmacLen;
@@ -80,13 +81,39 @@ struct ccnl_pkt_s {
     char suite;
 };
 
+/**
+ * @brief Free a pkt data structure
+ *
+ * @param[in] pkt       pkt datastructure to be freed
+*/
 void
 ccnl_pkt_free(struct ccnl_pkt_s *pkt);
 
+/**
+ * @brief Create a component for a pkt data structure (CCNTLV and CISTLV need special component start)
+ *
+ * @param[in] suite     suite for which the component should be created
+ * @param[out] dst      target, where the created component should be stored
+ * @param[in] src       content that should be written into the component
+ * @param[in] srclen    length of the content @p s
+ *
+ * @return              length of the created component
+*/
 int
 ccnl_pkt_mkComponent(int suite, unsigned char *dst, char *src, int srclen);
 
+/**
+ * @brief prepend a component to buf
+ *
+ * @param[in] suite     suite for which the component should be created
+ * @param[in] src       content that should be written into the component
+ * @param[in] offset    offset for prepending the component
+ * @param[out] buf      target, where the component was prepended
+ *
+ * @return              length of the entire component
+*/
 int
 ccnl_pkt_prependComponent(int suite, char *src, int *offset, unsigned char *buf);
 
 #endif // EOF
+/** @} */
