@@ -1,6 +1,8 @@
 /**
+ * @ingroup CCNL-core
+ * @{
  * @file ccnl-relay.h
- * @brief CCN lite (CCNL), core header file (internal data structures)
+ * @brief CCN lite (CCNL) data structure ccnl-relay. contains all important datastructures for CCN-lite forwarding
  *
  * @author Christopher Scherb <christopher.scherb@unibas.ch>
  * @author Christian Tschudin <christian.tschudin@unibas.ch>
@@ -38,14 +40,14 @@ struct ccnl_relay_s {
     struct ccnl_face_s *faces;
     struct ccnl_forward_s *fib;
     struct ccnl_interest_s *pit;
-    struct ccnl_content_s *contents; //, *contentsend;
+    struct ccnl_content_s *contents; /**< *contentsend; */
     struct ccnl_buf_s *nonces;
-    int contentcnt;             // number of cached items
-    int max_cache_entries;      // -1: unlimited
+    int contentcnt;             /**< * number of cached items */
+    int max_cache_entries;      /**< * max number of cached items -1: unlimited */
     int pitcnt;
-    int max_pit_entries;      // -1: unlimited
+    int max_pit_entries;      /**< *max number of pit entries; -1: unlimited */ 
     struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
-    int ifcount;                // number of active interfaces
+    int ifcount;               /**< / number of active interfaces */
     char halt_flag;
     struct ccnl_sched_s* (*defaultFaceScheduler)(struct ccnl_relay_s*,
                                                  void(*cts_done)(void*,void*));
@@ -213,3 +215,4 @@ int ccnl_app_RX(struct ccnl_relay_s *ccnl, struct ccnl_content_s *c);
 #endif
 
 #endif //CCNL_RELAY_H
+/** @} */

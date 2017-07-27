@@ -159,6 +159,21 @@ int
 ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                         struct ccnl_pkt_s **pkt, cMatchFct cMatch);
 
+
+/**
+ * @brief Handle and incomming Content Message
+ *
+ * @param[in] relay   pointer to current ccnl relay
+ * @param[in] from    face on which the interest was received
+ * @param[in] pkt     packet which was received   
+ *
+ * @return   0 on success
+ * @return   < 0 on failure
+*/
+int
+ccnl_fwd_handleContent(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
+                       struct ccnl_pkt_s **pkt);
+
 #endif
 
 /** @} */

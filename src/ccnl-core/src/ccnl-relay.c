@@ -29,6 +29,12 @@
 #include "ccnl-core.h"
 #include <assert.h>
 
+#ifdef USE_SUITE_COMPRESSED
+#ifdef USE_SUITE_NDNTLV
+#include "ccnl-pkt-ndn-compression.h"
+#endif //USE_SUITE_NDNTLV
+#endif //USE_SUITE_COMPRESSED
+
 
 
 
@@ -260,7 +266,14 @@ int
 ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
                 struct ccnl_pkt_s *pkt)
 {
+#ifdef USE_SUITE_COMPRESSED
+#ifdef USE_SUITE_NDNTLV
+     struct ccnl_pkt_s *pkt_compressed = ccnl_pkt_ndn_compress(pkt);
+     return ccnl_face_enqueue(ccnl, to, buf_dup(pkt_compressed->buf));
+#endif //USE_SUITE_NDNTLV
+#else
     return ccnl_face_enqueue(ccnl, to, buf_dup(pkt->buf));
+#endif //USE_SUITE_COMPRESSED
 }
 
 int
