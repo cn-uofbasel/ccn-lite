@@ -40,8 +40,9 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     if(ndn_pkt->type == NDN_TLV_Interest){
         buf = ccnl_mkSimpleInterest(prefix, 0); //FIXME: set nonce //Replace function with function without tlvs.
     }
-    else //if(ndn_pkt->type == NDN_TLV_Data){ //FIXME: WHY????
-       { buf = ccnl_mkSimpleContent(prefix, ndn_pkt->content, ndn_pkt->contlen, 0);
+    else if(ndn_pkt->type == NDN_TLV_Data){
+        //DEBUGMSG(DEBUG, "PACKET TYPE: %d\n", ndn_pkt->type);
+        buf = ccnl_mkSimpleContent(prefix, ndn_pkt->content, ndn_pkt->contlen, 0);
     }
     assert(buf != NULL);
     //use created buf to create packet
