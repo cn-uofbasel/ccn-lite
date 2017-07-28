@@ -37,29 +37,30 @@ struct ccnl_relay_s {
     time_t startup_time;
 #endif
     int id;
-    struct ccnl_face_s *faces;
-    struct ccnl_forward_s *fib;
-    struct ccnl_interest_s *pit;
-    struct ccnl_content_s *contents; /**< *contentsend; */
-    struct ccnl_buf_s *nonces;
-    int contentcnt;             /**< * number of cached items */
-    int max_cache_entries;      /**< * max number of cached items -1: unlimited */
-    int pitcnt;
-    int max_pit_entries;      /**< *max number of pit entries; -1: unlimited */ 
+    struct ccnl_face_s *faces;  /**< The existing forwarding faces */
+    struct ccnl_forward_s *fib; /**< The Forwarding Information Base (FIB) */
+
+    struct ccnl_interest_s *pit; /**< The Pending Interest Table (PIT) */
+    struct ccnl_content_s *contents; /**< contentsend; */
+    struct ccnl_buf_s *nonces;  /**< The nonces that are currently in use */
+    int contentcnt;             /**< number of cached items */
+    int max_cache_entries;      /**< max number of cached items -1: unlimited */
+    int pitcnt;                 /**< Number of entries in the PIT */
+    int max_pit_entries;        /**< max number of pit entries; -1: unlimited */ 
     struct ccnl_if_s ifs[CCNL_MAX_INTERFACES];
-    int ifcount;               /**< / number of active interfaces */
-    char halt_flag;
+    int ifcount;               /**< number of active interfaces */
+    char halt_flag;            /**< Flag to interrupt the IO_Loop and to exit the relay */
     struct ccnl_sched_s* (*defaultFaceScheduler)(struct ccnl_relay_s*,
-                                                 void(*cts_done)(void*,void*));
+                                                 void(*cts_done)(void*,void*)); /**< FuncPoint to the scheduler for faces*/
     struct ccnl_sched_s* (*defaultInterfaceScheduler)(struct ccnl_relay_s*,
-                                                 void(*cts_done)(void*,void*));
+                                                 void(*cts_done)(void*,void*)); /**< FuncPoint to the scheduler for interfaces*/
 #ifdef USE_HTTP_STATUS
-    struct ccnl_http_s *http;
+    struct ccnl_http_s *http;  /**< http server for status information*/
 #endif
     void *aux;
 
 #ifdef USE_NFN
-    struct ccnl_krivine_s *km;
+    struct ccnl_krivine_s *km;  /**< Krivine Abstract Machine for NFN*/
 #endif
 
    // struct ccnl_buf_s *bufCleanUpList;
@@ -70,6 +71,12 @@ struct ccnl_relay_s {
   */
 };
 
+/**
+ * @brief Breadcast an interest message to all available interfaces
+ *
+ * @param[in] ccnl          The CCN-lite relay used to send the interest
+ * @param[in] interest      The interest which should be sent
+ */
 void ccnl_interest_broadcast(struct ccnl_relay_s *ccnl,
                              struct ccnl_interest_s *interest);
 
