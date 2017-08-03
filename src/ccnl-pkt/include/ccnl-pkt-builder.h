@@ -55,21 +55,15 @@ int iottlv_isReply(unsigned char *buf, int len);
 int iottlv_isFragment(unsigned char *buf, int len);
 #endif // USE_SUITE_IOTTLV
 
-#ifdef USE_SUITE_NDNTLV
+#ifdef  USE_SUITE_NDNTLV
 int ndntlv_isData(unsigned char *buf, int len);
-#endif // USE_SUITE_NDNTLV
+#endif //USE_SUITE_NDNTLV
 
-#ifdef NEEDS_PACKET_CRAFTING
-typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-#endif // NEEDS_PACKET_CRAFTING
-typedef int (*ccnl_isContentFunc)(unsigned char*, int);
-typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
+int
+ccnl_isContent(unsigned char *buf, int len, int suite);
 
-ccnl_isContentFunc
-ccnl_suite2isContentFunc(int suite);
-
-ccnl_isFragmentFunc
-ccnl_suite2isFragmentFunc(int suite);
+int
+ccnl_isFragment(unsigned char *buf, int len, int suite);
 
 #ifdef NEEDS_PACKET_CRAFTING
 struct ccnl_buf_s*

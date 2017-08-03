@@ -152,58 +152,69 @@ int iottlv_isFragment(unsigned char *buf, int len)
 #endif // USE_SUITE_IOTTLV
 
 // ----------------------------------------------------------------------
+#ifdef  USE_SUITE_NDNTLV
+int ndntlv_isData(unsigned char *buf, int len) {
+    int typ;
+    int vallen;
 
+    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int *) &typ, &vallen))
+        return -1;
+    if (typ != NDN_TLV_Data)
+        return 0;
+    return 1;
+}
+#endif //USE_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
 
-ccnl_isContentFunc
-ccnl_suite2isContentFunc(int suite)
+int
+ccnl_isContent(unsigned char *buf, int len, int suite)
 {
     switch(suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
-        return &ccnb_isContent;
+        return ccnb_isContent(buf, len);
 #endif
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        return &ccntlv_isData;
+        return ccntlv_isData(buf, len);
 #endif
 #ifdef USE_SUITE_CISTLV
     case CCNL_SUITE_CISTLV:
-        return &cistlv_isData;
+        return cistlv_isData(buf, len);
 #endif
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
-        return &iottlv_isReply;
+        return iottlv_isReply(buf, len);
 #endif
 #ifdef USE_SUITE_NDNTLV
     case CCNL_SUITE_NDNTLV:
-        return &ndntlv_isData;
+        return ndntlv_isData(buf, len);
 #endif
     }
 
     DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
                       suite, __func__, __LINE__);
-    return NULL;
+    return -1;
 }
 
-ccnl_isFragmentFunc
-ccnl_suite2isFragmentFunc(int suite)
+int
+ccnl_isFragment(unsigned char *buf, int len, int suite)
 {
     switch(suite) {
 #ifdef USE_SUITE_CCNTLV
     case CCNL_SUITE_CCNTLV:
-        return &ccntlv_isFragment;
+        return ccntlv_isFragment(buf, len);
 #endif
 #ifdef USE_SUITE_IOTTLV
     case CCNL_SUITE_IOTTLV:
-        return &iottlv_isFragment;
+        return iottlv_isFragment(buf, len);
 #endif
     }
 
     DEBUGMSG(DEBUG, "unknown suite %d in %s of %s:%d\n",
                     suite, __func__, __FILE__, __LINE__);
-    return NULL;
+    return -1;
 }
 
 #ifdef NEEDS_PACKET_CRAFTING

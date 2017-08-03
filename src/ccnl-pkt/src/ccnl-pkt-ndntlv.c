@@ -677,33 +677,6 @@ ccnl_ndntlv_mkFrag(struct ccnl_frag_s *fr, unsigned int *consumed)
 }
 #endif // USE_FRAG
 
-
-/*int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}*/
-
-int ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ;
-    int vallen;
-
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int*) &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
-
 #endif // NEEDS_PACKET_CRAFTING
 
 #endif // USE_NDNTLV

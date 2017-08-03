@@ -107,7 +107,6 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     struct ccnl_buf_s *buf =NULL;
-    ccnl_isContentFunc isContent;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
         switch (opt) {
@@ -170,11 +169,6 @@ usage:
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
-    isContent = ccnl_suite2isContentFunc(suite);
-    if (!isContent) {
-        exit(-1);
-    }
-
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
         su->sun_family = AF_UNIX;
@@ -223,7 +217,7 @@ usage:
             if (len > 0)
                 fprintf(stderr, "  suite=%d\n", ccnl_pkt2suite(out, len));
 */
-            rc = isContent(out, len);
+            rc = ccnl_isContent(out, len, suite);
             if (rc < 0)
                 goto done;
             if (rc == 0) { // it's an interest, ignore it

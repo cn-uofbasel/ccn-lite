@@ -59,7 +59,6 @@ main(int argc, char *argv[])
     float wait = 3.0;
     unsigned int chunknum = UINT_MAX;
     struct ccnl_buf_s *buf = NULL;
-    ccnl_isContentFunc isContent;
 #ifdef USE_FRAG
     ccnl_isFragmentFunc isFragment;
 #endif
@@ -123,14 +122,9 @@ usage:
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
-    isContent = ccnl_suite2isContentFunc(suite);
 #ifdef USE_FRAG
     isFragment = ccnl_suite2isFragmentFunc(suite);
 #endif
-
-    if (!isContent) {
-        exit(-1);
-    }
 
     if (ux) { // use UNIX socket
         struct sockaddr_un *su = (struct sockaddr_un*) &sa;
@@ -300,7 +294,7 @@ usage:
             close(fd);
         }
 */
-            rc = isContent(out, len);
+            rc = ccnl_isContent(out, len, suite);
             if (rc < 0) {
                 DEBUGMSG(ERROR, "error when checking type of packet\n");
                 goto done;
