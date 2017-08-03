@@ -26,7 +26,7 @@
 
 #include "ccnl-core.h"
 #include "ccnl-pkt-ccnb.h"
-#include "ccnl-pkt-simple.h"
+#include "ccnl-pkt-builder.h"
 #include "ccnl-dump.h"
 
 #include "ccnl-crypto.h"

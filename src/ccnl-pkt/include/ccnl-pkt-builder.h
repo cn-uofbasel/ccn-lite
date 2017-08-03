@@ -71,4 +71,13 @@ ccnl_suite2isContentFunc(int suite);
 ccnl_isFragmentFunc
 ccnl_suite2isFragmentFunc(int suite);
 
+#ifdef NEEDS_PACKET_CRAFTING
+struct ccnl_buf_s*
+ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
+                     unsigned char *payload, int paylen, int *payoffset);
+
+struct ccnl_buf_s*
+ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+#endif
+
 #endif //CCNL_PKT_BUILDER

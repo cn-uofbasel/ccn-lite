@@ -22,7 +22,7 @@
 #include "ccnl-pkt-ndn-compression.h"
 
 #include "ccnl-pkt-namecompression.h"
-#include "ccnl-pkt-simple.h"
+#include "ccnl-pkt-builder.h"
 #include "ccnl-pkt-ndntlv.h"
 
 #include <assert.h>

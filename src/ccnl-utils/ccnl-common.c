@@ -60,7 +60,7 @@
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
-#include "ccnl-pkt-simple.h"
+#include "ccnl-pkt-builder.h"
 //#include "ccnl-ext.h"
 #include "ccnl-malloc.h"
 #include "ccnl-os-time.h"

@@ -27,7 +27,7 @@
 #include "ccnl-nfn-common.h"
 #include "ccnl-nfn.h"
 #include "ccnl-fwd.h"
-#include "ccnl-pkt-simple.h"
+#include "ccnl-pkt-builder.h"
 
 #ifdef USE_NFN_REQUESTS
 
