@@ -21,17 +21,18 @@
  */
 
 #include "ccnl-common.c"
+#include "ccnl-pkt-simple.h"
 
 // ----------------------------------------------------------------------
 
 int
 main(int argc, char *argv[])
 {
-    unsigned char out[CCNL_MAX_PACKET_SIZE];
+
     char *minSuffix = 0, *maxSuffix = 0, *scope = 0;
     char *digest = 0, *publisher = 0;
     char *fname = 0;
-    int f, len=0, opt;
+    int f, opt;
     int dlen = 0, plen = 0;
     int packettype = CCNL_SUITE_NDNTLV;
     struct ccnl_prefix_s *prefix;
@@ -138,38 +139,10 @@ Usage:
         return -1;
     }
 
-    switch (packettype) {
-    case CCNL_SUITE_CCNB:
-        len = ccnl_ccnb_mkInterest(prefix, minSuffix, maxSuffix,
-                                   (unsigned char*) digest, dlen,
-                                   (unsigned char*) publisher, plen,
-                                   scope, &nonce, out);
-        break;
-    case CCNL_SUITE_CCNTLV:
-        len = ccntlv_mkInterest(prefix,
-                                (int*)&nonce,
-                                out, CCNL_MAX_PACKET_SIZE);
-	break;
-    case CCNL_SUITE_CISTLV:
-        len = cistlv_mkInterest(prefix,
-                                (int*)&nonce,
-                                out, CCNL_MAX_PACKET_SIZE);
-	break;
-    case CCNL_SUITE_IOTTLV:
-        len = iottlv_mkRequest(prefix, NULL, out, CCNL_MAX_PACKET_SIZE);
-        break;
-    case CCNL_SUITE_NDNTLV:
-        len = ndntlv_mkInterest(prefix,
-                                (int*)&nonce,
-                                out,
-                                CCNL_MAX_PACKET_SIZE);
-        break;
-    default:
-        DEBUGMSG(ERROR, "Not Implemented (yet)\n");
-        return -1;
-    }
+    prefix->suite = packettype;
+    struct ccnl_buf_s *buf = ccnl_mkSimpleInterest(prefix, (int*)&nonce);
 
-    if (len <= 0) {
+    if (buf->datalen <= 0) {
         DEBUGMSG(ERROR, "internal error: empty packet\n");
         return -1;
     }
@@ -183,7 +156,7 @@ Usage:
     } else
         f = 1;
 
-    write(f, out, len);
+    write(f, buf->data, buf->datalen);
     close(f);
 
     return 0;

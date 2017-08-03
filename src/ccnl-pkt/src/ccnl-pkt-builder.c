@@ -23,60 +23,6 @@
 
 #ifdef USE_SUITE_CCNB
 
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
-                     const char *maxSuffix, unsigned char *digest, int dlen,
-                     unsigned char *publisher, int plen, char *scope,
-                     uint32_t *nonce, unsigned char *out)
-{
-    int len, i, k;
-
-    len = ccnl_ccnb_mkHeader(out, CCN_DTAG_INTEREST, CCN_TT_DTAG);   // interest
-
-    len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_NAME, CCN_TT_DTAG);  // name
-    for (i = 0; i < name->compcnt; i++) {
-        len += ccnl_ccnb_mkHeader(out+len, CCN_DTAG_COMPONENT, CCN_TT_DTAG); // comp
-        k = name->complen[i];
-        len += ccnl_ccnb_mkHeader(out+len, k, CCN_TT_BLOB);
-        memcpy(out+len, name->comp[i], k);
-        len += k;
-        out[len++] = 0; // end-of-component
-    }
-    if (digest) {
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_COMPONENT,
-                                 CCN_TT_BLOB, digest, dlen);
-        if (!maxSuffix)
-            maxSuffix = "0";
-    }
-    out[len++] = 0; // end-of-name
-
-    if (minSuffix)
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MINSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) minSuffix,
-                                 strlen(minSuffix));
-    if (maxSuffix)
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_MAXSUFFCOMP,
-                                 CCN_TT_UDATA, (unsigned char*) maxSuffix,
-                                 strlen(maxSuffix));
-    if (publisher)
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_PUBPUBKDIGEST,
-                                 CCN_TT_BLOB, publisher, plen);
-    if (scope)
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_SCOPE,
-                                 CCN_TT_UDATA, (unsigned char*) scope,
-                                 strlen(scope));
-    if (nonce)
-        len += ccnl_ccnb_mkField(out + len, CCN_DTAG_NONCE,
-                                 CCN_TT_UDATA, (unsigned char*) nonce,
-                                 sizeof(*nonce));
-
-    out[len++] = 0; // end-of-interest
-
-    return len;
-}
-#endif
-
 int ccnb_isContent(unsigned char *buf, int len)
 {
     int num, typ;
@@ -92,23 +38,6 @@ int ccnb_isContent(unsigned char *buf, int len)
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_CCNTLV
-
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen)
-{
-    (void) dummy;
-     int len, offset;
-
-     offset = outlen;
-     len = ccnl_ccntlv_prependChunkInterestWithHdr(name, &offset, out);
-     if (len > 0)
-         memmove(out, out + offset, len);
-
-     return len;
-}
-#endif
 
 struct ccnx_tlvhdr_ccnx2015_s*
 ccntlv_isHeader(unsigned char *buf, int len)
@@ -151,23 +80,6 @@ int ccntlv_isFragment(unsigned char *buf, int len)
 
 #ifdef USE_SUITE_CISTLV
 
-#ifdef NEEDS_PACKET_CRAFTING
-int
-cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen)
-{
-    (void) dummy;
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_cistlv_prependChunkInterestWithHdr(name, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-#endif
-
 int cistlv_isData(unsigned char *buf, int len)
 {
     struct cisco_tlvhdr_201501_s *hp = (struct cisco_tlvhdr_201501_s*)buf;
@@ -208,25 +120,6 @@ int cistlv_isData(unsigned char *buf, int len)
 // ----------------------------------------------------------------------
 
 #ifdef USE_SUITE_IOTTLV
-
-#ifdef NEEDS_PACKET_CRAFTING
-int
-iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
-                 unsigned char *out, int outlen)
-{
-    (void) dummy;
-    int offset, hoplim = 16;
-
-    offset = outlen;
-    if (ccnl_iottlv_prependRequest(name, &hoplim, &offset, out) < 0
-              || ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offset, out) < 0)
-        return -1;
-    memmove(out, out + offset, outlen - offset);
-
-    return outlen - offset;
-}
-#endif // NEEDS_PACKET_CRAFTING
-
 // return 1 for Reply, 0 for Request, -1 if invalid
 int iottlv_isReply(unsigned char *buf, int len)
 {
@@ -256,76 +149,12 @@ int iottlv_isFragment(unsigned char *buf, int len)
     return ccnl_iottlv_peekType(buf, len) == IOT_TLV_Fragment;
 }
 
-
 #endif // USE_SUITE_IOTTLV
 
 // ----------------------------------------------------------------------
 
-#ifdef USE_SUITE_NDNTLV
-
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen)
-{
-    int len, offset;
-
-    offset = outlen;
-    len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offset, out);
-    if (len > 0)
-        memmove(out, out + offset, len);
-
-    return len;
-}
-#endif // NEEDS_PACKET_CRAFTING
-
-int ndntlv_isData(unsigned char *buf, int len)
-{
-    int typ;
-    int vallen;
-
-    if (len < 0 || ccnl_ndntlv_dehead(&buf, &len, (int*) &typ, &vallen))
-        return -1;
-    if (typ != NDN_TLV_Data)
-        return 0;
-    return 1;
-}
-#endif // USE_SUITE_NDNTLV
 
 // ----------------------------------------------------------------------
-
-#ifdef NEEDS_PACKET_CRAFTING
-ccnl_mkInterestFunc
-ccnl_suite2mkInterestFunc(int suite)
-{
-    switch(suite) {
-#ifdef USE_SUITE_CCNB
-    case CCNL_SUITE_CCNB:
-        return &ccnl_ccnb_fillInterest;
-#endif
-#ifdef USE_SUITE_CCNTLV
-    case CCNL_SUITE_CCNTLV:
-        return &ccntlv_mkInterest;
-#endif
-#ifdef USE_SUITE_CISTLV
-    case CCNL_SUITE_CISTLV:
-        return &cistlv_mkInterest;
-#endif
-#ifdef USE_SUITE_IOTTLV
-    case CCNL_SUITE_IOTTLV:
-        return &iottlv_mkRequest;
-#endif
-#ifdef USE_SUITE_NDNTLV
-    case CCNL_SUITE_NDNTLV:
-        return &ndntlv_mkInterest;
-#endif
-    }
-
-    DEBUGMSG(WARNING, "unknown suite %d in %s:%d\n",
-                      suite, __func__, __LINE__);
-    return NULL;
-}
-#endif // NEEDS_PACKET_CRAFTING
 
 ccnl_isContentFunc
 ccnl_suite2isContentFunc(int suite)

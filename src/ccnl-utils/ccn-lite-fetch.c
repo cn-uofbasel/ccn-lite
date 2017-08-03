@@ -45,22 +45,14 @@ ccnl_fetchContentForChunkName(struct ccnl_prefix_s *prefix,
     }
 #endif
 
-    ccnl_mkInterestFunc mkInterest = ccnl_suite2mkInterestFunc(suite);
-    if (!mkInterest) {
-        DEBUGMSG(ERROR, "unknown suite %d/not implemented\n", suite);
-        exit(-1);
+    int nonce = random();
+    struct ccnl_buf_s * buf = ccnl_mkSimpleInterest(prefix, &nonce);
+
+    if(buf->datalen <= 0){
+        fprintf(stderr, "Could not create interest message\n");
     }
 
-    int nonce = random();
-    *len = mkInterest(prefix, &nonce, out, out_len);
-/*
-        {
-            int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
-            write(fd, out, *len);
-            close(fd);
-        }
-*/
-    if (sendto(sock, out, *len, 0, &sa, sizeof(sa)) < 0) {
+    if (sendto(sock, buf->data, buf->datalen, 0, &sa, sizeof(sa)) < 0) {
         perror("sendto");
         myexit(1);
     }

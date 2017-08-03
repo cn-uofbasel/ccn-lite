@@ -58,7 +58,7 @@ main(int argc, char *argv[])
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
     unsigned int chunknum = UINT_MAX;
-    ccnl_mkInterestFunc mkInterest;
+    struct ccnl_buf_s *buf = NULL;
     ccnl_isContentFunc isContent;
 #ifdef USE_FRAG
     ccnl_isFragmentFunc isFragment;
@@ -123,13 +123,12 @@ usage:
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
-    mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
 #ifdef USE_FRAG
     isFragment = ccnl_suite2isFragmentFunc(suite);
 #endif
 
-    if (!mkInterest || !isContent) {
+    if (!isContent) {
         exit(-1);
     }
 
@@ -164,11 +163,9 @@ usage:
         prefix = ccnl_pkt_prefix_compress(prefix);
 #endif //USE_SUITE_COMPRESSED
 
-        len = mkInterest(prefix,
-                         &nonce,
-                         out, sizeof(out));
+        buf = ccnl_mkSimpleInterest(prefix, &nonce);
 
-        DEBUGMSG(DEBUG, "interest has %d bytes\n", len);
+        DEBUGMSG(DEBUG, "interest has %zd bytes\n", buf->datalen);
 /*
         {
             int fd = open("outgoing.bin", O_WRONLY|O_CREAT|O_TRUNC);
@@ -181,7 +178,7 @@ usage:
         } else {
             socksize = sizeof(struct sockaddr_in);
         }
-        rc = sendto(sock, out, len, 0, (struct sockaddr*)&sa, socksize);
+        rc = sendto(sock, buf->data, buf->datalen, 0, (struct sockaddr*)&sa, socksize);
         if (rc < 0) {
             perror("sendto");
             myexit(1);

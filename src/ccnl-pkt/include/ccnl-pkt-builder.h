@@ -31,23 +31,11 @@
 #include "ccnl-pkt-localrpc.h"
 
 #ifdef USE_SUITE_CCNB
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ccnl_ccnb_mkInterest(struct ccnl_prefix_s *name, char *minSuffix,
-                     const char *maxSuffix, unsigned char *digest, int dlen,
-                     unsigned char *publisher, int plen, char *scope,
-                     uint32_t *nonce, unsigned char *out);
-
 int ccnb_isContent(unsigned char *buf, int len);
-#endif
 #endif // USE_SUITE_CCNB
 
 #ifdef USE_SUITE_CCNTLV
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ccntlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen);
-#endif
+
 struct ccnx_tlvhdr_ccnx2015_s*
 ccntlv_isHeader(unsigned char *buf, int len);
 
@@ -57,35 +45,17 @@ int ccntlv_isFragment(unsigned char *buf, int len);
 #endif // USE_SUITE_CCNTLV
 
 #ifdef USE_SUITE_CISTLV
-#ifdef NEEDS_PACKET_CRAFTING
-int
-cistlv_mkInterest(struct ccnl_prefix_s *name, int *dummy,
-                  unsigned char *out, int outlen);
-#endif
 
 int cistlv_isData(unsigned char *buf, int len);
 #endif // USE_SUITE_CISTLV
 
 #ifdef USE_SUITE_IOTTLV
-#ifdef NEEDS_PACKET_CRAFTING
-int
-iottlv_mkRequest(struct ccnl_prefix_s *name, int *dummy,
-                 unsigned char *out, int outlen);
-#endif // NEEDS_PACKET_CRAFTING
-
 int iottlv_isReply(unsigned char *buf, int len);
 
 int iottlv_isFragment(unsigned char *buf, int len);
 #endif // USE_SUITE_IOTTLV
 
 #ifdef USE_SUITE_NDNTLV
-#ifdef NEEDS_PACKET_CRAFTING
-int
-ndntlv_mkInterest(struct ccnl_prefix_s *name, int *nonce,
-                  unsigned char *out, int outlen);
-
-#endif // NEEDS_PACKET_CRAFTING
-
 int ndntlv_isData(unsigned char *buf, int len);
 #endif // USE_SUITE_NDNTLV
 
@@ -94,11 +64,6 @@ typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, 
 #endif // NEEDS_PACKET_CRAFTING
 typedef int (*ccnl_isContentFunc)(unsigned char*, int);
 typedef int (*ccnl_isFragmentFunc)(unsigned char*, int);
-
-#ifdef NEEDS_PACKET_CRAFTING
-ccnl_mkInterestFunc 
-ccnl_suite2mkInterestFunc(int suite);
-#endif // NEEDS_PACKET_CRAFTING
 
 ccnl_isContentFunc
 ccnl_suite2isContentFunc(int suite);

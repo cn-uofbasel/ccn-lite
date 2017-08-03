@@ -106,7 +106,7 @@ main(int argc, char *argv[])
     struct sockaddr sa;
     struct ccnl_prefix_s *prefix;
     float wait = 3.0;
-    ccnl_mkInterestFunc mkInterest;
+    struct ccnl_buf_s *buf =NULL;
     ccnl_isContentFunc isContent;
 
     while ((opt = getopt(argc, argv, "hn:s:u:v:w:x:")) != -1) {
@@ -170,9 +170,8 @@ usage:
     }
     DEBUGMSG(TRACE, "using udp address %s/%d\n", addr, port);
 
-    mkInterest = ccnl_suite2mkInterestFunc(suite);
     isContent = ccnl_suite2isContentFunc(suite);
-    if (!mkInterest || !isContent) {
+    if (!isContent) {
         exit(-1);
     }
 
@@ -195,9 +194,8 @@ usage:
     for (;;) {
         int nonce = random();
 
-        len = mkInterest(prefix,
-                         &nonce,
-                         out, sizeof(out));
+        buf = ccnl_mkSimpleInterest(prefix,
+                         &nonce);
 
         DEBUGMSG(TRACE,
                  "sending interest(prefix=%s, suite=%s)\n",
@@ -209,7 +207,7 @@ usage:
         } else {
             socksize = sizeof(struct sockaddr_in);
         }
-        if (sendto(sock, out, len, 0,(struct sockaddr *) &sa, socksize) < 0) {
+        if (sendto(sock, buf->data, buf->datalen, 0,(struct sockaddr *) &sa, socksize) < 0) {
             perror("sendto");
             myexit(1);
         }
