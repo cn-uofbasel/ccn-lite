@@ -49,6 +49,16 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt);
 struct ccnl_pkt_s * 
 ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt);
 
+int
+ccnl_ndntlv_prependInterestCompressed(struct ccnl_prefix_s *name, int *nonce,
+                            int *offset, unsigned char *buf);
+
+int
+ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
+                           unsigned char *payload, int paylen,
+                           int *contentpos, unsigned int *final_block_id,
+                           int *offset, unsigned char *buf);
+
 
 #endif //USE_SUITE_NDNTLV
 #endif //USE_SUITE_COMPRESSED

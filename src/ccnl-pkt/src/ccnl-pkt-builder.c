@@ -259,7 +259,11 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
+#ifndef USE_SUITE_COMPRESSION
             len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
+#else //USE_SUITE_COMPRESSION
+            len = ccnl_ndntlv_prependInterestCompressed(name, -1, nonce, &offs, tmp);
+#endif //USE_SUITE_COMPRESSION
             break;
 #endif
         default:
