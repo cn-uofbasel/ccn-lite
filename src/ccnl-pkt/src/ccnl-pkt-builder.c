@@ -285,7 +285,6 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     return buf;
 }
 
-
 struct ccnl_buf_s*
 ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                      unsigned char *payload, int paylen, int *payoffset)
@@ -345,7 +344,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                                              &contentpos, NULL, &offs, tmp);
 #else //USE_SUITE_COMPRESSED
         prefix = ccnl_pkt_prefix_compress(name);
-        len = ccnl_ndntlv_prependContentCompressed(name, payload, paylen,
+        len = ccnl_ndntlv_prependContentCompressed(prefix, payload, paylen,
                                              &contentpos, NULL, &offs, tmp);
 #endif //USE_SUITE_COMPRESSED
             break;

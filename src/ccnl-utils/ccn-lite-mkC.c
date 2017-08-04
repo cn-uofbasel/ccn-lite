@@ -45,9 +45,15 @@ main(int argc, char *argv[])
     char *infname = 0, *outfname = 0;
     unsigned int chunknum = UINT_MAX, lastchunknum = UINT_MAX;
     int f, len, opt, plen, offs = 0;
+    int contentpos;
     struct ccnl_prefix_s *name;
     int suite = CCNL_SUITE_DEFAULT;
     struct key_s *keys = NULL;
+    struct ccnl_prefix_s *prefix;
+    struct ccnl_buf_s *buf;
+    (void)prefix;
+    (void)buf;
+
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
@@ -136,6 +142,7 @@ Usage:
     name = ccnl_URItoPrefix(argv[optind], suite, argv[optind+1],
                             chunknum == UINT_MAX ? NULL : &chunknum);
 
+#ifndef USE_SUITE_COMPRESSED
     switch (suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
@@ -201,6 +208,11 @@ Usage:
     default:
         break;
     }
+#else // USE_SUITE_COMPRESSED
+    buf = ccnl_mkSimpleContent(name, body, len, &contentpos);
+    memcpy(out, buf->data, buf->datalen);
+    len = buf->datalen;
+#endif // USE_SUITE_COMPRESSED
 
     if (outfname) {
         f = creat(outfname, 0666);
