@@ -577,6 +577,11 @@ int
 ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_len)
 {
     int ret = -1;
+    int len = 0;
+    /* we are not using these _for now_. Need to adjust ccnl_mkSimpleInterest
+       to work with static buffers first */
+    (void) buf;
+    (void) buf_len;
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
@@ -593,7 +598,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     int nonce = random_uint32();
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
-    struct ccnl_buf_s *interest = ccnl_mkSimpleInterest(prefix, &nonce, buf, buf_len);
+    struct ccnl_buf_s *interest = ccnl_mkSimpleInterest(prefix, &nonce);
 
     unsigned char *start = interest->data;
     unsigned char *data = interest->data;
