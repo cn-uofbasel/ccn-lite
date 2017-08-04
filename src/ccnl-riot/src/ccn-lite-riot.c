@@ -578,6 +578,13 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
 {
     int ret = -1;
     int len = 0;
+<<<<<<< HEAD
+=======
+    /* we are not using these _for now_. Need to adjust ccnl_mkSimpleInterest
+       to work with static buffers first */
+    (void) buf;
+    (void) buf_len;
+>>>>>>> 89ac7b16fd48441ca5675bd3be366f94b3265bee
 
     if (_ccnl_suite != CCNL_SUITE_NDNTLV) {
         DEBUGMSG(WARNING, "Suite not supported by RIOT!");
