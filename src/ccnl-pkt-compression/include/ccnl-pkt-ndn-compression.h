@@ -60,6 +60,9 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
                            int *offset, unsigned char *buf);
 
 
+struct ccnl_pkt_s*
+ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen);
+
 #endif //USE_SUITE_NDNTLV
 #endif //USE_SUITE_COMPRESSED
 

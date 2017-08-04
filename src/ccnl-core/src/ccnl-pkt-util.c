@@ -156,6 +156,7 @@ ccnl_isSuite(int suite)
 int
 ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 {
+#ifndef USE_SUITE_COMPRESSED
     int enc, suite = -1;
     unsigned char *olddata = data;
 
@@ -222,7 +223,14 @@ ccnl_pkt2suite(unsigned char *data, int len, int *skip)
 #endif
     }
 */
-
+#else //USE_SUITE_COMPRESSED
+#ifdef USE_SUITE_NDNTLV
+    (void) len;
+    (void) data;
+    (void) skip;
+    return CCNL_SUITE_NDNTLV;
+#endif //USE_SUITE_NDNTLV
+#endif  //USE_SUITE_COMPRESSED
     return -1;
 }
 

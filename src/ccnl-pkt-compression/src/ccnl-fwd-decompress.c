@@ -30,23 +30,18 @@ int
 ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
                       unsigned char **data, int *datalen)
 {
-    int rc = -1, len;
-    unsigned int typ;
-    unsigned char *start = *data;
+    int rc = -1;
     struct ccnl_pkt_s *pkt, *pkt_decompressed = NULL;
 
     DEBUGMSG_CFWD(DEBUG, "ccnl_ndntlv_forwarder_decompress (%d bytes left)\n", *datalen);
 
-    if (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) || (int) len > *datalen) {
-        DEBUGMSG_CFWD(TRACE, "  invalid packet format\n");
-        return -1;
-    }
-    pkt = ccnl_ndntlv_bytes2pkt(typ, start, data, datalen);
+    pkt = ccnl_ndntlvCompressed_bytes2pkt(data, datalen);
+
     if (!pkt) {
         DEBUGMSG_CFWD(INFO, "  ndntlv packet compressed coding problem\n");
         goto Done;
     }
-    pkt->type = typ;
+    int typ = pkt->type;
     pkt_decompressed = ccnl_pkt_ndn_decompress(pkt);    
     switch (typ) {
     case NDN_TLV_Interest:

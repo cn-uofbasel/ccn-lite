@@ -45,6 +45,7 @@
 
 #ifdef USE_SUITE_COMPRESSED
 #include "ccnl-fwd-decompress.h"
+#include "ccnl-pkt-ndn-compression.h"
 #endif
 
 
@@ -91,7 +92,6 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
                      ifndx, datalen, *data, data - base);
             return;
         }
-        //        dispatch = ccnl_core_RX_dispatch[suite];
         dispatch = ccnl_core_suites[suite].RX;
         if (!dispatch) {
             DEBUGMSG_CORE(ERROR, "Forwarder not initialized or dispatcher "
@@ -137,7 +137,6 @@ ccnl_core_init(void)
 
     #ifdef USE_SUITE_COMPRESSED
     ccnl_core_suites[CCNL_SUITE_NDNTLV].RX = ccnl_ndntlv_forwarder_decompress;
-    ccnl_core_suites[CCNL_SUITE_NDNTLV].RX_decompress = ccnl_ndntlv_forwarder_decompress;
     #endif
 #endif
 

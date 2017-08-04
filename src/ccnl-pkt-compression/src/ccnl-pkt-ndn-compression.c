@@ -221,5 +221,53 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
     return oldoffset - *offset;
 }
 
+struct ccnl_pkt_s*
+ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
+
+    char header =  *data[0];
+    char type = header & 0x80;
+    char minSuffixComponets = header & 0x40;
+    char maxSuffixComponets = header & 0x20;
+    char publisherPublicKey = header & 0x10;
+    char exclude = header & 0x08;
+    char childSelector = header & 0x04;
+    char mustBeFresh = header & 0x02;
+    char interestLifetime = header & 0x01;
+
+    (void)minSuffixComponets;
+    (void)maxSuffixComponets;
+    (void)publisherPublicKey;
+    (void)exclude;
+    (void)childSelector;
+    (void)mustBeFresh;
+    (void)interestLifetime;
+
+
+    struct ccnl_pkt_s *pkt = NULL;
+    unsigned char *start = *data;
+    (*data) += 2;
+    (*datalen) -= 2;
+
+    /*pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    if (!pkt){
+        return NULL;
+    }
+    pkt->suite = CCNL_SUITE_NDNTLV;
+    pkt->s.ndntlv.scope = 3;
+    pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+*/
+    if(type == 0){ //interest
+        //pkt->flags |= CCNL_PKT_REQUEST;
+        pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, data, datalen);
+        pkt->type = NDN_TLV_Interest;
+    }
+    else if(type == 1){ //content
+        pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Data, start, data, datalen);
+        pkt->type = NDN_TLV_Data;
+    }
+    return pkt; //error
+
+}
+
 #endif //USE_SUITE_NDNTLV
 #endif //USE_SUITE_COMPRESSED
