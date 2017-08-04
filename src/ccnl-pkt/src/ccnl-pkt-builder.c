@@ -21,6 +21,11 @@
 
 #include "ccnl-pkt-builder.h"
 
+#ifdef USE_SUITE_COMPRESSED
+#include "ccnl-pkt-ndn-compression.h"
+#include "ccnl-pkt-namecompression.h"
+#endif //USE_SUITE_COMPRESSED
+
 #ifdef USE_SUITE_CCNB
 
 int ccnb_isContent(unsigned char *buf, int len)
@@ -225,6 +230,8 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
     int len = 0, offs;
+    struct ccnl_prefix_s *prefix;
+    (void)prefix;
 
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
@@ -259,11 +266,12 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
-#ifndef USE_SUITE_COMPRESSION
+#ifndef USE_SUITE_COMPRESSED
             len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
-#else //USE_SUITE_COMPRESSION
-            len = ccnl_ndntlv_prependInterestCompressed(name, -1, nonce, &offs, tmp);
-#endif //USE_SUITE_COMPRESSION
+#else //USE_SUITE_COMPRESSED
+            prefix = ccnl_pkt_prefix_compress(name);
+            len = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, &offs, tmp);
+#endif //USE_SUITE_COMPRESSED
             break;
 #endif
         default:
@@ -285,6 +293,8 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
     int len = 0, contentpos = 0, offs;
+    struct ccnl_prefix_s *prefix;
+    (void)prefix;
 
     char *s = NULL;
     DEBUGMSG_CUTL(DEBUG, "mkSimpleContent (%s, %d bytes)\n",
@@ -330,8 +340,14 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
 #endif
 #ifdef USE_SUITE_NDNTLV
         case CCNL_SUITE_NDNTLV:
+#ifndef USE_SUITE_COMPRESSED
             len = ccnl_ndntlv_prependContent(name, payload, paylen,
                                              &contentpos, NULL, &offs, tmp);
+#else //USE_SUITE_COMPRESSED
+        prefix = ccnl_pkt_prefix_compress(name);
+        len = ccnl_ndntlv_prependContentCompressed(name, payload, paylen,
+                                             &contentpos, NULL, &offs, tmp);
+#endif //USE_SUITE_COMPRESSED
             break;
 #endif
         default:

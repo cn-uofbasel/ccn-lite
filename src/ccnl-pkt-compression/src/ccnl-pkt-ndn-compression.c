@@ -19,16 +19,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
  
-#include "ccnl-pkt-ndn-compression.h"
 
-#include "ccnl-pkt-namecompression.h"
+
 #include "ccnl-pkt-builder.h"
 #include "ccnl-pkt-ndntlv.h"
 
 #include <assert.h>
 
-//#ifdef USE_SUITE_COMPRESSED
+#ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
+
+#include "ccnl-pkt-ndn-compression.h"
+#include "ccnl-pkt-namecompression.h"
 
 struct ccnl_pkt_s *
 ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
@@ -220,4 +222,4 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
 }
 
 #endif //USE_SUITE_NDNTLV
-//#endif //USE_SUITE_COMPRESSED
+#endif //USE_SUITE_COMPRESSED
