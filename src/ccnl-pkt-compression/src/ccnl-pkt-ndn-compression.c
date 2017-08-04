@@ -97,8 +97,8 @@ ccnl_ndntlv_prependInterestCompressed(struct ccnl_prefix_s *name, int *nonce,
 
     int oldoffset = *offset;
     // header
-    char header = 0; // interest
-    char type = 0;
+    char header = 0;
+    char type = 0; // interest
     char minSuffixComponets = 0;
     char maxSuffixComponets = 0;
     char publisherPublicKey = 0;
@@ -141,8 +141,8 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
                                      int *offset, unsigned char *buf){
 
     // header
-    char header = 1; // content
-    char type = 0;
+    char header = 0;
+    char type = 1; // content
     char minSuffixComponets = 0;
     char maxSuffixComponets = 0;
     char publisherPublicKey = 0;
