@@ -101,6 +101,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
     pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt)
         return NULL;
+    pkt->type = pkttype;
 
 #ifdef USE_HMAC256
     pkt->hmacStart = start;
@@ -111,6 +112,7 @@ ccnl_ndntlv_bytes2pkt(unsigned int pkttype, unsigned char *start,
         break;
     case NDN_TLV_Data:
         pkt->flags |= CCNL_PKT_REPLY;
+
         break;
 #ifdef USE_FRAG
     case NDN_TLV_Fragment:
