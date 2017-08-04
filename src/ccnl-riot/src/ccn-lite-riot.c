@@ -197,11 +197,9 @@ static gnrc_netreg_entry_t _ccnl_ne;
  * @brief Some function pointers
  * @{
  */
-typedef int (*ccnl_mkInterestFunc)(struct ccnl_prefix_s*, int*, unsigned char*, int);
-typedef int (*ccnl_isContentFunc)(unsigned char*, int);
 
-extern ccnl_mkInterestFunc ccnl_suite2mkInterestFunc(int suite);
-extern ccnl_isContentFunc ccnl_suite2isContentFunc(int suite);
+extern struct ccnl_buf_s* ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+extern int ccnl_isContent(unsigned char *buf, int len, int suite);
 
 /**
  * @}
@@ -585,17 +583,6 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
         return ret;
     }
 
-    ccnl_mkInterestFunc mkInterest;
-    ccnl_isContentFunc isContent;
-
-    mkInterest = ccnl_suite2mkInterestFunc(_ccnl_suite);
-    isContent = ccnl_suite2isContentFunc(_ccnl_suite);
-
-    if (!mkInterest || !isContent) {
-        DEBUGMSG(WARNING, "No functions for this suite were found!");
-        return ret;
-    }
-
     DEBUGMSG(INFO, "interest for chunk number: %u\n", (prefix->chunknum == NULL) ? 0 : *prefix->chunknum);
 
     if (!prefix) {
@@ -606,11 +593,12 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     int nonce = random_uint32();
     DEBUGMSG(DEBUG, "nonce: %i\n", nonce);
 
-    int len = mkInterest(prefix, &nonce, buf, buf_len);
+    struct ccnl_buf_s *interest = ccnl_mkSimpleInterest(prefix, &nonce, buf, buf_len);
 
-    unsigned char *start = buf;
-    unsigned char *data = buf;
+    unsigned char *start = interest->data;
+    unsigned char *data = interest->data;
     struct ccnl_pkt_s *pkt;
+    len = interest->datalen;
 
     int typ;
     int int_len;
