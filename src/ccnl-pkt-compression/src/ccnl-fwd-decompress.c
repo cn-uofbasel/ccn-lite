@@ -64,7 +64,8 @@ ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s 
     }
     rc = 0;
 Done:
-    ccnl_pkt_free(pkt);
+    //ccnl_pkt_free(pkt);
+    //pkt = 0;
     return rc;
 }
 #endif  //USE_SUITE_NDNTLV
