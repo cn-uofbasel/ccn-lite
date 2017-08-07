@@ -145,7 +145,9 @@ Usage:
             exit(1);
         }
     }
-
+    if(!keyfile){
+        DEBUGMSG(FATAL, "Keyfile must be specified");
+    }
     keys = load_keys_from_file(keyfile);
 
     if (!keys) {
