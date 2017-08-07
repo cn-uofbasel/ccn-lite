@@ -1230,21 +1230,21 @@ ndn_type2name(unsigned type)
 
 static int
 ndn_parse_sequence(int lev, unsigned char *base, unsigned char **buf,
-               int *len, char *cur_tag, int rawxml, FILE* out)
+                   unsigned int *len, char *cur_tag, int rawxml, FILE* out)
 {
-    int i, maxi, vallen;
-    int typ;
+    int i, maxi;
+    unsigned int typ, vallen;
     unsigned char *cp;
     char *n, tmp[100];
     (void)cur_tag;
 
     while (*len > 0) {
         cp = *buf;
-        if (ccnl_ndntlv_dehead(buf, (int*) len, &typ, &vallen) < 0)
+        if (ccnl_ndntlv_dehead(buf, (int*) len, (int*)&typ, (int*)&vallen) < 0)
             return -1;
         if (vallen > *len) {
             fprintf(stderr, "\n%04zx ** NDN_TLV length problem for %s:\n"
-                "  type=%hu, len=%hu larger than %d available bytes\n",
+                "  type=%hu, len=%hu larger than %u available bytes\n",
                 cp - base, base, (unsigned short)typ, (unsigned short)vallen, *len);
             exit(-1);
         }
@@ -1332,7 +1332,7 @@ ndntlv_201311(unsigned char *data, int len, int rawxml, FILE* out)
     unsigned char *buf = data;
 
     // dump the sequence of TLV fields, should start with a name TLV
-    ndn_parse_sequence(0, data, &buf, &len, "payload", rawxml, out);
+    ndn_parse_sequence(0, data, &buf, (unsigned int*)&len, "payload", rawxml, out);
     if (!rawxml) {
         fprintf(out, "%04zx  pkt.end\n", buf - data);
     }
