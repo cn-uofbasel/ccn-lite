@@ -72,7 +72,7 @@ ccnl_addr2ascii(sockunion *su)
 #ifdef USE_LINKLAYER
     case AF_PACKET: {
         struct sockaddr_ll *ll = &su->linklayer;
-        strcpy(result, ll2ascii(ll->sll_addr, ll->sll_halen));
+        strcpy(result, ll2ascii(ll->sll_addr, ll->sll_halen & 0x0f));
         sprintf(result+strlen(result), "/0x%04x",
             ntohs(ll->sll_protocol));
         return result;

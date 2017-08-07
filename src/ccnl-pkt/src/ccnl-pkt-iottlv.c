@@ -112,8 +112,10 @@ ccnl_iottlv_parseHierarchicalName(unsigned char *data, int datalen)
     p->comp = (unsigned char**) ccnl_malloc(CCNL_MAX_NAME_COMP *
                                            sizeof(unsigned char**));
     p->complen = (int*) ccnl_malloc(CCNL_MAX_NAME_COMP * sizeof(int));
-    if (!p->comp || !p->complen)
+    if (!p->comp || !p->complen){
+        ccnl_prefix_free(p);
         return NULL;
+    }
 
     p->nameptr = data;
     p->namelen = len;
