@@ -253,6 +253,7 @@ print_blob(unsigned char **buf, int *len, int typ, int num, int offset, bool ign
 
     if (!ignoreBlobTag) print_tag(offset, typ, num, true, false, depth+1);
     ccnl_ccnb_consume(typ, num, buf, len, &valptr, &vallen);
+    if (vallen > *len) { return; }
     print_value(offset, valptr, vallen, depth+1);
     if (!ignoreBlobTag) print_tag(offset, typ, num, false, false, depth+1);
 }
