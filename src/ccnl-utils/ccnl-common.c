@@ -197,7 +197,7 @@ load_keys_from_file(char *path)
             line[--read] = '\0';
         key = base64_decode(line, read, &keylen);
         if (key && keylen > 0) {
-            struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s*));
+            struct key_s *k = (struct key_s *) calloc(1, sizeof(struct key_s));
             k->keylen = keylen;
             k->key = key;
             if (kend)
