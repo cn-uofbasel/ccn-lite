@@ -1098,7 +1098,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
                       unsigned char **buf, int *len, char *cur_tag,
                       int rawxml, FILE* out)
 {
-    int i, vallen;
+    unsigned int i, vallen;
     unsigned int typ;
     unsigned char ctx2, *cp;
     char *n, n_old[100], tmp[100];
@@ -1106,11 +1106,11 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
     while (*len > 0) {
         cp = *buf;
-        if (ccnl_iottlv_dehead(buf, len, &typ, &vallen) < 0) {
+        if (ccnl_iottlv_dehead(buf, len, &typ, (int*)&vallen) < 0) {
             return -1;
         }
 
-        if (vallen > *len) {
+        if (vallen > (unsigned int)*len) {
             fprintf(stderr, "\n%04zx ** IOTTLV length problem:\n"
               "  type=0x%04hx, len=0x%04hx larger than %d available bytes\n",
               *buf - base, (unsigned short)typ, (unsigned short)vallen, *len);
@@ -1125,7 +1125,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
 
         if(!rawxml)
             fprintf(out, "%04zx  ", cp - base);
-        for (i = 0; i < lev; i++) {
+        for (i = 0; i < (unsigned int)lev; i++) {
             fprintf(out, "  ");
         }
         for (; cp < *buf; cp++) {
@@ -1142,12 +1142,12 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             *len -= vallen;
             i = vallen;
             strcpy(n_old, n);
-            if (iottlv_parse_sequence(lev+1, ctx2, base, buf, &i,
+            if (iottlv_parse_sequence(lev+1, ctx2, base, buf, (int*)&i,
                                                         n, rawxml, out) < 0)
                 return -1;
 
             if(rawxml) {
-                for (i = 0; i < lev; i++) {
+                for (i = 0; i < (unsigned int)lev; i++) {
                         fprintf(out, "  ");
                 }
                 fprintf(out, "</%s>\n", n_old);
@@ -1156,7 +1156,7 @@ iottlv_parse_sequence(int lev, unsigned char ctx, unsigned char *base,
             if (rawxml && vallen > 0) {
                 fprintf(out, "<%s size=\"%i\" dt=\"binary.base64\">\n", n, vallen);
                 base64dump(lev, base, *buf, vallen, rawxml, out);
-                for (i = 0; i < lev; i++) {
+                for (i = 0; i < (unsigned int)lev; i++) {
                         fprintf(out, "  ");
                 }
                 fprintf(out, "</%s>\n", n);
@@ -1359,7 +1359,7 @@ int
 localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
                int rawxml, FILE* out)
 {
-    int typ, vallen, i;
+    unsigned int typ, vallen, i;
     unsigned char *cp;
     char *n, tmp[100], dorecurse;
 
@@ -1377,9 +1377,9 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
     } else
     */
         {
-            if (ccnl_lrpc_dehead(buf, len, &typ, &vallen) < 0)
+            if (ccnl_lrpc_dehead(buf, len, (int*)&typ, (int*)&vallen) < 0)
                 return -1;
-            if (vallen > *len) {
+            if (vallen > (unsigned int)*len) {
                 fprintf(stderr, "\n%04zx ** LRPC length problem:\n"
                         "  type=%hu, len=%hu larger than %d available bytes\n",
                         cp - base, (unsigned short)typ, (unsigned short)vallen,
@@ -1415,7 +1415,7 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
         }
 
         printf("%04zx  ", cp - base);
-        for (i = 0; i < lev; i++)
+        for (i = 0; i < (unsigned int)lev; i++)
             printf("  ");
         for (; cp < *buf; cp++)
             printf("%02x ", *cp);
@@ -1423,18 +1423,18 @@ localrpc_parse(int lev, unsigned char *base, unsigned char **buf, int *len,
 
         if (dorecurse) {
             *len -= vallen;
-            localrpc_parse(lev+1, base, buf, &vallen, rawxml, out);
+            localrpc_parse(lev+1, base, buf, (int*)&vallen, rawxml, out);
             continue;
         }
 
         if (typ == LRPC_NONNEGINT) {
             printf("%04zx  ", *buf - base);
-            for (i = 0; i <= lev; i++)
+            for (i = 0; i <= (unsigned int)lev; i++)
                 printf("  ");
             printf("%ld\n", ccnl_ndntlv_nonNegInt(*buf, vallen));
         } else if (typ == LRPC_FLATNAME) {
             printf("%04zx  ", *buf - base);
-            for (i = 0; i <= lev; i++)
+            for (i = 0; i <= (unsigned int)lev; i++)
                 printf("  ");
             strcpy(tmp, "\"");
             i = sizeof(tmp) - 6;
