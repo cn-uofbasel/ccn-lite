@@ -23,7 +23,6 @@
 #include "ccnl-pkt-namecompression.h"
 
 #include <string.h>
-
 #ifdef USE_SUITE_COMPRESSED
 static inline int 
 ccnl_pkt_compression_min(int a, int b){
@@ -117,7 +116,8 @@ ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen,
         written_bits += offset >= 0 ? ccnl_pkt_compression_min(8-offset, charlen) : remaining_bits;
         remaining_bits = charlen - ccnl_pkt_compression_min(8-offset, charlen);
     }
-    return written_bits%8 == 0 ? written_bits/8 : written_bits/8+1;
+
+    return out_pos+1;//written_bits%8 == 0 ? written_bits/8+1 : written_bits/8+2;
 }
 
 int
@@ -127,7 +127,7 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
     int offset = 0;
     int index = 0;
     memset(out, 0, outlen);
-    for (int i = 0; i < inlen; i++) {
+    for (int i = 0; i < inlen && i < outlen; i++) {
         int bitpos = i * charlen;
         index = bitpos / 8;
         offset = bitpos - index * 8;
@@ -156,7 +156,7 @@ ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     //create compressed prefix
     struct ccnl_prefix_s *ret = ccnl_prefix_new(pfx->suite, 1);
     ret->comp[0] = compressed_name;
-    ret->complen[0] = compressed_len+1;
+    ret->complen[0] = compressed_len;
     return ret;
 }
 
@@ -167,7 +167,7 @@ ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
     int out_len = name_len * 8/6;
     unsigned char *decompressed_name = ccnl_malloc(out_len);
     memset(decompressed_name, 0, out_len);
-    out_len = ccnl_pkt_compression_bytes2str(name, name_len, 6, 
+    out_len = ccnl_pkt_compression_bytes2str(name, out_len, 6,
                               decompressed_name, out_len);
     decompressed_name = ccnl_realloc(decompressed_name, out_len);
     DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", out_len ,(char*)decompressed_name);

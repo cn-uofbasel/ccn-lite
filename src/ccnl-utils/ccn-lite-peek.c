@@ -153,10 +153,6 @@ usage:
 
         memset(&dummyFace, 0, sizeof(dummyFace));
 
-#ifdef USE_SUITE_COMPRESSED
-        prefix = ccnl_pkt_prefix_compress(prefix);
-#endif //USE_SUITE_COMPRESSED
-
         buf = ccnl_mkSimpleInterest(prefix, &nonce);
 
         DEBUGMSG(DEBUG, "interest has %zd bytes\n", buf->datalen);

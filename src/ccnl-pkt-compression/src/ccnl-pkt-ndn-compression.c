@@ -20,12 +20,10 @@
  */
  
 
-
 #include "ccnl-pkt-builder.h"
 #include "ccnl-pkt-ndntlv.h"
-
 #include <assert.h>
-
+//#define USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
 
@@ -74,19 +72,10 @@ ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
     //TODO: parse nonce?
     struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_decompress(compressed_pkt->pfx);
     prefix->suite = CCNL_SUITE_NDNTLV;
-    struct ccnl_buf_s *buf = NULL; //TODO Really required to rewrite the buffer every time(s.o.)
-    if(compressed_pkt->type == NDN_TLV_Interest){
-        buf = ccnl_mkSimpleInterest(prefix, 0);
-    }
-    else if(compressed_pkt->type == NDN_TLV_Data){
-        buf = ccnl_mkSimpleContent(prefix, compressed_pkt->content, compressed_pkt->contlen, 0);
-    }
-    assert(buf != NULL);
+
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(compressed_pkt);
-    ccnl_free(pkt->buf);
     ccnl_prefix_free(pkt->pfx);
-    pkt->buf = buf;
     pkt->pfx = prefix;
     pkt->type = CCNL_SUITE_NDNTLV;
     pkt->pfx->suite = CCNL_SUITE_NDNTLV;
@@ -126,7 +115,8 @@ ccnl_ndntlv_prependInterestCompressed(struct ccnl_prefix_s *name, int *nonce,
                                          offset, buf) < 0){
         return -1;
     }
-    if (ccnl_ndntlv_prependName(name, offset, buf)){
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Name, name->comp[0],
+                                name->complen[0], offset, buf) < 0){
         return -1;
     }
     if (ccnl_ndntlv_prependTL(header, oldoffset - *offset,
@@ -207,8 +197,10 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
         return -1;
 
     // mandatory
-    if (ccnl_ndntlv_prependName(name, offset, buf))
+    if (ccnl_ndntlv_prependBlob(NDN_TLV_Name, name->comp[0],
+                                name->complen[0], offset, buf) < 0){
         return -1;
+    }
 
     // mandatory
     if (ccnl_ndntlv_prependTL(header, oldoffset - *offset,
@@ -245,28 +237,107 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
 
     struct ccnl_pkt_s *pkt = NULL;
     unsigned char *start = *data;
+    (void) start;
     (*data) += 2;
     (*datalen) -= 2;
 
-    /*pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    int oldpos, len, i;
+    (void)oldpos;
+    (void)i;
+    unsigned int typ;
+    struct ccnl_prefix_s *p = 0;
+
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
     if (!pkt){
         return NULL;
     }
     pkt->suite = CCNL_SUITE_NDNTLV;
-    pkt->s.ndntlv.scope = 3;
-    pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
-*/
     if(type == 0){ //interest
-        //pkt->flags |= CCNL_PKT_REQUEST;
-        pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Interest, start, data, datalen);
+        pkt->flags |= CCNL_PKT_REQUEST; // TODO build own func here
         pkt->type = NDN_TLV_Interest;
     }
     else if(type == 1){ //content
-        pkt = ccnl_ndntlv_bytes2pkt(NDN_TLV_Data, start, data, datalen);
         pkt->type = NDN_TLV_Data;
     }
-    return pkt; //error
 
+    pkt->s.ndntlv.scope = 3;
+    pkt->s.ndntlv.maxsuffix = CCNL_MAX_NAME_COMP;
+
+    while (ccnl_ndntlv_dehead(data, datalen, (int*) &typ, &len) == 0) {
+        unsigned char *cp = *data;
+        int len2 = len;
+        if(typ == NDN_TLV_Name){
+            p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, 1);
+            p->compcnt = 1;
+            p->comp[0] = *data;
+            p->complen = ccnl_malloc(sizeof(int));
+            p->complen[0] = len;
+
+            pkt->pfx = p;
+        }
+        if(typ == NDN_TLV_Nonce){
+            pkt->s.ndntlv.nonce = ccnl_buf_new(*data, len);
+        }
+        if(interestLifetime && typ == NDN_TLV_InterestLifetime){
+            //TODO
+        }
+#ifdef USE_HMAC256
+        if(typ == NDN_TLV_SignatureType){
+            //TODO
+        }
+        if(typ == NDN_TLV_SignatureInfo) {
+            //TODO
+        }
+#endif
+        if(typ == NDN_TLV_Content || typ == NDN_TLV_NdnlpFragment){
+            pkt->content = *data;
+            pkt->contlen = len;
+        }
+        if(typ == NDN_TLV_Selectors) {
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int *) &typ, &i)) {
+                    goto Bail;
+                }
+                if (minSuffixComponets || typ == NDN_TLV_MinSuffixComponents) {
+                    pkt->s.ndntlv.minsuffix = ccnl_ndntlv_nonNegInt(cp, i);
+                }
+                if (maxSuffixComponets || typ == NDN_TLV_MaxSuffixComponents) {
+                    pkt->s.ndntlv.maxsuffix = ccnl_ndntlv_nonNegInt(cp, i);
+                }
+                cp += i;
+                len2 -= i;
+            }
+        }
+        if(typ == NDN_TLV_Selectors) {
+            while (len2 > 0) {
+                if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i)){
+                    goto Bail;
+                }
+                if (typ == NDN_TLV_ContentType) {
+                    // Not used
+                    // = ccnl_ndntlv_nonNegInt(cp, i);
+                    DEBUGMSG(WARNING, "'ContentType' field ignored\n");
+                }
+                if (typ == NDN_TLV_FinalBlockId) {
+                    if (ccnl_ndntlv_dehead(&cp, &len2, (int*) &typ, &i))
+                        goto Bail;
+                    if (typ == NDN_TLV_NameComponent) {
+                        // TODO: again, includedNonNeg not yet implemented
+                        pkt->val.final_block_id = ccnl_ndntlv_nonNegInt(cp + 1, i - 1);
+                    }
+                }
+                cp += i;
+                len2 -= i;
+            }
+        }
+
+        *data += len;
+        *datalen -= len;
+    }
+    return pkt; //error
+Bail:
+    ccnl_pkt_free(pkt);
+    return NULL;
 }
 
 #endif //USE_SUITE_NDNTLV
