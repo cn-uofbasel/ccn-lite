@@ -23,7 +23,6 @@
 #include "ccnl-pkt-builder.h"
 #include "ccnl-pkt-ndntlv.h"
 #include <assert.h>
-//#define USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_COMPRESSED
 #ifdef USE_SUITE_NDNTLV
 
@@ -35,11 +34,18 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
 {
     
     struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(ndn_pkt->pfx);
+    if(!prefix){
+        return NULL;
+    }
     prefix->suite = CCNL_SUITE_NDNTLV;
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
     int len = 0, offs, contentpos;
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
+    if(!tmp){
+        ccnl_free(prefix);
+        return NULL;
+    }
     offs = CCNL_MAX_PACKET_SIZE;
 
     if(ndn_pkt->type == NDN_TLV_Interest){
@@ -58,7 +64,14 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     assert(buf != NULL);
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(ndn_pkt);
-    ccnl_free(pkt->buf);
+    //ccnl_pkt_free(ndn_pkt);
+    if(!pkt){
+        ccnl_prefix_free(prefix);
+        return NULL;
+    }
+    if(pkt->buf){
+        ccnl_free(pkt->buf);
+    }
     ccnl_prefix_free(pkt->pfx);
     pkt->buf = buf;
     pkt->pfx = prefix;
@@ -247,7 +260,7 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
     unsigned int typ;
     struct ccnl_prefix_s *p = 0;
 
-    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(*pkt));
+    pkt = (struct ccnl_pkt_s*) ccnl_calloc(1, sizeof(struct ccnl_pkt_s));
     if (!pkt){
         return NULL;
     }
@@ -270,7 +283,7 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
             p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, 1);
             p->compcnt = 1;
             p->comp[0] = *data;
-            p->complen = ccnl_malloc(sizeof(int));
+            //p->complen = ccnl_malloc(sizeof(int));
             p->complen[0] = len;
 
             pkt->pfx = p;

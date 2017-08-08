@@ -81,7 +81,11 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
         return NULL;
     }
     struct ccnl_pkt_s * ret = ccnl_malloc(sizeof(struct ccnl_pkt_s));
+    if(!ret){
+        return NULL;
+    }
     if (pkt->pfx) {
+        ret->s = pkt->s;
         switch (pkt->pfx->suite) {
 #ifdef USE_SUITE_CCNB
         case CCNL_SUITE_CCNB:
@@ -113,9 +117,12 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
             break;
         }
         ret->pfx = ccnl_prefix_dup(pkt->pfx);
+        if(!ret->pfx){
+            ccnl_pkt_free(ret);
+            return NULL;
+        }
         ret->pfx->suite = pkt->pfx->suite;
         ret->suite = pkt->suite;
-        ret->s = pkt->s;
         ret->buf = buf_dup(pkt->buf);
         
     }

@@ -271,6 +271,8 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 #else //USE_SUITE_COMPRESSED
             prefix = ccnl_pkt_prefix_compress(name);
             len = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, &offs, tmp);
+            ccnl_free(prefix->comp[0]); //only required in this special case
+            ccnl_prefix_free(prefix);
 #endif //USE_SUITE_COMPRESSED
             break;
 #endif

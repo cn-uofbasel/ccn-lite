@@ -51,8 +51,9 @@ ccnl_prefix_new(int suite, int cnt)
     struct ccnl_prefix_s *p;
 
     p = (struct ccnl_prefix_s *) ccnl_calloc(1, sizeof(struct ccnl_prefix_s));
-    if (!p)
+    if (!p){
         return NULL;
+    }
     p->comp = (unsigned char**) ccnl_malloc(cnt * sizeof(unsigned char*));
     p->complen = (int*) ccnl_malloc(cnt * sizeof(int));
     if (!p->comp || !p->complen) {
@@ -83,8 +84,9 @@ ccnl_prefix_dup(struct ccnl_prefix_s *prefix)
     struct ccnl_prefix_s *p;
 
     p = ccnl_prefix_new(prefix->suite, prefix->compcnt);
-    if (!p)
-        return p;
+    if (!p){
+        return NULL;
+    }
 
     p->compcnt = prefix->compcnt;
     p->chunknum = prefix->chunknum;
