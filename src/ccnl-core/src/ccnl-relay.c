@@ -271,6 +271,7 @@ ccnl_send_pkt(struct ccnl_relay_s *ccnl, struct ccnl_face_s *to,
      struct ccnl_pkt_s *pkt_compressed = ccnl_pkt_ndn_compress(pkt);
      if(!pkt_compressed) return 0;
      return ccnl_face_enqueue(ccnl, to, pkt_compressed->buf);
+     ccnl_pkt_free(pkt_compressed);
 #endif //USE_SUITE_NDNTLV
 #else
     return ccnl_face_enqueue(ccnl, to, pkt->buf);
