@@ -170,8 +170,8 @@ ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
     unsigned char* name = pfx->comp[0];
     int name_len = pfx->complen[0];
     int out_len = name_len * 8/6;
-    unsigned char *decompressed_name = ccnl_malloc(out_len);
-    memset(decompressed_name, 0, out_len);
+    unsigned char *decompressed_name = ccnl_malloc(out_len+1);
+    memset(decompressed_name, 0, out_len+1);
     out_len = ccnl_pkt_compression_bytes2str(name, out_len, 6,
                               decompressed_name, out_len);
     DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", out_len ,(char*)decompressed_name);
