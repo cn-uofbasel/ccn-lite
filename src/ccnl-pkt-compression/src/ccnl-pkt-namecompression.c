@@ -152,17 +152,16 @@ ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     int name_len = (int)strlen((char* )name);
     unsigned char *compressed_name = ccnl_malloc(name_len); //must be manually freed(!) since normally prefix->comp points to bin!
     int compressed_len = ccnl_pkt_compression_str2bytes((unsigned char*)name, 6, compressed_name, name_len);
+    ccnl_free(name);
     compressed_name = ccnl_realloc(compressed_name, compressed_len+1);
     //create compressed prefix
     struct ccnl_prefix_s *ret = ccnl_prefix_new(pfx->suite, 1);
     if(!ret){
         ccnl_free(compressed_name);
-        ccnl_free(name);
         return NULL;
     }
     ret->comp[0] = compressed_name;
     ret->complen[0] = compressed_len;
-    ccnl_free(name);
     return ret;
 }
 
