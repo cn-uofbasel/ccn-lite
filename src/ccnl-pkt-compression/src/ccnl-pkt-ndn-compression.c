@@ -43,7 +43,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     int len = 0, offs, contentpos;
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     if(!tmp){
-        ccnl_free(prefix);
+        ccnl_prefix_free(prefix);
         return NULL;
     }
     offs = CCNL_MAX_PACKET_SIZE;
@@ -64,7 +64,6 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     assert(buf != NULL);
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(ndn_pkt);
-    //ccnl_pkt_free(ndn_pkt);
     if(!pkt){
         ccnl_prefix_free(prefix);
         return NULL;
