@@ -162,7 +162,7 @@ ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     }
     ret->comp[0] = compressed_name;
     ret->complen[0] = compressed_len;
-    ret->bytes = compressed_name;
+    //ret->bytes = compressed_name;
     return ret;
 }
 
