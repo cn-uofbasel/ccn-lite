@@ -162,6 +162,7 @@ ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     }
     ret->comp[0] = compressed_name;
     ret->complen[0] = compressed_len;
+    ret->bytes = compressed_name;
     return ret;
 }
 
@@ -176,7 +177,7 @@ ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
                               decompressed_name, out_len);
     DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", out_len ,(char*)decompressed_name);
     struct ccnl_prefix_s *ret = ccnl_URItoPrefix((char *)decompressed_name, pfx->suite, NULL, NULL);
-    ccnl_free(decompressed_name);
+    ret->bytes = decompressed_name;
     return ret;
 }
 

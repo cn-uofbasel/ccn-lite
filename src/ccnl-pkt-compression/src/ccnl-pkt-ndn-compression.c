@@ -89,7 +89,7 @@ ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(compressed_pkt);
     ccnl_prefix_free(pkt->pfx);
     pkt->pfx = prefix;
-    pkt->type = CCNL_SUITE_NDNTLV;
+    pkt->type = compressed_pkt->type;
     pkt->pfx->suite = CCNL_SUITE_NDNTLV;
     return pkt;
 }
