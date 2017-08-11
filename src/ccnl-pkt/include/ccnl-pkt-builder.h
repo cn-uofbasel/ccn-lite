@@ -70,6 +70,10 @@ struct ccnl_buf_s*
 ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                      unsigned char *payload, int paylen, int *payoffset);
 
+void
+ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, unsigned char *tmp,
+               int *len, int *contentpos, int *offs);
+
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
 #endif

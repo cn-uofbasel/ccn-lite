@@ -305,55 +305,7 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
-    switch (name->suite) {
-#ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB:
-            len = ccnl_ccnb_fillContent(name, payload, paylen, &contentpos, tmp);
-            offs = 0;
-            break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV: {
-            unsigned int lcn = 0; // lastchunknum
-            len = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
-                                                    &contentpos, &offs, tmp);
-            break;
-        }
-#endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV:
-            len = ccnl_cistlv_prependContentWithHdr(name, payload, paylen,
-                                                    NULL, // lastchunknum
-                                                    &offs, &contentpos, tmp);
-            break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            int rc = ccnl_iottlv_prependReply(name, payload, paylen,
-                                              &offs, &contentpos, NULL, tmp);
-            if (rc <= 0)
-                break;
-            len = rc;
-            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
-            len = (rc <= 0) ? 0 : len + rc;
-            break;
-        }
-#endif
-#ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV:
-#ifndef USE_SUITE_COMPRESSED
-            len = ccnl_ndntlv_prependContent(name, payload, paylen,
-                                             &contentpos, NULL, &offs, tmp);
-#else //USE_SUITE_COMPRESSED
-        prefix = ccnl_pkt_prefix_compress(name);
-        len = ccnl_ndntlv_prependContentCompressed(prefix, payload, paylen,
-                                             &contentpos, NULL, &offs, tmp);
-#endif //USE_SUITE_COMPRESSED
-            break;
-#endif
-        default:
-            break;
-    }
+    ccnl_mkContent(name, payload, paylen, tmp, &len, &contentpos, &offs);
 
     if (len) {
         buf = ccnl_buf_new(tmp + offs, len);
@@ -363,6 +315,62 @@ ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
     ccnl_free(tmp);
 
     return buf;
+}
+
+void
+ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, unsigned char *tmp,
+int *len, int *contentpos, int *offs) {
+    switch (name->suite) {
+#ifdef USE_SUITE_CCNB
+        case CCNL_SUITE_CCNB:
+            (*len) = ccnl_ccnb_fillContent(name, payload, paylen, contentpos, tmp);
+            (*offs) = 0;
+            break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV: {
+            unsigned int lcn = 0; // lastchunknum
+            (*len) = ccnl_ccntlv_prependContentWithHdr(name, payload, paylen, &lcn,
+                                                       contentpos, offs, tmp);
+            break;
+        }
+#endif
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV:
+            (*len) = ccnl_cistlv_prependContentWithHdr(name, payload, paylen,
+                                                       NULL, // lastchunknum
+                                                       offs, contentpos, tmp);
+            break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV: {
+            int rc = ccnl_iottlv_prependReply(name, payload, paylen,
+                                              offs, contentpos, NULL, tmp);
+            if (rc <= 0)
+             break;
+            (*len) = rc;
+            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, offs, tmp);
+            (*len) = (rc <= 0) ? 0 : (*len) + rc;
+            break;
+        }
+#endif
+#ifdef USE_SUITE_NDNTLV
+case CCNL_SUITE_NDNTLV:
+#ifndef USE_SUITE_COMPRESSED
+        (*len) = ccnl_ndntlv_prependContent(name, payload, paylen,
+                                            contentpos, NULL, offs, tmp);
+#else //USE_SUITE_COMPRESSED
+        {
+        struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
+        (*len) = ccnl_ndntlv_prependContentCompressed(prefix, payload, paylen,
+                                      contentpos, NULL, offs, tmp);
+        }
+#endif //USE_SUITE_COMPRESSED
+        break;
+#endif
+        default:
+        break;
+    }
 }
 
 #endif // NEEDS_PACKET_CRAFTING
