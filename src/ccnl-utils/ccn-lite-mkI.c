@@ -102,6 +102,7 @@ main(int argc, char *argv[])
             packettype = ccnl_str2suite(optarg);
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
                 break;
+        /* falls through */
         case 'h':
         /* falls through */
         default:
