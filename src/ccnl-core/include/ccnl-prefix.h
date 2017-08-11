@@ -177,7 +177,7 @@ ccnl_URItoComponents(char **compVector, unsigned int *compLens, char *uri);
 
 #ifndef CCNL_LINUXKERNEL
 void ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash,
-                                char *buf);
+                                char *buf, int buflen);
 
 /**
  * @brief Transforms a Prefix into a URI, separated bei '/', add additional information 
@@ -191,6 +191,7 @@ void ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int 
 */
    char* ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash);
 #  define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
+#  define ccnl_prefix_to_str(P, buf, buflen) ccnl_prefix_to_str_detailed(P, 1, 0, 0, buf, buflen)
 #else
 /**
  * @brief Transforms a Prefix into a URI, separated bei '/' 

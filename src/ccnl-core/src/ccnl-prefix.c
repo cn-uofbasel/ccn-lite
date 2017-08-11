@@ -585,18 +585,19 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         return NULL;
     }
 
-    ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf);
+    ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf, PREFIX_BUFSIZE);
 
     return buf;
 }
 
 void
 ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash,
-                                char *buf) {
+                                char *buf, int buflen) {
     int len = 0, i, j;
     (void)i;
     (void)j;
     (void)len;
+    (void)buflen; //fixme, prevent bufferoverrun here!
 #ifdef USE_NFN
     // len += sprintf(buf + len, "cmpcnt: %i|", pr->compcnt);
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
