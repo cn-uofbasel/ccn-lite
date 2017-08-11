@@ -224,6 +224,8 @@ ccnl_isFragment(unsigned char *buf, int len, int suite)
 
 #ifdef NEEDS_PACKET_CRAFTING
 
+void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp, int *len, int *offs);
+
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
 {
@@ -236,55 +238,61 @@ ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     offs = CCNL_MAX_PACKET_SIZE;
 
-    switch (name->suite) {
-#ifdef USE_SUITE_CCNB
-        case CCNL_SUITE_CCNB:
-            len = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
-            offs = 0;
-            break;
-#endif
-#ifdef USE_SUITE_CCNTLV
-        case CCNL_SUITE_CCNTLV:
-            len = ccnl_ccntlv_prependInterestWithHdr(name, &offs, tmp);
-            break;
-#endif
-#ifdef USE_SUITE_CISTLV
-        case CCNL_SUITE_CISTLV:
-            len = ccnl_cistlv_prependInterestWithHdr(name, &offs, tmp);
-            break;
-#endif
-#ifdef USE_SUITE_IOTTLV
-        case CCNL_SUITE_IOTTLV: {
-            int rc = ccnl_iottlv_prependRequest(name, NULL, &offs, tmp);
-            if (rc <= 0)
-                break;
-            len = rc;
-            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, &offs, tmp);
-            len = (rc <= 0) ? 0 : len + rc;
-            break;
-        }
-#endif
-#ifdef USE_SUITE_NDNTLV
-        case CCNL_SUITE_NDNTLV:
-#ifndef USE_SUITE_COMPRESSED
-            len = ccnl_ndntlv_prependInterest(name, -1, nonce, &offs, tmp);
-#else //USE_SUITE_COMPRESSED
-            prefix = ccnl_pkt_prefix_compress(name);
-            len = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, &offs, tmp);
-            ccnl_free(prefix->comp[0]); //only required in this special case
-            ccnl_prefix_free(prefix);
-#endif //USE_SUITE_COMPRESSED
-            break;
-#endif
-        default:
-            break;
-    }
+    ccnl_mkInterest(name, nonce, tmp, &len, &offs);
 
     if (len > 0)
         buf = ccnl_buf_new(tmp + offs, len);
     ccnl_free(tmp);
 
     return buf;
+}
+
+void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp, int *len, int *offs) {
+    switch (name->suite) {
+#ifdef USE_SUITE_CCNB
+        case CCNL_SUITE_CCNB:
+            (*len) = ccnl_ccnb_fillInterest(name, NULL, tmp, CCNL_MAX_PACKET_SIZE);
+            (*offs) = 0;
+            break;
+#endif
+#ifdef USE_SUITE_CCNTLV
+        case CCNL_SUITE_CCNTLV:
+            (*len) = ccnl_ccntlv_prependInterestWithHdr(name, offs, tmp);
+            break;
+#endif
+#ifdef USE_SUITE_CISTLV
+        case CCNL_SUITE_CISTLV:
+            (*len) = ccnl_cistlv_prependInterestWithHdr(name, offs, tmp);
+            break;
+#endif
+#ifdef USE_SUITE_IOTTLV
+        case CCNL_SUITE_IOTTLV: {
+            int rc = ccnl_iottlv_prependRequest(name, NULL, offs, tmp);
+            if (rc <= 0)
+                break;
+            (*len) = rc;
+            rc = ccnl_switch_prependCoding(CCNL_ENC_IOT2014, offs, tmp);
+            (*len) = (rc <= 0) ? 0 : (*len) + rc;
+            break;
+        }
+#endif
+#ifdef USE_SUITE_NDNTLV
+        case CCNL_SUITE_NDNTLV:
+#ifndef USE_SUITE_COMPRESSED
+            (*len) = ccnl_ndntlv_prependInterest(name, -1, nonce, offs, tmp);
+#else //USE_SUITE_COMPRESSED
+            {
+            struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
+            (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, offs, tmp);
+            ccnl_free(prefix->comp[0]); //only required in this special case
+            ccnl_prefix_free(prefix);
+            }
+#endif //USE_SUITE_COMPRESSED
+            break;
+#endif
+        default:
+            break;
+    }
 }
 
 struct ccnl_buf_s*
