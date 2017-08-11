@@ -27,20 +27,15 @@
 #include <ctype.h>
 #ifndef CCNL_RIOT
 #include <openssl/sha.h>
+
+
 #endif
 #ifdef USE_NFN
 #include "ccnl-nfn-requests.h"
 #include "ccnl-nfn-common.h"
 #endif
 
-#include "ccnl-os-time.h"
-#include "ccnl-defs.h"
-#include "ccnl-malloc.h"
-#include "ccnl-content.h"
-#include "ccnl-logging.h"
 
-#include "ccnl-pkt.h"
-#include "ccnl-pkt-util.h"
 #include "ccnl-pkt-ndntlv.h"
 #include "ccnl-pkt-cistlv.h"
 #include "ccnl-pkt-ccntlv.h"
@@ -377,7 +372,6 @@ ccnl_URItoPrefix(char* uri, int suite, char *nfnexpr, unsigned int *chunknum)
     return p;
 }
 
-
 #ifdef NEEDS_PREFIX_MATCHING
 
 const char*
@@ -558,7 +552,6 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
 {
     (void) ccntlv_skip;
     (void) call_slash;
-    int len = 0, i, j;
     /*static char *prefix_buf1;
     static char *prefix_buf2;
     static char *buf;*/
@@ -592,6 +585,18 @@ ccnl_prefix_to_path_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip,
         return NULL;
     }
 
+    ccnl_prefix_to_str_detailed(pr, ccntlv_skip, escape_components, call_slash, buf);
+
+    return buf;
+}
+
+void
+ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escape_components, int call_slash,
+                                char *buf) {
+    int len = 0, i, j;
+    (void)i;
+    (void)j;
+    (void)len;
 #ifdef USE_NFN
     // len += sprintf(buf + len, "cmpcnt: %i|", pr->compcnt);
     if (pr->nfnflags & CCNL_PREFIX_NFN) {
@@ -686,8 +691,6 @@ One possibility is to not have a '/' before any nfn expression.
 #endif
 
     buf[len] = '\0';
-
-    return buf;
 }
 
 #else // CCNL_LINUXKERNEL

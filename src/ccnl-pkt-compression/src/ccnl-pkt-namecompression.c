@@ -148,7 +148,7 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
 struct ccnl_prefix_s *
 ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     //compress name
-    char* name = ccnl_prefix_to_path(pfx);
+    char* name = ccnl_prefix_to_path_detailed(pfx,1,0,0);
     int name_len = (int)strlen((char* )name);
     unsigned char *compressed_name = ccnl_malloc(name_len); //must be manually freed(!) since normally prefix->comp points to bin!
     int compressed_len = ccnl_pkt_compression_str2bytes((unsigned char*)name, 6, compressed_name, name_len);
