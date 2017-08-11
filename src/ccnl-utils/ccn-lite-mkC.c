@@ -53,7 +53,7 @@ main(int argc, char *argv[])
     struct ccnl_buf_s *buf;
     (void)prefix;
     (void)buf;
-
+    (void) contentpos;
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
