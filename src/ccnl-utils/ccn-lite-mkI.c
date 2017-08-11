@@ -103,7 +103,7 @@ main(int argc, char *argv[])
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
                 break;
         case 'h':
-                /* falls through */
+        /* falls through */
         default:
 Usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"
@@ -124,6 +124,7 @@ Usage:
             argv[0]);
             exit(1);
         }
+        /* falls through */
     }
 
     if (!argv[optind])
