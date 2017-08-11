@@ -54,6 +54,9 @@ main(int argc, char *argv[])
     (void)prefix;
     (void)buf;
     (void) contentpos;
+    (void)keys;
+    (void)lastchunknum;
+    (void)chunknum;
 
     while ((opt = getopt(argc, argv, "hg:i:k:l:n:o:p:s:v:w:")) != -1) {
         switch (opt) {
