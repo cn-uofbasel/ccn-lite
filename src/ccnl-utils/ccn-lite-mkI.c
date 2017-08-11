@@ -40,6 +40,10 @@ main(int argc, char *argv[])
     int isLambda = 0;
     unsigned int chunknum = UINT_MAX;
 
+    (void) minSuffix;
+    (void) maxSuffix;
+    (void) scope;
+
     time(&curtime);
     // Get current time in double to avoid dealing with time_t
     nonce = (uint32_t) difftime(curtime, 0);
@@ -99,6 +103,7 @@ main(int argc, char *argv[])
             if (packettype >= 0 && packettype < CCNL_SUITE_LAST)
                 break;
         case 'h':
+                /* falls through */
         default:
 Usage:
             fprintf(stderr, "usage: %s [options] URI [NFNexpr]\n"

@@ -304,7 +304,7 @@ ccnb_parse_lev(int lev, unsigned char *base, unsigned char **buf,
                 }
                 return 0;
             }
-            break;
+                /* falls through */
         default:
             if (!rawxml) {
                 fprintf(out, "-- tt=%d num=%d not implemented yet\n", typ, num);
