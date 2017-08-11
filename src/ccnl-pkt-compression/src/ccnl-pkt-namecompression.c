@@ -178,7 +178,7 @@ ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
     DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", out_len ,(char*)decompressed_name);
     struct ccnl_prefix_s *ret = ccnl_URItoPrefix((char *)decompressed_name, pfx->suite, NULL, NULL);
     ccnl_free(ret->bytes);
-    ret->bytes = decompressed_name;
+    //ret->bytes = decompressed_name;
     return ret;
 }
 
