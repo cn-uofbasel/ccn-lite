@@ -110,6 +110,10 @@ ccnl_ndntlv_prependInterestCompressed(struct ccnl_prefix_s *name, int *nonce,
     char mustBeFresh = 0;
     char interestLifetime = 1;
 
+    if(!name){
+        return -1;
+    }
+
     // data fields
     unsigned char lifetime[2] = { 0x0f, 0xa0 };
 
