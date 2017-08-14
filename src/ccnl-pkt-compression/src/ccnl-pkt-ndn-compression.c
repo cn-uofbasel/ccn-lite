@@ -233,7 +233,7 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
         return -1;
 
     if (contentpos)
-        *contentpos -= *offset;
+        *contentpos -= (*offset - 9); //FIXME WHY 9???
 
     return oldoffset - *offset;
 }
