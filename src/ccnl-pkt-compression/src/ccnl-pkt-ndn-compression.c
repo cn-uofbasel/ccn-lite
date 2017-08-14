@@ -242,13 +242,13 @@ struct ccnl_pkt_s*
 ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
 
     char header =  *data[0];
-    char type = header & 0x80;
-    char minSuffixComponets = header & 0x40;
-    char maxSuffixComponets = header & 0x20;
-    char publisherPublicKey = header & 0x10;
-    char exclude = header & 0x08;
-    char childSelector = header & 0x04;
-    char mustBeFresh = header & 0x02;
+    char type = (header & 0x80) >> 7;
+    char minSuffixComponets = (header & 0x40) >> 6;
+    char maxSuffixComponets = (header & 0x20) >>  5;
+    char publisherPublicKey = (header & 0x10) >> 4;
+    char exclude = (header & 0x08) >> 3;
+    char childSelector = (header & 0x04) >> 2;
+    char mustBeFresh = (header & 0x02) >> 1;
     char interestLifetime = header & 0x01;
 
     (void)minSuffixComponets;
@@ -278,7 +278,7 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
     }
     pkt->suite = CCNL_SUITE_NDNTLV;
     if(type == 0){ //interest
-        pkt->flags |= CCNL_PKT_REQUEST; // TODO build own func here
+        pkt->flags |= CCNL_PKT_REQUEST;
         pkt->type = NDN_TLV_Interest;
     }
     else if(type == 1){ //content
