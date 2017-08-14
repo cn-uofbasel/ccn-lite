@@ -279,7 +279,14 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
         unsigned char *cp = *data;
         int len2 = len;
         if(typ == NDN_TLV_Name){
+            if(p){
+                DEBUGMSG(DEBUG, "Prefix was already set\n");
+                continue;
+            }
             p = ccnl_prefix_new(CCNL_SUITE_NDNTLV, 1);
+            if(!p){
+                return NULL;
+            }
             p->compcnt = 1;
             p->comp[0] = *data;
             //p->complen = ccnl_malloc(sizeof(int));
