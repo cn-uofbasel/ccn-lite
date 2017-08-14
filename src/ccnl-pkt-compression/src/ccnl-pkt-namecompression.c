@@ -84,6 +84,9 @@ ccnl_pkt_compression_char2bitpos(unsigned char c, int pos){
 int
 ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen, 
                               unsigned char *out, int outlen){
+    if(!out){
+        return 0;
+    }
     int len = strlen((const char *)str);
     memset(out, 0, outlen);
 
