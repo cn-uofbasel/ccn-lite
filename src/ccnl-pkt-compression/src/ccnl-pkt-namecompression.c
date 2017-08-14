@@ -162,7 +162,7 @@ ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
     ccnl_prefix_to_str(pfx, name, PREFIX_BUFSIZE);
     int name_len = (int)strlen((char* )name);
     unsigned char *compressed_name = ccnl_malloc(name_len); //must be manually freed(!) since normally prefix->comp points to bin!
-    if(compressed_name){
+    if(!compressed_name){
         return NULL;
     }
     int compressed_len = ccnl_pkt_compression_str2bytes((unsigned char*)name, 6, compressed_name, name_len);
