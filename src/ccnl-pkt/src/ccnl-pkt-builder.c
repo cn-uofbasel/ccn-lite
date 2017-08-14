@@ -287,7 +287,7 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
                 return;
             }
             (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, offs, tmp);
-            if(refix->comp[0]){
+            if(prefix->comp[0]){
                 ccnl_free(prefix->comp[0]); //only required in this special case
             }
             ccnl_prefix_free(prefix);
