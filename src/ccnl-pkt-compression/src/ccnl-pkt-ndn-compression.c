@@ -79,7 +79,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     pkt->type = ndn_pkt->type;
     if(pkt->type == NDN_TLV_Data){
         pkt->content = pkt->buf->data + contentpos;
-        pkt->contlen = contentlen;
+        pkt->contlen = ndn_pkt->contlen;
     }
     return pkt;
 }
@@ -362,7 +362,6 @@ ccnl_ndntlvCompressed_bytes2pkt(unsigned char **data, int *datalen){
                 len2 -= i;
             }
         }
-
         *data += len;
         *datalen -= len;
     }
