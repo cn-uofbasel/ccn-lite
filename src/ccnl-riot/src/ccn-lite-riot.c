@@ -611,6 +611,7 @@ ccnl_send_interest(struct ccnl_prefix_s *prefix, unsigned char *buf, size_t buf_
     unsigned char *start = interest->data;
     unsigned char *data = interest->data;
     struct ccnl_pkt_s *pkt, *pktc;
+    (void) pktc;
     len = interest->datalen;
 
     int typ;
