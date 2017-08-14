@@ -59,6 +59,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
     struct ccnl_face_s *from;
     int enc, suite = -1, skip;
     dispatchFct dispatch;
+    (void) enc;
 
     (void) base; // silence compiler warning (if USE_DEBUG is not set)
 
@@ -81,9 +82,11 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
 
     // loop through all packets in the received frame (UDP, Ethernet etc)
     while (datalen > 0) {
+#ifndef USE_SUITE_COMPRESSED
         // work through explicit code switching
         while (!ccnl_switch_dehead(&data, &datalen, &enc))
             suite = ccnl_enc2suite(enc);
+#endif // USE_SUITE_COMPRESSED
         if (suite == -1)
             suite = ccnl_pkt2suite(data, datalen, &skip);
 
@@ -92,6 +95,7 @@ ccnl_core_RX(struct ccnl_relay_s *relay, int ifndx, unsigned char *data,
                      ifndx, datalen, *data, data - base);
             return;
         }
+
         dispatch = ccnl_core_suites[suite].RX;
         if (!dispatch) {
             DEBUGMSG_CORE(ERROR, "Forwarder not initialized or dispatcher "
