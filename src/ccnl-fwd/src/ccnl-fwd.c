@@ -223,6 +223,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
 {
     struct ccnl_interest_s *i;
     struct ccnl_content_s *c;
+    int propagate= 0;
 
     int32_t nonce = 0;
     if (pkt != NULL && (*pkt) != NULL && (*pkt)->s.ndntlv.nonce != NULL) {
@@ -356,6 +357,7 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
         if (ccnl_nfn_RX_request(relay, from, pkt))
             return -1; // this means: everything is ok and pkt was consumed
 #endif
+        propagate = 1;
     }
     if (!ccnl_pkt_fwdOK(*pkt))
         return -1;
@@ -379,7 +381,9 @@ ccnl_fwd_handleInterest(struct ccnl_relay_s *relay, struct ccnl_face_s *from,
     if (i) { // store the I request, for the incoming face (Step 3)
         DEBUGMSG_CFWD(DEBUG, "  appending interest entry %p\n", (void *) i);
         ccnl_interest_append_pending(i, from);
-        ccnl_interest_propagate(relay, i);
+        if(propagate) {
+            ccnl_interest_propagate(relay, i);
+        }
     }
 
     /*
