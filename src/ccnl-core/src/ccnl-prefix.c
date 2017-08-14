@@ -597,6 +597,7 @@ ccnl_prefix_to_str_detailed(struct ccnl_prefix_s *pr, int ccntlv_skip, int escap
     (void)i;
     (void)j;
     (void)len;
+    (void) call_slash;
     (void)buflen; //fixme, prevent bufferoverrun here!
 #ifdef USE_NFN
     // len += sprintf(buf + len, "cmpcnt: %i|", pr->compcnt);
