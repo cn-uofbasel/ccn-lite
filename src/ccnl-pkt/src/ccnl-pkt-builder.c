@@ -283,8 +283,13 @@ void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
 #else //USE_SUITE_COMPRESSED
             {
             struct ccnl_prefix_s *prefix = ccnl_pkt_prefix_compress(name);
+            if(!prefix){
+                return;
+            }
             (*len) = ccnl_ndntlv_prependInterestCompressed(prefix, nonce, offs, tmp);
-            ccnl_free(prefix->comp[0]); //only required in this special case
+            if(refix->comp[0]){
+                ccnl_free(prefix->comp[0]); //only required in this special case
+            }
             ccnl_prefix_free(prefix);
             }
 #endif //USE_SUITE_COMPRESSED
