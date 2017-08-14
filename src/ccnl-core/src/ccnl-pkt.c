@@ -69,7 +69,9 @@ ccnl_pkt_free(struct ccnl_pkt_s *pkt)
             }
             ccnl_prefix_free(pkt->pfx);
         }
-        ccnl_free(pkt->buf);
+        if(pkt->buf){
+            ccnl_free(pkt->buf);
+        }
         ccnl_free(pkt);
     }
 }
