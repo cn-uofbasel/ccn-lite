@@ -42,7 +42,10 @@ ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s 
         goto Done;
     }
     int typ = pkt->type;
-    pkt_decompressed = ccnl_pkt_ndn_decompress(pkt);    
+    pkt_decompressed = ccnl_pkt_ndn_decompress(pkt);
+    ccnl_pkt_free(pkt);
+    pkt = 0;
+
     switch (typ) {
     case NDN_TLV_Interest:
         if (ccnl_fwd_handleInterest(relay, from, &pkt_decompressed, ccnl_ndntlv_cMatch))
@@ -64,8 +67,8 @@ ccnl_ndntlv_forwarder_decompress(struct ccnl_relay_s *relay, struct ccnl_face_s 
     }
     rc = 0;
 Done:
-    ccnl_pkt_free(pkt);
-    pkt = 0;
+    ccnl_pkt_free(pkt_decompressed);
+    pkt_decompressed = 0;
     return rc;
 }
 #endif  //USE_SUITE_NDNTLV
