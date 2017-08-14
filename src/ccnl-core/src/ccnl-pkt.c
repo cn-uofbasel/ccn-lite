@@ -120,6 +120,7 @@ ccnl_pkt_dup(struct ccnl_pkt_s *pkt){
         }
         ret->pfx = ccnl_prefix_dup(pkt->pfx);
         if(!ret->pfx){
+            ret->buf = NULL;
             ccnl_pkt_free(ret);
             return NULL;
         }
