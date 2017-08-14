@@ -40,7 +40,8 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     prefix->suite = CCNL_SUITE_NDNTLV;
     struct ccnl_buf_s *buf = NULL;
     unsigned char *tmp;
-    int len = 0, offs, contentpos;
+    int len = 0, offs, contentpos = 0;
+    unsigned int contentlen = 0;
     tmp = (unsigned char*) ccnl_malloc(CCNL_MAX_PACKET_SIZE);
     if(!tmp){
         ccnl_prefix_free(prefix);
@@ -55,7 +56,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     else if(ndn_pkt->type == NDN_TLV_Data){
         //DEBUGMSG(DEBUG, "PACKET TYPE: %d\n", ndn_pkt->type);
         len = ccnl_ndntlv_prependContent(prefix, ndn_pkt->content, ndn_pkt->contlen,
-                                         &contentpos, NULL, &offs, tmp);
+                                         &contentpos, &contentlen, &offs, tmp);
     }
     if (len > 0){
         buf = ccnl_buf_new(tmp + offs, len);
@@ -76,6 +77,10 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     pkt->pfx = prefix;
     pkt->pfx->suite = CCNL_SUITE_NDNTLV;
     pkt->type = ndn_pkt->type;
+    if(pkt->type == NDN_TLV_Data){
+        pkt->content = pkt->buf->data + contentpos;
+        pkt->contlen = contentlen;
+    }
     return pkt;
 }
 
