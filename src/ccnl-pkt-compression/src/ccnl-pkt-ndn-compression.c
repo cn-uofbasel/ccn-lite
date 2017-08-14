@@ -75,6 +75,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     pkt->buf = buf;
     pkt->pfx = prefix;
     pkt->pfx->suite = CCNL_SUITE_NDNTLV;
+    pkt->type = ndn_pkt->type;
     return pkt;
 }
 
