@@ -88,6 +88,9 @@ ccnl_pkt_ndn_decompress(struct ccnl_pkt_s *compressed_pkt)
 
     //use created buf to create packet
     struct ccnl_pkt_s *pkt = ccnl_pkt_dup(compressed_pkt);
+    if(!pkt){
+        return NULL;
+    }
     ccnl_prefix_free(pkt->pfx);
     pkt->pfx = prefix;
     pkt->type = compressed_pkt->type;
