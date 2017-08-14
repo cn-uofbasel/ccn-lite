@@ -71,6 +71,7 @@ set(CCNL_NFN_FLAGS
 if(DEFINED CCNL_RIOT)
     set(CCNL_RIOT_FLAGS
         -DCCNL_APP_RX
+        -DUSE_DUP_CHECK
         ${RIOT_CFLAGS}
          CACHE PATH
         "CCNL RIOT flags for CCN-lite"
