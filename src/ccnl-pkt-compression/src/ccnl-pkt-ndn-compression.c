@@ -55,7 +55,7 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     }
     else if(ndn_pkt->type == NDN_TLV_Data){
         //DEBUGMSG(DEBUG, "PACKET TYPE: %d\n", ndn_pkt->type);
-        len = ccnl_ndntlv_prependContent(prefix, ndn_pkt->content, ndn_pkt->contlen,
+        len = ccnl_ndntlv_prependContentCompressed(prefix, ndn_pkt->content, ndn_pkt->contlen,
                                          &contentpos, &contentlen, &offs, tmp);
     }
     if (len > 0){
