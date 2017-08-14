@@ -58,8 +58,8 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
         len = ccnl_ndntlv_prependContentCompressed(prefix, ndn_pkt->content, ndn_pkt->contlen,
                                          &contentpos, &contentlen, &offs, tmp);
 
-        offs +=2;
-        len -=2;
+        offs +=4;
+        len -=4;
 
     }
     if (len > 0){
