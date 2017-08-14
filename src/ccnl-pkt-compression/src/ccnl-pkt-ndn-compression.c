@@ -57,6 +57,10 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
         //DEBUGMSG(DEBUG, "PACKET TYPE: %d\n", ndn_pkt->type);
         len = ccnl_ndntlv_prependContentCompressed(prefix, ndn_pkt->content, ndn_pkt->contlen,
                                          &contentpos, &contentlen, &offs, tmp);
+
+        offs +=2;
+        len -=2;
+
     }
     if (len > 0){
         buf = ccnl_buf_new(tmp + offs, len);
@@ -233,9 +237,9 @@ ccnl_ndntlv_prependContentCompressed(struct ccnl_prefix_s *name,
         return -1;
 
     if (contentpos)
-        *contentpos -= (*offset); //FIXME WHY 9???
+        *contentpos -= (*offset);
 
-    return oldoffset - *offset + 2;
+    return oldoffset - *offset;
 }
 
 struct ccnl_pkt_s*
