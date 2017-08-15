@@ -50,7 +50,11 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     offs = CCNL_MAX_PACKET_SIZE;
 
     if(ndn_pkt->type == NDN_TLV_Interest){
-        int nonce = rand();
+        char buf[64];
+        memset(buf, 0, 64);
+        int nonce = 0;
+        sscanf(buf, "%d", &nonce);
+        memcpy(buf, ndn_pkt->s.ndntlv.nonce->data, ndn_pkt->s.ndntlv.nonce->datalen);
         len = ccnl_ndntlv_prependInterestCompressed(prefix, &nonce, &offs, tmp);
     }
     else if(ndn_pkt->type == NDN_TLV_Data){
