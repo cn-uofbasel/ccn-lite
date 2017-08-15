@@ -124,7 +124,7 @@ ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen,
 }
 
 int
-ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen, 
+ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
                               unsigned char *out, int outlen)
 {
     int offset = 0;
@@ -183,7 +183,8 @@ struct ccnl_prefix_s *
 ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
     unsigned char* name = pfx->comp[0];
     int name_len = pfx->complen[0];
-    int out_len = name_len * 8/6;
+    int out_len = (name_len * 8) % 6 == 0 ? (name_len * 8)/6 - 1 : (name_len * 8)/6;
+
     //unsigned char *decompressed_name = ccnl_malloc();
     unsigned char decompressed_name[out_len+1];
     memset(decompressed_name, 0, out_len+1);

@@ -55,6 +55,9 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
         int nonce = 0;
         memcpy(buf, ndn_pkt->s.ndntlv.nonce->data, ndn_pkt->s.ndntlv.nonce->datalen);
         sscanf(buf, "%d", &nonce);
+        if(nonce == 0){
+            nonce = rand();
+        }
         len = ccnl_ndntlv_prependInterestCompressed(prefix, &nonce, &offs, tmp);
     }
     else if(ndn_pkt->type == NDN_TLV_Data){
