@@ -50,11 +50,12 @@ ccnl_pkt_ndn_compress(struct ccnl_pkt_s *ndn_pkt)
     offs = CCNL_MAX_PACKET_SIZE;
 
     if(ndn_pkt->type == NDN_TLV_Interest){
-        char buf[64];
-        memset(buf, 0, 64);
-        int nonce = 0;
-        memcpy(buf, ndn_pkt->s.ndntlv.nonce->data, ndn_pkt->s.ndntlv.nonce->datalen);
-        sscanf(buf, "%d", &nonce);
+        int32_t nonce = 0;
+        if (ndn_pkt != NULL && ndn_pkt->s.ndntlv.nonce != NULL) {
+            if (ndn_pkt->s.ndntlv.nonce->datalen == 4) {
+                memcpy(&nonce, ndn_pkt->s.ndntlv.nonce->data, 4);
+            }
+        }
         if(nonce == 0){
             nonce = rand();
         }
