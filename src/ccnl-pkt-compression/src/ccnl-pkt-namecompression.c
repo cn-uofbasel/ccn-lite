@@ -191,7 +191,7 @@ ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
 
     unsigned char decompressed_name[outlen+1];
     memset(decompressed_name, 0, outlen+1);
-    outlen2 = ccnl_pkt_compression_bytes2str(name, outlen, 6,
+    outlen2 = ccnl_pkt_compression_bytes2str(name, 6, outlen,
                               decompressed_name);
     DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", outlen ,(char*)decompressed_name);
     memset(decompressed_name+outlen2, 0 , outlen - outlen2);
