@@ -24,6 +24,13 @@
 
 #include <string.h>
 #ifdef USE_SUITE_COMPRESSED
+
+#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
+# define PREFIX_BUFSIZE 50
+#else
+# define PREFIX_BUFSIZE 2048
+#endif
+
 static inline int 
 ccnl_pkt_compression_min(int a, int b){
     return a < b ? a : b;
@@ -84,11 +91,6 @@ ccnl_pkt_compression_char2bitpos(unsigned char c, int pos){
 int
 ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen, 
                               unsigned char *out, int outlen){
-#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
-# define PREFIX_BUFSIZE 50
-#else
-# define PREFIX_BUFSIZE 2048
-#endif
     if(!out){
         return 0;
     }
@@ -164,13 +166,6 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int charlen, int outlen,
 
 struct ccnl_prefix_s *
 ccnl_pkt_prefix_compress(struct ccnl_prefix_s *pfx){
-#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
-# define PREFIX_BUFSIZE 50
-#else
-# define PREFIX_BUFSIZE 2048
-#endif
-
-
     //compress name
     char name[PREFIX_BUFSIZE];
     ccnl_prefix_to_str(pfx, name, PREFIX_BUFSIZE);
