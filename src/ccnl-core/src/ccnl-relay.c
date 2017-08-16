@@ -885,6 +885,9 @@ ccnl_nonce_find_or_append(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *nonce)
 int
 ccnl_nonce_isDup(struct ccnl_relay_s *relay, struct ccnl_pkt_s *pkt)
 {
+    if(CCNL_MAX_NONCES < 0){
+        return 0;
+    }
     switch (pkt->suite) {
 #ifdef USE_SUITE_CCNB
     case CCNL_SUITE_CCNB:
