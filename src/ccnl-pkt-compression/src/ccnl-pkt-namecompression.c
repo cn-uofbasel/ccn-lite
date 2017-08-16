@@ -84,19 +84,29 @@ ccnl_pkt_compression_char2bitpos(unsigned char c, int pos){
 int
 ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen, 
                               unsigned char *out, int outlen){
+#if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
+# define PREFIX_BUFSIZE 50
+#else
+# define PREFIX_BUFSIZE 2048
+#endif
     if(!out){
         return 0;
     }
     int len = strlen((const char *)str);
     memset(out, 0, outlen);
 
+    char in2[PREFIX_BUFSIZE];
+    memset(in2, 0, PREFIX_BUFSIZE);
+    memcpy(in2, str, len);
+    sprintf(in2, "%s", ".");
+    ++len;
     int out_pos = 0;
     int str_pos = 0;
     int written_bits = 0;
     int offset = 0;
     int remaining_bits = 0;
     while(str_pos < len && out_pos < outlen){
-        unsigned char c = str[str_pos];
+        unsigned char c = in2[str_pos];
         unsigned char c_mapped = ccnl_pkt_compression_map_char2byte(c);
         if(remaining_bits > 0 ){
             offset = -(charlen-remaining_bits);
@@ -144,7 +154,7 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int charlen, int outlen,
         unsigned char outchar = *((unsigned char*)(&shifted) + 1);
         outchar = ccnl_pkt_compression_map_byte2char(outchar); 
         if(outchar == '.'){
-            return i - 1;
+            return i;
         }
         out[i] = outchar;
     }
