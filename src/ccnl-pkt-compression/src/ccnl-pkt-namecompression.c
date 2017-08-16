@@ -98,8 +98,9 @@ ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen,
     char in2[PREFIX_BUFSIZE];
     memset(in2, 0, PREFIX_BUFSIZE);
     memcpy(in2, str, len);
-    sprintf(in2, "%s", ".");
+    sprintf(in2+len, "%s", ".");
     ++len;
+
     int out_pos = 0;
     int str_pos = 0;
     int written_bits = 0;
