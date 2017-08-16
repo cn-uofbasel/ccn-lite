@@ -72,9 +72,6 @@ ccnl_interest_isSame(struct ccnl_interest_s *i, struct ccnl_pkt_s *pkt)
                 return i->pkt->s.ndntlv.minsuffix == pkt->s.ndntlv.minsuffix &&
                     i->pkt->s.ndntlv.maxsuffix == pkt->s.ndntlv.maxsuffix &&
                     ((!i->pkt->s.ndntlv.ppkl && !pkt->s.ndntlv.ppkl) ||
-#ifdef USE_DUP_CHECK
-                    buf_equal(i->pkt->s.ndntlv.nonce, pkt->s.ndntlv.nonce) ||
-#endif
                     buf_equal(i->pkt->s.ndntlv.ppkl, pkt->s.ndntlv.ppkl));
         #endif
         #ifdef USE_SUITE_CCNTLV
