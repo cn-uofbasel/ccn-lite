@@ -120,17 +120,18 @@ ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen,
         remaining_bits = charlen - ccnl_pkt_compression_min(8-offset, charlen);
     }
 
+
     return out_pos+1;//written_bits%8 == 0 ? written_bits/8+1 : written_bits/8+2;
 }
 
 int
-ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
-                              unsigned char *out, int outlen)
+ccnl_pkt_compression_bytes2str(unsigned char *in, int charlen, int outlen,
+                              unsigned char *out)
 {
     int offset = 0;
     int index = 0;
     memset(out, 0, outlen);
-    for (int i = 0; i < inlen && i < outlen; i++) {
+    for (int i = 0; i < outlen; i++) {
         int bitpos = i * charlen;
         index = bitpos / 8;
         offset = bitpos - index * 8;
@@ -142,10 +143,12 @@ ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen,
         shifted = shifted << offset;
         unsigned char outchar = *((unsigned char*)(&shifted) + 1);
         outchar = ccnl_pkt_compression_map_byte2char(outchar); 
-
+        if(outchar == '.'){
+            return i - 1;
+        }
         out[i] = outchar;
     }
-    return inlen;
+    return outlen;
 }
 
 struct ccnl_prefix_s *
@@ -183,14 +186,15 @@ struct ccnl_prefix_s *
 ccnl_pkt_prefix_decompress(struct ccnl_prefix_s *pfx){
     unsigned char* name = pfx->comp[0];
     int name_len = pfx->complen[0];
-    int out_len = (name_len * 8) % 6 == 0 ? (name_len * 8)/6 - 1 : (name_len * 8)/6;
+    int outlen = (name_len * 8) % 6 == 0 ? (name_len * 8)/6 - 1 : (name_len * 8)/6;
+    int outlen2 = 0;
 
-    //unsigned char *decompressed_name = ccnl_malloc();
-    unsigned char decompressed_name[out_len+1];
-    memset(decompressed_name, 0, out_len+1);
-    out_len = ccnl_pkt_compression_bytes2str(name, out_len, 6,
-                              decompressed_name, out_len);
-    DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", out_len ,(char*)decompressed_name);
+    unsigned char decompressed_name[outlen+1];
+    memset(decompressed_name, 0, outlen+1);
+    outlen2 = ccnl_pkt_compression_bytes2str(name, outlen, 6,
+                              decompressed_name);
+    DEBUGMSG(DEBUG, "Extracted Name: %.*s\n", outlen ,(char*)decompressed_name);
+    memset(decompressed_name+outlen2, 0 , outlen - outlen2);
     struct ccnl_prefix_s *ret = ccnl_URItoPrefix((char *)decompressed_name, pfx->suite, NULL, NULL);
     //ccnl_free(decompressed_name);
     //ret->bytes = decompressed_name;

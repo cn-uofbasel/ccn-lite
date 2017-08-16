@@ -55,8 +55,8 @@ ccnl_pkt_compression_str2bytes(unsigned char *str, int charlen,
  * @return     length of the compressed string
  */
 int
-ccnl_pkt_compression_bytes2str(unsigned char *in, int inlen, int charlen, 
-                              unsigned char *out, int outlen);
+ccnl_pkt_compression_bytes2str(unsigned char *in, int charlen, int outlen,
+                              unsigned char *out);
 
 
 /**
