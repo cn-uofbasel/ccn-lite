@@ -41,7 +41,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#endif //CCNL_LINUXKERNEL
+
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
@@ -54,6 +54,7 @@
 #  include <linux/if_packet.h> // sockaddr_ll
 #endif //CCNL_RIOT
 #endif
+#endif //CCNL_LINUXKERNEL
 
 
 
