@@ -48,7 +48,6 @@
 #include "ccnl-os-includes.h"
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
-#include "ccnl-ext.h"
 #include "ccnl-frag.h"
 #include "ccnl-mgmt.h"
 #include "ccnl-nfn.h"
