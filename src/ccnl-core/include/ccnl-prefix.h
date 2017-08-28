@@ -25,7 +25,9 @@
 #define CCNL_PREFIX_H
 
 #include <stddef.h>
+#ifndef CCNL_LINUXKERNEL
 #include <unistd.h>
+#endif
 
 struct ccnl_content_s;
 
