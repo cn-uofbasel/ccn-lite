@@ -19,7 +19,9 @@
 #ifndef CCNL_BUF_H
 #define CCNL_BUF_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <unistd.h> //FIXME: SWITCH HERE
+#endif
 #include <stddef.h>
 #include <string.h>
 
