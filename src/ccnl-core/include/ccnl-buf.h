@@ -21,9 +21,10 @@
 
 #ifndef CCNL_LINUXKERNEL
 #include <unistd.h> //FIXME: SWITCH HERE
+#include <string.h>
 #endif
 #include <stddef.h>
-#include <string.h>
+
 
 struct ccnl_relay_s;
 
