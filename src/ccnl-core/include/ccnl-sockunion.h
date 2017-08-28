@@ -29,19 +29,19 @@
 #ifndef CCNL_LINUXKERNEL
 #include <netinet/in.h>
 #include <net/ethernet.h>
-#endif
+
 #ifndef CCNL_RIOT
 #include <sys/un.h>
 #else
 #include "net/packet.h"
 #endif
-#ifndef CCNL_LINUXKERNEL
+
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#endif
+#endif //CCNL_LINUXKERNEL
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
