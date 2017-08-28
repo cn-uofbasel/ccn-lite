@@ -115,8 +115,8 @@ static struct ccnl_timerlist_s *spare_timer;
 inline void
 ccnl_get_timeval(struct timeval *tv);
 
-int
-current_time(void);
+//int
+//current_time(void);
 
 static void
 ccnl_timer_callback(unsigned long data);
