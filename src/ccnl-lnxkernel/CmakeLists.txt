@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(ccnl-lxkernel)
 
 SET( MODULE_NAME
-        my_module
+        ccnl-lxkernel
         )
 
 SET( MODULE_SOURCE_FILES
