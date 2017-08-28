@@ -23,7 +23,9 @@
  #ifndef CCNL_OS_TIME_H
  #define CCNL_OS_TIME_H
 
- #include <stdint.h>
+#ifndef CCNL_LINUXKERNEL
+#include <stdint.h>
+#endif
 
  #ifdef CCNL_ARDUINO
 
@@ -44,8 +46,9 @@ char*
 timestamp(void);
 
 #else // !CCNL_ARDUINO
-
+#ifndef CCNL_LINUXKERNEL
  #include <sys/time.h>
+#endif
 
 #define CCNL_NOW()                    current_time()
 
