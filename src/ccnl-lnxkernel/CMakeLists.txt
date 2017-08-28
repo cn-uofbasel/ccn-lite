@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.7)
 project(ccnl-lxkernel)
 
+include_directories(include ../ccnl-pkt/include ../ccnl-nfn/include ../ccnl-unix/include ../ccnl-fwd/include ../ccnl-pkt-compression/include)
+
+
 SET( MODULE_NAME
         ccnl-lxkernel
         )
