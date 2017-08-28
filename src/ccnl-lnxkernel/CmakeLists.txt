@@ -1,23 +1,53 @@
 cmake_minimum_required(VERSION 3.7)
 project(ccnl-lxkernel)
 
-Set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
+SET( MODULE_NAME
+        my_module
+        )
 
-Set( kbuild_cmd ${CMAKE_MAKE_PROGRAM}
+SET( MODULE_SOURCE_FILES
+        ccn-lite-lnxkernel.c
+        )
 
-        -C ${KERNEL_DIR}
+SET( MODULE_FILE
+        ${MODULE_NAME}.ko
+        )
 
-        M=${CMAKE_CURRENT_SOURCE_DIR} modules)
+SET( MODULE_OUTPUT_DIR
+        ${CMAKE_BINARY_DIR}/modules/${MODULE_NAME}
+        )
 
-set ( kofile ${CMAKE_CURRENT_SOURCE_DIR}/ccnl-lxkernel.ko )
+SET( KERNEL_DIR
+        "/lib/modules/${CMAKE_SYSTEM_VERSION}/build"
+        )
 
-add_custom_command ( OUTPUT ${kofile}
-        COMMAND ${kbuild_cmd}
+SET( KBUILD_COMMAND
+        ${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR} modules
+        )
 
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+CONFIGURE_FILE(
+        Kbuild.in
+        ${MODULE_OUTPUT_DIR}/Kbuild
+)
 
-        DEPENDS ${src} VERBATIM
+FOREACH( MODULE_SOURCE_FILE ${MODULE_SOURCE_FILES} )
+    CONFIGURE_FILE(
+            ${MODULE_SOURCE_FILE}
+            ${MODULE_OUTPUT_DIR}/${MODULE_SOURCE_FILE}
+            COPYONLY
+    )
+ENDFOREACH( MODULE_SOURCE_FILE )
 
-        COMMENT "Building kernel module...")
+ADD_CUSTOM_COMMAND(
+        OUTPUT ${MODULE_OUTPUT_DIR}/${MODULE_FILE}
+        COMMAND ${KBUILD_COMMAND}
+        WORKING_DIRECTORY ${MODULE_OUTPUT_DIR}
+        DEPENDS ${MODULE_SOURCE_FILES} Kbuild.in
+        VERBATIM
+)
 
-add_custom_target ( ccnl-lxkernel ALL DEPENDS ${kofile} )
+ADD_CUSTOM_TARGET(
+        ${MODULE_NAME}
+        ALL
+        DEPENDS ${MODULE_OUTPUT_DIR}/${MODULE_FILE}
+)
