@@ -26,8 +26,10 @@
 //#define _DEFAULT_SOURCE
 
 #include "ccnl-defs.h"
+#ifndef CCNL_LINUXKERNEL
 #include <netinet/in.h>
 #include <net/ethernet.h>
+#endif
 #ifndef CCNL_RIOT
 #include <sys/un.h>
 #else
