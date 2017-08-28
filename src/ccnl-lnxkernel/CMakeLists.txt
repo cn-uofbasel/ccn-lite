@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
 project(ccnl-lxkernel)
-SET(includes
-	-I../ccnl-pkt/include
-        -I../ccnl-nfn/include
-        -I/home/blacksheeep/ccn-lite/src/ccnl-core/include
-        -I../ccnl-fwd/include
-        -I../ccnl-pkt-compression/include)
+
 
 SET( MODULE_NAME
         ccnl-lxkernel
@@ -28,7 +23,7 @@ SET( KERNEL_DIR
         )
 
 SET( KBUILD_COMMAND
-	${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR} ${includes} modules
+	${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${MODULE_OUTPUT_DIR} modules
 )
 
 CONFIGURE_FILE(
