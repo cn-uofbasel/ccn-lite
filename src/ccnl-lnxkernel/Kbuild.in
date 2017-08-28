@@ -1,5 +1,6 @@
 obj-m := ${MODULE_NAME}.o
 ${MODULE_NAME}-objs += ccn-lite-lnxkernel.o
 
-EXTRA_CFLAGS := -I${PROJECT_SOURCE_DIR}/include
+EXTRA_CFLAGS := -I/home/blacksheeep/ccn-lite/src/ccnl-core/include/
+
 EXTRA_CFLAGS += -DDEBUG

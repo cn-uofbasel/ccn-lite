@@ -45,16 +45,13 @@
 
 #define NEEDS_PREFIX_MATCHING
 
-#include "ccnl-os-includes.h"
-#include "ccnl-defs.h"
-#include "ccnl-core.h"
-#include "ccnl-ext.h"
-#include "ccnl-frag.h"
-#include "ccnl-mgmt.h"
-#include "ccnl-nfn.h"
-#include "ccnl-crypto.h"
-#include "ccnl-os-time.h"
-#include "ccnl-logging.h"
+#include <ccnl-defs.h>
+#include <ccnl-frag.h>
+#include <ccnl-mgmt.h>
+//#include <ccnl-nfn.h>
+#include <ccnl-crypto.h>
+#include <ccnl-os-time.h>
+#include <ccnl-logging.h>
 
 // ----------------------------------------------------------------------
 
