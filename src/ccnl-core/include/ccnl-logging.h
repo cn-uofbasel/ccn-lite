@@ -36,8 +36,9 @@
 #endif
 
 #ifdef USE_LOGGING
-
+#ifndef CCNL_LINUXKERNEL
 #include <stdio.h>
+#endif
 //#include "ccnl-os-time.h"
 
 extern int debug_level;
