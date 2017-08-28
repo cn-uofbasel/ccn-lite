@@ -33,9 +33,13 @@
 #else
 #include "net/packet.h"
 #endif
+#ifndef CCNL_LINUXKERNEL
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#endif
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #  include <sys/types.h>
