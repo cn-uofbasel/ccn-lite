@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.7)
+project(ccnl-lxkernel)
+
+Set( KERNEL_DIR "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
+
+Set( kbuild_cmd ${CMAKE_MAKE_PROGRAM}
+
+        -C ${KERNEL_DIR}
+
+        M=${CMAKE_CURRENT_SOURCE_DIR} modules)
+
+set ( kofile ${CMAKE_CURRENT_SOURCE_DIR}/ccnl-lxkernel.ko )
+
+add_custom_command ( OUTPUT ${kofile}
+        COMMAND ${kbuild_cmd}
+
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+
+        DEPENDS ${src} VERBATIM
+
+        COMMENT "Building kernel module...")
+
+add_custom_target ( ccnl-lxkernel ALL DEPENDS ${kofile} )

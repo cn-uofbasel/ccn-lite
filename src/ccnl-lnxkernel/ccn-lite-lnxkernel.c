@@ -49,6 +49,12 @@
 #include "ccnl-defs.h"
 #include "ccnl-core.h"
 #include "ccnl-ext.h"
+#include "ccnl-frag.h"
+#include "ccnl-mgmt.h"
+#include "ccnl-nfn.h"
+#include "ccnl-crypto.h"
+#include "ccnl-os-time.h"
+#include "ccnl-logging.h"
 
 // ----------------------------------------------------------------------
 
@@ -107,10 +113,6 @@ ccnl_free(void *ptr)
 {
     kfree(ptr);
 }
-
-#include "ccnl-ext-debug.c"
-#include "ccnl-os-time.c"
-#include "ccnl-ext-logging.c"
 
 static void ccnl_lnxkernel_cleanup(void);
 char* ccnl_addr2ascii(sockunion *su);
@@ -233,13 +235,6 @@ ccnl_close_socket(struct socket *s)
 }
 
 // ----------------------------------------------------------------------
-
-#include "ccnl-core.c"
-
-#include "ccnl-ext-frag.c"
-#include "ccnl-ext-mgmt.c"
-#include "ccnl-ext-nfn.c"
-#include "ccnl-ext-crypto.c"
 
 #ifdef USE_SCHEDULER
 #  include "ccnl-ext-sched.c"

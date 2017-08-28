@@ -102,6 +102,7 @@ endif()
 if (DEFINED CCNL_RIOT)
     add_subdirectory(ccnl-riot)
 endif()
+add_subdirectory(ccnl-lnxkernel)
 add_subdirectory(ccnl-pkt-compression)
 
 
