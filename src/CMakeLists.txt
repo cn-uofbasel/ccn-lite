@@ -109,9 +109,10 @@ if (DEFINED CCNL_LINUXKERNEL)
 endif()
 add_subdirectory(ccnl-pkt-compression)
 
-
+if (NOT DEFINED CCNL_LINUXKERNEL)
 if (NOT DEFINED CCNL_RIOT)
     add_dependencies(ccn-lite-relay ccnl-core ccnl-pkt ccnl-fwd ccnl-unix ccnl-nfn ccnl-pkt-compression)
+endif()
 endif()
 
 find_package(Doxygen)
