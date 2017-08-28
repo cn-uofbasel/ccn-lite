@@ -23,7 +23,9 @@
 #ifndef CCNL_SCHED_H
 #define CCNL_SCHED_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <sys/time.h>
+#endif
 
 struct ccnl_relay_s;
 
