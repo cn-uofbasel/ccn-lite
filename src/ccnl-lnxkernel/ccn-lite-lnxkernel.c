@@ -45,6 +45,42 @@
 
 #define NEEDS_PREFIX_MATCHING
 
+#include <stddef.h>
+
+#include <linux/ctype.h>
+#include <linux/jiffies.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/namei.h>
+#include <linux/proc_fs.h>
+#include <linux/socket.h>
+#include <linux/string.h>
+#include <linux/syscalls.h>
+#include <linux/unistd.h>
+#include <linux/workqueue.h>
+#include <linux/version.h>
+#include <asm/uaccess.h>
+
+#include <linux/in.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
+#include <linux/inet.h>  // in_aton
+#include <linux/net.h>
+#include <linux/netdevice.h>
+#include <linux/string.h>
+#include <linux/un.h>
+
+#include <net/inet_sock.h>
+#include <net/ip.h>
+#include <net/af_unix.h>
+
+#define strtol(s,p,b)   simple_strtol(s,p,b)
+#define inet_aton(s,p)  (p)->s_addr = in_aton(s)
+#define USE_LINKLAYER
+
+
+
 #include <ccnl-defs.h>
 #include <ccnl-frag.h>
 #include <ccnl-mgmt.h>
