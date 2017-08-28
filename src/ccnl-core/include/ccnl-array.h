@@ -19,7 +19,7 @@
  * File history:
  * 2017-06-16 created
  */
-
+#ifndef CCNL_LINUXKERNEL
 #define CCNL_ARRAY_DEFAULT_CAPACITY 4
 #define CCNL_ARRAY_CHECK_BOUNDS
 #define CCNL_ARRAY_NOT_FOUND -1
@@ -65,3 +65,5 @@ ccnl_array_find(struct ccnl_array_s *array, void *item);
 // Returns 1 if the item can be found in the array.
 int 
 ccnl_array_contains(struct ccnl_array_s *array, void *item);
+
+#endif
