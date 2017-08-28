@@ -155,7 +155,7 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
             sockunion *dest, struct ccnl_buf_s *buf)
 {
     DEBUGMSG(DEBUG, "ccnl_ll_TX for %d bytes ifc=%p sock=%p\n",
-             buf ? buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
+             buf ? (int)buf->datalen : -1, ifc, ifc ? ifc->sock : NULL);
 
     if (!dest)
         return;
