@@ -8,6 +8,7 @@ SET( MODULE_NAME
 
 SET( MODULE_SOURCE_FILES
         ccn-lite-lnxkernel.c
+        /home/blacksheeep/ccn-lite/src/ccnl-fwd/src/ccnl-dispatch.c
         )
 
 SET( MODULE_FILE
@@ -38,6 +39,7 @@ FOREACH( MODULE_SOURCE_FILE ${MODULE_SOURCE_FILES} )
             COPYONLY
     )
 ENDFOREACH( MODULE_SOURCE_FILE )
+
 
 ADD_CUSTOM_COMMAND(
         OUTPUT ${MODULE_OUTPUT_DIR}/${MODULE_FILE}
