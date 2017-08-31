@@ -23,8 +23,11 @@
  #ifndef CCNL_MALLOC_H
  #define CCNL_MALLOC_H
 
+#ifndef CCNL_LINUXKERNEL
 #include <stdlib.h>
+#endif
 #include <string.h>
+
 
 #ifdef USE_DEBUG_MALLOC
 struct mhdr {
