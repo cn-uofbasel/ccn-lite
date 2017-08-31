@@ -5,7 +5,7 @@ project(ccnl-lxkernel)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../modules/ccnl-lxkernel)
 include_directories(include ../ccnl-core/include ../ccnl-pkt/include ../ccnl-fwd/include ../ccnl-unix/include ../ccnl-nfn/include ../ccnl-pkt-compression/include)
 
-add_library(objects OBJECT /home/blacksheeep/ccn-lite/src/ccnl-core/src/ccnl-core.c)
+add_library(objects OBJECT /home/blacksheeep/ccn-lite/src/ccnl-fwd/src/ccnl-dispatch.c)
 
 SET( MODULE_NAME
         ccnl-lxkernel
