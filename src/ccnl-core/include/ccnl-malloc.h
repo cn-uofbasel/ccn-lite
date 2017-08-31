@@ -26,7 +26,7 @@
 #ifndef CCNL_LINUXKERNEL
 #include <stdlib.h>
 #include <string.h>
-#endif
+#endif //CCNL_LINUXKERNEL
 
 
 #ifdef USE_DEBUG_MALLOC
