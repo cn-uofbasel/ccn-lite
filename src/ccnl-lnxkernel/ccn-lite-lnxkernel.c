@@ -262,11 +262,11 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
     }
 }
 
-void
+/*void
 ccnl_close_socket(struct socket *s)
 {
     // socket will be released in the cleanup routine
-}
+}*/
 
 // ----------------------------------------------------------------------
 
