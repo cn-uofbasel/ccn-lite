@@ -89,7 +89,6 @@
 #include <ccnl-os-time.h>
 #include <ccnl-logging.h>
 #include <ccnl-dispatch.h>
-#include "../ccnl-fwd/src/ccnl-dispatch.c"
 // ----------------------------------------------------------------------
 
 #define assert(p) do{if(!p){DEBUGMSG(FATAL,"assertion violated %s:%d\n",__FILE__,__LINE__);}}while(0)
