@@ -250,7 +250,7 @@ ccnl_ll_TX(struct ccnl_relay_s *relay, struct ccnl_if_s *ifc,
 
         oldfs = get_fs();
         set_fs(KERNEL_DS);
-        rc = sock_sendmsg(ifc->sock, &msg, buf->datalen);
+        rc = sock_sendmsg(ifc->sock, &msg);
         set_fs(oldfs);
 
         //      printk("UNIX sendmsg returned %d\n", rc);
