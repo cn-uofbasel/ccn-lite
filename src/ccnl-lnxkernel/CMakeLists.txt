@@ -8,7 +8,7 @@ SET( MODULE_NAME
 
 SET( MODULE_SOURCE_FILES
         ccn-lite-lnxkernel.c
-        ${CMAKE_SOURCE_DIR}/ccnl-core/ccn-core.c
+        ${CMAKE_ROOT_SOURCE_DIR}/ccnl-core/ccn-core.c
         )
 
 SET( MODULE_FILE
