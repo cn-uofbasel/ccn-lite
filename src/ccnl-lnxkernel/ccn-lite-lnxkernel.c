@@ -563,8 +563,8 @@ ccnl_init(void)
 
     DEBUGMSG(INFO, "This is %s\n", THIS_MODULE->name);
     DEBUGMSG(INFO, "  ccnl-core: %s\n", CCNL_VERSION);
-    DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
-    DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
+    // FIXME: ﻿might prevent reproducible builds DEBUGMSG(INFO, "  compile time: %s %s\n", __DATE__, __TIME__);
+    // FIXME: ﻿might prevent reproducible builds DEBUGMSG(INFO, "  compile options: %s\n", compile_string);
     DEBUGMSG(INFO, "using suite %s\n", ccnl_suite2str(suite));
 
     DEBUGMSG(DEBUG, "module parameters: c=%d, e=%s, k=%s, p=%s, s=%s, "
