@@ -88,6 +88,7 @@
 #include <ccnl-crypto.h>
 #include <ccnl-os-time.h>
 #include <ccnl-logging.h>
+#include <ccnl-dispatch.h>
 
 // ----------------------------------------------------------------------
 
