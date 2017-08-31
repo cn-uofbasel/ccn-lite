@@ -719,15 +719,14 @@ ccnl_lnxkernel_cleanup(void)
         }
     }
     theRelay.ifcount = 0;
-
-    if (x) { // also remove the UNIX socket path
+    //FIXME: Removing path works not like this anymore
+    /*if (x) { // also remove the UNIX socket path
         struct path p;
         int rc;
 
         rc = kern_path(x, 0, &p);
         if (!rc) {
             struct dentry *dir = dget_parent(p.dentry);
-
             mutex_lock_nested(&(dir->d_inode->i_mutex), I_MUTEX_PARENT);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
             rc = vfs_unlink(dir->d_inode, p.dentry, NULL);
@@ -758,7 +757,7 @@ ccnl_lnxkernel_cleanup(void)
             dput(dir);
             path_put(&px);
         }
-    }
+    }*/
     x = NULL;
 }
 
