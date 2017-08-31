@@ -8,7 +8,6 @@ SET( MODULE_NAME
 
 SET( MODULE_SOURCE_FILES
         ccn-lite-lnxkernel.c
-        ccnl-dispatch.c
         )
 
 SET( MODULE_FILE
