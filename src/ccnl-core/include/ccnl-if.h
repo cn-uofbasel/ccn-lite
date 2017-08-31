@@ -79,7 +79,9 @@ struct ccnl_if_s { // interface for packet IO
 void
 ccnl_interface_cleanup(struct ccnl_if_s *i);
 
+#ifndef CCNL_LINUXKERNEL
 int
 ccnl_close_socket(int s);
+#endif
 
 #endif // EOF
