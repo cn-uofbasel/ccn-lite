@@ -8,7 +8,7 @@ SET( MODULE_NAME
 
 SET( MODULE_SOURCE_FILES
         ccn-lite-lnxkernel.c
-        /home/blacksheeep/ccn-lite/src/ccnl-fwd/src/ccnl-dispatch.c
+        ccnl-dispatch.c
         )
 
 SET( MODULE_FILE
@@ -16,7 +16,7 @@ SET( MODULE_FILE
         )
 
 SET( MODULE_OUTPUT_DIR
-        ${CMAKE_BINARY_DIR}/modules/${MODULE_NAME}
+        ${CMAKE_BINARY_DIR}/${MODULE_NAME}
         )
 
 SET( KERNEL_DIR
