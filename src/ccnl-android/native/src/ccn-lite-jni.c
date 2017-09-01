@@ -1,14 +1,11 @@
 // src/android/jni/ccn-lite-jni.c
 
-
-
-
-
 #include "ccn-lite-jni.h"
 #include "ccn-lite-android.h"
 
 
-
+extern int debug_level;
+extern struct ccnl_relay_s theRelay;
 
 JNIEXPORT jstring JNICALL
 Java_ch_unibas_ccn_1lite_1android_CcnLiteAndroid_relayInit(JNIEnv* env,

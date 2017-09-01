@@ -10,6 +10,44 @@ cmake_minimum_required(VERSION 3.4.1)
 # and CMake builds them for you. When you build your app, Gradle
 # automatically packages shared libraries with your APK.
 
+set(CCNL_ANDROID_BASIC_FLAGS
+        -DUSE_DEBUG
+        -DUSE_LOGGING
+        #    -DUSE_SIGNATURES
+        -DUSE_DUP_CHECK
+        #    -DUSE_ECHO
+        -DUSE_HMAC256
+        -DUSE_STATS
+        -DNEEDS_PACKET_CRAFTING
+        -DNEEDS_PREFIX_MATCHING
+        -DUSE_LINKLAYER
+        -DCCNL_ANDROID
+        -DCCNL_UNIX
+        -DUSE_CCNxDIGEST
+        -DUSE_MGMT
+        -DUSE_UNIXSOCKET
+        -DUSE_IPV4
+        -DUSE_IPV6
+        CACHE PATH
+        "basic build flags for CCN-lite"
+        )
+add_definitions(${CCNL_ANDROID_BASIC_FLAGS})
+
+
+set(CCNL_PACKETFORMAT_FLAGS
+        -DUSE_SUITE_NDNTLV
+        -DUSE_SUITE_CCNB
+        -DUSE_SUITE_CCNTLV
+        -DUSE_SUITE_CISTLV
+        -DUSE_SUITE_IOTTLV
+        -DUSE_SUITE_LOCALRPC
+        #    -DUSE_SUITE_COMPRESSED
+        CACHE PATH
+        "packet format flags for CCN-lite"
+        )
+add_definitions(${CCNL_PACKETFORMAT_FLAGS})
+
+
 include_directories(include ../../ccnl-core/include ../../ccnl-pkt/include ../../ccnl-fwd/include ../../ccnl-unix/include ../../ccnl-nfn/include ../../ccnl-pkt-compression/include)
 
 file(GLOB JNISOURCE "src/*.c"

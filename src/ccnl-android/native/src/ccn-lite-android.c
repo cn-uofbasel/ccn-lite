@@ -24,37 +24,6 @@
 
 #include "ccn-lite-android.h"
 
-#define CCNL_UNIX
-#define CCNL_ANDROID
-
-// #define USE_CCNxDIGEST
-#define USE_DEBUG                      // must select this for USE_MGMT
-#define USE_DEBUG_MALLOC
-#define USE_DUP_CHECK
-#define USE_ECHO
-#define USE_LINKLAYER                   // we co-use addr formatting for BTLE
-//#define USE_FRAG
-#define USE_LOGGING
-#define USE_HMAC256
-#define USE_HTTP_STATUS
-#define USE_IPV4
-#define USE_MGMT
-// #define USE_NACK
-// #define USE_NFN
-// #define USE_NFN_NSTRANS
-// #define USE_NFN_MONITOR
-// #define USE_SCHEDULER
-#define USE_STATS
-#define USE_SUITE_CCNB                 // must select this for USE_MGMT
-#define USE_SUITE_CCNTLV
-#define USE_SUITE_IOTTLV
-#define USE_SUITE_NDNTLV
-// #define USE_SUITE_LOCALRPC
-// #define USE_UNIXSOCKET
-// #define USE_SIGNATURES
-
-#define NEEDS_PREFIX_MATCHING
-#define NEEDS_PACKET_CRAFTING
 
 
 #include "ccnl-defs.h"
