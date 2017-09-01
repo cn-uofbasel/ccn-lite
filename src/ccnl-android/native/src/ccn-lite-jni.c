@@ -1,15 +1,13 @@
 // src/android/jni/ccn-lite-jni.c
 
-#include <string.h>
-#include <jni.h>
 
-int jni_bleSend(unsigned char *data, int len);
 
-#include "../../ccn-lite-android.c"
 
-static JavaVM *jvm;
-static jclass ccnLiteClass;
-static jobject ccnLiteObject;
+
+#include "ccn-lite-jni.h"
+#include "ccn-lite-android.h"
+
+
 
 
 JNIEXPORT jstring JNICALL

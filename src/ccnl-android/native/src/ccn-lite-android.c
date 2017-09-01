@@ -20,20 +20,9 @@
  * 2015-04-29 created
  */
 
-#include <dirent.h>
-#include <fnmatch.h>
-#include <jni.h>
-#include <pthread.h>
-#include <regex.h>
 
-#include <arpa/inet.h>
-#include <linux/if.h>
-#include <linux/in.h>
-#include <linux/sockios.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
-#include <android/looper.h>
+#include "ccn-lite-android.h"
 
 #define CCNL_UNIX
 #define CCNL_ANDROID
@@ -67,12 +56,11 @@
 #define NEEDS_PREFIX_MATCHING
 #define NEEDS_PACKET_CRAFTING
 
-#include "../ccnl-os-includes.h" //TODO: 
 
 #include "ccnl-defs.h"
-// #include "ccnl-core.h"
+#include "ccnl-core.h"
 
-//#include "ccnl-ext.h"
+#include "ccnl-defs.h"
 #include "ccnl-os-time.h"
 #include "ccnl-logging.h"
 
@@ -88,18 +76,12 @@ unsigned char keyid[32];
 #define local_producer(...)             0
 #define cache_strategy_remove(...)      0
 
-#include "../ccnl-core.c" //TODO: 
-#include "../ccnl-ext-echo.c" //TODO: 
-#include "../ccnl-ext-hmac.c" //TODO: 
-#include "../ccnl-ext-http.c" //TODO: 
+
 
 #include "ccnl-localrpc.h"
-#include "ccnl-ext-mgmt.c" //TODO: 
-#include "ccnl-ext-nfn.c" //TODO: 
-#include "ccnl-ext-nfnmonitor.c" //TODO: 
 #include "ccnl-sched.h"
 #include "ccnl-frag.h"
-#include "../ccnl-ext-crypto.c" //TODO: 
+
 
 // ----------------------------------------------------------------------
 
@@ -210,7 +192,7 @@ ccnl_ll_TX(struct ccnl_relay_s *ccnl, struct ccnl_if_s *ifc,
     rc = 0; // just to silence a compiler warning (if USE_DEBUG is not set)
 }
 
-void
+int
 ccnl_close_socket(int s)
 {
     struct sockaddr_un su;
@@ -224,6 +206,7 @@ ccnl_close_socket(int s)
 #endif
 
     close(s);
+    return 0;
 }
 
 // ----------------------------------------------------------------------
