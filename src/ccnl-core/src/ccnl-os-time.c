@@ -31,6 +31,21 @@
 
 struct ccnl_timer_s *eventqueue;
 
+
+#ifdef CCNL_RIOT
+#include <xtimer.h>
+
+int gettimeofday(struct timeval *__restrict __p, void *__restrict __tz)
+{
+    (void) __tz;
+    uint64_t now = xtimer_now_usec64();
+    __p->tv_sec = div_u64_by_1000000(now);
+    __p->tv_usec = now - (__p->tv_sec * US_PER_SEC);
+
+    return 0;
+}
+#endif
+
 #ifdef CCNL_ARDUINO
 
 double CCNL_NOW(void) { return (double) millis() / Hz; }

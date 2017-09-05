@@ -232,30 +232,6 @@ enum {
 #endif
 // ----------------------------------------------------------------------
 
-#ifdef USE_WPAN
-/* TODO: remove when af_ieee802154.h is in linux mainline */
-#define IEEE802154_ADDR_LEN 8
-
-typedef enum {
-    IEEE802154_ADDR_NONE = 0x0,
-    IEEE802154_ADDR_SHORT = 0x2,
-    IEEE802154_ADDR_LONG = 0x3,
-} wpan_addr_type_t;
-
-struct ieee802154_addr_sa {
-    int addr_type;
-    uint16_t pan_id;
-    union {
-        uint8_t hwaddr[IEEE802154_ADDR_LEN];
-        uint16_t short_addr;
-    } addr;
-};
-
-struct sockaddr_ieee802154 {
-    sa_family_t family;
-    struct ieee802154_addr_sa addr;
-};
-#endif
 
 #ifdef USE_CCNxDIGEST
 #  define compute_ccnx_digest(buf) SHA256(buf->data, buf->datalen, NULL)

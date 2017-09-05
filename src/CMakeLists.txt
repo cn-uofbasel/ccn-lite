@@ -81,9 +81,11 @@ endif()
 
 if (NOT DEFINED CCNL_RIOT)
     add_definitions(${CCNL_NFN_FLAGS})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g -pedantic")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g")
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror -std=c99 -g -pedantic")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
 
 #add_subdirectory(ccnl-addons)
