@@ -696,7 +696,7 @@ getPrefix(unsigned char *data, int datalen, int *suite)
        DEBUGMSG(ERROR, "Error in prefix extract\n");
        return NULL;
     }
-    prefix = pkt->pfx;
+    prefix = ccnl_prefix_dup(pkt->pfx);
     pkt->pfx = NULL;
     ccnl_pkt_free(pkt);
     return prefix;
