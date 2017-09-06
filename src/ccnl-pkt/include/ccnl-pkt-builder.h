@@ -66,6 +66,11 @@ int
 ccnl_isFragment(unsigned char *buf, int len, int suite);
 
 #ifdef NEEDS_PACKET_CRAFTING
+
+struct ccnl_content_s *
+ccnl_mkContentObject(struct ccnl_prefix_s *name,
+                     unsigned char *payload, int paylen);
+
 struct ccnl_buf_s*
 ccnl_mkSimpleContent(struct ccnl_prefix_s *name,
                      unsigned char *payload, int paylen, int *payoffset);
