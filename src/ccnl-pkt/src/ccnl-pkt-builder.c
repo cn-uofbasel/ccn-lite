@@ -224,7 +224,17 @@ ccnl_isFragment(unsigned char *buf, int len, int suite)
 
 #ifdef NEEDS_PACKET_CRAFTING
 
-void ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp, int *len, int *offs);
+struct ccnl_interest_s *
+ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce)
+{
+    struct ccnl_interest_s *i = (struct ccnl_interest_s *) ccnl_calloc(1,
+                                                                       sizeof(struct ccnl_interest_s));
+    i->pkt->buf = ccnl_mkSimpleInterest(name, nonce);
+    i->pkt->pfx = ccnl_prefix_dup(name);
+    i->flags |= CCNL_PIT_COREPROPAGATES;
+    i->from = NULL;
+    return i;
+}
 
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce)

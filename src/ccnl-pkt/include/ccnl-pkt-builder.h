@@ -79,8 +79,17 @@ void
 ccnl_mkContent(struct ccnl_prefix_s *name, unsigned char *payload, int paylen, unsigned char *tmp,
                int *len, int *contentpos, int *offs);
 
+
+struct ccnl_interest_s *
+ccnl_mkInterestObject(struct ccnl_prefix_s *name, int *nonce);
+
 struct ccnl_buf_s*
 ccnl_mkSimpleInterest(struct ccnl_prefix_s *name, int *nonce);
+
+void
+ccnl_mkInterest(struct ccnl_prefix_s *name, int *nonce, unsigned char *tmp,
+                int *len, int *offs);
+
 #endif
 
 #endif //CCNL_PKT_BUILDER
