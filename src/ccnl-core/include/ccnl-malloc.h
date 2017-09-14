@@ -26,6 +26,7 @@
 #ifndef CCNL_LINUXKERNEL
 #include <stdlib.h>
 #include <string.h>
+#include "ccnl-os-time.h"
 #endif //CCNL_LINUXKERNEL
 
 

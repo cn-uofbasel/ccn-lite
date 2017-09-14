@@ -37,6 +37,7 @@
 
 #ifdef USE_LOGGING
 #ifndef CCNL_LINUXKERNEL
+#include "ccnl-malloc.h"
 #include <stdio.h>
 #endif
 //#include "ccnl-os-time.h"

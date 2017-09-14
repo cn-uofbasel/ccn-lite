@@ -20,6 +20,7 @@
  * 2017-06-16 created
  */
 #include "ccnl-malloc.h"
+#include "ccnl-logging.h"
 
 #ifdef USE_DEBUG_MALLOC
 

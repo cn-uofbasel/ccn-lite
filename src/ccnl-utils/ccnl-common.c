@@ -68,11 +68,12 @@
 #include "ccnl-pkt-builder.h"
 
 int debug_level = WARNING;
-
+#ifndef USE_DEBUG_MALLOC
 #define ccnl_malloc(s)                  malloc(s)
 #define ccnl_calloc(n,s)                calloc(n,s)
 #define ccnl_realloc(p,s)               realloc(p,s)
 #define ccnl_free(p)                    free(p)
+#endif //USE_DEBUG_MALLOC
 #define free_2ptr_list(a,b)     ccnl_free(a), ccnl_free(b)
 
 #define ccnl_prefix_to_path(P) ccnl_prefix_to_path_detailed(P, 1, 0, 0)
