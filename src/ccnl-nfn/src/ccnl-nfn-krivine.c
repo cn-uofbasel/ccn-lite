@@ -203,6 +203,7 @@ int choose_parameter(struct configuration_s *config){
 
     DEBUGMSG(DEBUG, "choose_parameter(%d)\n", param_to_choose);
     for(num = config->fox_state->num_of_params-1; num >=0; --num){
+	if(!config->fox_state->params[num]) { break;}
         if(config->fox_state->params[num]->type == STACK_TYPE_PREFIX){
             --param_to_choose;
             if(param_to_choose <= 0){
@@ -335,6 +336,7 @@ ZAM_fox(struct ccnl_relay_s *ccnl, struct configuration_s *config,
     for (i = 0; i < config->fox_state->num_of_params; ++i) {
         //pop parameter from stack
         config->fox_state->params[i] = pop_from_stack(&config->result_stack);
+	if(!config->fox_state->params[i]) { break ; } 
         switch (config->fox_state->params[i]->type) {
         case STACK_TYPE_INT:
             DEBUGMSG(DEBUG, "  info: Parameter %d %d\n", i,
