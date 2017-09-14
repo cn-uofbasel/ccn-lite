@@ -502,8 +502,10 @@ ccnl_nfn_interest_remove(struct ccnl_relay_s *relay, struct ccnl_interest_s *i)
         faceid = face->faceid;
     DEBUGMSG(DEBUG, "ccnl_nfn_interest_remove %d\n", faceid);
 
-    if (faceid < 0)
-        ccnl_free(face);
+    if (faceid < 0){
+       // ccnl_free(face);   //FIXME: why and is this always a duplicated free?
+        face = NULL;
+    }
 #ifdef USE_NACK
     else
         ccnl_nack_reply(relay, i->pkt->pfx, face, i->pkt->suite);
