@@ -506,7 +506,7 @@ ZAM_resolvename(struct configuration_s *config, char *dummybuf,
         add_to_environment(&config->env, name, new_closure(resolveterm, NULL));
 
         ccnl_free(cp);
-        return strdup(contd);
+        return ccnl_strdup(contd);
     }
 
     //check if term can be made available, if yes enter it as a var
