@@ -22,6 +22,10 @@
 #include "ccnl-malloc.h"
 #include "ccnl-logging.h"
 
+#if  defined(__linux__) || defined(__APPLE__)
+#include <string.h>
+#endif
+
 #ifdef USE_DEBUG_MALLOC
 
 #ifdef CCNL_ARDUINO
