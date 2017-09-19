@@ -45,7 +45,7 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
 #ifdef CCNL_ARDUINO
     h->tstamp = tstamp;
 #else
-    h->tstamp = strdup(tstamp);
+    h->tstamp = ccnl_strdup(tstamp);
 #endif
     /*
     if (s == 32) CONSOLE("+++ s=%d %p at %s:%d\n", s,
@@ -146,7 +146,7 @@ debug_free(void *p, const char *fn, int lno)
     }
 #ifndef CCNL_ARDUINO
     if (h->tstamp && *h->tstamp)
-        free(h->tstamp);
+        ccnl_free(h->tstamp);
 #endif
     //free(h);
     // instead of free: do a
