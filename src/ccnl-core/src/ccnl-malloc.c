@@ -44,7 +44,7 @@ debug_malloc(int s, const char *fn, int lno, char *tstamp)
 #ifdef CCNL_ARDUINO
     h->tstamp = tstamp;
 #else
-    h->tstamp = ccnl_strdup(tstamp);
+    h->tstamp = strdup(tstamp);
 #endif
     /*
     if (s == 32) CONSOLE("+++ s=%d %p at %s:%d\n", s,
