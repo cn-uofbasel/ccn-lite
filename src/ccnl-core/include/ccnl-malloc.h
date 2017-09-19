@@ -84,7 +84,7 @@ debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 
 # ifndef CCNL_LINUXKERNEL
 #  define ccnl_malloc(s)        malloc(s)
-    #ifdef __linux__ 
+    #ifndef CCNL_RIOT 
     char* strdup(const char* str);// {
     //    return strcpy( ccnl_malloc( strlen(str)+1), str );
     //}
