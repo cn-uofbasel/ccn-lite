@@ -898,31 +898,42 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (proto && host && port && !strcmp((const char*)proto, "17")) {
         sockunion su;
 #ifdef USE_IPV4
-	if (ip4src != NULL) {
-        DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
-                 ip4src, proto, host, port);
-        su.sa.sa_family = AF_INET;
-#ifdef __linux__
-        inet_pton(AF_INET, (const char*)host, &su.ip4.sin_addr);
-#else
-        inet_aton((const char*)host, &su.ip4.sin_addr);
-#endif
-        su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
-        // not implmented yet: honor the requested ip4src parameter
-	f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_in));
-	}
+        if (ip4src != NULL) {
+            DEBUGMSG(TRACE, "  adding IP face ip4src=%s, proto=%s, host=%s, port=%s\n",
+                    ip4src, proto, host, port);
+            su.sa.sa_family = AF_INET;
+    #ifdef __linux__
+            inet_pton(AF_INET, (const char*)host, &su.ip4.sin_addr);
+    #else
+            inet_aton((const char*)host, &su.ip4.sin_addr);
+    #endif
+            su.ip4.sin_port = htons(strtol((const char*)port, NULL, 0));
+            // not implmented yet: honor the requested ip4src parameter
+        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+                                        &su.sa, sizeof(struct sockaddr_in));
+        }
 #endif
 #ifdef USE_IPV6
-	if (ip6src != NULL) {
-        DEBUGMSG(TRACE, "  adding IP face ip6src=%s, proto=%s, host=%s, port=%s\n",
-                 ip6src, proto, host, port);
-        su.sa.sa_family = AF_INET6;
-        inet_pton(AF_INET6, (const char*)host, &su.ip6.sin6_addr.s6_addr);
-        su.ip6.sin6_port = htons(strtol((const char*)port, NULL, 0));
-        f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
-                                    &su.sa, sizeof(struct sockaddr_in6));
-	}
+        if (ip6src != NULL) {
+            DEBUGMSG(TRACE, "  adding IP face ip6src=%s, proto=%s, host=%s, port=%s\n",
+                    ip6src, proto, host, port);
+            su.sa.sa_family = AF_INET6;
+            inet_pton(AF_INET6, (const char*)host, &su.ip6.sin6_addr.s6_addr);
+            su.ip6.sin6_port = htons(strtol((const char*)port, NULL, 0));
+            f = ccnl_get_face_or_create(ccnl, -1, // from->ifndx,
+                                        &su.sa, sizeof(struct sockaddr_in6));
+        }
+#endif
+#ifdef USE_WPAN
+        if (wpanaddr && wpanpanid) {
+            /* initialize address with 0xFF for broadcast */
+            DEBUGMSG(TRACE, "  adding WPAN face ADDR=%s PANID=%s\n", wpanaddr, wpanpanid);
+            su.sa.sa_family = AF_IEEE802154;
+            su.wpan.addr.addr_type = IEEE802154_ADDR_SHORT;
+            su.wpan.addr.pan_id = strtol((const char*)wpanpanid, NULL, 0);
+            su.wpan.addr.addr.short_addr = strtol((const char*)wpanaddr, NULL, 0);
+            f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.wpan));
+        }
 #endif
     }
 #ifdef USE_UNIXSOCKET
@@ -935,17 +946,7 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
                                     &su.sa, sizeof(struct sockaddr_un));
     }
 #endif
-#ifdef USE_WPAN
-    if (wpanaddr && wpanpanid) {
-         /* initialize address with 0xFF for broadcast */
-         DEBUGMSG(TRACE, "  adding WPAN face ADDR=%s PANID=%s\n", wpanaddr, wpanpanid);
-         su.sa.sa_family = AF_IEEE802154;
-         su.wpan.addr.addr_type = IEEE802154_ADDR_SHORT;
-         su.wpan.addr.pan_id = strtol((const char*)wpanpanid, NULL, 0);
-         su.wpan.addr.addr.short_addr = strtol((const char*)wpanaddr, NULL, 0);
-         f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.wpan));
-    }
-#endif
+
 
     if (f) {
         int flagval = flags ?
