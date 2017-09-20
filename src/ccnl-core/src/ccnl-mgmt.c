@@ -939,11 +939,11 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
     if (wpanaddr && wpanpanid) {
          /* initialize address with 0xFF for broadcast */
          DEBUGMSG(TRACE, "  adding WPAN face ADDR=%s PANID=%s\n", wpanaddr, wpanpanid);
-         sun.sa.sa_family = AF_IEEE802154;
-         sun.wpan.addr.addr_type = IEEE802154_ADDR_SHORT;
-         sun.wpan.addr.pan_id = strtol(wpanpanid, NULL, 0);
-         sun.wpan.addr.addr.short_addr = strtol(wpanaddr, NULL, 0);
-         f = ccnl_get_face_or_create(ccnl, -1, &sun.sa, sizeof(sun.wpan));
+         su.sa.sa_family = AF_IEEE802154;
+         su.wpan.addr.addr_type = IEEE802154_ADDR_SHORT;
+         su.wpan.addr.pan_id = strtol((const char*)wpanpanid, NULL, 0);
+         su.wpan.addr.addr.short_addr = strtol((const char*)wpanaddr, NULL, 0);
+         f = ccnl_get_face_or_create(ccnl, -1, &su.sa, sizeof(su.wpan));
     }
 #endif
 
