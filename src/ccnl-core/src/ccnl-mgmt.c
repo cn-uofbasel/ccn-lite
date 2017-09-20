@@ -895,7 +895,8 @@ ccnl_mgmt_newface(struct ccnl_relay_s *ccnl, struct ccnl_buf_s *orig,
         }
     } else
 #endif
-    if (proto && host && port && !strcmp((const char*)proto, "17")) {
+    if ( (proto && host && port && !strcmp((const char*)proto, "17")) ||
+                    (wpanaddr && wpanpanid) ) {
         sockunion su;
 #ifdef USE_IPV4
         if (ip4src != NULL) {
