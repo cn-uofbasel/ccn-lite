@@ -90,7 +90,7 @@ getBaseName(char *fn)
 }
 
 void
-debug_memdump()
+debug_memdump(void)
 {
     struct mhdr *h;
 
