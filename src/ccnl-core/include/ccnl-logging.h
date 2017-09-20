@@ -178,7 +178,7 @@ char *
 getBaseName(char *fn);
 
 void
-debug_memdump();
+debug_memdump(void);
 
 #endif //USE_DEBUG_MALLOC
 #endif //USE_DEBUG
