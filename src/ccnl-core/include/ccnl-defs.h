@@ -67,8 +67,11 @@
 #define CCNL_FACE_TIMEOUT       150 // sec
 
 #define CCNL_DEFAULT_MAX_CACHE_ENTRIES  0   // means: no content caching
+#ifdef CCNL_RIOT
+#define CCNL_MAX_NONCES                 -1 // -1 --> detect dups by PIT
+#else //!CCNL_RIOT
 #define CCNL_MAX_NONCES                 256 // for detected dups
-
+#endif //CCNL_RIOT
 
 enum {
 #ifdef USE_SUITE_CCNB

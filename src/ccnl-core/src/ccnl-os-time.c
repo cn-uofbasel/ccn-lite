@@ -103,7 +103,7 @@ timestamp(void)
         cp[5] = '\0';
     else while (strlen(cp) < 5)
         strcat(cp, "0");
-
+        
     return ts;
 }
 
