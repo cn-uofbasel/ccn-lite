@@ -71,11 +71,15 @@ debug_calloc(int n, int s, const char *fn, int lno, char *tstamp);
 void*
 debug_strdup(const char *s, const char *fn, int lno, char *tstamp);
 
+#ifndef CCNL_RIOT
+
 #  define ccnl_malloc(s)        debug_malloc(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_calloc(n,s)      debug_calloc(n, s, __FILE__, __LINE__,timestamp())
 #  define ccnl_realloc(p,s)     debug_realloc(p, s, __FILE__, __LINE__)
 #  define ccnl_strdup(s)        debug_strdup(s, __FILE__, __LINE__,timestamp())
 #  define ccnl_free(p)          debug_free(p, __FILE__, __LINE__)
+
+#endif //CCNL_RIOT
 
 #endif // CCNL_ARDUINO
 
